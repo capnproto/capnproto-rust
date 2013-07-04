@@ -20,7 +20,7 @@ the binary `capnpc-rust`. The binary may then be used as a plug-in to
 the Cap'n Proto compiler, like this:
 
 ```
-$ capnpc -I./../capnproto/c++/src -o ./capnpc-rust ../capnproto/c++/src/capnp/benchmark/catrank.capnp
+$ capnpc -o ./capnpc-rust ../capnproto/c++/src/capnp/benchmark/catrank.capnp
 ```
 
 Currently, this just prints to stdout some information about the input
