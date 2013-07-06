@@ -90,6 +90,12 @@ impl StructRef {
         self.dataSize.get() as WordCount +
             self.ptrCount.get() as WordCount * WORDS_PER_POINTER
     }
+
+    #[inline(always)]
+    pub fn setStructSize(&mut self, size : StructSize) {
+        self.dataSize.set(size.data);
+        self.ptrCount.set(size.pointers);
+    }
 }
 
 impl ListRef {
@@ -168,6 +174,12 @@ impl WirePointer {
     pub fn structRef(&self) -> StructRef {
         unsafe { std::cast::transmute(self.upper32Bits) }
     }
+
+    #[inline(always)]
+    pub fn structRefMut<'a>(&'a mut self) -> &'a mut StructRef {
+        unsafe { std::cast::transmute(& self.upper32Bits) }
+    }
+
 
     #[inline(always)]
     pub fn listRef(&self) -> ListRef {
@@ -261,10 +273,21 @@ mod WireHelpers {
 
 
     #[inline(always)]
-    pub fn initStructPointer(reff : WirePointer,
-                             segment : SegmentBuilder,
+    pub fn initStructPointer(location : WordCount,
+                             reff : &mut WirePointer,
+                             segment : @mut SegmentBuilder,
                              size : StructSize) -> StructBuilder {
-        fail!()
+
+        let ptr : WordCount = allocate(location, reff, segment, size.total(), WP_STRUCT);
+        reff.structRefMut().setStructSize(size);
+        StructBuilder {
+            segment : segment,
+            data : ptr * BYTES_PER_WORD,
+            pointers : (ptr + size.data as WordCount) * BYTES_PER_WORD,
+            dataSize : size.data as WordCount32 * (BITS_PER_WORD as BitCount32),
+            pointerCount : size.pointers,
+            bit0Offset : 0
+        }
     }
 
     #[inline(always)]
