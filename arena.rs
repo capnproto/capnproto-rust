@@ -35,6 +35,13 @@ impl SegmentBuilder {
             return Some(result);
         }
     }
+
+    pub fn available(&self) -> WordCount {
+        self.segment.len() * BYTES_PER_WORD - self.pos
+    }
 }
 
 
+pub struct BuilderArena {
+    message : @mut message::MessageBuilder
+}
