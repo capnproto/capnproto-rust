@@ -9,14 +9,17 @@ pub struct SegmentReader<'self> {
 
 
 pub struct SegmentBuilder {
+    messageBuilder : @mut message::MessageBuilder,
     segment : ~[u8],
     pos : WordCount
 }
 
 impl SegmentBuilder {
 
-    pub fn new(size : ByteCount) -> SegmentBuilder {
+    pub fn new(messageBuilder : @mut message::MessageBuilder,
+               size : ByteCount) -> SegmentBuilder {
         SegmentBuilder {
+            messageBuilder : messageBuilder,
             segment : std::vec::from_elem(size, 0),
             pos : 0
         }

@@ -56,29 +56,34 @@ pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICAL
 pub struct MessageBuilder {
     nextSize : uint,
     allocationStrategy : AllocationStrategy,
-    firstSegment : SegmentBuilder,
-    moreSegments : ~[~SegmentBuilder]
+    segments : ~[~SegmentBuilder]
 }
 
 
 impl MessageBuilder {
-    pub fn new(firstSegment : SegmentBuilder, allocationStrategy : AllocationStrategy)
-        -> MessageBuilder {
-        MessageBuilder {
-            nextSize : firstSegment.segment.len(),
+
+/*
+    pub fn new(firstSegment : ~[u8], allocationStrategy : AllocationStrategy)
+        -> @MessageBuilder {
+        @MessageBuilder {
+            nextSize : firstSegment.len(),
             allocationStrategy : allocationStrategy,
             firstSegment : firstSegment,
             moreSegments : ~[]
         }
     }
+*/
 
-    pub fn new_default() -> MessageBuilder {
-        MessageBuilder {
+    pub fn new_default() -> @mut MessageBuilder {
+        let result = @mut MessageBuilder {
             nextSize : SUGGESTED_FIRST_SEGMENT_WORDS,
             allocationStrategy : SUGGESTED_ALLOCATION_STRATEGY,
-            firstSegment : SegmentBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS * BYTES_PER_WORD),
-            moreSegments : ~[]
-        }
+            segments : ~[]
+        };
+        result.segments.push(
+            ~SegmentBuilder::new(result, SUGGESTED_FIRST_SEGMENT_WORDS * BYTES_PER_WORD));
+
+        result
     }
 
     pub fn allocateSegment<'a>(&'a mut self, minimumSize : uint) -> &'a [u8] {

@@ -485,8 +485,8 @@ impl <'self> StructReader<'self>  {
 
 }
 
-pub struct StructBuilder<'self> {
-    segment : &'self SegmentBuilder,
+pub struct StructBuilder {
+    segment : @ mut SegmentBuilder,
     data : ByteCount,
     pointers : WordCount,
     dataSize : BitCount32,
@@ -494,10 +494,10 @@ pub struct StructBuilder<'self> {
     bit0Offset : BitCount8
 }
 
-impl <'self> StructBuilder <'self> {
-    pub fn initRoot<'a>(segment : &'a SegmentBuilder,
-                        location : WordCount,
-                        size : StructSize) -> StructBuilder<'a> {
+impl StructBuilder {
+    pub fn initRoot(segment : @ mut SegmentBuilder,
+                    location : WordCount,
+                    size : StructSize) -> StructBuilder {
         fail!("unimplemented")
     }
 
