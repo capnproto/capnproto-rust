@@ -1,13 +1,19 @@
+#[link(name = "capnpc-rust", vers = "0.0", author = "dwrensha")];
+
+#[crate_type = "bin"];
 
 pub mod common;
 pub mod endian;
 pub mod layout;
 pub mod arena;
 pub mod message;
-pub mod list;
 pub mod serialize;
 
+pub mod list;
 pub mod schema_capnp;
+
+// TODO figure out how to compile capnproto-rust separately as a library.
+
 
 fn typeToString (t : &schema_capnp::Type::Reader) -> ~str {
     use schema_capnp::Type::Body;

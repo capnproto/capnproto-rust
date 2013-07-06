@@ -1,0 +1,19 @@
+#[link(name = "capnproto-rust-test", vers = "0.0", author = "dwrensha")];
+
+#[crate_type = "bin"];
+
+pub mod common;
+pub mod endian;
+pub mod layout;
+pub mod arena;
+pub mod message;
+pub mod serialize;
+
+pub mod list;
+
+
+// TODO figure out how to compile capnproto-rust separately as a library.
+
+fn main() {
+    std::io::println("hello world")
+}
