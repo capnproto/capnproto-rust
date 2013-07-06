@@ -138,12 +138,19 @@ impl WirePointer {
     #[inline(always)]
     pub fn setKindAndTarget(&mut self, kind : WirePointerKind,
                             target : WordCount, thisOffset : WordCount) {
-        self.offsetAndKind.set(((target as u32 - thisOffset as u32 - 1) << 2) | (kind as u32))
+        self.offsetAndKind.set(((target as i32 - thisOffset as i32 - 1) << 2) as u32
+                               | (kind as u32))
     }
 
     #[inline(always)]
     pub fn inlineCompositeListElementCount(&self) -> ElementCount {
         (self.offsetAndKind.get() >> 2) as ElementCount
+    }
+
+
+    #[inline(always)]
+    pub fn farPositionInSegment(&self) -> WordCount {
+        (self.offsetAndKind.get() >> 3) as WordCount
     }
 
     #[inline(always)]
@@ -152,8 +159,9 @@ impl WirePointer {
     }
 
     #[inline(always)]
-    pub fn farPositionInSegment(&self) -> WordCount {
-        (self.offsetAndKind.get() >> 3) as WordCount
+    pub fn setFar(&mut self, isDoubleFar : bool, pos : WordCount) {
+        self.offsetAndKind.set
+            (( pos << 3) as u32 | (isDoubleFar as u32 << 2) | WP_FAR as u32);
     }
 
     #[inline(always)]
@@ -182,7 +190,7 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn allocate(location : WordCount,
-                    reff: &mut WirePointer, segment : &mut SegmentBuilder,
+                    reff: &mut WirePointer, segment : @mut SegmentBuilder,
                     amount : WordCount, kind : WirePointerKind) -> WordCount {
 
         match segment.allocate(amount) {
@@ -192,7 +200,14 @@ mod WireHelpers {
                 // the landing pad for a far pointer.
 
                 let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
-                fail!()
+                let segment = segment.messageBuilder.getSegmentWithAvailable(amountPlusRef);
+                let ptr = segment.allocate(amountPlusRef).unwrap();
+
+
+                
+
+
+                return ptr + POINTER_SIZE_IN_WORDS;
             }
             Some(ptr) => {
                 reff.setKindAndTarget(kind, ptr, location);

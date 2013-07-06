@@ -56,7 +56,7 @@ pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICAL
 pub struct MessageBuilder {
     nextSize : uint,
     allocationStrategy : AllocationStrategy,
-    segments : ~[~SegmentBuilder]
+    segments : ~[@mut SegmentBuilder]
 }
 
 
@@ -81,13 +81,35 @@ impl MessageBuilder {
             segments : ~[]
         };
         result.segments.push(
-            ~SegmentBuilder::new(result, SUGGESTED_FIRST_SEGMENT_WORDS * BYTES_PER_WORD));
+            @mut SegmentBuilder::new(result, SUGGESTED_FIRST_SEGMENT_WORDS * BYTES_PER_WORD));
 
         result
     }
 
-    pub fn allocateSegment<'a>(&'a mut self, minimumSize : uint) -> &'a [u8] {
-        fail!()
+    pub fn allocateSegment(@mut self, minimumSize : uint) -> @mut SegmentBuilder {
+        let size = std::cmp::max(minimumSize, self.nextSize);
+        let result  = @mut SegmentBuilder::new(self, size);
+        self.segments.push(result);
+
+        match self.allocationStrategy {
+            GROW_HEURISTICALLY => { self.nextSize += size; }
+            _ => { }
+        }
+
+        result
+    }
+
+    pub fn getSegmentWithAvailable(@mut self, minimumAvailable : WordCount)
+        -> @mut SegmentBuilder {
+        if (self.segments.last().available() >= minimumAvailable) {
+
+            return self.segments[self.segments.len()];
+
+        } else {
+
+            return self.allocateSegment(minimumAvailable);
+
+        }
     }
 
 }
