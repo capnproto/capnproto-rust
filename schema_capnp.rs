@@ -209,7 +209,7 @@ pub mod Value {
     list_submodule!(schema_capnp, Value)
 
     pub mod Body {
-        use schema_capnp::*;
+//        use schema_capnp::*;
 
         pub enum Reader<'self> {
             voidValue,

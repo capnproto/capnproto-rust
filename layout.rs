@@ -136,6 +136,12 @@ impl WirePointer {
     }
 
     #[inline(always)]
+    pub fn setKindAndTarget(&mut self, kind : WirePointerKind,
+                            target : WordCount, thisOffset : WordCount) {
+        self.offsetAndKind.set(((target as u32 - thisOffset as u32 - 1) << 2) | (kind as u32))
+    }
+
+    #[inline(always)]
     pub fn inlineCompositeListElementCount(&self) -> ElementCount {
         (self.offsetAndKind.get() >> 2) as ElementCount
     }
@@ -173,6 +179,27 @@ mod WireHelpers {
     use common::*;
     use layout::*;
     use arena::*;
+
+    #[inline(always)]
+    pub fn allocate(location : WordCount,
+                    reff: &mut WirePointer, segment : &mut SegmentBuilder,
+                    amount : WordCount, kind : WirePointerKind) -> WordCount {
+
+        match segment.allocate(amount) {
+            None => {
+                // Need to allocate in a new segment. We'll need to
+                // allocate an extra pointer worth of space to act as
+                // the landing pad for a far pointer.
+
+                let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
+                fail!()
+            }
+            Some(ptr) => {
+                reff.setKindAndTarget(kind, ptr, location);
+                return ptr;
+            }
+        }
+    }
 
     #[inline(always)]
     pub fn followFars<'a>(location: WordCount,
@@ -213,6 +240,13 @@ mod WireHelpers {
         }
     }
 
+
+    #[inline(always)]
+    pub fn initStructPointer(reff : WirePointer,
+                             segment : SegmentBuilder,
+                             size : StructSize) -> StructBuilder {
+        fail!()
+    }
 
     #[inline(always)]
     pub fn readStructPointer<'a>(segment: SegmentReader<'a>,
