@@ -8,14 +8,20 @@ pub struct SegmentReader<'self> {
 
 
 pub struct SegmentBuilder<'self> {
-    messageBuilder : &'self message::MessageBuilder,
+    messageBuilder : &'self message::MessageBuilder<'self>,
+    segment : ~[u8],
     pos : WordCount
 }
 
 impl <'self> SegmentBuilder<'self> {
-    pub fn allocate(&mut self, amount : WordCount) -> WordCount {
-        self.pos += amount;
-        fail!("unimplemented")
+    pub fn allocate(&mut self, amount : WordCount) -> Option<WordCount> {
+        if (amount > self.segment.len() - self.pos) {
+            return None;
+        } else {
+            let result = self.pos;
+            self.pos += amount;
+            return Some(result);
+        }
     }
 }
 
