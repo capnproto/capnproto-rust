@@ -108,6 +108,9 @@ pub fn writeMessage(outputStream : @ std::io::Writer,
     }
 
     outputStream.write(table);
-    fail!();
 
+    for message.segments.iter().advance | &segment | {
+        let slice = segment.segment.slice(0, segment.pos);
+        outputStream.write(slice);
+    }
 }
