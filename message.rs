@@ -1,3 +1,5 @@
+use std;
+use common::*;
 use layout;
 
 pub struct ReaderOptions {
@@ -45,4 +47,41 @@ impl <'self> MessageReader<'self> {
 pub struct SegmentReader<'self> {
     messageReader : &'self MessageReader<'self>,
     segment : &'self [u8]
+}
+
+
+pub enum AllocationStrategy {
+    FIXED_SIZE,
+    GROW_HEURISTICALLY
+}
+
+pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
+pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICALLY;
+
+pub struct MallocMessageBuilder {
+    nextSize : uint,
+    firstSegment : ~[u8],
+    moreSegments : Option<~[~[u8]]>
+}
+
+
+impl MallocMessageBuilder {
+    pub fn new(firstSegment : ~[u8], allocationStrategy : AllocationStrategy)
+        -> MallocMessageBuilder {
+        MallocMessageBuilder {
+            nextSize : firstSegment.len(),
+            firstSegment : firstSegment,
+            moreSegments : None
+        }
+    }
+
+    pub fn new_default() -> MallocMessageBuilder {
+        MallocMessageBuilder {
+            nextSize : SUGGESTED_FIRST_SEGMENT_WORDS,
+            firstSegment : std::vec::from_elem(SUGGESTED_FIRST_SEGMENT_WORDS * BYTES_PER_WORD,
+                                               0),
+            moreSegments : None
+        }
+    }
+
 }
