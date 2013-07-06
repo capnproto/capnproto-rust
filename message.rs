@@ -53,19 +53,19 @@ pub enum AllocationStrategy {
 pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
 pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICALLY;
 
-pub struct MessageBuilder<'self> {
+pub struct MessageBuilder {
     nextSize : uint,
     allocationStrategy : AllocationStrategy,
-    firstSegment : ~[u8],
-    moreSegments : ~[~SegmentBuilder<'self>]
+    firstSegment : SegmentBuilder,
+    moreSegments : ~[~SegmentBuilder]
 }
 
 
-impl<'self> MessageBuilder<'self> {
-    pub fn new(firstSegment : ~[u8], allocationStrategy : AllocationStrategy)
+impl MessageBuilder {
+    pub fn new(firstSegment : SegmentBuilder, allocationStrategy : AllocationStrategy)
         -> MessageBuilder {
         MessageBuilder {
-            nextSize : firstSegment.len(),
+            nextSize : firstSegment.segment.len(),
             allocationStrategy : allocationStrategy,
             firstSegment : firstSegment,
             moreSegments : ~[]
@@ -76,8 +76,7 @@ impl<'self> MessageBuilder<'self> {
         MessageBuilder {
             nextSize : SUGGESTED_FIRST_SEGMENT_WORDS,
             allocationStrategy : SUGGESTED_ALLOCATION_STRATEGY,
-            firstSegment : std::vec::from_elem(SUGGESTED_FIRST_SEGMENT_WORDS * BYTES_PER_WORD,
-                                               0),
+            firstSegment : SegmentBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS * BYTES_PER_WORD),
             moreSegments : ~[]
         }
     }

@@ -1,3 +1,4 @@
+use std;
 use common::*;
 use message;
 
@@ -7,13 +8,21 @@ pub struct SegmentReader<'self> {
 }
 
 
-pub struct SegmentBuilder<'self> {
-    messageBuilder : &'self message::MessageBuilder<'self>,
+pub struct SegmentBuilder {
     segment : ~[u8],
     pos : WordCount
 }
 
-impl <'self> SegmentBuilder<'self> {
+impl SegmentBuilder {
+
+    pub fn new(size : ByteCount) -> SegmentBuilder {
+        SegmentBuilder {
+            segment : std::vec::from_elem(size, 0),
+            pos : 0
+        }
+    }
+
+
     pub fn allocate(&mut self, amount : WordCount) -> Option<WordCount> {
         if (amount > self.segment.len() - self.pos) {
             return None;
