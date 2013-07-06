@@ -179,6 +179,11 @@ impl WirePointer {
         unsafe { std::cast::transmute(self.upper32Bits) }
     }
 
+    #[inline(always)]
+    pub fn farRefMut<'a>(&'a mut self) -> &'a mut FarRef {
+        unsafe { std::cast::transmute(& self.upper32Bits) }
+    }
+
 }
 
 
@@ -201,11 +206,10 @@ mod WireHelpers {
 
                 let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
                 let segment = segment.messageBuilder.getSegmentWithAvailable(amountPlusRef);
-                let ptr = segment.allocate(amountPlusRef).unwrap();
+                let ptr : WordCount = segment.allocate(amountPlusRef).unwrap();
 
-
-                
-
+                reff.setFar(false, ptr);
+                reff.farRefMut().segmentId.set(segment.id);
 
                 return ptr + POINTER_SIZE_IN_WORDS;
             }

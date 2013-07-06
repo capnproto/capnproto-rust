@@ -2,6 +2,8 @@ use std;
 use common::*;
 use message;
 
+pub type SegmentId = u32;
+
 pub struct SegmentReader<'self> {
     messageReader : &'self message::MessageReader<'self>,
     segment : &'self [u8]
@@ -11,6 +13,7 @@ pub struct SegmentReader<'self> {
 pub struct SegmentBuilder {
     messageBuilder : @mut message::MessageBuilder,
     segment : ~[u8],
+    id : SegmentId,
     pos : WordCount
 }
 
@@ -21,6 +24,7 @@ impl SegmentBuilder {
         SegmentBuilder {
             messageBuilder : messageBuilder,
             segment : std::vec::from_elem(size, 0),
+            id : messageBuilder.segments.len() as SegmentId,
             pos : 0
         }
     }
