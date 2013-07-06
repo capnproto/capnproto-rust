@@ -112,4 +112,8 @@ impl MessageBuilder {
         }
     }
 
+/*
+    pub fn getSegmentsForOutput<T>(&self, cont : &fn (&[&[u8]]) -> T) -> T {
+    }
+*/
 }

@@ -506,11 +506,7 @@ impl <'self> StructReader<'self>  {
     pub fn getDataField<T:Copy>(&self, offset : ElementCount) -> T {
         if ((offset + 1) * bitsPerElement::<T>() <= self.dataSize) {
             let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
-            unsafe {
-                let wvp : *WireValue<T> =
-                    std::cast::transmute(self.segment.segment.unsafe_ref(totalByteOffset));
-                (*wvp).get()
-            }
+            WireValue::getFromBuf(self.segment.segment, totalByteOffset).get()
         } else {
             fail!("getDataField")
         }
@@ -607,11 +603,8 @@ impl <'self> ListReader<'self> {
     pub fn getDataElement<T:Copy>(&self, index : ElementCount) -> T {
         let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
 
-        unsafe {
-            let wvp : *WireValue<T> =
-                std::cast::transmute(self.segment.segment.unsafe_ref(totalByteOffset));
-            (*wvp).get()
-        }
+        WireValue::getFromBuf(self.segment.segment,
+                              totalByteOffset).get()
     }
 
     pub fn getStructElement(&self, index : ElementCount) -> StructReader<'self> {
