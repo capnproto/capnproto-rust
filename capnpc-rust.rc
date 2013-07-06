@@ -2,7 +2,7 @@
 pub mod common;
 pub mod endian;
 pub mod layout;
-//pub mod arena;
+pub mod arena;
 pub mod message;
 pub mod list;
 pub mod serialize;

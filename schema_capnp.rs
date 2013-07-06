@@ -1,7 +1,5 @@
 pub mod Node {
     use layout::*;
-    use list::*;
-
     use schema_capnp::*;
 
     pub struct Reader<'self> {

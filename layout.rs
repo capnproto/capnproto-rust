@@ -1,6 +1,6 @@
 use common::*;
 use endian::*;
-use message::*;
+use arena::SegmentReader;
 use std;
 
 
@@ -181,7 +181,7 @@ mod WireHelpers {
     use std;
     use common::*;
     use layout::*;
-    use message::*;
+    use arena::*;
 
     #[inline(always)]
     pub fn followFars<'a>(location: WordCount,
