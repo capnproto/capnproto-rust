@@ -130,6 +130,13 @@ impl WirePointer {
     }
 
     #[inline(always)]
+    pub fn getMut<'a>(segment : &'a mut [u8], index : WordCount) -> &'a mut WirePointer {
+        unsafe {
+                std::cast::transmute(segment.unsafe_ref(index * BYTES_PER_WORD))
+        }
+    }
+
+    #[inline(always)]
     pub fn kind(&self) -> WirePointerKind {
         unsafe {
             std::cast::transmute((self.offsetAndKind.get() & 3) as u64)
@@ -574,7 +581,9 @@ impl StructBuilder {
     pub fn initRoot(segment : @ mut SegmentBuilder,
                     location : WordCount,
                     size : StructSize) -> StructBuilder {
-        fail!("unimplemented")
+        WireHelpers::initStructPointer(
+            location, WirePointer::getMut(segment.segment, location), segment, size
+        )
     }
 
 }
