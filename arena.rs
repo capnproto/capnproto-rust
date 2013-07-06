@@ -7,7 +7,16 @@ pub struct SegmentReader<'self> {
 }
 
 
-pub struct SegmentBuilder {
+pub struct SegmentBuilder<'self> {
+    messageBuilder : &'self message::MessageBuilder,
     pos : WordCount
-
 }
+
+impl <'self> SegmentBuilder<'self> {
+    pub fn allocate(&mut self, amount : WordCount) -> WordCount {
+        self.pos += amount;
+        fail!("unimplemented")
+    }
+}
+
+

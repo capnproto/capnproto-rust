@@ -53,7 +53,7 @@ pub enum AllocationStrategy {
 pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
 pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICALLY;
 
-pub struct MallocMessageBuilder {
+pub struct MessageBuilder {
     nextSize : uint,
     allocationStrategy : AllocationStrategy,
     firstSegment : ~[u8],
@@ -61,10 +61,10 @@ pub struct MallocMessageBuilder {
 }
 
 
-impl MallocMessageBuilder {
+impl MessageBuilder {
     pub fn new(firstSegment : ~[u8], allocationStrategy : AllocationStrategy)
-        -> MallocMessageBuilder {
-        MallocMessageBuilder {
+        -> MessageBuilder {
+        MessageBuilder {
             nextSize : firstSegment.len(),
             allocationStrategy : allocationStrategy,
             firstSegment : firstSegment,
@@ -72,8 +72,8 @@ impl MallocMessageBuilder {
         }
     }
 
-    pub fn new_default() -> MallocMessageBuilder {
-        MallocMessageBuilder {
+    pub fn new_default() -> MessageBuilder {
+        MessageBuilder {
             nextSize : SUGGESTED_FIRST_SEGMENT_WORDS,
             allocationStrategy : SUGGESTED_ALLOCATION_STRATEGY,
             firstSegment : std::vec::from_elem(SUGGESTED_FIRST_SEGMENT_WORDS * BYTES_PER_WORD,

@@ -1,6 +1,6 @@
 use common::*;
 use endian::*;
-use arena::SegmentReader;
+use arena::*;
 use std;
 
 
@@ -47,26 +47,17 @@ pub enum Kind {
   UNKNOWN
 }
 
-pub struct StructReader<'self> {
-    segment : SegmentReader<'self>,
-    data : ByteCount,
-    pointers : WordCount,
-    dataSize : BitCount0,
-    pointerCount : WirePointerCount16,
-    bit0Offset : BitCount8,
-    nestingLimit : int
+pub struct StructSize {
+    data : WordCount16,
+    pointers : WirePointerCount16,
+    preferredListEncoding : FieldSize
 }
 
-pub struct ListReader<'self> {
-    segment : SegmentReader<'self>,
-    ptr : ByteCount,
-    elementCount : ElementCount,
-    step : BitCount0,
-    structDataSize : BitCount32,
-    structPointerCount : WirePointerCount16,
-    nestingLimit : int
+impl StructSize {
+    pub fn total(&self) -> WordCount {
+        (self.data as WordCount) + (self.pointers as WordCount) * WORDS_PER_POINTER
+    }
 }
-
 
 pub enum WirePointerKind {
     WP_STRUCT = 0,
@@ -400,6 +391,16 @@ mod WireHelpers {
     }
 }
 
+pub struct StructReader<'self> {
+    segment : SegmentReader<'self>,
+    data : ByteCount,
+    pointers : WordCount,
+    dataSize : BitCount0,
+    pointerCount : WirePointerCount16,
+    bit0Offset : BitCount8,
+    nestingLimit : int
+}
+
 impl <'self> StructReader<'self>  {
     pub fn readRoot<'a>(location : WordCount, segment : SegmentReader<'a>,
                         nestingLimit : int) -> StructReader<'a> {
@@ -482,6 +483,34 @@ impl <'self> StructReader<'self>  {
         fail!("totalSize is unimplemented");
     }
 
+}
+
+pub struct StructBuilder<'self> {
+    segment : SegmentBuilder<'self>,
+    data : ByteCount,
+    pointers : WordCount,
+    dataSize : BitCount32,
+    pointerCount : WirePointerCount16,
+    bit0Offset : BitCount8
+}
+
+impl <'self> StructBuilder <'self> {
+    pub fn initRoot<'a>(segment : SegmentBuilder<'a>,
+                        location : WordCount,
+                        size : StructSize) -> StructBuilder<'a> {
+        fail!("unimplemented")
+    }
+
+}
+
+pub struct ListReader<'self> {
+    segment : SegmentReader<'self>,
+    ptr : ByteCount,
+    elementCount : ElementCount,
+    step : BitCount0,
+    structDataSize : BitCount32,
+    structPointerCount : WirePointerCount16,
+    nestingLimit : int
 }
 
 impl <'self> ListReader<'self> {

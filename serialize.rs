@@ -50,6 +50,7 @@ pub mod InputStreamMessageReader {
         // and possibly crash.
         assert!(totalWords as u64 <= options.traversalLimitInWords);
 
+        // TODO Is this guaranteed to be word-aligned?
         let mut ownedSpace : ~[u8] = std::vec::from_elem(8 * totalWords as uint, 0);
 
 
