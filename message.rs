@@ -5,7 +5,7 @@ pub struct ReaderOptions {
     nestingLimit : uint
 }
 
-pub static defaultReaderOptions : ReaderOptions =
+pub static DEFAULT_READER_OPTIONS : ReaderOptions =
     ReaderOptions { traversalLimitInWords : 8 * 1024 * 1024, nestingLimit : 64 };
 
 pub struct MessageReader<'self> {

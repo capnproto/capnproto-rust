@@ -43,7 +43,7 @@ fn main() {
 
     let inp = std::io::stdin();
 
-    do InputStreamMessageReader::new(inp, message::defaultReaderOptions) | messageReader | {
+    do InputStreamMessageReader::new(inp, message::DEFAULT_READER_OPTIONS) | messageReader | {
         let structReader = messageReader.getRoot();
 
         let codeGeneratorRequest =
