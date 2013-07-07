@@ -31,7 +31,7 @@ pub mod Person {
         }
 
         pub fn setName(&self, value : &str) {
-            fail!();
+            self._builder.setTextField(0, value);
         }
     }
 

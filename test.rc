@@ -28,7 +28,9 @@ fn main() {
     let people = addressbook.initPeople(1);
 
     for std::uint::range(0, people.size()) |ii| {
-        people.get(ii).setId(ii as u32)
+        let person = people.get(ii);
+        person.setId(ii as u32);
+        person.setName("David");
     }
 
     let outStream = std::io::stdout();

@@ -246,6 +246,12 @@ mod WireHelpers {
     }
 
     #[inline(always)]
+    pub fn roundBytesUpToWords(bytes : ByteCount) -> WordCount {
+        // This code assumes 64-bit words.
+        (bytes + 7) / BYTES_PER_WORD
+    }
+
+    #[inline(always)]
     pub fn allocate(refIndex : WordCount,
                     segment : @mut SegmentBuilder,
                     amount : WordCount, kind : WirePointerKind) -> WordCount {
@@ -403,16 +409,30 @@ mod WireHelpers {
         }
     }
 
-/*
-    #[inline(always)]
-    pub fn initTextPointer(refIndex : WirePointerCount, segment : @mut SegmentBuilder,
-                           size : ByteCount) -> 
-*/
 
     #[inline(always)]
     pub fn setTextPointer(refIndex : WirePointerCount, segment : @mut SegmentBuilder,
                           value : &str) {
-        fail!();
+
+        // initTextPointer is rolled in here
+
+        let bytes : &[u8] = value.as_bytes();
+
+        // The byte list must include a NUL terminator
+        let byteSize = bytes.len() + 1;
+
+        let ptr : WordCount = allocate(refIndex, segment, roundBytesUpToWords(byteSize), WP_LIST);
+
+        WirePointer::getMut(segment.segment, refIndex).listRefMut().set(BYTE, byteSize);
+
+        unsafe {
+            let dst : *mut u8 = segment.segment.unsafe_mut_ref(ptr * BYTES_PER_WORD);
+            let src : *u8 = bytes.unsafe_ref(0);
+            std::ptr::copy_memory(dst, src, bytes.len());
+        }
+
+        // null terminate
+        segment.segment[ptr * BYTES_PER_WORD + bytes.len()] = 0;
     }
 
     #[inline(always)]
