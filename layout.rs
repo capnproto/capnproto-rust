@@ -827,10 +827,11 @@ impl ListBuilder {
     pub fn getStructElement(&self, index : ElementCount) -> StructBuilder {
         let indexBit = index * self.step;
         let structData = self.ptr + indexBit / BITS_PER_BYTE;
+        let structPointers = (structData + (self.structDataSize as uint) / BITS_PER_BYTE);
         StructBuilder {
             segment : self.segment,
             data : structData,
-            pointers : structData + (self.structDataSize as uint) / BITS_PER_BYTE,
+            pointers : structPointers / BYTES_PER_WORD,
             dataSize : self.structDataSize,
             pointerCount : self.structPointerCount,
             bit0Offset : (indexBit % BITS_PER_BYTE) as u8
