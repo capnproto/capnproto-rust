@@ -362,7 +362,7 @@ mod WireHelpers {
 
         ListBuilder {
             segment : segment,
-            ptr : ptr,
+            ptr : ptr * BYTES_PER_WORD,
             step : step,
             elementCount : elementCount,
             structDataSize : dataSize as u32,
@@ -401,7 +401,7 @@ mod WireHelpers {
 
         ListBuilder {
             segment : segment,
-            ptr : ptr1,
+            ptr : ptr1 * BYTES_PER_WORD,
             step : wordsPerElement * BITS_PER_WORD,
             elementCount : elementCount,
             structDataSize : elementSize.data as u32 * (BITS_PER_WORD as u32),
@@ -722,7 +722,8 @@ impl StructBuilder {
 
     #[inline(always)]
     pub fn setDataField<T:Copy>(&self, offset : ElementCount, value : T) {
-        WireValue::getFromBufMut(self.segment.segment, offset).set(value);
+        let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
+        WireValue::getFromBufMut(self.segment.segment, totalByteOffset).set(value);
     }
 
     pub fn initListField(&self, ptrIndex : WirePointerCount,

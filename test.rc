@@ -29,7 +29,7 @@ fn main() {
 
     for std::uint::range(0, people.size()) |ii| {
         let person = people.get(ii);
-        person.setId(ii as u32);
+        person.setId(127);
         person.setName("David");
     }
 
