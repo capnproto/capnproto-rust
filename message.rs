@@ -112,8 +112,7 @@ impl MessageBuilder {
         }
     }
 
-/*
-    pub fn getSegmentsForOutput<T>(&self, cont : &fn (&[&[u8]]) -> T) -> T {
+    pub fn initRoot(&self, size : layout::StructSize) -> layout::StructBuilder {
+        layout::StructBuilder::initRoot(self.segments[0], 0, size)
     }
-*/
 }

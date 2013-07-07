@@ -14,6 +14,20 @@ pub mod list;
 
 // TODO figure out how to compile capnproto-rust separately as a library.
 
+
 fn main() {
-    std::io::println("hello world")
+    use message::*;
+    use layout::*;
+
+    std::io::println("hello world");
+
+    let message = MessageBuilder::new_default();
+
+    let size = StructSize{data : 0,
+                          pointers : 1,
+                          preferredListEncoding: FOUR_BYTES, // ?
+                         };
+
+    message.initRoot(size);
+
 }
