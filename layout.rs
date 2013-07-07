@@ -111,9 +111,15 @@ impl ListRef {
         (self.elementSizeAndCount.get() >> 3) as uint
     }
 
-    #[inline(alwyas)]
+    #[inline(always)]
     pub fn inlineCompositeWordCount(&self) -> WordCount {
         self.elementCount()
+    }
+
+    #[inline(always)]
+    pub fn set(&mut self, es : FieldSize, ec : ElementCount) {
+        assert!(ec < (1 << 29), "Lists are limited to 2**29 elements");
+        self.elementSizeAndCount.set(((ec as u32) << 3 ) | (es as u32));
     }
 
 }
@@ -198,10 +204,14 @@ impl WirePointer {
         unsafe { std::cast::transmute(& self.upper32Bits) }
     }
 
-
     #[inline(always)]
     pub fn listRef(&self) -> ListRef {
         unsafe { std::cast::transmute(self.upper32Bits) }
+    }
+
+    #[inline(always)]
+    pub fn listRefMut<'a>(&'a self) -> &'a mut ListRef {
+        unsafe { std::cast::transmute(& self.upper32Bits) }
     }
 
     #[inline(always)]
@@ -222,6 +232,12 @@ mod WireHelpers {
     use common::*;
     use layout::*;
     use arena::*;
+
+    #[inline(always)]
+    pub fn roundBitsUpToWords(bits : BitCount64) -> WordCount {
+        // This code assumes 64-bit words.
+        (bits as uint + 63) / BITS_PER_WORD
+    }
 
     #[inline(always)]
     pub fn allocate(location : WordCount,
@@ -312,6 +328,44 @@ mod WireHelpers {
     }
 
     #[inline(always)]
+    pub fn initListPointer(location : WordCount,
+                           segment : @mut SegmentBuilder,
+                           elementCount : ElementCount,
+                           elementSize : FieldSize) -> ListBuilder {
+        match elementSize {
+            INLINE_COMPOSITE => {
+                fail!("Should have called initStructListPointer() instead")
+            }
+            _ => { }
+        }
+
+        let dataSize : BitCount0 = dataBitsPerElement(elementSize);
+        let pointerCount = pointersPerElement(elementSize);
+        let step = (dataSize + pointerCount * BITS_PER_POINTER);
+        let wordCount = roundBitsUpToWords(elementCount as ElementCount64 * (step as u64));
+        let ptr = allocate(location, segment, wordCount, WP_LIST);
+
+        WirePointer::getMut(segment.segment, location).listRefMut().set(elementSize, elementCount);
+
+        ListBuilder {
+            segment : segment,
+            ptr : fail!(),
+            step : step,
+            elementCount : elementCount,
+            structDataSize : dataSize as u32,
+            structPointerCount : pointerCount as u16
+        }
+    }
+
+    #[inline(always)]
+    pub fn initStructListPointer(location : WordCount,
+                                 segment : @mut SegmentBuilder,
+                                 elementCount : ElementCount,
+                                 elementSize : StructSize) -> ListBuilder {
+        fail!()
+    }
+
+    #[inline(always)]
     pub fn readStructPointer<'a>(segment: SegmentReader<'a>,
                                  location : WordCount,
                                  reff : WirePointer,
@@ -322,7 +376,7 @@ mod WireHelpers {
            fail!("nesting limit exceeded");
         }
 
-        let (ptr, reff, segment)  = followFars(location, reff, segment);
+        let (ptr, reff, segment) = followFars(location, reff, segment);
 
         let dataSizeWords = reff.structRef().dataSize.get();
 
@@ -596,6 +650,13 @@ impl StructBuilder {
         )
     }
 
+    pub fn initListField(&self, ptrIndex : WirePointerCount,
+                         elementSize : FieldSize, elementCount : ElementCount)
+        -> ListBuilder {
+        WireHelpers::initListPointer(self.pointers + ptrIndex,
+                                     self.segment, elementCount, elementSize)
+    }
+
 }
 
 pub struct ListReader<'self> {
@@ -646,4 +707,32 @@ impl <'self> ListReader<'self> {
     }
 }
 
+pub struct ListBuilder {
+    segment : @mut SegmentBuilder,
+    ptr : ByteCount,
+    elementCount : ElementCount,
+    step : BitCount0,
+    structDataSize : BitCount32,
+    structPointerCount : WirePointerCount16
+}
 
+impl ListBuilder {
+
+     #[inline(always)]
+    pub fn getDataElement<T:Copy>(&self, index : ElementCount) -> T {
+        let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
+
+        WireValue::getFromBuf(self.segment.segment,
+                              totalByteOffset).get()
+    }
+
+     #[inline(always)]
+    pub fn setDataElement<T:Copy>(&self, index : ElementCount, value : T) {
+        let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
+
+        WireValue::getFromBufMut(self.segment.segment,
+                                 totalByteOffset).set(value)
+    }
+
+
+}
