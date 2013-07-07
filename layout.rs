@@ -92,7 +92,7 @@ impl StructRef {
     }
 
     #[inline(always)]
-    pub fn setStructSize(&mut self, size : StructSize) {
+    pub fn set(&mut self, size : StructSize) {
         self.dataSize.set(size.data);
         self.ptrCount.set(size.pointers);
     }
@@ -120,6 +120,12 @@ impl ListRef {
     pub fn set(&mut self, es : FieldSize, ec : ElementCount) {
         assert!(ec < (1 << 29), "Lists are limited to 2**29 elements");
         self.elementSizeAndCount.set(((ec as u32) << 3 ) | (es as u32));
+    }
+
+    #[inline(always)]
+    pub fn setInlineComposite(& mut self, wc : WordCount) {
+        assert!(wc < (1 << 29), "Inline composite lists are limited to 2 ** 29 words");
+        self.elementSizeAndCount.set((( wc as u32) << 3) | (wc as u32));
     }
 
 }
@@ -240,7 +246,7 @@ mod WireHelpers {
     }
 
     #[inline(always)]
-    pub fn allocate(location : WordCount,
+    pub fn allocate(refIndex : WordCount,
                     segment : @mut SegmentBuilder,
                     amount : WordCount, kind : WirePointerKind) -> WordCount {
 
@@ -255,7 +261,7 @@ mod WireHelpers {
                 let ptr : WordCount = segment.allocate(amountPlusRef).unwrap();
 
                 {
-                    let reff = WirePointer::getMut(segment.segment, location);
+                    let reff = WirePointer::getMut(segment.segment, refIndex);
                     reff.setFar(false, ptr);
                     reff.farRefMut().segmentId.set(segment.id);
                 }
@@ -263,8 +269,8 @@ mod WireHelpers {
                 return ptr + POINTER_SIZE_IN_WORDS;
             }
             Some(ptr) => {
-                let reff = WirePointer::getMut(segment.segment, location);
-                reff.setKindAndTarget(kind, ptr, location);
+                let reff = WirePointer::getMut(segment.segment, refIndex);
+                reff.setKindAndTarget(kind, ptr, refIndex);
                 return ptr;
             }
         }
@@ -316,7 +322,7 @@ mod WireHelpers {
                              size : StructSize) -> StructBuilder {
 
         let ptr : WordCount = allocate(location, segment, size.total(), WP_STRUCT);
-        WirePointer::getMut(segment.segment, location).structRefMut().setStructSize(size);
+        WirePointer::getMut(segment.segment, location).structRefMut().set(size);
         StructBuilder {
             segment : segment,
             data : ptr * BYTES_PER_WORD,
@@ -328,7 +334,7 @@ mod WireHelpers {
     }
 
     #[inline(always)]
-    pub fn initListPointer(location : WordCount,
+    pub fn initListPointer(refIndex : WordCount,
                            segment : @mut SegmentBuilder,
                            elementCount : ElementCount,
                            elementSize : FieldSize) -> ListBuilder {
@@ -343,13 +349,13 @@ mod WireHelpers {
         let pointerCount = pointersPerElement(elementSize);
         let step = (dataSize + pointerCount * BITS_PER_POINTER);
         let wordCount = roundBitsUpToWords(elementCount as ElementCount64 * (step as u64));
-        let ptr = allocate(location, segment, wordCount, WP_LIST);
+        let ptr = allocate(refIndex, segment, wordCount, WP_LIST);
 
-        WirePointer::getMut(segment.segment, location).listRefMut().set(elementSize, elementCount);
+        WirePointer::getMut(segment.segment, refIndex).listRefMut().set(elementSize, elementCount);
 
         ListBuilder {
             segment : segment,
-            ptr : fail!(),
+            ptr : ptr,
             step : step,
             elementCount : elementCount,
             structDataSize : dataSize as u32,
@@ -358,11 +364,39 @@ mod WireHelpers {
     }
 
     #[inline(always)]
-    pub fn initStructListPointer(location : WordCount,
+    pub fn initStructListPointer(refIndex : WordCount,
                                  segment : @mut SegmentBuilder,
                                  elementCount : ElementCount,
                                  elementSize : StructSize) -> ListBuilder {
-        fail!()
+        match elementSize.preferredListEncoding {
+            INLINE_COMPOSITE => { }
+            otherEncoding => {
+                return initListPointer(refIndex, segment, elementCount, otherEncoding);
+            }
+        }
+
+        let wordsPerElement = elementSize.total();
+
+        // Allocate the list, prefixed by a single WirePointer.
+        let wordCount : WordCount = elementCount * wordsPerElement;
+        let ptr : WordCount = allocate(refIndex, segment,
+                                       POINTER_SIZE_IN_WORDS + wordCount, WP_LIST);
+
+        WirePointer::getMut(segment.segment, refIndex).listRefMut().setInlineComposite(wordCount);
+        WirePointer::getMut(segment.segment, ptr).setKindAndInlineCompositeListElementCount(
+            WP_STRUCT, elementCount);
+        WirePointer::getMut(segment.segment, ptr).structRefMut().set(elementSize);
+
+        let ptr1 = ptr + POINTER_SIZE_IN_WORDS;
+
+        ListBuilder {
+            segment : segment,
+            ptr : ptr1,
+            step : wordsPerElement * BITS_PER_WORD,
+            elementCount : elementCount,
+            structDataSize : elementSize.data as u32 * (BITS_PER_WORD as u32),
+            structPointerCount : elementSize.pointers
+        }
     }
 
     #[inline(always)]
