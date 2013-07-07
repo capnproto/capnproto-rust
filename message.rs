@@ -80,8 +80,9 @@ impl MessageBuilder {
             allocationStrategy : SUGGESTED_ALLOCATION_STRATEGY,
             segments : ~[]
         };
-        result.segments.push(
-            @mut SegmentBuilder::new(result, SUGGESTED_FIRST_SEGMENT_WORDS * BYTES_PER_WORD));
+        let builder =
+            @mut SegmentBuilder::new(result, SUGGESTED_FIRST_SEGMENT_WORDS * BYTES_PER_WORD);
+        result.segments.push(builder);
 
         result
     }
