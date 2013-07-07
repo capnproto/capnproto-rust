@@ -29,12 +29,53 @@ pub mod Person {
         pub fn setId(&self, value : u32) {
             self._builder.setDataField::<u32>(0, value);
         }
+
+        pub fn setName(&self, value : &str) {
+            fail!();
+        }
     }
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 4,
                                                       preferredListEncoding : INLINE_COMPOSITE};
 
     list_submodule!(addressbook_capnp, Person)
+
+    pub mod PhoneNumber {
+        use layout::*;
+//        use addressbook_capnp::*;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn totalSizeInWords(&self) -> uint {
+                self._reader.totalSize() as uint
+            }
+        }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+
+        }
+
+        pub static STRUCT_SIZE : StructSize =
+            StructSize {data : 1, pointers : 1,
+                        preferredListEncoding : INLINE_COMPOSITE};
+
+        list_submodule!(addressbook_capnp, Person::PhoneNumber)
+    }
 }
 
 pub mod AddressBook {

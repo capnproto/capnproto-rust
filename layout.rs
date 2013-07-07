@@ -403,6 +403,18 @@ mod WireHelpers {
         }
     }
 
+/*
+    #[inline(always)]
+    pub fn initTextPointer(refIndex : WirePointerCount, segment : @mut SegmentBuilder,
+                           size : ByteCount) -> 
+*/
+
+    #[inline(always)]
+    pub fn setTextPointer(refIndex : WirePointerCount, segment : @mut SegmentBuilder,
+                          value : &str) {
+        fail!();
+    }
+
     #[inline(always)]
     pub fn readStructPointer<'a>(segment: SegmentReader<'a>,
                                  refIndex : WordCount,
@@ -705,6 +717,10 @@ impl StructBuilder {
         -> ListBuilder {
         WireHelpers::initStructListPointer(self.pointers + ptrIndex,
                                            self.segment, elementCount, elementSize)
+    }
+
+    pub fn setTextField(&self, ptrIndex : WirePointerCount, value : &str) {
+        WireHelpers::setTextPointer(self.pointers + ptrIndex, self.segment, value)
     }
 
 }
