@@ -21,6 +21,15 @@ pub mod Person {
         _builder : StructBuilder
     }
 
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+
+    pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 4,
+                                                      preferredListEncoding : INLINE_COMPOSITE};
+
     list_submodule!(addressbook_capnp, Person)
 }
 
@@ -61,8 +70,9 @@ pub mod AddressBook {
         }
 */
 
-        pub fn initPeople(&self, size : uint) -> uint {
-            fail!()
+        pub fn initPeople(&self, size : uint) -> Person::List::Builder {
+            Person::List::Builder::new(
+                self._builder.initStructListField(0, size, Person::STRUCT_SIZE))
         }
 
     }

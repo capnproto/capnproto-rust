@@ -42,6 +42,20 @@ macro_rules! list_submodule(
                     $capnp::$($m)::+::Reader::new(self.reader.getStructElement(index))
                 }
             }
+
+            pub struct Builder {
+                builder : layout::ListBuilder
+            }
+
+            impl Builder {
+                pub fn new(builder : layout::ListBuilder) -> Builder {
+                    Builder {builder : builder}
+                }
+                pub fn size(&self) -> uint { self.builder.size() }
+                pub fn get(&self, index : uint) -> $capnp::$($m)::+::Builder {
+                    $capnp::$($m)::+::Builder::new(self.builder.getStructElement(index))
+                }
+            }
         }
     );
 )

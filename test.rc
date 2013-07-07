@@ -25,6 +25,10 @@ fn main() {
 
     let addressbook = AddressBook::Builder::new(message.initRoot(AddressBook::STRUCT_SIZE));
 
+    let people = addressbook.initPeople(0);
+
+//    for std::uint::range(0, addressbook.
+
     let outStream = std::io::stdout();
 
     serialize::writeMessage(outStream, message)

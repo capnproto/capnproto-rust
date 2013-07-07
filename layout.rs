@@ -759,7 +759,10 @@ pub struct ListBuilder {
 
 impl ListBuilder {
 
-     #[inline(always)]
+    #[inline(always)]
+    pub fn size(&self) -> ElementCount { self.elementCount }
+
+    #[inline(always)]
     pub fn getDataElement<T:Copy>(&self, index : ElementCount) -> T {
         let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
 
@@ -767,7 +770,7 @@ impl ListBuilder {
                               totalByteOffset).get()
     }
 
-     #[inline(always)]
+    #[inline(always)]
     pub fn setDataElement<T:Copy>(&self, index : ElementCount, value : T) {
         let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
 
@@ -775,5 +778,17 @@ impl ListBuilder {
                                  totalByteOffset).set(value)
     }
 
+    pub fn getStructElement(&self, index : ElementCount) -> StructBuilder {
+        let indexBit = index * self.step;
+        let structData = self.ptr + indexBit / BITS_PER_BYTE;
+        StructBuilder {
+            segment : self.segment,
+            data : structData,
+            pointers : structData + (self.structDataSize as uint) / BITS_PER_BYTE,
+            dataSize : self.structDataSize,
+            pointerCount : self.structPointerCount,
+            bit0Offset : (indexBit % BITS_PER_BYTE) as u8
+        }
+    }
 
 }

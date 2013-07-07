@@ -97,8 +97,28 @@ pub mod Node {
             }
         }
 
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+        }
+
         list_submodule!(schema_capnp, Node::NestedNode)
 
+    }
+
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
     }
 
     list_submodule!(schema_capnp, Node)
@@ -157,6 +177,17 @@ pub mod Type {
         }
     }
 
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+
+
     list_submodule!(schema_capnp, Type)
 
     pub mod Body {
@@ -205,6 +236,17 @@ pub mod Value {
             self._reader.totalSize() as uint
         }
     }
+
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+
 
     list_submodule!(schema_capnp, Value)
 
@@ -262,6 +304,16 @@ pub mod Annotation {
         }
     }
 
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+
     list_submodule!(schema_capnp, Annotation)
 }
 
@@ -289,6 +341,16 @@ pub mod FileNode {
 
     }
 
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+
     list_submodule!(schema_capnp, FileNode)
 
     pub mod Import {
@@ -314,6 +376,16 @@ pub mod FileNode {
 
             pub fn getName(&self) -> &'self str {
                 self._reader.getTextField(0,0,0)
+            }
+        }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
             }
         }
 
@@ -372,6 +444,16 @@ pub mod StructNode {
         }
     }
 
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+
     list_submodule!(schema_capnp, StructNode)
 
     pub mod Member {
@@ -422,6 +504,18 @@ pub mod StructNode {
                 }
             }
         }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+        }
+
+
         list_submodule!(schema_capnp, StructNode::Member)
 
         pub mod Body {
@@ -464,6 +558,17 @@ pub mod StructNode {
                 Value::Reader::new(self._reader.getStructField(1, 0))
             }
         }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+        }
+
         list_submodule!(schema_capnp, StructNode::Field)
     }
 
@@ -494,6 +599,17 @@ pub mod StructNode {
                     self._reader.getListField(0, INLINE_COMPOSITE, 0))
             }
         }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+        }
+
         list_submodule!(schema_capnp, StructNode::Union)
     }
 
@@ -515,6 +631,16 @@ pub mod EnumNode {
 
         pub fn totalSizeInWords(&self) -> uint {
             self._reader.totalSize() as uint
+        }
+    }
+
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
         }
     }
 
@@ -540,6 +666,17 @@ pub mod InterfaceNode {
         }
     }
 
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+
+
     list_submodule!(schema_capnp, InterfaceNode)
 
     pub mod Method {
@@ -557,6 +694,16 @@ pub mod InterfaceNode {
 
             pub fn totalSizeInWords(&self) -> uint {
                 self._reader.totalSize() as uint
+            }
+        }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
             }
         }
 
@@ -589,6 +736,16 @@ pub mod ConstNode {
 
         pub fn getValue(&self) -> Value::Reader<'self>{
             Value::Reader::new(self._reader.getStructField(1, 0))
+        }
+    }
+
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
         }
     }
 
@@ -663,6 +820,16 @@ pub mod AnnotationNode {
         }
 
     }
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+
 
     list_submodule!(schema_capnp, AnnotationNode)
 }
@@ -692,6 +859,17 @@ pub mod CodeGeneratorRequest {
             Node::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, 0))
         }
     }
+
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+
 
     list_submodule!(schema_capnp, CodeGeneratorRequest)
 
