@@ -92,15 +92,15 @@ pub mod InputStreamMessageReader {
 pub fn writeMessage(outputStream : @ std::io::Writer,
                     message : & MessageBuilder) {
 
-    let tableSize : uint = ((message.segments.len() + 2) & (!1)) * BYTES_PER_WORD;
+    let tableSize : uint = ((message.segments.len() + 2) & (!1)) * (BYTES_PER_WORD / 2);
 
     let mut table : ~[u8] = std::vec::from_elem(tableSize, 0);
 
     WireValue::getFromBufMut(table, 0).set((message.segments.len() - 1) as u32);
 
     for std::uint::range(0, message.segments.len()) |i| {
-        WireValue::getFromBufMut(table, i * 4).set(
-            message.segments[i].segment.len() as u32);
+        WireValue::getFromBufMut(table, (i + 1) * 4).set(
+            message.segments[i].pos as u32);
     }
     if (message.segments.len() % 2 == 0) {
         // Set padding.
@@ -110,7 +110,7 @@ pub fn writeMessage(outputStream : @ std::io::Writer,
     outputStream.write(table);
 
     for message.segments.iter().advance | &segment | {
-        let slice = segment.segment.slice(0, segment.pos);
+        let slice = segment.segment.slice(0, segment.pos * BYTES_PER_WORD);
         outputStream.write(slice);
     }
 }
