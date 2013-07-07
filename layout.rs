@@ -214,7 +214,7 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn allocate(location : WordCount,
-                    reff: &mut WirePointer, segment : @mut SegmentBuilder,
+                    segment : @mut SegmentBuilder,
                     amount : WordCount, kind : WirePointerKind) -> WordCount {
 
         match segment.allocate(amount) {
@@ -227,12 +227,16 @@ mod WireHelpers {
                 let segment = segment.messageBuilder.getSegmentWithAvailable(amountPlusRef);
                 let ptr : WordCount = segment.allocate(amountPlusRef).unwrap();
 
-                reff.setFar(false, ptr);
-                reff.farRefMut().segmentId.set(segment.id);
+                {
+                    let reff = WirePointer::getMut(segment.segment, location);
+                    reff.setFar(false, ptr);
+                    reff.farRefMut().segmentId.set(segment.id);
+                }
 
                 return ptr + POINTER_SIZE_IN_WORDS;
             }
             Some(ptr) => {
+                let reff = WirePointer::getMut(segment.segment, location);
                 reff.setKindAndTarget(kind, ptr, location);
                 return ptr;
             }
@@ -281,12 +285,11 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn initStructPointer(location : WordCount,
-                             reff : &mut WirePointer,
                              segment : @mut SegmentBuilder,
                              size : StructSize) -> StructBuilder {
 
-        let ptr : WordCount = allocate(location, reff, segment, size.total(), WP_STRUCT);
-        reff.structRefMut().setStructSize(size);
+        let ptr : WordCount = allocate(location, segment, size.total(), WP_STRUCT);
+        WirePointer::getMut(segment.segment, location).structRefMut().setStructSize(size);
         StructBuilder {
             segment : segment,
             data : ptr * BYTES_PER_WORD,
@@ -578,7 +581,7 @@ impl StructBuilder {
                     location : WordCount,
                     size : StructSize) -> StructBuilder {
         WireHelpers::initStructPointer(
-            location, WirePointer::getMut(segment.segment, location), segment, size
+            location, segment, size
         )
     }
 
