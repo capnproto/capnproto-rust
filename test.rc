@@ -18,16 +18,12 @@ pub mod addressbook_capnp;
 
 fn main() {
     use message::*;
-    use layout::*;
+//    use layout::*;
+    use addressbook_capnp::*;
 
     let message = MessageBuilder::new_default();
 
-    let size = StructSize{data : 0,
-                          pointers : 1,
-                          preferredListEncoding: FOUR_BYTES, // ?
-                         };
-
-    message.initRoot(size);
+    let addressbook = AddressBook::Builder::new(message.initRoot(AddressBook::STRUCT_SIZE));
 
     let outStream = std::io::stdout();
 
