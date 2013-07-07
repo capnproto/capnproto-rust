@@ -277,7 +277,7 @@ mod WireHelpers {
     }
 
     #[inline(always)]
-    pub fn followFars<'a>(location: WordCount,
+    pub fn followFars<'a>(refIndex: WordCount,
                           reff : WirePointer,
                           segment : SegmentReader<'a>)
         -> (WordCount, WirePointer, SegmentReader<'a>) {
@@ -311,18 +311,18 @@ mod WireHelpers {
                     return (pad.farPositionInSegment(), reff, segment);
                 }
             }
-            _ => { (reff.target(location), reff, segment )  }
+            _ => { (reff.target(refIndex), reff, segment )  }
         }
     }
 
 
     #[inline(always)]
-    pub fn initStructPointer(location : WordCount,
+    pub fn initStructPointer(refIndex : WordCount,
                              segment : @mut SegmentBuilder,
                              size : StructSize) -> StructBuilder {
 
-        let ptr : WordCount = allocate(location, segment, size.total(), WP_STRUCT);
-        WirePointer::getMut(segment.segment, location).structRefMut().set(size);
+        let ptr : WordCount = allocate(refIndex, segment, size.total(), WP_STRUCT);
+        WirePointer::getMut(segment.segment, refIndex).structRefMut().set(size);
         StructBuilder {
             segment : segment,
             data : ptr * BYTES_PER_WORD,
@@ -401,7 +401,7 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn readStructPointer<'a>(segment: SegmentReader<'a>,
-                                 location : WordCount,
+                                 refIndex : WordCount,
                                  reff : WirePointer,
                                  defaultValue : uint,
                                  nestingLimit : int) -> StructReader<'a> {
@@ -410,7 +410,7 @@ mod WireHelpers {
            fail!("nesting limit exceeded");
         }
 
-        let (ptr, reff, segment) = followFars(location, reff, segment);
+        let (ptr, reff, segment) = followFars(refIndex, reff, segment);
 
         let dataSizeWords = reff.structRef().dataSize.get();
 
@@ -426,7 +426,7 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn readListPointer<'a>(segment: SegmentReader<'a>,
-                               location : WordCount,
+                               refIndex : WordCount,
                                reff : WirePointer,
                                defaultValue : uint,
                                expectedElementSize : FieldSize,
@@ -435,7 +435,7 @@ mod WireHelpers {
            fail!("nesting limit exceeded");
         }
 
-        let (ptr1, reff, segment) = followFars(location, reff, segment);
+        let (ptr1, reff, segment) = followFars(refIndex, reff, segment);
         let mut ptr = ptr1;
 
         match reff.kind() {
@@ -546,13 +546,13 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn readTextPointer<'a>(segment : SegmentReader<'a>,
-                               location : WordCount,
+                               refIndex : WordCount,
                                reff : WirePointer,
                                defaultValue : uint,
                                defaultSize : ByteCount
                               ) -> &'a str {
 
-        let (ptr, reff, segment) = followFars(location, reff, segment);
+        let (ptr, reff, segment) = followFars(refIndex, reff, segment);
 
         let listRef = reff.listRef();
 
