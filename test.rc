@@ -11,6 +11,7 @@ pub mod serialize;
 
 pub mod list;
 
+pub mod addressbook_capnp;
 
 // TODO figure out how to compile capnproto-rust separately as a library.
 
