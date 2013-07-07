@@ -691,6 +691,13 @@ impl StructBuilder {
                                      self.segment, elementCount, elementSize)
     }
 
+    pub fn initStructListField(&self, ptrIndex : WirePointerCount,
+                               elementCount : ElementCount, elementSize : StructSize)
+        -> ListBuilder {
+        WireHelpers::initStructListPointer(self.pointers + ptrIndex,
+                                           self.segment, elementCount, elementSize)
+    }
+
 }
 
 pub struct ListReader<'self> {

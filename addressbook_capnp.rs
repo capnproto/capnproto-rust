@@ -60,6 +60,11 @@ pub mod AddressBook {
         pub fn initRoot() -> Builder {
         }
 */
+
+        pub fn initPeople(&self, size : uint) -> uint {
+            fail!()
+        }
+
     }
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 1,
