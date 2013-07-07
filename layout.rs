@@ -327,7 +327,7 @@ mod WireHelpers {
         StructBuilder {
             segment : segment,
             data : ptr * BYTES_PER_WORD,
-            pointers : (ptr + size.data as WordCount) * BYTES_PER_WORD,
+            pointers : (ptr + size.data as WordCount),
             dataSize : size.data as WordCount32 * (BITS_PER_WORD as BitCount32),
             pointerCount : size.pointers,
             bit0Offset : 0
@@ -383,7 +383,10 @@ mod WireHelpers {
         let ptr : WordCount = allocate(refIndex, segment,
                                        POINTER_SIZE_IN_WORDS + wordCount, WP_LIST);
 
+        // Initalize the pointer.
         WirePointer::getMut(segment.segment, refIndex).listRefMut().setInlineComposite(wordCount);
+
+        // Initialize the list tag.
         WirePointer::getMut(segment.segment, ptr).setKindAndInlineCompositeListElementCount(
             WP_STRUCT, elementCount);
         WirePointer::getMut(segment.segment, ptr).structRefMut().set(elementSize);
@@ -683,6 +686,11 @@ impl StructBuilder {
         WireHelpers::initStructPointer(
             location, segment, size
         )
+    }
+
+    #[inline(always)]
+    pub fn setDataField<T:Copy>(&self, offset : ElementCount, value : T) {
+        WireValue::getFromBufMut(self.segment.segment, offset).set(value);
     }
 
     pub fn initListField(&self, ptrIndex : WirePointerCount,

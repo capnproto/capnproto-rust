@@ -25,6 +25,10 @@ pub mod Person {
         pub fn new(builder : StructBuilder) -> Builder {
             Builder { _builder : builder }
         }
+
+        pub fn setId(&self, value : u32) {
+            self._builder.setDataField::<u32>(0, value);
+        }
     }
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 4,
