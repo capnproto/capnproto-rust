@@ -107,6 +107,18 @@ impl MessageBuilder {
     }
 
     pub fn initRoot(&self, size : layout::StructSize) -> layout::StructBuilder {
-        layout::StructBuilder::initRoot(self.segments[0], 0, size)
+
+        // Rolled in this stuff form getRootSegment.
+        let rootSegment = self.segments[0];
+        match  rootSegment.allocate(WORDS_PER_POINTER) {
+            None => {fail!("could not allocate root pointer") }
+            Some(location) => {
+                assert!(location == 0,
+                        "First allocated word of new segment was not at offset 0");
+
+                return layout::StructBuilder::initRoot(rootSegment, location, size);
+            }
+        }
+
     }
 }

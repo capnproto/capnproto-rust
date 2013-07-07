@@ -249,6 +249,7 @@ mod WireHelpers {
     pub fn allocate(refIndex : WordCount,
                     segment : @mut SegmentBuilder,
                     amount : WordCount, kind : WirePointerKind) -> WordCount {
+        // TODO zeroObject?
 
         match segment.allocate(amount) {
             None => {
