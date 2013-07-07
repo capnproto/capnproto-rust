@@ -62,29 +62,22 @@ pub struct MessageBuilder {
 
 impl MessageBuilder {
 
-/*
-    pub fn new(firstSegment : ~[u8], allocationStrategy : AllocationStrategy)
-        -> @MessageBuilder {
-        @MessageBuilder {
-            nextSize : firstSegment.len(),
-            allocationStrategy : allocationStrategy,
-            firstSegment : firstSegment,
-            moreSegments : ~[]
-        }
-    }
-*/
-
-    pub fn new_default() -> @mut MessageBuilder {
+    pub fn new(firstSegmentWords : uint, allocationStrategy : AllocationStrategy)
+        -> @mut MessageBuilder {
         let result = @mut MessageBuilder {
-            nextSize : SUGGESTED_FIRST_SEGMENT_WORDS,
-            allocationStrategy : SUGGESTED_ALLOCATION_STRATEGY,
+            nextSize : firstSegmentWords,
+            allocationStrategy : allocationStrategy,
             segments : ~[]
         };
         let builder =
-            @mut SegmentBuilder::new(result, SUGGESTED_FIRST_SEGMENT_WORDS * BYTES_PER_WORD);
+            @mut SegmentBuilder::new(result, firstSegmentWords * BYTES_PER_WORD);
         result.segments.push(builder);
 
         result
+    }
+
+    pub fn new_default() -> @mut MessageBuilder {
+        MessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY)
     }
 
     pub fn allocateSegment(@mut self, minimumSize : uint) -> @mut SegmentBuilder {

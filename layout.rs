@@ -156,8 +156,19 @@ impl WirePointer {
     }
 
     #[inline(always)]
+    pub fn setKindWithZeroOffset(&mut self, kind : WirePointerKind) {
+        self.offsetAndKind.set( kind as u32)
+    }
+
+    #[inline(always)]
     pub fn inlineCompositeListElementCount(&self) -> ElementCount {
         (self.offsetAndKind.get() >> 2) as ElementCount
+    }
+
+    #[inline(always)]
+    pub fn setKindAndInlineCompositeListElementCount(
+        &mut self, kind : WirePointerKind, elementCount : ElementCount) {
+        self.offsetAndKind.set((( elementCount as u32 << 2) | (kind as u32)))
     }
 
 

@@ -19,8 +19,6 @@ fn main() {
     use message::*;
     use layout::*;
 
-    std::io::println("hello world");
-
     let message = MessageBuilder::new_default();
 
     let size = StructSize{data : 0,
@@ -29,5 +27,9 @@ fn main() {
                          };
 
     message.initRoot(size);
+
+    let outStream = std::io::stdout();
+
+    serialize::writeMessage(outStream, message)
 
 }
