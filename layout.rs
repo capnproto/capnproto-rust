@@ -125,7 +125,7 @@ impl ListRef {
     #[inline(always)]
     pub fn setInlineComposite(& mut self, wc : WordCount) {
         assert!(wc < (1 << 29), "Inline composite lists are limited to 2 ** 29 words");
-        self.elementSizeAndCount.set((( wc as u32) << 3) | (wc as u32));
+        self.elementSizeAndCount.set((( wc as u32) << 3) | (INLINE_COMPOSITE as u32));
     }
 
 }
