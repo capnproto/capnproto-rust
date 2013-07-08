@@ -25,13 +25,27 @@ fn main() {
 
     let addressbook = AddressBook::Builder::new(message.initRoot(AddressBook::STRUCT_SIZE));
 
-    let people = addressbook.initPeople(1);
+    let people = addressbook.initPeople(4);
 
-    for std::uint::range(0, people.size()) |ii| {
-        let person = people.get(ii);
-        person.setId(127);
-        person.setName("David");
-    }
+    let person = people.get(0);
+    person.setId(1);
+    person.setName("Alice");
+    person.getEmployment().setEmployer("widgco");
+
+    let person = people.get(1);
+    person.setId(2);
+    person.setName("Bob");
+    person.getEmployment().setSelfEmployed();
+
+    let person = people.get(2);
+    person.setId(3);
+    person.setName("Charlie");
+    person.getEmployment().setUnemployed();
+
+    let person = people.get(3);
+    person.setId(255);
+    person.setName("Diane");
+    person.getEmployment().setSchool("Caltech");
 
     let outStream = std::io::stdout();
 
