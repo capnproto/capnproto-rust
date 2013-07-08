@@ -69,7 +69,7 @@ pub enum WirePointerKind {
 
 pub struct WirePointer {
     offsetAndKind : WireValue<u32>,
-    upper32Bits : WireValue<u32>,
+    upper32Bits : u32,
 }
 
 pub struct StructRef {
@@ -228,6 +228,11 @@ impl WirePointer {
     #[inline(always)]
     pub fn farRefMut<'a>(&'a mut self) -> &'a mut FarRef {
         unsafe { std::cast::transmute(& self.upper32Bits) }
+    }
+
+    #[inline(always)]
+    pub fn isNull(&self) -> bool {
+        (self.offsetAndKind.get() == 0) & (self.upper32Bits == 0)
     }
 
 }
