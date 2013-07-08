@@ -244,16 +244,27 @@ mod WireHelpers {
     use layout::*;
     use arena::*;
 
-    #[inline(always)]
-    pub fn roundBitsUpToWords(bits : BitCount64) -> WordCount {
-        // This code assumes 64-bit words.
-        (bits as uint + 63) / BITS_PER_WORD
-    }
 
     #[inline(always)]
     pub fn roundBytesUpToWords(bytes : ByteCount) -> WordCount {
         // This code assumes 64-bit words.
         (bytes + 7) / BYTES_PER_WORD
+    }
+
+    // The maximum object size is 4GB - 1 byte. If measured in bits,
+    // this would overflow a 32-bit counter, so we need to accept
+    // BitCount64. However, 32 bits is enough for the returned
+    // ByteCounts and WordCounts.
+
+    #[inline(always)]
+    pub fn roundBitsUpToWords(bits : BitCount64) -> WordCount {
+        // This code assumes 64-bit words.
+        ((bits + 63) / (BITS_PER_WORD as u64)) as WordCount
+    }
+
+    #[inline(always)]
+    pub fn roundBitsUpToBytes(bits : BitCount64) -> ByteCount {
+        ((bits + 7) / (BITS_PER_BYTE as u64)) as ByteCount
     }
 
     #[inline(always)]

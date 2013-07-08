@@ -12,13 +12,12 @@ pub mod serialize;
 pub mod list;
 
 pub mod addressbook_capnp;
+pub mod schema_capnp;
 
 // TODO figure out how to compile capnproto-rust separately as a library.
 
-
-fn main() {
+fn addressbook() {
     use message::*;
-//    use layout::*;
     use addressbook_capnp::*;
 
     let message = MessageBuilder::new_default();
@@ -50,5 +49,33 @@ fn main() {
     let outStream = std::io::stdout();
 
     serialize::writeMessage(outStream, message)
+}
+
+fn schema() {
+    use message::*;
+
+    use schema_capnp::*;
+
+    let message = MessageBuilder::new_default();
+
+    let request = CodeGeneratorRequest::Builder::new(
+        message.initRoot(CodeGeneratorRequest::STRUCT_SIZE));
+
+    request.initNodes(1);
+}
+
+
+fn main() {
+
+    let args = std::os::args();
+    if (args.len() < 2) {
+        std::io::println(fmt!("usage: $ %s [addressbook | schema]", args[0]));
+    } else {
+        match args[1] {
+            ~"addressbook" => addressbook(),
+            ~"schema" => schema(),
+            _ => {std::io::println("unrecognized argument") }
+        }
+    }
 
 }

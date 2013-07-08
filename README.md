@@ -41,7 +41,7 @@ has a single `MessageReader` struct and impl.
 
 ## Status
 
-The basic readers are implemented. Bounds checking and read limiting
+The basic readers are implemented. Default values and read limiting
 have been omitted for now. Readers for `schema.capnp` are mostly
 implemented; they are needed so that capnpc-rust can read its input,
 and they will serve as an example for what general generated code will

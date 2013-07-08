@@ -2,11 +2,15 @@ pub mod Node {
     use layout::*;
     use schema_capnp::*;
 
+    pub static STRUCT_SIZE : StructSize = StructSize {data : 3, pointers : 4,
+                                                      preferredListEncoding : INLINE_COMPOSITE};
+
     pub struct Reader<'self> {
         _reader : StructReader<'self>
     }
 
     pub mod Body {
+        use layout::*;
         use schema_capnp::*;
 
         pub enum Reader<'self> {
@@ -16,6 +20,16 @@ pub mod Node {
             interfaceNode(InterfaceNode::Reader<'self>),
             constNode(ConstNode::Reader<'self>),
             annotationNode(AnnotationNode::Reader<'self>)
+        }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
         }
     }
 
@@ -841,6 +855,9 @@ pub mod CodeGeneratorRequest {
     use list::*;
     use schema_capnp::*;
 
+    pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 2,
+                                                      preferredListEncoding : INLINE_COMPOSITE};
+
     pub struct Reader<'self> {
         _reader : StructReader<'self>
     }
@@ -867,6 +884,11 @@ pub mod CodeGeneratorRequest {
     impl Builder {
         pub fn new(builder : StructBuilder) -> Builder {
             Builder { _builder : builder }
+        }
+
+        pub fn initNodes(&self, size : uint) -> Node::List::Builder {
+            Node::List::Builder::new(
+                self._builder.initStructListField(0, size, Node::STRUCT_SIZE))
         }
     }
 
