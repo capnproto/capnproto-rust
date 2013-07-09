@@ -454,9 +454,21 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn readStructPointer<'a>(segment: SegmentReader<'a>,
-                                 refIndex : WordCount,
-                                 defaultValue : uint,
+                                 refIndex : WirePointerCount,
+                                 defaultValue : Option<WordCount>,
                                  nestingLimit : int) -> StructReader<'a> {
+
+        if (WirePointer::get(segment.segment, refIndex).isNull()) {
+            match defaultValue {
+                Some (wp) => {
+                    // XXX what if the default value is on another segment?
+                    if (! WirePointer::get(segment.segment, wp).isNull()) {
+
+                    }
+                }
+                None => { }
+            }
+        }
 
        if (nestingLimit <= 0) {
            fail!("nesting limit exceeded");
@@ -642,7 +654,7 @@ impl <'self> StructReader<'self>  {
         //  the pointer to the struct is at segment[location * 8]
 
         // TODO boundscheck
-        WireHelpers::readStructPointer(segment, location, 0, nestingLimit)
+        WireHelpers::readStructPointer(segment, location, None, nestingLimit)
     }
 
     pub fn getDataSectionSize(&self) -> BitCount0 { self.dataSize }
@@ -677,7 +689,7 @@ impl <'self> StructReader<'self>  {
         }
     }
 
-    pub fn getStructField(&self, ptrIndex : WirePointerCount, defaultValue : uint)
+    pub fn getStructField(&self, ptrIndex : WirePointerCount, defaultValue : Option<WordCount>)
         -> StructReader<'self> {
         let location = self.pointers + ptrIndex;
         WireHelpers::readStructPointer(self.segment, location,

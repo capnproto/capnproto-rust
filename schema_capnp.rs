@@ -76,27 +76,27 @@ pub mod Node {
             match self._reader.getDataField::<u16>(8) {
                 0 => {
                     return Body::fileNode(
-                        FileNode::Reader::new(self._reader.getStructField(3, 0)));
+                        FileNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 1 => {
                     return Body::structNode(
-                        StructNode::Reader::new(self._reader.getStructField(3, 0)));
+                        StructNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 2 => {
                     return Body::enumNode(
-                        EnumNode::Reader::new(self._reader.getStructField(3, 0)));
+                        EnumNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 3 => {
                     return Body::interfaceNode(
-                        InterfaceNode::Reader::new(self._reader.getStructField(3, 0)));
+                        InterfaceNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 4 => {
                     return Body::constNode(
-                        ConstNode::Reader::new(self._reader.getStructField(3, 0)));
+                        ConstNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 5 => {
                     return Body::annotationNode(
-                        AnnotationNode::Reader::new(self._reader.getStructField(3, 0)));
+                        AnnotationNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 _ => fail!("impossible")
             }
@@ -187,7 +187,7 @@ pub mod Type {
                 13 => Body::dataType,
                 14 => {
                     return Body::listType(
-                        Type::Reader::new(self._reader.getStructField(0,0)));
+                        Type::Reader::new(self._reader.getStructField(0, None)));
                 }
                 15 => {
                     return Body::enumType(self._reader.getDataField::<u64>(1));
@@ -327,7 +327,7 @@ pub mod Annotation {
         }
 
         pub fn getValue(&self) -> Value::Reader<'self> {
-            Value::Reader::new(self._reader.getStructField(0,0))
+            Value::Reader::new(self._reader.getStructField(0, None))
         }
     }
 
@@ -527,11 +527,11 @@ pub mod StructNode {
                 match self._reader.getDataField::<u16>(2) {
                     0 => {
                         return Body::fieldMember(
-                            StructNode::Field::Reader::new(self._reader.getStructField(2,0)));
+                            StructNode::Field::Reader::new(self._reader.getStructField(2, None)));
                     }
                     1 => {
                         return Body::unionMember(
-                            StructNode::Union::Reader::new(self._reader.getStructField(2,0)));
+                            StructNode::Union::Reader::new(self._reader.getStructField(2, None)));
                     }
                     _ => fail!("unrecognized discriminant for StructNode::Body")
                 }
@@ -584,11 +584,11 @@ pub mod StructNode {
             }
 
             pub fn getType(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self._reader.getStructField(0, 0))
+                Type::Reader::new(self._reader.getStructField(0, None))
             }
 
             pub fn getDefaultValue(&self) -> Value::Reader<'self> {
-                Value::Reader::new(self._reader.getStructField(1, 0))
+                Value::Reader::new(self._reader.getStructField(1, None))
             }
         }
 
@@ -764,11 +764,11 @@ pub mod ConstNode {
         }
 
         pub fn getType(&self) -> Type::Reader<'self> {
-            Type::Reader::new(self._reader.getStructField(0, 0))
+            Type::Reader::new(self._reader.getStructField(0, None))
         }
 
         pub fn getValue(&self) -> Value::Reader<'self>{
-            Value::Reader::new(self._reader.getStructField(1, 0))
+            Value::Reader::new(self._reader.getStructField(1, None))
         }
     }
 
@@ -805,7 +805,7 @@ pub mod AnnotationNode {
         }
 
         pub fn getType(&self) -> Type::Reader<'self> {
-            Type::Reader::new(self._reader.getStructField(0, 0))
+            Type::Reader::new(self._reader.getStructField(0, None))
         }
 
         pub fn getTargetsFile(&self) -> bool {
