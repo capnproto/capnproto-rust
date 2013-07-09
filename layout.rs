@@ -742,6 +742,11 @@ impl StructBuilder {
         WireValue::getFromBufMut(self.segment.segment, totalByteOffset).set(value);
     }
 
+    pub fn initStructField(&self, ptrIndex : WirePointerCount, size : StructSize)
+        -> StructBuilder {
+        WireHelpers::initStructPointer(self.pointers + ptrIndex, self.segment, size)
+    }
+
     pub fn initListField(&self, ptrIndex : WirePointerCount,
                          elementSize : FieldSize, elementCount : ElementCount)
         -> ListBuilder {

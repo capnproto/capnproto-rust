@@ -30,6 +30,19 @@ pub mod Node {
             pub fn new(builder : StructBuilder) -> Builder {
                 Builder { _builder : builder }
             }
+
+            pub fn initFileNode(&self) -> FileNode::Builder {
+                self._builder.setDataField::<u16>(8, 0);
+                FileNode::Builder::new(
+                    self._builder.initStructField(3, FileNode::STRUCT_SIZE))
+            }
+
+            pub fn initStructNode(&self) -> StructNode::Builder {
+                self._builder.setDataField::<u16>(8, 1);
+                StructNode::Builder::new(
+                    self._builder.initStructField(3, StructNode::STRUCT_SIZE))
+            }
+
         }
     }
 
@@ -335,6 +348,9 @@ pub mod Annotation {
 pub mod FileNode {
     use layout::*;
 
+    pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 1,
+                                                      preferredListEncoding : POINTER};
+
     pub struct Reader<'self> {
         _reader : StructReader<'self>
     }
@@ -424,6 +440,9 @@ pub mod StructNode {
     use layout::*;
     use schema_capnp::*;
     use std;
+
+    pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 1,
+                                                      preferredListEncoding : INLINE_COMPOSITE};
 
     pub struct Reader<'self> {
         _reader : StructReader<'self>

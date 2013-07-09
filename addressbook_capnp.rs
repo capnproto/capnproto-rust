@@ -39,6 +39,16 @@ pub mod Person {
             self._builder.setTextField(0, value);
         }
 
+        pub fn setEmail(&self, value : &str) {
+            self._builder.setTextField(1, value);
+        }
+
+        pub fn initPhones(&self, size : uint) -> PhoneNumber::List::Builder {
+            PhoneNumber::List::Builder::new(
+                self._builder.initStructListField(2, size, PhoneNumber::STRUCT_SIZE))
+        }
+
+
         pub fn getEmployment(&self) -> Employment::Builder {
             Employment::Builder::new(self._builder)
         }
@@ -80,6 +90,12 @@ pub mod Person {
         use layout::*;
 //        use addressbook_capnp::*;
 
+        pub static STRUCT_SIZE : StructSize =
+            StructSize {data : 1, pointers : 1,
+                        preferredListEncoding : INLINE_COMPOSITE};
+
+        list_submodule!(addressbook_capnp, Person::PhoneNumber)
+
         pub struct Reader<'self> {
             _reader : StructReader<'self>
         }
@@ -104,13 +120,24 @@ pub mod Person {
                 Builder { _builder : builder }
             }
 
+            pub fn setNumber(&self, value : &str) {
+                self._builder.setTextField(0, value)
+            }
+
+            pub fn setType(&self, value : Type::Type) {
+                self._builder.setDataField::<u16>(0, value as u16)
+            }
+
         }
 
-        pub static STRUCT_SIZE : StructSize =
-            StructSize {data : 1, pointers : 1,
-                        preferredListEncoding : INLINE_COMPOSITE};
+        pub mod Type {
+            pub enum Type {
+                mobile = 0,
+                home = 1,
+                work = 2
+            }
+        }
 
-        list_submodule!(addressbook_capnp, Person::PhoneNumber)
     }
 }
 
