@@ -301,9 +301,10 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn followFars<'a>(refIndex: WordCount,
-                          reff : WirePointer,
                           segment : SegmentReader<'a>)
         -> (WordCount, WirePointer, SegmentReader<'a>) {
+        let reff = WirePointer::get(segment.segment, refIndex);
+
         match reff.kind() {
             WP_FAR => {
                 let segment =
@@ -454,7 +455,6 @@ mod WireHelpers {
     #[inline(always)]
     pub fn readStructPointer<'a>(segment: SegmentReader<'a>,
                                  refIndex : WordCount,
-                                 reff : WirePointer,
                                  defaultValue : uint,
                                  nestingLimit : int) -> StructReader<'a> {
 
@@ -462,7 +462,7 @@ mod WireHelpers {
            fail!("nesting limit exceeded");
         }
 
-        let (ptr, reff, segment) = followFars(refIndex, reff, segment);
+        let (ptr, reff, segment) = followFars(refIndex, segment);
 
         let dataSizeWords = reff.structRef().dataSize.get();
 
@@ -479,7 +479,6 @@ mod WireHelpers {
     #[inline(always)]
     pub fn readListPointer<'a>(segment: SegmentReader<'a>,
                                refIndex : WordCount,
-                               reff : WirePointer,
                                defaultValue : uint,
                                expectedElementSize : FieldSize,
                                nestingLimit : int ) -> ListReader<'a> {
@@ -487,7 +486,7 @@ mod WireHelpers {
            fail!("nesting limit exceeded");
         }
 
-        let (ptr1, reff, segment) = followFars(refIndex, reff, segment);
+        let (ptr1, reff, segment) = followFars(refIndex, segment);
         let mut ptr = ptr1;
 
         match reff.kind() {
@@ -599,12 +598,11 @@ mod WireHelpers {
     #[inline(always)]
     pub fn readTextPointer<'a>(segment : SegmentReader<'a>,
                                refIndex : WordCount,
-                               reff : WirePointer,
                                defaultValue : uint,
                                defaultSize : ByteCount
                               ) -> &'a str {
 
-        let (ptr, reff, segment) = followFars(refIndex, reff, segment);
+        let (ptr, reff, segment) = followFars(refIndex, segment);
 
         let listRef = reff.listRef();
 
@@ -644,10 +642,7 @@ impl <'self> StructReader<'self>  {
         //  the pointer to the struct is at segment[location * 8]
 
         // TODO boundscheck
-        WireHelpers::readStructPointer(segment, location,
-                                       WirePointer::get(segment.segment, location),
-                                       0, nestingLimit)
-
+        WireHelpers::readStructPointer(segment, location, 0, nestingLimit)
     }
 
     pub fn getDataSectionSize(&self) -> BitCount0 { self.dataSize }
@@ -685,8 +680,7 @@ impl <'self> StructReader<'self>  {
     pub fn getStructField(&self, ptrIndex : WirePointerCount, defaultValue : uint)
         -> StructReader<'self> {
         let location = self.pointers + ptrIndex;
-        let reff = WirePointer::get(self.segment.segment, location);
-        WireHelpers::readStructPointer(self.segment, location, reff,
+        WireHelpers::readStructPointer(self.segment, location,
                                        defaultValue, self.nestingLimit)
     }
 
@@ -695,11 +689,8 @@ impl <'self> StructReader<'self>  {
                         defaultValue : uint) -> ListReader<'self> {
         let location = self.pointers + ptrIndex;
 
-        let reff = WirePointer::get(self.segment.segment, location);
-
         WireHelpers::readListPointer(self.segment,
                                      location,
-                                     reff,
                                      defaultValue,
                                      expectedElementSize, self.nestingLimit)
 
@@ -708,8 +699,7 @@ impl <'self> StructReader<'self>  {
     pub fn getTextField(&self, ptrIndex : WirePointerCount,
                             defaultValue : uint, defaultSize : ByteCount) -> &'self str {
         let location = self.pointers + ptrIndex;
-        let reff = WirePointer::get(self.segment.segment, location);
-        WireHelpers::readTextPointer(self.segment, location, reff, defaultValue, defaultSize)
+        WireHelpers::readTextPointer(self.segment, location, defaultValue, defaultSize)
     }
 
     pub fn totalSize(&self) -> WordCount64 {
