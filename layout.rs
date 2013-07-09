@@ -455,18 +455,26 @@ mod WireHelpers {
     #[inline(always)]
     pub fn readStructPointer<'a>(segment: SegmentReader<'a>,
                                  refIndex : WirePointerCount,
-                                 defaultValue : Option<WordCount>,
+                                 defaultValue : Option<&'a [u8]>,
                                  nestingLimit : int) -> StructReader<'a> {
+
+        let mut segment = segment;
+        let mut refIndex = refIndex;
 
         if (WirePointer::get(segment.segment, refIndex).isNull()) {
             match defaultValue {
-                Some (wp) => {
-                    // XXX what if the default value is on another segment?
-                    if (! WirePointer::get(segment.segment, wp).isNull()) {
+                // A default struct value is always stored in its own
+                // static buffer.
 
-                    }
+                Some (wp) if (! WirePointer::get(wp, 0).isNull()) => {
+                    segment = SegmentReader {messageReader : segment.messageReader,
+                                             segment : wp };
+                    refIndex = 0;
                 }
-                None => { }
+                _ => {
+                    // TODO return default struct reader
+                    fail!()
+                }
             }
         }
 
@@ -689,7 +697,7 @@ impl <'self> StructReader<'self>  {
         }
     }
 
-    pub fn getStructField(&self, ptrIndex : WirePointerCount, defaultValue : Option<WordCount>)
+    pub fn getStructField(&self, ptrIndex : WirePointerCount, defaultValue : Option<&'self [u8]>)
         -> StructReader<'self> {
         let location = self.pointers + ptrIndex;
         WireHelpers::readStructPointer(self.segment, location,
