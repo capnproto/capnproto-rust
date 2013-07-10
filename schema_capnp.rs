@@ -61,7 +61,7 @@ pub mod Node {
         }
 
         pub fn getDisplayName(&self) -> &'self str {
-            self._reader.getTextField(0,0,0)
+            self._reader.getTextField(0, "")
         }
 
         pub fn getScopeId(&self) -> u64 {
@@ -116,7 +116,7 @@ pub mod Node {
             }
 
             pub fn getName(&self) -> &'self str {
-                self._reader.getTextField(0,0,0)
+                self._reader.getTextField(0, "")
             }
 
             pub fn getId(&self) -> u64 {
@@ -405,7 +405,7 @@ pub mod FileNode {
             }
 
             pub fn getName(&self) -> &'self str {
-                self._reader.getTextField(0,0,0)
+                self._reader.getTextField(0, "")
             }
         }
 
@@ -508,7 +508,7 @@ pub mod StructNode {
             }
 
             pub fn getName(&self) -> & 'self str {
-                self._reader.getTextField(0,0,0)
+                self._reader.getTextField(0, "")
             }
 
             pub fn getOrdinal(&self) -> u16 {

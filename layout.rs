@@ -639,10 +639,17 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn readTextPointer<'a>(segment : SegmentReader<'a>,
-                               refIndex : WordCount,
-                               defaultValue : uint,
-                               defaultSize : ByteCount
+                               oRefIndex : Option<WirePointerCount>,
+                               defaultValue : &'a str
+//                               defaultSize : ByteCount
                               ) -> &'a str {
+        let refIndex =
+           if (oRefIndex == None ||
+               WirePointer::get(segment.segment, oRefIndex.unwrap()).isNull()) {
+            return defaultValue;
+        } else {
+            oRefIndex.unwrap()
+        };
 
         let (ptr, reff, segment) = followFars(refIndex, segment);
 
@@ -757,9 +764,14 @@ impl <'self> StructReader<'self>  {
     }
 
     pub fn getTextField(&self, ptrIndex : WirePointerCount,
-                            defaultValue : uint, defaultSize : ByteCount) -> &'self str {
-        let location = self.pointers + ptrIndex;
-        WireHelpers::readTextPointer(self.segment, location, defaultValue, defaultSize)
+                            defaultValue : &'self str) -> &'self str {
+        let oRefIndex =
+            if (ptrIndex >= self.pointerCount as WirePointerCount) {
+                None
+            } else {
+                Some(self.pointers + ptrIndex)
+            };
+        WireHelpers::readTextPointer(self.segment, oRefIndex, defaultValue)
     }
 
     pub fn totalSize(&self) -> WordCount64 {
