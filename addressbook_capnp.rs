@@ -160,7 +160,7 @@ pub mod AddressBook {
         }
 
         pub fn getPeople(&self) -> Person::List::Reader<'self> {
-            Person::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, 0))
+            Person::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, None))
         }
     }
 

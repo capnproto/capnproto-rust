@@ -69,7 +69,7 @@ pub mod Node {
         }
 
         pub fn getNestedNodes(&self) -> NestedNode::List::Reader<'self> {
-            NestedNode::List::Reader::new(self._reader.getListField(1, INLINE_COMPOSITE, 0))
+            NestedNode::List::Reader::new(self._reader.getListField(1, INLINE_COMPOSITE, None))
         }
 
         pub fn getBody(&self) -> Body::Reader<'self> {
@@ -366,7 +366,7 @@ pub mod FileNode {
         }
 
         pub fn getImports(&self) -> Import::List::Reader<'self> {
-            Import::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, 0))
+            Import::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, None))
         }
 
     }
@@ -473,7 +473,7 @@ pub mod StructNode {
         }
 
         pub fn getMembers(&self) -> Member::List::Reader<'self> {
-            Member::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, 0))
+            Member::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, None))
         }
     }
 
@@ -520,7 +520,7 @@ pub mod StructNode {
             }
 
             pub fn getAnnotations(&self) -> Annotation::List::Reader<'self> {
-                Annotation::List::Reader::new(self._reader.getListField(1, INLINE_COMPOSITE, 0))
+                Annotation::List::Reader::new(self._reader.getListField(1, INLINE_COMPOSITE, None))
             }
 
             pub fn getBody(&self) -> Body::Reader<'self> {
@@ -629,7 +629,7 @@ pub mod StructNode {
 
             pub fn getMembers(&self) -> StructNode::Member::List::Reader<'self> {
                 StructNode::Member::List::Reader::new(
-                    self._reader.getListField(0, INLINE_COMPOSITE, 0))
+                    self._reader.getListField(0, INLINE_COMPOSITE, None))
             }
         }
 
@@ -888,11 +888,11 @@ pub mod CodeGeneratorRequest {
         }
 
         pub fn getRequestedFiles(&self) -> PrimitiveList::Reader<'self> {
-            PrimitiveList::Reader::new(self._reader.getListField(1, EIGHT_BYTES, 0))
+            PrimitiveList::Reader::new(self._reader.getListField(1, EIGHT_BYTES, None))
         }
 
         pub fn getNodes(&self) -> Node::List::Reader<'self> {
-            Node::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, 0))
+            Node::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, None))
         }
     }
 

@@ -498,10 +498,32 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn readListPointer<'a>(segment: SegmentReader<'a>,
-                               refIndex : WordCount,
-                               defaultValue : uint,
+                               oRefIndex : Option<WirePointerCount>,
+                               defaultValue : Option<&'a [u8]>,
                                expectedElementSize : FieldSize,
                                nestingLimit : int ) -> ListReader<'a> {
+        let (refIndex, segment) =
+            if (oRefIndex == None ||
+                WirePointer::get(segment.segment, oRefIndex.unwrap()).isNull()) {
+
+                match defaultValue {
+                    // A default list value is always stored in its own
+                    // static buffer.
+
+                    Some (wp) if (! WirePointer::get(wp, 0).isNull()) => {
+                        (0, SegmentReader {messageReader : segment.messageReader,
+                                           segment : wp })
+                    }
+                    _ => {
+                        return ListReader::newDefault(segment);
+                    }
+                }
+        } else {
+            (oRefIndex.unwrap(), segment)
+        };
+
+
+
        if (nestingLimit <= 0) {
            fail!("nesting limit exceeded");
         }
@@ -722,11 +744,13 @@ impl <'self> StructReader<'self>  {
 
     pub fn getListField(&self,
                         ptrIndex : WirePointerCount, expectedElementSize : FieldSize,
-                        defaultValue : uint) -> ListReader<'self> {
-        let location = self.pointers + ptrIndex;
+                        defaultValue : Option<&'self [u8]>) -> ListReader<'self> {
+        let oRefIndex =
+            if (ptrIndex >= self.pointerCount as WirePointerCount)
+            { None } else { Some(self.pointers + ptrIndex) };
 
         WireHelpers::readListPointer(self.segment,
-                                     location,
+                                     oRefIndex,
                                      defaultValue,
                                      expectedElementSize, self.nestingLimit)
 
@@ -804,6 +828,17 @@ pub struct ListReader<'self> {
 }
 
 impl <'self> ListReader<'self> {
+
+    // TODO Can this be cleaned up? It seems silly that we need the
+    // segmentReader argument just to get the messageReader, which
+    // will be unused.
+    pub fn newDefault<'a>(segmentReader : SegmentReader<'a>) -> ListReader<'a> {
+        ListReader { segment : SegmentReader {messageReader : segmentReader.messageReader,
+                                              segment : EMPTY_SEGMENT.slice(0,0)},
+                    ptr : 0, elementCount : 0, step: 0, structDataSize : 0,
+                    structPointerCount : 0, nestingLimit : 0x7fffffff}
+    }
+
 
     #[inline(always)]
     pub fn size(&self) -> ElementCount { self.elementCount }
