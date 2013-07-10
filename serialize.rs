@@ -48,11 +48,11 @@ pub mod InputStreamMessageReader {
             }
         }
 
-        /// Don't accept a message which the receiver couldn't possibly
-        /// traverse without hitting the traversal limit. Without this
-        /// check, a malicious client could transmit a very large
-        /// segment size to make the receiver allocate excessive space
-        /// and possibly crash.
+        //# Don't accept a message which the receiver couldn't possibly
+        //# traverse without hitting the traversal limit. Without this
+        //# check, a malicious client could transmit a very large
+        //# segment size to make the receiver allocate excessive space
+        //# and possibly crash.
         assert!(totalWords as u64 <= options.traversalLimitInWords);
 
         // TODO Is this guaranteed to be word-aligned?
