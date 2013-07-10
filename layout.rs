@@ -247,18 +247,18 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn roundBytesUpToWords(bytes : ByteCount) -> WordCount {
-        // This code assumes 64-bit words.
+        /// This code assumes 64-bit words.
         (bytes + 7) / BYTES_PER_WORD
     }
 
-    // The maximum object size is 4GB - 1 byte. If measured in bits,
-    // this would overflow a 32-bit counter, so we need to accept
-    // BitCount64. However, 32 bits is enough for the returned
-    // ByteCounts and WordCounts.
+    /// The maximum object size is 4GB - 1 byte. If measured in bits,
+    /// this would overflow a 32-bit counter, so we need to accept
+    /// BitCount64. However, 32 bits is enough for the returned
+    /// ByteCounts and WordCounts.
 
     #[inline(always)]
     pub fn roundBitsUpToWords(bits : BitCount64) -> WordCount {
-        // This code assumes 64-bit words.
+        /// This code assumes 64-bit words.
         ((bits + 63) / (BITS_PER_WORD as u64)) as WordCount
     }
 
@@ -275,9 +275,9 @@ mod WireHelpers {
 
         match segment.allocate(amount) {
             None => {
-                // Need to allocate in a new segment. We'll need to
-                // allocate an extra pointer worth of space to act as
-                // the landing pad for a far pointer.
+                /// Need to allocate in a new segment. We'll need to
+                /// allocate an extra pointer worth of space to act as
+                /// the landing pad for a far pointer.
 
                 let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
                 let segment = segment.messageBuilder.getSegmentWithAvailable(amountPlusRef);
@@ -323,9 +323,9 @@ mod WireHelpers {
                     return (pad.target(ptr), pad, segment);
 
                 } else {
-                    // Landing pad is another far pointer. It is
-                    // followed by a tag describing the pointed-to
-                    // object.
+                    /// Landing pad is another far pointer. It is
+                    /// followed by a tag describing the pointed-to
+                    /// object.
 
                     let reff = WirePointer::get(segment.segment, ptr + 1);
 
@@ -401,15 +401,15 @@ mod WireHelpers {
 
         let wordsPerElement = elementSize.total();
 
-        // Allocate the list, prefixed by a single WirePointer.
+        /// Allocate the list, prefixed by a single WirePointer.
         let wordCount : WordCount = elementCount * wordsPerElement;
         let ptr : WordCount = allocate(refIndex, segment,
                                        POINTER_SIZE_IN_WORDS + wordCount, WP_LIST);
 
-        // Initalize the pointer.
+        /// Initalize the pointer.
         WirePointer::getMut(segment.segment, refIndex).listRefMut().setInlineComposite(wordCount);
 
-        // Initialize the list tag.
+        /// Initialize the list tag.
         WirePointer::getMut(segment.segment, ptr).setKindAndInlineCompositeListElementCount(
             WP_STRUCT, elementCount);
         WirePointer::getMut(segment.segment, ptr).structRefMut().set(elementSize);
@@ -435,7 +435,7 @@ mod WireHelpers {
 
         let bytes : &[u8] = value.as_bytes();
 
-        // The byte list must include a NUL terminator
+        /// The byte list must include a NUL terminator
         let byteSize = bytes.len() + 1;
 
         let ptr : WordCount = allocate(refIndex, segment, roundBytesUpToWords(byteSize), WP_LIST);
@@ -560,15 +560,15 @@ mod WireHelpers {
                 assert!(size * wordsPerElement <= wordCount,
                        "INLINE_COMPOSITE list's elements overrun its word count");
 
-                // If a struct list was not expected, then presumably
-                // a non-struct list was upgraded to a struct list. We
-                // need to manipulate the pointer to point at the
-                // first field of the struct. Together with the
-                // "stepBits", this will allow the struct list to be
-                // accessed as if it were a primitive list without
-                // branching.
+                /// If a struct list was not expected, then presumably
+                /// a non-struct list was upgraded to a struct list.
+                /// We need to manipulate the pointer to point at the
+                /// first field of the struct. Together with the
+                /// "stepBits", this will allow the struct list to be
+                /// accessed as if it were a primitive list without
+                /// branching.
 
-                // Check whether the size is compatible.
+                /// Check whether the size is compatible.
                 match expectedElementSize {
                     VOID => {}
                     BIT => fail!("Expected a bit list, but got a list of structs"),
@@ -596,10 +596,10 @@ mod WireHelpers {
             }
             _ => {
 
-                // This is a primitive or pointer list, but all such
-                // lists can also be interpreted as struct lists. We
-                // need to compute the data size and pointer count for
-                // such structs.
+                /// This is a primitive or pointer list, but all such
+                /// lists can also be interpreted as struct lists. We
+                /// need to compute the data size and pointer count for
+                /// such structs.
                 let dataSize = dataBitsPerElement(listRef.elementSize());
                 let pointerCount = pointersPerElement(listRef.elementSize());
                 let step = dataSize + pointerCount * BITS_PER_POINTER;
@@ -607,13 +607,13 @@ mod WireHelpers {
                 // TODO bounds check
 
 
-                // Verify that the elements are at least as large as
-                // the expected type. Note that if we expected
-                // INLINE_COMPOSITE, the expected sizes here will be
-                // zero, because bounds checking will be performed at
-                // field access time. So this check here is for the
-                // case where we expected a list of some primitive or
-                // pointer type.
+                /// Verify that the elements are at least as large as
+                /// the expected type. Note that if we expected
+                /// INLINE_COMPOSITE, the expected sizes here will be
+                /// zero, because bounds checking will be performed at
+                /// field access time. So this check here is for the
+                /// case where we expected a list of some primitive or
+                /// pointer type.
 
                 let expectedDataBitsPerElement =
                     dataBitsPerElement(expectedElementSize);
