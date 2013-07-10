@@ -454,29 +454,29 @@ mod WireHelpers {
 
     #[inline(always)]
     pub fn readStructPointer<'a>(segment: SegmentReader<'a>,
-                                 refIndex : WirePointerCount,
+                                 oRefIndex : Option<WirePointerCount>,
                                  defaultValue : Option<&'a [u8]>,
                                  nestingLimit : int) -> StructReader<'a> {
 
-        let mut segment = segment;
-        let mut refIndex = refIndex;
+        let (refIndex, segment) =
+            if (oRefIndex == None ||
+                WirePointer::get(segment.segment, oRefIndex.unwrap()).isNull()) {
 
-        if (WirePointer::get(segment.segment, refIndex).isNull()) {
-            match defaultValue {
-                // A default struct value is always stored in its own
-                // static buffer.
+                match defaultValue {
+                    // A default struct value is always stored in its own
+                    // static buffer.
 
-                Some (wp) if (! WirePointer::get(wp, 0).isNull()) => {
-                    segment = SegmentReader {messageReader : segment.messageReader,
-                                             segment : wp };
-                    refIndex = 0;
+                    Some (wp) if (! WirePointer::get(wp, 0).isNull()) => {
+                        (0, SegmentReader {messageReader : segment.messageReader,
+                                           segment : wp })
+                    }
+                    _ => {
+                        return StructReader::newDefault(segment);
+                    }
                 }
-                _ => {
-                    // TODO return default struct reader
-                    fail!()
-                }
-            }
-        }
+        } else {
+            (oRefIndex.unwrap(), segment)
+        };
 
        if (nestingLimit <= 0) {
            fail!("nesting limit exceeded");
@@ -646,6 +646,8 @@ mod WireHelpers {
     }
 }
 
+static EMPTY_SEGMENT : [u8,..0] = [];
+
 pub struct StructReader<'self> {
     segment : SegmentReader<'self>,
     data : ByteCount,
@@ -657,12 +659,23 @@ pub struct StructReader<'self> {
 }
 
 impl <'self> StructReader<'self>  {
+
+    // TODO Can this be cleaned up? It seems silly that we need the
+    // segmentReader argument just to get the messageReader, which
+    // will be unused.
+    pub fn newDefault<'a>(segmentReader : SegmentReader<'a>) -> StructReader<'a> {
+        StructReader { segment : SegmentReader {messageReader : segmentReader.messageReader,
+                                                segment : EMPTY_SEGMENT.slice(0,0)},
+                      data : 0, pointers : 0, dataSize : 0, pointerCount : 0,
+                      bit0Offset : 0, nestingLimit : 0x7fffffff}
+    }
+
     pub fn readRoot<'a>(location : WordCount, segment : SegmentReader<'a>,
                         nestingLimit : int) -> StructReader<'a> {
         //  the pointer to the struct is at segment[location * 8]
 
         // TODO boundscheck
-        WireHelpers::readStructPointer(segment, location, None, nestingLimit)
+        WireHelpers::readStructPointer(segment, Some(location), None, nestingLimit)
     }
 
     pub fn getDataSectionSize(&self) -> BitCount0 { self.dataSize }
@@ -699,8 +712,11 @@ impl <'self> StructReader<'self>  {
 
     pub fn getStructField(&self, ptrIndex : WirePointerCount, defaultValue : Option<&'self [u8]>)
         -> StructReader<'self> {
-        let location = self.pointers + ptrIndex;
-        WireHelpers::readStructPointer(self.segment, location,
+        let oRefIndex = if (ptrIndex >= self.pointerCount as WirePointerCount)
+            { None }
+        else
+            { Some(self.pointers + ptrIndex) };
+        WireHelpers::readStructPointer(self.segment, oRefIndex,
                                        defaultValue, self.nestingLimit)
     }
 
