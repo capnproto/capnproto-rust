@@ -272,7 +272,9 @@ mod WireHelpers {
     pub fn allocate(refIndex : WordCount,
                     segment : @mut SegmentBuilder,
                     amount : WordCount, kind : WirePointerKind) -> WordCount {
-        // TODO zeroObject?
+        if (!WirePointer::get(segment.segment, refIndex).isNull()) {
+            zeroObject(segment, refIndex);
+        }
 
         match segment.allocate(amount) {
             None => {
@@ -340,6 +342,67 @@ mod WireHelpers {
         }
     }
 
+    pub fn zeroObject(segment : @mut SegmentBuilder, refIndex : WirePointerCount) {
+        //# Zero out the pointed-to object. Use when the pointer is
+        //# about to be overwritten making the target object no longer
+        //# reachable.
+
+        let reff = WirePointer::get(segment.segment, refIndex);
+        match reff.kind() {
+            WP_STRUCT | WP_LIST  => { zeroObjectHelper(segment, refIndex, reff.target(refIndex)) }
+            WP_FAR => {
+                fail!("unimplemented")
+            }
+            WP_RESERVED_3 => {fail!("Don't know how to handle RESERVED_3")}
+        }
+    }
+
+    pub fn zeroObjectHelper(segment : @mut SegmentBuilder, tagIndex : WirePointerCount,
+                            ptr: WirePointerCount) {
+
+        let tag = WirePointer::get(segment.segment, tagIndex);
+
+        match tag.kind() {
+            WP_STRUCT => {
+                let pointerSection = ptr + tag.structRef().dataSize.get() as WirePointerCount;
+                let count = tag.structRef().ptrCount.get() as uint;
+                for std::uint::range(0, count) |i| {
+                    zeroObject(segment, pointerSection + i);
+                }
+                segment.memset(ptr * BYTES_PER_WORD, 0,
+                               tag.structRef().wordSize() * BYTES_PER_WORD);
+            }
+            WP_LIST => {
+                match tag.listRef().elementSize() {
+                    VOID =>  { }
+                    BIT | BYTE | TWO_BYTES | FOUR_BYTES | EIGHT_BYTES => {
+                        segment.memset(ptr * BYTES_PER_WORD, 0,
+                                       roundBitsUpToWords(
+                                           tag.listRef().elementCount()*
+                                           dataBitsPerElement(
+                                               tag.listRef().elementSize()) as u64) *
+                                       BYTES_PER_WORD)
+                    }
+                    POINTER => {
+                        let count = tag.listRef().elementCount();
+                        for std::uint::range(0, count) |i| {
+                            zeroObject(segment, ptr + i)
+                        }
+                    }
+                    INLINE_COMPOSITE => {
+                        let elementTag = WirePointer::get(segment.segment, ptr);
+                        match elementTag.kind() {
+                            WP_STRUCT => { }
+                            _ => fail!("Don't know how to handle non-STRUCT inline composite")
+                        }
+                        fail!("unimplemented")
+                    }
+                }
+            }
+            WP_FAR => { fail!("Unexpected FAR pointer") }
+            WP_RESERVED_3 => { fail!("Don't know how to handle RESERVED_3") }
+        }
+    }
 
     #[inline(always)]
     pub fn initStructPointer(refIndex : WordCount,

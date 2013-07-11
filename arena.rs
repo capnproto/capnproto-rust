@@ -43,6 +43,14 @@ impl SegmentBuilder {
     pub fn available(&self) -> WordCount {
         self.segment.len() * BYTES_PER_WORD - self.pos
     }
+
+    #[inline(always)]
+    pub fn memset(&mut self, ptr: uint, c: u8, count: uint) {
+        unsafe {
+            let p = self.segment.unsafe_mut_ref(ptr);
+            std::ptr::set_memory(p, c, count)
+        }
+    }
 }
 
 
