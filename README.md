@@ -12,11 +12,14 @@ for [Rust](http://www.rust-lang.org).
 
 To compile, get the latest version of Rust and do:
 ```
-$ rustc capnpc-rust.rc
+$ rustc capnprust.rc
 ```
-
-Although you may see a few warnings, this should succeed and produce
-the binary `capnpc-rust`. The binary may then be used as a plug-in to
+This should succeed and produce
+the library `libcapnprust`. You may then compile the `capnpc-rust` binary like this:
+```
+$ rustc -L capnpc-rust.rc
+```
+The binary may then be used as a plug-in to
 the Cap'n Proto compiler, like this:
 
 ```
