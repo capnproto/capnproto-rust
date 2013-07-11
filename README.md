@@ -17,7 +17,7 @@ $ rustc capnprust.rc
 This should succeed and produce
 the library `libcapnprust`. You may then compile the `capnpc-rust` binary like this:
 ```
-$ rustc -L capnpc-rust.rc
+$ rustc -L. capnpc-rust.rc
 ```
 The binary may then be used as a plug-in to
 the Cap'n Proto compiler, like this:
