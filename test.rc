@@ -11,8 +11,6 @@ pub mod list;
 pub mod addressbook_capnp;
 pub mod schema_capnp;
 
-// TODO figure out how to compile capnproto-rust separately as a library.
-
 fn addressbook() {
     use capnprust::message::*;
     use addressbook_capnp::*;
