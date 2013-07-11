@@ -349,19 +349,30 @@ mod WireHelpers {
 
         let reff = WirePointer::get(segment.segment, refIndex);
         match reff.kind() {
-            WP_STRUCT | WP_LIST  => { zeroObjectHelper(segment, refIndex, reff.target(refIndex)) }
+            WP_STRUCT | WP_LIST => { zeroObjectHelper(segment, reff, reff.target(refIndex)) }
             WP_FAR => {
-                let _ = segment.messageBuilder.segments[reff.farRef().segmentId.get()];
+                let segment = segment.messageBuilder.segments[reff.farRef().segmentId.get()];
+                let padIndex = reff.farPositionInSegment();
+                if (reff.isDoubleFar() ) {
+                    let pad = WirePointer::get(segment.segment, padIndex);
+                    let segment1 =
+                        segment.messageBuilder.segments[pad.farRef().segmentId.get()];
+                    let pad1 = WirePointer::get(segment.segment, padIndex + 1);
+                    zeroObjectHelper(segment1, pad1, pad.farPositionInSegment());
+                    segment.memset(padIndex * BYTES_PER_WORD, 0, 2 * BYTES_PER_WORD);
+
+                } else {
+                    zeroObject(segment, padIndex);
+                    segment.memset(padIndex * BYTES_PER_WORD, 0, BYTES_PER_WORD);
+                }
                 fail!("unimplemented")
             }
             WP_RESERVED_3 => {fail!("Don't know how to handle RESERVED_3")}
         }
     }
 
-    pub fn zeroObjectHelper(segment : @mut SegmentBuilder, tagIndex : WirePointerCount,
+    pub fn zeroObjectHelper(segment : @mut SegmentBuilder, tag : WirePointer,
                             ptr: WirePointerCount) {
-
-        let tag = WirePointer::get(segment.segment, tagIndex);
 
         match tag.kind() {
             WP_STRUCT => {
