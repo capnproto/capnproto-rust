@@ -1,0 +1,11 @@
+#[link(name = "capnprust", vers = "0.0", author = "dwrensha")];
+
+#[crate_type = "lib"];
+
+pub mod common;
+pub mod endian;
+pub mod mask;
+pub mod layout;
+pub mod arena;
+pub mod message;
+pub mod serialize;

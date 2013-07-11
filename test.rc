@@ -2,13 +2,9 @@
 
 #[crate_type = "bin"];
 
-pub mod common;
-pub mod endian;
-pub mod mask;
-pub mod layout;
-pub mod arena;
-pub mod message;
-pub mod serialize;
+extern mod capnprust;
+
+use capnprust::*;
 
 pub mod list;
 
@@ -18,7 +14,7 @@ pub mod schema_capnp;
 // TODO figure out how to compile capnproto-rust separately as a library.
 
 fn addressbook() {
-    use message::*;
+    use capnprust::message::*;
     use addressbook_capnp::*;
 
     let message = MessageBuilder::new_default();
@@ -59,7 +55,7 @@ fn addressbook() {
 }
 
 fn schema() {
-    use message::*;
+    use capnprust::message::*;
 
     use schema_capnp::*;
 

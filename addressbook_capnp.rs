@@ -1,5 +1,5 @@
 pub mod Person {
-    use layout::*;
+    use capnprust::layout::*;
 //    use addressbook_capnp::*;
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 4,
@@ -55,7 +55,7 @@ pub mod Person {
     }
 
     pub mod Employment {
-        use layout::*;
+        use capnprust::layout::*;
 
         pub struct Builder {
             _builder : StructBuilder
@@ -87,7 +87,7 @@ pub mod Person {
     }
 
     pub mod PhoneNumber {
-        use layout::*;
+        use capnprust::layout::*;
 //        use addressbook_capnp::*;
 
         pub static STRUCT_SIZE : StructSize =
@@ -142,7 +142,7 @@ pub mod Person {
 }
 
 pub mod AddressBook {
-    use layout::*;
+    use capnprust::layout::*;
     use addressbook_capnp::*;
 
     pub struct Reader<'self> {

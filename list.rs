@@ -1,7 +1,7 @@
 #[macro_escape];
 
 pub mod PrimitiveList {
-    use layout::*;
+    use capnprust::layout::*;
 
     pub struct Reader<'self> {
         reader : ListReader<'self>
@@ -26,15 +26,15 @@ pub mod PrimitiveList {
 macro_rules! list_submodule(
     ( $capnp:ident, $($m:ident)::+ ) => (
         pub mod List {
-            use layout;
+            use capnprust;
             use $capnp;
 
             pub struct Reader<'self> {
-                reader : layout::ListReader<'self>
+                reader : capnprust::layout::ListReader<'self>
             }
 
             impl <'self> Reader<'self> {
-                pub fn new<'a>(reader : layout::ListReader<'a>) -> Reader<'a> {
+                pub fn new<'a>(reader : capnprust::layout::ListReader<'a>) -> Reader<'a> {
                     Reader { reader : reader }
                 }
                 pub fn size(&self) -> uint { self.reader.size() }
@@ -44,11 +44,11 @@ macro_rules! list_submodule(
             }
 
             pub struct Builder {
-                builder : layout::ListBuilder
+                builder : capnprust::layout::ListBuilder
             }
 
             impl Builder {
-                pub fn new(builder : layout::ListBuilder) -> Builder {
+                pub fn new(builder : capnprust::layout::ListBuilder) -> Builder {
                     Builder {builder : builder}
                 }
                 pub fn size(&self) -> uint { self.builder.size() }
