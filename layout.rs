@@ -737,7 +737,7 @@ impl <'self> StructReader<'self>  {
             (b & (1 << (boffset % BITS_PER_BYTE ))) != 0
 
         } else {
-            fail!("getDataFieldBool")
+            false
         }
     }
 
@@ -746,6 +746,13 @@ impl <'self> StructReader<'self>  {
                                                             offset : ElementCount,
                                                             mask : T) -> T {
         Mask::mask(self.getDataField(offset), mask)
+    }
+
+    #[inline(always)]
+    pub fn getDataFieldBoolMask(&self,
+                                offset : ElementCount,
+                                mask : bool) -> bool {
+       self.getDataFieldBool(offset) ^ mask
     }
 
 
