@@ -1,5 +1,6 @@
 use common::*;
 use endian::*;
+use mask::*;
 use arena::*;
 use std;
 
@@ -714,14 +715,15 @@ impl <'self> StructReader<'self>  {
     pub fn getDataSectionAsBlob(&self) -> uint { fail!("unimplemented") }
 
     #[inline(always)]
-    pub fn getDataField<T:Copy>(&self, offset : ElementCount) -> T {
+    pub fn getDataField<T:Copy + std::num::Zero>(&self, offset : ElementCount) -> T {
         if ((offset + 1) * bitsPerElement::<T>() <= self.dataSize) {
             let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
             WireValue::getFromBuf(self.segment.segment, totalByteOffset).get()
         } else {
-            fail!("getDataField")
+            return std::num::Zero::zero()
         }
     }
+
 
     #[inline(always)]
     pub fn getDataFieldBool(&self, offset : ElementCount) -> bool {
@@ -738,6 +740,14 @@ impl <'self> StructReader<'self>  {
             fail!("getDataFieldBool")
         }
     }
+
+    #[inline(always)]
+    pub fn getDataFieldMask<T:Copy + std::num::Zero + Mask>(&self,
+                                                            offset : ElementCount,
+                                                            mask : T) -> T {
+        Mask::mask(self.getDataField(offset), mask)
+    }
+
 
     pub fn getStructField(&self, ptrIndex : WirePointerCount, defaultValue : Option<&'self [u8]>)
         -> StructReader<'self> {
