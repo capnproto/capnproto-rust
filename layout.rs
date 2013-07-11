@@ -351,6 +351,7 @@ mod WireHelpers {
         match reff.kind() {
             WP_STRUCT | WP_LIST  => { zeroObjectHelper(segment, refIndex, reff.target(refIndex)) }
             WP_FAR => {
+                let _ = segment.messageBuilder.segments[reff.farRef().segmentId.get()];
                 fail!("unimplemented")
             }
             WP_RESERVED_3 => {fail!("Don't know how to handle RESERVED_3")}
@@ -395,7 +396,21 @@ mod WireHelpers {
                             WP_STRUCT => { }
                             _ => fail!("Don't know how to handle non-STRUCT inline composite")
                         }
-                        fail!("unimplemented")
+                        let dataSize = elementTag.structRef().dataSize.get();
+                        let pointerCount = elementTag.structRef().ptrCount.get();
+                        let mut pos = ptr + POINTER_SIZE_IN_WORDS;
+                        let count = elementTag.inlineCompositeListElementCount();
+                        for std::uint::range(0, count) |_| {
+                            pos += dataSize as uint;
+                            for std::uint::range(0, pointerCount as uint) |_| {
+                                zeroObject(segment, pos);
+                                pos += POINTER_SIZE_IN_WORDS;
+                            }
+                        }
+                        segment.memset(ptr * BYTES_PER_WORD, 0,
+                                       (elementTag.structRef().wordSize() +
+                                        POINTER_SIZE_IN_WORDS) *
+                                       BYTES_PER_WORD);
                     }
                 }
             }
