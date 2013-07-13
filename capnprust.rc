@@ -11,3 +11,6 @@ pub mod message;
 pub mod serialize;
 pub mod serialize_packed;
 pub mod list;
+
+#[cfg(test)]
+pub mod serialize_packed_test;
