@@ -36,7 +36,7 @@ the capnp file.
 The general strategy is to translate, as directly as possible, the C++
 implementation into Rust. (Comments that have been directly copied
 from the C++ implementation are demarked with a double slash and pound
-sign `///#`.) Fortunately, enums and structs are laid out the same way
+sign `//#`.) Fortunately, enums and structs are laid out the same way
 in both languages. Unfortunately, trait polymorphism and region
 variables do not work very well together yet in Rust. This makes it
 difficult to implement virtual functions such as
