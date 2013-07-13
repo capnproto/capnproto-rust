@@ -89,7 +89,18 @@ pub mod InputStreamMessageReader {
 }
 
 
-pub fn writeMessage(outputStream : @ std::io::Writer,
+pub trait OutputStream {
+    pub fn write(@self, bug : &[u8]);
+}
+
+impl OutputStream for @std::io::Writer {
+    pub fn write(@self, buf : &[u8]) {
+        let w : @std::io::Writer = self as @std::io::Writer;
+        w.write(buf)
+    }
+}
+
+pub fn writeMessage(outputStream : @ OutputStream,
                     message : & MessageBuilder) {
 
     let tableSize : uint = ((message.segments.len() + 2) & (!1)) * (BYTES_PER_WORD / 2);

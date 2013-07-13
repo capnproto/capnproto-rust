@@ -45,7 +45,7 @@ fn addressbook() {
     person.setName("Diane");
     person.getEmployment().setSchool("Caltech");
 
-    let outStream = std::io::stdout();
+    let outStream = @std::io::stdout() as @serialize::OutputStream ;
 
     serialize::writeMessage(outStream, message)
 }
@@ -62,8 +62,7 @@ fn schema() {
 
     request.initNodes(1);
 
-
-    let outStream = std::io::stdout();
+    let outStream = @std::io::stdout() as @serialize::OutputStream;
     serialize::writeMessage(outStream, message)
 }
 
