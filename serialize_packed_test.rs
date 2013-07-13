@@ -22,5 +22,9 @@ pub fn expectPacksTo(unpacked : &[u8],
 #[test]
 pub fn simplePacking() {
     expectPacksTo([], []);
-    expectPacksTo([0,0,0,0,0,0,0,0], [0,0])
+    expectPacksTo([0,0,0,0,0,0,0,0], [0,0]);
+    expectPacksTo([0,0,12,0,0,34,0,0], [0x24,12,34]);
+    expectPacksTo([1,3,2,4,5,7,6,8], [0xff,1,3,2,4,5,7,6,8,0]);
+    expectPacksTo([0,0,0,0,0,0,0,0,1,3,2,4,5,7,6,8], [0,0,0xff,1,3,2,4,5,7,6,8,0]);
+    expectPacksTo([0,0,12,0,0,34,0,0,1,3,2,4,5,7,6,8], [0x24,12,34,0xff,1,3,2,4,5,7,6,8,0]);
 }

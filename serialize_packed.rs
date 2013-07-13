@@ -13,7 +13,7 @@ impl OutputStream for PackedOutputStream {
         // Yuck. It'd be better to have a BufferedOutputStream, but
         // that seems difficult with the current state of Rust.
         // For now, just make this big enough to handle the worst case.
-        let mut buffer : ~[u8] = std::vec::from_elem(inBuf.len() * 9 / 8, 0);
+        let mut buffer : ~[u8] = std::vec::from_elem(inBuf.len() * 3 / 2, 0);
 
         let mut inPos : uint = 0;
         let mut outPos : uint = 0;
@@ -60,7 +60,6 @@ impl OutputStream for PackedOutputStream {
                          | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
 
             buffer[tagPos] = tag;
-            outPos += 1;
 
             if (tag == 0) {
                 //# An all-zero word is followed by a count of
@@ -92,7 +91,7 @@ impl OutputStream for PackedOutputStream {
                 //# where our compression scheme becomes a net win.
                 let mut count : u8 = 0;
                 let runStart = inPos;
-                while (count < 255) {
+                while (inPos < inBuf.len() && count < 255) {
                     let mut c = 0;
 
                     for std::uint::range(0,8) |_| {
