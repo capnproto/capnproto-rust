@@ -47,7 +47,8 @@ fn addressbook() {
 
     let outStream = @std::io::stdout() as @serialize::OutputStream ;
 
-    serialize::writeMessage(outStream, message)
+//    serialize::writeMessage(outStream, message)
+    serialize_packed::writePackedMessage(outStream, message)
 }
 
 fn schema() {
@@ -63,6 +64,7 @@ fn schema() {
     request.initNodes(1);
 
     let outStream = @std::io::stdout() as @serialize::OutputStream;
+//    serialize_packed::writePackedMessage(outStream, message)
     serialize::writeMessage(outStream, message)
 }
 

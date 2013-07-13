@@ -19,42 +19,47 @@ impl OutputStream for PackedOutputStream {
         let mut outPos : uint = 0;
 
         while (inPos < inBuf.len()) {
-            let bit0 = (inBuf[inPos] == 0) as u8;
+
+            let tagPos = outPos;
+            outPos += 1;
+
+            let bit0 = (inBuf[inPos] != 0) as u8;
             buffer[outPos] = inBuf[inPos];
             outPos += bit0 as uint; inPos += 1;
 
-            let bit1 = (inBuf[inPos] == 0) as u8;
+            let bit1 = (inBuf[inPos] != 0) as u8;
             buffer[outPos] = inBuf[inPos];
             outPos += bit1 as uint; inPos += 1;
 
-            let bit2 = (inBuf[inPos] == 0) as u8;
+            let bit2 = (inBuf[inPos] != 0) as u8;
             buffer[outPos] = inBuf[inPos];
             outPos += bit2 as uint; inPos += 1;
 
-            let bit3 = (inBuf[inPos] == 0) as u8;
+            let bit3 = (inBuf[inPos] != 0) as u8;
             buffer[outPos] = inBuf[inPos];
             outPos += bit3 as uint; inPos += 1;
 
-            let bit4 = (inBuf[inPos] == 0) as u8;
+            let bit4 = (inBuf[inPos] != 0) as u8;
             buffer[outPos] = inBuf[inPos];
             outPos += bit4 as uint; inPos += 1;
 
-            let bit5 = (inBuf[inPos] == 0) as u8;
+            let bit5 = (inBuf[inPos] != 0) as u8;
             buffer[outPos] = inBuf[inPos];
             outPos += bit5 as uint; inPos += 1;
 
-            let bit6 = (inBuf[inPos] == 0) as u8;
+            let bit6 = (inBuf[inPos] != 0) as u8;
             buffer[outPos] = inBuf[inPos];
             outPos += bit6 as uint; inPos += 1;
 
-            let bit7 = (inBuf[inPos] == 0) as u8;
+            let bit7 = (inBuf[inPos] != 0) as u8;
             buffer[outPos] = inBuf[inPos];
             outPos += bit7 as uint; inPos += 1;
+
 
             let tag : u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
                          | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
 
-            buffer[outPos] = tag;
+            buffer[tagPos] = tag;
             outPos += 1;
 
             if (tag == 0) {
