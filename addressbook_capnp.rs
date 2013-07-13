@@ -1,3 +1,5 @@
+mod macros;
+
 pub mod Person {
     use capnprust::layout::*;
 //    use addressbook_capnp::*;

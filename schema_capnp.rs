@@ -1,3 +1,5 @@
+mod macros;
+
 pub mod Node {
     use capnprust::layout::*;
     use schema_capnp::*;
@@ -871,7 +873,7 @@ pub mod AnnotationNode {
 
 pub mod CodeGeneratorRequest {
     use capnprust::layout::*;
-    use list::*;
+    use capnprust::list::*;
     use schema_capnp::*;
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 2,

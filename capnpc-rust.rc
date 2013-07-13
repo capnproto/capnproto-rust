@@ -6,8 +6,6 @@ extern mod capnprust;
 
 use capnprust::*;
 
-pub mod list;
-
 pub mod schema_capnp;
 
 fn typeToString (t : &schema_capnp::Type::Reader) -> ~str {

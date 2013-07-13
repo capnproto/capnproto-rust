@@ -6,8 +6,6 @@ extern mod capnprust;
 
 use capnprust::*;
 
-pub mod list;
-
 pub mod addressbook_capnp;
 pub mod schema_capnp;
 
