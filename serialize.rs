@@ -90,7 +90,7 @@ pub mod InputStreamMessageReader {
 
 
 pub trait OutputStream {
-    pub fn write(@self, bug : &[u8]);
+    pub fn write(@self, buf : &[u8]);
 }
 
 impl OutputStream for @std::io::Writer {
