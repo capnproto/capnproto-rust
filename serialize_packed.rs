@@ -114,9 +114,9 @@ impl OutputStream for PackedOutputStream {
                 unsafe {
                     let dst : *mut u8 = buffer.unsafe_mut_ref(outPos);
                     let src : *u8 = inBuf.unsafe_ref(runStart);
-                    std::ptr::copy_memory(dst, src, count as uint);
+                    std::ptr::copy_memory(dst, src, 8 * count as uint);
                 }
-                outPos += count as uint;
+                outPos += count as uint * 8;
 
             }
         }
