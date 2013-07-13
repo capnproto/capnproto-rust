@@ -15,41 +15,41 @@ impl OutputStream for PackedOutputStream {
         // For now, just make this big enough to handle the worst case.
         let mut buffer : ~[u8] = std::vec::from_elem(inBuf.len() * 9 / 8, 0);
 
-        let mut inPos = 0;
-        let mut outPos = 0;
+        let mut inPos : uint = 0;
+        let mut outPos : uint = 0;
 
         while (inPos < inBuf.len()) {
             let bit0 = (inBuf[inPos] == 0) as u8;
             buffer[outPos] = inBuf[inPos];
-            outPos += bit0; inPos += 1;
+            outPos += bit0 as uint; inPos += 1;
 
             let bit1 = (inBuf[inPos] == 0) as u8;
             buffer[outPos] = inBuf[inPos];
-            outPos += bit1; inPos += 1;
+            outPos += bit1 as uint; inPos += 1;
 
             let bit2 = (inBuf[inPos] == 0) as u8;
             buffer[outPos] = inBuf[inPos];
-            outPos += bit2; inPos += 1;
+            outPos += bit2 as uint; inPos += 1;
 
             let bit3 = (inBuf[inPos] == 0) as u8;
             buffer[outPos] = inBuf[inPos];
-            outPos += bit3; inPos += 1;
+            outPos += bit3 as uint; inPos += 1;
 
             let bit4 = (inBuf[inPos] == 0) as u8;
             buffer[outPos] = inBuf[inPos];
-            outPos += bit4; inPos += 1;
+            outPos += bit4 as uint; inPos += 1;
 
             let bit5 = (inBuf[inPos] == 0) as u8;
             buffer[outPos] = inBuf[inPos];
-            outPos += bit5; inPos += 1;
+            outPos += bit5 as uint; inPos += 1;
 
             let bit6 = (inBuf[inPos] == 0) as u8;
             buffer[outPos] = inBuf[inPos];
-            outPos += bit6; inPos += 1;
+            outPos += bit6 as uint; inPos += 1;
 
             let bit7 = (inBuf[inPos] == 0) as u8;
             buffer[outPos] = inBuf[inPos];
-            outPos += bit7; inPos += 1;
+            outPos += bit7 as uint; inPos += 1;
 
             let tag : u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
                          | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
@@ -61,7 +61,6 @@ impl OutputStream for PackedOutputStream {
                 //# An all-zero word is followed by a count of
                 //# consecutive zero words (not including the first
                 //# one).
-
 
                 let mut count : u8 = 0;
                 unsafe {
@@ -86,13 +85,40 @@ impl OutputStream for PackedOutputStream {
                 //# which have no more than a single zero-byte. We look
                 //# for at least two zeros because that's the point
                 //# where our compression scheme becomes a net win.
+                let mut count : u8 = 0;
+                let runStart = inPos;
+                while (count < 255) {
+                    let mut c = 0;
 
+                    for std::uint::range(0,8) |_| {
+                        c += (inBuf[inPos] == 0) as u8;
+                        inPos += 1;
+                    }
 
+                    if (c >= 2) {
+                        //# Un-read the word with multiple zeros, since
+                        //# we'll want to compress that one.
+                        inPos -= 8;
+                        break;
+                    }
+
+                    count += 1;
+                }
+                buffer[outPos] = count;
+                outPos += 1;
+
+                unsafe {
+                    let dst : *mut u8 = buffer.unsafe_mut_ref(outPos);
+                    let src : *u8 = inBuf.unsafe_ref(runStart);
+                    std::ptr::copy_memory(dst, src, count as uint);
+                }
+                outPos += count as uint;
 
             }
-
         }
 
+
+        self.inner.write(buffer.slice(0, outPos));
     }
 }
 
