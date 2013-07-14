@@ -62,14 +62,113 @@ fn testCamelCaseToAllCaps() {
     assert_eq!(camelCaseToAllCaps("helloWorld"), ~"HELLO_WORLD");
 }
 
+enum FormattedText {
+    Indent(~FormattedText),
+    Branch(~[FormattedText]),
+    Line(~str)
+}
+
+fn stringify(ft : ~FormattedText) -> ~str {
+    match *ft {
+        Indent (_) => { fail!() }
+        Branch (_) => { fail!() }
+        Line(s) => return s
+    }
+}
+
+//type NodeMap = std::hashmap::HashMap<u64, schema_capnp::Node::Reader>;
+
+fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                nodeId : u64 ) -> ~FormattedText {
+    use schema_capnp::*;
+
+    let nodeReader = nodeMap.get(&nodeId);
+
+    let displayName = nodeReader.getDisplayName();
+    std::io::println(fmt!("node with name: %s", displayName));
+
+    std::io::println(fmt!( "  scopeId: %x", nodeReader.getScopeId() as uint));
+    match nodeReader.getBody() {
+
+        Node::Body::FILE_NODE(fileNode) => {
+            let imports = fileNode.getImports();
+            for std::uint::range(0, imports.size()) |ii| {
+                println!("  import %s", imports.get(ii).getName());
+            }
+        }
+
+        Node::Body::STRUCT_NODE(structNode) => {
+            std::io::println(fmt!("  struct node. data size: %?, pointer size: %?",
+                                  structNode.getDataSectionWordSize(),
+                                  structNode.getPointerSectionSize()));
+
+            let members = structNode.getMembers();
+            for std::uint::range(0, members.size()) |ii| {
+                let member = members.get(ii);
+                let name = member.getName();
+                match member.getBody() {
+                    StructNode::Member::Body::FIELD_MEMBER(field) => {
+                        let offset = field.getOffset() as uint;
+                        std::io::println(
+                            fmt!("    field %s : %s  at offset %u",
+                                 name, typeToString(&field.getType()), offset));
+                    }
+                    StructNode::Member::Body::UNION_MEMBER(union) => {
+                        let doffset = union.getDiscriminantOffset() as uint;
+                        std::io::println(
+                            fmt!("    union field %s with discriminant offset %u",
+                                 name, doffset));
+                        let members = union.getMembers();
+                        for std::uint::range(0, members.size()) |ii| {
+                            println!("      %s", members.get(ii).getName());
+                        }
+                    }
+                }
+            }
+        }
+
+        Node::Body::ENUM_NODE(enumNode) => {
+            let enumerants = enumNode.getEnumerants();
+            for std::uint::range(0, enumerants.size()) |ii| {
+                println!("    %s", enumerants.get(ii).getName());
+            }
+        }
+
+        Node::Body::INTERFACE_NODE(_) => { }
+
+        Node::Body::CONST_NODE(_) => { }
+
+        Node::Body::ANNOTATION_NODE( annotationNode ) => {
+            std::io::println("  annotation node:");
+            if (annotationNode.getTargetsFile()) {
+                std::io::println("  targets file");
+            }
+            if (annotationNode.getTargetsConst()) {
+                std::io::println("  targets const");
+            }
+            // ...
+            if (annotationNode.getTargetsAnnotation()) {
+                std::io::println("  targets annotation");
+            }
+        }
+    }
+
+    let nestedNodes = nodeReader.getNestedNodes();
+    for std::uint::range(0, nestedNodes.size()) |ii| {
+        let nestedNode = nestedNodes.get(ii);
+        let id = nestedNode.getId();
+        let name = nestedNode.getName();
+        std::io::println(fmt!("  nested node with name: %s and id: %x",
+                              name, id as uint));
+    }
+
+
+    ~Line(~"testing")
+}
+
+
 fn main() {
     use capnprust::serialize::*;
-
-    let path = &std::path::Path("test.out");
-    match std::io::mk_file_writer(path, [std::io::Create]) {
-        Ok(writer) => { writer.write([100,101,102,103,104,105,106])}
-        Err(msg) => {println!("ERROR: %s", msg)}
-    }
 
 
     let inp = std::io::stdin();
@@ -80,12 +179,7 @@ fn main() {
         let codeGeneratorRequest =
             schema_capnp::CodeGeneratorRequest::Reader::new(structReader);
 
-        let requestedFilesReader = codeGeneratorRequest.getRequestedFiles();
-
-        for std::uint::range(0, requestedFilesReader.size()) |ii| {
-            std::io::println(fmt!("requested file: %x",
-                                  requestedFilesReader.get(ii)));
-        }
+        let mut nodeMap = std::hashmap::HashMap::new::<u64, schema_capnp::Node::Reader>();
 
         let nodeListReader = codeGeneratorRequest.getNodes();
 
@@ -94,86 +188,27 @@ fn main() {
 
             let nodeReader = nodeListReader.get(ii);
             let id = nodeReader.getId();
-            let displayName = nodeReader.getDisplayName();
-            std::io::println(fmt!("node with name: %s and id: %x", displayName, id as uint));
-            std::io::println(fmt!( "  scopeId: %x", nodeReader.getScopeId() as uint));
-            match nodeReader.getBody() {
 
-                Node::Body::FILE_NODE(fileNode) => {
-                    let imports = fileNode.getImports();
-                    for std::uint::range(0, imports.size()) |ii| {
-                        println!("  import %s", imports.get(ii).getName());
-                    }
-                }
-
-                Node::Body::STRUCT_NODE(structNode) => {
-                    std::io::println(fmt!("  struct node. data size: %?, pointer size: %?",
-                                         structNode.getDataSectionWordSize(),
-                                         structNode.getPointerSectionSize()));
-
-                    let members = structNode.getMembers();
-                    for std::uint::range(0, members.size()) |ii| {
-                        let member = members.get(ii);
-                        let name = member.getName();
-                        match member.getBody() {
-                            StructNode::Member::Body::FIELD_MEMBER(field) => {
-                                let offset = field.getOffset() as uint;
-                                std::io::println(
-                                    fmt!("    field %s : %s  at offset %u",
-                                         name, typeToString(&field.getType()), offset));
-
-                            }
-                            StructNode::Member::Body::UNION_MEMBER(union) => {
-                                let doffset = union.getDiscriminantOffset() as uint;
-                                std::io::println(
-                                    fmt!("    union field %s with discriminant offset %u",
-                                         name, doffset));
-                                let members = union.getMembers();
-                                for std::uint::range(0, members.size()) |ii| {
-                                    println!("      %s", members.get(ii).getName());
-                                }
-                            }
-                        }
-                    }
-
-                }
-
-                Node::Body::ENUM_NODE(enumNode) => {
-                    let enumerants = enumNode.getEnumerants();
-                    for std::uint::range(0, enumerants.size()) |ii| {
-                        println!("    %s", enumerants.get(ii).getName());
-                    }
-                }
-
-                Node::Body::INTERFACE_NODE(_) => { }
-
-                Node::Body::CONST_NODE(_) => { }
-
-                Node::Body::ANNOTATION_NODE( annotationNode ) => {
-                    std::io::println("  annotation node:");
-                    if (annotationNode.getTargetsFile()) {
-                        std::io::println("  targets file");
-                    }
-                    if (annotationNode.getTargetsConst()) {
-                        std::io::println("  targets const");
-                    }
-                    // ...
-                    if (annotationNode.getTargetsAnnotation()) {
-                        std::io::println("  targets annotation");
-                    }
-                }
-            }
-
-            let nestedNodes = nodeReader.getNestedNodes();
-            for std::uint::range(0, nestedNodes.size()) |ii| {
-                let nestedNode = nestedNodes.get(ii);
-                let id = nestedNode.getId();
-                let name = nestedNode.getName();
-                std::io::println(fmt!("  nested node with name: %s and id: %x",
-                                      name, id as uint));
-            }
+            nodeMap.insert(id, nodeReader);
         }
 
+        let requestedFilesReader = codeGeneratorRequest.getRequestedFiles();
+
+        for std::uint::range(0, requestedFilesReader.size()) |ii| {
+
+            let requestedFileId : u64 = requestedFilesReader.get(ii);
+            std::io::println(fmt!("requested file: %x",
+                                  requestedFileId as uint));
+
+            let text = stringify(generateNode(&nodeMap, requestedFileId));
+
+            let path = &std::path::Path("test.out");
+            match std::io::mk_file_writer(path, [std::io::Create, std::io::Truncate]) {
+                Ok(writer) => { writer.write( text.as_bytes() )}
+                Err(msg) => {println!("ERROR: %s", msg)}
+            }
+
+        }
 
         0;
     }
