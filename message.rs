@@ -36,7 +36,7 @@ impl <'self> MessageReader<'self> {
         return &self.options;
     }
 
-    pub fn getRoot<'a>(&'a mut self) -> layout::StructReader<'a> {
+    pub fn getRoot<'a>(&'a self) -> layout::StructReader<'a> {
         let segment = self.getSegmentReader(0);
 
         return layout::StructReader::readRoot(0, segment,
