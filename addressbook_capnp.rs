@@ -22,6 +22,42 @@ pub mod Person {
         pub fn totalSizeInWords(&self) -> uint {
             self._reader.totalSize() as uint
         }
+
+        pub fn getId(&self) -> u32 {
+            self._reader.getDataField::<u32>(0)
+        }
+
+        pub fn getName(&self) -> &'self str {
+            self._reader.getTextField(0, "")
+        }
+
+        pub fn getEmail(&self) -> &'self str {
+            self._reader.getTextField(1, "")
+        }
+
+        pub fn getPhones(&self) -> PhoneNumber::List::Reader<'self> {
+            PhoneNumber::List::Reader::new(
+                self._reader.getListField(2, PhoneNumber::STRUCT_SIZE.preferredListEncoding,
+                                          None))
+        }
+
+        pub fn getEmployment(&self) -> Employment::Reader<'self> {
+            match self._reader.getDataField::<u16>(2) {
+                0 => {
+                    return Employment::UNEMPLOYED
+                }
+                1 => {
+                    return Employment::EMPLOYER(
+                        self._reader.getTextField(3, ""));
+                }
+                2 => {
+                    return Employment::SCHOOL(
+                        self._reader.getTextField(3, ""));
+                }
+                3 => { return Employment::SELF_EMPLOYED }
+                _ => fail!("impossible")
+            }
+        }
     }
 
     pub struct Builder {
@@ -50,7 +86,6 @@ pub mod Person {
                 self._builder.initStructListField(2, size, PhoneNumber::STRUCT_SIZE))
         }
 
-
         pub fn getEmployment(&self) -> Employment::Builder {
             Employment::Builder::new(self._builder)
         }
@@ -58,6 +93,13 @@ pub mod Person {
 
     pub mod Employment {
         use capnprust::layout::*;
+
+        pub enum Reader<'self> {
+            UNEMPLOYED,
+            EMPLOYER(&'self str),
+            SCHOOL(&'self str),
+            SELF_EMPLOYED
+        }
 
         pub struct Builder {
             _builder : StructBuilder
@@ -89,6 +131,7 @@ pub mod Person {
     }
 
     pub mod PhoneNumber {
+        use std;
         use capnprust::layout::*;
 //        use addressbook_capnp::*;
 
@@ -110,6 +153,16 @@ pub mod Person {
 
             pub fn totalSizeInWords(&self) -> uint {
                 self._reader.totalSize() as uint
+            }
+
+            pub fn getNumber(&self) -> &'self str {
+                self._reader.getTextField(0, "")
+            }
+
+            pub fn getType(&self) -> Type::Type {
+                unsafe {
+                    std::cast::transmute(self._reader.getDataField::<u16>(0) as u64)
+                }
             }
         }
 
@@ -134,9 +187,9 @@ pub mod Person {
 
         pub mod Type {
             pub enum Type {
-                mobile = 0,
-                home = 1,
-                work = 2
+                MOBILE = 0,
+                HOME = 1,
+                WORK = 2
             }
         }
 
