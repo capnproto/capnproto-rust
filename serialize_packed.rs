@@ -66,7 +66,7 @@ impl std::io::Reader for PackedInputStream {
         return outPos;
     }
 
-    pub fn seek(&self, _ : int, _ : std::io::SeekStyle) {
+    pub fn seek(&self, _position : int, _style : std::io::SeekStyle) {
         fail!()
     }
 }
