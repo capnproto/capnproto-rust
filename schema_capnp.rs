@@ -16,12 +16,12 @@ pub mod Node {
         use schema_capnp::*;
 
         pub enum Reader<'self> {
-            fileNode(FileNode::Reader<'self>),
-            structNode(StructNode::Reader<'self>),
-            enumNode(EnumNode::Reader<'self>),
-            interfaceNode(InterfaceNode::Reader<'self>),
-            constNode(ConstNode::Reader<'self>),
-            annotationNode(AnnotationNode::Reader<'self>)
+            FILE_NODE(FileNode::Reader<'self>),
+            STRUCT_NODE(StructNode::Reader<'self>),
+            ENUM_NODE(EnumNode::Reader<'self>),
+            INTERFACE_NODE(InterfaceNode::Reader<'self>),
+            CONST_NODE(ConstNode::Reader<'self>),
+            ANNOTATION_NODE(AnnotationNode::Reader<'self>)
         }
 
         pub struct Builder {
@@ -77,27 +77,27 @@ pub mod Node {
         pub fn getBody(&self) -> Body::Reader<'self> {
             match self._reader.getDataField::<u16>(8) {
                 0 => {
-                    return Body::fileNode(
+                    return Body::FILE_NODE(
                         FileNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 1 => {
-                    return Body::structNode(
+                    return Body::STRUCT_NODE(
                         StructNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 2 => {
-                    return Body::enumNode(
+                    return Body::ENUM_NODE(
                         EnumNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 3 => {
-                    return Body::interfaceNode(
+                    return Body::INTERFACE_NODE(
                         InterfaceNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 4 => {
-                    return Body::constNode(
+                    return Body::CONST_NODE(
                         ConstNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 5 => {
-                    return Body::annotationNode(
+                    return Body::ANNOTATION_NODE(
                         AnnotationNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 _ => fail!("impossible")
@@ -310,6 +310,10 @@ pub mod Annotation {
     use capnprust::layout::*;
     use schema_capnp::*;
 
+    list_submodule!(schema_capnp, Annotation)
+    pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 1,
+                                                      preferredListEncoding : INLINE_COMPOSITE};
+
     pub struct Reader<'self> {
         _reader : StructReader<'self>
     }
@@ -343,7 +347,6 @@ pub mod Annotation {
         }
     }
 
-    list_submodule!(schema_capnp, Annotation)
 }
 
 
@@ -654,6 +657,8 @@ pub mod StructNode {
 pub mod EnumNode {
     use capnprust::layout::*;
 
+    list_submodule!(schema_capnp, EnumNode)
+
     pub struct Reader<'self> {
         _reader : StructReader<'self>
     }
@@ -667,6 +672,13 @@ pub mod EnumNode {
         pub fn totalSizeInWords(&self) -> uint {
             self._reader.totalSize() as uint
         }
+
+        pub fn getEnumerants(&self) -> Enumerant::List::Reader<'self> {
+            Enumerant::List::Reader::new(
+                self._reader.getListField(0, Enumerant::STRUCT_SIZE.preferredListEncoding,
+                                          None))
+        }
+
     }
 
     pub struct Builder {
@@ -679,7 +691,59 @@ pub mod EnumNode {
         }
     }
 
-    list_submodule!(schema_capnp, EnumNode)
+    pub mod Enumerant {
+        use capnprust::layout::*;
+        use schema_capnp::*;
+
+        list_submodule!(schema_capnp, EnumNode::Enumerant)
+
+        // How many data bytes? There's an inconsistency here.
+        pub static STRUCT_SIZE : StructSize = StructSize {data : 2, pointers : 2,
+                                                          preferredListEncoding : INLINE_COMPOSITE};
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn totalSizeInWords(&self) -> uint {
+                self._reader.totalSize() as uint
+            }
+
+            pub fn getName(&self) -> &'self str {
+                self._reader.getTextField(0, "")
+            }
+
+            pub fn getCodeOrder(&self) -> u16 {
+                self._reader.getDataField::<u16>(0)
+            }
+
+            pub fn getAnnotations(&self) -> Annotation::List::Reader<'self> {
+                Annotation::List::Reader::new(
+                    self._reader.getListField(1, Annotation::STRUCT_SIZE.preferredListEncoding,
+                                              None))
+            }
+
+        }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+        }
+
+
+    }
+
 }
 
 pub mod InterfaceNode {
@@ -792,6 +856,11 @@ pub mod AnnotationNode {
     use capnprust::layout::*;
     use schema_capnp::*;
 
+    list_submodule!(schema_capnp, AnnotationNode)
+
+    pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 1,
+                                                      preferredListEncoding : INLINE_COMPOSITE};
+
     pub struct Reader<'self> {
         _reader : StructReader<'self>
     }
@@ -866,7 +935,6 @@ pub mod AnnotationNode {
     }
 
 
-    list_submodule!(schema_capnp, AnnotationNode)
 }
 
 

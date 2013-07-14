@@ -67,9 +67,14 @@ fn main() {
             std::io::println(fmt!( "  scopeId: %x", nodeReader.getScopeId() as uint));
             match nodeReader.getBody() {
 
-                Node::Body::fileNode(_) => { }
+                Node::Body::FILE_NODE(fileNode) => {
+                    let imports = fileNode.getImports();
+                    for std::uint::range(0, imports.size()) |ii| {
+                        println!("  import %s", imports.get(ii).getName());
+                    }
+                }
 
-                Node::Body::structNode(structNode) => {
+                Node::Body::STRUCT_NODE(structNode) => {
                     std::io::println(fmt!("  struct node. data size: %?, pointer size: %?",
                                          structNode.getDataSectionWordSize(),
                                          structNode.getPointerSectionSize()));
@@ -97,13 +102,18 @@ fn main() {
 
                 }
 
-                Node::Body::enumNode(_) => { }
+                Node::Body::ENUM_NODE(enumNode) => {
+                    let enumerants = enumNode.getEnumerants();
+                    for std::uint::range(0, enumerants.size()) |ii| {
+                        println!("    %s", enumerants.get(ii).getName());
+                    }
+                }
 
-                Node::Body::interfaceNode(_) => { }
+                Node::Body::INTERFACE_NODE(_) => { }
 
-                Node::Body::constNode(_) => { }
+                Node::Body::CONST_NODE(_) => { }
 
-                Node::Body::annotationNode( annotationNode ) => {
+                Node::Body::ANNOTATION_NODE( annotationNode ) => {
                     std::io::println("  annotation node:");
                     if (annotationNode.getTargetsFile()) {
                         std::io::println("  targets file");
