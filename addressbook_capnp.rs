@@ -161,7 +161,7 @@ pub mod Person {
 
             pub fn getType(&self) -> Type::Type {
                 unsafe {
-                    std::cast::transmute(self._reader.getDataField::<u16>(0) as u64)
+                    std::cast::transmute(self._reader.getDataField::<u16>(0) as uint)
                 }
             }
         }

@@ -103,7 +103,7 @@ impl ListRef {
     #[inline]
     pub fn elementSize(&self) -> FieldSize {
         unsafe {
-            std::cast::transmute( (self.elementSizeAndCount.get() & 7) as u64)
+            std::cast::transmute( (self.elementSizeAndCount.get() & 7) as uint)
         }
     }
 
@@ -152,7 +152,7 @@ impl WirePointer {
     #[inline]
     pub fn kind(&self) -> WirePointerKind {
         unsafe {
-            std::cast::transmute((self.offsetAndKind.get() & 3) as u64)
+            std::cast::transmute((self.offsetAndKind.get() & 3) as uint)
         }
     }
 

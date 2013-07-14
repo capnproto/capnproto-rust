@@ -473,7 +473,7 @@ pub mod StructNode {
 
         pub fn getPreferredListEncoding(&self) -> ElementSize::ElementSize {
             unsafe {
-                std::cast::transmute(self._reader.getDataField::<u16>(2) as u64)
+                std::cast::transmute(self._reader.getDataField::<u16>(2) as uint)
             }
         }
 
