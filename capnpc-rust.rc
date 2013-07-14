@@ -40,7 +40,7 @@ fn main() {
 
     use capnprust::serialize::*;
 
-    let inp = std::io::stdin();
+    let inp = @std::io::stdin();
 
     do InputStreamMessageReader::new(inp, message::DEFAULT_READER_OPTIONS) | messageReader | {
         let structReader = messageReader.getRoot();

@@ -3,9 +3,68 @@ use std;
 use message::*;
 use serialize::*;
 
-pub struct PackedOutputStream {
-    inner : @OutputStream,
+pub struct PackedInputStream {
+    inner : @std::io::Reader
 }
+
+impl std::io::Reader for PackedInputStream {
+    pub fn read_byte(&self) -> int {
+        fail!()
+    }
+
+    pub fn eof(&self) -> bool{
+        self.inner.eof()
+    }
+
+    pub fn tell(&self) -> uint {
+        fail!()
+    }
+
+    pub fn read(&self, outBuf: &mut [u8], len: uint) -> uint {
+        if (len == 0) { return 0; }
+
+        assert!(len % 8 == 0, "PackInputStream reads must be word-aligned");
+
+        let mut outPos = 0;
+        while (outPos < len) {
+
+            let tag : u8 = self.inner.read_u8();
+
+            for std::u8::range(0, 8) |n| {
+                let isNonzero = (tag & (1 as u8 << n)) as bool;
+                if (isNonzero) {
+                    // TODO capnproto-c++ gets away without using a
+                    // conditional here. Can we do something like that
+                    // and would it speed things up?
+                    outBuf[outPos] = self.inner.read_u8();
+                    outPos += 1;
+                }
+            }
+
+            if (tag == 0) {
+                let runLength = self.inner.read_u8() * 8;
+                
+            } else if (tag == 0xff) {
+
+            }
+
+
+        }
+
+
+        fail!()
+    }
+
+    pub fn seek(&self, _ : int, _ : std::io::SeekStyle) {
+        fail!()
+    }
+}
+
+
+pub struct PackedOutputStream {
+    inner : @OutputStream
+}
+
 
 impl OutputStream for PackedOutputStream {
     pub fn write(@self, inBuf : &[u8]) {
