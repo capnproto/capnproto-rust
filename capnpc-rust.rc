@@ -36,6 +36,32 @@ fn typeToString (t : &schema_capnp::Type::Reader) -> ~str {
     }
 }
 
+fn camelCaseToAllCaps(s : &str) -> ~str {
+    let bytes = s.as_bytes();
+    let mut result_bytes : ~[u8] = ~[];
+    for bytes.iter().advance |&b| {
+        let c = b as char;
+        assert!(std::char::is_alphabetic(c));
+        if (std::char::is_uppercase(c)) {
+            result_bytes.push('_' as u8);
+        }
+
+        let b1 = unsafe {
+            std::libc::toupper(b as std::libc::c_char) as u8
+        };
+
+        result_bytes.push(b1);
+    }
+    return std::str::from_bytes(result_bytes);
+}
+
+#[test]
+fn testCamelCaseToAllCaps() {
+    assert_eq!(camelCaseToAllCaps("fooBar"), ~"FOO_BAR");
+    assert_eq!(camelCaseToAllCaps("fooBarBaz"), ~"FOO_BAR_BAZ");
+    assert_eq!(camelCaseToAllCaps("helloWorld"), ~"HELLO_WORLD");
+}
+
 fn main() {
     use capnprust::serialize::*;
 
