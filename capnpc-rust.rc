@@ -37,8 +37,14 @@ fn typeToString (t : &schema_capnp::Type::Reader) -> ~str {
 }
 
 fn main() {
-
     use capnprust::serialize::*;
+
+    let path = &std::path::Path("test.out");
+    match std::io::mk_file_writer(path, [std::io::Create]) {
+        Ok(writer) => { writer.write([100,101,102,103,104,105,106])}
+        Err(msg) => {println!("ERROR: %s", msg)}
+    }
+
 
     let inp = std::io::stdin();
 
