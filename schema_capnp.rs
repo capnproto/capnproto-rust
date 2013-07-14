@@ -531,11 +531,11 @@ pub mod StructNode {
             pub fn getBody(&self) -> Body::Reader<'self> {
                 match self._reader.getDataField::<u16>(2) {
                     0 => {
-                        return Body::fieldMember(
+                        return Body::FIELD_MEMBER(
                             StructNode::Field::Reader::new(self._reader.getStructField(2, None)));
                     }
                     1 => {
-                        return Body::unionMember(
+                        return Body::UNION_MEMBER(
                             StructNode::Union::Reader::new(self._reader.getStructField(2, None)));
                     }
                     _ => fail!("unrecognized discriminant for StructNode::Body")
@@ -559,8 +559,8 @@ pub mod StructNode {
         pub mod Body {
             use schema_capnp::*;
             pub enum Reader<'self> {
-                fieldMember(StructNode::Field::Reader<'self>),
-                unionMember(StructNode::Union::Reader<'self>)
+                FIELD_MEMBER(StructNode::Field::Reader<'self>),
+                UNION_MEMBER(StructNode::Union::Reader<'self>)
             }
         }
 
@@ -659,6 +659,9 @@ pub mod EnumNode {
 
     list_submodule!(schema_capnp, EnumNode)
 
+    pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 1,
+                                                      preferredListEncoding : INLINE_COMPOSITE};
+
     pub struct Reader<'self> {
         _reader : StructReader<'self>
     }
@@ -697,9 +700,9 @@ pub mod EnumNode {
 
         list_submodule!(schema_capnp, EnumNode::Enumerant)
 
-        // How many data bytes? There's an inconsistency here.
-        pub static STRUCT_SIZE : StructSize = StructSize {data : 2, pointers : 2,
-                                                          preferredListEncoding : INLINE_COMPOSITE};
+        pub static STRUCT_SIZE : StructSize =
+            StructSize {data : 1, pointers : 2,
+                        preferredListEncoding : INLINE_COMPOSITE};
 
         pub struct Reader<'self> {
             _reader : StructReader<'self>
