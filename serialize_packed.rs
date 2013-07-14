@@ -26,33 +26,44 @@ impl std::io::Reader for PackedInputStream {
         assert!(len % 8 == 0, "PackInputStream reads must be word-aligned");
 
         let mut outPos = 0;
-        while (outPos < len) {
+        while (outPos < len && ! self.inner.eof() ) {
 
             let tag : u8 = self.inner.read_u8();
 
             for std::u8::range(0, 8) |n| {
-                let isNonzero = (tag & (1 as u8 << n)) as bool;
+                let isNonzero = (tag & (1 as u8 << n)) != 0;//..as bool;
                 if (isNonzero) {
                     // TODO capnproto-c++ gets away without using a
                     // conditional here. Can we do something like that
                     // and would it speed things up?
                     outBuf[outPos] = self.inner.read_u8();
                     outPos += 1;
+                } else {
+                    outBuf[outPos] = 0;
+                    outPos += 1;
                 }
             }
 
             if (tag == 0) {
-                let runLength = self.inner.read_u8() * 8;
-                
+
+                let runLength : uint = self.inner.read_u8() as uint * 8;
+
+                unsafe {
+                    std::ptr::set_memory(outBuf.unsafe_mut_ref(outPos),
+                                         0, runLength);
+                };
+                outPos += runLength;
+
             } else if (tag == 0xff) {
+                let runLength : uint = self.inner.read_u8() as uint * 8;
 
+                self.inner.read(outBuf.mut_slice(outPos, outPos + runLength), runLength);
+                outPos += runLength;
             }
-
 
         }
 
-
-        fail!()
+        return outPos;
     }
 
     pub fn seek(&self, _ : int, _ : std::io::SeekStyle) {

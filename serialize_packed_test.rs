@@ -6,6 +6,9 @@ use serialize_packed::*;
 pub fn expectPacksTo(unpacked : &[u8],
                      packed : &[u8]) {
 
+    // --------
+    // write
+
     let bytes = do std::io::with_bytes_writer |writer| {
         let packedOutputStream =
             @PackedOutputStream {inner : @writer  as @OutputStream};
@@ -13,9 +16,22 @@ pub fn expectPacksTo(unpacked : &[u8],
         packedOutputStream.write(unpacked);
     };
 
-    println!("%?", bytes);
     assert!(bytes.slice(0, bytes.len()).equals(&packed));
 
+    // --------
+    // read
+
+
+    do std::io::with_bytes_reader(packed) |reader| {
+        let packedInputStream =
+            @PackedInputStream {inner : reader} as @std::io::Reader;
+
+        let bytes = packedInputStream.read_whole_stream();
+
+        println!("%?", bytes);
+
+        assert!(bytes.slice(0, bytes.len()).equals(&unpacked));
+    }
 }
 
 
