@@ -7,13 +7,13 @@ pub struct WireValue<T> {
 
 impl<T : Copy> WireValue<T> {
 
-    #[inline(always)]
+    #[inline]
     pub fn get(&self) -> T { copy self.value }
 
-    #[inline(always)]
+    #[inline]
     pub fn set(&mut self, value : T) { self.value = value }
 
-    #[inline(always)]
+    #[inline]
     pub fn getFromBuf<'a>(buf : &'a [u8], index : ByteCount) -> &'a WireValue<T> {
         unsafe {
             let p : *WireValue<T> =
@@ -22,7 +22,7 @@ impl<T : Copy> WireValue<T> {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn getFromBufMut<'a>(buf : &'a mut [u8], index : ByteCount) -> &'a mut WireValue<T> {
         unsafe {
             let p : * mut WireValue<T> =

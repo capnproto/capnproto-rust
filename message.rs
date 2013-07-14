@@ -21,17 +21,17 @@ type SegmentId = u32;
 
 impl <'self> MessageReader<'self> {
 
-    #[inline(always)]
+    #[inline]
     pub fn getSegment(&self, id : uint) -> &'self [u8] {
         self.segments[id]
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn getSegmentReader<'a>(&'a self, id : SegmentId) -> SegmentReader<'a> {
         SegmentReader { messageReader : self, segment : self.getSegment(id as uint) }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn getOptions<'a>(&'a self) -> &'a ReaderOptions {
         return &self.options;
     }

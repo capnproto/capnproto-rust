@@ -8,7 +8,7 @@ pub trait Mask {
 macro_rules! int_mask(
     ($t:ident) => (
         impl Mask for $t {
-            #[inline(always)]
+            #[inline]
             pub fn mask(value : $t, mask : $t) -> $t {
                 value ^ mask
             }
@@ -26,7 +26,7 @@ int_mask!(u32)
 int_mask!(u64)
 
 impl Mask for f32 {
-    #[inline(always)]
+    #[inline]
     pub fn mask(value : f32, mask : f32) -> f32 {
         use std;
         unsafe {
@@ -38,7 +38,7 @@ impl Mask for f32 {
 }
 
 impl Mask for f64 {
-    #[inline(always)]
+    #[inline]
     pub fn mask(value : f64, mask : f64) -> f64 {
         use std;
         unsafe {
