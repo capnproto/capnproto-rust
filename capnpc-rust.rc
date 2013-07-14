@@ -64,7 +64,7 @@ fn testCamelCaseToAllCaps() {
 
 enum FormattedText {
     Indent(~FormattedText),
-    Branch(~[FormattedText]),
+    Branch(~[~FormattedText]),
     Line(~str)
 }
 
@@ -76,10 +76,18 @@ fn stringify(ft : ~FormattedText) -> ~str {
     }
 }
 
+fn appendName (names : &[~str], name : ~str) -> ~[~str] {
+    let result : ~[~str] = ~[];
+    for names.iter().advance |n| {
+//        result.push(n.to_owned());
+    }
+    fail!()
+}
+
 //type NodeMap = std::hashmap::HashMap<u64, schema_capnp::Node::Reader>;
 
 fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                nodeId : u64 ) -> ~FormattedText {
+                names : &[~str], nodeId : u64) -> ~FormattedText {
     use schema_capnp::*;
 
     let nodeReader = nodeMap.get(&nodeId);
@@ -88,6 +96,22 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
     std::io::println(fmt!("node with name: %s", displayName));
 
     std::io::println(fmt!( "  scopeId: %x", nodeReader.getScopeId() as uint));
+
+    let mut output: ~[~FormattedText] = ~[];
+
+    let mut nested_output: ~[~FormattedText] = ~[];
+
+    let nestedNodes = nodeReader.getNestedNodes();
+    for std::uint::range(0, nestedNodes.size()) |ii| {
+        let nestedNode = nestedNodes.get(ii);
+        let id = nestedNode.getId();
+        let name = nestedNode.getName();
+        std::io::println(fmt!("  nested node with name: %s and id: %x",
+                              name, id as uint));
+        let text = generateNode(nodeMap, names, id);
+        nested_output.push(text);
+    }
+
     match nodeReader.getBody() {
 
         Node::Body::FILE_NODE(fileNode) => {
@@ -153,14 +177,6 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         }
     }
 
-    let nestedNodes = nodeReader.getNestedNodes();
-    for std::uint::range(0, nestedNodes.size()) |ii| {
-        let nestedNode = nestedNodes.get(ii);
-        let id = nestedNode.getId();
-        let name = nestedNode.getName();
-        std::io::println(fmt!("  nested node with name: %s and id: %x",
-                              name, id as uint));
-    }
 
 
     ~Line(~"testing")
@@ -200,7 +216,8 @@ fn main() {
             std::io::println(fmt!("requested file: %x",
                                   requestedFileId as uint));
 
-            let text = stringify(generateNode(&nodeMap, requestedFileId));
+            let names : ~[~str] = ~[];
+            let text = stringify(generateNode(&nodeMap, names, requestedFileId));
 
             let path = &std::path::Path("test.out");
             match std::io::mk_file_writer(path, [std::io::Create, std::io::Truncate]) {
