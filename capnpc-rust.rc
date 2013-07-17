@@ -108,8 +108,33 @@ fn appendName (names : &[~str], name : ~str) -> ~[~str] {
 
 //type NodeMap = std::hashmap::HashMap<u64, schema_capnp::Node::Reader>;
 
+fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                    scopeMap : &mut std::hashmap::HashMap<u64, ~[~str]>,
+                    nodeId : u64) {
+    let nodeReader = nodeMap.get(&nodeId);
+
+    let nestedNodes = nodeReader.getNestedNodes();
+    for std::uint::range(0, nestedNodes.size()) |ii| {
+        let nestedNode = nestedNodes.get(ii);
+        let id = nestedNode.getId();
+        let name = nestedNode.getName().to_owned();
+
+        let scopeNames = {
+            if (scopeMap.contains_key(&nodeId)) {
+                let names = scopeMap.get(&nodeId);
+                appendName(*names, name)
+            } else {
+                ~[name]
+            }
+        };
+        scopeMap.insert(id, scopeNames);
+        populateScopeMap(nodeMap, scopeMap, id);
+    }
+}
+
 fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                names : &[~str], nodeId : u64) -> FormattedText {
+                scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+                nodeId : u64) -> FormattedText {
     use schema_capnp::*;
 
     let nodeReader = nodeMap.get(&nodeId);
@@ -128,9 +153,10 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         let nestedNode = nestedNodes.get(ii);
         let id = nestedNode.getId();
         let name = nestedNode.getName().to_owned();
+
         std::io::println(fmt!("  nested node with name: %s and id: %x",
                               name, id as uint));
-        let text = generateNode(nodeMap, appendName(names, name), id);
+        let text = generateNode(nodeMap, scopeMap, id);
         nested_output.push(text);
     }
 
@@ -148,6 +174,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             std::io::println(fmt!("  struct node. data size: %?, pointer size: %?",
                                   structNode.getDataSectionWordSize(),
                                   structNode.getPointerSectionSize()));
+            let names = scopeMap.get(&nodeId);
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
             let members = structNode.getMembers();
@@ -179,6 +206,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         }
 
         Node::Body::ENUM_NODE(enumNode) => {
+            let names = scopeMap.get(&nodeId);
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
             let mut members = ~[];
@@ -231,6 +259,7 @@ fn main() {
             schema_capnp::CodeGeneratorRequest::Reader::new(structReader);
 
         let mut nodeMap = std::hashmap::HashMap::new::<u64, schema_capnp::Node::Reader>();
+        let mut scopeMap = std::hashmap::HashMap::new::<u64, ~[~str]>();
 
         let nodeListReader = codeGeneratorRequest.getNodes();
 
@@ -250,8 +279,9 @@ fn main() {
             std::io::println(fmt!("requested file: %x",
                                   requestedFileId as uint));
 
-            let names : ~[~str] = ~[];
-            let text = stringify(&generateNode(&nodeMap, names, requestedFileId));
+            populateScopeMap(&nodeMap, &mut scopeMap, requestedFileId);
+            println!("%?", scopeMap);
+            let text = stringify(&generateNode(&nodeMap, &scopeMap, requestedFileId));
 
             let path = &std::path::Path("test.out");
             match std::io::mk_file_writer(path, [std::io::Create, std::io::Truncate]) {
