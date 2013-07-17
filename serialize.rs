@@ -34,7 +34,7 @@ pub mod InputStreamMessageReader {
             fail!("too many segments");
         }
 
-        let mut moreSizes : ~[u32] = std::vec::from_elem((segmentCount & !1) as uint, 0);
+        let mut moreSizes : ~[u32] = std::vec::from_elem((segmentCount & !1) as uint, 0u32);
 
         if (segmentCount > 1) {
             let moreSizesRaw = inputStream.read_bytes((8 * (segmentCount & !1)) as uint);
@@ -56,7 +56,7 @@ pub mod InputStreamMessageReader {
         assert!(totalWords as u64 <= options.traversalLimitInWords);
 
         // TODO Is this guaranteed to be word-aligned?
-        let mut ownedSpace : ~[u8] = std::vec::from_elem(8 * totalWords as uint, 0);
+        let mut ownedSpace : ~[u8] = std::vec::from_elem(8 * totalWords as uint, 0u8);
 
 
         // Do this first in order to appease the borrow checker
@@ -105,7 +105,7 @@ pub fn writeMessage(outputStream : @ OutputStream,
 
     let tableSize : uint = ((message.segments.len() + 2) & (!1)) * (BYTES_PER_WORD / 2);
 
-    let mut table : ~[u8] = std::vec::from_elem(tableSize, 0);
+    let mut table : ~[u8] = std::vec::from_elem(tableSize, 0u8);
 
     WireValue::getFromBufMut(table, 0).set((message.segments.len() - 1) as u32);
 

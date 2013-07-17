@@ -5,10 +5,10 @@ pub struct WireValue<T> {
     value : T
 }
 
-impl<T : Copy> WireValue<T> {
+impl<T : Clone> WireValue<T> {
 
     #[inline]
-    pub fn get(&self) -> T { copy self.value }
+    pub fn get(&self) -> T { self.value.clone() }
 
     #[inline]
     pub fn set(&mut self, value : T) { self.value = value }

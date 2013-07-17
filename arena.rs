@@ -23,7 +23,7 @@ impl SegmentBuilder {
                size : ByteCount) -> SegmentBuilder {
         SegmentBuilder {
             messageBuilder : messageBuilder,
-            segment : std::vec::from_elem(size, 0),
+            segment : std::vec::from_elem(size, 0u8),
             id : messageBuilder.segments.len() as SegmentId,
             pos : 0
         }

@@ -179,7 +179,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         Node::Body::FILE_NODE(fileNode) => {
             let imports = fileNode.getImports();
             for std::uint::range(0, imports.size()) |ii| {
-                println!("  import %s", imports.get(ii).getName());
+                printfln!("  import %s", imports.get(ii).getName());
             }
             output.push(Branch(nested_output));
         }
@@ -231,7 +231,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                  name, doffset));
                         let members = union.getMembers();
                         for std::uint::range(0, members.size()) |ii| {
-                            println!("      %s", members.get(ii).getName());
+                            printfln!("      %s", members.get(ii).getName());
                         }
                     }
                 }
@@ -261,7 +261,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let mut members = ~[];
             let enumerants = enumNode.getEnumerants();
             for std::uint::range(0, enumerants.size()) |ii| {
-                println!("    %s = %u,", enumerants.get(ii).getName(), ii);
+                printfln!("    %s = %u,", enumerants.get(ii).getName(), ii);
                 let enumerant = enumerants.get(ii);
                 members.push(
                     Line(fmt!("%s = %u,", camelCaseToAllCaps(enumerant.getName()), ii)));
@@ -329,13 +329,13 @@ fn main() {
                                   requestedFileId as uint));
 
             populateScopeMap(&nodeMap, &mut scopeMap, requestedFileId);
-            println!("%?", scopeMap);
+            printfln!("%?", scopeMap);
             let text = stringify(&generateNode(&nodeMap, &scopeMap, requestedFileId));
 
             let path = &std::path::Path("test.out");
             match std::io::mk_file_writer(path, [std::io::Create, std::io::Truncate]) {
                 Ok(writer) => { writer.write( text.as_bytes() )}
-                Err(msg) => {println!("ERROR: %s", msg)}
+                Err(msg) => {printfln!("ERROR: %s", msg)}
             }
 
         }

@@ -28,8 +28,6 @@ pub fn expectPacksTo(unpacked : &[u8],
 
         let bytes = packedInputStream.read_whole_stream();
 
-        println!("%?", bytes);
-
         assert!(bytes.slice(0, bytes.len()).equals(&unpacked));
     }
 }

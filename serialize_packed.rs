@@ -83,7 +83,7 @@ impl OutputStream for PackedOutputStream {
         // Yuck. It'd be better to have a BufferedOutputStream, but
         // that seems difficult with the current state of Rust.
         // For now, just make this big enough to handle the worst case.
-        let mut buffer : ~[u8] = std::vec::from_elem(inBuf.len() * 3 / 2, 0);
+        let mut buffer : ~[u8] = std::vec::from_elem(inBuf.len() * 3 / 2, 0u8);
 
         let mut inPos : uint = 0;
         let mut outPos : uint = 0;

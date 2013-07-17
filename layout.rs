@@ -803,7 +803,7 @@ impl <'self> StructReader<'self>  {
     pub fn getDataSectionAsBlob(&self) -> uint { fail!("unimplemented") }
 
     #[inline]
-    pub fn getDataField<T:Copy + std::num::Zero>(&self, offset : ElementCount) -> T {
+    pub fn getDataField<T:Clone + std::num::Zero>(&self, offset : ElementCount) -> T {
         if ((offset + 1) * bitsPerElement::<T>() <= self.dataSize) {
             let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
             WireValue::getFromBuf(self.segment.segment, totalByteOffset).get()
@@ -830,7 +830,7 @@ impl <'self> StructReader<'self>  {
     }
 
     #[inline]
-    pub fn getDataFieldMask<T:Copy + std::num::Zero + Mask>(&self,
+    pub fn getDataFieldMask<T:Clone + std::num::Zero + Mask>(&self,
                                                             offset : ElementCount,
                                                             mask : T) -> T {
         Mask::mask(self.getDataField(offset), mask)
@@ -904,7 +904,7 @@ impl StructBuilder {
     }
 
     #[inline]
-    pub fn setDataField<T:Copy>(&self, offset : ElementCount, value : T) {
+    pub fn setDataField<T:Clone>(&self, offset : ElementCount, value : T) {
         let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
         WireValue::getFromBufMut(self.segment.segment, totalByteOffset).set(value);
     }
@@ -961,7 +961,7 @@ impl <'self> ListReader<'self> {
     pub fn size(&self) -> ElementCount { self.elementCount }
 
     #[inline]
-    pub fn getDataElement<T:Copy>(&self, index : ElementCount) -> T {
+    pub fn getDataElement<T:Clone>(&self, index : ElementCount) -> T {
         let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
 
         WireValue::getFromBuf(self.segment.segment,
@@ -1008,7 +1008,7 @@ impl ListBuilder {
     pub fn size(&self) -> ElementCount { self.elementCount }
 
     #[inline]
-    pub fn getDataElement<T:Copy>(&self, index : ElementCount) -> T {
+    pub fn getDataElement<T:Clone>(&self, index : ElementCount) -> T {
         let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
 
         WireValue::getFromBuf(self.segment.segment,
@@ -1016,7 +1016,7 @@ impl ListBuilder {
     }
 
     #[inline]
-    pub fn setDataElement<T:Copy>(&self, index : ElementCount, value : T) {
+    pub fn setDataElement<T:Clone>(&self, index : ElementCount, value : T) {
         let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
 
         WireValue::getFromBufMut(self.segment.segment,

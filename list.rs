@@ -12,7 +12,7 @@ pub mod PrimitiveList {
 
         pub fn size(&self) -> uint { self.reader.size() }
 
-        pub fn get<T : Copy>(&self, index : uint) -> T {
+        pub fn get<T : Clone>(&self, index : uint) -> T {
             self.reader.getDataElement(index)
         }
     }
