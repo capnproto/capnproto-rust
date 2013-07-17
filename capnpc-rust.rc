@@ -64,30 +64,48 @@ fn testCamelCaseToAllCaps() {
 
 enum FormattedText {
     Indent(~FormattedText),
-    Branch(~[~FormattedText]),
+    Branch(~[FormattedText]),
     Line(~str)
 }
 
-fn stringify(ft : ~FormattedText) -> ~str {
+// This is all quite inefficient.
+fn toLines(ft : &FormattedText) -> ~[~str] {
+
     match *ft {
-        Indent (_) => { fail!() }
-        Branch (_) => { fail!() }
-        Line(s) => return s
+        Indent (ref ft) => {
+            let strs = toLines(*ft);
+            let mut result : ~[~str]= ~[];
+            for strs.iter().advance |s| {
+                let mut s1 : ~str = ~"  ";
+                s1.push_str(*s);
+                result.push(s1)
+            }
+            return result;
+        }
+        Branch (ref fts) => {
+            return do fts.flat_map |ft| {toLines(ft)};
+        }
+        Line(ref s) => return ~[s.to_owned()]
     }
 }
 
+fn stringify(ft : & FormattedText) -> ~str {
+    toLines(ft).connect("\n")
+}
+
 fn appendName (names : &[~str], name : ~str) -> ~[~str] {
-    let result : ~[~str] = ~[];
+    let mut result : ~[~str] = ~[];
     for names.iter().advance |n| {
-//        result.push(n.to_owned());
+        result.push(n.to_owned());
     }
-    fail!()
+    result.push(name);
+    return result;
 }
 
 //type NodeMap = std::hashmap::HashMap<u64, schema_capnp::Node::Reader>;
 
 fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                names : &[~str], nodeId : u64) -> ~FormattedText {
+                names : &[~str], nodeId : u64) -> FormattedText {
     use schema_capnp::*;
 
     let nodeReader = nodeMap.get(&nodeId);
@@ -97,18 +115,18 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
     std::io::println(fmt!( "  scopeId: %x", nodeReader.getScopeId() as uint));
 
-    let mut output: ~[~FormattedText] = ~[];
+    let mut output: ~[FormattedText] = ~[];
 
-    let mut nested_output: ~[~FormattedText] = ~[];
+    let mut nested_output: ~[FormattedText] = ~[];
 
     let nestedNodes = nodeReader.getNestedNodes();
     for std::uint::range(0, nestedNodes.size()) |ii| {
         let nestedNode = nestedNodes.get(ii);
         let id = nestedNode.getId();
-        let name = nestedNode.getName();
+        let name = nestedNode.getName().to_owned();
         std::io::println(fmt!("  nested node with name: %s and id: %x",
                               name, id as uint));
-        let text = generateNode(nodeMap, names, id);
+        let text = generateNode(nodeMap, appendName(names, name), id);
         nested_output.push(text);
     }
 
@@ -119,12 +137,14 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             for std::uint::range(0, imports.size()) |ii| {
                 println!("  import %s", imports.get(ii).getName());
             }
+            output.push(Branch(nested_output));
         }
 
         Node::Body::STRUCT_NODE(structNode) => {
             std::io::println(fmt!("  struct node. data size: %?, pointer size: %?",
                                   structNode.getDataSectionWordSize(),
                                   structNode.getPointerSectionSize()));
+            output.push(Line(fmt!("pub mod %s {", *names.last())));
 
             let members = structNode.getMembers();
             for std::uint::range(0, members.size()) |ii| {
@@ -149,6 +169,9 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     }
                 }
             }
+
+            output.push(Indent(~Branch(nested_output)));
+            output.push(Line(~"}"));
         }
 
         Node::Body::ENUM_NODE(enumNode) => {
@@ -177,15 +200,12 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         }
     }
 
-
-
-    ~Line(~"testing")
+    Branch(output)
 }
 
 
 fn main() {
     use capnprust::serialize::*;
-
 
     let inp = std::io::stdin();
 
@@ -200,7 +220,6 @@ fn main() {
         let nodeListReader = codeGeneratorRequest.getNodes();
 
         for std::uint::range(0, nodeListReader.size()) |ii| {
-            use schema_capnp::*;
 
             let nodeReader = nodeListReader.get(ii);
             let id = nodeReader.getId();
@@ -217,7 +236,7 @@ fn main() {
                                   requestedFileId as uint));
 
             let names : ~[~str] = ~[];
-            let text = stringify(generateNode(&nodeMap, names, requestedFileId));
+            let text = stringify(&generateNode(&nodeMap, names, requestedFileId));
 
             let path = &std::path::Path("test.out");
             match std::io::mk_file_writer(path, [std::io::Create, std::io::Truncate]) {
