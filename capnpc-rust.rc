@@ -40,17 +40,21 @@ fn camelCaseToAllCaps(s : &str) -> ~str {
     let bytes = s.as_bytes();
     let mut result_bytes : ~[u8] = ~[];
     for bytes.iter().advance |&b| {
-        let c = b as char;
-        assert!(std::char::is_alphabetic(c));
-        if (std::char::is_uppercase(c)) {
-            result_bytes.push('_' as u8);
+
+        // strings will be null-terminated
+        if (b != 0) {
+            let c = b as char;
+            assert!(std::char::is_alphabetic(c), fmt!("not alphabetic '%c'", c));
+            if (std::char::is_uppercase(c)) {
+                result_bytes.push('_' as u8);
+            }
+
+            let b1 = unsafe {
+                std::libc::toupper(b as std::libc::c_char) as u8
+            };
+
+            result_bytes.push(b1);
         }
-
-        let b1 = unsafe {
-            std::libc::toupper(b as std::libc::c_char) as u8
-        };
-
-        result_bytes.push(b1);
     }
     return std::str::from_bytes(result_bytes);
 }
@@ -175,10 +179,21 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         }
 
         Node::Body::ENUM_NODE(enumNode) => {
+            output.push(Line(fmt!("pub mod %s {", *names.last())));
+
+            let mut members = ~[];
             let enumerants = enumNode.getEnumerants();
             for std::uint::range(0, enumerants.size()) |ii| {
-                println!("    %s", enumerants.get(ii).getName());
+                println!("    %s = %u,", enumerants.get(ii).getName(), ii);
+                let enumerant = enumerants.get(ii);
+                members.push(
+                    Line(fmt!("%s = %u,", camelCaseToAllCaps(enumerant.getName()), ii)));
             }
+
+            output.push(Indent(~Branch(~[Line(~"pub enum Reader {"),
+                                         Indent(~Branch(members)),
+                                         Line(~"}")])));
+            output.push(Line(~"}"));
         }
 
         Node::Body::INTERFACE_NODE(_) => { }
