@@ -59,6 +59,20 @@ fn camelCaseToAllCaps(s : &str) -> ~str {
     return std::str::from_bytes(result_bytes);
 }
 
+fn capitalizeFirstLetter(s : &str) -> ~str {
+    let bytes = s.as_bytes();
+    let mut result_bytes : ~[u8] = ~[];
+    for bytes.iter().advance |&b| {
+        result_bytes.push(b);
+    }
+
+    result_bytes[0] = unsafe {
+        std::libc::toupper(result_bytes[0] as std::libc::c_char) as u8
+    };
+
+    return std::str::from_bytes(result_bytes);
+}
+
 #[test]
 fn testCamelCaseToAllCaps() {
     assert_eq!(camelCaseToAllCaps("fooBar"), ~"FOO_BAR");
@@ -171,9 +185,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         }
 
         Node::Body::STRUCT_NODE(structNode) => {
-            std::io::println(fmt!("  struct node. data size: %?, pointer size: %?",
-                                  structNode.getDataSectionWordSize(),
-                                  structNode.getPointerSectionSize()));
+
             let names = scopeMap.get(&nodeId);
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
@@ -184,12 +196,20 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             for std::uint::range(0, members.size()) |ii| {
                 let member = members.get(ii);
                 let name = member.getName();
+                let capName = capitalizeFirstLetter(name);
                 match member.getBody() {
                     StructNode::Member::Body::FIELD_MEMBER(field) => {
                         let offset = field.getOffset() as uint;
-                        std::io::println(
-                            fmt!("    field %s : %s  at offset %u",
-                                 name, typeToString(&field.getType()), offset));
+                        let typ = field.getType();
+
+                        reader_members.push(
+                            Branch(~[
+                                Line(~"#[inline]"),
+                                Line(fmt!("pub fn get%s(&self) {", capName)),
+                                Indent(~Line(~"self._reader.getDataField")),
+                                Line(~"}")
+                            ])
+                        );
                     }
                     StructNode::Member::Body::UNION_MEMBER(union) => {
                         let doffset = union.getDiscriminantOffset() as uint;
