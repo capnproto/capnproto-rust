@@ -4,7 +4,6 @@ use mask::*;
 use arena::*;
 use std;
 
-
 pub enum FieldSize {
 // is there a way to force this to fit within a single byte?
     VOID = 0,

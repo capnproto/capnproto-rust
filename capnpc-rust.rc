@@ -189,8 +189,18 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let names = scopeMap.get(&nodeId);
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
+            let mut preamble = ~[];
             let mut builder_members = ~[];
             let mut reader_members = ~[];
+
+            let dataSize = structNode.getDataSectionWordSize();
+            let pointerSize = structNode.getPointerSectionSize();
+            let preferredListEncoding = structNode.getPreferredListEncoding();
+
+            preamble.push(
+                Line(fmt!("pub static STRUCT_SIZE : StructSize = StructSize { data : %u, pointers : %u, preferredListEncoding : %s};",
+                         dataSize as uint, pointerSize as uint,
+                         preferredListEncoding.to_str())));
 
             let members = structNode.getMembers();
             for std::uint::range(0, members.size()) |ii| {
@@ -225,7 +235,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             }
 
             let accessors =
-                ~[Line(~"pub struct Reader<'self> { _reader : StructReader<'self> }"),
+                ~[Branch(preamble),
+                  Line(~"pub struct Reader<'self> { _reader : StructReader<'self> }"),
                   Line(~"impl <'self> Reader<'self> {"),
                   Indent(~Branch(reader_members)),
                   Line(~"}"),
