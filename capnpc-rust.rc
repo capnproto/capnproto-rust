@@ -177,6 +177,9 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let names = scopeMap.get(&nodeId);
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
+            let mut builder_members = ~[];
+            let mut reader_members = ~[];
+
             let members = structNode.getMembers();
             for std::uint::range(0, members.size()) |ii| {
                 let member = members.get(ii);
@@ -201,7 +204,19 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 }
             }
 
-            output.push(Indent(~Branch(nested_output)));
+            let accessors =
+                ~[Line(~"pub struct Reader<'self> { _reader : StructReader<'self> }"),
+                  Line(~"impl <'self> Reader<'self> {"),
+                  Indent(~Branch(reader_members)),
+                  Line(~"}"),
+
+                  Line(~"pub struct Builder { _builder : StructBuiler }"),
+                  Line(~"impl Builder {"),
+                  Indent(~Branch(builder_members)),
+                  Line(~"}")];
+
+            output.push(Indent(~Branch(~[Branch(accessors),
+                                         Branch(nested_output)])));
             output.push(Line(~"}"));
         }
 
