@@ -83,32 +83,32 @@ fn testCamelCaseToAllCaps() {
 enum FormattedText {
     Indent(~FormattedText),
     Branch(~[FormattedText]),
-    Line(~str)
+    Line(~str),
+    BlankLine
 }
 
-// This is all quite inefficient.
-fn toLines(ft : &FormattedText) -> ~[~str] {
-
+fn toLines(ft : &FormattedText, indent : uint) -> ~[~str] {
     match *ft {
         Indent (ref ft) => {
-            let strs = toLines(*ft);
-            let mut result : ~[~str]= ~[];
-            for strs.iter().advance |s| {
-                let mut s1 : ~str = ~"  ";
-                s1.push_str(*s);
-                result.push(s1)
-            }
-            return result;
+            return toLines(*ft, indent + 1);
         }
         Branch (ref fts) => {
-            return do fts.flat_map |ft| {toLines(ft)};
+            return do fts.flat_map |ft| {toLines(ft, indent)};
         }
-        Line(ref s) => return ~[s.to_owned()]
+        Line(ref s) => {
+            let mut s1 : ~str = std::str::from_chars(
+                std::vec::from_elem(indent * 2, ' '));
+            s1.push_str(*s);
+            return ~[s1];
+        }
+        BlankLine => return ~[]
     }
 }
 
 fn stringify(ft : & FormattedText) -> ~str {
-    toLines(ft).connect("\n")
+    let mut result = toLines(ft, 0).connect("\n");
+    result.push_str("\n");
+    return result;
 }
 
 fn appendName (names : &[~str], name : ~str) -> ~[~str] {
