@@ -242,6 +242,12 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 ~[Branch(preamble),
                   Line(~"pub struct Reader<'self> { _reader : StructReader<'self> }"),
                   Line(~"impl <'self> Reader<'self> {"),
+                  Indent(
+                      ~Branch(
+                          ~[Line(~"pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {"),
+                            Indent(~Line(~"Reader { _reader : reader }")),
+                            Line(~"}")
+                            ])),
                   Indent(~Branch(reader_members)),
                   Line(~"}"),
 
