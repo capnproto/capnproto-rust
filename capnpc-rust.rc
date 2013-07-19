@@ -101,7 +101,7 @@ fn toLines(ft : &FormattedText, indent : uint) -> ~[~str] {
             s1.push_str(*s);
             return ~[s1];
         }
-        BlankLine => return ~[]
+        BlankLine => return ~[~""]
     }
 }
 
@@ -187,6 +187,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         Node::Body::STRUCT_NODE(structNode) => {
 
             let names = scopeMap.get(&nodeId);
+            output.push(BlankLine);
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
             let mut preamble = ~[];
@@ -329,7 +330,6 @@ fn main() {
                                   requestedFileId as uint));
 
             populateScopeMap(&nodeMap, &mut scopeMap, requestedFileId);
-            printfln!("%?", scopeMap);
             let text = stringify(&generateNode(&nodeMap, &scopeMap, requestedFileId));
 
             let path = &std::path::Path("test.out");
