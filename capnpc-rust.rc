@@ -155,6 +155,12 @@ fn getterStrings (nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
         }
         Body::listType(t1) => {
             match t1.getBody() {
+                Body::uint64Type => {
+                    return
+                        (~"PrimitiveList::Reader<'self>",
+                         fmt!("PrimitiveList::Reader::new(self._reader.getListField(%u,EIGHT_BYTES,None)",
+                              offset))
+                }
                 Body::structType(id) => {
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
@@ -189,9 +195,131 @@ fn getterStrings (nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
             return (~"TODO", ~"TODO")
         }
     }
-
 }
 
+fn generateSetter(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+                  unionOffset : Option<(uint, uint)>,
+                  capName : &str,
+                  field :&schema_capnp::StructNode::Field::Reader) -> FormattedText {
+
+    use schema_capnp::Type::Body;
+
+    let typ = field.getType();
+    let offset = field.getOffset() as uint;
+
+    let mut result = ~[];
+    result.push(Line(~"#[inline]"));
+
+    match typ.getBody() {
+        Body::voidType => {result.push(Line(fmt!("pub fn set%s(&self, _value : ()) {",capName)))}
+        Body::boolType => {result.push(Line(fmt!("pub fn set%s(&self, value : bool) {",capName)))}
+        Body::int8Type => {result.push(Line(fmt!("pub fn set%s(&self, value : i8) {",capName)))}
+        Body::int16Type => {result.push(Line(fmt!("pub fn set%s(&self, value : i16) {",capName)))}
+        Body::int32Type => {result.push(Line(fmt!("pub fn set%s(&self, value : i32) {",capName)))}
+        Body::int64Type => {result.push(Line(fmt!("pub fn set%s(&self, value : i64) {",capName)))}
+        Body::uint8Type => {result.push(Line(fmt!("pub fn set%s(&self, value : u8) {",capName)))}
+        Body::uint16Type => {result.push(Line(fmt!("pub fn set%s(&self, value : u16) {",capName)))}
+        Body::uint32Type =>{result.push(Line(fmt!("pub fn set%s(&self, value : u32) {",capName)))}
+        Body::uint64Type =>{result.push(Line(fmt!("pub fn set%s(&self, value : u64) {",capName)))}
+        Body::float32Type =>{result.push(Line(fmt!("pub fn set%s(&self, value : f32) {",capName)))}
+        Body::float64Type =>{result.push(Line(fmt!("pub fn set%s(&self, value : f64) {",capName)))}
+        Body::textType => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : &str) {",capName)))
+        }
+        Body::dataType => { return BlankLine }
+        Body::listType(t1) => {
+            result.push(Line(fmt!("pub fn init%s(&self, size : uint) -> {", capName)))
+        }
+        Body::enumType(id) => {
+//            let scope = scopeMap.get(&id);
+//            let theMod = scope.connect("::");
+            return BlankLine
+        }
+        Body::structType(id) => {
+            let scope = scopeMap.get(&id);
+            let theMod = scope.connect("::");
+            result.push(Line(fmt!("pub fn init%s(&self) -> %s::Builder {",capName,theMod)))
+        }
+        Body::interfaceType(_) => {
+            return BlankLine
+        }
+        Body::objectType => {
+            return BlankLine
+        }
+    }
+
+    let mut interior = ~[];
+
+    match unionOffset {
+        Some((doffset, idx)) => interior.push(
+            Line(fmt!("self._builder.setDataField::<u16>(%u, %u);", doffset, idx))),
+        None => { }
+    }
+
+    match typ.getBody() {
+        Body::voidType => { }
+        Body::boolType => {
+            interior.push(Line(fmt!("self._builder.setDataFieldBool(%u, value);", offset)))
+        }
+        Body::int8Type => {
+            interior.push(Line(fmt!("self._builder.setDataField::<i8>(%u, value);", offset)))
+        }
+        Body::int16Type => {
+            interior.push(Line(fmt!("self._builder.setDataField::<i16>(%u, value);", offset)))
+        }
+        Body::int32Type => {
+            interior.push(Line(fmt!("self._builder.setDataField::<i32>(%u, value);", offset)))
+        }
+        Body::int64Type => {
+            interior.push(Line(fmt!("self._builder.setDataField::<i64>(%u, value);", offset)))
+        }
+        Body::uint8Type => {
+            interior.push(Line(fmt!("self._builder.setDataField::<u8>(%u, value);", offset)))
+        }
+        Body::uint16Type => {
+            interior.push(Line(fmt!("self._builder.setDataField::<u16>(%u, value);", offset)))
+        }
+        Body::uint32Type => {
+            interior.push(Line(fmt!("self._builder.setDataField::<u32>(%u, value);", offset)))
+        }
+        Body::uint64Type => {
+            interior.push(Line(fmt!("self._builder.setDataField::<u64>(%u, value);", offset)))
+        }
+        Body::float32Type => {
+            interior.push(Line(fmt!("self._builder.setDataField::<f32>(%u, value);", offset)))
+        }
+        Body::float64Type => {
+            interior.push(Line(fmt!("self._builder.setDataField::<f64>(%u, value);", offset)))
+        }
+        Body::textType => {
+            interior.push(Line(fmt!("self._builder.setTextField(%u, value);", offset)))
+        }
+        Body::dataType => { }
+        Body::listType(t1) => {
+
+        }
+        Body::enumType(id) => {
+        }
+        Body::structType(id) => {
+            let scope = scopeMap.get(&id);
+            let theMod = scope.connect("::");
+            interior.push(
+                Line(fmt!("%s::Builder::new(initStructField(%u, %s::STRUCT_SIZE))",
+                          theMod, offset, theMod)));
+        }
+        Body::interfaceType(_) => {
+
+        }
+        Body::objectType => {
+
+        }
+    }
+
+    result.push(Indent(~Branch(interior)));
+    result.push(Line(~"}"));
+    return Branch(result);
+}
 
 // Return (union_mod, union_getter)
 fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
@@ -223,16 +351,6 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         let enumerantName = camelCaseToAllCaps(memberName);
         reader_interior.push(Line(fmt!("%s,",enumerantName)));
 
-        builder_interior.push(
-            Branch(~[
-                Line(~"#[inline]"),
-                Line(fmt!("pub fn set%s(&self) {", memberName)),
-                Indent(
-                    ~Line(
-                        fmt!("self._builder.setDataField::<u16>(%u, %u);", doffset, ii))),
-                Line(~"}")
-            ])
-        );
 
         match member.getBody() {
             schema_capnp::StructNode::Member::Body::FIELD_MEMBER(field) => {
@@ -244,6 +362,10 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                       capitalizedName, enumerantName, get))),
                     Line(~"}")
                 ]));
+
+                builder_interior.push(generateSetter(nodeMap, scopeMap, Some((doffset,ii)),
+                                                     capitalizeFirstLetter(memberName), &field));
+
             }
             _ => fail!("impossible")
         }
@@ -356,13 +478,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
 
                         builder_members.push(
-                            Branch(~[
-                                Line(~"#[inline]"),
-                                Line(fmt!("pub fn set%s(&self, value : %s) {", capName, "TODO")),
-                                Indent(~Line(~"self._builder.getDataField")),
-                                Line(~"}")
-                            ])
-                        );
+                            generateSetter(nodeMap, scopeMap, None, capName, &field));
                     }
                     StructNode::Member::Body::UNION_MEMBER(union) => {
                         let (union_mod, union_getter) =
