@@ -118,6 +118,14 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     }
 }
 
+fn generateImportStatements(rootName : &str) -> FormattedText {
+    Branch(~[
+        Line(~"use std;"),
+        Line(~"use capnprust::layout::*;"),
+        Line(~"use capnprust::list::*;"),
+        Line(fmt!("use %s::*;", rootName))
+    ])
+}
 
 fn getterStrings (nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
@@ -412,22 +420,19 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
 fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                 scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+                rootName : &str,
                 nodeId : u64) -> FormattedText {
     use schema_capnp::*;
 
-    let nodeReader = nodeMap.get(&nodeId);
-
-    let _displayName = nodeReader.getDisplayName();
-
     let mut output: ~[FormattedText] = ~[];
-
     let mut nested_output: ~[FormattedText] = ~[];
 
+    let nodeReader = nodeMap.get(&nodeId);
     let nestedNodes = nodeReader.getNestedNodes();
     for std::uint::range(0, nestedNodes.size()) |ii| {
         let nestedNode = nestedNodes.get(ii);
         let id = nestedNode.getId();
-        let text = generateNode(nodeMap, scopeMap, id);
+        let text = generateNode(nodeMap, scopeMap, rootName, id);
         nested_output.push(text);
     }
 
@@ -445,6 +450,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
             let names = scopeMap.get(&nodeId);
             output.push(BlankLine);
+
+            output.push(Line(~"#[allow(unused_imports)]"));
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
             let mut preamble = ~[];
@@ -456,7 +463,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let pointerSize = structNode.getPointerSectionSize();
             let preferredListEncoding = structNode.getPreferredListEncoding();
 
-            preamble.push(Line(~"use capnprust::layout::*;"));
+            preamble.push(generateImportStatements(rootName));
+            preamble.push(BlankLine);
             preamble.push(Line(~"pub static STRUCT_SIZE : StructSize = "));
             preamble.push(
                 Indent(
@@ -466,7 +474,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                          preferredListEncoding.to_str()))));
             preamble.push(BlankLine);
 
-            preamble.push(Line(fmt!("list_submodule!(%s)", scopeMap.get(&nodeId).connect("::"))));
+            preamble.push(Line(fmt!("list_submodule!(%s, %s)",
+                                    rootName, scopeMap.get(&nodeId).connect("::"))));
             preamble.push(BlankLine);
 
             let members = structNode.getMembers();
@@ -603,9 +612,29 @@ fn main() {
                                   requestedFileId as uint));
 
             populateScopeMap(&nodeMap, &mut scopeMap, requestedFileId);
-            let text = stringify(&generateNode(&nodeMap, &scopeMap, requestedFileId));
 
-            let path = &std::path::Path("test.out");
+            let fileNode = nodeMap.get(&requestedFileId);
+            let displayName = fileNode.getDisplayName();
+            printfln!(displayName);
+            let mut rootName : ~str =
+                match (displayName.rfind('/'), displayName.rfind('.')) {
+                    (Some(s), Some(d)) => {
+                        displayName.slice_chars(s + 1, d).to_owned()
+                    }
+                    (None, Some(d)) => {
+                        displayName.slice_chars(0, d).to_owned()
+                    }
+                    _ => { fail!("bad file name: %s", displayName) }
+                };
+
+            rootName.push_str("_capnp");
+
+            let text = stringify(&generateNode(&nodeMap, &scopeMap,
+                                               rootName, requestedFileId));
+
+            rootName.push_str("_test.rs");
+
+            let path = &std::path::Path(rootName);
             match std::io::mk_file_writer(path, [std::io::Create, std::io::Truncate]) {
                 Ok(writer) => { writer.write( text.as_bytes() )}
                 Err(msg) => {printfln!("ERROR: %s", msg)}
