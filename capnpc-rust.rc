@@ -153,9 +153,19 @@ fn getterStrings (nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
         Body::dataType => {
             return (~"TODO", ~"TODO")
         }
-        Body::listType(t1) => { return (~"TODO", ~"TODO");
-//            let s1 = typeToString(&t1);
-//            return fmt!("List(%s)", s1)
+        Body::listType(t1) => {
+            match t1.getBody() {
+                Body::structType(id) => {
+                    let scope = scopeMap.get(&id);
+                    let theMod = scope.connect("::");
+                    let reader = fmt!("%s::List::Reader", theMod);
+                    return (fmt!("%s<'self>", reader),
+                            fmt!("%s::new(self._reader.getListField(%u, %s::STRUCT_SIZE, None))",
+                                 reader, offset, theMod)
+                           );
+                }
+                _ => {return (~"TODO", ~"TODO") }
+            }
         }
         Body::enumType(id) => {
             let scope = scopeMap.get(&id);
