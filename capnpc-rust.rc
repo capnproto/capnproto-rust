@@ -211,21 +211,63 @@ fn generateSetter(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
     let mut result = ~[];
     result.push(Line(~"#[inline]"));
 
+    let mut interior = ~[];
+
+    match unionOffset {
+        Some((doffset, idx)) => interior.push(
+            Line(fmt!("self._builder.setDataField::<u16>(%u, %u);", doffset, idx))),
+        None => { }
+    }
+
     match typ.getBody() {
         Body::voidType => {result.push(Line(fmt!("pub fn set%s(&self, _value : ()) {",capName)))}
-        Body::boolType => {result.push(Line(fmt!("pub fn set%s(&self, value : bool) {",capName)))}
-        Body::int8Type => {result.push(Line(fmt!("pub fn set%s(&self, value : i8) {",capName)))}
-        Body::int16Type => {result.push(Line(fmt!("pub fn set%s(&self, value : i16) {",capName)))}
-        Body::int32Type => {result.push(Line(fmt!("pub fn set%s(&self, value : i32) {",capName)))}
-        Body::int64Type => {result.push(Line(fmt!("pub fn set%s(&self, value : i64) {",capName)))}
-        Body::uint8Type => {result.push(Line(fmt!("pub fn set%s(&self, value : u8) {",capName)))}
-        Body::uint16Type => {result.push(Line(fmt!("pub fn set%s(&self, value : u16) {",capName)))}
-        Body::uint32Type =>{result.push(Line(fmt!("pub fn set%s(&self, value : u32) {",capName)))}
-        Body::uint64Type =>{result.push(Line(fmt!("pub fn set%s(&self, value : u64) {",capName)))}
-        Body::float32Type =>{result.push(Line(fmt!("pub fn set%s(&self, value : f32) {",capName)))}
-        Body::float64Type =>{result.push(Line(fmt!("pub fn set%s(&self, value : f64) {",capName)))}
+        Body::boolType => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : bool) {",capName)));
+            interior.push(Line(fmt!("self._builder.setDataFieldBool(%u, value);", offset)))
+        }
+        Body::int8Type => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : i8) {",capName)));
+            interior.push(Line(fmt!("self._builder.setDataField::<i8>(%u, value);", offset)))
+        }
+        Body::int16Type => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : i16) {",capName)));
+            interior.push(Line(fmt!("self._builder.setDataField::<i16>(%u, value);", offset)))
+        }
+        Body::int32Type => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : i32) {",capName)));
+            interior.push(Line(fmt!("self._builder.setDataField::<i32>(%u, value);", offset)))
+        }
+        Body::int64Type => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : i64) {",capName)));
+            interior.push(Line(fmt!("self._builder.setDataField::<i64>(%u, value);", offset)))
+        }
+        Body::uint8Type => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : u8) {",capName)));
+            interior.push(Line(fmt!("self._builder.setDataField::<u8>(%u, value);", offset)))
+        }
+        Body::uint16Type => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : u16) {",capName)));
+            interior.push(Line(fmt!("self._builder.setDataField::<u16>(%u, value);", offset)))
+        }
+        Body::uint32Type => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : u32) {",capName)));
+            interior.push(Line(fmt!("self._builder.setDataField::<u32>(%u, value);", offset)))
+        }
+        Body::uint64Type => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : u64) {",capName)));
+            interior.push(Line(fmt!("self._builder.setDataField::<u64>(%u, value);", offset)))
+        }
+        Body::float32Type => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : f32) {",capName)));
+            interior.push(Line(fmt!("self._builder.setDataField::<f32>(%u, value);", offset)))
+        }
+        Body::float64Type => {
+            result.push(Line(fmt!("pub fn set%s(&self, value : f64) {",capName)));
+            interior.push(Line(fmt!("self._builder.setDataField::<f64>(%u, value);", offset)))
+        }
         Body::textType => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : &str) {",capName)))
+            result.push(Line(fmt!("pub fn set%s(&self, value : &str) {",capName)));
+            interior.push(Line(fmt!("self._builder.setTextField(%u, value);", offset)))
         }
         Body::dataType => { return BlankLine }
         Body::listType(t1) => {
@@ -241,6 +283,14 @@ fn generateSetter(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
                     Body::structType(id) => {
                         let scope = scopeMap.get(&id);
                         let theMod = scope.connect("::");
+
+                        interior.push(Line(fmt!("%s::List::Builder::new(", theMod)));
+                        interior.push(
+                            Indent(
+                                ~Line(
+                                    fmt!("self._builder.initStructListField(0, size, %s::STRUCT_SIZE))",
+                                         theMod))));
+
                         fmt!("%s::List::Builder", theMod)
                     }
                     _ => { ~"" }
@@ -249,105 +299,23 @@ fn generateSetter(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
                                   capName, returnType)))
         }
         Body::enumType(id) => {
-//            let scope = scopeMap.get(&id);
-//            let theMod = scope.connect("::");
+            let scope = scopeMap.get(&id);
+            let theMod = scope.connect("::");
             return BlankLine
         }
         Body::structType(id) => {
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
-            result.push(Line(fmt!("pub fn init%s(&self) -> %s::Builder {",capName,theMod)))
-        }
-        Body::interfaceType(_) => {
-            return BlankLine
-        }
-        Body::objectType => {
-            return BlankLine
-        }
-    }
-
-    let mut interior = ~[];
-
-    match unionOffset {
-        Some((doffset, idx)) => interior.push(
-            Line(fmt!("self._builder.setDataField::<u16>(%u, %u);", doffset, idx))),
-        None => { }
-    }
-
-    match typ.getBody() {
-        Body::voidType => { }
-        Body::boolType => {
-            interior.push(Line(fmt!("self._builder.setDataFieldBool(%u, value);", offset)))
-        }
-        Body::int8Type => {
-            interior.push(Line(fmt!("self._builder.setDataField::<i8>(%u, value);", offset)))
-        }
-        Body::int16Type => {
-            interior.push(Line(fmt!("self._builder.setDataField::<i16>(%u, value);", offset)))
-        }
-        Body::int32Type => {
-            interior.push(Line(fmt!("self._builder.setDataField::<i32>(%u, value);", offset)))
-        }
-        Body::int64Type => {
-            interior.push(Line(fmt!("self._builder.setDataField::<i64>(%u, value);", offset)))
-        }
-        Body::uint8Type => {
-            interior.push(Line(fmt!("self._builder.setDataField::<u8>(%u, value);", offset)))
-        }
-        Body::uint16Type => {
-            interior.push(Line(fmt!("self._builder.setDataField::<u16>(%u, value);", offset)))
-        }
-        Body::uint32Type => {
-            interior.push(Line(fmt!("self._builder.setDataField::<u32>(%u, value);", offset)))
-        }
-        Body::uint64Type => {
-            interior.push(Line(fmt!("self._builder.setDataField::<u64>(%u, value);", offset)))
-        }
-        Body::float32Type => {
-            interior.push(Line(fmt!("self._builder.setDataField::<f32>(%u, value);", offset)))
-        }
-        Body::float64Type => {
-            interior.push(Line(fmt!("self._builder.setDataField::<f64>(%u, value);", offset)))
-        }
-        Body::textType => {
-            interior.push(Line(fmt!("self._builder.setTextField(%u, value);", offset)))
-        }
-        Body::dataType => { }
-        Body::listType(t1) => {
-            match t1.getBody() {
-                Body::voidType | Body::boolType | Body::int8Type |
-                Body::int16Type | Body::int32Type | Body::int64Type |
-                Body::uint8Type | Body::uint16Type | Body::uint32Type |
-                Body::uint64Type | Body::float32Type | Body::float64Type => {
-                    // TODO
-                }
-                Body::structType(id) => {
-                    let scope = scopeMap.get(&id);
-                    let theMod = scope.connect("::");
-                    interior.push(Line(fmt!("%s::List::Builder::new(", theMod)));
-                    interior.push(
-                        Indent(
-                            ~Line(
-                                fmt!("self._builder.initStructListField(0, size, %s::STRUCT_SIZE))",
-                                     theMod))));
-                }
-                _ => { }
-            }
-        }
-        Body::enumType(id) => {
-        }
-        Body::structType(id) => {
-            let scope = scopeMap.get(&id);
-            let theMod = scope.connect("::");
+            result.push(Line(fmt!("pub fn init%s(&self) -> %s::Builder {",capName,theMod)));
             interior.push(
                 Line(fmt!("%s::Builder::new(initStructField(%u, %s::STRUCT_SIZE))",
                           theMod, offset, theMod)));
         }
         Body::interfaceType(_) => {
-
+            return BlankLine
         }
         Body::objectType => {
-
+            return BlankLine
         }
     }
 
