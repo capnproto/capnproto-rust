@@ -44,7 +44,7 @@ fn camelCaseToAllCaps(s : &str) -> ~str {
         // strings will be null-terminated
         if (b != 0) {
             let c = b as char;
-            assert!(std::char::is_alphabetic(c), fmt!("not alphabetic '%c'", c));
+            assert!(std::char::is_alphanumeric(c), fmt!("not alphanumeric '%c'", c));
             if (std::char::is_uppercase(c)) {
                 result_bytes.push('_' as u8);
             }
@@ -190,6 +190,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
         getter_interior.push(Branch(~[
             Line(fmt!("%u => {", ii)),
+            Indent(~Line(fmt!("return %s::%s(%s);", capitalizedName, enumerantName, "TODO"))),
             Line(~"}")
         ]));
     }
