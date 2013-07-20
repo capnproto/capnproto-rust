@@ -301,7 +301,11 @@ fn generateSetter(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
         Body::enumType(id) => {
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
-            return BlankLine
+            result.push(Line(fmt!("pub fn set%s(&self, value : %s::%s) {",
+                                  capName, theMod, *scope.last())));
+            interior.push(
+                Line(fmt!("self._builder.setDataField::<u16>(%u, value as u16)",
+                          offset)));
         }
         Body::structType(id) => {
             let scope = scopeMap.get(&id);
