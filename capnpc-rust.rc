@@ -356,12 +356,12 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         let member = members.get(ii);
         let memberName = member.getName();
         let enumerantName = camelCaseToAllCaps(memberName);
-        reader_interior.push(Line(fmt!("%s,",enumerantName)));
-
 
         match member.getBody() {
             schema_capnp::StructNode::Member::Body::FIELD_MEMBER(field) => {
-                let (_ty, get) = getterStrings(nodeMap, scopeMap, &field);
+                let (ty, get) = getterStrings(nodeMap, scopeMap, &field);
+
+                reader_interior.push(Line(fmt!("%s(%s),",enumerantName, ty)));
 
                 getter_interior.push(Branch(~[
                     Line(fmt!("%u => {", ii)),
@@ -456,6 +456,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let pointerSize = structNode.getPointerSectionSize();
             let preferredListEncoding = structNode.getPreferredListEncoding();
 
+            preamble.push(Line(~"use capnprust::layout::*;"));
             preamble.push(Line(~"pub static STRUCT_SIZE : StructSize = "));
             preamble.push(
                 Indent(
@@ -463,6 +464,10 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                         fmt!("StructSize { data : %u, pointers : %u, preferredListEncoding : %s};",
                          dataSize as uint, pointerSize as uint,
                          preferredListEncoding.to_str()))));
+            preamble.push(BlankLine);
+
+            preamble.push(Line(fmt!("list_submodule!(%s)", scopeMap.get(&nodeId).connect("::"))));
+            preamble.push(BlankLine);
 
             let members = structNode.getMembers();
             for std::uint::range(0, members.size()) |ii| {
@@ -481,7 +486,6 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                 Line(~"}")
                             ])
                         );
-
 
                         builder_members.push(
                             generateSetter(nodeMap, scopeMap, None, capName, &field));
@@ -507,7 +511,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                             ])),
                   Indent(~Branch(reader_members)),
                   Line(~"}"),
-
+                  BlankLine,
                   Line(~"pub struct Builder { _builder : StructBuiler }"),
                   Line(~"impl Builder {"),
                   Indent(
