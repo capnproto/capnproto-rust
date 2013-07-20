@@ -44,7 +44,7 @@ pub mod Person {
         pub fn getEmployment(&self) -> Employment::Reader<'self> {
             match self._reader.getDataField::<u16>(2) {
                 0 => {
-                    return Employment::UNEMPLOYED
+                    return Employment::UNEMPLOYED(())
                 }
                 1 => {
                     return Employment::EMPLOYER(
@@ -54,7 +54,7 @@ pub mod Person {
                     return Employment::SCHOOL(
                         self._reader.getTextField(3, ""));
                 }
-                3 => { return Employment::SELF_EMPLOYED }
+                3 => { return Employment::SELF_EMPLOYED(()) }
                 _ => fail!("impossible")
             }
         }
@@ -95,10 +95,10 @@ pub mod Person {
         use capnprust::layout::*;
 
         pub enum Reader<'self> {
-            UNEMPLOYED,
+            UNEMPLOYED(()),
             EMPLOYER(&'self str),
             SCHOOL(&'self str),
-            SELF_EMPLOYED
+            SELF_EMPLOYED(())
         }
 
         pub struct Builder {
@@ -110,7 +110,7 @@ pub mod Person {
                 Builder { _builder : builder }
             }
 
-            pub fn setUnemployed(&self) {
+            pub fn setUnemployed(&self, _value : ()) {
                 self._builder.setDataField::<u16>(2, 0);
             }
 
@@ -124,7 +124,7 @@ pub mod Person {
                 self._builder.setTextField(3, value);
             }
 
-            pub fn setSelfEmployed(&self) {
+            pub fn setSelfEmployed(&self, _value : ()) {
                 self._builder.setDataField::<u16>(2, 3);
             }
         }

@@ -146,14 +146,21 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     }
 }
 
+
+// Return (union_mod, union_getter)
 fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                  name : &str,
-                 union : schema_capnp::StructNode::Union::Reader) -> FormattedText {
+                 union : schema_capnp::StructNode::Union::Reader)
+    -> (FormattedText, FormattedText) {
 
     let mut result = ~[];
 
-    result.push(Line(fmt!("pub mod %s {", capitalizeFirstLetter(name))));
+    let mut getter_interior = ~[];
+
+    let capitalizedName = capitalizeFirstLetter(name);
+
+    result.push(Line(fmt!("pub mod %s {", capitalizedName)));
     let mut interior = ~[];
     let mut reader_interior = ~[];
     let mut builder_interior = ~[];
@@ -162,17 +169,32 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         Line(~"pub fn new(builder : StructBuilder) -> Builder { Builder { _builder : builder }}"));
 
     let doffset = union.getDiscriminantOffset() as uint;
-    std::io::println(
-        fmt!("    union field %s with discriminant offset %u",
-             name, doffset));
+
     let members = union.getMembers();
     for std::uint::range(0, members.size()) |ii| {
         let member = members.get(ii);
         let memberName = member.getName();
         let enumerantName = camelCaseToAllCaps(memberName);
         reader_interior.push(Line(fmt!("%s,",enumerantName)));
+
+        builder_interior.push(
+            Branch(~[
+                Line(~"#[inline]"),
+                Line(fmt!("pub fn set%s(&self) {", memberName)),
+                Indent(
+                    ~Line(
+                        fmt!("self._builder.setDataField::<u16>(%u, %u);", doffset, ii))),
+                Line(~"}")
+            ])
+        );
+
+        getter_interior.push(Branch(~[
+            Line(fmt!("%u => {", ii)),
+            Line(~"}")
+        ]));
     }
 
+    getter_interior.push(Line(~"_ => fail!(\"impossible\")"));
 
     interior.push(
         Branch(~[Line(~"pub enum Reader<'self> {"),
@@ -189,7 +211,19 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
     result.push(Indent(~Branch(interior)));
     result.push(Line(~"}"));
 
-    return Branch(result);
+
+    let getter_result =
+        Branch(~[Line(~"#[inline]"),
+                 Line(fmt!("pub fn get%s(&self) -> %s::Reader<'self> {",
+                           capitalizedName, capitalizedName)),
+                 Indent(~Branch(~[
+                     Line(fmt!("match self._reader.getDataField::<u16>(%u) {", doffset)),
+                     Indent(~Branch(getter_interior)),
+                     Line(~"}")
+                 ])),
+                 Line(~"}")]);
+
+    return (Branch(result), getter_result);
 }
 
 fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
@@ -267,7 +301,10 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                         );
                     }
                     StructNode::Member::Body::UNION_MEMBER(union) => {
-                        union_mods.push(generateUnion(nodeMap, scopeMap, name, union));
+                        let (union_mod, union_getter) =
+                            generateUnion(nodeMap, scopeMap, name, union);
+                        union_mods.push(union_mod);
+                        reader_members.push(union_getter);
                     }
                 }
             }

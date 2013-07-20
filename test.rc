@@ -33,12 +33,12 @@ fn addressbook() {
     let person = people.get(1);
     person.setId(2);
     person.setName("Bob");
-    person.getEmployment().setSelfEmployed();
+    person.getEmployment().setSelfEmployed(());
 
     let person = people.get(2);
     person.setId(3);
     person.setName("Charlie");
-    person.getEmployment().setUnemployed();
+    person.getEmployment().setUnemployed(());
 
     let person = people.get(3);
     person.setId(255);
