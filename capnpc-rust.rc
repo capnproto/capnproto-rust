@@ -229,7 +229,24 @@ fn generateSetter(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
         }
         Body::dataType => { return BlankLine }
         Body::listType(t1) => {
-            result.push(Line(fmt!("pub fn init%s(&self, size : uint) -> {", capName)))
+            let returnType =
+                match t1.getBody() {
+                    Body::voidType | Body::boolType | Body::int8Type |
+                    Body::int16Type | Body::int32Type | Body::int64Type |
+                    Body::uint8Type | Body::uint16Type | Body::uint32Type |
+                    Body::uint64Type | Body::float32Type | Body::float64Type => {
+                        // TODO
+                        ~""
+                    }
+                    Body::structType(id) => {
+                        let scope = scopeMap.get(&id);
+                        let theMod = scope.connect("::");
+                        fmt!("%s::List::Builder", theMod)
+                    }
+                    _ => { ~"" }
+                };
+            result.push(Line(fmt!("pub fn init%s(&self, size : uint) -> %s {",
+                                  capName, returnType)))
         }
         Body::enumType(id) => {
 //            let scope = scopeMap.get(&id);
@@ -297,7 +314,25 @@ fn generateSetter(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
         }
         Body::dataType => { }
         Body::listType(t1) => {
-
+            match t1.getBody() {
+                Body::voidType | Body::boolType | Body::int8Type |
+                Body::int16Type | Body::int32Type | Body::int64Type |
+                Body::uint8Type | Body::uint16Type | Body::uint32Type |
+                Body::uint64Type | Body::float32Type | Body::float64Type => {
+                    // TODO
+                }
+                Body::structType(id) => {
+                    let scope = scopeMap.get(&id);
+                    let theMod = scope.connect("::");
+                    interior.push(Line(fmt!("%s::List::Builder::new(", theMod)));
+                    interior.push(
+                        Indent(
+                            ~Line(
+                                fmt!("self._builder.initStructListField(0, size, %s::STRUCT_SIZE))",
+                                     theMod))));
+                }
+                _ => { }
+            }
         }
         Body::enumType(id) => {
         }
@@ -354,7 +389,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
         match member.getBody() {
             schema_capnp::StructNode::Member::Body::FIELD_MEMBER(field) => {
-                let (ty, get) = getterStrings(nodeMap, scopeMap, &field);
+                let (_ty, get) = getterStrings(nodeMap, scopeMap, &field);
 
                 getter_interior.push(Branch(~[
                     Line(fmt!("%u => {", ii)),
@@ -420,7 +455,6 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
     for std::uint::range(0, nestedNodes.size()) |ii| {
         let nestedNode = nestedNodes.get(ii);
         let id = nestedNode.getId();
-        let name = nestedNode.getName().to_owned();
         let text = generateNode(nodeMap, scopeMap, id);
         nested_output.push(text);
     }
