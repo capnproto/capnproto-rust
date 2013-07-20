@@ -1,4 +1,4 @@
-#[link(name = "capnprust", vers = "0.0", author = "dwrensha")];
+#[link(name = "capnprust", vers = "alpha", author = "dwrensha")];
 
 #[crate_type = "lib"];
 

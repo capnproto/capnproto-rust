@@ -1,4 +1,4 @@
-#[link(name = "capnpc-rust", vers = "0.0", author = "dwrensha")];
+#[link(name = "capnpc-rust", vers = "alpha", author = "dwrensha")];
 
 #[crate_type = "bin"];
 
@@ -7,34 +7,6 @@ extern mod capnprust;
 use capnprust::*;
 
 pub mod schema_capnp;
-
-fn typeToString (t : &schema_capnp::Type::Reader) -> ~str {
-    use schema_capnp::Type::Body;
-    match t.getBody() {
-        Body::voidType => { return ~"Void" }
-        Body::boolType => { return ~"Bool" }
-        Body::int8Type => { return ~"Int8" }
-        Body::int16Type => { return ~"Int16" }
-        Body::int32Type => { return ~"Int32" }
-        Body::int64Type => { return ~"Int64" }
-        Body::uint8Type => { return ~"UInt8" }
-        Body::uint16Type => { return ~"UInt16" }
-        Body::uint32Type => { return ~"UInt32" }
-        Body::uint64Type => { return ~"UInt64" }
-        Body::float32Type => { return ~"Float32" }
-        Body::float64Type => { return ~"Float64" }
-        Body::textType => { return ~"Text" }
-        Body::dataType => { return ~"Data" }
-        Body::listType(t1) => {
-            let s1 = typeToString(&t1);
-            return fmt!("List(%s)", s1)
-        }
-        Body::enumType(_) => { return ~"Enum" }
-        Body::structType(_) => { return ~"Struct" }
-        Body::interfaceType(_) => { return ~"Interface" }
-        Body::objectType => { return ~"Object" }
-    }
-}
 
 fn camelCaseToAllCaps(s : &str) -> ~str {
     let bytes = s.as_bytes();
@@ -147,6 +119,70 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 }
 
 
+fn getterStrings (nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+                  field : &schema_capnp::StructNode::Field::Reader)
+    -> (~str, ~str) {
+
+    use schema_capnp::Type::Body;
+
+    let typ = field.getType();
+    let offset = field.getOffset() as uint;
+//    let defaultValue = field.getDefaultValue();
+
+    match typ.getBody() {
+        Body::voidType => { return (~"()", ~"()")}
+        Body::boolType => { return (~"bool", fmt!("self._reader.getDataFieldBool(%u)", offset)) }
+        Body::int8Type => { return (~"i8", fmt!("self._reader.getDataField::<i8>(%u)", offset)) }
+        Body::int16Type => { return (~"i16", fmt!("self._reader.getDataField::<i16>(%u)", offset)) }
+        Body::int32Type => { return (~"i32", fmt!("self._reader.getDataField::<i32>(%u)", offset)) }
+        Body::int64Type => { return (~"i64", fmt!("self._reader.getDataField::<i64>(%u)", offset)) }
+        Body::uint8Type => { return (~"u8", fmt!("self._reader.getDataField::<u8>(%u)", offset)) }
+        Body::uint16Type => { return (~"u16",
+                                      fmt!("self._reader.getDataField::<u16>(%u)", offset)) }
+        Body::uint32Type => { return (~"u32",
+                                      fmt!("self._reader.getDataField::<u32>(%u)", offset)) }
+        Body::uint64Type => { return (~"u64",
+                                      fmt!("self._reader.getDataField::<u64>(%u)", offset)) }
+        Body::float32Type => { return (~"f32",
+                                       fmt!("self._reader.getDataField::<f32>(%u)", offset)) }
+        Body::float64Type => { return (~"f64",
+                                       fmt!("self._reader.getDataField::<f64>(%u)", offset)) }
+        Body::textType => { return (~"&'self str",
+                                    fmt!("self._reader.getTextField(%u, \"\")", offset)) }
+        Body::dataType => {
+            return (~"TODO", ~"TODO")
+        }
+        Body::listType(t1) => { return (~"TODO", ~"TODO");
+//            let s1 = typeToString(&t1);
+//            return fmt!("List(%s)", s1)
+        }
+        Body::enumType(id) => {
+            let scope = scopeMap.get(&id);
+            let theMod = scope.connect("::");
+            return
+                (fmt!("%s::%s", theMod, *scope.last()),
+                 fmt!("unsafe{std::cast::transmute(self._reader.getDataField::<u16>(%u) as uint)}",
+                      offset))
+        }
+        Body::structType(id) => {
+            let scope = scopeMap.get(&id);
+            let theMod = scope.connect("::");
+            return (fmt!("%s::Reader<'self>", theMod),
+                    fmt!("%s::Reader::new(self._reader.getStructField(%u, None))",
+                         theMod, offset))
+        }
+        Body::interfaceType(_) => {
+            return (~"TODO", ~"TODO")
+        }
+        Body::objectType => {
+            return (~"TODO", ~"TODO")
+        }
+    }
+
+}
+
+
 // Return (union_mod, union_getter)
 fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
@@ -188,11 +224,19 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             ])
         );
 
-        getter_interior.push(Branch(~[
-            Line(fmt!("%u => {", ii)),
-            Indent(~Line(fmt!("return %s::%s(%s);", capitalizedName, enumerantName, "TODO"))),
-            Line(~"}")
-        ]));
+        match member.getBody() {
+            schema_capnp::StructNode::Member::Body::FIELD_MEMBER(field) => {
+                let (ty, get) = getterStrings(nodeMap, scopeMap, &field);
+
+                getter_interior.push(Branch(~[
+                    Line(fmt!("%u => {", ii)),
+                    Indent(~Line(fmt!("return %s::%s(%s);",
+                                      capitalizedName, enumerantName, get))),
+                    Line(~"}")
+                ]));
+            }
+            _ => fail!("impossible")
+        }
     }
 
     getter_interior.push(Line(~"_ => fail!(\"impossible\")"));
@@ -289,14 +333,23 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 let capName = capitalizeFirstLetter(name);
                 match member.getBody() {
                     StructNode::Member::Body::FIELD_MEMBER(field) => {
-                        let offset = field.getOffset() as uint;
-                        let typ = field.getType();
+                        let (ty, get) = getterStrings(nodeMap, scopeMap, &field);
 
                         reader_members.push(
                             Branch(~[
                                 Line(~"#[inline]"),
-                                Line(fmt!("pub fn get%s(&self) {", capName)),
-                                Indent(~Line(~"self._reader.getDataField")),
+                                Line(fmt!("pub fn get%s(&self) -> %s  {", capName, ty)),
+                                Indent(~Line(get)),
+                                Line(~"}")
+                            ])
+                        );
+
+
+                        builder_members.push(
+                            Branch(~[
+                                Line(~"#[inline]"),
+                                Line(fmt!("pub fn set%s(&self, value : %s) {", capName, "TODO")),
+                                Indent(~Line(~"self._builder.getDataField")),
                                 Line(~"}")
                             ])
                         );

@@ -1,4 +1,4 @@
-#[link(name = "capnproto-rust-test", vers = "0.0", author = "dwrensha")];
+#[link(name = "capnproto-rust-test", vers = "alpha", author = "dwrensha")];
 
 #[crate_type = "bin"];
 
