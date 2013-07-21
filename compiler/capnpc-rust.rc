@@ -296,8 +296,8 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                         interior.push(
                             Indent(
                                 ~Line(
-                                    fmt!("self._builder.initStructListField(0, size, %s::STRUCT_SIZE))",
-                                         theMod))));
+                                    fmt!("self._builder.initStructListField(%u, size, %s::STRUCT_SIZE))",
+                                         offset, theMod))));
 
                         fmt!("%s::List::Builder", theMod)
                     }
