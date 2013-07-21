@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ *
+ * See the LICENSE file in the capnproto-rust root directory.
+ */
+
 pub trait Mask {
     pub fn mask(value : Self, mask : Self) -> Self;
 }

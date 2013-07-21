@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ *
+ * See the LICENSE file in the capnproto-rust root directory.
+ */
+
+
 #[link(name = "capnprust", vers = "alpha", author = "dwrensha")];
 
 #[crate_type = "lib"];

@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ *
+ * See the LICENSE file in the capnproto-rust root directory.
+ */
+
+
 use std;
 
 pub type BitCount0 = uint; // `BitCount` clashes with a standard trait
