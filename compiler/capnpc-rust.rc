@@ -174,7 +174,7 @@ fn getterStrings (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                     let theMod = scope.connect("::");
                     let reader = fmt!("%s::List::Reader", theMod);
                     return (fmt!("%s<'self>", reader),
-                            fmt!("%s::new(self._reader.getListField(%u, %s::STRUCT_SIZE, None))",
+                            fmt!("%s::new(self._reader.getListField(%u, %s::STRUCT_SIZE.preferredListEncoding, None))",
                                  reader, offset, theMod)
                            );
                 }
