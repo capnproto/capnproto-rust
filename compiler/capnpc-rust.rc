@@ -185,7 +185,7 @@ fn getterStrings (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
             return
-                (fmt!("%s::%s", theMod, *scope.last()),
+                (fmt!("%s::Reader", theMod),
                  fmt!("unsafe{std::cast::transmute(self._reader.getDataField::<u16>(%u) as uint)}",
                       offset))
         }
@@ -309,8 +309,8 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
         Body::enumType(id) => {
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
-            result.push(Line(fmt!("pub fn set%s(&self, value : %s::%s) {",
-                                  capName, theMod, *scope.last())));
+            result.push(Line(fmt!("pub fn set%s(&self, value : %s::Reader) {",
+                                  capName, theMod)));
             interior.push(
                 Line(fmt!("self._builder.setDataField::<u16>(%u, value as u16)",
                           offset)));
@@ -339,6 +339,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
 // Return (union_mod, union_getter)
 fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+                 rootName : &str,
                  name : &str,
                  union : schema_capnp::StructNode::Union::Reader)
     -> (FormattedText, FormattedText) {
@@ -349,10 +350,13 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
     let capitalizedName = capitalizeFirstLetter(name);
 
+    result.push(Line(~"#[allow(unused_imports)]"));
     result.push(Line(fmt!("pub mod %s {", capitalizedName)));
     let mut interior = ~[];
     let mut reader_interior = ~[];
     let mut builder_interior = ~[];
+
+    interior.push(generateImportStatements(rootName));
 
     builder_interior.push(
         Line(~"pub fn new(builder : StructBuilder) -> Builder { Builder { _builder : builder }}"));
@@ -393,7 +397,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                  Indent(~Branch(reader_interior)),
                  Line(~"}")]));
     interior.push(
-        Line(~"pub struct Builder { _builder : StructBuiler }"));
+        Line(~"pub struct Builder { _builder : StructBuilder }"));
     interior.push(
         Branch(~[Line(~"impl Builder {"),
                  Indent(~Branch(builder_interior)),
@@ -465,7 +469,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
             preamble.push(generateImportStatements(rootName));
             preamble.push(BlankLine);
-            preamble.push(Line(~"pub static STRUCT_SIZE : StructSize = "));
+            preamble.push(Line(~"pub static STRUCT_SIZE : StructSize ="));
             preamble.push(
                 Indent(
                     ~Line(
@@ -501,7 +505,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     }
                     StructNode::Member::Body::UNION_MEMBER(union) => {
                         let (union_mod, union_getter) =
-                            generateUnion(nodeMap, scopeMap, name, union);
+                            generateUnion(nodeMap, scopeMap, rootName, name, union);
                         union_mods.push(union_mod);
                         reader_members.push(union_getter);
                     }
@@ -521,7 +525,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                   Indent(~Branch(reader_members)),
                   Line(~"}"),
                   BlankLine,
-                  Line(~"pub struct Builder { _builder : StructBuiler }"),
+                  Line(~"pub struct Builder { _builder : StructBuilder }"),
                   Line(~"impl Builder {"),
                   Indent(
                       ~Branch(

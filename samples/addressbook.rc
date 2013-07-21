@@ -7,9 +7,8 @@ extern mod capnprust;
 use capnprust::*;
 
 pub mod addressbook_capnp;
-pub mod schema_capnp;
 
-fn addressbook() {
+fn writeAddressBook() {
     use capnprust::message::*;
     use addressbook_capnp::*;
 
@@ -51,33 +50,19 @@ fn addressbook() {
     serialize_packed::writePackedMessage(outStream, message)
 }
 
-fn schema() {
-    use capnprust::message::*;
+fn printAddressBook() {
 
-    use schema_capnp::*;
-
-    let message = MessageBuilder::new_default();
-
-    let request = CodeGeneratorRequest::Builder::new(
-        message.initRoot(CodeGeneratorRequest::STRUCT_SIZE));
-
-    request.initNodes(1);
-
-    let outStream = @std::io::stdout() as @serialize::OutputStream;
-//    serialize_packed::writePackedMessage(outStream, message)
-    serialize::writeMessage(outStream, message)
 }
-
 
 fn main() {
 
     let args = std::os::args();
     if (args.len() < 2) {
-        std::io::println(fmt!("usage: $ %s [addressbook | schema]", args[0]));
+        std::io::println(fmt!("usage: $ %s [write | read]", args[0]));
     } else {
         match args[1] {
-            ~"addressbook" => addressbook(),
-            ~"schema" => schema(),
+            ~"write" => writeAddressBook(),
+            ~"read" => printAddressBook(),
             _ => {std::io::println("unrecognized argument") }
         }
     }

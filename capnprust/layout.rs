@@ -756,9 +756,11 @@ mod WireHelpers {
         assert!(size > 0, "Message contains text that is not NUL-terminated");
 
         let startByte = ptr * BYTES_PER_WORD;
-        let slice = segment.segment.slice(startByte, startByte + size);
 
-        assert!(slice[size-1] == 0, "Message contains text that is not NUL-terminated");
+        // slice does not include the null terminator
+        let slice = segment.segment.slice(startByte, startByte + size - 1);
+
+//        assert!(slice[size-1] == 0, "Message contains text that is not NUL-terminated");
 
         std::str::from_bytes_slice(slice)
     }
