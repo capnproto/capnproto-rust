@@ -494,7 +494,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                         reader_members.push(
                             Branch(~[
                                 Line(~"#[inline]"),
-                                Line(fmt!("pub fn get%s(&self) -> %s  {", capName, ty)),
+                                Line(fmt!("pub fn get%s(&self) -> %s {", capName, ty)),
                                 Indent(~Line(get)),
                                 Line(~"}")
                             ])
@@ -508,6 +508,16 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                             generateUnion(nodeMap, scopeMap, rootName, name, union);
                         union_mods.push(union_mod);
                         reader_members.push(union_getter);
+
+                        builder_members.push(
+                            Branch(
+                                ~[Line(~"#[inline]"),
+                                  Line(fmt!("pub fn get%s(&self) -> %s::Builder {",
+                                            capName, capName)),
+                                  Indent(
+                                      ~Line(
+                                          fmt!("%s::Builder::new(self._builder)", capName))),
+                                  Line(~"}")]));
                     }
                 }
             }
