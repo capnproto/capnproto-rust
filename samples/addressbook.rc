@@ -32,26 +32,46 @@ fn writeAddressBook() {
     let person = people.get(1);
     person.setId(2);
     person.setName("Bob");
+    person.setEmail("bob@bobnet.org");
     person.getEmployment().setSelfEmployed(());
 
     let person = people.get(2);
     person.setId(3);
     person.setName("Charlie");
+    person.setEmail("chuckie@cccc.ch");
     person.getEmployment().setUnemployed(());
 
     let person = people.get(3);
     person.setId(255);
+    person.setEmail("di@di.com");
     person.setName("Diane");
     person.getEmployment().setSchool("Caltech");
 
-    let outStream = @std::io::stdout() as @serialize::OutputStream ;
+    let outStream = @std::io::stdout() as @serialize::OutputStream;
 
-//    serialize::writeMessage(outStream, message)
-    serialize_packed::writePackedMessage(outStream, message)
+    serialize::writeMessage(outStream, message)
+//    serialize_packed::writePackedMessage(outStream, message)
 }
 
 fn printAddressBook() {
+    use capnprust::serialize::*;
+    use capnprust::serialize_packed::*;
+    use addressbook_capnp::*;
 
+//    let inp = @PackedInputStream { inner : std::io::stdin()} as @std::io::Reader;
+    let inp = std::io::stdin();
+
+    do InputStreamMessageReader::new(inp, message::DEFAULT_READER_OPTIONS) | messageReader | {
+        let addressBook =
+            AddressBook::Reader::new(messageReader.getRoot());
+        let people = addressBook.getPeople();
+
+        for std::uint::range(0, people.size()) |i| {
+            let person = people.get(i);
+            printfln!("%s: %s", person.getName(), person.getEmail());
+        }
+
+    }
 }
 
 fn main() {
