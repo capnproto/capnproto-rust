@@ -127,7 +127,7 @@ fn generateImportStatements(rootName : &str) -> FormattedText {
     ])
 }
 
-fn getterStrings (nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+fn getterStrings (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                   field : &schema_capnp::StructNode::Field::Reader)
     -> (~str, ~str) {
@@ -205,7 +205,7 @@ fn getterStrings (nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
     }
 }
 
-fn generateSetter(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                   unionOffset : Option<(uint, uint)>,
                   capName : &str,
@@ -632,7 +632,7 @@ fn main() {
             let text = stringify(&generateNode(&nodeMap, &scopeMap,
                                                rootName, requestedFileId));
 
-            rootName.push_str("_test.rs");
+            rootName.push_str(".rs");
 
             let path = &std::path::Path(rootName);
             match std::io::mk_file_writer(path, [std::io::Create, std::io::Truncate]) {
