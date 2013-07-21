@@ -46,7 +46,7 @@ such as `MessageReader::getSegment()`.
 
 ## Status
 
-Capnproto-rust is a work in progress, and the parts that are done are
+capnproto-rust is a work in progress, and the parts that are done are
 not well tested. The core features are more or less operational,
 including reading and writing of messages, packed serialization, and
 Rust code generation. There are several prominent missing features,
