@@ -10,7 +10,7 @@ for [Rust](http://www.rust-lang.org).
 
 ## Getting Started
 
-To compile, get the latest version of Rust and do:
+To compile, get the latest (trunk) version of Rust and do:
 ```
 $ rustc capnprust/capnprust.rc
 ```
