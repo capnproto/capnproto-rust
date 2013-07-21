@@ -17,7 +17,7 @@ $ rustc capnprust/capnprust.rc
 This should succeed and produce
 the library `libcapnprust`. You may then compile the `capnpc-rust` binary like this:
 ```
-$ rustc -L./capnprust capnpc-rust.rc
+$ rustc -L./capnprust compiler/capnpc-rust.rc
 ```
 The binary may then be used as a plug-in to
 the Cap'n Proto compiler, like this:
@@ -25,7 +25,7 @@ the Cap'n Proto compiler, like this:
 ```
 $ capnpc -o ./capnpc-rust:samples samples/addressbook.capnp
 ```
-
+This should generate the file `samples/addressbook_capnp.rs`.
 You may then see the serialization in action by compiling the sample program:
 
 ```
