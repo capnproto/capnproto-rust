@@ -8,6 +8,45 @@ use capnprust::*;
 
 pub mod schema_capnp;
 
+fn macros() -> ~str {
+~"macro_rules! list_submodule(
+    ( $capnp:ident, $($m:ident)::+ ) => (
+        pub mod List {
+            use capnprust;
+            use $capnp;
+
+            pub struct Reader<'self> {
+                reader : capnprust::layout::ListReader<'self>
+            }
+
+            impl <'self> Reader<'self> {
+                pub fn new<'a>(reader : capnprust::layout::ListReader<'a>) -> Reader<'a> {
+                    Reader { reader : reader }
+                }
+                pub fn size(&self) -> uint { self.reader.size() }
+                pub fn get(&self, index : uint) -> $capnp::$($m)::+::Reader<'self> {
+                    $capnp::$($m)::+::Reader::new(self.reader.getStructElement(index))
+                }
+            }
+
+            pub struct Builder {
+                builder : capnprust::layout::ListBuilder
+            }
+
+            impl Builder {
+                pub fn new(builder : capnprust::layout::ListBuilder) -> Builder {
+                    Builder {builder : builder}
+                }
+                pub fn size(&self) -> uint { self.builder.size() }
+                pub fn get(&self, index : uint) -> $capnp::$($m)::+::Builder {
+                    $capnp::$($m)::+::Builder::new(self.builder.getStructElement(index))
+                }
+            }
+        }
+    );
+)\n\n"
+}
+
 fn camelCaseToAllCaps(s : &str) -> ~str {
     let bytes = s.as_bytes();
     let mut result_bytes : ~[u8] = ~[];
@@ -645,12 +684,16 @@ fn main() {
 
             let text = stringify(&generateNode(&nodeMap, &scopeMap,
                                                rootName, requestedFileId));
+            let macros_text = macros();
 
             rootName.push_str(".rs");
 
             let path = &std::path::Path(rootName);
             match std::io::mk_file_writer(path, [std::io::Create, std::io::Truncate]) {
-                Ok(writer) => { writer.write( text.as_bytes() )}
+                Ok(writer) => {
+                    writer.write(macros_text.as_bytes());
+                    writer.write(text.as_bytes())
+                }
                 Err(msg) => {printfln!("ERROR: %s", msg)}
             }
 
