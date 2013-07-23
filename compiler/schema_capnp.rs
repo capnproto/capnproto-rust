@@ -437,14 +437,14 @@ pub mod FileNode {
 pub mod ElementSize {
     #[deriving(ToStr)]
     pub enum Reader {
-        EMPTY = 0,
-        BIT = 1,
-        BYTE = 2,
-        TWO_BYTES = 3,
-        FOUR_BYTES = 4,
-        EIGHT_BYTES = 5,
-        POINTER = 6,
-        INLINE_COMPOSITE = 7
+        empty = 0,
+        bit = 1,
+        byte = 2,
+        twoBytes = 3,
+        fourBytes = 4,
+        eightBytes = 5,
+        pointer = 6,
+        inlineComposite = 7
     }
 }
 

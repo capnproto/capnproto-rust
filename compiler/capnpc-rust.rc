@@ -53,6 +53,20 @@ fn macros() -> ~str {
 )\n\n"
 }
 
+fn elementSizeStr (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
+    use schema_capnp::ElementSize::*;
+    match elementSize {
+        empty => ~"EMPTY",
+        bit => ~"BIT",
+        byte => ~"BYTE",
+        twoBytes => ~"TWO_BYTES",
+        fourBytes => ~"FOUR_BYTES",
+        eightBytes => ~"EIGHT_BYTES",
+        pointer => ~"POINTER",
+        inlineComposite => ~"INLINE_COMPOSITE"
+    }
+}
+
 fn camelCaseToAllCaps(s : &str) -> ~str {
     let bytes = s.as_bytes();
     let mut result_bytes : ~[u8] = ~[];
@@ -521,7 +535,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     ~Line(
                         fmt!("StructSize { data : %u, pointers : %u, preferredListEncoding : %s};",
                          dataSize as uint, pointerSize as uint,
-                         preferredListEncoding.to_str()))));
+                         elementSizeStr(preferredListEncoding)))));
             preamble.push(BlankLine);
 
             preamble.push(Line(fmt!("list_submodule!(%s, %s)",
