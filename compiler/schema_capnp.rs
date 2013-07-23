@@ -22,12 +22,12 @@ pub mod Node {
         use schema_capnp::*;
 
         pub enum Reader<'self> {
-            FILE_NODE(FileNode::Reader<'self>),
-            STRUCT_NODE(StructNode::Reader<'self>),
-            ENUM_NODE(EnumNode::Reader<'self>),
-            INTERFACE_NODE(InterfaceNode::Reader<'self>),
-            CONST_NODE(ConstNode::Reader<'self>),
-            ANNOTATION_NODE(AnnotationNode::Reader<'self>)
+            fileNode(FileNode::Reader<'self>),
+            structNode(StructNode::Reader<'self>),
+            enumNode(EnumNode::Reader<'self>),
+            interfaceNode(InterfaceNode::Reader<'self>),
+            constNode(ConstNode::Reader<'self>),
+            annotationNode(AnnotationNode::Reader<'self>)
         }
 
         pub struct Builder {
@@ -83,27 +83,27 @@ pub mod Node {
         pub fn getBody(&self) -> Body::Reader<'self> {
             match self._reader.getDataField::<u16>(8) {
                 0 => {
-                    return Body::FILE_NODE(
+                    return Body::fileNode(
                         FileNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 1 => {
-                    return Body::STRUCT_NODE(
+                    return Body::structNode(
                         StructNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 2 => {
-                    return Body::ENUM_NODE(
+                    return Body::enumNode(
                         EnumNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 3 => {
-                    return Body::INTERFACE_NODE(
+                    return Body::interfaceNode(
                         InterfaceNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 4 => {
-                    return Body::CONST_NODE(
+                    return Body::constNode(
                         ConstNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 5 => {
-                    return Body::ANNOTATION_NODE(
+                    return Body::annotationNode(
                         AnnotationNode::Reader::new(self._reader.getStructField(3, None)));
                 }
                 _ => fail!("impossible")
@@ -436,7 +436,7 @@ pub mod FileNode {
 
 pub mod ElementSize {
     #[deriving(ToStr)]
-    pub enum ElementSize {
+    pub enum Reader {
         EMPTY = 0,
         BIT = 1,
         BYTE = 2,
@@ -478,7 +478,7 @@ pub mod StructNode {
             self._reader.getDataField::<u16>(1)
         }
 
-        pub fn getPreferredListEncoding(&self) -> ElementSize::ElementSize {
+        pub fn getPreferredListEncoding(&self) -> ElementSize::Reader {
             unsafe {
                 std::cast::transmute(self._reader.getDataField::<u16>(2) as uint)
             }

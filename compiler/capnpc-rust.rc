@@ -412,7 +412,8 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
     for std::uint::range(0, members.size()) |ii| {
         let member = members.get(ii);
         let memberName = member.getName();
-        let enumerantName = camelCaseToAllCaps(memberName);
+//        let enumerantName = camelCaseToAllCaps(memberName);
+        let enumerantName = memberName;
 
         match member.getBody() {
             schema_capnp::StructNode::Member::Body::FIELD_MEMBER(field) => {
@@ -487,7 +488,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
     match nodeReader.getBody() {
 
-        Node::Body::FILE_NODE(fileNode) => {
+        Node::Body::fileNode(fileNode) => {
             let imports = fileNode.getImports();
             for std::uint::range(0, imports.size()) |ii| {
                 printfln!("  import %s", imports.get(ii).getName());
@@ -495,7 +496,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             output.push(Branch(nested_output));
         }
 
-        Node::Body::STRUCT_NODE(structNode) => {
+        Node::Body::structNode(structNode) => {
 
             let names = scopeMap.get(&nodeId);
             output.push(BlankLine);
@@ -597,7 +598,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             output.push(Line(~"}"));
         }
 
-        Node::Body::ENUM_NODE(enumNode) => {
+        Node::Body::enumNode(enumNode) => {
             let names = scopeMap.get(&nodeId);
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
@@ -615,11 +616,11 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             output.push(Line(~"}"));
         }
 
-        Node::Body::INTERFACE_NODE(_) => { }
+        Node::Body::interfaceNode(_) => { }
 
-        Node::Body::CONST_NODE(_) => { }
+        Node::Body::constNode(_) => { }
 
-        Node::Body::ANNOTATION_NODE( annotationNode ) => {
+        Node::Body::annotationNode( annotationNode ) => {
             std::io::println("  annotation node:");
             if (annotationNode.getTargetsFile()) {
                 std::io::println("  targets file");
