@@ -36,7 +36,7 @@ impl std::io::Reader for PackedInputStream {
 
             let tag : u8 = self.inner.read_u8();
 
-            for std::u8::range(0, 8) |n| {
+            for std::uint::iterate(0, 8) |n| {
                 let isNonzero = (tag & (1 as u8 << n)) != 0;//..as bool;
                 if (isNonzero) {
                     // TODO capnproto-c++ gets away without using a
@@ -170,7 +170,7 @@ impl OutputStream for PackedOutputStream {
                 while (inPos < inBuf.len() && count < 255) {
                     let mut c = 0;
 
-                    for std::uint::range(0,8) |_| {
+                    for std::uint::iterate(0,8) |_| {
                         c += (inBuf[inPos] == 0) as u8;
                         inPos += 1;
                     }

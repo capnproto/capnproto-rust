@@ -12,12 +12,12 @@ for [Rust](http://www.rust-lang.org).
 
 To compile, get the latest (trunk) version of Rust and do:
 ```
-$ rustc capnprust/capnprust.rc
+$ rustc capnprust/capnprust.rs
 ```
 This should succeed and produce
 the library `libcapnprust`. You may then compile the `capnpc-rust` binary like this:
 ```
-$ rustc -L./capnprust compiler/capnpc-rust.rc
+$ rustc -L./capnprust compiler/capnpc-rust.rs
 ```
 The binary may then be used as a plug-in to
 the Cap'n Proto compiler, like this:
@@ -29,7 +29,7 @@ This should generate the file `samples/addressbook_capnp.rs`.
 You may then see the serialization in action by compiling the sample program:
 
 ```
-$ rustc -L./capnprust samples/addressbook.rc
+$ rustc -L./capnprust samples/addressbook.rs
 $ ./samples/addressbook write | ./samples/addressbook read
 ```
 

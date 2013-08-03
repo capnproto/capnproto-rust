@@ -159,7 +159,7 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     let nodeReader = nodeMap.get(&nodeId);
 
     let nestedNodes = nodeReader.getNestedNodes();
-    for std::uint::range(0, nestedNodes.size()) |ii| {
+    for std::uint::iterate(0, nestedNodes.size()) |ii| {
         let nestedNode = nestedNodes.get(ii);
         let id = nestedNode.getId();
         let name = nestedNode.getName().to_owned();
@@ -423,7 +423,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
     let doffset = union.getDiscriminantOffset() as uint;
 
     let members = union.getMembers();
-    for std::uint::range(0, members.size()) |ii| {
+    for std::uint::iterate(0, members.size()) |ii| {
         let member = members.get(ii);
         let memberName = member.getName();
 //        let enumerantName = camelCaseToAllCaps(memberName);
@@ -493,7 +493,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
     let nodeReader = nodeMap.get(&nodeId);
     let nestedNodes = nodeReader.getNestedNodes();
-    for std::uint::range(0, nestedNodes.size()) |ii| {
+    for std::uint::iterate(0, nestedNodes.size()) |ii| {
         let nestedNode = nestedNodes.get(ii);
         let id = nestedNode.getId();
         let text = generateNode(nodeMap, scopeMap, rootName, id);
@@ -504,7 +504,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
         Node::Body::fileNode(fileNode) => {
             let imports = fileNode.getImports();
-            for std::uint::range(0, imports.size()) |ii| {
+            for std::uint::iterate(0, imports.size()) |ii| {
                 printfln!("  import %s", imports.get(ii).getName());
             }
             output.push(Branch(nested_output));
@@ -543,7 +543,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             preamble.push(BlankLine);
 
             let members = structNode.getMembers();
-            for std::uint::range(0, members.size()) |ii| {
+            for std::uint::iterate(0, members.size()) |ii| {
                 let member = members.get(ii);
                 let name = member.getName();
                 let capName = capitalizeFirstLetter(name);
@@ -618,7 +618,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
             let mut members = ~[];
             let enumerants = enumNode.getEnumerants();
-            for std::uint::range(0, enumerants.size()) |ii| {
+            for std::uint::iterate(0, enumerants.size()) |ii| {
                 let enumerant = enumerants.get(ii);
                 members.push(
                     Line(fmt!("%s = %u,", camelCaseToAllCaps(enumerant.getName()), ii)));
@@ -669,7 +669,7 @@ fn main() {
 
         let nodeListReader = codeGeneratorRequest.getNodes();
 
-        for std::uint::range(0, nodeListReader.size()) |ii| {
+        for std::uint::iterate(0, nodeListReader.size()) |ii| {
 
             let nodeReader = nodeListReader.get(ii);
             let id = nodeReader.getId();
@@ -679,7 +679,7 @@ fn main() {
 
         let requestedFilesReader = codeGeneratorRequest.getRequestedFiles();
 
-        for std::uint::range(0, requestedFilesReader.size()) |ii| {
+        for std::uint::iterate(0, requestedFilesReader.size()) |ii| {
 
             let requestedFileId : u64 = requestedFilesReader.get(ii);
             std::io::println(fmt!("requested file: %x",

@@ -383,7 +383,7 @@ mod WireHelpers {
             WP_STRUCT => {
                 let pointerSection = ptr + tag.structRef().dataSize.get() as WirePointerCount;
                 let count = tag.structRef().ptrCount.get() as uint;
-                for std::uint::range(0, count) |i| {
+                for std::uint::iterate(0, count) |i| {
                     zeroObject(segment, pointerSection + i);
                 }
                 segment.memset(ptr * BYTES_PER_WORD, 0,
@@ -402,7 +402,7 @@ mod WireHelpers {
                     }
                     POINTER => {
                         let count = tag.listRef().elementCount();
-                        for std::uint::range(0, count) |i| {
+                        for std::uint::iterate(0, count) |i| {
                             zeroObject(segment, ptr + i)
                         }
                     }
@@ -416,9 +416,9 @@ mod WireHelpers {
                         let pointerCount = elementTag.structRef().ptrCount.get();
                         let mut pos = ptr + POINTER_SIZE_IN_WORDS;
                         let count = elementTag.inlineCompositeListElementCount();
-                        for std::uint::range(0, count) |_| {
+                        for std::uint::iterate(0, count) |_| {
                             pos += dataSize as uint;
-                            for std::uint::range(0, pointerCount as uint) |_| {
+                            for std::uint::iterate(0, pointerCount as uint) |_| {
                                 zeroObject(segment, pos);
                                 pos += POINTER_SIZE_IN_WORDS;
                             }
