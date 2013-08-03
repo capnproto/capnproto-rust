@@ -893,6 +893,14 @@ impl <'self> StructReader<'self>  {
 
 }
 
+pub trait HasStructSize {
+    fn structSize() -> StructSize;
+}
+
+pub trait FromStructBuilder {
+    fn fromStructBuilder(structBuilder : StructBuilder) -> Self;
+}
+
 pub struct StructBuilder {
     segment : @ mut SegmentBuilder,
     data : ByteCount,

@@ -20,7 +20,7 @@ fn writeAddressBook() {
 
     let message = MessageBuilder::new_default();
 
-    let addressbook = AddressBook::Builder::new(message.initRoot(AddressBook::STRUCT_SIZE));
+    let addressbook = message.initRoot::<AddressBook::Builder>();
 
     let people = addressbook.initPeople(4);
 
@@ -35,7 +35,6 @@ fn writeAddressBook() {
     phones.get(1).setNumber("(777) 123-4567");
     phones.get(1).setType(Person::PhoneNumber::Type::HOME);
     person.getEmployment().setEmployer("widgco");
-
 
 
     let person = people.get(1);
