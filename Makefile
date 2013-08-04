@@ -1,7 +1,9 @@
 
 COMPILATION_MARKER=capnprust/compilation-marker
 
-.PHONY : capnprust clean
+.PHONY : capnprust clean all
+
+all : samples
 
 clean :
 	rm -rf capnprust/libcapnprust* $(COMPILATION_MARKER) compiler/capnpc-rust
