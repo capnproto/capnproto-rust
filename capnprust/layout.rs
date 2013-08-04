@@ -940,11 +940,20 @@ impl StructBuilder {
         //# inlined with a constant offset.
         let boffset : BitCount0 = if (offset == 0) { self.bit0Offset as uint } else { offset };
         let b = self.data + boffset;
-
         let bitnum = boffset % BITS_PER_BYTE;
         let wv : &mut WireValue<u8> = WireValue::getFromBufMut(self.segment.segment, b);
         let oldValue = wv.get();
         wv.set((oldValue & !(1 << bitnum)) | (value as u8 << bitnum));
+    }
+
+    #[inline]
+    pub fn getBoolField(&self, offset : ElementCount) -> bool {
+        let boffset : BitCount0 =
+            if (offset == 0) {self.bit0Offset as BitCount0 } else {offset};
+
+        let b : u8 = self.segment.segment[self.data + boffset / BITS_PER_BYTE];
+
+        (b & (1 << (boffset % BITS_PER_BYTE ))) != 0
     }
 
     pub fn initStructField(&self, ptrIndex : WirePointerCount, size : StructSize)
