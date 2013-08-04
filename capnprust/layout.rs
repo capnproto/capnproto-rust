@@ -934,6 +934,19 @@ impl StructBuilder {
         WireValue::getFromBuf(self.segment.segment, totalByteOffset).get()
     }
 
+    #[inline]
+    pub fn setBoolField(&self, offset : ElementCount, value : bool) {
+        //# This branch should be compiled out whenever this is
+        //# inlined with a constant offset.
+        let boffset : BitCount0 = if (offset == 0) { self.bit0Offset as uint } else { offset };
+        let b = self.data + boffset;
+
+        let bitnum = boffset % BITS_PER_BYTE;
+        let wv : &mut WireValue<u8> = WireValue::getFromBufMut(self.segment.segment, b);
+        let oldValue = wv.get();
+        wv.set((oldValue & !(1 << bitnum)) | (value as u8 << bitnum));
+    }
+
     pub fn initStructField(&self, ptrIndex : WirePointerCount, size : StructSize)
         -> StructBuilder {
         WireHelpers::initStructPointer(self.pointers + ptrIndex, self.segment, size)
