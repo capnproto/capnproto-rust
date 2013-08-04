@@ -199,7 +199,7 @@ fn getterStrings (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
 
     match typ.getBody() {
         Body::voidType => { return (~"()", ~"()")}
-        Body::boolType => { return (~"bool", fmt!("self._reader.getDataFieldBool(%u)", offset)) }
+        Body::boolType => { return (~"bool", fmt!("self._reader.getBoolField(%u)", offset)) }
         Body::int8Type => { return (~"i8", fmt!("self._reader.getDataField::<i8>(%u)", offset)) }
         Body::int16Type => { return (~"i16", fmt!("self._reader.getDataField::<i16>(%u)", offset)) }
         Body::int32Type => { return (~"i32", fmt!("self._reader.getDataField::<i32>(%u)", offset)) }
@@ -290,7 +290,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
         Body::voidType => {result.push(Line(fmt!("pub fn set%s(&self, _value : ()) {",capName)))}
         Body::boolType => {
             result.push(Line(fmt!("pub fn set%s(&self, value : bool) {",capName)));
-            interior.push(Line(fmt!("self._builder.setDataFieldBool(%u, value);", offset)))
+            interior.push(Line(fmt!("self._builder.setBoolField(%u, value);", offset)))
         }
         Body::int8Type => {
             result.push(Line(fmt!("pub fn set%s(&self, value : i8) {",capName)));

@@ -890,47 +890,47 @@ pub mod AnnotationNode {
         }
 
         pub fn getTargetsFile(&self) -> bool {
-            self._reader.getDataFieldBool(0)
+            self._reader.getBoolField(0)
         }
 
         pub fn getTargetsConst(&self) -> bool {
-            self._reader.getDataFieldBool(1)
+            self._reader.getBoolField(1)
         }
 
         pub fn getTargetsEnum(&self) -> bool {
-            self._reader.getDataFieldBool(2)
+            self._reader.getBoolField(2)
         }
 
         pub fn getTargetsEnumerant(&self) -> bool {
-            self._reader.getDataFieldBool(3)
+            self._reader.getBoolField(3)
         }
 
         pub fn getTargetsStruct(&self) -> bool {
-            self._reader.getDataFieldBool(4)
+            self._reader.getBoolField(4)
         }
 
         pub fn getTargetsField(&self) -> bool {
-            self._reader.getDataFieldBool(5)
+            self._reader.getBoolField(5)
         }
 
         pub fn getTargetsUnion(&self) -> bool {
-            self._reader.getDataFieldBool(6)
+            self._reader.getBoolField(6)
         }
 
         pub fn getTargetsInterface(&self) -> bool {
-            self._reader.getDataFieldBool(7)
+            self._reader.getBoolField(7)
         }
 
         pub fn getTargetsMethod(&self) -> bool {
-            self._reader.getDataFieldBool(8)
+            self._reader.getBoolField(8)
         }
 
         pub fn getTargetsParam(&self) -> bool {
-            self._reader.getDataFieldBool(9)
+            self._reader.getBoolField(9)
         }
 
         pub fn getTargetsAnnotation(&self) -> bool {
-            self._reader.getDataFieldBool(10)
+            self._reader.getBoolField(10)
         }
 
     }

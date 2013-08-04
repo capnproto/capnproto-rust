@@ -825,7 +825,7 @@ impl <'self> StructReader<'self>  {
 
 
     #[inline]
-    pub fn getDataFieldBool(&self, offset : ElementCount) -> bool {
+    pub fn getBoolField(&self, offset : ElementCount) -> bool {
         let mut boffset : BitCount0 = offset;
         if (boffset < self.dataSize) {
             if (offset == 0) {
@@ -848,10 +848,10 @@ impl <'self> StructReader<'self>  {
     }
 
     #[inline]
-    pub fn getDataFieldBoolMask(&self,
+    pub fn getBoolFieldMask(&self,
                                 offset : ElementCount,
                                 mask : bool) -> bool {
-       self.getDataFieldBool(offset) ^ mask
+       self.getBoolField(offset) ^ mask
     }
 
 
