@@ -240,16 +240,13 @@ impl WirePointer {
     pub fn isNull(&self) -> bool {
         (self.offsetAndKind.get() == 0) & (self.upper32Bits == 0)
     }
-
 }
-
 
 mod WireHelpers {
     use std;
     use common::*;
     use layout::*;
     use arena::*;
-
 
     #[inline]
     pub fn roundBytesUpToWords(bytes : ByteCount) -> WordCount {
@@ -261,7 +258,6 @@ mod WireHelpers {
     //# this would overflow a 32-bit counter, so we need to accept
     //# BitCount64. However, 32 bits is enough for the returned
     //# ByteCounts and WordCounts.
-
     #[inline]
     pub fn roundBitsUpToWords(bits : BitCount64) -> WordCount {
         //# This code assumes 64-bit words.
@@ -378,7 +374,6 @@ mod WireHelpers {
 
     pub fn zeroObjectHelper(segment : @mut SegmentBuilder, tag : WirePointer,
                             ptr: WirePointerCount) {
-
         match tag.kind() {
             WP_STRUCT => {
                 let pointerSection = ptr + tag.structRef().dataSize.get() as WirePointerCount;
@@ -453,6 +448,14 @@ mod WireHelpers {
     }
 
     #[inline]
+    pub fn getWritableStructPointer(_refIndex : WordCount,
+                                    _segment : @mut SegmentBuilder,
+                                    _size : StructSize,
+                                    _defaultValue : Option<()>) -> StructBuilder {
+        fail!("unimplemented")
+    }
+
+    #[inline]
     pub fn initListPointer(refIndex : WordCount,
                            segment : @mut SegmentBuilder,
                            elementCount : ElementCount,
@@ -521,6 +524,21 @@ mod WireHelpers {
         }
     }
 
+    #[inline]
+    pub fn getWritableListPointer(_origRefIndex : WirePointerCount,
+                                  _origSegment : @ mut SegmentBuilder,
+                                  _elementSize : FieldSize,
+                                  _defaultValue : Option<()>) -> ListBuilder {
+        fail!("unimplemented")
+    }
+
+    #[inline]
+    pub fn getWritableStructListPointer(_origRefIndex : WirePointerCount,
+                                        _origSegment : @ mut SegmentBuilder,
+                                        _elementSize : StructSize,
+                                        _defaultValue : Option<()>) -> ListBuilder {
+        fail!("unimplemented")
+    }
 
     #[inline]
     pub fn setTextPointer(refIndex : WirePointerCount, segment : @mut SegmentBuilder,
@@ -956,11 +974,32 @@ impl StructBuilder {
         (b & (1 << (boffset % BITS_PER_BYTE ))) != 0
     }
 
+    //# Initializes the struct field at the given index in the pointer
+    //# section. If it is already initialized, the previous value is
+    //# discarded or overwritten. The struct is initialized to the type's
+    //# default state (all-zero). Use getStructField() if you want the
+    //# struct to be initialized as a copy of the field's default value
+    //# (which may have non-null pointers).
     pub fn initStructField(&self, ptrIndex : WirePointerCount, size : StructSize)
         -> StructBuilder {
         WireHelpers::initStructPointer(self.pointers + ptrIndex, self.segment, size)
     }
 
+    //# Gets the struct field at the given index in the pointer
+    //# section. If the field is not already initialized, it is
+    //# initialized as a deep copy of the given default value (a flat
+    //# message), or to the empty state if defaultValue is nullptr.
+    pub fn getStructField(&self, ptrIndex : WirePointerCount, size : StructSize,
+                          defaultValue : Option<()>) -> StructBuilder {
+        WireHelpers::getWritableStructPointer(self.pointers + ptrIndex,
+                                              self.segment,
+                                              size,
+                                              defaultValue)
+    }
+
+    //# Allocates a new list of the given size for the field at the given
+    //# index in the pointer segment, and return a pointer to it. All
+    //# elements are initialized to zero.
     pub fn initListField(&self, ptrIndex : WirePointerCount,
                          elementSize : FieldSize, elementCount : ElementCount)
         -> ListBuilder {
@@ -968,6 +1007,21 @@ impl StructBuilder {
                                      self.segment, elementCount, elementSize)
     }
 
+    //# Gets the already-allocated list field for the given pointer
+    //# index, ensuring that the list is suitable for storing
+    //# non-struct elements of the given size. If the list is not
+    //# already allocated, it is allocated as a deep copy of the given
+    //# default value (a flat message). If the default value is null,
+    //# an empty list is used.
+    pub fn getListField(&self, ptrIndex : WirePointerCount,
+                        elementSize : FieldSize, defaultValue : Option<()>) -> ListBuilder {
+        WireHelpers::getWritableListPointer(self.pointers + ptrIndex,
+                                            self.segment, elementSize, defaultValue)
+    }
+
+    //# Allocates a new list of the given size for the field at the
+    //# given index in the pointer segment, and return a pointer to it.
+    //# Each element is initialized to its empty state.
     pub fn initStructListField(&self, ptrIndex : WirePointerCount,
                                elementCount : ElementCount, elementSize : StructSize)
         -> ListBuilder {
@@ -975,10 +1029,28 @@ impl StructBuilder {
                                            self.segment, elementCount, elementSize)
     }
 
+    //# Gets the already-allocated list field for the given pointer
+    //# index, ensuring that the list is suitable for storing struct
+    //# elements of the given size. If the list is not already
+    //# allocated, it is allocated as a deep copy of the given default
+    //# value (a flat message). If the default value is null, an empty
+    //# list is used.
+    pub fn getStructListField(&self, ptrIndex : WirePointerCount,
+                              elementSize : StructSize,
+                              defaultValue : Option<()>) -> ListBuilder {
+        WireHelpers::getWritableStructListPointer(self.pointers + ptrIndex,
+                                                  self.segment, elementSize,
+                                                  defaultValue)
+    }
+
     pub fn setTextField(&self, ptrIndex : WirePointerCount, value : &str) {
         WireHelpers::setTextPointer(self.pointers + ptrIndex, self.segment, value)
     }
 
+/*
+    pub fn getTextField(&self, ptrIndex : WirePointerCount,
+                        defaultValue : &str) -> ???
+*/
 }
 
 pub struct ListReader<'self> {
