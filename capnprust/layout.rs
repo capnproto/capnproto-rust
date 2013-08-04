@@ -812,6 +812,9 @@ impl <'self> StructReader<'self>  {
 
     #[inline]
     pub fn getDataField<T:Clone + std::num::Zero>(&self, offset : ElementCount) -> T {
+        // We need to check the offset because the struct may have
+        // been created with an old version of the protocol that did
+        // not contain the field.
         if ((offset + 1) * bitsPerElement::<T>() <= self.dataSize) {
             let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
             WireValue::getFromBuf(self.segment.segment, totalByteOffset).get()
@@ -923,6 +926,12 @@ impl StructBuilder {
     pub fn setDataField<T:Clone>(&self, offset : ElementCount, value : T) {
         let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
         WireValue::getFromBufMut(self.segment.segment, totalByteOffset).set(value);
+    }
+
+    #[inline]
+    pub fn getDataField<T:Clone>(&self, offset : ElementCount) -> T {
+        let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
+        WireValue::getFromBuf(self.segment.segment, totalByteOffset).get()
     }
 
     pub fn initStructField(&self, ptrIndex : WirePointerCount, size : StructSize)
