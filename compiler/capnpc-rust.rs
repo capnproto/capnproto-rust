@@ -430,7 +430,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         let enumerantName = memberName;
 
         match member.getBody() {
-            schema_capnp::StructNode::Member::Body::FIELD_MEMBER(field) => {
+            schema_capnp::StructNode::Member::Body::fieldMember(field) => {
                 let (ty, get) = getterStrings(nodeMap, scopeMap, &field);
 
                 reader_interior.push(Line(fmt!("%s(%s),",enumerantName, ty)));
@@ -548,7 +548,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 let name = member.getName();
                 let capName = capitalizeFirstLetter(name);
                 match member.getBody() {
-                    StructNode::Member::Body::FIELD_MEMBER(field) => {
+                    StructNode::Member::Body::fieldMember(field) => {
                         let (ty, get) = getterStrings(nodeMap, scopeMap, &field);
 
                         reader_members.push(
@@ -563,7 +563,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                         builder_members.push(
                             generateSetter(nodeMap, scopeMap, None, capName, &field));
                     }
-                    StructNode::Member::Body::UNION_MEMBER(union) => {
+                    StructNode::Member::Body::unionMember(union) => {
                         let (union_mod, union_getter) =
                             generateUnion(nodeMap, scopeMap, rootName, name, union);
                         union_mods.push(union_mod);
