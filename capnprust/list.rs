@@ -22,6 +22,18 @@ pub mod PrimitiveList {
             self.reader.getDataElement(index)
         }
     }
+
+    pub struct Builder {
+        builder : ListBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : ListBuilder) -> Builder {
+            Builder { builder : builder }
+        }
+
+        // TODO
+    }
 }
 
 // The struct list reader needs to be able to instantiate element readers
