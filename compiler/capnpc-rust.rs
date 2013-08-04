@@ -635,7 +635,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             for std::uint::iterate(0, enumerants.size()) |ii| {
                 let enumerant = enumerants.get(ii);
                 members.push(
-                    Line(fmt!("%s = %u,", camelCaseToAllCaps(enumerant.getName()), ii)));
+                    Line(fmt!("%s = %u,", enumerant.getName(), ii)));
             }
 
             output.push(Indent(~Branch(~[Line(~"pub enum Reader {"),

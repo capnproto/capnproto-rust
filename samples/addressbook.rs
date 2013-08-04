@@ -31,9 +31,9 @@ fn writeAddressBook() {
 
     let phones = person.initPhones(2);
     phones.get(0).setNumber("(555) 555-5555");
-    phones.get(0).setType(Person::PhoneNumber::Type::WORK);
+    phones.get(0).setType(Person::PhoneNumber::Type::work);
     phones.get(1).setNumber("(777) 123-4567");
-    phones.get(1).setType(Person::PhoneNumber::Type::HOME);
+    phones.get(1).setType(Person::PhoneNumber::Type::home);
     person.getEmployment().setEmployer("widgco");
 
 
@@ -82,9 +82,9 @@ fn printAddressBook() {
             for std::uint::iterate(0, phones.size()) |j| {
                 let phone = phones.get(j);
                 let typeName = match phone.getType() {
-                    Person::PhoneNumber::Type::MOBILE => {"mobile"}
-                    Person::PhoneNumber::Type::HOME => {"home"}
-                    Person::PhoneNumber::Type::WORK => {"work"}
+                    Person::PhoneNumber::Type::mobile => {"mobile"}
+                    Person::PhoneNumber::Type::home => {"home"}
+                    Person::PhoneNumber::Type::work => {"work"}
                 };
                 printfln!("  %s phone: %s", typeName, phone.getNumber());
 
