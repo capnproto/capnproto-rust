@@ -378,7 +378,7 @@ mod WireHelpers {
             WP_STRUCT => {
                 let pointerSection = ptr + tag.structRef().dataSize.get() as WirePointerCount;
                 let count = tag.structRef().ptrCount.get() as uint;
-                for std::uint::iterate(0, count) |i| {
+                for i in range(0, count) {
                     zeroObject(segment, pointerSection + i);
                 }
                 segment.memset(ptr * BYTES_PER_WORD, 0,
@@ -389,15 +389,15 @@ mod WireHelpers {
                     VOID =>  { }
                     BIT | BYTE | TWO_BYTES | FOUR_BYTES | EIGHT_BYTES => {
                         segment.memset(ptr * BYTES_PER_WORD, 0,
-                                       roundBitsUpToWords(
+                                       roundBitsUpToWords((
                                            tag.listRef().elementCount()*
                                            dataBitsPerElement(
-                                               tag.listRef().elementSize()) as u64) *
+                                               tag.listRef().elementSize())) as u64) *
                                        BYTES_PER_WORD)
                     }
                     POINTER => {
                         let count = tag.listRef().elementCount();
-                        for std::uint::iterate(0, count) |i| {
+                        for i in range(0, count) {
                             zeroObject(segment, ptr + i)
                         }
                     }
@@ -411,9 +411,9 @@ mod WireHelpers {
                         let pointerCount = elementTag.structRef().ptrCount.get();
                         let mut pos = ptr + POINTER_SIZE_IN_WORDS;
                         let count = elementTag.inlineCompositeListElementCount();
-                        for std::uint::iterate(0, count) |_| {
+                        for _ in range(0, count) {
                             pos += dataSize as uint;
-                            for std::uint::iterate(0, pointerCount as uint) |_| {
+                            for _ in range(0, pointerCount as uint) {
                                 zeroObject(segment, pos);
                                 pos += POINTER_SIZE_IN_WORDS;
                             }
@@ -1106,7 +1106,7 @@ impl <'self> ListReader<'self> {
             pointers : structPointers / BYTES_PER_WORD,
             dataSize : self.structDataSize as BitCount0,
             pointerCount : self.structPointerCount,
-            bit0Offset : indexBit % (BITS_PER_BYTE as u64)  as u8,
+            bit0Offset : (indexBit % (BITS_PER_BYTE as u64)) as u8,
             nestingLimit : self.nestingLimit - 1
         }
     }

@@ -75,11 +75,11 @@ fn printAddressBook() {
             AddressBook::Reader::new(messageReader.getRoot());
         let people = addressBook.getPeople();
 
-        for std::uint::iterate(0, people.size()) |i| {
+        for i in range(0, people.size()) {
             let person = people.get(i);
             printfln!("%s: %s", person.getName(), person.getEmail());
             let phones = person.getPhones();
-            for std::uint::iterate(0, phones.size()) |j| {
+            for j in range(0, phones.size()) {
                 let phone = phones.get(j);
                 let typeName = match phone.getType() {
                     Person::PhoneNumber::Type::mobile => {"mobile"}

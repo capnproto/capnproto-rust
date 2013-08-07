@@ -70,7 +70,7 @@ fn elementSizeStr (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
 fn camelCaseToAllCaps(s : &str) -> ~str {
     let bytes = s.as_bytes();
     let mut result_bytes : ~[u8] = ~[];
-    for bytes.iter().advance |&b| {
+    for &b in bytes.iter() {
 
         // strings will be null-terminated
         if (b != 0) {
@@ -93,7 +93,7 @@ fn camelCaseToAllCaps(s : &str) -> ~str {
 fn capitalizeFirstLetter(s : &str) -> ~str {
     let bytes = s.as_bytes();
     let mut result_bytes : ~[u8] = ~[];
-    for bytes.iter().advance |&b| {
+    for &b in bytes.iter() {
         result_bytes.push(b);
     }
 
@@ -144,7 +144,7 @@ fn stringify(ft : & FormattedText) -> ~str {
 
 fn appendName (names : &[~str], name : ~str) -> ~[~str] {
     let mut result : ~[~str] = ~[];
-    for names.iter().advance |n| {
+    for n in names.iter() {
         result.push(n.to_owned());
     }
     result.push(name);
@@ -159,7 +159,7 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     let nodeReader = nodeMap.get(&nodeId);
 
     let nestedNodes = nodeReader.getNestedNodes();
-    for std::uint::iterate(0, nestedNodes.size()) |ii| {
+    for ii in range(0, nestedNodes.size()) {
         let nestedNode = nestedNodes.get(ii);
         let id = nestedNode.getId();
         let name = nestedNode.getName().to_owned();
@@ -433,7 +433,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
     let doffset = union.getDiscriminantOffset() as uint;
 
     let members = union.getMembers();
-    for std::uint::iterate(0, members.size()) |ii| {
+    for ii in range(0, members.size()) {
         let member = members.get(ii);
         let memberName = member.getName();
 //        let enumerantName = camelCaseToAllCaps(memberName);
@@ -503,7 +503,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
     let nodeReader = nodeMap.get(&nodeId);
     let nestedNodes = nodeReader.getNestedNodes();
-    for std::uint::iterate(0, nestedNodes.size()) |ii| {
+    for ii in range(0, nestedNodes.size()) {
         let nestedNode = nestedNodes.get(ii);
         let id = nestedNode.getId();
         let text = generateNode(nodeMap, scopeMap, rootName, id);
@@ -514,7 +514,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
         Node::Body::fileNode(fileNode) => {
             let imports = fileNode.getImports();
-            for std::uint::iterate(0, imports.size()) |ii| {
+            for ii in range(0, imports.size()) {
                 printfln!("  import %s", imports.get(ii).getName());
             }
             output.push(Branch(nested_output));
@@ -553,7 +553,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             preamble.push(BlankLine);
 
             let members = structNode.getMembers();
-            for std::uint::iterate(0, members.size()) |ii| {
+            for ii in range(0, members.size()) {
                 let member = members.get(ii);
                 let name = member.getName();
                 let capName = capitalizeFirstLetter(name);
@@ -642,7 +642,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
             let mut members = ~[];
             let enumerants = enumNode.getEnumerants();
-            for std::uint::iterate(0, enumerants.size()) |ii| {
+            for ii in range(0, enumerants.size()) {
                 let enumerant = enumerants.get(ii);
                 members.push(
                     Line(fmt!("%s = %u,", enumerant.getName(), ii)));
@@ -693,7 +693,7 @@ fn main() {
 
         let nodeListReader = codeGeneratorRequest.getNodes();
 
-        for std::uint::iterate(0, nodeListReader.size()) |ii| {
+        for ii in range(0, nodeListReader.size()) {
 
             let nodeReader = nodeListReader.get(ii);
             let id = nodeReader.getId();
@@ -703,7 +703,7 @@ fn main() {
 
         let requestedFilesReader = codeGeneratorRequest.getRequestedFiles();
 
-        for std::uint::iterate(0, requestedFilesReader.size()) |ii| {
+        for ii in range(0, requestedFilesReader.size()) {
 
             let requestedFileId : u64 = requestedFilesReader.get(ii);
             std::io::println(fmt!("requested file: %x",

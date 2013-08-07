@@ -44,7 +44,7 @@ pub mod InputStreamMessageReader {
 
         if (segmentCount > 1) {
             let moreSizesRaw = inputStream.read_bytes((8 * (segmentCount & !1)) as uint);
-            for std::uint::iterate(0, segmentCount as uint - 1) |ii| {
+            for ii in range(0, segmentCount as uint - 1) {
                 moreSizes[ii] = unsafe {
                     let p : *WireValue<u32> =
                         std::cast::transmute(moreSizesRaw.unsafe_ref(ii * 4));
@@ -77,7 +77,7 @@ pub mod InputStreamMessageReader {
         if (segmentCount > 1) {
             let mut offset = segment0Size;
 
-            for std::uint::iterate(0, segmentCount as uint - 1) |ii| {
+            for ii in range(0, segmentCount as uint - 1) {
                 segments.push(ownedSpace.slice(offset as uint * 8,
                                                (offset + moreSizes[ii]) as uint * 8));
                 offset += moreSizes[ii];
@@ -115,7 +115,7 @@ pub fn writeMessage(outputStream : @ OutputStream,
 
     WireValue::getFromBufMut(table, 0).set((message.segments.len() - 1) as u32);
 
-    for std::uint::iterate(0, message.segments.len()) |i| {
+    for i in range(0, message.segments.len()) {
         WireValue::getFromBufMut(table, (i + 1) * 4).set(
             message.segments[i].pos as u32);
     }
@@ -126,7 +126,7 @@ pub fn writeMessage(outputStream : @ OutputStream,
 
     outputStream.write(table);
 
-    for message.segments.iter().advance | &segment | {
+    for segment in message.segments.iter() {
         let slice = segment.segment.slice(0, segment.pos * BYTES_PER_WORD);
         outputStream.write(slice);
     }
