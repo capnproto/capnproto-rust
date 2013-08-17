@@ -254,9 +254,13 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
             return
-                (fmt!("%s::Reader", theMod), // Enums don't have builders.
-                 Line(fmt!("unsafe{std::cast::transmute(self.%s.getDataField::<u16>(%u) as uint)}",
-                           member, offset)))
+                (fmt!("Option<%s::Reader>", theMod), // Enums don't have builders.
+                 Branch(~[
+                  Line(fmt!("let result = self.%s.getDataField::<u16>(%u) as uint;",
+                            member, offset)),
+                  Line(fmt!("if (result > %s::MAX_ENUMERANT as uint) { None }", theMod)),
+                  Line(~"else { Some(unsafe{std::cast::transmute(result)})}")
+                          ]));
         }
         Body::structType(id) => {
             let scope = scopeMap.get(&id);
@@ -653,6 +657,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             output.push(Indent(~Branch(~[Line(~"pub enum Reader {"),
                                          Indent(~Branch(members)),
                                          Line(~"}")])));
+            output.push(Indent(~Line(fmt!("pub static MAX_ENUMERANT : Reader = %s;",
+                                          enumerants.get(enumerants.size() - 1).getName()))));
             output.push(Line(~"}"));
         }
 

@@ -82,9 +82,10 @@ fn printAddressBook() {
             for j in range(0, phones.size()) {
                 let phone = phones.get(j);
                 let typeName = match phone.getType() {
-                    Person::PhoneNumber::Type::mobile => {"mobile"}
-                    Person::PhoneNumber::Type::home => {"home"}
-                    Person::PhoneNumber::Type::work => {"work"}
+                    Some(Person::PhoneNumber::Type::mobile) => {"mobile"}
+                    Some(Person::PhoneNumber::Type::home) => {"home"}
+                    Some(Person::PhoneNumber::Type::work) => {"work"}
+                    None => {"UNKNOWN"}
                 };
                 printfln!("  %s phone: %s", typeName, phone.getNumber());
 
