@@ -22,3 +22,16 @@ pub mod Text {
     }
 */
 }
+
+pub mod Data {
+    use common::*;
+    use arena::*;
+
+    pub type Reader<'self> = &'self [u8];
+
+    pub struct Builder {
+        segment : @mut SegmentBuilder,
+        ptr : ByteCount,
+        elementCount : ElementCount
+    }
+}
