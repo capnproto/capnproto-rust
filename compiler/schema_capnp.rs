@@ -435,7 +435,6 @@ pub mod FileNode {
 }
 
 pub mod ElementSize {
-    #[deriving(ToStr)]
     pub enum Reader {
         empty = 0,
         bit = 1,
@@ -446,6 +445,7 @@ pub mod ElementSize {
         pointer = 6,
         inlineComposite = 7
     }
+    pub static MAX_ENUMERANT : Reader = inlineComposite;
 }
 
 pub mod StructNode {
@@ -478,10 +478,10 @@ pub mod StructNode {
             self._reader.getDataField::<u16>(1)
         }
 
-        pub fn getPreferredListEncoding(&self) -> ElementSize::Reader {
-            unsafe {
-                std::cast::transmute(self._reader.getDataField::<u16>(2) as uint)
-            }
+        pub fn getPreferredListEncoding(&self) -> Option<ElementSize::Reader> {
+            let result = self._reader.getDataField::<u16>(2) as uint;
+            if (result > ElementSize::MAX_ENUMERANT as uint) { None }
+            else { Some( unsafe { std::cast::transmute(result)})}
         }
 
         pub fn getMembers(&self) -> Member::List::Reader<'self> {

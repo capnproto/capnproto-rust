@@ -541,7 +541,11 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
             let dataSize = structNode.getDataSectionWordSize();
             let pointerSize = structNode.getPointerSectionSize();
-            let preferredListEncoding = structNode.getPreferredListEncoding();
+            let preferredListEncoding =
+                  match structNode.getPreferredListEncoding() {
+                                Some(e) => e,
+                                None => fail!("unsupported list encoding")
+                        };
 
             preamble.push(generateImportStatements(rootName));
             preamble.push(BlankLine);

@@ -18,7 +18,7 @@ $(COMPILATION_MARKER) : $(CAPNPRUST_SOURCES)
 	rustc capnprust/capnprust.rs
 	touch $(COMPILATION_MARKER)
 
-compiler/capnpc-rust : $(COMPILATION_MARKER) compiler/capnpc-rust.rs
+compiler/capnpc-rust : $(COMPILATION_MARKER) compiler/capnpc-rust.rs compiler/schema_capnp.rs
 	rustc -L./capnprust compiler/capnpc-rust.rs
 
 samples/addressbook : compiler/capnpc-rust samples/addressbook.rs
