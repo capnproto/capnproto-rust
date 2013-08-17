@@ -14,19 +14,19 @@ pub struct PackedInputStream {
 }
 
 impl std::io::Reader for PackedInputStream {
-    pub fn read_byte(&self) -> int {
+    fn read_byte(&self) -> int {
         fail!()
     }
 
-    pub fn eof(&self) -> bool{
+    fn eof(&self) -> bool{
         self.inner.eof()
     }
 
-    pub fn tell(&self) -> uint {
+    fn tell(&self) -> uint {
         fail!()
     }
 
-    pub fn read(&self, outBuf: &mut [u8], len: uint) -> uint {
+    fn read(&self, outBuf: &mut [u8], len: uint) -> uint {
         if (len == 0) { return 0; }
 
         assert!(len % 8 == 0, "PackInputStream reads must be word-aligned");
@@ -72,7 +72,7 @@ impl std::io::Reader for PackedInputStream {
         return outPos;
     }
 
-    pub fn seek(&self, _position : int, _style : std::io::SeekStyle) {
+    fn seek(&self, _position : int, _style : std::io::SeekStyle) {
         fail!()
     }
 }
@@ -84,7 +84,7 @@ pub struct PackedOutputStream {
 
 
 impl OutputStream for PackedOutputStream {
-    pub fn write(@self, inBuf : &[u8]) {
+    fn write(@self, inBuf : &[u8]) {
 
         // Yuck. It'd be better to have a BufferedOutputStream, but
         // that seems difficult with the current state of Rust.

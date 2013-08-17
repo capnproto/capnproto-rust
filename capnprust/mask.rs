@@ -5,7 +5,7 @@
  */
 
 pub trait Mask {
-    pub fn mask(value : Self, mask : Self) -> Self;
+    fn mask(value : Self, mask : Self) -> Self;
 }
 
 // There's got to be a way to use a standard trait like Bitwise here,
@@ -15,7 +15,7 @@ macro_rules! int_mask(
     ($t:ident) => (
         impl Mask for $t {
             #[inline]
-            pub fn mask(value : $t, mask : $t) -> $t {
+            fn mask(value : $t, mask : $t) -> $t {
                 value ^ mask
             }
         }
@@ -33,7 +33,7 @@ int_mask!(u64)
 
 impl Mask for f32 {
     #[inline]
-    pub fn mask(value : f32, mask : f32) -> f32 {
+    fn mask(value : f32, mask : f32) -> f32 {
         use std;
         unsafe {
             let v : u32 = std::cast::transmute(value);
@@ -45,7 +45,7 @@ impl Mask for f32 {
 
 impl Mask for f64 {
     #[inline]
-    pub fn mask(value : f64, mask : f64) -> f64 {
+    fn mask(value : f64, mask : f64) -> f64 {
         use std;
         unsafe {
             let v : u64 = std::cast::transmute(value);

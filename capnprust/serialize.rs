@@ -96,11 +96,11 @@ pub mod InputStreamMessageReader {
 
 
 pub trait OutputStream {
-    pub fn write(@self, buf : &[u8]);
+    fn write(@self, buf : &[u8]);
 }
 
 impl OutputStream for @std::io::Writer {
-    pub fn write(@self, buf : &[u8]) {
+    fn write(@self, buf : &[u8]) {
         let w : @std::io::Writer = self as @std::io::Writer;
         w.write(buf)
     }

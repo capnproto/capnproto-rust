@@ -608,13 +608,13 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                   Line(~"pub struct Builder { _builder : StructBuilder }"),
                   Line(~"impl HasStructSize for Builder {"),
                   Indent(~Branch(~[Line(~"#[inline]"),
-                                   Line(~"pub fn structSize() -> StructSize { STRUCT_SIZE }")])),
+                                   Line(~"fn structSize() -> StructSize { STRUCT_SIZE }")])),
                   Line(~"}"),
 
                   Line(~"impl FromStructBuilder for Builder {"),
                   Indent(
                       ~Branch(
-                          ~[Line(~"pub fn fromStructBuilder(builder : StructBuilder) -> Builder {"),
+                          ~[Line(~"fn fromStructBuilder(builder : StructBuilder) -> Builder {"),
                             Indent(~Line(~"Builder { _builder : builder }")),
                             Line(~"}")
                             ])),
