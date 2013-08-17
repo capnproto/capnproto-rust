@@ -180,6 +180,7 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 fn generateImportStatements(rootName : &str) -> FormattedText {
     Branch(~[
         Line(~"use std;"),
+        Line(~"use capnprust::blob::*;"),
         Line(~"use capnprust::layout::*;"),
         Line(~"use capnprust::list::*;"),
         Line(fmt!("use %s::*;", rootName))
@@ -189,7 +190,7 @@ fn generateImportStatements(rootName : &str) -> FormattedText {
 fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                field : &schema_capnp::StructNode::Field::Reader,
-                  isReader : bool)
+               isReader : bool)
     -> (~str, FormattedText) {
 
     use schema_capnp::Type::Body;
@@ -200,6 +201,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
     let member = if (isReader) { "_reader" } else { "_builder" };
     let module = if (isReader) { "Reader" } else { "Builder" };
+    let moduleWithVar = if (isReader) { "Reader<'self>" } else { "Builder" };
 
     match typ.getBody() {
         Body::voidType => { return (~"()", Line(~"()"))}
@@ -225,8 +227,11 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                                          member, offset))) }
         Body::float64Type => { return (~"f64", Line(fmt!("self.%s.getDataField::<f64>(%u)",
                                                          member, offset))) }
-        Body::textType => { return (~"&'self str", Line(fmt!("self.%s.getTextField(%u, \"\")",
-                                                             member, offset))) }
+        Body::textType => {
+            return (fmt!("Text::%s", moduleWithVar),
+                    Line(fmt!("self.%s.getTextField(%u, \"\")",
+                              member, offset)));
+        }
         Body::dataType => {
             return (~"TODO", Line(~"TODO"))
         }
@@ -234,7 +239,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             match t1.getBody() {
                 Body::uint64Type => {
                     return
-                        (fmt!("PrimitiveList::%s<'self>", module),
+                        (fmt!("PrimitiveList::%s", moduleWithVar),
                          Line(fmt!("PrimitiveList::%s::new(self.%s.getListField(%u,EIGHT_BYTES,None)",
                                    module, member, offset)))
                 }
@@ -242,7 +247,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
                     let fullModuleName = fmt!("%s::List::%s", theMod, module);
-                    return (fmt!("%s<'self>", fullModuleName),
+                    return (fmt!("%s::List::%s", theMod, moduleWithVar),
                             Line(fmt!("%s::new(self.%s.getListField(%u, %s::STRUCT_SIZE.preferredListEncoding, None))",
                                       fullModuleName, member, offset, theMod))
                            );
@@ -576,6 +581,17 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                 Line(~"#[inline]"),
                                 Line(fmt!("pub fn get%s(&self) -> %s {", capName, ty)),
                                 Indent(~get),
+                                Line(~"}")
+                            ])
+                        );
+
+                        let (tyB, getB) = getterText(nodeMap, scopeMap, &field, false);
+
+                        builder_members.push(
+                            Branch(~[
+                                Line(~"#[inline]"),
+                                Line(fmt!("pub fn get%s(&self) -> %s {", capName, tyB)),
+                                Indent(~getB),
                                 Line(~"}")
                             ])
                         );

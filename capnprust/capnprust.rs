@@ -12,6 +12,7 @@
 pub mod common;
 pub mod endian;
 pub mod mask;
+pub mod blob;
 pub mod layout;
 pub mod arena;
 pub mod message;

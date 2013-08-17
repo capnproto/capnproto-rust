@@ -1,7 +1,7 @@
 
 CAPNPRUST_SOURCES=capnprust/arena.rs capnprust/common.rs capnprust/endian.rs \
 	capnprust/layout.rs capnprust/list.rs capnprust/mask.rs capnprust/message.rs \
-	capnprust/serialize.rs capnprust/serialize_packed.rs
+	capnprust/serialize.rs capnprust/serialize_packed.rs capnprust/blob.rs
 
 COMPILATION_MARKER=capnprust/compilation-marker
 

@@ -8,6 +8,7 @@ use common::*;
 use endian::*;
 use mask::*;
 use arena::*;
+use blob::*;
 use std;
 
 pub enum FieldSize {
@@ -247,6 +248,7 @@ mod WireHelpers {
     use common::*;
     use layout::*;
     use arena::*;
+    use blob::*;
 
     #[inline]
     pub fn roundBytesUpToWords(bytes : ByteCount) -> WordCount {
@@ -566,6 +568,12 @@ mod WireHelpers {
     }
 
     #[inline]
+    pub fn getWritableTextPointer(_refIndex : WirePointerCount, _segment : @mut SegmentBuilder,
+                                  _defaultValue : &'static str) -> Text::Builder {
+        fail!("unimplemented");
+    }
+
+    #[inline]
     pub fn readStructPointer<'a>(segment: SegmentReader<'a>,
                                  oRefIndex : Option<WirePointerCount>,
                                  defaultValue : Option<&'a [u8]>,
@@ -755,7 +763,7 @@ mod WireHelpers {
                                oRefIndex : Option<WirePointerCount>,
                                defaultValue : &'a str
 //                               defaultSize : ByteCount
-                              ) -> &'a str {
+                              ) -> Text::Reader<'a> {
         let refIndex =
            if (oRefIndex == None ||
                WirePointer::get(segment.segment, oRefIndex.unwrap()).isNull()) {
@@ -898,7 +906,7 @@ impl <'self> StructReader<'self>  {
     }
 
     pub fn getTextField(&self, ptrIndex : WirePointerCount,
-                            defaultValue : &'self str) -> &'self str {
+                        defaultValue : &'self str) -> Text::Reader<'self> {
         let oRefIndex =
             if (ptrIndex >= self.pointerCount as WirePointerCount) {
                 None
@@ -1047,10 +1055,13 @@ impl StructBuilder {
         WireHelpers::setTextPointer(self.pointers + ptrIndex, self.segment, value)
     }
 
-/*
+
     pub fn getTextField(&self, ptrIndex : WirePointerCount,
-                        defaultValue : &str) -> ???
-*/
+                        defaultValue : &'static str) -> Text::Builder {
+        WireHelpers::getWritableTextPointer(self.pointers + ptrIndex,
+                                            self.segment, defaultValue)
+    }
+
 }
 
 pub struct ListReader<'self> {
