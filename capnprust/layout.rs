@@ -292,13 +292,12 @@ mod WireHelpers {
                 let segmentBuilder = segmentBuilder.messageBuilder.getSegmentWithAvailable(amountPlusRef);
                 let ptr : WordCount = segmentBuilder.allocate(amountPlusRef).unwrap();
 
-/* TODO
-                {
-                let reff = WirePointer::getMut(segment.segment, refIndex);
-                reff.setFar(false, ptr);
-                reff.farRefMut().segmentId.set(segment.id);
-            }
-*/
+                do segmentBuilder.withMutSegment |segment| {
+                    let reff = WirePointer::getMut(segment, refIndex);
+                    reff.setFar(false, ptr);
+                    reff.farRefMut().segmentId.set(segmentBuilder.id);
+                }
+
 
                 return ptr + POINTER_SIZE_IN_WORDS;
             }
@@ -357,55 +356,53 @@ mod WireHelpers {
         //# about to be overwritten making the target object no longer
         //# reachable.
 
-        fail!()
-/*
-        do segmentBuilder.withMutSegment |segment| {
-            let reff = WirePointer::get(segment, refIndex);
-            match reff.kind() {
-                WP_STRUCT | WP_LIST => { zeroObjectHelper(segmentBuilder,
-                                                          reff, reff.target(refIndex)) }
-                WP_FAR => {
-                    let segment = segment.messageBuilder.segments[reff.farRef().segmentId.get()];
-                    let padIndex = reff.farPositionInSegment();
+        let reff = do segmentBuilder.withMutSegment |segment| {
+            WirePointer::get(segment, refIndex)
+        };
+        match reff.kind() {
+            WP_STRUCT | WP_LIST => { zeroObjectHelper(segmentBuilder,
+                                                      reff, reff.target(refIndex)) }
+            WP_FAR => {
+                let segmentBuilder =
+                    segmentBuilder.messageBuilder.segmentBuilders[reff.farRef().segmentId.get()];
+                let padIndex = reff.farPositionInSegment();
                 if (reff.isDoubleFar() ) {
-                    let pad = WirePointer::get(segment.segment, padIndex);
-                    let segment1 =
-                        segment.messageBuilder.segments[pad.farRef().segmentId.get()];
-                    let pad1 = WirePointer::get(segment.segment, padIndex + 1);
-                    zeroObjectHelper(segment1, pad1, pad.farPositionInSegment());
-                    segment.memset(padIndex * BYTES_PER_WORD, 0, 2 * BYTES_PER_WORD);
+                    let (pad, pad1) = do segmentBuilder.withMutSegment |segment| {
+                        (WirePointer::get(segment, padIndex),
+                         WirePointer::get(segment, padIndex+1))
+                    };
+                    let segmentBuilder1 =
+                        segmentBuilder.messageBuilder.segmentBuilders[pad.farRef().segmentId.get()];
+                    zeroObjectHelper(segmentBuilder1, pad1, pad.farPositionInSegment());
+                    segmentBuilder.memset(padIndex * BYTES_PER_WORD, 0, 2 * BYTES_PER_WORD);
 
                 } else {
-                    zeroObject(segment, padIndex);
-                    segment.memset(padIndex * BYTES_PER_WORD, 0, BYTES_PER_WORD);
+                    zeroObject(segmentBuilder, padIndex);
+                    segmentBuilder.memset(padIndex * BYTES_PER_WORD, 0, BYTES_PER_WORD);
                 }
                 fail!("unimplemented")
             }
             WP_RESERVED_3 => {fail!("Don't know how to handle RESERVED_3")}
         }
-*/
     }
 
-    pub fn zeroObjectHelper(segment : @mut SegmentBuilder, tag : WirePointer,
+    pub fn zeroObjectHelper(segmentBuilder : @mut SegmentBuilder, tag : WirePointer,
                             ptr: WirePointerCount) {
-        fail!()
-        /*
-        
         match tag.kind() {
             WP_STRUCT => {
                 let pointerSection = ptr + tag.structRef().dataSize.get() as WirePointerCount;
                 let count = tag.structRef().ptrCount.get() as uint;
                 for i in range(0, count) {
-                    zeroObject(segment, pointerSection + i);
+                    zeroObject(segmentBuilder, pointerSection + i);
                 }
-                segment.memset(ptr * BYTES_PER_WORD, 0,
-                               tag.structRef().wordSize() * BYTES_PER_WORD);
+                segmentBuilder.memset(ptr * BYTES_PER_WORD, 0,
+                                      tag.structRef().wordSize() * BYTES_PER_WORD);
             }
             WP_LIST => {
                 match tag.listRef().elementSize() {
                     VOID =>  { }
                     BIT | BYTE | TWO_BYTES | FOUR_BYTES | EIGHT_BYTES => {
-                        segment.memset(ptr * BYTES_PER_WORD, 0,
+                        segmentBuilder.memset(ptr * BYTES_PER_WORD, 0,
                                        roundBitsUpToWords((
                                            tag.listRef().elementCount()*
                                            dataBitsPerElement(
@@ -415,11 +412,13 @@ mod WireHelpers {
                     POINTER => {
                         let count = tag.listRef().elementCount();
                         for i in range(0, count) {
-                            zeroObject(segment, ptr + i)
+                            zeroObject(segmentBuilder, ptr + i)
                         }
                     }
                     INLINE_COMPOSITE => {
-                        let elementTag = WirePointer::get(segment.segment, ptr);
+                        let elementTag = do segmentBuilder.withMutSegment |segment| {
+                            WirePointer::get(segment, ptr)
+                        };
                         match elementTag.kind() {
                             WP_STRUCT => { }
                             _ => fail!("Don't know how to handle non-STRUCT inline composite")
@@ -431,21 +430,21 @@ mod WireHelpers {
                         for _ in range(0, count) {
                             pos += dataSize as uint;
                             for _ in range(0, pointerCount as uint) {
-                                zeroObject(segment, pos);
+                                zeroObject(segmentBuilder, pos);
                                 pos += POINTER_SIZE_IN_WORDS;
                             }
                         }
-                        segment.memset(ptr * BYTES_PER_WORD, 0,
-                                       (elementTag.structRef().wordSize() +
-                                        POINTER_SIZE_IN_WORDS) *
-                                       BYTES_PER_WORD);
+                        segmentBuilder.memset(ptr * BYTES_PER_WORD, 0,
+                                              (elementTag.structRef().wordSize() +
+                                               POINTER_SIZE_IN_WORDS) *
+                                              BYTES_PER_WORD);
                     }
                 }
             }
             WP_FAR => { fail!("Unexpected FAR pointer") }
             WP_RESERVED_3 => { fail!("Don't know how to handle RESERVED_3") }
         }
-*/
+
     }
 
     #[inline]
