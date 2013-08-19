@@ -39,7 +39,6 @@ impl SegmentBuilder {
         f(self.messageBuilder.segments[self.id])
     }
 
-
     pub fn allocate(@ mut self, amount : WordCount) -> Option<WordCount> {
         if (amount > self.size - self.pos) {
             return None;
@@ -50,7 +49,7 @@ impl SegmentBuilder {
         }
     }
 
-    pub fn available(@ mut self) -> WordCount {
+    pub fn available(@mut self) -> WordCount {
         self.size - self.pos
     }
 
@@ -63,14 +62,13 @@ impl SegmentBuilder {
             }
         }
     }
-}
 
-trait Arena {
-    fn tryGetSegment<'a>(&'a self, id : SegmentId) -> SegmentReader<'a>;
+    pub fn asReader<T>(@mut self, f : &fn(SegmentReader) -> T) -> T {
+        do self.messageBuilder.asReader |messageReader| {
+            f(SegmentReader {
+                messageReader : &messageReader,
+                segment : messageReader.segments[self.id]
+            })
+        }
+    }
 }
-
-/*
-pub struct BuilderArena {
-    message : @mut message::MessageBuilder
-}
-*/

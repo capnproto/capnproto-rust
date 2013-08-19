@@ -977,17 +977,15 @@ impl StructBuilder {
     #[inline]
     pub fn setDataField<T:Clone>(&self, offset : ElementCount, value : T) {
         let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
-        do self.segment.withMutSegment |segment| {
-            WireValue::getFromBufMut(segment, totalByteOffset).set(value.clone())
-        }
+        WireValue::getFromBufMut(self.segment.messageBuilder.segments[self.segment.id],
+                                 totalByteOffset).set(value);
     }
 
     #[inline]
     pub fn getDataField<T:Clone>(&self, offset : ElementCount) -> T {
         let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
-        do self.segment.withMutSegment |segment| {
-            WireValue::getFromBuf(segment, totalByteOffset).get()
-        }
+        WireValue::getFromBuf(self.segment.messageBuilder.segments[self.segment.id],
+                              totalByteOffset).get()
     }
 
     #[inline]
@@ -997,24 +995,20 @@ impl StructBuilder {
         let boffset : BitCount0 = if (offset == 0) { self.bit0Offset as uint } else { offset };
         let b = self.data + boffset;
         let bitnum = boffset % BITS_PER_BYTE;
-        do self.segment.withMutSegment |segment| {
-            let wv : &mut WireValue<u8> =
-                WireValue::getFromBufMut(segment, b);
-            let oldValue = wv.get();
-            wv.set((oldValue & !(1 << bitnum)) | (value as u8 << bitnum));
-        }
+        let wv : &mut WireValue<u8> =
+            WireValue::getFromBufMut(self.segment.messageBuilder.segments[self.segment.id],
+                                     b);
+        let oldValue = wv.get();
+        wv.set((oldValue & !(1 << bitnum)) | (value as u8 << bitnum));
     }
 
     #[inline]
     pub fn getBoolField(&self, offset : ElementCount) -> bool {
         let boffset : BitCount0 =
             if (offset == 0) {self.bit0Offset as BitCount0 } else {offset};
-
-        do self.segment.withMutSegment |segment| {
-            let b : u8 = segment[self.data + boffset / BITS_PER_BYTE];
-
-            (b & (1 << (boffset % BITS_PER_BYTE ))) != 0
-        }
+        let idx = self.data + boffset / BITS_PER_BYTE;
+        let b : u8 = self.segment.messageBuilder.segments[self.segment.id][idx];
+        (b & (1 << (boffset % BITS_PER_BYTE ))) != 0
     }
 
     //# Initializes the struct field at the given index in the pointer
@@ -1175,22 +1169,15 @@ impl ListBuilder {
     #[inline]
     pub fn getDataElement<T:Clone>(&self, index : ElementCount) -> T {
         let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
-
-
-        do self.segment.withMutSegment |segment| {
-            WireValue::getFromBuf(segment,
-                                  totalByteOffset).get()
-        }
+        WireValue::getFromBuf(self.segment.messageBuilder.segments[self.segment.id],
+                              totalByteOffset).get()
     }
 
     #[inline]
     pub fn setDataElement<T:Clone>(&self, index : ElementCount, value : T) {
         let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
-
-        do self.segment.withMutSegment |segment| {
-            WireValue::getFromBufMut(segment,
-                                     totalByteOffset).set(value.clone())
-        }
+        WireValue::getFromBufMut(self.segment.messageBuilder.segments[self.segment.id],
+                                 totalByteOffset).set(value)
     }
 
     pub fn getStructElement(&self, index : ElementCount) -> StructBuilder {
