@@ -635,7 +635,7 @@ mod WireHelpers {
         StructReader {segment : segment,
                       data : ptr * BYTES_PER_WORD,
                       pointers : ptr + (dataSizeWords as WordCount),
-                      dataSize : dataSizeWords as BitCount0 * BITS_PER_WORD,
+                      dataSize : dataSizeWords as u32 * BITS_PER_WORD as BitCount32,
                       pointerCount : reff.structRef().ptrCount.get(),
                       bit0Offset : 0,
                       nestingLimit : nestingLimit - 1 }
@@ -829,7 +829,7 @@ pub struct StructReader<'self> {
     segment : SegmentReader<'self>,
     data : ByteCount,
     pointers : WordCount,
-    dataSize : BitCount0,
+    dataSize : BitCount32,
     pointerCount : WirePointerCount16,
     bit0Offset : BitCount8,
     nestingLimit : int
@@ -855,7 +855,7 @@ impl <'self> StructReader<'self>  {
         WireHelpers::readStructPointer(segment, Some(location), None, nestingLimit)
     }
 
-    pub fn getDataSectionSize(&self) -> BitCount0 { self.dataSize }
+    pub fn getDataSectionSize(&self) -> BitCount32 { self.dataSize }
 
     pub fn getPointerSectionSize(&self) -> WirePointerCount16 { self.pointerCount }
 
@@ -866,7 +866,7 @@ impl <'self> StructReader<'self>  {
         // We need to check the offset because the struct may have
         // been created with an old version of the protocol that did
         // not contain the field.
-        if ((offset + 1) * bitsPerElement::<T>() <= self.dataSize) {
+        if ((offset + 1) * bitsPerElement::<T>()  <= self.dataSize as uint) {
             let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
             WireValue::getFromBuf(self.segment.segment, totalByteOffset).get()
         } else {
@@ -877,14 +877,14 @@ impl <'self> StructReader<'self>  {
 
     #[inline]
     pub fn getBoolField(&self, offset : ElementCount) -> bool {
-        let mut boffset : BitCount0 = offset;
+        let mut boffset : BitCount32 = offset as BitCount32;
         if (boffset < self.dataSize) {
             if (offset == 0) {
-                boffset = self.bit0Offset as BitCount0;
+                boffset = self.bit0Offset as BitCount32;
             }
-            let b : u8 = self.segment.segment[self.data + boffset / BITS_PER_BYTE];
+            let b : u8 = self.segment.segment[(self.data + boffset as uint / BITS_PER_BYTE) ];
 
-            (b & (1 << (boffset % BITS_PER_BYTE ))) != 0
+            (b & (1 << (boffset % BITS_PER_BYTE as u32 ))) != 0
 
         } else {
             false
@@ -965,6 +965,20 @@ pub struct StructBuilder {
 }
 
 impl StructBuilder {
+    pub fn asReader<T>(&self, f : &fn(StructReader) -> T) -> T {
+        do self.segment.asReader |segmentReader| {
+            f ( StructReader {
+                    segment : segmentReader,
+                    data : self.data,
+                    pointers : self.pointers,
+                    dataSize : self.dataSize,
+                    pointerCount : self.pointerCount,
+                    bit0Offset : self.bit0Offset,
+                    nestingLimit : 0x7fffffff
+                })
+        }
+    }
+
     pub fn initRoot(segment : @ mut SegmentBuilder,
                     location : WordCount,
                     size : StructSize) -> StructBuilder {
@@ -1143,7 +1157,7 @@ impl <'self> ListReader<'self> {
             segment : self.segment,
             data : structData,
             pointers : structPointers / BYTES_PER_WORD,
-            dataSize : self.structDataSize as BitCount0,
+            dataSize : self.structDataSize as BitCount32,
             pointerCount : self.structPointerCount,
             bit0Offset : (indexBit % (BITS_PER_BYTE as u64)) as u8,
             nestingLimit : self.nestingLimit - 1
