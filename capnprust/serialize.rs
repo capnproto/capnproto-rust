@@ -117,7 +117,7 @@ pub fn writeMessage(outputStream : @ OutputStream,
 
     for i in range(0, message.segments.len()) {
         WireValue::getFromBufMut(table, (i + 1) * 4).set(
-            message.segments[i].pos as u32);
+            message.segmentBuilders[i].pos as u32);
     }
     if (message.segments.len() % 2 == 0) {
         // Set padding.
@@ -126,8 +126,8 @@ pub fn writeMessage(outputStream : @ OutputStream,
 
     outputStream.write(table);
 
-    for segment in message.segments.iter() {
-        let slice = segment.segment.slice(0, segment.pos * BYTES_PER_WORD);
+    for i in range(0, message.segments.len()) {
+        let slice = message.segments[i].slice(0, message.segmentBuilders[i].pos * BYTES_PER_WORD);
         outputStream.write(slice);
     }
 }

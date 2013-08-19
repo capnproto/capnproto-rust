@@ -18,26 +18,30 @@ pub struct SegmentReader<'self> {
 
 pub struct SegmentBuilder {
     messageBuilder : @mut message::MessageBuilder,
-    segment : ~[u8],
     id : SegmentId,
-    pos : WordCount
+    pos : WordCount,
+    size : WordCount
 }
 
 impl SegmentBuilder {
 
     pub fn new(messageBuilder : @mut message::MessageBuilder,
-               size : ByteCount) -> SegmentBuilder {
+               size : WordCount) -> SegmentBuilder {
         SegmentBuilder {
             messageBuilder : messageBuilder,
-            segment : std::vec::from_elem(size, 0u8),
             id : messageBuilder.segments.len() as SegmentId,
-            pos : 0
+            pos : 0,
+            size : size
         }
     }
 
+    pub fn withMutSegment<T>(@ mut self, f : &fn(&mut [u8]) -> T) -> T {
+        f(self.messageBuilder.segments[self.id])
+    }
 
-    pub fn allocate(&mut self, amount : WordCount) -> Option<WordCount> {
-        if (amount > self.segment.len() - self.pos) {
+
+    pub fn allocate(@ mut self, amount : WordCount) -> Option<WordCount> {
+        if (amount > self.size - self.pos) {
             return None;
         } else {
             let result = self.pos;
@@ -46,20 +50,27 @@ impl SegmentBuilder {
         }
     }
 
-    pub fn available(&self) -> WordCount {
-        self.segment.len() * BYTES_PER_WORD - self.pos
+    pub fn available(@ mut self) -> WordCount {
+        self.size - self.pos
     }
 
     #[inline]
-    pub fn memset(&mut self, ptr: uint, c: u8, count: uint) {
-        unsafe {
-            let p = self.segment.unsafe_mut_ref(ptr);
-            std::ptr::set_memory(p, c, count)
+    pub fn memset(@mut self, ptr: uint, c: u8, count: uint) {
+        do self.withMutSegment |segment| {
+            unsafe {
+                let p = segment.unsafe_mut_ref(ptr);
+                std::ptr::set_memory(p, c, count)
+            }
         }
     }
 }
 
+trait Arena {
+    fn tryGetSegment<'a>(&'a self, id : SegmentId) -> SegmentReader<'a>;
+}
 
+/*
 pub struct BuilderArena {
     message : @mut message::MessageBuilder
 }
+*/

@@ -62,9 +62,9 @@ pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICAL
 pub struct MessageBuilder {
     nextSize : uint,
     allocationStrategy : AllocationStrategy,
-    segments : ~[@mut SegmentBuilder]
+    segmentBuilders : ~[@mut SegmentBuilder],
+    segments : ~[~[u8]]
 }
-
 
 impl MessageBuilder {
 
@@ -73,11 +73,15 @@ impl MessageBuilder {
         let result = @mut MessageBuilder {
             nextSize : firstSegmentWords,
             allocationStrategy : allocationStrategy,
+            segmentBuilders : ~[],
             segments : ~[]
         };
+
         let builder =
-            @mut SegmentBuilder::new(result, firstSegmentWords * BYTES_PER_WORD);
-        result.segments.push(builder);
+            @mut SegmentBuilder::new(result, firstSegmentWords);
+
+        result.segments.push(std::vec::from_elem(firstSegmentWords * BYTES_PER_WORD, 0u8));
+        result.segmentBuilders.push(builder);
 
         result
     }
@@ -88,8 +92,10 @@ impl MessageBuilder {
 
     pub fn allocateSegment(@mut self, minimumSize : uint) -> @mut SegmentBuilder {
         let size = std::cmp::max(minimumSize, self.nextSize);
+        let segment : ~[u8] = std::vec::from_elem(size * BYTES_PER_WORD, 0u8);
         let result  = @mut SegmentBuilder::new(self, size);
-        self.segments.push(result);
+        self.segments.push(segment);
+        self.segmentBuilders.push(result);
 
         match self.allocationStrategy {
             GROW_HEURISTICALLY => { self.nextSize += size; }
@@ -101,9 +107,9 @@ impl MessageBuilder {
 
     pub fn getSegmentWithAvailable(@mut self, minimumAvailable : WordCount)
         -> @mut SegmentBuilder {
-        if (self.segments.last().available() >= minimumAvailable) {
+        if (self.segmentBuilders.last().available() >= minimumAvailable) {
 
-            return self.segments[self.segments.len()];
+            return self.segmentBuilders[self.segments.len()];
 
         } else {
 
@@ -112,10 +118,12 @@ impl MessageBuilder {
         }
     }
 
-    pub fn initRoot<T : layout::HasStructSize + layout::FromStructBuilder>(&self) -> T {
+
+    pub fn initRoot<T : layout::HasStructSize + layout::FromStructBuilder>(@ mut self) -> T {
 
         // Rolled in this stuff form getRootSegment.
-        let rootSegment = self.segments[0];
+        let rootSegment = self.segmentBuilders[0];
+
         match rootSegment.allocate(WORDS_PER_POINTER) {
             None => {fail!("could not allocate root pointer") }
             Some(location) => {
@@ -129,4 +137,15 @@ impl MessageBuilder {
         }
 
     }
+
+    pub fn asReader<T>(& self, f : &fn(r : MessageReader) -> T) -> T {
+        let mut segments : ~[&[u8]] = ~[];
+
+        for ii in range(0, self.segments.len()) {
+            segments.push(self.segments[ii].as_slice());
+        }
+
+        f(MessageReader {segments : segments, options : DEFAULT_READER_OPTIONS})
+    }
+
 }

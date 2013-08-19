@@ -20,7 +20,9 @@ fn writeAddressBook() {
 
     let message = MessageBuilder::new_default();
 
+
     let addressbook = message.initRoot::<AddressBook::Builder>();
+
 
     let people = addressbook.initPeople(4);
 
