@@ -8,8 +8,12 @@
 
 #[crate_type = "bin"];
 
+extern mod capnprust;
 
 use std::libc::*;
+
+pub mod carsales_capnp;
+pub mod carsales;
 
 pub fn main () {
 
@@ -20,7 +24,7 @@ pub fn main () {
         return;
     }
 
-    let iters = match std::u64::from_str(args[4]) {
+    let _iters = match std::u64::from_str(args[4]) {
         Some (n) => n,
         None => {
             printfln!("Could not parse a u64 from: %s", args[4]);
