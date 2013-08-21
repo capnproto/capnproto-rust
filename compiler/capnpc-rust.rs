@@ -67,6 +67,7 @@ fn elementSizeStr (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
     }
 }
 
+#[fixed_stack_segment]
 fn camelCaseToAllCaps(s : &str) -> ~str {
     let bytes = s.as_bytes();
     let mut result_bytes : ~[u8] = ~[];
@@ -90,6 +91,7 @@ fn camelCaseToAllCaps(s : &str) -> ~str {
     return std::str::from_bytes(result_bytes);
 }
 
+#[fixed_stack_segment]
 fn capitalizeFirstLetter(s : &str) -> ~str {
     let bytes = s.as_bytes();
     let mut result_bytes : ~[u8] = ~[];
