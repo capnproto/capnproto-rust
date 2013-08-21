@@ -67,8 +67,8 @@ fn elementSizeStr (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
     }
 }
 
-#[fixed_stack_segment]
 fn camelCaseToAllCaps(s : &str) -> ~str {
+    use std::ascii::*;
     let bytes = s.as_bytes();
     let mut result_bytes : ~[u8] = ~[];
     for &b in bytes.iter() {
@@ -81,9 +81,7 @@ fn camelCaseToAllCaps(s : &str) -> ~str {
                 result_bytes.push('_' as u8);
             }
 
-            let b1 = unsafe {
-                std::libc::toupper(b as std::libc::c_char) as u8
-            };
+            let b1 = b.to_ascii().to_upper().to_byte();
 
             result_bytes.push(b1);
         }
@@ -91,18 +89,14 @@ fn camelCaseToAllCaps(s : &str) -> ~str {
     return std::str::from_bytes(result_bytes);
 }
 
-#[fixed_stack_segment]
 fn capitalizeFirstLetter(s : &str) -> ~str {
+    use std::ascii::*;
     let bytes = s.as_bytes();
     let mut result_bytes : ~[u8] = ~[];
     for &b in bytes.iter() {
         result_bytes.push(b);
     }
-
-    result_bytes[0] = unsafe {
-        std::libc::toupper(result_bytes[0] as std::libc::c_char) as u8
-    };
-
+    result_bytes[0] = result_bytes[0].to_ascii().to_upper().to_byte();
     return std::str::from_bytes(result_bytes);
 }
 

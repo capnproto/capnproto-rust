@@ -10,8 +10,6 @@
 
 extern mod capnprust;
 
-use std::libc::*;
-
 pub mod common;
 
 pub mod carsales_capnp;
@@ -34,6 +32,7 @@ pub fn main () {
         }
     };
 
+/* TODO use std::run
     unsafe {
         let child = funcs::posix88::unistd::fork();
         if (child == 0 ) {
@@ -42,4 +41,5 @@ pub fn main () {
             printfln!("%s", "Hello world. I am the parent and server.");
         }
     }
+*/
 }
