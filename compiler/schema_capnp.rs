@@ -287,6 +287,7 @@ pub mod Value {
 
     pub mod Body {
 //        use schema_capnp::*;
+        use capnprust::blob::*;
 
         pub enum Reader<'self> {
             voidValue,
@@ -301,13 +302,13 @@ pub mod Value {
             uint64Value(u64),
             float32Value(f32),
             float64Value(f32),
-            textValue(&'self [u8]),
-            dataValue, // TODO
+            textValue(Text::Reader<'self>),
+            dataValue(Data::Reader<'self>),
             listValue, // TODO
             enumValue(u16),
             structValue, // TODO
-            interfaceType, // TODO
-            objectType // TODO
+            interfaceValue,
+            objectValue // TODO
         }
     }
 }
