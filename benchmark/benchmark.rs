@@ -12,6 +12,8 @@ extern mod capnprust;
 
 use std::libc::*;
 
+pub mod common;
+
 pub mod carsales_capnp;
 pub mod carsales;
 
