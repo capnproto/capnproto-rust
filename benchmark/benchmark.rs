@@ -63,6 +63,9 @@ pub fn main () {
                 printfln!("%s", "wrong!");
             }
         }
+
+        messageReq.release();
+        messageRes.release();
     }
 
     printfln!("%s", "done");

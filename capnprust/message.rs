@@ -153,4 +153,9 @@ impl MessageBuilder {
         f(MessageReader {segments : segments, options : DEFAULT_READER_OPTIONS})
     }
 
+    // break the reference cycle
+    pub fn release(&mut self) {
+        self.segmentBuilders.clear()
+    }
+
 }
