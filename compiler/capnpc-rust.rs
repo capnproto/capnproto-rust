@@ -182,7 +182,7 @@ fn generateImportStatements(rootName : &str) -> FormattedText {
         Line(fmt!("use %s::*;", rootName))
     ])
 }
-
+/*
 fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                field : &schema_capnp::StructNode::Field::Reader,
@@ -500,6 +500,8 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
     return (Branch(result), getter_result);
 }
 
+*/
+
 fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                 scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                 rootName : &str,
@@ -517,7 +519,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         let text = generateNode(nodeMap, scopeMap, rootName, id);
         nested_output.push(text);
     }
-
+/*
     match nodeReader.getBody() {
 
         Node::Body::fileNode(fileNode) => {
@@ -703,7 +705,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             }
         }
     }
-
+*/
     Branch(output)
 }
 

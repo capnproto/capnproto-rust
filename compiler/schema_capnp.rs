@@ -8,50 +8,16 @@ mod macros;
 
 pub mod Node {
     use capnprust::layout::*;
+    use capnprust::blob::*;
     use schema_capnp::*;
 
-    pub static STRUCT_SIZE : StructSize = StructSize {data : 3, pointers : 4,
+    pub static STRUCT_SIZE : StructSize = StructSize {data : 5, pointers : 5,
                                                       preferredListEncoding : INLINE_COMPOSITE};
+
+    list_submodule!(schema_capnp, Node)
 
     pub struct Reader<'self> {
         _reader : StructReader<'self>
-    }
-
-    pub mod Body {
-        use capnprust::layout::*;
-        use schema_capnp::*;
-
-        pub enum Reader<'self> {
-            fileNode(FileNode::Reader<'self>),
-            structNode(StructNode::Reader<'self>),
-            enumNode(EnumNode::Reader<'self>),
-            interfaceNode(InterfaceNode::Reader<'self>),
-            constNode(ConstNode::Reader<'self>),
-            annotationNode(AnnotationNode::Reader<'self>)
-        }
-
-        pub struct Builder {
-            _builder : StructBuilder
-        }
-
-        impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
-                Builder { _builder : builder }
-            }
-
-            pub fn initFileNode(&self) -> FileNode::Builder {
-                self._builder.setDataField::<u16>(8, 0);
-                FileNode::Builder::new(
-                    self._builder.initStructField(3, FileNode::STRUCT_SIZE))
-            }
-
-            pub fn initStructNode(&self) -> StructNode::Builder {
-                self._builder.setDataField::<u16>(8, 1);
-                StructNode::Builder::new(
-                    self._builder.initStructField(3, StructNode::STRUCT_SIZE))
-            }
-
-        }
     }
 
     impl <'self> Reader<'self> {
@@ -68,48 +34,349 @@ pub mod Node {
             self._reader.getDataField::<u64>(0)
         }
 
-        pub fn getDisplayName(&self) -> &'self str {
+        pub fn getDisplayName(&self) -> Text::Reader<'self> {
             self._reader.getTextField(0, "")
         }
 
+        pub fn getDisplayNamePrefixLength(&self) -> u32 {
+            self._reader.getDataField::<u32>(2)
+        }
+
         pub fn getScopeId(&self) -> u64 {
-            self._reader.getDataField::<u64>(1)
+            self._reader.getDataField::<u64>(2)
         }
 
         pub fn getNestedNodes(&self) -> NestedNode::List::Reader<'self> {
             NestedNode::List::Reader::new(self._reader.getListField(1, INLINE_COMPOSITE, None))
         }
 
-        pub fn getBody(&self) -> Body::Reader<'self> {
-            match self._reader.getDataField::<u16>(8) {
+        pub fn which(&self) -> Option<Which::Reader<'self>> {
+            match self._reader.getDataField::<u16>(6) {
                 0 => {
-                    return Body::fileNode(
-                        FileNode::Reader::new(self._reader.getStructField(3, None)));
+                    return Some(Which::file_(()));
                 }
                 1 => {
-                    return Body::structNode(
-                        StructNode::Reader::new(self._reader.getStructField(3, None)));
+                    return Some(Which::struct_(
+                        Struct::Reader::new(self._reader)));
                 }
                 2 => {
-                    return Body::enumNode(
-                        EnumNode::Reader::new(self._reader.getStructField(3, None)));
+                    return Some(Which::enum_(
+                        Enum::Reader::new(self._reader)));
                 }
                 3 => {
-                    return Body::interfaceNode(
-                        InterfaceNode::Reader::new(self._reader.getStructField(3, None)));
+                    return Some(Which::interface(
+                        Interface::Reader::new(self._reader)));
                 }
                 4 => {
-                    return Body::constNode(
-                        ConstNode::Reader::new(self._reader.getStructField(3, None)));
+                    return Some(Which::const_(
+                        Const::Reader::new(self._reader)));
                 }
                 5 => {
-                    return Body::annotationNode(
-                        AnnotationNode::Reader::new(self._reader.getStructField(3, None)));
+                    return Some(Which::annotation(
+                        Annotation::Reader::new(self._reader)));
                 }
-                _ => fail!("impossible")
+                _ => return None
+            }
+        }
+    }
+
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+
+    pub mod Which {
+        use capnprust::layout::*;
+        use schema_capnp::*;
+
+        pub enum Reader<'self> {
+            file_(()),
+            struct_(Node::Struct::Reader<'self>),
+            enum_(Node::Enum::Reader<'self>),
+            interface(Node::Interface::Reader<'self>),
+            const_(Node::Const::Reader<'self>),
+            annotation(Node::Annotation::Reader<'self>)
+        }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+/*
+            pub fn initFileNode(&self) -> Node::File::Builder {
+                self._builder.setDataField::<u16>(8, 0);
+                FileNode::Builder::new(
+                    self._builder.initStructField(3, FileNode::STRUCT_SIZE))
+            }
+
+            pub fn initStructNode(&self) -> Node::Struct::Builder {
+                self._builder.setDataField::<u16>(8, 1);
+                StructNode::Builder::new(
+                    self._builder.initStructField(3, StructNode::STRUCT_SIZE))
+            }
+*/
+        }
+    }
+
+    pub mod Struct {
+        use capnprust::layout::*;
+        use schema_capnp::*;
+        use std;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn totalSizeInWords(&self) -> uint {
+                self._reader.totalSize() as uint
+            }
+
+            pub fn getDataWordCount(&self) -> u16 {
+                self._reader.getDataField::<u16>(7)
+            }
+
+            pub fn getPointerCount(&self) -> u16 {
+                self._reader.getDataField::<u16>(12)
+            }
+
+            pub fn getPreferredListEncoding(&self) -> Option<ElementSize::Reader> {
+                let result = self._reader.getDataField::<u16>(13) as uint;
+                if (result > ElementSize::MAX_ENUMERANT as uint) { None }
+                    else { Some( unsafe { std::cast::transmute(result)})}
+            }
+
+            pub fn getIsGroup(&self) -> bool {
+                self._reader.getBoolField(224)
+            }
+
+            pub fn getDiscriminantCount(&self) -> u16 {
+                self._reader.getDataField::<u16>(15)
+            }
+
+            pub fn getDiscriminantOffset(&self) -> u32 {
+                self._reader.getDataField::<u32>(8)
+            }
+
+            pub fn getFields(&self) -> Field::List::Reader<'self> {
+                Field::List::Reader::new(self._reader.getListField(3, INLINE_COMPOSITE, None))
             }
         }
 
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+        }
+    }
+
+    pub mod Enum {
+        use schema_capnp::*;
+        use capnprust::layout::*;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn totalSizeInWords(&self) -> uint {
+                self._reader.totalSize() as uint
+            }
+
+            pub fn getEnumerants(&self) -> Enumerant::List::Reader<'self> {
+                Enumerant::List::Reader::new(
+                      self._reader.getListField(3,
+                                                Enumerant::STRUCT_SIZE.preferredListEncoding,
+                                                None))
+            }
+
+        }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+        }
+
+    }
+
+    pub mod Interface {
+        use capnprust::layout::*;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn totalSizeInWords(&self) -> uint {
+                self._reader.totalSize() as uint
+            }
+
+            // TODO methods
+        }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+        }
+
+    }
+
+    pub mod Const {
+        use capnprust::layout::*;
+        use schema_capnp::*;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn totalSizeInWords(&self) -> uint {
+                self._reader.totalSize() as uint
+            }
+
+            pub fn getType(&self) -> Type::Reader<'self> {
+                Type::Reader::new(self._reader.getStructField(3, None))
+            }
+
+            pub fn getValue(&self) -> Value::Reader<'self>{
+                Value::Reader::new(self._reader.getStructField(4, None))
+            }
+        }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+        }
+    }
+
+    pub mod Annotation {
+        use capnprust::layout::*;
+        use schema_capnp::*;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn totalSizeInWords(&self) -> uint {
+                self._reader.totalSize() as uint
+            }
+
+            pub fn getType(&self) -> Type::Reader<'self> {
+                Type::Reader::new(self._reader.getStructField(3, None))
+            }
+
+            pub fn getTargetsFile(&self) -> bool {
+                self._reader.getBoolField(112)
+            }
+
+            pub fn getTargetsConst(&self) -> bool {
+                self._reader.getBoolField(113)
+            }
+
+            pub fn getTargetsEnum(&self) -> bool {
+                self._reader.getBoolField(114)
+            }
+
+            pub fn getTargetsEnumerant(&self) -> bool {
+                self._reader.getBoolField(115)
+            }
+
+            pub fn getTargetsStruct(&self) -> bool {
+                self._reader.getBoolField(116)
+            }
+
+            pub fn getTargetsField(&self) -> bool {
+                self._reader.getBoolField(117)
+            }
+
+            pub fn getTargetsUnion(&self) -> bool {
+                self._reader.getBoolField(118)
+            }
+
+            pub fn getTargetsGroup(&self) -> bool {
+                self._reader.getBoolField(119)
+            }
+
+            pub fn getTargetsInterface(&self) -> bool {
+                self._reader.getBoolField(120)
+            }
+
+            pub fn getTargetsMethod(&self) -> bool {
+                self._reader.getBoolField(121)
+            }
+
+            pub fn getTargetsParam(&self) -> bool {
+                self._reader.getBoolField(122)
+            }
+
+            pub fn getTargetsAnnotation(&self) -> bool {
+                self._reader.getBoolField(123)
+            }
+
+        }
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+        }
     }
 
     pub mod NestedNode {
@@ -143,7 +410,29 @@ pub mod Node {
         }
 
         list_submodule!(schema_capnp, Node::NestedNode)
+    }
 
+}
+
+pub mod Field {
+    use capnprust::layout::*;
+    use schema_capnp::*;
+
+    list_submodule!(schema_capnp, Field)
+
+    pub static STRUCT_SIZE : StructSize =
+        StructSize {data : 3, pointers : 4,
+        preferredListEncoding : INLINE_COMPOSITE};
+
+    pub struct Reader<'self> {
+        _reader : StructReader<'self>
+    }
+
+    impl <'self> Reader<'self> {
+
+        pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+            Reader{ _reader : reader }
+        }
     }
 
     pub struct Builder {
@@ -156,8 +445,89 @@ pub mod Node {
         }
     }
 
-    list_submodule!(schema_capnp, Node)
 }
+
+pub mod Enumerant {
+    use capnprust::layout::*;
+    use schema_capnp::*;
+
+    list_submodule!(schema_capnp, Enumerant)
+
+    pub static STRUCT_SIZE : StructSize =
+        StructSize {data : 1, pointers : 2,
+        preferredListEncoding : INLINE_COMPOSITE};
+
+    pub struct Reader<'self> {
+        _reader : StructReader<'self>
+    }
+
+    impl <'self> Reader<'self> {
+
+        pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+            Reader{ _reader : reader }
+        }
+
+        pub fn totalSizeInWords(&self) -> uint {
+            self._reader.totalSize() as uint
+        }
+
+        pub fn getName(&self) -> &'self str {
+            self._reader.getTextField(0, "")
+        }
+
+        pub fn getCodeOrder(&self) -> u16 {
+            self._reader.getDataField::<u16>(0)
+        }
+
+        pub fn getAnnotations(&self) -> Annotation::List::Reader<'self> {
+            Annotation::List::Reader::new(
+                                          self._reader.getListField(1, Annotation::STRUCT_SIZE.preferredListEncoding,
+                                                                    None))
+        }
+    }
+
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+}
+
+pub mod Method {
+    use capnprust::layout::*;
+
+    pub struct Reader<'self> {
+        _reader : StructReader<'self>
+    }
+
+    impl <'self> Reader<'self> {
+
+        pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+            Reader{ _reader : reader }
+        }
+
+        pub fn totalSizeInWords(&self) -> uint {
+            self._reader.totalSize() as uint
+        }
+    }
+
+    pub struct Builder {
+        _builder : StructBuilder
+    }
+
+    impl Builder {
+        pub fn new(builder : StructBuilder) -> Builder {
+            Builder { _builder : builder }
+        }
+    }
+
+    list_submodule!(schema_capnp, Method)
+}
+
 
 pub mod Type {
     use capnprust::layout::*;
@@ -353,86 +723,6 @@ pub mod Annotation {
             Builder { _builder : builder }
         }
     }
-
-}
-
-
-pub mod FileNode {
-    use capnprust::layout::*;
-
-    pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 1,
-                                                      preferredListEncoding : POINTER};
-
-    pub struct Reader<'self> {
-        _reader : StructReader<'self>
-    }
-
-    impl <'self> Reader<'self> {
-
-        pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-            Reader{ _reader : reader }
-        }
-
-        pub fn totalSizeInWords(&self) -> uint {
-            self._reader.totalSize() as uint
-        }
-
-        pub fn getImports(&self) -> Import::List::Reader<'self> {
-            Import::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, None))
-        }
-
-    }
-
-    pub struct Builder {
-        _builder : StructBuilder
-    }
-
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
-            Builder { _builder : builder }
-        }
-    }
-
-    list_submodule!(schema_capnp, FileNode)
-
-    pub mod Import {
-        use capnprust::layout::*;
-
-        pub struct Reader<'self> {
-            _reader : StructReader<'self>
-        }
-
-        impl <'self> Reader<'self> {
-
-            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-                Reader{ _reader : reader }
-            }
-
-            pub fn totalSizeInWords(&self) -> uint {
-                self._reader.totalSize() as uint
-            }
-
-            pub fn getId(&self) -> u64 {
-                self._reader.getDataField::<u64>(0)
-            }
-
-            pub fn getName(&self) -> &'self str {
-                self._reader.getTextField(0, "")
-            }
-        }
-
-        pub struct Builder {
-            _builder : StructBuilder
-        }
-
-        impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
-                Builder { _builder : builder }
-            }
-        }
-
-        list_submodule!(schema_capnp, FileNode::Import)
-    }
 }
 
 pub mod ElementSize {
@@ -449,504 +739,6 @@ pub mod ElementSize {
     pub static MAX_ENUMERANT : Reader = inlineComposite;
 }
 
-pub mod StructNode {
-    use capnprust::layout::*;
-    use schema_capnp::*;
-    use std;
-
-    pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 1,
-                                                      preferredListEncoding : INLINE_COMPOSITE};
-
-    pub struct Reader<'self> {
-        _reader : StructReader<'self>
-    }
-
-    impl <'self> Reader<'self> {
-
-        pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-            Reader{ _reader : reader }
-        }
-
-        pub fn totalSizeInWords(&self) -> uint {
-            self._reader.totalSize() as uint
-        }
-
-        pub fn getDataSectionWordSize(&self) -> u16 {
-            self._reader.getDataField::<u16>(0)
-        }
-
-        pub fn getPointerSectionSize(&self) -> u16 {
-            self._reader.getDataField::<u16>(1)
-        }
-
-        pub fn getPreferredListEncoding(&self) -> Option<ElementSize::Reader> {
-            let result = self._reader.getDataField::<u16>(2) as uint;
-            if (result > ElementSize::MAX_ENUMERANT as uint) { None }
-            else { Some( unsafe { std::cast::transmute(result)})}
-        }
-
-        pub fn getMembers(&self) -> Member::List::Reader<'self> {
-            Member::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, None))
-        }
-    }
-
-    pub struct Builder {
-        _builder : StructBuilder
-    }
-
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
-            Builder { _builder : builder }
-        }
-    }
-
-    list_submodule!(schema_capnp, StructNode)
-
-    pub mod Member {
-        use capnprust::layout::*;
-        use schema_capnp::*;
-
-        pub struct Reader<'self> {
-            _reader : StructReader<'self>
-        }
-
-        impl <'self> Reader<'self> {
-
-            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-                Reader{ _reader : reader }
-            }
-
-            pub fn totalSizeInWords(&self) -> uint {
-                self._reader.totalSize() as uint
-            }
-
-            pub fn getName(&self) -> & 'self str {
-                self._reader.getTextField(0, "")
-            }
-
-            pub fn getOrdinal(&self) -> u16 {
-                self._reader.getDataField::<u16>(0)
-            }
-
-            pub fn getCodeOrder(&self) -> u16 {
-                self._reader.getDataField::<u16>(1)
-            }
-
-            pub fn getAnnotations(&self) -> Annotation::List::Reader<'self> {
-                Annotation::List::Reader::new(self._reader.getListField(1, INLINE_COMPOSITE, None))
-            }
-
-            pub fn getBody(&self) -> Body::Reader<'self> {
-                match self._reader.getDataField::<u16>(2) {
-                    0 => {
-                        return Body::fieldMember(
-                            StructNode::Field::Reader::new(self._reader.getStructField(2, None)));
-                    }
-                    1 => {
-                        return Body::unionMember(
-                            StructNode::Union::Reader::new(self._reader.getStructField(2, None)));
-                    }
-                    _ => fail!("unrecognized discriminant for StructNode::Body")
-                }
-            }
-        }
-
-        pub struct Builder {
-            _builder : StructBuilder
-        }
-
-        impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
-                Builder { _builder : builder }
-            }
-        }
-
-
-        list_submodule!(schema_capnp, StructNode::Member)
-
-        pub mod Body {
-            use schema_capnp::*;
-            pub enum Reader<'self> {
-                fieldMember(StructNode::Field::Reader<'self>),
-                unionMember(StructNode::Union::Reader<'self>)
-            }
-        }
-
-    }
-
-    pub mod Field {
-        use capnprust::layout::*;
-        use schema_capnp::*;
-
-        pub struct Reader<'self> {
-            _reader : StructReader<'self>
-        }
-
-        impl <'self> Reader<'self> {
-
-            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-                Reader{ _reader : reader }
-            }
-
-            pub fn totalSizeInWords(&self) -> uint {
-                self._reader.totalSize() as uint
-            }
-
-            pub fn getOffset(&self) -> u32 {
-                self._reader.getDataField::<u32>(0)
-            }
-
-            pub fn getType(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self._reader.getStructField(0, None))
-            }
-
-            pub fn getDefaultValue(&self) -> Value::Reader<'self> {
-                Value::Reader::new(self._reader.getStructField(1, None))
-            }
-        }
-
-        pub struct Builder {
-            _builder : StructBuilder
-        }
-
-        impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
-                Builder { _builder : builder }
-            }
-        }
-
-        list_submodule!(schema_capnp, StructNode::Field)
-    }
-
-    pub mod Union {
-        use capnprust::layout::*;
-        use schema_capnp::*;
-
-        pub struct Reader<'self> {
-            _reader : StructReader<'self>
-        }
-
-        impl <'self> Reader<'self> {
-
-            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-                Reader{ _reader : reader }
-            }
-
-            pub fn totalSizeInWords(&self) -> uint {
-                self._reader.totalSize() as uint
-            }
-
-            pub fn getDiscriminantOffset(&self) -> u32 {
-                self._reader.getDataField::<u32>(0)
-            }
-
-            pub fn getMembers(&self) -> StructNode::Member::List::Reader<'self> {
-                StructNode::Member::List::Reader::new(
-                    self._reader.getListField(0, INLINE_COMPOSITE, None))
-            }
-        }
-
-        pub struct Builder {
-            _builder : StructBuilder
-        }
-
-        impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
-                Builder { _builder : builder }
-            }
-        }
-
-        list_submodule!(schema_capnp, StructNode::Union)
-    }
-
-
-}
-
-pub mod EnumNode {
-    use capnprust::layout::*;
-
-    list_submodule!(schema_capnp, EnumNode)
-
-    pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 1,
-                                                      preferredListEncoding : INLINE_COMPOSITE};
-
-    pub struct Reader<'self> {
-        _reader : StructReader<'self>
-    }
-
-    impl <'self> Reader<'self> {
-
-        pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-            Reader{ _reader : reader }
-        }
-
-        pub fn totalSizeInWords(&self) -> uint {
-            self._reader.totalSize() as uint
-        }
-
-        pub fn getEnumerants(&self) -> Enumerant::List::Reader<'self> {
-            Enumerant::List::Reader::new(
-                self._reader.getListField(0, Enumerant::STRUCT_SIZE.preferredListEncoding,
-                                          None))
-        }
-
-    }
-
-    pub struct Builder {
-        _builder : StructBuilder
-    }
-
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
-            Builder { _builder : builder }
-        }
-    }
-
-    pub mod Enumerant {
-        use capnprust::layout::*;
-        use schema_capnp::*;
-
-        list_submodule!(schema_capnp, EnumNode::Enumerant)
-
-        pub static STRUCT_SIZE : StructSize =
-            StructSize {data : 1, pointers : 2,
-                        preferredListEncoding : INLINE_COMPOSITE};
-
-        pub struct Reader<'self> {
-            _reader : StructReader<'self>
-        }
-
-        impl <'self> Reader<'self> {
-
-            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-                Reader{ _reader : reader }
-            }
-
-            pub fn totalSizeInWords(&self) -> uint {
-                self._reader.totalSize() as uint
-            }
-
-            pub fn getName(&self) -> &'self str {
-                self._reader.getTextField(0, "")
-            }
-
-            pub fn getCodeOrder(&self) -> u16 {
-                self._reader.getDataField::<u16>(0)
-            }
-
-            pub fn getAnnotations(&self) -> Annotation::List::Reader<'self> {
-                Annotation::List::Reader::new(
-                    self._reader.getListField(1, Annotation::STRUCT_SIZE.preferredListEncoding,
-                                              None))
-            }
-
-        }
-
-        pub struct Builder {
-            _builder : StructBuilder
-        }
-
-        impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
-                Builder { _builder : builder }
-            }
-        }
-
-
-    }
-
-}
-
-pub mod InterfaceNode {
-    use capnprust::layout::*;
-
-
-    pub struct Reader<'self> {
-        _reader : StructReader<'self>
-    }
-
-    impl <'self> Reader<'self> {
-
-        pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-            Reader{ _reader : reader }
-        }
-
-        pub fn totalSizeInWords(&self) -> uint {
-            self._reader.totalSize() as uint
-        }
-    }
-
-    pub struct Builder {
-        _builder : StructBuilder
-    }
-
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
-            Builder { _builder : builder }
-        }
-    }
-
-
-    list_submodule!(schema_capnp, InterfaceNode)
-
-    pub mod Method {
-        use capnprust::layout::*;
-
-        pub struct Reader<'self> {
-            _reader : StructReader<'self>
-        }
-
-        impl <'self> Reader<'self> {
-
-            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-                Reader{ _reader : reader }
-            }
-
-            pub fn totalSizeInWords(&self) -> uint {
-                self._reader.totalSize() as uint
-            }
-        }
-
-        pub struct Builder {
-            _builder : StructBuilder
-        }
-
-        impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
-                Builder { _builder : builder }
-            }
-        }
-
-        list_submodule!(schema_capnp, InterfaceNode::Method)
-
-    }
-}
-
-pub mod ConstNode {
-    use capnprust::layout::*;
-    use schema_capnp::*;
-
-    pub struct Reader<'self> {
-        _reader : StructReader<'self>
-    }
-
-    impl <'self> Reader<'self> {
-
-        pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-            Reader{ _reader : reader }
-        }
-
-        pub fn totalSizeInWords(&self) -> uint {
-            self._reader.totalSize() as uint
-        }
-
-        pub fn getType(&self) -> Type::Reader<'self> {
-            Type::Reader::new(self._reader.getStructField(0, None))
-        }
-
-        pub fn getValue(&self) -> Value::Reader<'self>{
-            Value::Reader::new(self._reader.getStructField(1, None))
-        }
-    }
-
-    pub struct Builder {
-        _builder : StructBuilder
-    }
-
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
-            Builder { _builder : builder }
-        }
-    }
-
-    list_submodule!(schema_capnp, ConstNode)
-
-}
-
-pub mod AnnotationNode {
-    use capnprust::layout::*;
-    use schema_capnp::*;
-
-    list_submodule!(schema_capnp, AnnotationNode)
-
-    pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 1,
-                                                      preferredListEncoding : INLINE_COMPOSITE};
-
-    pub struct Reader<'self> {
-        _reader : StructReader<'self>
-    }
-
-    impl <'self> Reader<'self> {
-
-        pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
-            Reader{ _reader : reader }
-        }
-
-        pub fn totalSizeInWords(&self) -> uint {
-            self._reader.totalSize() as uint
-        }
-
-        pub fn getType(&self) -> Type::Reader<'self> {
-            Type::Reader::new(self._reader.getStructField(0, None))
-        }
-
-        pub fn getTargetsFile(&self) -> bool {
-            self._reader.getBoolField(0)
-        }
-
-        pub fn getTargetsConst(&self) -> bool {
-            self._reader.getBoolField(1)
-        }
-
-        pub fn getTargetsEnum(&self) -> bool {
-            self._reader.getBoolField(2)
-        }
-
-        pub fn getTargetsEnumerant(&self) -> bool {
-            self._reader.getBoolField(3)
-        }
-
-        pub fn getTargetsStruct(&self) -> bool {
-            self._reader.getBoolField(4)
-        }
-
-        pub fn getTargetsField(&self) -> bool {
-            self._reader.getBoolField(5)
-        }
-
-        pub fn getTargetsUnion(&self) -> bool {
-            self._reader.getBoolField(6)
-        }
-
-        pub fn getTargetsInterface(&self) -> bool {
-            self._reader.getBoolField(7)
-        }
-
-        pub fn getTargetsMethod(&self) -> bool {
-            self._reader.getBoolField(8)
-        }
-
-        pub fn getTargetsParam(&self) -> bool {
-            self._reader.getBoolField(9)
-        }
-
-        pub fn getTargetsAnnotation(&self) -> bool {
-            self._reader.getBoolField(10)
-        }
-
-    }
-    pub struct Builder {
-        _builder : StructBuilder
-    }
-
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
-            Builder { _builder : builder }
-        }
-    }
-
-
-}
 
 
 
@@ -1079,8 +871,6 @@ pub mod CodeGeneratorRequest {
                     Builder { _builder : builder }
                 }
             }
-
-
 
         }
 
