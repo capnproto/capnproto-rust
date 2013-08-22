@@ -952,7 +952,6 @@ pub mod AnnotationNode {
 
 pub mod CodeGeneratorRequest {
     use capnprust::layout::*;
-    use capnprust::list::*;
     use schema_capnp::*;
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 2,
@@ -1000,9 +999,7 @@ pub mod CodeGeneratorRequest {
 
     pub mod RequestedFile {
         use capnprust::layout::*;
-        use capnprust::list::*;
         use capnprust::blob::*;
-        use schema_capnp::*;
 
         pub static STRUCT_SIZE : StructSize =
             StructSize {data : 1, pointers : 2,
@@ -1027,6 +1024,12 @@ pub mod CodeGeneratorRequest {
                 self._reader.getTextField(0, "")
             }
 
+            pub fn getImports(&self) -> Import::List::Reader<'self> {
+                Import::List::Reader::new(
+                 self._reader.getListField(1,
+                                           Import::STRUCT_SIZE.preferredListEncoding,
+                                           None))
+            }
         }
 
         pub struct Builder {
@@ -1037,6 +1040,48 @@ pub mod CodeGeneratorRequest {
             pub fn new(builder : StructBuilder) -> Builder {
                 Builder { _builder : builder }
             }
+        }
+
+        pub mod Import {
+            use capnprust::layout::*;
+            use capnprust::blob::*;
+
+            pub static STRUCT_SIZE : StructSize =
+                StructSize {data : 1, pointers : 1,
+                preferredListEncoding : INLINE_COMPOSITE};
+
+            list_submodule!(schema_capnp, CodeGeneratorRequest::RequestedFile)
+
+            pub struct Reader<'self> {
+                _reader : StructReader<'self>
+            }
+
+            impl <'self> Reader<'self> {
+                pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                    Reader{ _reader : reader }
+                }
+
+                pub fn getId(&self) -> u64 {
+                    self._reader.getDataField::<u64>(0)
+                }
+
+                pub fn getName(&self) -> Text::Reader<'self> {
+                    self._reader.getTextField(0, "")
+                }
+            }
+
+            pub struct Builder {
+                _builder : StructBuilder
+            }
+
+            impl Builder {
+                pub fn new(builder : StructBuilder) -> Builder {
+                    Builder { _builder : builder }
+                }
+            }
+
+
+
         }
 
     }

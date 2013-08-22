@@ -737,28 +737,29 @@ fn main() {
         for ii in range(0, requestedFilesReader.size()) {
 
             let requestedFile = requestedFilesReader.get(ii);
+            let id = requestedFile.getId();
             let name : &str = requestedFile.getFilename();
             std::io::println(fmt!("requested file: %s", name));
 
+            populateScopeMap(&nodeMap, &mut scopeMap, id);
 
-//            populateScopeMap(&nodeMap, &mut scopeMap, requestedFileId);
-/*
-            let fileNode = nodeMap.get(&requestedFileId);
+            let fileNode = nodeMap.get(&id);
             let displayName = fileNode.getDisplayName();
-            printfln!(displayName);
+            std::io::println(displayName);
+
             let mut rootName : ~str =
-                match (displayName.rfind('/'), displayName.rfind('.')) {
-                    (Some(s), Some(d)) => {
-                        displayName.slice_chars(s + 1, d).to_owned()
-                    }
-                    (None, Some(d)) => {
+                match displayName.rfind('.') {
+                    Some(d) => {
                         displayName.slice_chars(0, d).to_owned()
                     }
                     _ => { fail!("bad file name: %s", displayName) }
                 };
 
-            rootName.push_str("_capnp");
 
+            rootName.push_str("_capnp");
+            std::io::println(rootName);
+
+/*
             let text = stringify(&generateNode(&nodeMap, &scopeMap,
                                                rootName, requestedFileId));
             let macros_text = macros();
