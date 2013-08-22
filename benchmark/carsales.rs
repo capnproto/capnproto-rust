@@ -85,3 +85,26 @@ pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
     car.setHasNavSystem(rng.gen());
 }
 
+pub fn setupRequest(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 {
+    let mut result = 0;
+    let cars = request.initCars(rng.nextLessThan(200) as uint);
+    for i in range(0, cars.size()) {
+        let car = cars.get(i);
+        result += do car.asReader |carReader| {carValue(carReader)};
+    }
+    result
+}
+
+pub fn handleRequest(request : ParkingLot::Reader, response : TotalValue::Builder) {
+    let mut result = 0;
+    let cars = request.getCars();
+    for i in range(0, cars.size()) {
+        result += carValue(cars.get(i));
+    }
+    response.setAmount(result);
+}
+
+#[inline]
+pub fn checkResponse(response : TotalValue::Reader, expected : u64) -> bool {
+    response.getAmount() == expected
+}

@@ -42,4 +42,13 @@ pub fn main () {
         }
     }
 */
+
+
+    let mut rng = ~common::FastRand::new();
+
+    let message = capnprust::message::MessageBuilder::new_default();
+
+    let request = message.initRoot::<carsales_capnp::ParkingLot::Builder>();
+    let expected = carsales::setupRequest(rng, request);
+
 }
