@@ -274,7 +274,8 @@ mod WireHelpers {
     #[inline]
     pub fn allocate(refIndex : WordCount,
                     segmentBuilder : @mut SegmentBuilder,
-                    amount : WordCount, kind : WirePointerKind) -> WordCount {
+                    amount : WordCount, kind : WirePointerKind)
+        -> (@mut SegmentBuilder, WordCount) {
         let isNull =
             do segmentBuilder.withMutSegment |segment| {
             WirePointer::get(segment, refIndex).isNull()
@@ -299,14 +300,14 @@ mod WireHelpers {
                 }
 
 
-                return ptr + POINTER_SIZE_IN_WORDS;
+                return (segmentBuilder, ptr + POINTER_SIZE_IN_WORDS);
             }
             Some(ptr) => {
                 do segmentBuilder.withMutSegment |segment| {
                     let reff = WirePointer::getMut(segment, refIndex);
                     reff.setKindAndTarget(kind, ptr, refIndex);
                 }
-                return ptr;
+                return (segmentBuilder, ptr);
             }
         }
     }
@@ -451,7 +452,7 @@ mod WireHelpers {
     pub fn initStructPointer(refIndex : WordCount,
                              segmentBuilder : @mut SegmentBuilder,
                              size : StructSize) -> StructBuilder {
-        let ptr : WordCount = allocate(refIndex, segmentBuilder, size.total(), WP_STRUCT);
+        let (segmentBuilder, ptr) = allocate(refIndex, segmentBuilder, size.total(), WP_STRUCT);
         do segmentBuilder.withMutSegment |segment| {
             WirePointer::getMut(segment, refIndex).structRefMut().set(size);
         }
@@ -490,7 +491,7 @@ mod WireHelpers {
         let pointerCount = pointersPerElement(elementSize);
         let step = (dataSize + pointerCount * BITS_PER_POINTER);
         let wordCount = roundBitsUpToWords(elementCount as ElementCount64 * (step as u64));
-        let ptr = allocate(refIndex, segmentBuilder, wordCount, WP_LIST);
+        let (segmentBuilder, ptr) = allocate(refIndex, segmentBuilder, wordCount, WP_LIST);
 
         do segmentBuilder.withMutSegment |segment| {
             WirePointer::getMut(segment, refIndex).listRefMut().set(elementSize, elementCount);
@@ -522,8 +523,8 @@ mod WireHelpers {
 
         //# Allocate the list, prefixed by a single WirePointer.
         let wordCount : WordCount = elementCount * wordsPerElement;
-        let ptr : WordCount = allocate(refIndex, segmentBuilder,
-                                       POINTER_SIZE_IN_WORDS + wordCount, WP_LIST);
+        let (segmentBuilder, ptr) = allocate(refIndex, segmentBuilder,
+                                             POINTER_SIZE_IN_WORDS + wordCount, WP_LIST);
 
         do segmentBuilder.withMutSegment |segment| {
             //# Initalize the pointer.
@@ -575,8 +576,8 @@ mod WireHelpers {
         //# The byte list must include a NUL terminator
         let byteSize = bytes.len() + 1;
 
-        let ptr : WordCount = allocate(refIndex, segmentBuilder,
-                                       roundBytesUpToWords(byteSize), WP_LIST);
+        let (segmentBuilder, ptr) = allocate(refIndex, segmentBuilder,
+                                             roundBytesUpToWords(byteSize), WP_LIST);
 
         do segmentBuilder.withMutSegment |segment| {
             WirePointer::getMut(segment, refIndex).listRefMut().set(BYTE, byteSize);

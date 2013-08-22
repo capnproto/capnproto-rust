@@ -46,9 +46,24 @@ pub fn main () {
 
     let mut rng = ~common::FastRand::new();
 
-    let message = capnprust::message::MessageBuilder::new_default();
 
-    let request = message.initRoot::<carsales_capnp::ParkingLot::Builder>();
-    let expected = carsales::setupRequest(rng, request);
+    for _i in range(0, _iters) {
+        let messageReq = capnprust::message::MessageBuilder::new_default();
+        let messageRes = capnprust::message::MessageBuilder::new_default();
 
+        let request = messageReq.initRoot::<carsales_capnp::ParkingLot::Builder>();
+        let response = messageRes.initRoot::<carsales_capnp::TotalValue::Builder>();
+        let expected = carsales::setupRequest(rng, request);
+        do request.asReader |requestReader| {
+            carsales::handleRequest(requestReader, response);
+        }
+
+        do response.asReader |responseReader| {
+            if (! carsales::checkResponse(responseReader, expected)) {
+                printfln!("%s", "wrong!");
+            }
+        }
+    }
+
+    printfln!("%s", "done");
 }
