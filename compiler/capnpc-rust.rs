@@ -736,12 +736,13 @@ fn main() {
 
         for ii in range(0, requestedFilesReader.size()) {
 
-            let requestedFileId : u64 = requestedFilesReader.get(ii);
-            std::io::println(fmt!("requested file: %x",
-                                  requestedFileId as uint));
+            let requestedFile = requestedFilesReader.get(ii);
+            let name : &str = requestedFile.getFilename();
+            std::io::println(fmt!("requested file: %s", name));
 
-            populateScopeMap(&nodeMap, &mut scopeMap, requestedFileId);
 
+//            populateScopeMap(&nodeMap, &mut scopeMap, requestedFileId);
+/*
             let fileNode = nodeMap.get(&requestedFileId);
             let displayName = fileNode.getDisplayName();
             printfln!(displayName);
@@ -772,6 +773,7 @@ fn main() {
                 }
                 Err(msg) => {printfln!("ERROR: %s", msg)}
             }
+*/
 
         }
 

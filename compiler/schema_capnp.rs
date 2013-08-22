@@ -958,6 +958,8 @@ pub mod CodeGeneratorRequest {
     pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 2,
                                                       preferredListEncoding : INLINE_COMPOSITE};
 
+    list_submodule!(schema_capnp, CodeGeneratorRequest)
+
     pub struct Reader<'self> {
         _reader : StructReader<'self>
     }
@@ -968,13 +970,17 @@ pub mod CodeGeneratorRequest {
             Reader{ _reader : reader }
         }
 
-        pub fn getRequestedFiles(&self) -> PrimitiveList::Reader<'self> {
-            PrimitiveList::Reader::new(self._reader.getListField(1, EIGHT_BYTES, None))
-        }
-
         pub fn getNodes(&self) -> Node::List::Reader<'self> {
             Node::List::Reader::new(self._reader.getListField(0, INLINE_COMPOSITE, None))
         }
+
+        pub fn getRequestedFiles(&self) -> RequestedFile::List::Reader<'self> {
+            RequestedFile::List::Reader::new(
+                 self._reader.getListField(1,
+                                           RequestedFile::STRUCT_SIZE.preferredListEncoding,
+                                           None))
+        }
+
     }
 
     pub struct Builder {
@@ -992,7 +998,47 @@ pub mod CodeGeneratorRequest {
         }
     }
 
+    pub mod RequestedFile {
+        use capnprust::layout::*;
+        use capnprust::list::*;
+        use capnprust::blob::*;
+        use schema_capnp::*;
 
-    list_submodule!(schema_capnp, CodeGeneratorRequest)
+        pub static STRUCT_SIZE : StructSize =
+            StructSize {data : 1, pointers : 2,
+            preferredListEncoding : INLINE_COMPOSITE};
+
+        list_submodule!(schema_capnp, CodeGeneratorRequest::RequestedFile)
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn getId(&self) -> u64 {
+                self._reader.getDataField::<u64>(0)
+            }
+
+            pub fn getFilename(&self) -> Text::Reader<'self> {
+                self._reader.getTextField(0, "")
+            }
+
+        }
+
+        pub struct Builder {
+            _builder : StructBuilder
+        }
+
+        impl Builder {
+            pub fn new(builder : StructBuilder) -> Builder {
+                Builder { _builder : builder }
+            }
+        }
+
+    }
 
 }
