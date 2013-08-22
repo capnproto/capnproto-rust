@@ -5,7 +5,7 @@
  */
 
 use std::rand::*;
-//use common::*;
+use common::*;
 use carsales_capnp::*;
 
 pub fn carValue (car : Car::Reader) -> u64 {
@@ -46,8 +46,42 @@ pub fn carValue (car : Car::Reader) -> u64 {
 static MAKES : [&'static str, .. 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
 static MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
 
-pub fn randomCar<R : Rng>(rng : &mut R, car : Car::Builder) {
-    car.setMake(MAKES[rng.gen_uint_range(0, MAKES.len())]);
-    car.setModel(MODELS[rng.gen_uint_range(0, MODELS.len())]);
+pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
+    use std::cast::*;
+
+    car.setMake(MAKES[rng.nextLessThan(MAKES.len() as u32)]);
+    car.setModel(MODELS[rng.nextLessThan(MODELS.len() as u32)]);
+
+    car.setColor(unsafe {transmute(rng.gen_uint_range(0, Color::silver as uint + 1)) });
+    car.setSeats(2 + rng.nextLessThan(6) as u8);
+    car.setDoors(2 + rng.nextLessThan(3) as u8);
+
+    let wheels = car.initWheels(4);
+    for i in range(0, wheels.size()) {
+        let wheel = wheels.get(i);
+        wheel.setDiameter(25 + rng.nextLessThan(15) as u16);
+        wheel.setAirPressure(30.0 + rng.nextDouble(20.0) as f32);
+        wheel.setSnowTires(rng.nextLessThan(16) == 0);
+    }
+
+    car.setLength(170 + rng.nextLessThan(150) as u16);
+    car.setWidth(48 + rng.nextLessThan(36) as u16);
+    car.setHeight(54 + rng.nextLessThan(48) as u16);
+    car.setWeight(car.getLength() as u32 * car.getWidth() as u32 * car.getHeight() as u32 / 200);
+
+    let engine = car.initEngine();
+    engine.setHorsepower(100 * rng.nextLessThan(400) as u16);
+    engine.setCylinders(4 + 2 * rng.nextLessThan(3) as u8);
+    engine.setCc(800 + rng.nextLessThan(10000));
+    engine.setUsesGas(true);
+    engine.setUsesElectric(rng.gen());
+
+    car.setFuelCapacity(10.0 + rng.nextDouble(30.0) as f32);
+    car.setFuelLevel(rng.nextDouble(car.getFuelCapacity() as f64) as f32);
+    car.setHasPowerWindows(rng.gen());
+    car.setHasPowerSteering(rng.gen());
+    car.setHasCruiseControl(rng.gen());
+    car.setCupHolders(rng.nextLessThan(12) as u8);
+    car.setHasNavSystem(rng.gen());
 }
 

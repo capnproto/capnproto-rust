@@ -24,6 +24,15 @@ impl FastRand {
     pub fn new() -> FastRand {
         FastRand {state : 1013904223}
     }
+
+    pub fn nextLessThan(&mut self, range : u32) -> u32 {
+        self.next() % range
+    }
+
+    pub fn nextDouble(&mut self, range : f64) -> f64 {
+        use std::u32;
+        self.next() as f64 * range / (u32::max_value as f64)
+    }
 }
 
 
