@@ -159,7 +159,6 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     for ii in range(0, nestedNodes.size()) {
         let nestedNode = nestedNodes.get(ii);
         let id = nestedNode.getId();
-        printfln!("scope id: %?", id );
 
         let name = nestedNode.getName().to_owned();
 
@@ -225,7 +224,6 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
     match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Which::group(id)) => {
-            printfln!("field name: %s, id: %?", field.getName(), id);
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
             if (isReader) {
@@ -354,130 +352,151 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         }
     }
 }
-/*
+
 fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
-                  unionOffset : Option<(uint, uint)>,
+                  discriminantOffset : Option<u32>,
                   capName : &str,
-                  field :&schema_capnp::StructNode::Field::Reader) -> FormattedText {
+                  field :&schema_capnp::Field::Reader) -> FormattedText {
 
-    use schema_capnp::Type::Body;
-
-    let typ = field.getType();
-    let offset = field.getOffset() as uint;
+    use schema_capnp::*;
 
     let mut result = ~[];
     result.push(Line(~"#[inline]"));
 
     let mut interior = ~[];
 
-    match unionOffset {
-        Some((doffset, idx)) => interior.push(
-            Line(fmt!("self._builder.setDataField::<u16>(%u, %u);", doffset, idx))),
+    match discriminantOffset {
+        Some(doffset) => {
+            let idx = field.getDiscriminantValue();
+            interior.push(
+                      Line(fmt!("self._builder.setDataField::<u16>(%u, %u);",
+                                doffset as uint, idx as uint)));
+        }
         None => { }
     }
 
-    match typ.getBody() {
-        Body::voidType => {result.push(Line(fmt!("pub fn set%s(&self, _value : ()) {",capName)))}
-        Body::boolType => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : bool) {",capName)));
-            interior.push(Line(fmt!("self._builder.setBoolField(%u, value);", offset)))
+    match field.which() {
+        None => fail!("unrecognized field type"),
+        Some(Field::Which::group(id)) => {
+            let scope = scopeMap.get(&id);
+            let theMod = scope.connect("::");
+            result.push(Line(fmt!("pub fn init%s(&self) -> %s::Builder {", capName, theMod )));
+            // XXX todo: zero out all of the fields.
+            interior.push(Line(fmt!("%s::Builder::new(self._builder)", theMod)));
         }
-        Body::int8Type => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : i8) {",capName)));
-            interior.push(Line(fmt!("self._builder.setDataField::<i8>(%u, value);", offset)))
-        }
-        Body::int16Type => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : i16) {",capName)));
-            interior.push(Line(fmt!("self._builder.setDataField::<i16>(%u, value);", offset)))
-        }
-        Body::int32Type => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : i32) {",capName)));
-            interior.push(Line(fmt!("self._builder.setDataField::<i32>(%u, value);", offset)))
-        }
-        Body::int64Type => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : i64) {",capName)));
-            interior.push(Line(fmt!("self._builder.setDataField::<i64>(%u, value);", offset)))
-        }
-        Body::uint8Type => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : u8) {",capName)));
-            interior.push(Line(fmt!("self._builder.setDataField::<u8>(%u, value);", offset)))
-        }
-        Body::uint16Type => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : u16) {",capName)));
-            interior.push(Line(fmt!("self._builder.setDataField::<u16>(%u, value);", offset)))
-        }
-        Body::uint32Type => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : u32) {",capName)));
-            interior.push(Line(fmt!("self._builder.setDataField::<u32>(%u, value);", offset)))
-        }
-        Body::uint64Type => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : u64) {",capName)));
-            interior.push(Line(fmt!("self._builder.setDataField::<u64>(%u, value);", offset)))
-        }
-        Body::float32Type => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : f32) {",capName)));
-            interior.push(Line(fmt!("self._builder.setDataField::<f32>(%u, value);", offset)))
-        }
-        Body::float64Type => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : f64) {",capName)));
-            interior.push(Line(fmt!("self._builder.setDataField::<f64>(%u, value);", offset)))
-        }
-        Body::textType => {
-            result.push(Line(fmt!("pub fn set%s(&self, value : &str) {",capName)));
-            interior.push(Line(fmt!("self._builder.setTextField(%u, value);", offset)))
-        }
-        Body::dataType => { return BlankLine }
-        Body::listType(t1) => {
-            let returnType =
-                match t1.getBody() {
-                    Body::voidType | Body::boolType | Body::int8Type |
-                    Body::int16Type | Body::int32Type | Body::int64Type |
-                    Body::uint8Type | Body::uint16Type | Body::uint32Type |
-                    Body::uint64Type | Body::float32Type | Body::float64Type => {
-                        // TODO
-                        ~""
-                    }
-                    Body::structType(id) => {
-                        let scope = scopeMap.get(&id);
-                        let theMod = scope.connect("::");
+        Some(Field::Which::nonGroup(regField)) => {
 
-                        interior.push(Line(fmt!("%s::List::Builder::new(", theMod)));
-                        interior.push(
-                            Indent(
+            let typ = regField.getType();
+            let offset = regField.getOffset() as uint;
+
+            match typ.which() {
+                Some(Type::Which::void) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : ()) {",capName)))
+                }
+                Some(Type::Which::bool_) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : bool) {", capName)));
+                    interior.push(Line(fmt!("self._builder.setBoolField(%u, value);", offset)))
+                }
+                Some(Type::Which::int8) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : i8) {", capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i8>(%u, value);", offset)))
+                }
+                Some(Type::Which::int16) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : i16) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i16>(%u, value);", offset)))
+                }
+                Some(Type::Which::int32) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : i32) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i32>(%u, value);", offset)))
+                }
+                Some(Type::Which::int64) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : i64) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i64>(%u, value);", offset)))
+                }
+                Some(Type::Which::uint8) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : u8) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u8>(%u, value);", offset)))
+                }
+                Some(Type::Which::uint16) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : u16) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u16>(%u, value);", offset)))
+                }
+                Some(Type::Which::uint32) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : u32) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u32>(%u, value);", offset)))
+                }
+                Some(Type::Which::uint64) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : u64) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u64>(%u, value);", offset)))
+                }
+                Some(Type::Which::float32) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : f32) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<f32>(%u, value);", offset)))
+                }
+                Some(Type::Which::float64) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : f64) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<f64>(%u, value);", offset)))
+                }
+                Some(Type::Which::text) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : &str) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setTextField(%u, value);", offset)))
+                }
+                Some(Type::Which::data) => { return BlankLine }
+                Some(Type::Which::list(t1)) => {
+                    let returnType =
+                        match t1.which().unwrap() {
+                            Type::Which::void | Type::Which::bool_ | Type::Which::int8 |
+                            Type::Which::int16 | Type::Which::int32 | Type::Which::int64 |
+                            Type::Which::uint8 | Type::Which::uint16 | Type::Which::uint32 |
+                            Type::Which::uint64 | Type::Which::float32 | Type::Which::float64 => {
+                            // TODO
+                            ~""
+                        }
+                        Type::Which::struct_(id) => {
+                            let scope = scopeMap.get(&id);
+                            let theMod = scope.connect("::");
+
+                            interior.push(Line(fmt!("%s::List::Builder::new(", theMod)));
+                            interior.push(
+                              Indent(
                                 ~Line(
                                     fmt!("self._builder.initStructListField(%u, size, %s::STRUCT_SIZE))",
                                          offset, theMod))));
 
-                        fmt!("%s::List::Builder", theMod)
-                    }
-                    _ => { ~"" }
-                };
-            result.push(Line(fmt!("pub fn init%s(&self, size : uint) -> %s {",
-                                  capName, returnType)))
-        }
-        Body::enumType(id) => {
-            let scope = scopeMap.get(&id);
-            let theMod = scope.connect("::");
-            result.push(Line(fmt!("pub fn set%s(&self, value : %s::Reader) {",
-                                  capName, theMod)));
-            interior.push(
-                Line(fmt!("self._builder.setDataField::<u16>(%u, value as u16)",
-                          offset)));
-        }
-        Body::structType(id) => {
-            let scope = scopeMap.get(&id);
-            let theMod = scope.connect("::");
-            result.push(Line(fmt!("pub fn init%s(&self) -> %s::Builder {",capName,theMod)));
-            interior.push(
-                Line(fmt!("%s::Builder::new(self._builder.initStructField(%u, %s::STRUCT_SIZE))",
-                          theMod, offset, theMod)));
-        }
-        Body::interfaceType(_) => {
-            return BlankLine
-        }
-        Body::objectType => {
-            return BlankLine
+                            fmt!("%s::List::Builder", theMod)
+                        }
+                        _ => { ~"" }
+                    };
+                    result.push(Line(fmt!("pub fn init%s(&self, size : uint) -> %s {",
+                                          capName, returnType)))
+                }
+                Some(Type::Which::enum_(id)) => {
+                    let scope = scopeMap.get(&id);
+                    let theMod = scope.connect("::");
+                    result.push(Line(fmt!("pub fn set%s(&self, value : %s::Reader) {",
+                                          capName, theMod)));
+                    interior.push(
+                                  Line(fmt!("self._builder.setDataField::<u16>(%u, value as u16)",
+                                            offset)));
+                }
+                Some(Type::Which::struct_(id)) => {
+                    let scope = scopeMap.get(&id);
+                    let theMod = scope.connect("::");
+                    result.push(Line(fmt!("pub fn init%s(&self) -> %s::Builder {",capName,theMod)));
+                    interior.push(
+                      Line(fmt!("%s::Builder::new(self._builder.initStructField(%u, %s::STRUCT_SIZE))",
+                                theMod, offset, theMod)));
+                }
+                Some(Type::Which::interface(_)) => {
+                    return BlankLine
+                }
+                Some(Type::Which::object) => {
+                    return BlankLine
+                }
+                None => {return BlankLine}
+            }
+
         }
     }
 
@@ -485,7 +504,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
     result.push(Line(~"}"));
     return Branch(result);
 }
-
+/*
 // Return (union_mod, union_getter)
 fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
@@ -648,7 +667,6 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 let field = fields.get(ii);
                 let name = field.getName();
                 let capName = capitalizeFirstLetter(name);
-
 
                 let (ty, get) = getterText(nodeMap, scopeMap, &field, true);
 
@@ -813,8 +831,6 @@ fn main() {
             let id = nodeReader.getId();
 
             nodeMap.insert(id, nodeReader);
-            printfln!("%s: %?", nodeReader.getDisplayName(), id );
-
         }
 
         let requestedFilesReader = codeGeneratorRequest.getRequestedFiles();
@@ -826,12 +842,10 @@ fn main() {
             let name : &str = requestedFile.getFilename();
             std::io::println(fmt!("requested file: %s", name));
 
-            printfln!("scope id: %?", id );
             populateScopeMap(&nodeMap, &mut scopeMap, id);
 
             let fileNode = nodeMap.get(&id);
             let displayName = fileNode.getDisplayName();
-            std::io::println(displayName);
 
             let mut outputFileName : ~str =
                 match displayName.rfind('.') {
@@ -843,8 +857,6 @@ fn main() {
 
             outputFileName.push_str("_capnp");
 
-            std::io::println(outputFileName);
-
             let rootName : ~str =
                 match outputFileName.rfind('/') {
                 Some(s) => outputFileName.slice_chars(s + 1,outputFileName.len()).to_owned(),
@@ -852,6 +864,7 @@ fn main() {
             };
 
             outputFileName.push_str(".rs");
+            std::io::println(outputFileName);
 
             let text = stringify(&generateNode(&nodeMap, &scopeMap,
                                                rootName, id));
