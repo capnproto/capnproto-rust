@@ -9,7 +9,6 @@ mod macros;
 pub mod Node {
     use capnprust::layout::*;
     use capnprust::blob::*;
-    use schema_capnp::*;
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 5, pointers : 5,
                                                       preferredListEncoding : INLINE_COMPOSITE};
@@ -417,7 +416,6 @@ pub mod Node {
 pub mod Field {
     use capnprust::layout::*;
     use capnprust::blob::*;
-    use schema_capnp::*;
 
     list_submodule!(schema_capnp, Field)
 
@@ -468,7 +466,7 @@ pub mod Field {
     }
 
     pub mod Which {
-        use capnprust::layout::*;
+//        use capnprust::layout::*;
         use schema_capnp::*;
 
         pub enum Reader<'self> {
@@ -528,8 +526,8 @@ pub mod Field {
         }
 
         pub mod Which {
-            use capnprust::layout::*;
-            use schema_capnp::*;
+//            use capnprust::layout::*;
+//            use schema_capnp::*;
 
             pub enum Reader {
                 implicit(()),

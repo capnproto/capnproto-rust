@@ -519,34 +519,31 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         let text = generateNode(nodeMap, scopeMap, rootName, id);
         nested_output.push(text);
     }
-/*
-    match nodeReader.getBody() {
 
-        Node::Body::fileNode(fileNode) => {
-            let imports = fileNode.getImports();
-            for ii in range(0, imports.size()) {
-                printfln!("  import %s", imports.get(ii).getName());
-            }
+    match nodeReader.which() {
+
+        Some(Node::Which::file_(())) => {
             output.push(Branch(nested_output));
         }
 
-        Node::Body::structNode(structNode) => {
-
+        Some(Node::Which::struct_(structReader)) => {
             let names = scopeMap.get(&nodeId);
             output.push(BlankLine);
 
             output.push(Line(~"#[allow(unused_imports)]"));
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
+
+
             let mut preamble = ~[];
             let mut builder_members = ~[];
             let mut reader_members = ~[];
             let mut union_mods = ~[];
 
-            let dataSize = structNode.getDataSectionWordSize();
-            let pointerSize = structNode.getPointerSectionSize();
+            let dataSize = structReader.getDataWordCount();
+            let pointerSize = structReader.getPointerCount();
             let preferredListEncoding =
-                  match structNode.getPreferredListEncoding() {
+                  match structReader.getPreferredListEncoding() {
                                 Some(e) => e,
                                 None => fail!("unsupported list encoding")
                         };
@@ -566,11 +563,13 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                     rootName, scopeMap.get(&nodeId).connect("::"))));
             preamble.push(BlankLine);
 
-            let members = structNode.getMembers();
-            for ii in range(0, members.size()) {
-                let member = members.get(ii);
-                let name = member.getName();
+
+            let fields = structReader.getFields();
+            for ii in range(0, fields.size()) {
+                let field = fields.get(ii);
+                let name = field.getName();
                 let capName = capitalizeFirstLetter(name);
+                /*
                 match member.getBody() {
                     StructNode::Member::Body::fieldMember(field) => {
                         let (ty, get) = getterText(nodeMap, scopeMap, &field, true);
@@ -615,6 +614,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                   Line(~"}")]));
                     }
                 }
+                */
             }
 
             let accessors =
@@ -665,14 +665,15 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                          Branch(union_mods),
                                          Branch(nested_output)])));
             output.push(Line(~"}"));
+
         }
 
-        Node::Body::enumNode(enumNode) => {
+        Some(Node::Which::enum_(enumReader)) => {
             let names = scopeMap.get(&nodeId);
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
             let mut members = ~[];
-            let enumerants = enumNode.getEnumerants();
+            let enumerants = enumReader.getEnumerants();
             for ii in range(0, enumerants.size()) {
                 let enumerant = enumerants.get(ii);
                 members.push(
@@ -687,25 +688,27 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             output.push(Line(~"}"));
         }
 
-        Node::Body::interfaceNode(_) => { }
+        Some(Node::Which::interface(_)) => { }
 
-        Node::Body::constNode(_) => { }
+        Some(Node::Which::const_(_)) => { }
 
-        Node::Body::annotationNode( annotationNode ) => {
+        Some(Node::Which::annotation( annotationReader )) => {
             std::io::println("  annotation node:");
-            if (annotationNode.getTargetsFile()) {
+            if (annotationReader.getTargetsFile()) {
                 std::io::println("  targets file");
             }
-            if (annotationNode.getTargetsConst()) {
+            if (annotationReader.getTargetsConst()) {
                 std::io::println("  targets const");
             }
             // ...
-            if (annotationNode.getTargetsAnnotation()) {
+            if (annotationReader.getTargetsAnnotation()) {
                 std::io::println("  targets annotation");
             }
         }
+
+        None => ()
     }
-*/
+
     Branch(output)
 }
 
@@ -749,7 +752,7 @@ fn main() {
             let displayName = fileNode.getDisplayName();
             std::io::println(displayName);
 
-            let mut rootName : ~str =
+            let mut outputFileName : ~str =
                 match displayName.rfind('.') {
                     Some(d) => {
                         displayName.slice_chars(0, d).to_owned()
@@ -757,18 +760,24 @@ fn main() {
                     _ => { fail!("bad file name: %s", displayName) }
                 };
 
+            outputFileName.push_str("_capnp");
 
-            rootName.push_str("_capnp");
-            std::io::println(rootName);
+            std::io::println(outputFileName);
 
-/*
+            let rootName : ~str =
+                match outputFileName.rfind('/') {
+                Some(s) => outputFileName.slice_chars(s + 1,outputFileName.len()).to_owned(),
+                None => outputFileName.as_slice().to_owned()
+            };
+
+            outputFileName.push_str(".rs");
+
             let text = stringify(&generateNode(&nodeMap, &scopeMap,
-                                               rootName, requestedFileId));
+                                               rootName, id));
+
             let macros_text = macros();
 
-            rootName.push_str(".rs");
-
-            let path = &std::path::Path(rootName);
+            let path = &std::path::Path(outputFileName);
             match std::io::mk_file_writer(path, [std::io::Create, std::io::Truncate]) {
                 Ok(writer) => {
                     writer.write(macros_text.as_bytes());
@@ -776,7 +785,6 @@ fn main() {
                 }
                 Err(msg) => {printfln!("ERROR: %s", msg)}
             }
-*/
 
         }
 
