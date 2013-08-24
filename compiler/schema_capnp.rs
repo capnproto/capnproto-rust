@@ -416,6 +416,7 @@ pub mod Node {
 
 pub mod Field {
     use capnprust::layout::*;
+    use capnprust::blob::*;
     use schema_capnp::*;
 
     list_submodule!(schema_capnp, Field)
@@ -429,9 +430,20 @@ pub mod Field {
     }
 
     impl <'self> Reader<'self> {
-
         pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
             Reader{ _reader : reader }
+        }
+
+        pub fn getName(&self) -> Text::Reader<'self> {
+            self._reader.getTextField(0, "")
+        }
+
+        fn getCodeOrder(&self) -> u16 {
+            self._reader.getDataField::<u16>(0)
+        }
+
+        fn getDiscriminantValue(&self) -> u16 {
+            self._reader.getDataFieldMask::<u16>(1, 0xffff)
         }
     }
 
@@ -442,6 +454,51 @@ pub mod Field {
     impl Builder {
         pub fn new(builder : StructBuilder) -> Builder {
             Builder { _builder : builder }
+        }
+    }
+
+    pub mod Which {
+        use capnprust::layout::*;
+
+        pub enum Reader<'self> {
+            nonGroup(()),
+            group(u64)
+        }
+
+        pub mod NonGroup {
+            
+        }
+    }
+
+    pub mod Ordinal {
+        use capnprust::layout::*;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn which(&self) -> Option<Which::Reader> {
+                match self._reader.getDataField::<u16>(4) {
+                    0 => return Some(Which::implicit(())),
+                    1 => return Some(Which::explicit(self._reader.getDataField::<u16>(6))),
+                    _ => return None
+                }
+            }
+        }
+
+        pub mod Which {
+            use capnprust::layout::*;
+            use schema_capnp::*;
+
+            pub enum Reader {
+                implicit(()),
+                explicit(u16),
+            }
         }
     }
 
