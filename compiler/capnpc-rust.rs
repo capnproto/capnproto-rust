@@ -507,7 +507,6 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
 // return (the 'Which' module, the 'which()' accessor)
 fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
-                 rootName : &str,
                  discriminantOffset : u32,
                  fields : &[schema_capnp::Field::Reader])
     -> (FormattedText, FormattedText) {
@@ -707,7 +706,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
             if (discriminantCount > 0) {
                 let (union_mod, union_getter) =
-                    generateUnion(nodeMap, scopeMap, rootName,
+                    generateUnion(nodeMap, scopeMap,
                                   discriminantOffset, union_fields);
                 which_mod.push(union_mod);
                 reader_members.push(union_getter);
