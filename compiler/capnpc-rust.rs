@@ -182,104 +182,147 @@ fn generateImportStatements(rootName : &str) -> FormattedText {
         Line(fmt!("use %s::*;", rootName))
     ])
 }
-/*
+
 fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
-               field : &schema_capnp::StructNode::Field::Reader,
+               field : &schema_capnp::Field::Reader,
                isReader : bool)
     -> (~str, FormattedText) {
 
-    use schema_capnp::Type::Body;
+    use schema_capnp::*;
 
-    let typ = field.getType();
-    let offset = field.getOffset() as uint;
-//    let defaultValue = field.getDefaultValue();
-
-    let member = if (isReader) { "_reader" } else { "_builder" };
-    let module = if (isReader) { "Reader" } else { "Builder" };
-    let moduleWithVar = if (isReader) { "Reader<'self>" } else { "Builder" };
-
-    match typ.getBody() {
-        Body::voidType => { return (~"()", Line(~"()"))}
-        Body::boolType => { return (~"bool", Line(fmt!("self.%s.getBoolField(%u)",
-                                                       member, offset))) }
-        Body::int8Type => { return (~"i8", Line(fmt!("self.%s.getDataField::<i8>(%u)",
-                                                     member, offset))) }
-        Body::int16Type => { return (~"i16", Line(fmt!("self.%s.getDataField::<i16>(%u)",
-                                                       member, offset))) }
-        Body::int32Type => { return (~"i32", Line(fmt!("self.%s.getDataField::<i32>(%u)",
-                                                       member, offset))) }
-        Body::int64Type => { return (~"i64", Line(fmt!("self.%s.getDataField::<i64>(%u)",
-                                                       member, offset))) }
-        Body::uint8Type => { return (~"u8", Line(fmt!("self.%s.getDataField::<u8>(%u)",
-                                                      member, offset))) }
-        Body::uint16Type => { return (~"u16", Line(fmt!("self.%s.getDataField::<u16>(%u)",
-                                                        member, offset))) }
-        Body::uint32Type => { return (~"u32", Line(fmt!("self.%s.getDataField::<u32>(%u)",
-                                                        member, offset))) }
-        Body::uint64Type => { return (~"u64", Line(fmt!("self.%s.getDataField::<u64>(%u)",
-                                                        member, offset))) }
-        Body::float32Type => { return (~"f32", Line(fmt!("self.%s.getDataField::<f32>(%u)",
-                                                         member, offset))) }
-        Body::float64Type => { return (~"f64", Line(fmt!("self.%s.getDataField::<f64>(%u)",
-                                                         member, offset))) }
-        Body::textType => {
-            return (fmt!("Text::%s", moduleWithVar),
-                    Line(fmt!("self.%s.getTextField(%u, \"\")",
-                              member, offset)));
-        }
-        Body::dataType => {
-            return (~"TODO", Line(~"TODO"))
-        }
-        Body::listType(t1) => {
-            match t1.getBody() {
-                Body::uint64Type => {
-                    return
-                        (fmt!("PrimitiveList::%s", moduleWithVar),
-                         Line(fmt!("PrimitiveList::%s::new(self.%s.getListField(%u,EIGHT_BYTES,None)",
-                                   module, member, offset)))
-                }
-                Body::structType(id) => {
-                    let scope = scopeMap.get(&id);
-                    let theMod = scope.connect("::");
-                    let fullModuleName = fmt!("%s::List::%s", theMod, module);
-                    return (fmt!("%s::List::%s", theMod, moduleWithVar),
-                            Line(fmt!("%s::new(self.%s.getListField(%u, %s::STRUCT_SIZE.preferredListEncoding, None))",
-                                      fullModuleName, member, offset, theMod))
-                           );
-                }
-                _ => {return (~"TODO", Line(~"TODO")) }
+    match field.which() {
+        None => fail!("unrecognized field type"),
+        Some(Field::Which::group(id)) => {
+            let scope = scopeMap.get(&id);
+            let theMod = scope.connect("::");
+            if (isReader) {
+                return (fmt!("%s::Reader<'self>", theMod),
+                        Line(fmt!("%s::Reader::new(self._reader)", theMod)));
+            } else {
+                return (fmt!("%s::Builder", theMod),
+                        Line(fmt!("%s::Builder::new(self._reader)", theMod)));
             }
         }
-        Body::enumType(id) => {
-            let scope = scopeMap.get(&id);
-            let theMod = scope.connect("::");
-            return
-                (fmt!("Option<%s::Reader>", theMod), // Enums don't have builders.
-                 Branch(~[
-                  Line(fmt!("let result = self.%s.getDataField::<u16>(%u) as uint;",
-                            member, offset)),
-                  Line(fmt!("if (result > %s::MAX_ENUMERANT as uint) { None }", theMod)),
-                  Line(~"else { Some(unsafe{std::cast::transmute(result)})}")
-                          ]));
-        }
-        Body::structType(id) => {
-            let scope = scopeMap.get(&id);
-            let theMod = scope.connect("::");
-            let middleArg = if (isReader) {~""} else {fmt!("%s::STRUCT_SIZE,", theMod)};
-            return (fmt!("%s::%s", theMod, moduleWithVar),
-                    Line(fmt!("%s::%s::new(self.%s.getStructField(%u, %s None))",
-                              theMod, module, member, offset, middleArg)))
-        }
-        Body::interfaceType(_) => {
-            return (~"TODO", Line(~"TODO"))
-        }
-        Body::objectType => {
-            return (~"TODO", Line(~"TODO"))
+        Some(Field::Which::nonGroup(regField)) => {
+
+            let typ = regField.getType();
+            let offset = regField.getOffset() as uint;
+            //    let defaultValue = field.getDefaultValue();
+
+            let member = if (isReader) { "_reader" } else { "_builder" };
+            let module = if (isReader) { "Reader" } else { "Builder" };
+            let moduleWithVar = if (isReader) { "Reader<'self>" } else { "Builder" };
+
+            match typ.which() {
+                Some(Type::Which::void) => { return (~"()", Line(~"()"))}
+                Some(Type::Which::bool_) => {
+                    return (~"bool", Line(fmt!("self.%s.getBoolField(%u)",
+                                               member, offset)))
+                }
+                Some(Type::Which::int8) => {
+                    return (~"i8", Line(fmt!("self.%s.getDataField::<i8>(%u)",
+                                             member, offset)))
+                }
+                Some(Type::Which::int16) => {
+                    return (~"i16", Line(fmt!("self.%s.getDataField::<i16>(%u)",
+                                              member, offset)))
+                }
+                Some(Type::Which::int32) => {
+                    return (~"i32", Line(fmt!("self.%s.getDataField::<i32>(%u)",
+                                              member, offset)))
+                }
+                Some(Type::Which::int64) => {
+                    return (~"i64", Line(fmt!("self.%s.getDataField::<i64>(%u)",
+                                              member, offset)))
+                }
+                Some(Type::Which::uint8) => {
+                    return (~"u8", Line(fmt!("self.%s.getDataField::<u8>(%u)",
+                                             member, offset)))
+                }
+                Some(Type::Which::uint16) => {
+                    return (~"u16", Line(fmt!("self.%s.getDataField::<u16>(%u)",
+                                              member, offset)))
+                }
+                Some(Type::Which::uint32) => {
+                    return (~"u32", Line(fmt!("self.%s.getDataField::<u32>(%u)",
+                                              member, offset)))
+                }
+                Some(Type::Which::uint64) => {
+                    return (~"u64", Line(fmt!("self.%s.getDataField::<u64>(%u)",
+                                              member, offset)))
+                }
+                Some(Type::Which::float32) => {
+                    return (~"f32", Line(fmt!("self.%s.getDataField::<f32>(%u)",
+                                              member, offset)))
+                }
+                Some(Type::Which::float64) => {
+                    return (~"f64", Line(fmt!("self.%s.getDataField::<f64>(%u)",
+                                              member, offset)))
+                }
+                Some(Type::Which::text) => {
+                    return (fmt!("Text::%s", moduleWithVar),
+                            Line(fmt!("self.%s.getTextField(%u, \"\")",
+                                      member, offset)));
+                }
+                Some(Type::Which::data) => {
+                    return (~"TODO", Line(~"TODO"))
+                }
+                Some(Type::Which::list(t1)) => {
+                    match t1.which() {
+                        Some(Type::Which::uint64) => {
+                            return
+                                (fmt!("PrimitiveList::%s", moduleWithVar),
+                                 Line(fmt!("PrimitiveList::%s::new(self.%s.getListField(%u,EIGHT_BYTES,None)",
+                                           module, member, offset)))
+                        }
+                        Some(Type::Which::struct_(id)) => {
+                            let scope = scopeMap.get(&id);
+                            let theMod = scope.connect("::");
+                            let fullModuleName = fmt!("%s::List::%s", theMod, module);
+                            return (fmt!("%s::List::%s", theMod, moduleWithVar),
+                                    Line(fmt!("%s::new(self.%s.getListField(%u, %s::STRUCT_SIZE.preferredListEncoding, None))",
+                                              fullModuleName, member, offset, theMod))
+                                    );
+                        }
+                        _ => {return (~"TODO", Line(~"TODO")) }
+                    }
+                }
+                Some(Type::Which::enum_(id)) => {
+                    let scope = scopeMap.get(&id);
+                    let theMod = scope.connect("::");
+                    return
+                        (fmt!("Option<%s::Reader>", theMod), // Enums don't have builders.
+                         Branch(~[
+                                  Line(fmt!("let result = self.%s.getDataField::<u16>(%u) as uint;",
+                                            member, offset)),
+                                  Line(fmt!("if (result > %s::MAX_ENUMERANT as uint) { None }", theMod)),
+                                  Line(~"else { Some(unsafe{std::cast::transmute(result)})}")
+                                  ]));
+                }
+                Some(Type::Which::struct_(id)) => {
+                    let scope = scopeMap.get(&id);
+                    let theMod = scope.connect("::");
+                    let middleArg = if (isReader) {~""} else {fmt!("%s::STRUCT_SIZE,", theMod)};
+                    return (fmt!("%s::%s", theMod, moduleWithVar),
+                            Line(fmt!("%s::%s::new(self.%s.getStructField(%u, %s None))",
+                                      theMod, module, member, offset, middleArg)))
+                }
+                Some(Type::Which::interface(_)) => {
+                        return (~"TODO", Line(~"TODO"));
+                }
+                Some(Type::Which::object) => {
+                    return (~"TODO", Line(~"TODO"))
+                }
+                None => {
+                    // XXX should probably silently ignore, instead.
+                    fail!("unrecognized type")
+                }
+            }
         }
     }
 }
-
+/*
 fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                   unionOffset : Option<(uint, uint)>,
@@ -545,12 +588,14 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                 Some(e) => e,
                                 None => fail!("unsupported list encoding")
                         };
+            let isGroup = structReader.getIsGroup();
+            let discriminantCount = structReader.getDiscriminantCount();
 
             preamble.push(generateImportStatements(rootName));
             preamble.push(BlankLine);
 
 
-            if (!structReader.getIsGroup()) {
+            if (!isGroup) {
                 preamble.push(Line(~"pub static STRUCT_SIZE : StructSize ="));
                 preamble.push(
                    Indent(
@@ -571,9 +616,10 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 let field = fields.get(ii);
                 let name = field.getName();
                 let capName = capitalizeFirstLetter(name);
-/*
+
                 match field.which() {
-                    StructNode::Member::Body::fieldMember(field) => {
+                    Some(Field::Which::nonGroup(regularField)) => {
+                        /*
                         let (ty, get) = getterText(nodeMap, scopeMap, &field, true);
 
                         reader_members.push(
@@ -598,8 +644,16 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
                         builder_members.push(
                             generateSetter(nodeMap, scopeMap, None, capName, &field));
+                        */
                     }
-                    StructNode::Member::Body::unionMember(union) => {
+                    Some(Field::Which::group(groupField)) => {
+                    }
+                    None => ()
+                }
+            }
+
+            if (discriminantCount > 0) {
+                    /*
                         let (union_mod, union_getter) =
                             generateUnion(nodeMap, scopeMap, rootName, name, union);
                         union_mods.push(union_mod);
@@ -614,9 +668,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                       ~Line(
                                           fmt!("%s::Builder::new(self._builder)", capName))),
                                   Line(~"}")]));
-                    }
-                }
-                */
+                    */
             }
 
             let accessors =

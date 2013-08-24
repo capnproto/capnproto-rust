@@ -642,37 +642,37 @@ pub mod Type {
             self._reader.totalSize() as uint
         }
 
-        pub fn getBody(&self) -> Body::Reader<'self> {
+        pub fn which(&self) -> Option<Which::Reader<'self>> {
             match self._reader.getDataField::<u16>(0) {
-                0 => Body::voidType,
-                1 => Body::boolType,
-                2 => Body::int8Type,
-                3 => Body::int16Type,
-                4 => Body::int32Type,
-                5 => Body::int64Type,
-                6 => Body::uint8Type,
-                7 => Body::uint16Type,
-                8 => Body::uint32Type,
-                9 => Body::uint64Type,
-                10 => Body::float32Type,
-                11 => Body::float64Type,
-                12 => Body::textType,
-                13 => Body::dataType,
+                0 => Some(Which::void),
+                1 => Some(Which::bool_),
+                2 => Some(Which::int8),
+                3 => Some(Which::int16),
+                4 => Some(Which::int32),
+                5 => Some(Which::int64),
+                6 => Some(Which::uint8),
+                7 => Some(Which::uint16),
+                8 => Some(Which::uint32),
+                9 => Some(Which::uint64),
+                10 => Some(Which::float32),
+                11 => Some(Which::float64),
+                12 => Some(Which::text),
+                13 => Some(Which::data),
                 14 => {
-                    return Body::listType(
-                        Type::Reader::new(self._reader.getStructField(0, None)));
+                    return Some(Which::list(
+                        Type::Reader::new(self._reader.getStructField(0, None))));
                 }
                 15 => {
-                    return Body::enumType(self._reader.getDataField::<u64>(1));
+                    return Some(Which::enum_(self._reader.getDataField::<u64>(1)));
                 }
                 16 => {
-                    return Body::structType(self._reader.getDataField::<u64>(1));
+                    return Some(Which::struct_(self._reader.getDataField::<u64>(1)));
                 }
                 17 => {
-                    return Body::interfaceType(self._reader.getDataField::<u64>(1));
+                    return Some(Which::interface(self._reader.getDataField::<u64>(1)));
                 }
-                18 => { Body::objectType }
-                _ => fail!("unrecognized discriminant in Type::Body")
+                18 => { return Some(Which::object); }
+                _ => { return None; }
             }
         }
     }
@@ -687,32 +687,31 @@ pub mod Type {
         }
     }
 
-
     list_submodule!(schema_capnp, Type)
 
-    pub mod Body {
+    pub mod Which {
         use schema_capnp::*;
 
         pub enum Reader<'self> {
-            voidType,
-            boolType,
-            int8Type,
-            int16Type,
-            int32Type,
-            int64Type,
-            uint8Type,
-            uint16Type,
-            uint32Type,
-            uint64Type,
-            float32Type,
-            float64Type,
-            textType,
-            dataType,
-            listType(Type::Reader<'self>),
-            enumType(u64),
-            structType(u64),
-            interfaceType(u64),
-            objectType
+            void,
+            bool_,
+            int8,
+            int16,
+            int32,
+            int64,
+            uint8,
+            uint16,
+            uint32,
+            uint64,
+            float32,
+            float64,
+            text,
+            data,
+            list(Type::Reader<'self>),
+            enum_(u64),
+            struct_(u64),
+            interface(u64),
+            object
         }
 
     }
