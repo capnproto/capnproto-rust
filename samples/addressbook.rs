@@ -24,12 +24,13 @@ fn writeAddressBook() {
     let addressbook = message.initRoot::<AddressBook::Builder>();
 
 
-//    let people = addressbook.initPeople(4);
-/*
+    let people = addressbook.initPeople(4);
+
     let person = people.get(0);
     person.setId(1);
     person.setName("Alice");
     person.setEmail("alice@widgco.biz");
+
 
     let phones = person.initPhones(2);
     phones.get(0).setNumber("(555) 555-5555");
@@ -57,7 +58,7 @@ fn writeAddressBook() {
     person.setEmail("di@di.com");
     person.setName("Diane");
     person.getEmployment().setSchool("Caltech");
-*/
+
 
     let outStream = @std::io::stdout() as @serialize::OutputStream;
 
@@ -78,7 +79,6 @@ fn printAddressBook() {
             AddressBook::Reader::new(messageReader.getRoot());
         let people = addressBook.getPeople();
 
-/*
         for i in range(0, people.size()) {
             let person = people.get(i);
             printfln!("%s: %s", person.getName(), person.getEmail());
@@ -94,24 +94,24 @@ fn printAddressBook() {
                 printfln!("  %s phone: %s", typeName, phone.getNumber());
 
             }
-            match person.getEmployment() {
-                Person::Employment::unemployed(()) => {
+            match person.getEmployment().which() {
+                Some(Person::Employment::Which::unemployed(())) => {
                     println("  unemployed");
                 }
-                Person::Employment::employer(employer) => {
+                Some(Person::Employment::Which::employer(employer)) => {
                     printfln!("  employer: %s", employer);
                 }
-                Person::Employment::school(school) => {
+                Some(Person::Employment::Which::school(school)) => {
                     printfln!("  student at: %s", school);
                 }
-                Person::Employment::selfEmployed(()) => {
+                Some(Person::Employment::Which::selfEmployed(())) => {
                     println("  self-employed");
                 }
+                None => { }
             }
 
         }
 
-*/
     }
 }
 

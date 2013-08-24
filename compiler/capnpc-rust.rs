@@ -355,7 +355,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
 fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
-                  discriminantOffset : Option<u32>,
+                  discriminantOffset : u32,
                   capName : &str,
                   field :&schema_capnp::Field::Reader) -> FormattedText {
 
@@ -366,14 +366,12 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
 
     let mut interior = ~[];
 
-    match discriminantOffset {
-        Some(doffset) => {
-            let idx = field.getDiscriminantValue();
+    let discriminantValue = field.getDiscriminantValue();
+    if (discriminantValue != 0xffff) {
             interior.push(
                       Line(fmt!("self._builder.setDataField::<u16>(%u, %u);",
-                                doffset as uint, idx as uint)));
-        }
-        None => { }
+                                discriminantOffset as uint,
+                                discriminantValue as uint)));
     }
 
     match field.which() {
@@ -504,75 +502,75 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
     result.push(Line(~"}"));
     return Branch(result);
 }
-/*
-// Return (union_mod, union_getter)
+
+
+// return (the 'Which' module, the 'which()' accessor)
 fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                  rootName : &str,
-                 name : &str,
-                 union : schema_capnp::StructNode::Union::Reader)
+                 discriminantOffset : u32,
+                 fields : &[schema_capnp::Field::Reader])
     -> (FormattedText, FormattedText) {
+
+    use schema_capnp::*;
 
     let mut result = ~[];
 
     let mut getter_interior = ~[];
 
-    let capitalizedName = capitalizeFirstLetter(name);
-
     result.push(Line(~"#[allow(unused_imports)]"));
-    result.push(Line(fmt!("pub mod %s {", capitalizedName)));
+    result.push(Line(~"pub mod Which {"));
     let mut interior = ~[];
     let mut reader_interior = ~[];
-    let mut builder_interior = ~[];
 
     interior.push(generateImportStatements(rootName));
 
-    builder_interior.push(
-        Line(~"pub fn new(builder : StructBuilder) -> Builder { Builder { _builder : builder }}"));
+    let doffset = discriminantOffset as uint;
 
-    let doffset = union.getDiscriminantOffset() as uint;
+    let mut requiresSelfVar = false;
 
-    let members = union.getMembers();
-    for ii in range(0, members.size()) {
-        let member = members.get(ii);
-        let memberName = member.getName();
+    for field in fields.iter() {
+
+        let dvalue = field.getDiscriminantValue() as uint;
+
+        let fieldName = field.getName();
 //        let enumerantName = camelCaseToAllCaps(memberName);
-        let enumerantName = memberName;
+        let enumerantName = fieldName;
 
-        match member.getBody() {
-            schema_capnp::StructNode::Member::Body::fieldMember(field) => {
-                let (ty, get) = getterText(nodeMap, scopeMap, &field, true);
+        let (ty, get) = getterText(nodeMap, scopeMap, field, true);
 
-                reader_interior.push(Line(fmt!("%s(%s),",enumerantName, ty)));
+        reader_interior.push(Line(fmt!("%s(%s),", enumerantName, ty)));
 
-                getter_interior.push(Branch(~[
-                    Line(fmt!("%u => {", ii)),
-                    Indent(~Line(fmt!("return %s::%s(",
-                                      capitalizedName, enumerantName))),
+        getter_interior.push(Branch(~[
+                    Line(fmt!("%u => {", dvalue)),
+                    Indent(~Line(fmt!("return Some(Which::%s(",
+                                      enumerantName))),
                     Indent(~Indent(~get)),
-                    Indent(~Line(~");")),
+                    Indent(~Line(~"));")),
                     Line(~"}")
                 ]));
 
-                builder_interior.push(generateSetter(nodeMap, scopeMap, Some((doffset,ii)),
-                                                     capitalizeFirstLetter(memberName), &field));
-
+        match field.which() {
+            Some(Field::Which::group(_)) => requiresSelfVar = true,
+            Some(Field::Which::nonGroup(regField)) => {
+                match regField.getType().which() {
+                    Some(Type::Which::text) | Some(Type::Which::data) |
+                    Some(Type::Which::list(_)) | Some(Type::Which::struct_(_)) |
+                    Some(Type::Which::object) => requiresSelfVar = true,
+                    _ => ()
+                }
             }
-            _ => fail!("impossible")
+            _ => ()
         }
     }
 
-    getter_interior.push(Line(~"_ => fail!(\"impossible\")"));
+    let readerString = if (requiresSelfVar) {"Reader<'self>"} else {"Reader"};
+
+    getter_interior.push(Line(~"_ => return None"));
 
     interior.push(
-        Branch(~[Line(~"pub enum Reader<'self> {"),
+        Branch(~[Line(fmt!("pub enum %s {", readerString)),
                  Indent(~Branch(reader_interior)),
-                 Line(~"}")]));
-    interior.push(
-        Line(~"pub struct Builder { _builder : StructBuilder }"));
-    interior.push(
-        Branch(~[Line(~"impl Builder {"),
-                 Indent(~Branch(builder_interior)),
                  Line(~"}")]));
 
 
@@ -582,8 +580,8 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
     let getter_result =
         Branch(~[Line(~"#[inline]"),
-                 Line(fmt!("pub fn get%s(&self) -> %s::Reader<'self> {",
-                           capitalizedName, capitalizedName)),
+                 Line(fmt!("pub fn which(&self) -> Option<Which::%s > {",
+                           readerString)),
                  Indent(~Branch(~[
                      Line(fmt!("match self._reader.getDataField::<u16>(%u) {", doffset)),
                      Indent(~Branch(getter_interior)),
@@ -594,7 +592,6 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
     return (Branch(result), getter_result);
 }
 
-*/
 
 fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                 scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
@@ -630,7 +627,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let mut preamble = ~[];
             let mut builder_members = ~[];
             let mut reader_members = ~[];
-            let mut union_mods = ~[];
+            let mut which_mod = ~[];
+            let mut union_fields = ~[];
 
             let dataSize = structReader.getDataWordCount();
             let pointerSize = structReader.getPointerCount();
@@ -641,6 +639,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                         };
             let isGroup = structReader.getIsGroup();
             let discriminantCount = structReader.getDiscriminantCount();
+            let discriminantOffset = structReader.getDiscriminantOffset();
 
             preamble.push(generateImportStatements(rootName));
             preamble.push(BlankLine);
@@ -667,20 +666,24 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 let name = field.getName();
                 let capName = capitalizeFirstLetter(name);
 
-                let (ty, get) = getterText(nodeMap, scopeMap, &field, true);
+                let discriminantValue = field.getDiscriminantValue();
+                let isUnionField = (discriminantValue != 0xffff);
 
-                reader_members.push(
-                  Branch(~[
-                           Line(~"#[inline]"),
-                           Line(fmt!("pub fn get%s(&self) -> %s {", capName, ty)),
-                           Indent(~get),
-                           Line(~"}")
-                           ])
-                                    );
+                if (!isUnionField) {
+                    let (ty, get) = getterText(nodeMap, scopeMap, &field, true);
 
-                let (tyB, getB) = getterText(nodeMap, scopeMap, &field, false);
+                    reader_members.push(
+                           Branch(~[
+                              Line(~"#[inline]"),
+                              Line(fmt!("pub fn get%s(&self) -> %s {", capName, ty)),
+                              Indent(~get),
+                              Line(~"}")
+                                    ])
+                                        );
 
-                builder_members.push(
+                    let (tyB, getB) = getterText(nodeMap, scopeMap, &field, false);
+
+                    builder_members.push(
                                      Branch(~[
                                               Line(~"#[inline]"),
                                               Line(fmt!("pub fn get%s(&self) -> %s {", capName, tyB)),
@@ -688,6 +691,16 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                               Line(~"}")
                                               ])
                                      );
+
+
+                } else {
+                    union_fields.push(field);
+                }
+
+                builder_members.push(generateSetter(nodeMap, scopeMap,
+                                                    discriminantOffset,
+                                                    capName, &field));
+
 
                 match field.which() {
                     Some(Field::Which::group(id)) => {
@@ -697,27 +710,14 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     _ => { }
                 }
 
-//                builder_members.push(
-//                                     generateSetter(nodeMap, scopeMap, None, capName, &field));
             }
 
             if (discriminantCount > 0) {
-                    /*
-                        let (union_mod, union_getter) =
-                            generateUnion(nodeMap, scopeMap, rootName, name, union);
-                        union_mods.push(union_mod);
-                        reader_members.push(union_getter);
-
-                        builder_members.push(
-                            Branch(
-                                ~[Line(~"#[inline]"),
-                                  Line(fmt!("pub fn get%s(&self) -> %s::Builder {",
-                                            capName, capName)),
-                                  Indent(
-                                      ~Line(
-                                          fmt!("%s::Builder::new(self._builder)", capName))),
-                                  Line(~"}")]));
-                    */
+                let (union_mod, union_getter) =
+                    generateUnion(nodeMap, scopeMap, rootName,
+                                  discriminantOffset, union_fields);
+                which_mod.push(union_mod);
+                reader_members.push(union_getter);
             }
 
             let builderStructSize =
@@ -771,7 +771,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                   Line(~"}")];
 
             output.push(Indent(~Branch(~[Branch(accessors),
-                                         Branch(union_mods),
+                                         Branch(which_mod),
                                          Branch(nested_output)])));
             output.push(Line(~"}"));
 
