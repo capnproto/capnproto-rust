@@ -453,6 +453,10 @@ pub mod Field {
                 _ => None
             }
         }
+
+        pub fn getOrdinal(&self) -> Ordinal::Reader<'self> {
+            Ordinal::Reader::new(self._reader)
+        }
     }
 
     pub struct Builder {

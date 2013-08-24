@@ -533,8 +533,6 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             output.push(Line(~"#[allow(unused_imports)]"));
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
-
-
             let mut preamble = ~[];
             let mut builder_members = ~[];
             let mut reader_members = ~[];
@@ -550,18 +548,22 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
             preamble.push(generateImportStatements(rootName));
             preamble.push(BlankLine);
-            preamble.push(Line(~"pub static STRUCT_SIZE : StructSize ="));
-            preamble.push(
-                Indent(
-                    ~Line(
-                        fmt!("StructSize { data : %u, pointers : %u, preferredListEncoding : %s};",
-                         dataSize as uint, pointerSize as uint,
-                         elementSizeStr(preferredListEncoding)))));
-            preamble.push(BlankLine);
 
-            preamble.push(Line(fmt!("list_submodule!(%s, %s)",
-                                    rootName, scopeMap.get(&nodeId).connect("::"))));
-            preamble.push(BlankLine);
+
+            if (!structReader.getIsGroup()) {
+                preamble.push(Line(~"pub static STRUCT_SIZE : StructSize ="));
+                preamble.push(
+                   Indent(
+                      ~Line(
+                        fmt!("StructSize { data : %u, pointers : %u, preferredListEncoding : %s};",
+                             dataSize as uint, pointerSize as uint,
+                             elementSizeStr(preferredListEncoding)))));
+                preamble.push(BlankLine);
+
+                preamble.push(Line(fmt!("list_submodule!(%s, %s)",
+                                        rootName, scopeMap.get(&nodeId).connect("::"))));
+                preamble.push(BlankLine);
+            }
 
 
             let fields = structReader.getFields();
@@ -569,8 +571,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 let field = fields.get(ii);
                 let name = field.getName();
                 let capName = capitalizeFirstLetter(name);
-                /*
-                match member.getBody() {
+/*
+                match field.which() {
                     StructNode::Member::Body::fieldMember(field) => {
                         let (ty, get) = getterText(nodeMap, scopeMap, &field, true);
 
