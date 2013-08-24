@@ -746,33 +746,32 @@ pub mod Value {
         }
     }
 
-
     list_submodule!(schema_capnp, Value)
 
-    pub mod Body {
+    pub mod Which {
 //        use schema_capnp::*;
         use capnprust::blob::*;
 
         pub enum Reader<'self> {
-            voidValue,
-            boolValue(bool),
-            int8Value(i8),
-            int16Value(i16),
-            int32Value(i32),
-            int64Value(i64),
-            uint8Value(u8),
-            uint16Value(u16),
-            uint32Value(u32),
-            uint64Value(u64),
-            float32Value(f32),
-            float64Value(f32),
-            textValue(Text::Reader<'self>),
-            dataValue(Data::Reader<'self>),
-            listValue, // TODO
-            enumValue(u16),
-            structValue, // TODO
-            interfaceValue,
-            objectValue // TODO
+            void,
+            bool_(bool),
+            int8(i8),
+            int16(i16),
+            int32(i32),
+            int64(i64),
+            uint8(u8),
+            uint16(u16),
+            uint32(u32),
+            uint64(u64),
+            float32(f32),
+            float64(f32),
+            text(Text::Reader<'self>),
+            data(Data::Reader<'self>),
+            list, // TODO
+            enum_(u16),
+            struct_, // TODO
+            interface,
+            object // TODO
         }
     }
 }

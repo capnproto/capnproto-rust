@@ -152,12 +152,15 @@ fn appendName (names : &[~str], name : ~str) -> ~[~str] {
 fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                     scopeMap : &mut std::hashmap::HashMap<u64, ~[~str]>,
                     nodeId : u64) {
+    use schema_capnp::*;
     let nodeReader = nodeMap.get(&nodeId);
 
     let nestedNodes = nodeReader.getNestedNodes();
     for ii in range(0, nestedNodes.size()) {
         let nestedNode = nestedNodes.get(ii);
         let id = nestedNode.getId();
+        printfln!("scope id: %?", id );
+
         let name = nestedNode.getName().to_owned();
 
         let scopeNames = {
@@ -170,6 +173,34 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
         };
         scopeMap.insert(id, scopeNames);
         populateScopeMap(nodeMap, scopeMap, id);
+
+        match nodeReader.which() {
+            Some(Node::Which::struct_(structReader)) => {
+                let fields = structReader.getFields();
+                for jj in range(0, fields.size()) {
+                    let field = fields.get(jj);
+                    match field.which() {
+                        Some(Field::Which::group(id)) => {
+
+                            let name = field.getName().to_owned();
+                            let scopeNames = {
+                                if (scopeMap.contains_key(&nodeId)) {
+                                    let names = scopeMap.get(&nodeId);
+                                    appendName(*names, name)
+                                } else {
+                                    ~[name]
+                                }
+                            };
+
+                            scopeMap.insert(id, scopeNames);
+                            populateScopeMap(nodeMap, scopeMap, id);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => { }
+        }
     }
 }
 
@@ -194,6 +225,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
     match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Which::group(id)) => {
+            printfln!("field name: %s, id: %?", field.getName(), id);
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
             if (isReader) {
@@ -617,39 +649,31 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 let name = field.getName();
                 let capName = capitalizeFirstLetter(name);
 
-                match field.which() {
-                    Some(Field::Which::nonGroup(regularField)) => {
-                        /*
-                        let (ty, get) = getterText(nodeMap, scopeMap, &field, true);
 
-                        reader_members.push(
-                            Branch(~[
-                                Line(~"#[inline]"),
-                                Line(fmt!("pub fn get%s(&self) -> %s {", capName, ty)),
-                                Indent(~get),
-                                Line(~"}")
-                            ])
-                        );
+                let (ty, get) = getterText(nodeMap, scopeMap, &field, true);
 
-                        let (tyB, getB) = getterText(nodeMap, scopeMap, &field, false);
+                reader_members.push(
+                  Branch(~[
+                           Line(~"#[inline]"),
+                           Line(fmt!("pub fn get%s(&self) -> %s {", capName, ty)),
+                           Indent(~get),
+                           Line(~"}")
+                           ])
+                                    );
 
-                        builder_members.push(
-                            Branch(~[
-                                Line(~"#[inline]"),
-                                Line(fmt!("pub fn get%s(&self) -> %s {", capName, tyB)),
-                                Indent(~getB),
-                                Line(~"}")
-                            ])
-                        );
+                let (tyB, getB) = getterText(nodeMap, scopeMap, &field, false);
 
-                        builder_members.push(
-                            generateSetter(nodeMap, scopeMap, None, capName, &field));
-                        */
-                    }
-                    Some(Field::Which::group(groupField)) => {
-                    }
-                    None => ()
-                }
+                builder_members.push(
+                                     Branch(~[
+                                              Line(~"#[inline]"),
+                                              Line(fmt!("pub fn get%s(&self) -> %s {", capName, tyB)),
+                                              Indent(~getB),
+                                              Line(~"}")
+                                              ])
+                                     );
+
+//                builder_members.push(
+//                                     generateSetter(nodeMap, scopeMap, None, capName, &field));
             }
 
             if (discriminantCount > 0) {
@@ -789,6 +813,8 @@ fn main() {
             let id = nodeReader.getId();
 
             nodeMap.insert(id, nodeReader);
+            printfln!("%s: %?", nodeReader.getDisplayName(), id );
+
         }
 
         let requestedFilesReader = codeGeneratorRequest.getRequestedFiles();
@@ -800,6 +826,7 @@ fn main() {
             let name : &str = requestedFile.getFilename();
             std::io::println(fmt!("requested file: %s", name));
 
+            printfln!("scope id: %?", id );
             populateScopeMap(&nodeMap, &mut scopeMap, id);
 
             let fileNode = nodeMap.get(&id);
