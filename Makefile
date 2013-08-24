@@ -23,5 +23,5 @@ compiler/capnpc-rust : $(COMPILATION_MARKER) compiler/capnpc-rust.rs compiler/sc
 	$(RUSTC) -L./capnprust compiler/capnpc-rust.rs
 
 samples/addressbook : compiler/capnpc-rust samples/addressbook.rs
-	capnpc -o ./compiler/capnpc-rust:samples samples/addressbook.capnp
+	capnpc -o ./compiler/capnpc-rust samples/addressbook.capnp
 	$(RUSTC) -L./capnprust samples/addressbook.rs

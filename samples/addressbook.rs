@@ -24,8 +24,8 @@ fn writeAddressBook() {
     let addressbook = message.initRoot::<AddressBook::Builder>();
 
 
-    let people = addressbook.initPeople(4);
-
+//    let people = addressbook.initPeople(4);
+/*
     let person = people.get(0);
     person.setId(1);
     person.setName("Alice");
@@ -57,6 +57,7 @@ fn writeAddressBook() {
     person.setEmail("di@di.com");
     person.setName("Diane");
     person.getEmployment().setSchool("Caltech");
+*/
 
     let outStream = @std::io::stdout() as @serialize::OutputStream;
 
@@ -77,6 +78,7 @@ fn printAddressBook() {
             AddressBook::Reader::new(messageReader.getRoot());
         let people = addressBook.getPeople();
 
+/*
         for i in range(0, people.size()) {
             let person = people.get(i);
             printfln!("%s: %s", person.getName(), person.getEmail());
@@ -109,6 +111,7 @@ fn printAddressBook() {
 
         }
 
+*/
     }
 }
 

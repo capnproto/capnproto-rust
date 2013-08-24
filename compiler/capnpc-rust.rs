@@ -160,7 +160,7 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
         let nestedNode = nestedNodes.get(ii);
         let id = nestedNode.getId();
 
-        let name = nestedNode.getName().to_owned();
+        let name = capitalizeFirstLetter(nestedNode.getName());
 
         let scopeNames = {
             if (scopeMap.contains_key(&nodeId)) {
@@ -181,7 +181,7 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     match field.which() {
                         Some(Field::Which::group(id)) => {
 
-                            let name = field.getName().to_owned();
+                            let name = capitalizeFirstLetter(field.getName());
                             let scopeNames = {
                                 if (scopeMap.contains_key(&nodeId)) {
                                     let names = scopeMap.get(&nodeId);
@@ -231,7 +231,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                         Line(fmt!("%s::Reader::new(self._reader)", theMod)));
             } else {
                 return (fmt!("%s::Builder", theMod),
-                        Line(fmt!("%s::Builder::new(self._reader)", theMod)));
+                        Line(fmt!("%s::Builder::new(self._builder)", theMod)));
             }
         }
         Some(Field::Which::nonGroup(regField)) => {
@@ -661,7 +661,6 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 preamble.push(BlankLine);
             }
 
-
             let fields = structReader.getFields();
             for ii in range(0, fields.size()) {
                 let field = fields.get(ii);
@@ -690,6 +689,14 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                               ])
                                      );
 
+                match field.which() {
+                    Some(Field::Which::group(id)) => {
+                        let text = generateNode(nodeMap, scopeMap, rootName, id);
+                        nested_output.push(text);
+                    }
+                    _ => { }
+                }
+
 //                builder_members.push(
 //                                     generateSetter(nodeMap, scopeMap, None, capName, &field));
             }
@@ -713,6 +720,16 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     */
             }
 
+            let builderStructSize =
+                if (isGroup) { Branch(~[] ) }
+                else {
+                  Branch(~[
+                       Line(~"impl HasStructSize for Builder {"),
+                       Indent(~Branch(~[Line(~"#[inline]"),
+                                        Line(~"fn structSize() -> StructSize { STRUCT_SIZE }")])),
+                       Line(~"}")])
+            };
+
             let accessors =
                 ~[Branch(preamble),
                   Line(~"pub struct Reader<'self> { _reader : StructReader<'self> }"),
@@ -727,11 +744,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                   Line(~"}"),
                   BlankLine,
                   Line(~"pub struct Builder { _builder : StructBuilder }"),
-                  Line(~"impl HasStructSize for Builder {"),
-                  Indent(~Branch(~[Line(~"#[inline]"),
-                                   Line(~"fn structSize() -> StructSize { STRUCT_SIZE }")])),
-                  Line(~"}"),
-
+                  builderStructSize,
                   Line(~"impl FromStructBuilder for Builder {"),
                   Indent(
                       ~Branch(
