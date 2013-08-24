@@ -438,12 +438,22 @@ pub mod Field {
             self._reader.getTextField(0, "")
         }
 
-        fn getCodeOrder(&self) -> u16 {
+        pub fn getCodeOrder(&self) -> u16 {
             self._reader.getDataField::<u16>(0)
         }
 
-        fn getDiscriminantValue(&self) -> u16 {
+        pub fn getDiscriminantValue(&self) -> u16 {
             self._reader.getDataFieldMask::<u16>(1, 0xffff)
+        }
+
+        pub fn which(&self) -> Option<Which::Reader<'self>> {
+            match self._reader.getDataField::<u16>(4) {
+                0 => {
+                    Some(Which::nonGroup(NonGroup::Reader::new(self._reader)))
+                }
+                1 => Some(Which::group(self._reader.getDataField::<u64>(2))),
+                _ => None
+            }
         }
     }
 
@@ -459,16 +469,42 @@ pub mod Field {
 
     pub mod Which {
         use capnprust::layout::*;
+        use schema_capnp::*;
 
         pub enum Reader<'self> {
-            nonGroup(()),
+            nonGroup(Field::NonGroup::Reader<'self>),
             group(u64)
         }
 
-        pub mod NonGroup {
-            
+    }
+
+    pub mod NonGroup {
+        use capnprust::layout::*;
+        use schema_capnp::*;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn getOffset(&self) -> u32 {
+                self._reader.getDataField::<u32>(1)
+            }
+
+            pub fn getType(&self) -> Type::Reader<'self> {
+                Type::Reader::new(self._reader.getStructField(2, None))
+            }
+
+            pub fn getDefaultValue(&self) -> Value::Reader<'self> {
+                Value::Reader::new(self._reader.getStructField(3, None))
+            }
         }
     }
+
 
     pub mod Ordinal {
         use capnprust::layout::*;
