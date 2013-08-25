@@ -293,12 +293,20 @@ mod WireHelpers {
                 let segmentBuilder1 = segmentBuilder.messageBuilder.getSegmentWithAvailable(amountPlusRef);
                 let ptr : WordCount = segmentBuilder1.allocate(amountPlusRef).unwrap();
 
+                //# Set up the original pointer to be a far pointer to
+                //# the new segment.
                 do segmentBuilder.withMutSegment |segment| {
                     let reff = WirePointer::getMut(segment, refIndex);
                     reff.setFar(false, ptr);
                     reff.farRefMut().segmentId.set(segmentBuilder1.id);
                 }
 
+                //# Initialize the landing pad to indicate that the
+                //# data immediately follows the pad.
+                do segmentBuilder1.withMutSegment |segment| {
+                    let reff = WirePointer::getMut(segment, ptr);
+                    reff.setKindAndTarget(kind, ptr + POINTER_SIZE_IN_WORDS, ptr);
+                }
 
                 return (segmentBuilder1, ptr + POINTER_SIZE_IN_WORDS);
             }
@@ -494,7 +502,7 @@ mod WireHelpers {
         let (segmentBuilder, ptr) = allocate(refIndex, segmentBuilder, wordCount, WP_LIST);
 
         do segmentBuilder.withMutSegment |segment| {
-            WirePointer::getMut(segment, refIndex).listRefMut().set(elementSize, elementCount);
+            WirePointer::getMut(segment, ptr).listRefMut().set(elementSize, elementCount);
         };
 
         ListBuilder {
