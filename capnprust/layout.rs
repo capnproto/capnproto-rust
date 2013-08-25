@@ -1020,7 +1020,7 @@ impl StructBuilder {
         //# This branch should be compiled out whenever this is
         //# inlined with a constant offset.
         let boffset : BitCount0 = if (offset == 0) { self.bit0Offset as uint } else { offset };
-        let b = self.data + boffset;
+        let b = self.data + boffset / BITS_PER_BYTE;
         let bitnum = boffset % BITS_PER_BYTE;
         let wv : &mut WireValue<u8> =
             WireValue::getFromBufMut(self.segment.messageBuilder.segments[self.segment.id],

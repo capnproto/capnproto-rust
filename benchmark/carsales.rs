@@ -94,6 +94,8 @@ pub fn setupRequest(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 {
         randomCar(rng, car);
         result += do car.asReader |carReader| {carValue(carReader)};
     }
+//    printfln!("number of cars: %?", cars.size());
+
     result
 }
 

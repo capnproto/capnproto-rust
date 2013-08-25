@@ -61,14 +61,10 @@ pub fn main () {
         do response.asReader |responseReader| {
             if (! carsales::checkResponse(responseReader, expected)) {
                 printfln!("expected: %?, but got: %?", expected, responseReader.getAmount());
-            } else {
-//                printfln!("correct: %?", expected);
             }
         }
 
         messageReq.release();
         messageRes.release();
     }
-
-    printfln!("%s", "done");
 }

@@ -1,4 +1,4 @@
-RUSTC = rustc
+RUSTC = rustc -O
 
 CAPNPRUST_SOURCES=capnprust/arena.rs capnprust/common.rs capnprust/endian.rs \
 	capnprust/layout.rs capnprust/list.rs capnprust/mask.rs capnprust/message.rs \
