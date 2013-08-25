@@ -67,6 +67,25 @@ fn elementSizeStr (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
     }
 }
 
+fn primTypeStr (typ : schema_capnp::Type::Which) -> ~str {
+    use schema_capnp::Type::*;
+    match typ {
+        void => ~"()",
+        bool_ => ~"bool",
+        int8 => ~"i8",
+        int16 => ~"i16",
+        int32 => ~"i32",
+        int64 => ~"i64",
+        uint8 => ~"u8",
+        uint16 => ~"u16",
+        uint32 => ~"u32",
+        uint64 => ~"u64",
+        float32 => ~"f32",
+        float64 => ~"f64",
+        _ => fail!("not primitive")
+    }
+}
+
 fn camelCaseToAllCaps(s : &str) -> ~str {
     use std::ascii::*;
     let bytes = s.as_bytes();
@@ -301,10 +320,12 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 Some(Type::list(t1)) => {
                     match t1.which() {
                         Some(Type::uint64) => {
+                            let typeArgs = if (isReader) {"<'self, u64>"} else {"<u64>"};
+                            let typeArgs1 = if (isReader) {"<(), u64>"} else {"<u64>"};
                             return
-                                (fmt!("PrimitiveList::%s", moduleWithVar),
-                                 Line(fmt!("PrimitiveList::%s::new(self.%s.getListField(%u,EIGHT_BYTES,None)",
-                                           module, member, offset)))
+                                (fmt!("PrimitiveList::%s%s", module, typeArgs),
+                                 Line(fmt!("PrimitiveList::%s::new::%s(self.%s.getListField(%u,EIGHT_BYTES,None))",
+                                           module, typeArgs1, member, offset)))
                         }
                         Some(Type::struct_(id)) => {
                             let scope = scopeMap.get(&id);
@@ -448,8 +469,16 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                             Type::int16 | Type::int32 | Type::int64 |
                             Type::uint8 | Type::uint16 | Type::uint32 |
                             Type::uint64 | Type::float32 | Type::float64 => {
-                            // TODO
-                            ~""
+
+                            let typeStr = primTypeStr(t1.which().unwrap());
+
+                            interior.push(Line(fmt!("PrimitiveList::Builder::new::<%s>(",
+                                               typeStr)));
+                            interior.push(
+                                Indent(~Line(fmt!("self._builder.initListField(%u,%s,size)",
+                                                  offset, "EIGHT_BYTES")))); // XXX
+                            interior.push(Line(~")"));
+                            fmt!("PrimitiveList::Builder<%s>", typeStr)
                         }
                         Type::struct_(id) => {
                             let scope = scopeMap.get(&id);

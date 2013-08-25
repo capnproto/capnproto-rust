@@ -88,7 +88,7 @@ pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
 
 pub fn setupRequest(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 {
     let mut result = 0;
-    let cars = request.initCars(80);//request.initCars(rng.nextLessThan(200) as uint);
+    let cars = request.initCars(rng.nextLessThan(200) as uint);
     for i in range(0, cars.size()) {
         let car = cars.get(i);
         randomCar(rng, car);

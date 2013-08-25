@@ -7,32 +7,37 @@
 pub mod PrimitiveList {
     use layout::*;
 
-    pub struct Reader<'self> {
+    pub struct Reader<'self, T> {
         reader : ListReader<'self>
     }
 
-    impl <'self> Reader<'self> {
-        pub fn new<'a>(reader : ListReader<'a>) -> Reader<'a> {
-            Reader { reader : reader }
+    impl <'self, T : Clone> Reader<'self, T> {
+        pub fn new<'a, T>(reader : ListReader<'a>) -> Reader<'a, T> {
+            Reader::<'a, T> { reader : reader }
         }
 
         pub fn size(&self) -> uint { self.reader.size() }
 
-        pub fn get<T : Clone>(&self, index : uint) -> T {
+        pub fn get(&self, index : uint) -> T {
             self.reader.getDataElement(index)
         }
     }
 
-    pub struct Builder {
+    pub struct Builder<T> {
         builder : ListBuilder
     }
 
-    impl Builder {
-        pub fn new(builder : ListBuilder) -> Builder {
+    impl <T : Clone> Builder<T> {
+        pub fn new(builder : ListBuilder) -> Builder<T> {
             Builder { builder : builder }
         }
 
-        // TODO
+        pub fn size(&self) -> uint { self.builder.size() }
+
+        pub fn set(&self, index : uint, value : T) {
+            self.builder.setDataElement(index, value)
+        }
+
     }
 }
 

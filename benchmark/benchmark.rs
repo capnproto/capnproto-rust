@@ -62,7 +62,7 @@ pub fn main () {
             if (! carsales::checkResponse(responseReader, expected)) {
                 printfln!("expected: %?, but got: %?", expected, responseReader.getAmount());
             } else {
-                printfln!("correct: %?", expected);
+//                printfln!("correct: %?", expected);
             }
         }
 
