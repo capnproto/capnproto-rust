@@ -6,7 +6,7 @@ CAPNPRUST_SOURCES=capnprust/arena.rs capnprust/common.rs capnprust/endian.rs \
 
 COMPILATION_MARKER=capnprust/compilation-marker
 
-.PHONY : capnprust clean all check
+.PHONY : capnprust clean all check benchmark
 
 all : samples/addressbook
 
@@ -29,3 +29,7 @@ samples/addressbook : compiler/capnpc-rust samples/addressbook.rs
 check : compiler/capnpc-rust
 	capnpc -o ./compiler/capnpc-rust compiler/test.capnp
 	$(RUSTC) -L./capnprust compiler/test.rs
+
+benchmark : compiler/capnpc-rust
+	capnpc -o ./compiler/capnpc-rust benchmark/carsales.capnp
+	$(RUSTC) -L./capnprust benchmark/benchmark.rs

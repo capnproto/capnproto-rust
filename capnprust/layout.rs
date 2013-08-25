@@ -271,11 +271,13 @@ mod WireHelpers {
         ((bits + 7) / (BITS_PER_BYTE as u64)) as ByteCount
     }
 
+
+    // Return (segmentBuilder', refIndex', offset to new space).
     #[inline]
     pub fn allocate(refIndex : WordCount,
                     segmentBuilder : @mut SegmentBuilder,
                     amount : WordCount, kind : WirePointerKind)
-        -> (@mut SegmentBuilder, WordCount) {
+        -> (@mut SegmentBuilder, WordCount, WordCount) {
         let isNull =
             do segmentBuilder.withMutSegment |segment| {
             WirePointer::get(segment, refIndex).isNull()
@@ -308,14 +310,14 @@ mod WireHelpers {
                     reff.setKindAndTarget(kind, ptr + POINTER_SIZE_IN_WORDS, ptr);
                 }
 
-                return (segmentBuilder1, ptr + POINTER_SIZE_IN_WORDS);
+                return (segmentBuilder1, ptr, ptr + POINTER_SIZE_IN_WORDS);
             }
             Some(ptr) => {
                 do segmentBuilder.withMutSegment |segment| {
                     let reff = WirePointer::getMut(segment, refIndex);
                     reff.setKindAndTarget(kind, ptr, refIndex);
                 }
-                return (segmentBuilder, ptr);
+                return (segmentBuilder, refIndex, ptr);
             }
         }
     }
@@ -335,11 +337,10 @@ mod WireHelpers {
                 let padWords = if (reff.isDoubleFar()) { 2 } else { 1 };
 
                 // TODO better bounds check?
-                assert!( ptr + padWords < segment.segment.len() );
 
                 let pad = WirePointer::get(segment.segment, ptr);
 
-                if (reff.isDoubleFar() ) {
+                if (!reff.isDoubleFar() ) {
 
                     return (pad.target(ptr), pad, segment);
 
@@ -460,7 +461,8 @@ mod WireHelpers {
     pub fn initStructPointer(refIndex : WordCount,
                              segmentBuilder : @mut SegmentBuilder,
                              size : StructSize) -> StructBuilder {
-        let (segmentBuilder, ptr) = allocate(refIndex, segmentBuilder, size.total(), WP_STRUCT);
+        let (segmentBuilder, refIndex, ptr) =
+            allocate(refIndex, segmentBuilder, size.total(), WP_STRUCT);
         do segmentBuilder.withMutSegment |segment| {
             WirePointer::getMut(segment, refIndex).structRefMut().set(size);
         }
@@ -499,10 +501,11 @@ mod WireHelpers {
         let pointerCount = pointersPerElement(elementSize);
         let step = (dataSize + pointerCount * BITS_PER_POINTER);
         let wordCount = roundBitsUpToWords(elementCount as ElementCount64 * (step as u64));
-        let (segmentBuilder, ptr) = allocate(refIndex, segmentBuilder, wordCount, WP_LIST);
+        let (segmentBuilder, refIndex, ptr) =
+            allocate(refIndex, segmentBuilder, wordCount, WP_LIST);
 
         do segmentBuilder.withMutSegment |segment| {
-            WirePointer::getMut(segment, ptr).listRefMut().set(elementSize, elementCount);
+            WirePointer::getMut(segment, refIndex).listRefMut().set(elementSize, elementCount);
         };
 
         ListBuilder {
@@ -531,8 +534,9 @@ mod WireHelpers {
 
         //# Allocate the list, prefixed by a single WirePointer.
         let wordCount : WordCount = elementCount * wordsPerElement;
-        let (segmentBuilder, ptr) = allocate(refIndex, segmentBuilder,
-                                             POINTER_SIZE_IN_WORDS + wordCount, WP_LIST);
+        let (segmentBuilder, refIndex, ptr) =
+            allocate(refIndex, segmentBuilder,
+                     POINTER_SIZE_IN_WORDS + wordCount, WP_LIST);
 
         do segmentBuilder.withMutSegment |segment| {
             //# Initalize the pointer.
@@ -584,8 +588,8 @@ mod WireHelpers {
         //# The byte list must include a NUL terminator
         let byteSize = bytes.len() + 1;
 
-        let (segmentBuilder, ptr) = allocate(refIndex, segmentBuilder,
-                                             roundBytesUpToWords(byteSize), WP_LIST);
+        let (segmentBuilder, refIndex, ptr) =
+            allocate(refIndex, segmentBuilder, roundBytesUpToWords(byteSize), WP_LIST);
 
         do segmentBuilder.withMutSegment |segment| {
             WirePointer::getMut(segment, refIndex).listRefMut().set(BYTE, byteSize);
@@ -688,7 +692,7 @@ mod WireHelpers {
 
         match reff.kind() {
             WP_LIST => { }
-            _ => { fail!("Message contains non-list pointer where list pointer was expected") }
+            _ => { fail!("Message contains non-list pointer where list pointer was expected %?", reff) }
         }
 
         let listRef = reff.listRef();
