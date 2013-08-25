@@ -113,13 +113,9 @@ impl MessageBuilder {
     pub fn getSegmentWithAvailable(@mut self, minimumAvailable : WordCount)
         -> @mut SegmentBuilder {
         if (self.segmentBuilders.last().available() >= minimumAvailable) {
-
-            return self.segmentBuilders[self.segments.len()];
-
+            return self.segmentBuilders[self.segments.len() - 1];
         } else {
-
             return self.allocateSegment(minimumAvailable);
-
         }
     }
 
