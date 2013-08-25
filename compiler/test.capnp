@@ -6,6 +6,6 @@
 
 @0x99d187209d25cee7;
 
-struct PrimList {
+struct TestPrimList {
     uint64List @0 : List(UInt64);
 }

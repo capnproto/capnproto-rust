@@ -20,9 +20,7 @@ fn writeAddressBook() {
 
     let message = MessageBuilder::new_default();
 
-
     let addressbook = message.initRoot::<AddressBook::Builder>();
-
 
     let people = addressbook.initPeople(4);
 
@@ -31,14 +29,12 @@ fn writeAddressBook() {
     person.setName("Alice");
     person.setEmail("alice@widgco.biz");
 
-
     let phones = person.initPhones(2);
     phones.get(0).setNumber("(555) 555-5555");
     phones.get(0).setType(Person::PhoneNumber::Type::work);
     phones.get(1).setNumber("(777) 123-4567");
     phones.get(1).setType(Person::PhoneNumber::Type::home);
     person.getEmployment().setEmployer("widgco");
-
 
     let person = people.get(1);
     person.setId(2);
@@ -52,13 +48,11 @@ fn writeAddressBook() {
     person.setEmail("chuckie@cccc.ch");
     person.getEmployment().setUnemployed(());
 
-
-   let person = people.get(3);
+    let person = people.get(3);
     person.setId(255);
     person.setEmail("di@di.com");
     person.setName("Diane");
     person.getEmployment().setSchool("Caltech");
-
 
     let outStream = @std::io::stdout() as @serialize::OutputStream;
 

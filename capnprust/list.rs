@@ -34,6 +34,10 @@ pub mod PrimitiveList {
 
         pub fn size(&self) -> uint { self.builder.size() }
 
+        pub fn get(&self, index : uint) -> T {
+            self.builder.getDataElement(index)
+        }
+
         pub fn set(&self, index : uint, value : T) {
             self.builder.setDataElement(index, value)
         }

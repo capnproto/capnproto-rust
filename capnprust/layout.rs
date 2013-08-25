@@ -290,17 +290,17 @@ mod WireHelpers {
                 //# the landing pad for a far pointer.
 
                 let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
-                let segmentBuilder = segmentBuilder.messageBuilder.getSegmentWithAvailable(amountPlusRef);
-                let ptr : WordCount = segmentBuilder.allocate(amountPlusRef).unwrap();
+                let segmentBuilder1 = segmentBuilder.messageBuilder.getSegmentWithAvailable(amountPlusRef);
+                let ptr : WordCount = segmentBuilder1.allocate(amountPlusRef).unwrap();
 
                 do segmentBuilder.withMutSegment |segment| {
                     let reff = WirePointer::getMut(segment, refIndex);
                     reff.setFar(false, ptr);
-                    reff.farRefMut().segmentId.set(segmentBuilder.id);
+                    reff.farRefMut().segmentId.set(segmentBuilder1.id);
                 }
 
 
-                return (segmentBuilder, ptr + POINTER_SIZE_IN_WORDS);
+                return (segmentBuilder1, ptr + POINTER_SIZE_IN_WORDS);
             }
             Some(ptr) => {
                 do segmentBuilder.withMutSegment |segment| {

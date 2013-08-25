@@ -130,4 +130,5 @@ pub fn writeMessage(outputStream : @ OutputStream,
         let slice = message.segments[i].slice(0, message.segmentBuilders[i].pos * BYTES_PER_WORD);
         outputStream.write(slice);
     }
+
 }
