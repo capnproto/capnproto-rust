@@ -337,6 +337,7 @@ mod WireHelpers {
                 let padWords = if (reff.isDoubleFar()) { 2 } else { 1 };
 
                 // TODO better bounds check?
+                assert!( ptr + padWords < segment.segment.len() );
 
                 let pad = WirePointer::get(segment.segment, ptr);
 
