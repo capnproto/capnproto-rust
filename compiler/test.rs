@@ -10,7 +10,7 @@
 
 extern mod capnprust;
 
-use capnprust::*;
+//use capnprust::*;
 
 pub mod test_capnp;
 
@@ -39,8 +39,8 @@ fn testPrimList () {
     }
 }
 
-
-fn main () {
+#[test]
+fn testBigStruct() {
 
     use capnprust::message::*;
     use test_capnp::*;
@@ -57,13 +57,24 @@ fn main () {
     bigStruct.setInt32Field(1009);
 
     let inner = bigStruct.initStructField();
-    inner.setFloat64Field(1.1234567);
+    inner.setFloat64Field(0.1234567);
 
     inner.setBoolFieldB(true);
 
     bigStruct.setBoolField(true);
 
-    let outStream = @std::io::stdout() as @serialize::OutputStream;
-    serialize::writeMessage(outStream, message)
+    do bigStruct.asReader |bigStructReader| {
+        assert!(bigStructReader.getInt8Field() == -128);
+        assert!(bigStructReader.getInt32Field() == 1009);
+
+        let innerReader = bigStructReader.getStructField();
+        assert!(!innerReader.getBoolFieldA());
+        assert!(innerReader.getBoolFieldB());
+        assert!(innerReader.getFloat64Field() == 0.1234567);
+    }
+
+}
+
+fn main () {
 
 }
