@@ -1177,6 +1177,11 @@ impl <'self> ListReader<'self> {
             nestingLimit : self.nestingLimit - 1
         }
     }
+
+    pub fn getListElement(&self, _index : ElementCount, _expectedElementSize : FieldSize)
+        -> ListReader<'self> {
+        fail!("unimplemented")
+    }
 }
 
 pub struct ListBuilder {

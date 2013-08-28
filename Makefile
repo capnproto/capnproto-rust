@@ -28,7 +28,7 @@ samples/addressbook : compiler/capnpc-rust samples/addressbook.rs
 
 check : compiler/capnpc-rust
 	capnpc -o ./compiler/capnpc-rust compiler/test.capnp
-	$(RUSTC) -L./capnprust compiler/test.rs
+	$(RUSTC) --test -L./capnprust compiler/test.rs
 
 benchmark : compiler/capnpc-rust
 	capnpc -o ./compiler/capnpc-rust benchmark/carsales.capnp

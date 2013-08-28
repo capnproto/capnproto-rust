@@ -67,6 +67,26 @@ fn elementSizeStr (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
     }
 }
 
+fn elementSize (typ : schema_capnp::Type::Which) -> schema_capnp::ElementSize::Reader {
+    use schema_capnp::Type::*;
+    use schema_capnp::ElementSize::*;
+    match typ {
+        void => empty,
+        bool_ => bit,
+        int8 => byte,
+        int16 => twoBytes,
+        int32 => fourBytes,
+        int64 => eightBytes,
+        uint8 => byte,
+        uint16 => twoBytes,
+        uint32 => fourBytes,
+        uint64 => eightBytes,
+        float32 => fourBytes,
+        float64 => eightBytes,
+        _ => fail!("not primitive")
+    }
+}
+
 fn primTypeStr (typ : schema_capnp::Type::Which) -> ~str {
     use schema_capnp::Type::*;
     match typ {
@@ -317,16 +337,9 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 Some(Type::data) => {
                     return (~"TODO", Line(~"TODO"))
                 }
-                Some(Type::list(t1)) => {
-                    match t1.which() {
-                        Some(Type::uint64) => {
-                            let typeArgs = if (isReader) {"<'self, u64>"} else {"<u64>"};
-                            let typeArgs1 = if (isReader) {"<(), u64>"} else {"<u64>"};
-                            return
-                                (fmt!("PrimitiveList::%s%s", module, typeArgs),
-                                 Line(fmt!("PrimitiveList::%s::new::%s(self.%s.getListField(%u,EIGHT_BYTES,None))",
-                                           module, typeArgs1, member, offset)))
-                        }
+                Some(Type::list(ot1)) => {
+                    match ot1.which() {
+                        None => { fail!("unsupported type") }
                         Some(Type::struct_(id)) => {
                             let scope = scopeMap.get(&id);
                             let theMod = scope.connect("::");
@@ -336,7 +349,26 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                               fullModuleName, member, offset, theMod))
                                     );
                         }
-                        _ => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::enum_(_)) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::list(_)) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::text) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::data) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::interface(_)) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::object) => {return (~"TODO", Line(~"TODO")) }
+                        Some(primType) => {
+                            let typeStr = primTypeStr(primType);
+                            let sizeStr = elementSizeStr(elementSize(primType));
+                            let typeArgs =
+                                if (isReader) {fmt!("<'self, %s>", typeStr)}
+                                else {fmt!("<%s>", typeStr)};
+                            let typeArgs1 =
+                                if (isReader) { fmt!("<(), %s>", typeStr) }
+                                else { fmt!("<%s>", typeStr) };
+                            return
+                                (fmt!("PrimitiveList::%s%s", module, typeArgs),
+                                 Line(fmt!("PrimitiveList::%s::new::%s(self.%s.getListField(%u,%s,None))",
+                                           module, typeArgs1, member, offset, sizeStr)))
+                        }
                     }
                 }
                 Some(Type::enum_(id)) => {
@@ -462,41 +494,46 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                     interior.push(Line(fmt!("self._builder.setTextField(%u, value);", offset)))
                 }
                 Some(Type::data) => { return BlankLine }
-                Some(Type::list(t1)) => {
-                    let returnType =
-                        match t1.which().unwrap() {
-                            Type::void | Type::bool_ | Type::int8 |
-                            Type::int16 | Type::int32 | Type::int64 |
-                            Type::uint8 | Type::uint16 | Type::uint32 |
-                            Type::uint64 | Type::float32 | Type::float64 => {
+                Some(Type::list(ot1)) => {
+                    match ot1.which() {
+                        None => fail!("unsupported type"),
+                        Some(t1) => {
+                            let returnType =
+                                match t1 {
+                                Type::void | Type::bool_ | Type::int8 |
+                                    Type::int16 | Type::int32 | Type::int64 |
+                                    Type::uint8 | Type::uint16 | Type::uint32 |
+                                    Type::uint64 | Type::float32 | Type::float64 => {
 
-                            let typeStr = primTypeStr(t1.which().unwrap());
+                                    let typeStr = primTypeStr(t1);
+                                    let sizeStr = elementSizeStr(elementSize(t1));
 
-                            interior.push(Line(fmt!("PrimitiveList::Builder::new::<%s>(",
-                                               typeStr)));
-                            interior.push(
-                                Indent(~Line(fmt!("self._builder.initListField(%u,%s,size)",
-                                                  offset, "EIGHT_BYTES")))); // XXX
-                            interior.push(Line(~")"));
-                            fmt!("PrimitiveList::Builder<%s>", typeStr)
-                        }
-                        Type::struct_(id) => {
-                            let scope = scopeMap.get(&id);
-                            let theMod = scope.connect("::");
+                                    interior.push(Line(fmt!("PrimitiveList::Builder::new::<%s>(",
+                                                            typeStr)));
+                                    interior.push(
+                                        Indent(~Line(fmt!("self._builder.initListField(%u,%s,size)",
+                                                          offset, sizeStr))));
+                                        interior.push(Line(~")"));
+                                    fmt!("PrimitiveList::Builder<%s>", typeStr)
+                                }
+                                Type::struct_(id) => {
+                                    let scope = scopeMap.get(&id);
+                                    let theMod = scope.connect("::");
 
-                            interior.push(Line(fmt!("%s::List::Builder::new(", theMod)));
-                            interior.push(
-                              Indent(
-                                ~Line(
-                                    fmt!("self._builder.initStructListField(%u, size, %s::STRUCT_SIZE))",
-                                         offset, theMod))));
-
-                            fmt!("%s::List::Builder", theMod)
-                        }
-                        _ => { ~"" }
-                    };
-                    result.push(Line(fmt!("pub fn init%s(&self, size : uint) -> %s {",
-                                          capName, returnType)))
+                                    interior.push(Line(fmt!("%s::List::Builder::new(", theMod)));
+                                    interior.push(
+                                       Indent(
+                                          ~Line(
+                                             fmt!("self._builder.initStructListField(%u, size, %s::STRUCT_SIZE))",
+                                                  offset, theMod))));
+                                    fmt!("%s::List::Builder", theMod)
+                                }
+                                _ => { ~"" }
+                            };
+                            result.push(Line(fmt!("pub fn init%s(&self, size : uint) -> %s {",
+                                                  capName, returnType)))
+                       }
+                    }
                 }
                 Some(Type::enum_(id)) => {
                     let scope = scopeMap.get(&id);

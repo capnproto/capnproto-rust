@@ -7,7 +7,15 @@
 @0x99d187209d25cee7;
 
 struct TestPrimList {
-    uint64List @0 : List(UInt64);
+    uint8List  @0 : List(UInt8);
+    int8List   @1 : List(Int8);
+    uint16List @2 : List(UInt16);
+    int16List  @3 : List(Int16);
+    uint32List @4 : List(UInt32);
+    int32List  @5 : List(Int32);
+    uint64List @6 : List(UInt64);
+    int64List @7 : List(Int64);
+    float32List @8 : List(Float32);
 }
 
 

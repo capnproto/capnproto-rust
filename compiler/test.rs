@@ -25,6 +25,12 @@ fn testPrimList () {
 
     let testPrimList = message.initRoot::<TestPrimList::Builder>();
 
+    let uint8List = testPrimList.initUint8List(20);
+
+    for i in range(0, uint8List.size()) {
+        uint8List.set(i, i as u8);
+    }
+
     let uint64List = testPrimList.initUint64List(100);
 
     for i in range(0, uint64List.size()) {
@@ -32,6 +38,10 @@ fn testPrimList () {
     }
 
     do testPrimList.asReader |testPrimListReader| {
+        let uint8List = testPrimListReader.getUint8List();
+        for i in range(0, uint8List.size()) {
+            assert!(uint8List.get(i) == i as u8);
+        }
         let uint64List = testPrimListReader.getUint64List();
         for i in range(0, uint64List.size()) {
             assert!(uint64List.get(i) == i as u64);
