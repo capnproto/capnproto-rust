@@ -133,7 +133,7 @@ impl MessageBuilder {
 
                 let sb = layout::StructBuilder::initRoot(rootSegment, location,
                                                          layout::HasStructSize::structSize::<T>());
-                return layout::FromStructBuilder::fromStructBuilder::<T>(sb);
+                return layout::FromStructBuilder::fromStructBuilder(sb);
             }
         }
 

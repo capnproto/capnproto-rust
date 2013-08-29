@@ -218,7 +218,8 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                 for jj in range(0, fields.size()) {
                     let field = fields.get(jj);
                     match field.which() {
-                        Some(Field::group(id)) => {
+                        Some(Field::group(group)) => {
+                            let id = group.getTypeId();
 
                             let name = capitalizeFirstLetter(field.getName());
                             let scopeNames = {
@@ -262,7 +263,8 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
     match field.which() {
         None => fail!("unrecognized field type"),
-        Some(Field::group(id)) => {
+        Some(Field::group(group)) => {
+            let id = group.getTypeId();
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
             if (isReader) {
@@ -273,7 +275,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                         Line(fmt!("%s::Builder::new(self._builder)", theMod)));
             }
         }
-        Some(Field::nonGroup(regField)) => {
+        Some(Field::slot(regField)) => {
 
             let typ = regField.getType();
             let offset = regField.getOffset() as uint;
@@ -338,9 +340,10 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     return (~"TODO", Line(~"TODO"))
                 }
                 Some(Type::list(ot1)) => {
-                    match ot1.which() {
+                    match ot1.getElementType().which() {
                         None => { fail!("unsupported type") }
-                        Some(Type::struct_(id)) => {
+                        Some(Type::struct_(st)) => {
+                            let id = st.getTypeId();
                             let scope = scopeMap.get(&id);
                             let theMod = scope.connect("::");
                             let fullModuleName = fmt!("%s::List::%s", theMod, module);
@@ -371,7 +374,8 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                         }
                     }
                 }
-                Some(Type::enum_(id)) => {
+                Some(Type::enum_(en)) => {
+                    let id = en.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
                     return
@@ -383,7 +387,8 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                   Line(~"else { Some(unsafe{std::cast::transmute(result)})}")
                                   ]));
                 }
-                Some(Type::struct_(id)) => {
+                Some(Type::struct_(st)) => {
+                    let id = st.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
                     let middleArg = if (isReader) {~""} else {fmt!("%s::STRUCT_SIZE,", theMod)};
@@ -429,14 +434,15 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
 
     match field.which() {
         None => fail!("unrecognized field type"),
-        Some(Field::group(id)) => {
+        Some(Field::group(group)) => {
+            let id = group.getTypeId();
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
             result.push(Line(fmt!("pub fn init%s(&self) -> %s::Builder {", capName, theMod )));
             // XXX todo: zero out all of the fields.
             interior.push(Line(fmt!("%s::Builder::new(self._builder)", theMod)));
         }
-        Some(Field::nonGroup(regField)) => {
+        Some(Field::slot(regField)) => {
 
             let typ = regField.getType();
             let offset = regField.getOffset() as uint;
@@ -495,7 +501,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                 }
                 Some(Type::data) => { return BlankLine }
                 Some(Type::list(ot1)) => {
-                    match ot1.which() {
+                    match ot1.getElementType().which() {
                         None => fail!("unsupported type"),
                         Some(t1) => {
                             let returnType =
@@ -516,7 +522,8 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                         interior.push(Line(~")"));
                                     fmt!("PrimitiveList::Builder<%s>", typeStr)
                                 }
-                                Type::struct_(id) => {
+                                Type::struct_(st) => {
+                                    let id = st.getTypeId();
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
 
@@ -535,7 +542,8 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                        }
                     }
                 }
-                Some(Type::enum_(id)) => {
+                Some(Type::enum_(e)) => {
+                    let id = e.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
                     result.push(Line(fmt!("pub fn set%s(&self, value : %s::Reader) {",
@@ -544,7 +552,8 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                   Line(fmt!("self._builder.setDataField::<u16>(%u, value as u16)",
                                             offset)));
                 }
-                Some(Type::struct_(id)) => {
+                Some(Type::struct_(st)) => {
+                    let id = st.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
                     result.push(Line(fmt!("pub fn init%s(&self) -> %s::Builder {",capName,theMod)));
@@ -612,7 +621,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
         match field.which() {
             Some(Field::group(_)) => requiresSelfVar = true,
-            Some(Field::nonGroup(regField)) => {
+            Some(Field::slot(regField)) => {
                 match regField.getType().which() {
                     Some(Type::text) | Some(Type::data) |
                     Some(Type::list(_)) | Some(Type::struct_(_)) |
@@ -761,8 +770,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
 
                 match field.which() {
-                    Some(Field::group(id)) => {
-                        let text = generateNode(nodeMap, scopeMap, rootName, id);
+                    Some(Field::group(group)) => {
+                        let text = generateNode(nodeMap, scopeMap, rootName, group.getTypeId());
                         nested_output.push(text);
                     }
                     _ => { }

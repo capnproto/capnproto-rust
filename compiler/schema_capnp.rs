@@ -435,9 +435,9 @@ pub mod Field {
         pub fn which(&self) -> Option<Which<'self>> {
             match self._reader.getDataField::<u16>(4) {
                 0 => {
-                    Some(nonGroup(NonGroup::Reader::new(self._reader)))
+                    Some(slot(Slot::Reader::new(self._reader)))
                 }
-                1 => Some(group(self._reader.getDataField::<u64>(2))),
+                1 => Some(group(Group::Reader::new(self._reader))),
                 _ => None
             }
         }
@@ -458,11 +458,11 @@ pub mod Field {
     }
 
     pub enum Which<'self> {
-        nonGroup(Field::NonGroup::Reader<'self>),
-        group(u64)
+        slot(Field::Slot::Reader<'self>),
+        group(Field::Group::Reader<'self>)
     }
 
-    pub mod NonGroup {
+    pub mod Slot {
         use capnprust::layout::*;
         use schema_capnp::*;
 
@@ -485,6 +485,24 @@ pub mod Field {
 
             pub fn getDefaultValue(&self) -> Value::Reader<'self> {
                 Value::Reader::new(self._reader.getStructField(3, None))
+            }
+        }
+    }
+
+    pub mod Group {
+        use capnprust::layout::*;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn getTypeId(&self) -> u64 {
+                self._reader.getDataField::<u64>(2)
             }
         }
     }
@@ -603,7 +621,6 @@ pub mod Method {
 
 pub mod Type {
     use capnprust::layout::*;
-    use schema_capnp::*;
 
     pub struct Reader<'self> {
         _reader : StructReader<'self>
@@ -636,17 +653,16 @@ pub mod Type {
                 12 => Some(text),
                 13 => Some(data),
                 14 => {
-                    return Some(list(
-                        Type::Reader::new(self._reader.getStructField(0, None))));
+                    return Some(list(List_::Reader::new(self._reader)));
                 }
                 15 => {
-                    return Some(enum_(self._reader.getDataField::<u64>(1)));
+                    return Some(enum_(Enum::Reader::new(self._reader)));
                 }
                 16 => {
-                    return Some(struct_(self._reader.getDataField::<u64>(1)));
+                    return Some(struct_(Struct::Reader::new(self._reader)));
                 }
                 17 => {
-                    return Some(interface(self._reader.getDataField::<u64>(1)));
+                    return Some(interface(Interface::Reader::new(self._reader)));
                 }
                 18 => { return Some(object); }
                 _ => { return None; }
@@ -681,12 +697,88 @@ pub mod Type {
         float64,
         text,
         data,
-        list(Type::Reader<'self>),
-        enum_(u64),
-        struct_(u64),
-        interface(u64),
+        list(List_::Reader<'self>),
+        enum_(Enum::Reader<'self>),
+        struct_(Struct::Reader<'self>),
+        interface(Interface::Reader<'self>),
         object
     }
+
+    pub mod List_ {
+        use capnprust::layout::*;
+        use schema_capnp::*;
+
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn getElementType(&self) -> Type::Reader<'self> {
+                Type::Reader::new(self._reader.getStructField(0, None))
+            }
+        }
+    }
+
+    pub mod Enum {
+        use capnprust::layout::*;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn getTypeId(&self) -> u64 {
+                self._reader.getDataField::<u64>(1)
+            }
+        }
+    }
+
+    pub mod Struct {
+        use capnprust::layout::*;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn getTypeId(&self) -> u64 {
+                self._reader.getDataField::<u64>(1)
+            }
+        }
+    }
+
+    pub mod Interface {
+        use capnprust::layout::*;
+
+        pub struct Reader<'self> {
+            _reader : StructReader<'self>
+        }
+
+        impl <'self> Reader<'self> {
+            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+                Reader{ _reader : reader }
+            }
+
+            pub fn getTypeId(&self) -> u64 {
+                self._reader.getDataField::<u64>(1)
+            }
+        }
+    }
+
+
 }
 
 pub mod Value {
