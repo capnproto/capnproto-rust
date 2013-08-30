@@ -66,7 +66,7 @@ pub struct MessageBuilder {
 
     segments : ~[~[u8]]
     // It would probably be nicer if this were a vector of @mut[u8]s
-    // and the SegmentBuilders also directly their respective
+    // and the SegmentBuilders also directly held their respective
     // @mut[u8]s. Only problem is, I don't know how to implement
     // `asReader` in that case.
 }
