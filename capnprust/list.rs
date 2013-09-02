@@ -12,7 +12,7 @@ pub mod PrimitiveList {
     }
 
     impl <'self, T : Clone> Reader<'self, T> {
-        pub fn new<'a, T>(reader : ListReader<'a>) -> Reader<'a, T> {
+        pub fn new<'a>(reader : ListReader<'a>) -> Reader<'a, T> {
             Reader::<'a, T> { reader : reader }
         }
 

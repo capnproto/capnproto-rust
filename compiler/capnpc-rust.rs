@@ -364,13 +364,10 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                             let typeArgs =
                                 if (isReader) {fmt!("<'self, %s>", typeStr)}
                                 else {fmt!("<%s>", typeStr)};
-                            let typeArgs1 =
-                                if (isReader) { fmt!("<(), %s>", typeStr) }
-                                else { fmt!("<%s>", typeStr) };
                             return
                                 (fmt!("PrimitiveList::%s%s", module, typeArgs),
-                                 Line(fmt!("PrimitiveList::%s::new::%s(self.%s.getListField(%u,%s,None))",
-                                           module, typeArgs1, member, offset, sizeStr)))
+                                 Line(fmt!("PrimitiveList::%s::%s::new(self.%s.getListField(%u,%s,None))",
+                                           module, typeArgs, member, offset, sizeStr)))
                         }
                     }
                 }
@@ -514,7 +511,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                     let typeStr = primTypeStr(t1);
                                     let sizeStr = elementSizeStr(elementSize(t1));
 
-                                    interior.push(Line(fmt!("PrimitiveList::Builder::new::<%s>(",
+                                    interior.push(Line(fmt!("PrimitiveList::Builder::<%s>::new(",
                                                             typeStr)));
                                     interior.push(
                                         Indent(~Line(fmt!("self._builder.initListField(%u,%s,size)",
@@ -793,7 +790,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                   Branch(~[
                        Line(~"impl HasStructSize for Builder {"),
                        Indent(~Branch(~[Line(~"#[inline]"),
-                                        Line(~"fn structSize() -> StructSize { STRUCT_SIZE }")])),
+                                        Line(~"fn structSize(_unused_self : Option<Builder>) -> StructSize { STRUCT_SIZE }")])),
                        Line(~"}")])
             };
 
@@ -900,8 +897,8 @@ fn main() {
         let codeGeneratorRequest =
             schema_capnp::CodeGeneratorRequest::Reader::new(structReader);
 
-        let mut nodeMap = std::hashmap::HashMap::new::<u64, schema_capnp::Node::Reader>();
-        let mut scopeMap = std::hashmap::HashMap::new::<u64, ~[~str]>();
+        let mut nodeMap = std::hashmap::HashMap::<u64, schema_capnp::Node::Reader>::new();
+        let mut scopeMap = std::hashmap::HashMap::<u64, ~[~str]>::new();
 
         let nodeListReader = codeGeneratorRequest.getNodes();
 

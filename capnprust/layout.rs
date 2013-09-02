@@ -962,7 +962,7 @@ impl <'self> StructReader<'self>  {
 }
 
 pub trait HasStructSize {
-    fn structSize() -> StructSize;
+    fn structSize(unused_self : Option<Self>) -> StructSize;
 }
 
 pub trait FromStructBuilder {
