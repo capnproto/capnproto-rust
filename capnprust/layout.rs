@@ -1154,6 +1154,16 @@ impl <'self> ListReader<'self> {
                               totalByteOffset).get()
     }
 
+    #[inline]
+    pub fn getBoolElement(&self, index : ElementCount) -> bool {
+        //# Ignore stepBytes for bit lists because bit lists cannot be
+        //# upgraded to struct lists.
+        let bindex : BitCount0 = index * self.step;
+        let b : ByteCount = self.ptr + bindex / BITS_PER_BYTE;
+        (WireValue::<u8>::getFromBuf(self.segment.segment, b).get() &
+            (1 << (bindex % BITS_PER_BYTE))) != 0
+    }
+
     pub fn getStructElement(&self, index : ElementCount) -> StructReader<'self> {
         assert!(self.nestingLimit > 0,
                 "Message is too deeply-nested or contains cycles");
