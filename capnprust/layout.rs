@@ -1146,23 +1146,6 @@ impl <'self> ListReader<'self> {
     #[inline]
     pub fn size(&self) -> ElementCount { self.elementCount }
 
-    #[inline]
-    pub fn getDataElement<T:Clone>(&self, index : ElementCount) -> T {
-        let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
-
-        WireValue::getFromBuf(self.segment.segment,
-                              totalByteOffset).get()
-    }
-
-    #[inline]
-    pub fn getBoolElement(&self, index : ElementCount) -> bool {
-        //# Ignore stepBytes for bit lists because bit lists cannot be
-        //# upgraded to struct lists.
-        let bindex : BitCount0 = index * self.step;
-        let b : ByteCount = self.ptr + bindex / BITS_PER_BYTE;
-        (WireValue::<u8>::getFromBuf(self.segment.segment, b).get() &
-            (1 << (bindex % BITS_PER_BYTE))) != 0
-    }
 
     pub fn getStructElement(&self, index : ElementCount) -> StructReader<'self> {
         assert!(self.nestingLimit > 0,
@@ -1194,6 +1177,7 @@ impl <'self> ListReader<'self> {
     }
 }
 
+
 pub struct ListBuilder {
     segment : @mut SegmentBuilder,
     ptr : ByteCount,
@@ -1215,13 +1199,6 @@ impl ListBuilder {
                               totalByteOffset).get()
     }
 
-    #[inline]
-    pub fn setDataElement<T:Clone>(&self, index : ElementCount, value : T) {
-        let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
-        WireValue::getFromBufMut(self.segment.messageBuilder.segments[self.segment.id],
-                                 totalByteOffset).set(value)
-    }
-
     pub fn getStructElement(&self, index : ElementCount) -> StructBuilder {
         let indexBit = index * self.step;
         let structData = self.ptr + indexBit / BITS_PER_BYTE;
@@ -1236,5 +1213,64 @@ impl ListBuilder {
         }
     }
 
+}
+
+
+
+pub trait PrimitiveElement : Clone {
+    #[inline]
+    fn get(listReader : &ListReader, index : ElementCount) -> Self {
+        let totalByteOffset = listReader.ptr + index * listReader.step / BITS_PER_BYTE;
+
+        WireValue::getFromBuf(listReader.segment.segment,
+                              totalByteOffset).get()
+    }
+
+    #[inline]
+    fn set(listBuilder : &ListBuilder, index : ElementCount, value: Self) {
+        let totalByteOffset = listBuilder.ptr + index * listBuilder.step / BITS_PER_BYTE;
+        WireValue::getFromBufMut(
+                listBuilder.segment.messageBuilder.segments[listBuilder.segment.id],
+                totalByteOffset).set(value)
+    }
+}
+
+impl PrimitiveElement for u8 { }
+impl PrimitiveElement for u16 { }
+impl PrimitiveElement for u32 { }
+impl PrimitiveElement for u64 { }
+impl PrimitiveElement for i8 { }
+impl PrimitiveElement for i16 { }
+impl PrimitiveElement for i32 { }
+impl PrimitiveElement for i64 { }
+impl PrimitiveElement for f32 { }
+impl PrimitiveElement for f64 { }
+
+impl PrimitiveElement for bool {
+    #[inline]
+    fn get(list : &ListReader, index : ElementCount) -> bool {
+        //# Ignore stepBytes for bit lists because bit lists cannot be
+        //# upgraded to struct lists.
+        let bindex : BitCount0 = index * list.step;
+        let b : ByteCount = list.ptr + bindex / BITS_PER_BYTE;
+        (WireValue::<u8>::getFromBuf(list.segment.segment, b).get() &
+            (1 << (bindex % BITS_PER_BYTE))) != 0
+    }
+    #[inline]
+    fn set(list : &ListBuilder, index : ElementCount, value : bool) {
+        //# Ignore stepBytes for bit lists because bit lists cannot be
+        //# upgraded to struct lists.
+        let bindex : BitCount0 = index;
+        let b : ByteCount = list.ptr + bindex / BITS_PER_BYTE;
+
+        let bitnum = bindex % BITS_PER_BYTE;
+
+        let wv : &mut WireValue<u8> =
+            WireValue::getFromBufMut(list.segment.messageBuilder.segments[list.segment.id],
+                                     b);
+        let oldValue = wv.get();
+        wv.set((oldValue & !(1 << bitnum)) | (value as u8 << bitnum));
+
+    }
 }
 

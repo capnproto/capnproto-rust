@@ -25,17 +25,27 @@ fn testPrimList () {
 
     let testPrimList = message.initRoot::<TestPrimList::Builder>();
 
-    let uint8List = testPrimList.initUint8List(20);
+    let uint8List = testPrimList.initUint8List(100);
 
     for i in range(0, uint8List.size()) {
         uint8List.set(i, i as u8);
     }
 
-    let uint64List = testPrimList.initUint64List(100);
+    let uint64List = testPrimList.initUint64List(20);
 
     for i in range(0, uint64List.size()) {
         uint64List.set(i, i as u64);
     }
+
+    let boolList = testPrimList.initBoolList(17);
+
+    boolList.set(0, true);
+    boolList.set(1, true);
+    boolList.set(2, true);
+    boolList.set(3, true);
+    boolList.set(5, true);
+    boolList.set(8, true);
+    boolList.set(13, true);
 
     do testPrimList.asReader |testPrimListReader| {
         let uint8List = testPrimListReader.getUint8List();
@@ -46,6 +56,22 @@ fn testPrimList () {
         for i in range(0, uint64List.size()) {
             assert!(uint64List.get(i) == i as u64);
         }
+
+        let boolList = testPrimListReader.getBoolList();
+        assert!(boolList.get(0));
+        assert!(boolList.get(1));
+        assert!(boolList.get(2));
+        assert!(boolList.get(3));
+        assert!(!boolList.get(4));
+        assert!(boolList.get(5));
+        assert!(!boolList.get(6));
+        assert!(!boolList.get(7));
+        assert!(boolList.get(8));
+        assert!(!boolList.get(9));
+        assert!(!boolList.get(10));
+        assert!(!boolList.get(11));
+        assert!(!boolList.get(12));
+        assert!(boolList.get(13));
     }
 }
 

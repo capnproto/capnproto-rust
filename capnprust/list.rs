@@ -11,7 +11,7 @@ pub mod PrimitiveList {
         reader : ListReader<'self>
     }
 
-    impl <'self, T : Clone> Reader<'self, T> {
+    impl <'self, T : PrimitiveElement> Reader<'self, T> {
         pub fn new<'a>(reader : ListReader<'a>) -> Reader<'a, T> {
             Reader::<'a, T> { reader : reader }
         }
@@ -19,7 +19,7 @@ pub mod PrimitiveList {
         pub fn size(&self) -> uint { self.reader.size() }
 
         pub fn get(&self, index : uint) -> T {
-            self.reader.getDataElement(index)
+            PrimitiveElement::get(&self.reader, index)
         }
     }
 
@@ -27,7 +27,7 @@ pub mod PrimitiveList {
         builder : ListBuilder
     }
 
-    impl <T : Clone> Builder<T> {
+    impl <T : PrimitiveElement> Builder<T> {
         pub fn new(builder : ListBuilder) -> Builder<T> {
             Builder { builder : builder }
         }
@@ -35,11 +35,12 @@ pub mod PrimitiveList {
         pub fn size(&self) -> uint { self.builder.size() }
 
         pub fn get(&self, index : uint) -> T {
+            // XXX this is broken for bool elements
             self.builder.getDataElement(index)
         }
 
         pub fn set(&self, index : uint, value : T) {
-            self.builder.setDataElement(index, value)
+            PrimitiveElement::set(&self.builder, index, value);
         }
 
     }
