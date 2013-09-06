@@ -17,6 +17,7 @@ struct TestPrimList {
     int64List @7 : List(Int64);
     float32List @8 : List(Float32);
     boolList @9 : List(Bool);
+    voidList @10 : List(Void);
 }
 
 

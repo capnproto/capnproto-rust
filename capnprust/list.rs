@@ -35,8 +35,7 @@ pub mod PrimitiveList {
         pub fn size(&self) -> uint { self.builder.size() }
 
         pub fn get(&self, index : uint) -> T {
-            // XXX this is broken for bool elements
-            self.builder.getDataElement(index)
+            PrimitiveElement::getFromBuilder(&self.builder, index)
         }
 
         pub fn set(&self, index : uint, value : T) {

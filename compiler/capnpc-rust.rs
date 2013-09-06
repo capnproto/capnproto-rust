@@ -56,7 +56,7 @@ fn macros() -> ~str {
 fn elementSizeStr (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
     use schema_capnp::ElementSize::*;
     match elementSize {
-        empty => ~"EMPTY",
+        empty => ~"VOID",
         bit => ~"BIT",
         byte => ~"BYTE",
         twoBytes => ~"TWO_BYTES",

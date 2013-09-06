@@ -1192,13 +1192,6 @@ impl ListBuilder {
     #[inline]
     pub fn size(&self) -> ElementCount { self.elementCount }
 
-    #[inline]
-    pub fn getDataElement<T:Clone>(&self, index : ElementCount) -> T {
-        let totalByteOffset = self.ptr + index * self.step / BITS_PER_BYTE;
-        WireValue::getFromBuf(self.segment.messageBuilder.segments[self.segment.id],
-                              totalByteOffset).get()
-    }
-
     pub fn getStructElement(&self, index : ElementCount) -> StructBuilder {
         let indexBit = index * self.step;
         let structData = self.ptr + indexBit / BITS_PER_BYTE;
@@ -1223,6 +1216,13 @@ pub trait PrimitiveElement : Clone {
         let totalByteOffset = listReader.ptr + index * listReader.step / BITS_PER_BYTE;
 
         WireValue::getFromBuf(listReader.segment.segment,
+                              totalByteOffset).get()
+    }
+
+    #[inline]
+    fn getFromBuilder(list : &ListBuilder, index : ElementCount) -> Self {
+        let totalByteOffset = list.ptr + index * list.step / BITS_PER_BYTE;
+        WireValue::getFromBuf(list.segment.messageBuilder.segments[list.segment.id],
                               totalByteOffset).get()
     }
 
@@ -1257,6 +1257,16 @@ impl PrimitiveElement for bool {
             (1 << (bindex % BITS_PER_BYTE))) != 0
     }
     #[inline]
+    fn getFromBuilder(list : &ListBuilder, index : ElementCount) -> bool {
+        //# Ignore stepBytes for bit lists because bit lists cannot be
+        //# upgraded to struct lists.
+        let bindex : BitCount0 = index * list.step;
+        let b : ByteCount = list.ptr + bindex / BITS_PER_BYTE;
+        (WireValue::<u8>::getFromBuf(list.segment.messageBuilder.segments[list.segment.id],
+                                     b).get() &
+            (1 << (bindex % BITS_PER_BYTE))) != 0
+    }
+    #[inline]
     fn set(list : &ListBuilder, index : ElementCount, value : bool) {
         //# Ignore stepBytes for bit lists because bit lists cannot be
         //# upgraded to struct lists.
@@ -1272,5 +1282,16 @@ impl PrimitiveElement for bool {
         wv.set((oldValue & !(1 << bitnum)) | (value as u8 << bitnum));
 
     }
+}
+
+impl PrimitiveElement for () {
+    #[inline]
+    fn get(_list : &ListReader, _index : ElementCount) -> () { () }
+
+    #[inline]
+    fn getFromBuilder(_list : &ListBuilder, _index : ElementCount) -> () { () }
+
+    #[inline]
+    fn set(_list : &ListBuilder, _index : ElementCount, _value : ()) { }
 }
 

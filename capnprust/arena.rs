@@ -35,11 +35,11 @@ impl SegmentBuilder {
         }
     }
 
-    pub fn withMutSegment<T>(@ mut self, f : &fn(&mut [u8]) -> T) -> T {
+    pub fn withMutSegment<T>(@mut self, f : &fn(&mut [u8]) -> T) -> T {
         f(self.messageBuilder.segments[self.id])
     }
 
-    pub fn allocate(@ mut self, amount : WordCount) -> Option<WordCount> {
+    pub fn allocate(@mut self, amount : WordCount) -> Option<WordCount> {
         if (amount > self.size - self.pos) {
             return None;
         } else {
@@ -71,4 +71,5 @@ impl SegmentBuilder {
             })
         }
     }
+
 }

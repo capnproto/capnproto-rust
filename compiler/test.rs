@@ -37,7 +37,7 @@ fn testPrimList () {
         uint64List.set(i, i as u64);
     }
 
-    let boolList = testPrimList.initBoolList(17);
+    let boolList = testPrimList.initBoolList(65);
 
     boolList.set(0, true);
     boolList.set(1, true);
@@ -46,6 +46,16 @@ fn testPrimList () {
     boolList.set(5, true);
     boolList.set(8, true);
     boolList.set(13, true);
+    boolList.set(64, true);
+
+    assert!(boolList.get(0));
+    assert!(!boolList.get(4));
+    assert!(!boolList.get(63));
+    assert!(boolList.get(64));
+
+
+    let voidList = testPrimList.initVoidList(1025);
+    voidList.set(257, ());
 
     do testPrimList.asReader |testPrimListReader| {
         let uint8List = testPrimListReader.getUint8List();
@@ -72,6 +82,11 @@ fn testPrimList () {
         assert!(!boolList.get(11));
         assert!(!boolList.get(12));
         assert!(boolList.get(13));
+        assert!(!boolList.get(63));
+        assert!(boolList.get(64));
+
+
+        assert!(testPrimListReader.getVoidList().size() == 1025);
     }
 }
 
