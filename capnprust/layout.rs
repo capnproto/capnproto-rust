@@ -198,7 +198,7 @@ impl WirePointer {
 
     #[inline]
     pub fn isDoubleFar(&self) -> bool {
-        ((self.offsetAndKind.get() >> 2) & 1) as bool
+        ((self.offsetAndKind.get() >> 2) & 1) != 0
     }
 
     #[inline]
@@ -833,7 +833,7 @@ mod WireHelpers {
 
 //        assert!(slice[size-1] == 0, "Message contains text that is not NUL-terminated");
 
-        std::str::from_bytes_slice(slice)
+        std::str::from_utf8_slice(slice)
     }
 }
 

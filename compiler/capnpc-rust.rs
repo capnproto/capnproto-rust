@@ -125,7 +125,7 @@ fn camelCaseToAllCaps(s : &str) -> ~str {
             result_bytes.push(b1);
         }
     }
-    return std::str::from_bytes(result_bytes);
+    return std::str::from_utf8(result_bytes);
 }
 
 fn capitalizeFirstLetter(s : &str) -> ~str {
@@ -136,7 +136,7 @@ fn capitalizeFirstLetter(s : &str) -> ~str {
         result_bytes.push(b);
     }
     result_bytes[0] = result_bytes[0].to_ascii().to_upper().to_byte();
-    return std::str::from_bytes(result_bytes);
+    return std::str::from_utf8(result_bytes);
 }
 
 #[test]
