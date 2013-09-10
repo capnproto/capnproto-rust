@@ -352,7 +352,18 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                               fullModuleName, member, offset, theMod))
                                     );
                         }
-                        Some(Type::enum_(_)) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::enum_(e)) => {
+                            let id = e.getTypeId();
+                            let scope = scopeMap.get(&id);
+                            let theMod = scope.connect("::");
+                            let fullModuleName = fmt!("%s::Reader", theMod);
+                            let typeArgs =
+                                if (isReader) {fmt!("<'self, %s>", fullModuleName)}
+                                else {fmt!("<%s>", fullModuleName)};
+                            return (fmt!("EnumList::%s%s",module,typeArgs),
+                                    Line(fmt!("EnumList::%s::%s::new(self.%s.getListField(%u,TWO_BYTES,None))",
+                                         module, typeArgs, member, offset)));
+                        }
                         Some(Type::list(_)) => {return (~"TODO", Line(~"TODO")) }
                         Some(Type::text) => {return (~"TODO", Line(~"TODO")) }
                         Some(Type::data) => {return (~"TODO", Line(~"TODO")) }
@@ -519,6 +530,21 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                                           offset, sizeStr))));
                                         interior.push(Line(~")"));
                                     fmt!("PrimitiveList::Builder<%s>", typeStr)
+                                }
+                                Type::enum_(e) => {
+                                    let id = e.getTypeId();
+                                    let scope = scopeMap.get(&id);
+                                    let theMod = scope.connect("::");
+                                    let typeStr = fmt!("%s::Reader", theMod);
+                                    interior.push(Line(fmt!("EnumList::Builder::<%s>::new(",
+                                                            typeStr)));
+                                    interior.push(
+                                        Indent(
+                                            ~Line(
+                                                fmt!("self._builder.initListField(%u,TWO_BYTES,size)",
+                                                     offset))));
+                                    interior.push(Line(~")"));
+                                    fmt!("EnumList::Builder<%s>", typeStr)
                                 }
                                 Type::struct_(st) => {
                                     let id = st.getTypeId();

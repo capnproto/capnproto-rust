@@ -126,6 +126,42 @@ fn testBigStruct() {
 
 }
 
+#[test]
+fn testComplexList () {
+    use capnprust::message::*;
+    use test_capnp::*;
+
+    let message = MessageBuilder::new_default();
+
+    let testComplexList = message.initRoot::<TestComplexList::Builder>();
+
+    let enumList = testComplexList.initEnumList(100);
+
+    for i in range::<uint>(0, 10) {
+        enumList.set(i, AnEnum::qux);
+    }
+    for i in range::<uint>(10, 20) {
+        enumList.set(i, AnEnum::bar);
+    }
+
+    do testComplexList.asReader |complexListReader| {
+        let enumListReader = complexListReader.getEnumList();
+        for i in range::<uint>(0,10) {
+            match enumListReader.get(i) {
+                Some(AnEnum::qux) => {}
+                _ => fail!()
+            }
+        }
+        for i in range::<uint>(10,20) {
+            match enumListReader.get(i) {
+                Some(AnEnum::bar) => {}
+                _ => fail!()
+            }
+        }
+    }
+}
+
+
 fn main () {
 
 }
