@@ -378,11 +378,12 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     return
                         (fmt!("Option<%s::Reader>", theMod), // Enums don't have builders.
                          Branch(~[
-                                  Line(fmt!("let result = self.%s.getDataField::<u16>(%u) as uint;",
-                                            member, offset)),
-                                  Line(fmt!("if (result > %s::MAX_ENUMERANT as uint) { None }", theMod)),
-                                  Line(~"else { Some(unsafe{std::cast::transmute(result)})}")
-                                  ]));
+                                Line(fmt!("let result = self.%s.getDataField::<u16>(%u);",
+                                          member, offset)),
+                                Line(fmt!("let unused_self : Option<%s::Reader> = None;",
+                                          theMod)),
+                                Line(~"HasMaxEnumerant::cast(unused_self, result)")
+                                    ]));
                 }
                 Some(Type::struct_(st)) => {
                     let id = st.getTypeId();
@@ -845,6 +846,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let names = scopeMap.get(&nodeId);
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
+            output.push(Line(~"use capnprust::list::*;"));
+
             let mut members = ~[];
             let enumerants = enumReader.getEnumerants();
             for ii in range(0, enumerants.size()) {
@@ -856,8 +859,20 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             output.push(Indent(~Branch(~[Line(~"pub enum Reader {"),
                                          Indent(~Branch(members)),
                                          Line(~"}")])));
-            output.push(Indent(~Line(fmt!("pub static MAX_ENUMERANT : Reader = %s;",
-                                          enumerants.get(enumerants.size() - 1).getName()))));
+            output.push(
+                Indent(
+                    ~Branch(
+                        ~[Line(~"impl HasMaxEnumerant for Reader {"),
+                          Indent(~Line(~"#[inline]")),
+                          Indent(
+                            ~Line(
+                               fmt!("fn maxEnumerant(_unused_self: Option<Reader>) -> u16 { %u }",
+                                    enumerants.size() - 1))),
+                          Indent(~Line(~"#[inline]")),
+                          Indent(
+                            ~Line(~"fn asU16(self) -> u16 { self as u16 }")),
+                          Line(~"}")])));
+
             output.push(Line(~"}"));
         }
 
