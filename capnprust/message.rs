@@ -85,7 +85,7 @@ impl MessageBuilder {
         let builder =
             @mut SegmentBuilder::new(result, firstSegmentWords);
 
-        result.segments.push(std::vec::from_elem(firstSegmentWords * BYTES_PER_WORD, 0u8));
+        result.segments.push(allocate_zeroed_bytes(firstSegmentWords * BYTES_PER_WORD));
         result.segmentBuilders.push(builder);
 
         result
@@ -97,7 +97,7 @@ impl MessageBuilder {
 
     pub fn allocateSegment(@mut self, minimumSize : WordCount) -> @mut SegmentBuilder {
         let size = std::cmp::max(minimumSize, self.nextSize);
-        let segment : ~[u8] = std::vec::from_elem(size * BYTES_PER_WORD, 0u8);
+        let segment = allocate_zeroed_bytes(size * BYTES_PER_WORD);
         let result  = @mut SegmentBuilder::new(self, size);
         self.segments.push(segment);
         self.segmentBuilders.push(result);

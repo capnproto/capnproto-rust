@@ -55,4 +55,17 @@ pub fn bitsPerElement<T>() -> BitCount0 {
     8 * std::sys::size_of::<T>()
 }
 
+#[inline]
+pub fn allocate_zeroed_bytes(size : ByteCount) -> ~[u8] {
 
+//    Do this, but faster:
+//    return std::vec::from_elem(size , 0u8);
+
+    let mut result : ~[u8] = std::vec::with_capacity(size);
+    unsafe {
+        std::vec::raw::set_len(&mut result, size);
+        let p : *mut u8 = result.unsafe_mut_ref(0);
+        std::ptr::set_memory(p, 0, size)
+    }
+    return result;
+}
