@@ -15,6 +15,9 @@ pub mod common;
 pub mod carsales_capnp;
 pub mod carsales;
 
+pub mod catrank_capnp;
+pub mod catrank;
+
 pub fn main () {
 
     let args = std::os::args();
@@ -45,7 +48,6 @@ pub fn main () {
 
 
     let mut rng = ~common::FastRand::new();
-
 
     for _i in range(0, _iters) {
         let messageReq = capnprust::message::MessageBuilder::new_default();
