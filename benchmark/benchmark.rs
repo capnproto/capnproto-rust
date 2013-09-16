@@ -27,7 +27,7 @@ pub fn main () {
         return;
     }
 
-    let _iters = match std::u64::from_str(args[4]) {
+    let _iters = match from_str::<u64>(args[4]) {
         Some (n) => n,
         None => {
             printfln!("Could not parse a u64 from: %s", args[4]);
