@@ -69,3 +69,4 @@ pub fn allocate_zeroed_bytes(size : ByteCount) -> ~[u8] {
     }
     return result;
 }
+

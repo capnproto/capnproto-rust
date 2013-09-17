@@ -13,7 +13,7 @@ pub mod Text {
     pub struct Builder {
         segment : @mut SegmentBuilder,
         ptr : ByteCount,
-        elementCount : ElementCount
+        //...
     }
 
 /*

@@ -37,4 +37,8 @@ impl FastRand {
     }
 }
 
+pub static WORDS : [&'static str, .. 13] = [
+    "foo ", "bar ", "baz ", "qux ", "quux ", "corge ", "grault ", "garply ", "waldo ", "fred ",
+    "plugh ", "xyzzy ", "thud "];
+
 
