@@ -8,6 +8,12 @@ use std::rand::*;
 use common::*;
 use carsales_capnp::*;
 
+pub type RequestBuilder = ParkingLot::Builder;
+pub type RequestReader<'self> = ParkingLot::Reader<'self>;
+pub type ResponseBuilder = TotalValue::Builder;
+pub type ResponseReader<'self> = TotalValue::Reader<'self>;
+pub type Expectation = u64;
+
 pub fn carValue (car : Car::Reader) -> u64 {
     let mut result : u64 = 0;
     result += car.getSeats() as u64 * 200;

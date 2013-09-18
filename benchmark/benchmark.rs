@@ -18,6 +18,35 @@ pub mod carsales;
 pub mod catrank_capnp;
 pub mod catrank;
 
+macro_rules! passByObject(
+    ( $testcase:ident, $iters:expr ) => ({
+            let mut rng = ~common::FastRand::new();
+            for _ in range(0, $iters) {
+                let messageReq = capnprust::message::MessageBuilder::new_default();
+                let messageRes = capnprust::message::MessageBuilder::new_default();
+
+
+                let request = messageReq.initRoot::<$testcase::RequestBuilder>();
+                let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
+                let expected = $testcase::setupRequest(rng, request);
+
+                do request.asReader |requestReader| {
+                    $testcase::handleRequest(requestReader, response);
+                }
+
+                do response.asReader |responseReader| {
+                    if (! $testcase::checkResponse(responseReader, expected)) {
+                        println("Incorrect response.");
+                    }
+                }
+
+                messageReq.release();
+                messageRes.release();
+            }
+        });
+    )
+
+
 pub fn main () {
 
     let args = std::os::args();
@@ -27,7 +56,7 @@ pub fn main () {
         return;
     }
 
-    let _iters = match from_str::<u64>(args[4]) {
+    let iters = match from_str::<u64>(args[4]) {
         Some (n) => n,
         None => {
             printfln!("Could not parse a u64 from: %s", args[4]);
@@ -46,27 +75,7 @@ pub fn main () {
     }
 */
 
+//    passByObject!(catrank, iters);
+    passByObject!(carsales, iters);
 
-    let mut rng = ~common::FastRand::new();
-
-    for _i in range(0, _iters) {
-        let messageReq = capnprust::message::MessageBuilder::new_default();
-        let messageRes = capnprust::message::MessageBuilder::new_default();
-
-        let request = messageReq.initRoot::<carsales_capnp::ParkingLot::Builder>();
-        let response = messageRes.initRoot::<carsales_capnp::TotalValue::Builder>();
-        let expected = carsales::setupRequest(rng, request);
-        do request.asReader |requestReader| {
-            carsales::handleRequest(requestReader, response);
-        }
-
-        do response.asReader |responseReader| {
-            if (! carsales::checkResponse(responseReader, expected)) {
-                printfln!("expected: %?, but got: %?", expected, responseReader.getAmount());
-            }
-        }
-
-        messageReq.release();
-        messageRes.release();
-    }
 }

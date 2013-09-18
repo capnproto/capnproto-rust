@@ -11,11 +11,14 @@ use std::rand::*;
 use common::*;
 use catrank_capnp::*;
 
+pub type RequestBuilder = SearchResultList::Builder;
+pub type ResponseBuilder = SearchResultList::Builder;
+pub type Expectation = int;
+
 pub struct ScoredResult<'self> {
     score : f64,
     result : SearchResult::Reader<'self>
 }
-
 
 static URL_PREFIX : &'static str = "http://example.com";
 
@@ -33,10 +36,10 @@ pub fn setupRequest(rng : &mut FastRand, request : SearchResultList::Builder) ->
         // TODO: modify string field in place with Text::Builder?
         let mut url = ~"http://example.com";
 
-        let moreChars = urlSize - url.len();
-        for _ in range(0, moreChars) {
+        for _ in range(0, urlSize) {
             url.push_char(std::char::from_u32(97 + rng.nextLessThan(26)).unwrap());
         }
+
         result.setUrl(url);
 
         let isCat = rng.nextLessThan(8) == 0;
