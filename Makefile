@@ -32,5 +32,5 @@ check : compiler/capnpc-rust
 	$(RUSTC) --test -L./capnprust compiler/test.rs
 
 benchmark : compiler/capnpc-rust
-	capnpc -o ./compiler/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp #benchmark/eval.capnp
+	capnpc -o ./compiler/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
 	$(RUSTC) -L./capnprust benchmark/benchmark.rs

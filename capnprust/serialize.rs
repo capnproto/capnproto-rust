@@ -43,7 +43,7 @@ pub mod InputStreamMessageReader {
         let mut moreSizes : ~[u32] = std::vec::from_elem((segmentCount & !1) as uint, 0u32);
 
         if (segmentCount > 1) {
-            let moreSizesRaw = inputStream.read_bytes((8 * (segmentCount & !1)) as uint);
+            let moreSizesRaw = inputStream.read_bytes((4 * (segmentCount & !1)) as uint);
             for ii in range(0, segmentCount as uint - 1) {
                 moreSizes[ii] = unsafe {
                     let p : *WireValue<u32> =
