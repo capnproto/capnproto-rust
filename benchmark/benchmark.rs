@@ -18,6 +18,9 @@ pub mod carsales;
 pub mod catrank_capnp;
 pub mod catrank;
 
+//pub mod eval_capnp;
+//pub mod eval;
+
 macro_rules! passByObject(
     ( $testcase:ident, $iters:expr ) => ({
             let mut rng = ~common::FastRand::new();

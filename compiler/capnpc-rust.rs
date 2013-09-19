@@ -211,35 +211,34 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
         };
         scopeMap.insert(id, scopeNames);
         populateScopeMap(nodeMap, scopeMap, id);
+    }
 
-        match nodeReader.which() {
-            Some(Node::struct_(structReader)) => {
-                let fields = structReader.getFields();
-                for jj in range(0, fields.size()) {
-                    let field = fields.get(jj);
-                    match field.which() {
-                        Some(Field::group(group)) => {
-                            let id = group.getTypeId();
+    match nodeReader.which() {
+        Some(Node::struct_(structReader)) => {
+            let fields = structReader.getFields();
+            for jj in range(0, fields.size()) {
+                let field = fields.get(jj);
+                match field.which() {
+                    Some(Field::group(group)) => {
+                        let id = group.getTypeId();
+                        let name = capitalizeFirstLetter(field.getName());
+                        let scopeNames = {
+                            if (scopeMap.contains_key(&nodeId)) {
+                                let names = scopeMap.get(&nodeId);
+                                appendName(*names, name)
+                            } else {
+                                ~[name]
+                            }
+                        };
 
-                            let name = capitalizeFirstLetter(field.getName());
-                            let scopeNames = {
-                                if (scopeMap.contains_key(&nodeId)) {
-                                    let names = scopeMap.get(&nodeId);
-                                    appendName(*names, name)
-                                } else {
-                                    ~[name]
-                                }
-                            };
-
-                            scopeMap.insert(id, scopeNames);
-                            populateScopeMap(nodeMap, scopeMap, id);
-                        }
-                        _ => {}
+                        scopeMap.insert(id, scopeNames);
+                        populateScopeMap(nodeMap, scopeMap, id);
                     }
+                    _ => {}
                 }
             }
-            _ => { }
         }
+        _ => {  }
     }
 }
 
@@ -461,52 +460,52 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                     result.push(Line(fmt!("pub fn set%s(&self, _value : ()) {",capName)))
                 }
                 Some(Type::bool_) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : bool) {", capName)));
-                    interior.push(Line(fmt!("self._builder.setBoolField(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : bool) {", capName)));
+                    interior.push(Line(fmt!("self._builder.setBoolField(%u, _value);", offset)))
                 }
                 Some(Type::int8) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : i8) {", capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i8>(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : i8) {", capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i8>(%u, _value);", offset)))
                 }
                 Some(Type::int16) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : i16) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i16>(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : i16) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i16>(%u, _value);", offset)))
                 }
                 Some(Type::int32) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : i32) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i32>(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : i32) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i32>(%u, _value);", offset)))
                 }
                 Some(Type::int64) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : i64) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i64>(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : i64) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i64>(%u, _value);", offset)))
                 }
                 Some(Type::uint8) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : u8) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u8>(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : u8) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u8>(%u, _value);", offset)))
                 }
                 Some(Type::uint16) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : u16) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u16>(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : u16) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u16>(%u, _value);", offset)))
                 }
                 Some(Type::uint32) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : u32) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u32>(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : u32) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u32>(%u, _value);", offset)))
                 }
                 Some(Type::uint64) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : u64) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u64>(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : u64) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u64>(%u, _value);", offset)))
                 }
                 Some(Type::float32) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : f32) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<f32>(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : f32) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<f32>(%u, _value);", offset)))
                 }
                 Some(Type::float64) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : f64) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<f64>(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : f64) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<f64>(%u, _value);", offset)))
                 }
                 Some(Type::text) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : &str) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setTextField(%u, value);", offset)))
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : &str) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setTextField(%u, _value);", offset)))
                 }
                 Some(Type::data) => { return BlankLine }
                 Some(Type::list(ot1)) => {
@@ -570,10 +569,10 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                     let id = e.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
-                    result.push(Line(fmt!("pub fn set%s(&self, value : %s::Reader) {",
+                    result.push(Line(fmt!("pub fn set%s(&self, _value : %s::Reader) {",
                                           capName, theMod)));
                     interior.push(
-                                  Line(fmt!("self._builder.setDataField::<u16>(%u, value as u16)",
+                                  Line(fmt!("self._builder.setDataField::<u16>(%u, _value as u16)",
                                             offset)));
                 }
                 Some(Type::struct_(st)) => {
@@ -947,7 +946,6 @@ fn main() {
 
             let nodeReader = nodeListReader.get(ii);
             let id = nodeReader.getId();
-
             nodeMap.insert(id, nodeReader);
         }
 

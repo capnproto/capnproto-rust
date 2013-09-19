@@ -12,6 +12,7 @@ all : samples/addressbook
 
 clean :
 	rm -rf capnprust/libcapnprust* $(COMPILATION_MARKER) compiler/capnpc-rust
+	rm -rf benchmark/*_capnp.rs benchmark/benchmark
 
 capnprust : $(COMPILATION_MARKER)
 
@@ -31,5 +32,5 @@ check : compiler/capnpc-rust
 	$(RUSTC) --test -L./capnprust compiler/test.rs
 
 benchmark : compiler/capnpc-rust
-	capnpc -o ./compiler/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp
+	capnpc -o ./compiler/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp #benchmark/eval.capnp
 	$(RUSTC) -L./capnprust benchmark/benchmark.rs
