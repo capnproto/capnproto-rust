@@ -5,6 +5,7 @@
  */
 
 use std::rand::*;
+use std::i32;
 
 pub struct FastRand {
     state : u32
@@ -35,6 +36,24 @@ impl FastRand {
         use std::u32;
         self.next() as f64 * range / (u32::max_value as f64)
     }
+}
+
+#[inline]
+pub fn div(a : i32, b: i32) -> i32 {
+    if (b == 0) { return i32::max_value }
+    if (a == i32::min_value && b == -1) {
+        return i32::max_value;
+    }
+    return a / b;
+}
+
+#[inline]
+pub fn modulus(a : i32, b: i32) -> i32 {
+    if (b == 0) { return i32::max_value }
+    if (a == i32::min_value && b == -1) {
+        return i32::max_value;
+    }
+    return a % b;
 }
 
 pub static WORDS : [&'static str, .. 13] = [

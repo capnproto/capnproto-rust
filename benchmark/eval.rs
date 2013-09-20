@@ -13,19 +13,71 @@ pub type RequestBuilder = Expression::Builder;
 pub type ResponseBuilder = EvaluationResult::Builder;
 pub type Expectation = i32;
 
-fn makeExpression(rng : &mut FastRand, exp : Expression::Builder, depth : uint) -> i32 {
+fn makeExpression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -> i32 {
     exp.setOp(unsafe {
             std::cast::transmute(rng.gen_uint_range(0, Operation::modulus as uint + 1))});
 
-    let mut left : u32 = 0;
-    let mut right : u32 = 0;
-
-    if (rng.nextLessThan(8) < (depth as u32)) {
-        left = rng.nextLessThan(128) + 1;
-        exp.getLeft().setValue(left as i32);
+    let left : i32 =
+    if (rng.nextLessThan(8) < depth) {
+        let tmp = (rng.nextLessThan(128) + 1) as i32;
+        exp.getLeft().setValue(tmp);
+        tmp
     } else {
-        // how are we going to do this?
-    }
+        makeExpression(rng, exp.getLeft().initExpression(), depth + 1)
+    };
 
-    0
+    let right : i32 =
+    if (rng.nextLessThan(8) < depth) {
+        let tmp = (rng.nextLessThan(128) + 1) as i32;
+        exp.getRight().setValue(tmp);
+        tmp
+    } else {
+        makeExpression(rng, exp.getRight().initExpression(), depth + 1)
+    };
+
+    match exp.getOp() {
+        Some(Operation::add) => { return left + right }
+        Some(Operation::subtract) => { return left - right }
+        Some(Operation::multiply) => { return left * right }
+        Some(Operation::divide) => { return div(left, right) }
+        Some(Operation::modulus) => { return modulus(left, right) }
+        None => { fail!("impossible") }
+    }
+}
+
+fn evaluateExpression(exp : Expression::Reader) -> i32 {
+    let left = match exp.getLeft().which() {
+        Some(Expression::Left::value(v)) => v,
+        Some(Expression::Left::expression(e)) => evaluateExpression(e),
+        None => fail!("impossible")
+    };
+    let right = match exp.getRight().which() {
+        Some(Expression::Right::value(v)) => v,
+        Some(Expression::Right::expression(e)) => evaluateExpression(e),
+        None => fail!("impossible")
+    };
+
+    match exp.getOp() {
+        Some(Operation::add) => return left + right,
+        Some(Operation::subtract) => return left - right,
+        Some(Operation::multiply) => return left * right,
+        Some(Operation::divide) => return div(left, right),
+        Some(Operation::modulus) => return modulus(left, right),
+        None => fail!("impossible")
+    }
+}
+
+#[inline]
+pub fn setupRequest(rng : &mut FastRand, request : Expression::Builder) -> i32 {
+    makeExpression(rng, request, 0)
+}
+
+#[inline]
+pub fn handleRequest(request : Expression::Reader, response : EvaluationResult::Builder) {
+    response.setValue(evaluateExpression(request));
+}
+
+#[inline]
+pub fn checkResponse(response : EvaluationResult::Reader, expected : i32) -> bool {
+    response.getValue() == expected
 }
