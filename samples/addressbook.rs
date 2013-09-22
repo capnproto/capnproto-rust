@@ -89,16 +89,16 @@ fn printAddressBook() {
 
             }
             match person.getEmployment().which() {
-                Some(Person::Employment::unemployed(())) => {
+                Some(Person::Employment::Unemployed(())) => {
                     println("  unemployed");
                 }
-                Some(Person::Employment::employer(employer)) => {
+                Some(Person::Employment::Employer(employer)) => {
                     printfln!("  employer: %s", employer);
                 }
-                Some(Person::Employment::school(school)) => {
+                Some(Person::Employment::School(school)) => {
                     printfln!("  student at: %s", school);
                 }
-                Some(Person::Employment::selfEmployed(())) => {
+                Some(Person::Employment::SelfEmployed(())) => {
                     println("  self-employed");
                 }
                 None => { }

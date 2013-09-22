@@ -52,26 +52,26 @@ pub mod Node {
         pub fn which(&self) -> Option<Which<'self>> {
             match self._reader.getDataField::<u16>(6) {
                 0 => {
-                    return Some(file_(()));
+                    return Some(File(()));
                 }
                 1 => {
-                    return Some(struct_(
+                    return Some(Struct(
                         Struct::Reader::new(self._reader)));
                 }
                 2 => {
-                    return Some(enum_(
+                    return Some(Enum(
                         Enum::Reader::new(self._reader)));
                 }
                 3 => {
-                    return Some(interface(
+                    return Some(Interface(
                         Interface::Reader::new(self._reader)));
                 }
                 4 => {
-                    return Some(const_(
+                    return Some(Const(
                         Const::Reader::new(self._reader)));
                 }
                 5 => {
-                    return Some(annotation(
+                    return Some(Annotation(
                         Annotation::Reader::new(self._reader)));
                 }
                 _ => return None
@@ -105,12 +105,12 @@ pub mod Node {
     }
 
     pub enum Which<'self> {
-        file_(()),
-        struct_(Struct::Reader<'self>),
-        enum_(Enum::Reader<'self>),
-        interface(Interface::Reader<'self>),
-        const_(Const::Reader<'self>),
-        annotation(Annotation::Reader<'self>)
+        File(()),
+        Struct(Struct::Reader<'self>),
+        Enum(Enum::Reader<'self>),
+        Interface(Interface::Reader<'self>),
+        Const(Const::Reader<'self>),
+        Annotation(Annotation::Reader<'self>)
     }
 
     pub mod Struct {
@@ -435,9 +435,9 @@ pub mod Field {
         pub fn which(&self) -> Option<Which<'self>> {
             match self._reader.getDataField::<u16>(4) {
                 0 => {
-                    Some(slot(Slot::Reader::new(self._reader)))
+                    Some(Slot(Slot::Reader::new(self._reader)))
                 }
-                1 => Some(group(Group::Reader::new(self._reader))),
+                1 => Some(Group(Group::Reader::new(self._reader))),
                 _ => None
             }
         }
@@ -458,8 +458,8 @@ pub mod Field {
     }
 
     pub enum Which<'self> {
-        slot(Field::Slot::Reader<'self>),
-        group(Field::Group::Reader<'self>)
+        Slot(Field::Slot::Reader<'self>),
+        Group(Field::Group::Reader<'self>)
     }
 
     pub mod Slot {
@@ -522,16 +522,16 @@ pub mod Field {
 
             pub fn which(&self) -> Option<Which> {
                 match self._reader.getDataField::<u16>(4) {
-                    0 => return Some(implicit(())),
-                    1 => return Some(explicit(self._reader.getDataField::<u16>(6))),
+                    0 => return Some(Implicit(())),
+                    1 => return Some(Explicit(self._reader.getDataField::<u16>(6))),
                     _ => return None
                 }
             }
         }
 
         pub enum Which {
-            implicit(()),
-            explicit(u16),
+            Implicit(()),
+            Explicit(u16),
         }
     }
 
@@ -638,33 +638,33 @@ pub mod Type {
 
         pub fn which(&self) -> Option<Which<'self>> {
             match self._reader.getDataField::<u16>(0) {
-                0 => Some(void),
-                1 => Some(bool_),
-                2 => Some(int8),
-                3 => Some(int16),
-                4 => Some(int32),
-                5 => Some(int64),
-                6 => Some(uint8),
-                7 => Some(uint16),
-                8 => Some(uint32),
-                9 => Some(uint64),
-                10 => Some(float32),
-                11 => Some(float64),
-                12 => Some(text),
-                13 => Some(data),
+                0 => Some(Void),
+                1 => Some(Bool),
+                2 => Some(Int8),
+                3 => Some(Int16),
+                4 => Some(Int32),
+                5 => Some(Int64),
+                6 => Some(Uint8),
+                7 => Some(Uint16),
+                8 => Some(Uint32),
+                9 => Some(Uint64),
+                10 => Some(Float32),
+                11 => Some(Float64),
+                12 => Some(Text),
+                13 => Some(Data),
                 14 => {
-                    return Some(list(List_::Reader::new(self._reader)));
+                    return Some(List(List_::Reader::new(self._reader)));
                 }
                 15 => {
-                    return Some(enum_(Enum::Reader::new(self._reader)));
+                    return Some(Enum(Enum::Reader::new(self._reader)));
                 }
                 16 => {
-                    return Some(struct_(Struct::Reader::new(self._reader)));
+                    return Some(Struct(Struct::Reader::new(self._reader)));
                 }
                 17 => {
-                    return Some(interface(Interface::Reader::new(self._reader)));
+                    return Some(Interface(Interface::Reader::new(self._reader)));
                 }
-                18 => { return Some(object); }
+                18 => { return Some(Object); }
                 _ => { return None; }
             }
         }
@@ -683,25 +683,25 @@ pub mod Type {
     list_submodule!(schema_capnp, Type)
 
     pub enum Which<'self> {
-        void,
-        bool_,
-        int8,
-        int16,
-        int32,
-        int64,
-        uint8,
-        uint16,
-        uint32,
-        uint64,
-        float32,
-        float64,
-        text,
-        data,
-        list(List_::Reader<'self>),
-        enum_(Enum::Reader<'self>),
-        struct_(Struct::Reader<'self>),
-        interface(Interface::Reader<'self>),
-        object
+        Void,
+        Bool,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        Uint8,
+        Uint16,
+        Uint32,
+        Uint64,
+        Float32,
+        Float64,
+        Text,
+        Data,
+        List(List_::Reader<'self>),
+        Enum(Enum::Reader<'self>),
+        Struct(Struct::Reader<'self>),
+        Interface(Interface::Reader<'self>),
+        Object
     }
 
     pub mod List_ {
@@ -813,25 +813,25 @@ pub mod Value {
     list_submodule!(schema_capnp, Value)
 
     pub enum Which<'self> {
-        void,
-        bool_(bool),
-        int8(i8),
-        int16(i16),
-        int32(i32),
-        int64(i64),
-        uint8(u8),
-        uint16(u16),
-        uint32(u32),
-        uint64(u64),
-        float32(f32),
-        float64(f32),
-        text(Text::Reader<'self>),
-        data(Data::Reader<'self>),
-        list, // TODO
-        enum_(u16),
-        struct_, // TODO
-        interface,
-        object // TODO
+        Void,
+        Bool(bool),
+        Int8(i8),
+        Int16(i16),
+        Int32(i32),
+        Int64(i64),
+        Uint8(u8),
+        Uint16(u16),
+        Uint32(u32),
+        Uint64(u64),
+        Float32(f32),
+        Float64(f32),
+        Text(Text::Reader<'self>),
+        Data(Data::Reader<'self>),
+        List, // TODO
+        Enum(u16),
+        Struct, // TODO
+        Interface,
+        Object // TODO
     }
 }
 
@@ -879,16 +879,16 @@ pub mod Annotation {
 
 pub mod ElementSize {
     pub enum Reader {
-        empty = 0,
-        bit = 1,
-        byte = 2,
-        twoBytes = 3,
-        fourBytes = 4,
-        eightBytes = 5,
-        pointer = 6,
-        inlineComposite = 7
+        Empty = 0,
+        Bit = 1,
+        Byte = 2,
+        TwoBytes = 3,
+        FourBytes = 4,
+        EightBytes = 5,
+        Pointer = 6,
+        InlineComposite = 7
     }
-    pub static MAX_ENUMERANT : Reader = inlineComposite;
+    pub static MAX_ENUMERANT : Reader = InlineComposite;
 }
 
 

@@ -56,14 +56,14 @@ fn macros() -> ~str {
 fn elementSizeStr (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
     use schema_capnp::ElementSize::*;
     match elementSize {
-        empty => ~"VOID",
-        bit => ~"BIT",
-        byte => ~"BYTE",
-        twoBytes => ~"TWO_BYTES",
-        fourBytes => ~"FOUR_BYTES",
-        eightBytes => ~"EIGHT_BYTES",
-        pointer => ~"POINTER",
-        inlineComposite => ~"INLINE_COMPOSITE"
+        Empty => ~"VOID",
+        Bit => ~"BIT",
+        Byte => ~"BYTE",
+        TwoBytes => ~"TWO_BYTES",
+        FourBytes => ~"FOUR_BYTES",
+        EightBytes => ~"EIGHT_BYTES",
+        Pointer => ~"POINTER",
+        InlineComposite => ~"INLINE_COMPOSITE"
     }
 }
 
@@ -71,18 +71,18 @@ fn elementSize (typ : schema_capnp::Type::Which) -> schema_capnp::ElementSize::R
     use schema_capnp::Type::*;
     use schema_capnp::ElementSize::*;
     match typ {
-        void => empty,
-        bool_ => bit,
-        int8 => byte,
-        int16 => twoBytes,
-        int32 => fourBytes,
-        int64 => eightBytes,
-        uint8 => byte,
-        uint16 => twoBytes,
-        uint32 => fourBytes,
-        uint64 => eightBytes,
-        float32 => fourBytes,
-        float64 => eightBytes,
+        Void => Empty,
+        Bool => Bit,
+        Int8 => Byte,
+        Int16 => TwoBytes,
+        Int32 => FourBytes,
+        Int64 => EightBytes,
+        Uint8 => Byte,
+        Uint16 => TwoBytes,
+        Uint32 => FourBytes,
+        Uint64 => EightBytes,
+        Float32 => FourBytes,
+        Float64 => EightBytes,
         _ => fail!("not primitive")
     }
 }
@@ -90,18 +90,18 @@ fn elementSize (typ : schema_capnp::Type::Which) -> schema_capnp::ElementSize::R
 fn primTypeStr (typ : schema_capnp::Type::Which) -> ~str {
     use schema_capnp::Type::*;
     match typ {
-        void => ~"()",
-        bool_ => ~"bool",
-        int8 => ~"i8",
-        int16 => ~"i16",
-        int32 => ~"i32",
-        int64 => ~"i64",
-        uint8 => ~"u8",
-        uint16 => ~"u16",
-        uint32 => ~"u32",
-        uint64 => ~"u64",
-        float32 => ~"f32",
-        float64 => ~"f64",
+        Void => ~"()",
+        Bool => ~"bool",
+        Int8 => ~"i8",
+        Int16 => ~"i16",
+        Int32 => ~"i32",
+        Int64 => ~"i64",
+        Uint8 => ~"u8",
+        Uint16 => ~"u16",
+        Uint32 => ~"u32",
+        Uint64 => ~"u64",
+        Float32 => ~"f32",
+        Float64 => ~"f64",
         _ => fail!("not primitive")
     }
 }
@@ -214,12 +214,12 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     }
 
     match nodeReader.which() {
-        Some(Node::struct_(structReader)) => {
+        Some(Node::Struct(structReader)) => {
             let fields = structReader.getFields();
             for jj in range(0, fields.size()) {
                 let field = fields.get(jj);
                 match field.which() {
-                    Some(Field::group(group)) => {
+                    Some(Field::Group(group)) => {
                         let id = group.getTypeId();
                         let name = capitalizeFirstLetter(field.getName());
                         let scopeNames = {
@@ -262,7 +262,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
     match field.which() {
         None => fail!("unrecognized field type"),
-        Some(Field::group(group)) => {
+        Some(Field::Group(group)) => {
             let id = group.getTypeId();
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
@@ -274,7 +274,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                         Line(fmt!("%s::Builder::new(self._builder)", theMod)));
             }
         }
-        Some(Field::slot(regField)) => {
+        Some(Field::Slot(regField)) => {
 
             let typ = regField.getType();
             let offset = regField.getOffset() as uint;
@@ -285,63 +285,63 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let moduleWithVar = if (isReader) { "Reader<'self>" } else { "Builder" };
 
             match typ.which() {
-                Some(Type::void) => { return (~"()", Line(~"()"))}
-                Some(Type::bool_) => {
+                Some(Type::Void) => { return (~"()", Line(~"()"))}
+                Some(Type::Bool) => {
                     return (~"bool", Line(fmt!("self.%s.getBoolField(%u)",
                                                member, offset)))
                 }
-                Some(Type::int8) => {
+                Some(Type::Int8) => {
                     return (~"i8", Line(fmt!("self.%s.getDataField::<i8>(%u)",
                                              member, offset)))
                 }
-                Some(Type::int16) => {
+                Some(Type::Int16) => {
                     return (~"i16", Line(fmt!("self.%s.getDataField::<i16>(%u)",
                                               member, offset)))
                 }
-                Some(Type::int32) => {
+                Some(Type::Int32) => {
                     return (~"i32", Line(fmt!("self.%s.getDataField::<i32>(%u)",
                                               member, offset)))
                 }
-                Some(Type::int64) => {
+                Some(Type::Int64) => {
                     return (~"i64", Line(fmt!("self.%s.getDataField::<i64>(%u)",
                                               member, offset)))
                 }
-                Some(Type::uint8) => {
+                Some(Type::Uint8) => {
                     return (~"u8", Line(fmt!("self.%s.getDataField::<u8>(%u)",
                                              member, offset)))
                 }
-                Some(Type::uint16) => {
+                Some(Type::Uint16) => {
                     return (~"u16", Line(fmt!("self.%s.getDataField::<u16>(%u)",
                                               member, offset)))
                 }
-                Some(Type::uint32) => {
+                Some(Type::Uint32) => {
                     return (~"u32", Line(fmt!("self.%s.getDataField::<u32>(%u)",
                                               member, offset)))
                 }
-                Some(Type::uint64) => {
+                Some(Type::Uint64) => {
                     return (~"u64", Line(fmt!("self.%s.getDataField::<u64>(%u)",
                                               member, offset)))
                 }
-                Some(Type::float32) => {
+                Some(Type::Float32) => {
                     return (~"f32", Line(fmt!("self.%s.getDataField::<f32>(%u)",
                                               member, offset)))
                 }
-                Some(Type::float64) => {
+                Some(Type::Float64) => {
                     return (~"f64", Line(fmt!("self.%s.getDataField::<f64>(%u)",
                                               member, offset)))
                 }
-                Some(Type::text) => {
+                Some(Type::Text) => {
                     return (fmt!("Text::%s", moduleWithVar),
                             Line(fmt!("self.%s.getTextField(%u, \"\")",
                                       member, offset)));
                 }
-                Some(Type::data) => {
+                Some(Type::Data) => {
                     return (~"TODO", Line(~"TODO"))
                 }
-                Some(Type::list(ot1)) => {
+                Some(Type::List(ot1)) => {
                     match ot1.getElementType().which() {
                         None => { fail!("unsupported type") }
-                        Some(Type::struct_(st)) => {
+                        Some(Type::Struct(st)) => {
                             let id = st.getTypeId();
                             let scope = scopeMap.get(&id);
                             let theMod = scope.connect("::");
@@ -351,7 +351,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                               fullModuleName, member, offset, theMod))
                                     );
                         }
-                        Some(Type::enum_(e)) => {
+                        Some(Type::Enum(e)) => {
                             let id = e.getTypeId();
                             let scope = scopeMap.get(&id);
                             let theMod = scope.connect("::");
@@ -363,11 +363,11 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                     Line(fmt!("EnumList::%s::%s::new(self.%s.getListField(%u,TWO_BYTES,None))",
                                          module, typeArgs, member, offset)));
                         }
-                        Some(Type::list(_)) => {return (~"TODO", Line(~"TODO")) }
-                        Some(Type::text) => {return (~"TODO", Line(~"TODO")) }
-                        Some(Type::data) => {return (~"TODO", Line(~"TODO")) }
-                        Some(Type::interface(_)) => {return (~"TODO", Line(~"TODO")) }
-                        Some(Type::object) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::List(_)) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::Text) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::Data) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::Interface(_)) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::Object) => {return (~"TODO", Line(~"TODO")) }
                         Some(primType) => {
                             let typeStr = primTypeStr(primType);
                             let sizeStr = elementSizeStr(elementSize(primType));
@@ -381,7 +381,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                         }
                     }
                 }
-                Some(Type::enum_(en)) => {
+                Some(Type::Enum(en)) => {
                     let id = en.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
@@ -395,7 +395,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                 Line(~"HasMaxEnumerant::cast(unused_self, result)")
                                     ]));
                 }
-                Some(Type::struct_(st)) => {
+                Some(Type::Struct(st)) => {
                     let id = st.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
@@ -404,10 +404,10 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                             Line(fmt!("%s::%s::new(self.%s.getStructField(%u, %s None))",
                                       theMod, module, member, offset, middleArg)))
                 }
-                Some(Type::interface(_)) => {
+                Some(Type::Interface(_)) => {
                         return (~"TODO", Line(~"TODO"));
                 }
-                Some(Type::object) => {
+                Some(Type::Object) => {
                     return (~"TODO", Line(~"TODO"))
                 }
                 None => {
@@ -442,7 +442,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
 
     match field.which() {
         None => fail!("unrecognized field type"),
-        Some(Field::group(group)) => {
+        Some(Field::Group(group)) => {
             let id = group.getTypeId();
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
@@ -450,74 +450,74 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
             // XXX todo: zero out all of the fields.
             interior.push(Line(fmt!("%s::Builder::new(self._builder)", theMod)));
         }
-        Some(Field::slot(regField)) => {
+        Some(Field::Slot(regField)) => {
 
             let typ = regField.getType();
             let offset = regField.getOffset() as uint;
 
             match typ.which() {
-                Some(Type::void) => {
+                Some(Type::Void) => {
                     result.push(Line(fmt!("pub fn set%s(&self, _value : ()) {",capName)))
                 }
-                Some(Type::bool_) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : bool) {", capName)));
-                    interior.push(Line(fmt!("self._builder.setBoolField(%u, _value);", offset)))
+                Some(Type::Bool) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : bool) {", capName)));
+                    interior.push(Line(fmt!("self._builder.setBoolField(%u, value);", offset)))
                 }
-                Some(Type::int8) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : i8) {", capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i8>(%u, _value);", offset)))
+                Some(Type::Int8) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : i8) {", capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i8>(%u, value);", offset)))
                 }
-                Some(Type::int16) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : i16) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i16>(%u, _value);", offset)))
+                Some(Type::Int16) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : i16) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i16>(%u, value);", offset)))
                 }
-                Some(Type::int32) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : i32) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i32>(%u, _value);", offset)))
+                Some(Type::Int32) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : i32) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i32>(%u, value);", offset)))
                 }
-                Some(Type::int64) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : i64) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i64>(%u, _value);", offset)))
+                Some(Type::Int64) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : i64) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<i64>(%u, value);", offset)))
                 }
-                Some(Type::uint8) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : u8) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u8>(%u, _value);", offset)))
+                Some(Type::Uint8) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : u8) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u8>(%u, value);", offset)))
                 }
-                Some(Type::uint16) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : u16) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u16>(%u, _value);", offset)))
+                Some(Type::Uint16) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : u16) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u16>(%u, value);", offset)))
                 }
-                Some(Type::uint32) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : u32) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u32>(%u, _value);", offset)))
+                Some(Type::Uint32) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : u32) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u32>(%u, value);", offset)))
                 }
-                Some(Type::uint64) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : u64) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u64>(%u, _value);", offset)))
+                Some(Type::Uint64) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : u64) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<u64>(%u, value);", offset)))
                 }
-                Some(Type::float32) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : f32) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<f32>(%u, _value);", offset)))
+                Some(Type::Float32) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : f32) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<f32>(%u, value);", offset)))
                 }
-                Some(Type::float64) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : f64) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<f64>(%u, _value);", offset)))
+                Some(Type::Float64) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : f64) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setDataField::<f64>(%u, value);", offset)))
                 }
-                Some(Type::text) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : &str) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setTextField(%u, _value);", offset)))
+                Some(Type::Text) => {
+                    result.push(Line(fmt!("pub fn set%s(&self, value : &str) {",capName)));
+                    interior.push(Line(fmt!("self._builder.setTextField(%u, value);", offset)))
                 }
-                Some(Type::data) => { return BlankLine }
-                Some(Type::list(ot1)) => {
+                Some(Type::Data) => { return BlankLine }
+                Some(Type::List(ot1)) => {
                     match ot1.getElementType().which() {
                         None => fail!("unsupported type"),
                         Some(t1) => {
                             let returnType =
                                 match t1 {
-                                Type::void | Type::bool_ | Type::int8 |
-                                    Type::int16 | Type::int32 | Type::int64 |
-                                    Type::uint8 | Type::uint16 | Type::uint32 |
-                                    Type::uint64 | Type::float32 | Type::float64 => {
+                                Type::Void | Type::Bool | Type::Int8 |
+                                    Type::Int16 | Type::Int32 | Type::Int64 |
+                                    Type::Uint8 | Type::Uint16 | Type::Uint32 |
+                                    Type::Uint64 | Type::Float32 | Type::Float64 => {
 
                                     let typeStr = primTypeStr(t1);
                                     let sizeStr = elementSizeStr(elementSize(t1));
@@ -530,7 +530,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                         interior.push(Line(~")"));
                                     fmt!("PrimitiveList::Builder<%s>", typeStr)
                                 }
-                                Type::enum_(e) => {
+                                Type::Enum(e) => {
                                     let id = e.getTypeId();
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
@@ -545,7 +545,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                     interior.push(Line(~")"));
                                     fmt!("EnumList::Builder<%s>", typeStr)
                                 }
-                                Type::struct_(st) => {
+                                Type::Struct(st) => {
                                     let id = st.getTypeId();
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
@@ -565,17 +565,17 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                        }
                     }
                 }
-                Some(Type::enum_(e)) => {
+                Some(Type::Enum(e)) => {
                     let id = e.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : %s::Reader) {",
+                    result.push(Line(fmt!("pub fn set%s(&self, value : %s::Reader) {",
                                           capName, theMod)));
                     interior.push(
-                                  Line(fmt!("self._builder.setDataField::<u16>(%u, _value as u16)",
+                                  Line(fmt!("self._builder.setDataField::<u16>(%u, value as u16)",
                                             offset)));
                 }
-                Some(Type::struct_(st)) => {
+                Some(Type::Struct(st)) => {
                     let id = st.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
@@ -584,10 +584,10 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                       Line(fmt!("%s::Builder::new(self._builder.initStructField(%u, %s::STRUCT_SIZE))",
                                 theMod, offset, theMod)));
                 }
-                Some(Type::interface(_)) => {
+                Some(Type::Interface(_)) => {
                     return BlankLine
                 }
-                Some(Type::object) => {
+                Some(Type::Object) => {
                     return BlankLine
                 }
                 None => {return BlankLine}
@@ -627,8 +627,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         let dvalue = field.getDiscriminantValue() as uint;
 
         let fieldName = field.getName();
-//        let enumerantName = camelCaseToAllCaps(memberName);
-        let enumerantName = fieldName;
+        let enumerantName = capitalizeFirstLetter(fieldName);
 
         let (ty, get) = getterText(nodeMap, scopeMap, field, true);
 
@@ -643,12 +642,12 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 ]));
 
         match field.which() {
-            Some(Field::group(_)) => requiresSelfVar = true,
-            Some(Field::slot(regField)) => {
+            Some(Field::Group(_)) => requiresSelfVar = true,
+            Some(Field::Slot(regField)) => {
                 match regField.getType().which() {
-                    Some(Type::text) | Some(Type::data) |
-                    Some(Type::list(_)) | Some(Type::struct_(_)) |
-                    Some(Type::object) => requiresSelfVar = true,
+                    Some(Type::Text) | Some(Type::Data) |
+                    Some(Type::List(_)) | Some(Type::Struct(_)) |
+                    Some(Type::Object) => requiresSelfVar = true,
                     _ => ()
                 }
             }
@@ -703,11 +702,11 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
     match nodeReader.which() {
 
-        Some(Node::file_(())) => {
+        Some(Node::File(())) => {
             output.push(Branch(nested_output));
         }
 
-        Some(Node::struct_(structReader)) => {
+        Some(Node::Struct(structReader)) => {
             let names = scopeMap.get(&nodeId);
             output.push(BlankLine);
 
@@ -793,7 +792,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
 
                 match field.which() {
-                    Some(Field::group(group)) => {
+                    Some(Field::Group(group)) => {
                         let text = generateNode(nodeMap, scopeMap, rootName, group.getTypeId());
                         nested_output.push(text);
                     }
@@ -867,7 +866,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
         }
 
-        Some(Node::enum_(enumReader)) => {
+        Some(Node::Enum(enumReader)) => {
             let names = scopeMap.get(&nodeId);
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
@@ -902,11 +901,11 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             output.push(Line(~"}"));
         }
 
-        Some(Node::interface(_)) => { }
+        Some(Node::Interface(_)) => { }
 
-        Some(Node::const_(_)) => { }
+        Some(Node::Const(_)) => { }
 
-        Some(Node::annotation( annotationReader )) => {
+        Some(Node::Annotation( annotationReader )) => {
             std::io::println("  annotation node:");
             if (annotationReader.getTargetsFile()) {
                 std::io::println("  targets file");
