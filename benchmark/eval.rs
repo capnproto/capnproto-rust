@@ -15,7 +15,7 @@ pub type Expectation = i32;
 
 fn makeExpression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -> i32 {
     exp.setOp(unsafe {
-            std::cast::transmute(rng.gen_uint_range(0, Operation::modulus as uint + 1))});
+            std::cast::transmute(rng.gen_uint_range(0, Operation::Modulus as uint + 1))});
 
     let left : i32 =
     if (rng.nextLessThan(8) < depth) {
@@ -36,11 +36,11 @@ fn makeExpression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -
     };
 
     match exp.getOp() {
-        Some(Operation::add) => { return left + right }
-        Some(Operation::subtract) => { return left - right }
-        Some(Operation::multiply) => { return left * right }
-        Some(Operation::divide) => { return div(left, right) }
-        Some(Operation::modulus) => { return modulus(left, right) }
+        Some(Operation::Add) => { return left + right }
+        Some(Operation::Subtract) => { return left - right }
+        Some(Operation::Multiply) => { return left * right }
+        Some(Operation::Divide) => { return div(left, right) }
+        Some(Operation::Modulus) => { return modulus(left, right) }
         None => { fail!("impossible") }
     }
 }
@@ -58,11 +58,11 @@ fn evaluateExpression(exp : Expression::Reader) -> i32 {
     };
 
     match exp.getOp() {
-        Some(Operation::add) => return left + right,
-        Some(Operation::subtract) => return left - right,
-        Some(Operation::multiply) => return left * right,
-        Some(Operation::divide) => return div(left, right),
-        Some(Operation::modulus) => return modulus(left, right),
+        Some(Operation::Add) => return left + right,
+        Some(Operation::Subtract) => return left - right,
+        Some(Operation::Multiply) => return left * right,
+        Some(Operation::Divide) => return div(left, right),
+        Some(Operation::Modulus) => return modulus(left, right),
         None => fail!("impossible")
     }
 }

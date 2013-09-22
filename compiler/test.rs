@@ -138,23 +138,23 @@ fn testComplexList () {
     let enumList = testComplexList.initEnumList(100);
 
     for i in range::<uint>(0, 10) {
-        enumList.set(i, AnEnum::qux);
+        enumList.set(i, AnEnum::Qux);
     }
     for i in range::<uint>(10, 20) {
-        enumList.set(i, AnEnum::bar);
+        enumList.set(i, AnEnum::Bar);
     }
 
     do testComplexList.asReader |complexListReader| {
         let enumListReader = complexListReader.getEnumList();
         for i in range::<uint>(0,10) {
             match enumListReader.get(i) {
-                Some(AnEnum::qux) => {}
+                Some(AnEnum::Qux) => {}
                 _ => fail!()
             }
         }
         for i in range::<uint>(10,20) {
             match enumListReader.get(i) {
-                Some(AnEnum::bar) => {}
+                Some(AnEnum::Bar) => {}
                 _ => fail!()
             }
         }

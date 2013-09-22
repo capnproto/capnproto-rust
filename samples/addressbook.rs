@@ -31,9 +31,9 @@ fn writeAddressBook() {
 
     let phones = person.initPhones(2);
     phones.get(0).setNumber("(555) 555-5555");
-    phones.get(0).setType(Person::PhoneNumber::Type::work);
+    phones.get(0).setType(Person::PhoneNumber::Type::Work);
     phones.get(1).setNumber("(777) 123-4567");
-    phones.get(1).setType(Person::PhoneNumber::Type::home);
+    phones.get(1).setType(Person::PhoneNumber::Type::Home);
     person.getEmployment().setEmployer("widgco");
 
     let person = people.get(1);
@@ -80,9 +80,9 @@ fn printAddressBook() {
             for j in range(0, phones.size()) {
                 let phone = phones.get(j);
                 let typeName = match phone.getType() {
-                    Some(Person::PhoneNumber::Type::mobile) => {"mobile"}
-                    Some(Person::PhoneNumber::Type::home) => {"home"}
-                    Some(Person::PhoneNumber::Type::work) => {"work"}
+                    Some(Person::PhoneNumber::Type::Mobile) => {"mobile"}
+                    Some(Person::PhoneNumber::Type::Home) => {"home"}
+                    Some(Person::PhoneNumber::Type::Work) => {"work"}
                     None => {"UNKNOWN"}
                 };
                 printfln!("  %s phone: %s", typeName, phone.getNumber());

@@ -878,7 +878,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             for ii in range(0, enumerants.size()) {
                 let enumerant = enumerants.get(ii);
                 members.push(
-                    Line(fmt!("%s = %u,", enumerant.getName(), ii)));
+                    Line(fmt!("%s = %u,", capitalizeFirstLetter(enumerant.getName()),
+                              ii)));
             }
 
             output.push(Indent(~Branch(~[Line(~"pub enum Reader {"),
