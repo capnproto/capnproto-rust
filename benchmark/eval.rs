@@ -15,7 +15,7 @@ pub type Expectation = i32;
 
 fn makeExpression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -> i32 {
     exp.setOp(unsafe {
-            std::cast::transmute(rng.gen_uint_range(0, Operation::Modulus as uint + 1))});
+            std::cast::transmute(rng.gen_integer_range::<uint>(0, Operation::Modulus as uint + 1))});
 
     let left : i32 =
     if (rng.nextLessThan(8) < depth) {
