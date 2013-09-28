@@ -75,7 +75,7 @@ fn printAddressBook() {
 
         for i in range(0, people.size()) {
             let person = people.get(i);
-            printfln!("%s: %s", person.getName(), person.getEmail());
+            println!("{}: {}", person.getName(), person.getEmail());
             let phones = person.getPhones();
             for j in range(0, phones.size()) {
                 let phone = phones.get(j);
@@ -85,7 +85,7 @@ fn printAddressBook() {
                     Some(Person::PhoneNumber::Type::Work) => {"work"}
                     None => {"UNKNOWN"}
                 };
-                printfln!("  %s phone: %s", typeName, phone.getNumber());
+                println!("  {} phone: {}", typeName, phone.getNumber());
 
             }
             match person.getEmployment().which() {
@@ -93,10 +93,10 @@ fn printAddressBook() {
                     println("  unemployed");
                 }
                 Some(Person::Employment::Employer(employer)) => {
-                    printfln!("  employer: %s", employer);
+                    println!("  employer: {}", employer);
                 }
                 Some(Person::Employment::School(school)) => {
-                    printfln!("  student at: %s", school);
+                    println!("  student at: {}", school);
                 }
                 Some(Person::Employment::SelfEmployed(())) => {
                     println("  self-employed");

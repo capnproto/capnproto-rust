@@ -993,7 +993,7 @@ fn main() {
                     writer.write(macros_text.as_bytes());
                     writer.write(text.as_bytes())
                 }
-                Err(msg) => {printfln!("ERROR: %s", msg)}
+                Err(msg) => {println!("ERROR: {}", msg)}
             }
 
         }

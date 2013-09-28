@@ -55,14 +55,14 @@ pub fn main () {
     let args = std::os::args();
 
     if (args.len() != 5) {
-        printfln!("USAGE: %s MODE REUSE COMPRESSION ITERATION_COUNT", args[0]);
+        println!("USAGE: {} MODE REUSE COMPRESSION ITERATION_COUNT", args[0]);
         return;
     }
 
     let iters = match from_str::<u64>(args[4]) {
         Some (n) => n,
         None => {
-            printfln!("Could not parse a u64 from: %s", args[4]);
+            println!("Could not parse a u64 from: {}", args[4]);
             return;
         }
     };
