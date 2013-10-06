@@ -116,7 +116,6 @@ pub mod Node {
     pub mod Struct {
         use capnprust::layout::*;
         use schema_capnp::*;
-        use std;
 
         pub struct Reader<'self> {
             _reader : StructReader<'self>
@@ -141,9 +140,7 @@ pub mod Node {
             }
 
             pub fn getPreferredListEncoding(&self) -> Option<ElementSize::Reader> {
-                let result = self._reader.getDataField::<u16>(13) as uint;
-                if (result > ElementSize::MAX_ENUMERANT as uint) { None }
-                    else { Some( unsafe { std::cast::transmute(result)})}
+                FromPrimitive::from_u16(self._reader.getDataField::<u16>(13))
             }
 
             pub fn getIsGroup(&self) -> bool {
@@ -878,6 +875,8 @@ pub mod Annotation {
 }
 
 pub mod ElementSize {
+
+    #[deriving(FromPrimitive)]
     pub enum Reader {
         Empty = 0,
         Bit = 1,
@@ -888,7 +887,6 @@ pub mod ElementSize {
         Pointer = 6,
         InlineComposite = 7
     }
-    pub static MAX_ENUMERANT : Reader = InlineComposite;
 }
 
 

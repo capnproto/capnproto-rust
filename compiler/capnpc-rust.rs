@@ -387,13 +387,10 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     let theMod = scope.connect("::");
                     return
                         (fmt!("Option<%s::Reader>", theMod), // Enums don't have builders.
-                         Branch(~[
-                                Line(fmt!("let result = self.%s.getDataField::<u16>(%u);",
-                                          member, offset)),
-                                Line(fmt!("let unused_self : Option<%s::Reader> = None;",
-                                          theMod)),
-                                Line(~"HasMaxEnumerant::cast(unused_self, result)")
-                                    ]));
+                         Branch(
+                            ~[Line(fmt!("FromPrimitive::from_u16(self.%s.getDataField::<u16>(%u))",
+                                        member, offset))
+                              ]));
                 }
                 Some(Type::Struct(st)) => {
                     let id = st.getTypeId();
@@ -881,21 +878,17 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                               ii)));
             }
 
-            output.push(Indent(~Branch(~[Line(~"pub enum Reader {"),
+            output.push(Indent(~Branch(~[Line(~"#[deriving(FromPrimitive)]"),
+                                         Line(~"pub enum Reader {"),
                                          Indent(~Branch(members)),
                                          Line(~"}")])));
             output.push(
                 Indent(
                     ~Branch(
-                        ~[Line(~"impl HasMaxEnumerant for Reader {"),
+                        ~[Line(~"impl ToU16 for Reader {"),
                           Indent(~Line(~"#[inline]")),
                           Indent(
-                            ~Line(
-                               fmt!("fn maxEnumerant(_unused_self: Option<Reader>) -> u16 { %u }",
-                                    enumerants.size() - 1))),
-                          Indent(~Line(~"#[inline]")),
-                          Indent(
-                            ~Line(~"fn asU16(self) -> u16 { self as u16 }")),
+                            ~Line(~"fn to_u16(self) -> u16 { self as u16 }")),
                           Line(~"}")])));
 
             output.push(Line(~"}"));

@@ -45,16 +45,8 @@ pub mod PrimitiveList {
     }
 }
 
-pub trait HasMaxEnumerant {
-    fn maxEnumerant(_unused_self : Option<Self>) -> u16;
-    fn cast(unused_self : Option<Self>, value : u16) -> Option<Self> {
-        use std;
-        if (value > HasMaxEnumerant::maxEnumerant(unused_self)) { None }
-        else {Some (unsafe {std::cast::transmute(value as uint)})}
-    }
-
-    // Do I really have to define a method for this?
-    fn asU16(self) -> u16;
+pub trait ToU16 {
+    fn to_u16(self) -> u16;
 }
 
 
@@ -66,7 +58,7 @@ pub mod EnumList {
         reader : ListReader<'self>
     }
 
-    impl <'self, T : HasMaxEnumerant> Reader<'self, T> {
+    impl <'self, T : FromPrimitive> Reader<'self, T> {
         pub fn new<'a>(reader : ListReader<'a>) -> Reader<'a, T> {
             Reader::<'a, T> { reader : reader }
         }
@@ -75,8 +67,7 @@ pub mod EnumList {
 
         pub fn get(&self, index : uint) -> Option<T> {
             let result : u16 = PrimitiveElement::get(&self.reader, index);
-            let unused_self : Option<T> = None;
-            HasMaxEnumerant::cast(unused_self, result)
+            FromPrimitive::from_u16(result)
         }
     }
 
@@ -84,7 +75,7 @@ pub mod EnumList {
         builder : ListBuilder
     }
 
-    impl <T : HasMaxEnumerant> Builder<T> {
+    impl <T : ToU16 + FromPrimitive> Builder<T> {
         pub fn new(builder : ListBuilder) -> Builder<T> {
             Builder { builder : builder }
         }
@@ -93,12 +84,11 @@ pub mod EnumList {
 
         pub fn get(&self, index : uint) -> Option<T> {
             let result : u16 = PrimitiveElement::getFromBuilder(&self.builder, index);
-            let unused_self : Option<T> = None;
-            HasMaxEnumerant::cast(unused_self, result)
+            FromPrimitive::from_u16(result)
         }
 
         pub fn set(&self, index : uint, value : T) {
-            PrimitiveElement::set(&self.builder, index, value.asU16());
+            PrimitiveElement::set(&self.builder, index, value.to_u16());
         }
     }
 }
