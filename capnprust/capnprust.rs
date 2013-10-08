@@ -4,10 +4,13 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
+#[feature(globs)];
+#[feature(macro_rules)];
 
 #[link(name = "capnprust", vers = "alpha", author = "dwrensha")];
 
 #[crate_type = "lib"];
+
 
 pub mod common;
 pub mod endian;
