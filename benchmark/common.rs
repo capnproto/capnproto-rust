@@ -13,7 +13,7 @@ pub struct FastRand {
 
 impl Rng for FastRand {
     #[inline]
-    fn next(&mut self) -> u32 {
+    fn next_u32(&mut self) -> u32 {
         let a = 1664525;
         let c = 1013904223;
         self.state = a * self.state + c;
@@ -28,13 +28,13 @@ impl FastRand {
 
     #[inline]
     pub fn nextLessThan(&mut self, range : u32) -> u32 {
-        self.next() % range
+        self.next_u32() % range
     }
 
     #[inline]
     pub fn nextDouble(&mut self, range : f64) -> f64 {
         use std::u32;
-        self.next() as f64 * range / (u32::max_value as f64)
+        self.next_u32() as f64 * range / (u32::max_value as f64)
     }
 }
 
