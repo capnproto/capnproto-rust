@@ -248,9 +248,9 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 fn generateImportStatements(rootName : &str) -> FormattedText {
     Branch(~[
         Line(~"use std;"),
-        Line(~"use capnprust::blob::*;"),
-        Line(~"use capnprust::layout::*;"),
-        Line(~"use capnprust::list::*;"),
+        Line(~"use capnprust::blob::{Text,Data};"),
+        Line(~"use capnprust::layout;"),
+        Line(~"use capnprust::list::{PrimitiveList, ToU16, EnumList};"),
         Line(fmt!("use %s::*;", rootName))
     ])
 }
@@ -363,7 +363,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                 if (isReader) {fmt!("<'self, %s>", fullModuleName)}
                                 else {fmt!("<%s>", fullModuleName)};
                             return (fmt!("EnumList::%s%s",module,typeArgs),
-                                    Line(fmt!("EnumList::%s::%s::new(self.%s.getListField(%u,TWO_BYTES,None))",
+                                    Line(fmt!("EnumList::%s::%s::new(self.%s.getListField(%u,layout::TWO_BYTES,None))",
                                          module, typeArgs, member, offset)));
                         }
                         Some(Type::List(_)) => {return (~"TODO", Line(~"TODO")) }
@@ -379,7 +379,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                 else {fmt!("<%s>", typeStr)};
                             return
                                 (fmt!("PrimitiveList::%s%s", module, typeArgs),
-                                 Line(fmt!("PrimitiveList::%s::%s::new(self.%s.getListField(%u,%s,None))",
+                                 Line(fmt!("PrimitiveList::%s::%s::new(self.%s.getListField(%u,layout::%s,None))",
                                            module, typeArgs, member, offset, sizeStr)))
                         }
                     }
@@ -525,7 +525,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                     interior.push(Line(fmt!("PrimitiveList::Builder::<%s>::new(",
                                                             typeStr)));
                                     interior.push(
-                                        Indent(~Line(fmt!("self._builder.initListField(%u,%s,size)",
+                                        Indent(~Line(fmt!("self._builder.initListField(%u,layout::%s,size)",
                                                           offset, sizeStr))));
                                         interior.push(Line(~")"));
                                     fmt!("PrimitiveList::Builder<%s>", typeStr)
@@ -540,7 +540,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                     interior.push(
                                         Indent(
                                             ~Line(
-                                                fmt!("self._builder.initListField(%u,TWO_BYTES,size)",
+                                                fmt!("self._builder.initListField(%u,layout::TWO_BYTES,size)",
                                                      offset))));
                                     interior.push(Line(~")"));
                                     fmt!("EnumList::Builder<%s>", typeStr)
@@ -735,11 +735,11 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
 
             if (!isGroup) {
-                preamble.push(Line(~"pub static STRUCT_SIZE : StructSize ="));
+                preamble.push(Line(~"pub static STRUCT_SIZE : layout::StructSize ="));
                 preamble.push(
                    Indent(
                       ~Line(
-                        fmt!("StructSize { data : %u, pointers : %u, preferredListEncoding : %s};",
+                        fmt!("layout::StructSize { data : %u, pointers : %u, preferredListEncoding : layout::%s};",
                              dataSize as uint, pointerSize as uint,
                              elementSizeStr(preferredListEncoding)))));
                 preamble.push(BlankLine);
@@ -813,31 +813,32 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 if (isGroup) { Branch(~[] ) }
                 else {
                   Branch(~[
-                       Line(~"impl HasStructSize for Builder {"),
+                       Line(~"impl layout::HasStructSize for Builder {"),
                        Indent(~Branch(~[Line(~"#[inline]"),
-                                        Line(~"fn structSize(_unused_self : Option<Builder>) -> StructSize { STRUCT_SIZE }")])),
+                                        Line(~"fn structSize(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }")])),
                        Line(~"}")])
             };
 
             let accessors =
                 ~[Branch(preamble),
-                  Line(~"pub struct Reader<'self> { _reader : StructReader<'self> }"),
+                  Line(~"pub struct Reader<'self> { _reader : layout::StructReader<'self> }"),
                   Line(~"impl <'self> Reader<'self> {"),
                   Indent(
                       ~Branch(
-                          ~[Line(~"pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {"),
+                          ~[Line(~"pub fn new<'a>(reader : layout::StructReader<'a>) \
+                                                  -> Reader<'a> {"),
                             Indent(~Line(~"Reader { _reader : reader }")),
                             Line(~"}")
                             ])),
                   Indent(~Branch(reader_members)),
                   Line(~"}"),
                   BlankLine,
-                  Line(~"pub struct Builder { _builder : StructBuilder }"),
+                  Line(~"pub struct Builder { _builder : layout::StructBuilder }"),
                   builderStructSize,
-                  Line(~"impl FromStructBuilder for Builder {"),
+                  Line(~"impl layout::FromStructBuilder for Builder {"),
                   Indent(
                       ~Branch(
-                          ~[Line(~"fn fromStructBuilder(builder : StructBuilder) -> Builder {"),
+                          ~[Line(~"fn fromStructBuilder(builder : layout::StructBuilder) -> Builder {"),
                             Indent(~Line(~"Builder { _builder : builder }")),
                             Line(~"}")
                             ])),
@@ -846,7 +847,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                   Line(~"impl Builder {"),
                   Indent(
                       ~Branch(
-                          ~[Line(~"pub fn new(builder : StructBuilder) -> Builder {"),
+                          ~[Line(~"pub fn new(builder : layout::StructBuilder) -> Builder {"),
                             Indent(~Line(~"Builder { _builder : builder }")),
                             Line(~"}"),
                             BlankLine,

@@ -7,8 +7,8 @@
 mod macros;
 
 pub mod Node {
-    use capnprust::layout::*;
-    use capnprust::blob::*;
+    use capnprust::layout::{StructReader, StructBuilder, StructSize, INLINE_COMPOSITE};
+    use capnprust::blob::Text;
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 5, pointers : 5,
                                                       preferredListEncoding : INLINE_COMPOSITE};
@@ -114,16 +114,16 @@ pub mod Node {
     }
 
     pub mod Struct {
-        use capnprust::layout::*;
-        use schema_capnp::*;
+        use capnprust::layout;
+        use schema_capnp;
 
         pub struct Reader<'self> {
-            _reader : StructReader<'self>
+            _reader : layout::StructReader<'self>
         }
 
         impl <'self> Reader<'self> {
 
-            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+            pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
                 Reader{ _reader : reader }
             }
 
@@ -139,7 +139,7 @@ pub mod Node {
                 self._reader.getDataField::<u16>(12)
             }
 
-            pub fn getPreferredListEncoding(&self) -> Option<ElementSize::Reader> {
+            pub fn getPreferredListEncoding(&self) -> Option<schema_capnp::ElementSize::Reader> {
                 FromPrimitive::from_u16(self._reader.getDataField::<u16>(13))
             }
 
@@ -155,33 +155,34 @@ pub mod Node {
                 self._reader.getDataField::<u32>(8)
             }
 
-            pub fn getFields(&self) -> Field::List::Reader<'self> {
-                Field::List::Reader::new(self._reader.getListField(3, INLINE_COMPOSITE, None))
+            pub fn getFields(&self) -> schema_capnp::Field::List::Reader<'self> {
+                schema_capnp::Field::List::Reader::new(
+                    self._reader.getListField(3, layout::INLINE_COMPOSITE, None))
             }
         }
 
         pub struct Builder {
-            _builder : StructBuilder
+            _builder : layout::StructBuilder
         }
 
         impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
+            pub fn new(builder : layout::StructBuilder) -> Builder {
                 Builder { _builder : builder }
             }
         }
     }
 
     pub mod Enum {
-        use schema_capnp::*;
-        use capnprust::layout::*;
+        use schema_capnp;
+        use capnprust::layout;
 
         pub struct Reader<'self> {
-            _reader : StructReader<'self>
+            _reader : layout::StructReader<'self>
         }
 
         impl <'self> Reader<'self> {
 
-            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+            pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
                 Reader{ _reader : reader }
             }
 
@@ -189,21 +190,22 @@ pub mod Node {
                 self._reader.totalSize() as uint
             }
 
-            pub fn getEnumerants(&self) -> Enumerant::List::Reader<'self> {
-                Enumerant::List::Reader::new(
-                      self._reader.getListField(3,
-                                                Enumerant::STRUCT_SIZE.preferredListEncoding,
-                                                None))
+            pub fn getEnumerants(&self) -> schema_capnp::Enumerant::List::Reader<'self> {
+                schema_capnp::Enumerant::List::Reader::new(
+                      self._reader.getListField(
+                        3,
+                        schema_capnp::Enumerant::STRUCT_SIZE.preferredListEncoding,
+                        None))
             }
 
         }
 
         pub struct Builder {
-            _builder : StructBuilder
+            _builder : layout::StructBuilder
         }
 
         impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
+            pub fn new(builder : layout::StructBuilder) -> Builder {
                 Builder { _builder : builder }
             }
         }
@@ -211,15 +213,15 @@ pub mod Node {
     }
 
     pub mod Interface {
-        use capnprust::layout::*;
+        use capnprust::layout;
 
         pub struct Reader<'self> {
-            _reader : StructReader<'self>
+            _reader : layout::StructReader<'self>
         }
 
         impl <'self> Reader<'self> {
 
-            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+            pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
                 Reader{ _reader : reader }
             }
 
@@ -231,11 +233,11 @@ pub mod Node {
         }
 
         pub struct Builder {
-            _builder : StructBuilder
+            _builder : layout::StructBuilder
         }
 
         impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
+            pub fn new(builder : layout::StructBuilder) -> Builder {
                 Builder { _builder : builder }
             }
         }
@@ -243,16 +245,16 @@ pub mod Node {
     }
 
     pub mod Const {
-        use capnprust::layout::*;
-        use schema_capnp::*;
+        use capnprust::layout;
+        use schema_capnp;
 
         pub struct Reader<'self> {
-            _reader : StructReader<'self>
+            _reader : layout::StructReader<'self>
         }
 
         impl <'self> Reader<'self> {
 
-            pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
+            pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
                 Reader{ _reader : reader }
             }
 
@@ -260,21 +262,21 @@ pub mod Node {
                 self._reader.totalSize() as uint
             }
 
-            pub fn getType(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self._reader.getStructField(3, None))
+            pub fn getType(&self) -> schema_capnp::Type::Reader<'self> {
+                schema_capnp::Type::Reader::new(self._reader.getStructField(3, None))
             }
 
-            pub fn getValue(&self) -> Value::Reader<'self>{
-                Value::Reader::new(self._reader.getStructField(4, None))
+            pub fn getValue(&self) -> schema_capnp::Value::Reader<'self>{
+                schema_capnp::Value::Reader::new(self._reader.getStructField(4, None))
             }
         }
 
         pub struct Builder {
-            _builder : StructBuilder
+            _builder : layout::StructBuilder
         }
 
         impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
+            pub fn new(builder : layout::StructBuilder) -> Builder {
                 Builder { _builder : builder }
             }
         }
