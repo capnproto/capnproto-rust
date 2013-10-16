@@ -4,7 +4,6 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-#[feature(globs)];
 #[feature(macro_rules)];
 
 #[link(name = "capnproto-rust-test", vers = "alpha", author = "dwrensha")];
@@ -13,13 +12,11 @@
 
 extern mod capnprust;
 
-use capnprust::*;
-
 pub mod addressbook_capnp;
 
 fn writeAddressBook() {
-    use capnprust::message::*;
-    use addressbook_capnp::*;
+    use capnprust::message::MessageBuilder;
+    use addressbook_capnp::{AddressBook, Person};
 
     let message = MessageBuilder::new_default();
 
@@ -57,21 +54,21 @@ fn writeAddressBook() {
     person.setName("Diane");
     person.getEmployment().setSchool("Caltech");
 
-    let outStream = @std::io::stdout() as @serialize::OutputStream;
+    let outStream = @std::io::stdout() as @capnprust::serialize::OutputStream;
 
 //    serialize::writeMessage(outStream, message)
-    serialize_packed::writePackedMessage(outStream, message)
+    capnprust::serialize_packed::writePackedMessage(outStream, message)
 }
 
 fn printAddressBook() {
-    use capnprust::serialize::*;
-    use capnprust::serialize_packed::*;
-    use addressbook_capnp::*;
+    use capnprust;
+    use addressbook_capnp::{AddressBook, Person};
 
-    let inp = @PackedInputStream { inner : std::io::stdin()} as @std::io::Reader;
+    let inp = @capnprust::serialize_packed::PackedInputStream { inner : std::io::stdin() } as @std::io::Reader;
 //    let inp = std::io::stdin();
 
-    do InputStreamMessageReader::new(inp, message::DEFAULT_READER_OPTIONS) | messageReader | {
+    do capnprust::serialize::InputStreamMessageReader::new(
+        inp, capnprust::message::DEFAULT_READER_OPTIONS) |messageReader| {
         let addressBook =
             AddressBook::Reader::new(messageReader.getRoot());
         let people = addressBook.getPeople();

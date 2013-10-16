@@ -19,7 +19,7 @@ pub mod schema_capnp;
 
 fn macros() -> ~str {
 ~"macro_rules! list_submodule(
-    ( $capnp:ident, $($m:ident)::+ ) => (
+    ( $capnp:ident::$($m:ident)::+ ) => (
         pub mod List {
             use capnprust;
             use $capnp;
@@ -193,8 +193,8 @@ fn appendName (names : &[~str], name : ~str) -> ~[~str] {
 
 fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                     scopeMap : &mut std::hashmap::HashMap<u64, ~[~str]>,
+                    rootName : &str,
                     nodeId : u64) {
-    use schema_capnp::*;
     let nodeReader = nodeMap.get(&nodeId);
 
     let nestedNodes = nodeReader.getNestedNodes();
@@ -204,38 +204,30 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 
         let name = capitalizeFirstLetter(nestedNode.getName());
 
-        let scopeNames = {
-            if (scopeMap.contains_key(&nodeId)) {
-                let names = scopeMap.get(&nodeId);
-                appendName(*names, name)
-            } else {
-                ~[name]
-            }
+        let scopeNames = match scopeMap.find(&nodeId) {
+            Some(names) => appendName(*names, name),
+            None => ~[rootName.to_owned(), name]
         };
         scopeMap.insert(id, scopeNames);
-        populateScopeMap(nodeMap, scopeMap, id);
+        populateScopeMap(nodeMap, scopeMap, rootName, id);
     }
 
     match nodeReader.which() {
-        Some(Node::Struct(structReader)) => {
+        Some(schema_capnp::Node::Struct(structReader)) => {
             let fields = structReader.getFields();
             for jj in range(0, fields.size()) {
                 let field = fields.get(jj);
                 match field.which() {
-                    Some(Field::Group(group)) => {
+                    Some(schema_capnp::Field::Group(group)) => {
                         let id = group.getTypeId();
                         let name = capitalizeFirstLetter(field.getName());
-                        let scopeNames = {
-                            if (scopeMap.contains_key(&nodeId)) {
-                                let names = scopeMap.get(&nodeId);
-                                appendName(*names, name)
-                            } else {
-                                ~[name]
-                            }
+                        let scopeNames = match scopeMap.find(&nodeId) {
+                            Some(names) => appendName(*names, name),
+                            None => ~[rootName.to_owned(), name]
                         };
 
                         scopeMap.insert(id, scopeNames);
-                        populateScopeMap(nodeMap, scopeMap, id);
+                        populateScopeMap(nodeMap, scopeMap, rootName, id);
                     }
                     _ => {}
                 }
@@ -248,10 +240,10 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 fn generateImportStatements(rootName : &str) -> FormattedText {
     Branch(~[
         Line(~"use std;"),
-        Line(~"use capnprust::blob::{Text,Data};"),
+        Line(~"use capnprust::blob::{Text, Data};"),
         Line(~"use capnprust::layout;"),
         Line(~"use capnprust::list::{PrimitiveList, ToU16, EnumList};"),
-        Line(fmt!("use %s::*;", rootName))
+        Line(fmt!("use %s;", rootName))
     ])
 }
 
@@ -744,8 +736,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                              elementSizeStr(preferredListEncoding)))));
                 preamble.push(BlankLine);
 
-                preamble.push(Line(fmt!("list_submodule!(%s, %s)",
-                                        rootName, scopeMap.get(&nodeId).connect("::"))));
+                preamble.push(Line(fmt!("list_submodule!(%s)",
+                                        scopeMap.get(&nodeId).connect("::"))));
                 preamble.push(BlankLine);
             }
 
@@ -871,7 +863,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let names = scopeMap.get(&nodeId);
             output.push(Line(fmt!("pub mod %s {", *names.last())));
 
-            output.push(Line(~"use capnprust::list::*;"));
+            output.push(Indent(~Line(~"use capnprust::list::{ToU16};")));
 
             let mut members = ~[];
             let enumerants = enumReader.getEnumerants();
@@ -955,8 +947,6 @@ fn main() {
             let name : &str = requestedFile.getFilename();
             std::io::println(fmt!("requested file: %s", name));
 
-            populateScopeMap(&nodeMap, &mut scopeMap, id);
-
             let fileNode = nodeMap.get(&id);
             let displayName = fileNode.getDisplayName();
 
@@ -979,6 +969,8 @@ fn main() {
             outputFileName.push_str(".rs");
             std::io::println(outputFileName);
 
+            populateScopeMap(&nodeMap, &mut scopeMap, rootName, id);
+
             let text = stringify(&generateNode(&nodeMap, &scopeMap,
                                                rootName, id));
 
@@ -992,9 +984,6 @@ fn main() {
                 }
                 Err(msg) => {fail!(msg)}
             }
-
         }
-
-        0;
     }
 }

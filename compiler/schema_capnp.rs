@@ -13,7 +13,7 @@ pub mod Node {
     pub static STRUCT_SIZE : StructSize = StructSize {data : 5, pointers : 5,
                                                       preferredListEncoding : INLINE_COMPOSITE};
 
-    list_submodule!(schema_capnp, Node)
+    list_submodule!(schema_capnp::Node)
 
     pub struct Reader<'self> {
         _reader : StructReader<'self>
@@ -394,7 +394,7 @@ pub mod Node {
             }
         }
 
-        list_submodule!(schema_capnp, Node::NestedNode)
+        list_submodule!(schema_capnp::Node::NestedNode)
     }
 
 }
@@ -404,7 +404,7 @@ pub mod Field {
     use capnprust::blob::*;
     use schema_capnp::*;
 
-    list_submodule!(schema_capnp, Field)
+    list_submodule!(schema_capnp::Field)
 
     pub static STRUCT_SIZE : StructSize =
         StructSize {data : 3, pointers : 4,
@@ -540,7 +540,7 @@ pub mod Enumerant {
     use capnprust::layout::*;
     use schema_capnp::*;
 
-    list_submodule!(schema_capnp, Enumerant)
+    list_submodule!(schema_capnp::Enumerant)
 
     pub static STRUCT_SIZE : StructSize =
         StructSize {data : 1, pointers : 2,
@@ -614,7 +614,7 @@ pub mod Method {
         }
     }
 
-    list_submodule!(schema_capnp, Method)
+    list_submodule!(schema_capnp::Method)
 }
 
 
@@ -679,7 +679,7 @@ pub mod Type {
         }
     }
 
-    list_submodule!(schema_capnp, Type)
+    list_submodule!(schema_capnp::Type)
 
     pub enum Which<'self> {
         Void,
@@ -809,7 +809,7 @@ pub mod Value {
         }
     }
 
-    list_submodule!(schema_capnp, Value)
+    list_submodule!(schema_capnp::Value)
 
     pub enum Which<'self> {
         Void,
@@ -838,7 +838,7 @@ pub mod Annotation {
     use capnprust::layout::*;
     use schema_capnp::*;
 
-    list_submodule!(schema_capnp, Annotation)
+    list_submodule!(schema_capnp::Annotation)
     pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 1,
                                                       preferredListEncoding : INLINE_COMPOSITE};
 
@@ -901,7 +901,7 @@ pub mod CodeGeneratorRequest {
     pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 2,
                                                       preferredListEncoding : INLINE_COMPOSITE};
 
-    list_submodule!(schema_capnp, CodeGeneratorRequest)
+    list_submodule!(schema_capnp::CodeGeneratorRequest)
 
     pub struct Reader<'self> {
         _reader : StructReader<'self>
@@ -949,7 +949,7 @@ pub mod CodeGeneratorRequest {
             StructSize {data : 1, pointers : 2,
             preferredListEncoding : INLINE_COMPOSITE};
 
-        list_submodule!(schema_capnp, CodeGeneratorRequest::RequestedFile)
+        list_submodule!(schema_capnp::CodeGeneratorRequest::RequestedFile)
 
         pub struct Reader<'self> {
             _reader : StructReader<'self>
@@ -994,7 +994,7 @@ pub mod CodeGeneratorRequest {
                 StructSize {data : 1, pointers : 1,
                 preferredListEncoding : INLINE_COMPOSITE};
 
-            list_submodule!(schema_capnp, CodeGeneratorRequest::RequestedFile)
+            list_submodule!(schema_capnp::CodeGeneratorRequest::RequestedFile)
 
             pub struct Reader<'self> {
                 _reader : StructReader<'self>

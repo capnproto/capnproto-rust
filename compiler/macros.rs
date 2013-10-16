@@ -10,7 +10,7 @@
 // of the appropriate type.
 
 macro_rules! list_submodule(
-    ( $capnp:ident, $($m:ident)::+ ) => (
+    ( $capnp:ident::$($m:ident)::+ ) => (
         pub mod List {
             use capnprust;
             use $capnp;

@@ -5,7 +5,7 @@
  */
 
 pub mod PrimitiveList {
-    use layout::*;
+    use layout::{ListReader, ListBuilder, PrimitiveElement};
 
     pub struct Reader<'self, T> {
         reader : ListReader<'self>
