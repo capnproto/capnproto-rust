@@ -976,8 +976,8 @@ fn main() {
 
             let macros_text = macros();
 
-            let path = &std::path::Path(outputFileName);
-            match std::io::mk_file_writer(path, [std::io::Create, std::io::Truncate]) {
+            let path = std::path::Path::new(outputFileName);
+            match std::io::mk_file_writer(&path, [std::io::Create, std::io::Truncate]) {
                 Ok(writer) => {
                     writer.write(macros_text.as_bytes());
                     writer.write(text.as_bytes())
