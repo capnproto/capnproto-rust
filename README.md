@@ -23,7 +23,7 @@ The binary may then be used as a plug-in to
 the Cap'n Proto compiler, like this:
 
 ```
-$ capnpc -o ./compiler/capnpc-rust:samples samples/addressbook.capnp
+$ capnp compile -o ./compiler/capnpc-rust:samples samples/addressbook.capnp
 ```
 This should generate the file `samples/addressbook_capnp.rs`.
 You may then see the serialization in action by compiling the sample program:
