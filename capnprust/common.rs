@@ -48,11 +48,11 @@ pub static WORDS_PER_POINTER : WordCount = 1;
 pub static POINTER_SIZE_IN_WORDS : WordCount = 1;
 
 pub fn bytesPerElement<T>() -> ByteCount {
-    std::sys::size_of::<T>()
+    std::mem::size_of::<T>()
 }
 
 pub fn bitsPerElement<T>() -> BitCount0 {
-    8 * std::sys::size_of::<T>()
+    8 * std::mem::size_of::<T>()
 }
 
 #[inline]
