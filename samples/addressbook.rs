@@ -113,7 +113,7 @@ fn main() {
 
     let args = std::os::args();
     if (args.len() < 2) {
-        std::io::println(fmt!("usage: $ %s [write | read]", args[0]));
+        println!("usage: $ {} [write | read]", args[0]);
     } else {
         match args[1] {
             ~"write" => writeAddressBook(),

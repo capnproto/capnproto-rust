@@ -693,7 +693,7 @@ mod WireHelpers {
 
         match reff.kind() {
             WP_LIST => { }
-            _ => { fail!("Message contains non-list pointer where list pointer was expected %?", reff) }
+            _ => { fail!("Message contains non-list pointer where list pointer was expected {:?}", reff) }
         }
 
         let listRef = reff.listRef();

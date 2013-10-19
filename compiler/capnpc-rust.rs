@@ -118,7 +118,7 @@ fn camelCaseToAllCaps(s : &str) -> ~str {
         // strings will be null-terminated
         if (b != 0) {
             let c = b as char;
-            assert!(std::char::is_alphanumeric(c), fmt!("not alphanumeric '%c'", c));
+            assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
             if (std::char::is_uppercase(c)) {
                 result_bytes.push('_' as u8);
             }
@@ -243,7 +243,7 @@ fn generateImportStatements(rootName : &str) -> FormattedText {
         Line(~"use capnprust::blob::{Text, Data};"),
         Line(~"use capnprust::layout;"),
         Line(~"use capnprust::list::{PrimitiveList, ToU16, EnumList};"),
-        Line(fmt!("use %s;", rootName))
+        Line(format!("use {};", rootName))
     ])
 }
 
@@ -262,11 +262,11 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
             if (isReader) {
-                return (fmt!("%s::Reader<'self>", theMod),
-                        Line(fmt!("%s::Reader::new(self._reader)", theMod)));
+                return (format!("{}::Reader<'self>", theMod),
+                        Line(format!("{}::Reader::new(self._reader)", theMod)));
             } else {
-                return (fmt!("%s::Builder", theMod),
-                        Line(fmt!("%s::Builder::new(self._builder)", theMod)));
+                return (format!("{}::Builder", theMod),
+                        Line(format!("{}::Builder::new(self._builder)", theMod)));
             }
         }
         Some(Field::Slot(regField)) => {
@@ -282,52 +282,52 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             match typ.which() {
                 Some(Type::Void) => { return (~"()", Line(~"()"))}
                 Some(Type::Bool) => {
-                    return (~"bool", Line(fmt!("self.%s.getBoolField(%u)",
-                                               member, offset)))
+                    return (~"bool", Line(format!("self.{}.getBoolField({})",
+                                                  member, offset)))
                 }
                 Some(Type::Int8) => {
-                    return (~"i8", Line(fmt!("self.%s.getDataField::<i8>(%u)",
+                    return (~"i8", Line(format!("self.{}.getDataField::<i8>({})",
                                              member, offset)))
                 }
                 Some(Type::Int16) => {
-                    return (~"i16", Line(fmt!("self.%s.getDataField::<i16>(%u)",
+                    return (~"i16", Line(format!("self.{}.getDataField::<i16>({})",
                                               member, offset)))
                 }
                 Some(Type::Int32) => {
-                    return (~"i32", Line(fmt!("self.%s.getDataField::<i32>(%u)",
+                    return (~"i32", Line(format!("self.{}.getDataField::<i32>({})",
                                               member, offset)))
                 }
                 Some(Type::Int64) => {
-                    return (~"i64", Line(fmt!("self.%s.getDataField::<i64>(%u)",
+                    return (~"i64", Line(format!("self.{}.getDataField::<i64>({})",
                                               member, offset)))
                 }
                 Some(Type::Uint8) => {
-                    return (~"u8", Line(fmt!("self.%s.getDataField::<u8>(%u)",
+                    return (~"u8", Line(format!("self.{}.getDataField::<u8>({})",
                                              member, offset)))
                 }
                 Some(Type::Uint16) => {
-                    return (~"u16", Line(fmt!("self.%s.getDataField::<u16>(%u)",
+                    return (~"u16", Line(format!("self.{}.getDataField::<u16>({})",
                                               member, offset)))
                 }
                 Some(Type::Uint32) => {
-                    return (~"u32", Line(fmt!("self.%s.getDataField::<u32>(%u)",
+                    return (~"u32", Line(format!("self.{}.getDataField::<u32>({})",
                                               member, offset)))
                 }
                 Some(Type::Uint64) => {
-                    return (~"u64", Line(fmt!("self.%s.getDataField::<u64>(%u)",
+                    return (~"u64", Line(format!("self.{}.getDataField::<u64>({})",
                                               member, offset)))
                 }
                 Some(Type::Float32) => {
-                    return (~"f32", Line(fmt!("self.%s.getDataField::<f32>(%u)",
+                    return (~"f32", Line(format!("self.{}.getDataField::<f32>({})",
                                               member, offset)))
                 }
                 Some(Type::Float64) => {
-                    return (~"f64", Line(fmt!("self.%s.getDataField::<f64>(%u)",
+                    return (~"f64", Line(format!("self.{}.getDataField::<f64>({})",
                                               member, offset)))
                 }
                 Some(Type::Text) => {
-                    return (fmt!("Text::%s", moduleWithVar),
-                            Line(fmt!("self.%s.getTextField(%u, \"\")",
+                    return (format!("Text::{}", moduleWithVar),
+                            Line(format!("self.{}.getTextField({}, \"\")",
                                       member, offset)));
                 }
                 Some(Type::Data) => {
@@ -340,9 +340,9 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                             let id = st.getTypeId();
                             let scope = scopeMap.get(&id);
                             let theMod = scope.connect("::");
-                            let fullModuleName = fmt!("%s::List::%s", theMod, module);
-                            return (fmt!("%s::List::%s", theMod, moduleWithVar),
-                                    Line(fmt!("%s::new(self.%s.getListField(%u, %s::STRUCT_SIZE.preferredListEncoding, None))",
+                            let fullModuleName = format!("{}::List::{}", theMod, module);
+                            return (format!("{}::List::{}", theMod, moduleWithVar),
+                                    Line(format!("{}::new(self.{}.getListField({}, {}::STRUCT_SIZE.preferredListEncoding, None))",
                                               fullModuleName, member, offset, theMod))
                                     );
                         }
@@ -350,12 +350,12 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                             let id = e.getTypeId();
                             let scope = scopeMap.get(&id);
                             let theMod = scope.connect("::");
-                            let fullModuleName = fmt!("%s::Reader", theMod);
+                            let fullModuleName = format!("{}::Reader", theMod);
                             let typeArgs =
-                                if (isReader) {fmt!("<'self, %s>", fullModuleName)}
-                                else {fmt!("<%s>", fullModuleName)};
-                            return (fmt!("EnumList::%s%s",module,typeArgs),
-                                    Line(fmt!("EnumList::%s::%s::new(self.%s.getListField(%u,layout::TWO_BYTES,None))",
+                                if (isReader) {format!("<'self, {}>", fullModuleName)}
+                                else {format!("<{}>", fullModuleName)};
+                            return (format!("EnumList::{}{}",module,typeArgs),
+                                    Line(format!("EnumList::{}::{}::new(self.{}.getListField({},layout::TWO_BYTES,None))",
                                          module, typeArgs, member, offset)));
                         }
                         Some(Type::List(_)) => {return (~"TODO", Line(~"TODO")) }
@@ -367,11 +367,11 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                             let typeStr = primTypeStr(primType);
                             let sizeStr = elementSizeStr(elementSize(primType));
                             let typeArgs =
-                                if (isReader) {fmt!("<'self, %s>", typeStr)}
-                                else {fmt!("<%s>", typeStr)};
+                                if (isReader) {format!("<'self, {}>", typeStr)}
+                                else {format!("<{}>", typeStr)};
                             return
-                                (fmt!("PrimitiveList::%s%s", module, typeArgs),
-                                 Line(fmt!("PrimitiveList::%s::%s::new(self.%s.getListField(%u,layout::%s,None))",
+                                (format!("PrimitiveList::{}{}", module, typeArgs),
+                                 Line(format!("PrimitiveList::{}::{}::new(self.{}.getListField({},layout::{},None))",
                                            module, typeArgs, member, offset, sizeStr)))
                         }
                     }
@@ -381,9 +381,9 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
                     return
-                        (fmt!("Option<%s::Reader>", theMod), // Enums don't have builders.
+                        (format!("Option<{}::Reader>", theMod), // Enums don't have builders.
                          Branch(
-                            ~[Line(fmt!("FromPrimitive::from_u16(self.%s.getDataField::<u16>(%u))",
+                            ~[Line(format!("FromPrimitive::from_u16(self.{}.getDataField::<u16>({}))",
                                         member, offset))
                               ]));
                 }
@@ -391,9 +391,9 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     let id = st.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
-                    let middleArg = if (isReader) {~""} else {fmt!("%s::STRUCT_SIZE,", theMod)};
-                    return (fmt!("%s::%s", theMod, moduleWithVar),
-                            Line(fmt!("%s::%s::new(self.%s.getStructField(%u, %s None))",
+                    let middleArg = if (isReader) {~""} else {format!("{}::STRUCT_SIZE,", theMod)};
+                    return (format!("{}::{}", theMod, moduleWithVar),
+                            Line(format!("{}::{}::new(self.{}.getStructField({}, {} None))",
                                       theMod, module, member, offset, middleArg)))
                 }
                 Some(Type::Interface(_)) => {
@@ -427,7 +427,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
     let discriminantValue = field.getDiscriminantValue();
     if (discriminantValue != 0xffff) {
             interior.push(
-                      Line(fmt!("self._builder.setDataField::<u16>(%u, %u);",
+                      Line(format!("self._builder.setDataField::<u16>({}, {});",
                                 discriminantOffset as uint,
                                 discriminantValue as uint)));
     }
@@ -438,9 +438,10 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
             let id = group.getTypeId();
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
-            result.push(Line(fmt!("pub fn init%s(&self) -> %s::Builder {", capName, theMod )));
+            result.push(Line(format!("pub fn init{}(&self) -> {}::Builder \\{",
+                                     capName, theMod )));
             // XXX todo: zero out all of the fields.
-            interior.push(Line(fmt!("%s::Builder::new(self._builder)", theMod)));
+            interior.push(Line(format!("{}::Builder::new(self._builder)", theMod)));
         }
         Some(Field::Slot(regField)) => {
 
@@ -449,55 +450,55 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
 
             match typ.which() {
                 Some(Type::Void) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, _value : ()) {",capName)))
+                    result.push(Line(format!("pub fn set{}(&self, _value : ()) \\{",capName)))
                 }
                 Some(Type::Bool) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : bool) {", capName)));
-                    interior.push(Line(fmt!("self._builder.setBoolField(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : bool) \\{", capName)));
+                    interior.push(Line(format!("self._builder.setBoolField({}, value);", offset)))
                 }
                 Some(Type::Int8) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : i8) {", capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i8>(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : i8) \\{", capName)));
+                    interior.push(Line(format!("self._builder.setDataField::<i8>({}, value);", offset)))
                 }
                 Some(Type::Int16) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : i16) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i16>(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : i16) \\{",capName)));
+                    interior.push(Line(format!("self._builder.setDataField::<i16>({}, value);", offset)))
                 }
                 Some(Type::Int32) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : i32) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i32>(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : i32) \\{",capName)));
+                    interior.push(Line(format!("self._builder.setDataField::<i32>({}, value);", offset)))
                 }
                 Some(Type::Int64) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : i64) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<i64>(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : i64) \\{",capName)));
+                    interior.push(Line(format!("self._builder.setDataField::<i64>({}, value);", offset)))
                 }
                 Some(Type::Uint8) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : u8) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u8>(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : u8) \\{",capName)));
+                    interior.push(Line(format!("self._builder.setDataField::<u8>({}, value);", offset)))
                 }
                 Some(Type::Uint16) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : u16) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u16>(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : u16) \\{",capName)));
+                    interior.push(Line(format!("self._builder.setDataField::<u16>({}, value);", offset)))
                 }
                 Some(Type::Uint32) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : u32) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u32>(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : u32) \\{",capName)));
+                    interior.push(Line(format!("self._builder.setDataField::<u32>({}, value);", offset)))
                 }
                 Some(Type::Uint64) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : u64) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<u64>(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : u64) \\{",capName)));
+                    interior.push(Line(format!("self._builder.setDataField::<u64>({}, value);", offset)))
                 }
                 Some(Type::Float32) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : f32) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<f32>(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : f32) \\{",capName)));
+                    interior.push(Line(format!("self._builder.setDataField::<f32>({}, value);", offset)))
                 }
                 Some(Type::Float64) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : f64) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setDataField::<f64>(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : f64) \\{",capName)));
+                    interior.push(Line(format!("self._builder.setDataField::<f64>({}, value);", offset)))
                 }
                 Some(Type::Text) => {
-                    result.push(Line(fmt!("pub fn set%s(&self, value : &str) {",capName)));
-                    interior.push(Line(fmt!("self._builder.setTextField(%u, value);", offset)))
+                    result.push(Line(format!("pub fn set{}(&self, value : &str) \\{",capName)));
+                    interior.push(Line(format!("self._builder.setTextField({}, value);", offset)))
                 }
                 Some(Type::Data) => { return BlankLine }
                 Some(Type::List(ot1)) => {
@@ -514,45 +515,45 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                     let typeStr = primTypeStr(t1);
                                     let sizeStr = elementSizeStr(elementSize(t1));
 
-                                    interior.push(Line(fmt!("PrimitiveList::Builder::<%s>::new(",
+                                    interior.push(Line(format!("PrimitiveList::Builder::<{}>::new(",
                                                             typeStr)));
                                     interior.push(
-                                        Indent(~Line(fmt!("self._builder.initListField(%u,layout::%s,size)",
+                                        Indent(~Line(format!("self._builder.initListField({},layout::{},size)",
                                                           offset, sizeStr))));
                                         interior.push(Line(~")"));
-                                    fmt!("PrimitiveList::Builder<%s>", typeStr)
+                                    format!("PrimitiveList::Builder<{}>", typeStr)
                                 }
                                 Type::Enum(e) => {
                                     let id = e.getTypeId();
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
-                                    let typeStr = fmt!("%s::Reader", theMod);
-                                    interior.push(Line(fmt!("EnumList::Builder::<%s>::new(",
+                                    let typeStr = format!("{}::Reader", theMod);
+                                    interior.push(Line(format!("EnumList::Builder::<{}>::new(",
                                                             typeStr)));
                                     interior.push(
                                         Indent(
                                             ~Line(
-                                                fmt!("self._builder.initListField(%u,layout::TWO_BYTES,size)",
+                                                format!("self._builder.initListField({},layout::TWO_BYTES,size)",
                                                      offset))));
                                     interior.push(Line(~")"));
-                                    fmt!("EnumList::Builder<%s>", typeStr)
+                                    format!("EnumList::Builder<{}>", typeStr)
                                 }
                                 Type::Struct(st) => {
                                     let id = st.getTypeId();
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
 
-                                    interior.push(Line(fmt!("%s::List::Builder::new(", theMod)));
+                                    interior.push(Line(format!("{}::List::Builder::new(", theMod)));
                                     interior.push(
                                        Indent(
                                           ~Line(
-                                             fmt!("self._builder.initStructListField(%u, size, %s::STRUCT_SIZE))",
+                                             format!("self._builder.initStructListField({}, size, {}::STRUCT_SIZE))",
                                                   offset, theMod))));
-                                    fmt!("%s::List::Builder", theMod)
+                                    format!("{}::List::Builder", theMod)
                                 }
                                 _ => { ~"" }
                             };
-                            result.push(Line(fmt!("pub fn init%s(&self, size : uint) -> %s {",
+                            result.push(Line(format!("pub fn init{}(&self, size : uint) -> {} \\{",
                                                   capName, returnType)))
                        }
                     }
@@ -561,19 +562,19 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                     let id = e.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
-                    result.push(Line(fmt!("pub fn set%s(&self, value : %s::Reader) {",
+                    result.push(Line(format!("pub fn set{}(&self, value : {}::Reader) \\{",
                                           capName, theMod)));
                     interior.push(
-                                  Line(fmt!("self._builder.setDataField::<u16>(%u, value as u16)",
+                                  Line(format!("self._builder.setDataField::<u16>({}, value as u16)",
                                             offset)));
                 }
                 Some(Type::Struct(st)) => {
                     let id = st.getTypeId();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
-                    result.push(Line(fmt!("pub fn init%s(&self) -> %s::Builder {",capName,theMod)));
+                    result.push(Line(format!("pub fn init{}(&self) -> {}::Builder \\{",capName,theMod)));
                     interior.push(
-                      Line(fmt!("%s::Builder::new(self._builder.initStructField(%u, %s::STRUCT_SIZE))",
+                      Line(format!("{}::Builder::new(self._builder.initStructField({}, {}::STRUCT_SIZE))",
                                 theMod, offset, theMod)));
                 }
                 Some(Type::Interface(_)) => {
@@ -623,11 +624,11 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
         let (ty, get) = getterText(nodeMap, scopeMap, field, true);
 
-        reader_interior.push(Line(fmt!("%s(%s),", enumerantName, ty)));
+        reader_interior.push(Line(format!("{}({}),", enumerantName, ty)));
 
         getter_interior.push(Branch(~[
-                    Line(fmt!("%u => {", dvalue)),
-                    Indent(~Line(fmt!("return Some(%s(", enumerantName))),
+                    Line(format!("{} => \\{", dvalue)),
+                    Indent(~Line(format!("return Some({}(", enumerantName))),
                     Indent(~Indent(~get)),
                     Indent(~Line(~"));")),
                     Line(~"}")
@@ -652,7 +653,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
     getter_interior.push(Line(~"_ => return None"));
 
     interior.push(
-        Branch(~[Line(fmt!("pub enum %s {", readerString)),
+        Branch(~[Line(format!("pub enum {} \\{", readerString)),
                  Indent(~Branch(reader_interior)),
                  Line(~"}")]));
 
@@ -661,10 +662,10 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
     let getter_result =
         Branch(~[Line(~"#[inline]"),
-                 Line(fmt!("pub fn which(&self) -> Option<%s > {",
+                 Line(format!("pub fn which(&self) -> Option<{} > \\{",
                            readerString)),
                  Indent(~Branch(~[
-                     Line(fmt!("match self._reader.getDataField::<u16>(%u) {", doffset)),
+                     Line(format!("match self._reader.getDataField::<u16>({}) \\{", doffset)),
                      Indent(~Branch(getter_interior)),
                      Line(~"}")
                  ])),
@@ -703,7 +704,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             output.push(BlankLine);
 
             output.push(Line(~"#[allow(unused_imports)]"));
-            output.push(Line(fmt!("pub mod %s {", *names.last())));
+            output.push(Line(format!("pub mod {} \\{", *names.last())));
 
             let mut preamble = ~[];
             let mut builder_members = ~[];
@@ -731,12 +732,12 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                 preamble.push(
                    Indent(
                       ~Line(
-                        fmt!("layout::StructSize { data : %u, pointers : %u, preferredListEncoding : layout::%s};",
+                        format!("layout::StructSize \\{ data : {}, pointers : {}, preferredListEncoding : layout::{}\\};",
                              dataSize as uint, pointerSize as uint,
                              elementSizeStr(preferredListEncoding)))));
                 preamble.push(BlankLine);
 
-                preamble.push(Line(fmt!("list_submodule!(%s)",
+                preamble.push(Line(format!("list_submodule!({})",
                                         scopeMap.get(&nodeId).connect("::"))));
                 preamble.push(BlankLine);
             }
@@ -756,7 +757,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     reader_members.push(
                            Branch(~[
                               Line(~"#[inline]"),
-                              Line(fmt!("pub fn get%s(&self) -> %s {", capName, ty)),
+                              Line(format!("pub fn get{}(&self) -> {} \\{", capName, ty)),
                               Indent(~get),
                               Line(~"}")
                                     ])
@@ -767,7 +768,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     builder_members.push(
                                      Branch(~[
                                               Line(~"#[inline]"),
-                                              Line(fmt!("pub fn get%s(&self) -> %s {", capName, tyB)),
+                                              Line(format!("pub fn get{}(&self) -> {} \\{", capName, tyB)),
                                               Indent(~getB),
                                               Line(~"}")
                                               ])
@@ -861,7 +862,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
         Some(Node::Enum(enumReader)) => {
             let names = scopeMap.get(&nodeId);
-            output.push(Line(fmt!("pub mod %s {", *names.last())));
+            output.push(Line(format!("pub mod {} \\{", *names.last())));
 
             output.push(Indent(~Line(~"use capnprust::list::{ToU16};")));
 
@@ -870,7 +871,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             for ii in range(0, enumerants.size()) {
                 let enumerant = enumerants.get(ii);
                 members.push(
-                    Line(fmt!("%s = %u,", capitalizeFirstLetter(enumerant.getName()),
+                    Line(format!("{} = {},", capitalizeFirstLetter(enumerant.getName()),
                               ii)));
             }
 
@@ -945,7 +946,7 @@ fn main() {
             let requestedFile = requestedFilesReader.get(ii);
             let id = requestedFile.getId();
             let name : &str = requestedFile.getFilename();
-            std::io::println(fmt!("requested file: %s", name));
+            std::io::println(format!("requested file: {}", name));
 
             let fileNode = nodeMap.get(&id);
             let displayName = fileNode.getDisplayName();
@@ -955,7 +956,7 @@ fn main() {
                     Some(d) => {
                         displayName.slice_chars(0, d).to_owned()
                     }
-                    _ => { fail!("bad file name: %s", displayName) }
+                    _ => { fail!("bad file name: {}", displayName) }
                 };
 
             outputFileName.push_str("_capnp");
