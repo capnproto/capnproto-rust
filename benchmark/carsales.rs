@@ -59,7 +59,7 @@ pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
     car.setMake(MAKES[rng.nextLessThan(MAKES.len() as u32)]);
     car.setModel(MODELS[rng.nextLessThan(MODELS.len() as u32)]);
 
-    car.setColor(unsafe {transmute(rng.gen_integer_range::<uint>(0, Color::Silver as uint + 1)) });
+    car.setColor(unsafe {transmute(rng.gen_range::<uint>(0, Color::Silver as uint + 1)) });
     car.setSeats(2 + rng.nextLessThan(6) as u8);
     car.setDoors(2 + rng.nextLessThan(3) as u8);
 
