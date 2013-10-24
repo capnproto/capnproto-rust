@@ -5,6 +5,7 @@
  */
 
 #[feature(macro_rules)];
+#[feature(managed_boxes)];
 
 #[link(name = "capnproto-rust-test", vers = "alpha", author = "dwrensha")];
 

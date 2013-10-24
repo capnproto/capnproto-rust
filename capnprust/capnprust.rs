@@ -6,6 +6,7 @@
 
 #[feature(globs)];
 #[feature(macro_rules)];
+#[feature(managed_boxes)];
 
 #[link(name = "capnprust", vers = "alpha", author = "dwrensha")];
 
