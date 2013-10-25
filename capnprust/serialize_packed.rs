@@ -59,8 +59,7 @@ impl <T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<T> {
                 let runLength : uint = self.inner.read_u8_() as uint * 8;
 
                 let mut bytes_read = 0;
-                loop {
-                    if bytes_read >= runLength { break }
+                while bytes_read < runLength {
                     let pos = outPos + bytes_read;
                     match self.inner.read(outBuf.mut_slice(pos, outPos + runLength)) {
                         Some(n) => bytes_read += n,
