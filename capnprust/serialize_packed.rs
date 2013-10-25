@@ -9,32 +9,26 @@ use std;
 use message::*;
 use serialize::*;
 
-pub struct PackedInputStream {
-    inner : @std::io::Reader
+pub struct PackedInputStream<T> {
+    inner : T
 }
 
-impl std::io::Reader for PackedInputStream {
-    fn read_byte(&self) -> int {
-        fail!()
-    }
-
-    fn eof(&self) -> bool{
+impl <T : std::rt::io::Reader + std::rt::io::ReaderUtil> std::rt::io::Reader for PackedInputStream<T> {
+    fn eof(&mut self) -> bool {
         self.inner.eof()
     }
 
-    fn tell(&self) -> uint {
-        fail!()
-    }
+    fn read(&mut self, outBuf: &mut [u8]) -> Option<uint> {
+        let len = outBuf.len();
 
-    fn read(&self, outBuf: &mut [u8], len: uint) -> uint {
-        if (len == 0) { return 0; }
+        if (len == 0) { return Some(0); }
 
         assert!(len % 8 == 0, "PackInputStream reads must be word-aligned");
 
         let mut outPos = 0;
         while (outPos < len && ! self.inner.eof() ) {
 
-            let tag : u8 = self.inner.read_u8();
+            let tag : u8 = self.inner.read_byte().unwrap();
 
             for n in range(0, 8) {
                 let isNonzero = (tag & (1 as u8 << n)) != 0;//..as bool;
@@ -42,7 +36,7 @@ impl std::io::Reader for PackedInputStream {
                     // TODO capnproto-c++ gets away without using a
                     // conditional here. Can we do something like that
                     // and would it speed things up?
-                    outBuf[outPos] = self.inner.read_u8();
+                    outBuf[outPos] = self.inner.read_byte().unwrap();
                     outPos += 1;
                 } else {
                     outBuf[outPos] = 0;
@@ -52,7 +46,7 @@ impl std::io::Reader for PackedInputStream {
 
             if (tag == 0) {
 
-                let runLength : uint = self.inner.read_u8() as uint * 8;
+                let runLength : uint = self.inner.read_byte().unwrap() as uint * 8;
 
                 unsafe {
                     std::ptr::set_memory(outBuf.unsafe_mut_ref(outPos),
@@ -61,30 +55,33 @@ impl std::io::Reader for PackedInputStream {
                 outPos += runLength;
 
             } else if (tag == 0xff) {
-                let runLength : uint = self.inner.read_u8() as uint * 8;
+                let runLength : uint = self.inner.read_byte().unwrap() as uint * 8;
 
-                self.inner.read(outBuf.mut_slice(outPos, outPos + runLength), runLength);
+                let mut bytes_read = 0;
+                loop {
+                    if bytes_read >= runLength { break }
+                    let pos = outPos + bytes_read;
+                    match self.inner.read(outBuf.mut_slice(pos, outPos + runLength)) {
+                        Some(n) => bytes_read += n,
+                        None => fail!("failed to read bytes")
+                    }
+                }
                 outPos += runLength;
             }
 
         }
 
-        return outPos;
+        return Some(outPos);
     }
 
-    fn seek(&self, _position : int, _style : std::io::SeekStyle) {
-        fail!()
-    }
 }
 
-
-pub struct PackedOutputStream {
-    inner : @OutputStream
+pub struct PackedOutputStream<T> {
+    inner : T
 }
 
-
-impl OutputStream for PackedOutputStream {
-    fn write(@self, inBuf : &[u8]) {
+impl <T : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream<T> {
+    fn write(&mut self, inBuf : &[u8]) {
 
         // Yuck. It'd be better to have a BufferedOutputStream, but
         // that seems difficult with the current state of Rust.
@@ -197,15 +194,16 @@ impl OutputStream for PackedOutputStream {
             }
         }
 
-
         self.inner.write(buffer.slice(0, outPos));
     }
+
+   fn flush(&mut self) { self.inner.flush(); }
 }
 
-pub fn writePackedMessage(outputStream : @OutputStream,
-                          message : &MessageBuilder) {
+pub fn writePackedMessage<T : std::rt::io::Writer>(outputStream : T,
+                                                   message : &MessageBuilder) {
 
-    let packedOutputStream = @PackedOutputStream {inner : outputStream} as @OutputStream;
+    let mut packedOutputStream = PackedOutputStream {inner : outputStream};
 
-    writeMessage(packedOutputStream, message);
+    writeMessage(&mut packedOutputStream, message);
 }

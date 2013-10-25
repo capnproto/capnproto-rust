@@ -896,16 +896,16 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
         Some(Node::Const(_)) => { }
 
         Some(Node::Annotation( annotationReader )) => {
-            std::io::println("  annotation node:");
+            println("  annotation node:");
             if (annotationReader.getTargetsFile()) {
-                std::io::println("  targets file");
+                println("  targets file");
             }
             if (annotationReader.getTargetsConst()) {
-                std::io::println("  targets const");
+                println("  targets const");
             }
             // ...
             if (annotationReader.getTargetsAnnotation()) {
-                std::io::println("  targets annotation");
+                println("  targets annotation");
             }
         }
 
@@ -917,11 +917,13 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
 
 fn main() {
+    use std::rt::io::file::FileInfo;
+    use std::rt::io::Writer;
     use capnprust::serialize::*;
 
-    let inp = std::io::stdin();
+    let mut inp = std::rt::io::stdin();
 
-    do InputStreamMessageReader::new(inp, message::DEFAULT_READER_OPTIONS) | messageReader | {
+    do InputStreamMessageReader::new(&mut inp, message::DEFAULT_READER_OPTIONS) | messageReader | {
         let structReader = messageReader.getRoot();
 
         let codeGeneratorRequest =
@@ -946,7 +948,7 @@ fn main() {
             let requestedFile = requestedFilesReader.get(ii);
             let id = requestedFile.getId();
             let name : &str = requestedFile.getFilename();
-            std::io::println(format!("requested file: {}", name));
+            println(format!("requested file: {}", name));
 
             let fileNode = nodeMap.get(&id);
             let displayName = fileNode.getDisplayName();
@@ -968,7 +970,7 @@ fn main() {
             };
 
             outputFileName.push_str(".rs");
-            std::io::println(outputFileName);
+            println(outputFileName);
 
             populateScopeMap(&nodeMap, &mut scopeMap, rootName, id);
 
@@ -978,13 +980,15 @@ fn main() {
             let macros_text = macros();
 
             let path = std::path::Path::new(outputFileName);
-            match std::io::mk_file_writer(&path, [std::io::Create, std::io::Truncate]) {
-                Ok(writer) => {
+
+            let mut writer = path.open_writer(std::rt::io::Truncate).unwrap();
+//            match writer {
+//                Some(writer) => {
                     writer.write(macros_text.as_bytes());
                     writer.write(text.as_bytes())
-                }
-                Err(msg) => {fail!(msg)}
-            }
+//                }
+//                None => {fail!("could not open file for writing")}
+//            }
         }
     }
 }

@@ -55,21 +55,20 @@ fn writeAddressBook() {
     person.setName("Diane");
     person.getEmployment().setSchool("Caltech");
 
-    let outStream = @std::io::stdout() as @capnprust::serialize::OutputStream;
 
 //    serialize::writeMessage(outStream, message)
-    capnprust::serialize_packed::writePackedMessage(outStream, message)
+    capnprust::serialize_packed::writePackedMessage(std::rt::io::stdout(), message)
 }
 
 fn printAddressBook() {
     use capnprust;
     use addressbook_capnp::{AddressBook, Person};
 
-    let inp = @capnprust::serialize_packed::PackedInputStream { inner : std::io::stdin() } as @std::io::Reader;
+    let mut inp = capnprust::serialize_packed::PackedInputStream { inner : std::rt::io::stdin() };
 //    let inp = std::io::stdin();
 
     do capnprust::serialize::InputStreamMessageReader::new(
-        inp, capnprust::message::DEFAULT_READER_OPTIONS) |messageReader| {
+        &mut inp, capnprust::message::DEFAULT_READER_OPTIONS) |messageReader| {
         let addressBook =
             AddressBook::Reader::new(messageReader.getRoot());
         let people = addressBook.getPeople();
@@ -119,7 +118,7 @@ fn main() {
         match args[1] {
             ~"write" => writeAddressBook(),
             ~"read" => printAddressBook(),
-            _ => {std::io::println("unrecognized argument") }
+            _ => {println("unrecognized argument") }
         }
     }
 
