@@ -8,12 +8,13 @@ use std;
 //use common::*;
 use message::*;
 use serialize::*;
+use std::rt::io::ReaderUtil;
 
 pub struct PackedInputStream<T> {
     inner : T
 }
 
-impl <T : std::rt::io::Reader + std::rt::io::ReaderUtil> std::rt::io::Reader for PackedInputStream<T> {
+impl <T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<T> {
     fn eof(&mut self) -> bool {
         self.inner.eof()
     }

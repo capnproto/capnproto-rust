@@ -12,29 +12,16 @@ use message::*;
 pub mod InputStreamMessageReader {
 
     use std;
-    use common;
     use endian::*;
     use message::*;
-
-    fn read_bytes<T : std::rt::io::Reader>(reader : &mut T, len : uint) -> ~[u8] {
-        let mut result : ~[u8] = common::allocate_zeroed_bytes(len);
-        let mut num_bytes_read = 0;
-        loop {
-            if num_bytes_read == len { break }
-            let slice : &mut [u8] = result.mut_slice(num_bytes_read, len);
-            match reader.read(slice) {
-                Some(num_read) => num_bytes_read += num_read,
-                None => fail!("could not read bytes")
-            }
-        }
-        result
-    }
 
     pub fn new<U : std::rt::io::Reader, T>(inputStream : &mut U,
                                            options : ReaderOptions,
                                            cont : &fn(v : &mut MessageReader) -> T) -> T {
 
-        let firstWord = read_bytes(inputStream, 8);
+        use std::rt::io::extensions::ReaderUtil;
+
+        let firstWord = inputStream.read_bytes(8);
 
         let segmentCount : u32 =
             unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.unsafe_ref(0));
@@ -58,7 +45,7 @@ pub mod InputStreamMessageReader {
         let mut moreSizes : ~[u32] = std::vec::from_elem((segmentCount & !1) as uint, 0u32);
 
         if (segmentCount > 1) {
-            let moreSizesRaw = read_bytes(inputStream, (4 * (segmentCount & !1)) as uint);
+            let moreSizesRaw = inputStream.read_bytes((4 * (segmentCount & !1)) as uint);
             for ii in range(0, segmentCount as uint - 1) {
                 moreSizes[ii] = unsafe {
                     let p : *WireValue<u32> =
@@ -77,7 +64,7 @@ pub mod InputStreamMessageReader {
         assert!(totalWords as u64 <= options.traversalLimitInWords);
 
         // TODO Is this guaranteed to be word-aligned?
-        let ownedSpace : ~[u8] = read_bytes(inputStream, 8 * totalWords as uint);
+        let ownedSpace : ~[u8] = inputStream.read_bytes(8 * totalWords as uint);
 
         // TODO lazy reading like in capnp-c++. Is that possible
         // within the std::io::Reader interface?
