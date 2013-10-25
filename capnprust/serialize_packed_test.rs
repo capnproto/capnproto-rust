@@ -9,16 +9,21 @@ use std;
 use serialize::*;
 use serialize_packed::*;
 
+
+
 pub fn expectPacksTo(unpacked : &[u8],
                      packed : &[u8]) {
+
+    use std::rt::io::Writer;
+    use std::rt::io::mem::MemWriter;
+    use std::rt::io::extensions::ReaderUtil;
 
     // --------
     // write
 
-    let bytes = do std::io::with_bytes_writer |writer| {
-        let packedOutputStream =
-            @PackedOutputStream {inner : @writer  as @OutputStream};
-
+    // XXX this is broken and does not compile
+    let bytes = do std::rt::io::mem::with_mem_writer |writer| {
+        let mut packedOutputStream = PackedOutputStream {inner : writer};
         packedOutputStream.write(unpacked);
     };
 
@@ -27,15 +32,14 @@ pub fn expectPacksTo(unpacked : &[u8],
     // --------
     // read
 
+    let mut reader = std::rt::io::mem::BufReader::new(packed);
+    let mut packedInputStream =
+        PackedInputStream {inner : reader};
 
-    do std::io::with_bytes_reader(packed) |reader| {
-        let packedInputStream =
-            @PackedInputStream {inner : reader} as @std::io::Reader;
+    let bytes = packedInputStream.read_to_end();
 
-        let bytes = packedInputStream.read_whole_stream();
+    assert!(bytes.slice(0, bytes.len()).equals(&unpacked));
 
-        assert!(bytes.slice(0, bytes.len()).equals(&unpacked));
-    }
 }
 
 

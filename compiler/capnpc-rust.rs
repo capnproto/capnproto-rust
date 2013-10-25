@@ -981,7 +981,7 @@ fn main() {
 
             let path = std::path::Path::new(outputFileName);
 
-            let mut writer = path.open_writer(std::rt::io::Truncate).unwrap();
+            let mut writer = path.open_writer(std::rt::io::CreateOrTruncate).unwrap();
 //            match writer {
 //                Some(writer) => {
                     writer.write(macros_text.as_bytes());
