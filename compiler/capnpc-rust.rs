@@ -981,14 +981,13 @@ fn main() {
 
             let path = std::path::Path::new(outputFileName);
 
-            let mut writer = path.open_writer(std::rt::io::CreateOrTruncate).unwrap();
-//            match writer {
-//                Some(writer) => {
+            match path.open_writer(std::rt::io::CreateOrTruncate) {
+                Some(ref mut writer) => {
                     writer.write(macros_text.as_bytes());
                     writer.write(text.as_bytes())
-//                }
-//                None => {fail!("could not open file for writing")}
-//            }
+            }
+                None => {fail!("could not open file for writing")}
+            }
         }
     }
 }
