@@ -26,15 +26,14 @@ pub mod eval;
 
 macro_rules! passByObject(
     ( $testcase:ident, $iters:expr ) => ({
-            let mut rng = ~common::FastRand::new();
+            let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
                 let messageReq = capnprust::message::MessageBuilder::new_default();
                 let messageRes = capnprust::message::MessageBuilder::new_default();
 
-
                 let request = messageReq.initRoot::<$testcase::RequestBuilder>();
                 let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
-                let expected = $testcase::setupRequest(rng, request);
+                let expected = $testcase::setupRequest(&mut rng, request);
 
                 do request.asReader |requestReader| {
                     $testcase::handleRequest(requestReader, response);
@@ -52,15 +51,36 @@ macro_rules! passByObject(
         });
     )
 
-macro_rules! doTestcase(
-    ( $testcase:ident, $mode:expr, $reuse:expr, $compression:expr, $iters:expr ) => ({
-            match $mode {
-                ~"object" => passByObject!($testcase, $iters),
-                s => fail!("unrecognized mode: {}", s)
+macro_rules! passByBytes(
+    ( $testcase:ident, $iters:expr ) => ({
+            let mut rng = common::FastRand::new();
+            for _ in range(0, $iters) {
+                let messageReq = capnprust::message::MessageBuilder::new_default();
+                let messageRes = capnprust::message::MessageBuilder::new_default();
+
+                let request = messageReq.initRoot::<$testcase::RequestBuilder>();
+                let _response = messageRes.initRoot::<$testcase::ResponseBuilder>();
+                let _expected = $testcase::setupRequest(&mut rng, request);
+                fail!("unimplemented");
             }
         });
     )
 
+macro_rules! passByPipe(
+    ( $testcase:ident, $iters:expr) => ({
+            fail!("unimplemented");
+        });
+    )
+
+macro_rules! doTestcase(
+    ( $testcase:ident, $mode:expr, $reuse:expr, $compression:expr, $iters:expr ) => ({
+            match $mode {
+                ~"object" => passByObject!($testcase, $iters),
+                ~"bytes" => passByBytes!($testcase, $iters),
+                s => fail!("unrecognized mode: {}", s)
+            }
+        });
+    )
 
 
 pub fn main () {
@@ -80,24 +100,10 @@ pub fn main () {
         }
     };
 
-/* TODO use std::run
-    unsafe {
-        let child = funcs::posix88::unistd::fork();
-        if (child == 0 ) {
-            printfln!("%s", "Hello world. I am the child and client.");
-        } else {
-            printfln!("%s", "Hello world. I am the parent and server.");
-        }
-    }
-*/
-
-
     match args[1] {
         ~"carsales" => doTestcase!(carsales, args[2], args[3], args[4], iters),
         ~"catrank" => doTestcase!(catrank, args[2], args[3], args[4], iters),
         ~"eval" => doTestcase!(eval, args[2], args[3], args[4], iters),
         s => fail!("unrecognized test case: {}", s)
     }
-
-
 }
