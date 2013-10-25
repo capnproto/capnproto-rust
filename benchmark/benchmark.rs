@@ -52,20 +52,30 @@ macro_rules! passByObject(
         });
     )
 
+macro_rules! doTestcase(
+    ( $testcase:ident, $mode:expr, $reuse:expr, $compression:expr, $iters:expr ) => ({
+            match $mode {
+                ~"object" => passByObject!($testcase, $iters),
+                s => fail!("unrecognized mode: {}", s)
+            }
+        });
+    )
+
+
 
 pub fn main () {
 
     let args = std::os::args();
 
-    if (args.len() != 5) {
-        println!("USAGE: {} MODE REUSE COMPRESSION ITERATION_COUNT", args[0]);
+    if (args.len() != 6) {
+        println!("USAGE: {} CASE MODE REUSE COMPRESSION ITERATION_COUNT", args[0]);
         return;
     }
 
-    let iters = match from_str::<u64>(args[4]) {
+    let iters = match from_str::<u64>(args[5]) {
         Some (n) => n,
         None => {
-            println!("Could not parse a u64 from: {}", args[4]);
+            println!("Could not parse a u64 from: {}", args[5]);
             return;
         }
     };
@@ -81,8 +91,13 @@ pub fn main () {
     }
 */
 
-//    passByObject!(catrank, iters);
-    passByObject!(carsales, iters);
-//    passByObject!(eval, iters);
+
+    match args[1] {
+        ~"carsales" => doTestcase!(carsales, args[2], args[3], args[4], iters),
+        ~"catrank" => doTestcase!(catrank, args[2], args[3], args[4], iters),
+        ~"eval" => doTestcase!(eval, args[2], args[3], args[4], iters),
+        s => fail!("unrecognized test case: {}", s)
+    }
+
 
 }
