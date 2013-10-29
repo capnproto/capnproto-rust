@@ -5,10 +5,8 @@
  */
 
 use std;
-//use common::*;
 use message::*;
 use serialize::*;
-use std::rt::io::ReaderByteConversions;
 
 pub struct PackedInputStream<T> {
     inner : T
@@ -29,7 +27,7 @@ impl <T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<T> {
         let mut outPos = 0;
         while (outPos < len && ! self.inner.eof() ) {
 
-            let tag : u8 = self.inner.read_u8_();
+            let tag : u8 = self.inner.read_u8();
 
             for n in range(0, 8) {
                 let isNonzero = (tag & (1 as u8 << n)) != 0;//..as bool;
@@ -37,7 +35,7 @@ impl <T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<T> {
                     // TODO capnproto-c++ gets away without using a
                     // conditional here. Can we do something like that
                     // and would it speed things up?
-                    outBuf[outPos] = self.inner.read_u8_();
+                    outBuf[outPos] = self.inner.read_u8();
                     outPos += 1;
                 } else {
                     outBuf[outPos] = 0;
@@ -47,7 +45,7 @@ impl <T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<T> {
 
             if (tag == 0) {
 
-                let runLength : uint = self.inner.read_u8_() as uint * 8;
+                let runLength : uint = self.inner.read_u8() as uint * 8;
 
                 unsafe {
                     std::ptr::set_memory(outBuf.unsafe_mut_ref(outPos),
@@ -56,7 +54,7 @@ impl <T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<T> {
                 outPos += runLength;
 
             } else if (tag == 0xff) {
-                let runLength : uint = self.inner.read_u8_() as uint * 8;
+                let runLength : uint = self.inner.read_u8() as uint * 8;
 
                 let mut bytes_read = 0;
                 while bytes_read < runLength {

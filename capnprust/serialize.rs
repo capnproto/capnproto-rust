@@ -19,8 +19,6 @@ pub mod InputStreamMessageReader {
                                            options : ReaderOptions,
                                            cont : &fn(v : &mut MessageReader) -> T) -> T {
 
-        use std::rt::io::extensions::ReaderUtil;
-
         let firstWord = inputStream.read_bytes(8);
 
         let segmentCount : u32 =
