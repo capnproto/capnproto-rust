@@ -878,6 +878,7 @@ pub mod Annotation {
 
 pub mod ElementSize {
 
+    #[repr(u16)]
     #[deriving(FromPrimitive)]
     pub enum Reader {
         Empty = 0,

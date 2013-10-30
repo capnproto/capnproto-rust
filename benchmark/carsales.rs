@@ -7,12 +7,17 @@
 use std::rand::*;
 use common::*;
 use carsales_capnp::*;
+use capnprust;
 
 pub type RequestBuilder = ParkingLot::Builder;
 pub type RequestReader<'self> = ParkingLot::Reader<'self>;
 pub type ResponseBuilder = TotalValue::Builder;
 pub type ResponseReader<'self> = TotalValue::Reader<'self>;
 pub type Expectation = u64;
+
+pub fn newRequestReader<'a>(sr : capnprust::layout::StructReader<'a>) -> ParkingLot::Reader<'a> {
+    ParkingLot::Reader::new(sr)
+}
 
 pub fn carValue (car : Car::Reader) -> u64 {
     let mut result : u64 = 0;
@@ -59,7 +64,7 @@ pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
     car.setMake(MAKES[rng.nextLessThan(MAKES.len() as u32)]);
     car.setModel(MODELS[rng.nextLessThan(MODELS.len() as u32)]);
 
-    car.setColor(unsafe {transmute(rng.gen_range::<uint>(0, Color::Silver as uint + 1)) });
+    car.setColor(unsafe {transmute(rng.gen_range::<u16>(0, Color::Silver as u16 + 1)) });
     car.setSeats(2 + rng.nextLessThan(6) as u8);
     car.setDoors(2 + rng.nextLessThan(3) as u8);
 

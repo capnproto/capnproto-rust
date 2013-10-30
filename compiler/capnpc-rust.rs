@@ -875,7 +875,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                               ii)));
             }
 
-            output.push(Indent(~Branch(~[Line(~"#[deriving(FromPrimitive)]"),
+            output.push(Indent(~Branch(~[Line(~"#[repr(u16)]"),
+                                         Line(~"#[deriving(FromPrimitive)]"),
                                          Line(~"pub enum Reader {"),
                                          Indent(~Branch(members)),
                                          Line(~"}")])));
