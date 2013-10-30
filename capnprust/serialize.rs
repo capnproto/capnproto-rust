@@ -92,7 +92,7 @@ pub mod InputStreamMessageReader {
 }
 
 pub fn writeMessage<T: std::rt::io::Writer>(outputStream : &mut T,
-                                            message : & MessageBuilder) {
+                                            message : &MessageBuilder) {
 
     let tableSize : uint = ((message.segments.len() + 2) & (!1)) * (BYTES_PER_WORD / 2);
 
