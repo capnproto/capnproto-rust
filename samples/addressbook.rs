@@ -56,14 +56,15 @@ fn writeAddressBook() {
 
 
 //    serialize::writeMessage(outStream, message)
-    capnprust::serialize_packed::writePackedMessage(std::rt::io::stdout(), message)
+    capnprust::serialize_packed::writePackedMessage(&mut std::rt::io::stdout(), message)
 }
 
 fn printAddressBook() {
     use capnprust;
     use addressbook_capnp::{AddressBook, Person};
 
-    let mut inp = capnprust::serialize_packed::PackedInputStream { inner : std::rt::io::stdin() };
+    let mut inp = capnprust::serialize_packed::PackedInputStream {
+        inner : &mut std::rt::io::stdin() };
 //    let inp = std::io::stdin();
 
     do capnprust::serialize::InputStreamMessageReader::new(

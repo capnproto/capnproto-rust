@@ -66,6 +66,28 @@ macro_rules! passByBytes(
         });
     )
 
+macro_rules! server(
+    ( $testcase:ident, $iters:expr) => ({
+            fail!("unimplemented")
+        });
+    )
+
+macro_rules! syncClient(
+    ( $testcase:ident, $iters:expr) => ({
+            let mut rng = common::FastRand::new();
+            for _ in range(0, $iters) {
+                let messageReq = capnprust::message::MessageBuilder::new_default();
+                let messageRes = capnprust::message::MessageBuilder::new_default();
+
+                let request = messageReq.initRoot::<$testcase::RequestBuilder>();
+                let _response = messageRes.initRoot::<$testcase::ResponseBuilder>();
+                let _expected = $testcase::setupRequest(&mut rng, request);
+                fail!("unimplemented");
+            }
+        });
+    )
+
+
 macro_rules! passByPipe(
     ( $testcase:ident, $iters:expr) => ({
             fail!("unimplemented");
@@ -77,6 +99,8 @@ macro_rules! doTestcase(
             match $mode {
                 ~"object" => passByObject!($testcase, $iters),
                 ~"bytes" => passByBytes!($testcase, $iters),
+                ~"server" => server!($testcase, $iters),
+                ~"client" => syncClient!($testcase, $iters),
                 s => fail!("unrecognized mode: {}", s)
             }
         });

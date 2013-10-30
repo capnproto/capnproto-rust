@@ -8,11 +8,11 @@ use std;
 use message::*;
 use serialize::*;
 
-pub struct PackedInputStream<T> {
-    inner : T
+pub struct PackedInputStream<'self, T> {
+    inner : &'self mut T
 }
 
-impl <T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<T> {
+impl <'self, T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<'self, T> {
     fn eof(&mut self) -> bool {
         self.inner.eof()
     }
@@ -74,11 +74,11 @@ impl <T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<T> {
 
 }
 
-pub struct PackedOutputStream<T> {
-    inner : T
+pub struct PackedOutputStream<'self, T> {
+    inner : &'self mut T
 }
 
-impl <T : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream<T> {
+impl <'self, T : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream<'self, T> {
     fn write(&mut self, inBuf : &[u8]) {
 
         // Yuck. It'd be better to have a BufferedOutputStream, but
@@ -198,7 +198,7 @@ impl <T : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream<T> {
    fn flush(&mut self) { self.inner.flush(); }
 }
 
-pub fn writePackedMessage<T : std::rt::io::Writer>(outputStream : T,
+pub fn writePackedMessage<T : std::rt::io::Writer>(outputStream : &mut T,
                                                    message : &MessageBuilder) {
 
     let mut packedOutputStream = PackedOutputStream {inner : outputStream};
