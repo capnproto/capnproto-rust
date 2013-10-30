@@ -11,8 +11,8 @@ use arena::*;
 use blob::*;
 use std;
 
+#[repr(u8)]
 pub enum FieldSize {
-// is there a way to force this to fit within a single byte?
     VOID = 0,
     BIT = 1,
     BYTE = 2,
@@ -66,6 +66,7 @@ impl StructSize {
     }
 }
 
+#[repr(u8)]
 pub enum WirePointerKind {
     WP_STRUCT = 0,
     WP_LIST = 1,
@@ -109,7 +110,7 @@ impl ListRef {
     #[inline]
     pub fn elementSize(&self) -> FieldSize {
         unsafe {
-            std::cast::transmute( (self.elementSizeAndCount.get() & 7) as uint)
+            std::cast::transmute( (self.elementSizeAndCount.get() & 7) as u8)
         }
     }
 
@@ -158,7 +159,7 @@ impl WirePointer {
     #[inline]
     pub fn kind(&self) -> WirePointerKind {
         unsafe {
-            std::cast::transmute((self.offsetAndKind.get() & 3) as uint)
+            std::cast::transmute((self.offsetAndKind.get() & 3) as u8)
         }
     }
 
