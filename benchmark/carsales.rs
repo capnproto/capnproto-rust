@@ -19,6 +19,10 @@ pub fn newRequestReader<'a>(sr : capnprust::layout::StructReader<'a>) -> Parking
     ParkingLot::Reader::new(sr)
 }
 
+pub fn newResponseReader<'a>(sr : capnprust::layout::StructReader<'a>) -> TotalValue::Reader<'a> {
+    TotalValue::Reader::new(sr)
+}
+
 pub fn carValue (car : Car::Reader) -> u64 {
     let mut result : u64 = 0;
     result += car.getSeats() as u64 * 200;

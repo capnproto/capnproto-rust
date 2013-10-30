@@ -59,8 +59,8 @@ macro_rules! passByBytes(
                 let messageRes = capnprust::message::MessageBuilder::new_default();
 
                 let request = messageReq.initRoot::<$testcase::RequestBuilder>();
-                let _response = messageRes.initRoot::<$testcase::ResponseBuilder>();
-                let _expected = $testcase::setupRequest(&mut rng, request);
+                let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
+                let expected = $testcase::setupRequest(&mut rng, request);
 
                 let requestBytes = do std::rt::io::mem::with_mem_writer |writer| {
                     capnprust::serialize::writeMessage(writer, messageReq)
@@ -69,11 +69,25 @@ macro_rules! passByBytes(
                 do capnprust::serialize::InputStreamMessageReader::new(
                       &mut std::rt::io::mem::BufReader::new(requestBytes),
                       capnprust::message::DEFAULT_READER_OPTIONS) |requestReader| {
-//                    $testcase::RequestReader::new(requestReader.getRoot())
-                    requestReader.getRoot();
+                    let requestReader = $testcase::newRequestReader(requestReader.getRoot());
+                    $testcase::handleRequest(requestReader, response);
                 }
 
-                fail!("unimplemented");
+                let responseBytes = do std::rt::io::mem::with_mem_writer |writer| {
+                    capnprust::serialize::writeMessage(writer, messageRes);
+                };
+
+                do capnprust::serialize::InputStreamMessageReader::new(
+                    &mut std::rt::io::mem::BufReader::new(responseBytes),
+                    capnprust::message::DEFAULT_READER_OPTIONS) |responseReader| {
+                    let responseReader = $testcase::newResponseReader(responseReader.getRoot());
+                    if (! $testcase::checkResponse(responseReader, expected)) {
+                        println("Incorrect response.");
+                    }
+                }
+
+                messageReq.release();
+                messageRes.release();
             }
         });
     )
