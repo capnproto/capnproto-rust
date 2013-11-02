@@ -275,10 +275,11 @@ mod WireHelpers {
 
     // Return (segmentBuilder', refIndex', offset to new space).
     #[inline]
-    pub fn allocate(refIndex : WordCount,
-                    segmentBuilder : @mut SegmentBuilder,
-                    amount : WordCount, kind : WirePointerKind)
-        -> (@mut SegmentBuilder, WordCount, WordCount) {
+    pub fn allocate(reff : &mut *mut WirePointer,
+                    segmentBuilder : &mut *mut SegmentBuilder,
+                    amount : WordCount, kind : WirePointerKind) -> *mut Word {
+        fail!("unimplemented");
+        /*
         let isNull =
             do segmentBuilder.withMutSegment |segment| {
             WirePointer::get(segment, refIndex).isNull()
@@ -321,6 +322,7 @@ mod WireHelpers {
                 return (segmentBuilder, refIndex, ptr);
             }
         }
+         */
     }
 
     #[inline]
@@ -460,19 +462,17 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn initStructPointer(refIndex : WordCount,
-                             segmentBuilder : @mut SegmentBuilder,
+    pub fn initStructPointer(reff : *mut WirePointer,
+                             segmentBuilder : *mut SegmentBuilder,
                              size : StructSize) -> StructBuilder {
-        let (segmentBuilder, refIndex, ptr) =
-            allocate(refIndex, segmentBuilder, size.total(), WP_STRUCT);
-        do segmentBuilder.withMutSegment |segment| {
-            WirePointer::getMut(segment, refIndex).structRefMut().set(size);
-        }
+        let ptr = allocate(&mut reff, &mut segmentBuilder, size.total(), WP_STRUCT);
+
+        unsafe { (*reff).structRefMut().set(size) }
 
         StructBuilder {
             segment : segmentBuilder,
-            data : ptr * BYTES_PER_WORD,
-            pointers : (ptr + size.data as WordCount),
+            data : unsafe{std::cast::transmute(ptr)},
+            pointers : unsafe{std::cast::transmute(std::ptr::mut_offset(ptr, size.data as int))},
             dataSize : size.data as WordCount32 * (BITS_PER_WORD as BitCount32),
             pointerCount : size.pointers,
             bit0Offset : 0
@@ -480,16 +480,16 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn getWritableStructPointer(_refIndex : WordCount,
-                                    _segment : @mut SegmentBuilder,
+    pub fn getWritableStructPointer(_reff : *mut WirePointer,
+                                    _segment : *mut SegmentBuilder,
                                     _size : StructSize,
                                     _defaultValue : Option<()>) -> StructBuilder {
         fail!("unimplemented")
     }
 
     #[inline]
-    pub fn initListPointer(refIndex : WordCount,
-                           segmentBuilder : @mut SegmentBuilder,
+    pub fn initListPointer(reff : *mut WirePointer,
+                           segmentBuilder : *mut SegmentBuilder,
                            elementCount : ElementCount,
                            elementSize : FieldSize) -> ListBuilder {
         match elementSize {
@@ -503,16 +503,13 @@ mod WireHelpers {
         let pointerCount = pointersPerElement(elementSize);
         let step = (dataSize + pointerCount * BITS_PER_POINTER);
         let wordCount = roundBitsUpToWords(elementCount as ElementCount64 * (step as u64));
-        let (segmentBuilder, refIndex, ptr) =
-            allocate(refIndex, segmentBuilder, wordCount, WP_LIST);
+        let ptr = allocate(&mut reff, &mut segmentBuilder, wordCount, WP_LIST);
 
-        do segmentBuilder.withMutSegment |segment| {
-            WirePointer::getMut(segment, refIndex).listRefMut().set(elementSize, elementCount);
-        };
+        unsafe { (*reff).listRefMut().set(elementSize, elementCount) }
 
         ListBuilder {
             segment : segmentBuilder,
-            ptr : ptr * BYTES_PER_WORD,
+            ptr : unsafe {std::cast::transmute(ptr)},
             step : step,
             elementCount : elementCount,
             structDataSize : dataSize as u32,
@@ -521,14 +518,14 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn initStructListPointer(refIndex : WordCount,
-                                 segmentBuilder : @mut SegmentBuilder,
+    pub fn initStructListPointer(reff : *mut WirePointer,
+                                 segmentBuilder : *mut SegmentBuilder,
                                  elementCount : ElementCount,
                                  elementSize : StructSize) -> ListBuilder {
         match elementSize.preferredListEncoding {
             INLINE_COMPOSITE => { }
             otherEncoding => {
-                return initListPointer(refIndex, segmentBuilder, elementCount, otherEncoding);
+                return initListPointer(reff, segmentBuilder, elementCount, otherEncoding);
             }
         }
 
@@ -536,25 +533,20 @@ mod WireHelpers {
 
         //# Allocate the list, prefixed by a single WirePointer.
         let wordCount : WordCount = elementCount * wordsPerElement;
-        let (segmentBuilder, refIndex, ptr) =
-            allocate(refIndex, segmentBuilder,
-                     POINTER_SIZE_IN_WORDS + wordCount, WP_LIST);
+        let ptr : *mut WirePointer = unsafe {
+            std::cast::transmute(allocate(&mut reff, &mut segmentBuilder,
+                                          POINTER_SIZE_IN_WORDS + wordCount, WP_LIST)) };
 
-        do segmentBuilder.withMutSegment |segment| {
-            //# Initalize the pointer.
-            WirePointer::getMut(segment, refIndex).listRefMut().setInlineComposite(wordCount);
+        //# Initalize the pointer.
+        unsafe {(*reff).listRefMut().setInlineComposite(wordCount)}
+        unsafe {(*ptr).setKindAndInlineCompositeListElementCount(WP_STRUCT, elementCount)}
+        unsafe {(*ptr).structRefMut().set(elementSize)}
 
-            //# Initialize the list tag.
-            WirePointer::getMut(segment, ptr).setKindAndInlineCompositeListElementCount(
-                                                     WP_STRUCT, elementCount);
-            WirePointer::getMut(segment, ptr).structRefMut().set(elementSize);
-        };
-
-        let ptr1 = ptr + POINTER_SIZE_IN_WORDS;
+        let ptr1 = std::ptr::mut_offset(ptr, POINTER_SIZE_IN_WORDS as int);
 
         ListBuilder {
             segment : segmentBuilder,
-            ptr : ptr1 * BYTES_PER_WORD,
+            ptr : unsafe {std::cast::transmute(ptr1)},
             step : wordsPerElement * BITS_PER_WORD,
             elementCount : elementCount,
             structDataSize : elementSize.data as u32 * (BITS_PER_WORD as u32),
@@ -563,24 +555,24 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn getWritableListPointer(_origRefIndex : WirePointerCount,
-                                  _origSegment : @ mut SegmentBuilder,
+    pub fn getWritableListPointer(_origRefIndex : *mut WirePointer,
+                                  _origSegment : *mut SegmentBuilder,
                                   _elementSize : FieldSize,
                                   _defaultValue : Option<()>) -> ListBuilder {
         fail!("unimplemented")
     }
 
     #[inline]
-    pub fn getWritableStructListPointer(_origRefIndex : WirePointerCount,
-                                        _origSegment : @ mut SegmentBuilder,
+    pub fn getWritableStructListPointer(_origRefIndex : *mut WirePointer,
+                                        _origSegment : *mut SegmentBuilder,
                                         _elementSize : StructSize,
                                         _defaultValue : Option<()>) -> ListBuilder {
         fail!("unimplemented")
     }
 
     #[inline]
-    pub fn setTextPointer(refIndex : WirePointerCount,
-                          segmentBuilder : @mut SegmentBuilder,
+    pub fn setTextPointer(reff : *mut WirePointer,
+                          segmentBuilder : *mut SegmentBuilder,
                           value : &str) {
 
         // initTextPointer is rolled in here
@@ -590,25 +582,22 @@ mod WireHelpers {
         //# The byte list must include a NUL terminator
         let byteSize = bytes.len() + 1;
 
-        let (segmentBuilder, refIndex, ptr) =
-            allocate(refIndex, segmentBuilder, roundBytesUpToWords(byteSize), WP_LIST);
+        let ptr =
+            allocate(&mut reff, &mut segmentBuilder, roundBytesUpToWords(byteSize), WP_LIST);
 
-        do segmentBuilder.withMutSegment |segment| {
-            WirePointer::getMut(segment, refIndex).listRefMut().set(BYTE, byteSize);
-
-            unsafe {
-                let dst : *mut u8 = segment.unsafe_mut_ref(ptr * BYTES_PER_WORD);
-                let src : *u8 = bytes.unsafe_ref(0);
-                std::ptr::copy_memory(dst, src, bytes.len());
-            }
+        unsafe {
+            (*reff).listRefMut().set(BYTE, byteSize);
+            let dst : *mut u8 = std::cast::transmute(ptr);
+            let src : *u8 = bytes.unsafe_ref(0);
+            std::ptr::copy_memory(dst, src, bytes.len());
 
             // null terminate
-            segment[ptr * BYTES_PER_WORD + bytes.len()] = 0;
+            std::ptr::zero_memory(std::ptr::mut_offset(dst, bytes.len() as int), 1);
         }
     }
 
     #[inline]
-    pub fn getWritableTextPointer(_refIndex : WirePointerCount, _segment : @mut SegmentBuilder,
+    pub fn getWritableTextPointer(_refIndex : *mut WirePointer, _segment : *mut SegmentBuilder,
                                   _defaultValue : &'static str) -> Text::Builder {
         fail!("unimplemented");
     }
@@ -971,9 +960,9 @@ pub trait FromStructBuilder {
 }
 
 pub struct StructBuilder {
-    segment : @ mut SegmentBuilder,
-    data : ByteCount,
-    pointers : WordCount,
+    segment : *mut SegmentBuilder,
+    data : *mut u8,
+    pointers : *mut WirePointer,
     dataSize : BitCount32,
     pointerCount : WirePointerCount16,
     bit0Offset : BitCount8
@@ -981,6 +970,8 @@ pub struct StructBuilder {
 
 impl StructBuilder {
     pub fn asReader<T>(&self, f : &fn(StructReader) -> T) -> T {
+        fail!("asReader unimplemented")
+/*
         do self.segment.asReader |segmentReader| {
             f ( StructReader {
                     segment : segmentReader,
@@ -992,9 +983,10 @@ impl StructBuilder {
                     nestingLimit : 0x7fffffff
                 })
         }
+*/
     }
 
-    pub fn initRoot(segment : @ mut SegmentBuilder,
+    pub fn initRoot(segment : *mut SegmentBuilder,
                     location : WordCount,
                     size : StructSize) -> StructBuilder {
         WireHelpers::initStructPointer(
@@ -1004,16 +996,18 @@ impl StructBuilder {
 
     #[inline]
     pub fn setDataField<T:Clone>(&self, offset : ElementCount, value : T) {
-        let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
-        WireValue::getFromBufMut(self.segment.messageBuilder.segments[self.segment.id],
-                                 totalByteOffset).set(value);
+        unsafe {
+            let ptr : *mut WireValue<T> = std::cast::transmute(self.data);
+            (*std::ptr::mut_offset(ptr, offset as int)).set(value)
+        }
     }
 
     #[inline]
     pub fn getDataField<T:Clone>(&self, offset : ElementCount) -> T {
-        let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
-        WireValue::getFromBuf(self.segment.messageBuilder.segments[self.segment.id],
-                              totalByteOffset).get()
+        unsafe {
+            let ptr : *mut WireValue<T> = std::cast::transmute(self.data);
+            (*std::ptr::mut_offset(ptr, offset as int)).get()
+        }
     }
 
     #[inline]
@@ -1021,22 +1015,17 @@ impl StructBuilder {
         //# This branch should be compiled out whenever this is
         //# inlined with a constant offset.
         let boffset : BitCount0 = if (offset == 0) { self.bit0Offset as uint } else { offset };
-        let b = self.data + boffset / BITS_PER_BYTE;
+        let b = unsafe {std::ptr::mut_offset(self.data, (boffset / BITS_PER_BYTE) as int)};
         let bitnum = boffset % BITS_PER_BYTE;
-        let wv : &mut WireValue<u8> =
-            WireValue::getFromBufMut(self.segment.messageBuilder.segments[self.segment.id],
-                                     b);
-        let oldValue = wv.get();
-        wv.set((oldValue & !(1 << bitnum)) | (value as u8 << bitnum));
+        unsafe { (*b) = (( (*b) & !(1 << bitnum)) | (value as u8 << bitnum)) }
     }
 
     #[inline]
     pub fn getBoolField(&self, offset : ElementCount) -> bool {
         let boffset : BitCount0 =
-            if (offset == 0) {self.bit0Offset as BitCount0 } else {offset};
-        let idx = self.data + boffset / BITS_PER_BYTE;
-        let b : u8 = self.segment.messageBuilder.segments[self.segment.id][idx];
-        (b & (1 << (boffset % BITS_PER_BYTE ))) != 0
+            if (offset == 0) {self.bit0Offset as BitCount0} else {offset};
+        let b = unsafe { std::ptr::mut_offset(self.data, (boffset / BITS_PER_BYTE) as int) };
+        ((*b) & (1 << (boffset % BITS_PER_BYTE ))) != 0
     }
 
     //# Initializes the struct field at the given index in the pointer
@@ -1047,7 +1036,8 @@ impl StructBuilder {
     //# (which may have non-null pointers).
     pub fn initStructField(&self, ptrIndex : WirePointerCount, size : StructSize)
         -> StructBuilder {
-        WireHelpers::initStructPointer(self.pointers + ptrIndex, self.segment, size)
+        WireHelpers::initStructPointer(unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
+                                       self.segment, size)
     }
 
     //# Gets the struct field at the given index in the pointer
@@ -1056,10 +1046,11 @@ impl StructBuilder {
     //# message), or to the empty state if defaultValue is nullptr.
     pub fn getStructField(&self, ptrIndex : WirePointerCount, size : StructSize,
                           defaultValue : Option<()>) -> StructBuilder {
-        WireHelpers::getWritableStructPointer(self.pointers + ptrIndex,
-                                              self.segment,
-                                              size,
-                                              defaultValue)
+        WireHelpers::getWritableStructPointer(
+            unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
+            self.segment,
+            size,
+            defaultValue)
     }
 
     //# Allocates a new list of the given size for the field at the given
@@ -1068,8 +1059,9 @@ impl StructBuilder {
     pub fn initListField(&self, ptrIndex : WirePointerCount,
                          elementSize : FieldSize, elementCount : ElementCount)
         -> ListBuilder {
-        WireHelpers::initListPointer(self.pointers + ptrIndex,
-                                     self.segment, elementCount, elementSize)
+        WireHelpers::initListPointer(
+            unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
+            self.segment, elementCount, elementSize)
     }
 
     //# Gets the already-allocated list field for the given pointer
@@ -1080,8 +1072,9 @@ impl StructBuilder {
     //# an empty list is used.
     pub fn getListField(&self, ptrIndex : WirePointerCount,
                         elementSize : FieldSize, defaultValue : Option<()>) -> ListBuilder {
-        WireHelpers::getWritableListPointer(self.pointers + ptrIndex,
-                                            self.segment, elementSize, defaultValue)
+        WireHelpers::getWritableListPointer(
+            unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
+            self.segment, elementSize, defaultValue)
     }
 
     //# Allocates a new list of the given size for the field at the
@@ -1090,8 +1083,9 @@ impl StructBuilder {
     pub fn initStructListField(&self, ptrIndex : WirePointerCount,
                                elementCount : ElementCount, elementSize : StructSize)
         -> ListBuilder {
-        WireHelpers::initStructListPointer(self.pointers + ptrIndex,
-                                           self.segment, elementCount, elementSize)
+        WireHelpers::initStructListPointer(
+            unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
+            self.segment, elementCount, elementSize)
     }
 
     //# Gets the already-allocated list field for the given pointer
@@ -1103,20 +1097,24 @@ impl StructBuilder {
     pub fn getStructListField(&self, ptrIndex : WirePointerCount,
                               elementSize : StructSize,
                               defaultValue : Option<()>) -> ListBuilder {
-        WireHelpers::getWritableStructListPointer(self.pointers + ptrIndex,
-                                                  self.segment, elementSize,
-                                                  defaultValue)
+        WireHelpers::getWritableStructListPointer(
+            unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
+            self.segment, elementSize,
+            defaultValue)
     }
 
     pub fn setTextField(&self, ptrIndex : WirePointerCount, value : &str) {
-        WireHelpers::setTextPointer(self.pointers + ptrIndex, self.segment, value)
+        WireHelpers::setTextPointer(
+            unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
+            self.segment, value)
     }
 
 
     pub fn getTextField(&self, ptrIndex : WirePointerCount,
                         defaultValue : &'static str) -> Text::Builder {
-        WireHelpers::getWritableTextPointer(self.pointers + ptrIndex,
-                                            self.segment, defaultValue)
+        WireHelpers::getWritableTextPointer(
+            unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
+            self.segment, defaultValue)
     }
 
 }
@@ -1180,8 +1178,8 @@ impl <'self> ListReader<'self> {
 
 
 pub struct ListBuilder {
-    segment : @mut SegmentBuilder,
-    ptr : ByteCount,
+    segment : *mut SegmentBuilder,
+    ptr : *mut u8,
     elementCount : ElementCount,
     step : BitCount0,
     structDataSize : BitCount32,
@@ -1195,12 +1193,16 @@ impl ListBuilder {
 
     pub fn getStructElement(&self, index : ElementCount) -> StructBuilder {
         let indexBit = index * self.step;
-        let structData = self.ptr + indexBit / BITS_PER_BYTE;
-        let structPointers = (structData + (self.structDataSize as uint) / BITS_PER_BYTE);
+        let structData = unsafe{std::ptr::mut_offset(self.ptr, (indexBit / BITS_PER_BYTE) as int)};
+        let structPointers = unsafe {
+            std::cast::transmute(
+                std::ptr::mut_offset(structData,
+                                     ((self.structDataSize as uint) / BITS_PER_BYTE) as int))
+        };
         StructBuilder {
             segment : self.segment,
             data : structData,
-            pointers : structPointers / BYTES_PER_WORD,
+            pointers : structPointers,
             dataSize : self.structDataSize,
             pointerCount : self.structPointerCount,
             bit0Offset : (indexBit % BITS_PER_BYTE) as u8
@@ -1221,18 +1223,19 @@ pub trait PrimitiveElement : Clone {
     }
 
     #[inline]
-    fn getFromBuilder(list : &ListBuilder, index : ElementCount) -> Self {
-        let totalByteOffset = list.ptr + index * list.step / BITS_PER_BYTE;
-        WireValue::getFromBuf(list.segment.messageBuilder.segments[list.segment.id],
-                              totalByteOffset).get()
+    fn getFromBuilder(listBuilder : &ListBuilder, index : ElementCount) -> Self {
+        unsafe {
+            let ptr : *mut WireValue<Self> = std::cast::transmute(listBuilder.ptr);
+            (*std::ptr::mut_offset(ptr, (index * listBuilder.step) as int)).get()
+        }
     }
 
     #[inline]
     fn set(listBuilder : &ListBuilder, index : ElementCount, value: Self) {
-        let totalByteOffset = listBuilder.ptr + index * listBuilder.step / BITS_PER_BYTE;
-        WireValue::getFromBufMut(
-                listBuilder.segment.messageBuilder.segments[listBuilder.segment.id],
-                totalByteOffset).set(value)
+        unsafe {
+            let ptr : *mut WireValue<Self> = std::cast::transmute(listBuilder.ptr);
+            (*std::ptr::mut_offset(ptr, (index * listBuilder.step) as int)).set(value)
+        }
     }
 }
 
