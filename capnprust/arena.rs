@@ -17,7 +17,7 @@ pub struct SegmentReader<'self> {
 
 
 pub struct SegmentBuilder {
-    messageBuilder : @mut message::MessageBuilder,
+    messageBuilder : *mut message::MessageBuilder,
     id : SegmentId,
     pos : WordCount,
     size : WordCount
@@ -25,39 +25,33 @@ pub struct SegmentBuilder {
 
 impl SegmentBuilder {
 
-    pub fn new(messageBuilder : @mut message::MessageBuilder,
+    pub fn new(messageBuilder : *mut message::MessageBuilder,
                size : WordCount) -> SegmentBuilder {
         SegmentBuilder {
             messageBuilder : messageBuilder,
-            id : messageBuilder.segments.len() as SegmentId,
+            id : unsafe {(*messageBuilder).segments.len() as SegmentId},
             pos : 0,
             size : size
         }
     }
 
-    pub fn withMutSegment<T>(@mut self, f : &fn(&mut [u8]) -> T) -> T {
-        f(self.messageBuilder.segments[self.id])
-    }
-
     pub fn getWordOffsetTo(&mut self, ptr : *mut u8) -> WordCount {
-        unsafe {
-            let thisAddr : uint =
-                std::cast::transmute(self.messageBuilder.segments[self.id].unsafe_mut_ref(0));
-            let ptrAddr : uint = std::cast::transmute(ptr);
-            assert!(ptrAddr >= thisAddr);
-            let result = (ptrAddr - thisAddr) / BYTES_PER_WORD;
-            return result;
-        }
+        let thisAddr : uint =
+            unsafe { std::cast::transmute(
+                (*self.messageBuilder).segments[self.id].unsafe_mut_ref(0)) };
+        let ptrAddr : uint = unsafe {std::cast::transmute(ptr)};
+        assert!(ptrAddr >= thisAddr);
+        let result = (ptrAddr - thisAddr) / BYTES_PER_WORD;
+        return result;
     }
 
     pub fn getByteOffsetTo(&mut self, ptr : *mut u8) -> ByteCount {
-        unsafe {
-            let thisAddr : uint =
-                std::cast::transmute(self.messageBuilder.segments[self.id].unsafe_mut_ref(0));
-            let ptrAddr : uint = std::cast::transmute(ptr);
-            assert!(ptrAddr >= thisAddr);
-            return (ptrAddr - thisAddr);
-        }
+        let thisAddr : uint =
+            unsafe { std::cast::transmute(
+                (*self.messageBuilder).segments[self.id].unsafe_mut_ref(0)) };
+        let ptrAddr : uint = unsafe {std::cast::transmute(ptr)};
+        assert!(ptrAddr >= thisAddr);
+        return (ptrAddr - thisAddr);
     }
 
 
@@ -66,19 +60,23 @@ impl SegmentBuilder {
             return None;
         } else {
             let result = unsafe {
-                self.messageBuilder.segments[self.id].unsafe_mut_ref(self.pos * BYTES_PER_WORD)
+                (*self.messageBuilder).segments[self.id].unsafe_mut_ref(self.pos * BYTES_PER_WORD)
             };
             self.pos += amount;
             return Some(result);
         }
     }
 
-    pub fn available(@mut self) -> WordCount {
+    pub fn available(&self) -> WordCount {
         self.size - self.pos
     }
 
+    pub fn withMutSegment<T>(&mut self, f : &fn(&mut [u8]) -> T) -> T {
+        unsafe {f((*self.messageBuilder).segments[self.id])}
+    }
+
     #[inline]
-    pub fn memset(@mut self, ptr: uint, c: u8, count: uint) {
+    pub fn memset(&mut self, ptr: uint, c: u8, count: uint) {
         do self.withMutSegment |segment| {
             unsafe {
                 let p = segment.unsafe_mut_ref(ptr);
@@ -88,11 +86,13 @@ impl SegmentBuilder {
     }
 
     pub fn asReader<T>(&mut self, f : &fn(SegmentReader) -> T) -> T {
-        do self.messageBuilder.asReader |messageReader| {
-            f(SegmentReader {
-                messageReader : &messageReader,
-                segment : messageReader.segments[self.id]
-            })
+        unsafe {
+            do (*self.messageBuilder).asReader |messageReader| {
+                f(SegmentReader {
+                        messageReader : &messageReader,
+                        segment : messageReader.segments[self.id]
+                    })
+            }
         }
     }
 

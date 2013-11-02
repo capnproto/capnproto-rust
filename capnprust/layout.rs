@@ -292,7 +292,7 @@ mod WireHelpers {
                     //# the landing pad for a far pointer.
 
                     let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
-                    *segmentBuilder = (**segmentBuilder).messageBuilder.getSegmentWithAvailable(amountPlusRef);
+                    *segmentBuilder = (*(**segmentBuilder).messageBuilder).getSegmentWithAvailable(amountPlusRef);
                     let ptr = (**segmentBuilder).allocate(amountPlusRef).unwrap();
 
                     //# Set up the original pointer to be a far pointer to
@@ -357,7 +357,7 @@ mod WireHelpers {
         }
     }
 
-    pub unsafe fn zeroObject(segmentBuilder : *mut SegmentBuilder, reff : *mut WirePointer) {
+    pub unsafe fn zeroObject(_segmentBuilder : *mut SegmentBuilder, _reff : *mut WirePointer) {
         //# Zero out the pointed-to object. Use when the pointer is
         //# about to be overwritten making the target object no longer
         //# reachable.
@@ -391,8 +391,8 @@ mod WireHelpers {
          */
     }
 
-    pub fn zeroObjectHelper(segmentBuilder : *mut SegmentBuilder, tag : WirePointer,
-                            ptr: WirePointerCount) {
+    pub fn zeroObjectHelper(_segmentBuilder : *mut SegmentBuilder, _tag : WirePointer,
+                            _ptr: WirePointerCount) {
         fail!("zeroObjectHelper unimplemented")
             /*
         match tag.kind() {

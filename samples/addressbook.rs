@@ -18,7 +18,7 @@ fn writeAddressBook() {
     use capnprust::message::MessageBuilder;
     use addressbook_capnp::{AddressBook, Person};
 
-    let message = MessageBuilder::new_default();
+    let mut message = MessageBuilder::new_default();
 
     let addressbook = message.initRoot::<AddressBook::Builder>();
 

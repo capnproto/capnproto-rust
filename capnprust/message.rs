@@ -62,7 +62,7 @@ pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICAL
 pub struct MessageBuilder {
     nextSize : uint,
     allocationStrategy : AllocationStrategy,
-    segmentBuilders : ~[@mut SegmentBuilder],
+    segmentBuilders : ~[~SegmentBuilder],
 
     segments : ~[~[u8]]
     // It would probably be nicer if this were a vector of @mut[u8]s
@@ -74,8 +74,8 @@ pub struct MessageBuilder {
 impl MessageBuilder {
 
     pub fn new(firstSegmentWords : uint, allocationStrategy : AllocationStrategy)
-        -> @mut MessageBuilder {
-        let result = @mut MessageBuilder {
+        -> ~MessageBuilder {
+        let mut result = ~MessageBuilder {
             nextSize : firstSegmentWords,
             allocationStrategy : allocationStrategy,
             segmentBuilders : ~[],
@@ -83,7 +83,7 @@ impl MessageBuilder {
         };
 
         let builder =
-            @mut SegmentBuilder::new(result, firstSegmentWords);
+            ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(result), firstSegmentWords);
 
         result.segments.push(allocate_zeroed_bytes(firstSegmentWords * BYTES_PER_WORD));
         result.segmentBuilders.push(builder);
@@ -91,14 +91,15 @@ impl MessageBuilder {
         result
     }
 
-    pub fn new_default() -> @mut MessageBuilder {
+    pub fn new_default() -> ~MessageBuilder {
         MessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY)
     }
 
-    pub fn allocateSegment(@mut self, minimumSize : WordCount) -> *mut SegmentBuilder {
+    pub fn allocateSegment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder {
         let size = std::cmp::max(minimumSize, self.nextSize);
         let segment = allocate_zeroed_bytes(size * BYTES_PER_WORD);
-        let result  = @mut SegmentBuilder::new(self, size);
+        let mut result = ~SegmentBuilder::new(self, size);
+        let result_ptr = std::ptr::to_mut_unsafe_ptr(result);
         self.segments.push(segment);
         self.segmentBuilders.push(result);
 
@@ -107,10 +108,10 @@ impl MessageBuilder {
             _ => { }
         }
 
-        std::ptr::to_mut_unsafe_ptr(result)
+        result_ptr
     }
 
-    pub fn getSegmentWithAvailable(@mut self, minimumAvailable : WordCount)
+    pub fn getSegmentWithAvailable(&mut self, minimumAvailable : WordCount)
         -> *mut SegmentBuilder {
         if (self.segmentBuilders.last().available() >= minimumAvailable) {
             return std::ptr::to_mut_unsafe_ptr(self.segmentBuilders[self.segments.len() - 1]);
@@ -120,28 +121,26 @@ impl MessageBuilder {
     }
 
 
-    pub fn initRoot<T : layout::HasStructSize + layout::FromStructBuilder>(@ mut self) -> T {
-
+    pub fn initRoot<T : layout::HasStructSize + layout::FromStructBuilder>(&mut self) -> T {
         // Rolled in this stuff form getRootSegment.
-        let rootSegment = self.segmentBuilders[0];
+        let rootSegment = std::ptr::to_mut_unsafe_ptr(self.segmentBuilders[0]);
 
         let unused_self : Option<T> = None;
 
-        match rootSegment.allocate(WORDS_PER_POINTER) {
+        match self.segmentBuilders[0].allocate(WORDS_PER_POINTER) {
             None => {fail!("could not allocate root pointer") }
             Some(location) => {
                 //assert!(location == 0,
                 //        "First allocated word of new segment was not at offset 0");
 
                 let sb = layout::StructBuilder::initRoot(
-                    std::ptr::to_mut_unsafe_ptr(rootSegment),
+                    rootSegment,
                     unsafe {std::cast::transmute(location)},
                     layout::HasStructSize::structSize(unused_self));
 
                 return layout::FromStructBuilder::fromStructBuilder(sb);
             }
         }
-
     }
 
     pub fn asReader<T>(& self, f : &fn(r : MessageReader) -> T) -> T {

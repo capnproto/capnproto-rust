@@ -28,8 +28,8 @@ macro_rules! passByObject(
     ( $testcase:ident, $iters:expr ) => ({
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
-                let messageReq = capnprust::message::MessageBuilder::new_default();
-                let messageRes = capnprust::message::MessageBuilder::new_default();
+                let mut messageReq = capnprust::message::MessageBuilder::new_default();
+                let mut messageRes = capnprust::message::MessageBuilder::new_default();
 
                 let request = messageReq.initRoot::<$testcase::RequestBuilder>();
                 let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
@@ -55,8 +55,8 @@ macro_rules! passByBytes(
     ( $testcase:ident, $iters:expr ) => ({
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
-                let messageReq = capnprust::message::MessageBuilder::new_default();
-                let messageRes = capnprust::message::MessageBuilder::new_default();
+                let mut messageReq = capnprust::message::MessageBuilder::new_default();
+                let mut messageRes = capnprust::message::MessageBuilder::new_default();
 
                 let request = messageReq.initRoot::<$testcase::RequestBuilder>();
                 let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
@@ -102,8 +102,8 @@ macro_rules! syncClient(
     ( $testcase:ident, $iters:expr) => ({
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
-                let messageReq = capnprust::message::MessageBuilder::new_default();
-                let messageRes = capnprust::message::MessageBuilder::new_default();
+                let mut messageReq = capnprust::message::MessageBuilder::new_default();
+                let mut messageRes = capnprust::message::MessageBuilder::new_default();
 
                 let request = messageReq.initRoot::<$testcase::RequestBuilder>();
                 let _response = messageRes.initRoot::<$testcase::ResponseBuilder>();
