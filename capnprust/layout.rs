@@ -462,8 +462,8 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn initStructPointer(reff : *mut WirePointer,
-                             segmentBuilder : *mut SegmentBuilder,
+    pub fn initStructPointer(mut reff : *mut WirePointer,
+                             mut segmentBuilder : *mut SegmentBuilder,
                              size : StructSize) -> StructBuilder {
         let ptr = allocate(&mut reff, &mut segmentBuilder, size.total(), WP_STRUCT);
 
@@ -488,8 +488,8 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn initListPointer(reff : *mut WirePointer,
-                           segmentBuilder : *mut SegmentBuilder,
+    pub fn initListPointer(mut reff : *mut WirePointer,
+                           mut segmentBuilder : *mut SegmentBuilder,
                            elementCount : ElementCount,
                            elementSize : FieldSize) -> ListBuilder {
         match elementSize {
@@ -518,8 +518,8 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn initStructListPointer(reff : *mut WirePointer,
-                                 segmentBuilder : *mut SegmentBuilder,
+    pub fn initStructListPointer(mut reff : *mut WirePointer,
+                                 mut segmentBuilder : *mut SegmentBuilder,
                                  elementCount : ElementCount,
                                  elementSize : StructSize) -> ListBuilder {
         match elementSize.preferredListEncoding {
@@ -542,7 +542,7 @@ mod WireHelpers {
         unsafe {(*ptr).setKindAndInlineCompositeListElementCount(WP_STRUCT, elementCount)}
         unsafe {(*ptr).structRefMut().set(elementSize)}
 
-        let ptr1 = std::ptr::mut_offset(ptr, POINTER_SIZE_IN_WORDS as int);
+        let ptr1 = unsafe {std::ptr::mut_offset(ptr, POINTER_SIZE_IN_WORDS as int)};
 
         ListBuilder {
             segment : segmentBuilder,
@@ -571,8 +571,8 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn setTextPointer(reff : *mut WirePointer,
-                          segmentBuilder : *mut SegmentBuilder,
+    pub fn setTextPointer(mut reff : *mut WirePointer,
+                          mut segmentBuilder : *mut SegmentBuilder,
                           value : &str) {
 
         // initTextPointer is rolled in here
@@ -987,7 +987,7 @@ impl StructBuilder {
     }
 
     pub fn initRoot(segment : *mut SegmentBuilder,
-                    location : WordCount,
+                    location : *mut WirePointer,
                     size : StructSize) -> StructBuilder {
         WireHelpers::initStructPointer(
             location, segment, size
@@ -1025,7 +1025,7 @@ impl StructBuilder {
         let boffset : BitCount0 =
             if (offset == 0) {self.bit0Offset as BitCount0} else {offset};
         let b = unsafe { std::ptr::mut_offset(self.data, (boffset / BITS_PER_BYTE) as int) };
-        ((*b) & (1 << (boffset % BITS_PER_BYTE ))) != 0
+        unsafe { ((*b) & (1 << (boffset % BITS_PER_BYTE ))) != 0 }
     }
 
     //# Initializes the struct field at the given index in the pointer
@@ -1208,9 +1208,7 @@ impl ListBuilder {
             bit0Offset : (indexBit % BITS_PER_BYTE) as u8
         }
     }
-
 }
-
 
 
 pub trait PrimitiveElement : Clone {
@@ -1265,26 +1263,18 @@ impl PrimitiveElement for bool {
         //# Ignore stepBytes for bit lists because bit lists cannot be
         //# upgraded to struct lists.
         let bindex : BitCount0 = index * list.step;
-        let b : ByteCount = list.ptr + bindex / BITS_PER_BYTE;
-        (WireValue::<u8>::getFromBuf(list.segment.messageBuilder.segments[list.segment.id],
-                                     b).get() &
-            (1 << (bindex % BITS_PER_BYTE))) != 0
+        let b = unsafe { std::ptr::mut_offset(list.ptr, (bindex / BITS_PER_BYTE) as int) };
+        unsafe { ((*b) & (1 << (bindex % BITS_PER_BYTE ))) != 0 }
     }
     #[inline]
     fn set(list : &ListBuilder, index : ElementCount, value : bool) {
         //# Ignore stepBytes for bit lists because bit lists cannot be
         //# upgraded to struct lists.
         let bindex : BitCount0 = index;
-        let b : ByteCount = list.ptr + bindex / BITS_PER_BYTE;
+        let b = unsafe { std::ptr::mut_offset(list.ptr, (bindex / BITS_PER_BYTE) as int) };
 
         let bitnum = bindex % BITS_PER_BYTE;
-
-        let wv : &mut WireValue<u8> =
-            WireValue::getFromBufMut(list.segment.messageBuilder.segments[list.segment.id],
-                                     b);
-        let oldValue = wv.get();
-        wv.set((oldValue & !(1 << bitnum)) | (value as u8 << bitnum));
-
+        unsafe { (*b) = (( (*b) & !(1 << bitnum)) | (value as u8 << bitnum)) }
     }
 }
 

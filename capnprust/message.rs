@@ -133,8 +133,13 @@ impl MessageBuilder {
                 assert!(location == 0,
                         "First allocated word of new segment was not at offset 0");
 
-                let sb = layout::StructBuilder::initRoot(rootSegment, location,
-                                                         layout::HasStructSize::structSize(unused_self));
+                let ptr : *mut u8 = unsafe { self.segments[0].unsafe_mut_ref(location) };
+
+                let sb = layout::StructBuilder::initRoot(
+                    std::ptr::to_mut_unsafe_ptr(rootSegment),
+                    unsafe {std::cast::transmute(ptr)},
+                    layout::HasStructSize::structSize(unused_self));
+
                 return layout::FromStructBuilder::fromStructBuilder(sb);
             }
         }
