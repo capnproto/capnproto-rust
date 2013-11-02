@@ -95,7 +95,7 @@ impl MessageBuilder {
         MessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY)
     }
 
-    pub fn allocateSegment(@mut self, minimumSize : WordCount) -> @mut SegmentBuilder {
+    pub fn allocateSegment(@mut self, minimumSize : WordCount) -> *mut SegmentBuilder {
         let size = std::cmp::max(minimumSize, self.nextSize);
         let segment = allocate_zeroed_bytes(size * BYTES_PER_WORD);
         let result  = @mut SegmentBuilder::new(self, size);
@@ -107,13 +107,13 @@ impl MessageBuilder {
             _ => { }
         }
 
-        result
+        std::ptr::to_mut_unsafe_ptr(result)
     }
 
     pub fn getSegmentWithAvailable(@mut self, minimumAvailable : WordCount)
-        -> @mut SegmentBuilder {
+        -> *mut SegmentBuilder {
         if (self.segmentBuilders.last().available() >= minimumAvailable) {
-            return self.segmentBuilders[self.segments.len() - 1];
+            return std::ptr::to_mut_unsafe_ptr(self.segmentBuilders[self.segments.len() - 1]);
         } else {
             return self.allocateSegment(minimumAvailable);
         }
@@ -130,14 +130,12 @@ impl MessageBuilder {
         match rootSegment.allocate(WORDS_PER_POINTER) {
             None => {fail!("could not allocate root pointer") }
             Some(location) => {
-                assert!(location == 0,
-                        "First allocated word of new segment was not at offset 0");
-
-                let ptr : *mut u8 = unsafe { self.segments[0].unsafe_mut_ref(location) };
+                //assert!(location == 0,
+                //        "First allocated word of new segment was not at offset 0");
 
                 let sb = layout::StructBuilder::initRoot(
                     std::ptr::to_mut_unsafe_ptr(rootSegment),
-                    unsafe {std::cast::transmute(ptr)},
+                    unsafe {std::cast::transmute(location)},
                     layout::HasStructSize::structSize(unused_self));
 
                 return layout::FromStructBuilder::fromStructBuilder(sb);

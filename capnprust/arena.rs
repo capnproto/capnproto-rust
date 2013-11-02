@@ -39,11 +39,11 @@ impl SegmentBuilder {
         f(self.messageBuilder.segments[self.id])
     }
 
-    pub fn allocate(@mut self, amount : WordCount) -> Option<WordCount> {
+    pub fn allocate(&mut self, amount : WordCount) -> Option<*mut u8> {
         if (amount > self.size - self.pos) {
             return None;
         } else {
-            let result = self.pos;
+            let result = unsafe {self.messageBuilder.segments[self.id].unsafe_mut_ref(self.pos)};
             self.pos += amount;
             return Some(result);
         }

@@ -170,8 +170,11 @@ impl WirePointer {
 
     #[inline]
     pub fn setKindAndTarget(&mut self, kind : WirePointerKind,
-                            target : WordCount, thisOffset : WordCount) {
-        self.offsetAndKind.set(((target as i32 - thisOffset as i32 - 1) << 2) as u32
+                            target : *mut u8, _segmentBuilder : *mut SegmentBuilder) {
+        let thisAddr : uint = unsafe {std::cast::transmute(&self)};
+        let targetAddr : uint = unsafe {std::cast::transmute(target)};
+        assert!(targetAddr > thisAddr);
+        self.offsetAndKind.set((((targetAddr - thisAddr) as i32 - 1) << 2) as u32
                                | (kind as u32))
     }
 
@@ -277,52 +280,47 @@ mod WireHelpers {
     #[inline]
     pub fn allocate(reff : &mut *mut WirePointer,
                     segmentBuilder : &mut *mut SegmentBuilder,
-                    amount : WordCount, kind : WirePointerKind) -> *mut Word {
-        fail!("unimplemented");
-        /*
-        let isNull =
-            do segmentBuilder.withMutSegment |segment| {
-            WirePointer::get(segment, refIndex).isNull()
-        };
+                    amount : WordCount, kind : WirePointerKind) -> *mut u8 {
+        let isNull = unsafe {(**reff).isNull()};
         if (!isNull) {
-            zeroObject(segmentBuilder, refIndex);
+            zeroObject(*segmentBuilder, *reff);
         }
-        match segmentBuilder.allocate(amount) {
-            None => {
-                //# Need to allocate in a new segment. We'll need to
-                //# allocate an extra pointer worth of space to act as
-                //# the landing pad for a far pointer.
+        unsafe {
+            match (**segmentBuilder).allocate(amount) {
+                None => {
+                    fail!("allocation unimplemented");
+/*
+                    //# Need to allocate in a new segment. We'll need to
+                    //# allocate an extra pointer worth of space to act as
+                    //# the landing pad for a far pointer.
 
-                let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
-                let segmentBuilder1 = segmentBuilder.messageBuilder.getSegmentWithAvailable(amountPlusRef);
-                let ptr : WordCount = segmentBuilder1.allocate(amountPlusRef).unwrap();
+                    let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
+                    let segmentBuilder1 = (*(*segmentBuilder).messageBuilder).getSegmentWithAvailable(amountPlusRef);
+                    let ptr : WordCount = segmentBuilder1.allocate(amountPlusRef).unwrap();
 
-                //# Set up the original pointer to be a far pointer to
-                //# the new segment.
-                do segmentBuilder.withMutSegment |segment| {
-                    let reff = WirePointer::getMut(segment, refIndex);
-                    reff.setFar(false, ptr);
-                    reff.farRefMut().segmentId.set(segmentBuilder1.id);
+                    //# Set up the original pointer to be a far pointer to
+                    //# the new segment.
+                    do segmentBuilder.withMutSegment |segment| {
+                        let reff = WirePointer::getMut(segment, refIndex);
+                        reff.setFar(false, ptr);
+                        reff.farRefMut().segmentId.set(segmentBuilder1.id);
+                    }
+
+                    //# Initialize the landing pad to indicate that the
+                    //# data immediately follows the pad.
+                    do segmentBuilder1.withMutSegment |segment| {
+                        let reff = WirePointer::getMut(segment, ptr);
+                        reff.setKindAndTarget(kind, ptr + POINTER_SIZE_IN_WORDS, ptr);
+                    }
+                    return (segmentBuilder1, ptr, ptr + POINTER_SIZE_IN_WORDS);
+*/
                 }
-
-                //# Initialize the landing pad to indicate that the
-                //# data immediately follows the pad.
-                do segmentBuilder1.withMutSegment |segment| {
-                    let reff = WirePointer::getMut(segment, ptr);
-                    reff.setKindAndTarget(kind, ptr + POINTER_SIZE_IN_WORDS, ptr);
+                Some(ptr) => {
+                    (**reff).setKindAndTarget(kind, ptr, *segmentBuilder);
+                    return ptr
                 }
-
-                return (segmentBuilder1, ptr, ptr + POINTER_SIZE_IN_WORDS);
-            }
-            Some(ptr) => {
-                do segmentBuilder.withMutSegment |segment| {
-                    let reff = WirePointer::getMut(segment, refIndex);
-                    reff.setKindAndTarget(kind, ptr, refIndex);
-                }
-                return (segmentBuilder, refIndex, ptr);
             }
         }
-         */
     }
 
     #[inline]
@@ -365,15 +363,13 @@ mod WireHelpers {
         }
     }
 
-    pub fn zeroObject(segmentBuilder : @mut SegmentBuilder, refIndex : WirePointerCount) {
+    pub fn zeroObject(segmentBuilder : *mut SegmentBuilder, reff : *mut WirePointer) {
         //# Zero out the pointed-to object. Use when the pointer is
         //# about to be overwritten making the target object no longer
         //# reachable.
-
-        let reff = do segmentBuilder.withMutSegment |segment| {
-            WirePointer::get(segment, refIndex)
-        };
-        match reff.kind() {
+        fail!("zeroObject is unimplemented")
+/*
+        match unsafe {(*reff).kind()} {
             WP_STRUCT | WP_LIST => { zeroObjectHelper(segmentBuilder,
                                                       reff, reff.target(refIndex)) }
             WP_FAR => {
@@ -398,10 +394,13 @@ mod WireHelpers {
             }
             WP_RESERVED_3 => {fail!("Don't know how to handle RESERVED_3")}
         }
+*/
     }
 
-    pub fn zeroObjectHelper(segmentBuilder : @mut SegmentBuilder, tag : WirePointer,
+    pub fn zeroObjectHelper(segmentBuilder : *mut SegmentBuilder, tag : WirePointer,
                             ptr: WirePointerCount) {
+        fail!("zeroObjectHelper unimplemented")
+            /*
         match tag.kind() {
             WP_STRUCT => {
                 let pointerSection = ptr + tag.structRef().dataSize.get() as WirePointerCount;
@@ -458,7 +457,7 @@ mod WireHelpers {
             WP_FAR => { fail!("Unexpected FAR pointer") }
             WP_RESERVED_3 => { fail!("Don't know how to handle RESERVED_3") }
         }
-
+            */
     }
 
     #[inline]
