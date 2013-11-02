@@ -288,36 +288,32 @@ mod WireHelpers {
         unsafe {
             match (**segmentBuilder).allocate(amount) {
                 None => {
-                    fail!("allocation unimplemented");
-/*
+
                     //# Need to allocate in a new segment. We'll need to
                     //# allocate an extra pointer worth of space to act as
                     //# the landing pad for a far pointer.
 
                     let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
-                    let segmentBuilder1 = (*(*segmentBuilder).messageBuilder).getSegmentWithAvailable(amountPlusRef);
-                    let ptr : WordCount = segmentBuilder1.allocate(amountPlusRef).unwrap();
+                    let segmentBuilder1 = (**segmentBuilder).messageBuilder.getSegmentWithAvailable(amountPlusRef);
+                    let ptr = (*segmentBuilder1).allocate(amountPlusRef).unwrap();
 
                     //# Set up the original pointer to be a far pointer to
                     //# the new segment.
-                    do segmentBuilder.withMutSegment |segment| {
-                        let reff = WirePointer::getMut(segment, refIndex);
-                        reff.setFar(false, ptr);
-                        reff.farRefMut().segmentId.set(segmentBuilder1.id);
-                    }
+                    (**reff).setFar(false, (*segmentBuilder1).getWordOffsetTo(ptr));
+                    (**reff).farRefMut().segmentId.set((*segmentBuilder1).id);
 
                     //# Initialize the landing pad to indicate that the
                     //# data immediately follows the pad.
-                    do segmentBuilder1.withMutSegment |segment| {
-                        let reff = WirePointer::getMut(segment, ptr);
-                        reff.setKindAndTarget(kind, ptr + POINTER_SIZE_IN_WORDS, ptr);
-                    }
-                    return (segmentBuilder1, ptr, ptr + POINTER_SIZE_IN_WORDS);
-*/
+                    let reff1 : *mut WirePointer = std::cast::transmute(ptr);
+
+                    let ptr1 = std::ptr::mut_offset(ptr, POINTER_SIZE_IN_WORDS as int);
+                    (*reff1).setKindAndTarget(kind, ptr1, segmentBuilder1);
+
+                    return ptr1;
                 }
                 Some(ptr) => {
                     (**reff).setKindAndTarget(kind, ptr, *segmentBuilder);
-                    return ptr
+                    return ptr;
                 }
             }
         }
@@ -969,20 +965,21 @@ pub struct StructBuilder {
 
 impl StructBuilder {
     pub fn asReader<T>(&self, f : &fn(StructReader) -> T) -> T {
-        fail!("asReader unimplemented")
-/*
-        do self.segment.asReader |segmentReader| {
+        unsafe {
+        do (*self.segment).asReader |segmentReader| {
             f ( StructReader {
                     segment : segmentReader,
-                    data : self.data,
-                    pointers : self.pointers,
+                    data : (*self.segment).getByteOffsetTo(self.data),
+
+                        // XXX
+                    pointers : (*self.segment).getWordOffsetTo(std::cast::transmute(self.pointers)),
                     dataSize : self.dataSize,
                     pointerCount : self.pointerCount,
                     bit0Offset : self.bit0Offset,
                     nestingLimit : 0x7fffffff
                 })
         }
-*/
+        }
     }
 
     pub fn initRoot(segment : *mut SegmentBuilder,

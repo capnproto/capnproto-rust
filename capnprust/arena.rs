@@ -39,6 +39,27 @@ impl SegmentBuilder {
         f(self.messageBuilder.segments[self.id])
     }
 
+    pub fn getWordOffsetTo(&mut self, ptr : *mut u8) -> WordCount {
+        unsafe {
+            let thisAddr : uint =
+                std::cast::transmute(self.messageBuilder.segments[self.id].unsafe_mut_ref(0));
+            let ptrAddr : uint = std::cast::transmute(ptr);
+            assert!(ptrAddr >= thisAddr);
+            return (ptrAddr - thisAddr) / BYTES_PER_WORD;
+        }
+    }
+
+    pub fn getByteOffsetTo(&mut self, ptr : *mut u8) -> ByteCount {
+        unsafe {
+            let thisAddr : uint =
+                std::cast::transmute(self.messageBuilder.segments[self.id].unsafe_mut_ref(0));
+            let ptrAddr : uint = std::cast::transmute(ptr);
+            assert!(ptrAddr >= thisAddr);
+            return (ptrAddr - thisAddr);
+        }
+    }
+
+
     pub fn allocate(&mut self, amount : WordCount) -> Option<*mut u8> {
         if (amount > self.size - self.pos) {
             return None;
@@ -65,7 +86,7 @@ impl SegmentBuilder {
         }
     }
 
-    pub fn asReader<T>(@mut self, f : &fn(SegmentReader) -> T) -> T {
+    pub fn asReader<T>(&mut self, f : &fn(SegmentReader) -> T) -> T {
         do self.messageBuilder.asReader |messageReader| {
             f(SegmentReader {
                 messageReader : &messageReader,

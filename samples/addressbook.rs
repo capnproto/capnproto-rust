@@ -23,15 +23,13 @@ fn writeAddressBook() {
     let addressbook = message.initRoot::<AddressBook::Builder>();
 
 
-    let people = addressbook.initPeople(0);
-
+    let people = addressbook.initPeople(4);
 
     let person = people.get(0);
     person.setId(1);
     person.setName("Alice");
     person.setEmail("alice@widgco.biz");
 
-/*
     let phones = person.initPhones(2);
     phones.get(0).setNumber("(555) 555-5555");
     phones.get(0).setType(Person::PhoneNumber::Type::Work);
@@ -56,9 +54,9 @@ fn writeAddressBook() {
     person.setEmail("di@di.com");
     person.setName("Diane");
     person.getEmployment().setSchool("Caltech");
-*/
-    capnprust::serialize::writeMessage(&mut std::rt::io::stdout(), message)
-//    capnprust::serialize_packed::writePackedMessage(&mut std::rt::io::stdout(), message)
+
+//    capnprust::serialize::writeMessage(&mut std::rt::io::stdout(), message)
+    capnprust::serialize_packed::writePackedMessage(&mut std::rt::io::stdout(), message)
 }
 
 fn printAddressBook() {
