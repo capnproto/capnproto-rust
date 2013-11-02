@@ -166,5 +166,4 @@ fn testComplexList () {
 
 
 fn main () {
-
 }

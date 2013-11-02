@@ -45,7 +45,8 @@ impl SegmentBuilder {
                 std::cast::transmute(self.messageBuilder.segments[self.id].unsafe_mut_ref(0));
             let ptrAddr : uint = std::cast::transmute(ptr);
             assert!(ptrAddr >= thisAddr);
-            return (ptrAddr - thisAddr) / BYTES_PER_WORD;
+            let result = (ptrAddr - thisAddr) / BYTES_PER_WORD;
+            return result;
         }
     }
 

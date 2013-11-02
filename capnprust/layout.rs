@@ -294,21 +294,21 @@ mod WireHelpers {
                     //# the landing pad for a far pointer.
 
                     let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
-                    let segmentBuilder1 = (**segmentBuilder).messageBuilder.getSegmentWithAvailable(amountPlusRef);
-                    let ptr = (*segmentBuilder1).allocate(amountPlusRef).unwrap();
+                    *segmentBuilder = (**segmentBuilder).messageBuilder.getSegmentWithAvailable(amountPlusRef);
+                    let ptr = (**segmentBuilder).allocate(amountPlusRef).unwrap();
 
                     //# Set up the original pointer to be a far pointer to
                     //# the new segment.
-                    (**reff).setFar(false, (*segmentBuilder1).getWordOffsetTo(ptr));
-                    (**reff).farRefMut().segmentId.set((*segmentBuilder1).id);
+                    (**reff).setFar(false, (**segmentBuilder).getWordOffsetTo(ptr));
+                    (**reff).farRefMut().segmentId.set((**segmentBuilder).id);
 
                     //# Initialize the landing pad to indicate that the
                     //# data immediately follows the pad.
-                    let reff1 : *mut WirePointer = std::cast::transmute(ptr);
+                    *reff = std::cast::transmute(ptr);
 
-                    let ptr1 = std::ptr::mut_offset(ptr, POINTER_SIZE_IN_WORDS as int);
-                    (*reff1).setKindAndTarget(kind, ptr1, segmentBuilder1);
-
+                    let ptr1 = std::ptr::mut_offset(ptr,
+                                                    (BYTES_PER_WORD * POINTER_SIZE_IN_WORDS) as int);
+                    (**reff).setKindAndTarget(kind, ptr1, *segmentBuilder);
                     return ptr1;
                 }
                 Some(ptr) => {
@@ -1223,16 +1223,22 @@ pub trait PrimitiveElement : Clone {
     #[inline]
     fn getFromBuilder(listBuilder : &ListBuilder, index : ElementCount) -> Self {
         unsafe {
-            let ptr : *mut WireValue<Self> = std::cast::transmute(listBuilder.ptr);
-            (*std::ptr::mut_offset(ptr, (index * listBuilder.step) as int)).get()
+            let ptr : *mut WireValue<Self> =
+                std::cast::transmute(
+                std::ptr::mut_offset(listBuilder.ptr,
+                                     (index * listBuilder.step / BITS_PER_BYTE) as int));
+            (*ptr).get()
         }
     }
 
     #[inline]
     fn set(listBuilder : &ListBuilder, index : ElementCount, value: Self) {
         unsafe {
-            let ptr : *mut WireValue<Self> = std::cast::transmute(listBuilder.ptr);
-            (*std::ptr::mut_offset(ptr, (index * listBuilder.step) as int)).set(value)
+            let ptr : *mut WireValue<Self> =
+                std::cast::transmute(
+                std::ptr::mut_offset(listBuilder.ptr,
+                                     (index * listBuilder.step / BITS_PER_BYTE) as int));
+            (*ptr).set(value);
         }
     }
 }
