@@ -43,7 +43,9 @@ impl SegmentBuilder {
         if (amount > self.size - self.pos) {
             return None;
         } else {
-            let result = unsafe {self.messageBuilder.segments[self.id].unsafe_mut_ref(self.pos)};
+            let result = unsafe {
+                self.messageBuilder.segments[self.id].unsafe_mut_ref(self.pos * BYTES_PER_WORD)
+            };
             self.pos += amount;
             return Some(result);
         }

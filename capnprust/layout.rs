@@ -171,11 +171,11 @@ impl WirePointer {
     #[inline]
     pub fn setKindAndTarget(&mut self, kind : WirePointerKind,
                             target : *mut u8, _segmentBuilder : *mut SegmentBuilder) {
-        let thisAddr : uint = unsafe {std::cast::transmute(&self)};
-        let targetAddr : uint = unsafe {std::cast::transmute(target)};
-        assert!(targetAddr > thisAddr);
-        self.offsetAndKind.set((((targetAddr - thisAddr) as i32 - 1) << 2) as u32
-                               | (kind as u32))
+        let thisAddr : int = unsafe {std::cast::transmute(&*self)};
+        let targetAddr : int = unsafe {std::cast::transmute(target)};
+        self.offsetAndKind.set(
+            ((((targetAddr - thisAddr)/BYTES_PER_WORD as int) as i32 - 1) << 2) as u32
+                | (kind as u32))
     }
 
     #[inline]
@@ -283,7 +283,7 @@ mod WireHelpers {
                     amount : WordCount, kind : WirePointerKind) -> *mut u8 {
         let isNull = unsafe {(**reff).isNull()};
         if (!isNull) {
-            zeroObject(*segmentBuilder, *reff);
+            //zeroObject(*segmentBuilder, *reff);
         }
         unsafe {
             match (**segmentBuilder).allocate(amount) {
@@ -988,9 +988,13 @@ impl StructBuilder {
     pub fn initRoot(segment : *mut SegmentBuilder,
                     location : *mut WirePointer,
                     size : StructSize) -> StructBuilder {
-        WireHelpers::initStructPointer(
+        let result = WireHelpers::initStructPointer(
             location, segment, size
-        )
+        );
+
+//        println!("location: {:?}, result:{:?}", location, result);
+
+        result
     }
 
     #[inline]
