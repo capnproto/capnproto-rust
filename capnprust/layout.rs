@@ -275,15 +275,13 @@ mod WireHelpers {
         ((bits + 7) / (BITS_PER_BYTE as u64)) as ByteCount
     }
 
-
-    // Return (segmentBuilder', refIndex', offset to new space).
     #[inline]
     pub fn allocate(reff : &mut *mut WirePointer,
                     segmentBuilder : &mut *mut SegmentBuilder,
                     amount : WordCount, kind : WirePointerKind) -> *mut u8 {
         let isNull = unsafe {(**reff).isNull()};
         if (!isNull) {
-            //zeroObject(*segmentBuilder, *reff);
+            unsafe {zeroObject(*segmentBuilder, *reff)}
         }
         unsafe {
             match (**segmentBuilder).allocate(amount) {
@@ -359,15 +357,15 @@ mod WireHelpers {
         }
     }
 
-    pub fn zeroObject(segmentBuilder : *mut SegmentBuilder, reff : *mut WirePointer) {
+    pub unsafe fn zeroObject(segmentBuilder : *mut SegmentBuilder, reff : *mut WirePointer) {
         //# Zero out the pointed-to object. Use when the pointer is
         //# about to be overwritten making the target object no longer
         //# reachable.
-        fail!("zeroObject is unimplemented")
+        fail!("zeroObject is unimplemented");
 /*
-        match unsafe {(*reff).kind()} {
+        match (*reff).kind() {
             WP_STRUCT | WP_LIST => { zeroObjectHelper(segmentBuilder,
-                                                      reff, reff.target(refIndex)) }
+                                                      reff, reff.target()) }
             WP_FAR => {
                 let segmentBuilder =
                     segmentBuilder.messageBuilder.segmentBuilders[reff.farRef().segmentId.get()];
@@ -390,7 +388,7 @@ mod WireHelpers {
             }
             WP_RESERVED_3 => {fail!("Don't know how to handle RESERVED_3")}
         }
-*/
+         */
     }
 
     pub fn zeroObjectHelper(segmentBuilder : *mut SegmentBuilder, tag : WirePointer,
@@ -461,13 +459,14 @@ mod WireHelpers {
                              mut segmentBuilder : *mut SegmentBuilder,
                              size : StructSize) -> StructBuilder {
         let ptr = allocate(&mut reff, &mut segmentBuilder, size.total(), WP_STRUCT);
-
         unsafe { (*reff).structRefMut().set(size) }
 
         StructBuilder {
             segment : segmentBuilder,
             data : unsafe{std::cast::transmute(ptr)},
-            pointers : unsafe{std::cast::transmute(std::ptr::mut_offset(ptr, size.data as int))},
+            pointers : unsafe{std::cast::transmute(
+                    std::ptr::mut_offset(ptr,
+                                         (BYTES_PER_WORD * size.data as uint) as int))},
             dataSize : size.data as WordCount32 * (BITS_PER_WORD as BitCount32),
             pointerCount : size.pointers,
             bit0Offset : 0
@@ -988,8 +987,6 @@ impl StructBuilder {
         let result = WireHelpers::initStructPointer(
             location, segment, size
         );
-
-//        println!("location: {:?}, result:{:?}", location, result);
 
         result
     }
