@@ -98,10 +98,10 @@ pub fn writeMessage<T: std::rt::io::Writer>(outputStream : &mut T,
 
     let mut table : ~[u8] = std::vec::from_elem(tableSize, 0u8);
 
-    WireValue::getFromBufMut(table, 0).set((message.segments.len() - 1) as u32);
+    WireValue::<u32>::getFromBufMut(table, 0).set((message.segments.len() - 1) as u32);
 
     for i in range(0, message.segments.len()) {
-        WireValue::getFromBufMut(table, (i + 1) * 4).set(
+        WireValue::<u32>::getFromBufMut(table, (i + 1) * 4).set(
             message.segmentBuilders[i].pos as u32);
     }
     if (message.segments.len() % 2 == 0) {
