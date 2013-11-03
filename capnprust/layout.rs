@@ -71,7 +71,7 @@ pub enum WirePointerKind {
     WP_STRUCT = 0,
     WP_LIST = 1,
     WP_FAR = 2,
-    WP_RESERVED_3 = 3
+    WP_CAPABILITY = 3
 }
 
 
@@ -386,7 +386,7 @@ mod WireHelpers {
                 }
                 fail!("unimplemented")
             }
-            WP_RESERVED_3 => {fail!("Don't know how to handle RESERVED_3")}
+            WP_CAPABILITY => {fail!("Don't know how to handle RESERVED_3")}
         }
          */
     }
@@ -449,7 +449,7 @@ mod WireHelpers {
                 }
             }
             WP_FAR => { fail!("Unexpected FAR pointer") }
-            WP_RESERVED_3 => { fail!("Don't know how to handle RESERVED_3") }
+            WP_CAPABILITY => { fail!("Don't know how to handle CAPABILITY") }
         }
             */
     }
