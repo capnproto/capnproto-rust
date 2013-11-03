@@ -24,6 +24,43 @@ pub mod catrank;
 pub mod eval_capnp;
 pub mod eval;
 
+mod Uncompressed {
+    use capnprust;
+    use std;
+
+    pub fn write<T : std::rt::io::Writer>(writer: &mut T,
+                                          message: &capnprust::message::MessageBuilder) {
+        capnprust::serialize::writeMessage(writer, message);
+    }
+
+    pub fn newReader<U : std::rt::io::Reader, T>(
+        inputStream : &mut U,
+        options : capnprust::message::ReaderOptions,
+        cont : &fn(v : &mut capnprust::message::MessageReader) -> T) -> T {
+        capnprust::serialize::InputStreamMessageReader::new(inputStream, options, cont)
+    }
+}
+
+mod Packed {
+    use capnprust;
+    use std;
+
+    pub fn write<T : std::rt::io::Writer>(writer: &mut T,
+                                          message: &capnprust::message::MessageBuilder) {
+        capnprust::serialize_packed::writePackedMessage(writer, message);
+    }
+
+    pub fn newReader<U : std::rt::io::Reader, T>(
+        inputStream : &mut U,
+        options : capnprust::message::ReaderOptions,
+        cont : &fn(v : &mut capnprust::message::MessageReader) -> T) -> T {
+        capnprust::serialize::InputStreamMessageReader::new(
+            &mut capnprust::serialize_packed::PackedInputStream{inner : inputStream},
+            options, cont)
+    }
+}
+
+
 macro_rules! passByObject(
     ( $testcase:ident, $iters:expr ) => ({
             let mut rng = common::FastRand::new();
@@ -49,7 +86,7 @@ macro_rules! passByObject(
     )
 
 macro_rules! passByBytes(
-    ( $testcase:ident, $iters:expr ) => ({
+    ( $testcase:ident, $compression:ident, $iters:expr ) => ({
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
                 let mut messageReq = capnprust::message::MessageBuilder::new_default();
@@ -60,10 +97,10 @@ macro_rules! passByBytes(
                 let expected = $testcase::setupRequest(&mut rng, request);
 
                 let requestBytes = do std::rt::io::mem::with_mem_writer |writer| {
-                    capnprust::serialize::writeMessage(writer, messageReq)
+                    $compression::write(writer, messageReq)
                 };
 
-                do capnprust::serialize::InputStreamMessageReader::new(
+                do $compression::newReader(
                       &mut std::rt::io::mem::BufReader::new(requestBytes),
                       capnprust::message::DEFAULT_READER_OPTIONS) |requestReader| {
                     let requestReader = $testcase::newRequestReader(requestReader.getRoot());
@@ -71,10 +108,10 @@ macro_rules! passByBytes(
                 }
 
                 let responseBytes = do std::rt::io::mem::with_mem_writer |writer| {
-                    capnprust::serialize::writeMessage(writer, messageRes);
+                    $compression::write(writer, messageRes);
                 };
 
-                do capnprust::serialize::InputStreamMessageReader::new(
+                do $compression::newReader(
                     &mut std::rt::io::mem::BufReader::new(responseBytes),
                     capnprust::message::DEFAULT_READER_OPTIONS) |responseReader| {
                     let responseReader = $testcase::newResponseReader(responseReader.getRoot());
@@ -115,10 +152,10 @@ macro_rules! passByPipe(
     )
 
 macro_rules! doTestcase(
-    ( $testcase:ident, $mode:expr, $reuse:expr, $compression:expr, $iters:expr ) => ({
+    ( $testcase:ident, $mode:expr, $reuse:expr, $compression:ident, $iters:expr ) => ({
             match $mode {
                 ~"object" => passByObject!($testcase, $iters),
-                ~"bytes" => passByBytes!($testcase, $iters),
+                ~"bytes" => passByBytes!($testcase, $compression, $iters),
                 ~"server" => server!($testcase, $iters),
                 ~"client" => syncClient!($testcase, $iters),
                 s => fail!("unrecognized mode: {}", s)
@@ -126,6 +163,16 @@ macro_rules! doTestcase(
         });
     )
 
+macro_rules! doTestcase1(
+    ( $testcase:expr, $mode:expr, $reuse:expr, $compression:ident, $iters:expr) => ({
+            match $testcase {
+                ~"carsales" => doTestcase!(carsales, $mode, $reuse, $compression, $iters),
+                ~"catrank" => doTestcase!(catrank, $mode, $reuse, $compression, $iters),
+                ~"eval" => doTestcase!(eval, $mode, $reuse, $compression, $iters),
+                s => fail!("unrecognized test case: {}", s)
+            }
+        });
+    )
 
 pub fn main () {
 
@@ -144,10 +191,11 @@ pub fn main () {
         }
     };
 
-    match args[1] {
-        ~"carsales" => doTestcase!(carsales, args[2], args[3], args[4], iters),
-        ~"catrank" => doTestcase!(catrank, args[2], args[3], args[4], iters),
-        ~"eval" => doTestcase!(eval, args[2], args[3], args[4], iters),
-        s => fail!("unrecognized test case: {}", s)
+    match args[4] {
+        ~"none" => doTestcase1!(args[1], args[2],  args[3], Uncompressed, iters),
+        ~"packed" => doTestcase1!(args[1], args[2], args[3], Packed, iters),
+        s => fail!("unrecognized compression: {}", s)
     }
+
+
 }

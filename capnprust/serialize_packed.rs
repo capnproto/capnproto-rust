@@ -81,9 +81,7 @@ pub struct PackedOutputStream<'self, T> {
 impl <'self, T : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream<'self, T> {
     fn write(&mut self, inBuf : &[u8]) {
 
-        // Yuck. It'd be better to have a BufferedOutputStream, but
-        // that seems difficult with the current state of Rust.
-        // For now, just make this big enough to handle the worst case.
+        // Yuck. It'd be better to have a BufferedOutputStream.
         let mut buffer : ~[u8] = std::vec::from_elem(inBuf.len() * 3 / 2, 0u8);
 
         let mut inPos : uint = 0;
