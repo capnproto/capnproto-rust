@@ -22,7 +22,6 @@ fn writeAddressBook() {
 
     let addressbook = message.initRoot::<AddressBook::Builder>();
 
-
     let people = addressbook.initPeople(4);
 
     let person = people.get(0);
@@ -64,8 +63,9 @@ fn printAddressBook() {
     use addressbook_capnp::{AddressBook, Person};
 
     let mut inp = capnprust::serialize_packed::PackedInputStream {
-        inner : &mut std::rt::io::stdin() };
-//    let inp = std::io::stdin();
+        inner : &mut std::rt::io::stdin()
+    };
+//    let mut inp = std::rt::io::stdin();
 
     do capnprust::serialize::InputStreamMessageReader::new(
         &mut inp, capnprust::message::DEFAULT_READER_OPTIONS) |messageReader| {
@@ -103,9 +103,7 @@ fn printAddressBook() {
                 }
                 None => { }
             }
-
         }
-
     }
 }
 
