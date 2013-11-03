@@ -44,9 +44,6 @@ macro_rules! passByObject(
                         println("Incorrect response.");
                     }
                 }
-
-                messageReq.release();
-                messageRes.release();
             }
         });
     )
@@ -85,9 +82,6 @@ macro_rules! passByBytes(
                         println("Incorrect response.");
                     }
                 }
-
-                messageReq.release();
-                messageRes.release();
             }
         });
     )
