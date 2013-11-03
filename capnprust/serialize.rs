@@ -106,7 +106,7 @@ pub fn writeMessage<T: std::rt::io::Writer>(outputStream : &mut T,
     }
     if (message.segments.len() % 2 == 0) {
         // Set padding.
-        WireValue::getFromBufMut(table, (message.segments.len() + 1) * 4).set( 0 );
+        WireValue::<u32>::getFromBufMut(table, (message.segments.len() + 1) * 4).set( 0 );
     }
 
     outputStream.write(table);
