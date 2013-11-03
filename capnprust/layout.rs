@@ -318,10 +318,11 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn followFars<'a>(refIndex: WordCount,
-                          segment : SegmentReader<'a>)
-        -> (WordCount, WirePointer, SegmentReader<'a>) {
-        let reff = WirePointer::get(segment.segment, refIndex);
+    pub fn followFars<'a>(reff: &mut *WirePointer,
+                          refTarget: *u8,
+                          segment : &mut SegmentReader<'a>)
+        -> *u8 {
+        
 
         match reff.kind() {
             WP_FAR => {
@@ -825,8 +826,8 @@ static EMPTY_SEGMENT : [u8,..0] = [];
 
 pub struct StructReader<'self> {
     segment : SegmentReader<'self>,
-    data : ByteCount,
-    pointers : WordCount,
+    data : *u8,
+    pointers : *WirePointer,
     dataSize : BitCount32,
     pointerCount : WirePointerCount16,
     bit0Offset : BitCount8,
@@ -841,7 +842,8 @@ impl <'self> StructReader<'self>  {
     pub fn newDefault<'a>(segmentReader : SegmentReader<'a>) -> StructReader<'a> {
         StructReader { segment : SegmentReader {messageReader : segmentReader.messageReader,
                                                 segment : EMPTY_SEGMENT.slice(0,0)},
-                      data : 0, pointers : 0, dataSize : 0, pointerCount : 0,
+                      data : std::ptr::null(),
+                       pointers : std::ptr::null(), dataSize : 0, pointerCount : 0,
                       bit0Offset : 0, nestingLimit : 0x7fffffff}
     }
 
