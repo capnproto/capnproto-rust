@@ -46,7 +46,7 @@ impl <'self, T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<
             if (tag == 0) {
 
                 let runLength : uint = self.inner.read_u8() as uint * 8;
-
+                assert!(runLength <= outBuf.len() - outPos);
                 unsafe {
                     std::ptr::set_memory(outBuf.unsafe_mut_ref(outPos),
                                          0, runLength);
@@ -140,14 +140,13 @@ impl <'self, T : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream
                     let mut inWord : *u64 =
                         std::cast::transmute(inBuf.unsafe_ref(inPos));
                     while (count < 255 && inPos < inBuf.len() && *inWord == 0) {
-                        inWord = std::ptr::offset(inWord, 1);
+                        inPos += 8;
+                        inWord = std::cast::transmute(inBuf.unsafe_ref(inPos));
                         count += 1;
                     }
                 }
                 buffer[outPos] = count;
                 outPos += 1;
-
-                inPos += count as uint * 8;
 
             } else if (tag == 0xff) {
                 //# An all-nonzero word is followed by a count of
