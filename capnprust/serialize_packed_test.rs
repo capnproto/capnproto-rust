@@ -35,11 +35,12 @@ pub fn expectPacksTo(unpacked : &[u8],
 
 }
 
+static zeroes : &'static[u8] = &[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 
 #[test]
 pub fn simplePacking() {
     expectPacksTo([], []);
-    expectPacksTo([0,0,0,0,0,0,0,0], [0,0]);
+    expectPacksTo(zeroes.slice(0, 8), [0,0]);
     expectPacksTo([0,0,12,0,0,34,0,0], [0x24,12,34]);
     expectPacksTo([1,3,2,4,5,7,6,8], [0xff,1,3,2,4,5,7,6,8,0]);
     expectPacksTo([0,0,0,0,0,0,0,0,1,3,2,4,5,7,6,8], [0,0,0xff,1,3,2,4,5,7,6,8,0]);
@@ -58,4 +59,8 @@ pub fn simplePacking() {
     expectPacksTo(
         [8,0,100,6,0,1,1,2, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,1,0,2,0,3,1],
         [0xed,8,100,6,1,1,2, 0,2, 0xd4,1,2,3,1]);
+
+    expectPacksTo([0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0], [0,1]);
+    expectPacksTo([0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0], [0,2]);
+
 }

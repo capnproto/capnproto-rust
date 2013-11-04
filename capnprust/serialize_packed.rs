@@ -139,7 +139,7 @@ impl <'self, T : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream
                 unsafe {
                     let mut inWord : *u64 =
                         std::cast::transmute(inBuf.unsafe_ref(inPos));
-                    while (count < 255 && *inWord == 0) {
+                    while (count < 255 && inPos < inBuf.len() && *inWord == 0) {
                         inWord = std::ptr::offset(inWord, 1);
                         count += 1;
                     }
