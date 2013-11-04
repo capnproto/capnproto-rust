@@ -6,7 +6,7 @@
 
 #[feature(macro_rules)];
 
-#[link(name = "capnproto-rust-test", vers = "alpha", author = "dwrensha")];
+#[link(name = "addressbook", vers = "alpha", author = "dwrensha")];
 
 #[crate_type = "bin"];
 

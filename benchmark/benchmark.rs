@@ -7,7 +7,7 @@
 #[feature(globs)];
 #[feature(macro_rules)];
 
-#[link(name = "capnproto-rust-benchmark", vers = "alpha", author = "dwrensha")];
+#[link(name = "benchmark", vers = "alpha", author = "dwrensha")];
 
 #[crate_type = "bin"];
 

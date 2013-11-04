@@ -918,8 +918,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
 
 fn main() {
-    use std::rt::io::file::FileInfo;
-    use std::rt::io::Writer;
+    use std::rt::io::{Writer, File, Truncate, Write};
     use capnprust::serialize::*;
 
     let mut inp = std::rt::io::stdin();
@@ -982,7 +981,7 @@ fn main() {
 
             let path = std::path::Path::new(outputFileName);
 
-            match path.open_writer(std::rt::io::CreateOrTruncate) {
+            match File::open_mode(&path, Truncate, Write) {
                 Some(ref mut writer) => {
                     writer.write(macros_text.as_bytes());
                     writer.write(text.as_bytes())
