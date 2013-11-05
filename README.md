@@ -10,26 +10,14 @@ for [Rust](http://www.rust-lang.org).
 
 ## Getting Started
 
-To compile, get the latest (master branch) version of Rust and do:
-```
-$ rustc capnprust/capnprust.rs
-```
-This should succeed and produce
-the library `libcapnprust`. You may then compile the `capnpc-rust` binary like this:
-```
-$ rustc -L./capnprust compiler/capnpc-rust.rs
-```
-The binary may then be used as a plug-in to
-the Cap'n Proto compiler, like this:
+You will need an up-to-date version of Rust from the master branch.
+
+To build capnproto-rust, just type `make` in this directory. This
+should produce the library `libcapnprust`, the compiler plugin
+`capnpc-rust`, and the sample program `addressbook`. You can run the
+sample program like this:
 
 ```
-$ capnp compile -o ./compiler/capnpc-rust:samples samples/addressbook.capnp
-```
-This should generate the file `samples/addressbook_capnp.rs`.
-You may then see the serialization in action by compiling the sample program:
-
-```
-$ rustc -L./capnprust samples/addressbook.rs
 $ ./samples/addressbook write | ./samples/addressbook read
 ```
 
@@ -38,11 +26,7 @@ $ ./samples/addressbook write | ./samples/addressbook read
 The general strategy is to translate, as directly as possible, the C++
 implementation into Rust. (Comments that have been directly copied
 from the C++ implementation are demarked with a double slash and pound
-sign `//#`.) Fortunately, enums and structs are laid out the same way
-in both languages. Unfortunately, trait polymorphism and region
-variables do not seem to work very well together yet in Rust. This
-makes a few things difficult, including implementing virtual functions
-such as `MessageReader::getSegment()`.
+sign `//#`.)
 
 ## Status
 
