@@ -19,6 +19,7 @@ pub mod blob;
 pub mod layout;
 pub mod arena;
 pub mod message;
+pub mod io;
 pub mod serialize;
 pub mod serialize_packed;
 pub mod list;
