@@ -6,6 +6,7 @@
 
 use std;
 use serialize_packed::{PackedOutputStream, PackedInputStream};
+use io;
 
 pub fn expectPacksTo(unpacked : &[u8],
                      packed : &[u8]) {
@@ -16,7 +17,8 @@ pub fn expectPacksTo(unpacked : &[u8],
     // write
 
     let bytes = do std::rt::io::mem::with_mem_writer |writer| {
-        let mut packedOutputStream = PackedOutputStream {inner : writer};
+        let bufferedOutputStream = io::BufferedOutputStream::new(writer);
+        let mut packedOutputStream = PackedOutputStream {inner : bufferedOutputStream};
         packedOutputStream.write(unpacked);
     };
 

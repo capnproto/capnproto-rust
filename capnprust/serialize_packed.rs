@@ -76,7 +76,7 @@ impl <'self, T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<
 }
 
 pub struct PackedOutputStream<'self, W> {
-    inner : &'self mut io::BufferedOutputStream<'self, W>
+    inner : io::BufferedOutputStream<'self, W>
 }
 
 #[inline]
@@ -88,8 +88,6 @@ fn ptr_inc(p : &mut *mut u8, count : int) {
 
 impl <'self, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream<'self, W> {
     fn write(&mut self, inBuf : &[u8]) {
-//        let mut bufferLength = 0;
-//        let mut out : *mut u8;
 
         let (mut out, mut bufferLength) = self.inner.getWriteBuffer();
         let mut slowBuffer : [u8,..20] = [0, ..20];
@@ -249,12 +247,13 @@ impl <'self, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream
         } else {
             self.inner.advance(outPos);
         }
+        self.inner.flush();
     }
 
    fn flush(&mut self) { self.inner.flush(); }
 }
 
-pub fn writePackedMessage<T : std::rt::io::Writer>(outputStream : &mut io::BufferedOutputStream<T>,
+pub fn writePackedMessage<T : std::rt::io::Writer>(outputStream : io::BufferedOutputStream<T>,
                                                    message : &MessageBuilder) {
 
     let mut packedOutputStream = PackedOutputStream {inner : outputStream};

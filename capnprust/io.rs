@@ -27,10 +27,11 @@ impl<'self, W: Writer> BufferedOutputStream<'self, W> {
     #[inline]
     pub fn getWriteBuffer(&mut self) -> (*mut u8, uint) {
         unsafe {
-            (self.buf.unsafe_mut_ref(self.pos), self.pos)
+            (self.buf.unsafe_mut_ref(self.pos), self.buf.len() - self.pos)
         }
     }
 
+    #[inline]
     pub fn advance(&mut self, n : uint) {
         self.pos += n;
         assert!(self.pos < self.buf.len());
@@ -39,6 +40,7 @@ impl<'self, W: Writer> BufferedOutputStream<'self, W> {
 
 
 impl<'self, W: Writer> Writer for BufferedOutputStream<'self, W> {
+    #[inline]
     fn write(&mut self, buf: &[u8]) {
         let available = self.buf.len() - self.pos;
         let mut size = buf.len();

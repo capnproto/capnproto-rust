@@ -47,7 +47,8 @@ mod Packed {
 
     pub fn write<T : std::rt::io::Writer>(writer: &mut T,
                                           message: &capnprust::message::MessageBuilder) {
-        capnprust::serialize_packed::writePackedMessage(writer, message);
+        let bufferedOutputStream = capnprust::io::BufferedOutputStream::new(writer);
+        capnprust::serialize_packed::writePackedMessage(bufferedOutputStream, message);
     }
 
     pub fn newReader<U : std::rt::io::Reader, T>(
