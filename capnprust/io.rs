@@ -6,14 +6,23 @@
 
 use std;
 use std::rt::io::Writer;
+use common;
 
-pub struct BufferedOutputStream<W> {
-    priv inner: W,
+pub struct BufferedOutputStream<'self, W> {
+    priv inner: &'self mut W,
     priv buf: ~[u8],
     priv pos: uint
 }
 
-impl<W: Writer> BufferedOutputStream<W> {
+impl<'self, W: Writer> BufferedOutputStream<'self, W> {
+
+    pub fn new<'a> (w : &'a mut W) -> BufferedOutputStream<'a, W> {
+        BufferedOutputStream {
+            inner: w,
+            buf : common::allocate_zeroed_bytes(8192),
+            pos : 0
+        }
+    }
 
     #[inline]
     pub fn getWriteBuffer(&mut self) -> (*mut u8, uint) {
@@ -29,7 +38,7 @@ impl<W: Writer> BufferedOutputStream<W> {
 }
 
 
-impl<W: Writer> Writer for BufferedOutputStream<W> {
+impl<'self, W: Writer> Writer for BufferedOutputStream<'self, W> {
     fn write(&mut self, buf: &[u8]) {
         let available = self.buf.len() - self.pos;
         let mut size = buf.len();

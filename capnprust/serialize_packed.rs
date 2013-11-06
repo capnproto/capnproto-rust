@@ -5,6 +5,7 @@
  */
 
 use std;
+use io;
 use message::*;
 use serialize::*;
 
@@ -74,61 +75,95 @@ impl <'self, T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<
 
 }
 
-pub struct PackedOutputStream<'self, T> {
-    inner : &'self mut T
+pub struct PackedOutputStream<'self, W> {
+    inner : &'self mut io::BufferedOutputStream<'self, W>
 }
 
-impl <'self, T : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream<'self, T> {
-    fn write(&mut self, inBuf : &[u8]) {
+#[inline]
+fn ptr_inc(p : &mut *mut u8, count : int) {
+    unsafe {
+        *p = std::ptr::mut_offset(*p, count);
+    }
+}
 
-        // Yuck. It'd be better to have a BufferedOutputStream.
-        let mut buffer : ~[u8] = std::vec::from_elem(inBuf.len() * 3 / 2, 0u8);
+impl <'self, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream<'self, W> {
+    fn write(&mut self, inBuf : &[u8]) {
+//        let mut bufferLength = 0;
+//        let mut out : *mut u8;
+
+        let (mut out, mut bufferLength) = self.inner.getWriteBuffer();
+        let mut slowBuffer : [u8,..20] = [0, ..20];
+        let mut usingSlowBuffer = false;
 
         let mut inPos : uint = 0;
         let mut outPos : uint = 0;
 
         while (inPos < inBuf.len()) {
 
-            let tagPos = outPos;
+            if (bufferLength - outPos < 10) {
+                //# Oops, we're out of space. We need at least 10
+                //# bytes for the fast path, since we don't
+                //# bounds-check on every byte.
+                if (usingSlowBuffer) {
+                    self.inner.write(slowBuffer.slice(0, outPos));
+                } else {
+                    self.inner.advance(outPos);
+                }
+                unsafe { out = slowBuffer.unsafe_mut_ref(0) }
+                outPos = 0;
+                bufferLength = 20;
+                usingSlowBuffer = true;
+            }
+
+            let tagPos : *mut u8 = out;
+            ptr_inc(&mut out, 1);
             outPos += 1;
 
             let bit0 = (inBuf[inPos] != 0) as u8;
-            buffer[outPos] = inBuf[inPos];
+            unsafe { *out = inBuf[inPos] }
+            ptr_inc(&mut out, bit0 as int);
             outPos += bit0 as uint; inPos += 1;
 
             let bit1 = (inBuf[inPos] != 0) as u8;
-            buffer[outPos] = inBuf[inPos];
+            unsafe { *out = inBuf[inPos] }
+            ptr_inc(&mut out, bit1 as int);
             outPos += bit1 as uint; inPos += 1;
 
             let bit2 = (inBuf[inPos] != 0) as u8;
-            buffer[outPos] = inBuf[inPos];
+            unsafe { *out = inBuf[inPos] }
+            ptr_inc(&mut out, bit2 as int);
             outPos += bit2 as uint; inPos += 1;
 
             let bit3 = (inBuf[inPos] != 0) as u8;
-            buffer[outPos] = inBuf[inPos];
+            unsafe { *out = inBuf[inPos] }
+            ptr_inc(&mut out, bit3 as int);
             outPos += bit3 as uint; inPos += 1;
 
             let bit4 = (inBuf[inPos] != 0) as u8;
-            buffer[outPos] = inBuf[inPos];
+            unsafe { *out = inBuf[inPos] }
+            ptr_inc(&mut out, bit4 as int);
             outPos += bit4 as uint; inPos += 1;
 
             let bit5 = (inBuf[inPos] != 0) as u8;
-            buffer[outPos] = inBuf[inPos];
+            unsafe { *out = inBuf[inPos] }
+            ptr_inc(&mut out, bit5 as int);
             outPos += bit5 as uint; inPos += 1;
 
             let bit6 = (inBuf[inPos] != 0) as u8;
-            buffer[outPos] = inBuf[inPos];
+            unsafe { *out = inBuf[inPos] }
+            ptr_inc(&mut out, bit6 as int);
             outPos += bit6 as uint; inPos += 1;
 
             let bit7 = (inBuf[inPos] != 0) as u8;
-            buffer[outPos] = inBuf[inPos];
+            unsafe { *out = inBuf[inPos] }
+            ptr_inc(&mut out, bit7 as int);
             outPos += bit7 as uint; inPos += 1;
 
 
             let tag : u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
                          | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
 
-            buffer[tagPos] = tag;
+            unsafe {*tagPos = tag }
 
             if (tag == 0) {
                 //# An all-zero word is followed by a count of
@@ -145,7 +180,8 @@ impl <'self, T : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream
                         count += 1;
                     }
                 }
-                buffer[outPos] = count;
+                unsafe {*out = count }
+                ptr_inc(&mut out, 1);
                 outPos += 1;
 
             } else if (tag == 0xff) {
@@ -176,26 +212,49 @@ impl <'self, T : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream
 
                     count += 1;
                 }
-                buffer[outPos] = count;
+                unsafe { *out = count }
+                ptr_inc(&mut out, 1);
                 outPos += 1;
 
-                unsafe {
-                    let dst : *mut u8 = buffer.unsafe_mut_ref(outPos);
-                    let src : *u8 = inBuf.unsafe_ref(runStart);
-                    std::ptr::copy_memory(dst, src, 8 * count as uint);
-                }
-                outPos += count as uint * 8;
+                if (count as uint * 8 <= bufferLength - outPos) {
+                    //# There's enough space to memcpy.
+                    unsafe {
+                        let src : *u8 = inBuf.unsafe_ref(runStart);
+                        std::ptr::copy_memory(out, src, 8 * count as uint);
+                    }
+                    ptr_inc(&mut out, count as int * 8);
+                    outPos += count as uint * 8;
+                } else {
+                    //# Input overruns the output buffer. We'll give it
+                    //# to the output stream in one chunk and let it
+                    //# decide what to do.
+                    if usingSlowBuffer {
+                        self.inner.write(slowBuffer.slice(0, outPos));
+                    } else {
+                        self.inner.advance(outPos);
+                    }
 
+                    self.inner.write(inBuf.slice(runStart, runStart + 8 * count as uint));
+
+                    let (out1, bufferLength1) = self.inner.getWriteBuffer();
+                    out = out1; bufferLength = bufferLength1;
+                    usingSlowBuffer = false;
+                    outPos = 0;
+                }
             }
         }
 
-        self.inner.write(buffer.slice(0, outPos));
+        if usingSlowBuffer {
+            self.inner.write(slowBuffer.slice(0, outPos));
+        } else {
+            self.inner.advance(outPos);
+        }
     }
 
    fn flush(&mut self) { self.inner.flush(); }
 }
 
-pub fn writePackedMessage<T : std::rt::io::Writer>(outputStream : &mut T,
+pub fn writePackedMessage<T : std::rt::io::Writer>(outputStream : &mut io::BufferedOutputStream<T>,
                                                    message : &MessageBuilder) {
 
     let mut packedOutputStream = PackedOutputStream {inner : outputStream};
