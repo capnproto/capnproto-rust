@@ -44,11 +44,11 @@ mod Uncompressed {
 mod Packed {
     use capnprust;
     use std;
+    use capnprust::serialize_packed::{WritePackedWrapper, WritePacked};
 
     pub fn write<T : std::rt::io::Writer>(writer: &mut T,
                                           message: &capnprust::message::MessageBuilder) {
-        let bufferedOutputStream = capnprust::io::BufferedOutputStream::new(writer);
-        capnprust::serialize_packed::writePackedMessage(bufferedOutputStream, message);
+        WritePackedWrapper{writer: *writer}.writePackedMessage(message);
     }
 
     pub fn newReader<U : std::rt::io::Reader, T>(

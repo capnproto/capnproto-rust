@@ -16,6 +16,7 @@ pub mod addressbook_capnp;
 
 fn writeAddressBook() {
     use capnprust::message::MessageBuilder;
+    use capnprust::serialize_packed::{WritePackedWrapper, WritePacked};
     use addressbook_capnp::{AddressBook, Person};
 
     let mut message = MessageBuilder::new_default();
@@ -55,10 +56,7 @@ fn writeAddressBook() {
     person.getEmployment().setSchool("Caltech");
 
 //    capnprust::serialize::writeMessage(&mut std::rt::io::stdout(), message)
-    let mut ostream = std::rt::io::stdout();
-    capnprust::serialize_packed::writePackedMessage(
-        capnprust::io::BufferedOutputStream::new(&mut ostream),
-        message)
+    WritePackedWrapper{writer:std::rt::io::stdout()}.writePackedMessage(message);
 }
 
 fn printAddressBook() {

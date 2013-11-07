@@ -76,7 +76,7 @@ impl <'self, T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<
 }
 
 pub struct PackedOutputStream<'self, W> {
-    inner : io::BufferedOutputStream<'self, W>
+    inner : &'self mut io::BufferedOutputStream<'self, W>
 }
 
 #[inline]
@@ -253,10 +253,22 @@ impl <'self, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream
    fn flush(&mut self) { self.inner.flush(); }
 }
 
-pub fn writePackedMessage<T : std::rt::io::Writer>(outputStream : io::BufferedOutputStream<T>,
-                                                   message : &MessageBuilder) {
+pub trait WritePacked {
+    fn writePackedMessage(&mut self, message : &MessageBuilder);
+}
 
-    let mut packedOutputStream = PackedOutputStream {inner : outputStream};
+impl <'self, T : std::rt::io::Writer> WritePacked for io::BufferedOutputStream<'self, T> {
+    fn writePackedMessage(&mut self, message : &MessageBuilder) {
+        let mut packedOutputStream = PackedOutputStream {inner : self};
+        writeMessage(&mut packedOutputStream, message);
+    }
+}
 
-    writeMessage(&mut packedOutputStream, message);
+pub struct WritePackedWrapper<T> {writer : T }
+
+impl <T: std::rt::io::Writer> WritePacked for WritePackedWrapper<T> {
+    fn writePackedMessage(&mut self, message : &MessageBuilder) {
+        let mut buffered = io::BufferedOutputStream::new(&mut self.writer);
+        buffered.writePackedMessage(message);
+    }
 }
