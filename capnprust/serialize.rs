@@ -81,7 +81,7 @@ pub mod InputStreamMessageReader {
             }
         }
 
-        let mut result = ~MessageReader::<'a> {
+        let mut result = ~MessageReader {
             segments : segments,
             options : options
         };
