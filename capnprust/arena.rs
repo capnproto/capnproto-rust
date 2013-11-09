@@ -12,7 +12,7 @@ pub type SegmentId = u32;
 
 pub struct SegmentReader<'self> {
     messageReader : &'self message::MessageReader<'self>,
-    segment : &'self [u8]
+    segment : &'self [Word]
 }
 
 impl <'self> SegmentReader<'self> {
@@ -51,7 +51,7 @@ impl SegmentBuilder {
         }
     }
 
-    pub fn getWordOffsetTo(&mut self, ptr : *mut u8) -> WordCount {
+    pub fn getWordOffsetTo(&mut self, ptr : *mut Word) -> WordCount {
         let thisAddr : uint =
             unsafe { std::cast::transmute(
                 (*self.messageBuilder).segments[self.id].unsafe_mut_ref(0)) };
@@ -61,12 +61,12 @@ impl SegmentBuilder {
         return result;
     }
 
-    pub fn allocate(&mut self, amount : WordCount) -> Option<*mut u8> {
+    pub fn allocate(&mut self, amount : WordCount) -> Option<*mut Word> {
         if (amount > self.size - self.pos) {
             return None;
         } else {
             let result = unsafe {
-                (*self.messageBuilder).segments[self.id].unsafe_mut_ref(self.pos * BYTES_PER_WORD)
+                (*self.messageBuilder).segments[self.id].unsafe_mut_ref(self.pos)
             };
             self.pos += amount;
             return Some(result);

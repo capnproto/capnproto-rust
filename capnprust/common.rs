@@ -58,16 +58,16 @@ pub fn bitsPerElement<T>() -> BitCount0 {
 }
 
 #[inline]
-pub fn allocate_zeroed_bytes(size : ByteCount) -> ~[u8] {
+pub fn allocate_zeroed_words(size : WordCount) -> ~[Word] {
 
 //    Do this, but faster:
-//    return std::vec::from_elem(size , 0u8);
+//    return std::vec::from_elem(size, 0u8);
 
-    let mut result : ~[u8] = std::vec::with_capacity(size);
+    let mut result : ~[Word] = std::vec::with_capacity(size);
     unsafe {
         std::vec::raw::set_len(&mut result, size);
-        let p : *mut u8 = result.unsafe_mut_ref(0);
-        std::ptr::set_memory(p, 0, size)
+        let p : *mut u8 = std::cast::transmute(result.unsafe_mut_ref(0));
+        std::ptr::set_memory(p, 0, size);
     }
     return result;
 }

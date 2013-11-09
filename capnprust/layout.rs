@@ -181,7 +181,7 @@ impl WirePointer {
 
     #[inline]
     pub fn setKindAndTarget(&mut self, kind : WirePointerKind,
-                            target : *mut u8, _segmentBuilder : *mut SegmentBuilder) {
+                            target : *mut Word, _segmentBuilder : *mut SegmentBuilder) {
         let thisAddr : int = unsafe {std::cast::transmute(&*self)};
         let targetAddr : int = unsafe {std::cast::transmute(target)};
         self.offsetAndKind.set(
@@ -295,7 +295,7 @@ mod WireHelpers {
     #[inline]
     pub unsafe fn allocate(reff : &mut *mut WirePointer,
                     segmentBuilder : &mut *mut SegmentBuilder,
-                    amount : WordCount, kind : WirePointerKind) -> *mut u8 {
+                    amount : WordCount, kind : WirePointerKind) -> *mut Word {
         let isNull = (**reff).isNull();
         if (!isNull) {
             zeroObject(*segmentBuilder, *reff)
@@ -309,7 +309,7 @@ mod WireHelpers {
 
                 let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
                 *segmentBuilder = (*(**segmentBuilder).messageBuilder).getSegmentWithAvailable(amountPlusRef);
-                let ptr = (**segmentBuilder).allocate(amountPlusRef).unwrap();
+                let ptr : *mut Word = (**segmentBuilder).allocate(amountPlusRef).unwrap();
 
                 //# Set up the original pointer to be a far pointer to
                 //# the new segment.
@@ -321,7 +321,7 @@ mod WireHelpers {
                 *reff = std::cast::transmute(ptr);
 
                 let ptr1 = std::ptr::mut_offset(ptr,
-                                                (BYTES_PER_WORD * POINTER_SIZE_IN_WORDS) as int);
+                                                POINTER_SIZE_IN_WORDS as int);
                 (**reff).setKindAndTarget(kind, ptr1, *segmentBuilder);
                 return ptr1;
             }
@@ -828,7 +828,7 @@ mod WireHelpers {
     }
 }
 
-static EMPTY_SEGMENT : [u8,..0] = [];
+static EMPTY_SEGMENT : [Word,..0] = [];
 
 pub struct StructReader<'self> {
     segment : SegmentReader<'self>,

@@ -18,7 +18,7 @@ pub static DEFAULT_READER_OPTIONS : ReaderOptions =
     ReaderOptions { traversalLimitInWords : 8 * 1024 * 1024, nestingLimit : 64 };
 
 pub struct MessageReader<'self> {
-    segments : &'self [ &'self [u8]],
+    segments : &'self [ &'self [Word]],
     options : ReaderOptions,
 //    arena : ReaderArena<'self>
 }
@@ -28,7 +28,7 @@ type SegmentId = u32;
 impl <'self> MessageReader<'self> {
 
     #[inline]
-    pub fn getSegment(&self, id : uint) -> &'self [u8] {
+    pub fn getSegment(&self, id : uint) -> &'self [Word] {
         self.segments[id]
     }
 
@@ -63,7 +63,7 @@ pub struct MessageBuilder {
     nextSize : uint,
     allocationStrategy : AllocationStrategy,
     segmentBuilders : ~[~SegmentBuilder],
-    segments : ~[~[u8]]
+    segments : ~[~[Word]]
 }
 
 impl MessageBuilder {
@@ -80,7 +80,7 @@ impl MessageBuilder {
         let builder =
             ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(result), firstSegmentWords);
 
-        result.segments.push(allocate_zeroed_bytes(firstSegmentWords * BYTES_PER_WORD));
+        result.segments.push(allocate_zeroed_words(firstSegmentWords));
         result.segmentBuilders.push(builder);
 
         result
@@ -92,7 +92,7 @@ impl MessageBuilder {
 
     pub fn allocateSegment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder {
         let size = std::cmp::max(minimumSize, self.nextSize);
-        let segment = allocate_zeroed_bytes(size * BYTES_PER_WORD);
+        let segment = allocate_zeroed_words(size);
         let mut result = ~SegmentBuilder::new(self, size);
         let result_ptr = std::ptr::to_mut_unsafe_ptr(result);
         self.segments.push(segment);
@@ -139,7 +139,7 @@ impl MessageBuilder {
     }
 
     pub fn asReader<T>(& self, f : &fn(r : MessageReader) -> T) -> T {
-        let mut segments : ~[&[u8]] = ~[];
+        let mut segments : ~[&[Word]] = ~[];
 
         for ii in range(0, self.segments.len()) {
             segments.push(self.segments[ii].as_slice());

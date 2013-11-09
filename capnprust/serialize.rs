@@ -12,6 +12,7 @@ use message::*;
 pub mod InputStreamMessageReader {
 
     use std;
+    use common::*;
     use endian::*;
     use message::*;
 
@@ -61,22 +62,37 @@ pub mod InputStreamMessageReader {
         //# and possibly crash.
         assert!(totalWords as u64 <= options.traversalLimitInWords);
 
-        // TODO Is this guaranteed to be word-aligned?
-        let ownedSpace : ~[u8] = inputStream.read_bytes(8 * totalWords as uint);
+        let mut ownedSpace : ~[Word] = allocate_zeroed_words(totalWords as uint);
+        let bufLen = totalWords as uint * BYTES_PER_WORD;
+
+        unsafe {
+            let ptr : *mut u8 = std::cast::transmute(ownedSpace.unsafe_mut_ref(0));
+            do std::vec::raw::mut_buf_as_slice::<u8,()>(
+                ptr, bufLen) |buf| {
+                let mut pos = 0;
+                while pos < bufLen {
+                    let buf1 = buf.mut_slice(pos, bufLen);
+                    match inputStream.read(buf1) {
+                        None => fail!("failed to read"),
+                        Some(n) => pos += n
+                    }
+                }
+            }
+        }
 
         // TODO lazy reading like in capnp-c++. Is that possible
-        // within the std::io::Reader interface?
+        // within the std::rt::io::Reader interface?
 
-        let segment0 : &[u8] = ownedSpace.slice(0, 8 * segment0Size as uint);
+        let segment0 : &[Word] = ownedSpace.slice(0, segment0Size as uint);
 
-        let mut segments : ~[&[u8]] = ~[segment0];
+        let mut segments : ~[&[Word]] = ~[segment0];
 
         if (segmentCount > 1) {
             let mut offset = segment0Size;
 
             for ii in range(0, segmentCount as uint - 1) {
-                segments.push(ownedSpace.slice(offset as uint * 8,
-                                               (offset + moreSizes[ii]) as uint * 8));
+                segments.push(ownedSpace.slice(offset as uint,
+                                               (offset + moreSizes[ii]) as uint));
                 offset += moreSizes[ii];
             }
         }
@@ -117,7 +133,14 @@ pub fn writeMessage<T: std::rt::io::Writer>(outputStream : &mut T,
     }
 
     for i in range(0, message.segments.len()) {
-        let slice = message.segments[i].slice(0, message.segmentBuilders[i].pos * BYTES_PER_WORD);
-        outputStream.write(slice);
+        unsafe {
+            let ptr : *u8 = std::cast::transmute(message.segments[i].unsafe_ref(0));
+            do std::vec::raw::buf_as_slice::<u8,()>(
+                ptr,
+                message.segmentBuilders[i].pos * BYTES_PER_WORD) |buf| {
+
+                outputStream.write(buf);
+            }
+        }
     }
 }
