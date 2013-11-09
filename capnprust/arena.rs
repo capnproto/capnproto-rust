@@ -61,15 +61,6 @@ impl SegmentBuilder {
         return result;
     }
 
-    pub fn getByteOffsetTo(&mut self, ptr : *mut u8) -> ByteCount {
-        let thisAddr : uint =
-            unsafe { std::cast::transmute(
-                (*self.messageBuilder).segments[self.id].unsafe_mut_ref(0)) };
-        let ptrAddr : uint = unsafe {std::cast::transmute(ptr)};
-        assert!(ptrAddr >= thisAddr);
-        return (ptrAddr - thisAddr);
-    }
-
     pub fn allocate(&mut self, amount : WordCount) -> Option<*mut u8> {
         if (amount > self.size - self.pos) {
             return None;
