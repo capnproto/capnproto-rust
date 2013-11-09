@@ -21,7 +21,7 @@ impl <'self> SegmentReader<'self> {
         std::cast::transmute(self.segment.unsafe_ref(0))
     }
 
-    pub unsafe fn containsInterval(&self, from : *u8, to : *u8) -> bool {
+    pub unsafe fn containsInterval(&self, from : *Word, to : *Word) -> bool {
         let fromAddr : uint = std::cast::transmute(from);
         let toAddr : uint = std::cast::transmute(to);
         let thisBegin : uint = std::cast::transmute(self.segment.unsafe_ref(0));

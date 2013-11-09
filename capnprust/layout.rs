@@ -280,8 +280,9 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn boundsCheck<'a>(segment : SegmentReader<'a>, start : *u8, end : *u8) -> bool {
-        return segment.containsInterval(start,end);
+    pub unsafe fn boundsCheck<'a>(segment : SegmentReader<'a>,
+                                  start : *Word, end : *Word) -> bool {
+        return segment.containsInterval(start, end);
     }
 
     #[inline]
@@ -337,10 +338,9 @@ mod WireHelpers {
                     segment.getStartPtr(),
                     (**reff).farPositionInSegment() as int);
 
-                let _padWords = if ((**reff).isDoubleFar()) { 2 } else { 1 };
-
-                // TODO better bounds check?
-                //assert!( ptr + padWords < segment.segment.len() );
+                let padWords : int = if ((**reff).isDoubleFar()) { 2 } else { 1 };
+                assert!(boundsCheck(*segment, ptr,
+                                    std::ptr::offset(ptr, padWords)));
 
                 let pad : *WirePointer = std::cast::transmute(ptr);
 
@@ -631,10 +631,8 @@ mod WireHelpers {
 
         let dataSizeWords = (*reff).structRef().dataSize.get();
 
-        assert!(boundsCheck(segment,
-                            std::cast::transmute(ptr),
-                            std::cast::transmute(
-                    std::ptr::offset(ptr, (*reff).structRef().wordSize() as int))),
+        assert!(boundsCheck(segment, ptr,
+                            std::ptr::offset(ptr, (*reff).structRef().wordSize() as int)),
                 "Message contained out-of-bounds struct pointer.");
 
         StructReader {segment : segment,
@@ -690,14 +688,11 @@ mod WireHelpers {
 
                 ptr = std::ptr::offset(ptr, 1);
 
-                assert!(
-                    boundsCheck(segment, std::cast::transmute(std::ptr::offset(ptr, -1)),
-                                std::cast::transmute(std::ptr::offset(ptr, wordCount as int))));
+                assert!(boundsCheck(segment, std::ptr::offset(ptr, -1),
+                                    std::ptr::offset(ptr, wordCount as int)));
 
-                match (*tag).kind() {
-                    WP_STRUCT => {}
-                    _ => fail!("INLINE_COMPOSITE lists of non-STRUCT type are not supported")
-                }
+                assert!((*tag).kind() == WP_STRUCT,
+                        "INLINE_COMPOSITE lists of non-STRUCT type are not supported");
 
                 let size = (*tag).inlineCompositeListElementCount();
                 let structRef = (*tag).structRef();
@@ -750,7 +745,13 @@ mod WireHelpers {
                 let pointerCount = pointersPerElement(listRef.elementSize());
                 let step = dataSize + pointerCount * BITS_PER_POINTER;
 
-                // TODO bounds check
+                assert!(
+                    boundsCheck(
+                        segment, ptr,
+                        std::ptr::offset(
+                            ptr,
+                            roundBitsUpToWords(
+                                (listRef.elementCount() * step) as u64) as int)));
 
                 //# Verify that the elements are at least as large as
                 //# the expected type. Note that if we expected
@@ -761,7 +762,7 @@ mod WireHelpers {
                 //# pointer type.
 
                 let expectedDataBitsPerElement =
-                    dataBitsPerElement(expectedElementSize);
+                        dataBitsPerElement(expectedElementSize);
                 let expectedPointersPerElement =
                     pointersPerElement(expectedElementSize);
 
@@ -805,9 +806,9 @@ mod WireHelpers {
 
         assert!(listRef.elementSize() == BYTE);
 
-        assert!(boundsCheck(segment, std::cast::transmute(ptr),
-                           std::ptr::offset(std::cast::transmute(ptr),
-                                            roundBytesUpToWords(size) as int)));
+        assert!(boundsCheck(segment, ptr,
+                            std::ptr::offset(ptr,
+                                             roundBytesUpToWords(size) as int)));
 
         assert!(size > 0, "Message contains text that is not NUL-terminated");
 
