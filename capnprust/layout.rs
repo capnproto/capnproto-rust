@@ -278,6 +278,11 @@ mod WireHelpers {
     }
 
     #[inline]
+    pub unsafe fn boundsCheck<'a>(segment : SegmentReader<'a>, start : *u8, end : *u8) -> bool {
+        return segment.containsInterval(start,end);
+    }
+
+    #[inline]
     pub fn allocate(reff : &mut *mut WirePointer,
                     segmentBuilder : &mut *mut SegmentBuilder,
                     amount : WordCount, kind : WirePointerKind) -> *mut u8 {
@@ -787,6 +792,7 @@ mod WireHelpers {
 
         let refTarget = (*reff).target();
 
+
         let ptr : *Word = followFars(&mut reff, refTarget, &mut segment);
 
         let listRef = (*reff).listRef();
@@ -798,7 +804,11 @@ mod WireHelpers {
             _ => { fail!("Message contains non-list pointer where text was expected") }
         };
 
-        // TODO size assertion, bounds check
+        // TODO element size assertion
+
+        assert!(boundsCheck(segment, std::cast::transmute(ptr),
+                           std::ptr::offset(std::cast::transmute(ptr),
+                                            roundBytesUpToWords(size) as int)));
 
         assert!(size > 0, "Message contains text that is not NUL-terminated");
 
@@ -828,9 +838,9 @@ impl <'self> StructReader<'self>  {
     pub fn newDefault<'a>(segmentReader : SegmentReader<'a>) -> StructReader<'a> {
         StructReader { segment : SegmentReader {messageReader : segmentReader.messageReader,
                                                 segment : EMPTY_SEGMENT.slice(0,0)},
-                      data : std::ptr::null(),
+                       data : std::ptr::null(),
                        pointers : std::ptr::null(), dataSize : 0, pointerCount : 0,
-                      bit0Offset : 0, nestingLimit : 0x7fffffff}
+                       bit0Offset : 0, nestingLimit : 0x7fffffff}
     }
 
     pub fn readRoot<'a>(location : WordCount, segment : SegmentReader<'a>,

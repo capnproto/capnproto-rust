@@ -20,6 +20,16 @@ impl <'self> SegmentReader<'self> {
     pub unsafe fn getStartPtr(&self) -> *Word {
         std::cast::transmute(self.segment.unsafe_ref(0))
     }
+
+    pub unsafe fn containsInterval(&self, from : *u8, to : *u8) -> bool {
+        let fromAddr : uint = std::cast::transmute(from);
+        let toAddr : uint = std::cast::transmute(to);
+        let thisBegin : uint = std::cast::transmute(self.segment.unsafe_ref(0));
+        let thisEnd : uint = std::cast::transmute(
+            self.segment.unsafe_ref(self.segment.len() - 1));
+        return (fromAddr >= thisBegin && toAddr <= thisEnd);
+        // TODO readLimiter
+    }
 }
 
 pub struct SegmentBuilder {
