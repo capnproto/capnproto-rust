@@ -1163,8 +1163,9 @@ impl <'self> ListReader<'self> {
                              (indexBit as uint / BITS_PER_BYTE) as int) };
 
         let structPointers : *WirePointer = unsafe {
-            std::ptr::offset(std::cast::transmute::<*u8,*WirePointer>(structData),
-                             (self.structDataSize as uint / BITS_PER_BYTE) as int)
+                std::cast::transmute(
+                    std::ptr::offset(structData,
+                                     (self.structDataSize as uint / BITS_PER_BYTE) as int))
         };
 
 /*
