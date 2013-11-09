@@ -21,15 +21,6 @@ impl<T : Clone> WireValue<T> {
     pub fn set(&mut self, value : T) { self.value = value }
 
     #[inline]
-    pub fn getFromBuf<'a>(buf : &'a [u8], index : ByteCount) -> &'a WireValue<T> {
-        unsafe {
-            let p : *WireValue<T> =
-                std::cast::transmute(buf.unsafe_ref(index));
-            &*p
-        }
-    }
-
-    #[inline]
     pub fn getFromBufMut<'a>(buf : &'a mut [u8], index : ByteCount) -> &'a mut WireValue<T> {
         unsafe {
             let p : * mut WireValue<T> =
