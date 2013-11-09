@@ -173,6 +173,13 @@ impl WirePointer {
     }
 
     #[inline]
+    pub fn mut_target(&mut self) -> *mut Word {
+        let thisAddr : *mut Word = unsafe {std::cast::transmute(&*self) };
+        unsafe { std::ptr::mut_offset(thisAddr,
+                                  1 + ((self.offsetAndKind.get() as int) >> 2)) }
+    }
+
+    #[inline]
     pub fn setKindAndTarget(&mut self, kind : WirePointerKind,
                             target : *mut u8, _segmentBuilder : *mut SegmentBuilder) {
         let thisAddr : int = unsafe {std::cast::transmute(&*self)};
@@ -365,42 +372,43 @@ mod WireHelpers {
         }
     }
 
-    pub unsafe fn zeroObject(_segmentBuilder : *mut SegmentBuilder, _reff : *mut WirePointer) {
+    pub unsafe fn zeroObject(mut segment : *mut SegmentBuilder, reff : *mut WirePointer) {
         //# Zero out the pointed-to object. Use when the pointer is
         //# about to be overwritten making the target object no longer
         //# reachable.
-        fail!("zeroObject is unimplemented");
-/*
+
         match (*reff).kind() {
-            WP_STRUCT | WP_LIST => { zeroObjectHelper(segmentBuilder,
-                                                      reff, reff.target()) }
+            WP_STRUCT | WP_LIST | WP_CAPABILITY => {
+                zeroObjectHelper(segment,
+                                 reff, (*reff).mut_target())
+            }
             WP_FAR => {
-                let segmentBuilder =
-                    segmentBuilder.messageBuilder.segmentBuilders[reff.farRef().segmentId.get()];
-                let padIndex = reff.farPositionInSegment();
-                if (reff.isDoubleFar() ) {
-                    let (pad, pad1) = do segmentBuilder.withMutSegment |segment| {
-                        (WirePointer::get(segment, padIndex),
-                         WirePointer::get(segment, padIndex+1))
-                    };
-                    let segmentBuilder1 =
-                        segmentBuilder.messageBuilder.segmentBuilders[pad.farRef().segmentId.get()];
-                    zeroObjectHelper(segmentBuilder1, pad1, pad.farPositionInSegment());
-                    segmentBuilder.memset(padIndex * BYTES_PER_WORD, 0, 2 * BYTES_PER_WORD);
+                segment = std::ptr::to_mut_unsafe_ptr(
+                    (*(*segment).messageBuilder).segmentBuilders[(*reff).farRef().segmentId.get()]);
+                let pad : *mut WirePointer =
+                    std::cast::transmute((*segment).getPtrUnchecked((*reff).farPositionInSegment()));
+
+                if ((*reff).isDoubleFar()) {
+                    segment = std::ptr::to_mut_unsafe_ptr(
+                        (*(*segment).messageBuilder).segmentBuilders[(*pad).farRef().segmentId.get()]);
+
+                    zeroObjectHelper(segment,
+                                     std::ptr::mut_offset(pad, 1),
+                                     (*segment).getPtrUnchecked((*pad).farPositionInSegment()));
+
+                    std::ptr::set_memory(pad, 0u8, 2);
 
                 } else {
-                    zeroObject(segmentBuilder, padIndex);
-                    segmentBuilder.memset(padIndex * BYTES_PER_WORD, 0, BYTES_PER_WORD);
+                    zeroObject(segment, pad);
+                    std::ptr::set_memory(pad, 0u8, 1);
                 }
-                fail!("unimplemented")
             }
-            WP_CAPABILITY => {fail!("Don't know how to handle RESERVED_3")}
         }
-         */
     }
 
-    pub unsafe fn zeroObjectHelper(_segmentBuilder : *mut SegmentBuilder, _tag : WirePointer,
-                            _ptr: WirePointerCount) {
+    pub unsafe fn zeroObjectHelper(_segment : *mut SegmentBuilder,
+                                   _tag : *mut WirePointer,
+                                   _ptr: *mut Word) {
         fail!("zeroObjectHelper unimplemented")
             /*
         match tag.kind() {

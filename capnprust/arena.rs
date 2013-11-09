@@ -70,7 +70,6 @@ impl SegmentBuilder {
         return (ptrAddr - thisAddr);
     }
 
-
     pub fn allocate(&mut self, amount : WordCount) -> Option<*mut u8> {
         if (amount > self.size - self.pos) {
             return None;
@@ -87,18 +86,11 @@ impl SegmentBuilder {
         self.size - self.pos
     }
 
-    pub fn withMutSegment<T>(&mut self, f : &fn(&mut [u8]) -> T) -> T {
-        unsafe {f((*self.messageBuilder).segments[self.id])}
-    }
-
     #[inline]
-    pub fn memset(&mut self, ptr: uint, c: u8, count: uint) {
-        do self.withMutSegment |segment| {
-            unsafe {
-                let p = segment.unsafe_mut_ref(ptr);
-                std::ptr::set_memory(p, c, count)
-            }
-        }
+    pub unsafe fn getPtrUnchecked(&mut self, offset : WordCount) -> *mut Word {
+        let begin : *mut Word =
+            std::cast::transmute((*self.messageBuilder).segments[self.id].unsafe_mut_ref(0));
+        std::ptr::mut_offset(begin, offset as int)
     }
 
     pub fn asReader<T>(&mut self, f : &fn(SegmentReader) -> T) -> T {
