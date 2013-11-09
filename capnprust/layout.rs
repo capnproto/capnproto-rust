@@ -164,7 +164,9 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn target(&self, thisOffset : WordCount) -> WordCount {
+    pub fn target(&self) -> *Word {
+        let thisAddr : *Word = unsafe {std::case::transmute(&*self) };
+        std::ptr::offset(thisAddr, 1 +
         (thisOffset as i32 + (1 + ((self.offsetAndKind.get() as i32) >> 2))) as WordCount
     }
 
@@ -322,11 +324,10 @@ mod WireHelpers {
                           refTarget: *u8,
                           segment : &mut SegmentReader<'a>)
         -> *u8 {
-        
 
         match reff.kind() {
             WP_FAR => {
-                let segment =
+                segment =
                     segment.messageReader.getSegmentReader(reff.farRef().segmentId.get());
 
                 let ptr : WordCount = reff.farPositionInSegment();
@@ -338,7 +339,6 @@ mod WireHelpers {
                 let pad = WirePointer::get(segment.segment, ptr);
 
                 if (!reff.isDoubleFar() ) {
-
                     return (pad.target(ptr), pad, segment);
 
                 } else {
@@ -354,7 +354,7 @@ mod WireHelpers {
                     return (pad.farPositionInSegment(), reff, segment);
                 }
             }
-            _ => { (reff.target(refIndex), reff, segment )  }
+            _ => { refTarget }
         }
     }
 

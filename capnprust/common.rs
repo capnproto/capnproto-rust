@@ -39,6 +39,8 @@ pub type WirePointerCount16 = u16;
 pub type WirePointerCount32 = u32;
 pub type WirePointerCount64 = u64;
 
+pub struct Word {priv _x : u64}
+
 pub static BITS_PER_BYTE : BitCount0 = 8;
 pub static BITS_PER_WORD : BitCount0 = 64;
 pub static BYTES_PER_WORD : ByteCount = 8;
