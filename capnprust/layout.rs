@@ -143,22 +143,6 @@ impl ListRef {
 impl WirePointer {
 
     #[inline]
-    pub fn get(segment : &[u8], index : WordCount) -> WirePointer {
-        unsafe {
-            let p : *WirePointer =
-                std::cast::transmute(segment.unsafe_ref(index * BYTES_PER_WORD));
-            *p
-        }
-    }
-
-    #[inline]
-    pub fn getMut<'a>(segment : &'a mut [u8], index : WordCount) -> &'a mut WirePointer {
-        unsafe {
-                std::cast::transmute(segment.unsafe_ref(index * BYTES_PER_WORD))
-        }
-    }
-
-    #[inline]
     pub fn kind(&self) -> WirePointerKind {
         unsafe {
             std::cast::transmute((self.offsetAndKind.get() & 3) as u8)
@@ -855,11 +839,11 @@ impl <'self> StructReader<'self>  {
 
     pub fn readRoot<'a>(location : WordCount, segment : SegmentReader<'a>,
                         nestingLimit : int) -> StructReader<'a> {
-        //  the pointer to the struct is at segment[location * 8]
+        //  the pointer to the struct is at segment[location]
         unsafe {
             // TODO bounds check
             let reff : *WirePointer =
-                std::cast::transmute(segment.segment.unsafe_ref(location * 8));
+                std::cast::transmute(segment.segment.unsafe_ref(location));
 
             WireHelpers::readStructPointer(segment, reff, None, nestingLimit)
         }
