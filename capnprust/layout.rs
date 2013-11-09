@@ -406,68 +406,67 @@ mod WireHelpers {
         }
     }
 
-    pub unsafe fn zeroObjectHelper(_segment : *mut SegmentBuilder,
-                                   _tag : *mut WirePointer,
-                                   _ptr: *mut Word) {
-        fail!("zeroObjectHelper unimplemented")
-            /*
-        match tag.kind() {
+    pub unsafe fn zeroObjectHelper(segment : *mut SegmentBuilder,
+                                   tag : *mut WirePointer,
+                                   ptr: *mut Word) {
+        match (*tag).kind() {
+            WP_CAPABILITY => { fail!("Don't know how to handle CAPABILITY") }
             WP_STRUCT => {
-                let pointerSection = ptr + tag.structRef().dataSize.get() as WirePointerCount;
-                let count = tag.structRef().ptrCount.get() as uint;
-                for i in range(0, count) {
-                    zeroObject(segmentBuilder, pointerSection + i);
+                let pointerSection : *mut WirePointer =
+                    std::cast::transmute(
+                    std::ptr::mut_offset(ptr, (*tag).structRef().dataSize.get() as int));
+
+                let count = (*tag).structRef().ptrCount.get() as int;
+                for i in range::<int>(0, count) {
+                    zeroObject(segment, std::ptr::mut_offset(pointerSection, i));
                 }
-                segmentBuilder.memset(ptr * BYTES_PER_WORD, 0,
-                                      tag.structRef().wordSize() * BYTES_PER_WORD);
+                std::ptr::set_memory(ptr, 0u8, (*tag).structRef().wordSize());
             }
             WP_LIST => {
-                match tag.listRef().elementSize() {
+                match (*tag).listRef().elementSize() {
                     VOID =>  { }
                     BIT | BYTE | TWO_BYTES | FOUR_BYTES | EIGHT_BYTES => {
-                        segmentBuilder.memset(ptr * BYTES_PER_WORD, 0,
-                                       roundBitsUpToWords((
-                                           tag.listRef().elementCount()*
-                                           dataBitsPerElement(
-                                               tag.listRef().elementSize())) as u64) *
-                                       BYTES_PER_WORD)
+                        std::ptr::set_memory(
+                            ptr, 0u8,
+                            roundBitsUpToWords((
+                                    (*tag).listRef().elementCount() *
+                                        dataBitsPerElement(
+                                        (*tag).listRef().elementSize())) as u64))
                     }
                     POINTER => {
-                        let count = tag.listRef().elementCount();
-                        for i in range(0, count) {
-                            zeroObject(segmentBuilder, ptr + i)
+                        let count = (*tag).listRef().elementCount() as uint;
+                        for i in range::<int>(0, count as int) {
+                            zeroObject(segment,
+                                       std::cast::transmute(std::ptr::mut_offset(ptr, i)))
                         }
+                        std::ptr::set_memory(ptr, 0u8, count);
                     }
                     INLINE_COMPOSITE => {
-                        let elementTag = do segmentBuilder.withMutSegment |segment| {
-                            WirePointer::get(segment, ptr)
-                        };
-                        match elementTag.kind() {
-                            WP_STRUCT => { }
-                            _ => fail!("Don't know how to handle non-STRUCT inline composite")
-                        }
-                        let dataSize = elementTag.structRef().dataSize.get();
-                        let pointerCount = elementTag.structRef().ptrCount.get();
-                        let mut pos = ptr + POINTER_SIZE_IN_WORDS;
-                        let count = elementTag.inlineCompositeListElementCount();
+                        let elementTag : *mut WirePointer = std::cast::transmute(ptr);
+
+                        assert!((*elementTag).kind() == WP_STRUCT,
+                                "Don't know how to handle non-STRUCT inline composite");
+
+                        let dataSize = (*elementTag).structRef().dataSize.get();
+                        let pointerCount = (*elementTag).structRef().ptrCount.get();
+                        let mut pos : *mut Word = std::ptr::mut_offset(ptr, 1);
+                        let count = (*elementTag).inlineCompositeListElementCount();
                         for _ in range(0, count) {
-                            pos += dataSize as uint;
+                            pos = std::ptr::mut_offset(pos, dataSize as int);
                             for _ in range(0, pointerCount as uint) {
-                                zeroObject(segmentBuilder, pos);
-                                pos += POINTER_SIZE_IN_WORDS;
+                                zeroObject(
+                                    segment,
+                                    std::cast::transmute::<*mut Word, *mut WirePointer>(pos));
+                                pos = std::ptr::mut_offset(pos, 1);
                             }
                         }
-                        segmentBuilder.memset(ptr * BYTES_PER_WORD, 0,
-                                              (elementTag.structRef().wordSize() +
-                                               POINTER_SIZE_IN_WORDS) *
-                                              BYTES_PER_WORD);
+                        std::ptr::set_memory(ptr, 0u8,
+                                             (*elementTag).structRef().wordSize() * count + 1);
                     }
                 }
             }
             WP_FAR => { fail!("Unexpected FAR pointer") }
-            WP_CAPABILITY => { fail!("Don't know how to handle CAPABILITY") }
         }
-            */
     }
 
     #[inline]
