@@ -814,9 +814,12 @@ mod WireHelpers {
 
         assert!(size > 0, "Message contains text that is not NUL-terminated");
 
-//        assert!(slice[size-1] == 0, "Message contains text that is not NUL-terminated");
+        let strPtr = std::cast::transmute::<*Word,*i8>(ptr);
 
-        std::str::raw::c_str_to_static_slice(std::cast::transmute::<*Word,*i8>(ptr))
+        assert!((*std::ptr::offset(strPtr, (size - 1) as int)) == 0i8,
+                "Message contains text that is not NUL-terminated");
+
+        std::str::raw::c_str_to_static_slice(strPtr)
     }
 }
 
