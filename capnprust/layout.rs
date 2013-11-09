@@ -399,7 +399,7 @@ mod WireHelpers {
          */
     }
 
-    pub fn zeroObjectHelper(_segmentBuilder : *mut SegmentBuilder, _tag : WirePointer,
+    pub unsafe fn zeroObjectHelper(_segmentBuilder : *mut SegmentBuilder, _tag : WirePointer,
                             _ptr: WirePointerCount) {
         fail!("zeroObjectHelper unimplemented")
             /*
@@ -482,7 +482,7 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn getWritableStructPointer(_reff : *mut WirePointer,
+    pub unsafe fn getWritableStructPointer(_reff : *mut WirePointer,
                                     _segment : *mut SegmentBuilder,
                                     _size : StructSize,
                                     _defaultValue : Option<()>) -> StructBuilder {
@@ -557,18 +557,18 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn getWritableListPointer(_origRefIndex : *mut WirePointer,
-                                  _origSegment : *mut SegmentBuilder,
-                                  _elementSize : FieldSize,
-                                  _defaultValue : Option<()>) -> ListBuilder {
+    pub unsafe fn getWritableListPointer(_origRefIndex : *mut WirePointer,
+                                         _origSegment : *mut SegmentBuilder,
+                                         _elementSize : FieldSize,
+                                         _defaultValue : Option<()>) -> ListBuilder {
         fail!("unimplemented")
     }
 
     #[inline]
-    pub fn getWritableStructListPointer(_origRefIndex : *mut WirePointer,
-                                        _origSegment : *mut SegmentBuilder,
-                                        _elementSize : StructSize,
-                                        _defaultValue : Option<()>) -> ListBuilder {
+    pub unsafe fn getWritableStructListPointer(_origRefIndex : *mut WirePointer,
+                                               _origSegment : *mut SegmentBuilder,
+                                               _elementSize : StructSize,
+                                               _defaultValue : Option<()>) -> ListBuilder {
         fail!("unimplemented")
     }
 
@@ -597,8 +597,9 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn getWritableTextPointer(_refIndex : *mut WirePointer, _segment : *mut SegmentBuilder,
-                                  _defaultValue : &'static str) -> Text::Builder {
+    pub unsafe fn getWritableTextPointer(_refIndex : *mut WirePointer,
+                                         _segment : *mut SegmentBuilder,
+                                         _defaultValue : &'static str) -> Text::Builder {
         fail!("unimplemented");
     }
 
@@ -1054,11 +1055,13 @@ impl StructBuilder {
     //# message), or to the empty state if defaultValue is nullptr.
     pub fn getStructField(&self, ptrIndex : WirePointerCount, size : StructSize,
                           defaultValue : Option<()>) -> StructBuilder {
-        WireHelpers::getWritableStructPointer(
-            unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
-            self.segment,
-            size,
-            defaultValue)
+        unsafe {
+            WireHelpers::getWritableStructPointer(
+                std::ptr::mut_offset(self.pointers, ptrIndex as int),
+                self.segment,
+                size,
+                defaultValue)
+        }
     }
 
     //# Allocates a new list of the given size for the field at the given
@@ -1082,9 +1085,11 @@ impl StructBuilder {
     //# an empty list is used.
     pub fn getListField(&self, ptrIndex : WirePointerCount,
                         elementSize : FieldSize, defaultValue : Option<()>) -> ListBuilder {
-        WireHelpers::getWritableListPointer(
-            unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
-            self.segment, elementSize, defaultValue)
+        unsafe {
+            WireHelpers::getWritableListPointer(
+                std::ptr::mut_offset(self.pointers, ptrIndex as int),
+                self.segment, elementSize, defaultValue)
+        }
     }
 
     //# Allocates a new list of the given size for the field at the
@@ -1108,10 +1113,12 @@ impl StructBuilder {
     pub fn getStructListField(&self, ptrIndex : WirePointerCount,
                               elementSize : StructSize,
                               defaultValue : Option<()>) -> ListBuilder {
-        WireHelpers::getWritableStructListPointer(
-            unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
-            self.segment, elementSize,
-            defaultValue)
+        unsafe {
+            WireHelpers::getWritableStructListPointer(
+                std::ptr::mut_offset(self.pointers, ptrIndex as int),
+                self.segment, elementSize,
+                defaultValue)
+        }
     }
 
     pub fn setTextField(&self, ptrIndex : WirePointerCount, value : &str) {
@@ -1125,9 +1132,11 @@ impl StructBuilder {
 
     pub fn getTextField(&self, ptrIndex : WirePointerCount,
                         defaultValue : &'static str) -> Text::Builder {
-        WireHelpers::getWritableTextPointer(
-            unsafe{std::ptr::mut_offset(self.pointers, ptrIndex as int)},
-            self.segment, defaultValue)
+        unsafe {
+            WireHelpers::getWritableTextPointer(
+                std::ptr::mut_offset(self.pointers, ptrIndex as int),
+                self.segment, defaultValue)
+        }
     }
 
 }
