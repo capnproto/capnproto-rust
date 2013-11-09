@@ -94,22 +94,27 @@ pub mod InputStreamMessageReader {
 pub fn writeMessage<T: std::rt::io::Writer>(outputStream : &mut T,
                                             message : &MessageBuilder) {
 
-    let tableSize : uint = ((message.segments.len() + 2) & (!1)) * (BYTES_PER_WORD / 2);
+    let tableSize : uint = ((message.segments.len() + 2) & (!1));
 
-    let mut table : ~[u8] = std::vec::from_elem(tableSize, 0u8);
+    let mut table : ~[WireValue<u32>] = std::vec::with_capacity(tableSize);
+    unsafe { std::vec::raw::set_len(&mut table, tableSize) }
 
-    WireValue::<u32>::getFromBufMut(table, 0).set((message.segments.len() - 1) as u32);
+    table[0].set((message.segments.len() - 1) as u32);
 
     for i in range(0, message.segments.len()) {
-        WireValue::<u32>::getFromBufMut(table, (i + 1) * 4).set(
-            message.segmentBuilders[i].pos as u32);
+        table[i + 1].set(message.segmentBuilders[i].pos as u32);
     }
     if (message.segments.len() % 2 == 0) {
         // Set padding.
-        WireValue::<u32>::getFromBufMut(table, (message.segments.len() + 1) * 4).set( 0 );
+        table[message.segments.len() + 1].set( 0 );
     }
 
-    outputStream.write(table);
+    unsafe {
+        let ptr : *u8 = std::cast::transmute(table.unsafe_ref(0));
+        do std::vec::raw::buf_as_slice::<u8,()>(ptr, table.len() * 4) |buf| {
+            outputStream.write(buf);
+        }
+    }
 
     for i in range(0, message.segments.len()) {
         let slice = message.segments[i].slice(0, message.segmentBuilders[i].pos * BYTES_PER_WORD);
