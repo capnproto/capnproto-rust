@@ -12,6 +12,7 @@ use blob::*;
 use std;
 
 #[repr(u8)]
+#[deriving(Eq)]
 pub enum FieldSize {
     VOID = 0,
     BIT = 1,
@@ -67,6 +68,7 @@ impl StructSize {
 }
 
 #[repr(u8)]
+#[deriving(Eq)]
 pub enum WirePointerKind {
     WP_STRUCT = 0,
     WP_LIST = 1,
@@ -689,7 +691,9 @@ mod WireHelpers {
 
                 ptr = std::ptr::offset(ptr, 1);
 
-                // TODO bounds check
+                assert!(
+                    boundsCheck(segment, std::cast::transmute(std::ptr::offset(ptr, -1)),
+                                std::cast::transmute(std::ptr::offset(ptr, wordCount as int))));
 
                 match (*tag).kind() {
                     WP_STRUCT => {}
@@ -749,7 +753,6 @@ mod WireHelpers {
 
                 // TODO bounds check
 
-
                 //# Verify that the elements are at least as large as
                 //# the expected type. Note that if we expected
                 //# INLINE_COMPOSITE, the expected sizes here will be
@@ -792,19 +795,16 @@ mod WireHelpers {
 
         let refTarget = (*reff).target();
 
-
         let ptr : *Word = followFars(&mut reff, refTarget, &mut segment);
 
         let listRef = (*reff).listRef();
 
         let size : uint = listRef.elementCount();
 
-        match (*reff).kind() {
-            WP_LIST => { }
-            _ => { fail!("Message contains non-list pointer where text was expected") }
-        };
+        assert!((*reff).kind() == WP_LIST,
+                "Message contains non-list pointer where text was expected");
 
-        // TODO element size assertion
+        assert!(listRef.elementSize() == BYTE);
 
         assert!(boundsCheck(segment, std::cast::transmute(ptr),
                            std::ptr::offset(std::cast::transmute(ptr),
