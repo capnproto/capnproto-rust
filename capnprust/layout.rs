@@ -628,13 +628,17 @@ mod WireHelpers {
 
         let refTarget : *Word = (*reff).target();
 
-        if (nestingLimit <= 0) {
-           fail!("nesting limit exceeded");
-        }
+        assert!(nestingLimit > 0, "Message is too deeply-nested or contains cycles.");
 
         let ptr = followFars(&mut reff, refTarget, &mut segment);
 
         let dataSizeWords = (*reff).structRef().dataSize.get();
+
+        assert!(boundsCheck(segment,
+                            std::cast::transmute(ptr),
+                            std::cast::transmute(
+                    std::ptr::offset(ptr, (*reff).structRef().wordSize() as int))),
+                "Message contained out-of-bounds struct pointer.");
 
         StructReader {segment : segment,
                       data : std::cast::transmute(ptr),
@@ -676,10 +680,8 @@ mod WireHelpers {
 
         let mut ptr : *Word = followFars(&mut reff, refTarget, &mut segment);
 
-        match (*reff).kind() {
-            WP_LIST => { }
-            _ => { fail!("Message contains non-list pointer where list pointer was expected {:?}", reff) }
-        }
+        assert!((*reff).kind() == WP_LIST,
+                "Message contains non-list pointer where list pointer was expected {:?}", reff);
 
         let listRef = (*reff).listRef();
 
@@ -847,10 +849,10 @@ impl <'self> StructReader<'self>  {
                         nestingLimit : int) -> StructReader<'a> {
         //  the pointer to the struct is at segment[location * 8]
         unsafe {
+            // TODO bounds check
             let reff : *WirePointer =
                 std::cast::transmute(segment.segment.unsafe_ref(location * 8));
 
-            // TODO boundscheck
             WireHelpers::readStructPointer(segment, reff, None, nestingLimit)
         }
     }
