@@ -457,7 +457,7 @@ mod WireHelpers {
     pub unsafe fn initStructPointer(mut reff : *mut WirePointer,
                              mut segmentBuilder : *mut SegmentBuilder,
                              size : StructSize) -> StructBuilder {
-        let ptr = allocate(&mut reff, &mut segmentBuilder, size.total(), WP_STRUCT);
+        let ptr : *mut Word = allocate(&mut reff, &mut segmentBuilder, size.total(), WP_STRUCT);
         (*reff).structRefMut().set(size);
 
         StructBuilder {
@@ -465,7 +465,7 @@ mod WireHelpers {
             data : std::cast::transmute(ptr),
             pointers : std::cast::transmute(
                     std::ptr::mut_offset(ptr,
-                                         (BYTES_PER_WORD * size.data as uint) as int)),
+                                         (size.data as uint) as int)),
             dataSize : size.data as WordCount32 * (BITS_PER_WORD as BitCount32),
             pointerCount : size.pointers,
             bit0Offset : 0
