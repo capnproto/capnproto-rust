@@ -19,8 +19,6 @@ pub type ByteCount16 = u16;
 pub type ByteCount32 = u32;
 pub type ByteCount64 = u64;
 
-pub type Word = u64;
-
 pub type WordCount = uint;
 pub type WordCount8 = u8;
 pub type WordCount16 = u16;

@@ -165,9 +165,9 @@ impl WirePointer {
 
     #[inline]
     pub fn target(&self) -> *Word {
-        let thisAddr : *Word = unsafe {std::case::transmute(&*self) };
-        std::ptr::offset(thisAddr, 1 +
-        (thisOffset as i32 + (1 + ((self.offsetAndKind.get() as i32) >> 2))) as WordCount
+        let thisAddr : *Word = unsafe {std::cast::transmute(&*self) };
+        unsafe { std::ptr::offset(thisAddr,
+                                  1 + ((self.offsetAndKind.get() as int) >> 2)) }
     }
 
     #[inline]
@@ -320,38 +320,40 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn followFars<'a>(reff: &mut *WirePointer,
-                          refTarget: *u8,
-                          segment : &mut SegmentReader<'a>)
-        -> *u8 {
-
-        match reff.kind() {
+    pub unsafe fn followFars<'a>(reff: &mut *WirePointer,
+                                 refTarget: *Word,
+                                 segment : &mut SegmentReader<'a>) -> *Word {
+        match (**reff).kind() {
             WP_FAR => {
-                segment =
-                    segment.messageReader.getSegmentReader(reff.farRef().segmentId.get());
+                *segment =
+                    segment.messageReader.getSegmentReader((**reff).farRef().segmentId.get());
 
-                let ptr : WordCount = reff.farPositionInSegment();
-                let padWords = if (reff.isDoubleFar()) { 2 } else { 1 };
+                let ptr : *Word = std::ptr::offset(
+                    segment.getStartPtr(),
+                    (**reff).farPositionInSegment() as int);
+
+                let _padWords = if ((**reff).isDoubleFar()) { 2 } else { 1 };
 
                 // TODO better bounds check?
-                assert!( ptr + padWords < segment.segment.len() );
+                //assert!( ptr + padWords < segment.segment.len() );
 
-                let pad = WirePointer::get(segment.segment, ptr);
+                let pad : *WirePointer = std::cast::transmute(ptr);
 
-                if (!reff.isDoubleFar() ) {
-                    return (pad.target(ptr), pad, segment);
-
+                if (!(**reff).isDoubleFar() ) {
+                    *reff = pad;
+                    return (*pad).target();
                 } else {
                     //# Landing pad is another far pointer. It is
                     //# followed by a tag describing the pointed-to
                     //# object.
 
-                    let reff = WirePointer::get(segment.segment, ptr + 1);
+                    *reff = std::ptr::offset(pad, 1);
 
-                    let segment =
-                        segment.messageReader.getSegmentReader(pad.farRef().segmentId.get());
+                    *segment =
+                        segment.messageReader.getSegmentReader((*pad).farRef().segmentId.get());
 
-                    return (pad.farPositionInSegment(), reff, segment);
+                    return std::ptr::offset(segment.getStartPtr(),
+                                            (*pad).farPositionInSegment() as int);
                 }
             }
             _ => { refTarget }
@@ -598,108 +600,99 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn readStructPointer<'a>(segment: SegmentReader<'a>,
-                                 oRefIndex : Option<WirePointerCount>,
-                                 defaultValue : Option<&'a [u8]>,
-                                 nestingLimit : int) -> StructReader<'a> {
-
-        let (refIndex, segment) =
-            if (oRefIndex == None ||
-                WirePointer::get(segment.segment, oRefIndex.unwrap()).isNull()) {
-
-                match defaultValue {
-                    // A default struct value is always stored in its own
-                    // static buffer.
-
-                    Some (wp) if (! WirePointer::get(wp, 0).isNull()) => {
-                        (0, SegmentReader {messageReader : segment.messageReader,
-                                           segment : wp })
-                    }
-                    _ => {
-                        return StructReader::newDefault(segment);
-                    }
+    pub unsafe fn readStructPointer<'a>(mut segment: SegmentReader<'a>,
+                                        mut reff : *WirePointer,
+                                        defaultValue : Option<&'a [u8]>,
+                                        nestingLimit : int) -> StructReader<'a> {
+        if (reff.is_null() || (*reff).isNull()) {
+            match defaultValue {
+                // A default struct value is always stored in its own
+                // static buffer.
+/*                Some (wp) if (! WirePointer::get(wp, 0).isNull()) => {
+                    (0, SegmentReader {messageReader : segment.messageReader,
+                                       segment : wp })
+                } */
+                Some(_) => fail!("struct default values unimplemented"),
+                _ => {
+                    return StructReader::newDefault(segment);
                 }
-        } else {
-            (oRefIndex.unwrap(), segment)
-        };
+            }
+        }
 
-       if (nestingLimit <= 0) {
+        let refTarget : *Word = (*reff).target();
+
+        if (nestingLimit <= 0) {
            fail!("nesting limit exceeded");
         }
 
-        let (ptr, reff, segment) = followFars(refIndex, segment);
+        let ptr = followFars(&mut reff, refTarget, &mut segment);
 
-        let dataSizeWords = reff.structRef().dataSize.get();
+        let dataSizeWords = (*reff).structRef().dataSize.get();
 
         StructReader {segment : segment,
-                      data : ptr * BYTES_PER_WORD,
-                      pointers : ptr + (dataSizeWords as WordCount),
+                      data : std::cast::transmute(ptr),
+                      pointers : std::cast::transmute(std::ptr::offset(ptr, dataSizeWords as int)),
                       dataSize : dataSizeWords as u32 * BITS_PER_WORD as BitCount32,
-                      pointerCount : reff.structRef().ptrCount.get(),
+                      pointerCount : (*reff).structRef().ptrCount.get(),
                       bit0Offset : 0,
                       nestingLimit : nestingLimit - 1 }
-
      }
 
     #[inline]
-    pub fn readListPointer<'a>(segment: SegmentReader<'a>,
-                               oRefIndex : Option<WirePointerCount>,
-                               defaultValue : Option<&'a [u8]>,
-                               expectedElementSize : FieldSize,
-                               nestingLimit : int ) -> ListReader<'a> {
-        let (refIndex, segment) =
-            if (oRefIndex == None ||
-                WirePointer::get(segment.segment, oRefIndex.unwrap()).isNull()) {
+    pub unsafe fn readListPointer<'a>(mut segment: SegmentReader<'a>,
+                                      mut reff : *WirePointer,
+                                      defaultValue : Option<&'a [u8]>,
+                                      expectedElementSize : FieldSize,
+                                      nestingLimit : int ) -> ListReader<'a> {
 
-                match defaultValue {
-                    // A default list value is always stored in its own
-                    // static buffer.
+        if (reff.is_null() || (*reff).isNull()) {
+            match defaultValue {
+                // A default list value is always stored in its own
+                // static buffer.
 
-                    Some (wp) if (! WirePointer::get(wp, 0).isNull()) => {
-                        (0, SegmentReader {messageReader : segment.messageReader,
-                                           segment : wp })
-                    }
-                    _ => {
-                        return ListReader::newDefault(segment);
-                    }
+                /*Some (wp) if (! WirePointer::get(wp, 0).isNull()) => {
+                    (0, SegmentReader {messageReader : segment.messageReader,
+                                       segment : wp })
+                }*/
+                Some(_) => fail!("default list pointers unimplemented"),
+                _ => {
+                    return ListReader::newDefault(segment);
                 }
-        } else {
-            (oRefIndex.unwrap(), segment)
-        };
+            }
+        }
 
+        let refTarget : *Word = (*reff).target();
 
-
-       if (nestingLimit <= 0) {
+        if (nestingLimit <= 0) {
            fail!("nesting limit exceeded");
         }
 
-        let (ptr1, reff, segment) = followFars(refIndex, segment);
-        let mut ptr = ptr1;
+        let mut ptr : *Word = followFars(&mut reff, refTarget, &mut segment);
 
-        match reff.kind() {
+        match (*reff).kind() {
             WP_LIST => { }
             _ => { fail!("Message contains non-list pointer where list pointer was expected {:?}", reff) }
         }
 
-        let listRef = reff.listRef();
+        let listRef = (*reff).listRef();
 
         match listRef.elementSize() {
             INLINE_COMPOSITE => {
                 let wordCount = listRef.inlineCompositeWordCount();
 
-                let tag = WirePointer::get(segment.segment, ptr);
+                let tag: *WirePointer = std::cast::transmute(ptr);
 
-                ptr += POINTER_SIZE_IN_WORDS;
+                ptr = std::ptr::offset(ptr, 1);
 
                 // TODO bounds check
 
-                match tag.kind() {
+                match (*tag).kind() {
                     WP_STRUCT => {}
                     _ => fail!("INLINE_COMPOSITE lists of non-STRUCT type are not supported")
                 }
 
-                let size = tag.inlineCompositeListElementCount();
-                let structRef = tag.structRef();
+                let size = (*tag).inlineCompositeListElementCount();
+                let structRef = (*tag).structRef();
                 let wordsPerElement = structRef.wordSize();
 
                 assert!(size * wordsPerElement <= wordCount,
@@ -722,7 +715,7 @@ mod WireHelpers {
                                "Expected a primitive list, but got a list of pointer-only structs")
                     }
                     POINTER => {
-                        ptr += structRef.dataSize.get() as WordCount;
+                        ptr = std::ptr::offset(ptr, structRef.dataSize.get() as int);
                         assert!(structRef.ptrCount.get() > 0,
                                "Expected a pointer list, but got a list of data-only structs")
                     }
@@ -731,7 +724,7 @@ mod WireHelpers {
 
                 ListReader {
                     segment : segment,
-                    ptr : ptr * BYTES_PER_WORD,
+                    ptr : std::cast::transmute(ptr),
                     elementCount : size,
                     step : wordsPerElement * BITS_PER_WORD,
                     structDataSize : structRef.dataSize.get() as u32 * (BITS_PER_WORD as u32),
@@ -770,7 +763,7 @@ mod WireHelpers {
 
                 ListReader {
                     segment : segment,
-                    ptr : ptr * BYTES_PER_WORD,
+                    ptr : std::cast::transmute(ptr),
                     elementCount : listRef.elementCount(),
                     step : step,
                     structDataSize : dataSize as u32,
@@ -783,26 +776,24 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub fn readTextPointer<'a>(segment : SegmentReader<'a>,
-                               oRefIndex : Option<WirePointerCount>,
-                               defaultValue : &'a str
-//                               defaultSize : ByteCount
-                              ) -> Text::Reader<'a> {
-        let refIndex =
-           if (oRefIndex == None ||
-               WirePointer::get(segment.segment, oRefIndex.unwrap()).isNull()) {
+    pub unsafe fn readTextPointer<'a>(mut segment : SegmentReader<'a>,
+                                      mut reff : *WirePointer,
+                                      defaultValue : &'a str
+                                      //defaultSize : ByteCount
+                                      ) -> Text::Reader<'a> {
+        if (reff.is_null() || (*reff).isNull()) {
             return defaultValue;
-        } else {
-            oRefIndex.unwrap()
-        };
+        }
 
-        let (ptr, reff, segment) = followFars(refIndex, segment);
+        let refTarget = (*reff).target();
 
-        let listRef = reff.listRef();
+        let ptr : *Word = followFars(&mut reff, refTarget, &mut segment);
+
+        let listRef = (*reff).listRef();
 
         let size : uint = listRef.elementCount();
 
-        match reff.kind() {
+        match (*reff).kind() {
             WP_LIST => { }
             _ => { fail!("Message contains non-list pointer where text was expected") }
         };
@@ -811,14 +802,9 @@ mod WireHelpers {
 
         assert!(size > 0, "Message contains text that is not NUL-terminated");
 
-        let startByte = ptr * BYTES_PER_WORD;
-
-        // slice does not include the null terminator
-        let slice = segment.segment.slice(startByte, startByte + size - 1);
-
 //        assert!(slice[size-1] == 0, "Message contains text that is not NUL-terminated");
 
-        std::str::from_utf8_slice(slice)
+        std::str::raw::c_str_to_static_slice(std::cast::transmute::<*Word,*i8>(ptr))
     }
 }
 
@@ -850,9 +836,13 @@ impl <'self> StructReader<'self>  {
     pub fn readRoot<'a>(location : WordCount, segment : SegmentReader<'a>,
                         nestingLimit : int) -> StructReader<'a> {
         //  the pointer to the struct is at segment[location * 8]
+        unsafe {
+            let reff : *WirePointer =
+                std::cast::transmute(segment.segment.unsafe_ref(location * 8));
 
-        // TODO boundscheck
-        WireHelpers::readStructPointer(segment, Some(location), None, nestingLimit)
+            // TODO boundscheck
+            WireHelpers::readStructPointer(segment, reff, None, nestingLimit)
+        }
     }
 
     pub fn getDataSectionSize(&self) -> BitCount32 { self.dataSize }
@@ -866,9 +856,11 @@ impl <'self> StructReader<'self>  {
         // We need to check the offset because the struct may have
         // been created with an old version of the protocol that did
         // not contain the field.
-        if ((offset + 1) * bitsPerElement::<T>()  <= self.dataSize as uint) {
-            let totalByteOffset = self.data + bytesPerElement::<T>() * offset;
-            WireValue::getFromBuf(self.segment.segment, totalByteOffset).get()
+        if ((offset + 1) * bitsPerElement::<T>() <= self.dataSize as uint) {
+            unsafe {
+                let dwv : *WireValue<T> = std::cast::transmute(self.data);
+                (*std::ptr::offset(dwv, offset as int)).get()
+            }
         } else {
             return std::num::Zero::zero()
         }
@@ -882,10 +874,11 @@ impl <'self> StructReader<'self>  {
             if (offset == 0) {
                 boffset = self.bit0Offset as BitCount32;
             }
-            let b : u8 = self.segment.segment[(self.data + boffset as uint / BITS_PER_BYTE) ];
-
-            (b & (1 << (boffset % BITS_PER_BYTE as u32 ))) != 0
-
+            unsafe {
+                let b : *u8 = std::ptr::offset(self.data,
+                                               (boffset as uint / BITS_PER_BYTE) as int);
+                ((*b) & (1 << (boffset % BITS_PER_BYTE as u32 ))) != 0
+            }
         } else {
             false
         }
@@ -900,45 +893,52 @@ impl <'self> StructReader<'self>  {
 
     #[inline]
     pub fn getBoolFieldMask(&self,
-                                offset : ElementCount,
-                                mask : bool) -> bool {
+                            offset : ElementCount,
+                            mask : bool) -> bool {
        self.getBoolField(offset) ^ mask
     }
 
 
     pub fn getStructField(&self, ptrIndex : WirePointerCount, defaultValue : Option<&'self [u8]>)
         -> StructReader<'self> {
-        let oRefIndex = if (ptrIndex >= self.pointerCount as WirePointerCount)
-            { None }
+        let reff : *WirePointer = if (ptrIndex >= self.pointerCount as WirePointerCount)
+            { std::ptr::null() }
         else
-            { Some(self.pointers + ptrIndex) };
-        WireHelpers::readStructPointer(self.segment, oRefIndex,
-                                       defaultValue, self.nestingLimit)
+            { unsafe {std::ptr::offset(self.pointers, ptrIndex as int)} };
+
+        unsafe {
+            WireHelpers::readStructPointer(self.segment, reff,
+                                           defaultValue, self.nestingLimit)
+        }
     }
 
     pub fn getListField(&self,
                         ptrIndex : WirePointerCount, expectedElementSize : FieldSize,
                         defaultValue : Option<&'self [u8]>) -> ListReader<'self> {
-        let oRefIndex =
+        let reff : *WirePointer =
             if (ptrIndex >= self.pointerCount as WirePointerCount)
-            { None } else { Some(self.pointers + ptrIndex) };
+            { std::ptr::null() }
+            else { unsafe{std::ptr::offset(self.pointers, ptrIndex as int )} };
 
-        WireHelpers::readListPointer(self.segment,
-                                     oRefIndex,
-                                     defaultValue,
-                                     expectedElementSize, self.nestingLimit)
-
+        unsafe {
+            WireHelpers::readListPointer(self.segment,
+                                         reff,
+                                         defaultValue,
+                                         expectedElementSize, self.nestingLimit)
+        }
     }
 
     pub fn getTextField(&self, ptrIndex : WirePointerCount,
                         defaultValue : &'self str) -> Text::Reader<'self> {
-        let oRefIndex =
+        let reff : *WirePointer =
             if (ptrIndex >= self.pointerCount as WirePointerCount) {
-                None
+                std::ptr::null()
             } else {
-                Some(self.pointers + ptrIndex)
+                unsafe{std::ptr::offset(self.pointers, ptrIndex as int)}
             };
-        WireHelpers::readTextPointer(self.segment, oRefIndex, defaultValue)
+        unsafe {
+            WireHelpers::readTextPointer(self.segment, reff, defaultValue)
+        }
     }
 
     pub fn totalSize(&self) -> WordCount64 {
@@ -967,19 +967,17 @@ pub struct StructBuilder {
 impl StructBuilder {
     pub fn asReader<T>(&self, f : &fn(StructReader) -> T) -> T {
         unsafe {
-        do (*self.segment).asReader |segmentReader| {
-            f ( StructReader {
-                    segment : segmentReader,
-                    data : (*self.segment).getByteOffsetTo(self.data),
-
-                        // XXX
-                    pointers : (*self.segment).getWordOffsetTo(std::cast::transmute(self.pointers)),
-                    dataSize : self.dataSize,
-                    pointerCount : self.pointerCount,
-                    bit0Offset : self.bit0Offset,
-                    nestingLimit : 0x7fffffff
-                })
-        }
+            do (*self.segment).asReader |segmentReader| {
+                f ( StructReader {
+                        segment : segmentReader,
+                        data : std::cast::transmute(self.data),
+                        pointers : std::cast::transmute(self.pointers),
+                        dataSize : self.dataSize,
+                        pointerCount : self.pointerCount,
+                        bit0Offset : self.bit0Offset,
+                        nestingLimit : 0x7fffffff
+                    })
+            }
         }
     }
 
@@ -1120,7 +1118,7 @@ impl StructBuilder {
 
 pub struct ListReader<'self> {
     segment : SegmentReader<'self>,
-    ptr : ByteCount,
+    ptr : *u8,
     elementCount : ElementCount,
     step : BitCount0,
     structDataSize : BitCount32,
@@ -1136,32 +1134,37 @@ impl <'self> ListReader<'self> {
     pub fn newDefault<'a>(segmentReader : SegmentReader<'a>) -> ListReader<'a> {
         ListReader { segment : SegmentReader {messageReader : segmentReader.messageReader,
                                               segment : EMPTY_SEGMENT.slice(0,0)},
-                    ptr : 0, elementCount : 0, step: 0, structDataSize : 0,
+                    ptr : std::ptr::null(), elementCount : 0, step: 0, structDataSize : 0,
                     structPointerCount : 0, nestingLimit : 0x7fffffff}
     }
 
-
     #[inline]
     pub fn size(&self) -> ElementCount { self.elementCount }
-
 
     pub fn getStructElement(&self, index : ElementCount) -> StructReader<'self> {
         assert!(self.nestingLimit > 0,
                 "Message is too deeply-nested or contains cycles");
         let indexBit : BitCount64 = index as ElementCount64 * (self.step as BitCount64);
-        let structData : ByteCount = self.ptr + (indexBit as uint / BITS_PER_BYTE);
-        let structPointers : ByteCount =
-            structData + (self.structDataSize as BitCount0 / BITS_PER_BYTE);
 
+        let structData : *u8 = unsafe {
+            std::ptr::offset(self.ptr,
+                             (indexBit as uint / BITS_PER_BYTE) as int) };
+
+        let structPointers : *WirePointer = unsafe {
+            std::ptr::offset(std::cast::transmute::<*u8,*WirePointer>(structData),
+                             (self.structDataSize as uint / BITS_PER_BYTE) as int)
+        };
+
+/*
         assert!(self.structPointerCount == 0 ||
                 structPointers % BYTES_PER_POINTER == 0,
                 "Pointer section of struct list element not aligned"
                );
-
+*/
         StructReader {
             segment : self.segment,
             data : structData,
-            pointers : structPointers / BYTES_PER_WORD,
+            pointers : structPointers,
             dataSize : self.structDataSize as BitCount32,
             pointerCount : self.structPointerCount,
             bit0Offset : (indexBit % (BITS_PER_BYTE as u64)) as u8,
@@ -1213,10 +1216,12 @@ impl ListBuilder {
 pub trait PrimitiveElement : Clone {
     #[inline]
     fn get(listReader : &ListReader, index : ElementCount) -> Self {
-        let totalByteOffset = listReader.ptr + index * listReader.step / BITS_PER_BYTE;
-
-        WireValue::getFromBuf(listReader.segment.segment,
-                              totalByteOffset).get()
+        unsafe {
+            let ptr : *u8 =
+                std::ptr::offset(listReader.ptr,
+                                 (index * listReader.step / BITS_PER_BYTE) as int);
+            (*std::cast::transmute::<*u8,*WireValue<Self>>(ptr)).get()
+        }
     }
 
     #[inline]
@@ -1259,9 +1264,10 @@ impl PrimitiveElement for bool {
         //# Ignore stepBytes for bit lists because bit lists cannot be
         //# upgraded to struct lists.
         let bindex : BitCount0 = index * list.step;
-        let b : ByteCount = list.ptr + bindex / BITS_PER_BYTE;
-        (WireValue::<u8>::getFromBuf(list.segment.segment, b).get() &
-            (1 << (bindex % BITS_PER_BYTE))) != 0
+        unsafe {
+            let b : *u8 = std::ptr::offset(list.ptr, (bindex / BITS_PER_BYTE) as int);
+            ((*b) & (1 << (bindex % BITS_PER_BYTE))) != 0
+        }
     }
     #[inline]
     fn getFromBuilder(list : &ListBuilder, index : ElementCount) -> bool {

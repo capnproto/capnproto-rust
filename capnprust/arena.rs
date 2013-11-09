@@ -15,6 +15,12 @@ pub struct SegmentReader<'self> {
     segment : &'self [u8]
 }
 
+impl <'self> SegmentReader<'self> {
+
+    pub unsafe fn getStartPtr(&self) -> *Word {
+        std::cast::transmute(self.segment.unsafe_ref(0))
+    }
+}
 
 pub struct SegmentBuilder {
     messageBuilder : *mut message::MessageBuilder,
