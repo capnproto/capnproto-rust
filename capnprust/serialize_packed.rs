@@ -87,158 +87,174 @@ fn ptr_inc(p : &mut *mut u8, count : int) {
 }
 
 #[inline]
-fn ptr_sub(p1 : *mut u8, p2 : *mut u8) -> uint {
+fn ptr_sub<T>(p1 : * T, p2 : * T) -> uint {
     unsafe {
         let p1Addr : uint = std::cast::transmute(p1);
         let p2Addr : uint = std::cast::transmute(p2);
-        return p1Addr - p2Addr;
+        return (p1Addr - p2Addr) / std::mem::size_of::<T>();
+    }
+}
+
+#[inline]
+fn ptr_sub_mut <T>(p1 : *mut T, p2 : *mut T) -> uint {
+    unsafe {
+        let p1Addr : uint = std::cast::transmute(p1);
+        let p2Addr : uint = std::cast::transmute(p2);
+        return (p1Addr - p2Addr) / std::mem::size_of::<T>();
     }
 }
 
 impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream<'a, 'b, W> {
     fn write(&mut self, inBuf : &[u8]) {
+        unsafe {
+            let (mut out, mut bufferEnd) = self.inner.getWriteBuffer();
+            let mut bufferBegin = out;
+            let mut slowBuffer : [u8,..20] = [0, ..20];
 
-        let (mut out, mut bufferEnd) = self.inner.getWriteBuffer();
-        let mut bufferBegin = out;
-        let mut slowBuffer : [u8,..20] = [0, ..20];
+            let mut inPtr : *u8 = inBuf.unsafe_ref(0);
+            let inEnd : *u8 = inBuf.unsafe_ref(inBuf.len());
 
-        let mut inPos : uint = 0;
+            while (inPtr < inEnd) {
 
-        while (inPos < inBuf.len()) {
+                if (ptr_sub_mut(bufferEnd, out) < 10) {
+                    //# Oops, we're out of space. We need at least 10
+                    //# bytes for the fast path, since we don't
+                    //# bounds-check on every byte.
+                    self.inner.write_ptr(bufferBegin, ptr_sub_mut(out, bufferBegin));
 
-            if (ptr_sub(bufferEnd, out) < 10) {
-                //# Oops, we're out of space. We need at least 10
-                //# bytes for the fast path, since we don't
-                //# bounds-check on every byte.
-                self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
-
-                unsafe { out = slowBuffer.unsafe_mut_ref(0) }
-                unsafe { bufferEnd = slowBuffer.unsafe_mut_ref(20) }
-                bufferBegin = out;
-            }
-
-            let tagPos : *mut u8 = out;
-            ptr_inc(&mut out, 1);
-
-            let bit0 = (inBuf[inPos] != 0) as u8;
-            unsafe { *out = inBuf[inPos] }
-            ptr_inc(&mut out, bit0 as int);
-            inPos += 1;
-
-            let bit1 = (inBuf[inPos] != 0) as u8;
-            unsafe { *out = inBuf[inPos] }
-            ptr_inc(&mut out, bit1 as int);
-            inPos += 1;
-
-            let bit2 = (inBuf[inPos] != 0) as u8;
-            unsafe { *out = inBuf[inPos] }
-            ptr_inc(&mut out, bit2 as int);
-            inPos += 1;
-
-            let bit3 = (inBuf[inPos] != 0) as u8;
-            unsafe { *out = inBuf[inPos] }
-            ptr_inc(&mut out, bit3 as int);
-            inPos += 1;
-
-            let bit4 = (inBuf[inPos] != 0) as u8;
-            unsafe { *out = inBuf[inPos] }
-            ptr_inc(&mut out, bit4 as int);
-            inPos += 1;
-
-            let bit5 = (inBuf[inPos] != 0) as u8;
-            unsafe { *out = inBuf[inPos] }
-            ptr_inc(&mut out, bit5 as int);
-            inPos += 1;
-
-            let bit6 = (inBuf[inPos] != 0) as u8;
-            unsafe { *out = inBuf[inPos] }
-            ptr_inc(&mut out, bit6 as int);
-            inPos += 1;
-
-            let bit7 = (inBuf[inPos] != 0) as u8;
-            unsafe { *out = inBuf[inPos] }
-            ptr_inc(&mut out, bit7 as int);
-            inPos += 1;
-
-
-            let tag : u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
-                         | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
-
-            unsafe {*tagPos = tag }
-
-            if (tag == 0) {
-                //# An all-zero word is followed by a count of
-                //# consecutive zero words (not including the first
-                //# one).
-
-                let mut count : u8 = 0;
-                unsafe {
-                    let mut inWord : *u64 =
-                        std::cast::transmute(inBuf.unsafe_ref(inPos));
-                    while (count < 255 && inPos < inBuf.len() && *inWord == 0) {
-                        inPos += 8;
-                        inWord = std::cast::transmute(inBuf.unsafe_ref(inPos));
-                        count += 1;
-                    }
-                }
-                unsafe {*out = count }
-                ptr_inc(&mut out, 1);
-
-            } else if (tag == 0xff) {
-                //# An all-nonzero word is followed by a count of
-                //# consecutive uncompressed words, followed by the
-                //# uncompressed words themselves.
-
-                //# Count the number of consecutive words in the input
-                //# which have no more than a single zero-byte. We look
-                //# for at least two zeros because that's the point
-                //# where our compression scheme becomes a net win.
-                let mut count : u8 = 0;
-                let runStart = inPos;
-                while (inPos < inBuf.len() && count < 255) {
-                    let mut c = 0;
-
-                    for _ in range(0,8) {
-                        c += (inBuf[inPos] == 0) as u8;
-                        inPos += 1;
-                    }
-
-                    if (c >= 2) {
-                        //# Un-read the word with multiple zeros, since
-                        //# we'll want to compress that one.
-                        inPos -= 8;
-                        break;
-                    }
-
-                    count += 1;
-                }
-                unsafe { *out = count }
-                ptr_inc(&mut out, 1);
-
-                if (count as uint * 8 <= ptr_sub(bufferEnd, out)) {
-                    //# There's enough space to memcpy.
-                    unsafe {
-                        let src : *u8 = inBuf.unsafe_ref(runStart);
-                        std::ptr::copy_memory(out, src, 8 * count as uint);
-                    }
-                    ptr_inc(&mut out, count as int * 8);
-                } else {
-                    //# Input overruns the output buffer. We'll give it
-                    //# to the output stream in one chunk and let it
-                    //# decide what to do.
-                    self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
-
-                    self.inner.write(inBuf.slice(runStart, runStart + 8 * count as uint));
-
-                    let (out1, bufferEnd1) = self.inner.getWriteBuffer();
-                    out = out1; bufferEnd = bufferEnd1;
+                    out = slowBuffer.unsafe_mut_ref(0);
+                    bufferEnd = slowBuffer.unsafe_mut_ref(20);
                     bufferBegin = out;
                 }
-            }
-        }
 
-        self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
-        self.inner.flush();
+                let tagPos : *mut u8 = out;
+                ptr_inc(&mut out, 1);
+
+                let bit0 = (*inPtr != 0) as u8;
+                *out = *inPtr;
+                ptr_inc(&mut out, bit0 as int);
+                inPtr = std::ptr::offset(inPtr, 1);
+
+                let bit1 = (*inPtr != 0) as u8;
+                *out = *inPtr;
+                ptr_inc(&mut out, bit1 as int);
+                inPtr = std::ptr::offset(inPtr, 1);
+
+                let bit2 = (*inPtr != 0) as u8;
+                *out = *inPtr;
+                ptr_inc(&mut out, bit2 as int);
+                inPtr = std::ptr::offset(inPtr, 1);
+
+                let bit3 = (*inPtr != 0) as u8;
+                *out = *inPtr;
+                ptr_inc(&mut out, bit3 as int);
+                inPtr = std::ptr::offset(inPtr, 1);
+
+                let bit4 = (*inPtr != 0) as u8;
+                *out = *inPtr;
+                ptr_inc(&mut out, bit4 as int);
+                inPtr = std::ptr::offset(inPtr, 1);
+
+                let bit5 = (*inPtr != 0) as u8;
+                *out = *inPtr;
+                ptr_inc(&mut out, bit5 as int);
+                inPtr = std::ptr::offset(inPtr, 1);
+
+                let bit6 = (*inPtr != 0) as u8;
+                *out = *inPtr;
+                ptr_inc(&mut out, bit6 as int);
+                inPtr = std::ptr::offset(inPtr, 1);
+
+                let bit7 = (*inPtr != 0) as u8;
+                *out = *inPtr;
+                ptr_inc(&mut out, bit7 as int);
+                inPtr = std::ptr::offset(inPtr, 1);
+
+
+                let tag : u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
+                    | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
+
+                *tagPos = tag;
+
+                if (tag == 0) {
+                    //# An all-zero word is followed by a count of
+                    //# consecutive zero words (not including the first
+                    //# one).
+
+                    let mut inWord : *u64 = std::cast::transmute(inPtr);
+                    let mut limit : *u64 = std::cast::transmute(inEnd);
+                    if (ptr_sub(limit, inWord) > 255) {
+                        limit = std::ptr::offset(inWord, 255);
+                    }
+                    while (inWord < limit && *inWord == 0) {
+                        inWord = std::ptr::offset(inWord, 1)
+                    }
+                    *out = ptr_sub(inWord, std::cast::transmute::<*u8, *u64>(inPtr)) as u8;
+
+                    ptr_inc(&mut out, 1);
+                    inPtr = std::cast::transmute::<*u64, *u8>(inWord);
+
+                } else if (tag == 0xff) {
+                    //# An all-nonzero word is followed by a count of
+                    //# consecutive uncompressed words, followed by the
+                    //# uncompressed words themselves.
+
+                    //# Count the number of consecutive words in the input
+                    //# which have no more than a single zero-byte. We look
+                    //# for at least two zeros because that's the point
+                    //# where our compression scheme becomes a net win.
+                    let runStart = inPtr;
+                    let mut limit = inEnd;
+                    if (ptr_sub(limit, inPtr) > 255 * 8) {
+                        limit = std::ptr::offset(inPtr, 255 * 8);
+                    }
+
+                    while (inPtr < limit) {
+                        let mut c = 0;
+
+                        for _ in range(0,8) {
+                            c += (*inPtr == 0) as u8;
+                            inPtr = std::ptr::offset(inPtr, 1);
+                        }
+
+                        if (c >= 2) {
+                            //# Un-read the word with multiple zeros, since
+                            //# we'll want to compress that one.
+                            inPtr = std::ptr::offset(inPtr, -8);
+                            break;
+                        }
+                    }
+                    let count : uint = ptr_sub(inPtr, runStart);
+                    *out = (count / 8) as u8;
+                    ptr_inc(&mut out, 1);
+
+                    if (count <= ptr_sub_mut(bufferEnd, out)) {
+                        //# There's enough space to memcpy.
+
+                        let src : *u8 = runStart;
+                        std::ptr::copy_memory(out, src, count);
+
+                        ptr_inc(&mut out, count as int);
+                    } else {
+                        //# Input overruns the output buffer. We'll give it
+                        //# to the output stream in one chunk and let it
+                        //# decide what to do.
+                        self.inner.write_ptr(bufferBegin, ptr_sub_mut(out, bufferBegin));
+
+                        do std::vec::raw::buf_as_slice::<u8,()>(runStart, count) |buf| {
+                            self.write(buf);
+                        }
+
+                        let (out1, bufferEnd1) = self.inner.getWriteBuffer();
+                        out = out1; bufferEnd = bufferEnd1;
+                        bufferBegin = out;
+                    }
+                }
+            }
+
+            self.inner.write_ptr(bufferBegin, ptr_sub_mut(out, bufferBegin));
+            self.inner.flush();
+        }
     }
 
    fn flush(&mut self) { self.inner.flush(); }
