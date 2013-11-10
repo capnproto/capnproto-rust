@@ -124,8 +124,8 @@ macro_rules! passByBytes(
     )
 
 macro_rules! server(
-    ( $testcase:ident, $iters:expr) => ({
-            fail!("unimplemented")
+    ( $testcase:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
+            
         });
     )
 
@@ -154,18 +154,19 @@ macro_rules! passByPipe(
                        process::CreatePipe(false, true), // stdout
                        process::Ignored];
 
+            let mut args = std::os::args();
+            args[2] = ~"client";
+
             let config = process::ProcessConfig {
                 program: "./benchmark/benchmark",
-                args: [],
+                args: args.slice(1, args.len()),
                 env : None,
                 cwd: None,
                 io : io
             };
             match process::Process::new(config) {
                 Some(ref mut p) => {
-                    println!("{:?}", p);
-                    let s = p.io[1].read_to_end();
-                    std::rt::io::stdout().write(s);
+                    server!($testcase, $compression, $iters, p.io[1], p.io[0]);
                     println!("{}", p.wait());
                 }
                 None => {
@@ -180,7 +181,6 @@ macro_rules! doTestcase(
             match $mode {
                 ~"object" => passByObject!($testcase, $iters),
                 ~"bytes" => passByBytes!($testcase, $compression, $iters),
-                ~"server" => server!($testcase, $iters),
                 ~"client" => syncClient!($testcase, $iters),
                 ~"pipe" => passByPipe!($testcase, $compression, $iters),
                 s => fail!("unrecognized mode: {}", s)
