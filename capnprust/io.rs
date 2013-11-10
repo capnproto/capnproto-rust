@@ -28,9 +28,11 @@ impl<'self, W: Writer> BufferedOutputStream<'self, W> {
     }
 
     #[inline]
-    pub fn getWriteBuffer(&mut self) -> (*mut u8, uint) {
+    pub fn getWriteBuffer(&mut self) -> (*mut u8, *mut u8) {
+        let len = self.buf.len();
         unsafe {
-            (self.buf.unsafe_mut_ref(self.pos), self.buf.len() - self.pos)
+            (self.buf.unsafe_mut_ref(self.pos),
+             self.buf.unsafe_mut_ref(len))
         }
     }
 }

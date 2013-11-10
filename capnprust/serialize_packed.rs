@@ -86,76 +86,84 @@ fn ptr_inc(p : &mut *mut u8, count : int) {
     }
 }
 
+#[inline]
+fn ptr_sub(p1 : *mut u8, p2 : *mut u8) -> uint {
+    unsafe {
+        let p1Addr : uint = std::cast::transmute(p1);
+        let p2Addr : uint = std::cast::transmute(p2);
+        return p1Addr - p2Addr;
+    }
+}
+
 impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream<'a, 'b, W> {
     fn write(&mut self, inBuf : &[u8]) {
 
-        let (mut out, mut bufferLength) = self.inner.getWriteBuffer();
+        let (mut out, mut bufferEnd) = self.inner.getWriteBuffer();
         let mut bufferBegin = out;
         let mut slowBuffer : [u8,..20] = [0, ..20];
 
         let mut inPos : uint = 0;
-        let mut outPos : uint = 0;
 
         while (inPos < inBuf.len()) {
 
-            if (bufferLength - outPos < 10) {
+            if (ptr_sub(bufferEnd, out) < 10) {
                 //# Oops, we're out of space. We need at least 10
                 //# bytes for the fast path, since we don't
                 //# bounds-check on every byte.
                 unsafe {
-                    do std::vec::raw::mut_buf_as_slice::<u8,()>(bufferBegin, outPos) |buf| {
+                    do std::vec::raw::mut_buf_as_slice::<u8,()>(
+                        bufferBegin,
+                        ptr_sub(out, bufferBegin)) |buf| {
                         self.inner.write(buf);
                     }
                 }
                 unsafe { out = slowBuffer.unsafe_mut_ref(0) }
-                outPos = 0;
+                unsafe { bufferEnd = slowBuffer.unsafe_mut_ref(20) }
                 bufferBegin = out;
-                bufferLength = 20;
             }
 
             let tagPos : *mut u8 = out;
             ptr_inc(&mut out, 1);
-            outPos += 1;
 
             let bit0 = (inBuf[inPos] != 0) as u8;
             unsafe { *out = inBuf[inPos] }
             ptr_inc(&mut out, bit0 as int);
-            outPos += bit0 as uint; inPos += 1;
+            inPos += 1;
 
             let bit1 = (inBuf[inPos] != 0) as u8;
             unsafe { *out = inBuf[inPos] }
             ptr_inc(&mut out, bit1 as int);
-            outPos += bit1 as uint; inPos += 1;
+            inPos += 1;
 
             let bit2 = (inBuf[inPos] != 0) as u8;
             unsafe { *out = inBuf[inPos] }
             ptr_inc(&mut out, bit2 as int);
-            outPos += bit2 as uint; inPos += 1;
+            inPos += 1;
 
             let bit3 = (inBuf[inPos] != 0) as u8;
             unsafe { *out = inBuf[inPos] }
             ptr_inc(&mut out, bit3 as int);
-            outPos += bit3 as uint; inPos += 1;
+            inPos += 1;
 
             let bit4 = (inBuf[inPos] != 0) as u8;
             unsafe { *out = inBuf[inPos] }
             ptr_inc(&mut out, bit4 as int);
-            outPos += bit4 as uint; inPos += 1;
+            inPos += 1;
 
             let bit5 = (inBuf[inPos] != 0) as u8;
             unsafe { *out = inBuf[inPos] }
             ptr_inc(&mut out, bit5 as int);
-            outPos += bit5 as uint; inPos += 1;
+            inPos += 1;
 
             let bit6 = (inBuf[inPos] != 0) as u8;
             unsafe { *out = inBuf[inPos] }
             ptr_inc(&mut out, bit6 as int);
-            outPos += bit6 as uint; inPos += 1;
+            inPos += 1;
 
             let bit7 = (inBuf[inPos] != 0) as u8;
             unsafe { *out = inBuf[inPos] }
             ptr_inc(&mut out, bit7 as int);
-            outPos += bit7 as uint; inPos += 1;
+            inPos += 1;
 
 
             let tag : u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
@@ -180,7 +188,6 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
                 }
                 unsafe {*out = count }
                 ptr_inc(&mut out, 1);
-                outPos += 1;
 
             } else if (tag == 0xff) {
                 //# An all-nonzero word is followed by a count of
@@ -212,38 +219,39 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
                 }
                 unsafe { *out = count }
                 ptr_inc(&mut out, 1);
-                outPos += 1;
 
-                if (count as uint * 8 <= bufferLength - outPos) {
+                if (count as uint * 8 <= ptr_sub(bufferEnd, out)) {
                     //# There's enough space to memcpy.
                     unsafe {
                         let src : *u8 = inBuf.unsafe_ref(runStart);
                         std::ptr::copy_memory(out, src, 8 * count as uint);
                     }
                     ptr_inc(&mut out, count as int * 8);
-                    outPos += count as uint * 8;
                 } else {
                     //# Input overruns the output buffer. We'll give it
                     //# to the output stream in one chunk and let it
                     //# decide what to do.
                     unsafe {
-                        do std::vec::raw::mut_buf_as_slice::<u8,()>(bufferBegin, outPos) |buf| {
+                        do std::vec::raw::mut_buf_as_slice::<u8,()>(
+                            bufferBegin,
+                            ptr_sub(out, bufferBegin)) |buf| {
                             self.inner.write(buf);
                         }
                     }
 
                     self.inner.write(inBuf.slice(runStart, runStart + 8 * count as uint));
 
-                    let (out1, bufferLength1) = self.inner.getWriteBuffer();
-                    out = out1; bufferLength = bufferLength1;
+                    let (out1, bufferEnd1) = self.inner.getWriteBuffer();
+                    out = out1; bufferEnd = bufferEnd1;
                     bufferBegin = out;
-                    outPos = 0;
                 }
             }
         }
 
         unsafe {
-            do std::vec::raw::mut_buf_as_slice::<u8,()>(bufferBegin, outPos) |buf| {
+            do std::vec::raw::mut_buf_as_slice::<u8,()>(
+                bufferBegin,
+                ptr_sub(out, bufferBegin)) |buf| {
                 self.inner.write(buf);
             }
         }
