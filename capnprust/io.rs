@@ -6,7 +6,6 @@
 
 use std;
 use std::rt::io::Writer;
-use common;
 
 pub struct BufferedOutputStream<'self, W> {
     priv inner: &'self mut W,

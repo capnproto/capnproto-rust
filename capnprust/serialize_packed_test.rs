@@ -17,8 +17,8 @@ pub fn expectPacksTo(unpacked : &[u8],
     // write
 
     let bytes = do std::rt::io::mem::with_mem_writer |writer| {
-        let bufferedOutputStream = io::BufferedOutputStream::new(writer);
-        let mut packedOutputStream = PackedOutputStream {inner : bufferedOutputStream};
+        let mut bufferedOutputStream = io::BufferedOutputStream::new(writer);
+        let mut packedOutputStream = PackedOutputStream {inner : &mut bufferedOutputStream};
         packedOutputStream.write(unpacked);
     };
 
