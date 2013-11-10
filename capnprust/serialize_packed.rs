@@ -110,13 +110,8 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
                 //# Oops, we're out of space. We need at least 10
                 //# bytes for the fast path, since we don't
                 //# bounds-check on every byte.
-                unsafe {
-                    do std::vec::raw::mut_buf_as_slice::<u8,()>(
-                        bufferBegin,
-                        ptr_sub(out, bufferBegin)) |buf| {
-                        self.inner.write(buf);
-                    }
-                }
+                self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
+
                 unsafe { out = slowBuffer.unsafe_mut_ref(0) }
                 unsafe { bufferEnd = slowBuffer.unsafe_mut_ref(20) }
                 bufferBegin = out;
@@ -231,13 +226,7 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
                     //# Input overruns the output buffer. We'll give it
                     //# to the output stream in one chunk and let it
                     //# decide what to do.
-                    unsafe {
-                        do std::vec::raw::mut_buf_as_slice::<u8,()>(
-                            bufferBegin,
-                            ptr_sub(out, bufferBegin)) |buf| {
-                            self.inner.write(buf);
-                        }
-                    }
+                    self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
 
                     self.inner.write(inBuf.slice(runStart, runStart + 8 * count as uint));
 
@@ -248,13 +237,7 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
             }
         }
 
-        unsafe {
-            do std::vec::raw::mut_buf_as_slice::<u8,()>(
-                bufferBegin,
-                ptr_sub(out, bufferBegin)) |buf| {
-                self.inner.write(buf);
-            }
-        }
+        self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
         self.inner.flush();
     }
 

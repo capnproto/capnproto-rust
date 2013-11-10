@@ -35,6 +35,16 @@ impl<'self, W: Writer> BufferedOutputStream<'self, W> {
              self.buf.unsafe_mut_ref(len))
         }
     }
+
+    #[inline]
+    pub fn write_ptr(&mut self, ptr: *mut u8, size: uint) {
+        unsafe {
+            do std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, size) |buf| {
+                self.write(buf);
+            }
+        }
+
+    }
 }
 
 
