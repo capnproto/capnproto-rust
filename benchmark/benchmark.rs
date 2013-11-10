@@ -48,7 +48,8 @@ mod Packed {
 
     pub fn write<T : std::rt::io::Writer>(writer: &mut T,
                                           message: &capnprust::message::MessageBuilder) {
-        WritePackedWrapper{writer: *writer}.writePackedMessage(message);
+        let mut w = WritePackedWrapper{writer: writer};
+        w.writePackedMessage(message);
     }
 
     pub fn newReader<U : std::rt::io::Reader, T>(

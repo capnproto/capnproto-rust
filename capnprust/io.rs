@@ -17,11 +17,15 @@ pub struct BufferedOutputStream<'self, W> {
 impl<'self, W: Writer> BufferedOutputStream<'self, W> {
 
     pub fn new<'a> (w : &'a mut W) -> BufferedOutputStream<'a, W> {
-        BufferedOutputStream {
+        let mut result = BufferedOutputStream {
             inner: w,
-            buf : common::allocate_zeroed_bytes(8192),
+            buf : std::vec::with_capacity(8192),
             pos : 0
+        };
+        unsafe {
+            std::vec::raw::set_len(&mut result.buf, 8192);
         }
+        return result;
     }
 
     #[inline]

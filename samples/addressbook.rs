@@ -56,7 +56,7 @@ fn writeAddressBook() {
     person.getEmployment().setSchool("Caltech");
 
 //    capnprust::serialize::writeMessage(&mut std::rt::io::stdout(), message)
-    WritePackedWrapper{writer:std::rt::io::stdout()}.writePackedMessage(message);
+    WritePackedWrapper{writer:&mut std::rt::io::stdout()}.writePackedMessage(message);
 }
 
 fn printAddressBook() {
