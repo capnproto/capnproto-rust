@@ -90,8 +90,8 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
     fn write(&mut self, inBuf : &[u8]) {
 
         let (mut out, mut bufferLength) = self.inner.getWriteBuffer();
+        let mut bufferBegin = out;
         let mut slowBuffer : [u8,..20] = [0, ..20];
-        let mut usingSlowBuffer = false;
 
         let mut inPos : uint = 0;
         let mut outPos : uint = 0;
@@ -102,15 +102,15 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
                 //# Oops, we're out of space. We need at least 10
                 //# bytes for the fast path, since we don't
                 //# bounds-check on every byte.
-                if (usingSlowBuffer) {
-                    self.inner.write(slowBuffer.slice(0, outPos));
-                } else {
-                    self.inner.advance(outPos);
+                unsafe {
+                    do std::vec::raw::mut_buf_as_slice::<u8,()>(bufferBegin, outPos) |buf| {
+                        self.inner.write(buf);
+                    }
                 }
                 unsafe { out = slowBuffer.unsafe_mut_ref(0) }
                 outPos = 0;
+                bufferBegin = out;
                 bufferLength = 20;
-                usingSlowBuffer = true;
             }
 
             let tagPos : *mut u8 = out;
@@ -226,26 +226,26 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
                     //# Input overruns the output buffer. We'll give it
                     //# to the output stream in one chunk and let it
                     //# decide what to do.
-                    if usingSlowBuffer {
-                        self.inner.write(slowBuffer.slice(0, outPos));
-                    } else {
-                        self.inner.advance(outPos);
+                    unsafe {
+                        do std::vec::raw::mut_buf_as_slice::<u8,()>(bufferBegin, outPos) |buf| {
+                            self.inner.write(buf);
+                        }
                     }
 
                     self.inner.write(inBuf.slice(runStart, runStart + 8 * count as uint));
 
                     let (out1, bufferLength1) = self.inner.getWriteBuffer();
                     out = out1; bufferLength = bufferLength1;
-                    usingSlowBuffer = false;
+                    bufferBegin = out;
                     outPos = 0;
                 }
             }
         }
 
-        if usingSlowBuffer {
-            self.inner.write(slowBuffer.slice(0, outPos));
-        } else {
-            self.inner.advance(outPos);
+        unsafe {
+            do std::vec::raw::mut_buf_as_slice::<u8,()>(bufferBegin, outPos) |buf| {
+                self.inner.write(buf);
+            }
         }
         self.inner.flush();
     }
