@@ -78,7 +78,7 @@ macro_rules! passByObject(
 
                 do response.asReader |responseReader| {
                     if (! $testcase::checkResponse(responseReader, expected)) {
-                        println("Incorrect response.");
+                        fail!("Incorrect response.");
                     }
                 }
             }
@@ -116,7 +116,7 @@ macro_rules! passByBytes(
                     capnprust::message::DEFAULT_READER_OPTIONS) |responseReader| {
                     let responseReader = $testcase::newResponseReader(responseReader.getRoot());
                     if (! $testcase::checkResponse(responseReader, expected)) {
-                        println("Incorrect response.");
+                        fail!("Incorrect response.");
                     }
                 }
             }
@@ -125,21 +125,39 @@ macro_rules! passByBytes(
 
 macro_rules! server(
     ( $testcase:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
-            
+            for _ in range(0, $iters) {
+                let mut messageRes = capnprust::message::MessageBuilder::new_default();
+                let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
+                do $compression::newReader(
+                    &mut $input,
+                    capnprust::message::DEFAULT_READER_OPTIONS) |requestReader| {
+                    let requestReader = $testcase::newRequestReader(requestReader.getRoot());
+                    $testcase::handleRequest(requestReader, response);
+                }
+                $compression::write(&mut $output, messageRes);
+            }
         });
     )
 
 macro_rules! syncClient(
-    ( $testcase:ident, $iters:expr) => ({
+    ( $testcase:ident, $compression:ident, $iters:expr) => ({
+            let mut outStream = std::rt::io::stdout();
+            let mut inStream = std::rt::io::stdin();
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
                 let mut messageReq = capnprust::message::MessageBuilder::new_default();
-                let mut messageRes = capnprust::message::MessageBuilder::new_default();
-
                 let request = messageReq.initRoot::<$testcase::RequestBuilder>();
-                let _response = messageRes.initRoot::<$testcase::ResponseBuilder>();
-                let _expected = $testcase::setupRequest(&mut rng, request);
-                fail!("unimplemented");
+
+                let expected = $testcase::setupRequest(&mut rng, request);
+                $compression::write(&mut outStream, messageReq);
+
+                do $compression::newReader(
+                    &mut inStream,
+                    capnprust::message::DEFAULT_READER_OPTIONS) |responseReader| {
+                    let responseReader = $testcase::newResponseReader(responseReader.getRoot());
+                    assert!($testcase::checkResponse(responseReader, expected));
+                }
+
             }
         });
     )
@@ -181,7 +199,7 @@ macro_rules! doTestcase(
             match $mode {
                 ~"object" => passByObject!($testcase, $iters),
                 ~"bytes" => passByBytes!($testcase, $compression, $iters),
-                ~"client" => syncClient!($testcase, $iters),
+                ~"client" => syncClient!($testcase, $compression, $iters),
                 ~"pipe" => passByPipe!($testcase, $compression, $iters),
                 s => fail!("unrecognized mode: {}", s)
             }
