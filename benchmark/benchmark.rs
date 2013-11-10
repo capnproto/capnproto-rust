@@ -146,8 +146,32 @@ macro_rules! syncClient(
 
 
 macro_rules! passByPipe(
-    ( $testcase:ident, $iters:expr) => ({
-            fail!("unimplemented");
+    ( $testcase:ident, $compression:ident, $iters:expr) => ({
+            use std::rt::io::process;
+
+            // get a rustc crash if we put this in line below
+            let io = ~[process::CreatePipe(true, false), // stdin
+                       process::CreatePipe(false, true), // stdout
+                       process::Ignored];
+
+            let config = process::ProcessConfig {
+                program: "./benchmark/benchmark",
+                args: [],
+                env : None,
+                cwd: None,
+                io : io
+            };
+            match process::Process::new(config) {
+                Some(ref mut p) => {
+                    println!("{:?}", p);
+                    let s = p.io[1].read_to_end();
+                    std::rt::io::stdout().write(s);
+                    println!("{}", p.wait());
+                }
+                None => {
+                    println("bummer");
+                }
+            }
         });
     )
 
@@ -158,6 +182,7 @@ macro_rules! doTestcase(
                 ~"bytes" => passByBytes!($testcase, $compression, $iters),
                 ~"server" => server!($testcase, $iters),
                 ~"client" => syncClient!($testcase, $iters),
+                ~"pipe" => passByPipe!($testcase, $compression, $iters),
                 s => fail!("unrecognized mode: {}", s)
             }
         });
@@ -180,6 +205,7 @@ pub fn main () {
 
     if (args.len() != 6) {
         println!("USAGE: {} CASE MODE REUSE COMPRESSION ITERATION_COUNT", args[0]);
+        std::os::set_exit_status(1);
         return;
     }
 
@@ -187,6 +213,7 @@ pub fn main () {
         Some (n) => n,
         None => {
             println!("Could not parse a u64 from: {}", args[5]);
+            std::os::set_exit_status(1);
             return;
         }
     };
