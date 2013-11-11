@@ -96,7 +96,7 @@ fn ptr_sub<T>(p1 : * T, p2 : * T) -> uint {
 }
 
 #[inline]
-fn ptr_sub_mut <T>(p1 : *mut T, p2 : *mut T) -> uint {
+fn mut_ptr_sub <T>(p1 : *mut T, p2 : *mut T) -> uint {
     unsafe {
         let p1Addr : uint = std::cast::transmute(p1);
         let p2Addr : uint = std::cast::transmute(p2);
@@ -116,11 +116,11 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
 
             while (inPtr < inEnd) {
 
-                if (ptr_sub_mut(bufferEnd, out) < 10) {
+                if (mut_ptr_sub(bufferEnd, out) < 10) {
                     //# Oops, we're out of space. We need at least 10
                     //# bytes for the fast path, since we don't
                     //# bounds-check on every byte.
-                    self.inner.write_ptr(bufferBegin, ptr_sub_mut(out, bufferBegin));
+                    self.inner.write_ptr(bufferBegin, mut_ptr_sub(out, bufferBegin));
 
                     out = slowBuffer.unsafe_mut_ref(0);
                     bufferEnd = slowBuffer.unsafe_mut_ref(20);
@@ -228,7 +228,7 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
                     *out = (count / 8) as u8;
                     ptr_inc(&mut out, 1);
 
-                    if (count <= ptr_sub_mut(bufferEnd, out)) {
+                    if (count <= mut_ptr_sub(bufferEnd, out)) {
                         //# There's enough space to memcpy.
 
                         let src : *u8 = runStart;
@@ -239,10 +239,10 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
                         //# Input overruns the output buffer. We'll give it
                         //# to the output stream in one chunk and let it
                         //# decide what to do.
-                        self.inner.write_ptr(bufferBegin, ptr_sub_mut(out, bufferBegin));
+                        self.inner.write_ptr(bufferBegin, mut_ptr_sub(out, bufferBegin));
 
                         do std::vec::raw::buf_as_slice::<u8,()>(runStart, count) |buf| {
-                            self.write(buf);
+                            self.inner.write(buf);
                         }
 
                         let (out1, bufferEnd1) = self.inner.getWriteBuffer();
@@ -252,7 +252,7 @@ impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStrea
                 }
             }
 
-            self.inner.write_ptr(bufferBegin, ptr_sub_mut(out, bufferBegin));
+            self.inner.write_ptr(bufferBegin, mut_ptr_sub(out, bufferBegin));
             self.inner.flush();
         }
     }
