@@ -5,10 +5,117 @@
  */
 
 use std;
-use std::rt::io::Writer;
+use std::rt::io::{Reader, Writer};
 
-pub struct BufferedOutputStream<'self, W> {
-    priv inner: &'self mut W,
+
+pub fn read_at_least<R : Reader>(reader : &mut R,
+                                 buf: &mut [u8],
+                                 min_bytes : uint) -> uint {
+    let mut pos = 0;
+    let bufLen = buf.len();
+    while pos < min_bytes {
+        let buf1 = buf.mut_slice(pos, bufLen);
+        match reader.read(buf1) {
+            None => fail!("premature EOF?"),
+            Some(n) => pos += n
+        }
+    }
+    return pos;
+}
+
+pub struct BufferedInputStream<'a, R> {
+    priv inner : &'a mut R,
+    priv buf : ~[u8],
+    priv pos : uint,
+    priv cap : uint
+}
+
+impl<'a, R: Reader> BufferedInputStream<'a, R> {
+    pub fn new<'a> (r : &'a mut R) -> BufferedInputStream<'a, R> {
+        let mut result = BufferedInputStream {
+            inner : r,
+            buf : std::vec::with_capacity(8192),
+            pos : 0,
+            cap : 0
+        };
+        unsafe {
+            std::vec::raw::set_len(&mut result.buf, 8192)
+        }
+        return result;
+    }
+
+    pub fn skip(&mut self, mut bytes : uint) {
+        let available = self.cap - self.pos;
+        if bytes <= available {
+            self.pos += bytes;
+        } else {
+            bytes -= available;
+            if (bytes <= self.buf.len()) {
+                //# Read the next buffer-full.
+                let n = read_at_least(self.inner, self.buf, bytes);
+                self.pos = bytes;
+                self.cap = n;
+
+            } else {
+                //# Forward large skip to the underlying stream.
+                fail!("TODO")
+            }
+        }
+    }
+
+    pub fn getReadBuffer(&self) -> (*u8, *u8) {
+        unsafe {
+            (self.buf.unsafe_ref(self.pos),
+             self.buf.unsafe_ref(self.cap))
+        }
+    }
+}
+
+impl<'a, R: Reader> Reader for BufferedInputStream<'a, R> {
+    fn eof(&mut self) -> bool {
+        self.inner.eof()
+    }
+
+    fn read(&mut self, dst: &mut [u8]) -> Option<uint> {
+        let mut num_bytes = dst.len();
+        if (num_bytes <= self.cap - self.pos) {
+            //# Serve from the current buffer.
+            std::vec::bytes::copy_memory(dst,
+                                         self.buf.slice(self.pos, self.cap),
+                                         num_bytes);
+            self.pos += num_bytes;
+            return Some(num_bytes);
+        } else {
+            //# Copy current available into destination.
+
+            std::vec::bytes::copy_memory(dst,
+                                         self.buf.slice(self.pos, self.cap),
+                                         self.cap - self.pos);
+            let fromFirstBuffer = self.cap - self.pos;
+
+            let dst1 = dst.mut_slice(fromFirstBuffer, num_bytes);
+            num_bytes -= fromFirstBuffer;
+            if (num_bytes <= self.buf.len()) {
+                //# Read the next buffer-full.
+                let n = read_at_least(self.inner, self.buf, num_bytes);
+                std::vec::bytes::copy_memory(dst1,
+                                             self.buf.slice(0, num_bytes),
+                                             num_bytes);
+                self.cap = n;
+                self.pos = num_bytes;
+                return Some(fromFirstBuffer + num_bytes);
+            } else {
+                //# Forward large read to the underlying stream.
+                self.pos = 0;
+                self.cap = 0;
+                return Some(fromFirstBuffer + read_at_least(self.inner, dst1, num_bytes));
+            }
+        }
+    }
+}
+
+pub struct BufferedOutputStream<'a, W> {
+    priv inner: &'a mut W,
     priv buf: ~[u8],
     priv pos: uint
 }

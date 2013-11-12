@@ -12,6 +12,7 @@ use message::*;
 pub mod InputStreamMessageReader {
 
     use std;
+    use io;
     use common::*;
     use endian::*;
     use message::*;
@@ -67,16 +68,8 @@ pub mod InputStreamMessageReader {
 
         unsafe {
             let ptr : *mut u8 = std::cast::transmute(ownedSpace.unsafe_mut_ref(0));
-            do std::vec::raw::mut_buf_as_slice::<u8,()>(
-                ptr, bufLen) |buf| {
-                let mut pos = 0;
-                while pos < bufLen {
-                    let buf1 = buf.mut_slice(pos, bufLen);
-                    match inputStream.read(buf1) {
-                        None => fail!("failed to read"),
-                        Some(n) => pos += n
-                    }
-                }
+            do std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, bufLen) |buf| {
+                io::read_at_least(inputStream, buf, bufLen);
             }
         }
 
