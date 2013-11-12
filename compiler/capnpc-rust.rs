@@ -918,10 +918,10 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
 
 fn main() {
-    use std::rt::io::{Writer, File, Truncate, Write};
+    use std::io::{Writer, File, Truncate, Write};
     use capnprust::serialize::*;
 
-    let mut inp = std::rt::io::stdin();
+    let mut inp = std::io::stdin();
 
     do InputStreamMessageReader::new(&mut inp, message::DEFAULT_READER_OPTIONS) | messageReader | {
         let structReader = messageReader.getRoot();

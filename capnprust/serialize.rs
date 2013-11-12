@@ -17,7 +17,7 @@ pub mod InputStreamMessageReader {
     use endian::*;
     use message::*;
 
-    pub fn new<U : std::rt::io::Reader, T>(inputStream : &mut U,
+    pub fn new<U : std::io::Reader, T>(inputStream : &mut U,
                                            options : ReaderOptions,
                                            cont : &fn(v : &mut MessageReader) -> T) -> T {
 
@@ -74,7 +74,7 @@ pub mod InputStreamMessageReader {
         }
 
         // TODO lazy reading like in capnp-c++. Is that possible
-        // within the std::rt::io::Reader interface?
+        // within the std::io::Reader interface?
 
         let segment0 : &[Word] = ownedSpace.slice(0, segment0Size as uint);
 
@@ -100,7 +100,7 @@ pub mod InputStreamMessageReader {
     }
 }
 
-pub fn writeMessage<T: std::rt::io::Writer>(outputStream : &mut T,
+pub fn writeMessage<T: std::io::Writer>(outputStream : &mut T,
                                             message : &MessageBuilder) {
 
     let tableSize : uint = ((message.segments.len() + 2) & (!1));

@@ -55,8 +55,8 @@ fn writeAddressBook() {
     person.setName("Diane");
     person.getEmployment().setSchool("Caltech");
 
-//    capnprust::serialize::writeMessage(&mut std::rt::io::stdout(), message)
-    WritePackedWrapper{writer:&mut std::rt::io::stdout()}.writePackedMessage(message);
+//    capnprust::serialize::writeMessage(&mut std::io::stdout(), message)
+    WritePackedWrapper{writer:&mut std::io::stdout()}.writePackedMessage(message);
 }
 
 fn printAddressBook() {
@@ -64,9 +64,9 @@ fn printAddressBook() {
     use addressbook_capnp::{AddressBook, Person};
 
     let mut inp = capnprust::serialize_packed::PackedInputStream {
-        inner : &mut std::rt::io::stdin()
+        inner : &mut std::io::stdin()
     };
-//    let mut inp = std::rt::io::stdin();
+//    let mut inp = std::io::stdin();
 
     do capnprust::serialize::InputStreamMessageReader::new(
         &mut inp, capnprust::message::DEFAULT_READER_OPTIONS) |messageReader| {

@@ -5,7 +5,7 @@
  */
 
 use std;
-use std::rt::io::{Reader, Writer};
+use std::io::{Reader, Writer};
 
 
 pub fn read_at_least<R : Reader>(reader : &mut R,

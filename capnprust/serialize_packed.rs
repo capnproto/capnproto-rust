@@ -13,7 +13,7 @@ pub struct PackedInputStream<'self, T> {
     inner : &'self mut T
 }
 
-impl <'self, T : std::rt::io::Reader> std::rt::io::Reader for PackedInputStream<'self, T> {
+impl <'self, T : std::io::Reader> std::io::Reader for PackedInputStream<'self, T> {
     fn eof(&mut self) -> bool {
         self.inner.eof()
     }
@@ -104,7 +104,7 @@ fn mut_ptr_sub <T>(p1 : *mut T, p2 : *mut T) -> uint {
     }
 }
 
-impl <'a, 'b, W : std::rt::io::Writer> std::rt::io::Writer for PackedOutputStream<'a, 'b, W> {
+impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b, W> {
     fn write(&mut self, inBuf : &[u8]) {
         unsafe {
             let (mut out, mut bufferEnd) = self.inner.getWriteBuffer();
@@ -264,7 +264,7 @@ pub trait WritePacked {
     fn writePackedMessage(&mut self, message : &MessageBuilder);
 }
 
-impl <'self, T : std::rt::io::Writer> WritePacked for io::BufferedOutputStream<'self, T> {
+impl <'self, T : std::io::Writer> WritePacked for io::BufferedOutputStream<'self, T> {
     fn writePackedMessage(&mut self, message : &MessageBuilder) {
         let mut packedOutputStream = PackedOutputStream {inner : self};
         writeMessage(&mut packedOutputStream, message);
@@ -273,7 +273,7 @@ impl <'self, T : std::rt::io::Writer> WritePacked for io::BufferedOutputStream<'
 
 pub struct WritePackedWrapper<'a, T> {writer : &'a mut T }
 
-impl <'a, T: std::rt::io::Writer> WritePacked for WritePackedWrapper<'a, T> {
+impl <'a, T: std::io::Writer> WritePacked for WritePackedWrapper<'a, T> {
     fn writePackedMessage(&mut self, message : &MessageBuilder) {
         let mut buffered = io::BufferedOutputStream::new(self.writer);
         buffered.writePackedMessage(message);

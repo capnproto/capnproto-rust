@@ -28,12 +28,12 @@ mod Uncompressed {
     use capnprust;
     use std;
 
-    pub fn write<T : std::rt::io::Writer>(writer: &mut T,
+    pub fn write<T : std::io::Writer>(writer: &mut T,
                                           message: &capnprust::message::MessageBuilder) {
         capnprust::serialize::writeMessage(writer, message);
     }
 
-    pub fn newReader<U : std::rt::io::Reader, T>(
+    pub fn newReader<U : std::io::Reader, T>(
         inputStream : &mut U,
         options : capnprust::message::ReaderOptions,
         cont : &fn(v : &mut capnprust::message::MessageReader) -> T) -> T {
@@ -46,13 +46,13 @@ mod Packed {
     use std;
     use capnprust::serialize_packed::{WritePackedWrapper, WritePacked};
 
-    pub fn write<T : std::rt::io::Writer>(writer: &mut T,
+    pub fn write<T : std::io::Writer>(writer: &mut T,
                                           message: &capnprust::message::MessageBuilder) {
         let mut w = WritePackedWrapper{writer: writer};
         w.writePackedMessage(message);
     }
 
-    pub fn newReader<U : std::rt::io::Reader, T>(
+    pub fn newReader<U : std::io::Reader, T>(
         inputStream : &mut U,
         options : capnprust::message::ReaderOptions,
         cont : &fn(v : &mut capnprust::message::MessageReader) -> T) -> T {
@@ -98,23 +98,23 @@ macro_rules! passByBytes(
                 let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
                 let expected = $testcase::setupRequest(&mut rng, request);
 
-                let requestBytes = do std::rt::io::mem::with_mem_writer |writer| {
+                let requestBytes = do std::io::mem::with_mem_writer |writer| {
                     $compression::write(writer, messageReq)
                 };
 
                 do $compression::newReader(
-                      &mut std::rt::io::mem::BufReader::new(requestBytes),
+                      &mut std::io::mem::BufReader::new(requestBytes),
                       capnprust::message::DEFAULT_READER_OPTIONS) |requestReader| {
                     let requestReader = $testcase::newRequestReader(requestReader.getRoot());
                     $testcase::handleRequest(requestReader, response);
                 }
 
-                let responseBytes = do std::rt::io::mem::with_mem_writer |writer| {
+                let responseBytes = do std::io::mem::with_mem_writer |writer| {
                     $compression::write(writer, messageRes);
                 };
 
                 do $compression::newReader(
-                    &mut std::rt::io::mem::BufReader::new(responseBytes),
+                    &mut std::io::mem::BufReader::new(responseBytes),
                     capnprust::message::DEFAULT_READER_OPTIONS) |responseReader| {
                     let responseReader = $testcase::newResponseReader(responseReader.getRoot());
                     if (! $testcase::checkResponse(responseReader, expected)) {
@@ -143,8 +143,8 @@ macro_rules! server(
 
 macro_rules! syncClient(
     ( $testcase:ident, $compression:ident, $iters:expr) => ({
-            let mut outStream = std::rt::io::stdout();
-            let mut inStream = std::rt::io::stdin();
+            let mut outStream = std::io::stdout();
+            let mut inStream = std::io::stdin();
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
                 let mut messageReq = capnprust::message::MessageBuilder::new_default();
@@ -167,7 +167,7 @@ macro_rules! syncClient(
 
 macro_rules! passByPipe(
     ( $testcase:ident, $compression:ident, $iters:expr) => ({
-            use std::rt::io::process;
+            use std::io::process;
 
             // get a rustc crash if we put this in line below
             let io = ~[process::CreatePipe(true, false), // stdin

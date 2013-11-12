@@ -11,12 +11,12 @@ use io;
 pub fn expectPacksTo(unpacked : &[u8],
                      packed : &[u8]) {
 
-    use std::rt::io::{Reader, Writer};
+    use std::io::{Reader, Writer};
 
     // --------
     // write
 
-    let bytes = do std::rt::io::mem::with_mem_writer |writer| {
+    let bytes = do std::io::mem::with_mem_writer |writer| {
         let mut bufferedOutputStream = io::BufferedOutputStream::new(writer);
         let mut packedOutputStream = PackedOutputStream {inner : &mut bufferedOutputStream};
         packedOutputStream.write(unpacked);
@@ -28,7 +28,7 @@ pub fn expectPacksTo(unpacked : &[u8],
     // --------
     // read
 
-    let mut reader = std::rt::io::mem::BufReader::new(packed);
+    let mut reader = std::io::mem::BufReader::new(packed);
     let mut packedInputStream = PackedInputStream {inner : &mut reader};
 
     let bytes = packedInputStream.read_bytes(unpacked.len());
