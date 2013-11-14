@@ -172,6 +172,7 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
                             inPtr = b;
                             inEnd = e;
                             size = ptr_sub(e, b);
+                            bufferBegin = inPtr;
                             continue;
                         }
                     }
