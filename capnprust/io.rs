@@ -63,7 +63,12 @@ impl<'a, R: Reader> BufferedInputStream<'a, R> {
         }
     }
 
-    pub unsafe fn getReadBuffer(&self) -> (*u8, *u8) {
+    pub unsafe fn getReadBuffer(&mut self) -> (*u8, *u8) {
+        if self.cap - self.pos == 0 {
+            let n = read_at_least(self.inner, self.buf, 1);
+            self.cap = n;
+            self.pos = 0;
+        }
         (self.buf.unsafe_ref(self.pos), self.buf.unsafe_ref(self.cap))
     }
 }

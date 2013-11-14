@@ -57,7 +57,9 @@ mod Packed {
         options : capnprust::message::ReaderOptions,
         cont : &fn(v : &mut capnprust::message::MessageReader) -> T) -> T {
         capnprust::serialize::InputStreamMessageReader::new(
-            &mut capnprust::serialize_packed::PackedInputStream{inner : inputStream},
+            &mut capnprust::serialize_packed::PackedInputStream{
+                inner : &mut capnprust::io::BufferedInputStream::new(inputStream)
+            },
             options, cont)
     }
 }

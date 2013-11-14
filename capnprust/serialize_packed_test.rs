@@ -29,7 +29,8 @@ pub fn expectPacksTo(unpacked : &[u8],
     // read
 
     let mut reader = std::io::mem::BufReader::new(packed);
-    let mut packedInputStream = PackedInputStream {inner : &mut reader};
+    let mut bufferedReader = io::BufferedInputStream::new(&mut reader);
+    let mut packedInputStream = PackedInputStream {inner : &mut bufferedReader};
 
     let bytes = packedInputStream.read_bytes(unpacked.len());
 

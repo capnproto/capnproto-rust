@@ -63,8 +63,9 @@ fn printAddressBook() {
     use capnprust;
     use addressbook_capnp::{AddressBook, Person};
 
+    let mut inp1 = std::io::stdin();
     let mut inp = capnprust::serialize_packed::PackedInputStream {
-        inner : &mut std::io::stdin()
+        inner : &mut capnprust::io::BufferedInputStream::new(&mut inp1)
     };
 //    let mut inp = std::io::stdin();
 

@@ -9,11 +9,45 @@ use io;
 use message::*;
 use serialize::*;
 
-pub struct PackedInputStream<'self, T> {
-    inner : &'self mut T
+#[inline]
+unsafe fn ptr_inc(p : &mut *mut u8, count : int) {
+    *p = std::ptr::mut_offset(*p, count);
 }
 
-impl <'self, T : std::io::Reader> std::io::Reader for PackedInputStream<'self, T> {
+#[inline]
+unsafe fn ptr_sub<T>(p1 : * T, p2 : * T) -> uint {
+    let p1Addr : uint = std::cast::transmute(p1);
+    let p2Addr : uint = std::cast::transmute(p2);
+    return (p1Addr - p2Addr) / std::mem::size_of::<T>();
+}
+
+#[inline]
+unsafe fn mut_ptr_sub <T>(p1 : *mut T, p2 : *mut T) -> uint {
+    let p1Addr : uint = std::cast::transmute(p1);
+    let p2Addr : uint = std::cast::transmute(p2);
+    return (p1Addr - p2Addr) / std::mem::size_of::<T>();
+}
+
+pub struct PackedInputStream<'a, 'b,  R> {
+    inner : &'a mut io::BufferedInputStream<'b, R>
+}
+
+macro_rules! refresh_buffer(
+    ($inner:expr, $size:ident, $inPtr:ident, $inEnd:ident, $out:ident,
+     $outBuf:ident, $bufferBegin:ident) => (
+        {
+            $inner.skip($size);
+            let (b, e) = $inner.getReadBuffer();
+            $inPtr = b;
+            $inEnd = e;
+            $size = ptr_sub($inEnd, $inPtr);
+            $bufferBegin = b;
+            assert!($size > 0);
+        }
+        );
+    )
+
+impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b, R> {
     fn eof(&mut self) -> bool {
         self.inner.eof()
     }
@@ -25,83 +59,130 @@ impl <'self, T : std::io::Reader> std::io::Reader for PackedInputStream<'self, T
 
         assert!(len % 8 == 0, "PackInputStream reads must be word-aligned");
 
-        let mut outPos = 0;
-        while (outPos < len && ! self.inner.eof() ) {
+        unsafe {
+            let mut out = outBuf.unsafe_mut_ref(0);
+            let outEnd = outBuf.unsafe_mut_ref(len);
 
-            let tag : u8 = self.inner.read_u8();
-
-            for n in range(0, 8) {
-                let isNonzero = (tag & (1 as u8 << n)) != 0;//..as bool;
-                if (isNonzero) {
-                    // TODO capnproto-c++ gets away without using a
-                    // conditional here. Can we do something like that
-                    // and would it speed things up?
-                    outBuf[outPos] = self.inner.read_u8();
-                    outPos += 1;
-                } else {
-                    outBuf[outPos] = 0;
-                    outPos += 1;
-                }
+            let (mut inPtr, mut inEnd) = self.inner.getReadBuffer();
+            let mut bufferBegin = inPtr;
+            let mut size = ptr_sub(inEnd, inPtr);
+            if size == 0 {
+                return Some(0);
             }
 
-            if (tag == 0) {
+            loop {
 
-                let runLength : uint = self.inner.read_u8() as uint * 8;
-                assert!(runLength <= outBuf.len() - outPos);
-                unsafe {
-                    std::ptr::set_memory(outBuf.unsafe_mut_ref(outPos),
-                                         0, runLength);
-                };
-                outPos += runLength;
+                let mut tag : u8;
 
-            } else if (tag == 0xff) {
-                let runLength : uint = self.inner.read_u8() as uint * 8;
+                assert!(mut_ptr_sub(out, outBuf.unsafe_mut_ref(0)) % 8 == 0,
+                        "Output pointer should always be aligned here.");
 
-                let mut bytes_read = 0;
-                while bytes_read < runLength {
-                    let pos = outPos + bytes_read;
-                    match self.inner.read(outBuf.mut_slice(pos, outPos + runLength)) {
-                        Some(n) => bytes_read += n,
-                        None => fail!("failed to read bytes")
+                if ptr_sub(inEnd, inPtr) < 10 {
+                    if out >= outEnd {
+                        self.inner.skip(ptr_sub(inPtr, bufferBegin));
+                        return Some(mut_ptr_sub(out, outBuf.unsafe_mut_ref(0)));
+                    }
+
+                    if ptr_sub(inEnd, inPtr) == 0 {
+                        refresh_buffer!(self.inner, size, inPtr, inEnd, out, outBuf, bufferBegin);
+                        continue;
+                    }
+
+                    //# We have at least 1, but not 10, bytes availabe. We need to read
+                    //# slowly, doing a bounds check on each byte.
+
+                    tag = *inPtr;
+                    inPtr = std::ptr::offset(inPtr, 1);
+
+                    for i in range(0, 8) {
+                        if (tag & (1u8 << i)) != 0 {
+                            if ptr_sub(inEnd, inPtr) == 0 {
+                                refresh_buffer!(self.inner, size, inPtr, inEnd,
+                                                out, outBuf, bufferBegin);
+                            }
+                            *out = *inPtr;
+                            out = std::ptr::mut_offset(out, 1);
+                            inPtr = std::ptr::offset(inPtr, 1);
+                        } else {
+                            *out = 0;
+                            out = std::ptr::mut_offset(out, 1);
+                        }
+                    }
+
+                    if ptr_sub(inEnd, inPtr) == 0 && (tag == 0 || tag == 0xff) {
+                        refresh_buffer!(self.inner, size, inPtr, inEnd,
+                                        out, outBuf, bufferBegin);
+                    }
+                } else {
+                    tag = *inPtr;
+                    inPtr = std::ptr::offset(inPtr, 1);
+
+                    for n in range(0, 8) {
+                        let isNonzero = (tag & (1 as u8 << n)) != 0;
+                        *out = (*inPtr) & ((-(isNonzero as i8)) as u8);
+                        out = std::ptr::mut_offset(out, 1);
+                        inPtr = std::ptr::offset(inPtr, isNonzero as int);
                     }
                 }
-                outPos += runLength;
+                if (tag == 0) {
+                    assert!(ptr_sub(inEnd, inPtr) > 0,
+                            "Should always have non-empty buffer here");
+
+                    let runLength : uint = (*inPtr) as uint * 8;
+                    inPtr = std::ptr::offset(inPtr, 1);
+
+                    assert!(runLength <= mut_ptr_sub(outEnd, out),
+                            "Packed input did not end cleanly on a segment boundary");
+
+                    std::ptr::set_memory(out, 0, runLength);
+                    out = std::ptr::mut_offset(out, runLength as int);
+
+                } else if (tag == 0xff) {
+                    assert!(ptr_sub(inEnd, inPtr) > 0,
+                            "Should always have non-empty buffer here");
+
+                    let mut runLength : uint = (*inPtr) as uint * 8;
+                    inPtr = std::ptr::offset(inPtr, 1);
+
+                    assert!(runLength <= mut_ptr_sub(outEnd, out),
+                            "Packed input did not end cleanly on a segment boundary");
+
+                    let inRemaining = ptr_sub(inEnd, inPtr);
+                    if (inRemaining >= runLength) {
+                        //# Fast path.
+                        std::ptr::copy_nonoverlapping_memory(out, inPtr, runLength);
+                        out = std::ptr::mut_offset(out, runLength as int);
+                        inPtr = std::ptr::offset(inPtr, runLength as int);
+                    } else {
+                        //# Copy over the first buffer, then do one big read for the rest.
+                        std::ptr::copy_nonoverlapping_memory(out, inPtr, inRemaining);
+                        out = std::ptr::mut_offset(out, inRemaining as int);
+                        runLength -= inRemaining;
+
+                        self.inner.skip(size);
+                        do std::vec::raw::mut_buf_as_slice::<u8,()>(out, runLength) |buf| {
+                            self.inner.read(buf);
+                        }
+                        out = std::ptr::mut_offset(out, runLength as int);
+
+                        if (out == outEnd) {
+                            return Some(len);
+                        } else {
+                            let (b, e) = self.inner.getReadBuffer();
+                            inPtr = b;
+                            inEnd = e;
+                            size = ptr_sub(e, b);
+                            continue;
+                        }
+                    }
+                }
             }
-
         }
-
-        return Some(outPos);
     }
-
 }
 
 pub struct PackedOutputStream<'a, 'b, W> {
     inner : &'a mut io::BufferedOutputStream<'b, W>
-}
-
-#[inline]
-fn ptr_inc(p : &mut *mut u8, count : int) {
-    unsafe {
-        *p = std::ptr::mut_offset(*p, count);
-    }
-}
-
-#[inline]
-fn ptr_sub<T>(p1 : * T, p2 : * T) -> uint {
-    unsafe {
-        let p1Addr : uint = std::cast::transmute(p1);
-        let p2Addr : uint = std::cast::transmute(p2);
-        return (p1Addr - p2Addr) / std::mem::size_of::<T>();
-    }
-}
-
-#[inline]
-fn mut_ptr_sub <T>(p1 : *mut T, p2 : *mut T) -> uint {
-    unsafe {
-        let p1Addr : uint = std::cast::transmute(p1);
-        let p2Addr : uint = std::cast::transmute(p2);
-        return (p1Addr - p2Addr) / std::mem::size_of::<T>();
-    }
 }
 
 impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b, W> {
@@ -232,7 +313,7 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
                         //# There's enough space to memcpy.
 
                         let src : *u8 = runStart;
-                        std::ptr::copy_memory(out, src, count);
+                        std::ptr::copy_nonoverlapping_memory(out, src, count);
 
                         ptr_inc(&mut out, count as int);
                     } else {
