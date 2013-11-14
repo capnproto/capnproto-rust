@@ -177,6 +177,11 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
                         }
                     }
                 }
+
+                if (out == outEnd) {
+                    self.inner.skip(ptr_sub(inPtr, bufferBegin));
+                    return Some(len);
+                }
             }
         }
     }
