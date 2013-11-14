@@ -152,15 +152,13 @@ impl WirePointer {
     #[inline]
     pub fn target(&self) -> *Word {
         let thisAddr : *Word = unsafe {std::cast::transmute(&*self) };
-        unsafe { std::ptr::offset(thisAddr,
-                                  1 + ((self.offsetAndKind.get() as int) >> 2)) }
+        unsafe { thisAddr.offset(1 + ((self.offsetAndKind.get() as int) >> 2)) }
     }
 
     #[inline]
     pub fn mut_target(&mut self) -> *mut Word {
         let thisAddr : *mut Word = unsafe {std::cast::transmute(&*self) };
-        unsafe { std::ptr::mut_offset(thisAddr,
-                                  1 + ((self.offsetAndKind.get() as int) >> 2)) }
+        unsafe { thisAddr.offset(1 + ((self.offsetAndKind.get() as int) >> 2)) }
     }
 
     #[inline]
@@ -304,8 +302,7 @@ mod WireHelpers {
                 //# data immediately follows the pad.
                 *reff = std::cast::transmute(ptr);
 
-                let ptr1 = std::ptr::mut_offset(ptr,
-                                                POINTER_SIZE_IN_WORDS as int);
+                let ptr1 = ptr.offset(POINTER_SIZE_IN_WORDS as int);
                 (**reff).setKindAndTarget(kind, ptr1, *segmentBuilder);
                 return ptr1;
             }
@@ -325,13 +322,11 @@ mod WireHelpers {
                 *segment =
                     segment.messageReader.getSegmentReader((**reff).farRef().segmentId.get());
 
-                let ptr : *Word = std::ptr::offset(
-                    segment.getStartPtr(),
+                let ptr : *Word = segment.getStartPtr().offset(
                     (**reff).farPositionInSegment() as int);
 
                 let padWords : int = if ((**reff).isDoubleFar()) { 2 } else { 1 };
-                assert!(boundsCheck(*segment, ptr,
-                                    std::ptr::offset(ptr, padWords)));
+                assert!(boundsCheck(*segment, ptr, ptr.offset(padWords)));
 
                 let pad : *WirePointer = std::cast::transmute(ptr);
 
@@ -343,13 +338,12 @@ mod WireHelpers {
                     //# followed by a tag describing the pointed-to
                     //# object.
 
-                    *reff = std::ptr::offset(pad, 1);
+                    *reff = pad.offset(1);
 
                     *segment =
                         segment.messageReader.getSegmentReader((*pad).farRef().segmentId.get());
 
-                    return std::ptr::offset(segment.getStartPtr(),
-                                            (*pad).farPositionInSegment() as int);
+                    return segment.getStartPtr().offset((*pad).farPositionInSegment() as int);
                 }
             }
             _ => { refTarget }
@@ -377,7 +371,7 @@ mod WireHelpers {
                         (*(*segment).messageBuilder).segmentBuilders[(*pad).farRef().segmentId.get()]);
 
                     zeroObjectHelper(segment,
-                                     std::ptr::mut_offset(pad, 1),
+                                     pad.offset(1),
                                      (*segment).getPtrUnchecked((*pad).farPositionInSegment()));
 
                     std::ptr::set_memory(pad, 0u8, 2);
@@ -398,11 +392,11 @@ mod WireHelpers {
             WP_STRUCT => {
                 let pointerSection : *mut WirePointer =
                     std::cast::transmute(
-                    std::ptr::mut_offset(ptr, (*tag).structRef().dataSize.get() as int));
+                    ptr.offset((*tag).structRef().dataSize.get() as int));
 
                 let count = (*tag).structRef().ptrCount.get() as int;
                 for i in range::<int>(0, count) {
-                    zeroObject(segment, std::ptr::mut_offset(pointerSection, i));
+                    zeroObject(segment, pointerSection.offset(i));
                 }
                 std::ptr::set_memory(ptr, 0u8, (*tag).structRef().wordSize());
             }
@@ -421,7 +415,7 @@ mod WireHelpers {
                         let count = (*tag).listRef().elementCount() as uint;
                         for i in range::<int>(0, count as int) {
                             zeroObject(segment,
-                                       std::cast::transmute(std::ptr::mut_offset(ptr, i)))
+                                       std::cast::transmute(ptr.offset(i)))
                         }
                         std::ptr::set_memory(ptr, 0u8, count);
                     }
@@ -433,15 +427,15 @@ mod WireHelpers {
 
                         let dataSize = (*elementTag).structRef().dataSize.get();
                         let pointerCount = (*elementTag).structRef().ptrCount.get();
-                        let mut pos : *mut Word = std::ptr::mut_offset(ptr, 1);
+                        let mut pos : *mut Word = ptr.offset(1);
                         let count = (*elementTag).inlineCompositeListElementCount();
                         for _ in range(0, count) {
-                            pos = std::ptr::mut_offset(pos, dataSize as int);
+                            pos = pos.offset(dataSize as int);
                             for _ in range(0, pointerCount as uint) {
                                 zeroObject(
                                     segment,
                                     std::cast::transmute::<*mut Word, *mut WirePointer>(pos));
-                                pos = std::ptr::mut_offset(pos, 1);
+                                pos = pos.offset(1);
                             }
                         }
                         std::ptr::set_memory(ptr, 0u8,
@@ -464,8 +458,7 @@ mod WireHelpers {
             segment : segmentBuilder,
             data : std::cast::transmute(ptr),
             pointers : std::cast::transmute(
-                    std::ptr::mut_offset(ptr,
-                                         (size.data as uint) as int)),
+                    ptr.offset((size.data as uint) as int)),
             dataSize : size.data as WordCount32 * (BITS_PER_WORD as BitCount32),
             pointerCount : size.pointers,
             bit0Offset : 0
@@ -535,7 +528,7 @@ mod WireHelpers {
         (*ptr).setKindAndInlineCompositeListElementCount(WP_STRUCT, elementCount);
         (*ptr).structRefMut().set(elementSize);
 
-        let ptr1 = std::ptr::mut_offset(ptr, POINTER_SIZE_IN_WORDS as int);
+        let ptr1 = ptr.offset(POINTER_SIZE_IN_WORDS as int);
 
         ListBuilder {
             segment : segmentBuilder,
@@ -584,7 +577,7 @@ mod WireHelpers {
         std::ptr::copy_memory(dst, src, bytes.len());
 
         // null terminate
-        std::ptr::zero_memory(std::ptr::mut_offset(dst, bytes.len() as int), 1);
+        std::ptr::zero_memory(dst.offset(bytes.len() as int), 1);
     }
 
     #[inline]
@@ -623,12 +616,12 @@ mod WireHelpers {
         let dataSizeWords = (*reff).structRef().dataSize.get();
 
         assert!(boundsCheck(segment, ptr,
-                            std::ptr::offset(ptr, (*reff).structRef().wordSize() as int)),
+                            ptr.offset((*reff).structRef().wordSize() as int)),
                 "Message contained out-of-bounds struct pointer.");
 
         StructReader {segment : segment,
                       data : std::cast::transmute(ptr),
-                      pointers : std::cast::transmute(std::ptr::offset(ptr, dataSizeWords as int)),
+                      pointers : std::cast::transmute(ptr.offset(dataSizeWords as int)),
                       dataSize : dataSizeWords as u32 * BITS_PER_WORD as BitCount32,
                       pointerCount : (*reff).structRef().ptrCount.get(),
                       bit0Offset : 0,
@@ -677,10 +670,10 @@ mod WireHelpers {
 
                 let tag: *WirePointer = std::cast::transmute(ptr);
 
-                ptr = std::ptr::offset(ptr, 1);
+                ptr = ptr.offset(1);
 
-                assert!(boundsCheck(segment, std::ptr::offset(ptr, -1),
-                                    std::ptr::offset(ptr, wordCount as int)));
+                assert!(boundsCheck(segment, ptr.offset(-1),
+                                    ptr.offset(wordCount as int)));
 
                 assert!((*tag).kind() == WP_STRUCT,
                         "INLINE_COMPOSITE lists of non-STRUCT type are not supported");
@@ -709,7 +702,7 @@ mod WireHelpers {
                                "Expected a primitive list, but got a list of pointer-only structs")
                     }
                     POINTER => {
-                        ptr = std::ptr::offset(ptr, structRef.dataSize.get() as int);
+                        ptr = ptr.offset(structRef.dataSize.get() as int);
                         assert!(structRef.ptrCount.get() > 0,
                                "Expected a pointer list, but got a list of data-only structs")
                     }
@@ -739,8 +732,7 @@ mod WireHelpers {
                 assert!(
                     boundsCheck(
                         segment, ptr,
-                        std::ptr::offset(
-                            ptr,
+                        ptr.offset(
                             roundBitsUpToWords(
                                 (listRef.elementCount() * step) as u64) as int)));
 
@@ -798,14 +790,13 @@ mod WireHelpers {
         assert!(listRef.elementSize() == BYTE);
 
         assert!(boundsCheck(segment, ptr,
-                            std::ptr::offset(ptr,
-                                             roundBytesUpToWords(size) as int)));
+                            ptr.offset(roundBytesUpToWords(size) as int)));
 
         assert!(size > 0, "Message contains text that is not NUL-terminated");
 
         let strPtr = std::cast::transmute::<*Word,*i8>(ptr);
 
-        assert!((*std::ptr::offset(strPtr, (size - 1) as int)) == 0i8,
+        assert!((*strPtr.offset((size - 1) as int)) == 0i8,
                 "Message contains text that is not NUL-terminated");
 
         std::str::raw::c_str_to_static_slice(strPtr)
@@ -863,7 +854,7 @@ impl <'self> StructReader<'self>  {
         if ((offset + 1) * bitsPerElement::<T>() <= self.dataSize as uint) {
             unsafe {
                 let dwv : *WireValue<T> = std::cast::transmute(self.data);
-                (*std::ptr::offset(dwv, offset as int)).get()
+                (*dwv.offset(offset as int)).get()
             }
         } else {
             return std::num::Zero::zero()
@@ -879,8 +870,7 @@ impl <'self> StructReader<'self>  {
                 boffset = self.bit0Offset as BitCount32;
             }
             unsafe {
-                let b : *u8 = std::ptr::offset(self.data,
-                                               (boffset as uint / BITS_PER_BYTE) as int);
+                let b : *u8 = self.data.offset((boffset as uint / BITS_PER_BYTE) as int);
                 ((*b) & (1 << (boffset % BITS_PER_BYTE as u32 ))) != 0
             }
         } else {
@@ -908,7 +898,7 @@ impl <'self> StructReader<'self>  {
         let reff : *WirePointer = if (ptrIndex >= self.pointerCount as WirePointerCount)
             { std::ptr::null() }
         else
-            { unsafe {std::ptr::offset(self.pointers, ptrIndex as int)} };
+            { unsafe { self.pointers.offset(ptrIndex as int)} };
 
         unsafe {
             WireHelpers::readStructPointer(self.segment, reff,
@@ -922,7 +912,7 @@ impl <'self> StructReader<'self>  {
         let reff : *WirePointer =
             if (ptrIndex >= self.pointerCount as WirePointerCount)
             { std::ptr::null() }
-            else { unsafe{std::ptr::offset(self.pointers, ptrIndex as int )} };
+            else { unsafe{ self.pointers.offset(ptrIndex as int )} };
 
         unsafe {
             WireHelpers::readListPointer(self.segment,
@@ -938,7 +928,7 @@ impl <'self> StructReader<'self>  {
             if (ptrIndex >= self.pointerCount as WirePointerCount) {
                 std::ptr::null()
             } else {
-                unsafe{std::ptr::offset(self.pointers, ptrIndex as int)}
+                unsafe{self.pointers.offset(ptrIndex as int)}
             };
         unsafe {
             WireHelpers::readTextPointer(self.segment, reff, defaultValue)
@@ -997,7 +987,7 @@ impl StructBuilder {
     pub fn setDataField<T:Clone>(&self, offset : ElementCount, value : T) {
         unsafe {
             let ptr : *mut WireValue<T> = std::cast::transmute(self.data);
-            (*std::ptr::mut_offset(ptr, offset as int)).set(value)
+            (*ptr.offset(offset as int)).set(value)
         }
     }
 
@@ -1005,7 +995,7 @@ impl StructBuilder {
     pub fn getDataField<T:Clone>(&self, offset : ElementCount) -> T {
         unsafe {
             let ptr : *mut WireValue<T> = std::cast::transmute(self.data);
-            (*std::ptr::mut_offset(ptr, offset as int)).get()
+            (*ptr.offset(offset as int)).get()
         }
     }
 
@@ -1014,7 +1004,7 @@ impl StructBuilder {
         //# This branch should be compiled out whenever this is
         //# inlined with a constant offset.
         let boffset : BitCount0 = if (offset == 0) { self.bit0Offset as uint } else { offset };
-        let b = unsafe {std::ptr::mut_offset(self.data, (boffset / BITS_PER_BYTE) as int)};
+        let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as int)};
         let bitnum = boffset % BITS_PER_BYTE;
         unsafe { (*b) = (( (*b) & !(1 << bitnum)) | (value as u8 << bitnum)) }
     }
@@ -1023,7 +1013,7 @@ impl StructBuilder {
     pub fn getBoolField(&self, offset : ElementCount) -> bool {
         let boffset : BitCount0 =
             if (offset == 0) {self.bit0Offset as BitCount0} else {offset};
-        let b = unsafe { std::ptr::mut_offset(self.data, (boffset / BITS_PER_BYTE) as int) };
+        let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as int) };
         unsafe { ((*b) & (1 << (boffset % BITS_PER_BYTE ))) != 0 }
     }
 
@@ -1036,7 +1026,7 @@ impl StructBuilder {
     pub fn initStructField(&self, ptrIndex : WirePointerCount, size : StructSize)
         -> StructBuilder {
         unsafe {
-            WireHelpers::initStructPointer(std::ptr::mut_offset(self.pointers, ptrIndex as int),
+            WireHelpers::initStructPointer(self.pointers.offset(ptrIndex as int),
                                            self.segment, size)
         }
     }
@@ -1049,7 +1039,7 @@ impl StructBuilder {
                           defaultValue : Option<()>) -> StructBuilder {
         unsafe {
             WireHelpers::getWritableStructPointer(
-                std::ptr::mut_offset(self.pointers, ptrIndex as int),
+                self.pointers.offset(ptrIndex as int),
                 self.segment,
                 size,
                 defaultValue)
@@ -1064,7 +1054,7 @@ impl StructBuilder {
         -> ListBuilder {
         unsafe {
             WireHelpers::initListPointer(
-                std::ptr::mut_offset(self.pointers, ptrIndex as int),
+                self.pointers.offset(ptrIndex as int),
                 self.segment, elementCount, elementSize)
         }
     }
@@ -1079,7 +1069,7 @@ impl StructBuilder {
                         elementSize : FieldSize, defaultValue : Option<()>) -> ListBuilder {
         unsafe {
             WireHelpers::getWritableListPointer(
-                std::ptr::mut_offset(self.pointers, ptrIndex as int),
+                self.pointers.offset(ptrIndex as int),
                 self.segment, elementSize, defaultValue)
         }
     }
@@ -1091,7 +1081,7 @@ impl StructBuilder {
                                elementCount : ElementCount, elementSize : StructSize)
         -> ListBuilder {
         unsafe { WireHelpers::initStructListPointer(
-                std::ptr::mut_offset(self.pointers, ptrIndex as int),
+                self.pointers.offset(ptrIndex as int),
                 self.segment, elementCount, elementSize)
         }
     }
@@ -1107,7 +1097,7 @@ impl StructBuilder {
                               defaultValue : Option<()>) -> ListBuilder {
         unsafe {
             WireHelpers::getWritableStructListPointer(
-                std::ptr::mut_offset(self.pointers, ptrIndex as int),
+                self.pointers.offset(ptrIndex as int),
                 self.segment, elementSize,
                 defaultValue)
         }
@@ -1116,7 +1106,7 @@ impl StructBuilder {
     pub fn setTextField(&self, ptrIndex : WirePointerCount, value : &str) {
         unsafe {
             WireHelpers::setTextPointer(
-                std::ptr::mut_offset(self.pointers, ptrIndex as int),
+                self.pointers.offset(ptrIndex as int),
                 self.segment, value)
         }
     }
@@ -1126,7 +1116,7 @@ impl StructBuilder {
                         defaultValue : &'static str) -> Text::Builder {
         unsafe {
             WireHelpers::getWritableTextPointer(
-                std::ptr::mut_offset(self.pointers, ptrIndex as int),
+                self.pointers.offset(ptrIndex as int),
                 self.segment, defaultValue)
         }
     }
@@ -1164,13 +1154,11 @@ impl <'self> ListReader<'self> {
         let indexBit : BitCount64 = index as ElementCount64 * (self.step as BitCount64);
 
         let structData : *u8 = unsafe {
-            std::ptr::offset(self.ptr,
-                             (indexBit as uint / BITS_PER_BYTE) as int) };
+            self.ptr.offset((indexBit as uint / BITS_PER_BYTE) as int) };
 
         let structPointers : *WirePointer = unsafe {
                 std::cast::transmute(
-                    std::ptr::offset(structData,
-                                     (self.structDataSize as uint / BITS_PER_BYTE) as int))
+                    structData.offset((self.structDataSize as uint / BITS_PER_BYTE) as int))
         };
 
 /*
@@ -1213,11 +1201,10 @@ impl ListBuilder {
 
     pub fn getStructElement(&self, index : ElementCount) -> StructBuilder {
         let indexBit = index * self.step;
-        let structData = unsafe{std::ptr::mut_offset(self.ptr, (indexBit / BITS_PER_BYTE) as int)};
+        let structData = unsafe{ self.ptr.offset((indexBit / BITS_PER_BYTE) as int)};
         let structPointers = unsafe {
             std::cast::transmute(
-                std::ptr::mut_offset(structData,
-                                     ((self.structDataSize as uint) / BITS_PER_BYTE) as int))
+                structData.offset(((self.structDataSize as uint) / BITS_PER_BYTE) as int))
         };
         StructBuilder {
             segment : self.segment,
@@ -1236,7 +1223,7 @@ pub trait PrimitiveElement : Clone {
     fn get(listReader : &ListReader, index : ElementCount) -> Self {
         unsafe {
             let ptr : *u8 =
-                std::ptr::offset(listReader.ptr,
+                listReader.ptr.offset(
                                  (index * listReader.step / BITS_PER_BYTE) as int);
             (*std::cast::transmute::<*u8,*WireValue<Self>>(ptr)).get()
         }
@@ -1247,7 +1234,7 @@ pub trait PrimitiveElement : Clone {
         unsafe {
             let ptr : *mut WireValue<Self> =
                 std::cast::transmute(
-                std::ptr::mut_offset(listBuilder.ptr,
+                listBuilder.ptr.offset(
                                      (index * listBuilder.step / BITS_PER_BYTE) as int));
             (*ptr).get()
         }
@@ -1258,8 +1245,8 @@ pub trait PrimitiveElement : Clone {
         unsafe {
             let ptr : *mut WireValue<Self> =
                 std::cast::transmute(
-                std::ptr::mut_offset(listBuilder.ptr,
-                                     (index * listBuilder.step / BITS_PER_BYTE) as int));
+                listBuilder.ptr.offset(
+                    (index * listBuilder.step / BITS_PER_BYTE) as int));
             (*ptr).set(value);
         }
     }
@@ -1283,7 +1270,7 @@ impl PrimitiveElement for bool {
         //# upgraded to struct lists.
         let bindex : BitCount0 = index * list.step;
         unsafe {
-            let b : *u8 = std::ptr::offset(list.ptr, (bindex / BITS_PER_BYTE) as int);
+            let b : *u8 = list.ptr.offset((bindex / BITS_PER_BYTE) as int);
             ((*b) & (1 << (bindex % BITS_PER_BYTE))) != 0
         }
     }
@@ -1292,7 +1279,7 @@ impl PrimitiveElement for bool {
         //# Ignore stepBytes for bit lists because bit lists cannot be
         //# upgraded to struct lists.
         let bindex : BitCount0 = index * list.step;
-        let b = unsafe { std::ptr::mut_offset(list.ptr, (bindex / BITS_PER_BYTE) as int) };
+        let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE) as int) };
         unsafe { ((*b) & (1 << (bindex % BITS_PER_BYTE ))) != 0 }
     }
     #[inline]
@@ -1300,7 +1287,7 @@ impl PrimitiveElement for bool {
         //# Ignore stepBytes for bit lists because bit lists cannot be
         //# upgraded to struct lists.
         let bindex : BitCount0 = index;
-        let b = unsafe { std::ptr::mut_offset(list.ptr, (bindex / BITS_PER_BYTE) as int) };
+        let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE) as int) };
 
         let bitnum = bindex % BITS_PER_BYTE;
         unsafe { (*b) = (( (*b) & !(1 << bitnum)) | (value as u8 << bitnum)) }

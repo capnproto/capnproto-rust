@@ -81,7 +81,7 @@ impl SegmentBuilder {
     pub unsafe fn getPtrUnchecked(&mut self, offset : WordCount) -> *mut Word {
         let begin : *mut Word =
             std::cast::transmute((*self.messageBuilder).segments[self.id].unsafe_mut_ref(0));
-        std::ptr::mut_offset(begin, offset as int)
+        begin.offset(offset as int)
     }
 
     pub fn asReader<T>(&mut self, f : &fn(SegmentReader) -> T) -> T {
