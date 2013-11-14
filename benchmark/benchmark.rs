@@ -39,6 +39,13 @@ mod Uncompressed {
         cont : &fn(v : &mut capnprust::message::MessageReader) -> T) -> T {
         capnprust::serialize::InputStreamMessageReader::new(inputStream, options, cont)
     }
+
+    pub fn newBufferedReader<R: std::io::Reader, T>(
+        inputStream : &mut capnprust::io::BufferedInputStream<R>,
+        options : capnprust::message::ReaderOptions,
+        cont : &fn(v : &mut capnprust::message::MessageReader) -> T) -> T {
+        capnprust::serialize::InputStreamMessageReader::new(inputStream, options, cont)
+    }
 }
 
 mod Packed {
@@ -62,6 +69,18 @@ mod Packed {
             },
             options, cont)
     }
+
+    pub fn newBufferedReader<R:std::io::Reader, T>(
+        inputStream : &mut capnprust::io::BufferedInputStream<R>,
+        options : capnprust::message::ReaderOptions,
+        cont : &fn(v : &mut capnprust::message::MessageReader) -> T) -> T {
+        capnprust::serialize::InputStreamMessageReader::new(
+            &mut capnprust::serialize_packed::PackedInputStream{
+                inner : inputStream
+            },
+            options, cont)
+    }
+
 }
 
 
@@ -129,16 +148,19 @@ macro_rules! passByBytes(
 
 macro_rules! server(
     ( $testcase:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
+            let mut outBuffered = capnprust::io::BufferedOutputStream::new(&mut $output);
+            let mut inBuffered = capnprust::io::BufferedInputStream::new(&mut $input);
             for _ in range(0, $iters) {
                 let mut messageRes = capnprust::message::MessageBuilder::new_default();
                 let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
-                do $compression::newReader(
-                    &mut $input,
+                do $compression::newBufferedReader(
+                    &mut inBuffered,
                     capnprust::message::DEFAULT_READER_OPTIONS) |requestReader| {
                     let requestReader = $testcase::newRequestReader(requestReader.getRoot());
                     $testcase::handleRequest(requestReader, response);
                 }
-                $compression::write(&mut $output, messageRes);
+                $compression::write(&mut outBuffered, messageRes);
+                outBuffered.flush();
             }
         });
     )
@@ -146,17 +168,20 @@ macro_rules! server(
 macro_rules! syncClient(
     ( $testcase:ident, $compression:ident, $iters:expr) => ({
             let mut outStream = std::io::stdout();
+            let mut outBuffered = capnprust::io::BufferedOutputStream::new(&mut outStream);
             let mut inStream = std::io::stdin();
+            let mut inBuffered = capnprust::io::BufferedInputStream::new(&mut inStream);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
                 let mut messageReq = capnprust::message::MessageBuilder::new_default();
                 let request = messageReq.initRoot::<$testcase::RequestBuilder>();
 
                 let expected = $testcase::setupRequest(&mut rng, request);
-                $compression::write(&mut outStream, messageReq);
+                $compression::write(&mut outBuffered, messageReq);
+                outBuffered.flush();
 
-                do $compression::newReader(
-                    &mut inStream,
+                do $compression::newBufferedReader(
+                    &mut inBuffered,
                     capnprust::message::DEFAULT_READER_OPTIONS) |responseReader| {
                     let responseReader = $testcase::newResponseReader(responseReader.getRoot());
                     assert!($testcase::checkResponse(responseReader, expected));
@@ -176,6 +201,7 @@ macro_rules! passByPipe(
                        process::CreatePipe(false, true), // stdout
                        process::Ignored];
 
+
             let mut args = std::os::args();
             args[2] = ~"client";
 
@@ -188,7 +214,11 @@ macro_rules! passByPipe(
             };
             match process::Process::new(config) {
                 Some(ref mut p) => {
-                    server!($testcase, $compression, $iters, p.io[1], p.io[0]);
+                    p.io.pop();
+                    let mut childStdOut = p.io.pop();
+                    let mut childStdIn = p.io.pop();
+
+                    server!($testcase, $compression, $iters, childStdOut, childStdIn);
                     println!("{}", p.wait());
                 }
                 None => {
