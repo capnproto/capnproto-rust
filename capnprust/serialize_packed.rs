@@ -10,11 +10,6 @@ use message::*;
 use serialize::*;
 
 #[inline]
-unsafe fn ptr_inc(p : &mut *mut u8, count : int) {
-    *p = std::ptr::mut_offset(*p, count);
-}
-
-#[inline]
 unsafe fn ptr_sub<T>(p1 : * T, p2 : * T) -> uint {
     let p1Addr : uint = std::cast::transmute(p1);
     let p2Addr : uint = std::cast::transmute(p2);
@@ -92,7 +87,7 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
                     //# slowly, doing a bounds check on each byte.
 
                     tag = *inPtr;
-                    inPtr = std::ptr::offset(inPtr, 1);
+                    inPtr = inPtr.offset(1);
 
                     for i in range(0, 8) {
                         if (tag & (1u8 << i)) != 0 {
@@ -101,11 +96,11 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
                                                 out, outBuf, bufferBegin);
                             }
                             *out = *inPtr;
-                            out = std::ptr::mut_offset(out, 1);
-                            inPtr = std::ptr::offset(inPtr, 1);
+                            out = out.offset(1);
+                            inPtr = inPtr.offset(1);
                         } else {
                             *out = 0;
-                            out = std::ptr::mut_offset(out, 1);
+                            out = out.offset(1);
                         }
                     }
 
@@ -115,13 +110,13 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
                     }
                 } else {
                     tag = *inPtr;
-                    inPtr = std::ptr::offset(inPtr, 1);
+                    inPtr = inPtr.offset(1);
 
                     for n in range(0, 8) {
                         let isNonzero = (tag & (1 as u8 << n)) != 0;
                         *out = (*inPtr) & ((-(isNonzero as i8)) as u8);
-                        out = std::ptr::mut_offset(out, 1);
-                        inPtr = std::ptr::offset(inPtr, isNonzero as int);
+                        out = out.offset(1);
+                        inPtr = inPtr.offset(isNonzero as int);
                     }
                 }
                 if (tag == 0) {
@@ -129,20 +124,20 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
                             "Should always have non-empty buffer here");
 
                     let runLength : uint = (*inPtr) as uint * 8;
-                    inPtr = std::ptr::offset(inPtr, 1);
+                    inPtr = inPtr.offset(1);
 
                     assert!(runLength <= mut_ptr_sub(outEnd, out),
                             "Packed input did not end cleanly on a segment boundary");
 
                     std::ptr::set_memory(out, 0, runLength);
-                    out = std::ptr::mut_offset(out, runLength as int);
+                    out = out.offset(runLength as int);
 
                 } else if (tag == 0xff) {
                     assert!(ptr_sub(inEnd, inPtr) > 0,
                             "Should always have non-empty buffer here");
 
                     let mut runLength : uint = (*inPtr) as uint * 8;
-                    inPtr = std::ptr::offset(inPtr, 1);
+                    inPtr = inPtr.offset(1);
 
                     assert!(runLength <= mut_ptr_sub(outEnd, out),
                             "Packed input did not end cleanly on a segment boundary");
@@ -151,19 +146,19 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
                     if (inRemaining >= runLength) {
                         //# Fast path.
                         std::ptr::copy_nonoverlapping_memory(out, inPtr, runLength);
-                        out = std::ptr::mut_offset(out, runLength as int);
-                        inPtr = std::ptr::offset(inPtr, runLength as int);
+                        out = out.offset(runLength as int);
+                        inPtr = inPtr.offset(runLength as int);
                     } else {
                         //# Copy over the first buffer, then do one big read for the rest.
                         std::ptr::copy_nonoverlapping_memory(out, inPtr, inRemaining);
-                        out = std::ptr::mut_offset(out, inRemaining as int);
+                        out = out.offset(inRemaining as int);
                         runLength -= inRemaining;
 
                         self.inner.skip(size);
                         do std::vec::raw::mut_buf_as_slice::<u8,()>(out, runLength) |buf| {
                             self.inner.read(buf);
                         }
-                        out = std::ptr::mut_offset(out, runLength as int);
+                        out = out.offset(runLength as int);
 
                         if (out == outEnd) {
                             return Some(len);
@@ -215,47 +210,47 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
                 }
 
                 let tagPos : *mut u8 = out;
-                ptr_inc(&mut out, 1);
+                out = out.offset(1);
 
                 let bit0 = (*inPtr != 0) as u8;
                 *out = *inPtr;
-                ptr_inc(&mut out, bit0 as int);
-                inPtr = std::ptr::offset(inPtr, 1);
+                out = out.offset(bit0 as int);
+                inPtr = inPtr.offset(1);
 
                 let bit1 = (*inPtr != 0) as u8;
                 *out = *inPtr;
-                ptr_inc(&mut out, bit1 as int);
-                inPtr = std::ptr::offset(inPtr, 1);
+                out = out.offset(bit1 as int);
+                inPtr = inPtr.offset(1);
 
                 let bit2 = (*inPtr != 0) as u8;
                 *out = *inPtr;
-                ptr_inc(&mut out, bit2 as int);
-                inPtr = std::ptr::offset(inPtr, 1);
+                out = out.offset(bit2 as int);
+                inPtr = inPtr.offset(1);
 
                 let bit3 = (*inPtr != 0) as u8;
                 *out = *inPtr;
-                ptr_inc(&mut out, bit3 as int);
-                inPtr = std::ptr::offset(inPtr, 1);
+                out = out.offset(bit3 as int);
+                inPtr = inPtr.offset(1);
 
                 let bit4 = (*inPtr != 0) as u8;
                 *out = *inPtr;
-                ptr_inc(&mut out, bit4 as int);
-                inPtr = std::ptr::offset(inPtr, 1);
+                out = out.offset(bit4 as int);
+                inPtr = inPtr.offset(1);
 
                 let bit5 = (*inPtr != 0) as u8;
                 *out = *inPtr;
-                ptr_inc(&mut out, bit5 as int);
-                inPtr = std::ptr::offset(inPtr, 1);
+                out = out.offset(bit5 as int);
+                inPtr = inPtr.offset(1);
 
                 let bit6 = (*inPtr != 0) as u8;
                 *out = *inPtr;
-                ptr_inc(&mut out, bit6 as int);
-                inPtr = std::ptr::offset(inPtr, 1);
+                out = out.offset(bit6 as int);
+                inPtr = inPtr.offset(1);
 
                 let bit7 = (*inPtr != 0) as u8;
                 *out = *inPtr;
-                ptr_inc(&mut out, bit7 as int);
-                inPtr = std::ptr::offset(inPtr, 1);
+                out = out.offset(bit7 as int);
+                inPtr = inPtr.offset(1);
 
 
                 let tag : u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
@@ -271,14 +266,14 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
                     let mut inWord : *u64 = std::cast::transmute(inPtr);
                     let mut limit : *u64 = std::cast::transmute(inEnd);
                     if (ptr_sub(limit, inWord) > 255) {
-                        limit = std::ptr::offset(inWord, 255);
+                        limit = inWord.offset(255);
                     }
                     while (inWord < limit && *inWord == 0) {
-                        inWord = std::ptr::offset(inWord, 1)
+                        inWord = inWord.offset(1);
                     }
                     *out = ptr_sub(inWord, std::cast::transmute::<*u8, *u64>(inPtr)) as u8;
 
-                    ptr_inc(&mut out, 1);
+                    out = out.offset(1);
                     inPtr = std::cast::transmute::<*u64, *u8>(inWord);
 
                 } else if (tag == 0xff) {
@@ -293,7 +288,7 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
                     let runStart = inPtr;
                     let mut limit = inEnd;
                     if (ptr_sub(limit, inPtr) > 255 * 8) {
-                        limit = std::ptr::offset(inPtr, 255 * 8);
+                        limit = inPtr.offset(255 * 8);
                     }
 
                     while (inPtr < limit) {
@@ -301,19 +296,19 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
 
                         for _ in range(0,8) {
                             c += (*inPtr == 0) as u8;
-                            inPtr = std::ptr::offset(inPtr, 1);
+                            inPtr = inPtr.offset(1);
                         }
 
                         if (c >= 2) {
                             //# Un-read the word with multiple zeros, since
                             //# we'll want to compress that one.
-                            inPtr = std::ptr::offset(inPtr, -8);
+                            inPtr = inPtr.offset(-8);
                             break;
                         }
                     }
                     let count : uint = ptr_sub(inPtr, runStart);
                     *out = (count / 8) as u8;
-                    ptr_inc(&mut out, 1);
+                    out = out.offset(1);
 
                     if (count <= mut_ptr_sub(bufferEnd, out)) {
                         //# There's enough space to memcpy.
@@ -321,7 +316,7 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
                         let src : *u8 = runStart;
                         std::ptr::copy_nonoverlapping_memory(out, src, count);
 
-                        ptr_inc(&mut out, count as int);
+                        out = out.offset(count as int);
                     } else {
                         //# Input overruns the output buffer. We'll give it
                         //# to the output stream in one chunk and let it
