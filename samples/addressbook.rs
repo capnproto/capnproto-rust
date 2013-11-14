@@ -23,33 +23,28 @@ fn writeAddressBook() {
 
     let addressbook = message.initRoot::<AddressBook::Builder>();
 
-    let people = addressbook.initPeople(4);
+    let people = addressbook.initPeople(2);
 
-    people[0].setId(1);
-    people[0].setName("Alice");
-    people[0].setEmail("alice@widgco.biz");
+    let alice = people[0];
+    alice.setId(123);
+    alice.setName("Alice");
+    alice.setEmail("alice@example.com");
 
-    let phones = people[0].initPhones(2);
-    phones[0].setNumber("(555) 555-5555");
-    phones[0].setType(Person::PhoneNumber::Type::Work);
-    phones[1].setNumber("(777) 123-4567");
-    phones[1].setType(Person::PhoneNumber::Type::Home);
-    people[0].getEmployment().setEmployer("widgco");
+    let alicePhones = alice.initPhones(1);
+    alicePhones[0].setNumber("555-1212");
+    alicePhones[0].setType(Person::PhoneNumber::Type::Mobile);
+    alice.getEmployment().setSchool("MIT");
 
-    people[1].setId(2);
-    people[1].setName("Bob");
-    people[1].setEmail("bob@bobnet.org");
-    people[1].getEmployment().setSelfEmployed(());
-
-    people[2].setId(3);
-    people[2].setName("Charlie");
-    people[2].setEmail("chuckie@cccc.ch");
-    people[2].getEmployment().setUnemployed(());
-
-    people[3].setId(255);
-    people[3].setEmail("di@di.com");
-    people[3].setName("Diane");
-    people[3].getEmployment().setSchool("Caltech");
+    let bob = people[1];
+    bob.setId(456);
+    bob.setName("Bob");
+    bob.setEmail("bob@example.com");
+    let bobPhones = bob.initPhones(2);
+    bobPhones[0].setNumber("555-4567");
+    bobPhones[0].setType(Person::PhoneNumber::Type::Home);
+    bobPhones[1].setNumber("555-7654");
+    bobPhones[1].setType(Person::PhoneNumber::Type::Work);
+    bob.getEmployment().setUnemployed(());
 
 //    capnprust::serialize::writeMessage(&mut std::io::stdout(), message)
     WritePackedWrapper{writer:&mut std::io::stdout()}.writePackedMessage(message);
