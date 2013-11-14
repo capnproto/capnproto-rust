@@ -24,17 +24,20 @@ fn macros() -> ~str {
             use capnprust;
             use $capnp;
 
-            pub struct Reader<'self> {
-                reader : capnprust::layout::ListReader<'self>
+            pub struct Reader<'a> {
+                reader : capnprust::layout::ListReader<'a>
             }
 
-            impl <'self> Reader<'self> {
-                pub fn new<'a>(reader : capnprust::layout::ListReader<'a>) -> Reader<'a> {
+            impl <'a> Reader<'a> {
+                pub fn new<'b>(reader : capnprust::layout::ListReader<'b>) -> Reader<'b> {
                     Reader { reader : reader }
                 }
                 pub fn size(&self) -> uint { self.reader.size() }
-                pub fn get(&self, index : uint) -> $capnp::$($m)::+::Reader<'self> {
-                    $capnp::$($m)::+::Reader::new(self.reader.getStructElement(index))
+            }
+
+            impl <'a> Index<uint, $capnp::$($m)::+::Reader<'a>> for Reader<'a> {
+                fn index(&self, index : &uint) -> $capnp::$($m)::+::Reader<'a> {
+                    $capnp::$($m)::+::Reader::new(self.reader.getStructElement(*index))
                 }
             }
 
@@ -47,8 +50,11 @@ fn macros() -> ~str {
                     Builder {builder : builder}
                 }
                 pub fn size(&self) -> uint { self.builder.size() }
-                pub fn get(&self, index : uint) -> $capnp::$($m)::+::Builder {
-                    $capnp::$($m)::+::Builder::new(self.builder.getStructElement(index))
+            }
+
+            impl Index<uint, $capnp::$($m)::+::Builder> for Builder {
+                fn index(&self, index : &uint) -> $capnp::$($m)::+::Builder {
+                    $capnp::$($m)::+::Builder::new(self.builder.getStructElement(*index))
                 }
             }
         }
@@ -199,7 +205,7 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 
     let nestedNodes = nodeReader.getNestedNodes();
     for ii in range(0, nestedNodes.size()) {
-        let nestedNode = nestedNodes.get(ii);
+        let nestedNode = nestedNodes[ii];
         let id = nestedNode.getId();
 
         let name = capitalizeFirstLetter(nestedNode.getName());
@@ -216,7 +222,7 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
         Some(schema_capnp::Node::Struct(structReader)) => {
             let fields = structReader.getFields();
             for jj in range(0, fields.size()) {
-                let field = fields.get(jj);
+                let field = fields[jj];
                 match field.which() {
                     Some(schema_capnp::Field::Group(group)) => {
                         let id = group.getTypeId();
@@ -687,7 +693,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
     let nodeReader = nodeMap.get(&nodeId);
     let nestedNodes = nodeReader.getNestedNodes();
     for ii in range(0, nestedNodes.size()) {
-        let nestedNode = nestedNodes.get(ii);
+        let nestedNode = nestedNodes[ii];
         let id = nestedNode.getId();
         let text = generateNode(nodeMap, scopeMap, rootName, id);
         nested_output.push(text);
@@ -744,7 +750,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
             let fields = structReader.getFields();
             for ii in range(0, fields.size()) {
-                let field = fields.get(ii);
+                let field = fields[ii];
                 let name = field.getName();
                 let capName = capitalizeFirstLetter(name);
 
@@ -869,7 +875,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let mut members = ~[];
             let enumerants = enumReader.getEnumerants();
             for ii in range(0, enumerants.size()) {
-                let enumerant = enumerants.get(ii);
+                let enumerant = enumerants[ii];
                 members.push(
                     Line(format!("{} = {},", capitalizeFirstLetter(enumerant.getName()),
                               ii)));
@@ -936,7 +942,7 @@ fn main() {
 
         for ii in range(0, nodeListReader.size()) {
 
-            let nodeReader = nodeListReader.get(ii);
+            let nodeReader = nodeListReader[ii];
             let id = nodeReader.getId();
             nodeMap.insert(id, nodeReader);
         }
@@ -945,7 +951,7 @@ fn main() {
 
         for ii in range(0, requestedFilesReader.size()) {
 
-            let requestedFile = requestedFilesReader.get(ii);
+            let requestedFile = requestedFilesReader[ii];
             let id = requestedFile.getId();
             let name : &str = requestedFile.getFilename();
             println(format!("requested file: {}", name));

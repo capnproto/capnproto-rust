@@ -7,8 +7,8 @@
 pub mod PrimitiveList {
     use layout::{ListReader, ListBuilder, PrimitiveElement};
 
-    pub struct Reader<'self, T> {
-        reader : ListReader<'self>
+    pub struct Reader<'a, T> {
+        reader : ListReader<'a>
     }
 
     impl <'self, T : PrimitiveElement> Reader<'self, T> {
@@ -17,9 +17,11 @@ pub mod PrimitiveList {
         }
 
         pub fn size(&self) -> uint { self.reader.size() }
+    }
 
-        pub fn get(&self, index : uint) -> T {
-            PrimitiveElement::get(&self.reader, index)
+    impl <'a, T : PrimitiveElement> Index<uint, T> for Reader<'a, T> {
+        fn index(&self, index : &uint) -> T {
+            PrimitiveElement::get(&self.reader, *index)
         }
     }
 
@@ -34,14 +36,15 @@ pub mod PrimitiveList {
 
         pub fn size(&self) -> uint { self.builder.size() }
 
-        pub fn get(&self, index : uint) -> T {
-            PrimitiveElement::getFromBuilder(&self.builder, index)
-        }
-
         pub fn set(&self, index : uint, value : T) {
             PrimitiveElement::set(&self.builder, index, value);
         }
+    }
 
+    impl <T : PrimitiveElement> Index<uint, T> for Builder<T> {
+        fn index(&self, index : &uint) -> T {
+            PrimitiveElement::getFromBuilder(&self.builder, *index)
+        }
     }
 }
 
@@ -54,19 +57,22 @@ pub mod EnumList {
     use layout::*;
     use list::*;
 
-    pub struct Reader<'self, T> {
-        reader : ListReader<'self>
+    pub struct Reader<'a, T> {
+        reader : ListReader<'a>
     }
 
-    impl <'self, T : FromPrimitive> Reader<'self, T> {
-        pub fn new<'a>(reader : ListReader<'a>) -> Reader<'a, T> {
-            Reader::<'a, T> { reader : reader }
+    impl <'a, T : FromPrimitive> Reader<'a, T> {
+        pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
+            Reader::<'b, T> { reader : reader }
         }
 
         pub fn size(&self) -> uint { self.reader.size() }
 
-        pub fn get(&self, index : uint) -> Option<T> {
-            let result : u16 = PrimitiveElement::get(&self.reader, index);
+    }
+
+    impl <'a, T : FromPrimitive> Index<uint, Option<T>> for Reader<'a, T> {
+        fn index(&self, index : &uint) -> Option<T> {
+            let result : u16 = PrimitiveElement::get(&self.reader, *index);
             FromPrimitive::from_u16(result)
         }
     }
@@ -82,13 +88,15 @@ pub mod EnumList {
 
         pub fn size(&self) -> uint { self.builder.size() }
 
-        pub fn get(&self, index : uint) -> Option<T> {
-            let result : u16 = PrimitiveElement::getFromBuilder(&self.builder, index);
-            FromPrimitive::from_u16(result)
-        }
-
         pub fn set(&self, index : uint, value : T) {
             PrimitiveElement::set(&self.builder, index, value.to_u16());
+        }
+    }
+
+    impl <T : ToU16 + FromPrimitive> Index<uint, Option<T>> for Builder<T> {
+        fn index(&self, index : &uint) -> Option<T> {
+            let result : u16 = PrimitiveElement::getFromBuilder(&self.builder, *index);
+            FromPrimitive::from_u16(result)
         }
     }
 }

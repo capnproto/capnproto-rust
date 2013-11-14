@@ -15,17 +15,20 @@ macro_rules! list_submodule(
             use capnprust;
             use $capnp;
 
-            pub struct Reader<'self> {
-                reader : capnprust::layout::ListReader<'self>
+            pub struct Reader<'a> {
+                reader : capnprust::layout::ListReader<'a>
             }
 
-            impl <'self> Reader<'self> {
-                pub fn new<'a>(reader : capnprust::layout::ListReader<'a>) -> Reader<'a> {
+            impl <'a> Reader<'a> {
+                pub fn new<'b>(reader : capnprust::layout::ListReader<'b>) -> Reader<'b> {
                     Reader { reader : reader }
                 }
                 pub fn size(&self) -> uint { self.reader.size() }
-                pub fn get(&self, index : uint) -> $capnp::$($m)::+::Reader<'self> {
-                    $capnp::$($m)::+::Reader::new(self.reader.getStructElement(index))
+            }
+
+            impl <'a> Index<uint, $capnp::$($m)::+::Reader<'a>> for Reader<'a> {
+                fn index(&self, index : &uint) -> $capnp::$($m)::+::Reader<'a> {
+                    $capnp::$($m)::+::Reader::new(self.reader.getStructElement(*index))
                 }
             }
 
@@ -38,8 +41,11 @@ macro_rules! list_submodule(
                     Builder {builder : builder}
                 }
                 pub fn size(&self) -> uint { self.builder.size() }
-                pub fn get(&self, index : uint) -> $capnp::$($m)::+::Builder {
-                    $capnp::$($m)::+::Builder::new(self.builder.getStructElement(index))
+            }
+
+            impl Index<uint, $capnp::$($m)::+::Builder> for Builder {
+                fn index(&self, index : &uint) -> $capnp::$($m)::+::Builder {
+                    $capnp::$($m)::+::Builder::new(self.builder.getStructElement(*index))
                 }
             }
         }

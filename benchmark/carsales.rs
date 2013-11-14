@@ -28,10 +28,9 @@ pub fn carValue (car : Car::Reader) -> u64 {
     result += car.getSeats() as u64 * 200;
     result += car.getDoors() as u64 * 350;
 
-
     // TODO Lists should have iterators.
     for i in range(0, car.getWheels().size()) {
-        let wheel = car.getWheels().get(i);
+        let wheel = car.getWheels()[i];
         result += wheel.getDiameter() as u64 * wheel.getDiameter() as u64;
         result += if (wheel.getSnowTires()) { 100 } else { 0 };
     }
@@ -74,7 +73,7 @@ pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
 
     let wheels = car.initWheels(4);
     for i in range(0, wheels.size()) {
-        let wheel = wheels.get(i);
+        let wheel = wheels[i];
         wheel.setDiameter(25 + rng.nextLessThan(15) as u16);
         wheel.setAirPressure(30.0 + rng.nextDouble(20.0) as f32);
         wheel.setSnowTires(rng.nextLessThan(16) == 0);
@@ -105,7 +104,7 @@ pub fn setupRequest(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 {
     let mut result = 0;
     let cars = request.initCars(rng.nextLessThan(200) as uint);
     for i in range(0, cars.size()) {
-        let car = cars.get(i);
+        let car = cars[i];
         randomCar(rng, car);
         result += do car.asReader |carReader| {carValue(carReader)};
     }
@@ -118,7 +117,7 @@ pub fn handleRequest(request : ParkingLot::Reader, response : TotalValue::Builde
     let mut result = 0;
     let cars = request.getCars();
     for i in range(0, cars.size()) {
-        result += carValue(cars.get(i));
+        result += carValue(cars[i]);
     }
     response.setAmount(result);
 }

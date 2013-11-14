@@ -51,10 +51,10 @@ fn testPrimList () {
     boolList.set(13, true);
     boolList.set(64, true);
 
-    assert!(boolList.get(0));
-    assert!(!boolList.get(4));
-    assert!(!boolList.get(63));
-    assert!(boolList.get(64));
+    assert!(boolList[0]);
+    assert!(!boolList[4]);
+    assert!(!boolList[63]);
+    assert!(boolList[64]);
 
 
     let voidList = testPrimList.initVoidList(1025);
@@ -63,30 +63,30 @@ fn testPrimList () {
     do testPrimList.asReader |testPrimListReader| {
         let uint8List = testPrimListReader.getUint8List();
         for i in range(0, uint8List.size()) {
-            assert!(uint8List.get(i) == i as u8);
+            assert!(uint8List[i] == i as u8);
         }
         let uint64List = testPrimListReader.getUint64List();
         for i in range(0, uint64List.size()) {
-            assert!(uint64List.get(i) == i as u64);
+            assert!(uint64List[i] == i as u64);
         }
 
         let boolList = testPrimListReader.getBoolList();
-        assert!(boolList.get(0));
-        assert!(boolList.get(1));
-        assert!(boolList.get(2));
-        assert!(boolList.get(3));
-        assert!(!boolList.get(4));
-        assert!(boolList.get(5));
-        assert!(!boolList.get(6));
-        assert!(!boolList.get(7));
-        assert!(boolList.get(8));
-        assert!(!boolList.get(9));
-        assert!(!boolList.get(10));
-        assert!(!boolList.get(11));
-        assert!(!boolList.get(12));
-        assert!(boolList.get(13));
-        assert!(!boolList.get(63));
-        assert!(boolList.get(64));
+        assert!(boolList[0]);
+        assert!(boolList[1]);
+        assert!(boolList[2]);
+        assert!(boolList[3]);
+        assert!(!boolList[4]);
+        assert!(boolList[5]);
+        assert!(!boolList[6]);
+        assert!(!boolList[7]);
+        assert!(boolList[8]);
+        assert!(!boolList[9]);
+        assert!(!boolList[10]);
+        assert!(!boolList[11]);
+        assert!(!boolList[12]);
+        assert!(boolList[13]);
+        assert!(!boolList[63]);
+        assert!(boolList[64]);
 
 
         assert!(testPrimListReader.getVoidList().size() == 1025);
@@ -150,13 +150,13 @@ fn testComplexList () {
     do testComplexList.asReader |complexListReader| {
         let enumListReader = complexListReader.getEnumList();
         for i in range::<uint>(0,10) {
-            match enumListReader.get(i) {
+            match enumListReader[i] {
                 Some(AnEnum::Qux) => {}
                 _ => fail!()
             }
         }
         for i in range::<uint>(10,20) {
-            match enumListReader.get(i) {
+            match enumListReader[i] {
                 Some(AnEnum::Bar) => {}
                 _ => fail!()
             }

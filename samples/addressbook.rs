@@ -25,35 +25,31 @@ fn writeAddressBook() {
 
     let people = addressbook.initPeople(4);
 
-    let person = people.get(0);
-    person.setId(1);
-    person.setName("Alice");
-    person.setEmail("alice@widgco.biz");
+    people[0].setId(1);
+    people[0].setName("Alice");
+    people[0].setEmail("alice@widgco.biz");
 
-    let phones = person.initPhones(2);
-    phones.get(0).setNumber("(555) 555-5555");
-    phones.get(0).setType(Person::PhoneNumber::Type::Work);
-    phones.get(1).setNumber("(777) 123-4567");
-    phones.get(1).setType(Person::PhoneNumber::Type::Home);
-    person.getEmployment().setEmployer("widgco");
+    let phones = people[0].initPhones(2);
+    phones[0].setNumber("(555) 555-5555");
+    phones[0].setType(Person::PhoneNumber::Type::Work);
+    phones[1].setNumber("(777) 123-4567");
+    phones[1].setType(Person::PhoneNumber::Type::Home);
+    people[0].getEmployment().setEmployer("widgco");
 
-    let person = people.get(1);
-    person.setId(2);
-    person.setName("Bob");
-    person.setEmail("bob@bobnet.org");
-    person.getEmployment().setSelfEmployed(());
+    people[1].setId(2);
+    people[1].setName("Bob");
+    people[1].setEmail("bob@bobnet.org");
+    people[1].getEmployment().setSelfEmployed(());
 
-    let person = people.get(2);
-    person.setId(3);
-    person.setName("Charlie");
-    person.setEmail("chuckie@cccc.ch");
-    person.getEmployment().setUnemployed(());
+    people[2].setId(3);
+    people[2].setName("Charlie");
+    people[2].setEmail("chuckie@cccc.ch");
+    people[2].getEmployment().setUnemployed(());
 
-    let person = people.get(3);
-    person.setId(255);
-    person.setEmail("di@di.com");
-    person.setName("Diane");
-    person.getEmployment().setSchool("Caltech");
+    people[3].setId(255);
+    people[3].setEmail("di@di.com");
+    people[3].setName("Diane");
+    people[3].getEmployment().setSchool("Caltech");
 
 //    capnprust::serialize::writeMessage(&mut std::io::stdout(), message)
     WritePackedWrapper{writer:&mut std::io::stdout()}.writePackedMessage(message);
@@ -76,11 +72,11 @@ fn printAddressBook() {
         let people = addressBook.getPeople();
 
         for i in range(0, people.size()) {
-            let person = people.get(i);
+            let person = people[i];
             println!("{}: {}", person.getName(), person.getEmail());
             let phones = person.getPhones();
             for j in range(0, phones.size()) {
-                let phone = phones.get(j);
+                let phone = phones[j];
                 let typeName = match phone.getType() {
                     Some(Person::PhoneNumber::Type::Mobile) => {"mobile"}
                     Some(Person::PhoneNumber::Type::Home) => {"home"}
