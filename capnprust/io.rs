@@ -63,11 +63,8 @@ impl<'a, R: Reader> BufferedInputStream<'a, R> {
         }
     }
 
-    pub fn getReadBuffer(&self) -> (*u8, *u8) {
-        unsafe {
-            (self.buf.unsafe_ref(self.pos),
-             self.buf.unsafe_ref(self.cap))
-        }
+    pub unsafe fn getReadBuffer(&self) -> (*u8, *u8) {
+        (self.buf.unsafe_ref(self.pos), self.buf.unsafe_ref(self.cap))
     }
 }
 
@@ -135,24 +132,19 @@ impl<'self, W: Writer> BufferedOutputStream<'self, W> {
     }
 
     #[inline]
-    pub fn getWriteBuffer(&mut self) -> (*mut u8, *mut u8) {
+    pub unsafe fn getWriteBuffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.buf.len();
-        unsafe {
-            (self.buf.unsafe_mut_ref(self.pos),
-             self.buf.unsafe_mut_ref(len))
-        }
+        (self.buf.unsafe_mut_ref(self.pos), self.buf.unsafe_mut_ref(len))
     }
 
     #[inline]
-    pub fn write_ptr(&mut self, ptr: *mut u8, size: uint) {
-        unsafe {
-            let easyCase = ptr == self.buf.unsafe_mut_ref(self.pos);
-            if easyCase {
-                self.pos += size;
-            } else {
-                do std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, size) |buf| {
-                    self.write(buf);
-                }
+    pub unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) {
+        let easyCase = ptr == self.buf.unsafe_mut_ref(self.pos);
+        if easyCase {
+            self.pos += size;
+        } else {
+            do std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, size) |buf| {
+                self.write(buf);
             }
         }
     }
