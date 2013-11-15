@@ -13,6 +13,7 @@ pub mod InputStreamMessageReader {
 
     use std;
     use io;
+    use arena::SegmentReader;
     use common::*;
     use endian::*;
     use message::*;
@@ -92,11 +93,21 @@ pub mod InputStreamMessageReader {
 
         let mut result = ~MessageReader {
             segments : segments,
+            segmentReaders : ~[],
             options : options
         };
 
-        cont(result)
 
+        for segment in segments.iter() {
+            let segmentReader =
+                ~SegmentReader {
+                    messageReader : std::ptr::to_unsafe_ptr(result),
+                    segment: *segment
+                };
+            result.segmentReaders.push(segmentReader);
+        }
+
+        cont(result)
     }
 }
 

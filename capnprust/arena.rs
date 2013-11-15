@@ -11,7 +11,7 @@ use message;
 pub type SegmentId = u32;
 
 pub struct SegmentReader<'self> {
-    messageReader : &'self message::MessageReader<'self>,
+    messageReader : * message::MessageReader<'self>,
     segment : &'self [Word]
 }
 
@@ -84,10 +84,10 @@ impl SegmentBuilder {
         begin.offset(offset as int)
     }
 
-    pub fn asReader<T>(&mut self, f : &fn(SegmentReader) -> T) -> T {
+    pub fn asReader<T>(&mut self, f : &fn(&SegmentReader) -> T) -> T {
         unsafe {
             do (*self.messageBuilder).asReader |messageReader| {
-                f(SegmentReader {
+                f(&SegmentReader {
                         messageReader : &messageReader,
                         segment : messageReader.segments[self.id]
                     })

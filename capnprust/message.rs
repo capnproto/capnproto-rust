@@ -17,10 +17,10 @@ pub struct ReaderOptions {
 pub static DEFAULT_READER_OPTIONS : ReaderOptions =
     ReaderOptions { traversalLimitInWords : 8 * 1024 * 1024, nestingLimit : 64 };
 
-pub struct MessageReader<'self> {
-    segments : &'self [ &'self [Word]],
+pub struct MessageReader<'a> {
+    segments : &'a [ &'a [Word]],
     options : ReaderOptions,
-//    arena : ReaderArena<'self>
+    segmentReaders : ~[~SegmentReader<'a>]
 }
 
 type SegmentId = u32;
@@ -33,8 +33,8 @@ impl <'self> MessageReader<'self> {
     }
 
     #[inline]
-    pub fn getSegmentReader<'a>(&'a self, id : SegmentId) -> SegmentReader<'a> {
-        SegmentReader { messageReader : self, segment : self.getSegment(id as uint) }
+    pub unsafe fn getSegmentReader<'a>(&'a self, id : SegmentId) -> *SegmentReader<'a> {
+        std::ptr::to_unsafe_ptr(self.segmentReaders[id])
     }
 
     #[inline]
@@ -43,7 +43,7 @@ impl <'self> MessageReader<'self> {
     }
 
     pub fn getRoot<'a>(&'a self) -> layout::StructReader<'a> {
-        let segment = self.getSegmentReader(0);
+        let segment = unsafe { self.getSegmentReader(0) };
 
         return layout::StructReader::readRoot(0, segment,
                                               self.options.nestingLimit as int);
@@ -145,7 +145,21 @@ impl MessageBuilder {
             segments.push(self.segments[ii].as_slice());
         }
 
-        f(MessageReader {segments : segments, options : DEFAULT_READER_OPTIONS})
+        let mut messageReader = ~MessageReader {segments : segments,
+                                                segmentReaders : ~[],
+                                                options : DEFAULT_READER_OPTIONS};
+
+        for segment in segments.iter() {
+            let segmentReader =
+                ~SegmentReader {
+                    messageReader : std::ptr::to_unsafe_ptr(messageReader),
+                    segment: *segment
+                };
+            messageReader.segmentReaders.push(segmentReader);
+        }
+
+
+        f(*messageReader)
     }
 
 }

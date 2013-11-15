@@ -269,9 +269,9 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn boundsCheck<'a>(segment : SegmentReader<'a>,
+    pub unsafe fn boundsCheck<'a>(segment : *SegmentReader<'a>,
                                   start : *Word, end : *Word) -> bool {
-        return segment.containsInterval(start, end);
+        return (*segment).containsInterval(start, end);
     }
 
     #[inline]
@@ -316,13 +316,13 @@ mod WireHelpers {
     #[inline]
     pub unsafe fn followFars<'a>(reff: &mut *WirePointer,
                                  refTarget: *Word,
-                                 segment : &mut SegmentReader<'a>) -> *Word {
+                                 segment : &mut *SegmentReader<'a>) -> *Word {
         match (**reff).kind() {
             WP_FAR => {
                 *segment =
-                    segment.messageReader.getSegmentReader((**reff).farRef().segmentId.get());
+                    (*(**segment).messageReader).getSegmentReader((**reff).farRef().segmentId.get());
 
-                let ptr : *Word = segment.getStartPtr().offset(
+                let ptr : *Word = (**segment).getStartPtr().offset(
                     (**reff).farPositionInSegment() as int);
 
                 let padWords : int = if ((**reff).isDoubleFar()) { 2 } else { 1 };
@@ -341,9 +341,9 @@ mod WireHelpers {
                     *reff = pad.offset(1);
 
                     *segment =
-                        segment.messageReader.getSegmentReader((*pad).farRef().segmentId.get());
+                        (*(**segment).messageReader).getSegmentReader((*pad).farRef().segmentId.get());
 
-                    return segment.getStartPtr().offset((*pad).farPositionInSegment() as int);
+                    return (**segment).getStartPtr().offset((*pad).farPositionInSegment() as int);
                 }
             }
             _ => { refTarget }
@@ -588,7 +588,7 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn readStructPointer<'a>(mut segment: SegmentReader<'a>,
+    pub unsafe fn readStructPointer<'a>(mut segment: *SegmentReader<'a>,
                                         mut reff : *WirePointer,
                                         defaultValue : Option<&'a [u8]>,
                                         nestingLimit : int) -> StructReader<'a> {
@@ -602,7 +602,7 @@ mod WireHelpers {
                 } */
                 Some(_) => fail!("struct default values unimplemented"),
                 _ => {
-                    return StructReader::newDefault(segment);
+                    return StructReader::newDefault();
                 }
             }
         }
@@ -629,7 +629,7 @@ mod WireHelpers {
      }
 
     #[inline]
-    pub unsafe fn readListPointer<'a>(mut segment: SegmentReader<'a>,
+    pub unsafe fn readListPointer<'a>(mut segment: *SegmentReader<'a>,
                                       mut reff : *WirePointer,
                                       defaultValue : Option<&'a [u8]>,
                                       expectedElementSize : FieldSize,
@@ -646,7 +646,7 @@ mod WireHelpers {
                 }*/
                 Some(_) => fail!("default list pointers unimplemented"),
                 _ => {
-                    return ListReader::newDefault(segment);
+                    return ListReader::newDefault();
                 }
             }
         }
@@ -767,7 +767,7 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn readTextPointer<'a>(mut segment : SegmentReader<'a>,
+    pub unsafe fn readTextPointer<'a>(mut segment : *SegmentReader<'a>,
                                       mut reff : *WirePointer,
                                       defaultValue : &'a str
                                       //defaultSize : ByteCount
@@ -805,8 +805,8 @@ mod WireHelpers {
 
 static EMPTY_SEGMENT : [Word,..0] = [];
 
-pub struct StructReader<'self> {
-    segment : SegmentReader<'self>,
+pub struct StructReader<'a> {
+    segment : *SegmentReader<'a>,
     data : *u8,
     pointers : *WirePointer,
     dataSize : BitCount32,
@@ -817,24 +817,20 @@ pub struct StructReader<'self> {
 
 impl <'self> StructReader<'self>  {
 
-    // TODO Can this be cleaned up? It seems silly that we need the
-    // segmentReader argument just to get the messageReader, which
-    // will be unused.
-    pub fn newDefault<'a>(segmentReader : SegmentReader<'a>) -> StructReader<'a> {
-        StructReader { segment : SegmentReader {messageReader : segmentReader.messageReader,
-                                                segment : EMPTY_SEGMENT.slice(0,0)},
+    pub fn newDefault<'a>() -> StructReader<'a> {
+        StructReader { segment : std::ptr::null(),
                        data : std::ptr::null(),
                        pointers : std::ptr::null(), dataSize : 0, pointerCount : 0,
                        bit0Offset : 0, nestingLimit : 0x7fffffff}
     }
 
-    pub fn readRoot<'a>(location : WordCount, segment : SegmentReader<'a>,
+    pub fn readRoot<'a>(location : WordCount, segment : *SegmentReader<'a>,
                         nestingLimit : int) -> StructReader<'a> {
         //  the pointer to the struct is at segment[location]
         unsafe {
             // TODO bounds check
             let reff : *WirePointer =
-                std::cast::transmute(segment.segment.unsafe_ref(location));
+                std::cast::transmute((*segment).segment.unsafe_ref(location));
 
             WireHelpers::readStructPointer(segment, reff, None, nestingLimit)
         }
@@ -963,7 +959,7 @@ impl StructBuilder {
         unsafe {
             do (*self.segment).asReader |segmentReader| {
                 f ( StructReader {
-                        segment : segmentReader,
+                        segment : std::ptr::to_unsafe_ptr(segmentReader),
                         data : std::cast::transmute(self.data),
                         pointers : std::cast::transmute(self.pointers),
                         dataSize : self.dataSize,
@@ -1123,8 +1119,8 @@ impl StructBuilder {
 
 }
 
-pub struct ListReader<'self> {
-    segment : SegmentReader<'self>,
+pub struct ListReader<'a> {
+    segment : *SegmentReader<'a>,
     ptr : *u8,
     elementCount : ElementCount,
     step : BitCount0,
@@ -1135,12 +1131,8 @@ pub struct ListReader<'self> {
 
 impl <'self> ListReader<'self> {
 
-    // TODO Can this be cleaned up? It seems silly that we need the
-    // segmentReader argument just to get the messageReader, which
-    // will be unused.
-    pub fn newDefault<'a>(segmentReader : SegmentReader<'a>) -> ListReader<'a> {
-        ListReader { segment : SegmentReader {messageReader : segmentReader.messageReader,
-                                              segment : EMPTY_SEGMENT.slice(0,0)},
+    pub fn newDefault<'a>() -> ListReader<'a> {
+        ListReader { segment : std::ptr::null(),
                     ptr : std::ptr::null(), elementCount : 0, step: 0, structDataSize : 0,
                     structPointerCount : 0, nestingLimit : 0x7fffffff}
     }
