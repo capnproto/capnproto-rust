@@ -88,7 +88,7 @@ impl SegmentBuilder {
         unsafe {
             do (*self.messageBuilder).asReader |messageReader| {
                 f(&SegmentReader {
-                        messageReader : &messageReader,
+                        messageReader : std::ptr::to_unsafe_ptr(messageReader),
                         segment : messageReader.segments[self.id]
                     })
             }

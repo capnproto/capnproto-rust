@@ -138,7 +138,7 @@ impl MessageBuilder {
         }
     }
 
-    pub fn asReader<T>(& self, f : &fn(r : MessageReader) -> T) -> T {
+    pub fn asReader<T>(& self, f : &fn(r : &MessageReader) -> T) -> T {
         let mut segments : ~[&[Word]] = ~[];
 
         for ii in range(0, self.segments.len()) {
@@ -159,7 +159,7 @@ impl MessageBuilder {
         }
 
 
-        f(*messageReader)
+        f(messageReader)
     }
 
 }
