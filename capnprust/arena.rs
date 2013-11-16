@@ -93,9 +93,6 @@ impl SegmentBuilder {
     }
 }
 
-pub trait Arena<'a> {
-    fn tryGetSegment(&self, id : SegmentId) -> *SegmentReader<'a>;
-}
 
 pub struct ReaderArena<'a> {
     message : message::MessageReader<'a>,
@@ -105,28 +102,35 @@ pub struct ReaderArena<'a> {
     //XXX should this be a map as in capnproto-c++?
 }
 
-impl <'a> Arena<'a> for ReaderArena<'a> {
-    fn tryGetSegment(&self, id : SegmentId) -> *SegmentReader<'a> {
-        if (id == 0) {
-            return std::ptr::to_unsafe_ptr(&self.segment0);
-        } else {
-            match self.moreSegments {
-                None => {fail!("no segments!")}
-                Some(ref segs) => {
-                    unsafe {segs.unsafe_ref(id as uint - 1)}
-                }
-            }
-        }
-    }
-}
-
-pub struct BuilderArena<'a> {
+pub struct BuilderArena {
     message : *message::MessageBuilder,
     segment0 : SegmentBuilder
 }
 
-impl <'a> Arena<'a> for BuilderArena<'a> {
-    fn tryGetSegment(&self, _id : SegmentId) -> *SegmentReader<'a> {
-        fail!()
+pub enum Arena<'a> {
+    Reader_(ReaderArena<'a>),
+    Builder_(BuilderArena)
+}
+
+
+impl <'a> Arena<'a>  {
+    pub fn tryGetSegment(&self, id : SegmentId) -> *SegmentReader<'a> {
+        match self {
+            &Reader_(ref reader) => {
+                if (id == 0) {
+                    return std::ptr::to_unsafe_ptr(&reader.segment0);
+                } else {
+                    match reader.moreSegments {
+                        None => {fail!("no segments!")}
+                        Some(ref segs) => {
+                            unsafe {segs.unsafe_ref(id as uint - 1)}
+                        }
+                    }
+                }
+            }
+            &Builder_(ref _builder) => {
+                fail!()
+            }
+        }
     }
 }
