@@ -84,10 +84,7 @@ impl SegmentBuilder {
     pub fn asReader<T>(&mut self, f : &fn(&SegmentReader) -> T) -> T {
         unsafe {
             do (*self.messageBuilder).asReader |messageReader| {
-                f(&SegmentReader {
-                        messageReader : std::ptr::to_unsafe_ptr(messageReader),
-                        segment : messageReader.segments[self.id]
-                    })
+                f(&*messageReader.getSegmentReader(self.id))
             }
         }
     }

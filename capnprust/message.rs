@@ -36,7 +36,7 @@ impl <'self> MessageReader<'self> {
             match self.moreSegmentReaders {
                 None => {fail!("no segments!")}
                 Some(ref segs) => {
-                    unsafe {segs.unsafe_ref(id as uint - 1)}
+                    segs.unsafe_ref(id as uint - 1)
                 }
             }
         }

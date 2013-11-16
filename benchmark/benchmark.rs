@@ -270,6 +270,12 @@ pub fn main () {
         }
     };
 
+    // For now, just insist that re-use = none
+    match args[3] {
+        ~"no-reuse" => {}
+        _ => fail!("for now, 'no-reuse' is the only allowed option for REUSE")
+    }
+
     match args[4] {
         ~"none" => doTestcase1!(args[1], args[2],  args[3], Uncompressed, iters),
         ~"packed" => doTestcase1!(args[1], args[2], args[3], Packed, iters),
