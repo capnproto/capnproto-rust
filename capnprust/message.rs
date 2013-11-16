@@ -77,10 +77,10 @@ impl MessageBuilder {
             segments : ~[]
         };
 
+        result.segments.push(allocate_zeroed_words(firstSegmentWords));
         let builder =
             SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(result), firstSegmentWords);
 
-        result.segments.push(allocate_zeroed_words(firstSegmentWords));
         result.segmentBuilders.push(builder);
 
         result
@@ -92,8 +92,8 @@ impl MessageBuilder {
 
     pub fn allocateSegment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder {
         let size = std::cmp::max(minimumSize, self.nextSize);
-        self.segmentBuilders.push(SegmentBuilder::new(self, size));
         self.segments.push(allocate_zeroed_words(size));
+        self.segmentBuilders.push(SegmentBuilder::new(self, size));
         let idx = self.segmentBuilders.len() - 1;
         let result_ptr = unsafe {
             self.segmentBuilders.unsafe_mut_ref(idx) };

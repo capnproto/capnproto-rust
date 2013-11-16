@@ -35,6 +35,7 @@ impl <'self> SegmentReader<'self> {
 pub struct SegmentBuilder {
     messageBuilder : *mut message::MessageBuilder,
     id : SegmentId,
+    ptr : *mut Word,
     pos : WordCount,
     size : WordCount
 }
@@ -43,19 +44,19 @@ impl SegmentBuilder {
 
     pub fn new(messageBuilder : *mut message::MessageBuilder,
                size : WordCount) -> SegmentBuilder {
+        let idx = unsafe {((*messageBuilder).segments.len() - 1) as SegmentId};
         SegmentBuilder {
             messageBuilder : messageBuilder,
-            id : unsafe {(*messageBuilder).segments.len() as SegmentId},
+            ptr : unsafe {(*messageBuilder).segments[idx].unsafe_mut_ref(0)},
+            id : idx,
             pos : 0,
             size : size
         }
     }
 
     pub fn getWordOffsetTo(&mut self, ptr : *mut Word) -> WordCount {
-        let thisAddr : uint =
-            unsafe { std::cast::transmute(
-                (*self.messageBuilder).segments[self.id].unsafe_mut_ref(0)) };
-        let ptrAddr : uint = unsafe {std::cast::transmute(ptr)};
+        let thisAddr : uint = self.ptr.to_uint();
+        let ptrAddr : uint = ptr.to_uint();
         assert!(ptrAddr >= thisAddr);
         let result = (ptrAddr - thisAddr) / BYTES_PER_WORD;
         return result;
@@ -65,9 +66,7 @@ impl SegmentBuilder {
         if (amount > self.size - self.pos) {
             return None;
         } else {
-            let result = unsafe {
-                (*self.messageBuilder).segments[self.id].unsafe_mut_ref(self.pos)
-            };
+            let result = unsafe { self.ptr.offset(self.pos as int) };
             self.pos += amount;
             return Some(result);
         }
@@ -79,9 +78,7 @@ impl SegmentBuilder {
 
     #[inline]
     pub unsafe fn getPtrUnchecked(&mut self, offset : WordCount) -> *mut Word {
-        let begin : *mut Word =
-            std::cast::transmute((*self.messageBuilder).segments[self.id].unsafe_mut_ref(0));
-        begin.offset(offset as int)
+        self.ptr.offset(offset as int)
     }
 
     pub fn asReader<T>(&mut self, f : &fn(&SegmentReader) -> T) -> T {
