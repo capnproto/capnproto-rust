@@ -49,6 +49,10 @@ pub fn setupRequest(rng : &mut FastRand, request : SearchResultList::Builder) ->
             url.push_char(std::char::from_u32(97 + rng.nextLessThan(26)).unwrap());
         }
 
+        // Add this just to match capnproto-c++, which inits url to be
+        // one byte longer than it needs to be.
+        url.push_char('\x00');
+
         result.setUrl(url);
 
         let isCat = rng.nextLessThan(8) == 0;

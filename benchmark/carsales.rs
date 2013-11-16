@@ -67,7 +67,7 @@ pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
     car.setMake(MAKES[rng.nextLessThan(MAKES.len() as u32)]);
     car.setModel(MODELS[rng.nextLessThan(MODELS.len() as u32)]);
 
-    car.setColor(unsafe {transmute(rng.gen_range::<u16>(0, Color::Silver as u16 + 1)) });
+    car.setColor(unsafe {transmute(rng.nextLessThan(Color::Silver as u32 + 1) as u16) });
     car.setSeats(2 + rng.nextLessThan(6) as u8);
     car.setDoors(2 + rng.nextLessThan(3) as u8);
 
@@ -75,7 +75,7 @@ pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
     for i in range(0, wheels.size()) {
         let wheel = wheels[i];
         wheel.setDiameter(25 + rng.nextLessThan(15) as u16);
-        wheel.setAirPressure(30.0 + rng.nextDouble(20.0) as f32);
+        wheel.setAirPressure((30.0 + rng.nextDouble(20.0)) as f32);
         wheel.setSnowTires(rng.nextLessThan(16) == 0);
     }
 
@@ -91,7 +91,7 @@ pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
     engine.setUsesGas(true);
     engine.setUsesElectric(rng.gen());
 
-    car.setFuelCapacity(10.0 + rng.nextDouble(30.0) as f32);
+    car.setFuelCapacity((10.0 + rng.nextDouble(30.0)) as f32);
     car.setFuelLevel(rng.nextDouble(car.getFuelCapacity() as f64) as f32);
     car.setHasPowerWindows(rng.gen());
     car.setHasPowerSteering(rng.gen());
