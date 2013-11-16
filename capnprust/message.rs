@@ -20,7 +20,8 @@ pub static DEFAULT_READER_OPTIONS : ReaderOptions =
 pub struct MessageReader<'a> {
     segments : &'a [ &'a [Word]],
     options : ReaderOptions,
-    segmentReaders : ~[SegmentReader<'a>]
+    segmentReader0 : SegmentReader<'a>,
+    moreSegmentReaders : Option<~[SegmentReader<'a>]>
 }
 
 type SegmentId = u32;
@@ -28,13 +29,17 @@ type SegmentId = u32;
 impl <'self> MessageReader<'self> {
 
     #[inline]
-    pub fn getSegment(&self, id : uint) -> &'self [Word] {
-        self.segments[id]
-    }
-
-    #[inline]
     pub unsafe fn getSegmentReader<'a>(&'a self, id : SegmentId) -> *SegmentReader<'a> {
-        std::ptr::to_unsafe_ptr(&self.segmentReaders[id])
+        if (id == 0) {
+            return std::ptr::to_unsafe_ptr(&self.segmentReader0);
+        } else {
+            match self.moreSegmentReaders {
+                None => {fail!("no segments!")}
+                Some(ref segs) => {
+                    unsafe {segs.unsafe_ref(id as uint - 1)}
+                }
+            }
+        }
     }
 
     #[inline]
@@ -145,21 +150,34 @@ impl MessageBuilder {
             segments.push(self.segments[ii].as_slice());
         }
 
-        let mut messageReader = ~MessageReader {segments : segments,
-                                                segmentReaders : ~[],
-                                                options : DEFAULT_READER_OPTIONS};
+        let mut messageReader =
+            MessageReader {segments : segments,
+                            segmentReader0 :
+                            SegmentReader {  messageReader : std::ptr::null(),
+                                             segment: segments[0]
+                              },
+                            moreSegmentReaders : None,
+                            options : DEFAULT_READER_OPTIONS};
 
-        for segment in segments.iter() {
-            let segmentReader =
-                SegmentReader {
-                    messageReader : std::ptr::to_unsafe_ptr(messageReader),
+        messageReader.segmentReader0.messageReader = std::ptr::to_unsafe_ptr(&messageReader);
+
+        if (segments.len() > 1) {
+
+            let mut moreSegmentReaders = ~[];
+            for segment in segments.slice_from(1).iter() {
+                let segmentReader =
+                    SegmentReader {
+                    messageReader : std::ptr::to_unsafe_ptr(&messageReader),
                     segment: *segment
                 };
-            messageReader.segmentReaders.push(segmentReader);
+                moreSegmentReaders.push(segmentReader);
+            }
+
+            messageReader.moreSegmentReaders = Some(moreSegmentReaders);
         }
 
 
-        f(messageReader)
+        f(&messageReader)
     }
 
 }

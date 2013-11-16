@@ -93,18 +93,29 @@ pub mod InputStreamMessageReader {
 
         let mut result = ~MessageReader {
             segments : segments,
-            segmentReaders : ~[],
+            segmentReader0:
+                SegmentReader {
+                    messageReader : std::ptr::null(),
+                    segment: segment0
+                },
+            moreSegmentReaders : None,
             options : options
         };
 
 
-        for segment in segments.iter() {
-            let segmentReader =
-                SegmentReader {
+        result.segmentReader0.messageReader = std::ptr::to_unsafe_ptr(result);
+
+        if (segmentCount > 1 ) {
+            let mut moreSegmentReaders = ~[];
+            for segment in segments.slice_from(1).iter() {
+                let segmentReader =
+                    SegmentReader {
                     messageReader : std::ptr::to_unsafe_ptr(result),
                     segment: *segment
                 };
-            result.segmentReaders.push(segmentReader);
+                moreSegmentReaders.push(segmentReader);
+            }
+            result.moreSegmentReaders = Some(moreSegmentReaders);
         }
 
         cont(result)
