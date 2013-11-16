@@ -5,7 +5,7 @@
  */
 
 pub struct WireValue<T> {
-    value : T
+    priv value : T
 }
 
 impl<T : Clone> WireValue<T> {

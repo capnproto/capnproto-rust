@@ -114,9 +114,16 @@ impl <'a> Arena<'a> for ReaderArena<'a> {
             return std::ptr::to_unsafe_ptr(&self.segment0);
         } else {
             match self.moreSegments {
-                None => {fail!()}
-                Some(ref v) => {fail!()}
+                None => {fail!("no segments!")}
+                Some(ref segs) => {
+                    unsafe {segs.unsafe_ref(id as uint - 1)}
+                }
             }
         }
     }
+}
+
+pub struct BuilderArena<'a> {
+    message : message::MessageBuilder,
+    segment0 : SegmentBuilder
 }

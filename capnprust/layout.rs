@@ -815,17 +815,17 @@ pub struct StructReader<'a> {
     nestingLimit : int
 }
 
-impl <'self> StructReader<'self>  {
+impl <'a> StructReader<'a>  {
 
-    pub fn newDefault<'a>() -> StructReader<'a> {
+    pub fn newDefault() -> StructReader {
         StructReader { segment : std::ptr::null(),
                        data : std::ptr::null(),
                        pointers : std::ptr::null(), dataSize : 0, pointerCount : 0,
                        bit0Offset : 0, nestingLimit : 0x7fffffff}
     }
 
-    pub fn readRoot<'a>(location : WordCount, segment : *SegmentReader<'a>,
-                        nestingLimit : int) -> StructReader<'a> {
+    pub fn readRoot<'b>(location : WordCount, segment : *SegmentReader<'b>,
+                        nestingLimit : int) -> StructReader<'b> {
         //  the pointer to the struct is at segment[location]
         unsafe {
             // TODO bounds check
@@ -889,8 +889,8 @@ impl <'self> StructReader<'self>  {
     }
 
 
-    pub fn getStructField(&self, ptrIndex : WirePointerCount, defaultValue : Option<&'self [u8]>)
-        -> StructReader<'self> {
+    pub fn getStructField(&self, ptrIndex : WirePointerCount, defaultValue : Option<&'a [u8]>)
+        -> StructReader<'a> {
         let reff : *WirePointer = if (ptrIndex >= self.pointerCount as WirePointerCount)
             { std::ptr::null() }
         else
@@ -904,7 +904,7 @@ impl <'self> StructReader<'self>  {
 
     pub fn getListField(&self,
                         ptrIndex : WirePointerCount, expectedElementSize : FieldSize,
-                        defaultValue : Option<&'self [u8]>) -> ListReader<'self> {
+                        defaultValue : Option<&'a [u8]>) -> ListReader<'a> {
         let reff : *WirePointer =
             if (ptrIndex >= self.pointerCount as WirePointerCount)
             { std::ptr::null() }
@@ -919,7 +919,7 @@ impl <'self> StructReader<'self>  {
     }
 
     pub fn getTextField(&self, ptrIndex : WirePointerCount,
-                        defaultValue : &'self str) -> Text::Reader<'self> {
+                        defaultValue : &'a str) -> Text::Reader<'a> {
         let reff : *WirePointer =
             if (ptrIndex >= self.pointerCount as WirePointerCount) {
                 std::ptr::null()
@@ -1129,9 +1129,9 @@ pub struct ListReader<'a> {
     nestingLimit : int
 }
 
-impl <'self> ListReader<'self> {
+impl <'a> ListReader<'a> {
 
-    pub fn newDefault<'a>() -> ListReader<'a> {
+    pub fn newDefault() -> ListReader {
         ListReader { segment : std::ptr::null(),
                     ptr : std::ptr::null(), elementCount : 0, step: 0, structDataSize : 0,
                     structPointerCount : 0, nestingLimit : 0x7fffffff}
@@ -1140,7 +1140,7 @@ impl <'self> ListReader<'self> {
     #[inline]
     pub fn size(&self) -> ElementCount { self.elementCount }
 
-    pub fn getStructElement(&self, index : ElementCount) -> StructReader<'self> {
+    pub fn getStructElement(&self, index : ElementCount) -> StructReader<'a> {
         assert!(self.nestingLimit > 0,
                 "Message is too deeply-nested or contains cycles");
         let indexBit : BitCount64 = index as ElementCount64 * (self.step as BitCount64);
@@ -1171,7 +1171,7 @@ impl <'self> ListReader<'self> {
     }
 
     pub fn getListElement(&self, _index : ElementCount, _expectedElementSize : FieldSize)
-        -> ListReader<'self> {
+        -> ListReader<'a> {
         fail!("unimplemented")
     }
 }

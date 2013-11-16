@@ -268,7 +268,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let scope = scopeMap.get(&id);
             let theMod = scope.connect("::");
             if (isReader) {
-                return (format!("{}::Reader<'self>", theMod),
+                return (format!("{}::Reader<'a>", theMod),
                         Line(format!("{}::Reader::new(self._reader)", theMod)));
             } else {
                 return (format!("{}::Builder", theMod),
@@ -283,7 +283,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
             let member = if (isReader) { "_reader" } else { "_builder" };
             let module = if (isReader) { "Reader" } else { "Builder" };
-            let moduleWithVar = if (isReader) { "Reader<'self>" } else { "Builder" };
+            let moduleWithVar = if (isReader) { "Reader<'a>" } else { "Builder" };
 
             match typ.which() {
                 Some(Type::Void) => { return (~"()", Line(~"()"))}
@@ -358,7 +358,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                             let theMod = scope.connect("::");
                             let fullModuleName = format!("{}::Reader", theMod);
                             let typeArgs =
-                                if (isReader) {format!("<'self, {}>", fullModuleName)}
+                                if (isReader) {format!("<'a, {}>", fullModuleName)}
                                 else {format!("<{}>", fullModuleName)};
                             return (format!("EnumList::{}{}",module,typeArgs),
                                     Line(format!("EnumList::{}::{}::new(self.{}.getListField({},layout::TWO_BYTES,None))",
@@ -373,7 +373,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                             let typeStr = primTypeStr(primType);
                             let sizeStr = elementSizeStr(elementSize(primType));
                             let typeArgs =
-                                if (isReader) {format!("<'self, {}>", typeStr)}
+                                if (isReader) {format!("<'a, {}>", typeStr)}
                                 else {format!("<{}>", typeStr)};
                             return
                                 (format!("PrimitiveList::{}{}", module, typeArgs),
@@ -654,7 +654,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         }
     }
 
-    let readerString = if (requiresSelfVar) {"Which<'self>"} else {"Which"};
+    let readerString = if (requiresSelfVar) {"Which<'a>"} else {"Which"};
 
     getter_interior.push(Line(~"_ => return None"));
 
@@ -820,8 +820,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
             let accessors =
                 ~[Branch(preamble),
-                  Line(~"pub struct Reader<'self> { _reader : layout::StructReader<'self> }"),
-                  Line(~"impl <'self> Reader<'self> {"),
+                  Line(~"pub struct Reader<'a> { _reader : layout::StructReader<'a> }"),
+                  Line(~"impl <'a> Reader<'a> {"),
                   Indent(
                       ~Branch(
                           ~[Line(~"pub fn new<'a>(reader : layout::StructReader<'a>) \

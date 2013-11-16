@@ -122,9 +122,9 @@ pub struct BufferedOutputStream<'a, W> {
     priv pos: uint
 }
 
-impl<'self, W: Writer> BufferedOutputStream<'self, W> {
+impl<'a, W: Writer> BufferedOutputStream<'a, W> {
 
-    pub fn new<'a> (w : &'a mut W) -> BufferedOutputStream<'a, W> {
+    pub fn new<'b> (w : &'b mut W) -> BufferedOutputStream<'b, W> {
         let mut result = BufferedOutputStream {
             inner: w,
             buf : std::vec::with_capacity(8192),
@@ -156,7 +156,7 @@ impl<'self, W: Writer> BufferedOutputStream<'self, W> {
 }
 
 
-impl<'self, W: Writer> Writer for BufferedOutputStream<'self, W> {
+impl<'a, W: Writer> Writer for BufferedOutputStream<'a, W> {
     #[inline]
     fn write(&mut self, buf: &[u8]) {
         let available = self.buf.len() - self.pos;

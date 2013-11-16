@@ -335,7 +335,6 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
             }
 
             self.inner.write_ptr(bufferBegin, mut_ptr_sub(out, bufferBegin));
-            self.inner.flush();
         }
     }
 
@@ -359,5 +358,6 @@ impl <'a, T: std::io::Writer> WritePacked for WritePackedWrapper<'a, T> {
     fn writePackedMessage(&mut self, message : &MessageBuilder) {
         let mut buffered = io::BufferedOutputStream::new(self.writer);
         buffered.writePackedMessage(message);
+        buffered.flush();
     }
 }
