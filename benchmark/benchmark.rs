@@ -114,8 +114,8 @@ static SCRATCH_SIZE : uint = 128 * 1024;
 
 macro_rules! passByBytes(
     ( $testcase:ident, $compression:ident, $iters:expr ) => ({
-            let mut requestBytes : [u8, .. SCRATCH_SIZE] = [0, .. SCRATCH_SIZE];
-            let mut responseBytes : [u8, .. SCRATCH_SIZE] = [0, .. SCRATCH_SIZE];
+            let mut requestBytes : ~[u8] = std::vec::from_elem(SCRATCH_SIZE * 8, 0u8);
+            let mut responseBytes : ~[u8] = std::vec::from_elem(SCRATCH_SIZE * 8, 0u8);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
                 let mut messageReq = capnprust::message::MessageBuilder::new_default();
