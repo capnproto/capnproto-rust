@@ -108,8 +108,14 @@ macro_rules! passByObject(
         });
     )
 
+
+static SCRATCH_SIZE : uint = 128 * 1024;
+//static scratchSpace : [u8, .. 6 * SCRATCH_SIZE] = [0, .. 6 * SCRATCH_SIZE];
+
 macro_rules! passByBytes(
     ( $testcase:ident, $compression:ident, $iters:expr ) => ({
+            let mut requestBytes : [u8, .. SCRATCH_SIZE] = [0, .. SCRATCH_SIZE];
+            let mut responseBytes : [u8, .. SCRATCH_SIZE] = [0, .. SCRATCH_SIZE];
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
                 let mut messageReq = capnprust::message::MessageBuilder::new_default();
@@ -119,9 +125,10 @@ macro_rules! passByBytes(
                 let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
                 let expected = $testcase::setupRequest(&mut rng, request);
 
-                let requestBytes = do std::io::mem::with_mem_writer |writer| {
-                    $compression::write(writer, messageReq)
-                };
+                {
+                    let mut writer = std::io::mem::BufWriter::new(requestBytes);
+                    $compression::write(&mut writer, messageReq)
+                }
 
                 do $compression::newReader(
                       &mut std::io::mem::BufReader::new(requestBytes),
@@ -130,9 +137,10 @@ macro_rules! passByBytes(
                     $testcase::handleRequest(requestReader, response);
                 }
 
-                let responseBytes = do std::io::mem::with_mem_writer |writer| {
-                    $compression::write(writer, messageRes);
-                };
+                {
+                    let mut writer = std::io::mem::BufWriter::new(responseBytes);
+                    $compression::write(&mut writer, messageRes)
+                }
 
                 do $compression::newReader(
                     &mut std::io::mem::BufReader::new(responseBytes),
