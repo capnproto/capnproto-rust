@@ -276,13 +276,13 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn allocate(reff : &mut *mut WirePointer,
-                    segmentBuilder : &mut *mut SegmentBuilder,
+                    segment : &mut *mut SegmentBuilder,
                     amount : WordCount, kind : WirePointerKind) -> *mut Word {
         let isNull = (**reff).isNull();
         if (!isNull) {
-            zeroObject(*segmentBuilder, *reff)
+            zeroObject(*segment, *reff)
         }
-        match (**segmentBuilder).allocate(amount) {
+        match (**segment).allocate(amount) {
             None => {
 
                 //# Need to allocate in a new segment. We'll need to
@@ -290,24 +290,24 @@ mod WireHelpers {
                 //# the landing pad for a far pointer.
 
                 let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
-                *segmentBuilder = (*(**segmentBuilder).messageBuilder).getSegmentWithAvailable(amountPlusRef);
-                let ptr : *mut Word = (**segmentBuilder).allocate(amountPlusRef).unwrap();
+                *segment = (*(**segment).messageBuilder).getSegmentWithAvailable(amountPlusRef);
+                let ptr : *mut Word = (**segment).allocate(amountPlusRef).unwrap();
 
                 //# Set up the original pointer to be a far pointer to
                 //# the new segment.
-                (**reff).setFar(false, (**segmentBuilder).getWordOffsetTo(ptr));
-                (**reff).farRefMut().segmentId.set((**segmentBuilder).id);
+                (**reff).setFar(false, (**segment).getWordOffsetTo(ptr));
+                (**reff).farRefMut().segmentId.set((**segment).id);
 
                 //# Initialize the landing pad to indicate that the
                 //# data immediately follows the pad.
                 *reff = std::cast::transmute(ptr);
 
                 let ptr1 = ptr.offset(POINTER_SIZE_IN_WORDS as int);
-                (**reff).setKindAndTarget(kind, ptr1, *segmentBuilder);
+                (**reff).setKindAndTarget(kind, ptr1, *segment);
                 return ptr1;
             }
             Some(ptr) => {
-                (**reff).setKindAndTarget(kind, ptr, *segmentBuilder);
+                (**reff).setKindAndTarget(kind, ptr, *segment);
                 return ptr;
             }
         }

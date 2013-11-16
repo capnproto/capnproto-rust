@@ -124,6 +124,12 @@ impl <'a> Arena<'a> for ReaderArena<'a> {
 }
 
 pub struct BuilderArena<'a> {
-    message : message::MessageBuilder,
+    message : *message::MessageBuilder,
     segment0 : SegmentBuilder
+}
+
+impl <'a> Arena<'a> for BuilderArena<'a> {
+    fn tryGetSegment(&self, _id : SegmentId) -> *SegmentReader<'a> {
+        fail!()
+    }
 }
