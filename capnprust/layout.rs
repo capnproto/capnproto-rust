@@ -574,7 +574,7 @@ mod WireHelpers {
         (*reff).listRefMut().set(BYTE, byteSize);
         let dst : *mut u8 = std::cast::transmute(ptr);
         let src : *u8 = bytes.unsafe_ref(0);
-        std::ptr::copy_memory(dst, src, bytes.len());
+        std::ptr::copy_nonoverlapping_memory(dst, src, bytes.len());
 
         // null terminate
         std::ptr::zero_memory(dst.offset(bytes.len() as int), 1);
