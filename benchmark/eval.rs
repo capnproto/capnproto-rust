@@ -24,7 +24,7 @@ pub fn newResponseReader<'a>(sr : capnprust::layout::StructReader<'a>) -> Evalua
 
 fn makeExpression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -> i32 {
     exp.setOp(unsafe {
-            std::cast::transmute(rng.gen_range::<u16>(0, Operation::Modulus as u16 + 1))});
+            std::cast::transmute(rng.nextLessThan( Operation::Modulus as u32 + 1) as u16)});
 
     let left : i32 =
     if (rng.nextLessThan(8) < depth) {

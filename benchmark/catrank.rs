@@ -43,7 +43,7 @@ pub fn setupRequest(rng : &mut FastRand, request : SearchResultList::Builder) ->
         let urlSize = rng.nextLessThan(100) as uint;
 
         // TODO: modify string field in place with Text::Builder?
-        let mut url = ~"http://example.com";
+        let mut url = ~"http://example.com/";
 
         for _ in range(0, urlSize) {
             url.push_char(std::char::from_u32(97 + rng.nextLessThan(26)).unwrap());
