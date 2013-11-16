@@ -46,7 +46,6 @@ fn writeAddressBook() {
     bobPhones[1].setType(Person::PhoneNumber::Type::Work);
     bob.getEmployment().setUnemployed(());
 
-//    capnprust::serialize::writeMessage(&mut std::io::stdout(), message)
     WritePackedWrapper{writer:&mut std::io::stdout()}.writePackedMessage(message);
 }
 
@@ -58,7 +57,6 @@ fn printAddressBook() {
     let mut inp = capnprust::serialize_packed::PackedInputStream {
         inner : &mut capnprust::io::BufferedInputStream::new(&mut inp1)
     };
-//    let mut inp = std::io::stdin();
 
     do capnprust::serialize::InputStreamMessageReader::new(
         &mut inp, capnprust::message::DEFAULT_READER_OPTIONS) |messageReader| {
