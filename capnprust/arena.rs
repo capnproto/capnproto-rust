@@ -18,7 +18,7 @@ pub struct SegmentReader<'self> {
 impl <'self> SegmentReader<'self> {
 
     pub unsafe fn getStartPtr(&self) -> *Word {
-        std::cast::transmute(self.segment.unsafe_ref(0))
+        self.segment.unsafe_ref(0)
     }
 
     pub unsafe fn containsInterval(&self, from : *Word, to : *Word) -> bool {
