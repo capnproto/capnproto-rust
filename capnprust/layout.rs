@@ -362,13 +362,13 @@ mod WireHelpers {
             }
             WP_FAR => {
                 segment = std::ptr::to_mut_unsafe_ptr(
-                    (*(*segment).messageBuilder).segmentBuilders[(*reff).farRef().segmentId.get()]);
+                    &mut(*(*segment).messageBuilder).segmentBuilders[(*reff).farRef().segmentId.get()]);
                 let pad : *mut WirePointer =
                     std::cast::transmute((*segment).getPtrUnchecked((*reff).farPositionInSegment()));
 
                 if ((*reff).isDoubleFar()) {
                     segment = std::ptr::to_mut_unsafe_ptr(
-                        (*(*segment).messageBuilder).segmentBuilders[(*pad).farRef().segmentId.get()]);
+                        &mut(*(*segment).messageBuilder).segmentBuilders[(*pad).farRef().segmentId.get()]);
 
                     zeroObjectHelper(segment,
                                      pad.offset(1),

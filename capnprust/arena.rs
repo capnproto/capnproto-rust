@@ -94,5 +94,29 @@ impl SegmentBuilder {
             }
         }
     }
+}
 
+pub trait Arena<'a> {
+    fn tryGetSegment(&self, id : SegmentId) -> *SegmentReader<'a>;
+}
+
+pub struct ReaderArena<'a> {
+    message : message::MessageReader<'a>,
+    segment0 : SegmentReader<'a>,
+
+    moreSegments : Option<~[SegmentReader<'a>]>
+    //XXX should this be a map as in capnproto-c++?
+}
+
+impl <'a> Arena<'a> for ReaderArena<'a> {
+    fn tryGetSegment(&self, id : SegmentId) -> *SegmentReader<'a> {
+        if (id == 0) {
+            return std::ptr::to_unsafe_ptr(&self.segment0);
+        } else {
+            match self.moreSegments {
+                None => {fail!()}
+                Some(ref v) => {fail!()}
+            }
+        }
+    }
 }

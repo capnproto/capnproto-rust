@@ -20,7 +20,7 @@ pub static DEFAULT_READER_OPTIONS : ReaderOptions =
 pub struct MessageReader<'a> {
     segments : &'a [ &'a [Word]],
     options : ReaderOptions,
-    segmentReaders : ~[~SegmentReader<'a>]
+    segmentReaders : ~[SegmentReader<'a>]
 }
 
 type SegmentId = u32;
@@ -34,7 +34,7 @@ impl <'self> MessageReader<'self> {
 
     #[inline]
     pub unsafe fn getSegmentReader<'a>(&'a self, id : SegmentId) -> *SegmentReader<'a> {
-        std::ptr::to_unsafe_ptr(self.segmentReaders[id])
+        std::ptr::to_unsafe_ptr(&self.segmentReaders[id])
     }
 
     #[inline]
@@ -62,7 +62,7 @@ pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICAL
 pub struct MessageBuilder {
     nextSize : uint,
     allocationStrategy : AllocationStrategy,
-    segmentBuilders : ~[~SegmentBuilder],
+    segmentBuilders : ~[SegmentBuilder],
     segments : ~[~[Word]]
 }
 
@@ -78,7 +78,7 @@ impl MessageBuilder {
         };
 
         let builder =
-            ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(result), firstSegmentWords);
+            SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(result), firstSegmentWords);
 
         result.segments.push(allocate_zeroed_words(firstSegmentWords));
         result.segmentBuilders.push(builder);
@@ -92,11 +92,11 @@ impl MessageBuilder {
 
     pub fn allocateSegment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder {
         let size = std::cmp::max(minimumSize, self.nextSize);
-        let segment = allocate_zeroed_words(size);
-        let mut result = ~SegmentBuilder::new(self, size);
-        let result_ptr = std::ptr::to_mut_unsafe_ptr(result);
-        self.segments.push(segment);
-        self.segmentBuilders.push(result);
+        self.segmentBuilders.push(SegmentBuilder::new(self, size));
+        self.segments.push(allocate_zeroed_words(size));
+        let idx = self.segmentBuilders.len() - 1;
+        let result_ptr = unsafe {
+            self.segmentBuilders.unsafe_mut_ref(idx) };
 
         match self.allocationStrategy {
             GROW_HEURISTICALLY => { self.nextSize += size; }
@@ -109,7 +109,7 @@ impl MessageBuilder {
     pub fn getSegmentWithAvailable(&mut self, minimumAvailable : WordCount)
         -> *mut SegmentBuilder {
         if (self.segmentBuilders.last().available() >= minimumAvailable) {
-            return std::ptr::to_mut_unsafe_ptr(self.segmentBuilders[self.segments.len() - 1]);
+            return std::ptr::to_mut_unsafe_ptr(&mut self.segmentBuilders[self.segments.len() - 1]);
         } else {
             return self.allocateSegment(minimumAvailable);
         }
@@ -118,7 +118,7 @@ impl MessageBuilder {
 
     pub fn initRoot<T : layout::HasStructSize + layout::FromStructBuilder>(&mut self) -> T {
         // Rolled in this stuff form getRootSegment.
-        let rootSegment = std::ptr::to_mut_unsafe_ptr(self.segmentBuilders[0]);
+        let rootSegment = std::ptr::to_mut_unsafe_ptr(&mut self.segmentBuilders[0]);
 
         let unused_self : Option<T> = None;
 
@@ -151,7 +151,7 @@ impl MessageBuilder {
 
         for segment in segments.iter() {
             let segmentReader =
-                ~SegmentReader {
+                SegmentReader {
                     messageReader : std::ptr::to_unsafe_ptr(messageReader),
                     segment: *segment
                 };

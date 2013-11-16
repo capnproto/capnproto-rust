@@ -100,7 +100,7 @@ pub mod InputStreamMessageReader {
 
         for segment in segments.iter() {
             let segmentReader =
-                ~SegmentReader {
+                SegmentReader {
                     messageReader : std::ptr::to_unsafe_ptr(result),
                     segment: *segment
                 };
