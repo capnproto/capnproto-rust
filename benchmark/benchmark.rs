@@ -214,7 +214,7 @@ macro_rules! passByPipe(
             args[2] = ~"client";
 
             let config = process::ProcessConfig {
-                program: "./benchmark/benchmark",
+                program: args[0].as_slice(),
                 args: args.slice(1, args.len()),
                 env : None,
                 cwd: None,
