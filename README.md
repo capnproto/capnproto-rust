@@ -10,7 +10,8 @@ for [Rust](http://www.rust-lang.org).
 
 ## Getting Started
 
-You will need an up-to-date version of Rust from the master branch.
+You will need Cap'n Proto and
+an up-to-date version of Rust from the master branch.
 
 To build capnproto-rust, just type `make` in this directory. This
 should produce the library `libcapnprust`, the compiler plugin
@@ -30,15 +31,7 @@ sign `//#`.)
 
 ## Status
 
-capnproto-rust is a work in progress, and the parts that are done are
-not well tested. The core features are more or less operational,
-including reading and writing of messages, packed serialization, and
-Rust code generation. There are several prominent missing features,
-including non-text blobs and nested lists.
-
-The next major implementation task will probably be to set up some
-benchmarks.
-
+See updates [here](http://dwrensha.github.io/capnproto-rust).
 
 
 
