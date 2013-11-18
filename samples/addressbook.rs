@@ -10,13 +10,13 @@
 
 #[crate_type = "bin"];
 
-extern mod capnprust;
+extern mod capnp;
 
 pub mod addressbook_capnp;
 
 fn writeAddressBook() {
-    use capnprust::message::MessageBuilder;
-    use capnprust::serialize_packed::{WritePackedWrapper, WritePacked};
+    use capnp::message::MessageBuilder;
+    use capnp::serialize_packed::{WritePackedWrapper, WritePacked};
     use addressbook_capnp::{AddressBook, Person};
 
     let mut message = MessageBuilder::new_default();
@@ -50,16 +50,16 @@ fn writeAddressBook() {
 }
 
 fn printAddressBook() {
-    use capnprust;
+    use capnp;
     use addressbook_capnp::{AddressBook, Person};
 
     let mut inp1 = std::io::stdin();
-    let mut inp = capnprust::serialize_packed::PackedInputStream {
-        inner : &mut capnprust::io::BufferedInputStream::new(&mut inp1)
+    let mut inp = capnp::serialize_packed::PackedInputStream {
+        inner : &mut capnp::io::BufferedInputStream::new(&mut inp1)
     };
 
-    do capnprust::serialize::InputStreamMessageReader::new(
-        &mut inp, capnprust::message::DEFAULT_READER_OPTIONS) |messageReader| {
+    do capnp::serialize::InputStreamMessageReader::new(
+        &mut inp, capnp::message::DEFAULT_READER_OPTIONS) |messageReader| {
         let addressBook =
             AddressBook::Reader::new(messageReader.getRoot());
         let people = addressBook.getPeople();

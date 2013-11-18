@@ -8,7 +8,7 @@ extern mod extra;
 
 use std;
 use std::rand::*;
-use capnprust;
+use capnp;
 use common::*;
 use catrank_capnp::*;
 
@@ -16,11 +16,11 @@ pub type RequestBuilder = SearchResultList::Builder;
 pub type ResponseBuilder = SearchResultList::Builder;
 pub type Expectation = int;
 
-pub fn newRequestReader<'a>(sr : capnprust::layout::StructReader<'a>) -> SearchResultList::Reader<'a> {
+pub fn newRequestReader<'a>(sr : capnp::layout::StructReader<'a>) -> SearchResultList::Reader<'a> {
     SearchResultList::Reader::new(sr)
 }
 
-pub fn newResponseReader<'a>(sr : capnprust::layout::StructReader<'a>) -> SearchResultList::Reader<'a> {
+pub fn newResponseReader<'a>(sr : capnp::layout::StructReader<'a>) -> SearchResultList::Reader<'a> {
     SearchResultList::Reader::new(sr)
 }
 

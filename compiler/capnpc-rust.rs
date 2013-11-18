@@ -11,9 +11,9 @@
 
 #[crate_type = "bin"];
 
-extern mod capnprust;
+extern mod capnp;
 
-use capnprust::*;
+use capnp::*;
 
 pub mod schema_capnp;
 
@@ -21,15 +21,15 @@ fn macros() -> ~str {
 ~"macro_rules! list_submodule(
     ( $capnp:ident::$($m:ident)::+ ) => (
         pub mod List {
-            use capnprust;
+            use capnp;
             use $capnp;
 
             pub struct Reader<'a> {
-                reader : capnprust::layout::ListReader<'a>
+                reader : capnp::layout::ListReader<'a>
             }
 
             impl <'a> Reader<'a> {
-                pub fn new<'b>(reader : capnprust::layout::ListReader<'b>) -> Reader<'b> {
+                pub fn new<'b>(reader : capnp::layout::ListReader<'b>) -> Reader<'b> {
                     Reader { reader : reader }
                 }
                 pub fn size(&self) -> uint { self.reader.size() }
@@ -42,11 +42,11 @@ fn macros() -> ~str {
             }
 
             pub struct Builder {
-                builder : capnprust::layout::ListBuilder
+                builder : capnp::layout::ListBuilder
             }
 
             impl Builder {
-                pub fn new(builder : capnprust::layout::ListBuilder) -> Builder {
+                pub fn new(builder : capnp::layout::ListBuilder) -> Builder {
                     Builder {builder : builder}
                 }
                 pub fn size(&self) -> uint { self.builder.size() }
@@ -246,9 +246,9 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 fn generateImportStatements(rootName : &str) -> FormattedText {
     Branch(~[
         Line(~"use std;"),
-        Line(~"use capnprust::blob::{Text, Data};"),
-        Line(~"use capnprust::layout;"),
-        Line(~"use capnprust::list::{PrimitiveList, ToU16, EnumList};"),
+        Line(~"use capnp::blob::{Text, Data};"),
+        Line(~"use capnp::layout;"),
+        Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList};"),
         Line(format!("use {};", rootName))
     ])
 }
@@ -870,7 +870,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let names = scopeMap.get(&nodeId);
             output.push(Line(format!("pub mod {} \\{", *names.last())));
 
-            output.push(Indent(~Line(~"use capnprust::list::{ToU16};")));
+            output.push(Indent(~Line(~"use capnp::list::{ToU16};")));
 
             let mut members = ~[];
             let enumerants = enumReader.getEnumerants();
@@ -925,7 +925,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
 fn main() {
     use std::io::{Writer, File, Truncate, Write};
-    use capnprust::serialize::*;
+    use capnp::serialize::*;
 
     let mut inp = std::io::stdin();
 

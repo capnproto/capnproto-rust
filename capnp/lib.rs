@@ -7,7 +7,8 @@
 #[feature(globs)];
 #[feature(macro_rules)];
 
-#[link(name = "capnprust", vers = "alpha", author = "dwrensha")];
+#[link(name = "capnp", package_id = "capnp",
+       vers = "alpha", author = "dwrensha")];
 
 #[crate_type = "lib"];
 

@@ -11,15 +11,13 @@
 
 #[crate_type = "bin"];
 
-extern mod capnprust;
-
-//use capnprust::*;
+extern mod capnp;
 
 pub mod test_capnp;
 
 #[test]
 fn testPrimList () {
-    use capnprust::message::*;
+    use capnp::message::*;
     use test_capnp::*;
 
     // Make the first segment small to force allocation of a second segment.
@@ -96,7 +94,7 @@ fn testPrimList () {
 #[test]
 fn testBigStruct() {
 
-    use capnprust::message::*;
+    use capnp::message::*;
     use test_capnp::*;
 
     // Make the first segment small to force allocation of a second segment.
@@ -131,7 +129,7 @@ fn testBigStruct() {
 
 #[test]
 fn testComplexList () {
-    use capnprust::message::*;
+    use capnp::message::*;
     use test_capnp::*;
 
     let mut message = MessageBuilder::new_default();

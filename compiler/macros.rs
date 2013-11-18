@@ -12,15 +12,15 @@
 macro_rules! list_submodule(
     ( $capnp:ident::$($m:ident)::+ ) => (
         pub mod List {
-            use capnprust;
+            use capnp;
             use $capnp;
 
             pub struct Reader<'a> {
-                reader : capnprust::layout::ListReader<'a>
+                reader : capnp::layout::ListReader<'a>
             }
 
             impl <'a> Reader<'a> {
-                pub fn new<'b>(reader : capnprust::layout::ListReader<'b>) -> Reader<'b> {
+                pub fn new<'b>(reader : capnp::layout::ListReader<'b>) -> Reader<'b> {
                     Reader { reader : reader }
                 }
                 pub fn size(&self) -> uint { self.reader.size() }
@@ -33,11 +33,11 @@ macro_rules! list_submodule(
             }
 
             pub struct Builder {
-                builder : capnprust::layout::ListBuilder
+                builder : capnp::layout::ListBuilder
             }
 
             impl Builder {
-                pub fn new(builder : capnprust::layout::ListBuilder) -> Builder {
+                pub fn new(builder : capnp::layout::ListBuilder) -> Builder {
                     Builder {builder : builder}
                 }
                 pub fn size(&self) -> uint { self.builder.size() }

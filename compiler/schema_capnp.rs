@@ -7,8 +7,8 @@
 mod macros;
 
 pub mod Node {
-    use capnprust::layout::{StructReader, StructBuilder, StructSize, INLINE_COMPOSITE};
-    use capnprust::blob::Text;
+    use capnp::layout::{StructReader, StructBuilder, StructSize, INLINE_COMPOSITE};
+    use capnp::blob::Text;
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 5, pointers : 5,
                                                       preferredListEncoding : INLINE_COMPOSITE};
@@ -114,7 +114,7 @@ pub mod Node {
     }
 
     pub mod Struct {
-        use capnprust::layout;
+        use capnp::layout;
         use schema_capnp;
 
         pub struct Reader<'self> {
@@ -174,7 +174,7 @@ pub mod Node {
 
     pub mod Enum {
         use schema_capnp;
-        use capnprust::layout;
+        use capnp::layout;
 
         pub struct Reader<'self> {
             _reader : layout::StructReader<'self>
@@ -213,7 +213,7 @@ pub mod Node {
     }
 
     pub mod Interface {
-        use capnprust::layout;
+        use capnp::layout;
 
         pub struct Reader<'self> {
             _reader : layout::StructReader<'self>
@@ -245,7 +245,7 @@ pub mod Node {
     }
 
     pub mod Const {
-        use capnprust::layout;
+        use capnp::layout;
         use schema_capnp;
 
         pub struct Reader<'self> {
@@ -283,7 +283,7 @@ pub mod Node {
     }
 
     pub mod Annotation {
-        use capnprust::layout::*;
+        use capnp::layout::*;
         use schema_capnp::*;
 
         pub struct Reader<'self> {
@@ -365,7 +365,7 @@ pub mod Node {
     }
 
     pub mod NestedNode {
-        use capnprust::layout::*;
+        use capnp::layout::*;
         pub struct Reader<'self> {
             _reader : StructReader<'self>
         }
@@ -400,8 +400,8 @@ pub mod Node {
 }
 
 pub mod Field {
-    use capnprust::layout::*;
-    use capnprust::blob::*;
+    use capnp::layout::*;
+    use capnp::blob::*;
     use schema_capnp::*;
 
     list_submodule!(schema_capnp::Field)
@@ -462,7 +462,7 @@ pub mod Field {
     }
 
     pub mod Slot {
-        use capnprust::layout::*;
+        use capnp::layout::*;
         use schema_capnp::*;
 
         pub struct Reader<'self> {
@@ -489,7 +489,7 @@ pub mod Field {
     }
 
     pub mod Group {
-        use capnprust::layout::*;
+        use capnp::layout::*;
 
         pub struct Reader<'self> {
             _reader : StructReader<'self>
@@ -508,7 +508,7 @@ pub mod Field {
 
 
     pub mod Ordinal {
-        use capnprust::layout::*;
+        use capnp::layout::*;
 
         pub struct Reader<'self> {
             _reader : StructReader<'self>
@@ -537,7 +537,7 @@ pub mod Field {
 }
 
 pub mod Enumerant {
-    use capnprust::layout::*;
+    use capnp::layout::*;
     use schema_capnp::*;
 
     list_submodule!(schema_capnp::Enumerant)
@@ -587,7 +587,7 @@ pub mod Enumerant {
 }
 
 pub mod Method {
-    use capnprust::layout::*;
+    use capnp::layout::*;
 
     pub struct Reader<'self> {
         _reader : StructReader<'self>
@@ -619,7 +619,7 @@ pub mod Method {
 
 
 pub mod Type {
-    use capnprust::layout::*;
+    use capnp::layout::*;
 
     pub struct Reader<'self> {
         _reader : StructReader<'self>
@@ -704,7 +704,7 @@ pub mod Type {
     }
 
     pub mod List_ {
-        use capnprust::layout::*;
+        use capnp::layout::*;
         use schema_capnp::*;
 
 
@@ -724,7 +724,7 @@ pub mod Type {
     }
 
     pub mod Enum {
-        use capnprust::layout::*;
+        use capnp::layout::*;
 
         pub struct Reader<'self> {
             _reader : StructReader<'self>
@@ -742,7 +742,7 @@ pub mod Type {
     }
 
     pub mod Struct {
-        use capnprust::layout::*;
+        use capnp::layout::*;
 
         pub struct Reader<'self> {
             _reader : StructReader<'self>
@@ -760,7 +760,7 @@ pub mod Type {
     }
 
     pub mod Interface {
-        use capnprust::layout::*;
+        use capnp::layout::*;
 
         pub struct Reader<'self> {
             _reader : StructReader<'self>
@@ -781,8 +781,8 @@ pub mod Type {
 }
 
 pub mod Value {
-    use capnprust::layout::*;
-    use capnprust::blob::*;
+    use capnp::layout::*;
+    use capnp::blob::*;
 
     pub struct Reader<'self> {
         _reader : StructReader<'self>
@@ -835,7 +835,7 @@ pub mod Value {
 }
 
 pub mod Annotation {
-    use capnprust::layout::*;
+    use capnp::layout::*;
     use schema_capnp::*;
 
     list_submodule!(schema_capnp::Annotation)
@@ -896,7 +896,7 @@ pub mod ElementSize {
 
 
 pub mod CodeGeneratorRequest {
-    use capnprust::layout::*;
+    use capnp::layout::*;
     use schema_capnp::*;
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 2,
@@ -943,8 +943,8 @@ pub mod CodeGeneratorRequest {
     }
 
     pub mod RequestedFile {
-        use capnprust::layout::*;
-        use capnprust::blob::*;
+        use capnp::layout::*;
+        use capnp::blob::*;
 
         pub static STRUCT_SIZE : StructSize =
             StructSize {data : 1, pointers : 2,
@@ -988,8 +988,8 @@ pub mod CodeGeneratorRequest {
         }
 
         pub mod Import {
-            use capnprust::layout::*;
-            use capnprust::blob::*;
+            use capnp::layout::*;
+            use capnp::blob::*;
 
             pub static STRUCT_SIZE : StructSize =
                 StructSize {data : 1, pointers : 1,

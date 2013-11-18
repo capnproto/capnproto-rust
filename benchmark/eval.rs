@@ -6,7 +6,7 @@
 
 use std;
 use std::rand::*;
-use capnprust;
+use capnp;
 use common::*;
 use eval_capnp::*;
 
@@ -14,11 +14,11 @@ pub type RequestBuilder = Expression::Builder;
 pub type ResponseBuilder = EvaluationResult::Builder;
 pub type Expectation = i32;
 
-pub fn newRequestReader<'a>(sr : capnprust::layout::StructReader<'a>) -> Expression::Reader<'a> {
+pub fn newRequestReader<'a>(sr : capnp::layout::StructReader<'a>) -> Expression::Reader<'a> {
     Expression::Reader::new(sr)
 }
 
-pub fn newResponseReader<'a>(sr : capnprust::layout::StructReader<'a>) -> EvaluationResult::Reader<'a> {
+pub fn newResponseReader<'a>(sr : capnp::layout::StructReader<'a>) -> EvaluationResult::Reader<'a> {
     EvaluationResult::Reader::new(sr)
 }
 
