@@ -14,7 +14,7 @@ You will need Cap'n Proto and
 an up-to-date version of Rust from the master branch.
 
 To build capnproto-rust, just type `make` in this directory. This
-should produce the library `libcapnprust`, the compiler plugin
+should produce the library `libcapnp`, the compiler plugin
 `capnpc-rust`, and the sample program `addressbook`. You can run the
 sample program like this:
 
