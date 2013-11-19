@@ -204,7 +204,7 @@ macro_rules! passByPipe(
     ( $testcase:ident, $compression:ident, $iters:expr) => ({
             use std::io::process;
 
-            // get a rustc crash if we put this in line below
+            // get a rustc crash if we put this inline below
             let io = ~[process::CreatePipe(true, false), // stdin
                        process::CreatePipe(false, true), // stdout
                        process::Ignored];

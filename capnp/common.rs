@@ -61,7 +61,7 @@ pub fn bitsPerElement<T>() -> BitCount0 {
 pub fn allocate_zeroed_words(size : WordCount) -> ~[Word] {
 
 //    Do this, but faster:
-//    return std::vec::from_elem(size, 0u8);
+//    return std::vec::from_elem(size, 0);
 
     let mut result : ~[Word] = std::vec::with_capacity(size);
     unsafe {
