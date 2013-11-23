@@ -12,7 +12,7 @@ COMPILATION_MARKER=capnp/compilation-marker
 all : samples/addressbook
 
 clean :
-	rm -rf capnp/libcapnp* $(COMPILATION_MARKER) compiler/capnpc-rust
+	rm -rf capnp/libcapnp* $(COMPILATION_MARKER) capnpc-rust/capnpc-rust
 	rm -rf benchmark/*_capnp.rs benchmark/benchmark
 
 capnprust : $(COMPILATION_MARKER)
@@ -21,17 +21,17 @@ $(COMPILATION_MARKER) : $(CAPNPRUST_SOURCES)
 	$(RUSTC) capnp/lib.rs
 	touch $(COMPILATION_MARKER)
 
-compiler/capnpc-rust : $(COMPILATION_MARKER) compiler/main.rs compiler/schema_capnp.rs compiler/macros.rs
-	$(RUSTC) -L./capnp compiler/main.rs
+capnpc-rust/capnpc-rust : $(COMPILATION_MARKER) capnpc-rust/main.rs capnpc-rust/schema_capnp.rs capnpc-rust/macros.rs
+	$(RUSTC) -L./capnp capnpc-rust/main.rs
 
-samples/addressbook : compiler/capnpc-rust samples/addressbook.rs
-	capnpc -o ./compiler/capnpc-rust samples/addressbook.capnp
+samples/addressbook : capnpc-rust/capnpc-rust samples/addressbook.rs
+	capnpc -o ./capnpc-rust/capnpc-rust samples/addressbook.capnp
 	$(RUSTC) -L./capnp samples/addressbook.rs
 
-check : compiler/capnpc-rust
-	capnpc -o ./compiler/capnpc-rust compiler/test.capnp
-	$(RUSTC) --test -L./capnp compiler/test.rs
+check : capnpc-rust/capnpc-rust
+	capnpc -o ./capnpc-rust/capnpc-rust capnpc-rust/test.capnp
+	$(RUSTC) --test -L./capnp capnpc-rust/test.rs
 
-benchmark : compiler/capnpc-rust
-	capnpc -o ./compiler/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
+benchmark : capnpc-rust/capnpc-rust
+	capnpc -o ./capnpc-rust/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
 	$(RUSTC) -L./capnp benchmark/benchmark.rs
