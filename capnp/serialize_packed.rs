@@ -74,7 +74,7 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
                         continue;
                     }
 
-                    //# We have at least 1, but not 10, bytes availabe. We need to read
+                    //# We have at least 1, but not 10, bytes available. We need to read
                     //# slowly, doing a bounds check on each byte.
 
                     tag = *inPtr;
