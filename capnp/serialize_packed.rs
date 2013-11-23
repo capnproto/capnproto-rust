@@ -10,17 +10,8 @@ use message::*;
 use serialize::*;
 
 #[inline]
-unsafe fn ptr_sub<T>(p1 : * T, p2 : * T) -> uint {
-    let p1Addr : uint = std::cast::transmute(p1);
-    let p2Addr : uint = std::cast::transmute(p2);
-    return (p1Addr - p2Addr) / std::mem::size_of::<T>();
-}
-
-#[inline]
-unsafe fn mut_ptr_sub <T>(p1 : *mut T, p2 : *mut T) -> uint {
-    let p1Addr : uint = std::cast::transmute(p1);
-    let p2Addr : uint = std::cast::transmute(p2);
-    return (p1Addr - p2Addr) / std::mem::size_of::<T>();
+unsafe fn ptr_sub<T, U:std::ptr::RawPtr<T>>(p1 : U, p2 : U) -> uint {
+    return (p1.to_uint() - p2.to_uint()) / std::mem::size_of::<T>();
 }
 
 pub struct PackedInputStream<'a, 'b,  R> {
@@ -69,13 +60,13 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
 
                 let mut tag : u8;
 
-                assert!(mut_ptr_sub(out, outBuf.unsafe_mut_ref(0)) % 8 == 0,
+                assert!(ptr_sub(out, outBuf.unsafe_mut_ref(0)) % 8 == 0,
                         "Output pointer should always be aligned here.");
 
                 if ptr_sub(inEnd, inPtr) < 10 {
                     if out >= outEnd {
                         self.inner.skip(ptr_sub(inPtr, bufferBegin));
-                        return Some(mut_ptr_sub(out, outBuf.unsafe_mut_ref(0)));
+                        return Some(ptr_sub(out, outBuf.unsafe_mut_ref(0)));
                     }
 
                     if ptr_sub(inEnd, inPtr) == 0 {
@@ -126,7 +117,7 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
                     let runLength : uint = (*inPtr) as uint * 8;
                     inPtr = inPtr.offset(1);
 
-                    assert!(runLength <= mut_ptr_sub(outEnd, out),
+                    assert!(runLength <= ptr_sub(outEnd, out),
                             "Packed input did not end cleanly on a segment boundary");
 
                     std::ptr::set_memory(out, 0, runLength);
@@ -139,7 +130,7 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
                     let mut runLength : uint = (*inPtr) as uint * 8;
                     inPtr = inPtr.offset(1);
 
-                    assert!(runLength <= mut_ptr_sub(outEnd, out),
+                    assert!(runLength <= ptr_sub(outEnd, out),
                             "Packed input did not end cleanly on a segment boundary");
 
                     let inRemaining = ptr_sub(inEnd, inPtr);
@@ -198,11 +189,11 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
 
             while (inPtr < inEnd) {
 
-                if (mut_ptr_sub(bufferEnd, out) < 10) {
+                if (ptr_sub(bufferEnd, out) < 10) {
                     //# Oops, we're out of space. We need at least 10
                     //# bytes for the fast path, since we don't
                     //# bounds-check on every byte.
-                    self.inner.write_ptr(bufferBegin, mut_ptr_sub(out, bufferBegin));
+                    self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
 
                     out = slowBuffer.unsafe_mut_ref(0);
                     bufferEnd = slowBuffer.unsafe_mut_ref(20);
@@ -310,7 +301,7 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
                     *out = (count / 8) as u8;
                     out = out.offset(1);
 
-                    if (count <= mut_ptr_sub(bufferEnd, out)) {
+                    if (count <= ptr_sub(bufferEnd, out)) {
                         //# There's enough space to memcpy.
 
                         let src : *u8 = runStart;
@@ -321,7 +312,7 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
                         //# Input overruns the output buffer. We'll give it
                         //# to the output stream in one chunk and let it
                         //# decide what to do.
-                        self.inner.write_ptr(bufferBegin, mut_ptr_sub(out, bufferBegin));
+                        self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
 
                         do std::vec::raw::buf_as_slice::<u8,()>(runStart, count) |buf| {
                             self.inner.write(buf);
@@ -334,7 +325,7 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
                 }
             }
 
-            self.inner.write_ptr(bufferBegin, mut_ptr_sub(out, bufferBegin));
+            self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
         }
     }
 
