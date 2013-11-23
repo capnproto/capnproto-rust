@@ -271,7 +271,8 @@ mod WireHelpers {
     #[inline]
     pub unsafe fn boundsCheck<'a>(segment : *SegmentReader<'a>,
                                   start : *Word, end : *Word) -> bool {
-        return (*segment).containsInterval(start, end);
+        //# If segment is null, this is an unchecked message, so we don't do bounds checks.
+        return segment.is_null() || (*segment).containsInterval(start, end);
     }
 
     #[inline]
@@ -317,36 +318,38 @@ mod WireHelpers {
     pub unsafe fn followFars<'a>(reff: &mut *WirePointer,
                                  refTarget: *Word,
                                  segment : &mut *SegmentReader<'a>) -> *Word {
-        match (**reff).kind() {
-            WP_FAR => {
+
+        //# If the segment is null, this is an unchecked message,
+        //# so there are no FAR pointers.
+        if !(*segment).is_null() && (**reff).kind() == WP_FAR {
+            *segment =
+                (*(**segment).messageReader).getSegmentReader((**reff).farRef().segmentId.get());
+
+            let ptr : *Word = (**segment).getStartPtr().offset(
+                (**reff).farPositionInSegment() as int);
+
+            let padWords : int = if ((**reff).isDoubleFar()) { 2 } else { 1 };
+            assert!(boundsCheck(*segment, ptr, ptr.offset(padWords)));
+
+            let pad : *WirePointer = std::cast::transmute(ptr);
+
+            if (!(**reff).isDoubleFar() ) {
+                *reff = pad;
+                return (*pad).target();
+            } else {
+                //# Landing pad is another far pointer. It is
+                //# followed by a tag describing the pointed-to
+                //# object.
+
+                *reff = pad.offset(1);
+
                 *segment =
-                    (*(**segment).messageReader).getSegmentReader((**reff).farRef().segmentId.get());
+                    (*(**segment).messageReader).getSegmentReader((*pad).farRef().segmentId.get());
 
-                let ptr : *Word = (**segment).getStartPtr().offset(
-                    (**reff).farPositionInSegment() as int);
-
-                let padWords : int = if ((**reff).isDoubleFar()) { 2 } else { 1 };
-                assert!(boundsCheck(*segment, ptr, ptr.offset(padWords)));
-
-                let pad : *WirePointer = std::cast::transmute(ptr);
-
-                if (!(**reff).isDoubleFar() ) {
-                    *reff = pad;
-                    return (*pad).target();
-                } else {
-                    //# Landing pad is another far pointer. It is
-                    //# followed by a tag describing the pointed-to
-                    //# object.
-
-                    *reff = pad.offset(1);
-
-                    *segment =
-                        (*(**segment).messageReader).getSegmentReader((*pad).farRef().segmentId.get());
-
-                    return (**segment).getStartPtr().offset((*pad).farPositionInSegment() as int);
-                }
+                return (**segment).getStartPtr().offset((*pad).farPositionInSegment() as int);
             }
-            _ => { refTarget }
+        } else {
+            return refTarget;
         }
     }
 
@@ -469,7 +472,7 @@ mod WireHelpers {
     pub unsafe fn getWritableStructPointer(_reff : *mut WirePointer,
                                     _segment : *mut SegmentBuilder,
                                     _size : StructSize,
-                                    _defaultValue : Option<()>) -> StructBuilder {
+                                    _defaultValue : *Word) -> StructBuilder {
         fail!("unimplemented")
     }
 
@@ -544,7 +547,7 @@ mod WireHelpers {
     pub unsafe fn getWritableListPointer(_origRefIndex : *mut WirePointer,
                                          _origSegment : *mut SegmentBuilder,
                                          _elementSize : FieldSize,
-                                         _defaultValue : Option<()>) -> ListBuilder {
+                                         _defaultValue : *Word) -> ListBuilder {
         fail!("unimplemented")
     }
 
@@ -552,7 +555,7 @@ mod WireHelpers {
     pub unsafe fn getWritableStructListPointer(_origRefIndex : *mut WirePointer,
                                                _origSegment : *mut SegmentBuilder,
                                                _elementSize : StructSize,
-                                               _defaultValue : Option<()>) -> ListBuilder {
+                                               _defaultValue : *Word) -> ListBuilder {
         fail!("unimplemented")
     }
 
@@ -590,21 +593,18 @@ mod WireHelpers {
     #[inline]
     pub unsafe fn readStructPointer<'a>(mut segment: *SegmentReader<'a>,
                                         mut reff : *WirePointer,
-                                        defaultValue : Option<&'a [u8]>,
+                                        defaultValue : *Word,
                                         nestingLimit : int) -> StructReader<'a> {
-        if (reff.is_null() || (*reff).isNull()) {
-            match defaultValue {
-                // A default struct value is always stored in its own
-                // static buffer.
-/*                Some (wp) if (! WirePointer::get(wp, 0).isNull()) => {
-                    (0, SegmentReader {messageReader : segment.messageReader,
-                                       segment : wp })
-                } */
-                Some(_) => fail!("struct default values unimplemented"),
-                _ => {
+
+        if ((*reff).isNull()) {
+            if (defaultValue.is_null() ||
+                (*std::cast::transmute::<*Word,*WirePointer>(defaultValue)).isNull()) {
                     return StructReader::newDefault();
-                }
             }
+
+            //segment = std::ptr::null();
+            //reff = std::cast::transmute::<*Word,*WirePointer>(defaultValue);
+            fail!("default struct values unimplemented");
         }
 
         let refTarget : *Word = (*reff).target();
@@ -631,24 +631,16 @@ mod WireHelpers {
     #[inline]
     pub unsafe fn readListPointer<'a>(mut segment: *SegmentReader<'a>,
                                       mut reff : *WirePointer,
-                                      defaultValue : Option<&'a [u8]>,
+                                      defaultValue : *Word,
                                       expectedElementSize : FieldSize,
                                       nestingLimit : int ) -> ListReader<'a> {
 
-        if (reff.is_null() || (*reff).isNull()) {
-            match defaultValue {
-                // A default list value is always stored in its own
-                // static buffer.
-
-                /*Some (wp) if (! WirePointer::get(wp, 0).isNull()) => {
-                    (0, SegmentReader {messageReader : segment.messageReader,
-                                       segment : wp })
-                }*/
-                Some(_) => fail!("default list pointers unimplemented"),
-                _ => {
-                    return ListReader::newDefault();
-                }
+        if ((*reff).isNull()) {
+            if defaultValue.is_null() ||
+                (*std::cast::transmute::<*Word,*WirePointer>(defaultValue)).isNull() {
+                return ListReader::newDefault();
             }
+            fail!("list default values unimplemented");
         }
 
         let refTarget : *Word = (*reff).target();
@@ -832,7 +824,7 @@ impl <'a> StructReader<'a>  {
             let reff : *WirePointer =
                 std::cast::transmute((*segment).segment.unsafe_ref(location));
 
-            WireHelpers::readStructPointer(segment, reff, None, nestingLimit)
+            WireHelpers::readStructPointer(segment, reff, std::ptr::null(), nestingLimit)
         }
     }
 
@@ -889,7 +881,7 @@ impl <'a> StructReader<'a>  {
     }
 
 
-    pub fn getStructField(&self, ptrIndex : WirePointerCount, defaultValue : Option<&'a [u8]>)
+    pub fn getStructField(&self, ptrIndex : WirePointerCount, _defaultValue : Option<&'a [u8]>)
         -> StructReader<'a> {
         let reff : *WirePointer = if (ptrIndex >= self.pointerCount as WirePointerCount)
             { std::ptr::null() }
@@ -898,13 +890,13 @@ impl <'a> StructReader<'a>  {
 
         unsafe {
             WireHelpers::readStructPointer(self.segment, reff,
-                                           defaultValue, self.nestingLimit)
+                                           std::ptr::null(), self.nestingLimit)
         }
     }
 
     pub fn getListField(&self,
                         ptrIndex : WirePointerCount, expectedElementSize : FieldSize,
-                        defaultValue : Option<&'a [u8]>) -> ListReader<'a> {
+                        _defaultValue : Option<&'a [u8]>) -> ListReader<'a> {
         let reff : *WirePointer =
             if (ptrIndex >= self.pointerCount as WirePointerCount)
             { std::ptr::null() }
@@ -913,7 +905,7 @@ impl <'a> StructReader<'a>  {
         unsafe {
             WireHelpers::readListPointer(self.segment,
                                          reff,
-                                         defaultValue,
+                                         std::ptr::null(),
                                          expectedElementSize, self.nestingLimit)
         }
     }
@@ -1032,13 +1024,13 @@ impl StructBuilder {
     //# initialized as a deep copy of the given default value (a flat
     //# message), or to the empty state if defaultValue is nullptr.
     pub fn getStructField(&self, ptrIndex : WirePointerCount, size : StructSize,
-                          defaultValue : Option<()>) -> StructBuilder {
+                          _defaultValue : Option<()>) -> StructBuilder {
         unsafe {
             WireHelpers::getWritableStructPointer(
                 self.pointers.offset(ptrIndex as int),
                 self.segment,
                 size,
-                defaultValue)
+                std::ptr::null())
         }
     }
 
@@ -1062,11 +1054,11 @@ impl StructBuilder {
     //# default value (a flat message). If the default value is null,
     //# an empty list is used.
     pub fn getListField(&self, ptrIndex : WirePointerCount,
-                        elementSize : FieldSize, defaultValue : Option<()>) -> ListBuilder {
+                        elementSize : FieldSize, _defaultValue : Option<()>) -> ListBuilder {
         unsafe {
             WireHelpers::getWritableListPointer(
                 self.pointers.offset(ptrIndex as int),
-                self.segment, elementSize, defaultValue)
+                self.segment, elementSize, std::ptr::null())
         }
     }
 
@@ -1090,12 +1082,12 @@ impl StructBuilder {
     //# list is used.
     pub fn getStructListField(&self, ptrIndex : WirePointerCount,
                               elementSize : StructSize,
-                              defaultValue : Option<()>) -> ListBuilder {
+                              _defaultValue : Option<()>) -> ListBuilder {
         unsafe {
             WireHelpers::getWritableStructListPointer(
                 self.pointers.offset(ptrIndex as int),
                 self.segment, elementSize,
-                defaultValue)
+                std::ptr::null())
         }
     }
 
