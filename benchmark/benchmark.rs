@@ -204,12 +204,6 @@ macro_rules! passByPipe(
     ( $testcase:ident, $compression:ident, $iters:expr) => ({
             use std::io::process;
 
-            // get a rustc crash if we put this inline below
-            let io = ~[process::CreatePipe(true, false), // stdin
-                       process::CreatePipe(false, true), // stdout
-                       process::Ignored];
-
-
             let mut args = std::os::args();
             args[2] = ~"client";
 
@@ -218,7 +212,9 @@ macro_rules! passByPipe(
                 args: args.slice(1, args.len()),
                 env : None,
                 cwd: None,
-                io : io
+                io : [process::CreatePipe(true, false), // stdin
+                      process::CreatePipe(false, true), // stdout
+                      process::Ignored]
             };
             match process::Process::new(config) {
                 Some(ref mut p) => {
