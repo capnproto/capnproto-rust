@@ -242,6 +242,11 @@ macro_rules! doTestcase(
                 ~"object" => passByObject!($testcase, $iters),
                 ~"bytes" => passByBytes!($testcase, $compression, $iters),
                 ~"client" => syncClient!($testcase, $compression, $iters),
+                ~"server" => {
+                    let mut input = std::io::stdin();
+                    let mut output = std::io::stdout();
+                    server!($testcase, $compression, $iters, input, output)
+                }
                 ~"pipe" => passByPipe!($testcase, $compression, $iters),
                 s => fail!("unrecognized mode: {}", s)
             }
