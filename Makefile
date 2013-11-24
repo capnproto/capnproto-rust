@@ -31,6 +31,7 @@ samples/addressbook : capnpc-rust/capnpc-rust samples/addressbook.rs
 check : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust capnpc-rust/test.capnp
 	$(RUSTC) --test -L./capnp capnpc-rust/test.rs
+	./capnpc-rust/test
 
 benchmark : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
