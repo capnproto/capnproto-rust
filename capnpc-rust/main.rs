@@ -168,7 +168,7 @@ fn toLines(ft : &FormattedText, indent : uint) -> ~[~str] {
             return toLines(*ft, indent + 1);
         }
         Branch (ref fts) => {
-            return do fts.flat_map |ft| {toLines(ft, indent)};
+            return fts.flat_map(|ft| {toLines(ft, indent)});
         }
         Line(ref s) => {
             let mut s1 : ~str = std::str::from_chars(
@@ -850,10 +850,10 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                             Indent(~Line(~"Builder { _builder : builder }")),
                             Line(~"}"),
                             BlankLine,
-                            Line(~"pub fn asReader<T>(&self, f : &fn(Reader) -> T) -> T {"),
-                            Indent(~Line(~"do self._builder.asReader |reader| {")),
+                            Line(~"pub fn asReader<T>(&self, f : |Reader| -> T) -> T {"),
+                            Indent(~Line(~"self._builder.asReader( |reader| {")),
                             Indent(~Indent(~Line(~"f(Reader::new(reader))"))),
-                            Indent(~Line(~"}")),
+                            Indent(~Line(~"})")),
                             Line(~"}")
                             ])),
                   Indent(~Branch(builder_members)),
@@ -929,7 +929,7 @@ fn main() {
 
     let mut inp = std::io::stdin();
 
-    do InputStreamMessageReader::new(&mut inp, message::DEFAULT_READER_OPTIONS) | messageReader | {
+    InputStreamMessageReader::new(&mut inp, message::DEFAULT_READER_OPTIONS, |messageReader| {
         let structReader = messageReader.getRoot();
 
         let codeGeneratorRequest =
@@ -995,5 +995,5 @@ fn main() {
                 None => {fail!("could not open file for writing")}
             }
         }
-    }
+    });
 }

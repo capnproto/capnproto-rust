@@ -148,9 +148,9 @@ impl<'a, W: Writer> BufferedOutputStream<'a, W> {
         if easyCase {
             self.pos += size;
         } else {
-            do std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, size) |buf| {
+            std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, size, |buf| {
                 self.write(buf);
-            }
+            })
         }
     }
 }

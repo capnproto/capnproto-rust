@@ -81,11 +81,11 @@ impl SegmentBuilder {
         self.ptr.offset(offset as int)
     }
 
-    pub fn asReader<T>(&mut self, f : &fn(&SegmentReader) -> T) -> T {
+    pub fn asReader<T>(&mut self, f : |&SegmentReader| -> T) -> T {
         unsafe {
-            do (*self.messageBuilder).asReader |messageReader| {
+            (*self.messageBuilder).asReader(|messageReader| {
                 f(&*messageReader.getSegmentReader(self.id))
-            }
+            })
         }
     }
 }

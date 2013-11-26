@@ -16,11 +16,12 @@ pub fn expectPacksTo(unpacked : &[u8],
     // --------
     // write
 
-    let bytes = do std::io::mem::with_mem_writer |writer| {
-        let mut bufferedOutputStream = io::BufferedOutputStream::new(writer);
-        let mut packedOutputStream = PackedOutputStream {inner : &mut bufferedOutputStream};
-        packedOutputStream.write(unpacked);
-    };
+    let bytes = std::io::mem::with_mem_writer(|writer| {
+            let mut bufferedOutputStream = io::BufferedOutputStream::new(writer);
+            let mut packedOutputStream = PackedOutputStream {inner : &mut bufferedOutputStream};
+            packedOutputStream.write(unpacked);
+            packedOutputStream.flush();
+        });
 
     assert!(bytes.slice(0, bytes.len()).equals(&packed),
             "expected: {:?}, got: {:?}", packed, bytes);

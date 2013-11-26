@@ -94,7 +94,7 @@ pub fn handleRequest(request : SearchResultList::Reader,
         scoredResults.push(ScoredResult {score : score, result : result});
     }
 
-    do extra::sort::quick_sort(scoredResults) |v1, v2| {v1.score <= v2.score };
+    extra::sort::quick_sort(scoredResults, |v1, v2| {v1.score <= v2.score });
 
     let list = response.initResults(scoredResults.len());
     for i in range(0, list.size()) {

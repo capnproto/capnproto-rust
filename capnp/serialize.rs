@@ -20,7 +20,7 @@ pub mod InputStreamMessageReader {
 
     pub fn new<U : std::io::Reader, T>(inputStream : &mut U,
                                            options : ReaderOptions,
-                                           cont : &fn(v : &mut MessageReader) -> T) -> T {
+                                           cont : |&mut MessageReader| -> T) -> T {
 
         let firstWord = inputStream.read_bytes(8);
 
@@ -69,9 +69,9 @@ pub mod InputStreamMessageReader {
 
         unsafe {
             let ptr : *mut u8 = std::cast::transmute(ownedSpace.unsafe_mut_ref(0));
-            do std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, bufLen) |buf| {
+            std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, bufLen, |buf| {
                 io::read_at_least(inputStream, buf, bufLen);
-            }
+            })
         }
 
         // TODO lazy reading like in capnp-c++. Is that possible
@@ -142,20 +142,18 @@ pub fn writeMessage<T: std::io::Writer>(outputStream : &mut T,
 
     unsafe {
         let ptr : *u8 = std::cast::transmute(table.unsafe_ref(0));
-        do std::vec::raw::buf_as_slice::<u8,()>(ptr, table.len() * 4) |buf| {
+        std::vec::raw::buf_as_slice::<u8,()>(ptr, table.len() * 4, |buf| {
             outputStream.write(buf);
-        }
+        })
     }
 
     for i in range(0, message.segments.len()) {
         unsafe {
             let ptr : *u8 = std::cast::transmute(message.segments[i].unsafe_ref(0));
-            do std::vec::raw::buf_as_slice::<u8,()>(
+            std::vec::raw::buf_as_slice::<u8,()>(
                 ptr,
-                message.segmentBuilders[i].pos * BYTES_PER_WORD) |buf| {
-
-                outputStream.write(buf);
-            }
+                message.segmentBuilders[i].pos * BYTES_PER_WORD,
+                |buf| { outputStream.write(buf) });
         }
     }
 }

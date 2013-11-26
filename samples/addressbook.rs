@@ -58,8 +58,9 @@ fn printAddressBook() {
         inner : &mut capnp::io::BufferedInputStream::new(&mut inp1)
     };
 
-    do capnp::serialize::InputStreamMessageReader::new(
-        &mut inp, capnp::message::DEFAULT_READER_OPTIONS) |messageReader| {
+    capnp::serialize::InputStreamMessageReader::new(
+        &mut inp, capnp::message::DEFAULT_READER_OPTIONS,
+        |messageReader| {
         let addressBook =
             AddressBook::Reader::new(messageReader.getRoot());
         let people = addressBook.getPeople();
@@ -95,7 +96,7 @@ fn printAddressBook() {
                 None => { }
             }
         }
-    }
+    });
 }
 
 fn main() {

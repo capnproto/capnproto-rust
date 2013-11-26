@@ -30,7 +30,9 @@ samples/addressbook : capnpc-rust/capnpc-rust samples/addressbook.rs
 
 check : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust capnpc-rust/test.capnp
+	$(RUSTC) --test capnp/lib.rs
 	$(RUSTC) --test -L./capnp capnpc-rust/test.rs
+	./capnp/capnp
 	./capnpc-rust/test
 
 benchmark : capnpc-rust/capnpc-rust
