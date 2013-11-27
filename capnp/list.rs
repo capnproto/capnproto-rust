@@ -43,7 +43,7 @@ pub mod PrimitiveList {
 
     impl <T : PrimitiveElement> Index<uint, T> for Builder<T> {
         fn index(&self, index : &uint) -> T {
-            PrimitiveElement::getFromBuilder(&self.builder, *index)
+            PrimitiveElement::get_from_builder(&self.builder, *index)
         }
     }
 }
@@ -95,7 +95,7 @@ pub mod EnumList {
 
     impl <T : ToU16 + FromPrimitive> Index<uint, Option<T>> for Builder<T> {
         fn index(&self, index : &uint) -> Option<T> {
-            let result : u16 = PrimitiveElement::getFromBuilder(&self.builder, *index);
+            let result : u16 = PrimitiveElement::get_from_builder(&self.builder, *index);
             FromPrimitive::from_u16(result)
         }
     }

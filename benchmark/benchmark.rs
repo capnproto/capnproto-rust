@@ -30,7 +30,7 @@ mod Uncompressed {
 
     pub fn write<T : std::io::Writer>(writer: &mut T,
                                       message: &capnp::message::MessageBuilder) {
-        capnp::serialize::writeMessage(writer, message);
+        capnp::serialize::write_message(writer, message);
     }
 
     pub fn newReader<U : std::io::Reader, T>(
@@ -56,7 +56,7 @@ mod Packed {
     pub fn write<T : std::io::Writer>(writer: &mut T,
                                       message: &capnp::message::MessageBuilder) {
         let mut w = WritePackedWrapper{writer: writer};
-        w.writePackedMessage(message);
+        w.write_packed_message(message);
     }
 
     pub fn newReader<U : std::io::Reader, T>(
@@ -295,6 +295,4 @@ pub fn main () {
         ~"packed" => doTestcase1!(args[1], args[2], args[3], Packed, iters),
         s => fail!("unrecognized compression: {}", s)
     }
-
-
 }

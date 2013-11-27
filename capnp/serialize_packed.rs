@@ -333,22 +333,22 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
 }
 
 pub trait WritePacked {
-    fn writePackedMessage(&mut self, message : &MessageBuilder);
+    fn write_packed_message(&mut self, message : &MessageBuilder);
 }
 
 impl <'self, T : std::io::Writer> WritePacked for io::BufferedOutputStream<'self, T> {
-    fn writePackedMessage(&mut self, message : &MessageBuilder) {
+    fn write_packed_message(&mut self, message : &MessageBuilder) {
         let mut packedOutputStream = PackedOutputStream {inner : self};
-        writeMessage(&mut packedOutputStream, message);
+        write_message(&mut packedOutputStream, message);
     }
 }
 
 pub struct WritePackedWrapper<'a, T> {writer : &'a mut T }
 
 impl <'a, T: std::io::Writer> WritePacked for WritePackedWrapper<'a, T> {
-    fn writePackedMessage(&mut self, message : &MessageBuilder) {
+    fn write_packed_message(&mut self, message : &MessageBuilder) {
         let mut buffered = io::BufferedOutputStream::new(self.writer);
-        buffered.writePackedMessage(message);
+        buffered.write_packed_message(message);
         buffered.flush();
     }
 }

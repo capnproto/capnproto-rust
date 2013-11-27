@@ -46,7 +46,7 @@ fn write_address_book() {
     bob_phones[1].set_type(Person::PhoneNumber::Type::Work);
     bob.get_employment().set_unemployed(());
 
-    WritePackedWrapper{writer:&mut std::io::stdout()}.writePackedMessage(message);
+    WritePackedWrapper{writer:&mut std::io::stdout()}.write_packed_message(message);
 }
 
 fn print_address_book() {

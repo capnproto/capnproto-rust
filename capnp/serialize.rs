@@ -122,8 +122,8 @@ pub mod InputStreamMessageReader {
     }
 }
 
-pub fn writeMessage<T: std::io::Writer>(outputStream : &mut T,
-                                            message : &MessageBuilder) {
+pub fn write_message<T: std::io::Writer>(outputStream : &mut T,
+                                        message : &MessageBuilder) {
 
     let tableSize : uint = ((message.segments.len() + 2) & (!1));
 

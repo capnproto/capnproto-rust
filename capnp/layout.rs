@@ -1214,7 +1214,7 @@ pub trait PrimitiveElement : Clone {
     }
 
     #[inline]
-    fn getFromBuilder(listBuilder : &ListBuilder, index : ElementCount) -> Self {
+    fn get_from_builder(listBuilder : &ListBuilder, index : ElementCount) -> Self {
         unsafe {
             let ptr : *mut WireValue<Self> =
                 std::cast::transmute(
@@ -1259,7 +1259,7 @@ impl PrimitiveElement for bool {
         }
     }
     #[inline]
-    fn getFromBuilder(list : &ListBuilder, index : ElementCount) -> bool {
+    fn get_from_builder(list : &ListBuilder, index : ElementCount) -> bool {
         //# Ignore stepBytes for bit lists because bit lists cannot be
         //# upgraded to struct lists.
         let bindex : BitCount0 = index * list.step;
@@ -1283,7 +1283,7 @@ impl PrimitiveElement for () {
     fn get(_list : &ListReader, _index : ElementCount) -> () { () }
 
     #[inline]
-    fn getFromBuilder(_list : &ListBuilder, _index : ElementCount) -> () { () }
+    fn get_from_builder(_list : &ListBuilder, _index : ElementCount) -> () { () }
 
     #[inline]
     fn set(_list : &ListBuilder, _index : ElementCount, _value : ()) { }
