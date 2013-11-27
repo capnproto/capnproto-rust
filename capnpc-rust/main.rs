@@ -117,24 +117,15 @@ fn primTypeStr (typ : schema_capnp::Type::Which) -> ~str {
 
 fn camelCaseToAllCaps(s : &str) -> ~str {
     use std::ascii::*;
-    let bytes = s.as_bytes();
-    let mut result_bytes : ~[u8] = ~[];
-    for &b in bytes.iter() {
-
-        // strings will be null-terminated
-        if (b != 0) {
-            let c = b as char;
-            assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
-            if (std::char::is_uppercase(c)) {
-                result_bytes.push('_' as u8);
-            }
-
-            let b1 = b.to_ascii().to_upper().to_byte();
-
-            result_bytes.push(b1);
+    let mut result_chars : ~[char] = ~[];
+    for c in s.chars() {
+        assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
+        if (std::char::is_uppercase(c)) {
+            result_chars.push('_');
         }
+        result_chars.push((c as u8).to_ascii().to_upper().to_char());
     }
-    return std::str::from_utf8(result_bytes);
+    return std::str::from_chars(result_chars);
 }
 
 fn camel_to_snake_case(s : &str) -> ~str {
@@ -145,7 +136,6 @@ fn camel_to_snake_case(s : &str) -> ~str {
         if (std::char::is_uppercase(c)) {
             result_chars.push('_');
         }
-
         result_chars.push((c as u8).to_ascii().to_lower().to_char());
     }
     return std::str::from_chars(result_chars);
