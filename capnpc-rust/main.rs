@@ -141,15 +141,12 @@ fn camel_to_snake_case(s : &str) -> ~str {
     return std::str::from_chars(result_chars);
 }
 
-fn capitalizeFirstLetter(s : &str) -> ~str {
+fn capitalize_first_letter(s : &str) -> ~str {
     use std::ascii::*;
-    let bytes = s.as_bytes();
-    let mut result_bytes : ~[u8] = ~[];
-    for &b in bytes.iter() {
-        result_bytes.push(b);
-    }
-    result_bytes[0] = result_bytes[0].to_ascii().to_upper().to_byte();
-    return std::str::from_utf8(result_bytes);
+    let mut result_chars : ~[char] = ~[];
+    for c in s.chars() { result_chars.push(c) }
+    result_chars[0] = (result_chars[0] as u8).to_ascii().to_upper().to_char();
+    return std::str::from_chars(result_chars);
 }
 
 #[test]
@@ -220,7 +217,7 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
         let nestedNode = nestedNodes[ii];
         let id = nestedNode.get_id();
 
-        let name = capitalizeFirstLetter(nestedNode.get_name());
+        let name = capitalize_first_letter(nestedNode.get_name());
 
         let scopeNames = match scopeMap.find(&nodeId) {
             Some(names) => appendName(*names, name),
@@ -238,7 +235,7 @@ fn populateScopeMap(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                 match field.which() {
                     Some(schema_capnp::Field::Group(group)) => {
                         let id = group.get_type_id();
-                        let name = capitalizeFirstLetter(field.get_name());
+                        let name = capitalize_first_letter(field.get_name());
                         let scopeNames = match scopeMap.find(&nodeId) {
                             Some(names) => appendName(*names, name),
                             None => ~[rootName.to_owned(), name]
@@ -632,7 +629,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         let dvalue = field.get_discriminant_value() as uint;
 
         let fieldName = field.get_name();
-        let enumerantName = capitalizeFirstLetter(fieldName);
+        let enumerantName = capitalize_first_letter(fieldName);
 
         let (ty, get) = getterText(nodeMap, scopeMap, field, true);
 
@@ -880,7 +877,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             for ii in range(0, enumerants.size()) {
                 let enumerant = enumerants[ii];
                 members.push(
-                    Line(format!("{} = {},", capitalizeFirstLetter(enumerant.get_name()),
+                    Line(format!("{} = {},", capitalize_first_letter(enumerant.get_name()),
                               ii)));
             }
 
