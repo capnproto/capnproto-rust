@@ -26,19 +26,19 @@ fn testPrimList () {
 
     let testPrimList = message.initRoot::<TestPrimList::Builder>();
 
-    let uint8List = testPrimList.initUint8List(100);
+    let uint8_list = testPrimList.init_uint8_list(100);
 
-    for i in range(0, uint8List.size()) {
-        uint8List.set(i, i as u8);
+    for i in range(0, uint8_list.size()) {
+        uint8_list.set(i, i as u8);
     }
 
-    let uint64List = testPrimList.initUint64List(20);
+    let uint64List = testPrimList.init_uint64_list(20);
 
     for i in range(0, uint64List.size()) {
         uint64List.set(i, i as u64);
     }
 
-    let boolList = testPrimList.initBoolList(65);
+    let boolList = testPrimList.init_bool_list(65);
 
     boolList.set(0, true);
     boolList.set(1, true);
@@ -55,20 +55,20 @@ fn testPrimList () {
     assert!(boolList[64]);
 
 
-    let voidList = testPrimList.initVoidList(1025);
+    let voidList = testPrimList.init_void_list(1025);
     voidList.set(257, ());
 
     testPrimList.asReader(|testPrimListReader| {
-        let uint8List = testPrimListReader.getUint8List();
+        let uint8List = testPrimListReader.get_uint8_list();
         for i in range(0, uint8List.size()) {
             assert!(uint8List[i] == i as u8);
         }
-        let uint64List = testPrimListReader.getUint64List();
+        let uint64List = testPrimListReader.get_uint64_list();
         for i in range(0, uint64List.size()) {
             assert!(uint64List[i] == i as u64);
         }
 
-        let boolList = testPrimListReader.getBoolList();
+        let boolList = testPrimListReader.get_bool_list();
         assert!(boolList[0]);
         assert!(boolList[1]);
         assert!(boolList[2]);
@@ -87,7 +87,7 @@ fn testPrimList () {
         assert!(boolList[64]);
 
 
-        assert!(testPrimListReader.getVoidList().size() == 1025);
+        assert!(testPrimListReader.get_void_list().size() == 1025);
     });
 }
 
@@ -99,30 +99,30 @@ fn testBigStruct() {
 
     // Make the first segment small to force allocation of a second segment.
     let mut message = MessageBuilder::new(5,
-                                      SUGGESTED_ALLOCATION_STRATEGY);
+                                          SUGGESTED_ALLOCATION_STRATEGY);
 
     let bigStruct = message.initRoot::<BigStruct::Builder>();
 
-    bigStruct.setBoolField(false);
-    bigStruct.setInt8Field(-128);
-    bigStruct.setInt16Field(0);
-    bigStruct.setInt32Field(1009);
+    bigStruct.set_bool_field(false);
+    bigStruct.set_int8_field(-128);
+    bigStruct.set_int16_field(0);
+    bigStruct.set_int32_field(1009);
 
-    let inner = bigStruct.initStructField();
-    inner.setFloat64Field(0.1234567);
+    let inner = bigStruct.init_struct_field();
+    inner.set_float64_field(0.1234567);
 
-    inner.setBoolFieldB(true);
+    inner.set_bool_field_b(true);
 
-    bigStruct.setBoolField(true);
+    bigStruct.set_bool_field(true);
 
     bigStruct.asReader(|bigStructReader| {
-        assert!(bigStructReader.getInt8Field() == -128);
-        assert!(bigStructReader.getInt32Field() == 1009);
+        assert!(bigStructReader.get_int8_field() == -128);
+        assert!(bigStructReader.get_int32_field() == 1009);
 
-        let innerReader = bigStructReader.getStructField();
-        assert!(!innerReader.getBoolFieldA());
-        assert!(innerReader.getBoolFieldB());
-        assert!(innerReader.getFloat64Field() == 0.1234567);
+        let innerReader = bigStructReader.get_struct_field();
+        assert!(!innerReader.get_bool_field_a());
+        assert!(innerReader.get_bool_field_b());
+        assert!(innerReader.get_float64_field() == 0.1234567);
     });
 
 }
@@ -136,7 +136,7 @@ fn testComplexList () {
 
     let testComplexList = message.initRoot::<TestComplexList::Builder>();
 
-    let enumList = testComplexList.initEnumList(100);
+    let enumList = testComplexList.init_enum_list(100);
 
     for i in range::<uint>(0, 10) {
         enumList.set(i, AnEnum::Qux);
@@ -146,7 +146,7 @@ fn testComplexList () {
     }
 
     testComplexList.asReader(|complexListReader| {
-        let enumListReader = complexListReader.getEnumList();
+        let enumListReader = complexListReader.get_enum_list();
         for i in range::<uint>(0,10) {
             match enumListReader[i] {
                 Some(AnEnum::Qux) => {}

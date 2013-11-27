@@ -452,7 +452,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
         Some(Field::Group(group)) => {
             let scope = scopeMap.get(&group.get_type_id());
             let theMod = scope.connect("::");
-            result.push(Line(format!("pub fn init{}(&self) -> {}::Builder \\{",
+            result.push(Line(format!("pub fn init_{}(&self) -> {}::Builder \\{",
                                      capName, theMod )));
             // XXX todo: zero out all of the fields.
             interior.push(Line(format!("{}::Builder::new(self.builder)", theMod)));
@@ -462,54 +462,54 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
 
             match regField.get_type().which() {
                 Some(Type::Void) => {
-                    result.push(Line(format!("pub fn set{}(&self, _value : ()) \\{",capName)))
+                    result.push(Line(format!("pub fn set_{}(&self, _value : ()) \\{",capName)))
                 }
                 Some(Type::Bool) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : bool) \\{", capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : bool) \\{", capName)));
                     interior.push(Line(format!("self.builder.setBoolField({}, value);", offset)))
                 }
                 Some(Type::Int8) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : i8) \\{", capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : i8) \\{", capName)));
                     interior.push(Line(format!("self.builder.setDataField::<i8>({}, value);", offset)))
                 }
                 Some(Type::Int16) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : i16) \\{",capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : i16) \\{",capName)));
                     interior.push(Line(format!("self.builder.setDataField::<i16>({}, value);", offset)))
                 }
                 Some(Type::Int32) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : i32) \\{",capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : i32) \\{",capName)));
                     interior.push(Line(format!("self.builder.setDataField::<i32>({}, value);", offset)))
                 }
                 Some(Type::Int64) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : i64) \\{",capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : i64) \\{",capName)));
                     interior.push(Line(format!("self.builder.setDataField::<i64>({}, value);", offset)))
                 }
                 Some(Type::Uint8) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : u8) \\{",capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : u8) \\{",capName)));
                     interior.push(Line(format!("self.builder.setDataField::<u8>({}, value);", offset)))
                 }
                 Some(Type::Uint16) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : u16) \\{",capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : u16) \\{",capName)));
                     interior.push(Line(format!("self.builder.setDataField::<u16>({}, value);", offset)))
                 }
                 Some(Type::Uint32) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : u32) \\{",capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : u32) \\{",capName)));
                     interior.push(Line(format!("self.builder.setDataField::<u32>({}, value);", offset)))
                 }
                 Some(Type::Uint64) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : u64) \\{",capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : u64) \\{",capName)));
                     interior.push(Line(format!("self.builder.setDataField::<u64>({}, value);", offset)))
                 }
                 Some(Type::Float32) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : f32) \\{",capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : f32) \\{",capName)));
                     interior.push(Line(format!("self.builder.setDataField::<f32>({}, value);", offset)))
                 }
                 Some(Type::Float64) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : f64) \\{",capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : f64) \\{",capName)));
                     interior.push(Line(format!("self.builder.setDataField::<f64>({}, value);", offset)))
                 }
                 Some(Type::Text) => {
-                    result.push(Line(format!("pub fn set{}(&self, value : &str) \\{",capName)));
+                    result.push(Line(format!("pub fn set_{}(&self, value : &str) \\{",capName)));
                     interior.push(Line(format!("self.builder.setTextField({}, value);", offset)))
                 }
                 Some(Type::Data) => { return BlankLine }
@@ -565,7 +565,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                 }
                                 _ => { ~"" }
                             };
-                            result.push(Line(format!("pub fn init{}(&self, size : uint) -> {} \\{",
+                            result.push(Line(format!("pub fn init_{}(&self, size : uint) -> {} \\{",
                                                   capName, returnType)))
                        }
                     }
@@ -574,7 +574,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                     let id = e.get_type_id();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
-                    result.push(Line(format!("pub fn set{}(&self, value : {}::Reader) \\{",
+                    result.push(Line(format!("pub fn set_{}(&self, value : {}::Reader) \\{",
                                           capName, theMod)));
                     interior.push(
                                   Line(format!("self.builder.setDataField::<u16>({}, value as u16)",
@@ -584,7 +584,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                     let id = st.get_type_id();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
-                    result.push(Line(format!("pub fn init{}(&self) -> {}::Builder \\{",capName,theMod)));
+                    result.push(Line(format!("pub fn init_{}(&self) -> {}::Builder \\{",capName,theMod)));
                     interior.push(
                       Line(format!("{}::Builder::new(self.builder.initStructField({}, {}::STRUCT_SIZE))",
                                 theMod, offset, theMod)));
@@ -755,7 +755,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             for ii in range(0, fields.size()) {
                 let field = fields[ii];
                 let name = field.get_name();
-                let capName = capitalizeFirstLetter(name);
+                let capName = camel_to_snake_case(name);
 
                 let discriminantValue = field.get_discriminant_value();
                 let isUnionField = (discriminantValue != 0xffff);
@@ -766,7 +766,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     reader_members.push(
                            Branch(~[
                               Line(~"#[inline]"),
-                              Line(format!("pub fn get{}(&self) -> {} \\{", capName, ty)),
+                              Line(format!("pub fn get_{}(&self) -> {} \\{", capName, ty)),
                               Indent(~get),
                               Line(~"}")
                                     ])
@@ -777,7 +777,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     builder_members.push(
                                      Branch(~[
                                               Line(~"#[inline]"),
-                                              Line(format!("pub fn get{}(&self) -> {} \\{", capName, tyB)),
+                                              Line(format!("pub fn get_{}(&self) -> {} \\{", capName, tyB)),
                                               Indent(~getB),
                                               Line(~"}")
                                               ])

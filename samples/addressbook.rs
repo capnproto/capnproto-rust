@@ -14,42 +14,42 @@ extern mod capnp;
 
 pub mod addressbook_capnp;
 
-fn writeAddressBook() {
+fn write_address_book() {
     use capnp::message::MessageBuilder;
     use capnp::serialize_packed::{WritePackedWrapper, WritePacked};
     use addressbook_capnp::{AddressBook, Person};
 
     let mut message = MessageBuilder::new_default();
 
-    let addressbook = message.initRoot::<AddressBook::Builder>();
+    let address_book = message.initRoot::<AddressBook::Builder>();
 
-    let people = addressbook.initPeople(2);
+    let people = address_book.init_people(2);
 
     let alice = people[0];
-    alice.setId(123);
-    alice.setName("Alice");
-    alice.setEmail("alice@example.com");
+    alice.set_id(123);
+    alice.set_name("Alice");
+    alice.set_email("alice@example.com");
 
-    let alicePhones = alice.initPhones(1);
-    alicePhones[0].setNumber("555-1212");
-    alicePhones[0].setType(Person::PhoneNumber::Type::Mobile);
-    alice.getEmployment().setSchool("MIT");
+    let alicePhones = alice.init_phones(1);
+    alicePhones[0].set_number("555-1212");
+    alicePhones[0].set_type(Person::PhoneNumber::Type::Mobile);
+    alice.get_employment().set_school("MIT");
 
     let bob = people[1];
-    bob.setId(456);
-    bob.setName("Bob");
-    bob.setEmail("bob@example.com");
-    let bobPhones = bob.initPhones(2);
-    bobPhones[0].setNumber("555-4567");
-    bobPhones[0].setType(Person::PhoneNumber::Type::Home);
-    bobPhones[1].setNumber("555-7654");
-    bobPhones[1].setType(Person::PhoneNumber::Type::Work);
-    bob.getEmployment().setUnemployed(());
+    bob.set_id(456);
+    bob.set_name("Bob");
+    bob.set_email("bob@example.com");
+    let bob_phones = bob.init_phones(2);
+    bob_phones[0].set_number("555-4567");
+    bob_phones[0].set_type(Person::PhoneNumber::Type::Home);
+    bob_phones[1].set_number("555-7654");
+    bob_phones[1].set_type(Person::PhoneNumber::Type::Work);
+    bob.get_employment().set_unemployed(());
 
     WritePackedWrapper{writer:&mut std::io::stdout()}.writePackedMessage(message);
 }
 
-fn printAddressBook() {
+fn print_address_book() {
     use capnp;
     use addressbook_capnp::{AddressBook, Person};
 
@@ -63,24 +63,24 @@ fn printAddressBook() {
         |messageReader| {
         let addressBook =
             AddressBook::Reader::new(messageReader.getRoot());
-        let people = addressBook.getPeople();
+        let people = addressBook.get_people();
 
         for i in range(0, people.size()) {
             let person = people[i];
-            println!("{}: {}", person.getName(), person.getEmail());
-            let phones = person.getPhones();
+            println!("{}: {}", person.get_name(), person.get_email());
+            let phones = person.get_phones();
             for j in range(0, phones.size()) {
                 let phone = phones[j];
-                let typeName = match phone.getType() {
+                let typeName = match phone.get_type() {
                     Some(Person::PhoneNumber::Type::Mobile) => {"mobile"}
                     Some(Person::PhoneNumber::Type::Home) => {"home"}
                     Some(Person::PhoneNumber::Type::Work) => {"work"}
                     None => {"UNKNOWN"}
                 };
-                println!("  {} phone: {}", typeName, phone.getNumber());
+                println!("  {} phone: {}", typeName, phone.get_number());
 
             }
-            match person.getEmployment().which() {
+            match person.get_employment().which() {
                 Some(Person::Employment::Unemployed(())) => {
                     println("  unemployed");
                 }
@@ -106,8 +106,8 @@ fn main() {
         println!("usage: $ {} [write | read]", args[0]);
     } else {
         match args[1] {
-            ~"write" => writeAddressBook(),
-            ~"read" => printAddressBook(),
+            ~"write" => write_address_book(),
+            ~"read" => print_address_book(),
             _ => {println("unrecognized argument") }
         }
     }

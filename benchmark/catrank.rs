@@ -35,11 +35,11 @@ pub fn setupRequest(rng : &mut FastRand, request : SearchResultList::Builder) ->
     let count = rng.nextLessThan(1000) as uint;
     let mut goodCount : int = 0;
 
-    let list = request.initResults(count);
+    let list = request.init_results(count);
 
     for i in range(0, count) {
         let result = list[i];
-        result.setScore(1000.0 - i as f64);
+        result.set_score(1000.0 - i as f64);
         let urlSize = rng.nextLessThan(100) as uint;
 
         // TODO: modify string field in place with Text::Builder?
@@ -49,7 +49,7 @@ pub fn setupRequest(rng : &mut FastRand, request : SearchResultList::Builder) ->
             url.push_char(std::char::from_u32(97 + rng.nextLessThan(26)).unwrap());
         }
 
-        result.setUrl(url);
+        result.set_url(url);
 
         let isCat = rng.nextLessThan(8) == 0;
         let isDog = rng.nextLessThan(8) == 0;
@@ -71,7 +71,7 @@ pub fn setupRequest(rng : &mut FastRand, request : SearchResultList::Builder) ->
             snippet.push_str(WORDS[rng.nextLessThan(WORDS.len() as u32)]);
         }
 
-        result.setSnippet(snippet);
+        result.set_snippet(snippet);
     }
 
     goodCount
@@ -81,14 +81,14 @@ pub fn handleRequest(request : SearchResultList::Reader,
                      response : SearchResultList::Builder) {
     let mut scoredResults : ~[ScoredResult] = ~[];
 
-    let results = request.getResults();
+    let results = request.get_results();
     for i in range(0, results.size()) {
         let result = results[i];
-        let mut score = result.getScore();
-        if (result.getSnippet().contains(" cat ")) {
+        let mut score = result.get_score();
+        if (result.get_snippet().contains(" cat ")) {
             score *= 10000.0;
         }
-        if (result.getSnippet().contains(" dog ")) {
+        if (result.get_snippet().contains(" dog ")) {
             score /= 10000.0;
         }
         scoredResults.push(ScoredResult {score : score, result : result});
@@ -96,22 +96,22 @@ pub fn handleRequest(request : SearchResultList::Reader,
 
     extra::sort::quick_sort(scoredResults, |v1, v2| {v1.score <= v2.score });
 
-    let list = response.initResults(scoredResults.len());
+    let list = response.init_results(scoredResults.len());
     for i in range(0, list.size()) {
         let item = list[i];
         let result = scoredResults[i];
-        item.setScore(result.score);
-        item.setUrl(result.result.getUrl());
-        item.setSnippet(result.result.getSnippet());
+        item.set_score(result.score);
+        item.set_url(result.result.get_url());
+        item.set_snippet(result.result.get_snippet());
     }
 }
 
 pub fn checkResponse(response : SearchResultList::Reader, expectedGoodCount : int) -> bool {
     let mut goodCount : int = 0;
-    let results = response.getResults();
+    let results = response.get_results();
     for i in range(0, results.size()) {
         let result = results[i];
-        if (result.getScore() > 1001.0) {
+        if (result.get_score() > 1001.0) {
             goodCount += 1;
         } else {
             break;

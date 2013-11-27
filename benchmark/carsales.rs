@@ -25,22 +25,22 @@ pub fn newResponseReader<'a>(sr : capnp::layout::StructReader<'a>) -> TotalValue
 
 pub fn carValue (car : Car::Reader) -> u64 {
     let mut result : u64 = 0;
-    result += car.getSeats() as u64 * 200;
-    result += car.getDoors() as u64 * 350;
+    result += car.get_seats() as u64 * 200;
+    result += car.get_doors() as u64 * 350;
 
     // TODO Lists should have iterators.
-    for i in range(0, car.getWheels().size()) {
-        let wheel = car.getWheels()[i];
-        result += wheel.getDiameter() as u64 * wheel.getDiameter() as u64;
-        result += if (wheel.getSnowTires()) { 100 } else { 0 };
+    for i in range(0, car.get_wheels().size()) {
+        let wheel = car.get_wheels()[i];
+        result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
+        result += if (wheel.get_snow_tires()) { 100 } else { 0 };
     }
 
-    result += car.getLength() as u64 * car.getWidth() as u64 * car.getHeight() as u64 / 50;
+    result += car.get_length() as u64 * car.get_width() as u64 * car.get_height() as u64 / 50;
 
-    let engine = car.getEngine();
-    result += engine.getHorsepower() as u64 * 40;
-    if (engine.getUsesElectric()) {
-        if (engine.getUsesGas()) {
+    let engine = car.get_engine();
+    result += engine.get_horsepower() as u64 * 40;
+    if (engine.get_uses_electric()) {
+        if (engine.get_uses_gas()) {
             //# hybrid
             result += 5000;
         } else {
@@ -48,12 +48,12 @@ pub fn carValue (car : Car::Reader) -> u64 {
         }
     }
 
-    result += if (car.getHasPowerWindows()) { 100 } else { 0 };
-    result += if (car.getHasPowerSteering()) { 200 } else { 0 };
-    result += if (car.getHasCruiseControl()) { 400 } else { 0 };
-    result += if (car.getHasNavSystem()) { 2000 } else { 0 };
+    result += if (car.get_has_power_windows()) { 100 } else { 0 };
+    result += if (car.get_has_power_steering()) { 200 } else { 0 };
+    result += if (car.get_has_cruise_control()) { 400 } else { 0 };
+    result += if (car.get_has_nav_system()) { 2000 } else { 0 };
 
-    result += car.getCupHolders() as u64 * 25;
+    result += car.get_cup_holders() as u64 * 25;
 
     return result;
 }
@@ -64,45 +64,46 @@ static MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Lea
 pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
     use std::cast::*;
 
-    car.setMake(MAKES[rng.nextLessThan(MAKES.len() as u32)]);
-    car.setModel(MODELS[rng.nextLessThan(MODELS.len() as u32)]);
+    car.set_make(MAKES[rng.nextLessThan(MAKES.len() as u32)]);
+    car.set_model(MODELS[rng.nextLessThan(MODELS.len() as u32)]);
 
-    car.setColor(unsafe {transmute(rng.nextLessThan(Color::Silver as u32 + 1) as u16) });
-    car.setSeats(2 + rng.nextLessThan(6) as u8);
-    car.setDoors(2 + rng.nextLessThan(3) as u8);
+    car.set_color(unsafe {transmute(rng.nextLessThan(Color::Silver as u32 + 1) as u16) });
+    car.set_seats(2 + rng.nextLessThan(6) as u8);
+    car.set_doors(2 + rng.nextLessThan(3) as u8);
 
-    let wheels = car.initWheels(4);
+    let wheels = car.init_wheels(4);
     for i in range(0, wheels.size()) {
         let wheel = wheels[i];
-        wheel.setDiameter(25 + rng.nextLessThan(15) as u16);
-        wheel.setAirPressure((30.0 + rng.nextDouble(20.0)) as f32);
-        wheel.setSnowTires(rng.nextLessThan(16) == 0);
+        wheel.set_diameter(25 + rng.nextLessThan(15) as u16);
+        wheel.set_air_pressure((30.0 + rng.nextDouble(20.0)) as f32);
+        wheel.set_snow_tires(rng.nextLessThan(16) == 0);
     }
 
-    car.setLength(170 + rng.nextLessThan(150) as u16);
-    car.setWidth(48 + rng.nextLessThan(36) as u16);
-    car.setHeight(54 + rng.nextLessThan(48) as u16);
-    car.setWeight(car.getLength() as u32 * car.getWidth() as u32 * car.getHeight() as u32 / 200);
+    car.set_length(170 + rng.nextLessThan(150) as u16);
+    car.set_width(48 + rng.nextLessThan(36) as u16);
+    car.set_height(54 + rng.nextLessThan(48) as u16);
+    car.set_weight(car.get_length() as u32 * car.get_width() as u32 *
+                   car.get_height() as u32 / 200);
 
-    let engine = car.initEngine();
-    engine.setHorsepower(100 * rng.nextLessThan(400) as u16);
-    engine.setCylinders(4 + 2 * rng.nextLessThan(3) as u8);
-    engine.setCc(800 + rng.nextLessThan(10000));
-    engine.setUsesGas(true);
-    engine.setUsesElectric(rng.gen());
+    let engine = car.init_engine();
+    engine.set_horsepower(100 * rng.nextLessThan(400) as u16);
+    engine.set_cylinders(4 + 2 * rng.nextLessThan(3) as u8);
+    engine.set_cc(800 + rng.nextLessThan(10000));
+    engine.set_uses_gas(true);
+    engine.set_uses_electric(rng.gen());
 
-    car.setFuelCapacity((10.0 + rng.nextDouble(30.0)) as f32);
-    car.setFuelLevel(rng.nextDouble(car.getFuelCapacity() as f64) as f32);
-    car.setHasPowerWindows(rng.gen());
-    car.setHasPowerSteering(rng.gen());
-    car.setHasCruiseControl(rng.gen());
-    car.setCupHolders(rng.nextLessThan(12) as u8);
-    car.setHasNavSystem(rng.gen());
+    car.set_fuel_capacity((10.0 + rng.nextDouble(30.0)) as f32);
+    car.set_fuel_level(rng.nextDouble(car.get_fuel_capacity() as f64) as f32);
+    car.set_has_power_windows(rng.gen());
+    car.set_has_power_steering(rng.gen());
+    car.set_has_cruise_control(rng.gen());
+    car.set_cup_holders(rng.nextLessThan(12) as u8);
+    car.set_has_nav_system(rng.gen());
 }
 
 pub fn setupRequest(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 {
     let mut result = 0;
-    let cars = request.initCars(rng.nextLessThan(200) as uint);
+    let cars = request.init_cars(rng.nextLessThan(200) as uint);
     for i in range(0, cars.size()) {
         let car = cars[i];
         randomCar(rng, car);
@@ -115,14 +116,14 @@ pub fn setupRequest(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 {
 
 pub fn handleRequest(request : ParkingLot::Reader, response : TotalValue::Builder) {
     let mut result = 0;
-    let cars = request.getCars();
+    let cars = request.get_cars();
     for i in range(0, cars.size()) {
         result += carValue(cars[i]);
     }
-    response.setAmount(result);
+    response.set_amount(result);
 }
 
 #[inline]
 pub fn checkResponse(response : TotalValue::Reader, expected : u64) -> bool {
-    response.getAmount() == expected
+    response.get_amount() == expected
 }

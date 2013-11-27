@@ -22,29 +22,29 @@ pub fn newResponseReader<'a>(sr : capnp::layout::StructReader<'a>) -> Evaluation
     EvaluationResult::Reader::new(sr)
 }
 
-fn makeExpression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -> i32 {
-    exp.setOp(unsafe {
+fn make_expression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -> i32 {
+    exp.set_op(unsafe {
             std::cast::transmute(rng.nextLessThan( Operation::Modulus as u32 + 1) as u16)});
 
     let left : i32 =
     if (rng.nextLessThan(8) < depth) {
         let tmp = (rng.nextLessThan(128) + 1) as i32;
-        exp.getLeft().setValue(tmp);
+        exp.get_left().set_value(tmp);
         tmp
     } else {
-        makeExpression(rng, exp.getLeft().initExpression(), depth + 1)
+        make_expression(rng, exp.get_left().init_expression(), depth + 1)
     };
 
     let right : i32 =
     if (rng.nextLessThan(8) < depth) {
         let tmp = (rng.nextLessThan(128) + 1) as i32;
-        exp.getRight().setValue(tmp);
+        exp.get_right().set_value(tmp);
         tmp
     } else {
-        makeExpression(rng, exp.getRight().initExpression(), depth + 1)
+        make_expression(rng, exp.get_right().init_expression(), depth + 1)
     };
 
-    match exp.getOp() {
+    match exp.get_op() {
         Some(Operation::Add) => { return left + right }
         Some(Operation::Subtract) => { return left - right }
         Some(Operation::Multiply) => { return left * right }
@@ -55,18 +55,18 @@ fn makeExpression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -
 }
 
 fn evaluateExpression(exp : Expression::Reader) -> i32 {
-    let left = match exp.getLeft().which() {
+    let left = match exp.get_left().which() {
         Some(Expression::Left::Value(v)) => v,
         Some(Expression::Left::Expression(e)) => evaluateExpression(e),
         None => fail!("impossible")
     };
-    let right = match exp.getRight().which() {
+    let right = match exp.get_right().which() {
         Some(Expression::Right::Value(v)) => v,
         Some(Expression::Right::Expression(e)) => evaluateExpression(e),
         None => fail!("impossible")
     };
 
-    match exp.getOp() {
+    match exp.get_op() {
         Some(Operation::Add) => return left + right,
         Some(Operation::Subtract) => return left - right,
         Some(Operation::Multiply) => return left * right,
@@ -78,15 +78,15 @@ fn evaluateExpression(exp : Expression::Reader) -> i32 {
 
 #[inline]
 pub fn setupRequest(rng : &mut FastRand, request : Expression::Builder) -> i32 {
-    makeExpression(rng, request, 0)
+    make_expression(rng, request, 0)
 }
 
 #[inline]
 pub fn handleRequest(request : Expression::Reader, response : EvaluationResult::Builder) {
-    response.setValue(evaluateExpression(request));
+    response.set_value(evaluateExpression(request));
 }
 
 #[inline]
 pub fn checkResponse(response : EvaluationResult::Reader, expected : i32) -> bool {
-    response.getValue() == expected
+    response.get_value() == expected
 }
