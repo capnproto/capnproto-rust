@@ -26,31 +26,31 @@ pub mod Node {
         }
 
         pub fn total_size_in_words(&self) -> uint {
-            self.reader.totalSize() as uint
+            self.reader.total_size() as uint
         }
 
         pub fn get_id(&self) -> u64 {
-            self.reader.getDataField::<u64>(0)
+            self.reader.get_data_field::<u64>(0)
         }
 
         pub fn get_display_name(&self) -> Text::Reader<'self> {
-            self.reader.getTextField(0, "")
+            self.reader.get_text_field(0, "")
         }
 
         pub fn get_display_name_prefix_length(&self) -> u32 {
-            self.reader.getDataField::<u32>(2)
+            self.reader.get_data_field::<u32>(2)
         }
 
         pub fn get_scope_id(&self) -> u64 {
-            self.reader.getDataField::<u64>(2)
+            self.reader.get_data_field::<u64>(2)
         }
 
         pub fn get_nested_nodes(&self) -> NestedNode::List::Reader<'self> {
-            NestedNode::List::Reader::new(self.reader.getListField(1, INLINE_COMPOSITE, None))
+            NestedNode::List::Reader::new(self.reader.get_list_field(1, INLINE_COMPOSITE, None))
         }
 
         pub fn which(&self) -> Option<Which<'self>> {
-            match self.reader.getDataField::<u16>(6) {
+            match self.reader.get_data_field::<u16>(6) {
                 0 => {
                     return Some(File(()));
                 }
@@ -128,37 +128,37 @@ pub mod Node {
             }
 
             pub fn total_size_in_words(&self) -> uint {
-                self.reader.totalSize() as uint
+                self.reader.total_size() as uint
             }
 
             pub fn get_data_word_count(&self) -> u16 {
-                self.reader.getDataField::<u16>(7)
+                self.reader.get_data_field::<u16>(7)
             }
 
             pub fn get_pointer_count(&self) -> u16 {
-                self.reader.getDataField::<u16>(12)
+                self.reader.get_data_field::<u16>(12)
             }
 
             pub fn get_preferred_list_encoding(&self) ->
                 Option<schema_capnp::ElementSize::Reader> {
-                FromPrimitive::from_u16(self.reader.getDataField::<u16>(13))
+                FromPrimitive::from_u16(self.reader.get_data_field::<u16>(13))
             }
 
             pub fn get_is_group(&self) -> bool {
-                self.reader.getBoolField(224)
+                self.reader.get_bool_field(224)
             }
 
             pub fn get_discriminant_count(&self) -> u16 {
-                self.reader.getDataField::<u16>(15)
+                self.reader.get_data_field::<u16>(15)
             }
 
             pub fn get_discriminant_offset(&self) -> u32 {
-                self.reader.getDataField::<u32>(8)
+                self.reader.get_data_field::<u32>(8)
             }
 
             pub fn get_fields(&self) -> schema_capnp::Field::List::Reader<'self> {
                 schema_capnp::Field::List::Reader::new(
-                    self.reader.getListField(3, layout::INLINE_COMPOSITE, None))
+                    self.reader.get_list_field(3, layout::INLINE_COMPOSITE, None))
             }
         }
 
@@ -188,12 +188,12 @@ pub mod Node {
             }
 
             pub fn total_size_in_words(&self) -> uint {
-                self.reader.totalSize() as uint
+                self.reader.total_size() as uint
             }
 
             pub fn get_enumerants(&self) -> schema_capnp::Enumerant::List::Reader<'self> {
                 schema_capnp::Enumerant::List::Reader::new(
-                      self.reader.getListField(
+                      self.reader.get_list_field(
                         3,
                         schema_capnp::Enumerant::STRUCT_SIZE.preferredListEncoding,
                         None))
@@ -227,7 +227,7 @@ pub mod Node {
             }
 
             pub fn total_size_in_words(&self) -> uint {
-                self.reader.totalSize() as uint
+                self.reader.total_size() as uint
             }
 
             // TODO methods
@@ -260,15 +260,15 @@ pub mod Node {
             }
 
             pub fn total_size_in_words(&self) -> uint {
-                self.reader.totalSize() as uint
+                self.reader.total_size() as uint
             }
 
             pub fn get_type(&self) -> schema_capnp::Type::Reader<'self> {
-                schema_capnp::Type::Reader::new(self.reader.getStructField(3, None))
+                schema_capnp::Type::Reader::new(self.reader.get_struct_field(3, None))
             }
 
             pub fn get_value(&self) -> schema_capnp::Value::Reader<'self>{
-                schema_capnp::Value::Reader::new(self.reader.getStructField(4, None))
+                schema_capnp::Value::Reader::new(self.reader.get_struct_field(4, None))
             }
         }
 
@@ -298,59 +298,59 @@ pub mod Node {
             }
 
             pub fn total_size_in_words(&self) -> uint {
-                self.reader.totalSize() as uint
+                self.reader.total_size() as uint
             }
 
             pub fn get_type(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self.reader.getStructField(3, None))
+                Type::Reader::new(self.reader.get_struct_field(3, None))
             }
 
             pub fn get_targets_file(&self) -> bool {
-                self.reader.getBoolField(112)
+                self.reader.get_bool_field(112)
             }
 
             pub fn get_targets_const(&self) -> bool {
-                self.reader.getBoolField(113)
+                self.reader.get_bool_field(113)
             }
 
             pub fn get_targets_enum(&self) -> bool {
-                self.reader.getBoolField(114)
+                self.reader.get_bool_field(114)
             }
 
             pub fn get_targets_enumerant(&self) -> bool {
-                self.reader.getBoolField(115)
+                self.reader.get_bool_field(115)
             }
 
             pub fn get_targets_struct(&self) -> bool {
-                self.reader.getBoolField(116)
+                self.reader.get_bool_field(116)
             }
 
             pub fn get_targets_field(&self) -> bool {
-                self.reader.getBoolField(117)
+                self.reader.get_bool_field(117)
             }
 
             pub fn get_targets_union(&self) -> bool {
-                self.reader.getBoolField(118)
+                self.reader.get_bool_field(118)
             }
 
             pub fn get_targets_group(&self) -> bool {
-                self.reader.getBoolField(119)
+                self.reader.get_bool_field(119)
             }
 
             pub fn get_targets_interface(&self) -> bool {
-                self.reader.getBoolField(120)
+                self.reader.get_bool_field(120)
             }
 
             pub fn get_targets_method(&self) -> bool {
-                self.reader.getBoolField(121)
+                self.reader.get_bool_field(121)
             }
 
             pub fn get_targets_param(&self) -> bool {
-                self.reader.getBoolField(122)
+                self.reader.get_bool_field(122)
             }
 
             pub fn get_targets_annotation(&self) -> bool {
-                self.reader.getBoolField(123)
+                self.reader.get_bool_field(123)
             }
 
         }
@@ -377,11 +377,11 @@ pub mod Node {
             }
 
             pub fn get_name(&self) -> &'self str {
-                self.reader.getTextField(0, "")
+                self.reader.get_text_field(0, "")
             }
 
             pub fn get_id(&self) -> u64 {
-                self.reader.getDataField::<u64>(0)
+                self.reader.get_data_field::<u64>(0)
             }
         }
 
@@ -421,19 +421,19 @@ pub mod Field {
         }
 
         pub fn get_name(&self) -> Text::Reader<'self> {
-            self.reader.getTextField(0, "")
+            self.reader.get_text_field(0, "")
         }
 
         pub fn get_code_order(&self) -> u16 {
-            self.reader.getDataField::<u16>(0)
+            self.reader.get_data_field::<u16>(0)
         }
 
         pub fn get_discriminant_value(&self) -> u16 {
-            self.reader.getDataFieldMask::<u16>(1, 0xffff)
+            self.reader.get_data_field_mask::<u16>(1, 0xffff)
         }
 
         pub fn which(&self) -> Option<Which<'self>> {
-            match self.reader.getDataField::<u16>(4) {
+            match self.reader.get_data_field::<u16>(4) {
                 0 => {
                     Some(Slot(Slot::Reader::new(self.reader)))
                 }
@@ -476,15 +476,15 @@ pub mod Field {
             }
 
             pub fn get_offset(&self) -> u32 {
-                self.reader.getDataField::<u32>(1)
+                self.reader.get_data_field::<u32>(1)
             }
 
             pub fn get_type(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self.reader.getStructField(2, None))
+                Type::Reader::new(self.reader.get_struct_field(2, None))
             }
 
             pub fn get_default_value(&self) -> Value::Reader<'self> {
-                Value::Reader::new(self.reader.getStructField(3, None))
+                Value::Reader::new(self.reader.get_struct_field(3, None))
             }
         }
     }
@@ -502,7 +502,7 @@ pub mod Field {
             }
 
             pub fn get_type_id(&self) -> u64 {
-                self.reader.getDataField::<u64>(2)
+                self.reader.get_data_field::<u64>(2)
             }
         }
     }
@@ -521,9 +521,9 @@ pub mod Field {
             }
 
             pub fn which(&self) -> Option<Which> {
-                match self.reader.getDataField::<u16>(4) {
+                match self.reader.get_data_field::<u16>(4) {
                     0 => return Some(Implicit(())),
-                    1 => return Some(Explicit(self.reader.getDataField::<u16>(6))),
+                    1 => return Some(Explicit(self.reader.get_data_field::<u16>(6))),
                     _ => return None
                 }
             }
@@ -558,20 +558,20 @@ pub mod Enumerant {
         }
 
         pub fn total_size_in_words(&self) -> uint {
-            self.reader.totalSize() as uint
+            self.reader.total_size() as uint
         }
 
         pub fn get_name(&self) -> &'self str {
-            self.reader.getTextField(0, "")
+            self.reader.get_text_field(0, "")
         }
 
         pub fn get_code_order(&self) -> u16 {
-            self.reader.getDataField::<u16>(0)
+            self.reader.get_data_field::<u16>(0)
         }
 
         pub fn get_annotations(&self) -> Annotation::List::Reader<'self> {
             Annotation::List::Reader::new(
-                self.reader.getListField(1, Annotation::STRUCT_SIZE.preferredListEncoding,
+                self.reader.get_list_field(1, Annotation::STRUCT_SIZE.preferredListEncoding,
                                          None))
         }
     }
@@ -601,7 +601,7 @@ pub mod Method {
         }
 
         pub fn total_size_in_words(&self) -> uint {
-            self.reader.totalSize() as uint
+            self.reader.total_size() as uint
         }
     }
 
@@ -633,11 +633,11 @@ pub mod Type {
         }
 
         pub fn total_size_in_words(&self) -> uint {
-            self.reader.totalSize() as uint
+            self.reader.total_size() as uint
         }
 
         pub fn which(&self) -> Option<Which<'self>> {
-            match self.reader.getDataField::<u16>(0) {
+            match self.reader.get_data_field::<u16>(0) {
                 0 => Some(Void),
                 1 => Some(Bool),
                 2 => Some(Int8),
@@ -719,7 +719,7 @@ pub mod Type {
             }
 
             pub fn get_element_type(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self.reader.getStructField(0, None))
+                Type::Reader::new(self.reader.get_struct_field(0, None))
             }
         }
     }
@@ -737,7 +737,7 @@ pub mod Type {
             }
 
             pub fn get_type_id(&self) -> u64 {
-                self.reader.getDataField::<u64>(1)
+                self.reader.get_data_field::<u64>(1)
             }
         }
     }
@@ -755,7 +755,7 @@ pub mod Type {
             }
 
             pub fn get_type_id(&self) -> u64 {
-                self.reader.getDataField::<u64>(1)
+                self.reader.get_data_field::<u64>(1)
             }
         }
     }
@@ -773,7 +773,7 @@ pub mod Type {
             }
 
             pub fn get_type_id(&self) -> u64 {
-                self.reader.getDataField::<u64>(1)
+                self.reader.get_data_field::<u64>(1)
             }
         }
     }
@@ -794,7 +794,7 @@ pub mod Value {
         }
 
         pub fn total_size_in_words(&self) -> uint {
-            self.reader.totalSize() as uint
+            self.reader.total_size() as uint
         }
     }
 
@@ -852,15 +852,15 @@ pub mod Annotation {
         }
 
         pub fn total_size_in_words(&self) -> uint {
-            self.reader.totalSize() as uint
+            self.reader.total_size() as uint
         }
 
         pub fn get_id(&self) -> u64 {
-            self.reader.getDataField::<u64>(0)
+            self.reader.get_data_field::<u64>(0)
         }
 
         pub fn get_value(&self) -> Value::Reader<'self> {
-            Value::Reader::new(self.reader.getStructField(0, None))
+            Value::Reader::new(self.reader.get_struct_field(0, None))
         }
     }
 
@@ -914,12 +914,12 @@ pub mod CodeGeneratorRequest {
         }
 
         pub fn get_nodes(&self) -> Node::List::Reader<'self> {
-            Node::List::Reader::new(self.reader.getListField(0, INLINE_COMPOSITE, None))
+            Node::List::Reader::new(self.reader.get_list_field(0, INLINE_COMPOSITE, None))
         }
 
         pub fn get_requested_files(&self) -> RequestedFile::List::Reader<'self> {
             RequestedFile::List::Reader::new(
-                 self.reader.getListField(1,
+                 self.reader.get_list_field(1,
                                            RequestedFile::STRUCT_SIZE.preferredListEncoding,
                                            None))
         }
@@ -937,7 +937,7 @@ pub mod CodeGeneratorRequest {
 
         pub fn init_nodes(&self, size : uint) -> Node::List::Builder {
             Node::List::Builder::new(
-                self.builder.initStructListField(0, size, Node::STRUCT_SIZE))
+                self.builder.init_struct_list_field(0, size, Node::STRUCT_SIZE))
         }
     }
 
@@ -961,16 +961,16 @@ pub mod CodeGeneratorRequest {
             }
 
             pub fn get_id(&self) -> u64 {
-                self.reader.getDataField::<u64>(0)
+                self.reader.get_data_field::<u64>(0)
             }
 
             pub fn get_filename(&self) -> Text::Reader<'self> {
-                self.reader.getTextField(0, "")
+                self.reader.get_text_field(0, "")
             }
 
             pub fn get_imports(&self) -> Import::List::Reader<'self> {
                 Import::List::Reader::new(
-                 self.reader.getListField(1,
+                 self.reader.get_list_field(1,
                                            Import::STRUCT_SIZE.preferredListEncoding,
                                            None))
             }
@@ -1006,11 +1006,11 @@ pub mod CodeGeneratorRequest {
                 }
 
                 pub fn get_id(&self) -> u64 {
-                    self.reader.getDataField::<u64>(0)
+                    self.reader.get_data_field::<u64>(0)
                 }
 
                 pub fn get_name(&self) -> Text::Reader<'self> {
-                    self.reader.getTextField(0, "")
+                    self.reader.get_text_field(0, "")
                 }
             }
 

@@ -599,7 +599,7 @@ mod WireHelpers {
         if ((*reff).isNull()) {
             if (defaultValue.is_null() ||
                 (*std::cast::transmute::<*Word,*WirePointer>(defaultValue)).isNull()) {
-                    return StructReader::newDefault();
+                    return StructReader::new_default();
             }
 
             //segment = std::ptr::null();
@@ -638,7 +638,7 @@ mod WireHelpers {
         if ((*reff).isNull()) {
             if defaultValue.is_null() ||
                 (*std::cast::transmute::<*Word,*WirePointer>(defaultValue)).isNull() {
-                return ListReader::newDefault();
+                return ListReader::new_default();
             }
             fail!("list default values unimplemented");
         }
@@ -809,15 +809,15 @@ pub struct StructReader<'a> {
 
 impl <'a> StructReader<'a>  {
 
-    pub fn newDefault() -> StructReader {
+    pub fn new_default() -> StructReader {
         StructReader { segment : std::ptr::null(),
                        data : std::ptr::null(),
                        pointers : std::ptr::null(), dataSize : 0, pointerCount : 0,
                        bit0Offset : 0, nestingLimit : 0x7fffffff}
     }
 
-    pub fn readRoot<'b>(location : WordCount, segment : *SegmentReader<'b>,
-                        nestingLimit : int) -> StructReader<'b> {
+    pub fn read_root<'b>(location : WordCount, segment : *SegmentReader<'b>,
+                         nestingLimit : int) -> StructReader<'b> {
         //  the pointer to the struct is at segment[location]
         unsafe {
             // TODO bounds check
@@ -828,14 +828,14 @@ impl <'a> StructReader<'a>  {
         }
     }
 
-    pub fn getDataSectionSize(&self) -> BitCount32 { self.dataSize }
+    pub fn get_data_section_size(&self) -> BitCount32 { self.dataSize }
 
-    pub fn getPointerSectionSize(&self) -> WirePointerCount16 { self.pointerCount }
+    pub fn get_pointer_section_size(&self) -> WirePointerCount16 { self.pointerCount }
 
-    pub fn getDataSectionAsBlob(&self) -> uint { fail!("unimplemented") }
+    pub fn get_data_section_as_blob(&self) -> uint { fail!("unimplemented") }
 
     #[inline]
-    pub fn getDataField<T:Clone + std::num::Zero>(&self, offset : ElementCount) -> T {
+    pub fn get_data_field<T:Clone + std::num::Zero>(&self, offset : ElementCount) -> T {
         // We need to check the offset because the struct may have
         // been created with an old version of the protocol that did
         // not contain the field.
@@ -851,7 +851,7 @@ impl <'a> StructReader<'a>  {
 
 
     #[inline]
-    pub fn getBoolField(&self, offset : ElementCount) -> bool {
+    pub fn get_bool_field(&self, offset : ElementCount) -> bool {
         let mut boffset : BitCount32 = offset as BitCount32;
         if (boffset < self.dataSize) {
             if (offset == 0) {
@@ -867,21 +867,21 @@ impl <'a> StructReader<'a>  {
     }
 
     #[inline]
-    pub fn getDataFieldMask<T:Clone + std::num::Zero + Mask>(&self,
-                                                            offset : ElementCount,
-                                                            mask : T) -> T {
-        Mask::mask(self.getDataField(offset), mask)
+    pub fn get_data_field_mask<T:Clone + std::num::Zero + Mask>(&self,
+                                                                offset : ElementCount,
+                                                                mask : T) -> T {
+        Mask::mask(self.get_data_field(offset), mask)
     }
 
     #[inline]
-    pub fn getBoolFieldMask(&self,
-                            offset : ElementCount,
-                            mask : bool) -> bool {
-       self.getBoolField(offset) ^ mask
+    pub fn get_bool_field_mask(&self,
+                               offset : ElementCount,
+                               mask : bool) -> bool {
+       self.get_bool_field(offset) ^ mask
     }
 
 
-    pub fn getStructField(&self, ptrIndex : WirePointerCount, _defaultValue : Option<&'a [u8]>)
+    pub fn get_struct_field(&self, ptrIndex : WirePointerCount, _defaultValue : Option<&'a [u8]>)
         -> StructReader<'a> {
         let reff : *WirePointer = if (ptrIndex >= self.pointerCount as WirePointerCount)
             { std::ptr::null() }
@@ -894,9 +894,9 @@ impl <'a> StructReader<'a>  {
         }
     }
 
-    pub fn getListField(&self,
-                        ptrIndex : WirePointerCount, expectedElementSize : FieldSize,
-                        _defaultValue : Option<&'a [u8]>) -> ListReader<'a> {
+    pub fn get_list_field(&self,
+                          ptrIndex : WirePointerCount, expectedElementSize : FieldSize,
+                          _defaultValue : Option<&'a [u8]>) -> ListReader<'a> {
         let reff : *WirePointer =
             if (ptrIndex >= self.pointerCount as WirePointerCount)
             { std::ptr::null() }
@@ -910,7 +910,7 @@ impl <'a> StructReader<'a>  {
         }
     }
 
-    pub fn getTextField(&self, ptrIndex : WirePointerCount,
+    pub fn get_text_field(&self, ptrIndex : WirePointerCount,
                         defaultValue : &'a str) -> Text::Reader<'a> {
         let reff : *WirePointer =
             if (ptrIndex >= self.pointerCount as WirePointerCount) {
@@ -923,18 +923,18 @@ impl <'a> StructReader<'a>  {
         }
     }
 
-    pub fn totalSize(&self) -> WordCount64 {
-        fail!("totalSize is unimplemented");
+    pub fn total_size(&self) -> WordCount64 {
+        fail!("total_size is unimplemented");
     }
 
 }
 
 pub trait HasStructSize {
-    fn structSize(unused_self : Option<Self>) -> StructSize;
+    fn struct_size(unused_self : Option<Self>) -> StructSize;
 }
 
 pub trait FromStructBuilder {
-    fn fromStructBuilder(structBuilder : StructBuilder) -> Self;
+    fn from_struct_builder(structBuilder : StructBuilder) -> Self;
 }
 
 pub struct StructBuilder {
@@ -963,16 +963,16 @@ impl StructBuilder {
         }
     }
 
-    pub fn initRoot(segment : *mut SegmentBuilder,
-                    location : *mut WirePointer,
-                    size : StructSize) -> StructBuilder {
+    pub fn init_root(segment : *mut SegmentBuilder,
+                     location : *mut WirePointer,
+                     size : StructSize) -> StructBuilder {
         unsafe {
             WireHelpers::initStructPointer(location, segment, size)
         }
     }
 
     #[inline]
-    pub fn setDataField<T:Clone>(&self, offset : ElementCount, value : T) {
+    pub fn set_data_field<T:Clone>(&self, offset : ElementCount, value : T) {
         unsafe {
             let ptr : *mut WireValue<T> = std::cast::transmute(self.data);
             (*ptr.offset(offset as int)).set(value)
@@ -980,7 +980,7 @@ impl StructBuilder {
     }
 
     #[inline]
-    pub fn getDataField<T:Clone>(&self, offset : ElementCount) -> T {
+    pub fn get_data_field<T:Clone>(&self, offset : ElementCount) -> T {
         unsafe {
             let ptr : *mut WireValue<T> = std::cast::transmute(self.data);
             (*ptr.offset(offset as int)).get()
@@ -988,7 +988,7 @@ impl StructBuilder {
     }
 
     #[inline]
-    pub fn setBoolField(&self, offset : ElementCount, value : bool) {
+    pub fn set_bool_field(&self, offset : ElementCount, value : bool) {
         //# This branch should be compiled out whenever this is
         //# inlined with a constant offset.
         let boffset : BitCount0 = if (offset == 0) { self.bit0Offset as uint } else { offset };
@@ -998,7 +998,7 @@ impl StructBuilder {
     }
 
     #[inline]
-    pub fn getBoolField(&self, offset : ElementCount) -> bool {
+    pub fn get_bool_field(&self, offset : ElementCount) -> bool {
         let boffset : BitCount0 =
             if (offset == 0) {self.bit0Offset as BitCount0} else {offset};
         let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as int) };
@@ -1011,7 +1011,7 @@ impl StructBuilder {
     //# default state (all-zero). Use getStructField() if you want the
     //# struct to be initialized as a copy of the field's default value
     //# (which may have non-null pointers).
-    pub fn initStructField(&self, ptrIndex : WirePointerCount, size : StructSize)
+    pub fn init_struct_field(&self, ptrIndex : WirePointerCount, size : StructSize)
         -> StructBuilder {
         unsafe {
             WireHelpers::initStructPointer(self.pointers.offset(ptrIndex as int),
@@ -1023,8 +1023,8 @@ impl StructBuilder {
     //# section. If the field is not already initialized, it is
     //# initialized as a deep copy of the given default value (a flat
     //# message), or to the empty state if defaultValue is nullptr.
-    pub fn getStructField(&self, ptrIndex : WirePointerCount, size : StructSize,
-                          _defaultValue : Option<()>) -> StructBuilder {
+    pub fn get_struct_field(&self, ptrIndex : WirePointerCount, size : StructSize,
+                            _defaultValue : Option<()>) -> StructBuilder {
         unsafe {
             WireHelpers::getWritableStructPointer(
                 self.pointers.offset(ptrIndex as int),
@@ -1037,8 +1037,8 @@ impl StructBuilder {
     //# Allocates a new list of the given size for the field at the given
     //# index in the pointer segment, and return a pointer to it. All
     //# elements are initialized to zero.
-    pub fn initListField(&self, ptrIndex : WirePointerCount,
-                         elementSize : FieldSize, elementCount : ElementCount)
+    pub fn init_list_field(&self, ptrIndex : WirePointerCount,
+                           elementSize : FieldSize, elementCount : ElementCount)
         -> ListBuilder {
         unsafe {
             WireHelpers::initListPointer(
@@ -1053,8 +1053,8 @@ impl StructBuilder {
     //# already allocated, it is allocated as a deep copy of the given
     //# default value (a flat message). If the default value is null,
     //# an empty list is used.
-    pub fn getListField(&self, ptrIndex : WirePointerCount,
-                        elementSize : FieldSize, _defaultValue : Option<()>) -> ListBuilder {
+    pub fn get_list_field(&self, ptrIndex : WirePointerCount,
+                          elementSize : FieldSize, _defaultValue : Option<()>) -> ListBuilder {
         unsafe {
             WireHelpers::getWritableListPointer(
                 self.pointers.offset(ptrIndex as int),
@@ -1065,8 +1065,8 @@ impl StructBuilder {
     //# Allocates a new list of the given size for the field at the
     //# given index in the pointer segment, and return a pointer to it.
     //# Each element is initialized to its empty state.
-    pub fn initStructListField(&self, ptrIndex : WirePointerCount,
-                               elementCount : ElementCount, elementSize : StructSize)
+    pub fn init_struct_list_field(&self, ptrIndex : WirePointerCount,
+                                  elementCount : ElementCount, elementSize : StructSize)
         -> ListBuilder {
         unsafe { WireHelpers::initStructListPointer(
                 self.pointers.offset(ptrIndex as int),
@@ -1080,9 +1080,9 @@ impl StructBuilder {
     //# allocated, it is allocated as a deep copy of the given default
     //# value (a flat message). If the default value is null, an empty
     //# list is used.
-    pub fn getStructListField(&self, ptrIndex : WirePointerCount,
-                              elementSize : StructSize,
-                              _defaultValue : Option<()>) -> ListBuilder {
+    pub fn get_struct_list_field(&self, ptrIndex : WirePointerCount,
+                                 elementSize : StructSize,
+                                 _defaultValue : Option<()>) -> ListBuilder {
         unsafe {
             WireHelpers::getWritableStructListPointer(
                 self.pointers.offset(ptrIndex as int),
@@ -1091,7 +1091,7 @@ impl StructBuilder {
         }
     }
 
-    pub fn setTextField(&self, ptrIndex : WirePointerCount, value : &str) {
+    pub fn set_text_field(&self, ptrIndex : WirePointerCount, value : &str) {
         unsafe {
             WireHelpers::setTextPointer(
                 self.pointers.offset(ptrIndex as int),
@@ -1100,8 +1100,8 @@ impl StructBuilder {
     }
 
 
-    pub fn getTextField(&self, ptrIndex : WirePointerCount,
-                        defaultValue : &'static str) -> Text::Builder {
+    pub fn get_text_field(&self, ptrIndex : WirePointerCount,
+                          defaultValue : &'static str) -> Text::Builder {
         unsafe {
             WireHelpers::getWritableTextPointer(
                 self.pointers.offset(ptrIndex as int),
@@ -1123,7 +1123,7 @@ pub struct ListReader<'a> {
 
 impl <'a> ListReader<'a> {
 
-    pub fn newDefault() -> ListReader {
+    pub fn new_default() -> ListReader {
         ListReader { segment : std::ptr::null(),
                     ptr : std::ptr::null(), elementCount : 0, step: 0, structDataSize : 0,
                     structPointerCount : 0, nestingLimit : 0x7fffffff}
@@ -1132,7 +1132,7 @@ impl <'a> ListReader<'a> {
     #[inline]
     pub fn size(&self) -> ElementCount { self.elementCount }
 
-    pub fn getStructElement(&self, index : ElementCount) -> StructReader<'a> {
+    pub fn get_struct_element(&self, index : ElementCount) -> StructReader<'a> {
         assert!(self.nestingLimit > 0,
                 "Message is too deeply-nested or contains cycles");
         let indexBit : BitCount64 = index as ElementCount64 * (self.step as BitCount64);
@@ -1162,7 +1162,7 @@ impl <'a> ListReader<'a> {
         }
     }
 
-    pub fn getListElement(&self, _index : ElementCount, _expectedElementSize : FieldSize)
+    pub fn get_list_element(&self, _index : ElementCount, _expectedElementSize : FieldSize)
         -> ListReader<'a> {
         fail!("unimplemented")
     }
@@ -1183,7 +1183,7 @@ impl ListBuilder {
     #[inline]
     pub fn size(&self) -> ElementCount { self.elementCount }
 
-    pub fn getStructElement(&self, index : ElementCount) -> StructBuilder {
+    pub fn get_struct_element(&self, index : ElementCount) -> StructBuilder {
         let indexBit = index * self.step;
         let structData = unsafe{ self.ptr.offset((indexBit / BITS_PER_BYTE) as int)};
         let structPointers = unsafe {

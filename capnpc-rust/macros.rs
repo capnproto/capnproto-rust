@@ -28,7 +28,7 @@ macro_rules! list_submodule(
 
             impl <'a> Index<uint, $capnp::$($m)::+::Reader<'a>> for Reader<'a> {
                 fn index(&self, index : &uint) -> $capnp::$($m)::+::Reader<'a> {
-                    $capnp::$($m)::+::Reader::new(self.reader.getStructElement(*index))
+                    $capnp::$($m)::+::Reader::new(self.reader.get_struct_element(*index))
                 }
             }
 
@@ -45,7 +45,7 @@ macro_rules! list_submodule(
 
             impl Index<uint, $capnp::$($m)::+::Builder> for Builder {
                 fn index(&self, index : &uint) -> $capnp::$($m)::+::Builder {
-                    $capnp::$($m)::+::Builder::new(self.builder.getStructElement(*index))
+                    $capnp::$($m)::+::Builder::new(self.builder.get_struct_element(*index))
                 }
             }
         }

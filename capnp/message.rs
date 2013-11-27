@@ -50,8 +50,8 @@ impl <'self> MessageReader<'self> {
     pub fn get_root<'a>(&'a self) -> layout::StructReader<'a> {
         let segment = unsafe { self.get_segment_reader(0) };
 
-        return layout::StructReader::readRoot(0, segment,
-                                              self.options.nestingLimit as int);
+        return layout::StructReader::read_root(0, segment,
+                                               self.options.nestingLimit as int);
     }
 
 }
@@ -132,12 +132,12 @@ impl MessageBuilder {
                 //assert!(location == 0,
                 //        "First allocated word of new segment was not at offset 0");
 
-                let sb = layout::StructBuilder::initRoot(
+                let sb = layout::StructBuilder::init_root(
                     rootSegment,
                     unsafe {std::cast::transmute(location)},
-                    layout::HasStructSize::structSize(unused_self));
+                    layout::HasStructSize::struct_size(unused_self));
 
-                return layout::FromStructBuilder::fromStructBuilder(sb);
+                return layout::FromStructBuilder::from_struct_builder(sb);
             }
         }
     }

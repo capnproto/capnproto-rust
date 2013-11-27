@@ -284,7 +284,7 @@ pub fn main () {
         }
     };
 
-    // For now, just insist that re-use = none
+    // For now, just insist that reuse = none
     match args[3] {
         ~"no-reuse" => {}
         _ => fail!("for now, 'no-reuse' is the only allowed option for REUSE")
