@@ -61,7 +61,7 @@ pub fn car_value (car : Car::Reader) -> u64 {
 static MAKES : [&'static str, .. 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
 static MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
 
-pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
+pub fn random_car(rng : &mut FastRand, car : Car::Builder) {
     use std::cast::*;
 
     car.set_make(MAKES[rng.nextLessThan(MAKES.len() as u32)]);
@@ -106,7 +106,7 @@ pub fn setup_request(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 
     let cars = request.init_cars(rng.nextLessThan(200) as uint);
     for i in range(0, cars.size()) {
         let car = cars[i];
-        randomCar(rng, car);
+        random_car(rng, car);
         result += car.as_reader(|carReader| {car_value(carReader)});
     }
 //    printfln!("number of cars: %?", cars.size());

@@ -54,15 +54,15 @@ fn make_expression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) 
     }
 }
 
-fn evaluateExpression(exp : Expression::Reader) -> i32 {
+fn evaluate_expression(exp : Expression::Reader) -> i32 {
     let left = match exp.get_left().which() {
         Some(Expression::Left::Value(v)) => v,
-        Some(Expression::Left::Expression(e)) => evaluateExpression(e),
+        Some(Expression::Left::Expression(e)) => evaluate_expression(e),
         None => fail!("impossible")
     };
     let right = match exp.get_right().which() {
         Some(Expression::Right::Value(v)) => v,
-        Some(Expression::Right::Expression(e)) => evaluateExpression(e),
+        Some(Expression::Right::Expression(e)) => evaluate_expression(e),
         None => fail!("impossible")
     };
 
@@ -83,7 +83,7 @@ pub fn setup_request(rng : &mut FastRand, request : Expression::Builder) -> i32 
 
 #[inline]
 pub fn handle_request(request : Expression::Reader, response : EvaluationResult::Builder) {
-    response.set_value(evaluateExpression(request));
+    response.set_value(evaluate_expression(request));
 }
 
 #[inline]
