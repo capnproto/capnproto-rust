@@ -276,8 +276,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
     match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
-            let id = group.get_type_id();
-            let scope = scopeMap.get(&id);
+            let scope = scopeMap.get(&group.get_type_id());
             let theMod = scope.connect("::");
             if (isReader) {
                 return (format!("{}::Reader<'a>", theMod),
@@ -355,8 +354,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                     match ot1.get_element_type().which() {
                         None => { fail!("unsupported type") }
                         Some(Type::Struct(st)) => {
-                            let id = st.get_type_id();
-                            let scope = scopeMap.get(&id);
+                            let scope = scopeMap.get(&st.get_type_id());
                             let theMod = scope.connect("::");
                             let fullModuleName = format!("{}::List::{}", theMod, module);
                             return (format!("{}::List::{}", theMod, moduleWithVar),
@@ -365,8 +363,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                                     );
                         }
                         Some(Type::Enum(e)) => {
-                            let id = e.get_type_id();
-                            let scope = scopeMap.get(&id);
+                            let scope = scopeMap.get(&e.get_type_id());
                             let theMod = scope.connect("::");
                             let fullModuleName = format!("{}::Reader", theMod);
                             let typeArgs =
@@ -453,8 +450,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
     match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
-            let id = group.get_type_id();
-            let scope = scopeMap.get(&id);
+            let scope = scopeMap.get(&group.get_type_id());
             let theMod = scope.connect("::");
             result.push(Line(format!("pub fn init{}(&self) -> {}::Builder \\{",
                                      capName, theMod )));
@@ -462,11 +458,9 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
             interior.push(Line(format!("{}::Builder::new(self.builder)", theMod)));
         }
         Some(Field::Slot(regField)) => {
-
-            let typ = regField.get_type();
             let offset = regField.get_offset() as uint;
 
-            match typ.which() {
+            match regField.get_type().which() {
                 Some(Type::Void) => {
                     result.push(Line(format!("pub fn set{}(&self, _value : ()) \\{",capName)))
                 }
@@ -705,10 +699,7 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
     let nodeReader = nodeMap.get(&nodeId);
     let nestedNodes = nodeReader.get_nested_nodes();
     for ii in range(0, nestedNodes.size()) {
-        let nestedNode = nestedNodes[ii];
-        let id = nestedNode.get_id();
-        let text = generateNode(nodeMap, scopeMap, rootName, id);
-        nested_output.push(text);
+        nested_output.push(generateNode(nodeMap, scopeMap, rootName, nestedNodes[ii].get_id()));
     }
 
     match nodeReader.which() {
@@ -953,10 +944,7 @@ fn main() {
         let nodeListReader = codeGeneratorRequest.get_nodes();
 
         for ii in range(0, nodeListReader.size()) {
-
-            let nodeReader = nodeListReader[ii];
-            let id = nodeReader.get_id();
-            nodeMap.insert(id, nodeReader);
+            nodeMap.insert(nodeListReader[ii].get_id(), nodeListReader[ii]);
         }
 
         let requestedFilesReader = codeGeneratorRequest.get_requested_files();
