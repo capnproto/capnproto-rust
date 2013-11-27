@@ -25,7 +25,7 @@ fn macros() -> ~str {
             use $capnp;
 
             pub struct Reader<'a> {
-                reader : capnp::layout::ListReader<'a>
+                priv reader : capnp::layout::ListReader<'a>
             }
 
             impl <'a> Reader<'a> {
@@ -42,7 +42,7 @@ fn macros() -> ~str {
             }
 
             pub struct Builder {
-                builder : capnp::layout::ListBuilder
+                priv builder : capnp::layout::ListBuilder
             }
 
             impl Builder {
@@ -291,10 +291,10 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let theMod = scope.connect("::");
             if (isReader) {
                 return (format!("{}::Reader<'a>", theMod),
-                        Line(format!("{}::Reader::new(self._reader)", theMod)));
+                        Line(format!("{}::Reader::new(self.reader)", theMod)));
             } else {
                 return (format!("{}::Builder", theMod),
-                        Line(format!("{}::Builder::new(self._builder)", theMod)));
+                        Line(format!("{}::Builder::new(self.builder)", theMod)));
             }
         }
         Some(Field::Slot(regField)) => {
@@ -303,7 +303,7 @@ fn getterText (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
             let offset = regField.getOffset() as uint;
             //    let defaultValue = field.getDefaultValue();
 
-            let member = if (isReader) { "_reader" } else { "_builder" };
+            let member = if (isReader) { "reader" } else { "builder" };
             let module = if (isReader) { "Reader" } else { "Builder" };
             let moduleWithVar = if (isReader) { "Reader<'a>" } else { "Builder" };
 
@@ -455,7 +455,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
     let discriminantValue = field.getDiscriminantValue();
     if (discriminantValue != 0xffff) {
             interior.push(
-                      Line(format!("self._builder.setDataField::<u16>({}, {});",
+                      Line(format!("self.builder.setDataField::<u16>({}, {});",
                                 discriminantOffset as uint,
                                 discriminantValue as uint)));
     }
@@ -469,7 +469,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
             result.push(Line(format!("pub fn init{}(&self) -> {}::Builder \\{",
                                      capName, theMod )));
             // XXX todo: zero out all of the fields.
-            interior.push(Line(format!("{}::Builder::new(self._builder)", theMod)));
+            interior.push(Line(format!("{}::Builder::new(self.builder)", theMod)));
         }
         Some(Field::Slot(regField)) => {
 
@@ -482,51 +482,51 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                 }
                 Some(Type::Bool) => {
                     result.push(Line(format!("pub fn set{}(&self, value : bool) \\{", capName)));
-                    interior.push(Line(format!("self._builder.setBoolField({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setBoolField({}, value);", offset)))
                 }
                 Some(Type::Int8) => {
                     result.push(Line(format!("pub fn set{}(&self, value : i8) \\{", capName)));
-                    interior.push(Line(format!("self._builder.setDataField::<i8>({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setDataField::<i8>({}, value);", offset)))
                 }
                 Some(Type::Int16) => {
                     result.push(Line(format!("pub fn set{}(&self, value : i16) \\{",capName)));
-                    interior.push(Line(format!("self._builder.setDataField::<i16>({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setDataField::<i16>({}, value);", offset)))
                 }
                 Some(Type::Int32) => {
                     result.push(Line(format!("pub fn set{}(&self, value : i32) \\{",capName)));
-                    interior.push(Line(format!("self._builder.setDataField::<i32>({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setDataField::<i32>({}, value);", offset)))
                 }
                 Some(Type::Int64) => {
                     result.push(Line(format!("pub fn set{}(&self, value : i64) \\{",capName)));
-                    interior.push(Line(format!("self._builder.setDataField::<i64>({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setDataField::<i64>({}, value);", offset)))
                 }
                 Some(Type::Uint8) => {
                     result.push(Line(format!("pub fn set{}(&self, value : u8) \\{",capName)));
-                    interior.push(Line(format!("self._builder.setDataField::<u8>({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setDataField::<u8>({}, value);", offset)))
                 }
                 Some(Type::Uint16) => {
                     result.push(Line(format!("pub fn set{}(&self, value : u16) \\{",capName)));
-                    interior.push(Line(format!("self._builder.setDataField::<u16>({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setDataField::<u16>({}, value);", offset)))
                 }
                 Some(Type::Uint32) => {
                     result.push(Line(format!("pub fn set{}(&self, value : u32) \\{",capName)));
-                    interior.push(Line(format!("self._builder.setDataField::<u32>({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setDataField::<u32>({}, value);", offset)))
                 }
                 Some(Type::Uint64) => {
                     result.push(Line(format!("pub fn set{}(&self, value : u64) \\{",capName)));
-                    interior.push(Line(format!("self._builder.setDataField::<u64>({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setDataField::<u64>({}, value);", offset)))
                 }
                 Some(Type::Float32) => {
                     result.push(Line(format!("pub fn set{}(&self, value : f32) \\{",capName)));
-                    interior.push(Line(format!("self._builder.setDataField::<f32>({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setDataField::<f32>({}, value);", offset)))
                 }
                 Some(Type::Float64) => {
                     result.push(Line(format!("pub fn set{}(&self, value : f64) \\{",capName)));
-                    interior.push(Line(format!("self._builder.setDataField::<f64>({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setDataField::<f64>({}, value);", offset)))
                 }
                 Some(Type::Text) => {
                     result.push(Line(format!("pub fn set{}(&self, value : &str) \\{",capName)));
-                    interior.push(Line(format!("self._builder.setTextField({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.setTextField({}, value);", offset)))
                 }
                 Some(Type::Data) => { return BlankLine }
                 Some(Type::List(ot1)) => {
@@ -546,7 +546,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                     interior.push(Line(format!("PrimitiveList::Builder::<{}>::new(",
                                                             typeStr)));
                                     interior.push(
-                                        Indent(~Line(format!("self._builder.initListField({},layout::{},size)",
+                                        Indent(~Line(format!("self.builder.initListField({},layout::{},size)",
                                                           offset, sizeStr))));
                                         interior.push(Line(~")"));
                                     format!("PrimitiveList::Builder<{}>", typeStr)
@@ -561,7 +561,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                     interior.push(
                                         Indent(
                                             ~Line(
-                                                format!("self._builder.initListField({},layout::TWO_BYTES,size)",
+                                                format!("self.builder.initListField({},layout::TWO_BYTES,size)",
                                                      offset))));
                                     interior.push(Line(~")"));
                                     format!("EnumList::Builder<{}>", typeStr)
@@ -575,7 +575,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                                     interior.push(
                                        Indent(
                                           ~Line(
-                                             format!("self._builder.initStructListField({}, size, {}::STRUCT_SIZE))",
+                                             format!("self.builder.initStructListField({}, size, {}::STRUCT_SIZE))",
                                                   offset, theMod))));
                                     format!("{}::List::Builder", theMod)
                                 }
@@ -593,7 +593,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                     result.push(Line(format!("pub fn set{}(&self, value : {}::Reader) \\{",
                                           capName, theMod)));
                     interior.push(
-                                  Line(format!("self._builder.setDataField::<u16>({}, value as u16)",
+                                  Line(format!("self.builder.setDataField::<u16>({}, value as u16)",
                                             offset)));
                 }
                 Some(Type::Struct(st)) => {
@@ -602,7 +602,7 @@ fn generateSetter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Rea
                     let theMod = scope.connect("::");
                     result.push(Line(format!("pub fn init{}(&self) -> {}::Builder \\{",capName,theMod)));
                     interior.push(
-                      Line(format!("{}::Builder::new(self._builder.initStructField({}, {}::STRUCT_SIZE))",
+                      Line(format!("{}::Builder::new(self.builder.initStructField({}, {}::STRUCT_SIZE))",
                                 theMod, offset, theMod)));
                 }
                 Some(Type::Interface(_)) => {
@@ -693,7 +693,7 @@ fn generateUnion(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                  Line(format!("pub fn which(&self) -> Option<{} > \\{",
                            readerString)),
                  Indent(~Branch(~[
-                     Line(format!("match self._reader.getDataField::<u16>({}) \\{", doffset)),
+                     Line(format!("match self.reader.getDataField::<u16>({}) \\{", doffset)),
                      Indent(~Branch(getter_interior)),
                      Line(~"}")
                  ])),
@@ -842,25 +842,25 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
 
             let accessors =
                 ~[Branch(preamble),
-                  Line(~"pub struct Reader<'a> { _reader : layout::StructReader<'a> }"),
+                  Line(~"pub struct Reader<'a> { priv reader : layout::StructReader<'a> }"),
                   Line(~"impl <'a> Reader<'a> {"),
                   Indent(
                       ~Branch(
                           ~[Line(~"pub fn new<'a>(reader : layout::StructReader<'a>) \
                                                   -> Reader<'a> {"),
-                            Indent(~Line(~"Reader { _reader : reader }")),
+                            Indent(~Line(~"Reader { reader : reader }")),
                             Line(~"}")
                             ])),
                   Indent(~Branch(reader_members)),
                   Line(~"}"),
                   BlankLine,
-                  Line(~"pub struct Builder { _builder : layout::StructBuilder }"),
+                  Line(~"pub struct Builder { priv builder : layout::StructBuilder }"),
                   builderStructSize,
                   Line(~"impl layout::FromStructBuilder for Builder {"),
                   Indent(
                       ~Branch(
                           ~[Line(~"fn fromStructBuilder(builder : layout::StructBuilder) -> Builder {"),
-                            Indent(~Line(~"Builder { _builder : builder }")),
+                            Indent(~Line(~"Builder { builder : builder }")),
                             Line(~"}")
                             ])),
                   Line(~"}"),
@@ -869,11 +869,11 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                   Indent(
                       ~Branch(
                           ~[Line(~"pub fn new(builder : layout::StructBuilder) -> Builder {"),
-                            Indent(~Line(~"Builder { _builder : builder }")),
+                            Indent(~Line(~"Builder { builder : builder }")),
                             Line(~"}"),
                             BlankLine,
                             Line(~"pub fn asReader<T>(&self, f : |Reader| -> T) -> T {"),
-                            Indent(~Line(~"self._builder.asReader( |reader| {")),
+                            Indent(~Line(~"self.builder.asReader( |reader| {")),
                             Indent(~Indent(~Line(~"f(Reader::new(reader))"))),
                             Indent(~Line(~"})")),
                             Line(~"}")

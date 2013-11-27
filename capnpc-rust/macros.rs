@@ -16,7 +16,7 @@ macro_rules! list_submodule(
             use $capnp;
 
             pub struct Reader<'a> {
-                reader : capnp::layout::ListReader<'a>
+                priv reader : capnp::layout::ListReader<'a>
             }
 
             impl <'a> Reader<'a> {
@@ -33,7 +33,7 @@ macro_rules! list_submodule(
             }
 
             pub struct Builder {
-                builder : capnp::layout::ListBuilder
+                priv builder : capnp::layout::ListBuilder
             }
 
             impl Builder {
