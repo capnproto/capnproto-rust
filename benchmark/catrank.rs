@@ -16,11 +16,11 @@ pub type RequestBuilder = SearchResultList::Builder;
 pub type ResponseBuilder = SearchResultList::Builder;
 pub type Expectation = int;
 
-pub fn newRequestReader<'a>(sr : capnp::layout::StructReader<'a>) -> SearchResultList::Reader<'a> {
+pub fn new_request_reader<'a>(sr : capnp::layout::StructReader<'a>) -> SearchResultList::Reader<'a> {
     SearchResultList::Reader::new(sr)
 }
 
-pub fn newResponseReader<'a>(sr : capnp::layout::StructReader<'a>) -> SearchResultList::Reader<'a> {
+pub fn new_response_reader<'a>(sr : capnp::layout::StructReader<'a>) -> SearchResultList::Reader<'a> {
     SearchResultList::Reader::new(sr)
 }
 
@@ -31,7 +31,7 @@ pub struct ScoredResult<'self> {
 
 static URL_PREFIX : &'static str = "http://example.com";
 
-pub fn setupRequest(rng : &mut FastRand, request : SearchResultList::Builder) -> int {
+pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -> int {
     let count = rng.nextLessThan(1000) as uint;
     let mut goodCount : int = 0;
 
@@ -77,7 +77,7 @@ pub fn setupRequest(rng : &mut FastRand, request : SearchResultList::Builder) ->
     goodCount
 }
 
-pub fn handleRequest(request : SearchResultList::Reader,
+pub fn handle_request(request : SearchResultList::Reader,
                      response : SearchResultList::Builder) {
     let mut scoredResults : ~[ScoredResult] = ~[];
 
@@ -106,7 +106,7 @@ pub fn handleRequest(request : SearchResultList::Reader,
     }
 }
 
-pub fn checkResponse(response : SearchResultList::Reader, expectedGoodCount : int) -> bool {
+pub fn check_response(response : SearchResultList::Reader, expectedGoodCount : int) -> bool {
     let mut goodCount : int = 0;
     let results = response.get_results();
     for i in range(0, results.size()) {

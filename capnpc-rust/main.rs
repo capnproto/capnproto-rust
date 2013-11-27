@@ -355,7 +355,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                             let theMod = scope.connect("::");
                             let fullModuleName = format!("{}::List::{}", theMod, module);
                             return (format!("{}::List::{}", theMod, moduleWithVar),
-                                    Line(format!("{}::new(self.{}.get_list_field({}, {}::STRUCT_SIZE.preferredListEncoding, None))",
+                                    Line(format!("{}::new(self.{}.get_list_field({}, {}::STRUCT_SIZE.preferred_list_encoding, None))",
                                               fullModuleName, member, offset, theMod))
                                     );
                         }
@@ -720,7 +720,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
             let dataSize = structReader.get_data_word_count();
             let pointerSize = structReader.get_pointer_count();
-            let preferredListEncoding =
+            let preferred_list_encoding =
                   match structReader.get_preferred_list_encoding() {
                                 Some(e) => e,
                                 None => fail!("unsupported list encoding")
@@ -738,9 +738,9 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 preamble.push(
                    Indent(
                       ~Line(
-                        format!("layout::StructSize \\{ data : {}, pointers : {}, preferredListEncoding : layout::{}\\};",
+                        format!("layout::StructSize \\{ data : {}, pointers : {}, preferred_list_encoding : layout::{}\\};",
                              dataSize as uint, pointerSize as uint,
-                             element_size_str(preferredListEncoding)))));
+                             element_size_str(preferred_list_encoding)))));
                 preamble.push(BlankLine);
 
                 preamble.push(Line(format!("list_submodule!({})",

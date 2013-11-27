@@ -14,11 +14,11 @@ pub type RequestBuilder = Expression::Builder;
 pub type ResponseBuilder = EvaluationResult::Builder;
 pub type Expectation = i32;
 
-pub fn newRequestReader<'a>(sr : capnp::layout::StructReader<'a>) -> Expression::Reader<'a> {
+pub fn new_request_reader<'a>(sr : capnp::layout::StructReader<'a>) -> Expression::Reader<'a> {
     Expression::Reader::new(sr)
 }
 
-pub fn newResponseReader<'a>(sr : capnp::layout::StructReader<'a>) -> EvaluationResult::Reader<'a> {
+pub fn new_response_reader<'a>(sr : capnp::layout::StructReader<'a>) -> EvaluationResult::Reader<'a> {
     EvaluationResult::Reader::new(sr)
 }
 
@@ -77,16 +77,16 @@ fn evaluateExpression(exp : Expression::Reader) -> i32 {
 }
 
 #[inline]
-pub fn setupRequest(rng : &mut FastRand, request : Expression::Builder) -> i32 {
+pub fn setup_request(rng : &mut FastRand, request : Expression::Builder) -> i32 {
     make_expression(rng, request, 0)
 }
 
 #[inline]
-pub fn handleRequest(request : Expression::Reader, response : EvaluationResult::Builder) {
+pub fn handle_request(request : Expression::Reader, response : EvaluationResult::Builder) {
     response.set_value(evaluateExpression(request));
 }
 
 #[inline]
-pub fn checkResponse(response : EvaluationResult::Reader, expected : i32) -> bool {
+pub fn check_response(response : EvaluationResult::Reader, expected : i32) -> bool {
     response.get_value() == expected
 }

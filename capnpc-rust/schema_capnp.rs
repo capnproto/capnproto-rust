@@ -11,7 +11,7 @@ pub mod Node {
     use capnp::blob::Text;
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 5, pointers : 5,
-                                                      preferredListEncoding : INLINE_COMPOSITE};
+                                                      preferred_list_encoding : INLINE_COMPOSITE};
 
     list_submodule!(schema_capnp::Node)
 
@@ -195,7 +195,7 @@ pub mod Node {
                 schema_capnp::Enumerant::List::Reader::new(
                       self.reader.get_list_field(
                         3,
-                        schema_capnp::Enumerant::STRUCT_SIZE.preferredListEncoding,
+                        schema_capnp::Enumerant::STRUCT_SIZE.preferred_list_encoding,
                         None))
             }
 
@@ -409,7 +409,7 @@ pub mod Field {
 
     pub static STRUCT_SIZE : StructSize =
         StructSize {data : 3, pointers : 4,
-        preferredListEncoding : INLINE_COMPOSITE};
+        preferred_list_encoding : INLINE_COMPOSITE};
 
     pub struct Reader<'self> {
         priv reader : StructReader<'self>
@@ -545,7 +545,7 @@ pub mod Enumerant {
 
     pub static STRUCT_SIZE : StructSize =
         StructSize {data : 1, pointers : 2,
-        preferredListEncoding : INLINE_COMPOSITE};
+        preferred_list_encoding : INLINE_COMPOSITE};
 
     pub struct Reader<'self> {
         priv reader : StructReader<'self>
@@ -571,7 +571,7 @@ pub mod Enumerant {
 
         pub fn get_annotations(&self) -> Annotation::List::Reader<'self> {
             Annotation::List::Reader::new(
-                self.reader.get_list_field(1, Annotation::STRUCT_SIZE.preferredListEncoding,
+                self.reader.get_list_field(1, Annotation::STRUCT_SIZE.preferred_list_encoding,
                                          None))
         }
     }
@@ -839,7 +839,7 @@ pub mod Annotation {
 
     list_submodule!(schema_capnp::Annotation)
     pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 1,
-                                                      preferredListEncoding : INLINE_COMPOSITE};
+                                                      preferred_list_encoding : INLINE_COMPOSITE};
 
     pub struct Reader<'self> {
         priv reader : StructReader<'self>
@@ -899,7 +899,7 @@ pub mod CodeGeneratorRequest {
     use schema_capnp::*;
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 2,
-                                                      preferredListEncoding : INLINE_COMPOSITE};
+                                                      preferred_list_encoding : INLINE_COMPOSITE};
 
     list_submodule!(schema_capnp::CodeGeneratorRequest)
 
@@ -920,7 +920,7 @@ pub mod CodeGeneratorRequest {
         pub fn get_requested_files(&self) -> RequestedFile::List::Reader<'self> {
             RequestedFile::List::Reader::new(
                  self.reader.get_list_field(1,
-                                           RequestedFile::STRUCT_SIZE.preferredListEncoding,
+                                           RequestedFile::STRUCT_SIZE.preferred_list_encoding,
                                            None))
         }
 
@@ -947,7 +947,7 @@ pub mod CodeGeneratorRequest {
 
         pub static STRUCT_SIZE : StructSize =
             StructSize {data : 1, pointers : 2,
-            preferredListEncoding : INLINE_COMPOSITE};
+            preferred_list_encoding : INLINE_COMPOSITE};
 
         list_submodule!(schema_capnp::CodeGeneratorRequest::RequestedFile)
 
@@ -971,7 +971,7 @@ pub mod CodeGeneratorRequest {
             pub fn get_imports(&self) -> Import::List::Reader<'self> {
                 Import::List::Reader::new(
                  self.reader.get_list_field(1,
-                                           Import::STRUCT_SIZE.preferredListEncoding,
+                                           Import::STRUCT_SIZE.preferred_list_encoding,
                                            None))
             }
         }
@@ -992,7 +992,7 @@ pub mod CodeGeneratorRequest {
 
             pub static STRUCT_SIZE : StructSize =
                 StructSize {data : 1, pointers : 1,
-                preferredListEncoding : INLINE_COMPOSITE};
+                preferred_list_encoding : INLINE_COMPOSITE};
 
             list_submodule!(schema_capnp::CodeGeneratorRequest::RequestedFile)
 

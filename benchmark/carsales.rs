@@ -15,15 +15,15 @@ pub type ResponseBuilder = TotalValue::Builder;
 pub type ResponseReader<'self> = TotalValue::Reader<'self>;
 pub type Expectation = u64;
 
-pub fn newRequestReader<'a>(sr : capnp::layout::StructReader<'a>) -> ParkingLot::Reader<'a> {
+pub fn new_request_reader<'a>(sr : capnp::layout::StructReader<'a>) -> ParkingLot::Reader<'a> {
     ParkingLot::Reader::new(sr)
 }
 
-pub fn newResponseReader<'a>(sr : capnp::layout::StructReader<'a>) -> TotalValue::Reader<'a> {
+pub fn new_response_reader<'a>(sr : capnp::layout::StructReader<'a>) -> TotalValue::Reader<'a> {
     TotalValue::Reader::new(sr)
 }
 
-pub fn carValue (car : Car::Reader) -> u64 {
+pub fn car_value (car : Car::Reader) -> u64 {
     let mut result : u64 = 0;
     result += car.get_seats() as u64 * 200;
     result += car.get_doors() as u64 * 350;
@@ -101,29 +101,29 @@ pub fn randomCar(rng : &mut FastRand, car : Car::Builder) {
     car.set_has_nav_system(rng.gen());
 }
 
-pub fn setupRequest(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 {
+pub fn setup_request(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 {
     let mut result = 0;
     let cars = request.init_cars(rng.nextLessThan(200) as uint);
     for i in range(0, cars.size()) {
         let car = cars[i];
         randomCar(rng, car);
-        result += car.as_reader(|carReader| {carValue(carReader)});
+        result += car.as_reader(|carReader| {car_value(carReader)});
     }
 //    printfln!("number of cars: %?", cars.size());
 
     result
 }
 
-pub fn handleRequest(request : ParkingLot::Reader, response : TotalValue::Builder) {
+pub fn handle_request(request : ParkingLot::Reader, response : TotalValue::Builder) {
     let mut result = 0;
     let cars = request.get_cars();
     for i in range(0, cars.size()) {
-        result += carValue(cars[i]);
+        result += car_value(cars[i]);
     }
     response.set_amount(result);
 }
 
 #[inline]
-pub fn checkResponse(response : TotalValue::Reader, expected : u64) -> bool {
+pub fn check_response(response : TotalValue::Reader, expected : u64) -> bool {
     response.get_amount() == expected
 }

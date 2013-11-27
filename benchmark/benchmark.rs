@@ -33,14 +33,14 @@ mod Uncompressed {
         capnp::serialize::write_message(writer, message);
     }
 
-    pub fn newReader<U : std::io::Reader, T>(
+    pub fn new_reader<U : std::io::Reader, T>(
         inputStream : &mut U,
         options : capnp::message::ReaderOptions,
         cont : |&mut capnp::message::MessageReader| -> T) -> T {
         capnp::serialize::InputStreamMessageReader::new(inputStream, options, cont)
     }
 
-    pub fn newBufferedReader<R: std::io::Reader, T>(
+    pub fn new_buffered_reader<R: std::io::Reader, T>(
         inputStream : &mut capnp::io::BufferedInputStream<R>,
         options : capnp::message::ReaderOptions,
         cont : |&mut capnp::message::MessageReader| -> T) -> T {
@@ -59,7 +59,7 @@ mod Packed {
         w.write_packed_message(message);
     }
 
-    pub fn newReader<U : std::io::Reader, T>(
+    pub fn new_reader<U : std::io::Reader, T>(
         inputStream : &mut U,
         options : capnp::message::ReaderOptions,
         cont : |&mut capnp::message::MessageReader| -> T) -> T {
@@ -70,7 +70,7 @@ mod Packed {
             options, cont)
     }
 
-    pub fn newBufferedReader<R:std::io::Reader, T>(
+    pub fn new_buffered_reader<R:std::io::Reader, T>(
         inputStream : &mut capnp::io::BufferedInputStream<R>,
         options : capnp::message::ReaderOptions,
         cont : |&mut capnp::message::MessageReader| -> T) -> T {
@@ -84,7 +84,7 @@ mod Packed {
 }
 
 
-macro_rules! passByObject(
+macro_rules! pass_by_object(
     ( $testcase:ident, $iters:expr ) => ({
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
@@ -93,14 +93,14 @@ macro_rules! passByObject(
 
                 let request = messageReq.init_root::<$testcase::RequestBuilder>();
                 let response = messageRes.init_root::<$testcase::ResponseBuilder>();
-                let expected = $testcase::setupRequest(&mut rng, request);
+                let expected = $testcase::setup_request(&mut rng, request);
 
                 request.as_reader(|requestReader| {
-                    $testcase::handleRequest(requestReader, response);
+                    $testcase::handle_request(requestReader, response);
                 });
 
                 response.as_reader(|responseReader| {
-                    if (! $testcase::checkResponse(responseReader, expected)) {
+                    if (! $testcase::check_response(responseReader, expected)) {
                         fail!("Incorrect response.");
                     }
                 });
@@ -112,7 +112,7 @@ macro_rules! passByObject(
 static SCRATCH_SIZE : uint = 128 * 1024;
 //static scratchSpace : [u8, .. 6 * SCRATCH_SIZE] = [0, .. 6 * SCRATCH_SIZE];
 
-macro_rules! passByBytes(
+macro_rules! pass_by_bytes(
     ( $testcase:ident, $compression:ident, $iters:expr ) => ({
             let mut requestBytes : ~[u8] = std::vec::from_elem(SCRATCH_SIZE * 8, 0u8);
             let mut responseBytes : ~[u8] = std::vec::from_elem(SCRATCH_SIZE * 8, 0u8);
@@ -123,19 +123,19 @@ macro_rules! passByBytes(
 
                 let request = messageReq.init_root::<$testcase::RequestBuilder>();
                 let response = messageRes.init_root::<$testcase::ResponseBuilder>();
-                let expected = $testcase::setupRequest(&mut rng, request);
+                let expected = $testcase::setup_request(&mut rng, request);
 
                 {
                     let mut writer = std::io::mem::BufWriter::new(requestBytes);
                     $compression::write(&mut writer, messageReq)
                 }
 
-                $compression::newReader(
+                $compression::new_reader(
                     &mut std::io::mem::BufReader::new(requestBytes),
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |requestReader| {
-                        let requestReader = $testcase::newRequestReader(requestReader.get_root());
-                        $testcase::handleRequest(requestReader, response);
+                        let requestReader = $testcase::new_request_reader(requestReader.get_root());
+                        $testcase::handle_request(requestReader, response);
                     });
 
                 {
@@ -143,13 +143,13 @@ macro_rules! passByBytes(
                     $compression::write(&mut writer, messageRes)
                 }
 
-                $compression::newReader(
+                $compression::new_reader(
                     &mut std::io::mem::BufReader::new(responseBytes),
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |responseReader| {
                         let responseReader =
-                            $testcase::newResponseReader(responseReader.get_root());
-                        if (! $testcase::checkResponse(responseReader, expected)) {
+                            $testcase::new_response_reader(responseReader.get_root());
+                        if (! $testcase::check_response(responseReader, expected)) {
                             fail!("Incorrect response.");
                         }
                     });
@@ -164,12 +164,12 @@ macro_rules! server(
             for _ in range(0, $iters) {
                 let mut messageRes = capnp::message::MessageBuilder::new_default();
                 let response = messageRes.init_root::<$testcase::ResponseBuilder>();
-                $compression::newBufferedReader(
+                $compression::new_buffered_reader(
                     &mut inBuffered,
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |requestReader| {
-                        let requestReader = $testcase::newRequestReader(requestReader.get_root());
-                        $testcase::handleRequest(requestReader, response);
+                        let requestReader = $testcase::new_request_reader(requestReader.get_root());
+                        $testcase::handle_request(requestReader, response);
                     });
                 $compression::write(&mut outBuffered, messageRes);
                 outBuffered.flush();
@@ -177,7 +177,7 @@ macro_rules! server(
         });
     )
 
-macro_rules! syncClient(
+macro_rules! sync_client(
     ( $testcase:ident, $compression:ident, $iters:expr) => ({
             let mut outStream = std::io::stdout();
             let mut outBuffered = capnp::io::BufferedOutputStream::new(&mut outStream);
@@ -188,24 +188,24 @@ macro_rules! syncClient(
                 let mut messageReq = capnp::message::MessageBuilder::new_default();
                 let request = messageReq.init_root::<$testcase::RequestBuilder>();
 
-                let expected = $testcase::setupRequest(&mut rng, request);
+                let expected = $testcase::setup_request(&mut rng, request);
                 $compression::write(&mut outBuffered, messageReq);
                 outBuffered.flush();
 
-                $compression::newBufferedReader(
+                $compression::new_buffered_reader(
                     &mut inBuffered,
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |responseReader| {
                         let responseReader =
-                            $testcase::newResponseReader(responseReader.get_root());
-                        assert!($testcase::checkResponse(responseReader, expected));
+                            $testcase::new_response_reader(responseReader.get_root());
+                        assert!($testcase::check_response(responseReader, expected));
                     });
             }
         });
     )
 
 
-macro_rules! passByPipe(
+macro_rules! pass_by_pipe(
     ( $testcase:ident, $compression:ident, $iters:expr) => ({
             use std::io::process;
 
@@ -237,29 +237,29 @@ macro_rules! passByPipe(
         });
     )
 
-macro_rules! doTestcase(
+macro_rules! do_testcase(
     ( $testcase:ident, $mode:expr, $reuse:expr, $compression:ident, $iters:expr ) => ({
             match $mode {
-                ~"object" => passByObject!($testcase, $iters),
-                ~"bytes" => passByBytes!($testcase, $compression, $iters),
-                ~"client" => syncClient!($testcase, $compression, $iters),
+                ~"object" => pass_by_object!($testcase, $iters),
+                ~"bytes" => pass_by_bytes!($testcase, $compression, $iters),
+                ~"client" => sync_client!($testcase, $compression, $iters),
                 ~"server" => {
                     let mut input = std::io::stdin();
                     let mut output = std::io::stdout();
                     server!($testcase, $compression, $iters, input, output)
                 }
-                ~"pipe" => passByPipe!($testcase, $compression, $iters),
+                ~"pipe" => pass_by_pipe!($testcase, $compression, $iters),
                 s => fail!("unrecognized mode: {}", s)
             }
         });
     )
 
-macro_rules! doTestcase1(
+macro_rules! do_testcase1(
     ( $testcase:expr, $mode:expr, $reuse:expr, $compression:ident, $iters:expr) => ({
             match $testcase {
-                ~"carsales" => doTestcase!(carsales, $mode, $reuse, $compression, $iters),
-                ~"catrank" => doTestcase!(catrank, $mode, $reuse, $compression, $iters),
-                ~"eval" => doTestcase!(eval, $mode, $reuse, $compression, $iters),
+                ~"carsales" => do_testcase!(carsales, $mode, $reuse, $compression, $iters),
+                ~"catrank" => do_testcase!(catrank, $mode, $reuse, $compression, $iters),
+                ~"eval" => do_testcase!(eval, $mode, $reuse, $compression, $iters),
                 s => fail!("unrecognized test case: {}", s)
             }
         });
@@ -291,8 +291,8 @@ pub fn main () {
     }
 
     match args[4] {
-        ~"none" => doTestcase1!(args[1], args[2],  args[3], Uncompressed, iters),
-        ~"packed" => doTestcase1!(args[1], args[2], args[3], Packed, iters),
+        ~"none" => do_testcase1!(args[1], args[2],  args[3], Uncompressed, iters),
+        ~"packed" => do_testcase1!(args[1], args[2], args[3], Packed, iters),
         s => fail!("unrecognized compression: {}", s)
     }
 }
