@@ -30,9 +30,9 @@ fn write_address_book() {
     alice.set_name("Alice");
     alice.set_email("alice@example.com");
 
-    let alicePhones = alice.init_phones(1);
-    alicePhones[0].set_number("555-1212");
-    alicePhones[0].set_type(Person::PhoneNumber::Type::Mobile);
+    let alice_phones = alice.init_phones(1);
+    alice_phones[0].set_number("555-1212");
+    alice_phones[0].set_type(Person::PhoneNumber::Type::Mobile);
     alice.get_employment().set_school("MIT");
 
     let bob = people[1];
@@ -61,9 +61,9 @@ fn print_address_book() {
     capnp::serialize::InputStreamMessageReader::new(
         &mut inp, capnp::message::DEFAULT_READER_OPTIONS,
         |messageReader| {
-        let addressBook =
+        let address_book =
             AddressBook::Reader::new(messageReader.getRoot());
-        let people = addressBook.get_people();
+        let people = address_book.get_people();
 
         for i in range(0, people.size()) {
             let person = people[i];
@@ -71,13 +71,13 @@ fn print_address_book() {
             let phones = person.get_phones();
             for j in range(0, phones.size()) {
                 let phone = phones[j];
-                let typeName = match phone.get_type() {
+                let type_name = match phone.get_type() {
                     Some(Person::PhoneNumber::Type::Mobile) => {"mobile"}
                     Some(Person::PhoneNumber::Type::Home) => {"home"}
                     Some(Person::PhoneNumber::Type::Work) => {"work"}
                     None => {"UNKNOWN"}
                 };
-                println!("  {} phone: {}", typeName, phone.get_number());
+                println!("  {} phone: {}", type_name, phone.get_number());
 
             }
             match person.get_employment().which() {
