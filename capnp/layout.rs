@@ -947,9 +947,9 @@ pub struct StructBuilder {
 }
 
 impl StructBuilder {
-    pub fn asReader<T>(&self, f : |StructReader| -> T) -> T {
+    pub fn as_reader<T>(&self, f : |StructReader| -> T) -> T {
         unsafe {
-            (*self.segment).asReader( |segmentReader| {
+            (*self.segment).as_reader( |segmentReader| {
                 f ( StructReader {
                         segment : std::ptr::to_unsafe_ptr(segmentReader),
                         data : std::cast::transmute(self.data),

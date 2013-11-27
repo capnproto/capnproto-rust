@@ -850,8 +850,8 @@ fn generateNode(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader
                             Indent(~Line(~"Builder { builder : builder }")),
                             Line(~"}"),
                             BlankLine,
-                            Line(~"pub fn asReader<T>(&self, f : |Reader| -> T) -> T {"),
-                            Indent(~Line(~"self.builder.asReader( |reader| {")),
+                            Line(~"pub fn as_reader<T>(&self, f : |Reader| -> T) -> T {"),
+                            Indent(~Line(~"self.builder.as_reader( |reader| {")),
                             Indent(~Indent(~Line(~"f(Reader::new(reader))"))),
                             Indent(~Line(~"})")),
                             Line(~"}")

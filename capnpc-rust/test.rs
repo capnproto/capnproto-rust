@@ -58,7 +58,7 @@ fn testPrimList () {
     let voidList = testPrimList.init_void_list(1025);
     voidList.set(257, ());
 
-    testPrimList.asReader(|testPrimListReader| {
+    testPrimList.as_reader(|testPrimListReader| {
         let uint8List = testPrimListReader.get_uint8_list();
         for i in range(0, uint8List.size()) {
             assert!(uint8List[i] == i as u8);
@@ -115,7 +115,7 @@ fn testBigStruct() {
 
     bigStruct.set_bool_field(true);
 
-    bigStruct.asReader(|bigStructReader| {
+    bigStruct.as_reader(|bigStructReader| {
         assert!(bigStructReader.get_int8_field() == -128);
         assert!(bigStructReader.get_int32_field() == 1009);
 
@@ -145,7 +145,7 @@ fn testComplexList () {
         enumList.set(i, AnEnum::Bar);
     }
 
-    testComplexList.asReader(|complexListReader| {
+    testComplexList.as_reader(|complexListReader| {
         let enumListReader = complexListReader.get_enum_list();
         for i in range::<uint>(0,10) {
             match enumListReader[i] {
