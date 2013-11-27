@@ -277,8 +277,8 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn allocate(reff : &mut *mut WirePointer,
-                    segment : &mut *mut SegmentBuilder,
-                    amount : WordCount, kind : WirePointerKind) -> *mut Word {
+                           segment : &mut *mut SegmentBuilder,
+                           amount : WordCount, kind : WirePointerKind) -> *mut Word {
         let isNull = (**reff).isNull();
         if (!isNull) {
             zeroObject(*segment, *reff)
@@ -291,7 +291,7 @@ mod WireHelpers {
                 //# the landing pad for a far pointer.
 
                 let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
-                *segment = (*(**segment).messageBuilder).getSegmentWithAvailable(amountPlusRef);
+                *segment = (*(**segment).messageBuilder).get_segment_with_available(amountPlusRef);
                 let ptr : *mut Word = (**segment).allocate(amountPlusRef).unwrap();
 
                 //# Set up the original pointer to be a far pointer to
@@ -323,7 +323,7 @@ mod WireHelpers {
         //# so there are no FAR pointers.
         if !(*segment).is_null() && (**reff).kind() == WP_FAR {
             *segment =
-                (*(**segment).messageReader).getSegmentReader((**reff).farRef().segmentId.get());
+                (*(**segment).messageReader).get_segment_reader((**reff).farRef().segmentId.get());
 
             let ptr : *Word = (**segment).get_start_ptr().offset(
                 (**reff).farPositionInSegment() as int);
@@ -344,7 +344,7 @@ mod WireHelpers {
                 *reff = pad.offset(1);
 
                 *segment =
-                    (*(**segment).messageReader).getSegmentReader((*pad).farRef().segmentId.get());
+                    (*(**segment).messageReader).get_segment_reader((*pad).farRef().segmentId.get());
 
                 return (**segment).get_start_ptr().offset((*pad).farPositionInSegment() as int);
             }
@@ -365,13 +365,13 @@ mod WireHelpers {
             }
             WP_FAR => {
                 segment = std::ptr::to_mut_unsafe_ptr(
-                    (*(*segment).messageBuilder).segmentBuilders[(*reff).farRef().segmentId.get()]);
+                    (*(*segment).messageBuilder).segment_builders[(*reff).farRef().segmentId.get()]);
                 let pad : *mut WirePointer =
                     std::cast::transmute((*segment).get_ptr_unchecked((*reff).farPositionInSegment()));
 
                 if ((*reff).isDoubleFar()) {
                     segment = std::ptr::to_mut_unsafe_ptr(
-                        (*(*segment).messageBuilder).segmentBuilders[(*pad).farRef().segmentId.get()]);
+                        (*(*segment).messageBuilder).segment_builders[(*pad).farRef().segmentId.get()]);
 
                     zeroObjectHelper(segment,
                                      pad.offset(1),

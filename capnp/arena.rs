@@ -84,7 +84,7 @@ impl SegmentBuilder {
     pub fn as_reader<T>(&mut self, f : |&SegmentReader| -> T) -> T {
         unsafe {
             (*self.messageBuilder).as_reader(|messageReader| {
-                f(&*messageReader.getSegmentReader(self.id))
+                f(&*messageReader.get_segment_reader(self.id))
             })
         }
     }

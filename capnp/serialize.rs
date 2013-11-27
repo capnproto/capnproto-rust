@@ -133,7 +133,7 @@ pub fn writeMessage<T: std::io::Writer>(outputStream : &mut T,
     table[0].set((message.segments.len() - 1) as u32);
 
     for i in range(0, message.segments.len()) {
-        table[i + 1].set(message.segmentBuilders[i].pos as u32);
+        table[i + 1].set(message.segment_builders[i].pos as u32);
     }
     if (message.segments.len() % 2 == 0) {
         // Set padding.
@@ -152,7 +152,7 @@ pub fn writeMessage<T: std::io::Writer>(outputStream : &mut T,
             let ptr : *u8 = std::cast::transmute(message.segments[i].unsafe_ref(0));
             std::vec::raw::buf_as_slice::<u8,()>(
                 ptr,
-                message.segmentBuilders[i].pos * BYTES_PER_WORD,
+                message.segment_builders[i].pos * BYTES_PER_WORD,
                 |buf| { outputStream.write(buf) });
         }
     }

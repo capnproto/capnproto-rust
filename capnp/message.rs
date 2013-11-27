@@ -29,7 +29,7 @@ type SegmentId = u32;
 impl <'self> MessageReader<'self> {
 
     #[inline]
-    pub unsafe fn getSegmentReader<'a>(&'a self, id : SegmentId) -> *SegmentReader<'a> {
+    pub unsafe fn get_segment_reader<'a>(&'a self, id : SegmentId) -> *SegmentReader<'a> {
         if (id == 0) {
             return std::ptr::to_unsafe_ptr(&self.segmentReader0);
         } else {
@@ -43,12 +43,12 @@ impl <'self> MessageReader<'self> {
     }
 
     #[inline]
-    pub fn getOptions<'a>(&'a self) -> &'a ReaderOptions {
+    pub fn get_options<'a>(&'a self) -> &'a ReaderOptions {
         return &self.options;
     }
 
     pub fn get_root<'a>(&'a self) -> layout::StructReader<'a> {
-        let segment = unsafe { self.getSegmentReader(0) };
+        let segment = unsafe { self.get_segment_reader(0) };
 
         return layout::StructReader::readRoot(0, segment,
                                               self.options.nestingLimit as int);
@@ -66,8 +66,8 @@ pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICAL
 
 pub struct MessageBuilder {
     nextSize : uint,
-    allocationStrategy : AllocationStrategy,
-    segmentBuilders : ~[~SegmentBuilder],
+    allocation_strategy : AllocationStrategy,
+    segment_builders : ~[~SegmentBuilder],
     segments : ~[~[Word]]
 }
 
@@ -77,8 +77,8 @@ impl MessageBuilder {
         -> ~MessageBuilder {
         let mut result = ~MessageBuilder {
             nextSize : firstSegmentWords,
-            allocationStrategy : allocationStrategy,
-            segmentBuilders : ~[],
+            allocation_strategy : allocationStrategy,
+            segment_builders : ~[],
             segments : ~[]
         };
 
@@ -86,7 +86,7 @@ impl MessageBuilder {
         let builder =
             ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(result), firstSegmentWords);
 
-        result.segmentBuilders.push(builder);
+        result.segment_builders.push(builder);
 
         result
     }
@@ -95,14 +95,14 @@ impl MessageBuilder {
         MessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY)
     }
 
-    pub fn allocateSegment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder {
+    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder {
         let size = std::cmp::max(minimumSize, self.nextSize);
         self.segments.push(allocate_zeroed_words(size));
-        self.segmentBuilders.push(~SegmentBuilder::new(self, size));
-        let idx = self.segmentBuilders.len() - 1;
-        let result_ptr = std::ptr::to_mut_unsafe_ptr(self.segmentBuilders[idx]);
+        self.segment_builders.push(~SegmentBuilder::new(self, size));
+        let idx = self.segment_builders.len() - 1;
+        let result_ptr = std::ptr::to_mut_unsafe_ptr(self.segment_builders[idx]);
 
-        match self.allocationStrategy {
+        match self.allocation_strategy {
             GROW_HEURISTICALLY => { self.nextSize += size; }
             _ => { }
         }
@@ -110,23 +110,23 @@ impl MessageBuilder {
         result_ptr
     }
 
-    pub fn getSegmentWithAvailable(&mut self, minimumAvailable : WordCount)
+    pub fn get_segment_with_available(&mut self, minimumAvailable : WordCount)
         -> *mut SegmentBuilder {
-        if (self.segmentBuilders.last().available() >= minimumAvailable) {
-            return std::ptr::to_mut_unsafe_ptr(self.segmentBuilders[self.segments.len() - 1]);
+        if (self.segment_builders.last().available() >= minimumAvailable) {
+            return std::ptr::to_mut_unsafe_ptr(self.segment_builders[self.segments.len() - 1]);
         } else {
-            return self.allocateSegment(minimumAvailable);
+            return self.allocate_segment(minimumAvailable);
         }
     }
 
 
     pub fn init_root<T : layout::HasStructSize + layout::FromStructBuilder>(&mut self) -> T {
         // Rolled in this stuff form getRootSegment.
-        let rootSegment = std::ptr::to_mut_unsafe_ptr(self.segmentBuilders[0]);
+        let rootSegment = std::ptr::to_mut_unsafe_ptr(self.segment_builders[0]);
 
         let unused_self : Option<T> = None;
 
-        match self.segmentBuilders[0].allocate(WORDS_PER_POINTER) {
+        match self.segment_builders[0].allocate(WORDS_PER_POINTER) {
             None => {fail!("could not allocate root pointer") }
             Some(location) => {
                 //assert!(location == 0,
