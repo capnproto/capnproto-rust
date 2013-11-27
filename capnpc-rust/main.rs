@@ -930,7 +930,7 @@ fn main() {
     let mut inp = std::io::stdin();
 
     InputStreamMessageReader::new(&mut inp, message::DEFAULT_READER_OPTIONS, |messageReader| {
-        let structReader = messageReader.getRoot();
+        let structReader = messageReader.get_root();
 
         let codeGeneratorRequest =
             schema_capnp::CodeGeneratorRequest::Reader::new(structReader);

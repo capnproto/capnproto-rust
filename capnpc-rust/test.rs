@@ -24,7 +24,7 @@ fn testPrimList () {
     let mut message = MessageBuilder::new(50,
                                       SUGGESTED_ALLOCATION_STRATEGY);
 
-    let testPrimList = message.initRoot::<TestPrimList::Builder>();
+    let testPrimList = message.init_root::<TestPrimList::Builder>();
 
     let uint8_list = testPrimList.init_uint8_list(100);
 
@@ -101,7 +101,7 @@ fn testBigStruct() {
     let mut message = MessageBuilder::new(5,
                                           SUGGESTED_ALLOCATION_STRATEGY);
 
-    let bigStruct = message.initRoot::<BigStruct::Builder>();
+    let bigStruct = message.init_root::<BigStruct::Builder>();
 
     bigStruct.set_bool_field(false);
     bigStruct.set_int8_field(-128);
@@ -134,7 +134,7 @@ fn testComplexList () {
 
     let mut message = MessageBuilder::new_default();
 
-    let testComplexList = message.initRoot::<TestComplexList::Builder>();
+    let testComplexList = message.init_root::<TestComplexList::Builder>();
 
     let enumList = testComplexList.init_enum_list(100);
 

@@ -91,8 +91,8 @@ macro_rules! passByObject(
                 let mut messageReq = capnp::message::MessageBuilder::new_default();
                 let mut messageRes = capnp::message::MessageBuilder::new_default();
 
-                let request = messageReq.initRoot::<$testcase::RequestBuilder>();
-                let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
+                let request = messageReq.init_root::<$testcase::RequestBuilder>();
+                let response = messageRes.init_root::<$testcase::ResponseBuilder>();
                 let expected = $testcase::setupRequest(&mut rng, request);
 
                 request.asReader(|requestReader| {
@@ -121,8 +121,8 @@ macro_rules! passByBytes(
                 let mut messageReq = capnp::message::MessageBuilder::new_default();
                 let mut messageRes = capnp::message::MessageBuilder::new_default();
 
-                let request = messageReq.initRoot::<$testcase::RequestBuilder>();
-                let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
+                let request = messageReq.init_root::<$testcase::RequestBuilder>();
+                let response = messageRes.init_root::<$testcase::ResponseBuilder>();
                 let expected = $testcase::setupRequest(&mut rng, request);
 
                 {
@@ -134,7 +134,7 @@ macro_rules! passByBytes(
                     &mut std::io::mem::BufReader::new(requestBytes),
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |requestReader| {
-                        let requestReader = $testcase::newRequestReader(requestReader.getRoot());
+                        let requestReader = $testcase::newRequestReader(requestReader.get_root());
                         $testcase::handleRequest(requestReader, response);
                     });
 
@@ -148,7 +148,7 @@ macro_rules! passByBytes(
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |responseReader| {
                         let responseReader =
-                            $testcase::newResponseReader(responseReader.getRoot());
+                            $testcase::newResponseReader(responseReader.get_root());
                         if (! $testcase::checkResponse(responseReader, expected)) {
                             fail!("Incorrect response.");
                         }
@@ -163,12 +163,12 @@ macro_rules! server(
             let mut inBuffered = capnp::io::BufferedInputStream::new(&mut $input);
             for _ in range(0, $iters) {
                 let mut messageRes = capnp::message::MessageBuilder::new_default();
-                let response = messageRes.initRoot::<$testcase::ResponseBuilder>();
+                let response = messageRes.init_root::<$testcase::ResponseBuilder>();
                 $compression::newBufferedReader(
                     &mut inBuffered,
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |requestReader| {
-                        let requestReader = $testcase::newRequestReader(requestReader.getRoot());
+                        let requestReader = $testcase::newRequestReader(requestReader.get_root());
                         $testcase::handleRequest(requestReader, response);
                     });
                 $compression::write(&mut outBuffered, messageRes);
@@ -186,7 +186,7 @@ macro_rules! syncClient(
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
                 let mut messageReq = capnp::message::MessageBuilder::new_default();
-                let request = messageReq.initRoot::<$testcase::RequestBuilder>();
+                let request = messageReq.init_root::<$testcase::RequestBuilder>();
 
                 let expected = $testcase::setupRequest(&mut rng, request);
                 $compression::write(&mut outBuffered, messageReq);
@@ -197,7 +197,7 @@ macro_rules! syncClient(
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |responseReader| {
                         let responseReader =
-                            $testcase::newResponseReader(responseReader.getRoot());
+                            $testcase::newResponseReader(responseReader.get_root());
                         assert!($testcase::checkResponse(responseReader, expected));
                     });
             }

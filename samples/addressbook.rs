@@ -21,7 +21,7 @@ fn write_address_book() {
 
     let mut message = MessageBuilder::new_default();
 
-    let address_book = message.initRoot::<AddressBook::Builder>();
+    let address_book = message.init_root::<AddressBook::Builder>();
 
     let people = address_book.init_people(2);
 
@@ -60,9 +60,8 @@ fn print_address_book() {
 
     capnp::serialize::InputStreamMessageReader::new(
         &mut inp, capnp::message::DEFAULT_READER_OPTIONS,
-        |messageReader| {
-        let address_book =
-            AddressBook::Reader::new(messageReader.getRoot());
+        |message_reader| {
+        let address_book = AddressBook::Reader::new(message_reader.get_root());
         let people = address_book.get_people();
 
         for i in range(0, people.size()) {

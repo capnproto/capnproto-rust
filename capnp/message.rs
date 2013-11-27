@@ -47,7 +47,7 @@ impl <'self> MessageReader<'self> {
         return &self.options;
     }
 
-    pub fn getRoot<'a>(&'a self) -> layout::StructReader<'a> {
+    pub fn get_root<'a>(&'a self) -> layout::StructReader<'a> {
         let segment = unsafe { self.getSegmentReader(0) };
 
         return layout::StructReader::readRoot(0, segment,
@@ -120,7 +120,7 @@ impl MessageBuilder {
     }
 
 
-    pub fn initRoot<T : layout::HasStructSize + layout::FromStructBuilder>(&mut self) -> T {
+    pub fn init_root<T : layout::HasStructSize + layout::FromStructBuilder>(&mut self) -> T {
         // Rolled in this stuff form getRootSegment.
         let rootSegment = std::ptr::to_mut_unsafe_ptr(self.segmentBuilders[0]);
 
