@@ -137,6 +137,20 @@ fn camelCaseToAllCaps(s : &str) -> ~str {
     return std::str::from_utf8(result_bytes);
 }
 
+fn camel_to_snake_case(s : &str) -> ~str {
+    use std::ascii::*;
+    let mut result_chars : ~[char] = ~[];
+    for c in s.chars() {
+        assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
+        if (std::char::is_uppercase(c)) {
+            result_chars.push('_');
+        }
+
+        result_chars.push((c as u8).to_ascii().to_lower().to_char());
+    }
+    return std::str::from_chars(result_chars);
+}
+
 fn capitalizeFirstLetter(s : &str) -> ~str {
     use std::ascii::*;
     let bytes = s.as_bytes();
@@ -153,6 +167,14 @@ fn testCamelCaseToAllCaps() {
     assert_eq!(camelCaseToAllCaps("fooBar"), ~"FOO_BAR");
     assert_eq!(camelCaseToAllCaps("fooBarBaz"), ~"FOO_BAR_BAZ");
     assert_eq!(camelCaseToAllCaps("helloWorld"), ~"HELLO_WORLD");
+}
+
+#[test]
+fn test_camel_to_snake_case() {
+    assert_eq!(camel_to_snake_case("fooBar"), ~"foo_bar");
+    assert_eq!(camel_to_snake_case("fooBarBaz"), ~"foo_bar_baz");
+    assert_eq!(camel_to_snake_case("helloWorld"), ~"hello_world");
+    assert_eq!(camel_to_snake_case("uint32Id"), ~"uint32_id");
 }
 
 enum FormattedText {
