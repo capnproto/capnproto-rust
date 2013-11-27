@@ -10,18 +10,18 @@ use message;
 
 pub type SegmentId = u32;
 
-pub struct SegmentReader<'self> {
-    messageReader : * message::MessageReader<'self>,
-    segment : &'self [Word]
+pub struct SegmentReader<'a> {
+    messageReader : * message::MessageReader<'a>,
+    segment : &'a [Word]
 }
 
-impl <'self> SegmentReader<'self> {
+impl <'a> SegmentReader<'a> {
 
-    pub unsafe fn getStartPtr(&self) -> *Word {
+    pub unsafe fn get_start_ptr(&self) -> *Word {
         self.segment.unsafe_ref(0)
     }
 
-    pub unsafe fn containsInterval(&self, from : *Word, to : *Word) -> bool {
+    pub unsafe fn contains_interval(&self, from : *Word, to : *Word) -> bool {
         let fromAddr : uint = std::cast::transmute(from);
         let toAddr : uint = std::cast::transmute(to);
         let thisBegin : uint = std::cast::transmute(self.segment.unsafe_ref(0));
@@ -54,7 +54,7 @@ impl SegmentBuilder {
         }
     }
 
-    pub fn getWordOffsetTo(&mut self, ptr : *mut Word) -> WordCount {
+    pub fn get_word_offset_to(&mut self, ptr : *mut Word) -> WordCount {
         let thisAddr : uint = self.ptr.to_uint();
         let ptrAddr : uint = ptr.to_uint();
         assert!(ptrAddr >= thisAddr);
@@ -77,7 +77,7 @@ impl SegmentBuilder {
     }
 
     #[inline]
-    pub unsafe fn getPtrUnchecked(&mut self, offset : WordCount) -> *mut Word {
+    pub unsafe fn get_ptr_unchecked(&mut self, offset : WordCount) -> *mut Word {
         self.ptr.offset(offset as int)
     }
 
@@ -113,7 +113,7 @@ pub enum Arena<'a> {
 
 
 impl <'a> Arena<'a>  {
-    pub fn tryGetSegment(&self, id : SegmentId) -> *SegmentReader<'a> {
+    pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader<'a> {
         match self {
             &Reader_(ref reader) => {
                 if (id == 0) {

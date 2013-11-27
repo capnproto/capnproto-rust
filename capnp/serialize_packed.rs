@@ -23,7 +23,7 @@ macro_rules! refresh_buffer(
      $outBuf:ident, $bufferBegin:ident) => (
         {
             $inner.skip($size);
-            let (b, e) = $inner.getReadBuffer();
+            let (b, e) = $inner.get_read_buffer();
             $inPtr = b;
             $inEnd = e;
             $size = ptr_sub($inEnd, $inPtr);
@@ -49,7 +49,7 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
             let mut out = outBuf.unsafe_mut_ref(0);
             let outEnd = outBuf.unsafe_mut_ref(len);
 
-            let (mut inPtr, mut inEnd) = self.inner.getReadBuffer();
+            let (mut inPtr, mut inEnd) = self.inner.get_read_buffer();
             let mut bufferBegin = inPtr;
             let mut size = ptr_sub(inEnd, inPtr);
             if size == 0 {
@@ -154,7 +154,7 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
                         if (out == outEnd) {
                             return Some(len);
                         } else {
-                            let (b, e) = self.inner.getReadBuffer();
+                            let (b, e) = self.inner.get_read_buffer();
                             inPtr = b;
                             inEnd = e;
                             size = ptr_sub(e, b);
@@ -180,7 +180,7 @@ pub struct PackedOutputStream<'a, 'b, W> {
 impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b, W> {
     fn write(&mut self, inBuf : &[u8]) {
         unsafe {
-            let (mut out, mut bufferEnd) = self.inner.getWriteBuffer();
+            let (mut out, mut bufferEnd) = self.inner.get_write_buffer();
             let mut bufferBegin = out;
             let mut slowBuffer : [u8,..20] = [0, ..20];
 
@@ -318,7 +318,7 @@ impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b
                             self.inner.write(buf);
                         });
 
-                        let (out1, bufferEnd1) = self.inner.getWriteBuffer();
+                        let (out1, bufferEnd1) = self.inner.get_write_buffer();
                         out = out1; bufferEnd = bufferEnd1;
                         bufferBegin = out;
                     }

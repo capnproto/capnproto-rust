@@ -63,7 +63,7 @@ impl<'a, R: Reader> BufferedInputStream<'a, R> {
         }
     }
 
-    pub unsafe fn getReadBuffer(&mut self) -> (*u8, *u8) {
+    pub unsafe fn get_read_buffer(&mut self) -> (*u8, *u8) {
         if self.cap - self.pos == 0 {
             let n = read_at_least(self.inner, self.buf, 1);
             self.cap = n;
@@ -137,7 +137,7 @@ impl<'a, W: Writer> BufferedOutputStream<'a, W> {
     }
 
     #[inline]
-    pub unsafe fn getWriteBuffer(&mut self) -> (*mut u8, *mut u8) {
+    pub unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.buf.len();
         (self.buf.unsafe_mut_ref(self.pos), self.buf.unsafe_mut_ref(len))
     }

@@ -272,7 +272,7 @@ mod WireHelpers {
     pub unsafe fn boundsCheck<'a>(segment : *SegmentReader<'a>,
                                   start : *Word, end : *Word) -> bool {
         //# If segment is null, this is an unchecked message, so we don't do bounds checks.
-        return segment.is_null() || (*segment).containsInterval(start, end);
+        return segment.is_null() || (*segment).contains_interval(start, end);
     }
 
     #[inline]
@@ -296,7 +296,7 @@ mod WireHelpers {
 
                 //# Set up the original pointer to be a far pointer to
                 //# the new segment.
-                (**reff).setFar(false, (**segment).getWordOffsetTo(ptr));
+                (**reff).setFar(false, (**segment).get_word_offset_to(ptr));
                 (**reff).farRefMut().segmentId.set((**segment).id);
 
                 //# Initialize the landing pad to indicate that the
@@ -325,7 +325,7 @@ mod WireHelpers {
             *segment =
                 (*(**segment).messageReader).getSegmentReader((**reff).farRef().segmentId.get());
 
-            let ptr : *Word = (**segment).getStartPtr().offset(
+            let ptr : *Word = (**segment).get_start_ptr().offset(
                 (**reff).farPositionInSegment() as int);
 
             let padWords : int = if ((**reff).isDoubleFar()) { 2 } else { 1 };
@@ -346,7 +346,7 @@ mod WireHelpers {
                 *segment =
                     (*(**segment).messageReader).getSegmentReader((*pad).farRef().segmentId.get());
 
-                return (**segment).getStartPtr().offset((*pad).farPositionInSegment() as int);
+                return (**segment).get_start_ptr().offset((*pad).farPositionInSegment() as int);
             }
         } else {
             return refTarget;
@@ -367,7 +367,7 @@ mod WireHelpers {
                 segment = std::ptr::to_mut_unsafe_ptr(
                     (*(*segment).messageBuilder).segmentBuilders[(*reff).farRef().segmentId.get()]);
                 let pad : *mut WirePointer =
-                    std::cast::transmute((*segment).getPtrUnchecked((*reff).farPositionInSegment()));
+                    std::cast::transmute((*segment).get_ptr_unchecked((*reff).farPositionInSegment()));
 
                 if ((*reff).isDoubleFar()) {
                     segment = std::ptr::to_mut_unsafe_ptr(
@@ -375,7 +375,7 @@ mod WireHelpers {
 
                     zeroObjectHelper(segment,
                                      pad.offset(1),
-                                     (*segment).getPtrUnchecked((*pad).farPositionInSegment()));
+                                     (*segment).get_ptr_unchecked((*pad).farPositionInSegment()));
 
                     std::ptr::set_memory(pad, 0u8, 2);
 
