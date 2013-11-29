@@ -982,7 +982,7 @@ fn main() {
 
             let macros_text = macros();
 
-            let path = std::path::Path::new(outputFileName);
+            let path = std::path::Path::init(outputFileName);
 
             match File::open_mode(&path, Truncate, Write) {
                 Some(ref mut writer) => {
