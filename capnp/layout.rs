@@ -525,7 +525,7 @@ mod WireHelpers {
             std::cast::transmute(allocate(&mut reff, &mut segmentBuilder,
                                           POINTER_SIZE_IN_WORDS + wordCount, WP_LIST));
 
-        //# Initalize the pointer.
+        //# Initialize the pointer.
         (*reff).list_ref_mut().set_inline_composite(wordCount);
         (*ptr).set_kind_and_inline_composite_list_element_count(WP_STRUCT, element_count);
         (*ptr).struct_ref_mut().set(element_size);

@@ -21,5 +21,5 @@ impl<T : Clone> WireValue<T> {
 //
 // Would need to make get() and set() trait methods with concrete
 // implementations depending on whether cfg(target_endian = "little")
-// or cfg(target_endian "big"). Note: bswap() is in
+// or cfg(target_endian = "big"). Note: bswap() is in
 // std::unstable::instrinsics.
