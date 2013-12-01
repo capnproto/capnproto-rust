@@ -433,6 +433,13 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
         Some(Field::Slot(regField)) => {
             let offset = regField.get_offset() as uint;
 
+            let common_case = |typ: &str| {
+                result.push(Line(format!("pub fn set_{}(&self, value : {}) \\{",
+                                         styled_name, typ)));
+                interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
+                                           typ, offset)))
+            };
+
             match regField.get_type().which() {
                 Some(Type::Void) => {
                     result.push(Line(format!("pub fn set_{}(&self, _value : ()) \\{",styled_name)))
@@ -441,46 +448,16 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     result.push(Line(format!("pub fn set_{}(&self, value : bool) \\{", styled_name)));
                     interior.push(Line(format!("self.builder.set_bool_field({}, value);", offset)))
                 }
-                Some(Type::Int8) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : i8) \\{", styled_name)));
-                    interior.push(Line(format!("self.builder.set_data_field::<i8>({}, value);", offset)))
-                }
-                Some(Type::Int16) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : i16) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.set_data_field::<i16>({}, value);", offset)))
-                }
-                Some(Type::Int32) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : i32) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.set_data_field::<i32>({}, value);", offset)))
-                }
-                Some(Type::Int64) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : i64) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.set_data_field::<i64>({}, value);", offset)))
-                }
-                Some(Type::Uint8) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : u8) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.set_data_field::<u8>({}, value);", offset)))
-                }
-                Some(Type::Uint16) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : u16) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.set_data_field::<u16>({}, value);", offset)))
-                }
-                Some(Type::Uint32) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : u32) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.set_data_field::<u32>({}, value);", offset)))
-                }
-                Some(Type::Uint64) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : u64) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.set_data_field::<u64>({}, value);", offset)))
-                }
-                Some(Type::Float32) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : f32) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.set_data_field::<f32>({}, value);", offset)))
-                }
-                Some(Type::Float64) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : f64) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.set_data_field::<f64>({}, value);", offset)))
-                }
+                Some(Type::Int8) => common_case("i8"),
+                Some(Type::Int16) => common_case("i16"),
+                Some(Type::Int32) => common_case("i32"),
+                Some(Type::Int64) => common_case("i64"),
+                Some(Type::Uint8) => common_case("u8"),
+                Some(Type::Uint16) => common_case("u16"),
+                Some(Type::Uint32) => common_case("u32"),
+                Some(Type::Uint64) => common_case("u64"),
+                Some(Type::Float32) => common_case("f32"),
+                Some(Type::Float64) => common_case("f64"),
                 Some(Type::Text) => {
                     result.push(Line(format!("pub fn set_{}(&self, value : &str) \\{",styled_name)));
                     interior.push(Line(format!("self.builder.set_text_field({}, value);", offset)))
@@ -577,6 +554,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     result.push(Indent(~Branch(interior)));
     result.push(Line(~"}"));
     return Branch(result);
+
 }
 
 
