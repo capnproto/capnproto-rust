@@ -299,46 +299,16 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     return (~"bool", Line(format!("self.{}.get_bool_field({})",
                                                   member, offset)))
                 }
-                Some(Type::Int8) => {
-                    return (~"i8", Line(format!("self.{}.get_data_field::<i8>({})",
-                                             member, offset)))
-                }
-                Some(Type::Int16) => {
-                    return (~"i16", Line(format!("self.{}.get_data_field::<i16>({})",
-                                              member, offset)))
-                }
-                Some(Type::Int32) => {
-                    return (~"i32", Line(format!("self.{}.get_data_field::<i32>({})",
-                                              member, offset)))
-                }
-                Some(Type::Int64) => {
-                    return (~"i64", Line(format!("self.{}.get_data_field::<i64>({})",
-                                              member, offset)))
-                }
-                Some(Type::Uint8) => {
-                    return (~"u8", Line(format!("self.{}.get_data_field::<u8>({})",
-                                             member, offset)))
-                }
-                Some(Type::Uint16) => {
-                    return (~"u16", Line(format!("self.{}.get_data_field::<u16>({})",
-                                              member, offset)))
-                }
-                Some(Type::Uint32) => {
-                    return (~"u32", Line(format!("self.{}.get_data_field::<u32>({})",
-                                              member, offset)))
-                }
-                Some(Type::Uint64) => {
-                    return (~"u64", Line(format!("self.{}.get_data_field::<u64>({})",
-                                              member, offset)))
-                }
-                Some(Type::Float32) => {
-                    return (~"f32", Line(format!("self.{}.get_data_field::<f32>({})",
-                                              member, offset)))
-                }
-                Some(Type::Float64) => {
-                    return (~"f64", Line(format!("self.{}.get_data_field::<f64>({})",
-                                              member, offset)))
-                }
+                Some(Type::Int8) => return common_case("i8", member, offset),
+                Some(Type::Int16) => return common_case("i16", member, offset),
+                Some(Type::Int32) => return common_case("i32", member, offset),
+                Some(Type::Int64) => return common_case("i64", member, offset),
+                Some(Type::Uint8) => return common_case("u8", member, offset),
+                Some(Type::Uint16) => return common_case("u16", member, offset),
+                Some(Type::Uint32) => return common_case("u32", member, offset),
+                Some(Type::Uint64) => return common_case("u64", member, offset),
+                Some(Type::Float32) => return common_case("f32", member, offset),
+                Some(Type::Float64) => return common_case("f64", member, offset),
                 Some(Type::Text) => {
                     return (format!("Text::{}", moduleWithVar),
                             Line(format!("self.{}.get_text_field({}, \"\")",
@@ -420,6 +390,12 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 }
             }
         }
+    }
+
+    fn common_case(typ: &str, member: &str, offset: uint) -> (~str, FormattedText) {
+        return (typ.to_owned(),
+                Line(format!("self.{}.get_data_field::<{}>({})",
+                             member, typ, offset)))
     }
 }
 
