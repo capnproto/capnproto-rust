@@ -336,7 +336,7 @@ pub trait WritePacked {
     fn write_packed_message(&mut self, message : &MessageBuilder);
 }
 
-impl <'self, T : std::io::Writer> WritePacked for io::BufferedOutputStream<'self, T> {
+impl <'a, T : std::io::Writer> WritePacked for io::BufferedOutputStream<'a, T> {
     fn write_packed_message(&mut self, message : &MessageBuilder) {
         let mut packedOutputStream = PackedOutputStream {inner : self};
         write_message(&mut packedOutputStream, message);

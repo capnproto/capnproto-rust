@@ -11,9 +11,9 @@ pub mod PrimitiveList {
         reader : ListReader<'a>
     }
 
-    impl <'self, T : PrimitiveElement> Reader<'self, T> {
-        pub fn new<'a>(reader : ListReader<'a>) -> Reader<'a, T> {
-            Reader::<'a, T> { reader : reader }
+    impl <'a, T : PrimitiveElement> Reader<'a, T> {
+        pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
+            Reader::<'b, T> { reader : reader }
         }
 
         pub fn size(&self) -> uint { self.reader.size() }

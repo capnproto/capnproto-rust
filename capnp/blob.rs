@@ -8,7 +8,7 @@ pub mod Text {
     use common::*;
     use arena::*;
 
-    pub type Reader<'self> = &'self str;
+    pub type Reader<'a> = &'a str;
 
     pub struct Builder {
         segment : *mut SegmentBuilder,
@@ -27,7 +27,7 @@ pub mod Data {
     use common::*;
     use arena::*;
 
-    pub type Reader<'self> = &'self [u8];
+    pub type Reader<'a> = &'a [u8];
 
     pub struct Builder {
         segment : *mut SegmentBuilder,

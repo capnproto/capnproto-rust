@@ -26,10 +26,10 @@ pub struct MessageReader<'a> {
 
 type SegmentId = u32;
 
-impl <'self> MessageReader<'self> {
+impl <'a> MessageReader<'a> {
 
     #[inline]
-    pub unsafe fn get_segment_reader<'a>(&'a self, id : SegmentId) -> *SegmentReader<'a> {
+    pub unsafe fn get_segment_reader<'b>(&'b self, id : SegmentId) -> *SegmentReader<'b> {
         if (id == 0) {
             return std::ptr::to_unsafe_ptr(&self.segmentReader0);
         } else {
@@ -43,11 +43,11 @@ impl <'self> MessageReader<'self> {
     }
 
     #[inline]
-    pub fn get_options<'a>(&'a self) -> &'a ReaderOptions {
+    pub fn get_options<'b>(&'b self) -> &'b ReaderOptions {
         return &self.options;
     }
 
-    pub fn get_root<'a>(&'a self) -> layout::StructReader<'a> {
+    pub fn get_root<'b>(&'b self) -> layout::StructReader<'b> {
         let segment = unsafe { self.get_segment_reader(0) };
 
         return layout::StructReader::read_root(0, segment,
