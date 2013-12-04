@@ -796,6 +796,10 @@ mod WireHelpers {
 
 static EMPTY_SEGMENT : [Word,..0] = [];
 
+pub trait FromStructReader<'a> {
+    fn from_struct_reader(reader : StructReader<'a>) -> Self;
+}
+
 pub struct StructReader<'a> {
     segment : *SegmentReader<'a>,
     data : *u8,

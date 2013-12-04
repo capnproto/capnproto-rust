@@ -46,12 +46,16 @@ impl <'a> MessageReader<'a> {
     pub fn get_options<'b>(&'b self) -> &'b ReaderOptions {
         return &self.options;
     }
+}
 
-    pub fn get_root<'b>(&'b self) -> layout::StructReader<'b> {
+impl <'a, 'b, T : layout::FromStructReader<'b>> MessageReader<'a> {
+    pub fn get_root(&'b self) -> T {
         let segment = unsafe { self.get_segment_reader(0) };
 
-        return layout::StructReader::read_root(0, segment,
-                                               self.options.nestingLimit as int);
+        let struct_reader = layout::StructReader::read_root(0, segment,
+                                                            self.options.nestingLimit as int);
+        let result : T = layout::FromStructReader::from_struct_reader(struct_reader);
+        result
     }
 
 }

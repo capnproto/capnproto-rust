@@ -895,7 +895,7 @@ pub mod ElementSize {
 
 
 pub mod CodeGeneratorRequest {
-    use capnp::layout::*;
+    use capnp::layout::{StructSize, StructReader, INLINE_COMPOSITE, StructBuilder, FromStructReader};
     use schema_capnp::*;
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 2,
@@ -905,6 +905,12 @@ pub mod CodeGeneratorRequest {
 
     pub struct Reader<'self> {
         priv reader : StructReader<'self>
+    }
+
+    impl <'a> FromStructReader<'a> for Reader<'a> {
+        fn from_struct_reader(reader: StructReader<'a>) -> Reader<'a> {
+            Reader {reader : reader}
+        }
     }
 
     impl <'self> Reader<'self> {
