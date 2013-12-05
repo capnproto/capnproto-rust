@@ -61,7 +61,7 @@ fn print_address_book() {
     capnp::serialize::InputStreamMessageReader::new(
         &mut inp, capnp::message::DEFAULT_READER_OPTIONS,
         |message_reader| {
-        let address_book : AddressBook::Reader = message_reader.get_root();
+        let address_book = message_reader.get_root::<AddressBook::Reader>();
         let people = address_book.get_people();
 
         for i in range(0, people.size()) {

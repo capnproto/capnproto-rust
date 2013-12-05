@@ -48,8 +48,8 @@ impl <'a> MessageReader<'a> {
     }
 }
 
-impl <'a, 'b, T : layout::FromStructReader<'b>> MessageReader<'a> {
-    pub fn get_root(&'b self) -> T {
+impl <'a, 'b> MessageReader<'a> {
+    pub fn get_root<T : layout::FromStructReader<'b>>(&'b self) -> T {
         let segment = unsafe { self.get_segment_reader(0) };
 
         let struct_reader = layout::StructReader::read_root(0, segment,
