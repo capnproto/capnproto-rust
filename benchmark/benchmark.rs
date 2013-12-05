@@ -134,7 +134,7 @@ macro_rules! pass_by_bytes(
                     &mut std::io::mem::BufReader::new(requestBytes),
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |requestReader| {
-                        let requestReader = $testcase::new_request_reader(requestReader.get_root());
+                        let requestReader : $testcase::RequestReader = requestReader.get_root();
                         $testcase::handle_request(requestReader, response);
                     });
 
@@ -147,8 +147,7 @@ macro_rules! pass_by_bytes(
                     &mut std::io::mem::BufReader::new(responseBytes),
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |responseReader| {
-                        let responseReader =
-                            $testcase::new_response_reader(responseReader.get_root());
+                        let responseReader : $testcase::ResponseReader = responseReader.get_root();
                         if (! $testcase::check_response(responseReader, expected)) {
                             fail!("Incorrect response.");
                         }
@@ -168,7 +167,7 @@ macro_rules! server(
                     &mut inBuffered,
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |requestReader| {
-                        let requestReader = $testcase::new_request_reader(requestReader.get_root());
+                        let requestReader : $testcase::RequestReader = requestReader.get_root();
                         $testcase::handle_request(requestReader, response);
                     });
                 $compression::write(&mut outBuffered, messageRes);
@@ -196,8 +195,7 @@ macro_rules! sync_client(
                     &mut inBuffered,
                     capnp::message::DEFAULT_READER_OPTIONS,
                     |responseReader| {
-                        let responseReader =
-                            $testcase::new_response_reader(responseReader.get_root());
+                        let responseReader : $testcase::ResponseReader = responseReader.get_root();
                         assert!($testcase::check_response(responseReader, expected));
                     });
             }

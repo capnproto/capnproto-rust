@@ -6,21 +6,14 @@
 
 use std;
 use std::rand::*;
-use capnp;
 use common::*;
 use eval_capnp::*;
 
 pub type RequestBuilder = Expression::Builder;
 pub type ResponseBuilder = EvaluationResult::Builder;
 pub type Expectation = i32;
-
-pub fn new_request_reader<'a>(sr : capnp::layout::StructReader<'a>) -> Expression::Reader<'a> {
-    Expression::Reader::new(sr)
-}
-
-pub fn new_response_reader<'a>(sr : capnp::layout::StructReader<'a>) -> EvaluationResult::Reader<'a> {
-    EvaluationResult::Reader::new(sr)
-}
+pub type RequestReader<'a> = Expression::Reader<'a>;
+pub type ResponseReader<'a> = EvaluationResult::Reader<'a>;
 
 fn make_expression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -> i32 {
     exp.set_op(unsafe {

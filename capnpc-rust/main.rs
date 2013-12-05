@@ -775,6 +775,15 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let accessors =
                 ~[Branch(preamble),
                   Line(~"pub struct Reader<'a> { priv reader : layout::StructReader<'a> }"),
+                  BlankLine,
+                  Line(~"impl <'a> layout::FromStructReader<'a> for Reader<'a> {"),
+                  Indent(
+                    ~Branch(
+                        ~[Line(~"fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {"),
+                          Indent(~Line(~"Reader { reader : reader }")),
+                          Line(~"}")])),
+                  Line(~"}"),
+                  BlankLine,
                   Line(~"impl <'a> Reader<'a> {"),
                   Indent(
                       ~Branch(
@@ -884,10 +893,7 @@ fn main() {
     let mut inp = std::io::stdin();
 
     InputStreamMessageReader::new(&mut inp, message::DEFAULT_READER_OPTIONS, |messageReader| {
-        let structReader = messageReader.get_root();
-
-        let codeGeneratorRequest =
-            schema_capnp::CodeGeneratorRequest::Reader::new(structReader);
+        let codeGeneratorRequest : schema_capnp::CodeGeneratorRequest::Reader = messageReader.get_root();
 
         let mut nodeMap = std::hashmap::HashMap::<u64, schema_capnp::Node::Reader>::new();
         let mut scopeMap = std::hashmap::HashMap::<u64, ~[~str]>::new();

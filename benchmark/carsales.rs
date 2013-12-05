@@ -7,21 +7,12 @@
 use std::rand::*;
 use common::*;
 use carsales_capnp::*;
-use capnp;
 
 pub type RequestBuilder = ParkingLot::Builder;
 pub type RequestReader<'self> = ParkingLot::Reader<'self>;
 pub type ResponseBuilder = TotalValue::Builder;
 pub type ResponseReader<'self> = TotalValue::Reader<'self>;
 pub type Expectation = u64;
-
-pub fn new_request_reader<'a>(sr : capnp::layout::StructReader<'a>) -> ParkingLot::Reader<'a> {
-    ParkingLot::Reader::new(sr)
-}
-
-pub fn new_response_reader<'a>(sr : capnp::layout::StructReader<'a>) -> TotalValue::Reader<'a> {
-    TotalValue::Reader::new(sr)
-}
 
 pub fn car_value (car : Car::Reader) -> u64 {
     let mut result : u64 = 0;

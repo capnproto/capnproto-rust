@@ -8,21 +8,14 @@ extern mod extra;
 
 use std;
 use std::rand::*;
-use capnp;
 use common::*;
 use catrank_capnp::*;
 
 pub type RequestBuilder = SearchResultList::Builder;
 pub type ResponseBuilder = SearchResultList::Builder;
 pub type Expectation = int;
-
-pub fn new_request_reader<'a>(sr : capnp::layout::StructReader<'a>) -> SearchResultList::Reader<'a> {
-    SearchResultList::Reader::new(sr)
-}
-
-pub fn new_response_reader<'a>(sr : capnp::layout::StructReader<'a>) -> SearchResultList::Reader<'a> {
-    SearchResultList::Reader::new(sr)
-}
+pub type RequestReader<'a> = SearchResultList::Reader<'a>;
+pub type ResponseReader<'a> = SearchResultList::Reader<'a>;
 
 pub struct ScoredResult<'self> {
     score : f64,
