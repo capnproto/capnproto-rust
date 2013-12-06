@@ -344,7 +344,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                         Some(Type::Text) => {return (~"TODO", Line(~"TODO")) }
                         Some(Type::Data) => {return (~"TODO", Line(~"TODO")) }
                         Some(Type::Interface(_)) => {return (~"TODO", Line(~"TODO")) }
-                        Some(Type::Object) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::AnyPointer) => {return (~"TODO", Line(~"TODO")) }
                         Some(primType) => {
                             let typeStr = prim_type_str(primType);
                             let sizeStr = element_size_str(element_size(primType));
@@ -381,7 +381,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 Some(Type::Interface(_)) => {
                         return (~"TODO", Line(~"TODO"));
                 }
-                Some(Type::Object) => {
+                Some(Type::AnyPointer) => {
                     return (~"TODO", Line(~"TODO"))
                 }
                 None => {
@@ -542,7 +542,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                 Some(Type::Interface(_)) => {
                     return BlankLine
                 }
-                Some(Type::Object) => {
+                Some(Type::AnyPointer) => {
                     return BlankLine
                 }
                 None => {return BlankLine}
@@ -603,7 +603,7 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
                 match regField.get_type().which() {
                     Some(Type::Text) | Some(Type::Data) |
                     Some(Type::List(_)) | Some(Type::Struct(_)) |
-                    Some(Type::Object) => requiresSelfVar = true,
+                    Some(Type::AnyPointer) => requiresSelfVar = true,
                     _ => ()
                 }
             }

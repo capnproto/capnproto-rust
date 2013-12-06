@@ -664,7 +664,7 @@ pub mod Type {
                 17 => {
                     return Some(Interface(Interface::Reader::new(self.reader)));
                 }
-                18 => { return Some(Object); }
+                18 => { return Some(AnyPointer); }
                 _ => { return None; }
             }
         }
@@ -701,7 +701,7 @@ pub mod Type {
         Enum(Enum::Reader<'self>),
         Struct(Struct::Reader<'self>),
         Interface(Interface::Reader<'self>),
-        Object
+        AnyPointer
     }
 
     pub mod List_ {
@@ -829,7 +829,7 @@ pub mod Value {
         Enum(u16),
         Struct, // TODO
         Interface,
-        Object // TODO
+        AnyPointer // TODO
     }
 }
 
