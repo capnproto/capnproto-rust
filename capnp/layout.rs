@@ -794,7 +794,49 @@ mod WireHelpers {
     }
 }
 
-static EMPTY_SEGMENT : [Word,..0] = [];
+static zero : u64 = 0;
+fn zero_pointer() -> *WirePointer { unsafe {std::cast::transmute(std::ptr::to_unsafe_ptr(&zero))}}
+
+pub struct PointerReader<'a> {
+    segment : *SegmentReader<'a>,
+    pointer : *WirePointer,
+    nesting_limit : int
+}
+
+impl <'a> PointerReader<'a> {
+    pub fn is_null(&self) -> bool {
+        self.pointer.is_null() || unsafe { (*self.pointer).is_null() }
+    }
+
+    pub fn get_struct(&self) -> StructReader<'a> {
+        let reff : *WirePointer = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
+        unsafe {
+            WireHelpers::read_struct_pointer(self.segment, reff,
+                                             std::ptr::null(), self.nesting_limit)
+        }
+    }
+
+    pub fn get_list(&self, expected_element_size : FieldSize) -> ListReader<'a> {
+        let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
+        unsafe {
+            WireHelpers::read_list_pointer(self.segment,
+                                           reff,
+                                           std::ptr::null(),
+                                           expected_element_size, self.nesting_limit)
+        }
+    }
+}
+
+pub struct PointerBuilder {
+    segment : *mut SegmentBuilder,
+    pointer : *mut WirePointer
+}
+
+impl PointerBuilder {
+    pub fn is_null(&self) -> bool {
+        unsafe { (*self.pointer).is_null() }
+    }
+}
 
 pub trait FromStructReader<'a> {
     fn from_struct_reader(reader : StructReader<'a>) -> Self;
