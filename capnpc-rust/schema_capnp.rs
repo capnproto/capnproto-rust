@@ -4,20 +4,24 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-mod macros;
-
 pub mod Node {
     use std;
-    use capnp::layout::{StructReader, StructBuilder, StructSize, INLINE_COMPOSITE};
+    use capnp::layout::{StructReader, StructBuilder, FromStructReader,
+                        FromStructBuilder, StructSize, INLINE_COMPOSITE};
     use capnp::blob::Text;
+    use capnp::list::{StructList};
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 5, pointers : 5,
                                                       preferred_list_encoding : INLINE_COMPOSITE};
 
-    list_submodule!(schema_capnp::Node)
-
     pub struct Reader<'self> {
         priv reader : StructReader<'self>
+    }
+
+    impl <'a> FromStructReader<'a> for Reader<'a> {
+        fn from_struct_reader(reader: StructReader<'a>) -> Reader<'a> {
+            Reader {reader : reader}
+        }
     }
 
     impl <'self> Reader<'self> {
@@ -46,8 +50,8 @@ pub mod Node {
             self.reader.get_data_field::<u64>(2)
         }
 
-        pub fn get_nested_nodes(&self) -> NestedNode::List::Reader<'self> {
-            NestedNode::List::Reader::new(self.reader.get_pointer_field(1).get_list(INLINE_COMPOSITE, std::ptr::null()))
+        pub fn get_nested_nodes(&self) -> StructList::Reader<'self, NestedNode::Reader> {
+            StructList::Reader::new(self.reader.get_pointer_field(1).get_list(INLINE_COMPOSITE, std::ptr::null()))
         }
 
         pub fn which(&self) -> Option<Which<'self>> {
@@ -84,6 +88,13 @@ pub mod Node {
         priv builder : StructBuilder
     }
 
+    impl FromStructBuilder for Builder {
+        fn from_struct_builder(builder: StructBuilder) -> Builder {
+            Builder {builder : builder}
+        }
+    }
+
+
     impl Builder {
         pub fn new(builder : StructBuilder) -> Builder {
             Builder { builder : builder }
@@ -117,6 +128,7 @@ pub mod Node {
     pub mod Struct {
         use std;
         use capnp::layout;
+        use capnp::list::{StructList};
         use schema_capnp;
 
         pub struct Reader<'self> {
@@ -158,8 +170,8 @@ pub mod Node {
                 self.reader.get_data_field::<u32>(8)
             }
 
-            pub fn get_fields(&self) -> schema_capnp::Field::List::Reader<'self> {
-                schema_capnp::Field::List::Reader::new(
+            pub fn get_fields(&self) -> StructList::Reader<'self, schema_capnp::Field::Reader> {
+                StructList::Reader::new(
                     self.reader.get_pointer_field(3).get_list(layout::INLINE_COMPOSITE, std::ptr::null()))
             }
         }
@@ -179,6 +191,7 @@ pub mod Node {
         use std;
         use schema_capnp;
         use capnp::layout;
+        use capnp::list::StructList;
 
         pub struct Reader<'self> {
             priv reader : layout::StructReader<'self>
@@ -194,8 +207,8 @@ pub mod Node {
                 self.reader.total_size() as uint
             }
 
-            pub fn get_enumerants(&self) -> schema_capnp::Enumerant::List::Reader<'self> {
-                schema_capnp::Enumerant::List::Reader::new(
+            pub fn get_enumerants(&self) -> StructList::Reader<'self, schema_capnp::Enumerant::Reader> {
+                StructList::Reader::new(
                       self.reader.get_pointer_field(3).get_list(
                         schema_capnp::Enumerant::STRUCT_SIZE.preferred_list_encoding,
                         std::ptr::null()))
@@ -375,6 +388,12 @@ pub mod Node {
             priv reader : StructReader<'self>
         }
 
+        impl <'a> FromStructReader<'a> for Reader<'a> {
+            fn from_struct_reader(reader: StructReader<'a>) -> Reader<'a> {
+                Reader {reader : reader}
+            }
+        }
+
         impl <'self> Reader<'self> {
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
@@ -399,7 +418,6 @@ pub mod Node {
             }
         }
 
-        list_submodule!(schema_capnp::Node::NestedNode)
     }
 
 }
@@ -409,14 +427,18 @@ pub mod Field {
     use capnp::blob::*;
     use schema_capnp::*;
 
-    list_submodule!(schema_capnp::Field)
-
     pub static STRUCT_SIZE : StructSize =
         StructSize {data : 3, pointers : 4,
         preferred_list_encoding : INLINE_COMPOSITE};
 
     pub struct Reader<'self> {
         priv reader : StructReader<'self>
+    }
+
+    impl <'a> FromStructReader<'a> for Reader<'a> {
+        fn from_struct_reader(reader: StructReader<'a>) -> Reader<'a> {
+            Reader {reader : reader}
+        }
     }
 
     impl <'self> Reader<'self> {
@@ -545,9 +567,8 @@ pub mod Field {
 pub mod Enumerant {
     use std;
     use capnp::layout::*;
+    use capnp::list::StructList;
     use schema_capnp::*;
-
-    list_submodule!(schema_capnp::Enumerant)
 
     pub static STRUCT_SIZE : StructSize =
         StructSize {data : 1, pointers : 2,
@@ -555,6 +576,12 @@ pub mod Enumerant {
 
     pub struct Reader<'self> {
         priv reader : StructReader<'self>
+    }
+
+    impl <'a> FromStructReader<'a> for Reader<'a> {
+        fn from_struct_reader(reader: StructReader<'a>) -> Reader<'a> {
+            Reader {reader : reader}
+        }
     }
 
     impl <'self> Reader<'self> {
@@ -575,8 +602,8 @@ pub mod Enumerant {
             self.reader.get_data_field::<u16>(0)
         }
 
-        pub fn get_annotations(&self) -> Annotation::List::Reader<'self> {
-            Annotation::List::Reader::new(
+        pub fn get_annotations(&self) -> StructList::Reader<'self, Annotation::Reader> {
+            StructList::Reader::new(
                 self.reader.get_pointer_field(1).get_list(
                     Annotation::STRUCT_SIZE.preferred_list_encoding,
                     std::ptr::null()))
@@ -621,8 +648,6 @@ pub mod Method {
             Builder { builder : builder }
         }
     }
-
-    list_submodule!(schema_capnp::Method)
 }
 
 
@@ -686,8 +711,6 @@ pub mod Type {
             Builder { builder : builder }
         }
     }
-
-    list_submodule!(schema_capnp::Type)
 
     pub enum Which<'self> {
         Void,
@@ -816,8 +839,6 @@ pub mod Value {
         }
     }
 
-    list_submodule!(schema_capnp::Value)
-
     pub enum Which<'self> {
         Void,
         Bool(bool),
@@ -846,12 +867,17 @@ pub mod Annotation {
     use capnp::layout::*;
     use schema_capnp::*;
 
-    list_submodule!(schema_capnp::Annotation)
     pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 1,
                                                       preferred_list_encoding : INLINE_COMPOSITE};
 
     pub struct Reader<'self> {
         priv reader : StructReader<'self>
+    }
+
+    impl <'a> FromStructReader<'a> for Reader<'a> {
+        fn from_struct_reader(reader: StructReader<'a>) -> Reader<'a> {
+            Reader {reader : reader}
+        }
     }
 
     impl <'self> Reader<'self> {
@@ -906,12 +932,11 @@ pub mod ElementSize {
 pub mod CodeGeneratorRequest {
     use std;
     use capnp::layout::{StructSize, StructReader, INLINE_COMPOSITE, StructBuilder, FromStructReader};
+    use capnp::list::StructList;
     use schema_capnp::*;
 
     pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 2,
                                                       preferred_list_encoding : INLINE_COMPOSITE};
-
-    list_submodule!(schema_capnp::CodeGeneratorRequest)
 
     pub struct Reader<'self> {
         priv reader : StructReader<'self>
@@ -929,12 +954,12 @@ pub mod CodeGeneratorRequest {
             Reader{ reader : reader }
         }
 
-        pub fn get_nodes(&self) -> Node::List::Reader<'self> {
-            Node::List::Reader::new(self.reader.get_pointer_field(0).get_list(INLINE_COMPOSITE, std::ptr::null()))
+        pub fn get_nodes(&self) -> StructList::Reader<'self, Node::Reader> {
+            StructList::Reader::new(self.reader.get_pointer_field(0).get_list(INLINE_COMPOSITE, std::ptr::null()))
         }
 
-        pub fn get_requested_files(&self) -> RequestedFile::List::Reader<'self> {
-            RequestedFile::List::Reader::new(
+        pub fn get_requested_files(&self) -> StructList::Reader<'self, RequestedFile::Reader> {
+            StructList::Reader::new(
                  self.reader.get_pointer_field(1).get_list(
                     RequestedFile::STRUCT_SIZE.preferred_list_encoding,
                     std::ptr::null()))
@@ -951,8 +976,8 @@ pub mod CodeGeneratorRequest {
             Builder { builder : builder }
         }
 
-        pub fn init_nodes(&self, size : uint) -> Node::List::Builder {
-            Node::List::Builder::new(
+        pub fn init_nodes(&self, size : uint) -> StructList::Builder<Node::Builder> {
+            StructList::Builder::new(
                 self.builder.get_pointer_field(0).init_struct_list(size, Node::STRUCT_SIZE))
         }
     }
@@ -961,15 +986,20 @@ pub mod CodeGeneratorRequest {
         use std;
         use capnp::layout::*;
         use capnp::blob::*;
+        use capnp::list::StructList;
 
         pub static STRUCT_SIZE : StructSize =
             StructSize {data : 1, pointers : 2,
             preferred_list_encoding : INLINE_COMPOSITE};
 
-        list_submodule!(schema_capnp::CodeGeneratorRequest::RequestedFile)
-
         pub struct Reader<'self> {
             priv reader : StructReader<'self>
+        }
+
+        impl <'a> FromStructReader<'a> for Reader<'a> {
+            fn from_struct_reader(reader: StructReader<'a>) -> Reader<'a> {
+                Reader {reader : reader}
+            }
         }
 
         impl <'self> Reader<'self> {
@@ -985,8 +1015,8 @@ pub mod CodeGeneratorRequest {
                 self.reader.get_pointer_field(0).get_text("")
             }
 
-            pub fn get_imports(&self) -> Import::List::Reader<'self> {
-                Import::List::Reader::new(
+            pub fn get_imports(&self) -> StructList::Reader<'self, Import::Reader> {
+                StructList::Reader::new(
                  self.reader.get_pointer_field(1).get_list(
                         Import::STRUCT_SIZE.preferred_list_encoding,
                         std::ptr::null()))
@@ -1011,10 +1041,14 @@ pub mod CodeGeneratorRequest {
                 StructSize {data : 1, pointers : 1,
                 preferred_list_encoding : INLINE_COMPOSITE};
 
-            list_submodule!(schema_capnp::CodeGeneratorRequest::RequestedFile)
-
             pub struct Reader<'self> {
                 priv reader : StructReader<'self>
+            }
+
+            impl <'a> FromStructReader<'a> for Reader<'a> {
+                fn from_struct_reader(reader: StructReader<'a>) -> Reader<'a> {
+                    Reader {reader : reader}
+                }
             }
 
             impl <'self> Reader<'self> {

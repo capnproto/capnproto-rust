@@ -4,8 +4,8 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-#[feature(globs)];
 #[feature(macro_rules)];
+#[feature(globs)];
 
 #[link(name = "benchmark", vers = "alpha", author = "dwrensha")];
 

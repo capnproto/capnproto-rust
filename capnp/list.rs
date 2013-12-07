@@ -101,5 +101,52 @@ pub mod EnumList {
     }
 }
 
-// The struct list reader needs to be able to instantiate element readers
-// of the appropriate type. It is implemented as a macro.
+pub mod StructList {
+    use layout::*;
+
+    pub struct Reader<'a, T> {
+        reader : ListReader<'a>
+    }
+
+    impl <'a, T : FromStructReader<'a>> Reader<'a, T> {
+        pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
+            Reader::<'b, T> { reader : reader }
+        }
+
+        pub fn size(&self) -> uint { self.reader.size() }
+
+    }
+
+    impl <'a, T : FromStructReader<'a>> Index<uint, T> for Reader<'a, T> {
+        fn index(&self, index : &uint) -> T {
+            let result : T = FromStructReader::from_struct_reader(self.reader.get_struct_element(*index));
+            result
+        }
+    }
+
+
+    pub struct Builder<T> {
+        builder : ListBuilder
+    }
+
+    impl <T : FromStructBuilder> Builder<T> {
+        pub fn new(builder : ListBuilder) -> Builder<T> {
+            Builder { builder : builder }
+        }
+
+        pub fn size(&self) -> uint { self.builder.size() }
+
+//        pub fn set(&self, index : uint, value : T) {
+//        }
+    }
+
+    impl <T : FromStructBuilder> Index<uint, T> for Builder<T> {
+        fn index(&self, index : &uint) -> T {
+            let result : T =
+                FromStructBuilder::from_struct_builder(self.builder.get_struct_element(*index));
+            result
+        }
+    }
+
+
+}

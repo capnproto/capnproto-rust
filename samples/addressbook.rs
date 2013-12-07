@@ -4,8 +4,6 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-#[feature(macro_rules)];
-
 #[link(name = "addressbook", vers = "alpha", author = "dwrensha")];
 
 #[crate_type = "bin"];

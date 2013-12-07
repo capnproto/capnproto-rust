@@ -5,7 +5,6 @@
  */
 
 #[feature(globs)];
-#[feature(macro_rules)];
 
 #[link(name = "test", vers = "alpha", author = "dwrensha")];
 

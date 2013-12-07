@@ -5,7 +5,6 @@
  */
 
 #[feature(globs)];
-#[feature(macro_rules)];
 
 #[link(name = "capnpc-rust", vers = "alpha", author = "dwrensha")];
 
@@ -16,51 +15,6 @@ extern mod capnp;
 use capnp::*;
 
 pub mod schema_capnp;
-
-fn macros() -> ~str {
-~"macro_rules! list_submodule(
-    ( $capnp:ident::$($m:ident)::+ ) => (
-        pub mod List {
-            use capnp;
-            use $capnp;
-
-            pub struct Reader<'a> {
-                priv reader : capnp::layout::ListReader<'a>
-            }
-
-            impl <'a> Reader<'a> {
-                pub fn new<'b>(reader : capnp::layout::ListReader<'b>) -> Reader<'b> {
-                    Reader { reader : reader }
-                }
-                pub fn size(&self) -> uint { self.reader.size() }
-            }
-
-            impl <'a> Index<uint, $capnp::$($m)::+::Reader<'a>> for Reader<'a> {
-                fn index(&self, index : &uint) -> $capnp::$($m)::+::Reader<'a> {
-                    $capnp::$($m)::+::Reader::new(self.reader.get_struct_element(*index))
-                }
-            }
-
-            pub struct Builder {
-                priv builder : capnp::layout::ListBuilder
-            }
-
-            impl Builder {
-                pub fn new(builder : capnp::layout::ListBuilder) -> Builder {
-                    Builder {builder : builder}
-                }
-                pub fn size(&self) -> uint { self.builder.size() }
-            }
-
-            impl Index<uint, $capnp::$($m)::+::Builder> for Builder {
-                fn index(&self, index : &uint) -> $capnp::$($m)::+::Builder {
-                    $capnp::$($m)::+::Builder::new(self.builder.get_struct_element(*index))
-                }
-            }
-        }
-    );
-)\n\n"
-}
 
 fn element_size_str (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
     use schema_capnp::ElementSize::*;
@@ -257,7 +211,7 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
         Line(~"use std;"),
         Line(~"use capnp::blob::{Text, Data};"),
         Line(~"use capnp::layout;"),
-        Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList};"),
+        Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList};"),
         Line(format!("use {};", rootName))
     ])
 }
@@ -323,10 +277,12 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                         Some(Type::Struct(st)) => {
                             let scope = scopeMap.get(&st.get_type_id());
                             let theMod = scope.connect("::");
-                            let fullModuleName = format!("{}::List::{}", theMod, module);
-                            return (format!("{}::List::{}", theMod, moduleWithVar),
-                                    Line(format!("{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
-                                              fullModuleName, member, offset, theMod))
+                            let moduleWithVar =
+                                if (isReader) {format!("'a,{}::Reader",theMod)}
+                                else {format!("{}::Builder",theMod)};
+                            return (format!("StructList::{}<{}>", module, moduleWithVar),
+                                    Line(format!("StructList::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
+                                                 module, member, offset, theMod))
                                     );
                         }
                         Some(Type::Enum(e)) => {
@@ -505,13 +461,13 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
 
-                                    interior.push(Line(format!("{}::List::Builder::new(", theMod)));
+                                    interior.push(Line(format!("StructList::Builder::<{}::Builder>::new(", theMod)));
                                     interior.push(
                                        Indent(
                                           ~Line(
                                              format!("self.builder.get_pointer_field({}).init_struct_list(size, {}::STRUCT_SIZE))",
                                                   offset, theMod))));
-                                    format!("{}::List::Builder", theMod)
+                                    format!("StructList::Builder<{}::Builder>", theMod)
                                 }
                                 _ => { ~"" }
                             };
@@ -697,8 +653,6 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                              element_size_str(preferred_list_encoding)))));
                 preamble.push(BlankLine);
 
-                preamble.push(Line(format!("list_submodule!({})",
-                                        scopeMap.get(&nodeId).connect("::"))));
                 preamble.push(BlankLine);
             }
 
@@ -940,13 +894,10 @@ fn main() {
             let text = stringify(&generate_node(&nodeMap, &scopeMap,
                                                 rootName, id));
 
-            let macros_text = macros();
-
             let path = std::path::Path::new(outputFileName);
 
             match File::open_mode(&path, Truncate, Write) {
                 Some(ref mut writer) => {
-                    writer.write(macros_text.as_bytes());
                     writer.write(text.as_bytes())
             }
                 None => {fail!("could not open file for writing")}

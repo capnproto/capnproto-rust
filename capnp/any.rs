@@ -11,6 +11,20 @@ pub mod AnyPointer {
         reader : PointerReader<'a>
     }
 
+    impl <'a> Reader<'a> {
+        #[inline]
+        pub fn new<'b>(reader : PointerReader<'b>) -> Reader<'b> {
+            Reader { reader : reader }
+        }
+
+        #[inline]
+        pub fn is_null(&self) -> bool {
+            self.reader.is_null()
+        }
+
+//        pub fn get_as<T : FromStructReader>
+    }
+
     pub struct Builder {
         builder : PointerBuilder
     }
