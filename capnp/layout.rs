@@ -810,6 +810,20 @@ impl <'a> PointerReader<'a> {
                         nesting_limit : 0x7fffffff }
     }
 
+    pub fn get_root<'b>(segment : *SegmentReader<'b>, location : *Word,
+                        nesting_limit : int) -> PointerReader<'b> {
+        unsafe {
+            assert!(WireHelpers::bounds_check(segment, location,
+                                              location.offset(POINTER_SIZE_IN_WORDS as int)),
+                    "Root location out of bounds.");
+
+            PointerReader { segment : segment,
+                            pointer : std::cast::transmute(location),
+                            nesting_limit : nesting_limit }
+        }
+    }
+
+
     pub fn is_null(&self) -> bool {
         self.pointer.is_null() || unsafe { (*self.pointer).is_null() }
     }
@@ -846,6 +860,12 @@ pub struct PointerBuilder {
 }
 
 impl PointerBuilder {
+
+    #[inline]
+    pub fn get_root(segment : *mut SegmentBuilder, location : *mut Word) -> PointerBuilder {
+        PointerBuilder {segment : segment, pointer : unsafe { std::cast::transmute(location) }}
+    }
+
     pub fn is_null(&self) -> bool {
         unsafe { (*self.pointer).is_null() }
     }
@@ -932,18 +952,6 @@ impl <'a> StructReader<'a>  {
                        data : std::ptr::null(),
                        pointers : std::ptr::null(), data_size : 0, pointer_count : 0,
                        bit0offset : 0, nesting_limit : 0x7fffffff}
-    }
-
-    pub fn read_root<'b>(location : WordCount, segment : *SegmentReader<'b>,
-                         nesting_limit : int) -> StructReader<'b> {
-        //  the pointer to the struct is at segment[location]
-        unsafe {
-            // TODO bounds check
-            let reff : *WirePointer =
-                std::cast::transmute((*segment).segment.unsafe_ref(location));
-
-            WireHelpers::read_struct_pointer(segment, reff, std::ptr::null(), nesting_limit)
-        }
     }
 
     pub fn get_data_section_size(&self) -> BitCount32 { self.data_size }
@@ -1048,14 +1056,6 @@ impl StructBuilder {
                         nesting_limit : 0x7fffffff
                     })
             })
-        }
-    }
-
-    pub fn init_root(segment : *mut SegmentBuilder,
-                     location : *mut WirePointer,
-                     size : StructSize) -> StructBuilder {
-        unsafe {
-            WireHelpers::init_struct_pointer(location, segment, size)
         }
     }
 
