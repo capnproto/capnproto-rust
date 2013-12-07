@@ -132,8 +132,6 @@ impl MessageBuilder {
         // Rolled in this stuff form getRootSegment.
         let rootSegment = std::ptr::to_mut_unsafe_ptr(self.segment_builders[0]);
 
-        let unused_self : Option<T> = None;
-
         match self.segment_builders[0].allocate(WORDS_PER_POINTER) {
             None => {fail!("could not allocate root pointer") }
             Some(location) => {
@@ -143,7 +141,7 @@ impl MessageBuilder {
                 let pb = layout::PointerBuilder::get_root(rootSegment, location);
 
                 return layout::FromStructBuilder::from_struct_builder(
-                    pb.init_struct(layout::HasStructSize::struct_size(unused_self)));
+                    pb.init_struct(layout::HasStructSize::struct_size(None::<T>)));
             }
         }
     }
