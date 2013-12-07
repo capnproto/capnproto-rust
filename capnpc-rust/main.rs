@@ -375,7 +375,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     let theMod = scope.connect("::");
                     let middleArg = if (isReader) {~""} else {format!("{}::STRUCT_SIZE,", theMod)};
                     return (format!("{}::{}", theMod, moduleWithVar),
-                            Line(format!("{}::{}::new(self.{}.get_struct_field({}, {} None))",
+                            Line(format!("{}::{}::new(self.{}.get_pointer_field({}).get_struct({} std::ptr::null()))",
                                       theMod, module, member, offset, middleArg)))
                 }
                 Some(Type::Interface(_)) => {
@@ -536,7 +536,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     let theMod = scope.connect("::");
                     result.push(Line(format!("pub fn init_{}(&self) -> {}::Builder \\{",styled_name,theMod)));
                     interior.push(
-                      Line(format!("{}::Builder::new(self.builder.init_struct_field({}, {}::STRUCT_SIZE))",
+                      Line(format!("{}::Builder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
                                 theMod, offset, theMod)));
                 }
                 Some(Type::Interface(_)) => {

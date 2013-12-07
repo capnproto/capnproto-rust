@@ -246,6 +246,7 @@ pub mod Node {
     }
 
     pub mod Const {
+        use std;
         use capnp::layout;
         use schema_capnp;
 
@@ -264,11 +265,11 @@ pub mod Node {
             }
 
             pub fn get_type(&self) -> schema_capnp::Type::Reader<'self> {
-                schema_capnp::Type::Reader::new(self.reader.get_pointer_field(3).get_struct())
+                schema_capnp::Type::Reader::new(self.reader.get_pointer_field(3).get_struct(std::ptr::null()))
             }
 
             pub fn get_value(&self) -> schema_capnp::Value::Reader<'self>{
-                schema_capnp::Value::Reader::new(self.reader.get_pointer_field(4).get_struct())
+                schema_capnp::Value::Reader::new(self.reader.get_pointer_field(4).get_struct(std::ptr::null()))
             }
         }
 
@@ -284,6 +285,7 @@ pub mod Node {
     }
 
     pub mod Annotation {
+        use std;
         use capnp::layout::*;
         use schema_capnp::*;
 
@@ -302,7 +304,7 @@ pub mod Node {
             }
 
             pub fn get_type(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self.reader.get_pointer_field(3).get_struct())
+                Type::Reader::new(self.reader.get_pointer_field(3).get_struct(std::ptr::null()))
             }
 
             pub fn get_targets_file(&self) -> bool {
@@ -463,6 +465,7 @@ pub mod Field {
     }
 
     pub mod Slot {
+        use std;
         use capnp::layout::*;
         use schema_capnp::*;
 
@@ -480,11 +483,11 @@ pub mod Field {
             }
 
             pub fn get_type(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self.reader.get_pointer_field(2).get_struct())
+                Type::Reader::new(self.reader.get_pointer_field(2).get_struct(std::ptr::null()))
             }
 
             pub fn get_default_value(&self) -> Value::Reader<'self> {
-                Value::Reader::new(self.reader.get_pointer_field(3).get_struct())
+                Value::Reader::new(self.reader.get_pointer_field(3).get_struct(std::ptr::null()))
             }
         }
     }
@@ -705,6 +708,7 @@ pub mod Type {
     }
 
     pub mod List_ {
+        use std;
         use capnp::layout::*;
         use schema_capnp::*;
 
@@ -719,7 +723,7 @@ pub mod Type {
             }
 
             pub fn get_element_type(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self.reader.get_pointer_field(0).get_struct())
+                Type::Reader::new(self.reader.get_pointer_field(0).get_struct(std::ptr::null()))
             }
         }
     }
@@ -834,6 +838,7 @@ pub mod Value {
 }
 
 pub mod Annotation {
+    use std;
     use capnp::layout::*;
     use schema_capnp::*;
 
@@ -860,7 +865,7 @@ pub mod Annotation {
         }
 
         pub fn get_value(&self) -> Value::Reader<'self> {
-            Value::Reader::new(self.reader.get_pointer_field(0).get_struct())
+            Value::Reader::new(self.reader.get_pointer_field(0).get_struct(std::ptr::null()))
         }
     }
 

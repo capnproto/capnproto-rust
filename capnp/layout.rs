@@ -814,11 +814,11 @@ impl <'a> PointerReader<'a> {
         self.pointer.is_null() || unsafe { (*self.pointer).is_null() }
     }
 
-    pub fn get_struct(&self) -> StructReader<'a> {
+    pub fn get_struct(&self, default_value: *Word) -> StructReader<'a> {
         let reff : *WirePointer = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             WireHelpers::read_struct_pointer(self.segment, reff,
-                                             std::ptr::null(), self.nesting_limit)
+                                             default_value, self.nesting_limit)
         }
     }
 
@@ -842,6 +842,24 @@ impl PointerBuilder {
     pub fn is_null(&self) -> bool {
         unsafe { (*self.pointer).is_null() }
     }
+
+    pub fn init_struct(&self, size : StructSize) -> StructBuilder {
+        unsafe {
+            WireHelpers::init_struct_pointer(self.pointer, self.segment, size)
+        }
+    }
+
+    pub fn get_struct(&self, size : StructSize, default_value : *Word) -> StructBuilder {
+        unsafe {
+            WireHelpers::get_writable_struct_pointer(
+                self.pointer,
+                self.segment,
+                size,
+                default_value)
+        }
+    }
+
+
 }
 
 pub trait FromStructReader<'a> {
@@ -941,19 +959,6 @@ impl <'a> StructReader<'a>  {
             }
         } else {
             PointerReader::new_default()
-        }
-    }
-
-    pub fn get_struct_field(&self, ptrIndex : WirePointerCount, _defaultValue : Option<&'a [u8]>)
-        -> StructReader<'a> {
-        let reff : *WirePointer = if (ptrIndex >= self.pointer_count as WirePointerCount)
-            { std::ptr::null() }
-        else
-            { unsafe { self.pointers.offset(ptrIndex as int)} };
-
-        unsafe {
-            WireHelpers::read_struct_pointer(self.segment, reff,
-                                           std::ptr::null(), self.nesting_limit)
         }
     }
 
@@ -1068,33 +1073,12 @@ impl StructBuilder {
         unsafe { ((*b) & (1 << (boffset % BITS_PER_BYTE ))) != 0 }
     }
 
-    //# Initializes the struct field at the given index in the pointer
-    //# section. If it is already initialized, the previous value is
-    //# discarded or overwritten. The struct is initialized to the type's
-    //# default state (all-zero). Use getStructField() if you want the
-    //# struct to be initialized as a copy of the field's default value
-    //# (which may have non-null pointers).
-    pub fn init_struct_field(&self, ptrIndex : WirePointerCount, size : StructSize)
-        -> StructBuilder {
-        unsafe {
-            WireHelpers::init_struct_pointer(self.pointers.offset(ptrIndex as int),
-                                             self.segment, size)
-        }
-    }
-
-    //# Gets the struct field at the given index in the pointer
-    //# section. If the field is not already initialized, it is
-    //# initialized as a deep copy of the given default value (a flat
-    //# message), or to the empty state if defaultValue is nullptr.
-    pub fn get_struct_field(&self, ptrIndex : WirePointerCount, size : StructSize,
-                            _defaultValue : Option<()>) -> StructBuilder {
-        unsafe {
-            WireHelpers::get_writable_struct_pointer(
-                self.pointers.offset(ptrIndex as int),
-                self.segment,
-                size,
-                std::ptr::null())
-        }
+    #[inline]
+    pub fn get_pointer_field(&self, ptr_index : WirePointerCount) -> PointerBuilder {
+        PointerBuilder {
+                segment : self.segment,
+                pointer : unsafe { self.pointers.offset(ptr_index as int) }
+            }
     }
 
     //# Allocates a new list of the given size for the field at the given
