@@ -18,6 +18,7 @@ pub mod endian;
 pub mod mask;
 pub mod blob;
 pub mod layout;
+pub mod pointer_helpers;
 pub mod any;
 pub mod arena;
 pub mod message;
