@@ -5,9 +5,8 @@
  */
 
 use common::Word;
-use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
-             PrimitiveElement};
-use list::{PrimitiveList};
+use layout::{PointerReader, PointerBuilder, FromStructReader};
+//use list::{PrimitiveList};
 
 pub trait PointerReaderHelpers<'a> {
     fn get(reader : PointerReader<'a>, default_value : *Word) -> Self;
