@@ -264,11 +264,11 @@ pub mod Node {
             }
 
             pub fn get_type(&self) -> schema_capnp::Type::Reader<'self> {
-                schema_capnp::Type::Reader::new(self.reader.get_struct_field(3, None))
+                schema_capnp::Type::Reader::new(self.reader.get_pointer_field(3).get_struct())
             }
 
             pub fn get_value(&self) -> schema_capnp::Value::Reader<'self>{
-                schema_capnp::Value::Reader::new(self.reader.get_struct_field(4, None))
+                schema_capnp::Value::Reader::new(self.reader.get_pointer_field(4).get_struct())
             }
         }
 
@@ -302,7 +302,7 @@ pub mod Node {
             }
 
             pub fn get_type(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self.reader.get_struct_field(3, None))
+                Type::Reader::new(self.reader.get_pointer_field(3).get_struct())
             }
 
             pub fn get_targets_file(&self) -> bool {
@@ -480,11 +480,11 @@ pub mod Field {
             }
 
             pub fn get_type(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self.reader.get_struct_field(2, None))
+                Type::Reader::new(self.reader.get_pointer_field(2).get_struct())
             }
 
             pub fn get_default_value(&self) -> Value::Reader<'self> {
-                Value::Reader::new(self.reader.get_struct_field(3, None))
+                Value::Reader::new(self.reader.get_pointer_field(3).get_struct())
             }
         }
     }
@@ -719,7 +719,7 @@ pub mod Type {
             }
 
             pub fn get_element_type(&self) -> Type::Reader<'self> {
-                Type::Reader::new(self.reader.get_struct_field(0, None))
+                Type::Reader::new(self.reader.get_pointer_field(0).get_struct())
             }
         }
     }
@@ -860,7 +860,7 @@ pub mod Annotation {
         }
 
         pub fn get_value(&self) -> Value::Reader<'self> {
-            Value::Reader::new(self.reader.get_struct_field(0, None))
+            Value::Reader::new(self.reader.get_pointer_field(0).get_struct())
         }
     }
 

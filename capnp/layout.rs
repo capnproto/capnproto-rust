@@ -804,6 +804,12 @@ pub struct PointerReader<'a> {
 }
 
 impl <'a> PointerReader<'a> {
+    pub fn new_default<'b>() -> PointerReader<'b> {
+        PointerReader { segment : std::ptr::null(),
+                        pointer : std::ptr::null(),
+                        nesting_limit : 0x7fffffff }
+    }
+
     pub fn is_null(&self) -> bool {
         self.pointer.is_null() || unsafe { (*self.pointer).is_null() }
     }
@@ -925,6 +931,18 @@ impl <'a> StructReader<'a>  {
        self.get_bool_field(offset) ^ mask
     }
 
+    #[inline]
+    pub fn get_pointer_field(&self, ptr_index : WirePointerCount) -> PointerReader<'a> {
+        if (ptr_index < self.pointer_count as WirePointerCount) {
+            PointerReader {
+                segment : self.segment,
+                pointer : unsafe { self.pointers.offset(ptr_index as int) },
+                nesting_limit : self.nesting_limit
+            }
+        } else {
+            PointerReader::new_default()
+        }
+    }
 
     pub fn get_struct_field(&self, ptrIndex : WirePointerCount, _defaultValue : Option<&'a [u8]>)
         -> StructReader<'a> {
