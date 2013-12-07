@@ -3,7 +3,7 @@ RUSTC = rustc -O -Z debug-info
 CAPNPRUST_SOURCES=capnp/arena.rs capnp/common.rs capnp/endian.rs \
 	capnp/layout.rs capnp/list.rs capnp/mask.rs capnp/message.rs \
 	capnp/serialize.rs capnp/serialize_packed.rs capnp/blob.rs \
-	capnp/io.rs
+	capnp/io.rs capnp/any.rs
 
 COMPILATION_MARKER=capnp/compilation-marker
 
