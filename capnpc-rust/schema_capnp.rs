@@ -35,7 +35,7 @@ pub mod Node {
         }
 
         pub fn get_display_name(&self) -> Text::Reader<'self> {
-            self.reader.get_text_field(0, "")
+            self.reader.get_pointer_field(0).get_text("")
         }
 
         pub fn get_display_name_prefix_length(&self) -> u32 {
@@ -381,7 +381,7 @@ pub mod Node {
             }
 
             pub fn get_name(&self) -> &'self str {
-                self.reader.get_text_field(0, "")
+                self.reader.get_pointer_field(0).get_text("")
             }
 
             pub fn get_id(&self) -> u64 {
@@ -425,7 +425,7 @@ pub mod Field {
         }
 
         pub fn get_name(&self) -> Text::Reader<'self> {
-            self.reader.get_text_field(0, "")
+            self.reader.get_pointer_field(0).get_text("")
         }
 
         pub fn get_code_order(&self) -> u16 {
@@ -568,7 +568,7 @@ pub mod Enumerant {
         }
 
         pub fn get_name(&self) -> &'self str {
-            self.reader.get_text_field(0, "")
+            self.reader.get_pointer_field(0).get_text("")
         }
 
         pub fn get_code_order(&self) -> u16 {
@@ -982,7 +982,7 @@ pub mod CodeGeneratorRequest {
             }
 
             pub fn get_filename(&self) -> Text::Reader<'self> {
-                self.reader.get_text_field(0, "")
+                self.reader.get_pointer_field(0).get_text("")
             }
 
             pub fn get_imports(&self) -> Import::List::Reader<'self> {
@@ -1027,7 +1027,7 @@ pub mod CodeGeneratorRequest {
                 }
 
                 pub fn get_name(&self) -> Text::Reader<'self> {
-                    self.reader.get_text_field(0, "")
+                    self.reader.get_pointer_field(0).get_text("")
                 }
             }
 

@@ -832,6 +832,12 @@ impl <'a> PointerReader<'a> {
         }
     }
 
+    pub fn get_text(&self, default_value : &'a str) -> Text::Reader<'a> {
+        unsafe {
+            WireHelpers::read_text_pointer(self.segment, self.pointer, default_value)
+        }
+    }
+
 }
 
 pub struct PointerBuilder {
@@ -869,6 +875,14 @@ impl PointerBuilder {
         }
     }
 
+    pub fn get_text(&self, default_value : &'static str) -> Text::Builder {
+        unsafe {
+            WireHelpers::get_writable_text_pointer(
+                self.pointer, self.segment, default_value)
+        }
+    }
+
+
     pub fn init_struct(&self, size : StructSize) -> StructBuilder {
         unsafe {
             WireHelpers::init_struct_pointer(self.pointer, self.segment, size)
@@ -890,6 +904,11 @@ impl PointerBuilder {
         }
     }
 
+    pub fn set_text(&self, value : &str) {
+        unsafe {
+            WireHelpers::set_text_pointer(self.pointer, self.segment, value)
+        }
+    }
 }
 
 pub trait FromStructReader<'a> {
@@ -992,19 +1011,6 @@ impl <'a> StructReader<'a>  {
         }
     }
 
-    pub fn get_text_field(&self, ptrIndex : WirePointerCount,
-                        defaultValue : &'a str) -> Text::Reader<'a> {
-        let reff : *WirePointer =
-            if (ptrIndex >= self.pointer_count as WirePointerCount) {
-                std::ptr::null()
-            } else {
-                unsafe{self.pointers.offset(ptrIndex as int)}
-            };
-        unsafe {
-            WireHelpers::read_text_pointer(self.segment, reff, defaultValue)
-        }
-    }
-
     pub fn total_size(&self) -> WordCount64 {
         fail!("total_size is unimplemented");
     }
@@ -1093,24 +1099,6 @@ impl StructBuilder {
                 segment : self.segment,
                 pointer : unsafe { self.pointers.offset(ptr_index as int) }
             }
-    }
-
-    pub fn set_text_field(&self, ptrIndex : WirePointerCount, value : &str) {
-        unsafe {
-            WireHelpers::set_text_pointer(
-                self.pointers.offset(ptrIndex as int),
-                self.segment, value)
-        }
-    }
-
-
-    pub fn get_text_field(&self, ptrIndex : WirePointerCount,
-                          defaultValue : &'static str) -> Text::Builder {
-        unsafe {
-            WireHelpers::get_writable_text_pointer(
-                self.pointers.offset(ptrIndex as int),
-                self.segment, defaultValue)
-        }
     }
 
 }

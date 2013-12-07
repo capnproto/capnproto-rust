@@ -311,7 +311,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 Some(Type::Float64) => return common_case("f64", member, offset),
                 Some(Type::Text) => {
                     return (format!("Text::{}", moduleWithVar),
-                            Line(format!("self.{}.get_text_field({}, \"\")",
+                            Line(format!("self.{}.get_pointer_field({}).get_text(\"\")",
                                       member, offset)));
                 }
                 Some(Type::Data) => {
@@ -460,7 +460,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                 Some(Type::Float64) => common_case("f64"),
                 Some(Type::Text) => {
                     result.push(Line(format!("pub fn set_{}(&self, value : &str) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.set_text_field({}, value);", offset)))
+                    interior.push(Line(format!("self.builder.get_pointer_field({}).set_text(value);", offset)))
                 }
                 Some(Type::Data) => { return BlankLine }
                 Some(Type::List(ot1)) => {
