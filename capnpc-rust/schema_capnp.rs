@@ -813,6 +813,7 @@ pub mod Type {
 pub mod Value {
     use capnp::layout::*;
     use capnp::blob::*;
+    use capnp::any;
 
     pub struct Reader<'self> {
         priv reader : StructReader<'self>
@@ -854,11 +855,11 @@ pub mod Value {
         Float64(f32),
         Text(Text::Reader<'self>),
         Data(Data::Reader<'self>),
-        List, // TODO
+        List(any::AnyPointer::Reader<'self>),
         Enum(u16),
-        Struct, // TODO
+        Struct(any::AnyPointer::Reader<'self>),
         Interface,
-        AnyPointer // TODO
+        AnyPointer(any::AnyPointer::Reader<'self>)
     }
 }
 

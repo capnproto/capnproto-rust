@@ -823,7 +823,6 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-
     pub fn is_null(&self) -> bool {
         self.pointer.is_null() || unsafe { (*self.pointer).is_null() }
     }
