@@ -822,15 +822,16 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_list(&self, expected_element_size : FieldSize) -> ListReader<'a> {
+    pub fn get_list(&self, expected_element_size : FieldSize, default_value : *Word) -> ListReader<'a> {
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             WireHelpers::read_list_pointer(self.segment,
                                            reff,
-                                           std::ptr::null(),
+                                           default_value,
                                            expected_element_size, self.nesting_limit)
         }
     }
+
 }
 
 pub struct PointerBuilder {
@@ -843,11 +844,6 @@ impl PointerBuilder {
         unsafe { (*self.pointer).is_null() }
     }
 
-    pub fn init_struct(&self, size : StructSize) -> StructBuilder {
-        unsafe {
-            WireHelpers::init_struct_pointer(self.pointer, self.segment, size)
-        }
-    }
 
     pub fn get_struct(&self, size : StructSize, default_value : *Word) -> StructBuilder {
         unsafe {
@@ -859,6 +855,40 @@ impl PointerBuilder {
         }
     }
 
+    pub fn get_list(&self, element_size : FieldSize, default_value : *Word) -> ListBuilder {
+        unsafe {
+            WireHelpers::get_writable_list_pointer(
+                self.pointer, self.segment, element_size, default_value)
+        }
+    }
+
+    pub fn get_struct_list(&self, element_size : StructSize, default_value : *Word) -> ListBuilder {
+        unsafe {
+            WireHelpers::get_writable_struct_list_pointer(
+                self.pointer, self.segment, element_size, default_value)
+        }
+    }
+
+    pub fn init_struct(&self, size : StructSize) -> StructBuilder {
+        unsafe {
+            WireHelpers::init_struct_pointer(self.pointer, self.segment, size)
+        }
+    }
+
+    pub fn init_list(&self, element_size : FieldSize, element_count : ElementCount) -> ListBuilder {
+        unsafe {
+            WireHelpers::init_list_pointer(
+                self.pointer, self.segment, element_count, element_size)
+        }
+    }
+
+    pub fn init_struct_list(&self, element_count : ElementCount, element_size : StructSize)
+                            -> ListBuilder {
+        unsafe {
+            WireHelpers::init_struct_list_pointer(
+                self.pointer, self.segment, element_count, element_size)
+        }
+    }
 
 }
 
@@ -959,22 +989,6 @@ impl <'a> StructReader<'a>  {
             }
         } else {
             PointerReader::new_default()
-        }
-    }
-
-    pub fn get_list_field(&self,
-                          ptrIndex : WirePointerCount, expectedElementSize : FieldSize,
-                          _defaultValue : Option<&'a [u8]>) -> ListReader<'a> {
-        let reff : *WirePointer =
-            if (ptrIndex >= self.pointer_count as WirePointerCount)
-            { std::ptr::null() }
-            else { unsafe{ self.pointers.offset(ptrIndex as int )} };
-
-        unsafe {
-            WireHelpers::read_list_pointer(self.segment,
-                                           reff,
-                                           std::ptr::null(),
-                                           expectedElementSize, self.nesting_limit)
         }
     }
 
@@ -1079,63 +1093,6 @@ impl StructBuilder {
                 segment : self.segment,
                 pointer : unsafe { self.pointers.offset(ptr_index as int) }
             }
-    }
-
-    //# Allocates a new list of the given size for the field at the given
-    //# index in the pointer segment, and return a pointer to it. All
-    //# elements are initialized to zero.
-    pub fn init_list_field(&self, ptrIndex : WirePointerCount,
-                           element_size : FieldSize, element_count : ElementCount)
-        -> ListBuilder {
-        unsafe {
-            WireHelpers::init_list_pointer(
-                self.pointers.offset(ptrIndex as int),
-                self.segment, element_count, element_size)
-        }
-    }
-
-    //# Gets the already-allocated list field for the given pointer
-    //# index, ensuring that the list is suitable for storing
-    //# non-struct elements of the given size. If the list is not
-    //# already allocated, it is allocated as a deep copy of the given
-    //# default value (a flat message). If the default value is null,
-    //# an empty list is used.
-    pub fn get_list_field(&self, ptrIndex : WirePointerCount,
-                          element_size : FieldSize, _defaultValue : Option<()>) -> ListBuilder {
-        unsafe {
-            WireHelpers::get_writable_list_pointer(
-                self.pointers.offset(ptrIndex as int),
-                self.segment, element_size, std::ptr::null())
-        }
-    }
-
-    //# Allocates a new list of the given size for the field at the
-    //# given index in the pointer segment, and return a pointer to it.
-    //# Each element is initialized to its empty state.
-    pub fn init_struct_list_field(&self, ptrIndex : WirePointerCount,
-                                  element_count : ElementCount, element_size : StructSize)
-        -> ListBuilder {
-        unsafe { WireHelpers::init_struct_list_pointer(
-                self.pointers.offset(ptrIndex as int),
-                self.segment, element_count, element_size)
-        }
-    }
-
-    //# Gets the already-allocated list field for the given pointer
-    //# index, ensuring that the list is suitable for storing struct
-    //# elements of the given size. If the list is not already
-    //# allocated, it is allocated as a deep copy of the given default
-    //# value (a flat message). If the default value is null, an empty
-    //# list is used.
-    pub fn get_struct_list_field(&self, ptrIndex : WirePointerCount,
-                                 element_size : StructSize,
-                                 _defaultValue : Option<()>) -> ListBuilder {
-        unsafe {
-            WireHelpers::get_writable_struct_list_pointer(
-                self.pointers.offset(ptrIndex as int),
-                self.segment, element_size,
-                std::ptr::null())
-        }
     }
 
     pub fn set_text_field(&self, ptrIndex : WirePointerCount, value : &str) {

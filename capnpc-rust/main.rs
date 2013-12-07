@@ -325,7 +325,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                             let theMod = scope.connect("::");
                             let fullModuleName = format!("{}::List::{}", theMod, module);
                             return (format!("{}::List::{}", theMod, moduleWithVar),
-                                    Line(format!("{}::new(self.{}.get_list_field({}, {}::STRUCT_SIZE.preferred_list_encoding, None))",
+                                    Line(format!("{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
                                               fullModuleName, member, offset, theMod))
                                     );
                         }
@@ -337,7 +337,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                 if (isReader) {format!("<'a, {}>", fullModuleName)}
                                 else {format!("<{}>", fullModuleName)};
                             return (format!("EnumList::{}{}",module,typeArgs),
-                                    Line(format!("EnumList::{}::{}::new(self.{}.get_list_field({},layout::TWO_BYTES,None))",
+                                    Line(format!("EnumList::{}::{}::new(self.{}.get_pointer_field({}).get_list(layout::TWO_BYTES, std::ptr::null()))",
                                          module, typeArgs, member, offset)));
                         }
                         Some(Type::List(_)) => {return (~"TODO", Line(~"TODO")) }
@@ -353,7 +353,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                 else {format!("<{}>", typeStr)};
                             return
                                 (format!("PrimitiveList::{}{}", module, typeArgs),
-                                 Line(format!("PrimitiveList::{}::{}::new(self.{}.get_list_field({},layout::{},None))",
+                                 Line(format!("PrimitiveList::{}::{}::new(self.{}.get_pointer_field({}).get_list(layout::{}, std::ptr::null()))",
                                            module, typeArgs, member, offset, sizeStr)))
                         }
                     }
@@ -480,7 +480,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     interior.push(Line(format!("PrimitiveList::Builder::<{}>::new(",
                                                             typeStr)));
                                     interior.push(
-                                        Indent(~Line(format!("self.builder.init_list_field({},layout::{},size)",
+                                        Indent(~Line(format!("self.builder.get_pointer_field({}).init_list(layout::{},size)",
                                                           offset, sizeStr))));
                                         interior.push(Line(~")"));
                                     format!("PrimitiveList::Builder<{}>", typeStr)
@@ -495,7 +495,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     interior.push(
                                         Indent(
                                             ~Line(
-                                                format!("self.builder.init_list_field({},layout::TWO_BYTES,size)",
+                                                format!("self.builder.get_pointer_field({}).init_list(layout::TWO_BYTES,size)",
                                                      offset))));
                                     interior.push(Line(~")"));
                                     format!("EnumList::Builder<{}>", typeStr)
@@ -509,7 +509,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     interior.push(
                                        Indent(
                                           ~Line(
-                                             format!("self.builder.init_struct_list_field({}, size, {}::STRUCT_SIZE))",
+                                             format!("self.builder.get_pointer_field({}).init_struct_list(size, {}::STRUCT_SIZE))",
                                                   offset, theMod))));
                                     format!("{}::List::Builder", theMod)
                                 }

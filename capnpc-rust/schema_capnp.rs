@@ -7,6 +7,7 @@
 mod macros;
 
 pub mod Node {
+    use std;
     use capnp::layout::{StructReader, StructBuilder, StructSize, INLINE_COMPOSITE};
     use capnp::blob::Text;
 
@@ -46,7 +47,7 @@ pub mod Node {
         }
 
         pub fn get_nested_nodes(&self) -> NestedNode::List::Reader<'self> {
-            NestedNode::List::Reader::new(self.reader.get_list_field(1, INLINE_COMPOSITE, None))
+            NestedNode::List::Reader::new(self.reader.get_pointer_field(1).get_list(INLINE_COMPOSITE, std::ptr::null()))
         }
 
         pub fn which(&self) -> Option<Which<'self>> {
@@ -114,6 +115,7 @@ pub mod Node {
     }
 
     pub mod Struct {
+        use std;
         use capnp::layout;
         use schema_capnp;
 
@@ -158,7 +160,7 @@ pub mod Node {
 
             pub fn get_fields(&self) -> schema_capnp::Field::List::Reader<'self> {
                 schema_capnp::Field::List::Reader::new(
-                    self.reader.get_list_field(3, layout::INLINE_COMPOSITE, None))
+                    self.reader.get_pointer_field(3).get_list(layout::INLINE_COMPOSITE, std::ptr::null()))
             }
         }
 
@@ -174,6 +176,7 @@ pub mod Node {
     }
 
     pub mod Enum {
+        use std;
         use schema_capnp;
         use capnp::layout;
 
@@ -193,10 +196,9 @@ pub mod Node {
 
             pub fn get_enumerants(&self) -> schema_capnp::Enumerant::List::Reader<'self> {
                 schema_capnp::Enumerant::List::Reader::new(
-                      self.reader.get_list_field(
-                        3,
+                      self.reader.get_pointer_field(3).get_list(
                         schema_capnp::Enumerant::STRUCT_SIZE.preferred_list_encoding,
-                        None))
+                        std::ptr::null()))
             }
 
         }
@@ -541,6 +543,7 @@ pub mod Field {
 }
 
 pub mod Enumerant {
+    use std;
     use capnp::layout::*;
     use schema_capnp::*;
 
@@ -574,8 +577,9 @@ pub mod Enumerant {
 
         pub fn get_annotations(&self) -> Annotation::List::Reader<'self> {
             Annotation::List::Reader::new(
-                self.reader.get_list_field(1, Annotation::STRUCT_SIZE.preferred_list_encoding,
-                                         None))
+                self.reader.get_pointer_field(1).get_list(
+                    Annotation::STRUCT_SIZE.preferred_list_encoding,
+                    std::ptr::null()))
         }
     }
 
@@ -900,6 +904,7 @@ pub mod ElementSize {
 
 
 pub mod CodeGeneratorRequest {
+    use std;
     use capnp::layout::{StructSize, StructReader, INLINE_COMPOSITE, StructBuilder, FromStructReader};
     use schema_capnp::*;
 
@@ -925,14 +930,14 @@ pub mod CodeGeneratorRequest {
         }
 
         pub fn get_nodes(&self) -> Node::List::Reader<'self> {
-            Node::List::Reader::new(self.reader.get_list_field(0, INLINE_COMPOSITE, None))
+            Node::List::Reader::new(self.reader.get_pointer_field(0).get_list(INLINE_COMPOSITE, std::ptr::null()))
         }
 
         pub fn get_requested_files(&self) -> RequestedFile::List::Reader<'self> {
             RequestedFile::List::Reader::new(
-                 self.reader.get_list_field(1,
-                                           RequestedFile::STRUCT_SIZE.preferred_list_encoding,
-                                           None))
+                 self.reader.get_pointer_field(1).get_list(
+                    RequestedFile::STRUCT_SIZE.preferred_list_encoding,
+                    std::ptr::null()))
         }
 
     }
@@ -948,11 +953,12 @@ pub mod CodeGeneratorRequest {
 
         pub fn init_nodes(&self, size : uint) -> Node::List::Builder {
             Node::List::Builder::new(
-                self.builder.init_struct_list_field(0, size, Node::STRUCT_SIZE))
+                self.builder.get_pointer_field(0).init_struct_list(size, Node::STRUCT_SIZE))
         }
     }
 
     pub mod RequestedFile {
+        use std;
         use capnp::layout::*;
         use capnp::blob::*;
 
@@ -981,9 +987,9 @@ pub mod CodeGeneratorRequest {
 
             pub fn get_imports(&self) -> Import::List::Reader<'self> {
                 Import::List::Reader::new(
-                 self.reader.get_list_field(1,
-                                           Import::STRUCT_SIZE.preferred_list_encoding,
-                                           None))
+                 self.reader.get_pointer_field(1).get_list(
+                        Import::STRUCT_SIZE.preferred_list_encoding,
+                        std::ptr::null()))
             }
         }
 
