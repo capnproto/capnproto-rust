@@ -1153,9 +1153,15 @@ impl <'a> ListReader<'a> {
         }
     }
 
-    pub fn get_list_element(&self, _index : ElementCount, _expectedElementSize : FieldSize)
-        -> ListReader<'a> {
-        fail!("unimplemented")
+    #[inline]
+    pub fn get_pointer_element(&self, index : ElementCount) -> PointerReader<'a> {
+        PointerReader {
+            segment : self.segment,
+            pointer : unsafe {
+                std::cast::transmute(self.ptr.offset((index * self.step * BITS_PER_BYTE) as int))
+            },
+            nesting_limit : self.nesting_limit
+        }
     }
 }
 
@@ -1189,6 +1195,11 @@ impl ListBuilder {
             pointer_count : self.struct_pointer_count,
             bit0offset : (indexBit % BITS_PER_BYTE) as u8
         }
+    }
+
+    #[inline]
+    pub fn get_pointer_element(&self, _index : ElementCount) -> PointerBuilder {
+        fail!("get_pointer_element unimplemented");
     }
 }
 
