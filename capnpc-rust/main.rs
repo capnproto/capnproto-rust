@@ -233,7 +233,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 return (format!("{}::Reader<'a>", theMod),
                         Line(format!("{}::Reader::new(self.reader)", theMod)));
             } else {
-                return (format!("{}::Builder", theMod),
+                return (format!("{}::Builder<'a>", theMod),
                         Line(format!("{}::Builder::new(self.builder)", theMod)));
             }
         }
@@ -245,7 +245,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
             let member = if (isReader) { "reader" } else { "builder" };
             let module = if (isReader) { "Reader" } else { "Builder" };
-            let moduleWithVar = if (isReader) { "Reader<'a>" } else { "Builder" };
+            let moduleWithVar = if (isReader) { "Reader<'a>" } else { "Builder<'a>" };
 
             match typ.which() {
                 Some(Type::Void) => { return (~"()", Line(~"()"))}
@@ -277,10 +277,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                         Some(Type::Struct(st)) => {
                             let scope = scopeMap.get(&st.get_type_id());
                             let theMod = scope.connect("::");
-                            let moduleWithVar =
-                                if (isReader) {format!("'a,{}::Reader",theMod)}
-                                else {format!("{}::Builder",theMod)};
-                            return (format!("StructList::{}<{}>", module, moduleWithVar),
+                            return (format!("StructList::{}<'a,{}::{}<'a>>", module, theMod, module),
                                     Line(format!("StructList::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
                                                  module, member, offset, theMod))
                                     );
@@ -289,12 +286,9 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                             let scope = scopeMap.get(&e.get_type_id());
                             let theMod = scope.connect("::");
                             let fullModuleName = format!("{}::Reader", theMod);
-                            let typeArgs =
-                                if (isReader) {format!("<'a, {}>", fullModuleName)}
-                                else {format!("<{}>", fullModuleName)};
-                            return (format!("EnumList::{}{}",module,typeArgs),
-                                    Line(format!("EnumList::{}::{}::new(self.{}.get_pointer_field({}).get_list(layout::TWO_BYTES, std::ptr::null()))",
-                                         module, typeArgs, member, offset)));
+                            return (format!("EnumList::{}<'a,{}>",module,fullModuleName),
+                                    Line(format!("EnumList::{}::new(self.{}.get_pointer_field({}).get_list(layout::TWO_BYTES, std::ptr::null()))",
+                                         module, member, offset)));
                         }
                         Some(Type::List(_)) => {return (~"TODO", Line(~"TODO")) }
                         Some(Type::Text) => {return (~"TODO", Line(~"TODO")) }
@@ -304,13 +298,10 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                         Some(primType) => {
                             let typeStr = prim_type_str(primType);
                             let sizeStr = element_size_str(element_size(primType));
-                            let typeArgs =
-                                if (isReader) {format!("<'a, {}>", typeStr)}
-                                else {format!("<{}>", typeStr)};
                             return
-                                (format!("PrimitiveList::{}{}", module, typeArgs),
-                                 Line(format!("PrimitiveList::{}::{}::new(self.{}.get_pointer_field({}).get_list(layout::{}, std::ptr::null()))",
-                                           module, typeArgs, member, offset, sizeStr)))
+                                (format!("PrimitiveList::{}<'a,{}>", module, typeStr),
+                                 Line(format!("PrimitiveList::{}::new(self.{}.get_pointer_field({}).get_list(layout::{}, std::ptr::null()))",
+                                           module, member, offset, sizeStr)))
                         }
                     }
                 }
@@ -381,7 +372,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
         Some(Field::Group(group)) => {
             let scope = scopeMap.get(&group.get_type_id());
             let theMod = scope.connect("::");
-            result.push(Line(format!("pub fn init_{}(&self) -> {}::Builder \\{",
+            result.push(Line(format!("pub fn init_{}(&self) -> {}::Builder<'a> \\{",
                                      styled_name, theMod )));
             // XXX todo: zero out all of the fields.
             interior.push(Line(format!("{}::Builder::new(self.builder)", theMod)));
@@ -433,20 +424,20 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     let typeStr = prim_type_str(t1);
                                     let sizeStr = element_size_str(element_size(t1));
 
-                                    interior.push(Line(format!("PrimitiveList::Builder::<{}>::new(",
-                                                            typeStr)));
+                                    interior.push(Line(format!("PrimitiveList::Builder::<'a,{}>::new(",
+                                                               typeStr)));
                                     interior.push(
                                         Indent(~Line(format!("self.builder.get_pointer_field({}).init_list(layout::{},size)",
                                                           offset, sizeStr))));
                                         interior.push(Line(~")"));
-                                    format!("PrimitiveList::Builder<{}>", typeStr)
+                                    format!("PrimitiveList::Builder<'a,{}>", typeStr)
                                 }
                                 Type::Enum(e) => {
                                     let id = e.get_type_id();
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
                                     let typeStr = format!("{}::Reader", theMod);
-                                    interior.push(Line(format!("EnumList::Builder::<{}>::new(",
+                                    interior.push(Line(format!("EnumList::Builder::<'a, {}>::new(",
                                                             typeStr)));
                                     interior.push(
                                         Indent(
@@ -454,20 +445,20 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                                 format!("self.builder.get_pointer_field({}).init_list(layout::TWO_BYTES,size)",
                                                      offset))));
                                     interior.push(Line(~")"));
-                                    format!("EnumList::Builder<{}>", typeStr)
+                                    format!("EnumList::Builder<'a,{}>", typeStr)
                                 }
                                 Type::Struct(st) => {
                                     let id = st.get_type_id();
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
 
-                                    interior.push(Line(format!("StructList::Builder::<{}::Builder>::new(", theMod)));
+                                    interior.push(Line(format!("StructList::Builder::<'a, {}::Builder<'a>>::new(", theMod)));
                                     interior.push(
                                        Indent(
                                           ~Line(
                                              format!("self.builder.get_pointer_field({}).init_struct_list(size, {}::STRUCT_SIZE))",
                                                   offset, theMod))));
-                                    format!("StructList::Builder<{}::Builder>", theMod)
+                                    format!("StructList::Builder<'a, {}::Builder<'a>>", theMod)
                                 }
                                 _ => { ~"" }
                             };
@@ -490,7 +481,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     let id = st.get_type_id();
                     let scope = scopeMap.get(&id);
                     let theMod = scope.connect("::");
-                    result.push(Line(format!("pub fn init_{}(&self) -> {}::Builder \\{",styled_name,theMod)));
+                    result.push(Line(format!("pub fn init_{}(&self) -> {}::Builder<'a> \\{",styled_name,theMod)));
                     interior.push(
                       Line(format!("{}::Builder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
                                 theMod, offset, theMod)));
@@ -720,7 +711,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 if (isGroup) { Branch(~[] ) }
                 else {
                   Branch(~[
-                       Line(~"impl layout::HasStructSize for Builder {"),
+                       Line(~"impl <'a> layout::HasStructSize for Builder<'a> {"),
                        Indent(~Branch(~[Line(~"#[inline]"),
                                         Line(~"fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }")])),
                        Line(~"}")])
@@ -749,21 +740,21 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                   Indent(~Branch(reader_members)),
                   Line(~"}"),
                   BlankLine,
-                  Line(~"pub struct Builder { priv builder : layout::StructBuilder }"),
+                  Line(~"pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }"),
                   builderStructSize,
-                  Line(~"impl layout::FromStructBuilder for Builder {"),
+                  Line(~"impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {"),
                   Indent(
                       ~Branch(
-                          ~[Line(~"fn from_struct_builder(builder : layout::StructBuilder) -> Builder {"),
+                          ~[Line(~"fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {"),
                             Indent(~Line(~"Builder { builder : builder }")),
                             Line(~"}")
                             ])),
                   Line(~"}"),
 
-                  Line(~"impl Builder {"),
+                  Line(~"impl <'a> Builder<'a> {"),
                   Indent(
                       ~Branch(
-                          ~[Line(~"pub fn new(builder : layout::StructBuilder) -> Builder {"),
+                          ~[Line(~"pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {"),
                             Indent(~Line(~"Builder { builder : builder }")),
                             Line(~"}"),
                             BlankLine,

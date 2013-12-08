@@ -8,10 +8,10 @@ use std::rand::*;
 use common::*;
 use carsales_capnp::*;
 
-pub type RequestBuilder = ParkingLot::Builder;
-pub type RequestReader<'self> = ParkingLot::Reader<'self>;
-pub type ResponseBuilder = TotalValue::Builder;
-pub type ResponseReader<'self> = TotalValue::Reader<'self>;
+pub type RequestBuilder<'a> = ParkingLot::Builder<'a>;
+pub type RequestReader<'a> = ParkingLot::Reader<'a>;
+pub type ResponseBuilder<'a> = TotalValue::Builder<'a>;
+pub type ResponseReader<'a> = TotalValue::Reader<'a>;
 pub type Expectation = u64;
 
 pub fn car_value (car : Car::Reader) -> u64 {

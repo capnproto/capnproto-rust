@@ -11,9 +11,9 @@ pub trait FromPointerReader<'a> {
     fn get_from_pointer(reader : &PointerReader<'a>, default_value : *Word) -> Self;
 }
 
-pub trait FromPointerBuilder {
-    fn init_pointer(PointerBuilder, uint) -> Self;
-    fn get_from_pointer(builder : PointerBuilder, default_value : *Word) -> Self;
+pub trait FromPointerBuilder<'a> {
+    fn init_pointer(PointerBuilder<'a>, uint) -> Self;
+    fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *Word) -> Self;
 }
 
 pub mod PrimitiveList {
@@ -46,12 +46,12 @@ pub mod PrimitiveList {
         }
     }
 
-    pub struct Builder<T> {
-        builder : ListBuilder
+    pub struct Builder<'a, T> {
+        builder : ListBuilder<'a>
     }
 
-    impl <T : PrimitiveElement> Builder<T> {
-        pub fn new(builder : ListBuilder) -> Builder<T> {
+    impl <'a, T : PrimitiveElement> Builder<'a, T> {
+        pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
             Builder { builder : builder }
         }
 
@@ -62,18 +62,18 @@ pub mod PrimitiveList {
         }
     }
 
-    impl <T : PrimitiveElement> FromPointerBuilder for Builder<T> {
-        fn init_pointer(_builder : PointerBuilder, _size : uint) -> Builder<T> {
+    impl <'a, T : PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
+        fn init_pointer(_builder : PointerBuilder<'a>, _size : uint) -> Builder<'a, T> {
 //            builder.init_list(
             fail!();
         }
-        fn get_from_pointer(_builder : PointerBuilder, _default_value : *Word) -> Builder<T> {
+        fn get_from_pointer(_builder : PointerBuilder<'a>, _default_value : *Word) -> Builder<'a, T> {
             fail!();
         }
     }
 
 
-    impl <T : PrimitiveElement> Index<uint, T> for Builder<T> {
+    impl <'a, T : PrimitiveElement> Index<uint, T> for Builder<'a, T> {
         fn index(&self, index : &uint) -> T {
             PrimitiveElement::get_from_builder(&self.builder, *index)
         }
@@ -116,12 +116,12 @@ pub mod EnumList {
         }
     }
 
-    pub struct Builder<T> {
-        builder : ListBuilder
+    pub struct Builder<'a, T> {
+        builder : ListBuilder<'a>
     }
 
-    impl <T : ToU16 + FromPrimitive> Builder<T> {
-        pub fn new(builder : ListBuilder) -> Builder<T> {
+    impl <'a, T : ToU16 + FromPrimitive> Builder<'a, T> {
+        pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
             Builder { builder : builder }
         }
 
@@ -132,17 +132,17 @@ pub mod EnumList {
         }
     }
 
-    impl <T : FromPrimitive> FromPointerBuilder for Builder<T> {
-        fn init_pointer(builder : PointerBuilder, size : uint) -> Builder<T> {
+    impl <'a, T : FromPrimitive> FromPointerBuilder<'a> for Builder<'a, T> {
+        fn init_pointer(builder : PointerBuilder<'a>, size : uint) -> Builder<'a, T> {
             Builder { builder : builder.init_list(TWO_BYTES, size) }
         }
-        fn get_from_pointer(builder : PointerBuilder, default_value : *Word) -> Builder<T> {
+        fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *Word) -> Builder<'a, T> {
             Builder { builder : builder.get_list(TWO_BYTES, default_value) }
         }
     }
 
 
-    impl <T : ToU16 + FromPrimitive> Index<uint, Option<T>> for Builder<T> {
+    impl <'a, T : ToU16 + FromPrimitive> Index<uint, Option<T>> for Builder<'a, T> {
         fn index(&self, index : &uint) -> Option<T> {
             let result : u16 = PrimitiveElement::get_from_builder(&self.builder, *index);
             FromPrimitive::from_u16(result)
@@ -180,13 +180,12 @@ pub mod StructList {
         }
     }
 
-
-    pub struct Builder<T> {
-        builder : ListBuilder
+    pub struct Builder<'a, T> {
+        builder : ListBuilder<'a>
     }
 
-    impl <T : FromStructBuilder> Builder<T> {
-        pub fn new(builder : ListBuilder) -> Builder<T> {
+    impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
+        pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
             Builder { builder : builder }
         }
 
@@ -196,27 +195,26 @@ pub mod StructList {
 //        }
     }
 
-    impl <T : FromStructBuilder + HasStructSize> FromPointerBuilder for Builder<T> {
-        fn init_pointer(builder : PointerBuilder, size : uint) -> Builder<T> {
+    impl <'a, T : FromStructBuilder<'a> + HasStructSize> FromPointerBuilder<'a> for Builder<'a, T> {
+        fn init_pointer(builder : PointerBuilder<'a>, size : uint) -> Builder<'a, T> {
             Builder {
                 builder : builder.init_struct_list(size, HasStructSize::struct_size(None::<T>))
             }
         }
-        fn get_from_pointer(builder : PointerBuilder, default_value : *Word) -> Builder<T> {
+        fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *Word) -> Builder<'a, T> {
             Builder {
                 builder : builder.get_struct_list(HasStructSize::struct_size(None::<T>), default_value)
             }
         }
     }
 
-    impl <T : FromStructBuilder> Index<uint, T> for Builder<T> {
+    impl <'a, T : FromStructBuilder<'a>> Index<uint, T> for Builder<'a, T> {
         fn index(&self, index : &uint) -> T {
             let result : T =
                 FromStructBuilder::from_struct_builder(self.builder.get_struct_element(*index));
             result
         }
     }
-
 }
 
 pub mod ListList {
@@ -251,12 +249,12 @@ pub mod ListList {
         }
     }
 
-    pub struct Builder<T> {
-        builder : ListBuilder
+    pub struct Builder<'a, T> {
+        builder : ListBuilder<'a>
     }
 
-    impl <T : FromPointerBuilder> Builder<T> {
-        pub fn new(builder : ListBuilder) -> Builder<T> {
+    impl <'a, T : FromPointerBuilder<'a>> Builder<'a, T> {
+        pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
             Builder { builder : builder }
         }
 
@@ -264,20 +262,20 @@ pub mod ListList {
     }
 
 
-    impl <T : FromPointerBuilder> FromPointerBuilder for Builder<T> {
-        fn init_pointer(builder : PointerBuilder, size : uint) -> Builder<T> {
+    impl <'a, T : FromPointerBuilder<'a>> FromPointerBuilder<'a> for Builder<'a, T> {
+        fn init_pointer(builder : PointerBuilder<'a>, size : uint) -> Builder<'a, T> {
             Builder {
                 builder : builder.init_list(POINTER, size)
             }
         }
-        fn get_from_pointer(builder : PointerBuilder, default_value : *Word) -> Builder<T> {
+        fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *Word) -> Builder<'a, T> {
             Builder {
                 builder : builder.get_list(POINTER, default_value)
             }
         }
     }
 
-    impl <T : FromPointerBuilder> Index<uint, T> for Builder<T> {
+    impl <'a, T : FromPointerBuilder<'a>> Index<uint, T> for Builder<'a, T> {
         fn index(&self, index : &uint) -> T {
             let result : T =
                 FromPointerBuilder::get_from_pointer(

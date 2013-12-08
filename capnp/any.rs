@@ -30,17 +30,17 @@ pub mod AnyPointer {
         }
     }
 
-    pub struct Builder {
-        builder : PointerBuilder
+    pub struct Builder<'a> {
+        builder : PointerBuilder<'a>
     }
 
-    impl Builder {
+    impl <'a> Builder<'a> {
         #[inline]
-        pub fn new<'b>(builder : PointerBuilder) -> Builder {
+        pub fn new<'b>(builder : PointerBuilder<'a>) -> Builder<'a> {
             Builder { builder : builder }
         }
 
-        pub fn init_as_struct<T : FromStructBuilder + HasStructSize>(&self) -> T {
+        pub fn init_as_struct<T : FromStructBuilder<'a> + HasStructSize>(&self) -> T {
             FromStructBuilder::from_struct_builder(
                 self.builder.init_struct(
                     HasStructSize::struct_size(None::<T>)))

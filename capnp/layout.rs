@@ -162,8 +162,9 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn set_kind_and_target(&mut self, kind : WirePointerKind,
-                            target : *mut Word, _segmentBuilder : *mut SegmentBuilder) {
+    pub fn set_kind_and_target<'a>(&mut self, kind : WirePointerKind,
+                                   target : *mut Word,
+                                   _segmentBuilder : *mut SegmentBuilder<'a>) {
         let thisAddr : int = unsafe {std::cast::transmute(&*self)};
         let targetAddr : int = unsafe {std::cast::transmute(target)};
         self.offset_and_kind.set(
@@ -275,9 +276,9 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn allocate(reff : &mut *mut WirePointer,
-                           segment : &mut *mut SegmentBuilder,
-                           amount : WordCount, kind : WirePointerKind) -> *mut Word {
+    pub unsafe fn allocate<'a>(reff : &mut *mut WirePointer,
+                               segment : &mut *mut SegmentBuilder<'a>,
+                               amount : WordCount, kind : WirePointerKind) -> *mut Word {
         let is_null = (**reff).is_null();
         if (!is_null) {
             zero_object(*segment, *reff)
@@ -352,7 +353,7 @@ mod WireHelpers {
         }
     }
 
-    pub unsafe fn zero_object(mut segment : *mut SegmentBuilder, reff : *mut WirePointer) {
+    pub unsafe fn zero_object<'a>(mut segment : *mut SegmentBuilder<'a>, reff : *mut WirePointer) {
         //# Zero out the pointed-to object. Use when the pointer is
         //# about to be overwritten making the target object no longer
         //# reachable.
@@ -386,9 +387,9 @@ mod WireHelpers {
         }
     }
 
-    pub unsafe fn zero_object_helper(segment : *mut SegmentBuilder,
-                                     tag : *mut WirePointer,
-                                     ptr: *mut Word) {
+    pub unsafe fn zero_object_helper<'a>(segment : *mut SegmentBuilder<'a>,
+                                         tag : *mut WirePointer,
+                                         ptr: *mut Word) {
         match (*tag).kind() {
             WP_CAPABILITY => { fail!("Don't know how to handle CAPABILITY") }
             WP_STRUCT => {
@@ -450,9 +451,9 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn init_struct_pointer(mut reff : *mut WirePointer,
-                             mut segmentBuilder : *mut SegmentBuilder,
-                             size : StructSize) -> StructBuilder {
+    pub unsafe fn init_struct_pointer<'a>(mut reff : *mut WirePointer,
+                                          mut segmentBuilder : *mut SegmentBuilder<'a>,
+                                          size : StructSize) -> StructBuilder<'a> {
         let ptr : *mut Word = allocate(&mut reff, &mut segmentBuilder, size.total(), WP_STRUCT);
         (*reff).struct_ref_mut().set(size);
 
@@ -468,18 +469,18 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_struct_pointer(_reff : *mut WirePointer,
-                                    _segment : *mut SegmentBuilder,
-                                    _size : StructSize,
-                                    _defaultValue : *Word) -> StructBuilder {
+    pub unsafe fn get_writable_struct_pointer<'a>(_reff : *mut WirePointer,
+                                                  _segment : *mut SegmentBuilder<'a>,
+                                                  _size : StructSize,
+                                                  _defaultValue : *Word) -> StructBuilder<'a> {
         fail!("unimplemented")
     }
 
     #[inline]
-    pub unsafe fn init_list_pointer(mut reff : *mut WirePointer,
-                           mut segmentBuilder : *mut SegmentBuilder,
-                           element_count : ElementCount,
-                           element_size : FieldSize) -> ListBuilder {
+    pub unsafe fn init_list_pointer<'a>(mut reff : *mut WirePointer,
+                                        mut segmentBuilder : *mut SegmentBuilder<'a>,
+                                        element_count : ElementCount,
+                                        element_size : FieldSize) -> ListBuilder<'a> {
         match element_size {
             INLINE_COMPOSITE => {
                 fail!("Should have called initStructListPointer() instead")
@@ -506,10 +507,10 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn init_struct_list_pointer(mut reff : *mut WirePointer,
-                                        mut segmentBuilder : *mut SegmentBuilder,
-                                        element_count : ElementCount,
-                                        element_size : StructSize) -> ListBuilder {
+    pub unsafe fn init_struct_list_pointer<'a>(mut reff : *mut WirePointer,
+                                               mut segmentBuilder : *mut SegmentBuilder<'a>,
+                                               element_count : ElementCount,
+                                               element_size : StructSize) -> ListBuilder<'a> {
         match element_size.preferred_list_encoding {
             INLINE_COMPOSITE => { }
             otherEncoding => {
@@ -543,25 +544,25 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_list_pointer(_origRefIndex : *mut WirePointer,
-                                         _origSegment : *mut SegmentBuilder,
-                                         _element_size : FieldSize,
-                                         _defaultValue : *Word) -> ListBuilder {
+    pub unsafe fn get_writable_list_pointer<'a>(_origRefIndex : *mut WirePointer,
+                                                _origSegment : *mut SegmentBuilder<'a>,
+                                                _element_size : FieldSize,
+                                                _defaultValue : *Word) -> ListBuilder<'a> {
         fail!("unimplemented")
     }
 
     #[inline]
-    pub unsafe fn get_writable_struct_list_pointer(_origRefIndex : *mut WirePointer,
-                                               _origSegment : *mut SegmentBuilder,
-                                               _element_size : StructSize,
-                                               _defaultValue : *Word) -> ListBuilder {
+    pub unsafe fn get_writable_struct_list_pointer<'a>(_origRefIndex : *mut WirePointer,
+                                                       _origSegment : *mut SegmentBuilder<'a>,
+                                                       _element_size : StructSize,
+                                                       _defaultValue : *Word) -> ListBuilder<'a> {
         fail!("unimplemented")
     }
 
     #[inline]
-    pub unsafe fn set_text_pointer(mut reff : *mut WirePointer,
-                          mut segmentBuilder : *mut SegmentBuilder,
-                          value : &str) {
+    pub unsafe fn set_text_pointer<'a>(mut reff : *mut WirePointer,
+                                       mut segmentBuilder : *mut SegmentBuilder<'a>,
+                                       value : &str) {
 
         // initTextPointer is rolled in here
 
@@ -583,9 +584,9 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_text_pointer(_refIndex : *mut WirePointer,
-                                         _segment : *mut SegmentBuilder,
-                                         _defaultValue : &'static str) -> Text::Builder {
+    pub unsafe fn get_writable_text_pointer<'a>(_refIndex : *mut WirePointer,
+                                                _segment : *mut SegmentBuilder<'a>,
+                                                _defaultValue : &'static str) -> Text::Builder<'a> {
         fail!("unimplemented");
     }
 
@@ -853,15 +854,15 @@ impl <'a> PointerReader<'a> {
 
 }
 
-pub struct PointerBuilder {
-    segment : *mut SegmentBuilder,
+pub struct PointerBuilder<'a> {
+    segment : *mut SegmentBuilder<'a>,
     pointer : *mut WirePointer
 }
 
-impl PointerBuilder {
+impl <'a> PointerBuilder<'a> {
 
     #[inline]
-    pub fn get_root(segment : *mut SegmentBuilder, location : *mut Word) -> PointerBuilder {
+    pub fn get_root(segment : *mut SegmentBuilder<'a>, location : *mut Word) -> PointerBuilder<'a> {
         PointerBuilder {segment : segment, pointer : unsafe { std::cast::transmute(location) }}
     }
 
@@ -870,7 +871,7 @@ impl PointerBuilder {
     }
 
 
-    pub fn get_struct(&self, size : StructSize, default_value : *Word) -> StructBuilder {
+    pub fn get_struct(&self, size : StructSize, default_value : *Word) -> StructBuilder<'a> {
         unsafe {
             WireHelpers::get_writable_struct_pointer(
                 self.pointer,
@@ -880,21 +881,21 @@ impl PointerBuilder {
         }
     }
 
-    pub fn get_list(&self, element_size : FieldSize, default_value : *Word) -> ListBuilder {
+    pub fn get_list(&self, element_size : FieldSize, default_value : *Word) -> ListBuilder<'a> {
         unsafe {
             WireHelpers::get_writable_list_pointer(
                 self.pointer, self.segment, element_size, default_value)
         }
     }
 
-    pub fn get_struct_list(&self, element_size : StructSize, default_value : *Word) -> ListBuilder {
+    pub fn get_struct_list(&self, element_size : StructSize, default_value : *Word) -> ListBuilder<'a> {
         unsafe {
             WireHelpers::get_writable_struct_list_pointer(
                 self.pointer, self.segment, element_size, default_value)
         }
     }
 
-    pub fn get_text(&self, default_value : &'static str) -> Text::Builder {
+    pub fn get_text(&self, default_value : &'static str) -> Text::Builder<'a> {
         unsafe {
             WireHelpers::get_writable_text_pointer(
                 self.pointer, self.segment, default_value)
@@ -902,13 +903,13 @@ impl PointerBuilder {
     }
 
 
-    pub fn init_struct(&self, size : StructSize) -> StructBuilder {
+    pub fn init_struct(&self, size : StructSize) -> StructBuilder<'a> {
         unsafe {
             WireHelpers::init_struct_pointer(self.pointer, self.segment, size)
         }
     }
 
-    pub fn init_list(&self, element_size : FieldSize, element_count : ElementCount) -> ListBuilder {
+    pub fn init_list(&self, element_size : FieldSize, element_count : ElementCount) -> ListBuilder<'a> {
         unsafe {
             WireHelpers::init_list_pointer(
                 self.pointer, self.segment, element_count, element_size)
@@ -916,7 +917,7 @@ impl PointerBuilder {
     }
 
     pub fn init_struct_list(&self, element_count : ElementCount, element_size : StructSize)
-                            -> ListBuilder {
+                            -> ListBuilder<'a> {
         unsafe {
             WireHelpers::init_struct_list_pointer(
                 self.pointer, self.segment, element_count, element_size)
@@ -1028,12 +1029,12 @@ pub trait HasStructSize {
     fn struct_size(unused_self : Option<Self>) -> StructSize;
 }
 
-pub trait FromStructBuilder {
-    fn from_struct_builder(structBuilder : StructBuilder) -> Self;
+pub trait FromStructBuilder<'a> {
+    fn from_struct_builder(structBuilder : StructBuilder<'a>) -> Self;
 }
 
-pub struct StructBuilder {
-    segment : *mut SegmentBuilder,
+pub struct StructBuilder<'a> {
+    segment : *mut SegmentBuilder<'a>,
     data : *mut u8,
     pointers : *mut WirePointer,
     data_size : BitCount32,
@@ -1041,7 +1042,7 @@ pub struct StructBuilder {
     bit0offset : BitCount8
 }
 
-impl StructBuilder {
+impl <'a> StructBuilder<'a> {
     pub fn as_reader<T>(&self, f : |StructReader| -> T) -> T {
         unsafe {
             (*self.segment).as_reader( |segmentReader| {
@@ -1093,7 +1094,7 @@ impl StructBuilder {
     }
 
     #[inline]
-    pub fn get_pointer_field(&self, ptr_index : WirePointerCount) -> PointerBuilder {
+    pub fn get_pointer_field(&self, ptr_index : WirePointerCount) -> PointerBuilder<'a> {
         PointerBuilder {
                 segment : self.segment,
                 pointer : unsafe { self.pointers.offset(ptr_index as int) }
@@ -1166,8 +1167,8 @@ impl <'a> ListReader<'a> {
 }
 
 
-pub struct ListBuilder {
-    segment : *mut SegmentBuilder,
+pub struct ListBuilder<'a> {
+    segment : *mut SegmentBuilder<'a>,
     ptr : *mut u8,
     element_count : ElementCount,
     step : BitCount0,
@@ -1175,12 +1176,12 @@ pub struct ListBuilder {
     struct_pointer_count : WirePointerCount16
 }
 
-impl ListBuilder {
+impl <'a> ListBuilder<'a> {
 
     #[inline]
     pub fn size(&self) -> ElementCount { self.element_count }
 
-    pub fn get_struct_element(&self, index : ElementCount) -> StructBuilder {
+    pub fn get_struct_element(&self, index : ElementCount) -> StructBuilder<'a> {
         let indexBit = index * self.step;
         let structData = unsafe{ self.ptr.offset((indexBit / BITS_PER_BYTE) as int)};
         let structPointers = unsafe {

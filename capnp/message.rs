@@ -72,17 +72,17 @@ pub enum AllocationStrategy {
 pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
 pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICALLY;
 
-pub struct MessageBuilder {
+pub struct MessageBuilder<'a> {
     nextSize : uint,
     allocation_strategy : AllocationStrategy,
-    segment_builders : ~[~SegmentBuilder],
+    segment_builders : ~[~SegmentBuilder<'a>],
     segments : ~[~[Word]]
 }
 
-impl MessageBuilder {
+impl <'a> MessageBuilder<'a> {
 
     pub fn new(firstSegmentWords : uint, allocationStrategy : AllocationStrategy)
-        -> ~MessageBuilder {
+        -> ~MessageBuilder<'a> {
         let mut result = ~MessageBuilder {
             nextSize : firstSegmentWords,
             allocation_strategy : allocationStrategy,
@@ -99,11 +99,11 @@ impl MessageBuilder {
         result
     }
 
-    pub fn new_default() -> ~MessageBuilder {
+    pub fn new_default() -> ~MessageBuilder<'a> {
         MessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY)
     }
 
-    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder {
+    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder<'a> {
         let size = std::cmp::max(minimumSize, self.nextSize);
         self.segments.push(allocate_zeroed_words(size));
         self.segment_builders.push(~SegmentBuilder::new(self, size));
@@ -119,7 +119,7 @@ impl MessageBuilder {
     }
 
     pub fn get_segment_with_available(&mut self, minimumAvailable : WordCount)
-        -> *mut SegmentBuilder {
+        -> *mut SegmentBuilder<'a> {
         if (self.segment_builders.last().available() >= minimumAvailable) {
             return std::ptr::to_mut_unsafe_ptr(self.segment_builders[self.segments.len() - 1]);
         } else {
@@ -128,7 +128,7 @@ impl MessageBuilder {
     }
 
 
-    pub fn init_root<T : layout::HasStructSize + layout::FromStructBuilder>(&mut self) -> T {
+    pub fn init_root<T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&mut self) -> T {
         // Rolled in this stuff form getRootSegment.
         let rootSegment = std::ptr::to_mut_unsafe_ptr(self.segment_builders[0]);
 

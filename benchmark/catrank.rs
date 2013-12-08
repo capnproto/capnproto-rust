@@ -11,8 +11,8 @@ use std::rand::*;
 use common::*;
 use catrank_capnp::*;
 
-pub type RequestBuilder = SearchResultList::Builder;
-pub type ResponseBuilder = SearchResultList::Builder;
+pub type RequestBuilder<'a> = SearchResultList::Builder<'a>;
+pub type ResponseBuilder<'a> = SearchResultList::Builder<'a>;
 pub type Expectation = int;
 pub type RequestReader<'a> = SearchResultList::Reader<'a>;
 pub type ResponseReader<'a> = SearchResultList::Reader<'a>;

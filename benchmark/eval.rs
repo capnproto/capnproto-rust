@@ -9,8 +9,8 @@ use std::rand::*;
 use common::*;
 use eval_capnp::*;
 
-pub type RequestBuilder = Expression::Builder;
-pub type ResponseBuilder = EvaluationResult::Builder;
+pub type RequestBuilder<'a> = Expression::Builder<'a>;
+pub type ResponseBuilder<'a> = EvaluationResult::Builder<'a>;
 pub type Expectation = i32;
 pub type RequestReader<'a> = Expression::Reader<'a>;
 pub type ResponseReader<'a> = EvaluationResult::Reader<'a>;

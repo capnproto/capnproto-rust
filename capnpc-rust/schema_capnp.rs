@@ -84,19 +84,19 @@ pub mod Node {
         }
     }
 
-    pub struct Builder {
-        priv builder : StructBuilder
+    pub struct Builder<'a> {
+        priv builder : StructBuilder<'a>
     }
 
-    impl FromStructBuilder for Builder {
-        fn from_struct_builder(builder: StructBuilder) -> Builder {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
+        fn from_struct_builder(builder: StructBuilder<'a>) -> Builder<'a> {
             Builder {builder : builder}
         }
     }
 
 
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
+    impl <'a> Builder<'a> {
+        pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
             Builder { builder : builder }
         }
 
@@ -176,12 +176,12 @@ pub mod Node {
             }
         }
 
-        pub struct Builder {
-            priv builder : layout::StructBuilder
+        pub struct Builder<'a> {
+            priv builder : layout::StructBuilder<'a>
         }
 
-        impl Builder {
-            pub fn new(builder : layout::StructBuilder) -> Builder {
+        impl <'a>Builder<'a> {
+            pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
                 Builder { builder : builder }
             }
         }
@@ -216,12 +216,12 @@ pub mod Node {
 
         }
 
-        pub struct Builder {
-            priv builder : layout::StructBuilder
+        pub struct Builder<'a> {
+            priv builder : layout::StructBuilder<'a>
         }
 
-        impl Builder {
-            pub fn new(builder : layout::StructBuilder) -> Builder {
+        impl <'a> Builder<'a> {
+            pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
                 Builder { builder : builder }
             }
         }
@@ -248,12 +248,12 @@ pub mod Node {
             // TODO methods
         }
 
-        pub struct Builder {
-            priv builder : layout::StructBuilder
+        pub struct Builder<'a> {
+            priv builder : layout::StructBuilder<'a>
         }
 
-        impl Builder {
-            pub fn new(builder : layout::StructBuilder) -> Builder {
+        impl <'a> Builder<'a> {
+            pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
                 Builder { builder : builder }
             }
         }
@@ -288,12 +288,12 @@ pub mod Node {
             }
         }
 
-        pub struct Builder {
-            priv builder : layout::StructBuilder
+        pub struct Builder<'a> {
+            priv builder : layout::StructBuilder<'a>
         }
 
-        impl Builder {
-            pub fn new(builder : layout::StructBuilder) -> Builder {
+        impl <'a> Builder<'a> {
+            pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
                 Builder { builder : builder }
             }
         }
@@ -371,16 +371,16 @@ pub mod Node {
             }
 
         }
-        pub struct Builder {
-            priv builder : StructBuilder
+        pub struct Builder<'a> {
+            priv builder : StructBuilder<'a>
         }
 
-        impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
+        impl <'a>Builder<'a> {
+            pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
                 Builder { builder : builder }
             }
         }
-    }
+   }
 
     pub mod NestedNode {
         use capnp::layout::*;
@@ -408,16 +408,15 @@ pub mod Node {
             }
         }
 
-        pub struct Builder {
-            priv builder : StructBuilder
+        pub struct Builder<'a> {
+            priv builder : StructBuilder<'a>
         }
 
-        impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
+        impl <'a>Builder<'a> {
+            pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
                 Builder { builder : builder }
             }
         }
-
     }
 
 }
@@ -473,12 +472,12 @@ pub mod Field {
         }
     }
 
-    pub struct Builder {
-        priv builder : StructBuilder
+    pub struct Builder<'a> {
+        priv builder : StructBuilder<'a>
     }
 
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
+    impl <'a>Builder<'a> {
+        pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
             Builder { builder : builder }
         }
     }
@@ -610,15 +609,16 @@ pub mod Enumerant {
         }
     }
 
-    pub struct Builder {
-        priv builder : StructBuilder
+    pub struct Builder<'a> {
+        priv builder : StructBuilder<'a>
     }
 
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
+    impl <'a>Builder<'a> {
+        pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
             Builder { builder : builder }
         }
     }
+
 }
 
 pub mod Method {
@@ -639,12 +639,13 @@ pub mod Method {
         }
     }
 
-    pub struct Builder {
-        priv builder : StructBuilder
+
+    pub struct Builder<'a> {
+        priv builder : StructBuilder<'a>
     }
 
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
+    impl <'a>Builder<'a> {
+        pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
             Builder { builder : builder }
         }
     }
@@ -702,12 +703,12 @@ pub mod Type {
         }
     }
 
-    pub struct Builder {
-        priv builder : StructBuilder
+    pub struct Builder<'a> {
+        priv builder : StructBuilder<'a>
     }
 
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
+    impl <'a>Builder<'a> {
+        pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
             Builder { builder : builder }
         }
     }
@@ -830,12 +831,12 @@ pub mod Value {
         }
     }
 
-    pub struct Builder {
-        priv builder : StructBuilder
+    pub struct Builder<'a> {
+        priv builder : StructBuilder<'a>
     }
 
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
+    impl <'a>Builder<'a> {
+        pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
             Builder { builder : builder }
         }
     }
@@ -900,12 +901,12 @@ pub mod Annotation {
         }
     }
 
-    pub struct Builder {
-        priv builder : StructBuilder
+    pub struct Builder<'a> {
+        priv builder : StructBuilder<'a>
     }
 
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
+    impl <'a>Builder<'a> {
+        pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
             Builder { builder : builder }
         }
     }
@@ -968,16 +969,15 @@ pub mod CodeGeneratorRequest {
 
     }
 
-    pub struct Builder {
-        priv builder : StructBuilder
+    pub struct Builder<'a> {
+        priv builder : StructBuilder<'a>
     }
 
-    impl Builder {
-        pub fn new(builder : StructBuilder) -> Builder {
+    impl <'a>Builder<'a> {
+        pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
             Builder { builder : builder }
         }
-
-        pub fn init_nodes(&self, size : uint) -> StructList::Builder<Node::Builder> {
+        pub fn init_nodes(&self, size : uint) -> StructList::Builder<'a, Node::Builder<'a>> {
             StructList::Builder::new(
                 self.builder.get_pointer_field(0).init_struct_list(size, Node::STRUCT_SIZE))
         }
@@ -1024,12 +1024,12 @@ pub mod CodeGeneratorRequest {
             }
         }
 
-        pub struct Builder {
-            priv builder : StructBuilder
+        pub struct Builder<'a> {
+            priv builder : StructBuilder<'a>
         }
 
-        impl Builder {
-            pub fn new(builder : StructBuilder) -> Builder {
+        impl <'a>Builder<'a> {
+            pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
                 Builder { builder : builder }
             }
         }
@@ -1066,18 +1066,15 @@ pub mod CodeGeneratorRequest {
                 }
             }
 
-            pub struct Builder {
-                priv builder : StructBuilder
+            pub struct Builder<'a> {
+                priv builder : StructBuilder<'a>
             }
 
-            impl Builder {
-                pub fn new(builder : StructBuilder) -> Builder {
+            impl <'a>Builder<'a> {
+                pub fn new(builder : StructBuilder<'a>) -> Builder<'a> {
                     Builder { builder : builder }
                 }
             }
-
         }
-
     }
-
 }

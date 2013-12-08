@@ -32,18 +32,18 @@ impl <'a> SegmentReader<'a> {
     }
 }
 
-pub struct SegmentBuilder {
-    messageBuilder : *mut message::MessageBuilder,
+pub struct SegmentBuilder<'a> {
+    messageBuilder : *mut message::MessageBuilder<'a>,
     id : SegmentId,
     ptr : *mut Word,
     pos : WordCount,
     size : WordCount
 }
 
-impl SegmentBuilder {
+impl <'a> SegmentBuilder<'a> {
 
-    pub fn new(messageBuilder : *mut message::MessageBuilder,
-               size : WordCount) -> SegmentBuilder {
+    pub fn new(messageBuilder : *mut message::MessageBuilder<'a>,
+               size : WordCount) -> SegmentBuilder<'a> {
         let idx = unsafe {((*messageBuilder).segments.len() - 1) as SegmentId};
         SegmentBuilder {
             messageBuilder : messageBuilder,
@@ -101,14 +101,14 @@ pub struct ReaderArena<'a> {
     //XXX should this be a map as in capnproto-c++?
 }
 
-pub struct BuilderArena {
-    message : *message::MessageBuilder,
-    segment0 : SegmentBuilder
+pub struct BuilderArena<'a> {
+    message : *message::MessageBuilder<'a>,
+    segment0 : SegmentBuilder<'a>
 }
 
 pub enum Arena<'a> {
     Reader_(ReaderArena<'a>),
-    Builder_(BuilderArena)
+    Builder_(BuilderArena<'a>)
 }
 
 
