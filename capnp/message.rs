@@ -81,6 +81,8 @@ pub struct MessageBuilder {
 
 impl MessageBuilder {
 
+    // TODO: maybe when Rust issue #5121 is fixed we can safely get away with not passing
+    //  a closure here.
     pub fn new<T>(firstSegmentWords : uint,
                   allocationStrategy : AllocationStrategy,
                   cont : |&mut MessageBuilder| -> T) -> T {
@@ -128,7 +130,9 @@ impl MessageBuilder {
         }
     }
 
-
+    // Note: This type signature ought to prevent a MessageBuilder
+    // from being initted twice simultaneously. It currently does not
+    // fulfil that goal, perhaps due to Rust issue #5121.
     pub fn init_root<'a, T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&'a mut self) -> T {
         // Rolled in this stuff form getRootSegment.
         let rootSegment = std::ptr::to_mut_unsafe_ptr(self.segment_builders[0]);
