@@ -17,34 +17,35 @@ fn write_address_book() {
     use capnp::serialize_packed::{WritePackedWrapper, WritePacked};
     use addressbook_capnp::{AddressBook, Person};
 
-    let mut message = MessageBuilder::new_default();
+    MessageBuilder::new_default(|mut message| {
 
-    let address_book = message.init_root::<AddressBook::Builder>();
+        let address_book = message.init_root::<AddressBook::Builder>();
 
-    let people = address_book.init_people(2);
+        let people = address_book.init_people(2);
 
-    let alice = people[0];
-    alice.set_id(123);
-    alice.set_name("Alice");
-    alice.set_email("alice@example.com");
+        let alice = people[0];
+        alice.set_id(123);
+        alice.set_name("Alice");
+        alice.set_email("alice@example.com");
 
-    let alice_phones = alice.init_phones(1);
-    alice_phones[0].set_number("555-1212");
-    alice_phones[0].set_type(Person::PhoneNumber::Type::Mobile);
-    alice.get_employment().set_school("MIT");
+        let alice_phones = alice.init_phones(1);
+        alice_phones[0].set_number("555-1212");
+        alice_phones[0].set_type(Person::PhoneNumber::Type::Mobile);
+        alice.get_employment().set_school("MIT");
 
-    let bob = people[1];
-    bob.set_id(456);
-    bob.set_name("Bob");
-    bob.set_email("bob@example.com");
-    let bob_phones = bob.init_phones(2);
-    bob_phones[0].set_number("555-4567");
-    bob_phones[0].set_type(Person::PhoneNumber::Type::Home);
-    bob_phones[1].set_number("555-7654");
-    bob_phones[1].set_type(Person::PhoneNumber::Type::Work);
-    bob.get_employment().set_unemployed(());
+        let bob = people[1];
+        bob.set_id(456);
+        bob.set_name("Bob");
+        bob.set_email("bob@example.com");
+        let bob_phones = bob.init_phones(2);
+        bob_phones[0].set_number("555-4567");
+        bob_phones[0].set_type(Person::PhoneNumber::Type::Home);
+        bob_phones[1].set_number("555-7654");
+        bob_phones[1].set_type(Person::PhoneNumber::Type::Work);
+        bob.get_employment().set_unemployed(());
 
-    WritePackedWrapper{writer:&mut std::io::stdout()}.write_packed_message(message);
+        WritePackedWrapper{writer:&mut std::io::stdout()}.write_packed_message(message);
+        });
 }
 
 fn print_address_book() {
