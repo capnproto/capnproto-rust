@@ -153,9 +153,9 @@ macro_rules! pass_by_bytes(
                                 if (! $testcase::check_response(responseReader, expected)) {
                                     fail!("Incorrect response.");
                                 }
-                            });
-                        })
-                    });
+                        });
+                    })
+                });
             }
         });
     )

@@ -45,7 +45,7 @@ fn write_address_book() {
         bob.get_employment().set_unemployed(());
 
         WritePackedWrapper{writer:&mut std::io::stdout()}.write_packed_message(message);
-        });
+    });
 }
 
 fn print_address_book() {
