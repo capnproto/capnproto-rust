@@ -72,18 +72,18 @@ pub enum AllocationStrategy {
 pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
 pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICALLY;
 
-pub struct MessageBuilder<'a> {
+pub struct MessageBuilder {
     nextSize : uint,
     allocation_strategy : AllocationStrategy,
-    segment_builders : ~[~SegmentBuilder<'a>],
+    segment_builders : ~[~SegmentBuilder],
     segments : ~[~[Word]]
 }
 
-impl <'a> MessageBuilder<'a> {
+impl MessageBuilder {
 
     pub fn new<T>(firstSegmentWords : uint,
                   allocationStrategy : AllocationStrategy,
-                  cont : |~MessageBuilder| -> T) -> T {
+                  cont : |&mut MessageBuilder| -> T) -> T {
         let mut result = ~MessageBuilder {
             nextSize : firstSegmentWords,
             allocation_strategy : allocationStrategy,
@@ -100,11 +100,11 @@ impl <'a> MessageBuilder<'a> {
         cont(result)
     }
 
-    pub fn new_default<T>(cont : |~MessageBuilder| -> T) -> T {
+    pub fn new_default<T>(cont : |&mut MessageBuilder| -> T) -> T {
         MessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY, cont)
     }
 
-    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder<'a> {
+    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder {
         let size = std::cmp::max(minimumSize, self.nextSize);
         self.segments.push(allocate_zeroed_words(size));
         self.segment_builders.push(~SegmentBuilder::new(self, size));
@@ -120,7 +120,7 @@ impl <'a> MessageBuilder<'a> {
     }
 
     pub fn get_segment_with_available(&mut self, minimumAvailable : WordCount)
-        -> *mut SegmentBuilder<'a> {
+        -> *mut SegmentBuilder {
         if (self.segment_builders.last().available() >= minimumAvailable) {
             return std::ptr::to_mut_unsafe_ptr(self.segment_builders[self.segments.len() - 1]);
         } else {
@@ -129,7 +129,7 @@ impl <'a> MessageBuilder<'a> {
     }
 
 
-    pub fn init_root<T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&mut self) -> T {
+    pub fn init_root<'a, T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&'a mut self) -> T {
         // Rolled in this stuff form getRootSegment.
         let rootSegment = std::ptr::to_mut_unsafe_ptr(self.segment_builders[0]);
 

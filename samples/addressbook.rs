@@ -17,7 +17,7 @@ fn write_address_book() {
     use capnp::serialize_packed::{WritePackedWrapper, WritePacked};
     use addressbook_capnp::{AddressBook, Person};
 
-    MessageBuilder::new_default(|mut message| {
+    MessageBuilder::new_default(|message| {
 
         let address_book = message.init_root::<AddressBook::Builder>();
 

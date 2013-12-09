@@ -88,8 +88,8 @@ macro_rules! pass_by_object(
     ( $testcase:ident, $iters:expr ) => ({
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
-                capnp::message::MessageBuilder::new_default(|mut messageReq| {
-                    capnp::message::MessageBuilder::new_default(|mut messageRes| {
+                capnp::message::MessageBuilder::new_default(|messageReq| {
+                    capnp::message::MessageBuilder::new_default(|messageRes| {
 
                         let request = messageReq.init_root::<$testcase::RequestBuilder>();
                         let response = messageRes.init_root::<$testcase::ResponseBuilder>();
@@ -120,8 +120,8 @@ macro_rules! pass_by_bytes(
             let mut responseBytes : ~[u8] = std::vec::from_elem(SCRATCH_SIZE * 8, 0u8);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
-                capnp::message::MessageBuilder::new_default(|mut messageReq| {
-                    capnp::message::MessageBuilder::new_default(|mut messageRes| {
+                capnp::message::MessageBuilder::new_default(|messageReq| {
+                    capnp::message::MessageBuilder::new_default(|messageRes| {
 
                         let request = messageReq.init_root::<$testcase::RequestBuilder>();
                         let response = messageRes.init_root::<$testcase::ResponseBuilder>();
@@ -165,7 +165,7 @@ macro_rules! server(
             let mut outBuffered = capnp::io::BufferedOutputStream::new(&mut $output);
             let mut inBuffered = capnp::io::BufferedInputStream::new(&mut $input);
             for _ in range(0, $iters) {
-                capnp::message::MessageBuilder::new_default(|mut messageRes| {
+                capnp::message::MessageBuilder::new_default(|messageRes| {
                     let response = messageRes.init_root::<$testcase::ResponseBuilder>();
                     $compression::new_buffered_reader(
                         &mut inBuffered,
@@ -189,7 +189,7 @@ macro_rules! sync_client(
             let mut inBuffered = capnp::io::BufferedInputStream::new(&mut inStream);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
-                capnp::message::MessageBuilder::new_default(|mut messageReq| {
+                capnp::message::MessageBuilder::new_default(|messageReq| {
                     let request = messageReq.init_root::<$testcase::RequestBuilder>();
 
                     let expected = $testcase::setup_request(&mut rng, request);

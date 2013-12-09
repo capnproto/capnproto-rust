@@ -11,7 +11,7 @@ pub mod Text {
     pub type Reader<'a> = &'a str;
 
     pub struct Builder<'a> {
-        segment : *mut SegmentBuilder<'a>,
+        segment : *mut SegmentBuilder,
         ptr : ByteCount,
         //...
     }
@@ -30,7 +30,7 @@ pub mod Data {
     pub type Reader<'a> = &'a [u8];
 
     pub struct Builder<'a> {
-        segment : *mut SegmentBuilder<'a>,
+        segment : *mut SegmentBuilder,
         ptr : ByteCount,
         elementCount : ElementCount
     }
