@@ -69,7 +69,8 @@ fn prim_type_str (typ : schema_capnp::Type::Which) -> ~str {
     }
 }
 
-fn camel_case_to_all_caps(s : &str) -> ~str {
+#[allow(dead_code)]
+fn camel_to_upper_case(s : &str) -> ~str {
     use std::ascii::*;
     let mut result_chars : ~[char] = ~[];
     for c in s.chars() {
@@ -86,7 +87,7 @@ fn camel_to_snake_case(s : &str) -> ~str {
     use std::ascii::*;
     let mut result_chars : ~[char] = ~[];
     for c in s.chars() {
-        assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
+        assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}', i.e. {}", c, c as uint));
         if (std::char::is_uppercase(c)) {
             result_chars.push('_');
         }
@@ -104,10 +105,10 @@ fn capitalize_first_letter(s : &str) -> ~str {
 }
 
 #[test]
-fn test_camel_case_to_all_caps() {
-    assert_eq!(camel_case_to_all_caps("fooBar"), ~"FOO_BAR");
-    assert_eq!(camel_case_to_all_caps("fooBarBaz"), ~"FOO_BAR_BAZ");
-    assert_eq!(camel_case_to_all_caps("helloWorld"), ~"HELLO_WORLD");
+fn test_camel_to_upper_case() {
+    assert_eq!(camel_to_upper_case("fooBar"), ~"FOO_BAR");
+    assert_eq!(camel_to_upper_case("fooBarBaz"), ~"FOO_BAR_BAZ");
+    assert_eq!(camel_to_upper_case("helloWorld"), ~"HELLO_WORLD");
 }
 
 #[test]
@@ -265,7 +266,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 Some(Type::Float64) => return common_case("f64", member, offset),
                 Some(Type::Text) => {
                     return (format!("Text::{}", moduleWithVar),
-                            Line(format!("self.{}.get_pointer_field({}).get_text(\"\")",
+                            Line(format!("self.{}.get_pointer_field({}).get_text(std::ptr::null(), 0)",
                                       member, offset)));
                 }
                 Some(Type::Data) => {

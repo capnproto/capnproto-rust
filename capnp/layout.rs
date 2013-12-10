@@ -263,6 +263,7 @@ mod WireHelpers {
         ((bits + 63) / (BITS_PER_WORD as u64)) as WordCount
     }
 
+    #[allow(dead_code)]
     #[inline]
     pub fn round_bits_up_to_bytes(bits : BitCount64) -> ByteCount {
         ((bits + 7) / (BITS_PER_BYTE as u64)) as ByteCount
@@ -586,7 +587,8 @@ mod WireHelpers {
     #[inline]
     pub unsafe fn get_writable_text_pointer<'a>(_refIndex : *mut WirePointer,
                                                 _segment : *mut SegmentBuilder,
-                                                _defaultValue : &'static str) -> Text::Builder<'a> {
+                                                _default_value : *Word,
+                                                _default_size : ByteCount) -> Text::Builder<'a> {
         fail!("unimplemented");
     }
 
@@ -761,11 +763,11 @@ mod WireHelpers {
     #[inline]
     pub unsafe fn read_text_pointer<'a>(mut segment : *SegmentReader<'a>,
                                       mut reff : *WirePointer,
-                                      defaultValue : &'a str
-                                      //defaultSize : ByteCount
+                                      default_value : *Word,
+                                      default_size : ByteCount
                                       ) -> Text::Reader<'a> {
         if (reff.is_null() || (*reff).is_null()) {
-            return defaultValue;
+            return Text::new_reader(std::cast::transmute(default_value), default_size);
         }
 
         let refTarget = (*reff).target();
@@ -786,12 +788,12 @@ mod WireHelpers {
 
         assert!(size > 0, "Message contains text that is not NUL-terminated");
 
-        let strPtr = std::cast::transmute::<*Word,*i8>(ptr);
+        let str_ptr = std::cast::transmute::<*Word,*u8>(ptr);
 
-        assert!((*strPtr.offset((size - 1) as int)) == 0i8,
+        assert!((*str_ptr.offset((size - 1) as int)) == 0u8,
                 "Message contains text that is not NUL-terminated");
 
-        std::str::raw::c_str_to_static_slice(strPtr)
+        Text::new_reader(str_ptr, size-1)
     }
 }
 
@@ -846,9 +848,9 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_text(&self, default_value : &'a str) -> Text::Reader<'a> {
+    pub fn get_text(&self, default_value : *Word, default_size : ByteCount) -> Text::Reader<'a> {
         unsafe {
-            WireHelpers::read_text_pointer(self.segment, self.pointer, default_value)
+            WireHelpers::read_text_pointer(self.segment, self.pointer, default_value, default_size)
         }
     }
 
@@ -895,10 +897,10 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn get_text(&self, default_value : &'static str) -> Text::Builder<'a> {
+    pub fn get_text(&self, default_value : *Word, default_size : ByteCount) -> Text::Builder<'a> {
         unsafe {
             WireHelpers::get_writable_text_pointer(
-                self.pointer, self.segment, default_value)
+                self.pointer, self.segment, default_value, default_size)
         }
     }
 

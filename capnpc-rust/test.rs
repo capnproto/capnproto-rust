@@ -22,7 +22,7 @@ fn testPrimList () {
     // Make the first segment small to force allocation of a second segment.
     MessageBuilder::new(50,
                         SUGGESTED_ALLOCATION_STRATEGY,
-                        |mut message| {
+                        |message| {
 
         let testPrimList = message.init_root::<TestPrimList::Builder>();
 
@@ -99,7 +99,7 @@ fn testBigStruct() {
     // Make the first segment small to force allocation of a second segment.
     MessageBuilder::new(5,
                         SUGGESTED_ALLOCATION_STRATEGY,
-                        |mut message| {
+                        |message| {
 
         let bigStruct = message.init_root::<BigStruct::Builder>();
 
@@ -132,7 +132,7 @@ fn testComplexList () {
     use capnp::message::*;
     use test_capnp::*;
 
-    MessageBuilder::new_default(|mut message| {
+    MessageBuilder::new_default(|message| {
 
         let testComplexList = message.init_root::<TestComplexList::Builder>();
 
