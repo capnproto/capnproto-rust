@@ -287,6 +287,68 @@ pub mod ListList {
 
 }
 
-pub mod BlobList {
+pub mod TextList {
+    use super::{FromPointerReader, FromPointerBuilder};
+    use std;
+    use common::Word;
+    use blob::Text;
+    use layout::*;
+
+    pub struct Reader<'a> {
+        reader : ListReader<'a>
+    }
+
+    impl <'a> Reader<'a> {
+        pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b> {
+            Reader::<'b> { reader : reader }
+        }
+
+        pub fn size(&self) -> uint { self.reader.size() }
+    }
+
+    impl <'a> FromPointerReader<'a> for Reader<'a> {
+        fn get_from_pointer(reader : &PointerReader<'a>, default_value : *Word) -> Reader<'a> {
+            Reader { reader : reader.get_list(POINTER, default_value) }
+        }
+    }
+
+    impl <'a> Index<uint, Text::Reader<'a>> for Reader<'a> {
+        fn index(&self, index : &uint) -> Text::Reader<'a> {
+            assert!(*index <  self.size());
+            self.reader.get_pointer_element(*index).get_text(std::ptr::null(), 0)
+        }
+    }
+
+    pub struct Builder<'a> {
+        builder : ListBuilder<'a>
+    }
+
+    impl <'a> Builder<'a> {
+        pub fn new(builder : ListBuilder<'a>) -> Builder<'a> {
+            Builder { builder : builder }
+        }
+
+        pub fn size(&self) -> uint { self.builder.size() }
+    }
+
+
+    impl <'a> FromPointerBuilder<'a> for Builder<'a> {
+        fn init_pointer(builder : PointerBuilder<'a>, size : uint) -> Builder<'a> {
+            Builder {
+                builder : builder.init_list(POINTER, size)
+            }
+        }
+        fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *Word) -> Builder<'a> {
+            Builder {
+                builder : builder.get_list(POINTER, default_value)
+            }
+        }
+    }
+
+    impl <'a> Index<uint, Text::Builder<'a>> for Builder<'a> {
+        fn index(&self, index : &uint) -> Text::Builder<'a> {
+            self.builder.get_pointer_element(*index).get_text(std::ptr::null(), 0)
+        }
+    }
 
 }
