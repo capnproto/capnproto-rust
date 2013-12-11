@@ -715,7 +715,7 @@ pub mod Type {
         }
     }
 
-    pub enum Which<'self> {
+    pub enum Which<'a> {
         Void,
         Bool,
         Int8,
@@ -730,10 +730,10 @@ pub mod Type {
         Float64,
         Text,
         Data,
-        List(List_::Reader<'self>),
-        Enum(Enum::Reader<'self>),
-        Struct(Struct::Reader<'self>),
-        Interface(Interface::Reader<'self>),
+        List(List_::Reader<'a>),
+        Enum(Enum::Reader<'a>),
+        Struct(Struct::Reader<'a>),
+        Interface(Interface::Reader<'a>),
         AnyPointer
     }
 

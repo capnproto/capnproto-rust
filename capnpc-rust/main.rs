@@ -212,7 +212,7 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
         Line(~"use std;"),
         Line(~"use capnp::blob::{Text, Data};"),
         Line(~"use capnp::layout;"),
-        Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList};"),
+        Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};"),
         Line(format!("use {};", rootName))
     ])
 }
@@ -291,7 +291,22 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                     Line(format!("EnumList::{}::new(self.{}.get_pointer_field({}).get_list(layout::TWO_BYTES, std::ptr::null()))",
                                          module, member, offset)));
                         }
-                        Some(Type::List(_)) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::List(t1)) => {
+                            let t = t1.get_element_type().which().unwrap();
+                            let type_param = match t {
+                                Type::Void | Type::Bool | Type::Int8 |
+                                    Type::Int16 | Type::Int32 | Type::Int64 |
+                                    Type::Uint8 | Type::Uint16 | Type::Uint32 |
+                                    Type::Uint64 | Type::Float32 | Type::Float64 => {
+                                    format!("PrimitiveList::{}<'a, {}>", module, prim_type_str(t))
+                                }
+                                _ => {fail!("unimplemented")}
+                            };
+
+                            return (format!("ListList::{}<'a,{}>", module, type_param),
+                                    Line(format!("ListList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
+                                                 module, member, offset)))
+                        }
                         Some(Type::Text) => {
                             return (format!("TextList::{}<'a>", module),
                                     Line(format!("TextList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
@@ -303,7 +318,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                                  module, member, offset)))
                         }
                         Some(Type::Interface(_)) => {return (~"TODO", Line(~"TODO")) }
-                        Some(Type::AnyPointer) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::AnyPointer) => {fail!("List(AnyPointer) is unsupported")}
                         Some(primType) => {
                             let typeStr = prim_type_str(primType);
                             let sizeStr = element_size_str(element_size(primType));
@@ -479,7 +494,16 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                         Line(format!("DataList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
                                     format!("DataList::Builder<'a>")
                                 }
-                                _ => { ~"" }
+                                Type::List(t1) => {
+                                    let t = t1.get_element_type().which().unwrap();
+                                    // XXX
+                                    let type_param = ~"PrimitiveList::Builder<'a, i32>";
+                                    interior.push(
+                                        Line(format!("ListList::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER,size))",
+                                                     type_param, offset)));
+                                    format!("ListList::Builder<'a,{}>", type_param)
+                                }
+                                _ => { fail!("unimplemented") }
                             };
                             result.push(Line(format!("pub fn init_{}(&self, size : uint) -> {} \\{",
                                                   styled_name, returnType)))

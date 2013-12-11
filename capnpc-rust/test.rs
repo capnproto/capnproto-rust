@@ -153,6 +153,12 @@ fn testComplexList () {
         data_list.set(0, [0u8, 1u8, 2u8]);
         data_list.set(1, [255u8, 254u8, 253u8]);
 
+        let prim_list_list = test_complex_list.init_prim_list_list(2);
+        prim_list_list.init(0, 3);
+
+        // get_writable_list_pointer is unimplemented
+        //prim_list_list[0].set(0, 1);
+
         test_complex_list.as_reader(|complexListReader| {
             let enumListReader = complexListReader.get_enum_list();
             for i in range::<uint>(0,10) {

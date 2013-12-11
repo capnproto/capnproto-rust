@@ -261,6 +261,12 @@ pub mod ListList {
         }
 
         pub fn size(&self) -> uint { self.builder.size() }
+
+        pub fn init(&self, index : uint, size : uint) -> T {
+            let result : T =
+                FromPointerBuilder::init_pointer(self.builder.get_pointer_element(index), size);
+            result
+        }
     }
 
 
