@@ -44,6 +44,21 @@ pub fn pointers_per_element(size : FieldSize) -> WirePointerCount {
     }
 }
 
+// Port note: here, this is only valid for T a primitive type. In
+// capnproto-c++, it dispatches on the 'kind' of T and can handle
+// structs and pointers.
+pub fn element_size_for_type<T>() -> FieldSize {
+    match bits_per_element::<T>() {
+        0 => VOID,
+        1 => BIT,
+        8 => BYTE,
+        16 => TWO_BYTES,
+        32 => FOUR_BYTES,
+        64 => EIGHT_BYTES,
+        b => fail!("don't know how to get field size with {} bits", b)
+    }
+}
+
 pub enum Kind {
   PRIMITIVE,
   BLOB,
@@ -1022,7 +1037,7 @@ impl <'a> StructReader<'a>  {
         // We need to check the offset because the struct may have
         // been created with an old version of the protocol that did
         // not contain the field.
-        if ((offset + 1) * bitsPerElement::<T>() <= self.data_size as uint) {
+        if ((offset + 1) * bits_per_element::<T>() <= self.data_size as uint) {
             unsafe {
                 let dwv : *WireValue<T> = std::cast::transmute(self.data);
                 (*dwv.offset(offset as int)).get()
