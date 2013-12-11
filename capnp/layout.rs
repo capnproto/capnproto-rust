@@ -331,6 +331,44 @@ mod WireHelpers {
     }
 
     #[inline]
+    pub unsafe fn follow_builder_fars(reff : &mut * mut WirePointer,
+                                      ref_target : *mut Word,
+                                      segment : &mut *mut SegmentBuilder) -> *mut Word {
+        //# If `ref` is a far pointer, follow it. On return, `ref` will
+        //# have been updated to point at a WirePointer that contains
+        //# the type information about the target object, and a pointer
+        //# to the object contents is returned. The caller must NOT use
+        //# `ref->target()` as this may or may not actually return a
+        //# valid pointer. `segment` is also updated to point at the
+        //# segment which actually contains the object.
+        //#
+        //# If `ref` is not a far pointer, this simply returns
+        //# `refTarget`. Usually, `refTarget` should be the same as
+        //# `ref->target()`, but may not be in cases where `ref` is
+        //# only a tag.
+
+        if ((**reff).kind() == WP_FAR) {
+            *segment = std::ptr::to_mut_unsafe_ptr(
+                (*(**segment).messageBuilder).segment_builders[(**reff).far_ref().segment_id.get()]);
+            let pad : *mut WirePointer =
+                std::cast::transmute((**segment).get_ptr_unchecked((**reff).far_position_in_segment()));
+            if !(**reff).is_double_far() {
+                *reff = pad;
+                return (*pad).mut_target();
+            }
+
+            //# Landing pad is another far pointer. It is followed by a
+            //# tag describing the pointed-to object.
+            *reff = pad.offset(1);
+            *segment = std::ptr::to_mut_unsafe_ptr(
+                (*(**segment).messageBuilder).segment_builders[(*pad).far_ref().segment_id.get()]);
+            return (**segment).get_ptr_unchecked((*pad).far_position_in_segment());
+        } else {
+            ref_target
+        }
+    }
+
+    #[inline]
     pub unsafe fn follow_fars<'a>(reff: &mut *WirePointer,
                                  refTarget: *Word,
                                  segment : &mut *SegmentReader<'a>) -> *Word {
@@ -560,11 +598,53 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_list_pointer<'a>(_origRefIndex : *mut WirePointer,
-                                                _origSegment : *mut SegmentBuilder,
-                                                _element_size : FieldSize,
-                                                _defaultValue : *Word) -> ListBuilder<'a> {
-        fail!("unimplemented")
+    pub unsafe fn get_writable_list_pointer<'a>(orig_ref : *mut WirePointer,
+                                                orig_segment : *mut SegmentBuilder,
+                                                element_size : FieldSize,
+                                                default_value : *Word) -> ListBuilder<'a> {
+        assert!(element_size != INLINE_COMPOSITE,
+                "Use get_struct_list_{element,field}() for structs");
+
+        if((*orig_ref).is_null()) {
+            fail!("TODO")
+        }
+
+        let orig_ref_target = (*orig_ref).mut_target();
+
+        //# We must verify that the pointer has the right size. Unlike
+        //# in getWritableStructListReference(), we never need to
+        //# "upgrade" the data, because this method is called only for
+        //# non-struct lists, and there is no allowed upgrade path *to*
+        //# a non-struct list, only *from* them.
+
+        let mut reff = orig_ref;
+        let mut segment = orig_segment;
+        let ptr = follow_builder_fars(&mut reff, orig_ref_target, &mut segment);
+
+        assert!((*reff).kind() == WP_LIST,
+                "Called get_list_{field,element}() but existing pointer is not a list");
+
+        let old_size = (*reff).list_ref().element_size();
+
+        if (old_size == INLINE_COMPOSITE) {
+            //# The existing element size is INLINE_COMPOSITE, which
+            //# means that it is at least two words, which makes it
+            //# bigger than the expected element size. Since fields can
+            //# only grow when upgraded, the existing data must have
+            //# been written with a newer version of the protocol. We
+            //# therefore never need to upgrade the data in this case,
+            //# but we do need to validate that it is a valid upgrade
+            //# from what we expected.
+
+            //# Read the tag to get the actual element count.
+            let tag : *WirePointer = std::cast::transmute(ptr);
+            assert!((*tag).kind() == WP_STRUCT,
+                    "INLINE_COMPOSITE list with non-STRUCT elements not supported.");
+
+            fail!("unimplemented")
+        } else {
+            fail!("unimplemented")
+        }
     }
 
     #[inline]
