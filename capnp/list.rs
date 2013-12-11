@@ -331,6 +331,11 @@ pub mod TextList {
         }
 
         pub fn size(&self) -> uint { self.builder.size() }
+
+        pub fn set(&self, index : uint, value : Text::Reader<'a>) {
+            assert!(index < self.size());
+            self.builder.get_pointer_element(index).set_text(value);
+        }
     }
 
 

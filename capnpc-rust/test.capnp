@@ -59,4 +59,5 @@ enum AnEnum {
 
 struct TestComplexList {
        enumList @0 : List(AnEnum);
+       textList @1 : List(Text);
 }

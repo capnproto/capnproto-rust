@@ -145,20 +145,23 @@ fn testComplexList () {
             enumList.set(i, AnEnum::Bar);
         }
 
+        let text_list = testComplexList.init_text_list(2);
+        text_list.set(0, "garply");
+        text_list.set(1, "foo");
+
         testComplexList.as_reader(|complexListReader| {
             let enumListReader = complexListReader.get_enum_list();
             for i in range::<uint>(0,10) {
-                match enumListReader[i] {
-                    Some(AnEnum::Qux) => {}
-                    _ => fail!()
-                }
+                assert!(enumListReader[i] == Some(AnEnum::Qux));
             }
             for i in range::<uint>(10,20) {
-                match enumListReader[i] {
-                    Some(AnEnum::Bar) => {}
-                    _ => fail!()
-                }
+                assert!(enumListReader[i] == Some(AnEnum::Bar));
             }
+
+            let text_list = complexListReader.get_text_list();
+            assert!(text_list.size() == 2);
+            assert!(text_list[0] == "garply");
+            assert!(text_list[1] == "foo");
         });
     });
 }

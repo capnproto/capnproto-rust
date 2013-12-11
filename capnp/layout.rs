@@ -1231,7 +1231,7 @@ impl <'a> ListReader<'a> {
         PointerReader {
             segment : self.segment,
             pointer : unsafe {
-                std::cast::transmute(self.ptr.offset((index * self.step * BITS_PER_BYTE) as int))
+                std::cast::transmute(self.ptr.offset((index * self.step / BITS_PER_BYTE) as int))
             },
             nesting_limit : self.nesting_limit
         }
@@ -1271,8 +1271,13 @@ impl <'a> ListBuilder<'a> {
     }
 
     #[inline]
-    pub fn get_pointer_element(&self, _index : ElementCount) -> PointerBuilder {
-        fail!("get_pointer_element unimplemented");
+    pub fn get_pointer_element(&self, index : ElementCount) -> PointerBuilder<'a> {
+        PointerBuilder {
+            segment : self.segment,
+            pointer : unsafe {
+                std::cast::transmute(self.ptr.offset((index * self.step / BITS_PER_BYTE) as int))
+            }
+        }
     }
 }
 

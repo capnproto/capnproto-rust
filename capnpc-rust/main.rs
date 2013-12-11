@@ -212,7 +212,7 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
         Line(~"use std;"),
         Line(~"use capnp::blob::{Text, Data};"),
         Line(~"use capnp::layout;"),
-        Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList};"),
+        Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList};"),
         Line(format!("use {};", rootName))
     ])
 }
@@ -292,7 +292,11 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                          module, member, offset)));
                         }
                         Some(Type::List(_)) => {return (~"TODO", Line(~"TODO")) }
-                        Some(Type::Text) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::Text) => {
+                            return (format!("TextList::{}<'a>", module),
+                                    Line(format!("TextList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
+                                                 module, member, offset)))
+                        }
                         Some(Type::Data) => {return (~"TODO", Line(~"TODO")) }
                         Some(Type::Interface(_)) => {return (~"TODO", Line(~"TODO")) }
                         Some(Type::AnyPointer) => {return (~"TODO", Line(~"TODO")) }
@@ -460,6 +464,11 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                              format!("self.builder.get_pointer_field({}).init_struct_list(size, {}::STRUCT_SIZE))",
                                                   offset, theMod))));
                                     format!("StructList::Builder<'a, {}::Builder<'a>>", theMod)
+                                }
+                                Type::Text => {
+                                    interior.push(
+                                        Line(format!("TextList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
+                                    format!("TextList::Builder<'a>")
                                 }
                                 _ => { ~"" }
                             };
@@ -792,6 +801,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
             output.push(Indent(~Branch(~[Line(~"#[repr(u16)]"),
                                          Line(~"#[deriving(FromPrimitive)]"),
+                                         Line(~"#[deriving(Eq)]"),
                                          Line(~"pub enum Reader {"),
                                          Indent(~Branch(members)),
                                          Line(~"}")])));
