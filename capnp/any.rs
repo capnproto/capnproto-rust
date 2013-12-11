@@ -8,9 +8,10 @@ pub mod AnyPointer {
     use std;
     use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
                  HasStructSize};
+    use blob::{Text, Data};
 
     pub struct Reader<'a> {
-        reader : PointerReader<'a>
+        priv reader : PointerReader<'a>
     }
 
     impl <'a> Reader<'a> {
@@ -28,10 +29,18 @@ pub mod AnyPointer {
         pub fn get_as_struct<T : FromStructReader<'a>>(&self) -> T {
             FromStructReader::from_struct_reader(self.reader.get_struct(std::ptr::null()))
         }
+
+        pub fn get_as_text(&self) -> Text::Reader<'a> {
+            self.reader.get_text(std::ptr::null(), 0)
+        }
+
+        pub fn get_as_data(&self) -> Data::Reader<'a> {
+            self.reader.get_data(std::ptr::null(), 0)
+        }
     }
 
     pub struct Builder<'a> {
-        builder : PointerBuilder<'a>
+        priv builder : PointerBuilder<'a>
     }
 
     impl <'a> Builder<'a> {

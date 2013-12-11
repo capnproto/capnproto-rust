@@ -593,6 +593,14 @@ mod WireHelpers {
     }
 
     #[inline]
+    pub unsafe fn get_writable_data_pointer<'a>(_refIndex : *mut WirePointer,
+                                                _segment : *mut SegmentBuilder,
+                                                _default_value : *Word,
+                                                _default_size : ByteCount) -> Data::Builder<'a> {
+        fail!("unimplemented");
+    }
+
+    #[inline]
     pub unsafe fn read_struct_pointer<'a>(mut segment: *SegmentReader<'a>,
                                         mut reff : *WirePointer,
                                         defaultValue : *Word,
@@ -760,6 +768,7 @@ mod WireHelpers {
 
     }
 
+
     #[inline]
     pub unsafe fn read_text_pointer<'a>(mut segment : *SegmentReader<'a>,
                                       mut reff : *WirePointer,
@@ -795,6 +804,39 @@ mod WireHelpers {
 
         Text::new_reader(str_ptr, size-1)
     }
+
+    #[inline]
+    pub unsafe fn read_data_pointer<'a>(mut segment : *SegmentReader<'a>,
+                                        mut reff : *WirePointer,
+                                        default_value : *Word,
+                                        default_size : ByteCount
+                                        ) -> Data::Reader<'a> {
+        if (reff.is_null() || (*reff).is_null()) {
+            return Data::new_reader(std::cast::transmute(default_value), default_size);
+        }
+
+        let refTarget = (*reff).target();
+
+        let ptr : *Word = follow_fars(&mut reff, refTarget, &mut segment);
+
+        let list_ref = (*reff).list_ref();
+
+        let size : uint = list_ref.element_count();
+
+        assert!((*reff).kind() == WP_LIST,
+                "Message contains non-list pointer where text was expected");
+
+        assert!(list_ref.element_size() == BYTE,
+                "Message contains list pointer of non-bytes where data was expected");
+
+        assert!(bounds_check(segment, ptr,
+                             ptr.offset(round_bytes_up_to_words(size) as int)),
+                "Message contains out-of-bounds data pointer.");
+
+        Data::new_reader(std::cast::transmute(ptr), size)
+    }
+
+
 }
 
 static zero : u64 = 0;
@@ -854,6 +896,12 @@ impl <'a> PointerReader<'a> {
         }
     }
 
+    pub fn get_data(&self, default_value : *Word, default_size : ByteCount) -> Data::Reader<'a> {
+        unsafe {
+            WireHelpers::read_data_pointer(self.segment, self.pointer, default_value, default_size)
+        }
+    }
+
 }
 
 pub struct PointerBuilder<'a> {
@@ -900,6 +948,13 @@ impl <'a> PointerBuilder<'a> {
     pub fn get_text(&self, default_value : *Word, default_size : ByteCount) -> Text::Builder<'a> {
         unsafe {
             WireHelpers::get_writable_text_pointer(
+                self.pointer, self.segment, default_value, default_size)
+        }
+    }
+
+    pub fn get_data(&self, default_value : *Word, default_size : ByteCount) -> Data::Builder<'a> {
+        unsafe {
+            WireHelpers::get_writable_data_pointer(
                 self.pointer, self.segment, default_value, default_size)
         }
     }

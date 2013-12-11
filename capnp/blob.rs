@@ -19,9 +19,9 @@ pub mod Text {
     }
 
     pub struct Builder<'a> {
-        ptr : *mut u8,
-        length : uint,
-        pos : uint
+        priv ptr : *mut u8,
+        priv length : uint,
+        priv pos : uint
     }
 
     impl <'a> Builder <'a> {
@@ -44,14 +44,20 @@ pub mod Text {
 }
 
 pub mod Data {
-    use common::*;
-    use arena::*;
+    use std;
 
     pub type Reader<'a> = &'a [u8];
 
+    pub fn new_reader<'a>(p : *u8, len : uint) -> Reader<'a> {
+        unsafe {
+            let v = std::unstable::raw::Slice { data: p, len: len };
+            std::cast::transmute(v)
+        }
+    }
+
     pub struct Builder<'a> {
-        segment : *mut SegmentBuilder,
-        ptr : ByteCount,
-        elementCount : ElementCount
+        priv ptr : *mut u8,
+        priv length : uint,
+        priv pos : uint
     }
 }
