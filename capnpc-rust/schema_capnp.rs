@@ -688,7 +688,7 @@ pub mod Type {
                 12 => Some(Text),
                 13 => Some(Data),
                 14 => {
-                    return Some(List(List_::Reader::new(self.reader)));
+                    return Some(List(List::Reader::new(self.reader)));
                 }
                 15 => {
                     return Some(Enum(Enum::Reader::new(self.reader)));
@@ -730,14 +730,14 @@ pub mod Type {
         Float64,
         Text,
         Data,
-        List(List_::Reader<'a>),
+        List(List::Reader<'a>),
         Enum(Enum::Reader<'a>),
         Struct(Struct::Reader<'a>),
         Interface(Interface::Reader<'a>),
         AnyPointer
     }
 
-    pub mod List_ {
+    pub mod List {
         use std;
         use capnp::layout::*;
         use schema_capnp::*;
