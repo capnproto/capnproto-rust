@@ -17,9 +17,9 @@ pub type Expectation = int;
 pub type RequestReader<'a> = SearchResultList::Reader<'a>;
 pub type ResponseReader<'a> = SearchResultList::Reader<'a>;
 
-pub struct ScoredResult<'self> {
+pub struct ScoredResult<'a> {
     score : f64,
-    result : SearchResult::Reader<'self>
+    result : SearchResult::Reader<'a>
 }
 
 static URL_PREFIX : &'static str = "http://example.com";

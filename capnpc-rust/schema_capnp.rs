@@ -14,8 +14,8 @@ pub mod Node {
     pub static STRUCT_SIZE : StructSize = StructSize {data : 5, pointers : 5,
                                                       preferred_list_encoding : INLINE_COMPOSITE};
 
-    pub struct Reader<'self> {
-        priv reader : StructReader<'self>
+    pub struct Reader<'a> {
+        priv reader : StructReader<'a>
     }
 
     impl <'a> FromStructReader<'a> for Reader<'a> {
@@ -24,7 +24,7 @@ pub mod Node {
         }
     }
 
-    impl <'self> Reader<'self> {
+    impl <'a> Reader<'a> {
 
         pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
             Reader{ reader : reader }
@@ -38,7 +38,7 @@ pub mod Node {
             self.reader.get_data_field::<u64>(0)
         }
 
-        pub fn get_display_name(&self) -> Text::Reader<'self> {
+        pub fn get_display_name(&self) -> Text::Reader<'a> {
             self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
         }
 
@@ -50,11 +50,11 @@ pub mod Node {
             self.reader.get_data_field::<u64>(2)
         }
 
-        pub fn get_nested_nodes(&self) -> StructList::Reader<'self, NestedNode::Reader> {
+        pub fn get_nested_nodes(&self) -> StructList::Reader<'a, NestedNode::Reader> {
             StructList::Reader::new(self.reader.get_pointer_field(1).get_list(INLINE_COMPOSITE, std::ptr::null()))
         }
 
-        pub fn which(&self) -> Option<Which<'self>> {
+        pub fn which(&self) -> Option<Which<'a>> {
             match self.reader.get_data_field::<u16>(6) {
                 0 => {
                     return Some(File(()));
@@ -116,13 +116,13 @@ pub mod Node {
 
     }
 
-    pub enum Which<'self> {
+    pub enum Which<'a> {
         File(()),
-        Struct(Struct::Reader<'self>),
-        Enum(Enum::Reader<'self>),
-        Interface(Interface::Reader<'self>),
-        Const(Const::Reader<'self>),
-        Annotation(Annotation::Reader<'self>)
+        Struct(Struct::Reader<'a>),
+        Enum(Enum::Reader<'a>),
+        Interface(Interface::Reader<'a>),
+        Const(Const::Reader<'a>),
+        Annotation(Annotation::Reader<'a>)
     }
 
     pub mod Struct {
@@ -131,11 +131,11 @@ pub mod Node {
         use capnp::list::{StructList};
         use schema_capnp;
 
-        pub struct Reader<'self> {
-            priv reader : layout::StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : layout::StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
 
             pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
@@ -170,7 +170,7 @@ pub mod Node {
                 self.reader.get_data_field::<u32>(8)
             }
 
-            pub fn get_fields(&self) -> StructList::Reader<'self, schema_capnp::Field::Reader> {
+            pub fn get_fields(&self) -> StructList::Reader<'a, schema_capnp::Field::Reader> {
                 StructList::Reader::new(
                     self.reader.get_pointer_field(3).get_list(layout::INLINE_COMPOSITE, std::ptr::null()))
             }
@@ -193,11 +193,11 @@ pub mod Node {
         use capnp::layout;
         use capnp::list::StructList;
 
-        pub struct Reader<'self> {
-            priv reader : layout::StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : layout::StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
 
             pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
@@ -207,7 +207,7 @@ pub mod Node {
                 self.reader.total_size() as uint
             }
 
-            pub fn get_enumerants(&self) -> StructList::Reader<'self, schema_capnp::Enumerant::Reader> {
+            pub fn get_enumerants(&self) -> StructList::Reader<'a, schema_capnp::Enumerant::Reader> {
                 StructList::Reader::new(
                       self.reader.get_pointer_field(3).get_list(
                         schema_capnp::Enumerant::STRUCT_SIZE.preferred_list_encoding,
@@ -231,11 +231,11 @@ pub mod Node {
     pub mod Interface {
         use capnp::layout;
 
-        pub struct Reader<'self> {
-            priv reader : layout::StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : layout::StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
 
             pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
@@ -265,11 +265,11 @@ pub mod Node {
         use capnp::layout;
         use schema_capnp;
 
-        pub struct Reader<'self> {
-            priv reader : layout::StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : layout::StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
 
             pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
@@ -279,11 +279,11 @@ pub mod Node {
                 self.reader.total_size() as uint
             }
 
-            pub fn get_type(&self) -> schema_capnp::Type::Reader<'self> {
+            pub fn get_type(&self) -> schema_capnp::Type::Reader<'a> {
                 schema_capnp::Type::Reader::new(self.reader.get_pointer_field(3).get_struct(std::ptr::null()))
             }
 
-            pub fn get_value(&self) -> schema_capnp::Value::Reader<'self>{
+            pub fn get_value(&self) -> schema_capnp::Value::Reader<'a>{
                 schema_capnp::Value::Reader::new(self.reader.get_pointer_field(4).get_struct(std::ptr::null()))
             }
         }
@@ -304,11 +304,11 @@ pub mod Node {
         use capnp::layout::*;
         use schema_capnp::*;
 
-        pub struct Reader<'self> {
-            priv reader : StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
 
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
@@ -318,7 +318,7 @@ pub mod Node {
                 self.reader.total_size() as uint
             }
 
-            pub fn get_type(&self) -> Type::Reader<'self> {
+            pub fn get_type(&self) -> Type::Reader<'a> {
                 Type::Reader::new(self.reader.get_pointer_field(3).get_struct(std::ptr::null()))
             }
 
@@ -385,8 +385,8 @@ pub mod Node {
     pub mod NestedNode {
         use std;
         use capnp::layout::*;
-        pub struct Reader<'self> {
-            priv reader : StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : StructReader<'a>
         }
 
         impl <'a> FromStructReader<'a> for Reader<'a> {
@@ -395,12 +395,12 @@ pub mod Node {
             }
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
             }
 
-            pub fn get_name(&self) -> &'self str {
+            pub fn get_name(&self) -> &'a str {
                 self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
             }
 
@@ -432,8 +432,8 @@ pub mod Field {
         StructSize {data : 3, pointers : 4,
         preferred_list_encoding : INLINE_COMPOSITE};
 
-    pub struct Reader<'self> {
-        priv reader : StructReader<'self>
+    pub struct Reader<'a> {
+        priv reader : StructReader<'a>
     }
 
     impl <'a> FromStructReader<'a> for Reader<'a> {
@@ -442,12 +442,12 @@ pub mod Field {
         }
     }
 
-    impl <'self> Reader<'self> {
+    impl <'a> Reader<'a> {
         pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
             Reader{ reader : reader }
         }
 
-        pub fn get_name(&self) -> Text::Reader<'self> {
+        pub fn get_name(&self) -> Text::Reader<'a> {
             self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
         }
 
@@ -459,7 +459,7 @@ pub mod Field {
             self.reader.get_data_field_mask::<u16>(1, 0xffff)
         }
 
-        pub fn which(&self) -> Option<Which<'self>> {
+        pub fn which(&self) -> Option<Which<'a>> {
             match self.reader.get_data_field::<u16>(4) {
                 0 => {
                     Some(Slot(Slot::Reader::new(self.reader)))
@@ -469,7 +469,7 @@ pub mod Field {
             }
         }
 
-        pub fn get_ordinal(&self) -> Ordinal::Reader<'self> {
+        pub fn get_ordinal(&self) -> Ordinal::Reader<'a> {
             Ordinal::Reader::new(self.reader)
         }
     }
@@ -484,9 +484,9 @@ pub mod Field {
         }
     }
 
-    pub enum Which<'self> {
-        Slot(Field::Slot::Reader<'self>),
-        Group(Field::Group::Reader<'self>)
+    pub enum Which<'a> {
+        Slot(Field::Slot::Reader<'a>),
+        Group(Field::Group::Reader<'a>)
     }
 
     pub mod Slot {
@@ -494,11 +494,11 @@ pub mod Field {
         use capnp::layout::*;
         use schema_capnp::*;
 
-        pub struct Reader<'self> {
-            priv reader : StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
             }
@@ -507,11 +507,11 @@ pub mod Field {
                 self.reader.get_data_field::<u32>(1)
             }
 
-            pub fn get_type(&self) -> Type::Reader<'self> {
+            pub fn get_type(&self) -> Type::Reader<'a> {
                 Type::Reader::new(self.reader.get_pointer_field(2).get_struct(std::ptr::null()))
             }
 
-            pub fn get_default_value(&self) -> Value::Reader<'self> {
+            pub fn get_default_value(&self) -> Value::Reader<'a> {
                 Value::Reader::new(self.reader.get_pointer_field(3).get_struct(std::ptr::null()))
             }
         }
@@ -520,11 +520,11 @@ pub mod Field {
     pub mod Group {
         use capnp::layout::*;
 
-        pub struct Reader<'self> {
-            priv reader : StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
             }
@@ -539,11 +539,11 @@ pub mod Field {
     pub mod Ordinal {
         use capnp::layout::*;
 
-        pub struct Reader<'self> {
-            priv reader : StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
             }
@@ -575,8 +575,8 @@ pub mod Enumerant {
         StructSize {data : 1, pointers : 2,
         preferred_list_encoding : INLINE_COMPOSITE};
 
-    pub struct Reader<'self> {
-        priv reader : StructReader<'self>
+    pub struct Reader<'a> {
+        priv reader : StructReader<'a>
     }
 
     impl <'a> FromStructReader<'a> for Reader<'a> {
@@ -585,7 +585,7 @@ pub mod Enumerant {
         }
     }
 
-    impl <'self> Reader<'self> {
+    impl <'a> Reader<'a> {
 
         pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
             Reader{ reader : reader }
@@ -595,7 +595,7 @@ pub mod Enumerant {
             self.reader.total_size() as uint
         }
 
-        pub fn get_name(&self) -> &'self str {
+        pub fn get_name(&self) -> &'a str {
             self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
         }
 
@@ -603,7 +603,7 @@ pub mod Enumerant {
             self.reader.get_data_field::<u16>(0)
         }
 
-        pub fn get_annotations(&self) -> StructList::Reader<'self, Annotation::Reader> {
+        pub fn get_annotations(&self) -> StructList::Reader<'a, Annotation::Reader> {
             StructList::Reader::new(
                 self.reader.get_pointer_field(1).get_list(
                     Annotation::STRUCT_SIZE.preferred_list_encoding,
@@ -626,11 +626,11 @@ pub mod Enumerant {
 pub mod Method {
     use capnp::layout::*;
 
-    pub struct Reader<'self> {
-        priv reader : StructReader<'self>
+    pub struct Reader<'a> {
+        priv reader : StructReader<'a>
     }
 
-    impl <'self> Reader<'self> {
+    impl <'a> Reader<'a> {
 
         pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
             Reader{ reader : reader }
@@ -657,11 +657,11 @@ pub mod Method {
 pub mod Type {
     use capnp::layout::*;
 
-    pub struct Reader<'self> {
-        priv reader : StructReader<'self>
+    pub struct Reader<'a> {
+        priv reader : StructReader<'a>
     }
 
-    impl <'self> Reader<'self> {
+    impl <'a> Reader<'a> {
 
         pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
             Reader{ reader : reader }
@@ -671,7 +671,7 @@ pub mod Type {
             self.reader.total_size() as uint
         }
 
-        pub fn which(&self) -> Option<Which<'self>> {
+        pub fn which(&self) -> Option<Which<'a>> {
             match self.reader.get_data_field::<u16>(0) {
                 0 => Some(Void),
                 1 => Some(Bool),
@@ -743,16 +743,16 @@ pub mod Type {
         use schema_capnp::*;
 
 
-        pub struct Reader<'self> {
-            priv reader : StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
             }
 
-            pub fn get_element_type(&self) -> Type::Reader<'self> {
+            pub fn get_element_type(&self) -> Type::Reader<'a> {
                 Type::Reader::new(self.reader.get_pointer_field(0).get_struct(std::ptr::null()))
             }
         }
@@ -761,11 +761,11 @@ pub mod Type {
     pub mod Enum {
         use capnp::layout::*;
 
-        pub struct Reader<'self> {
-            priv reader : StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
             }
@@ -779,11 +779,11 @@ pub mod Type {
     pub mod Struct {
         use capnp::layout::*;
 
-        pub struct Reader<'self> {
-            priv reader : StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
             }
@@ -797,11 +797,11 @@ pub mod Type {
     pub mod Interface {
         use capnp::layout::*;
 
-        pub struct Reader<'self> {
-            priv reader : StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : StructReader<'a>
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
             }
@@ -818,11 +818,11 @@ pub mod Value {
     use capnp::blob::*;
     use capnp::any;
 
-    pub struct Reader<'self> {
-        priv reader : StructReader<'self>
+    pub struct Reader<'a> {
+        priv reader : StructReader<'a>
     }
 
-    impl <'self> Reader<'self> {
+    impl <'a> Reader<'a> {
 
         pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
             Reader{ reader : reader }
@@ -843,7 +843,7 @@ pub mod Value {
         }
     }
 
-    pub enum Which<'self> {
+    pub enum Which<'a> {
         Void,
         Bool(bool),
         Int8(i8),
@@ -856,13 +856,13 @@ pub mod Value {
         Uint64(u64),
         Float32(f32),
         Float64(f32),
-        Text(Text::Reader<'self>),
-        Data(Data::Reader<'self>),
-        List(any::AnyPointer::Reader<'self>),
+        Text(Text::Reader<'a>),
+        Data(Data::Reader<'a>),
+        List(any::AnyPointer::Reader<'a>),
         Enum(u16),
-        Struct(any::AnyPointer::Reader<'self>),
+        Struct(any::AnyPointer::Reader<'a>),
         Interface,
-        AnyPointer(any::AnyPointer::Reader<'self>)
+        AnyPointer(any::AnyPointer::Reader<'a>)
     }
 }
 
@@ -874,8 +874,8 @@ pub mod Annotation {
     pub static STRUCT_SIZE : StructSize = StructSize {data : 1, pointers : 1,
                                                       preferred_list_encoding : INLINE_COMPOSITE};
 
-    pub struct Reader<'self> {
-        priv reader : StructReader<'self>
+    pub struct Reader<'a> {
+        priv reader : StructReader<'a>
     }
 
     impl <'a> FromStructReader<'a> for Reader<'a> {
@@ -884,7 +884,7 @@ pub mod Annotation {
         }
     }
 
-    impl <'self> Reader<'self> {
+    impl <'a> Reader<'a> {
 
         pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
             Reader{ reader : reader }
@@ -898,7 +898,7 @@ pub mod Annotation {
             self.reader.get_data_field::<u64>(0)
         }
 
-        pub fn get_value(&self) -> Value::Reader<'self> {
+        pub fn get_value(&self) -> Value::Reader<'a> {
             Value::Reader::new(self.reader.get_pointer_field(0).get_struct(std::ptr::null()))
         }
     }
@@ -942,8 +942,8 @@ pub mod CodeGeneratorRequest {
     pub static STRUCT_SIZE : StructSize = StructSize {data : 0, pointers : 2,
                                                       preferred_list_encoding : INLINE_COMPOSITE};
 
-    pub struct Reader<'self> {
-        priv reader : StructReader<'self>
+    pub struct Reader<'a> {
+        priv reader : StructReader<'a>
     }
 
     impl <'a> FromStructReader<'a> for Reader<'a> {
@@ -952,17 +952,17 @@ pub mod CodeGeneratorRequest {
         }
     }
 
-    impl <'self> Reader<'self> {
+    impl <'a> Reader<'a> {
 
         pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
             Reader{ reader : reader }
         }
 
-        pub fn get_nodes(&self) -> StructList::Reader<'self, Node::Reader> {
+        pub fn get_nodes(&self) -> StructList::Reader<'a, Node::Reader> {
             StructList::Reader::new(self.reader.get_pointer_field(0).get_list(INLINE_COMPOSITE, std::ptr::null()))
         }
 
-        pub fn get_requested_files(&self) -> StructList::Reader<'self, RequestedFile::Reader> {
+        pub fn get_requested_files(&self) -> StructList::Reader<'a, RequestedFile::Reader> {
             StructList::Reader::new(
                  self.reader.get_pointer_field(1).get_list(
                     RequestedFile::STRUCT_SIZE.preferred_list_encoding,
@@ -995,8 +995,8 @@ pub mod CodeGeneratorRequest {
             StructSize {data : 1, pointers : 2,
             preferred_list_encoding : INLINE_COMPOSITE};
 
-        pub struct Reader<'self> {
-            priv reader : StructReader<'self>
+        pub struct Reader<'a> {
+            priv reader : StructReader<'a>
         }
 
         impl <'a> FromStructReader<'a> for Reader<'a> {
@@ -1005,7 +1005,7 @@ pub mod CodeGeneratorRequest {
             }
         }
 
-        impl <'self> Reader<'self> {
+        impl <'a> Reader<'a> {
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
             }
@@ -1014,11 +1014,11 @@ pub mod CodeGeneratorRequest {
                 self.reader.get_data_field::<u64>(0)
             }
 
-            pub fn get_filename(&self) -> Text::Reader<'self> {
+            pub fn get_filename(&self) -> Text::Reader<'a> {
                 self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
             }
 
-            pub fn get_imports(&self) -> StructList::Reader<'self, Import::Reader> {
+            pub fn get_imports(&self) -> StructList::Reader<'a, Import::Reader> {
                 StructList::Reader::new(
                  self.reader.get_pointer_field(1).get_list(
                         Import::STRUCT_SIZE.preferred_list_encoding,
@@ -1045,8 +1045,8 @@ pub mod CodeGeneratorRequest {
                 StructSize {data : 1, pointers : 1,
                 preferred_list_encoding : INLINE_COMPOSITE};
 
-            pub struct Reader<'self> {
-                priv reader : StructReader<'self>
+            pub struct Reader<'a> {
+                priv reader : StructReader<'a>
             }
 
             impl <'a> FromStructReader<'a> for Reader<'a> {
@@ -1055,7 +1055,7 @@ pub mod CodeGeneratorRequest {
                 }
             }
 
-            impl <'self> Reader<'self> {
+            impl <'a> Reader<'a> {
                 pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                     Reader{ reader : reader }
                 }
@@ -1064,7 +1064,7 @@ pub mod CodeGeneratorRequest {
                     self.reader.get_data_field::<u64>(0)
                 }
 
-                pub fn get_name(&self) -> Text::Reader<'self> {
+                pub fn get_name(&self) -> Text::Reader<'a> {
                     self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
                 }
             }
