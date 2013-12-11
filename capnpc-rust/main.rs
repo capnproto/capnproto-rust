@@ -6,6 +6,7 @@
 
 #[feature(globs)];
 
+#[pkgid="capnpc-rust"];
 #[link(name = "capnpc-rust", vers = "alpha", author = "dwrensha")];
 
 #[crate_type = "bin"];
