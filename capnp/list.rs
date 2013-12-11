@@ -402,6 +402,11 @@ pub mod DataList {
         }
 
         pub fn size(&self) -> uint { self.builder.size() }
+
+        pub fn set(&self, index : uint, value : Data::Reader<'a>) {
+            assert!(index < self.size());
+            self.builder.get_pointer_element(index).set_data(value);
+        }
     }
 
 

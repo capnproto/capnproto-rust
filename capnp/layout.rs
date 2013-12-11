@@ -600,6 +600,22 @@ mod WireHelpers {
     }
 
     #[inline]
+    pub unsafe fn set_data_pointer<'a>(mut reff : *mut WirePointer,
+                                       mut segmentBuilder : *mut SegmentBuilder,
+                                       value : &[u8]) {
+
+        // initDataPointer is rolled in here
+
+        let ptr =
+            allocate(&mut reff, &mut segmentBuilder, round_bytes_up_to_words(value.len()), WP_LIST);
+
+        (*reff).list_ref_mut().set(BYTE, value.len());
+        let dst : *mut u8 = std::cast::transmute(ptr);
+        let src : *u8 = value.unsafe_ref(0);
+        std::ptr::copy_nonoverlapping_memory(dst, src, value.len());
+    }
+
+    #[inline]
     pub unsafe fn get_writable_text_pointer<'a>(_refIndex : *mut WirePointer,
                                                 _segment : *mut SegmentBuilder,
                                                 _default_value : *Word,
@@ -999,6 +1015,12 @@ impl <'a> PointerBuilder<'a> {
     pub fn set_text(&self, value : &str) {
         unsafe {
             WireHelpers::set_text_pointer(self.pointer, self.segment, value)
+        }
+    }
+
+    pub fn set_data(&self, value : &[u8]) {
+        unsafe {
+            WireHelpers::set_data_pointer(self.pointer, self.segment, value)
         }
     }
 }

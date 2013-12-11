@@ -297,7 +297,11 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                     Line(format!("TextList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
                                                  module, member, offset)))
                         }
-                        Some(Type::Data) => {return (~"TODO", Line(~"TODO")) }
+                        Some(Type::Data) => {
+                            return (format!("DataList::{}<'a>", module),
+                                    Line(format!("DataList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
+                                                 module, member, offset)))
+                        }
                         Some(Type::Interface(_)) => {return (~"TODO", Line(~"TODO")) }
                         Some(Type::AnyPointer) => {return (~"TODO", Line(~"TODO")) }
                         Some(primType) => {
@@ -469,6 +473,11 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     interior.push(
                                         Line(format!("TextList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
                                     format!("TextList::Builder<'a>")
+                                }
+                                Type::Data => {
+                                    interior.push(
+                                        Line(format!("DataList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
+                                    format!("DataList::Builder<'a>")
                                 }
                                 _ => { ~"" }
                             };
