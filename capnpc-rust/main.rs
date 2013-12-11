@@ -217,6 +217,25 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
     ])
 }
 
+fn list_list_type_param(typ : schema_capnp::Type::Reader, is_reader: bool) -> ~str {
+    use schema_capnp::Type;
+    let module = if is_reader { "Reader" } else { "Builder" };
+    match typ.which() {
+        None => fail!("unsupported type"),
+        Some(t) => {
+            match t {
+                Type::Void | Type::Bool | Type::Int8 |
+                    Type::Int16 | Type::Int32 | Type::Int64 |
+                    Type::Uint8 | Type::Uint16 | Type::Uint32 |
+                    Type::Uint64 | Type::Float32 | Type::Float64 => {
+                    format!("PrimitiveList::{}<'a, {}>", module, prim_type_str(t))
+                }
+                _ => {fail!("unimplemented")}
+            }
+        }
+    }
+}
+
 fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                field : &schema_capnp::Field::Reader,
@@ -292,17 +311,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                          module, member, offset)));
                         }
                         Some(Type::List(t1)) => {
-                            let t = t1.get_element_type().which().unwrap();
-                            let type_param = match t {
-                                Type::Void | Type::Bool | Type::Int8 |
-                                    Type::Int16 | Type::Int32 | Type::Int64 |
-                                    Type::Uint8 | Type::Uint16 | Type::Uint32 |
-                                    Type::Uint64 | Type::Float32 | Type::Float64 => {
-                                    format!("PrimitiveList::{}<'a, {}>", module, prim_type_str(t))
-                                }
-                                _ => {fail!("unimplemented")}
-                            };
-
+                            let type_param = list_list_type_param(t1.get_element_type(), isReader);
                             return (format!("ListList::{}<'a,{}>", module, type_param),
                                     Line(format!("ListList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
                                                  module, member, offset)))
@@ -495,9 +504,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     format!("DataList::Builder<'a>")
                                 }
                                 Type::List(t1) => {
-                                    let t = t1.get_element_type().which().unwrap();
-                                    // XXX
-                                    let type_param = ~"PrimitiveList::Builder<'a, i32>";
+                                    let type_param = list_list_type_param(t1.get_element_type(), false);
                                     interior.push(
                                         Line(format!("ListList::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER,size))",
                                                      type_param, offset)));
