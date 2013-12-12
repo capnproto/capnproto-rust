@@ -239,6 +239,22 @@ fn test_complex_list () {
     });
 }
 
+#[test]
+fn test_any_pointer() {
 
-fn main () {
+    use capnp::message::*;
+    use test_capnp::TestAnyPointer;
+
+    MessageBuilder::new_default(
+        |message| {
+
+            let test_any_pointer = message.init_root::<TestAnyPointer::Builder>();
+
+            let any_pointer = test_any_pointer.init_any_pointer_field();
+            any_pointer.set_as_text("xyzzy");
+
+            test_any_pointer.as_reader(|reader| {
+                    assert!(reader.get_any_pointer_field().get_as_text() == "xyzzy");
+                });
+        });
 }
