@@ -606,6 +606,11 @@ mod WireHelpers {
                 "Use get_struct_list_{element,field}() for structs");
 
         if((*orig_ref).is_null()) {
+            if default_value.is_null() ||
+                (*std::cast::transmute::<*Word,*WirePointer>(default_value)).is_null() {
+
+                return ListBuilder::new_default();
+            }
             fail!("TODO")
         }
 
@@ -619,7 +624,7 @@ mod WireHelpers {
 
         let mut reff = orig_ref;
         let mut segment = orig_segment;
-        let ptr = follow_builder_fars(&mut reff, orig_ref_target, &mut segment);
+        let mut ptr = follow_builder_fars(&mut reff, orig_ref_target, &mut segment);
 
         assert!((*reff).kind() == WP_LIST,
                 "Called get_list_{field,element}() but existing pointer is not a list");
@@ -640,10 +645,57 @@ mod WireHelpers {
             let tag : *WirePointer = std::cast::transmute(ptr);
             assert!((*tag).kind() == WP_STRUCT,
                     "INLINE_COMPOSITE list with non-STRUCT elements not supported.");
+            ptr = ptr.offset(POINTER_SIZE_IN_WORDS as int);
 
-            fail!("unimplemented")
+            let data_size = (*tag).struct_ref().data_size.get();
+            let pointer_count = (*tag).struct_ref().ptr_count.get();
+
+            match element_size {
+                VOID => {} //# Anything is a valid upgrad from Void.
+                BIT | BYTE | TWO_BYTES | FOUR_BYTES | EIGHT_BYTES => {
+                    assert!(data_size >= 1,
+                            "Existing list value is incompatible with expected type.");
+                }
+                POINTER => {
+                    assert!(pointer_count >= 1,
+                            "Existing list value is incompatible with expected type.");
+                    //# Adjust the pointer to point at the reference segment.
+                    ptr = ptr.offset(data_size as int);
+                }
+                INLINE_COMPOSITE => {
+                    unreachable!()
+                }
+            }
+
+            //# OK, looks valid.
+
+            ListBuilder {
+                segment : segment,
+                ptr : std::cast::transmute(ptr),
+                element_count : (*tag).inline_composite_list_element_count(),
+                step : (*tag).struct_ref().word_size() * BITS_PER_WORD,
+                struct_data_size : data_size as u32 * BITS_PER_WORD as u32,
+                struct_pointer_count : pointer_count
+            }
         } else {
-            fail!("unimplemented")
+            let data_size = data_bits_per_element(old_size);
+            let pointer_count = pointers_per_element(old_size);
+
+            assert!(data_size >= data_bits_per_element(element_size),
+                    "Existing list value is incompatible with expected type.");
+            assert!(pointer_count >= pointers_per_element(element_size),
+                    "Existing list value is incompatible with expected type.");
+
+            let step = data_size + pointer_count * BITS_PER_POINTER;
+
+            ListBuilder {
+                segment : segment,
+                ptr : std::cast::transmute(ptr),
+                step : step,
+                element_count : (*reff).list_ref().element_count(),
+                struct_data_size : data_size as u32,
+                struct_pointer_count : pointer_count as u16
+            }
         }
     }
 
@@ -1351,6 +1403,14 @@ pub struct ListBuilder<'a> {
 }
 
 impl <'a> ListBuilder<'a> {
+
+    #[inline]
+    pub fn new_default<'a>() -> ListBuilder<'a> {
+        ListBuilder {
+            segment : std::ptr::mut_null(), ptr : std::ptr::mut_null(), element_count : 0,
+            step : 0, struct_data_size : 0, struct_pointer_count : 0
+        }
+    }
 
     #[inline]
     pub fn size(&self) -> ElementCount { self.element_count }

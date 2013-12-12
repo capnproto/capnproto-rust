@@ -154,13 +154,16 @@ fn testComplexList () {
         data_list.set(1, [255u8, 254u8, 253u8]);
 
         let prim_list_list = test_complex_list.init_prim_list_list(2);
-        prim_list_list.init(0, 3);
+        let prim_list = prim_list_list.init(0, 3);
+        prim_list.set(0, 5);
+        prim_list.set(1, 6);
+        prim_list.set(2, 7);
 
         // get_writable_list_pointer is unimplemented
         //prim_list_list[0].set(0, 1);
 
-        test_complex_list.as_reader(|complexListReader| {
-            let enumListReader = complexListReader.get_enum_list();
+        test_complex_list.as_reader(|complex_list_reader| {
+            let enumListReader = complex_list_reader.get_enum_list();
             for i in range::<uint>(0,10) {
                 assert!(enumListReader[i] == Some(AnEnum::Qux));
             }
@@ -168,16 +171,18 @@ fn testComplexList () {
                 assert!(enumListReader[i] == Some(AnEnum::Bar));
             }
 
-            let text_list = complexListReader.get_text_list();
+            let text_list = complex_list_reader.get_text_list();
             assert!(text_list.size() == 2);
             assert!(text_list[0] == "garply");
             assert!(text_list[1] == "foo");
 
-            let data_list = complexListReader.get_data_list();
+            let data_list = complex_list_reader.get_data_list();
             assert!(data_list.size() == 2);
             assert!(data_list[0] == [0u8, 1u8, 2u8]);
             assert!(data_list[1] == [255u8, 254u8, 253u8]);
 
+            let prim_list_list = complex_list_reader.get_prim_list_list();
+            assert!(prim_list_list[0][0] == 5);
         });
     });
 }
