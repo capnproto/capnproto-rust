@@ -295,7 +295,9 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                       member, offset)));
                 }
                 Some(Type::Data) => {
-                    return (~"TODO", Line(~"TODO"))
+                    return (format!("Data::{}", moduleWithVar),
+                            Line(format!("self.{}.get_pointer_field({}).get_data(std::ptr::null(), 0)",
+                                      member, offset)));
                 }
                 Some(Type::List(ot1)) => {
                     match ot1.get_element_type().which() {

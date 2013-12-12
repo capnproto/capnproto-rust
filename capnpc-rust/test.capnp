@@ -20,6 +20,10 @@ struct TestPrimList {
     voidList @10 : List(Void);
 }
 
+struct TestBlob {
+   textField @0 : Text;
+   dataField @1 : Data;
+}
 
 struct BigStruct {
   voidField      @0  : Void;

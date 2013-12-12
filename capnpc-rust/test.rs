@@ -15,7 +15,7 @@ extern mod capnp;
 pub mod test_capnp;
 
 #[test]
-fn testPrimList () {
+fn test_prim_list () {
     use capnp::message::*;
     use test_capnp::*;
 
@@ -91,7 +91,29 @@ fn testPrimList () {
 }
 
 #[test]
-fn testBigStruct() {
+fn test_blob () {
+    use capnp::message::*;
+    use test_capnp::*;
+
+    MessageBuilder::new_default(
+        |message| {
+
+            let test_blob = message.init_root::<TestBlob::Builder>();
+
+            test_blob.set_text_field("abcdefghi");
+            test_blob.set_data_field([0u8, 1u8, 2u8, 3u8, 4u8]);
+
+            test_blob.as_reader(|test_blob_reader| {
+
+                    assert!(test_blob_reader.get_text_field() == "abcdefghi");
+                    assert!(test_blob_reader.get_data_field() == [0u8, 1u8, 2u8, 3u8, 4u8]);
+                });
+        });
+}
+
+
+#[test]
+fn test_big_struct() {
 
     use capnp::message::*;
     use test_capnp::*;
@@ -128,7 +150,7 @@ fn testBigStruct() {
 }
 
 #[test]
-fn testComplexList () {
+fn test_complex_list () {
     use capnp::message::*;
     use test_capnp::*;
 
