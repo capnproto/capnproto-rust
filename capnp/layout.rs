@@ -915,7 +915,7 @@ mod WireHelpers {
                     pointers_per_element(expectedElementSize);
 
                 assert!(expectedDataBitsPerElement <= data_size);
-                assert!(expectedPointersPerElement <= pointer_count);
+                assert!(expectedPointersPerElement <= pointer_count)
 
                 ListReader {
                     segment : segment,
