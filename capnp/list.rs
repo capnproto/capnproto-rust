@@ -23,7 +23,7 @@ pub trait FromPointerBuilder<'a> {
 pub mod PrimitiveList {
     use super::{FromPointerReader, FromPointerBuilder};
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
-                 PrimitiveElement, POINTER, element_size_for_type};
+                 PrimitiveElement, element_size_for_type};
     use common::Word;
 
     pub struct Reader<'a, T> {
@@ -40,7 +40,7 @@ pub mod PrimitiveList {
 
     impl <'a, T : PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
         fn get_from_pointer(reader : &PointerReader<'a>, default_value : *Word) -> Reader<'a, T> {
-            Reader { reader : reader.get_list(POINTER, default_value) }
+            Reader { reader : reader.get_list(element_size_for_type::<T>(), default_value) }
         }
     }
 

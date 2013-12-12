@@ -159,6 +159,9 @@ fn testComplexList () {
         prim_list.set(1, 6);
         prim_list.set(2, 7);
         assert!(prim_list.size() == 3);
+        let prim_list = prim_list_list.init(1, 1);
+        prim_list.set(0,-1);
+
 
         // get_writable_list_pointer is unimplemented
         //prim_list_list[0].set(0, 1);
@@ -183,9 +186,12 @@ fn testComplexList () {
             assert!(data_list[1] == [255u8, 254u8, 253u8]);
 
             let prim_list_list = complex_list_reader.get_prim_list_list();
-//            assert!(prim_list_list.size() == 2);
-//            assert!(prim_list_list[0].size() == 3);
-//            assert!(prim_list_list[0][0] == 5);
+            assert!(prim_list_list.size() == 2);
+            assert!(prim_list_list[0].size() == 3);
+            assert!(prim_list_list[0][0] == 5);
+            assert!(prim_list_list[0][1] == 6);
+            assert!(prim_list_list[0][2] == 7);
+            assert!(prim_list_list[1][0] == -1);
         });
     });
 }
