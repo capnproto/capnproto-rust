@@ -213,6 +213,7 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
         Line(~"use std;"),
         Line(~"use capnp::blob::{Text, Data};"),
         Line(~"use capnp::layout;"),
+        Line(~"use capnp::any::AnyPointer;"),
         Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};"),
         Line(format!("use {};", rootName))
     ])
@@ -367,7 +368,9 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                         return (~"TODO", Line(~"TODO"));
                 }
                 Some(Type::AnyPointer) => {
-                    return (~"TODO", Line(~"TODO"))
+                    return (format!("AnyPointer::{}<'a>", module),
+                            Line(format!("AnyPointer::{}::new(self.{}.get_pointer_field({}))",
+                                         module, member, offset)))
                 }
                 None => {
                     // XXX should probably silently ignore, instead.
@@ -447,7 +450,10 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     result.push(Line(format!("pub fn set_{}(&self, value : &str) \\{",styled_name)));
                     interior.push(Line(format!("self.builder.get_pointer_field({}).set_text(value);", offset)))
                 }
-                Some(Type::Data) => { return BlankLine }
+                Some(Type::Data) => {
+                    result.push(Line(format!("pub fn set_{}(&self, value : &[u8]) \\{",styled_name)));
+                    interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);", offset)))
+                }
                 Some(Type::List(ot1)) => {
                     match ot1.get_element_type().which() {
                         None => fail!("unsupported type"),
@@ -545,7 +551,9 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     return BlankLine
                 }
                 Some(Type::AnyPointer) => {
-                    return BlankLine
+                    result.push(Line(format!("pub fn init_{}(&self) -> AnyPointer::Builder<'a> \\{",styled_name)));
+                    interior.push(Line(format!("AnyPointer::Builder::new(self.builder.get_pointer_field({}))",
+                                               offset)))
                 }
                 None => {return BlankLine}
             }

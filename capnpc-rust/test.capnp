@@ -64,3 +64,7 @@ struct TestComplexList {
    primListList @3 : List(List(Int32));
    primListListList @4 : List(List(List(Int16)));
 }
+
+struct TestAnyPointer {
+   anyPointerField @0 :AnyPointer;
+}
