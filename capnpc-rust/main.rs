@@ -231,6 +231,10 @@ fn list_list_type_param(typ : schema_capnp::Type::Reader, is_reader: bool) -> ~s
                     Type::Uint64 | Type::Float32 | Type::Float64 => {
                     format!("PrimitiveList::{}<'a, {}>", module, prim_type_str(t))
                 }
+                Type::List(t) => {
+                    let inner = list_list_type_param(t.get_element_type(), is_reader);
+                    format!("ListList::{}<'a, {}>", module, inner)
+                }
                 _ => {fail!("unimplemented")}
             }
         }

@@ -162,9 +162,21 @@ fn testComplexList () {
         let prim_list = prim_list_list.init(1, 1);
         prim_list.set(0,-1);
 
-
         // get_writable_list_pointer is unimplemented
         //prim_list_list[0].set(0, 1);
+
+        let prim_list_list_list = test_complex_list.init_prim_list_list_list(2);
+        let prim_list_list = prim_list_list_list.init(0, 2);
+        let prim_list = prim_list_list.init(0, 2);
+        prim_list.set(0, 0);
+        prim_list.set(1, 1);
+        let prim_list = prim_list_list.init(1, 1);
+        prim_list.set(0, 255);
+        let prim_list_list = prim_list_list_list.init(1, 1);
+        let prim_list = prim_list_list.init(0, 3);
+        prim_list.set(0, 10);
+        prim_list.set(1, 9);
+        prim_list.set(2, 8);
 
         test_complex_list.as_reader(|complex_list_reader| {
             let enumListReader = complex_list_reader.get_enum_list();
@@ -192,6 +204,15 @@ fn testComplexList () {
             assert!(prim_list_list[0][1] == 6);
             assert!(prim_list_list[0][2] == 7);
             assert!(prim_list_list[1][0] == -1);
+
+
+            let prim_list_list_list = test_complex_list.get_prim_list_list_list();
+            assert!(prim_list_list_list[0][0][0] == 0);
+            assert!(prim_list_list_list[0][0][1] == 1);
+            assert!(prim_list_list_list[0][1][0] == 255);
+            assert!(prim_list_list_list[1][0][0] == 10);
+            assert!(prim_list_list_list[1][0][1] == 9);
+            assert!(prim_list_list_list[1][0][2] == 8);
         });
     });
 }
