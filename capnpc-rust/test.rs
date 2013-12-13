@@ -200,6 +200,13 @@ fn test_complex_list () {
         prim_list.set(1, 9);
         prim_list.set(2, 8);
 
+        let enum_list_list = test_complex_list.init_enum_list_list(2);
+        let enum_list = enum_list_list.init(0, 1);
+        enum_list.set(0, AnEnum::Bar);
+        let enum_list = enum_list_list.init(1, 2);
+        enum_list.set(0, AnEnum::Foo);
+        enum_list.set(1, AnEnum::Qux);
+
         test_complex_list.as_reader(|complex_list_reader| {
             let enumListReader = complex_list_reader.get_enum_list();
             for i in range::<uint>(0,10) {
@@ -227,7 +234,6 @@ fn test_complex_list () {
             assert!(prim_list_list[0][2] == 7);
             assert!(prim_list_list[1][0] == -1);
 
-
             let prim_list_list_list = test_complex_list.get_prim_list_list_list();
             assert!(prim_list_list_list[0][0][0] == 0);
             assert!(prim_list_list_list[0][0][1] == 1);
@@ -235,6 +241,11 @@ fn test_complex_list () {
             assert!(prim_list_list_list[1][0][0] == 10);
             assert!(prim_list_list_list[1][0][1] == 9);
             assert!(prim_list_list_list[1][0][2] == 8);
+
+            let enum_list_list = test_complex_list.get_enum_list_list();
+            assert!(enum_list_list[0][0] == Some(AnEnum::Bar));
+            assert!(enum_list_list[1][0] == Some(AnEnum::Foo));
+            assert!(enum_list_list[1][1] == Some(AnEnum::Qux));
         });
     });
 }

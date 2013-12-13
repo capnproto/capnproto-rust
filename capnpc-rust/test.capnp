@@ -67,6 +67,7 @@ struct TestComplexList {
    dataList @2 : List(Data);
    primListList @3 : List(List(Int32));
    primListListList @4 : List(List(List(Int16)));
+   enumListList @5 : List(List(AnEnum));
 }
 
 struct TestAnyPointer {

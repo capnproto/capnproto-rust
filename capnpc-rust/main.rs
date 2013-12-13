@@ -219,7 +219,8 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
     ])
 }
 
-fn list_list_type_param(typ : schema_capnp::Type::Reader, is_reader: bool) -> ~str {
+fn list_list_type_param(scope_map : &std::hashmap::HashMap<u64, ~[~str]>,
+                        typ : schema_capnp::Type::Reader, is_reader: bool) -> ~str {
     use schema_capnp::Type;
     let module = if is_reader { "Reader" } else { "Builder" };
     match typ.which() {
@@ -232,8 +233,12 @@ fn list_list_type_param(typ : schema_capnp::Type::Reader, is_reader: bool) -> ~s
                     Type::Uint64 | Type::Float32 | Type::Float64 => {
                     format!("PrimitiveList::{}<'a, {}>", module, prim_type_str(t))
                 }
+                Type::Enum(en) => {
+                    let theMod = scope_map.get(&en.get_type_id()).connect("::");
+                    format!("EnumList::{}<'a,{}::Reader>", module, theMod)
+                }
                 Type::List(t) => {
-                    let inner = list_list_type_param(t.get_element_type(), is_reader);
+                    let inner = list_list_type_param(scope_map, t.get_element_type(), is_reader);
                     format!("ListList::{}<'a, {}>", module, inner)
                 }
                 _ => {fail!("unimplemented")}
@@ -319,7 +324,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                          module, member, offset)));
                         }
                         Some(Type::List(t1)) => {
-                            let type_param = list_list_type_param(t1.get_element_type(), isReader);
+                            let type_param = list_list_type_param(scopeMap, t1.get_element_type(), isReader);
                             return (format!("ListList::{}<'a,{}>", module, type_param),
                                     Line(format!("ListList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
                                                  module, member, offset)))
@@ -517,7 +522,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     format!("DataList::Builder<'a>")
                                 }
                                 Type::List(t1) => {
-                                    let type_param = list_list_type_param(t1.get_element_type(), false);
+                                    let type_param = list_list_type_param(scopeMap, t1.get_element_type(), false);
                                     interior.push(
                                         Line(format!("ListList::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER,size))",
                                                      type_param, offset)));
