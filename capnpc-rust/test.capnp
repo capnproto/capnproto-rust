@@ -25,7 +25,7 @@ struct TestBlob {
    dataField @1 : Data;
 }
 
-struct BigStruct {
+struct TestBigStruct {
   voidField      @0  : Void;
   boolField      @1  : Bool;
   int8Field      @2  : Int8;
@@ -68,6 +68,9 @@ struct TestComplexList {
    primListList @3 : List(List(Int32));
    primListListList @4 : List(List(List(Int16)));
    enumListList @5 : List(List(AnEnum));
+   textListList @6 : List(List(Text));
+   dataListList @7 : List(List(Data));
+   structListList @8 : List(List(TestBigStruct));
 }
 
 struct TestAnyPointer {

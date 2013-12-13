@@ -237,11 +237,26 @@ fn list_list_type_param(scope_map : &std::hashmap::HashMap<u64, ~[~str]>,
                     let theMod = scope_map.get(&en.get_type_id()).connect("::");
                     format!("EnumList::{}<'a,{}::Reader>", module, theMod)
                 }
+                Type::Text => {
+                    format!("TextList::{}<'a>", module)
+                }
+                Type::Data => {
+                    format!("DataList::{}<'a>", module)
+                }
+                Type::Struct(st) => {
+                    format!("StructList::{}<'a, {}::{}>", module,
+                            scope_map.get(&st.get_type_id()).connect("::"), module)
+                }
                 Type::List(t) => {
                     let inner = list_list_type_param(scope_map, t.get_element_type(), is_reader);
                     format!("ListList::{}<'a, {}>", module, inner)
                 }
-                _ => {fail!("unimplemented")}
+                Type::AnyPointer => {
+                    fail!("List(AnyPointer) is unsupported");
+                }
+                Type::Interface(_i) => {
+                    fail!("unimplemented");
+                }
             }
         }
     }

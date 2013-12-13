@@ -123,7 +123,7 @@ fn test_big_struct() {
                         SUGGESTED_ALLOCATION_STRATEGY,
                         |message| {
 
-        let bigStruct = message.init_root::<BigStruct::Builder>();
+        let bigStruct = message.init_root::<TestBigStruct::Builder>();
 
         bigStruct.set_bool_field(false);
         bigStruct.set_int8_field(-128);
@@ -207,6 +207,15 @@ fn test_complex_list () {
         enum_list.set(0, AnEnum::Foo);
         enum_list.set(1, AnEnum::Qux);
 
+        let text_list_list = test_complex_list.init_text_list_list(1);
+        text_list_list.init(0,1).set(0, "abc");
+
+        let data_list_list = test_complex_list.init_data_list_list(1);
+        data_list_list.init(0,1).set(0, [255, 254, 253]);
+
+        let struct_list_list = test_complex_list.init_struct_list_list(1);
+        struct_list_list.init(0,1)[0].set_int8_field(-1);
+
         test_complex_list.as_reader(|complex_list_reader| {
             let enumListReader = complex_list_reader.get_enum_list();
             for i in range::<uint>(0,10) {
@@ -234,7 +243,7 @@ fn test_complex_list () {
             assert!(prim_list_list[0][2] == 7);
             assert!(prim_list_list[1][0] == -1);
 
-            let prim_list_list_list = test_complex_list.get_prim_list_list_list();
+            let prim_list_list_list = complex_list_reader.get_prim_list_list_list();
             assert!(prim_list_list_list[0][0][0] == 0);
             assert!(prim_list_list_list[0][0][1] == 1);
             assert!(prim_list_list_list[0][1][0] == 255);
@@ -242,10 +251,15 @@ fn test_complex_list () {
             assert!(prim_list_list_list[1][0][1] == 9);
             assert!(prim_list_list_list[1][0][2] == 8);
 
-            let enum_list_list = test_complex_list.get_enum_list_list();
+            let enum_list_list = complex_list_reader.get_enum_list_list();
             assert!(enum_list_list[0][0] == Some(AnEnum::Bar));
             assert!(enum_list_list[1][0] == Some(AnEnum::Foo));
             assert!(enum_list_list[1][1] == Some(AnEnum::Qux));
+
+            assert!(complex_list_reader.get_text_list_list()[0][0] == "abc");
+            assert!(complex_list_reader.get_data_list_list()[0][0] == [255, 254, 253]);
+
+            assert!(complex_list_reader.get_struct_list_list()[0][0].get_int8_field() == -1);
         });
     });
 }
