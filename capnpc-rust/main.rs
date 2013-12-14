@@ -66,6 +66,7 @@ fn prim_type_str (typ : schema_capnp::Type::Which) -> ~str {
         Uint64 => ~"u64",
         Float32 => ~"f32",
         Float64 => ~"f64",
+        Enum(_) => ~"u16",
         _ => fail!("not primitive")
     }
 }
@@ -120,6 +121,7 @@ fn test_camel_to_snake_case() {
     assert_eq!(camel_to_snake_case("uint32Id"), ~"uint32_id");
 }
 
+#[deriving(Eq)]
 enum FormattedText {
     Indent(~FormattedText),
     Branch(~[FormattedText]),
@@ -172,7 +174,6 @@ fn populate_scope_map(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::
     for ii in range(0, nestedNodes.size()) {
         let nestedNode = nestedNodes[ii];
         let id = nestedNode.get_id();
-
         let name = capitalize_first_letter(nestedNode.get_name());
 
         let scopeNames = match scopeMap.find(&nodeId) {
@@ -407,7 +408,63 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
     }
 }
 
-fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+fn zero_fields_of_group(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                        node_id : u64
+                        ) -> FormattedText {
+    use schema_capnp::*;
+    match node_map.get(&node_id).which() {
+        Some(Node::Struct(st)) => {
+            let mut result = ~[];
+            if (st.get_discriminant_count() != 0) {
+                result.push(
+                    Line(format!("self.builder.set_data_field::<u16>({}, 0);",
+                                 st.get_discriminant_offset())));
+            }
+            let fields = st.get_fields();
+            for ii in range(0, fields.size()) {
+                let field = fields[ii];
+                match field.which() {
+                    None => {fail!()}
+                    Some(Field::Group(group)) => {
+                        result.push(zero_fields_of_group(node_map, group.get_type_id()));
+                    }
+                    Some(Field::Slot(slot)) => {
+                        match slot.get_type().which(){
+                            Some(typ) => {
+                                match typ {
+                                    Type::Void => {}
+                                    Type::Bool | Type::Int8 |
+                                        Type::Int16 | Type::Int32 | Type::Int64 |
+                                        Type::Uint8 | Type::Uint16 | Type::Uint32 |
+                                        Type::Uint64 | Type::Float32 | Type::Float64 | Type::Enum(_) => {
+                                        let line = Line(format!("self.builder.set_data_field::<{}>({}, 0);",
+                                                         prim_type_str(typ),
+                                                         slot.get_offset()));
+                                        // PERF could dedup more efficiently
+                                        if !result.contains(&line) { result.push(line) }
+                                    }
+                                    Type::Struct(_) | Type::List(_) | Type::Text | Type::Data |
+                                        Type::AnyPointer => {
+                                        let line = Line(format!("self.builder.get_pointer_field({}).clear();",
+                                                                slot.get_offset()));
+                                        // PERF could dedup more efficiently
+                                        if !result.contains(&line) { result.push(line) }
+                                    }
+                                    Type::Interface(_) => { fail!() }
+                                }
+                            }
+                            None => {fail!()}
+                        }
+                    }
+                }
+            }
+            return Branch(result);
+        }
+        _ => { fail!("expected a struct") }
+    }
+}
+
+fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                   discriminantOffset : u32,
                   styled_name : &str,
@@ -438,12 +495,13 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
             let scope = scopeMap.get(&group.get_type_id());
             let theMod = scope.connect("::");
 
-            // XXX todo: zero out all of the fields.
+            initter_interior.push(zero_fields_of_group(node_map, group.get_type_id()));
+
             initter_interior.push(Line(format!("{}::Builder::new(self.builder)", theMod)));
 
             //setter_interior.push(Line(format!("Builder { builder : }")));
 
-            (None, None) //Some(format!("{}::Builder<'a>")))
+            (None, Some(format!("{}::Builder<'a>", theMod)))
         }
         Some(Field::Slot(regField)) => {
             let offset = regField.get_offset() as uint;
