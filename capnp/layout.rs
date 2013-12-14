@@ -1085,7 +1085,6 @@ mod WireHelpers {
                 }
             }
         }
-
     }
 
 
@@ -1310,6 +1309,20 @@ impl <'a> PointerBuilder<'a> {
     pub fn set_data(&self, value : &[u8]) {
         unsafe {
             WireHelpers::set_data_pointer(self.pointer, self.segment, value)
+        }
+    }
+
+    pub fn init_text(&self, size : ByteCount) -> Text::Builder<'a> {
+        unsafe {
+            fail!("unimplemented");
+            //WireHelpers::init_text_pointer(self.pointer, self.segment, value)
+        }
+    }
+
+    pub fn init_data(&self, size : ByteCount) -> Data::Builder<'a> {
+        unsafe {
+            fail!("unimplemented");
+            //WireHelpers::init_data_pointer(self.pointer, self.segment, value)
         }
     }
 

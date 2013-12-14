@@ -417,46 +417,49 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 
     use schema_capnp::*;
 
-    let mut result = ~[];
-    result.push(Line(~"#[inline]"));
-
-    let mut interior = ~[];
+    let mut setter_interior = ~[];
+    let mut initter_interior = ~[];
+    let mut initter_params = ~[];
 
     let discriminantValue = field.get_discriminant_value();
     if (discriminantValue != 0xffff) {
-        interior.push(
+        setter_interior.push(
+            Line(format!("self.builder.set_data_field::<u16>({}, {});",
+                         discriminantOffset as uint,
+                         discriminantValue as uint)));
+        initter_interior.push(
             Line(format!("self.builder.set_data_field::<u16>({}, {});",
                          discriminantOffset as uint,
                          discriminantValue as uint)));
     }
 
-    match field.which() {
+    let (reader_type, maybe_builder_type) : (~str, Option<~str>) = match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
             let scope = scopeMap.get(&group.get_type_id());
             let theMod = scope.connect("::");
-            result.push(Line(format!("pub fn init_{}(&self) -> {}::Builder<'a> \\{",
-                                     styled_name, theMod )));
+
             // XXX todo: zero out all of the fields.
-            interior.push(Line(format!("{}::Builder::new(self.builder)", theMod)));
+            initter_interior.push(Line(format!("{}::Builder::new(self.builder)", theMod)));
+
+            //setter_interior.push(Line(format!("Builder { builder : }")));
+
+            (format!("{}::Reader<'a>", theMod), None) //Some(format!("{}::Builder<'a>")))
         }
         Some(Field::Slot(regField)) => {
             let offset = regField.get_offset() as uint;
 
             let common_case = |typ: &str| {
-                result.push(Line(format!("pub fn set_{}(&self, value : {}) \\{",
-                                         styled_name, typ)));
-                interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
-                                           typ, offset)))
+                setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
+                                                  typ, offset)));
+                (typ.to_owned(), None)
             };
 
             match regField.get_type().which() {
-                Some(Type::Void) => {
-                    result.push(Line(format!("pub fn set_{}(&self, _value : ()) \\{",styled_name)))
-                }
+                Some(Type::Void) => { (~"()", None) }
                 Some(Type::Bool) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : bool) \\{", styled_name)));
-                    interior.push(Line(format!("self.builder.set_bool_field({}, value);", offset)))
+                    setter_interior.push(Line(format!("self.builder.set_bool_field({}, value);", offset)));
+                    (~"bool", None)
                 }
                 Some(Type::Int8) => common_case("i8"),
                 Some(Type::Int16) => common_case("i16"),
@@ -469,19 +472,27 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                 Some(Type::Float32) => common_case("f32"),
                 Some(Type::Float64) => common_case("f64"),
                 Some(Type::Text) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : &str) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.get_pointer_field({}).set_text(value);", offset)))
+                    setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_text(value);",
+                                                      offset)));
+                    initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
+                                                       offset)));
+                    initter_params.push("size : uint");
+                    (~"Text::Reader<'a>", Some(~"Text::Builder<'a>"))
                 }
                 Some(Type::Data) => {
-                    result.push(Line(format!("pub fn set_{}(&self, value : &[u8]) \\{",styled_name)));
-                    interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);", offset)))
+                    setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);",
+                                                      offset)));
+                    initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
+                                                       offset)));
+                    initter_params.push("size : uint");
+                    (~"Data::Reader<'a>", Some(~"Data::Builder<'a>"))
                 }
                 Some(Type::List(ot1)) => {
+                    initter_params.push("size : uint");
                     match ot1.get_element_type().which() {
                         None => fail!("unsupported type"),
                         Some(t1) => {
-                            let returnType =
-                                match t1 {
+                            match t1 {
                                 Type::Void | Type::Bool | Type::Int8 |
                                     Type::Int16 | Type::Int32 | Type::Int64 |
                                     Type::Uint8 | Type::Uint16 | Type::Uint32 |
@@ -490,105 +501,123 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     let typeStr = prim_type_str(t1);
                                     let sizeStr = element_size_str(element_size(t1));
 
-                                    interior.push(Line(format!("PrimitiveList::Builder::<'a,{}>::new(",
+                                    initter_interior.push(Line(format!("PrimitiveList::Builder::<'a,{}>::new(",
                                                                typeStr)));
-                                    interior.push(
+                                    initter_interior.push(
                                         Indent(~Line(format!("self.builder.get_pointer_field({}).init_list(layout::{},size)",
                                                           offset, sizeStr))));
-                                        interior.push(Line(~")"));
-                                    format!("PrimitiveList::Builder<'a,{}>", typeStr)
+                                    initter_interior.push(Line(~")"));
+
+                                    (format!("PrimitiveList::Reader<'a,{}>", typeStr),
+                                     Some(format!("PrimitiveList::Builder<'a,{}>", typeStr)))
                                 }
                                 Type::Enum(e) => {
                                     let id = e.get_type_id();
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
                                     let typeStr = format!("{}::Reader", theMod);
-                                    interior.push(Line(format!("EnumList::Builder::<'a, {}>::new(",
+                                    initter_interior.push(Line(format!("EnumList::Builder::<'a, {}>::new(",
                                                             typeStr)));
-                                    interior.push(
+                                    initter_interior.push(
                                         Indent(
                                             ~Line(
                                                 format!("self.builder.get_pointer_field({}).init_list(layout::TWO_BYTES,size)",
                                                      offset))));
-                                    interior.push(Line(~")"));
-                                    format!("EnumList::Builder<'a,{}>", typeStr)
+                                    initter_interior.push(Line(~")"));
+                                    (format!("EnumList::Reader<'a,{}>", typeStr),
+                                     Some(format!("EnumList::Builder<'a,{}>", typeStr)))
                                 }
                                 Type::Struct(st) => {
                                     let id = st.get_type_id();
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
 
-                                    interior.push(Line(format!("StructList::Builder::<'a, {}::Builder<'a>>::new(", theMod)));
-                                    interior.push(
+                                    initter_interior.push(Line(format!("StructList::Builder::<'a, {}::Builder<'a>>::new(", theMod)));
+                                    initter_interior.push(
                                        Indent(
                                           ~Line(
                                              format!("self.builder.get_pointer_field({}).init_struct_list(size, {}::STRUCT_SIZE))",
                                                   offset, theMod))));
-                                    format!("StructList::Builder<'a, {}::Builder<'a>>", theMod)
+
+                                    (format!("StructList::Reader<'a,{}::Reader<'a>>", theMod),
+                                     Some(format!("StructList::Builder<'a,{}::Builder<'a>>", theMod)))
                                 }
                                 Type::Text => {
-                                    interior.push(
+                                    initter_interior.push(
                                         Line(format!("TextList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
-                                    format!("TextList::Builder<'a>")
+
+                                    (format!("TextList::Reader<'a>"),
+                                     Some(format!("TextList::Builder<'a>")))
                                 }
                                 Type::Data => {
-                                    interior.push(
+                                    initter_interior.push(
                                         Line(format!("DataList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
-                                    format!("DataList::Builder<'a>")
+
+                                    (format!("DataList::Reader<'a>"),
+                                     Some(format!("DataList::Builder<'a>")))
                                 }
                                 Type::List(t1) => {
                                     let type_param = list_list_type_param(scopeMap, t1.get_element_type(), false);
-                                    interior.push(
+                                    initter_interior.push(
                                         Line(format!("ListList::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER,size))",
                                                      type_param, offset)));
-                                    format!("ListList::Builder<'a,{}>", type_param)
+
+                                    (format!("ListList::Reader<'a, {}>",
+                                             list_list_type_param(scopeMap, t1.get_element_type(), true)),
+                                     Some(format!("ListList::Builder<'a, {}>", type_param)))
                                 }
                                 _ => { fail!("unimplemented") }
-                            };
-                            result.push(Line(format!("pub fn init_{}(&self, size : uint) -> {} \\{",
-                                                  styled_name, returnType)))
-                       }
+                            }
+                        }
                     }
                 }
                 Some(Type::Enum(e)) => {
                     let id = e.get_type_id();
-                    let scope = scopeMap.get(&id);
-                    let theMod = scope.connect("::");
-                    result.push(Line(format!("pub fn set_{}(&self, value : {}::Reader) \\{",
-                                          styled_name, theMod)));
-                    interior.push(
-                                  Line(format!("self.builder.set_data_field::<u16>({}, value as u16)",
-                                            offset)));
+                    let theMod = scopeMap.get(&id).connect("::");
+                    setter_interior.push(
+                        Line(format!("self.builder.set_data_field::<u16>({}, value as u16)",
+                                     offset)));
+                    (format!("{}::Reader", theMod), None)
                 }
                 Some(Type::Struct(st)) => {
                     let id = st.get_type_id();
-                    let scope = scopeMap.get(&id);
-                    let theMod = scope.connect("::");
-                    result.push(Line(format!("pub fn init_{}(&self) -> {}::Builder<'a> \\{",styled_name,theMod)));
-                    interior.push(
+                    let theMod = scopeMap.get(&id).connect("::");
+                    initter_interior.push(
                       Line(format!("{}::Builder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
                                 theMod, offset, theMod)));
+                    (format!("{}::Reader<'a>", theMod), Some(format!("{}::Builder<'a>", theMod)))
                 }
                 Some(Type::Interface(_)) => {
-                    return BlankLine
+                    fail!("unimplemented");
                 }
                 Some(Type::AnyPointer) => {
-                    result.push(Line(format!("pub fn init_{}(&self) -> AnyPointer::Builder<'a> \\{",styled_name)));
-                    interior.push(Line(format!("let result = AnyPointer::Builder::new(self.builder.get_pointer_field({}));",
+                    initter_interior.push(Line(format!("let result = AnyPointer::Builder::new(self.builder.get_pointer_field({}));",
                                                offset)));
-                    interior.push(Line(~"result.clear();"));
-                    interior.push(Line(~"result"));
+                    initter_interior.push(Line(~"result.clear();"));
+                    initter_interior.push(Line(~"result"));
+                    (~"AnyPointer::Reader<'a>", Some(~"AnyPointer::Builder<'a>"))
                 }
-                None => {return BlankLine}
+                None => { fail!("unrecognized type") }
             }
-
         }
-    }
-
-    result.push(Indent(~Branch(interior)));
+    };
+    let mut result = ~[];
+    result.push(Line(~"#[inline]"));
+    result.push(Line(format!("pub fn set_{}(&self, value : {}) \\{", styled_name, reader_type)));
+    result.push(Indent(~Branch(setter_interior)));
     result.push(Line(~"}"));
+    match maybe_builder_type {
+        Some(builder_type) => {
+            result.push(Line(~"#[inline]"));
+            let args = initter_params.connect(", ");
+            result.push(Line(format!("pub fn init_{}(&self, {}) -> {} \\{",
+                                     styled_name, args, builder_type)));
+            result.push(Indent(~Branch(initter_interior)));
+            result.push(Line(~"}"));
+        }
+        None => {}
+    }
     return Branch(result);
-
 }
 
 
