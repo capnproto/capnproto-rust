@@ -418,6 +418,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     use schema_capnp::*;
 
     let mut setter_interior = ~[];
+    let mut setter_param = ~"value";
     let mut initter_interior = ~[];
     let mut initter_params = ~[];
 
@@ -456,7 +457,10 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
             };
 
             match regField.get_type().which() {
-                Some(Type::Void) => { (Some(~"()"), None) }
+                Some(Type::Void) => {
+                    setter_param = ~"_value";
+                    (Some(~"()"), None)
+                }
                 Some(Type::Bool) => {
                     setter_interior.push(Line(format!("self.builder.set_bool_field({}, value);", offset)));
                     (Some(~"bool"), None)
@@ -610,7 +614,8 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     match maybe_reader_type {
         Some(reader_type) => {
             result.push(Line(~"#[inline]"));
-            result.push(Line(format!("pub fn set_{}(&self, value : {}) \\{", styled_name, reader_type)));
+            result.push(Line(format!("pub fn set_{}(&self, {} : {}) \\{",
+                                     styled_name, setter_param, reader_type)));
             result.push(Indent(~Branch(setter_interior)));
             result.push(Line(~"}"));
         }
