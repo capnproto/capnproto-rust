@@ -378,9 +378,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                               ]));
                 }
                 Some(Type::Struct(st)) => {
-                    let id = st.get_type_id();
-                    let scope = scopeMap.get(&id);
-                    let theMod = scope.connect("::");
+                    let theMod = scopeMap.get(&st.get_type_id()).connect("::");
                     let middleArg = if (isReader) {~""} else {format!("{}::STRUCT_SIZE,", theMod)};
                     return (format!("{}::{}", theMod, moduleWithVar),
                             Line(format!("{}::{}::new(self.{}.get_pointer_field({}).get_struct({} std::ptr::null()))",
@@ -492,6 +490,10 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     (Some(~"Data::Reader<'a>"), Some(~"Data::Builder<'a>"))
                 }
                 Some(Type::List(ot1)) => {
+                    setter_interior.push(
+                        Line(format!("self.builder.get_pointer_field({}).set_list(&value.reader)",
+                                     offset)));
+
                     initter_params.push("size : uint");
                     match ot1.get_element_type().which() {
                         None => fail!("unsupported type"),
@@ -535,10 +537,6 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     let id = st.get_type_id();
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
-
-                                    setter_interior.push(
-                                        Line(format!("self.builder.get_pointer_field({}).set_list(&value.reader)",
-                                                     offset)));
 
                                     initter_interior.push(Line(format!("StructList::Builder::<'a, {}::Builder<'a>>::new(", theMod)));
                                     initter_interior.push(
@@ -589,8 +587,9 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     (Some(format!("{}::Reader", theMod)), None)
                 }
                 Some(Type::Struct(st)) => {
-                    let id = st.get_type_id();
-                    let theMod = scopeMap.get(&id).connect("::");
+                    let theMod = scopeMap.get(&st.get_type_id()).connect("::");
+                    setter_interior.push(
+                        Line(format!("self.builder.get_pointer_field({}).set_struct(&value.reader)", offset)));
                     initter_interior.push(
                       Line(format!("{}::Builder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
                                 theMod, offset, theMod)));
@@ -604,7 +603,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                                offset)));
                     initter_interior.push(Line(~"result.clear();"));
                     initter_interior.push(Line(~"result"));
-                    (Some(~"AnyPointer::Reader<'a>"), Some(~"AnyPointer::Builder<'a>"))
+                    (None, Some(~"AnyPointer::Builder<'a>"))
                 }
                 None => { fail!("unrecognized type") }
             }
@@ -850,7 +849,8 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
             let accessors =
                 ~[Branch(preamble),
-                  Line(~"pub struct Reader<'a> { priv reader : layout::StructReader<'a> }"),
+                  // TODO figure out how to arrange that this field can be private.
+                  Line(~"pub struct Reader<'a> { reader : layout::StructReader<'a> }"),
                   BlankLine,
                   Line(~"impl <'a> layout::FromStructReader<'a> for Reader<'a> {"),
                   Indent(

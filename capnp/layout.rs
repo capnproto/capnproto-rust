@@ -939,6 +939,12 @@ mod WireHelpers {
         fail!("unimplemented");
     }
 
+    pub unsafe fn set_struct_pointer(_segment : *mut SegmentBuilder,
+                                     _reff : *mut WirePointer,
+                                     _value : StructReader) -> super::SegmentAnd<*mut Word> {
+        fail!("unimplemented");
+    }
+
     pub unsafe fn set_list_pointer(_segment : *mut SegmentBuilder,
                                    _reff : *mut WirePointer,
                                    _value : ListReader) -> super::SegmentAnd<*mut Word> {
@@ -1334,6 +1340,12 @@ impl <'a> PointerBuilder<'a> {
     pub fn init_data(&self, size : ByteCount) -> Data::Builder<'a> {
         unsafe {
             WireHelpers::init_data_pointer(self.pointer, self.segment, size).value
+        }
+    }
+
+    pub fn set_struct(&self, value : &StructReader<'a>) {
+        unsafe {
+            WireHelpers::set_struct_pointer(self.segment, self.pointer, *value);
         }
     }
 
