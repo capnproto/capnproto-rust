@@ -570,7 +570,8 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                              list_list_type_param(scopeMap, t1.get_element_type(), true))),
                                      Some(format!("ListList::Builder<'a, {}>", type_param)))
                                 }
-                                _ => { fail!("unimplemented") }
+                                Type::AnyPointer => {fail!("List(AnyPointer) not supported")}
+                                Type::Interface(_) => { fail!("unimplemented") }
                             }
                         }
                     }
