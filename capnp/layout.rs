@@ -117,9 +117,15 @@ impl StructRef {
     }
 
     #[inline]
-    pub fn set(&mut self, size : StructSize) {
+    pub fn set_from_struct_size(&mut self, size : StructSize) {
         self.data_size.set(size.data);
         self.ptr_count.set(size.pointers);
+    }
+
+    #[inline]
+    pub fn set(&mut self, ds : WordCount16, rc : WirePointerCount16) {
+        self.data_size.set(ds);
+        self.ptr_count.set(rc);
     }
 }
 
@@ -152,7 +158,11 @@ impl ListRef {
         assert!(wc < (1 << 29), "Inline composite lists are limited to 2 ** 29 words");
         self.element_size_and_count.set((( wc as u32) << 3) | (INLINE_COMPOSITE as u32));
     }
+}
 
+impl FarRef {
+    #[inline]
+    pub fn set(&mut self, si : SegmentId) { self.segment_id.set(si); }
 }
 
 impl WirePointer {
@@ -505,11 +515,87 @@ mod WireHelpers {
     }
 
     #[inline]
+    pub unsafe fn zero_pointer_and_fars(_segment : *mut SegmentBuilder, reff : *mut WirePointer) {
+        //# Zero out the pointer itself and, if it is a far pointer,
+        //# zero the landing pad as well, but do not zero the object
+        //# body. Used when upgrading.
+
+        if ((*reff).kind() == WP_FAR) {
+            fail!("unimplemented")
+        }
+        std::ptr::zero_memory(reff, 1);
+    }
+
+    pub unsafe fn transfer_pointer(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer,
+                                   src_segment : *mut SegmentBuilder, src : *mut WirePointer) {
+        //# Make *dst point to the same object as *src. Both must
+        //# reside in the same message, but can be in different
+        //# segments. Not always-inline because this is rarely used.
+        //
+        //# Caller MUST zero out the source pointer after calling this,
+        //# to make sure no later code mistakenly thinks the source
+        //# location still owns the object. transferPointer() doesn't
+        //# do this zeroing itself because many callers transfer
+        //# several pointers in a loop then zero out the whole section.
+
+        assert!((*dst).is_null());
+        // We expect the caller to ensure the target is already null so won't leak.
+
+        if ((*src).is_null()) {
+            std::ptr::zero_memory(dst, 1);
+        } else if (*src).kind() == WP_FAR {
+            std::ptr::copy_nonoverlapping_memory(dst, src, 1);
+        } else {
+            transfer_pointer_split(dst_segment, dst, src_segment, src, (*src).mut_target());
+        }
+    }
+
+    pub unsafe fn transfer_pointer_split(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer,
+                                         src_segment : *mut SegmentBuilder, src_tag : *mut WirePointer,
+                                         src_ptr : *mut Word) {
+        // Like the other transfer_pointer, but splits src into a tag and a
+        // target. Particularly useful for OrphanBuilder.
+
+        if (dst_segment == src_segment) {
+            //# Same segment, so create a direct pointer.
+            (*dst).set_kind_and_target((*src_tag).kind(), src_ptr, dst_segment);
+
+            //# We can just copy the upper 32 bits. (Use memcpy() to complt with aliasing rules.)
+            // (?)
+            std::ptr::copy_nonoverlapping_memory(std::ptr::to_mut_unsafe_ptr(&mut (*dst).upper32bits),
+                                                 std::ptr::to_unsafe_ptr(&(*src_tag).upper32bits),
+                                                 1);
+        } else {
+            //# Need to create a far pointer. Try to allocate it in the
+            //# same segment as the source, so that it doesn't need to
+            //# be a double-far.
+
+            match (*src_segment).allocate(1) {
+                None => {
+                    //# Darn, need a double-far.
+                    fail!("unimplemented");
+                }
+                Some(landing_pad_word) => {
+                    //# Simple landing pad is just a pointer.
+                    let landing_pad : *mut WirePointer = std::cast::transmute(landing_pad_word);
+                    (*landing_pad).set_kind_and_target((*src_tag).kind(), src_ptr, src_segment);
+                    std::ptr::copy_nonoverlapping_memory(
+                        std::ptr::to_mut_unsafe_ptr(&mut (*landing_pad).upper32bits),
+                        std::ptr::to_unsafe_ptr(& (*src_tag).upper32bits), 1);
+
+                    (*dst).set_far(false, (*src_segment).get_word_offset_to(landing_pad_word));
+                    (*dst).far_ref().set((*src_segment).get_segment_id());
+                }
+            }
+        }
+    }
+
+    #[inline]
     pub unsafe fn init_struct_pointer<'a>(mut reff : *mut WirePointer,
                                           mut segmentBuilder : *mut SegmentBuilder,
                                           size : StructSize) -> StructBuilder<'a> {
         let ptr : *mut Word = allocate(&mut reff, &mut segmentBuilder, size.total(), WP_STRUCT);
-        (*reff).struct_ref_mut().set(size);
+        (*reff).struct_ref_mut().set_from_struct_size(size);
 
         StructBuilder {
             segment : segmentBuilder,
@@ -523,11 +609,82 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_struct_pointer<'a>(_reff : *mut WirePointer,
-                                                  _segment : *mut SegmentBuilder,
-                                                  _size : StructSize,
-                                                  _defaultValue : *Word) -> StructBuilder<'a> {
-        fail!("unimplemented")
+    pub unsafe fn get_writable_struct_pointer<'a>(mut reff : *mut WirePointer,
+                                                  mut segment : *mut SegmentBuilder,
+                                                  size : StructSize,
+                                                  default_value : *Word) -> StructBuilder<'a> {
+        if((*reff).is_null()) {
+            if default_value.is_null() ||
+                (*std::cast::transmute::<*Word,*WirePointer>(default_value)).is_null() {
+
+                return init_struct_pointer(reff, segment, size);
+            }
+            fail!("TODO")
+        }
+
+        let ref_target = (*reff).mut_target();
+        let mut old_ref = reff;
+        let mut old_segment = segment;
+        let old_ptr = follow_builder_fars(&mut old_ref, ref_target, &mut old_segment);
+        assert!((*old_ref).kind() == WP_STRUCT,
+                "Message contains non-struct pointer where struct pointer was expected.");
+
+        let old_data_size = (*old_ref).struct_ref().data_size.get();
+        let old_pointer_count = (*old_ref).struct_ref().ptr_count.get();
+        let old_pointer_section : *mut WirePointer = std::cast::transmute(old_ptr.offset(old_data_size as int));
+
+        if (old_data_size < size.data || old_pointer_count <= size.pointers) {
+            //# The space allocated for this struct is too small.
+            //# Unlike with readers, we can't just run with it and do
+            //# bounds checks at access time, because how would we
+            //# handle writes? Instead, we have to copy the struct to a
+            //# new space now.
+
+            let new_data_size = std::cmp::max(old_data_size, size.data);
+            let new_pointer_count = std::cmp::max(old_pointer_count, size.pointers);
+            let total_size = new_data_size as WordCount + new_pointer_count as WordCount * WORDS_PER_POINTER;
+
+            //# Don't let allocate() zero out the object just yet.
+            zero_pointer_and_fars(segment, reff);
+
+            let ptr = allocate(&mut reff, &mut segment, total_size, WP_STRUCT);
+            (*reff).struct_ref().set(new_data_size, new_pointer_count);
+
+            //# Copy data section.
+            // Note: copy_nonoverlapping memory's third argument is an element count, not a byte count.
+            std::ptr::copy_nonoverlapping_memory(ptr, old_ptr,
+                                                 old_data_size as uint);
+
+
+            //# Copy pointer section.
+            let new_pointer_section : *mut WirePointer =
+                std::cast::transmute(ptr.offset(new_data_size as int));
+            for i in range::<int>(0, old_pointer_count as int) {
+                transfer_pointer(segment, new_pointer_section.offset(i),
+                                 old_segment, old_pointer_section.offset(i));
+            }
+
+            std::ptr::zero_memory(old_ptr, old_data_size as uint + old_pointer_count as uint);
+
+            StructBuilder {
+                segment : segment,
+                data : std::cast::transmute(ptr),
+                pointers : new_pointer_section,
+                data_size : new_data_size as u32 * BITS_PER_WORD as u32,
+                pointer_count : new_pointer_count,
+                bit0offset : 0
+            }
+
+        } else {
+            StructBuilder {
+                segment : old_segment,
+                data : std::cast::transmute(old_ptr),
+                pointers : old_pointer_section,
+                data_size : old_data_size as u32 * BITS_PER_WORD as u32,
+                pointer_count : old_pointer_count,
+                bit0offset : 0
+            }
+        }
     }
 
     #[inline]
@@ -583,7 +740,7 @@ mod WireHelpers {
         //# Initialize the pointer.
         (*reff).list_ref_mut().set_inline_composite(wordCount);
         (*ptr).set_kind_and_inline_composite_list_element_count(WP_STRUCT, element_count);
-        (*ptr).struct_ref_mut().set(element_size);
+        (*ptr).struct_ref_mut().set_from_struct_size(element_size);
 
         let ptr1 = ptr.offset(POINTER_SIZE_IN_WORDS as int);
 

@@ -81,6 +81,9 @@ impl SegmentBuilder {
         self.ptr.offset(offset as int)
     }
 
+    #[inline]
+    pub fn get_segment_id(&self) -> SegmentId { self.id }
+
     pub fn as_reader<T>(&mut self, f : |&SegmentReader| -> T) -> T {
         unsafe {
             (*self.messageBuilder).as_reader(|messageReader| {
