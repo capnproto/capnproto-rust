@@ -1155,6 +1155,13 @@ impl <'a> PointerBuilder<'a> {
             WireHelpers::set_data_pointer(self.pointer, self.segment, value)
         }
     }
+
+    pub fn clear(&self) {
+        unsafe {
+            WireHelpers::zero_object(self.segment, self.pointer);
+            std::ptr::zero_memory(self.pointer, 1);
+        }
+    }
 }
 
 pub trait FromStructReader<'a> {

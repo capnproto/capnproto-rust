@@ -62,5 +62,10 @@ pub mod AnyPointer {
         pub fn set_as_data(&self, value : &[u8]) {
             self.builder.set_data(value);
         }
+
+        #[inline]
+        pub fn clear(&self) {
+            self.builder.clear()
+        }
     }
 }

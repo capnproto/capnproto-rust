@@ -574,8 +574,10 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                 }
                 Some(Type::AnyPointer) => {
                     result.push(Line(format!("pub fn init_{}(&self) -> AnyPointer::Builder<'a> \\{",styled_name)));
-                    interior.push(Line(format!("AnyPointer::Builder::new(self.builder.get_pointer_field({}))",
-                                               offset)))
+                    interior.push(Line(format!("let result = AnyPointer::Builder::new(self.builder.get_pointer_field({}));",
+                                               offset)));
+                    interior.push(Line(~"result.clear();"));
+                    interior.push(Line(~"result"));
                 }
                 None => {return BlankLine}
             }
