@@ -939,6 +939,12 @@ mod WireHelpers {
         fail!("unimplemented");
     }
 
+    pub unsafe fn set_list_pointer(_segment : *mut SegmentBuilder,
+                                   _reff : *mut WirePointer,
+                                   _value : ListReader) -> super::SegmentAnd<*mut Word> {
+        fail!("unimplemented")
+    }
+
     #[inline]
     pub unsafe fn read_struct_pointer<'a>(mut segment: *SegmentReader<'a>,
                                         mut reff : *WirePointer,
@@ -1319,6 +1325,24 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
+    pub fn init_text(&self, size : ByteCount) -> Text::Builder<'a> {
+        unsafe {
+            WireHelpers::init_text_pointer(self.pointer, self.segment, size).value
+        }
+    }
+
+    pub fn init_data(&self, size : ByteCount) -> Data::Builder<'a> {
+        unsafe {
+            WireHelpers::init_data_pointer(self.pointer, self.segment, size).value
+        }
+    }
+
+    pub fn set_list(&self, value : &ListReader<'a>) {
+        unsafe {
+            WireHelpers::set_list_pointer(self.segment, self.pointer, *value);
+        }
+    }
+
     pub fn set_text(&self, value : &str) {
         unsafe {
             WireHelpers::set_text_pointer(self.pointer, self.segment, value)
@@ -1331,17 +1355,6 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn init_text(&self, size : ByteCount) -> Text::Builder<'a> {
-        unsafe {
-            WireHelpers::init_text_pointer(self.pointer, self.segment, size).value
-        }
-    }
-
-    pub fn init_data(&self, size : ByteCount) -> Data::Builder<'a> {
-        unsafe {
-            WireHelpers::init_data_pointer(self.pointer, self.segment, size).value
-        }
-    }
 
     pub fn clear(&self) {
         unsafe {

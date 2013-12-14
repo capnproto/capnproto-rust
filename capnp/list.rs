@@ -27,6 +27,7 @@ pub mod PrimitiveList {
     use common::Word;
 
     pub struct Reader<'a, T> {
+        // I want this field to be private, but then I can't access it in set_list()
         reader : ListReader<'a>
     }
 

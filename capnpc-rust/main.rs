@@ -433,7 +433,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                          discriminantValue as uint)));
     }
 
-    let (reader_type, maybe_builder_type) : (~str, Option<~str>) = match field.which() {
+    let (maybe_reader_type, maybe_builder_type) : (Option<~str>, Option<~str>) = match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
             let scope = scopeMap.get(&group.get_type_id());
@@ -444,7 +444,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 
             //setter_interior.push(Line(format!("Builder { builder : }")));
 
-            (format!("{}::Reader<'a>", theMod), None) //Some(format!("{}::Builder<'a>")))
+            (None, None) //Some(format!("{}::Builder<'a>")))
         }
         Some(Field::Slot(regField)) => {
             let offset = regField.get_offset() as uint;
@@ -452,14 +452,14 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
             let common_case = |typ: &str| {
                 setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
                                                   typ, offset)));
-                (typ.to_owned(), None)
+                (Some(typ.to_owned()), None)
             };
 
             match regField.get_type().which() {
-                Some(Type::Void) => { (~"()", None) }
+                Some(Type::Void) => { (Some(~"()"), None) }
                 Some(Type::Bool) => {
                     setter_interior.push(Line(format!("self.builder.set_bool_field({}, value);", offset)));
-                    (~"bool", None)
+                    (Some(~"bool"), None)
                 }
                 Some(Type::Int8) => common_case("i8"),
                 Some(Type::Int16) => common_case("i16"),
@@ -477,7 +477,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
                                                        offset)));
                     initter_params.push("size : uint");
-                    (~"Text::Reader<'a>", Some(~"Text::Builder<'a>"))
+                    (Some(~"Text::Reader<'a>"), Some(~"Text::Builder<'a>"))
                 }
                 Some(Type::Data) => {
                     setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);",
@@ -485,7 +485,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
                                                        offset)));
                     initter_params.push("size : uint");
-                    (~"Data::Reader<'a>", Some(~"Data::Builder<'a>"))
+                    (Some(~"Data::Reader<'a>"), Some(~"Data::Builder<'a>"))
                 }
                 Some(Type::List(ot1)) => {
                     initter_params.push("size : uint");
@@ -508,7 +508,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                                           offset, sizeStr))));
                                     initter_interior.push(Line(~")"));
 
-                                    (format!("PrimitiveList::Reader<'a,{}>", typeStr),
+                                    (Some(format!("PrimitiveList::Reader<'a,{}>", typeStr)),
                                      Some(format!("PrimitiveList::Builder<'a,{}>", typeStr)))
                                 }
                                 Type::Enum(e) => {
@@ -524,13 +524,17 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                                 format!("self.builder.get_pointer_field({}).init_list(layout::TWO_BYTES,size)",
                                                      offset))));
                                     initter_interior.push(Line(~")"));
-                                    (format!("EnumList::Reader<'a,{}>", typeStr),
+                                    (Some(format!("EnumList::Reader<'a,{}>", typeStr)),
                                      Some(format!("EnumList::Builder<'a,{}>", typeStr)))
                                 }
                                 Type::Struct(st) => {
                                     let id = st.get_type_id();
                                     let scope = scopeMap.get(&id);
                                     let theMod = scope.connect("::");
+
+                                    setter_interior.push(
+                                        Line(format!("self.builder.get_pointer_field({}).set_list(&value.reader)",
+                                                     offset)));
 
                                     initter_interior.push(Line(format!("StructList::Builder::<'a, {}::Builder<'a>>::new(", theMod)));
                                     initter_interior.push(
@@ -539,21 +543,21 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                              format!("self.builder.get_pointer_field({}).init_struct_list(size, {}::STRUCT_SIZE))",
                                                   offset, theMod))));
 
-                                    (format!("StructList::Reader<'a,{}::Reader<'a>>", theMod),
+                                    (Some(format!("StructList::Reader<'a,{}::Reader<'a>>", theMod)),
                                      Some(format!("StructList::Builder<'a,{}::Builder<'a>>", theMod)))
                                 }
                                 Type::Text => {
                                     initter_interior.push(
                                         Line(format!("TextList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
 
-                                    (format!("TextList::Reader<'a>"),
+                                    (Some(format!("TextList::Reader<'a>")),
                                      Some(format!("TextList::Builder<'a>")))
                                 }
                                 Type::Data => {
                                     initter_interior.push(
                                         Line(format!("DataList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
 
-                                    (format!("DataList::Reader<'a>"),
+                                    (Some(format!("DataList::Reader<'a>")),
                                      Some(format!("DataList::Builder<'a>")))
                                 }
                                 Type::List(t1) => {
@@ -562,8 +566,8 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                         Line(format!("ListList::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER,size))",
                                                      type_param, offset)));
 
-                                    (format!("ListList::Reader<'a, {}>",
-                                             list_list_type_param(scopeMap, t1.get_element_type(), true)),
+                                    (Some(format!("ListList::Reader<'a, {}>",
+                                             list_list_type_param(scopeMap, t1.get_element_type(), true))),
                                      Some(format!("ListList::Builder<'a, {}>", type_param)))
                                 }
                                 _ => { fail!("unimplemented") }
@@ -577,7 +581,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     setter_interior.push(
                         Line(format!("self.builder.set_data_field::<u16>({}, value as u16)",
                                      offset)));
-                    (format!("{}::Reader", theMod), None)
+                    (Some(format!("{}::Reader", theMod)), None)
                 }
                 Some(Type::Struct(st)) => {
                     let id = st.get_type_id();
@@ -585,7 +589,7 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     initter_interior.push(
                       Line(format!("{}::Builder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
                                 theMod, offset, theMod)));
-                    (format!("{}::Reader<'a>", theMod), Some(format!("{}::Builder<'a>", theMod)))
+                    (Some(format!("{}::Reader<'a>", theMod)), Some(format!("{}::Builder<'a>", theMod)))
                 }
                 Some(Type::Interface(_)) => {
                     fail!("unimplemented");
@@ -595,17 +599,22 @@ fn generate_setter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                                offset)));
                     initter_interior.push(Line(~"result.clear();"));
                     initter_interior.push(Line(~"result"));
-                    (~"AnyPointer::Reader<'a>", Some(~"AnyPointer::Builder<'a>"))
+                    (Some(~"AnyPointer::Reader<'a>"), Some(~"AnyPointer::Builder<'a>"))
                 }
                 None => { fail!("unrecognized type") }
             }
         }
     };
     let mut result = ~[];
-    result.push(Line(~"#[inline]"));
-    result.push(Line(format!("pub fn set_{}(&self, value : {}) \\{", styled_name, reader_type)));
-    result.push(Indent(~Branch(setter_interior)));
-    result.push(Line(~"}"));
+    match maybe_reader_type {
+        Some(reader_type) => {
+            result.push(Line(~"#[inline]"));
+            result.push(Line(format!("pub fn set_{}(&self, value : {}) \\{", styled_name, reader_type)));
+            result.push(Indent(~Branch(setter_interior)));
+            result.push(Line(~"}"));
+        }
+        None => {}
+    }
     match maybe_builder_type {
         Some(builder_type) => {
             result.push(Line(~"#[inline]"));
