@@ -422,8 +422,7 @@ fn zero_fields_of_group(node_map : &std::hashmap::HashMap<u64, schema_capnp::Nod
             }
             let fields = st.get_fields();
             for ii in range(0, fields.size()) {
-                let field = fields[ii];
-                match field.which() {
+                match fields[ii].which() {
                     None => {fail!()}
                     Some(Field::Group(group)) => {
                         result.push(zero_fields_of_group(node_map, group.get_type_id()));
