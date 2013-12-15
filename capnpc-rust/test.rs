@@ -266,8 +266,7 @@ fn test_complex_list () {
 
 #[test]
 fn test_any_pointer() {
-
-    use capnp::message::*;
+    use capnp::message::MessageBuilder;
     use test_capnp::TestAnyPointer;
 
     MessageBuilder::new_default(
@@ -282,4 +281,33 @@ fn test_any_pointer() {
                     assert!(reader.get_any_pointer_field().get_as_text() == "xyzzy");
                 });
         });
+}
+
+#[test]
+fn test_writable_struct_pointer() {
+    use capnp::message::MessageBuilder;
+    use test_capnp::TestBigStruct;
+
+    MessageBuilder::new_default(
+        |message| {
+            let big_struct = message.init_root::<TestBigStruct::Builder>();
+
+            let struct_field = big_struct.init_struct_field();
+            assert!(struct_field.get_uint64_field() == 0);
+            struct_field.set_uint64_field(-7);
+            assert!(struct_field.get_uint64_field() == -7);
+            assert!(big_struct.get_struct_field().get_uint64_field() == -7);
+            let struct_field = big_struct.init_struct_field();
+            assert!(struct_field.get_uint64_field() == 0);
+
+            // getting before init is the same as init
+            let other_struct_field = big_struct.get_another_struct_field();
+            assert!(other_struct_field.get_uint64_field() == 0);
+            other_struct_field.set_uint32_field(-31);
+
+            // unimplemented
+            // other_struct_field.as_reader(|reader| { big_struct.set_struct_field(reader) });
+
+        });
+
 }
