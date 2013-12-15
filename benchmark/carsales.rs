@@ -19,8 +19,8 @@ trait CarValue {
 }
 
 macro_rules! car_value_impl(
-    ($typ:ty) => (
-            impl <'a> CarValue for $typ {
+    ($typ:ident) => (
+            impl <'a> CarValue for Car::$typ<'a> {
                 fn car_value (&self) -> u64 {
                     let mut result : u64 = 0;
                     result += self.get_seats() as u64 * 200;
@@ -60,8 +60,8 @@ macro_rules! car_value_impl(
         )
    )
 
-car_value_impl!(Car::Reader<'a>)
-car_value_impl!(Car::Builder<'a>)
+car_value_impl!(Reader)
+car_value_impl!(Builder)
 
 static MAKES : [&'static str, .. 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
 static MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
