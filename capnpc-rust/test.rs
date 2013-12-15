@@ -60,11 +60,11 @@ fn test_prim_list () {
         testPrimList.as_reader(|testPrimListReader| {
             let uint8List = testPrimListReader.get_uint8_list();
             for i in range(0, uint8List.size()) {
-                assert!(uint8List[i] == i as u8);
+                assert_eq!(uint8List[i], i as u8);
             }
             let uint64List = testPrimListReader.get_uint64_list();
             for i in range(0, uint64List.size()) {
-                 assert!(uint64List[i] == i as u64);
+                 assert_eq!(uint64List[i], i as u64);
             }
 
             let boolList = testPrimListReader.get_bool_list();
@@ -85,14 +85,14 @@ fn test_prim_list () {
             assert!(!boolList[63]);
             assert!(boolList[64]);
 
-            assert!(testPrimListReader.get_void_list().size() == 1025);
+            assert_eq!(testPrimListReader.get_void_list().size(), 1025);
         });
     });
 }
 
 #[test]
 fn test_blob () {
-    use capnp::message::*;
+    use capnp::message::MessageBuilder;
     use test_capnp::*;
 
     MessageBuilder::new_default(
@@ -105,8 +105,8 @@ fn test_blob () {
 
             test_blob.as_reader(|test_blob_reader| {
 
-                    assert!(test_blob_reader.get_text_field() == "abcdefghi");
-                    assert!(test_blob_reader.get_data_field() == [0u8, 1u8, 2u8, 3u8, 4u8]);
+                    assert_eq!(test_blob_reader.get_text_field(), "abcdefghi");
+                    assert_eq!(test_blob_reader.get_data_field(), [0u8, 1u8, 2u8, 3u8, 4u8]);
                 });
         });
 }
@@ -138,13 +138,13 @@ fn test_big_struct() {
         bigStruct.set_bool_field(true);
 
         bigStruct.as_reader(|bigStructReader| {
-            assert!(bigStructReader.get_int8_field() == -128);
-            assert!(bigStructReader.get_int32_field() == 1009);
+            assert_eq!(bigStructReader.get_int8_field(), -128);
+            assert_eq!(bigStructReader.get_int32_field(), 1009);
 
             let innerReader = bigStructReader.get_struct_field();
             assert!(!innerReader.get_bool_field_a());
             assert!(innerReader.get_bool_field_b());
-            assert!(innerReader.get_float64_field() == 0.1234567);
+            assert_eq!(innerReader.get_float64_field(), 0.1234567);
         });
     });
 }
@@ -180,7 +180,7 @@ fn test_complex_list () {
         prim_list.set(0, 5);
         prim_list.set(1, 6);
         prim_list.set(2, 7);
-        assert!(prim_list.size() == 3);
+        assert_eq!(prim_list.size(), 3);
         let prim_list = prim_list_list.init(1, 1);
         prim_list.set(0,-1);
 
@@ -219,25 +219,25 @@ fn test_complex_list () {
         test_complex_list.as_reader(|complex_list_reader| {
             let enumListReader = complex_list_reader.get_enum_list();
             for i in range::<uint>(0,10) {
-                assert!(enumListReader[i] == Some(AnEnum::Qux));
+                assert_eq!(enumListReader[i], Some(AnEnum::Qux));
             }
             for i in range::<uint>(10,20) {
-                assert!(enumListReader[i] == Some(AnEnum::Bar));
+                assert_eq!(enumListReader[i], Some(AnEnum::Bar));
             }
 
             let text_list = complex_list_reader.get_text_list();
-            assert!(text_list.size() == 2);
-            assert!(text_list[0] == "garply");
-            assert!(text_list[1] == "foo");
+            assert_eq!(text_list.size(), 2);
+            assert_eq!(text_list[0], "garply");
+            assert_eq!(text_list[1], "foo");
 
             let data_list = complex_list_reader.get_data_list();
-            assert!(data_list.size() == 2);
-            assert!(data_list[0] == [0u8, 1u8, 2u8]);
-            assert!(data_list[1] == [255u8, 254u8, 253u8]);
+            assert_eq!(data_list.size(), 2);
+            assert_eq!(data_list[0], [0u8, 1u8, 2u8]);
+            assert_eq!(data_list[1], [255u8, 254u8, 253u8]);
 
             let prim_list_list = complex_list_reader.get_prim_list_list();
-            assert!(prim_list_list.size() == 2);
-            assert!(prim_list_list[0].size() == 3);
+            assert_eq!(prim_list_list.size(), 2);
+            assert_eq!(prim_list_list[0].size(), 3);
             assert!(prim_list_list[0][0] == 5);
             assert!(prim_list_list[0][1] == 6);
             assert!(prim_list_list[0][2] == 7);
@@ -278,7 +278,7 @@ fn test_any_pointer() {
             any_pointer.set_as_text("xyzzy");
 
             test_any_pointer.as_reader(|reader| {
-                    assert!(reader.get_any_pointer_field().get_as_text() == "xyzzy");
+                    assert_eq!(reader.get_any_pointer_field().get_as_text(), "xyzzy");
                 });
         });
 }
@@ -293,16 +293,16 @@ fn test_writable_struct_pointer() {
             let big_struct = message.init_root::<TestBigStruct::Builder>();
 
             let struct_field = big_struct.init_struct_field();
-            assert!(struct_field.get_uint64_field() == 0);
+            assert_eq!(struct_field.get_uint64_field(), 0);
             struct_field.set_uint64_field(-7);
-            assert!(struct_field.get_uint64_field() == -7);
-            assert!(big_struct.get_struct_field().get_uint64_field() == -7);
+            assert_eq!(struct_field.get_uint64_field(), -7);
+            assert_eq!(big_struct.get_struct_field().get_uint64_field(), -7);
             let struct_field = big_struct.init_struct_field();
-            assert!(struct_field.get_uint64_field() == 0);
+            assert_eq!(struct_field.get_uint64_field(), 0);
 
             // getting before init is the same as init
             let other_struct_field = big_struct.get_another_struct_field();
-            assert!(other_struct_field.get_uint64_field() == 0);
+            assert_eq!(other_struct_field.get_uint64_field(), 0);
             other_struct_field.set_uint32_field(-31);
 
             // unimplemented
