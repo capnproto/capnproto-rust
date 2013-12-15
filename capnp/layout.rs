@@ -88,7 +88,7 @@ pub enum WirePointerKind {
     WP_STRUCT = 0,
     WP_LIST = 1,
     WP_FAR = 2,
-    WP_CAPABILITY = 3
+    WP_OTHER = 3
 }
 
 
@@ -172,6 +172,11 @@ impl WirePointer {
         unsafe {
             std::cast::transmute((self.offset_and_kind.get() & 3) as u8)
         }
+    }
+
+    #[inline]
+    pub fn is_capability(&self) -> bool {
+        self.offset_and_kind.get() == WP_OTHER as u32
     }
 
     #[inline]
@@ -428,7 +433,7 @@ mod WireHelpers {
         //# reachable.
 
         match (*reff).kind() {
-            WP_STRUCT | WP_LIST | WP_CAPABILITY => {
+            WP_STRUCT | WP_LIST | WP_OTHER => {
                 zero_object_helper(segment,
                                  reff, (*reff).mut_target())
             }
@@ -460,7 +465,7 @@ mod WireHelpers {
                                          tag : *mut WirePointer,
                                          ptr: *mut Word) {
         match (*tag).kind() {
-            WP_CAPABILITY => { fail!("Don't know how to handle CAPABILITY") }
+            WP_OTHER => { fail!("Don't know how to handle OTHER") }
             WP_STRUCT => {
                 let pointerSection : *mut WirePointer =
                     std::cast::transmute(
@@ -942,16 +947,190 @@ mod WireHelpers {
         fail!("unimplemented");
     }
 
-    pub unsafe fn set_struct_pointer(_segment : *mut SegmentBuilder,
-                                     _reff : *mut WirePointer,
-                                     _value : StructReader) -> super::SegmentAnd<*mut Word> {
-        fail!("unimplemented");
+    pub unsafe fn set_struct_pointer(mut segment : *mut SegmentBuilder,
+                                     mut reff : *mut WirePointer,
+                                     value : StructReader) -> super::SegmentAnd<*mut Word> {
+        let data_size : WordCount = round_bits_up_to_words(value.data_size as u64);
+        let total_size : WordCount = data_size + value.pointer_count as uint * WORDS_PER_POINTER;
+
+        let ptr = allocate(&mut reff, &mut segment, total_size, WP_STRUCT);
+        (*reff).struct_ref().set(data_size as u16, value.pointer_count);
+
+        if (value.data_size == 1) {
+            *std::cast::transmute::<*mut Word, *mut u8>(ptr) = value.get_bool_field(0) as u8
+        } else {
+            std::ptr::copy_nonoverlapping_memory::<Word, *Word>(ptr, std::cast::transmute(value.data),
+                                                                value.data_size as uint / BITS_PER_WORD);
+        }
+
+        let pointer_section : *mut WirePointer = std::cast::transmute(ptr.offset(data_size as int));
+        for i in range(0, value.pointer_count as int) {
+            copy_pointer(segment, pointer_section.offset(i), value.segment, value.pointers.offset(i),
+                         value.nesting_limit);
+        }
+
+        super::SegmentAnd { segment : segment, value : ptr }
     }
 
-    pub unsafe fn set_list_pointer(_segment : *mut SegmentBuilder,
-                                   _reff : *mut WirePointer,
-                                   _value : ListReader) -> super::SegmentAnd<*mut Word> {
-        fail!("unimplemented")
+    pub unsafe fn set_list_pointer(mut segment : *mut SegmentBuilder,
+                                   mut reff : *mut WirePointer,
+                                   value : ListReader) -> super::SegmentAnd<*mut Word> {
+        let total_size = round_bits_up_to_words((value.element_count * value.step) as u64);
+
+        if (value.step <= BITS_PER_WORD) {
+            //# List of non-structs.
+            let ptr = allocate(&mut reff, &mut segment, total_size, WP_LIST);
+
+            if (value.struct_pointer_count == 1) {
+                //# List of pointers.
+                (*reff).list_ref().set(POINTER, value.element_count);
+                for i in range(0, value.element_count as int) {
+                    copy_pointer(segment, std::cast::transmute::<*mut Word,*mut WirePointer>(ptr).offset(i),
+                                 value.segment, std::cast::transmute::<*u8,*WirePointer>(value.ptr).offset(i),
+                                 value.nesting_limit);
+                }
+            } else {
+                //# List of data.
+                let element_size = match (value.step) {
+                    0 => VOID,
+                    1 => BIT,
+                    8 => BYTE,
+                    16 => TWO_BYTES,
+                    32 => FOUR_BYTES,
+                    64 => EIGHT_BYTES,
+                    _ => { fail!("invalid list step size: {}", value.step) }
+                };
+
+                (*reff).list_ref().set(element_size, value.element_count);
+                std::ptr::copy_memory(ptr, std::cast::transmute::<*u8,*Word>(value.ptr), total_size);
+            }
+
+            super::SegmentAnd { segment : segment, value : ptr }
+        } else {
+            //# List of structs.
+            let ptr = allocate(&mut reff, &mut segment, total_size + POINTER_SIZE_IN_WORDS, WP_LIST);
+            (*reff).list_ref().set_inline_composite(total_size);
+
+            let data_size = round_bits_up_to_words(value.struct_data_size as u64);
+            let pointer_count = value.struct_pointer_count;
+
+            let tag : *mut WirePointer = std::cast::transmute(ptr);
+            (*tag).set_kind_and_inline_composite_list_element_count(WP_STRUCT, value.element_count);
+            (*tag).struct_ref().set(data_size as u16, pointer_count);
+            let mut dst = ptr.offset(POINTER_SIZE_IN_WORDS as int);
+
+            let mut src : *Word = std::cast::transmute(value.ptr);
+            for _ in range(0, value.element_count) {
+                std::ptr::copy_nonoverlapping_memory(dst, src,
+                                                     value.struct_data_size as uint / BITS_PER_WORD);
+                dst = dst.offset(data_size as int);
+                src = src.offset(data_size as int);
+
+                for _ in range(0, pointer_count) {
+                    copy_pointer(segment, std::cast::transmute(dst),
+                                 value.segment, std::cast::transmute(src), value.nesting_limit);
+                    dst = dst.offset(POINTER_SIZE_IN_WORDS as int);
+                    src = src.offset(POINTER_SIZE_IN_WORDS as int);
+                }
+            }
+            super::SegmentAnd { segment : segment, value : ptr }
+        }
+    }
+
+    pub unsafe fn copy_pointer(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer,
+                               mut src_segment : *SegmentReader, mut src : *WirePointer,
+                               nesting_limit : int) -> super::SegmentAnd<*mut Word> {
+        let src_target = (*src).target();
+
+        if (*src).is_null() {
+            std::ptr::zero_memory(dst, 1);
+            return super::SegmentAnd { segment : dst_segment, value : std::ptr::mut_null() };
+        }
+
+        let mut ptr = follow_fars(&mut src, src_target, &mut src_segment);
+        // TODO what if ptr is null?
+
+        match (*src).kind() {
+            WP_STRUCT => {
+                assert!(nesting_limit > 0,
+                        "Message is too deeply-nested or contains cycles.  See ReadOptions.");
+                assert!(bounds_check(src_segment, ptr, ptr.offset((*src).struct_ref().word_size() as int)),
+                        "Message contained out-of-bounds struct pointer.");
+                set_struct_pointer(
+                    dst_segment, dst,
+                    StructReader {
+                        segment : src_segment,
+                        data : std::cast::transmute(ptr),
+                        pointers : std::cast::transmute(ptr.offset((*src).struct_ref().data_size.get() as int)),
+                        data_size : (*src).struct_ref().data_size.get() as u32 * BITS_PER_WORD as u32,
+                        pointer_count : (*src).struct_ref().ptr_count.get(),
+                        bit0offset : 0,
+                        nesting_limit : nesting_limit - 1 })
+
+            }
+            WP_LIST => {
+                let element_size = (*src).list_ref().element_size();
+                assert!(nesting_limit > 0,
+                        "Message is too deeply-nested or contains cycles. See ReadOptions.");
+
+                if (element_size == INLINE_COMPOSITE) {
+                    let word_count = (*src).list_ref().inline_composite_word_count();
+                    let tag : *WirePointer = std::cast::transmute(ptr);
+                    ptr = ptr.offset(POINTER_SIZE_IN_WORDS as int);
+
+                    assert!(bounds_check(src_segment, ptr.offset(-1), ptr.offset(word_count as int)),
+                            "Message contains out-of-bounds list pointer.");
+
+                    assert!((*tag).kind() == WP_STRUCT,
+                            "INLINE_COMPOSITE lists of non-STRUCT type are not supported.");
+
+                    let element_count = (*tag).inline_composite_list_element_count();
+                    let words_per_element = (*tag).struct_ref().word_size();
+
+                    assert!(words_per_element * element_count <= word_count,
+                            "INLINE_COMPOSITE list's elements overrun its word count.");
+                    set_list_pointer(
+                        dst_segment, dst,
+                        ListReader {
+                            segment : src_segment,
+                            ptr : std::cast::transmute(ptr),
+                            element_count : element_count,
+                            step : words_per_element * BITS_PER_WORD,
+                            struct_data_size : (*tag).struct_ref().data_size.get() as u32 * BITS_PER_WORD as u32,
+                            struct_pointer_count : (*tag).struct_ref().ptr_count.get(),
+                            nesting_limit : nesting_limit - 1
+                        })
+                } else {
+                    let data_size = data_bits_per_element(element_size);
+                    let pointer_count = pointers_per_element(element_size);
+                    let step = data_size + pointer_count * BITS_PER_POINTER;
+                    let element_count = (*src).list_ref().element_count();
+                    let word_count = round_bits_up_to_words(element_count as u64 * step as u64);
+
+                    assert!(bounds_check(src_segment, ptr, ptr.offset(word_count as int)),
+                            "Message contains out-of-bounds list pointer.");
+
+                    set_list_pointer(
+                        dst_segment, dst,
+                        ListReader {
+                            segment : src_segment,
+                            ptr : std::cast::transmute(ptr),
+                            element_count : element_count,
+                            step : step,
+                            struct_data_size : data_size as u32,
+                            struct_pointer_count : pointer_count as u16,
+                            nesting_limit : nesting_limit - 1
+                        })
+                }
+            }
+            WP_FAR => {
+                fail!("Far pointer should have been handled above");
+            }
+            WP_OTHER => {
+                assert!((*src).is_capability(), "Unknown pointer type.");
+                fail!("unimplemented");
+            }
+        }
     }
 
     #[inline]
