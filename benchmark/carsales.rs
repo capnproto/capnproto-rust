@@ -63,41 +63,6 @@ macro_rules! car_value_impl(
 car_value_impl!(Car::Reader<'a>)
 car_value_impl!(Car::Builder<'a>)
 
-pub fn car_value (car : Car::Reader) -> u64 {
-    let mut result : u64 = 0;
-    result += car.get_seats() as u64 * 200;
-    result += car.get_doors() as u64 * 350;
-
-    // TODO Lists should have iterators.
-    for i in range(0, car.get_wheels().size()) {
-        let wheel = car.get_wheels()[i];
-        result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
-        result += if (wheel.get_snow_tires()) { 100 } else { 0 };
-    }
-
-    result += car.get_length() as u64 * car.get_width() as u64 * car.get_height() as u64 / 50;
-
-    let engine = car.get_engine();
-    result += engine.get_horsepower() as u64 * 40;
-    if (engine.get_uses_electric()) {
-        if (engine.get_uses_gas()) {
-            //# hybrid
-            result += 5000;
-        } else {
-            result += 3000;
-        }
-    }
-
-    result += if (car.get_has_power_windows()) { 100 } else { 0 };
-    result += if (car.get_has_power_steering()) { 200 } else { 0 };
-    result += if (car.get_has_cruise_control()) { 400 } else { 0 };
-    result += if (car.get_has_nav_system()) { 2000 } else { 0 };
-
-    result += car.get_cup_holders() as u64 * 25;
-
-    return result;
-}
-
 static MAKES : [&'static str, .. 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
 static MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
 
@@ -147,8 +112,7 @@ pub fn setup_request(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 
     for i in range(0, cars.size()) {
         let car = cars[i];
         random_car(rng, car);
-        //result += car.car_value();
-        result += car.as_reader(|reader| {car_value(reader)});
+        result += car.car_value();
     }
 
     result
@@ -158,7 +122,7 @@ pub fn handle_request(request : ParkingLot::Reader, response : TotalValue::Build
     let mut result = 0;
     let cars = request.get_cars();
     for i in range(0, cars.size()) {
-        result += car_value(cars[i]);
+        result += cars[i].car_value();
     }
     response.set_amount(result);
 }

@@ -641,7 +641,7 @@ mod WireHelpers {
         let old_pointer_count = (*old_ref).struct_ref().ptr_count.get();
         let old_pointer_section : *mut WirePointer = std::cast::transmute(old_ptr.offset(old_data_size as int));
 
-        if (old_data_size < size.data || old_pointer_count <= size.pointers) {
+        if (old_data_size < size.data || old_pointer_count < size.pointers) {
             //# The space allocated for this struct is too small.
             //# Unlike with readers, we can't just run with it and do
             //# bounds checks at access time, because how would we
