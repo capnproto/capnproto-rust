@@ -65,7 +65,7 @@ pub fn allocate_zeroed_words(size : WordCount) -> ~[Word] {
 
     let mut result : ~[Word] = std::vec::with_capacity(size);
     unsafe {
-        std::vec::raw::set_len(&mut result, size);
+        result.set_len(size);
         let p : *mut u8 = std::cast::transmute(result.unsafe_mut_ref(0));
         std::ptr::set_memory(p, 0, size * BYTES_PER_WORD);
     }

@@ -39,7 +39,7 @@ impl<'a, R: Reader> BufferedInputStream<'a, R> {
             cap : 0
         };
         unsafe {
-            std::vec::raw::set_len(&mut result.buf, 8192)
+            result.buf.set_len(8192)
         }
         return result;
     }
@@ -83,16 +83,14 @@ impl<'a, R: Reader> Reader for BufferedInputStream<'a, R> {
         if (num_bytes <= self.cap - self.pos) {
             //# Serve from the current buffer.
             std::vec::bytes::copy_memory(dst,
-                                         self.buf.slice(self.pos, self.cap),
-                                         num_bytes);
+                                         self.buf.slice(self.pos, self.pos + num_bytes));
             self.pos += num_bytes;
             return Some(num_bytes);
         } else {
             //# Copy current available into destination.
 
             std::vec::bytes::copy_memory(dst,
-                                         self.buf.slice(self.pos, self.cap),
-                                         self.cap - self.pos);
+                                         self.buf.slice(self.pos, self.cap));
             let fromFirstBuffer = self.cap - self.pos;
 
             let dst1 = dst.mut_slice(fromFirstBuffer, num_bytes);
@@ -101,8 +99,7 @@ impl<'a, R: Reader> Reader for BufferedInputStream<'a, R> {
                 //# Read the next buffer-full.
                 let n = read_at_least(self.inner, self.buf, num_bytes);
                 std::vec::bytes::copy_memory(dst1,
-                                             self.buf.slice(0, num_bytes),
-                                             num_bytes);
+                                             self.buf.slice(0, num_bytes));
                 self.cap = n;
                 self.pos = num_bytes;
                 return Some(fromFirstBuffer + num_bytes);
@@ -131,7 +128,7 @@ impl<'a, W: Writer> BufferedOutputStream<'a, W> {
             pos : 0
         };
         unsafe {
-            std::vec::raw::set_len(&mut result.buf, 8192);
+            result.buf.set_len(8192);
         }
         return result;
     }
@@ -163,21 +160,21 @@ impl<'a, W: Writer> Writer for BufferedOutputStream<'a, W> {
         let mut size = buf.len();
         if size <= available {
             let dst = self.buf.mut_slice_from(self.pos);
-            std::vec::bytes::copy_memory(dst, buf, buf.len());
+            std::vec::bytes::copy_memory(dst, buf);
             self.pos += size;
         } else if size <= self.buf.len() {
             //# Too much for this buffer, but not a full buffer's
             //# worth, so we'll go ahead and copy.
             {
                 let dst = self.buf.mut_slice_from(self.pos);
-                std::vec::bytes::copy_memory(dst, buf, available);
+                std::vec::bytes::copy_memory(dst, buf.slice(0, available));
             }
             self.inner.write(self.buf);
 
             size -= available;
-            let src = buf.slice(available, buf.len());
+            let src = buf.slice_from(available);
             let dst = self.buf.mut_slice_from(0);
-            std::vec::bytes::copy_memory(dst, src, size);
+            std::vec::bytes::copy_memory(dst, src);
             self.pos = size;
         } else {
             //# Writing so much data that we might as well write

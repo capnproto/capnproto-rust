@@ -128,7 +128,7 @@ pub fn write_message<T: std::io::Writer>(outputStream : &mut T,
     let tableSize : uint = ((message.segments.len() + 2) & (!1));
 
     let mut table : ~[WireValue<u32>] = std::vec::with_capacity(tableSize);
-    unsafe { std::vec::raw::set_len(&mut table, tableSize) }
+    unsafe { table.set_len(tableSize) }
 
     table[0].set((message.segments.len() - 1) as u32);
 
