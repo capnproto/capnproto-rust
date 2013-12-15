@@ -14,6 +14,55 @@ pub type ResponseBuilder<'a> = TotalValue::Builder<'a>;
 pub type ResponseReader<'a> = TotalValue::Reader<'a>;
 pub type Expectation = u64;
 
+trait CarValue {
+    fn car_value(&self) -> u64;
+}
+
+macro_rules! car_value_impl(
+    ($typ:ty) => (
+            impl <'a> CarValue for $typ {
+                fn car_value (&self) -> u64 {
+                    let mut result : u64 = 0;
+                    result += self.get_seats() as u64 * 200;
+                    result += self.get_doors() as u64 * 350;
+
+                    // TODO Lists should have iterators.
+                    for i in range(0, self.get_wheels().size()) {
+                        let wheel = self.get_wheels()[i];
+                        result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
+                        result += if (wheel.get_snow_tires()) { 100 } else { 0 };
+                    }
+
+                    result += self.get_length() as u64 * self.get_width() as u64 * self.get_height() as u64 / 50;
+
+                    let engine = self.get_engine();
+                    result += engine.get_horsepower() as u64 * 40;
+                    if (engine.get_uses_electric()) {
+                        if (engine.get_uses_gas()) {
+                            //# hybrid
+                            result += 5000;
+                        } else {
+                            result += 3000;
+                        }
+                    }
+
+                    result += if (self.get_has_power_windows()) { 100 } else { 0 };
+                    result += if (self.get_has_power_steering()) { 200 } else { 0 };
+                    result += if (self.get_has_cruise_control()) { 400 } else { 0 };
+                    result += if (self.get_has_nav_system()) { 2000 } else { 0 };
+
+                    result += self.get_cup_holders() as u64 * 25;
+
+                    return result;
+                }
+
+            }
+        )
+   )
+
+car_value_impl!(Car::Reader<'a>)
+car_value_impl!(Car::Builder<'a>)
+
 pub fn car_value (car : Car::Reader) -> u64 {
     let mut result : u64 = 0;
     result += car.get_seats() as u64 * 200;
@@ -98,9 +147,9 @@ pub fn setup_request(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 
     for i in range(0, cars.size()) {
         let car = cars[i];
         random_car(rng, car);
-        result += car.as_reader(|carReader| {car_value(carReader)});
+        //result += car.car_value();
+        result += car.as_reader(|reader| {car_value(reader)});
     }
-//    printfln!("number of cars: %?", cars.size());
 
     result
 }

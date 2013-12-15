@@ -520,13 +520,16 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn zero_pointer_and_fars(_segment : *mut SegmentBuilder, reff : *mut WirePointer) {
+    pub unsafe fn zero_pointer_and_fars(segment : *mut SegmentBuilder, reff : *mut WirePointer) {
         //# Zero out the pointer itself and, if it is a far pointer,
         //# zero the landing pad as well, but do not zero the object
         //# body. Used when upgrading.
 
         if ((*reff).kind() == WP_FAR) {
-            fail!("unimplemented")
+            let pad = std::ptr::to_mut_unsafe_ptr(
+                (*(*segment).messageBuilder).segment_builders[(*reff).far_ref().segment_id.get()]);
+            let num_elements = if (*reff).is_double_far() { 2 } else { 1 };
+            std::ptr::zero_memory(pad, num_elements);
         }
         std::ptr::zero_memory(reff, 1);
     }
