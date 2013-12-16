@@ -432,6 +432,8 @@ pub mod Field {
         StructSize {data : 3, pointers : 4,
         preferred_list_encoding : INLINE_COMPOSITE};
 
+    pub static NO_DISCRIMINANT : u16 = 0xffffu16;
+
     pub struct Reader<'a> {
         priv reader : StructReader<'a>
     }
@@ -814,6 +816,7 @@ pub mod Type {
 }
 
 pub mod Value {
+    use std;
     use capnp::layout::*;
     use capnp::blob::*;
     use capnp::any;
@@ -830,6 +833,41 @@ pub mod Value {
 
         pub fn total_size_in_words(&self) -> uint {
             self.reader.total_size() as uint
+        }
+
+        pub fn which(&self) -> Option<Which<'a>> {
+            match self.reader.get_data_field::<u16>(0) {
+                0 => Some(Void),
+                1 => Some(Bool(self.reader.get_bool_field(16))),
+                2 => Some(Int8(self.reader.get_data_field::<i8>(2))),
+                3 => Some(Int16(self.reader.get_data_field::<i16>(1))),
+                4 => Some(Int32(self.reader.get_data_field::<i32>(1))),
+                5 => Some(Int64(self.reader.get_data_field::<i64>(1))),
+                6 => Some(Uint8(self.reader.get_data_field::<u8>(2))),
+                7 => Some(Uint16(self.reader.get_data_field::<u16>(1))),
+                8 => Some(Uint32(self.reader.get_data_field::<u32>(1))),
+                9 => Some(Uint64(self.reader.get_data_field::<u64>(1))),
+                10 => Some(Float32(self.reader.get_data_field::<f32>(1))),
+                11 => Some(Float64(self.reader.get_data_field::<f64>(1))),
+                12 => Some(Text(self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0))),
+                13 => Some(Data(self.reader.get_pointer_field(0).get_data(std::ptr::null(), 0))),
+                14 => {
+                    Some(List(any::AnyPointer::Reader::new(self.reader.get_pointer_field(0))))
+                }
+                15 => {
+                    Some(Enum(self.reader.get_data_field::<u16>(1)))
+                }
+                16 => {
+                  Some(Struct(any::AnyPointer::Reader::new(self.reader.get_pointer_field(0))))
+                }
+                17 => {
+                    Some(Interface)
+                }
+                18 => {
+                  Some(AnyPointer(any::AnyPointer::Reader::new(self.reader.get_pointer_field(0))))
+                }
+                _ => { return None; }
+            }
         }
     }
 
@@ -855,7 +893,7 @@ pub mod Value {
         Uint32(u32),
         Uint64(u64),
         Float32(f32),
-        Float64(f32),
+        Float64(f64),
         Text(Text::Reader<'a>),
         Data(Data::Reader<'a>),
         List(any::AnyPointer::Reader<'a>),

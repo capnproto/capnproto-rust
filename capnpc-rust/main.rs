@@ -477,7 +477,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     let mut initter_params = ~[];
 
     let discriminantValue = field.get_discriminant_value();
-    if (discriminantValue != 0xffff) {
+    if (discriminantValue != Field::NO_DISCRIMINANT) {
         setter_interior.push(
             Line(format!("self.builder.set_data_field::<u16>({}, {});",
                          discriminantOffset as uint,
@@ -997,7 +997,14 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
         Some(Node::Interface(_)) => { }
 
-        Some(Node::Const(_)) => { }
+        Some(Node::Const(c)) => {
+            match (c.get_type().which(), c.get_value().which()) {
+                (Some(Type::Void), Some(Value::Void)) => {}
+                (Some(Type::Bool), Some(Value::Bool(_b))) => {}
+                (Some(Type::Int8), Some(Value::Int8(_i))) => {}
+                _ => {fail!()}
+            }
+        }
 
         Some(Node::Annotation( annotationReader )) => {
             println("  annotation node:");
