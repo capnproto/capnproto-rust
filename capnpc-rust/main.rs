@@ -174,7 +174,7 @@ fn populate_scope_map(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::
     for ii in range(0, nestedNodes.size()) {
         let nestedNode = nestedNodes[ii];
         let id = nestedNode.get_id();
-        let name = capitalize_first_letter(nestedNode.get_name());
+        let name = nestedNode.get_name().to_owned();
 
         let scopeNames = match scopeMap.find(&nodeId) {
             Some(names) => append_name(*names, name),
@@ -775,13 +775,13 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
 fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                  rootName : &str,
-                 nodeId : u64) -> FormattedText {
+                 node_id : u64) -> FormattedText {
     use schema_capnp::*;
 
     let mut output: ~[FormattedText] = ~[];
     let mut nested_output: ~[FormattedText] = ~[];
 
-    let nodeReader = nodeMap.get(&nodeId);
+    let nodeReader = nodeMap.get(&node_id);
     let nestedNodes = nodeReader.get_nested_nodes();
     for ii in range(0, nestedNodes.size()) {
         nested_output.push(generate_node(nodeMap, scopeMap, rootName, nestedNodes[ii].get_id()));
@@ -794,7 +794,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         }
 
         Some(Node::Struct(structReader)) => {
-            let names = scopeMap.get(&nodeId);
+            let names = scopeMap.get(&node_id);
             output.push(BlankLine);
 
             output.push(Line(~"#[allow(unused_imports)]"));
@@ -963,7 +963,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         }
 
         Some(Node::Enum(enumReader)) => {
-            let names = scopeMap.get(&nodeId);
+            let names = scopeMap.get(&node_id);
             output.push(Line(format!("pub mod {} \\{", *names.last())));
 
             output.push(Indent(~Line(~"use capnp::list::{ToU16};")));
@@ -998,12 +998,33 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         Some(Node::Interface(_)) => { }
 
         Some(Node::Const(c)) => {
-            match (c.get_type().which(), c.get_value().which()) {
-                (Some(Type::Void), Some(Value::Void)) => {}
-                (Some(Type::Bool), Some(Value::Bool(_b))) => {}
-                (Some(Type::Int8), Some(Value::Int8(_i))) => {}
-                _ => {fail!()}
-            }
+            let names = scopeMap.get(&node_id);
+            let styled_name = camel_to_snake_case(*names.last());
+
+            let (typ, txt) = match (c.get_type().which(), c.get_value().which()) {
+                (Some(Type::Void), Some(Value::Void)) => (~"()", ~"()"),
+                (Some(Type::Bool), Some(Value::Bool(b))) => (~"bool", b.to_str()),
+                (Some(Type::Int8), Some(Value::Int8(i))) => (~"i8", i.to_str()),
+                (Some(Type::Int16), Some(Value::Int16(i))) => (~"i16", i.to_str()),
+                (Some(Type::Int32), Some(Value::Int32(i))) => (~"i32", i.to_str()),
+                (Some(Type::Int64), Some(Value::Int64(i))) => (~"i64", i.to_str()),
+                (Some(Type::Uint8), Some(Value::Uint8(i))) => (~"u8", i.to_str()),
+                (Some(Type::Uint16), Some(Value::Uint16(i))) => (~"u16", i.to_str()),
+                (Some(Type::Uint32), Some(Value::Uint32(i))) => (~"u32", i.to_str()),
+                (Some(Type::Uint64), Some(Value::Uint64(i))) => (~"u64", i.to_str()),
+                (Some(Type::Float32), Some(Value::Float32(f))) => (~"f32", f.to_str()),
+                (Some(Type::Float64), Some(Value::Float64(f))) => (~"f64", f.to_str()),
+                (Some(Type::Text), Some(Value::Text(_t))) => { fail!() }
+                (Some(Type::Data), Some(Value::Data(_d))) => { fail!() }
+                (Some(Type::List(_t)), Some(Value::List(_p))) => { fail!() }
+                (Some(Type::Struct(_t)), Some(Value::Struct(_p))) => { fail!() }
+                (Some(Type::Interface(_t)), Some(Value::Interface)) => { fail!() }
+                (Some(Type::AnyPointer), Some(Value::AnyPointer(_pr))) => { fail!() }
+                _ => { fail!("type does not match value") }
+            };
+
+            output.push(
+                Line(format!("pub static {} : {} = {};", styled_name, typ, txt)));
         }
 
         Some(Node::Annotation( annotationReader )) => {

@@ -77,3 +77,20 @@ struct TestComplexList {
 struct TestAnyPointer {
    anyPointerField @0 :AnyPointer;
 }
+
+struct TestConstants {
+   const voidConst     :Void = void;
+   const boolConst     :Bool = true;
+   const int8Const     :Int8 = -123;
+   const int16Const    :Int16 = -12345;
+   const int32Const    :Int32 = -12345678;
+   const int64Const    :Int64 = -123456789012345;
+   const uint8Const    :UInt8 = 234;
+   const uint16Const   :UInt16 = 45678;
+   const uint32Const   :UInt32 = 3456789012;
+   const uint64Const   :UInt64 = 12345678901234567890;
+   const float32Const  :Float32 = 1234.5;
+#   const float64Const  :Float64 = -123e45;
+}
+
+const globalInt :UInt32 = 12345;
