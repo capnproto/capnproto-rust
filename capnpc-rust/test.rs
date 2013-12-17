@@ -317,3 +317,22 @@ fn test_writable_struct_pointer() {
         });
 
 }
+
+#[test]
+fn test_constants() {
+    use test_capnp::TestConstants;
+    assert_eq!(TestConstants::VOID_CONST, ());
+    assert_eq!(TestConstants::BOOL_CONST, true);
+    assert_eq!(TestConstants::INT8_CONST, -123);
+    assert_eq!(TestConstants::INT16_CONST, -12345);
+    assert_eq!(TestConstants::INT32_CONST, -12345678);
+    assert_eq!(TestConstants::INT64_CONST, -123456789012345);
+    assert_eq!(TestConstants::UINT8_CONST, 234);
+    assert_eq!(TestConstants::UINT16_CONST, 45678);
+    assert_eq!(TestConstants::UINT32_CONST, 3456789012);
+    assert_eq!(TestConstants::UINT64_CONST, 12345678901234567890);
+    assert_eq!(TestConstants::FLOAT32_CONST, 1234.5);
+    assert_eq!(TestConstants::FLOAT64_CONST, -123e45);
+
+}
+

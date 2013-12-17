@@ -999,7 +999,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
         Some(Node::Const(c)) => {
             let names = scopeMap.get(&node_id);
-            let styled_name = camel_to_snake_case(*names.last());
+            let styled_name = camel_to_upper_case(*names.last());
 
             let (typ, txt) = match (c.get_type().which(), c.get_value().which()) {
                 (Some(Type::Void), Some(Value::Void)) => (~"()", ~"()"),
@@ -1012,8 +1012,11 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 (Some(Type::Uint16), Some(Value::Uint16(i))) => (~"u16", i.to_str()),
                 (Some(Type::Uint32), Some(Value::Uint32(i))) => (~"u32", i.to_str()),
                 (Some(Type::Uint64), Some(Value::Uint64(i))) => (~"u64", i.to_str()),
-                (Some(Type::Float32), Some(Value::Float32(f))) => (~"f32", f.to_str()),
-                (Some(Type::Float64), Some(Value::Float64(f))) => (~"f64", f.to_str()),
+
+                // float string formatting appears to be a bit broken currently, in Rust.
+                (Some(Type::Float32), Some(Value::Float32(f))) => (~"f32", format!("{}f32", f.to_str())),
+                (Some(Type::Float64), Some(Value::Float64(f))) => (~"f64", format!("{}f64", f.to_str())),
+
                 (Some(Type::Text), Some(Value::Text(_t))) => { fail!() }
                 (Some(Type::Data), Some(Value::Data(_d))) => { fail!() }
                 (Some(Type::List(_t)), Some(Value::List(_p))) => { fail!() }

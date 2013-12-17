@@ -90,7 +90,7 @@ struct TestConstants {
    const uint32Const   :UInt32 = 3456789012;
    const uint64Const   :UInt64 = 12345678901234567890;
    const float32Const  :Float32 = 1234.5;
-#   const float64Const  :Float64 = -123e45;
+   const float64Const  :Float64 = -123e45;
 }
 
 const globalInt :UInt32 = 12345;
