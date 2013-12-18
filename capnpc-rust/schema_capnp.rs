@@ -675,20 +675,20 @@ pub mod Type {
 
         pub fn which(&self) -> Option<Which<'a>> {
             match self.reader.get_data_field::<u16>(0) {
-                0 => Some(Void),
-                1 => Some(Bool),
-                2 => Some(Int8),
-                3 => Some(Int16),
-                4 => Some(Int32),
-                5 => Some(Int64),
-                6 => Some(Uint8),
-                7 => Some(Uint16),
-                8 => Some(Uint32),
-                9 => Some(Uint64),
-                10 => Some(Float32),
-                11 => Some(Float64),
-                12 => Some(Text),
-                13 => Some(Data),
+                0 => Some(Void(())),
+                1 => Some(Bool(())),
+                2 => Some(Int8(())),
+                3 => Some(Int16(())),
+                4 => Some(Int32(())),
+                5 => Some(Int64(())),
+                6 => Some(Uint8(())),
+                7 => Some(Uint16(())),
+                8 => Some(Uint32(())),
+                9 => Some(Uint64(())),
+                10 => Some(Float32(())),
+                11 => Some(Float64(())),
+                12 => Some(Text(())),
+                13 => Some(Data(())),
                 14 => {
                     return Some(List(List::Reader::new(self.reader)));
                 }
@@ -701,7 +701,7 @@ pub mod Type {
                 17 => {
                     return Some(Interface(Interface::Reader::new(self.reader)));
                 }
-                18 => { return Some(AnyPointer); }
+                18 => { return Some(AnyPointer(())); }
                 _ => { return None; }
             }
         }
@@ -718,25 +718,25 @@ pub mod Type {
     }
 
     pub enum Which<'a> {
-        Void,
-        Bool,
-        Int8,
-        Int16,
-        Int32,
-        Int64,
-        Uint8,
-        Uint16,
-        Uint32,
-        Uint64,
-        Float32,
-        Float64,
-        Text,
-        Data,
+        Void(()),
+        Bool(()),
+        Int8(()),
+        Int16(()),
+        Int32(()),
+        Int64(()),
+        Uint8(()),
+        Uint16(()),
+        Uint32(()),
+        Uint64(()),
+        Float32(()),
+        Float64(()),
+        Text(()),
+        Data(()),
         List(List::Reader<'a>),
         Enum(Enum::Reader<'a>),
         Struct(Struct::Reader<'a>),
         Interface(Interface::Reader<'a>),
-        AnyPointer
+        AnyPointer(())
     }
 
     pub mod List {
@@ -837,7 +837,7 @@ pub mod Value {
 
         pub fn which(&self) -> Option<Which<'a>> {
             match self.reader.get_data_field::<u16>(0) {
-                0 => Some(Void),
+                0 => Some(Void(())),
                 1 => Some(Bool(self.reader.get_bool_field(16))),
                 2 => Some(Int8(self.reader.get_data_field::<i8>(2))),
                 3 => Some(Int16(self.reader.get_data_field::<i16>(1))),
@@ -882,7 +882,7 @@ pub mod Value {
     }
 
     pub enum Which<'a> {
-        Void,
+        Void(()),
         Bool(bool),
         Int8(i8),
         Int16(i16),

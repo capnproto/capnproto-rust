@@ -35,18 +35,18 @@ fn element_size (typ : schema_capnp::Type::Which) -> schema_capnp::ElementSize::
     use schema_capnp::Type::*;
     use schema_capnp::ElementSize::*;
     match typ {
-        Void => Empty,
-        Bool => Bit,
-        Int8 => Byte,
-        Int16 => TwoBytes,
-        Int32 => FourBytes,
-        Int64 => EightBytes,
-        Uint8 => Byte,
-        Uint16 => TwoBytes,
-        Uint32 => FourBytes,
-        Uint64 => EightBytes,
-        Float32 => FourBytes,
-        Float64 => EightBytes,
+        Void(()) => Empty,
+        Bool(()) => Bit,
+        Int8(()) => Byte,
+        Int16(()) => TwoBytes,
+        Int32(()) => FourBytes,
+        Int64(()) => EightBytes,
+        Uint8(()) => Byte,
+        Uint16(()) => TwoBytes,
+        Uint32(()) => FourBytes,
+        Uint64(()) => EightBytes,
+        Float32(()) => FourBytes,
+        Float64(()) => EightBytes,
         _ => fail!("not primitive")
     }
 }
@@ -54,18 +54,18 @@ fn element_size (typ : schema_capnp::Type::Which) -> schema_capnp::ElementSize::
 fn prim_type_str (typ : schema_capnp::Type::Which) -> ~str {
     use schema_capnp::Type::*;
     match typ {
-        Void => ~"()",
-        Bool => ~"bool",
-        Int8 => ~"i8",
-        Int16 => ~"i16",
-        Int32 => ~"i32",
-        Int64 => ~"i64",
-        Uint8 => ~"u8",
-        Uint16 => ~"u16",
-        Uint32 => ~"u32",
-        Uint64 => ~"u64",
-        Float32 => ~"f32",
-        Float64 => ~"f64",
+        Void(()) => ~"()",
+        Bool(()) => ~"bool",
+        Int8(()) => ~"i8",
+        Int16(()) => ~"i16",
+        Int32(()) => ~"i32",
+        Int64(()) => ~"i64",
+        Uint8(()) => ~"u8",
+        Uint16(()) => ~"u16",
+        Uint32(()) => ~"u32",
+        Uint64(()) => ~"u64",
+        Float32(()) => ~"f32",
+        Float64(()) => ~"f64",
         Enum(_) => ~"u16",
         _ => fail!("not primitive")
     }
@@ -228,20 +228,20 @@ fn list_list_type_param(scope_map : &std::hashmap::HashMap<u64, ~[~str]>,
         None => fail!("unsupported type"),
         Some(t) => {
             match t {
-                Type::Void | Type::Bool | Type::Int8 |
-                    Type::Int16 | Type::Int32 | Type::Int64 |
-                    Type::Uint8 | Type::Uint16 | Type::Uint32 |
-                    Type::Uint64 | Type::Float32 | Type::Float64 => {
+                Type::Void(()) | Type::Bool(()) | Type::Int8(()) |
+                    Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
+                    Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
+                    Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) => {
                     format!("PrimitiveList::{}<'a, {}>", module, prim_type_str(t))
                 }
                 Type::Enum(en) => {
                     let theMod = scope_map.get(&en.get_type_id()).connect("::");
                     format!("EnumList::{}<'a,{}::Reader>", module, theMod)
                 }
-                Type::Text => {
+                Type::Text(()) => {
                     format!("TextList::{}<'a>", module)
                 }
-                Type::Data => {
+                Type::Data(()) => {
                     format!("DataList::{}<'a>", module)
                 }
                 Type::Struct(st) => {
@@ -252,7 +252,7 @@ fn list_list_type_param(scope_map : &std::hashmap::HashMap<u64, ~[~str]>,
                     let inner = list_list_type_param(scope_map, t.get_element_type(), is_reader);
                     format!("ListList::{}<'a, {}>", module, inner)
                 }
-                Type::AnyPointer => {
+                Type::AnyPointer(()) => {
                     fail!("List(AnyPointer) is unsupported");
                 }
                 Type::Interface(_i) => {
@@ -295,27 +295,27 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let moduleWithVar = if (isReader) { "Reader<'a>" } else { "Builder<'a>" };
 
             match typ.which() {
-                Some(Type::Void) => { return (~"()", Line(~"()"))}
-                Some(Type::Bool) => {
+                Some(Type::Void(())) => { return (~"()", Line(~"()"))}
+                Some(Type::Bool(())) => {
                     return (~"bool", Line(format!("self.{}.get_bool_field({})",
                                                   member, offset)))
                 }
-                Some(Type::Int8) => return common_case("i8", member, offset),
-                Some(Type::Int16) => return common_case("i16", member, offset),
-                Some(Type::Int32) => return common_case("i32", member, offset),
-                Some(Type::Int64) => return common_case("i64", member, offset),
-                Some(Type::Uint8) => return common_case("u8", member, offset),
-                Some(Type::Uint16) => return common_case("u16", member, offset),
-                Some(Type::Uint32) => return common_case("u32", member, offset),
-                Some(Type::Uint64) => return common_case("u64", member, offset),
-                Some(Type::Float32) => return common_case("f32", member, offset),
-                Some(Type::Float64) => return common_case("f64", member, offset),
-                Some(Type::Text) => {
+                Some(Type::Int8(())) => return common_case("i8", member, offset),
+                Some(Type::Int16(())) => return common_case("i16", member, offset),
+                Some(Type::Int32(())) => return common_case("i32", member, offset),
+                Some(Type::Int64(())) => return common_case("i64", member, offset),
+                Some(Type::Uint8(())) => return common_case("u8", member, offset),
+                Some(Type::Uint16(())) => return common_case("u16", member, offset),
+                Some(Type::Uint32(())) => return common_case("u32", member, offset),
+                Some(Type::Uint64(())) => return common_case("u64", member, offset),
+                Some(Type::Float32(())) => return common_case("f32", member, offset),
+                Some(Type::Float64(())) => return common_case("f64", member, offset),
+                Some(Type::Text(())) => {
                     return (format!("Text::{}", moduleWithVar),
                             Line(format!("self.{}.get_pointer_field({}).get_text(std::ptr::null(), 0)",
                                       member, offset)));
                 }
-                Some(Type::Data) => {
+                Some(Type::Data(())) => {
                     return (format!("Data::{}", moduleWithVar),
                             Line(format!("self.{}.get_pointer_field({}).get_data(std::ptr::null(), 0)",
                                       member, offset)));
@@ -345,18 +345,18 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                     Line(format!("ListList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
                                                  module, member, offset)))
                         }
-                        Some(Type::Text) => {
+                        Some(Type::Text(())) => {
                             return (format!("TextList::{}<'a>", module),
                                     Line(format!("TextList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
                                                  module, member, offset)))
                         }
-                        Some(Type::Data) => {
+                        Some(Type::Data(())) => {
                             return (format!("DataList::{}<'a>", module),
                                     Line(format!("DataList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
                                                  module, member, offset)))
                         }
-                        Some(Type::Interface(_)) => {return (~"TODO", Line(~"TODO")) }
-                        Some(Type::AnyPointer) => {fail!("List(AnyPointer) is unsupported")}
+                        Some(Type::Interface(_)) => {fail!("unimplemented") }
+                        Some(Type::AnyPointer(())) => {fail!("List(AnyPointer) is unsupported")}
                         Some(primType) => {
                             let typeStr = prim_type_str(primType);
                             let sizeStr = element_size_str(element_size(primType));
@@ -388,7 +388,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 Some(Type::Interface(_)) => {
                         return (~"TODO", Line(~"TODO"));
                 }
-                Some(Type::AnyPointer) => {
+                Some(Type::AnyPointer(())) => {
                     return (format!("AnyPointer::{}<'a>", module),
                             Line(format!("AnyPointer::{}::new(self.{}.get_pointer_field({}))",
                                          module, member, offset)))
@@ -431,25 +431,26 @@ fn zero_fields_of_group(node_map : &std::hashmap::HashMap<u64, schema_capnp::Nod
                         match slot.get_type().which(){
                             Some(typ) => {
                                 match typ {
-                                    Type::Void => {}
-                                    Type::Bool => {
+                                    Type::Void(()) => {}
+                                    Type::Bool(()) => {
                                         let line = Line(format!("self.builder.set_bool_field({}, false);",
                                                          slot.get_offset()));
                                         // PERF could dedup more efficiently
                                         if !result.contains(&line) { result.push(line) }
                                     }
-                                    Type::Int8 |
-                                        Type::Int16 | Type::Int32 | Type::Int64 |
-                                        Type::Uint8 | Type::Uint16 | Type::Uint32 |
-                                        Type::Uint64 | Type::Float32 | Type::Float64 | Type::Enum(_) => {
+                                    Type::Int8(()) |
+                                        Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
+                                        Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
+                                        Type::Uint64(()) | Type::Float32(()) | Type::Float64(())
+                                        | Type::Enum(_) => {
                                         let line = Line(format!("self.builder.set_data_field::<{}>({}, 0);",
                                                          prim_type_str(typ),
                                                          slot.get_offset()));
                                         // PERF could dedup more efficiently
                                         if !result.contains(&line) { result.push(line) }
                                     }
-                                    Type::Struct(_) | Type::List(_) | Type::Text | Type::Data |
-                                        Type::AnyPointer => {
+                                    Type::Struct(_) | Type::List(_) | Type::Text(()) | Type::Data(()) |
+                                        Type::AnyPointer(()) => {
                                         let line = Line(format!("self.builder.get_pointer_field({}).clear();",
                                                                 slot.get_offset()));
                                         // PERF could dedup more efficiently
@@ -518,25 +519,25 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
             };
 
             match regField.get_type().which() {
-                Some(Type::Void) => {
+                Some(Type::Void(())) => {
                     setter_param = ~"_value";
                     (Some(~"()"), None)
                 }
-                Some(Type::Bool) => {
+                Some(Type::Bool(())) => {
                     setter_interior.push(Line(format!("self.builder.set_bool_field({}, value);", offset)));
                     (Some(~"bool"), None)
                 }
-                Some(Type::Int8) => common_case("i8"),
-                Some(Type::Int16) => common_case("i16"),
-                Some(Type::Int32) => common_case("i32"),
-                Some(Type::Int64) => common_case("i64"),
-                Some(Type::Uint8) => common_case("u8"),
-                Some(Type::Uint16) => common_case("u16"),
-                Some(Type::Uint32) => common_case("u32"),
-                Some(Type::Uint64) => common_case("u64"),
-                Some(Type::Float32) => common_case("f32"),
-                Some(Type::Float64) => common_case("f64"),
-                Some(Type::Text) => {
+                Some(Type::Int8(())) => common_case("i8"),
+                Some(Type::Int16(())) => common_case("i16"),
+                Some(Type::Int32(())) => common_case("i32"),
+                Some(Type::Int64(())) => common_case("i64"),
+                Some(Type::Uint8(())) => common_case("u8"),
+                Some(Type::Uint16(())) => common_case("u16"),
+                Some(Type::Uint32(())) => common_case("u32"),
+                Some(Type::Uint64(())) => common_case("u64"),
+                Some(Type::Float32(())) => common_case("f32"),
+                Some(Type::Float64(())) => common_case("f64"),
+                Some(Type::Text(())) => {
                     setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_text(value);",
                                                       offset)));
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
@@ -544,7 +545,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     initter_params.push("size : uint");
                     (Some(~"Text::Reader<'a>"), Some(~"Text::Builder<'a>"))
                 }
-                Some(Type::Data) => {
+                Some(Type::Data(())) => {
                     setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);",
                                                       offset)));
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
@@ -562,10 +563,10 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                         None => fail!("unsupported type"),
                         Some(t1) => {
                             match t1 {
-                                Type::Void | Type::Bool | Type::Int8 |
-                                    Type::Int16 | Type::Int32 | Type::Int64 |
-                                    Type::Uint8 | Type::Uint16 | Type::Uint32 |
-                                    Type::Uint64 | Type::Float32 | Type::Float64 => {
+                                Type::Void(()) | Type::Bool(()) | Type::Int8(()) |
+                                    Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
+                                    Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
+                                    Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) => {
 
                                     let typeStr = prim_type_str(t1);
                                     let sizeStr = element_size_str(element_size(t1));
@@ -611,14 +612,14 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     (Some(format!("StructList::Reader<'a,{}::Reader<'a>>", theMod)),
                                      Some(format!("StructList::Builder<'a,{}::Builder<'a>>", theMod)))
                                 }
-                                Type::Text => {
+                                Type::Text(()) => {
                                     initter_interior.push(
                                         Line(format!("TextList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
 
                                     (Some(format!("TextList::Reader<'a>")),
                                      Some(format!("TextList::Builder<'a>")))
                                 }
-                                Type::Data => {
+                                Type::Data(()) => {
                                     initter_interior.push(
                                         Line(format!("DataList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
 
@@ -635,7 +636,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                              list_list_type_param(scopeMap, t1.get_element_type(), true))),
                                      Some(format!("ListList::Builder<'a, {}>", type_param)))
                                 }
-                                Type::AnyPointer => {fail!("List(AnyPointer) not supported")}
+                                Type::AnyPointer(()) => {fail!("List(AnyPointer) not supported")}
                                 Type::Interface(_) => { fail!("unimplemented") }
                             }
                         }
@@ -661,7 +662,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                 Some(Type::Interface(_)) => {
                     fail!("unimplemented");
                 }
-                Some(Type::AnyPointer) => {
+                Some(Type::AnyPointer(())) => {
                     initter_interior.push(Line(format!("let result = AnyPointer::Builder::new(self.builder.get_pointer_field({}));",
                                                offset)));
                     initter_interior.push(Line(~"result.clear();"));
@@ -747,9 +748,9 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
             Some(Field::Group(_)) => requiresSelfVar = true,
             Some(Field::Slot(regField)) => {
                 match regField.get_type().which() {
-                    Some(Type::Text) | Some(Type::Data) |
+                    Some(Type::Text(())) | Some(Type::Data(())) |
                     Some(Type::List(_)) | Some(Type::Struct(_)) |
-                    Some(Type::AnyPointer) => requiresSelfVar = true,
+                    Some(Type::AnyPointer(())) => requiresSelfVar = true,
                     _ => ()
                 }
             }
@@ -1040,27 +1041,27 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let styled_name = camel_to_upper_case(*names.last());
 
             let (typ, txt) = match (c.get_type().which(), c.get_value().which()) {
-                (Some(Type::Void), Some(Value::Void)) => (~"()", ~"()"),
-                (Some(Type::Bool), Some(Value::Bool(b))) => (~"bool", b.to_str()),
-                (Some(Type::Int8), Some(Value::Int8(i))) => (~"i8", i.to_str()),
-                (Some(Type::Int16), Some(Value::Int16(i))) => (~"i16", i.to_str()),
-                (Some(Type::Int32), Some(Value::Int32(i))) => (~"i32", i.to_str()),
-                (Some(Type::Int64), Some(Value::Int64(i))) => (~"i64", i.to_str()),
-                (Some(Type::Uint8), Some(Value::Uint8(i))) => (~"u8", i.to_str()),
-                (Some(Type::Uint16), Some(Value::Uint16(i))) => (~"u16", i.to_str()),
-                (Some(Type::Uint32), Some(Value::Uint32(i))) => (~"u32", i.to_str()),
-                (Some(Type::Uint64), Some(Value::Uint64(i))) => (~"u64", i.to_str()),
+                (Some(Type::Void(())), Some(Value::Void(()))) => (~"()", ~"()"),
+                (Some(Type::Bool(())), Some(Value::Bool(b))) => (~"bool", b.to_str()),
+                (Some(Type::Int8(())), Some(Value::Int8(i))) => (~"i8", i.to_str()),
+                (Some(Type::Int16(())), Some(Value::Int16(i))) => (~"i16", i.to_str()),
+                (Some(Type::Int32(())), Some(Value::Int32(i))) => (~"i32", i.to_str()),
+                (Some(Type::Int64(())), Some(Value::Int64(i))) => (~"i64", i.to_str()),
+                (Some(Type::Uint8(())), Some(Value::Uint8(i))) => (~"u8", i.to_str()),
+                (Some(Type::Uint16(())), Some(Value::Uint16(i))) => (~"u16", i.to_str()),
+                (Some(Type::Uint32(())), Some(Value::Uint32(i))) => (~"u32", i.to_str()),
+                (Some(Type::Uint64(())), Some(Value::Uint64(i))) => (~"u64", i.to_str()),
 
                 // float string formatting appears to be a bit broken currently, in Rust.
-                (Some(Type::Float32), Some(Value::Float32(f))) => (~"f32", format!("{}f32", f.to_str())),
-                (Some(Type::Float64), Some(Value::Float64(f))) => (~"f64", format!("{}f64", f.to_str())),
+                (Some(Type::Float32(())), Some(Value::Float32(f))) => (~"f32", format!("{}f32", f.to_str())),
+                (Some(Type::Float64(())), Some(Value::Float64(f))) => (~"f64", format!("{}f64", f.to_str())),
 
-                (Some(Type::Text), Some(Value::Text(_t))) => { fail!() }
-                (Some(Type::Data), Some(Value::Data(_d))) => { fail!() }
+                (Some(Type::Text(())), Some(Value::Text(_t))) => { fail!() }
+                (Some(Type::Data(())), Some(Value::Data(_d))) => { fail!() }
                 (Some(Type::List(_t)), Some(Value::List(_p))) => { fail!() }
                 (Some(Type::Struct(_t)), Some(Value::Struct(_p))) => { fail!() }
                 (Some(Type::Interface(_t)), Some(Value::Interface)) => { fail!() }
-                (Some(Type::AnyPointer), Some(Value::AnyPointer(_pr))) => { fail!() }
+                (Some(Type::AnyPointer(())), Some(Value::AnyPointer(_pr))) => { fail!() }
                 _ => { fail!("type does not match value") }
             };
 
