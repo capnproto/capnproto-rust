@@ -315,7 +315,33 @@ fn test_writable_struct_pointer() {
             assert_eq!(big_struct.get_another_struct_field().get_uint32_field(), 42);
 
         });
+}
 
+#[test]
+fn test_union() {
+    use capnp::message::MessageBuilder;
+    use test_capnp::TestUnion;
+
+    MessageBuilder::new_default(
+        |message| {
+            let union_struct = message.init_root::<TestUnion::Builder>();
+            union_struct.get_union0().set_u0f0s0(());
+            match union_struct.get_union0().which() {
+                Some(TestUnion::Union0::Which::U0f0s0(())) => {}
+                _ => fail!()
+            }
+            union_struct.init_union0().set_u0f0s1(true);
+            match union_struct.get_union0().which() {
+                Some(TestUnion::Union0::Which::U0f0s1(true)) => {}
+                _ => fail!()
+            }
+            union_struct.init_union0().set_u0f0s8(127);
+            match union_struct.get_union0().which() {
+                Some(TestUnion::Union0::Which::U0f0s8(127)) => {}
+                _ => fail!()
+            }
+
+        });
 }
 
 #[test]

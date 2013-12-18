@@ -78,6 +78,39 @@ struct TestAnyPointer {
    anyPointerField @0 :AnyPointer;
 }
 
+struct TestUnion {
+   union0 :union {
+     u0f0s0  @0 :Void;
+     u0f0s1  @1 :Bool;
+     u0f0s8  @2 :Int8;
+     u0f0s16 @3 :Int16;
+     u0f0s32 @4 :Int32;
+     u0f0s64 @5 :Int64;
+     u0f0sp  @6 :Text;
+   }
+}
+
+struct TestGroups {
+  groups :union {
+    foo :group {
+      corge @0 :Int32;
+      grault @2 :Int64;
+      garply @8 :Text;
+    }
+    bar :group {
+      corge @3 :Int32;
+      grault @4 :Text;
+      garply @5 :Int64;
+    }
+    baz :group {
+      corge @1 :Int32;
+      grault @6 :Text;
+      garply @7 :Text;
+    }
+  }
+}
+
+
 struct TestConstants {
    const voidConst     :Void = void;
    const boolConst     :Bool = true;

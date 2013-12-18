@@ -432,7 +432,13 @@ fn zero_fields_of_group(node_map : &std::hashmap::HashMap<u64, schema_capnp::Nod
                             Some(typ) => {
                                 match typ {
                                     Type::Void => {}
-                                    Type::Bool | Type::Int8 |
+                                    Type::Bool => {
+                                        let line = Line(format!("self.builder.set_bool_field({}, false);",
+                                                         slot.get_offset()));
+                                        // PERF could dedup more efficiently
+                                        if !result.contains(&line) { result.push(line) }
+                                    }
+                                    Type::Int8 |
                                         Type::Int16 | Type::Int32 | Type::Int64 |
                                         Type::Uint8 | Type::Uint16 | Type::Uint32 |
                                         Type::Uint64 | Type::Float32 | Type::Float64 | Type::Enum(_) => {
@@ -790,6 +796,8 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
                      Line(~"}")
                  ])),
                  Line(~"}")]);
+
+    // TODO set_which() for builders?
 
     return (result, getter_result);
 }
