@@ -698,7 +698,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 }
 
 
-// return (the 'Which' module, the 'which()' accessor)
+// return (the 'Which' enum, the 'which()' accessor)
 fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                   root_name : &str,
