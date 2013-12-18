@@ -694,19 +694,19 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 
 // return (the 'Which' module, the 'which()' accessor)
 fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                 scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
-                 discriminantOffset : u32,
-                 fields : &[schema_capnp::Field::Reader])
+                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+                  root_name : &str,
+                  discriminantOffset : u32,
+                  fields : &[schema_capnp::Field::Reader],
+                  is_reader : bool)
     -> (FormattedText, FormattedText) {
 
     use schema_capnp::*;
 
-    let mut result = ~[];
-
     let mut getter_interior = ~[];
 
     let mut interior = ~[];
-    let mut reader_interior = ~[];
+    let mut enum_interior = ~[];
 
     let doffset = discriminantOffset as uint;
 
@@ -719,13 +719,19 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
         let fieldName = field.get_name();
         let enumerantName = capitalize_first_letter(fieldName);
 
-        let (ty, get) = getter_text(nodeMap, scopeMap, field, true);
+        let qual_enumerant_name = if is_reader {
+            enumerantName.clone()
+        } else {
+            format!("WhichBuilder::{}", enumerantName)
+        };
 
-        reader_interior.push(Line(format!("{}({}),", enumerantName, ty)));
+        let (ty, get) = getter_text(nodeMap, scopeMap, field, is_reader);
+
+        enum_interior.push(Line(format!("{}({}),", enumerantName, ty)));
 
         getter_interior.push(Branch(~[
                     Line(format!("{} => \\{", dvalue)),
-                    Indent(~Line(format!("return Some({}(", enumerantName))),
+                    Indent(~Line(format!("return Some({}(", qual_enumerant_name))),
                     Indent(~Indent(~get)),
                     Indent(~Line(~"));")),
                     Line(~"}")
@@ -745,30 +751,46 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
         }
     }
 
-    let readerString = if (requiresSelfVar) {"Which<'a>"} else {"Which"};
+    let enum_name = if (requiresSelfVar) {"Which<'a>"} else {"Which"};
 
     getter_interior.push(Line(~"_ => return None"));
 
     interior.push(
-        Branch(~[Line(format!("pub enum {} \\{", readerString)),
-                 Indent(~Branch(reader_interior)),
+        Branch(~[Line(format!("pub enum {} \\{", enum_name)),
+                 Indent(~Branch(enum_interior)),
                  Line(~"}")]));
 
 
-    result.push(Branch(interior));
+    let result = if is_reader {
+        Branch(interior)
+    } else {
+        Branch(~[Line(~"pub mod WhichBuilder {"),
+                 Indent(~generate_import_statements(root_name)),
+                 BlankLine,
+                 Indent(~Branch(interior)),
+                 Line(~"}")])
+    };
+
+    let field_name = if is_reader { "reader" } else { "builder" };
+
+    let which_return_type = if is_reader {
+        format!("Option<{}>", enum_name)
+    } else {
+        format!("Option<WhichBuilder::{}>", enum_name)
+    };
 
     let getter_result =
         Branch(~[Line(~"#[inline]"),
-                 Line(format!("pub fn which(&self) -> Option<{} > \\{",
-                           readerString)),
+                 Line(format!("pub fn which(&self) -> {} \\{",
+                              which_return_type)),
                  Indent(~Branch(~[
-                     Line(format!("match self.reader.get_data_field::<u16>({}) \\{", doffset)),
+                     Line(format!("match self.{}.get_data_field::<u16>({}) \\{", field_name, doffset)),
                      Indent(~Branch(getter_interior)),
                      Line(~"}")
                  ])),
                  Line(~"}")]);
 
-    return (Branch(result), getter_result);
+    return (result, getter_result);
 }
 
 
@@ -803,8 +825,8 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let mut preamble = ~[];
             let mut builder_members = ~[];
             let mut reader_members = ~[];
-            let mut which_mod = ~[];
             let mut union_fields = ~[];
+            let mut which_enums = ~[];
 
             let dataSize = structReader.get_data_word_count();
             let pointerSize = structReader.get_pointer_count();
@@ -887,11 +909,17 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             }
 
             if (discriminantCount > 0) {
-                let (union_mod, union_getter) =
-                    generate_union(nodeMap, scopeMap,
-                                  discriminantOffset, union_fields);
-                which_mod.push(union_mod);
+                let (which_enums1, union_getter) =
+                    generate_union(nodeMap, scopeMap, rootName,
+                                   discriminantOffset, union_fields, true);
+                which_enums.push(which_enums1);
                 reader_members.push(union_getter);
+
+                let (which_enums2, union_getter) =
+                    generate_union(nodeMap, scopeMap, rootName,
+                                   discriminantOffset, union_fields, false);
+                which_enums.push(which_enums2);
+                builder_members.push(union_getter);
             }
 
             let builderStructSize =
@@ -956,7 +984,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                   Line(~"}")];
 
             output.push(Indent(~Branch(~[Branch(accessors),
-                                         Branch(which_mod),
+                                         Branch(which_enums),
                                          Branch(nested_output)])));
             output.push(Line(~"}"));
 
@@ -967,6 +995,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             output.push(Line(format!("pub mod {} \\{", *names.last())));
 
             output.push(Indent(~Line(~"use capnp::list::{ToU16};")));
+            output.push(BlankLine);
 
             let mut members = ~[];
             let enumerants = enumReader.get_enumerants();
