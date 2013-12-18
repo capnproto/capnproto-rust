@@ -722,7 +722,7 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
         let qual_enumerant_name = if is_reader {
             enumerantName.clone()
         } else {
-            format!("WhichBuilder::{}", enumerantName)
+            format!("Which::{}", enumerantName)
         };
 
         let (ty, get) = getter_text(nodeMap, scopeMap, field, is_reader);
@@ -751,7 +751,8 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
         }
     }
 
-    let enum_name = if (requiresSelfVar) {"Which<'a>"} else {"Which"};
+    let lifetime_suffix = if requiresSelfVar { "<'a>" } else { "" };
+    let enum_name = format!("Which{}{}", if is_reader { "Reader" } else { "Builder" }, lifetime_suffix);
 
     getter_interior.push(Line(~"_ => return None"));
 
@@ -764,7 +765,7 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
     let result = if is_reader {
         Branch(interior)
     } else {
-        Branch(~[Line(~"pub mod WhichBuilder {"),
+        Branch(~[Line(~"pub mod Which {"),
                  Indent(~generate_import_statements(root_name)),
                  BlankLine,
                  Indent(~Branch(interior)),
@@ -776,7 +777,7 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
     let which_return_type = if is_reader {
         format!("Option<{}>", enum_name)
     } else {
-        format!("Option<WhichBuilder::{}>", enum_name)
+        format!("Option<Which::{}>", enum_name)
     };
 
     let getter_result =
