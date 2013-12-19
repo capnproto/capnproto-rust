@@ -828,8 +828,6 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         Some(Node::Struct(structReader)) => {
             let names = scopeMap.get(&node_id);
             output.push(BlankLine);
-
-            output.push(Line(~"#[allow(unused_imports)]"));
             output.push(Line(format!("pub mod {} \\{", *names.last())));
 
             let mut preamble = ~[];
@@ -1141,8 +1139,10 @@ fn main() {
 
             populate_scope_map(&nodeMap, &mut scopeMap, rootName, id);
 
-            let text = stringify(&generate_node(&nodeMap, &scopeMap,
-                                                rootName, id));
+            let lines = Branch(~[Line(~"#[allow(unused_imports)];"),
+                                 generate_node(&nodeMap, &scopeMap,
+                                               rootName, id)]);
+            let text = stringify(&lines);
 
             let path = std::path::Path::new(outputFileName);
 

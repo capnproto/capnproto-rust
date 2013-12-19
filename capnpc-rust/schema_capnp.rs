@@ -6,6 +6,7 @@
 
 pub mod Node {
     use std;
+    use capnp::common::MessageSize;
     use capnp::layout::{StructReader, StructBuilder, FromStructReader,
                         FromStructBuilder, StructSize, INLINE_COMPOSITE};
     use capnp::blob::Text;
@@ -28,6 +29,11 @@ pub mod Node {
 
         pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
             Reader{ reader : reader }
+        }
+
+        pub fn total_size(&self) -> MessageSize {
+            fail!()
+            //self.reader.total_size()
         }
 
         pub fn get_id(&self) -> u64 {
