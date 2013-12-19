@@ -7,7 +7,7 @@
 #[feature(globs)];
 #[feature(macro_rules)];
 
-#[pkgid="capnp"];
+#[crate_id="capnp"];
 #[link(name = "capnp", package_id = "github.com/dwrensha/capnproto-rust",
        vers = "alpha", author = "dwrensha")];
 
