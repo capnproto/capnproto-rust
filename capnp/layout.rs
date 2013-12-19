@@ -600,7 +600,7 @@ mod WireHelpers {
                                 "Don't know how to handle non-STRUCT inline composite.");
 
                         assert!((*element_tag).struct_ref().word_size() * count <= word_count,
-                                "Struct list pointer's element overrun size.");
+                                "INLINE_COMPOSITE list's elements overrun its word count");
 
                         let data_size = (*element_tag).struct_ref().data_size.get();
                         let pointer_count = (*element_tag).struct_ref().ptr_count.get();
@@ -1150,7 +1150,7 @@ mod WireHelpers {
                 assert!(nesting_limit > 0,
                         "Message is too deeply-nested or contains cycles.  See ReadOptions.");
                 assert!(bounds_check(src_segment, ptr, ptr.offset((*src).struct_ref().word_size() as int)),
-                        "Message contained out-of-bounds struct pointer.");
+                        "Message contains out-of-bounds struct pointer.");
                 set_struct_pointer(
                     dst_segment, dst,
                     StructReader {
@@ -1255,7 +1255,7 @@ mod WireHelpers {
 
         assert!(bounds_check(segment, ptr,
                             ptr.offset((*reff).struct_ref().word_size() as int)),
-                "Message contained out-of-bounds struct pointer.");
+                "Message contains out-of-bounds struct pointer.");
 
         StructReader {segment : segment,
                       data : std::cast::transmute(ptr),
