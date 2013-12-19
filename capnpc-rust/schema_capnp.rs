@@ -30,10 +30,6 @@ pub mod Node {
             Reader{ reader : reader }
         }
 
-        pub fn total_size_in_words(&self) -> uint {
-            self.reader.total_size() as uint
-        }
-
         pub fn get_id(&self) -> u64 {
             self.reader.get_data_field::<u64>(0)
         }
@@ -141,10 +137,6 @@ pub mod Node {
                 Reader{ reader : reader }
             }
 
-            pub fn total_size_in_words(&self) -> uint {
-                self.reader.total_size() as uint
-            }
-
             pub fn get_data_word_count(&self) -> u16 {
                 self.reader.get_data_field::<u16>(7)
             }
@@ -203,10 +195,6 @@ pub mod Node {
                 Reader{ reader : reader }
             }
 
-            pub fn total_size_in_words(&self) -> uint {
-                self.reader.total_size() as uint
-            }
-
             pub fn get_enumerants(&self) -> StructList::Reader<'a, schema_capnp::Enumerant::Reader> {
                 StructList::Reader::new(
                       self.reader.get_pointer_field(3).get_list(
@@ -241,10 +229,6 @@ pub mod Node {
                 Reader{ reader : reader }
             }
 
-            pub fn total_size_in_words(&self) -> uint {
-                self.reader.total_size() as uint
-            }
-
             // TODO methods
         }
 
@@ -273,10 +257,6 @@ pub mod Node {
 
             pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
-            }
-
-            pub fn total_size_in_words(&self) -> uint {
-                self.reader.total_size() as uint
             }
 
             pub fn get_type(&self) -> schema_capnp::Type::Reader<'a> {
@@ -312,10 +292,6 @@ pub mod Node {
 
             pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
                 Reader{ reader : reader }
-            }
-
-            pub fn total_size_in_words(&self) -> uint {
-                self.reader.total_size() as uint
             }
 
             pub fn get_type(&self) -> Type::Reader<'a> {
@@ -593,10 +569,6 @@ pub mod Enumerant {
             Reader{ reader : reader }
         }
 
-        pub fn total_size_in_words(&self) -> uint {
-            self.reader.total_size() as uint
-        }
-
         pub fn get_name(&self) -> &'a str {
             self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
         }
@@ -638,9 +610,6 @@ pub mod Method {
             Reader{ reader : reader }
         }
 
-        pub fn total_size_in_words(&self) -> uint {
-            self.reader.total_size() as uint
-        }
     }
 
 
@@ -667,10 +636,6 @@ pub mod Type {
 
         pub fn new<'a>(reader : StructReader<'a>) -> Reader<'a> {
             Reader{ reader : reader }
-        }
-
-        pub fn total_size_in_words(&self) -> uint {
-            self.reader.total_size() as uint
         }
 
         pub fn which(&self) -> Option<Which<'a>> {
@@ -831,10 +796,6 @@ pub mod Value {
             Reader{ reader : reader }
         }
 
-        pub fn total_size_in_words(&self) -> uint {
-            self.reader.total_size() as uint
-        }
-
         pub fn which(&self) -> Option<Which<'a>> {
             match self.reader.get_data_field::<u16>(0) {
                 0 => Some(Void(())),
@@ -928,10 +889,6 @@ pub mod Annotation {
             Reader{ reader : reader }
         }
 
-        pub fn total_size_in_words(&self) -> uint {
-            self.reader.total_size() as uint
-        }
-
         pub fn get_id(&self) -> u64 {
             self.reader.get_data_field::<u64>(0)
         }
@@ -967,8 +924,6 @@ pub mod ElementSize {
         InlineComposite = 7
     }
 }
-
-
 
 
 pub mod CodeGeneratorRequest {

@@ -72,3 +72,15 @@ pub fn allocate_zeroed_words(size : WordCount) -> ~[Word] {
     return result;
 }
 
+pub struct MessageSize {
+    //# Size of a message. Every struct type has a method `.total_size()` that returns this.
+    word_count : u64,
+    cap_count : uint
+}
+
+impl MessageSize {
+    pub fn plus_eq(&mut self, other : MessageSize) {
+        self.word_count += other.word_count;
+        self.cap_count += other.cap_count;
+    }
+}
