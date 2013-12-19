@@ -32,8 +32,7 @@ pub mod Node {
         }
 
         pub fn total_size(&self) -> MessageSize {
-            fail!()
-            //self.reader.total_size()
+            self.reader.total_size()
         }
 
         pub fn get_id(&self) -> u64 {

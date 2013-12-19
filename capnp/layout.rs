@@ -1745,6 +1745,24 @@ impl <'a> StructReader<'a>  {
             PointerReader::new_default()
         }
     }
+
+    pub fn total_size(&self) -> MessageSize {
+        let mut result = MessageSize {
+            word_count : WireHelpers::round_bits_up_to_words(self.data_size as u64) as u64 +
+                self.pointer_count as u64 * WORDS_PER_POINTER as u64,
+            cap_count : 0 };
+
+        for i in range(0, self.pointer_count as int) {
+            unsafe {
+                result.plus_eq(WireHelpers::total_size(self.segment, self.pointers.offset(i),
+                                                       self.nesting_limit));
+            }
+        }
+
+        // TODO when we have read limiting: segment->unread()
+
+        result
+    }
 }
 
 pub trait HasStructSize {
