@@ -4,8 +4,6 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-#[feature(globs)];
-
 #[link(name = "test", vers = "alpha", author = "dwrensha")];
 
 #[crate_type = "bin"];
@@ -16,8 +14,8 @@ pub mod test_capnp;
 
 #[test]
 fn test_prim_list () {
-    use capnp::message::*;
-    use test_capnp::*;
+    use capnp::message::{MessageBuilder, SUGGESTED_ALLOCATION_STRATEGY};
+    use test_capnp::TestPrimList;
 
     // Make the first segment small to force allocation of a second segment.
     MessageBuilder::new(50,
@@ -93,7 +91,7 @@ fn test_prim_list () {
 #[test]
 fn test_blob () {
     use capnp::message::MessageBuilder;
-    use test_capnp::*;
+    use test_capnp::TestBlob;
 
     MessageBuilder::new_default(
         |message| {
@@ -114,9 +112,8 @@ fn test_blob () {
 
 #[test]
 fn test_big_struct() {
-
-    use capnp::message::*;
-    use test_capnp::*;
+    use capnp::message::{MessageBuilder, SUGGESTED_ALLOCATION_STRATEGY};
+    use test_capnp::TestBigStruct;
 
     // Make the first segment small to force allocation of a second segment.
     MessageBuilder::new(5,
@@ -151,8 +148,8 @@ fn test_big_struct() {
 
 #[test]
 fn test_complex_list () {
-    use capnp::message::*;
-    use test_capnp::*;
+    use capnp::message::MessageBuilder;
+    use test_capnp::{TestComplexList, AnEnum};
 
     MessageBuilder::new_default(|message| {
 
