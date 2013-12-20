@@ -36,7 +36,9 @@ fn test_prim_list () {
             uint64List.set(i, i as u64);
         }
 
+        assert_eq!(testPrimList.has_bool_list(), false);
         let boolList = testPrimList.init_bool_list(65);
+        assert_eq!(testPrimList.has_bool_list(), true);
 
         boolList.set(0, true);
         boolList.set(1, true);
@@ -52,7 +54,9 @@ fn test_prim_list () {
         assert!(!boolList[63]);
         assert!(boolList[64]);
 
+        assert_eq!(testPrimList.has_void_list(), false);
         let voidList = testPrimList.init_void_list(1025);
+        assert_eq!(testPrimList.has_void_list(), true);
         voidList.set(257, ());
 
         testPrimList.as_reader(|testPrimListReader| {
@@ -65,6 +69,7 @@ fn test_prim_list () {
                  assert_eq!(uint64List[i], i as u64);
             }
 
+            assert_eq!(testPrimListReader.has_bool_list(), true);
             let boolList = testPrimListReader.get_bool_list();
             assert!(boolList[0]);
             assert!(boolList[1]);
@@ -98,10 +103,18 @@ fn test_blob () {
 
             let test_blob = message.init_root::<TestBlob::Builder>();
 
+            assert_eq!(test_blob.has_text_field(), false);
             test_blob.set_text_field("abcdefghi");
+            assert_eq!(test_blob.has_text_field(), true);
+
+            assert_eq!(test_blob.has_data_field(), false);
             test_blob.set_data_field([0u8, 1u8, 2u8, 3u8, 4u8]);
+            assert_eq!(test_blob.has_data_field(), true);
 
             test_blob.as_reader(|test_blob_reader| {
+
+                    assert_eq!(test_blob_reader.has_text_field(), true);
+                    assert_eq!(test_blob_reader.has_data_field(), true);
 
                     assert_eq!(test_blob_reader.get_text_field(), "abcdefghi");
                     assert_eq!(test_blob_reader.get_data_field(), [0u8, 1u8, 2u8, 3u8, 4u8]);
@@ -127,7 +140,9 @@ fn test_big_struct() {
         bigStruct.set_int16_field(0);
         bigStruct.set_int32_field(1009);
 
+        assert_eq!(bigStruct.has_struct_field(), false);
         let inner = bigStruct.init_struct_field();
+        assert_eq!(bigStruct.has_struct_field(), true);
         inner.set_float64_field(0.1234567);
 
         inner.set_bool_field_b(true);
@@ -135,6 +150,7 @@ fn test_big_struct() {
         bigStruct.set_bool_field(true);
 
         bigStruct.as_reader(|bigStructReader| {
+            assert_eq!(bigStructReader.has_struct_field(), true);
             assert_eq!(bigStructReader.get_int8_field(), -128);
             assert_eq!(bigStructReader.get_int32_field(), 1009);
 
@@ -337,6 +353,10 @@ fn test_union() {
                 Some(TestUnion::Union0::Which::U0f0s8(127)) => {}
                 _ => fail!()
             }
+
+            assert_eq!(union_struct.get_union0().has_u0f0sp(), false);
+            union_struct.init_union0().set_u0f0sp("abcdef");
+            assert_eq!(union_struct.get_union0().has_u0f0sp(), true);
 
         });
 }

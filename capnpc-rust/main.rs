@@ -803,6 +803,51 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
     return (result, getter_result);
 }
 
+fn generate_haser(discriminant_offset : u32,
+                  styled_name : &str,
+                  field :&schema_capnp::Field::Reader,
+                  is_reader : bool) -> FormattedText {
+
+    use schema_capnp::*;
+
+    let mut result = ~[];
+    let mut interior = ~[];
+    let member = if is_reader { "reader" } else { "builder" };
+
+
+    let discriminant_value = field.get_discriminant_value();
+    if (discriminant_value != Field::NO_DISCRIMINANT) {
+       interior.push(
+            Line(format!("if self.{}.get_data_field::<u16>({}) != {} \\{ return false; \\}",
+                         member,
+                         discriminant_offset as uint,
+                         discriminant_value as uint)));
+    }
+    match field.which() {
+        None | Some(Field::Group(_)) => {},
+        Some(Field::Slot(reg_field)) => {
+            match reg_field.get_type().which() {
+                Some(Type::Text(())) | Some(Type::Data(())) |
+                    Some(Type::List(_)) | Some(Type::Struct(_)) |
+                    Some(Type::AnyPointer(())) => {
+                    interior.push(
+                        Line(format!("!self.{}.get_pointer_field({}).is_null()",
+                                     member, reg_field.get_offset())));
+                    result.push(
+                        Line(format!("pub fn has_{}(&self) -> bool \\{", styled_name)));
+                    result.push(
+                        Indent(~Branch(interior)));
+                    result.push(Line(~"}"));
+                }
+                _ => {}
+            }
+        }
+    }
+
+
+    Branch(result)
+}
+
 
 fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
@@ -905,6 +950,8 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                                     discriminantOffset,
                                                     styled_name, &field));
 
+                reader_members.push(generate_haser(discriminantOffset, styled_name, &field, true));
+                builder_members.push(generate_haser(discriminantOffset, styled_name, &field, false));
 
                 match field.which() {
                     Some(Field::Group(group)) => {

@@ -1591,7 +1591,6 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-
     pub fn init_struct(&self, size : StructSize) -> StructBuilder<'a> {
         unsafe {
             WireHelpers::init_struct_pointer(self.pointer, self.segment, size)
