@@ -29,4 +29,6 @@ pub mod serialize_packed;
 pub mod list;
 
 #[cfg(test)]
+pub mod layout_test;
+#[cfg(test)]
 pub mod serialize_packed_test;

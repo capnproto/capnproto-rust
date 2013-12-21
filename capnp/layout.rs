@@ -70,6 +70,13 @@ pub enum Kind {
   UNKNOWN
 }
 
+// In the future, Rust will have an alignment attribute
+// and we won't need the dummy field.
+pub struct AlignedData<T> {
+    _dummy : u64,
+    words : T
+}
+
 pub struct StructSize {
     data : WordCount16,
     pointers : WirePointerCount16,
@@ -1493,6 +1500,12 @@ impl <'a> PointerReader<'a> {
                             pointer : std::cast::transmute(location),
                             nesting_limit : nesting_limit }
         }
+    }
+
+    pub fn get_root_unchecked<'b>(location : *Word) -> PointerReader<'b> {
+        PointerReader { segment : std::ptr::null(),
+                        pointer : unsafe { std::cast::transmute(location) },
+                        nesting_limit : 0x7fffffff }
     }
 
     pub fn is_null(&self) -> bool {
