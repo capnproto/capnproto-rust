@@ -77,6 +77,8 @@ struct TestDefaults {
    voidField     @0  :Void      = void;
    boolField     @1  :Bool      = true;
    int8Field     @2  :Int8      = -123;
+   int16Field    @3  :Int16     = -12345;
+   int32Field    @4  :Int32     = -12345678;
 }
 
 struct TestAnyPointer {

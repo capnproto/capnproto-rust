@@ -1820,6 +1820,14 @@ impl <'a> StructBuilder<'a> {
     }
 
     #[inline]
+    pub fn set_data_field_mask<T:Clone + std::num::Zero + Mask>(&self,
+                                                                offset : ElementCount,
+                                                                value : T,
+                                                                mask : T) {
+        self.set_data_field(offset, Mask::mask(value, mask));
+    }
+
+    #[inline]
     pub fn get_data_field<T:Clone>(&self, offset : ElementCount) -> T {
         unsafe {
             let ptr : *mut WireValue<T> = std::cast::transmute(self.data);
@@ -1846,12 +1854,28 @@ impl <'a> StructBuilder<'a> {
     }
 
     #[inline]
+    pub fn set_bool_field_mask(&self,
+                               offset : ElementCount,
+                               value : bool,
+                               mask : bool) {
+       self.set_bool_field(offset , value ^ mask);
+    }
+
+    #[inline]
     pub fn get_bool_field(&self, offset : ElementCount) -> bool {
         let boffset : BitCount0 =
             if (offset == 0) {self.bit0offset as BitCount0} else {offset};
         let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as int) };
         unsafe { ((*b) & (1 << (boffset % BITS_PER_BYTE ))) != 0 }
     }
+
+    #[inline]
+    pub fn get_bool_field_mask(&self,
+                               offset : ElementCount,
+                               mask : bool) -> bool {
+       self.get_bool_field(offset) ^ mask
+    }
+
 
     #[inline]
     pub fn get_pointer_field(&self, ptr_index : WirePointerCount) -> PointerBuilder<'a> {

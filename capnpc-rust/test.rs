@@ -278,6 +278,28 @@ fn test_complex_list () {
 }
 
 #[test]
+fn test_defaults() {
+    use capnp::message::MessageBuilder;
+    use test_capnp::TestDefaults;
+
+    MessageBuilder::new_default(
+        |message| {
+            let test_defaults = message.init_root::<TestDefaults::Builder>();
+
+            assert_eq!(test_defaults.get_void_field(), ());
+            assert_eq!(test_defaults.get_bool_field(), true);
+            assert_eq!(test_defaults.get_int8_field(), -123);
+            assert_eq!(test_defaults.get_int16_field(), -12345);
+            assert_eq!(test_defaults.get_int32_field(), -12345678);
+
+            test_defaults.set_bool_field(false);
+            assert_eq!(test_defaults.get_bool_field(), false);
+            test_defaults.set_int8_field(63);
+            assert_eq!(test_defaults.get_int8_field(), 63);
+        });
+}
+
+#[test]
 fn test_any_pointer() {
     use capnp::message::MessageBuilder;
     use test_capnp::TestAnyPointer;

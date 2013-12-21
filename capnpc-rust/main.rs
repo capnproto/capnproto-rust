@@ -270,6 +270,30 @@ fn list_list_type_param(scope_map : &std::hashmap::HashMap<u64, ~[~str]>,
     }
 }
 
+fn prim_default (value : &schema_capnp::Value::Reader) -> Option<~str> {
+    use schema_capnp::Value;
+    match value.which() {
+        Some(Value::Bool(false)) |
+        Some(Value::Int8(0)) | Some(Value::Int16(0)) | Some(Value::Int32(0)) |
+        Some(Value::Int64(0)) | Some(Value::Uint8(0)) | Some(Value::Uint16(0)) |
+        Some(Value::Uint32(0)) | Some(Value::Uint64(0)) | Some(Value::Float32(0.0)) |
+        Some(Value::Float64(0.0)) => None,
+
+        Some(Value::Bool(true)) => Some(~"true"),
+        Some(Value::Int8(i)) => Some(i.to_str()),
+        Some(Value::Int16(i)) => Some(i.to_str()),
+        Some(Value::Int32(i)) => Some(i.to_str()),
+        Some(Value::Int64(i)) => Some(i.to_str()),
+        Some(Value::Uint8(i)) => Some(i.to_str()),
+        Some(Value::Uint16(i)) => Some(i.to_str()),
+        Some(Value::Uint32(i)) => Some(i.to_str()),
+        Some(Value::Uint64(i)) => Some(i.to_str()),
+        Some(Value::Float32(f)) => Some(f.to_str()),
+        Some(Value::Float64(f)) => Some(f.to_str()),
+        _ => {fail!()}
+    }
+}
+
 fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                field : &schema_capnp::Field::Reader,
@@ -301,10 +325,14 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
             match tuple_option(reg_field.get_type().which(), reg_field.get_default_value().which()) {
                 Some((Type::Void(()), Value::Void(()))) => { return (~"()", Line(~"()"))}
-                Some((Type::Bool(()), Value::Bool(_b))) => {
-                    // XXX deal with default value
+                Some((Type::Bool(()), Value::Bool(b))) => {
+                    if b {
+                        return (~"bool", Line(format!("self.{}.get_bool_field_mask({}, true)",
+                                                      member, offset)))
+                    } else {
                         return (~"bool", Line(format!("self.{}.get_bool_field({})",
                                                       member, offset)))
+                    }
                 }
                 Some((Type::Int8(()), Value::Int8(i))) => return common_case("i8", member, offset, i),
                 Some((Type::Int16(()), Value::Int16(i))) => return common_case("i16", member, offset, i),
@@ -488,7 +516,6 @@ fn zero_fields_of_group(node_map : &std::hashmap::HashMap<u64, schema_capnp::Nod
     }
 }
 
-// TODO default values
 fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                   discriminantOffset : u32,
@@ -532,8 +559,17 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
             let offset = reg_field.get_offset() as uint;
 
             let common_case = |typ: &str| {
-                setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
-                                                  typ, offset)));
+                match prim_default(&reg_field.get_default_value()) {
+                    None => {
+                        setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
+                                                          typ, offset)));
+                    }
+                    Some(s) => {
+                        setter_interior.push(
+                            Line(format!("self.builder.set_data_field_mask::<{}>({}, value, {});",
+                                         typ, offset, s)));
+                    }
+                }
                 (Some(typ.to_owned()), None)
             };
 
@@ -543,7 +579,15 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     (Some(~"()"), None)
                 }
                 Some(Type::Bool(())) => {
-                    setter_interior.push(Line(format!("self.builder.set_bool_field({}, value);", offset)));
+                    match prim_default(&reg_field.get_default_value()) {
+                        None => {
+                            setter_interior.push(Line(format!("self.builder.set_bool_field({}, value);", offset)));
+                        }
+                        Some(s) => {
+                            setter_interior.push(
+                                Line(format!("self.builder.set_bool_field_mask({}, value, {});", offset, s)));
+                        }
+                    }
                     (Some(~"bool"), None)
                 }
                 Some(Type::Int8(())) => common_case("i8"),
