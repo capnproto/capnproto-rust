@@ -1828,6 +1828,14 @@ impl <'a> StructBuilder<'a> {
     }
 
     #[inline]
+    pub fn get_data_field_mask<T:Clone + std::num::Zero + Mask>(&self,
+                                                                offset : ElementCount,
+                                                                mask : T) -> T {
+        Mask::mask(self.get_data_field(offset), mask)
+    }
+
+
+    #[inline]
     pub fn set_bool_field(&self, offset : ElementCount, value : bool) {
         //# This branch should be compiled out whenever this is
         //# inlined with a constant offset.

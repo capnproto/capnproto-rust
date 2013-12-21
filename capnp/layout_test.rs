@@ -24,7 +24,7 @@ fn simple_raw_data_struct() {
     assert_eq!(0xefcdab89u32, reader.get_data_field::<u32>(1));
     assert_eq!(0, reader.get_data_field::<u32>(2));
     assert_eq!(0x2301u16, reader.get_data_field::<u16>(0));
-    // TODO the resut of uints.
+    // TODO the rest of uints.
 
     // Bits.
     assert_eq!(reader.get_bool_field(0), true);
