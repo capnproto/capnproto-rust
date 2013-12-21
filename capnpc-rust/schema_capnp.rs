@@ -497,6 +497,10 @@ pub mod Field {
             pub fn get_default_value(&self) -> Value::Reader<'a> {
                 Value::Reader::new(self.reader.get_pointer_field(3).get_struct(std::ptr::null()))
             }
+
+            pub fn get_had_explicit_default(&self) -> bool {
+                self.reader.get_bool_field(128)
+            }
         }
     }
 

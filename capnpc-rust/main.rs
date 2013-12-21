@@ -284,15 +284,26 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                         Line(format!("{}::Builder::new(self.builder)", theMod)));
             }
         }
-        Some(Field::Slot(regField)) => {
+        Some(Field::Slot(reg_field)) => {
 
-            let typ = regField.get_type();
-            let offset = regField.get_offset() as uint;
+            let typ = reg_field.get_type();
+            let offset = reg_field.get_offset() as uint;
             //    let defaultValue = field.getDefaultValue();
 
             let member = if (isReader) { "reader" } else { "builder" };
             let module = if (isReader) { "Reader" } else { "Builder" };
             let moduleWithVar = if (isReader) { "Reader<'a>" } else { "Builder<'a>" };
+
+            let common_case = |typ: &str| {
+                let interior = if reg_field.get_had_explicit_default() {
+                    Line(format!("self.{}.get_data_field_mask::<{}>({}, 777)", // FIXME
+                                 member, typ, offset))
+                } else {
+                    Line(format!("self.{}.get_data_field::<{}>({})",
+                                 member, typ, offset))
+                };
+                return (typ.to_owned(), interior);
+            };
 
             match typ.which() {
                 Some(Type::Void(())) => { return (~"()", Line(~"()"))}
@@ -300,16 +311,16 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     return (~"bool", Line(format!("self.{}.get_bool_field({})",
                                                   member, offset)))
                 }
-                Some(Type::Int8(())) => return common_case("i8", member, offset),
-                Some(Type::Int16(())) => return common_case("i16", member, offset),
-                Some(Type::Int32(())) => return common_case("i32", member, offset),
-                Some(Type::Int64(())) => return common_case("i64", member, offset),
-                Some(Type::Uint8(())) => return common_case("u8", member, offset),
-                Some(Type::Uint16(())) => return common_case("u16", member, offset),
-                Some(Type::Uint32(())) => return common_case("u32", member, offset),
-                Some(Type::Uint64(())) => return common_case("u64", member, offset),
-                Some(Type::Float32(())) => return common_case("f32", member, offset),
-                Some(Type::Float64(())) => return common_case("f64", member, offset),
+                Some(Type::Int8(())) => return common_case("i8"),
+                Some(Type::Int16(())) => return common_case("i16"),
+                Some(Type::Int32(())) => return common_case("i32"),
+                Some(Type::Int64(())) => return common_case("i64"),
+                Some(Type::Uint8(())) => return common_case("u8"),
+                Some(Type::Uint16(())) => return common_case("u16"),
+                Some(Type::Uint32(())) => return common_case("u32"),
+                Some(Type::Uint64(())) => return common_case("u64"),
+                Some(Type::Float32(())) => return common_case("f32"),
+                Some(Type::Float64(())) => return common_case("f64"),
                 Some(Type::Text(())) => {
                     return (format!("Text::{}", moduleWithVar),
                             Line(format!("self.{}.get_pointer_field({}).get_text(std::ptr::null(), 0)",
@@ -399,12 +410,6 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 }
             }
         }
-    }
-
-    fn common_case(typ: &str, member: &str, offset: uint) -> (~str, FormattedText) {
-        return (typ.to_owned(),
-                Line(format!("self.{}.get_data_field::<{}>({})",
-                             member, typ, offset)))
     }
 }
 
@@ -509,8 +514,8 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 
             (None, Some(format!("{}::Builder<'a>", theMod)))
         }
-        Some(Field::Slot(regField)) => {
-            let offset = regField.get_offset() as uint;
+        Some(Field::Slot(reg_field)) => {
+            let offset = reg_field.get_offset() as uint;
 
             let common_case = |typ: &str| {
                 setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
@@ -518,7 +523,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                 (Some(typ.to_owned()), None)
             };
 
-            match regField.get_type().which() {
+            match reg_field.get_type().which() {
                 Some(Type::Void(())) => {
                     setter_param = ~"_value";
                     (Some(~"()"), None)
@@ -746,8 +751,8 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
 
         match field.which() {
             Some(Field::Group(_)) => requiresSelfVar = true,
-            Some(Field::Slot(regField)) => {
-                match regField.get_type().which() {
+            Some(Field::Slot(reg_field)) => {
+                match reg_field.get_type().which() {
                     Some(Type::Text(())) | Some(Type::Data(())) |
                     Some(Type::List(_)) | Some(Type::Struct(_)) |
                     Some(Type::AnyPointer(())) => requiresSelfVar = true,
@@ -814,7 +819,6 @@ fn generate_haser(discriminant_offset : u32,
     let mut interior = ~[];
     let member = if is_reader { "reader" } else { "builder" };
 
-
     let discriminant_value = field.get_discriminant_value();
     if (discriminant_value != Field::NO_DISCRIMINANT) {
        interior.push(
@@ -843,7 +847,6 @@ fn generate_haser(discriminant_offset : u32,
             }
         }
     }
-
 
     Branch(result)
 }

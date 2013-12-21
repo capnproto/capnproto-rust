@@ -54,7 +54,6 @@ struct TestBigStruct {
   }
 }
 
-
 enum AnEnum {
      foo @0;
      bar @1;
@@ -72,6 +71,12 @@ struct TestComplexList {
    textListList @6 : List(List(Text));
    dataListList @7 : List(List(Data));
    structListList @8 : List(List(TestBigStruct));
+}
+
+struct TestDefaults {
+   voidField     @0  :Void      = void;
+   boolField     @1  :Bool      = true;
+   int8Field     @2  :Int8      = -123;
 }
 
 struct TestAnyPointer {
