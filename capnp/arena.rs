@@ -6,6 +6,7 @@
 
 use std;
 use common::*;
+use common::ptr_sub;
 use message;
 
 pub type SegmentId = u32;
@@ -64,22 +65,23 @@ impl <'a> SegmentBuilder<'a> {
     }
 
     pub fn allocate(&mut self, amount : WordCount) -> Option<*mut Word> {
-        if (amount > self.reader.size - self.pos) {
+        if (amount > self.reader.size - ptr_sub(self.pos, self.reader.ptr)) {
             return None;
         } else {
-            let result = unsafe { self.reader.ptr.offset(self.pos as int) };
-            self.pos += amount;
+            let result = self.pos;
+            self.pos = self.pos.offset(amount as int);
             return Some(result);
         }
     }
 
     pub fn available(&self) -> WordCount {
-        self.size - self.pos
+        self.reader.size - ptr_sub(self.pos, self.reader.ptr)
     }
 
     #[inline]
     pub unsafe fn get_ptr_unchecked(&mut self, offset : WordCount) -> *mut Word {
-        self.ptr.offset(offset as int)
+        // need to const cast
+        self.reader.ptr.offset(offset as int)
     }
 
     #[inline]

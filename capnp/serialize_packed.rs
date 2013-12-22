@@ -8,11 +8,7 @@ use std;
 use io;
 use message::*;
 use serialize::*;
-
-#[inline]
-unsafe fn ptr_sub<T, U:std::ptr::RawPtr<T>>(p1 : U, p2 : U) -> uint {
-    return (p1.to_uint() - p2.to_uint()) / std::mem::size_of::<T>();
-}
+use common::ptr_sub;
 
 pub struct PackedInputStream<'a, 'b,  R> {
     inner : &'a mut io::BufferedInputStream<'b, R>
