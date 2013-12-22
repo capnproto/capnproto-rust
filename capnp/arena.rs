@@ -32,30 +32,31 @@ impl <'a> SegmentReader<'a> {
     }
 }
 
-pub struct SegmentBuilder {
+pub struct SegmentBuilder<'a> {
+    reader : SegmentReader<'a>,
     id : SegmentId,
-    ptr : *mut Word,
-    pos : WordCount,
-    size : WordCount,
-    arena : *mut BuilderArena
+    pos : *mut Word,
 }
 
-impl SegmentBuilder {
+impl <'a> SegmentBuilder<'a> {
 
-    pub fn new(messageBuilder : *mut message::MessageBuilder,
-               size : WordCount) -> SegmentBuilder {
-        let idx = unsafe {((*messageBuilder).segments.len() - 1) as SegmentId};
+    pub fn new<'b>(arena : *mut BuilderArena<'b>,
+                   id : SegmentId,
+                   ptr : *mut Word,
+                   size : WordCount) -> SegmentBuilder<'b> {
         SegmentBuilder {
-            messageBuilder : messageBuilder,
-            ptr : unsafe {(*messageBuilder).segments[idx].unsafe_mut_ref(0)},
-            id : idx,
-            pos : 0,
-            size : size
+            reader : SegmentReader {
+                arena : BuilderArenaPtr(arena),
+                ptr : unsafe {std::cast::transmute(ptr)},
+                size : size
+            },
+            id : id,
+            pos : ptr,
         }
     }
 
     pub fn get_word_offset_to(&mut self, ptr : *mut Word) -> WordCount {
-        let thisAddr : uint = self.ptr.to_uint();
+        let thisAddr : uint = self.reader.ptr.to_uint();
         let ptrAddr : uint = ptr.to_uint();
         assert!(ptrAddr >= thisAddr);
         let result = (ptrAddr - thisAddr) / BYTES_PER_WORD;
@@ -63,10 +64,10 @@ impl SegmentBuilder {
     }
 
     pub fn allocate(&mut self, amount : WordCount) -> Option<*mut Word> {
-        if (amount > self.size - self.pos) {
+        if (amount > self.reader.size - self.pos) {
             return None;
         } else {
-            let result = unsafe { self.ptr.offset(self.pos as int) };
+            let result = unsafe { self.reader.ptr.offset(self.pos as int) };
             self.pos += amount;
             return Some(result);
         }
@@ -84,10 +85,11 @@ impl SegmentBuilder {
     #[inline]
     pub fn get_segment_id(&self) -> SegmentId { self.id }
 
-    pub fn as_reader(&mut self) -> SegmentReader {
-        SegmentReader { arena : BuilderArenaPtr(self.arena),
-                        ptr : unsafe { std::cast::transmute(self.ptr) },
-                        size : self.size }
+    pub fn get_arena(&self) -> *mut BuilderArena {
+        match self.reader.arena {
+            BuilderArenaPtr(b) => b,
+            _ => fail!()
+        }
     }
 }
 
@@ -102,13 +104,13 @@ pub struct ReaderArena<'a> {
     //XXX should this be a map as in capnproto-c++?
 }
 
-pub struct BuilderArena {
-    message : *message::MessageBuilder,
-    segment0 : SegmentBuilder,
-    more_segments : Option<~[~SegmentBuilder]>,
+pub struct BuilderArena<'a> {
+    message : *mut message::MessageBuilder<'a>,
+    segment0 : SegmentBuilder<'a>,
+    more_segments : Option<~[~SegmentBuilder<'a>]>,
 }
 
-impl BuilderArena {
+impl <'a> BuilderArena<'a> {
 
     #[inline]
     pub fn allocate(&mut self, amount : WordCount) -> *mut SegmentBuilder {
@@ -119,7 +121,7 @@ impl BuilderArena {
 
     pub fn get_segment(&self, id : SegmentId) -> *mut SegmentBuilder {
         if (id == 0) {
-            std::ptr::to_unsafe_ptr(&self.segment0)
+            std::ptr::to_mut_unsafe_ptr(&self.segment0)
         } else {
             fail!()
         }
@@ -128,7 +130,7 @@ impl BuilderArena {
 
 pub enum ArenaPtr<'a> {
     ReaderArenaPtr(*ReaderArena<'a>),
-    BuilderArenaPtr(*mut BuilderArena),
+    BuilderArenaPtr(*mut BuilderArena<'a>),
     Null
 }
 
@@ -150,12 +152,12 @@ impl <'a> ArenaPtr<'a>  {
                 }
                 &BuilderArenaPtr(builder) => {
                     if (id == 0) {
-                        std::ptr::to_unsafe_ptr(&(*builder).segment0)
+                        std::ptr::to_unsafe_ptr(&(*builder).segment0.reader)
                     } else {
                         match (*builder).more_segments {
                             None => {fail!("no more segments!")}
                             Some(ref segs) => {
-                                segs.unsafe_ref(id as uint - 1).as_reader()
+                                segs[id as uint - 1].as_reader()
                             }
                         }
                     }

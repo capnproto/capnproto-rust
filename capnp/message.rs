@@ -70,33 +70,44 @@ pub enum AllocationStrategy {
 pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
 pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICALLY;
 
-pub struct MessageBuilder {
+pub struct MessageBuilder<'a> {
     nextSize : uint,
     allocation_strategy : AllocationStrategy,
-    arena : BuilderArena,
+    arena : ~BuilderArena<'a>,
     segments : ~[~[Word]]
 
 }
 
-impl MessageBuilder {
+impl <'a>MessageBuilder<'a> {
 
     // TODO: maybe when Rust issue #5121 is fixed we can safely get away with not passing
     //  a closure here.
     pub fn new<T>(firstSegmentWords : uint,
                   allocationStrategy : AllocationStrategy,
                   cont : |&mut MessageBuilder| -> T) -> T {
+
+        let segments = ~[];
+        segments.push(allocate_zeroed_words(firstSegmentWords));
+        let mut arena = ~BuilderArena {
+            message : std::ptr::null(),
+            segment0 : SegmentBuilder {
+                id : 0,
+                ptr : segments[0].unsafe_mut_ref(0),
+                pos : 0,
+                size : segments[0].len(),
+                arena : std::ptr::mut_null()
+            },
+            more_segments : None };
+
+        let arena_ptr = std::ptr::to_mut_unsafe_ptr(&arena);
+        arena.segment0.arena = arena_ptr;
+
         let mut result = ~MessageBuilder {
             nextSize : firstSegmentWords,
             allocation_strategy : allocationStrategy,
-            segment_builders : ~[],
-            segments : ~[]
+            segments : segments,
+            arena : arena
         };
-
-        result.segments.push(allocate_zeroed_words(firstSegmentWords));
-        let builder =
-            ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(result), firstSegmentWords);
-
-        result.segment_builders.push(builder);
 
         cont(result)
     }

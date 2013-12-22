@@ -201,7 +201,7 @@ impl WirePointer {
     #[inline]
     pub fn set_kind_and_target<'a>(&mut self, kind : WirePointerKind,
                                    target : *mut Word,
-                                   _segmentBuilder : *mut SegmentBuilder) {
+                                   _segmentBuilder : *mut SegmentBuilder<'a>) {
         let thisAddr : int = unsafe {std::cast::transmute(&*self)};
         let targetAddr : int = unsafe {std::cast::transmute(target)};
         self.offset_and_kind.set(
@@ -277,8 +277,8 @@ impl WirePointer {
     }
 }
 
-struct SegmentAnd<T> {
-    segment : *mut SegmentBuilder,
+struct SegmentAnd<'a, T> {
+    segment : *mut SegmentBuilder<'a>,
     value : T
 }
 
@@ -320,7 +320,7 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn allocate<'a>(reff : &mut *mut WirePointer,
-                               segment : &mut *mut SegmentBuilder,
+                               segment : &mut *mut SegmentBuilder<'a>,
                                amount : WordCount, kind : WirePointerKind) -> *mut Word {
         let is_null = (**reff).is_null();
         if (!is_null) {
@@ -334,7 +334,7 @@ mod WireHelpers {
                 //# the landing pad for a far pointer.
 
                 let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
-                *segment = (*(**segment).arena).allocate(amountPlusRef);
+                *segment = (*(**segment).get_arena()).allocate(amountPlusRef);
                 let ptr : *mut Word = (**segment).allocate(amountPlusRef).unwrap();
 
                 //# Set up the original pointer to be a far pointer to
@@ -358,9 +358,9 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn follow_builder_fars(reff : &mut * mut WirePointer,
-                                      ref_target : *mut Word,
-                                      segment : &mut *mut SegmentBuilder) -> *mut Word {
+    pub unsafe fn follow_builder_fars<'a>(reff : &mut * mut WirePointer,
+                                          ref_target : *mut Word,
+                                          segment : &mut *mut SegmentBuilder<'a>) -> *mut Word {
         //# If `ref` is a far pointer, follow it. On return, `ref` will
         //# have been updated to point at a WirePointer that contains
         //# the type information about the target object, and a pointer
@@ -375,7 +375,7 @@ mod WireHelpers {
         //# only a tag.
 
         if ((**reff).kind() == WP_FAR) {
-            *segment = (*(**segment).arena).get_segment((**reff).far_ref().segment_id.get());
+            *segment = (*(**segment).get_arena()).get_segment((**reff).far_ref().segment_id.get());
             let pad : *mut WirePointer =
                 std::cast::transmute((**segment).get_ptr_unchecked((**reff).far_position_in_segment()));
             if !(**reff).is_double_far() {
@@ -386,7 +386,7 @@ mod WireHelpers {
             //# Landing pad is another far pointer. It is followed by a
             //# tag describing the pointed-to object.
             *reff = pad.offset(1);
-            *segment = (*(**segment).arena).get_segment((*pad).far_ref().segment_id.get());
+            *segment = (*(**segment).get_arena()).get_segment((*pad).far_ref().segment_id.get());
             return (**segment).get_ptr_unchecked((*pad).far_position_in_segment());
         } else {
             ref_target
@@ -432,7 +432,7 @@ mod WireHelpers {
         }
     }
 
-    pub unsafe fn zero_object<'a>(mut segment : *mut SegmentBuilder, reff : *mut WirePointer) {
+    pub unsafe fn zero_object<'a>(mut segment : *mut SegmentBuilder<'a>, reff : *mut WirePointer) {
         //# Zero out the pointed-to object. Use when the pointer is
         //# about to be overwritten making the target object no longer
         //# reachable.
@@ -443,12 +443,12 @@ mod WireHelpers {
                                  reff, (*reff).mut_target())
             }
             WP_FAR => {
-                segment = (*(*segment).arena).get_segment((*reff).far_ref().segment_id.get());
+                segment = (*(*segment).get_arena()).get_segment((*reff).far_ref().segment_id.get());
                 let pad : *mut WirePointer =
                     std::cast::transmute((*segment).get_ptr_unchecked((*reff).far_position_in_segment()));
 
                 if ((*reff).is_double_far()) {
-                    segment = (*(*segment).arena).get_segment((*pad).far_ref().segment_id.get());
+                    segment = (*(*segment).get_arena()).get_segment((*pad).far_ref().segment_id.get());
 
                     zero_object_helper(segment,
                                      pad.offset(1),
@@ -464,7 +464,7 @@ mod WireHelpers {
         }
     }
 
-    pub unsafe fn zero_object_helper<'a>(segment : *mut SegmentBuilder,
+    pub unsafe fn zero_object_helper<'a>(segment : *mut SegmentBuilder<'a>,
                                          tag : *mut WirePointer,
                                          ptr: *mut Word) {
         match (*tag).kind() {
@@ -528,13 +528,13 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn zero_pointer_and_fars(segment : *mut SegmentBuilder, reff : *mut WirePointer) {
+    pub unsafe fn zero_pointer_and_fars<'a>(segment : *mut SegmentBuilder<'a>, reff : *mut WirePointer) {
         //# Zero out the pointer itself and, if it is a far pointer,
         //# zero the landing pad as well, but do not zero the object
         //# body. Used when upgrading.
 
         if ((*reff).kind() == WP_FAR) {
-            let pad = (*(*(*segment).arena).get_segment((*reff).far_ref().segment_id.get()))
+            let pad = (*(*(*segment).get_arena()).get_segment((*reff).far_ref().segment_id.get()))
                 .get_ptr_unchecked((*reff).far_position_in_segment());
             let num_elements = if (*reff).is_double_far() { 2 } else { 1 };
             std::ptr::zero_memory(pad, num_elements);
@@ -637,8 +637,8 @@ mod WireHelpers {
         result
     }
 
-    pub unsafe fn transfer_pointer(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer,
-                                   src_segment : *mut SegmentBuilder, src : *mut WirePointer) {
+    pub unsafe fn transfer_pointer<'a>(dst_segment : *mut SegmentBuilder<'a>, dst : *mut WirePointer,
+                                       src_segment : *mut SegmentBuilder<'a>, src : *mut WirePointer) {
         //# Make *dst point to the same object as *src. Both must
         //# reside in the same message, but can be in different
         //# segments. Not always-inline because this is rarely used.
@@ -661,9 +661,9 @@ mod WireHelpers {
         }
     }
 
-    pub unsafe fn transfer_pointer_split(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer,
-                                         src_segment : *mut SegmentBuilder, src_tag : *mut WirePointer,
-                                         src_ptr : *mut Word) {
+    pub unsafe fn transfer_pointer_split<'a>(dst_segment : *mut SegmentBuilder<'a>, dst : *mut WirePointer,
+                                             src_segment : *mut SegmentBuilder<'a>, src_tag : *mut WirePointer,
+                                             src_ptr : *mut Word) {
         // Like the other transfer_pointer, but splits src into a tag and a
         // target. Particularly useful for OrphanBuilder.
 
@@ -703,7 +703,7 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn init_struct_pointer<'a>(mut reff : *mut WirePointer,
-                                          mut segmentBuilder : *mut SegmentBuilder,
+                                          mut segmentBuilder : *mut SegmentBuilder<'a>,
                                           size : StructSize) -> StructBuilder<'a> {
         let ptr : *mut Word = allocate(&mut reff, &mut segmentBuilder, size.total(), WP_STRUCT);
         (*reff).struct_ref_mut().set_from_struct_size(size);
@@ -721,7 +721,7 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn get_writable_struct_pointer<'a>(mut reff : *mut WirePointer,
-                                                  mut segment : *mut SegmentBuilder,
+                                                  mut segment : *mut SegmentBuilder<'a>,
                                                   size : StructSize,
                                                   default_value : *Word) -> StructBuilder<'a> {
         if((*reff).is_null()) {
@@ -800,7 +800,7 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn init_list_pointer<'a>(mut reff : *mut WirePointer,
-                                        mut segmentBuilder : *mut SegmentBuilder,
+                                        mut segmentBuilder : *mut SegmentBuilder<'a>,
                                         element_count : ElementCount,
                                         element_size : FieldSize) -> ListBuilder<'a> {
         match element_size {
@@ -830,7 +830,7 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn init_struct_list_pointer<'a>(mut reff : *mut WirePointer,
-                                               mut segmentBuilder : *mut SegmentBuilder,
+                                               mut segmentBuilder : *mut SegmentBuilder<'a>,
                                                element_count : ElementCount,
                                                element_size : StructSize) -> ListBuilder<'a> {
         match element_size.preferred_list_encoding {
@@ -867,7 +867,7 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn get_writable_list_pointer<'a>(orig_ref : *mut WirePointer,
-                                                orig_segment : *mut SegmentBuilder,
+                                                orig_segment : *mut SegmentBuilder<'a>,
                                                 element_size : FieldSize,
                                                 default_value : *Word) -> ListBuilder<'a> {
         assert!(element_size != INLINE_COMPOSITE,
@@ -969,7 +969,7 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn get_writable_struct_list_pointer<'a>(_origRefIndex : *mut WirePointer,
-                                                       _origSegment : *mut SegmentBuilder,
+                                                       _origSegment : *mut SegmentBuilder<'a>,
                                                        _element_size : StructSize,
                                                        _defaultValue : *Word) -> ListBuilder<'a> {
         fail!("unimplemented")
@@ -977,14 +977,14 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn init_text_pointer<'a>(_reff : *mut WirePointer,
-                                        _segment : *mut SegmentBuilder,
+                                        _segment : *mut SegmentBuilder<'a>,
                                         _size : ByteCount) -> super::SegmentAnd<Text::Builder<'a>> {
         fail!("unimplemented")
     }
 
     #[inline]
     pub unsafe fn set_text_pointer<'a>(mut reff : *mut WirePointer,
-                                       mut segmentBuilder : *mut SegmentBuilder,
+                                       mut segmentBuilder : *mut SegmentBuilder<'a>,
                                        value : &str) {
 
         // initTextPointer is rolled in here
@@ -1008,14 +1008,14 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn init_data_pointer<'a>(_reff : *mut WirePointer,
-                                        _segment : *mut SegmentBuilder,
+                                        _segment : *mut SegmentBuilder<'a>,
                                         _size : ByteCount) -> super::SegmentAnd<Data::Builder<'a>> {
         fail!("unimplemented")
     }
 
     #[inline]
     pub unsafe fn set_data_pointer<'a>(mut reff : *mut WirePointer,
-                                       mut segmentBuilder : *mut SegmentBuilder,
+                                       mut segmentBuilder : *mut SegmentBuilder<'a>,
                                        value : &[u8]) {
 
         // initDataPointer is rolled in here
@@ -1031,7 +1031,7 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn get_writable_text_pointer<'a>(_refIndex : *mut WirePointer,
-                                                _segment : *mut SegmentBuilder,
+                                                _segment : *mut SegmentBuilder<'a>,
                                                 _default_value : *Word,
                                                 _default_size : ByteCount) -> Text::Builder<'a> {
         fail!("unimplemented");
@@ -1039,15 +1039,15 @@ mod WireHelpers {
 
     #[inline]
     pub unsafe fn get_writable_data_pointer<'a>(_refIndex : *mut WirePointer,
-                                                _segment : *mut SegmentBuilder,
+                                                _segment : *mut SegmentBuilder<'a>,
                                                 _default_value : *Word,
                                                 _default_size : ByteCount) -> Data::Builder<'a> {
         fail!("unimplemented");
     }
 
-    pub unsafe fn set_struct_pointer(mut segment : *mut SegmentBuilder,
-                                     mut reff : *mut WirePointer,
-                                     value : StructReader) -> super::SegmentAnd<*mut Word> {
+    pub unsafe fn set_struct_pointer<'a>(mut segment : *mut SegmentBuilder<'a>,
+                                         mut reff : *mut WirePointer,
+                                         value : StructReader) -> super::SegmentAnd<'a, *mut Word> {
         let data_size : WordCount = round_bits_up_to_words(value.data_size as u64);
         let total_size : WordCount = data_size + value.pointer_count as uint * WORDS_PER_POINTER;
 
@@ -1070,9 +1070,9 @@ mod WireHelpers {
         super::SegmentAnd { segment : segment, value : ptr }
     }
 
-    pub unsafe fn set_list_pointer(mut segment : *mut SegmentBuilder,
-                                   mut reff : *mut WirePointer,
-                                   value : ListReader) -> super::SegmentAnd<*mut Word> {
+    pub unsafe fn set_list_pointer<'a>(mut segment : *mut SegmentBuilder<'a>,
+                                       mut reff : *mut WirePointer,
+                                       value : ListReader) -> super::SegmentAnd<'a, *mut Word> {
         let total_size = round_bits_up_to_words((value.element_count * value.step) as u64);
 
         if (value.step <= BITS_PER_WORD) {
@@ -1135,9 +1135,9 @@ mod WireHelpers {
         }
     }
 
-    pub unsafe fn copy_pointer(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer,
-                               mut src_segment : *SegmentReader, mut src : *WirePointer,
-                               nesting_limit : int) -> super::SegmentAnd<*mut Word> {
+    pub unsafe fn copy_pointer<'a>(dst_segment : *mut SegmentBuilder<'a>, dst : *mut WirePointer,
+                                   mut src_segment : *SegmentReader, mut src : *WirePointer,
+                                   nesting_limit : int) -> super::SegmentAnd<'a, *mut Word> {
         let src_target = (*src).target();
 
         if (*src).is_null() {
@@ -1546,14 +1546,14 @@ impl <'a> PointerReader<'a> {
 }
 
 pub struct PointerBuilder<'a> {
-    segment : *mut SegmentBuilder,
+    segment : *mut SegmentBuilder<'a>,
     pointer : *mut WirePointer
 }
 
 impl <'a> PointerBuilder<'a> {
 
     #[inline]
-    pub fn get_root(segment : *mut SegmentBuilder, location : *mut Word) -> PointerBuilder<'a> {
+    pub fn get_root(segment : *mut SegmentBuilder<'a>, location : *mut Word) -> PointerBuilder<'a> {
         PointerBuilder {segment : segment, pointer : unsafe { std::cast::transmute(location) }}
     }
 
@@ -1782,7 +1782,7 @@ pub trait FromStructBuilder<'a> {
 }
 
 pub struct StructBuilder<'a> {
-    segment : *mut SegmentBuilder,
+    segment : *mut SegmentBuilder<'a>,
     data : *mut u8,
     pointers : *mut WirePointer,
     data_size : BitCount32,
@@ -1793,9 +1793,9 @@ pub struct StructBuilder<'a> {
 impl <'a> StructBuilder<'a> {
     pub fn as_reader<T>(&self, f : |StructReader| -> T) -> T {
         unsafe {
-            let segmentReader = (*self.segment).as_reader();
+            let segmentReader = &(*self.segment).reader;
             f ( StructReader {
-                    segment : std::ptr::to_unsafe_ptr(&segmentReader),
+                    segment : std::ptr::to_unsafe_ptr(segmentReader),
                     data : std::cast::transmute(self.data),
                     pointers : std::cast::transmute(self.pointers),
                     data_size : self.data_size,
@@ -1947,7 +1947,7 @@ impl <'a> ListReader<'a> {
 
 
 pub struct ListBuilder<'a> {
-    segment : *mut SegmentBuilder,
+    segment : *mut SegmentBuilder<'a>,
     ptr : *mut u8,
     element_count : ElementCount,
     step : BitCount0,
