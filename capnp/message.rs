@@ -20,8 +20,7 @@ pub static DEFAULT_READER_OPTIONS : ReaderOptions =
 pub struct MessageReader<'a> {
     segments : &'a [ &'a [Word]],
     options : ReaderOptions,
-    segmentReader0 : SegmentReader<'a>,
-    moreSegmentReaders : Option<~[SegmentReader<'a>]>
+    arena : ReaderArena<'a>
 }
 
 type SegmentId = u32;
@@ -61,7 +60,6 @@ impl <'a, 'b> MessageReader<'a> {
             result
         }
     }
-
 }
 
 pub enum AllocationStrategy {
@@ -75,8 +73,9 @@ pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICAL
 pub struct MessageBuilder {
     nextSize : uint,
     allocation_strategy : AllocationStrategy,
-    segment_builders : ~[~SegmentBuilder],
+    arena : BuilderArena,
     segments : ~[~[Word]]
+
 }
 
 impl MessageBuilder {
@@ -149,43 +148,6 @@ impl MessageBuilder {
                     pb.init_struct(layout::HasStructSize::struct_size(None::<T>)));
             }
         }
-    }
-
-    pub fn as_reader<T>(& self, f : |&MessageReader| -> T) -> T {
-        let mut segments : ~[&[Word]] = ~[];
-
-        for ii in range(0, self.segments.len()) {
-            segments.push(self.segments[ii].as_slice());
-        }
-
-        let mut messageReader =
-            MessageReader {segments : segments,
-                            segmentReader0 :
-                            SegmentReader {  messageReader : std::ptr::null(),
-                                             segment: segments[0]
-                              },
-                            moreSegmentReaders : None,
-                            options : DEFAULT_READER_OPTIONS};
-
-        messageReader.segmentReader0.messageReader = std::ptr::to_unsafe_ptr(&messageReader);
-
-        if (segments.len() > 1) {
-
-            let mut moreSegmentReaders = ~[];
-            for segment in segments.slice_from(1).iter() {
-                let segmentReader =
-                    SegmentReader {
-                    messageReader : std::ptr::to_unsafe_ptr(&messageReader),
-                    segment: *segment
-                };
-                moreSegmentReaders.push(segmentReader);
-            }
-
-            messageReader.moreSegmentReaders = Some(moreSegmentReaders);
-        }
-
-
-        f(&messageReader)
     }
 
 }

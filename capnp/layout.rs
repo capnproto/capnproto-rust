@@ -334,7 +334,7 @@ mod WireHelpers {
                 //# the landing pad for a far pointer.
 
                 let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
-                *segment = (*(**segment).messageBuilder).get_segment_with_available(amountPlusRef);
+                *segment = (*(**segment).arena).allocate(amountPlusRef);
                 let ptr : *mut Word = (**segment).allocate(amountPlusRef).unwrap();
 
                 //# Set up the original pointer to be a far pointer to
@@ -375,8 +375,7 @@ mod WireHelpers {
         //# only a tag.
 
         if ((**reff).kind() == WP_FAR) {
-            *segment = std::ptr::to_mut_unsafe_ptr(
-                (*(**segment).messageBuilder).segment_builders[(**reff).far_ref().segment_id.get()]);
+            *segment = (*(**segment).arena).get_segment((**reff).far_ref().segment_id.get());
             let pad : *mut WirePointer =
                 std::cast::transmute((**segment).get_ptr_unchecked((**reff).far_position_in_segment()));
             if !(**reff).is_double_far() {
@@ -387,8 +386,7 @@ mod WireHelpers {
             //# Landing pad is another far pointer. It is followed by a
             //# tag describing the pointed-to object.
             *reff = pad.offset(1);
-            *segment = std::ptr::to_mut_unsafe_ptr(
-                (*(**segment).messageBuilder).segment_builders[(*pad).far_ref().segment_id.get()]);
+            *segment = (*(**segment).arena).get_segment((*pad).far_ref().segment_id.get());
             return (**segment).get_ptr_unchecked((*pad).far_position_in_segment());
         } else {
             ref_target
@@ -404,7 +402,7 @@ mod WireHelpers {
         //# so there are no FAR pointers.
         if !(*segment).is_null() && (**reff).kind() == WP_FAR {
             *segment =
-                (*(**segment).messageReader).get_segment_reader((**reff).far_ref().segment_id.get());
+                (**segment).arena.try_get_segment((**reff).far_ref().segment_id.get());
 
             let ptr : *Word = (**segment).get_start_ptr().offset(
                 (**reff).far_position_in_segment() as int);
@@ -425,7 +423,7 @@ mod WireHelpers {
                 *reff = pad.offset(1);
 
                 *segment =
-                    (*(**segment).messageReader).get_segment_reader((*pad).far_ref().segment_id.get());
+                    (**segment).arena.try_get_segment((*pad).far_ref().segment_id.get());
 
                 return (**segment).get_start_ptr().offset((*pad).far_position_in_segment() as int);
             }
@@ -445,14 +443,12 @@ mod WireHelpers {
                                  reff, (*reff).mut_target())
             }
             WP_FAR => {
-                segment = std::ptr::to_mut_unsafe_ptr(
-                    (*(*segment).messageBuilder).segment_builders[(*reff).far_ref().segment_id.get()]);
+                segment = (*(*segment).arena).get_segment((*reff).far_ref().segment_id.get());
                 let pad : *mut WirePointer =
                     std::cast::transmute((*segment).get_ptr_unchecked((*reff).far_position_in_segment()));
 
                 if ((*reff).is_double_far()) {
-                    segment = std::ptr::to_mut_unsafe_ptr(
-                        (*(*segment).messageBuilder).segment_builders[(*pad).far_ref().segment_id.get()]);
+                    segment = (*(*segment).arena).get_segment((*pad).far_ref().segment_id.get());
 
                     zero_object_helper(segment,
                                      pad.offset(1),
@@ -538,8 +534,8 @@ mod WireHelpers {
         //# body. Used when upgrading.
 
         if ((*reff).kind() == WP_FAR) {
-            let pad = std::ptr::to_mut_unsafe_ptr(
-                (*(*segment).messageBuilder).segment_builders[(*reff).far_ref().segment_id.get()]);
+            let pad = (*(*(*segment).arena).get_segment((*reff).far_ref().segment_id.get()))
+                .get_ptr_unchecked((*reff).far_position_in_segment());
             let num_elements = if (*reff).is_double_far() { 2 } else { 1 };
             std::ptr::zero_memory(pad, num_elements);
         }
@@ -1797,17 +1793,16 @@ pub struct StructBuilder<'a> {
 impl <'a> StructBuilder<'a> {
     pub fn as_reader<T>(&self, f : |StructReader| -> T) -> T {
         unsafe {
-            (*self.segment).as_reader( |segmentReader| {
-                f ( StructReader {
-                        segment : std::ptr::to_unsafe_ptr(segmentReader),
-                        data : std::cast::transmute(self.data),
-                        pointers : std::cast::transmute(self.pointers),
-                        data_size : self.data_size,
-                        pointer_count : self.pointer_count,
-                        bit0offset : self.bit0offset,
-                        nesting_limit : 0x7fffffff
-                    })
-            })
+            let segmentReader = (*self.segment).as_reader();
+            f ( StructReader {
+                    segment : std::ptr::to_unsafe_ptr(&segmentReader),
+                    data : std::cast::transmute(self.data),
+                    pointers : std::cast::transmute(self.pointers),
+                    data_size : self.data_size,
+                    pointer_count : self.pointer_count,
+                    bit0offset : self.bit0offset,
+                    nesting_limit : 0x7fffffff
+                })
         }
     }
 

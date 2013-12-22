@@ -11,33 +11,33 @@ use message;
 pub type SegmentId = u32;
 
 pub struct SegmentReader<'a> {
-    messageReader : * message::MessageReader<'a>,
-    segment : &'a [Word]
+    arena : ArenaPtr<'a>,
+    ptr : * Word,
+    size : WordCount
 }
 
 impl <'a> SegmentReader<'a> {
 
     pub unsafe fn get_start_ptr(&self) -> *Word {
-        self.segment.unsafe_ref(0)
+        self.ptr.offset(0)
     }
 
     pub unsafe fn contains_interval(&self, from : *Word, to : *Word) -> bool {
         let fromAddr : uint = std::cast::transmute(from);
         let toAddr : uint = std::cast::transmute(to);
-        let thisBegin : uint = std::cast::transmute(self.segment.unsafe_ref(0));
-        let thisEnd : uint = std::cast::transmute(
-            self.segment.unsafe_ref(self.segment.len()));
+        let thisBegin : uint = std::cast::transmute(self.ptr);
+        let thisEnd : uint = std::cast::transmute(self.ptr.offset(self.size as int));
         return (fromAddr >= thisBegin && toAddr <= thisEnd);
         // TODO readLimiter
     }
 }
 
 pub struct SegmentBuilder {
-    messageBuilder : *mut message::MessageBuilder,
     id : SegmentId,
     ptr : *mut Word,
     pos : WordCount,
-    size : WordCount
+    size : WordCount,
+    arena : *mut BuilderArena
 }
 
 impl SegmentBuilder {
@@ -84,12 +84,10 @@ impl SegmentBuilder {
     #[inline]
     pub fn get_segment_id(&self) -> SegmentId { self.id }
 
-    pub fn as_reader<T>(&mut self, f : |&SegmentReader| -> T) -> T {
-        unsafe {
-            (*self.messageBuilder).as_reader(|messageReader| {
-                f(&*messageReader.get_segment_reader(self.id))
-            })
-        }
+    pub fn as_reader(&mut self) -> SegmentReader {
+        SegmentReader { arena : BuilderArenaPtr(self.arena),
+                        ptr : unsafe { std::cast::transmute(self.ptr) },
+                        size : self.size }
     }
 }
 
@@ -97,41 +95,74 @@ impl SegmentBuilder {
 // The following stuff is currently unused.
 
 pub struct ReaderArena<'a> {
-    message : message::MessageReader<'a>,
+//    message : *message::MessageReader<'a>,
     segment0 : SegmentReader<'a>,
 
-    moreSegments : Option<~[SegmentReader<'a>]>
+    more_segments : Option<~[SegmentReader<'a>]>
     //XXX should this be a map as in capnproto-c++?
 }
 
 pub struct BuilderArena {
     message : *message::MessageBuilder,
-    segment0 : SegmentBuilder
+    segment0 : SegmentBuilder,
+    more_segments : Option<~[~SegmentBuilder]>,
 }
 
-pub enum Arena<'a> {
-    Reader_(ReaderArena<'a>),
-    Builder_(BuilderArena)
+impl BuilderArena {
+
+    #[inline]
+    pub fn allocate(&mut self, amount : WordCount) -> *mut SegmentBuilder {
+        unsafe {
+            (*self.message).get_segment_with_available(amount)
+        }
+    }
+
+    pub fn get_segment(&self, id : SegmentId) -> *mut SegmentBuilder {
+        if (id == 0) {
+            std::ptr::to_unsafe_ptr(&self.segment0)
+        } else {
+            fail!()
+        }
+    }
 }
 
+pub enum ArenaPtr<'a> {
+    ReaderArenaPtr(*ReaderArena<'a>),
+    BuilderArenaPtr(*mut BuilderArena),
+    Null
+}
 
-impl <'a> Arena<'a>  {
-    pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader<'a> {
-        match self {
-            &Reader_(ref reader) => {
-                if (id == 0) {
-                    return std::ptr::to_unsafe_ptr(&reader.segment0);
-                } else {
-                    match reader.moreSegments {
-                        None => {fail!("no segments!")}
-                        Some(ref segs) => {
-                            unsafe {segs.unsafe_ref(id as uint - 1)}
+impl <'a> ArenaPtr<'a>  {
+    pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader {
+        unsafe {
+            match self {
+                &ReaderArenaPtr(reader) => {
+                    if (id == 0) {
+                        return std::ptr::to_unsafe_ptr(&(*reader).segment0);
+                    } else {
+                        match (*reader).more_segments {
+                            None => {fail!("no segments!")}
+                            Some(ref segs) => {
+                                unsafe {segs.unsafe_ref(id as uint - 1)}
+                            }
                         }
                     }
                 }
-            }
-            &Builder_(ref _builder) => {
-                fail!()
+                &BuilderArenaPtr(builder) => {
+                    if (id == 0) {
+                        std::ptr::to_unsafe_ptr(&(*builder).segment0)
+                    } else {
+                        match (*builder).more_segments {
+                            None => {fail!("no more segments!")}
+                            Some(ref segs) => {
+                                segs.unsafe_ref(id as uint - 1).as_reader()
+                            }
+                        }
+                    }
+                }
+                &Null => {
+                    fail!()
+                }
             }
         }
     }
