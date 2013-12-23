@@ -252,7 +252,7 @@ fn list_list_type_param(scope_map : &std::hashmap::HashMap<u64, ~[~str]>,
                     format!("DataList::{}<'a>", module)
                 }
                 Type::Struct(st) => {
-                    format!("StructList::{}<'a, {}::{}>", module,
+                    format!("StructList::{}<'a, {}::{}<'a>>", module,
                             scope_map.get(&st.get_type_id()).connect("::"), module)
                 }
                 Type::List(t) => {
