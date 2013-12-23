@@ -64,8 +64,12 @@ impl <'a> SegmentBuilder<'a> {
         return result;
     }
 
+    pub fn current_size(&self) -> WordCount {
+        ptr_sub(self.pos, self.reader.ptr)
+    }
+
     pub fn allocate(&mut self, amount : WordCount) -> Option<*mut Word> {
-        if (amount > self.reader.size - ptr_sub(self.pos, self.reader.ptr)) {
+        if (amount > self.reader.size - self.current_size()) {
             return None;
         } else {
             let result = self.pos;
@@ -140,7 +144,19 @@ impl <'a> BuilderArena<'a> {
 
 
     pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
-        fail!()
+        unsafe {
+            match self.more_segments {
+                None => {
+                    std::vec::raw::buf_as_slice::<Word, T>(
+                        self.segment0.reader.ptr,
+                        self.segment0.current_size(),
+                        |v| cont([v]) )
+                }
+                Some(_) => {
+                    fail!()
+                }
+            }
+        }
     }
 }
 
