@@ -95,15 +95,13 @@ macro_rules! pass_by_object(
                         let response = messageRes.init_root::<$testcase::ResponseBuilder>();
                         let expected = $testcase::setup_request(&mut rng, request);
 
-                        request.as_reader(|requestReader| {
-                            $testcase::handle_request(requestReader, response);
-                        });
+                        let requestReader = request.as_reader();
+                        $testcase::handle_request(requestReader, response);
 
-                        response.as_reader(|responseReader| {
-                            if (! $testcase::check_response(responseReader, expected)) {
-                                fail!("Incorrect response.");
-                            }
-                        });
+                        let responseReader = response.as_reader();
+                        if (! $testcase::check_response(responseReader, expected)) {
+                            fail!("Incorrect response.");
+                        }
                     });
                 });
             }

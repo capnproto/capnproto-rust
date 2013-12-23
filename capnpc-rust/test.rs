@@ -59,37 +59,38 @@ fn test_prim_list () {
         assert_eq!(testPrimList.has_void_list(), true);
         voidList.set(257, ());
 
-        testPrimList.as_reader(|testPrimListReader| {
-            let uint8List = testPrimListReader.get_uint8_list();
-            for i in range(0, uint8List.size()) {
-                assert_eq!(uint8List[i], i as u8);
-            }
-            let uint64List = testPrimListReader.get_uint64_list();
-            for i in range(0, uint64List.size()) {
-                 assert_eq!(uint64List[i], i as u64);
-            }
 
-            assert_eq!(testPrimListReader.has_bool_list(), true);
-            let boolList = testPrimListReader.get_bool_list();
-            assert!(boolList[0]);
-            assert!(boolList[1]);
-            assert!(boolList[2]);
-            assert!(boolList[3]);
-            assert!(!boolList[4]);
-            assert!(boolList[5]);
-            assert!(!boolList[6]);
-            assert!(!boolList[7]);
-            assert!(boolList[8]);
-            assert!(!boolList[9]);
-            assert!(!boolList[10]);
-            assert!(!boolList[11]);
-            assert!(!boolList[12]);
-            assert!(boolList[13]);
-            assert!(!boolList[63]);
-            assert!(boolList[64]);
 
-            assert_eq!(testPrimListReader.get_void_list().size(), 1025);
-        });
+        let testPrimListReader = testPrimList.as_reader();
+        let uint8List = testPrimListReader.get_uint8_list();
+        for i in range(0, uint8List.size()) {
+            assert_eq!(uint8List[i], i as u8);
+        }
+        let uint64List = testPrimListReader.get_uint64_list();
+        for i in range(0, uint64List.size()) {
+             assert_eq!(uint64List[i], i as u64);
+        }
+
+        assert_eq!(testPrimListReader.has_bool_list(), true);
+        let boolList = testPrimListReader.get_bool_list();
+        assert!(boolList[0]);
+        assert!(boolList[1]);
+        assert!(boolList[2]);
+        assert!(boolList[3]);
+        assert!(!boolList[4]);
+        assert!(boolList[5]);
+        assert!(!boolList[6]);
+        assert!(!boolList[7]);
+        assert!(boolList[8]);
+        assert!(!boolList[9]);
+        assert!(!boolList[10]);
+        assert!(!boolList[11]);
+        assert!(!boolList[12]);
+        assert!(boolList[13]);
+        assert!(!boolList[63]);
+        assert!(boolList[64]);
+
+        assert_eq!(testPrimListReader.get_void_list().size(), 1025);
     });
 }
 
@@ -111,14 +112,13 @@ fn test_blob () {
             test_blob.set_data_field([0u8, 1u8, 2u8, 3u8, 4u8]);
             assert_eq!(test_blob.has_data_field(), true);
 
-            test_blob.as_reader(|test_blob_reader| {
+            let test_blob_reader = test_blob.as_reader();
 
-                    assert_eq!(test_blob_reader.has_text_field(), true);
-                    assert_eq!(test_blob_reader.has_data_field(), true);
+            assert_eq!(test_blob_reader.has_text_field(), true);
+            assert_eq!(test_blob_reader.has_data_field(), true);
 
-                    assert_eq!(test_blob_reader.get_text_field(), "abcdefghi");
-                    assert_eq!(test_blob_reader.get_data_field(), [0u8, 1u8, 2u8, 3u8, 4u8]);
-                });
+            assert_eq!(test_blob_reader.get_text_field(), "abcdefghi");
+            assert_eq!(test_blob_reader.get_data_field(), [0u8, 1u8, 2u8, 3u8, 4u8]);
         });
 }
 
@@ -149,16 +149,16 @@ fn test_big_struct() {
 
         bigStruct.set_bool_field(true);
 
-        bigStruct.as_reader(|bigStructReader| {
-            assert_eq!(bigStructReader.has_struct_field(), true);
-            assert_eq!(bigStructReader.get_int8_field(), -128);
-            assert_eq!(bigStructReader.get_int32_field(), 1009);
 
-            let innerReader = bigStructReader.get_struct_field();
-            assert!(!innerReader.get_bool_field_a());
-            assert!(innerReader.get_bool_field_b());
-            assert_eq!(innerReader.get_float64_field(), 0.1234567);
-        });
+        let bigStructReader = bigStruct.as_reader();
+        assert_eq!(bigStructReader.has_struct_field(), true);
+        assert_eq!(bigStructReader.get_int8_field(), -128);
+        assert_eq!(bigStructReader.get_int32_field(), 1009);
+
+        let innerReader = bigStructReader.get_struct_field();
+        assert!(!innerReader.get_bool_field_a());
+        assert!(innerReader.get_bool_field_b());
+        assert_eq!(innerReader.get_float64_field(), 0.1234567);
     });
 }
 
@@ -229,7 +229,7 @@ fn test_complex_list () {
         let struct_list_list = test_complex_list.init_struct_list_list(1);
         struct_list_list.init(0,1)[0].set_int8_field(-1);
 
-        test_complex_list.as_reader(|complex_list_reader| {
+        let complex_list_reader = test_complex_list.as_reader();
             let enumListReader = complex_list_reader.get_enum_list();
             for i in range::<uint>(0,10) {
                 assert_eq!(enumListReader[i], Some(AnEnum::Qux));
@@ -273,7 +273,6 @@ fn test_complex_list () {
             assert!(complex_list_reader.get_data_list_list()[0][0] == [255, 254, 253]);
 
             assert!(complex_list_reader.get_struct_list_list()[0][0].get_int8_field() == -1);
-        });
     });
 }
 
@@ -312,9 +311,8 @@ fn test_any_pointer() {
             let any_pointer = test_any_pointer.init_any_pointer_field();
             any_pointer.set_as_text("xyzzy");
 
-            test_any_pointer.as_reader(|reader| {
-                    assert_eq!(reader.get_any_pointer_field().get_as_text(), "xyzzy");
-                });
+            let reader = test_any_pointer.as_reader();
+            assert_eq!(reader.get_any_pointer_field().get_as_text(), "xyzzy");
         });
 }
 
@@ -342,7 +340,8 @@ fn test_writable_struct_pointer() {
             assert_eq!(other_struct_field.get_uint64_field(), 0);
             other_struct_field.set_uint32_field(-31);
 
-            other_struct_field.as_reader(|reader| { big_struct.set_struct_field(reader) });
+            let reader = other_struct_field.as_reader();
+            big_struct.set_struct_field(reader);
             assert_eq!(big_struct.get_struct_field().get_uint32_field(), -31);
             assert_eq!(other_struct_field.get_uint32_field(), -31);
             other_struct_field.set_uint32_field(42);
