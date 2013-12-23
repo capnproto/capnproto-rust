@@ -137,7 +137,7 @@ impl <'a> BuilderArena<'a> {
                     let result_ptr = std::ptr::to_mut_unsafe_ptr(msegs[len-1]);
                     match msegs[len - 1].allocate(amount) {
                         Some(result) => { return (result_ptr, result) }
-                        None => { len - 1 }
+                        None => { len + 1 }
                     }
                 }
             };
