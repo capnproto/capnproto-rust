@@ -98,9 +98,6 @@ impl <'a> SegmentBuilder<'a> {
     }
 }
 
-// ----------------
-// The following stuff is currently unused.
-
 pub struct ReaderArena<'a> {
 //    message : *message::MessageReader<'a>,
     segment0 : SegmentReader<'a>,
