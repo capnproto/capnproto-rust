@@ -86,6 +86,6 @@ impl MessageSize {
 }
 
 #[inline]
-unsafe fn ptr_sub<T, U:std::ptr::RawPtr<T>, V: std::ptr::RawPtr<T>>(p1 : U, p2 : V) -> uint {
+pub fn ptr_sub<T, U:std::ptr::RawPtr<T>, V: std::ptr::RawPtr<T>>(p1 : U, p2 : V) -> uint {
     return (p1.to_uint() - p2.to_uint()) / std::mem::size_of::<T>();
 }

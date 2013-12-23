@@ -334,8 +334,9 @@ mod WireHelpers {
                 //# the landing pad for a far pointer.
 
                 let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
-                *segment = (*(**segment).get_arena()).allocate(amountPlusRef);
-                let ptr : *mut Word = (**segment).allocate(amountPlusRef).unwrap();
+                let allocation = (*(**segment).get_arena()).allocate(amountPlusRef);
+                *segment = allocation.first();
+                let ptr = allocation.second();
 
                 //# Set up the original pointer to be a far pointer to
                 //# the new segment.

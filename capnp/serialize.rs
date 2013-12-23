@@ -13,7 +13,7 @@ pub mod InputStreamMessageReader {
 
     use std;
     use io;
-    use arena::SegmentReader;
+    use arena::{SegmentReader, ReaderArena, ReaderArenaPtr, Null};
     use common::*;
     use endian::*;
     use message::*;
@@ -93,29 +93,32 @@ pub mod InputStreamMessageReader {
 
         let mut result = ~MessageReader {
             segments : segments,
-            segmentReader0:
-                SegmentReader {
-                    messageReader : std::ptr::null(),
-                    segment: segment0
+            arena : ReaderArena {
+                segment0 : SegmentReader {
+                    arena : Null,
+                    ptr : unsafe { segment0.unsafe_ref(0) },
+                    size : segment0.len()
                 },
-            moreSegmentReaders : None,
+                more_segments : None
+            },
             options : options
         };
 
+        let arena_ptr = ReaderArenaPtr (std::ptr::to_unsafe_ptr(&result.arena));
 
-        result.segmentReader0.messageReader = std::ptr::to_unsafe_ptr(result);
+        result.arena.segment0.arena = arena_ptr;
 
         if (segmentCount > 1 ) {
             let mut moreSegmentReaders = ~[];
             for segment in segments.slice_from(1).iter() {
-                let segmentReader =
-                    SegmentReader {
-                    messageReader : std::ptr::to_unsafe_ptr(result),
-                    segment: *segment
+                let segmentReader = SegmentReader {
+                    arena : arena_ptr,
+                    ptr : unsafe { segment.unsafe_ref(0) },
+                    size : segment.len()
                 };
                 moreSegmentReaders.push(segmentReader);
             }
-            result.moreSegmentReaders = Some(moreSegmentReaders);
+            result.arena.more_segments = Some(moreSegmentReaders);
         }
 
         cont(result)
@@ -123,37 +126,41 @@ pub mod InputStreamMessageReader {
 }
 
 pub fn write_message<T: std::io::Writer>(outputStream : &mut T,
-                                        message : &MessageBuilder) {
+                                         message : &MessageBuilder) {
 
-    let tableSize : uint = ((message.segments.len() + 2) & (!1));
+    message.get_segments_for_output(
+        |segments| {
 
-    let mut table : ~[WireValue<u32>] = std::vec::with_capacity(tableSize);
-    unsafe { table.set_len(tableSize) }
+            let tableSize : uint = ((segments.len() + 2) & (!1));
 
-    table[0].set((message.segments.len() - 1) as u32);
+            let mut table : ~[WireValue<u32>] = std::vec::with_capacity(tableSize);
+            unsafe { table.set_len(tableSize) }
 
-    for i in range(0, message.segments.len()) {
-        table[i + 1].set(message.segment_builders[i].pos as u32);
-    }
-    if (message.segments.len() % 2 == 0) {
-        // Set padding.
-        table[message.segments.len() + 1].set( 0 );
-    }
+            table[0].set((segments.len() - 1) as u32);
 
-    unsafe {
-        let ptr : *u8 = std::cast::transmute(table.unsafe_ref(0));
-        std::vec::raw::buf_as_slice::<u8,()>(ptr, table.len() * 4, |buf| {
-            outputStream.write(buf);
-        })
-    }
+            for i in range(0, segments.len()) {
+                table[i + 1].set(segments[i].len() as u32);
+            }
+            if (segments.len() % 2 == 0) {
+                // Set padding.
+                table[segments.len() + 1].set( 0 );
+            }
 
-    for i in range(0, message.segments.len()) {
-        unsafe {
-            let ptr : *u8 = std::cast::transmute(message.segments[i].unsafe_ref(0));
-            std::vec::raw::buf_as_slice::<u8,()>(
-                ptr,
-                message.segment_builders[i].pos * BYTES_PER_WORD,
-                |buf| { outputStream.write(buf) });
-        }
-    }
+            unsafe {
+                let ptr : *u8 = std::cast::transmute(table.unsafe_ref(0));
+                std::vec::raw::buf_as_slice::<u8,()>(ptr, table.len() * 4, |buf| {
+                        outputStream.write(buf);
+                    })
+            }
+
+            for i in range(0, segments.len()) {
+                unsafe {
+                    let ptr : *u8 = std::cast::transmute(segments[i].unsafe_ref(0));
+                    std::vec::raw::buf_as_slice::<u8,()>(
+                        ptr,
+                        segments[i].len() * BYTES_PER_WORD,
+                        |buf| { outputStream.write(buf) });
+                }
+            }
+        });
 }

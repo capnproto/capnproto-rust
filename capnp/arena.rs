@@ -69,7 +69,7 @@ impl <'a> SegmentBuilder<'a> {
             return None;
         } else {
             let result = self.pos;
-            self.pos = self.pos.offset(amount as int);
+            self.pos = unsafe { self.pos.offset(amount as int) };
             return Some(result);
         }
     }
@@ -114,18 +114,33 @@ pub struct BuilderArena<'a> {
 impl <'a> BuilderArena<'a> {
 
     #[inline]
-    pub fn allocate(&mut self, amount : WordCount) -> *mut SegmentBuilder<'a> {
+    pub fn allocate(&mut self, amount : WordCount) -> (*mut SegmentBuilder<'a>, *mut Word) {
         unsafe {
-            (*self.message).get_segment_with_available(amount)
+            match self.segment0.allocate(amount) {
+                Some(result) => { return (std::ptr::to_mut_unsafe_ptr(&mut self.segment0), result) }
+                None => {}
+            }
+
+            match self.more_segments {
+                Some(_) => {}
+                None() => {}
+            }
+
+            fail!()
         }
     }
 
-    pub fn get_segment(&self, id : SegmentId) -> *mut SegmentBuilder<'a> {
+    pub fn get_segment(&mut self, id : SegmentId) -> *mut SegmentBuilder<'a> {
         if (id == 0) {
-            std::ptr::to_mut_unsafe_ptr(&self.segment0)
+            std::ptr::to_mut_unsafe_ptr(&mut self.segment0)
         } else {
             fail!()
         }
+    }
+
+
+    pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
+        fail!()
     }
 }
 

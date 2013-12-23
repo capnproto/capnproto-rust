@@ -72,17 +72,17 @@ impl <'a>MessageBuilder<'a> {
                   allocationStrategy : AllocationStrategy,
                   cont : |&mut MessageBuilder| -> T) -> T {
 
-        let segments = ~[];
+        let mut segments = ~[];
         segments.push(allocate_zeroed_words(firstSegmentWords));
         let mut arena = ~BuilderArena {
             message : std::ptr::mut_null(),
             segment0 : SegmentBuilder {
                 reader : SegmentReader {
-                    ptr : segments[0].unsafe_ref(0),
+                    ptr : unsafe { segments[0].unsafe_ref(0) },
                     size : segments[0].len(),
                     arena : Null },
                 id : 0,
-                pos : segments[0].unsafe_mut_ref(0)
+                pos : unsafe { segments[0].unsafe_mut_ref(0) }
             },
             more_segments : None };
 
@@ -103,46 +103,44 @@ impl <'a>MessageBuilder<'a> {
         MessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY, cont)
     }
 
-    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder<'a> {
+    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> (*mut SegmentBuilder<'a>, *mut Word) {
         let size = std::cmp::max(minimumSize, self.nextSize);
         let mut id = self.segments.len() as u32;
-        let new_words = allocate_zeroed_words(size);
-        let ptr = new_words.unsafe_mut_ref(0);
+        let mut new_words = allocate_zeroed_words(size);
+        let ptr = unsafe { new_words.unsafe_mut_ref(0) };
         self.segments.push(new_words);
-        let new_builder = ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(self.arena), id, ptr, size);
-        let result_ptr = std::ptr::to_mut_unsafe_ptr(new_builder);
-        if self.arena.more_segments.is_none() {
-            self.arena.more_segments = Some(~[new_builder]);
-        } else {
-            self.arena.more_segments.unwrap().push(new_builder);
+        let mut new_builder = ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(self.arena), id, ptr, size);
+        let result_ptr = std::ptr::to_mut_unsafe_ptr(&mut new_builder);
+        match self.arena.more_segments {
+            None =>
+                self.arena.more_segments = Some(~[new_builder]),
+            Some(ref mut msegs) => {
+                msegs.push(new_builder);
+            }
         }
 
         match self.allocation_strategy {
             GROW_HEURISTICALLY => { self.nextSize += size; }
             _ => { }
         }
-
-        result_ptr
+        fail!()
+        //result_ptr
     }
 
-    pub fn get_segment_with_available(&mut self, minimumAvailable : WordCount)
-        -> *mut SegmentBuilder<'a> {
-        //if self.segment0.available()
-        if (self.segment_builders.last().available() >= minimumAvailable) {
-            return std::ptr::to_mut_unsafe_ptr(self.segment_builders[self.segments.len() - 1]);
-        } else {
-            return self.allocate_segment(minimumAvailable);
-        }
+    pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
+        self.arena.get_segments_for_output(cont)
     }
+}
 
+impl <'a>MessageBuilder<'a> {
     // Note: This type signature ought to prevent a MessageBuilder
     // from being initted twice simultaneously. It currently does not
-    // fulfil that goal, perhaps due to Rust issue #5121.
-    pub fn init_root<'a, T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&'a mut self) -> T {
+    // fulfill that goal, perhaps due to Rust issue #5121.
+    pub fn init_root<T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&'a mut self) -> T {
         // Rolled in this stuff form getRootSegment.
-        let rootSegment = std::ptr::to_mut_unsafe_ptr(self.segment_builders[0]);
+        let rootSegment = unsafe { std::ptr::to_mut_unsafe_ptr(&mut self.arena.segment0) };
 
-        match self.segment_builders[0].allocate(WORDS_PER_POINTER) {
+        match self.arena.segment0.allocate(WORDS_PER_POINTER) {
             None => {fail!("could not allocate root pointer") }
             Some(location) => {
                 //assert!(location == 0,
