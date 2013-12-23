@@ -80,14 +80,13 @@ impl <'a> SegmentBuilder<'a> {
 
     #[inline]
     pub unsafe fn get_ptr_unchecked(&mut self, offset : WordCount) -> *mut Word {
-        // need to const cast
-        self.reader.ptr.offset(offset as int)
+        std::cast::transmute_mut_unsafe(self.reader.ptr.offset(offset as int))
     }
 
     #[inline]
     pub fn get_segment_id(&self) -> SegmentId { self.id }
 
-    pub fn get_arena(&self) -> *mut BuilderArena {
+    pub fn get_arena(&self) -> *mut BuilderArena<'a> {
         match self.reader.arena {
             BuilderArenaPtr(b) => b,
             _ => fail!()
@@ -115,13 +114,13 @@ pub struct BuilderArena<'a> {
 impl <'a> BuilderArena<'a> {
 
     #[inline]
-    pub fn allocate(&mut self, amount : WordCount) -> *mut SegmentBuilder {
+    pub fn allocate(&mut self, amount : WordCount) -> *mut SegmentBuilder<'a> {
         unsafe {
             (*self.message).get_segment_with_available(amount)
         }
     }
 
-    pub fn get_segment(&self, id : SegmentId) -> *mut SegmentBuilder {
+    pub fn get_segment(&self, id : SegmentId) -> *mut SegmentBuilder<'a> {
         if (id == 0) {
             std::ptr::to_mut_unsafe_ptr(&self.segment0)
         } else {
@@ -137,7 +136,7 @@ pub enum ArenaPtr<'a> {
 }
 
 impl <'a> ArenaPtr<'a>  {
-    pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader {
+    pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader<'a> {
         unsafe {
             match self {
                 &ReaderArenaPtr(reader) => {
@@ -159,7 +158,7 @@ impl <'a> ArenaPtr<'a>  {
                         match (*builder).more_segments {
                             None => {fail!("no more segments!")}
                             Some(ref segs) => {
-                                segs[id as uint - 1].as_reader()
+                               std::ptr::to_unsafe_ptr(&segs[id as uint - 1].reader)
                             }
                         }
                     }

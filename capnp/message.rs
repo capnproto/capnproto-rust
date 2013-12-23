@@ -28,35 +28,22 @@ type SegmentId = u32;
 impl <'a> MessageReader<'a> {
 
     #[inline]
-    pub unsafe fn get_segment_reader<'b>(&'b self, id : SegmentId) -> *SegmentReader<'b> {
-        if (id == 0) {
-            return std::ptr::to_unsafe_ptr(&self.segmentReader0);
-        } else {
-            match self.moreSegmentReaders {
-                None => {fail!("no segments!")}
-                Some(ref segs) => {
-                    segs.unsafe_ref(id as uint - 1)
-                }
-            }
-        }
-    }
-
-    #[inline]
     pub fn get_options<'b>(&'b self) -> &'b ReaderOptions {
         return &self.options;
     }
 }
 
-impl <'a, 'b> MessageReader<'a> {
-    pub fn get_root<T : layout::FromStructReader<'b>>(&'b self) -> T {
+impl <'a> MessageReader<'a> {
+    pub fn get_root<T : layout::FromStructReader<'a>>(&self) -> T {
         unsafe {
-            let segment = self.get_segment_reader(0);
+            let segment : *SegmentReader<'a> = std::ptr::to_unsafe_ptr(&self.arena.segment0);
 
-            let pointer_reader = layout::PointerReader::get_root(
+            let pointer_reader = layout::PointerReader::get_root::<'a>(
                 segment, (*segment).get_start_ptr(), self.options.nestingLimit as int);
 
             let result : T = layout::FromStructReader::from_struct_reader(
-                pointer_reader.get_struct(std::ptr::null()));
+                pointer_reader.get_struct::<'a>(std::ptr::null()));
+
             result
         }
     }
@@ -75,7 +62,6 @@ pub struct MessageBuilder<'a> {
     allocation_strategy : AllocationStrategy,
     arena : ~BuilderArena<'a>,
     segments : ~[~[Word]]
-
 }
 
 impl <'a>MessageBuilder<'a> {
@@ -89,18 +75,19 @@ impl <'a>MessageBuilder<'a> {
         let segments = ~[];
         segments.push(allocate_zeroed_words(firstSegmentWords));
         let mut arena = ~BuilderArena {
-            message : std::ptr::null(),
+            message : std::ptr::mut_null(),
             segment0 : SegmentBuilder {
+                reader : SegmentReader {
+                    ptr : segments[0].unsafe_ref(0),
+                    size : segments[0].len(),
+                    arena : Null },
                 id : 0,
-                ptr : segments[0].unsafe_mut_ref(0),
-                pos : 0,
-                size : segments[0].len(),
-                arena : std::ptr::mut_null()
+                pos : segments[0].unsafe_mut_ref(0)
             },
             more_segments : None };
 
-        let arena_ptr = std::ptr::to_mut_unsafe_ptr(&arena);
-        arena.segment0.arena = arena_ptr;
+        let arena_ptr = std::ptr::to_mut_unsafe_ptr(arena);
+        arena.segment0.reader.arena = BuilderArenaPtr(arena_ptr);
 
         let mut result = ~MessageBuilder {
             nextSize : firstSegmentWords,
@@ -116,12 +103,19 @@ impl <'a>MessageBuilder<'a> {
         MessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY, cont)
     }
 
-    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder {
+    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> *mut SegmentBuilder<'a> {
         let size = std::cmp::max(minimumSize, self.nextSize);
-        self.segments.push(allocate_zeroed_words(size));
-        self.segment_builders.push(~SegmentBuilder::new(self, size));
-        let idx = self.segment_builders.len() - 1;
-        let result_ptr = std::ptr::to_mut_unsafe_ptr(self.segment_builders[idx]);
+        let mut id = self.segments.len() as u32;
+        let new_words = allocate_zeroed_words(size);
+        let ptr = new_words.unsafe_mut_ref(0);
+        self.segments.push(new_words);
+        let new_builder = ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(self.arena), id, ptr, size);
+        let result_ptr = std::ptr::to_mut_unsafe_ptr(new_builder);
+        if self.arena.more_segments.is_none() {
+            self.arena.more_segments = Some(~[new_builder]);
+        } else {
+            self.arena.more_segments.unwrap().push(new_builder);
+        }
 
         match self.allocation_strategy {
             GROW_HEURISTICALLY => { self.nextSize += size; }
@@ -132,7 +126,8 @@ impl <'a>MessageBuilder<'a> {
     }
 
     pub fn get_segment_with_available(&mut self, minimumAvailable : WordCount)
-        -> *mut SegmentBuilder {
+        -> *mut SegmentBuilder<'a> {
+        //if self.segment0.available()
         if (self.segment_builders.last().available() >= minimumAvailable) {
             return std::ptr::to_mut_unsafe_ptr(self.segment_builders[self.segments.len() - 1]);
         } else {
