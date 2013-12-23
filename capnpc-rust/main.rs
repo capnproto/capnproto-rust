@@ -679,7 +679,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     initter_interior.push(
                                         Line(format!("TextList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
 
-                                    (Some(format!("TextList::Reader<'a>")),
+                                    (Some(format!("TextList::Reader")),
                                      Some(format!("TextList::Builder<'a>")))
                                 }
                                 Type::Data(()) => {

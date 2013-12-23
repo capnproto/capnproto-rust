@@ -125,12 +125,35 @@ impl <'a> BuilderArena<'a> {
                 None => {}
             }
 
+            //# Need to fall back to additional segments.
+
+            let id = match self.more_segments {
+                None => {
+                    self.more_segments = Some(~[]);
+                    1
+                }
+                Some(ref mut msegs) => {
+                    let len = msegs.len();
+                    let result_ptr = std::ptr::to_mut_unsafe_ptr(msegs[len-1]);
+                    match msegs[len - 1].allocate(amount) {
+                        Some(result) => { return (result_ptr, result) }
+                        None => { len - 1 }
+                    }
+                }
+            };
+
+            let (words, size) = (*self.message).allocate_segment(amount);
+            let mut new_builder = ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(self), id as u32, words, size);
+            let builder_ptr = std::ptr::to_mut_unsafe_ptr(new_builder);
+
             match self.more_segments {
-                Some(_) => {}
-                None() => {}
+                None => fail!("impossible"),
+                Some(ref mut msegs) => {
+                    msegs.push(new_builder);
+                }
             }
 
-            fail!()
+            (builder_ptr, words)
         }
     }
 
@@ -138,7 +161,12 @@ impl <'a> BuilderArena<'a> {
         if (id == 0) {
             std::ptr::to_mut_unsafe_ptr(&mut self.segment0)
         } else {
-            fail!()
+            match self.more_segments {
+                None => fail!("invalide segment id {}", id),
+                Some(ref mut msegs) => {
+                    std::ptr::to_mut_unsafe_ptr(msegs[id - 1])
+                }
+            }
         }
     }
 
@@ -187,7 +215,7 @@ impl <'a> ArenaPtr<'a>  {
                         match (*reader).more_segments {
                             None => {fail!("no segments!")}
                             Some(ref segs) => {
-                                unsafe {segs.unsafe_ref(id as uint - 1)}
+                                segs.unsafe_ref(id as uint - 1)
                             }
                         }
                     }

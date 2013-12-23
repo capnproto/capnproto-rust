@@ -103,28 +103,17 @@ impl <'a>MessageBuilder<'a> {
         MessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY, cont)
     }
 
-    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> (*mut SegmentBuilder<'a>, *mut Word) {
+    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> (*mut Word, WordCount) {
         let size = std::cmp::max(minimumSize, self.nextSize);
-        let mut id = self.segments.len() as u32;
         let mut new_words = allocate_zeroed_words(size);
         let ptr = unsafe { new_words.unsafe_mut_ref(0) };
         self.segments.push(new_words);
-        let mut new_builder = ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(self.arena), id, ptr, size);
-        let result_ptr = std::ptr::to_mut_unsafe_ptr(&mut new_builder);
-        match self.arena.more_segments {
-            None =>
-                self.arena.more_segments = Some(~[new_builder]),
-            Some(ref mut msegs) => {
-                msegs.push(new_builder);
-            }
-        }
 
         match self.allocation_strategy {
             GROW_HEURISTICALLY => { self.nextSize += size; }
             _ => { }
         }
-        fail!()
-        //result_ptr
+        (ptr, size)
     }
 
     pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
@@ -138,7 +127,7 @@ impl <'a>MessageBuilder<'a> {
     // fulfill that goal, perhaps due to Rust issue #5121.
     pub fn init_root<T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&mut self) -> T {
         // Rolled in this stuff form getRootSegment.
-        let rootSegment = unsafe { std::ptr::to_mut_unsafe_ptr(&mut self.arena.segment0) };
+        let rootSegment = std::ptr::to_mut_unsafe_ptr(&mut self.arena.segment0);
 
         match self.arena.segment0.allocate(WORDS_PER_POINTER) {
             None => {fail!("could not allocate root pointer") }
