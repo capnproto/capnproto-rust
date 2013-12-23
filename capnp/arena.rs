@@ -153,7 +153,7 @@ impl <'a> BuilderArena<'a> {
                 }
             }
 
-            (builder_ptr, words)
+            (builder_ptr, (*builder_ptr).allocate(amount).unwrap() )
         }
     }
 
