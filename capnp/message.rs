@@ -136,7 +136,7 @@ impl <'a>MessageBuilder<'a> {
     // Note: This type signature ought to prevent a MessageBuilder
     // from being initted twice simultaneously. It currently does not
     // fulfill that goal, perhaps due to Rust issue #5121.
-    pub fn init_root<T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&'a mut self) -> T {
+    pub fn init_root<T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&mut self) -> T {
         // Rolled in this stuff form getRootSegment.
         let rootSegment = unsafe { std::ptr::to_mut_unsafe_ptr(&mut self.arena.segment0) };
 
