@@ -96,6 +96,8 @@ impl <'a>MessageBuilder<'a> {
             arena : arena
         };
 
+        (*result.arena).message = std::ptr::to_mut_unsafe_ptr(result);
+
         cont(result)
     }
 
