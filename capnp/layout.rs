@@ -1634,13 +1634,13 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn set_struct(&self, value : &StructReader<'a>) {
+    pub fn set_struct(&self, value : &StructReader) {
         unsafe {
             WireHelpers::set_struct_pointer(self.segment, self.pointer, *value);
         }
     }
 
-    pub fn set_list(&self, value : &ListReader<'a>) {
+    pub fn set_list(&self, value : &ListReader) {
         unsafe {
             WireHelpers::set_list_pointer(self.segment, self.pointer, *value);
         }

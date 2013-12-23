@@ -339,7 +339,7 @@ pub mod TextList {
 
         pub fn size(&self) -> uint { self.builder.size() }
 
-        pub fn set(&self, index : uint, value : Text::Reader<'a>) {
+        pub fn set(&self, index : uint, value : Text::Reader) {
             assert!(index < self.size());
             self.builder.get_pointer_element(index).set_text(value);
         }
@@ -410,7 +410,7 @@ pub mod DataList {
 
         pub fn size(&self) -> uint { self.builder.size() }
 
-        pub fn set(&self, index : uint, value : Data::Reader<'a>) {
+        pub fn set(&self, index : uint, value : Data::Reader) {
             assert!(index < self.size());
             self.builder.get_pointer_element(index).set_data(value);
         }

@@ -325,10 +325,11 @@ fn test_writable_struct_pointer() {
 
     MessageBuilder::new_default(
         |message| {
-/*            let big_struct = message.init_root::<TestBigStruct::Builder>();
+            let big_struct = message.init_root::<TestBigStruct::Builder>();
 
             let struct_field = big_struct.init_struct_field();
             assert_eq!(struct_field.get_uint64_field(), 0);
+
             struct_field.set_uint64_field(-7);
             assert_eq!(struct_field.get_uint64_field(), -7);
             assert_eq!(big_struct.get_struct_field().get_uint64_field(), -7);
@@ -336,11 +337,12 @@ fn test_writable_struct_pointer() {
             assert_eq!(struct_field.get_uint64_field(), 0);
             assert_eq!(struct_field.get_uint32_field(), 0);
 
+
             // getting before init is the same as init
             let other_struct_field = big_struct.get_another_struct_field();
             assert_eq!(other_struct_field.get_uint64_field(), 0);
             other_struct_field.set_uint32_field(-31);
-
+/*
             other_struct_field.as_reader(|reader| { big_struct.set_struct_field(reader) });
             assert_eq!(big_struct.get_struct_field().get_uint32_field(), -31);
             assert_eq!(other_struct_field.get_uint32_field(), -31);

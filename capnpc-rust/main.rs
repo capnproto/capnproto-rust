@@ -606,7 +606,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
                                                        offset)));
                     initter_params.push("size : uint");
-                    (Some(~"Text::Reader<'a>"), Some(~"Text::Builder<'a>"))
+                    (Some(~"Text::Reader"), Some(~"Text::Builder<'a>"))
                 }
                 Some(Type::Data(())) => {
                     setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);",
@@ -614,7 +614,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
                                                        offset)));
                     initter_params.push("size : uint");
-                    (Some(~"Data::Reader<'a>"), Some(~"Data::Builder<'a>"))
+                    (Some(~"Data::Reader"), Some(~"Data::Builder<'a>"))
                 }
                 Some(Type::List(ot1)) => {
                     setter_interior.push(
@@ -686,7 +686,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                     initter_interior.push(
                                         Line(format!("DataList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
 
-                                    (Some(format!("DataList::Reader<'a>")),
+                                    (Some(format!("DataList::Reader")),
                                      Some(format!("DataList::Builder<'a>")))
                                 }
                                 Type::List(t1) => {
@@ -720,7 +720,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     initter_interior.push(
                       Line(format!("{}::Builder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
                                 theMod, offset, theMod)));
-                    (Some(format!("{}::Reader<'a>", theMod)), Some(format!("{}::Builder<'a>", theMod)))
+                    (Some(format!("{}::Reader", theMod)), Some(format!("{}::Builder<'a>", theMod)))
                 }
                 Some(Type::Interface(_)) => {
                     fail!("unimplemented");

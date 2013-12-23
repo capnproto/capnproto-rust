@@ -70,11 +70,11 @@ impl <'a>MessageBuilder<'a> {
     //  a closure here.
     pub fn new<T>(firstSegmentWords : uint,
                   allocationStrategy : AllocationStrategy,
-                  cont : |&mut MessageBuilder| -> T) -> T {
+                  cont : |&mut MessageBuilder<'a>| -> T) -> T {
 
         let mut segments = ~[];
         segments.push(allocate_zeroed_words(firstSegmentWords));
-        let mut arena = ~BuilderArena {
+        let mut arena = ~BuilderArena::<'a> {
             message : std::ptr::mut_null(),
             segment0 : SegmentBuilder {
                 reader : SegmentReader {
