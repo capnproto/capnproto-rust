@@ -4,9 +4,8 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-extern mod extra;
-
 use std;
+
 use std::rand::*;
 use common::*;
 use catrank_capnp::*;
@@ -87,7 +86,7 @@ pub fn handle_request(request : SearchResultList::Reader,
         scoredResults.push(ScoredResult {score : score, result : result});
     }
 
-    extra::sort::quick_sort(scoredResults, |v1, v2| {v1.score <= v2.score });
+    scoredResults.sort_by(|v1, v2| { if v1.score < v2.score { std::cmp::Less } else { std::cmp::Greater } });
 
     let list = response.init_results(scoredResults.len());
     for i in range(0, list.size()) {

@@ -4,8 +4,6 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-#[link(name = "test", vers = "alpha", author = "dwrensha")];
-
 #[crate_type = "bin"];
 
 extern mod capnp;

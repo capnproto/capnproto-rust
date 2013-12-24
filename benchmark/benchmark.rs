@@ -7,8 +7,6 @@
 #[feature(macro_rules)];
 #[feature(globs)];
 
-#[link(name = "benchmark", vers = "alpha", author = "dwrensha")];
-
 #[crate_type = "bin"];
 
 extern mod capnp;
