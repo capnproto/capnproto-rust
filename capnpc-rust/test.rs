@@ -169,67 +169,66 @@ fn test_complex_list () {
 
     MessageBuilder::new_default(|message| {
 
-        let test_complex_list = message.init_root::<TestComplexList::Builder>();
+            let test_complex_list = message.init_root::<TestComplexList::Builder>();
 
-        let enumList = test_complex_list.init_enum_list(100);
+            let enumList = test_complex_list.init_enum_list(100);
 
-        for i in range::<uint>(0, 10) {
-            enumList.set(i, AnEnum::Qux);
-        }
-        for i in range::<uint>(10, 20) {
-            enumList.set(i, AnEnum::Bar);
-        }
+            for i in range::<uint>(0, 10) {
+                enumList.set(i, AnEnum::Qux);
+            }
+            for i in range::<uint>(10, 20) {
+                enumList.set(i, AnEnum::Bar);
+            }
 
-        let text_list = test_complex_list.init_text_list(2);
-        text_list.set(0, "garply");
-        text_list.set(1, "foo");
+            let text_list = test_complex_list.init_text_list(2);
+            text_list.set(0, "garply");
+            text_list.set(1, "foo");
 
-        let data_list = test_complex_list.init_data_list(2);
-        data_list.set(0, [0u8, 1u8, 2u8]);
-        data_list.set(1, [255u8, 254u8, 253u8]);
+            let data_list = test_complex_list.init_data_list(2);
+            data_list.set(0, [0u8, 1u8, 2u8]);
+            data_list.set(1, [255u8, 254u8, 253u8]);
 
-        let prim_list_list = test_complex_list.init_prim_list_list(2);
-        let prim_list = prim_list_list.init(0, 3);
-        prim_list.set(0, 5);
-        prim_list.set(1, 6);
-        prim_list.set(2, 7);
-        assert_eq!(prim_list.size(), 3);
-        let prim_list = prim_list_list.init(1, 1);
-        prim_list.set(0,-1);
+            let prim_list_list = test_complex_list.init_prim_list_list(2);
+            let prim_list = prim_list_list.init(0, 3);
+            prim_list.set(0, 5);
+            prim_list.set(1, 6);
+            prim_list.set(2, 7);
+            assert_eq!(prim_list.size(), 3);
+            let prim_list = prim_list_list.init(1, 1);
+            prim_list.set(0,-1);
 
-        // get_writable_list_pointer is unimplemented
-        //prim_list_list[0].set(0, 1);
+            let prim_list_list_list = test_complex_list.init_prim_list_list_list(2);
+            let prim_list_list = prim_list_list_list.init(0, 2);
+            let prim_list = prim_list_list.init(0, 2);
+            prim_list.set(0, 0);
+            prim_list.set(1, 1);
+            let prim_list = prim_list_list.init(1, 1);
+            prim_list.set(0, 255);
+            let prim_list_list = prim_list_list_list.init(1, 1);
+            let prim_list = prim_list_list.init(0, 3);
+            prim_list.set(0, 10);
+            prim_list.set(1, 9);
+            prim_list.set(2, 8);
 
-        let prim_list_list_list = test_complex_list.init_prim_list_list_list(2);
-        let prim_list_list = prim_list_list_list.init(0, 2);
-        let prim_list = prim_list_list.init(0, 2);
-        prim_list.set(0, 0);
-        prim_list.set(1, 1);
-        let prim_list = prim_list_list.init(1, 1);
-        prim_list.set(0, 255);
-        let prim_list_list = prim_list_list_list.init(1, 1);
-        let prim_list = prim_list_list.init(0, 3);
-        prim_list.set(0, 10);
-        prim_list.set(1, 9);
-        prim_list.set(2, 8);
+            let enum_list_list = test_complex_list.init_enum_list_list(2);
+            let enum_list = enum_list_list.init(0, 1);
+            enum_list.set(0, AnEnum::Bar);
+            let enum_list = enum_list_list.init(1, 2);
+            enum_list.set(0, AnEnum::Foo);
+            enum_list.set(1, AnEnum::Qux);
 
-        let enum_list_list = test_complex_list.init_enum_list_list(2);
-        let enum_list = enum_list_list.init(0, 1);
-        enum_list.set(0, AnEnum::Bar);
-        let enum_list = enum_list_list.init(1, 2);
-        enum_list.set(0, AnEnum::Foo);
-        enum_list.set(1, AnEnum::Qux);
+            let text_list_list = test_complex_list.init_text_list_list(1);
+            text_list_list.init(0,1).set(0, "abc");
 
-        let text_list_list = test_complex_list.init_text_list_list(1);
-        text_list_list.init(0,1).set(0, "abc");
+            let data_list_list = test_complex_list.init_data_list_list(1);
+            data_list_list.init(0,1).set(0, [255, 254, 253]);
 
-        let data_list_list = test_complex_list.init_data_list_list(1);
-        data_list_list.init(0,1).set(0, [255, 254, 253]);
+            let struct_list_list = test_complex_list.init_struct_list_list(1);
+            struct_list_list.init(0,1)[0].set_int8_field(-1);
 
-        let struct_list_list = test_complex_list.init_struct_list_list(1);
-        struct_list_list.init(0,1)[0].set_int8_field(-1);
 
-        let complex_list_reader = test_complex_list.as_reader();
+
+            let complex_list_reader = test_complex_list.as_reader();
             let enumListReader = complex_list_reader.get_enum_list();
             for i in range::<uint>(0,10) {
                 assert_eq!(enumListReader[i], Some(AnEnum::Qux));

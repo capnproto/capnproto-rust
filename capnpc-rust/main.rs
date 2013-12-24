@@ -228,7 +228,9 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
 }
 
 fn list_list_type_param(scope_map : &std::hashmap::HashMap<u64, ~[~str]>,
-                        typ : schema_capnp::Type::Reader, is_reader: bool) -> ~str {
+                        typ : schema_capnp::Type::Reader,
+                        is_reader: bool,
+                        lifetime_name: &str) -> ~str {
     use schema_capnp::Type;
     let module = if is_reader { "Reader" } else { "Builder" };
     match typ.which() {
@@ -239,25 +241,25 @@ fn list_list_type_param(scope_map : &std::hashmap::HashMap<u64, ~[~str]>,
                     Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
                     Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
                     Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) => {
-                    format!("PrimitiveList::{}<'a, {}>", module, prim_type_str(t))
+                    format!("PrimitiveList::{}<{}, {}>", module, lifetime_name, prim_type_str(t))
                 }
                 Type::Enum(en) => {
                     let theMod = scope_map.get(&en.get_type_id()).connect("::");
-                    format!("EnumList::{}<'a,{}::Reader>", module, theMod)
+                    format!("EnumList::{}<{},{}::Reader>", module, lifetime_name, theMod)
                 }
                 Type::Text(()) => {
-                    format!("TextList::{}<'a>", module)
+                    format!("TextList::{}<{}>", module, lifetime_name)
                 }
                 Type::Data(()) => {
-                    format!("DataList::{}<'a>", module)
+                    format!("DataList::{}<{}>", module, lifetime_name)
                 }
                 Type::Struct(st) => {
-                    format!("StructList::{}<'a, {}::{}<'a>>", module,
-                            scope_map.get(&st.get_type_id()).connect("::"), module)
+                    format!("StructList::{}<{lifetime}, {}::{}<{lifetime}>>", module,
+                            scope_map.get(&st.get_type_id()).connect("::"), module, lifetime = lifetime_name)
                 }
                 Type::List(t) => {
-                    let inner = list_list_type_param(scope_map, t.get_element_type(), is_reader);
-                    format!("ListList::{}<'a, {}>", module, inner)
+                    let inner = list_list_type_param(scope_map, t.get_element_type(), is_reader, lifetime_name);
+                    format!("ListList::{}<{}, {}>", module, lifetime_name, inner)
                 }
                 Type::AnyPointer(()) => {
                     fail!("List(AnyPointer) is unsupported");
@@ -374,7 +376,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                                          module, member, offset)));
                         }
                         Some(Type::List(t1)) => {
-                            let type_param = list_list_type_param(scopeMap, t1.get_element_type(), isReader);
+                            let type_param = list_list_type_param(scopeMap, t1.get_element_type(), isReader, "'a");
                             return (format!("ListList::{}<'a,{}>", module, type_param),
                                     Line(format!("ListList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
                                                  module, member, offset)))
@@ -541,6 +543,8 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                          discriminantValue as uint)));
     }
 
+    let mut setter_lifetime_param = "";
+
     let (maybe_reader_type, maybe_builder_type) : (Option<~str>, Option<~str>) = match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
@@ -690,13 +694,16 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                      Some(format!("DataList::Builder<'a>")))
                                 }
                                 Type::List(t1) => {
-                                    let type_param = list_list_type_param(scopeMap, t1.get_element_type(), false);
+                                    let type_param = list_list_type_param(scopeMap, t1.get_element_type(),
+                                                                          false, "'a");
                                     initter_interior.push(
                                         Line(format!("ListList::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER,size))",
                                                      type_param, offset)));
 
-                                    (Some(format!("ListList::Reader<'a, {}>",
-                                             list_list_type_param(scopeMap, t1.get_element_type(), true))),
+                                    setter_lifetime_param = "<'b>";
+
+                                    (Some(format!("ListList::Reader<'b, {}>",
+                                             list_list_type_param(scopeMap, t1.get_element_type(), true, "'b"))),
                                      Some(format!("ListList::Builder<'a, {}>", type_param)))
                                 }
                                 Type::AnyPointer(()) => {fail!("List(AnyPointer) not supported")}
@@ -740,8 +747,8 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     match maybe_reader_type {
         Some(reader_type) => {
             result.push(Line(~"#[inline]"));
-            result.push(Line(format!("pub fn set_{}(&self, {} : {}) \\{",
-                                     styled_name, setter_param, reader_type)));
+            result.push(Line(format!("pub fn set_{}{}(&self, {} : {}) \\{",
+                                     styled_name, setter_lifetime_param, setter_param, reader_type)));
             result.push(Indent(~Branch(setter_interior)));
             result.push(Line(~"}"));
         }
