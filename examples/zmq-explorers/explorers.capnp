@@ -13,3 +13,17 @@ struct Observation {
        warning @7 : Text;
     }
 }
+
+struct Grid {
+   struct Cell {
+      latestTimestamp @0 : Int64;
+      numberOfUpdates @1 : UInt32;
+      meanRed         @2 : Float32;
+      meanGreen       @3 : Float32;
+      meanBlue        @4 : Float32;
+   }
+
+   cells @0 : List(List(Cell));
+   numberOfUpdates @1 : UInt32;
+   latestTimestamp @2 : Int64;
+}
