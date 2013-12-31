@@ -1,4 +1,5 @@
 extern mod capnp;
+extern mod extra;
 
 use std::rand::Rng;
 
@@ -94,9 +95,11 @@ static WORDS : [&'static str, .. 20] = [
 
 fn add_diagnostic<'a>(obs : explorers_capnp::Observation::Builder<'a>) {
     let mut rng = std::rand::task_rng();
-    if rng.gen_range::<u16>(0, 1000) < 300 {
+    if rng.gen_range::<u16>(0, 1000) < 200 {
         let mut warning = ~"";
         warning.push_str(rng.choose(WORDS));
+        warning.push_str(" ");
+        warning.push_str(rng.gen_ascii_str(8));
         warning.push_str(" ");
         warning.push_str(rng.choose(WORDS));
         obs.init_diagnostic().set_warning(warning);
@@ -105,15 +108,19 @@ fn add_diagnostic<'a>(obs : explorers_capnp::Observation::Builder<'a>) {
 
 
 pub fn main () {
-    let image = Image::load(&std::path::Path::new("/Users/dwrensha/Desktop/rust_logo.ppm"));
+
+    let args = std::os::args();
+    if args.len() != 2 {
+        error!("please supply a file name");
+        return;
+    }
+
+    let image = Image::load(&std::path::Path::new(args[1]));
 
     let mut x : f32 = 0.5;
     let mut y : f32 = 0.5;
 
-    let mut c : uint = 0;
     loop {
-
-        c += 1;
         x += std::rand::task_rng().gen_range::<f32>(-0.01, 0.01);
         y += std::rand::task_rng().gen_range::<f32>(-0.01, 0.01);
 
@@ -128,6 +135,9 @@ pub fn main () {
             |message| {
                 let obs = message.init_root::<explorers_capnp::Observation::Builder>();
 
+                obs.set_timestamp(extra::time::now().to_timespec().sec);
+                obs.set_x(x);
+                obs.set_y(y);
                 obs.set_red(pixel.red);
                 obs.set_green(pixel.green);
                 obs.set_blue(pixel.blue);
