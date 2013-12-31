@@ -19,7 +19,7 @@ should produce the library `libcapnp`, the compiler plugin
 sample program like this:
 
 ```
-$ ./samples/addressbook/addressbook write | ./samples/addressbook/addressbook read
+$ ./examples/addressbook/addressbook write | ./examples/addressbook/addressbook read
 ```
 
 ## Implementation Notes

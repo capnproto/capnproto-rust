@@ -9,7 +9,7 @@ COMPILATION_MARKER=capnp/compilation-marker
 
 .PHONY : capnprust clean all capnp-test capnpc-rust-test check benchmark
 
-all : samples/addressbook/addressbook
+all : examples/addressbook/addressbook
 
 clean :
 	rm -rf capnp/libcapnp* $(COMPILATION_MARKER) capnpc-rust/capnpc-rust
@@ -24,9 +24,9 @@ $(COMPILATION_MARKER) : $(CAPNPRUST_SOURCES)
 capnpc-rust/capnpc-rust : $(COMPILATION_MARKER) capnpc-rust/main.rs capnpc-rust/schema_capnp.rs
 	$(RUSTC) -L./capnp capnpc-rust/main.rs
 
-samples/addressbook/addressbook : capnpc-rust/capnpc-rust samples/addressbook/addressbook.rs
-	capnpc -o ./capnpc-rust/capnpc-rust samples/addressbook/addressbook.capnp
-	$(RUSTC) -L./capnp samples/addressbook/addressbook.rs
+examples/addressbook/addressbook : capnpc-rust/capnpc-rust examples/addressbook/addressbook.rs
+	capnpc -o ./capnpc-rust/capnpc-rust examples/addressbook/addressbook.capnp
+	$(RUSTC) -L./capnp examples/addressbook/addressbook.rs
 
 capnp-test :
 	$(RUSTC) --test capnp/lib.rs
