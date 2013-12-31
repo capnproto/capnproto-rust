@@ -288,8 +288,8 @@ fn prim_default (value : &schema_capnp::Value::Reader) -> Option<~str> {
         Some(Value::Uint16(i)) => Some(i.to_str()),
         Some(Value::Uint32(i)) => Some(i.to_str()),
         Some(Value::Uint64(i)) => Some(i.to_str()),
-        Some(Value::Float32(f)) => Some(f.to_str()),
-        Some(Value::Float64(f)) => Some(f.to_str()),
+        Some(Value::Float32(f)) => Some(format!("{}f32", f.to_str())),
+        Some(Value::Float64(f)) => Some(format!("{}f64", f.to_str())),
         _ => {fail!()}
     }
 }
@@ -445,8 +445,8 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             Line(format!("self.{}.get_data_field::<{}>({})",
                          member, typ, offset))
         } else {
-            Line(format!("self.{}.get_data_field_mask::<{}>({}, {})",
-                         member, typ, offset, default))
+            Line(format!("self.{}.get_data_field_mask::<{typ}>({}, {}{typ})",
+                         member, offset, default, typ=typ))
         };
         return (typ.to_owned(), interior);
     }

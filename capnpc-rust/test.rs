@@ -287,6 +287,13 @@ fn test_defaults() {
             assert_eq!(test_defaults.get_int8_field(), -123);
             assert_eq!(test_defaults.get_int16_field(), -12345);
             assert_eq!(test_defaults.get_int32_field(), -12345678);
+            assert_eq!(test_defaults.get_int64_field(), -123456789012345);
+            assert_eq!(test_defaults.get_uint8_field(), 234u8);
+            assert_eq!(test_defaults.get_uint16_field(), 45678u16);
+            assert_eq!(test_defaults.get_uint32_field(), 3456789012u32);
+            assert_eq!(test_defaults.get_uint64_field(), 12345678901234567890u64);
+            assert_eq!(test_defaults.get_float32_field(), 1234.5);
+            assert_eq!(test_defaults.get_float64_field(), -123e45);
 
             test_defaults.set_bool_field(false);
             assert_eq!(test_defaults.get_bool_field(), false);

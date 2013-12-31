@@ -79,6 +79,13 @@ struct TestDefaults {
    int8Field     @2  :Int8      = -123;
    int16Field    @3  :Int16     = -12345;
    int32Field    @4  :Int32     = -12345678;
+   int64Field    @5  :Int64     = -123456789012345;
+   uint8Field    @6  :UInt8     = 234;
+   uint16Field   @7  :UInt16    = 45678;
+   uint32Field   @8  :UInt32    = 3456789012;
+   uint64Field   @9  :UInt64    = 12345678901234567890;
+   float32Field  @10 :Float32   = 1234.5;
+   float64Field  @11 :Float64   = -123e45;
 }
 
 struct TestAnyPointer {
