@@ -121,28 +121,25 @@ pub fn main () {
     }
 
     let image = Image::load(&std::path::Path::new(args[1]));
+    let mut rng = std::rand::task_rng();
 
-    let mut x : f32 = 0.5;
-    let mut y : f32 = 0.5;
+    let mut x = rng.gen_range::<f32>(0.0, 1.0);
+    let mut y = rng.gen_range::<f32>(0.0, 1.0);
 
     loop {
-        x += std::rand::task_rng().gen_range::<f32>(-0.01, 0.01);
-        y += std::rand::task_rng().gen_range::<f32>(-0.01, 0.01);
+        x += rng.gen_range::<f32>(-0.01, 0.01);
+        y += rng.gen_range::<f32>(-0.01, 0.01);
 
         if x >= 1.0 { x -= 1.0 }
         if y >= 1.0 { y -= 1.0 }
         if x < 0.0 { x += 1.0 }
         if y < 0.0 { y += 1.0 }
 
-        capnp::message::MessageBuilder::new_default(
-            |message| {
+        capnp::message::MessageBuilder::new_default( |message| {
                 let obs = message.init_root::<explorers_capnp::Observation::Builder>();
-
                 image.take_measurement(x, y, obs);
-
                 capnp::serialize::write_message(&mut std::io::stdout(), message);
             });
-
     }
 
 }
