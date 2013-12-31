@@ -19,7 +19,6 @@ fn fudge(x : u8) -> u8 {
     return y as u8;
 }
 
-
 struct Image {
     width : u32,
     height : u32,
@@ -27,6 +26,8 @@ struct Image {
 }
 
 impl Image {
+
+    // quick and dirty parsing of PPM image
     fn load(file : &std::path::Path) -> Image {
         use std::io::{Open, Read};
         match std::io::File::open_mode(file, Open, Read) {
@@ -71,18 +72,22 @@ impl Image {
         self.pixels[((y * self.width) + x)]
     }
 
-    fn take_measurement(&self, x : f32, y : f32) -> Pixel {
+    fn take_measurement(&self, x : f32, y : f32, obs : explorers_capnp::Observation::Builder) {
 
         assert!(x >= 0.0); assert!(y >= 0.0); assert!(x < 1.0); assert!(y < 1.0);
 
-        let mut result = self.get_pixel((x * self.width as f32).floor() as u32,
-                                        (y * self.height as f32).floor() as u32);
+        obs.set_timestamp(extra::time::now().to_timespec().sec);
+        obs.set_x(x);
+        obs.set_y(y);
 
-        result.red = fudge(result.red);
-        result.green = fudge(result.green);
-        result.blue = fudge(result.blue);
+        let pixel = self.get_pixel((x * self.width as f32).floor() as u32,
+                                   (y * self.height as f32).floor() as u32);
 
-        result
+        obs.set_red(fudge(pixel.red));
+        obs.set_green(fudge(pixel.green));
+        obs.set_blue(fudge(pixel.blue));
+
+        add_diagnostic(obs);
     }
 }
 
@@ -129,19 +134,11 @@ pub fn main () {
         if x < 0.0 { x += 1.0 }
         if y < 0.0 { y += 1.0 }
 
-        let pixel = image.take_measurement(x,y);
-
         capnp::message::MessageBuilder::new_default(
             |message| {
                 let obs = message.init_root::<explorers_capnp::Observation::Builder>();
 
-                obs.set_timestamp(extra::time::now().to_timespec().sec);
-                obs.set_x(x);
-                obs.set_y(y);
-                obs.set_red(pixel.red);
-                obs.set_green(pixel.green);
-                obs.set_blue(pixel.blue);
-                add_diagnostic(obs);
+                image.take_measurement(x, y, obs);
 
                 capnp::serialize::write_message(&mut std::io::stdout(), message);
             });
