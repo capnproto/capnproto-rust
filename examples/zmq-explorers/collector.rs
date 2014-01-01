@@ -57,14 +57,23 @@ pub fn main() {
                     None => {}
                 }
 
-
                 println!("x, y: {}, {}", obs.get_x(), obs.get_y());
 
                 let x = (obs.get_x() * GRID_WIDTH as f32).floor() as uint;
                 let y = (obs.get_y() * GRID_HEIGHT as f32).floor() as uint;
 
+                grid.set_latest_timestamp(obs.get_timestamp());
+                grid.set_number_of_updates(grid.get_number_of_updates() + 1);
+
                 let cell = cells[x][y];
                 cell.set_latest_timestamp(obs.get_timestamp());
+
+                let n = cell.get_number_of_updates();
+                cell.set_mean_red((n as f32 * cell.get_mean_red() + obs.get_red() as f32) / (n + 1) as f32);
+                cell.set_mean_green((n as f32 * cell.get_mean_green() + obs.get_green() as f32) / (n + 1) as f32);
+                cell.set_mean_blue((n as f32 * cell.get_mean_blue() + obs.get_blue() as f32) / (n + 1) as f32);
+                cell.set_number_of_updates(n + 1);
+
 
             }
 
