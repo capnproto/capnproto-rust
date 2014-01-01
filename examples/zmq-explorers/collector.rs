@@ -18,6 +18,9 @@ pub fn main() {
     assert!(subscriber.set_subscribe([]).is_ok());
     assert!(responder.bind("tcp://*:5556").is_ok());
 
+    let mut poll_items = [responder.as_poll_item(zmq::POLLIN),
+                          subscriber.as_poll_item(zmq::POLLIN)];
+
     capnp::message::MessageBuilder::new_default::<()>(|message| {
             let grid = message.init_root::<explorers_capnp::Grid::Builder>();
             let cells = grid.init_cells(GRID_WIDTH);
@@ -26,56 +29,65 @@ pub fn main() {
             }
 
             loop {
-                let mut frames = ~[];
-                loop {
-                    match subscriber.recv_msg(0) {
-                        Ok(m) => frames.push(m),
-                        Err(_) => fail!()
+
+                match zmq::poll(poll_items, -1) { Ok(()) => {}, Err(_) => fail!("poll failure") };
+
+                if (poll_items[0].revents & zmq::POLLIN) != 0 {
+
+                    println!("I need to respond");
+
+                } else if (poll_items[1].revents & zmq::POLLIN) != 0 {
+                    // there's an observation waiting for us
+
+                    let mut frames = ~[];
+                    loop {
+                        match subscriber.recv_msg(0) {
+                            Ok(m) => frames.push(m),
+                            Err(_) => fail!()
+                        }
+
+                        match subscriber.get_rcvmore() {
+                            Ok(true) => (),
+                            Ok(false) => break,
+                            Err(_) => fail!()
+                        }
                     }
 
-                    match subscriber.get_rcvmore() {
-                        Ok(true) => (),
-                        Ok(false) => break,
-                        Err(_) => fail!()
+                    let segments = common::frames_to_segments(frames);
+                    let reader = capnp::message::MessageReader::new(segments,
+                                                                    capnp::message::DEFAULT_READER_OPTIONS);
+                    let obs = reader.get_root::<explorers_capnp::Observation::Reader>();
+
+                    if obs.get_x() >= 1.0 || obs.get_x() < 0.0 ||
+                        obs.get_y() >= 1.0 || obs.get_y() < 0.0 {
+                        error!("out of range");
                     }
-                }
 
-                let segments = common::frames_to_segments(frames);
-
-                let reader = capnp::message::MessageReader::new(segments, capnp::message::DEFAULT_READER_OPTIONS);
-
-                let obs = reader.get_root::<explorers_capnp::Observation::Reader>();
-
-                if obs.get_x() >= 1.0 || obs.get_x() < 0.0 ||
-                    obs.get_y() >= 1.0 || obs.get_y() < 0.0 {
-                    error!("out of range");
-                }
-
-                match obs.get_diagnostic().which() {
-                    Some(Observation::Diagnostic::Ok(())) => {}
-                    Some(Observation::Diagnostic::Warning(s)) => {
+                    match obs.get_diagnostic().which() {
+                        Some(Observation::Diagnostic::Ok(())) => {}
+                        Some(Observation::Diagnostic::Warning(s)) => {
                             println!("received diagnostic: {}", s);
+                        }
+                        None => {}
                     }
-                    None => {}
+
+                    let x = (obs.get_x() * GRID_WIDTH as f32).floor() as uint;
+                    let y = (obs.get_y() * GRID_HEIGHT as f32).floor() as uint;
+
+                    grid.set_latest_timestamp(obs.get_timestamp());
+                    grid.set_number_of_updates(grid.get_number_of_updates() + 1);
+
+                    let cell = cells[x][y];
+                    cell.set_latest_timestamp(obs.get_timestamp());
+
+                    let n = cell.get_number_of_updates();
+                    cell.set_mean_red((n as f32 * cell.get_mean_red() + obs.get_red() as f32) / (n + 1) as f32);
+                    cell.set_mean_green(
+                        (n as f32 * cell.get_mean_green() + obs.get_green() as f32) / (n + 1) as f32);
+                    cell.set_mean_blue(
+                        (n as f32 * cell.get_mean_blue() + obs.get_blue() as f32) / (n + 1) as f32);
+                    cell.set_number_of_updates(n + 1);
                 }
-
-                println!("x, y: {}, {}", obs.get_x(), obs.get_y());
-
-                let x = (obs.get_x() * GRID_WIDTH as f32).floor() as uint;
-                let y = (obs.get_y() * GRID_HEIGHT as f32).floor() as uint;
-
-                grid.set_latest_timestamp(obs.get_timestamp());
-                grid.set_number_of_updates(grid.get_number_of_updates() + 1);
-
-                let cell = cells[x][y];
-                cell.set_latest_timestamp(obs.get_timestamp());
-
-                let n = cell.get_number_of_updates();
-                cell.set_mean_red((n as f32 * cell.get_mean_red() + obs.get_red() as f32) / (n + 1) as f32);
-                cell.set_mean_green((n as f32 * cell.get_mean_green() + obs.get_green() as f32) / (n + 1) as f32);
-                cell.set_mean_blue((n as f32 * cell.get_mean_blue() + obs.get_blue() as f32) / (n + 1) as f32);
-                cell.set_number_of_updates(n + 1);
-
 
             }
 
