@@ -4,6 +4,7 @@ extern mod extra;
 
 use std::rand::Rng;
 
+pub mod common;
 pub mod explorers_capnp;
 
 struct Pixel {
@@ -146,10 +147,7 @@ pub fn main () {
                 message.get_segments_for_output(|segments| {
                         for ii in range(0, segments.len()) {
                             let flags = if ii == segments.len() - 1 { 0 } else { zmq::SNDMORE };
-                            publisher.send(unsafe { std::cast::transmute(
-                                        std::unstable::raw::Slice {data : segments[ii].unsafe_ref(0),
-                                                                   len : segments[ii].len() * 8 } )},
-                                           flags);
+                            publisher.send(common::slice_cast(segments[ii]), flags);
                         }
 
                     });
