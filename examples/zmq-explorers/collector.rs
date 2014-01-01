@@ -34,7 +34,17 @@ pub fn main() {
 
                 if (poll_items[0].revents & zmq::POLLIN) != 0 {
 
-                    println!("I need to respond");
+                    match responder.recv_msg(0) {
+                        Ok(_) => (),
+                        Err(_) => fail!()
+                    }
+
+                    message.get_segments_for_output(|segments| {
+                            for ii in range(0, segments.len()) {
+                                let flags = if ii == segments.len() - 1 { 0 } else { zmq::SNDMORE };
+                                responder.send(common::slice_cast(segments[ii]), flags);
+                            }
+                    });
 
                 } else if (poll_items[1].revents & zmq::POLLIN) != 0 {
                     // there's an observation waiting for us
@@ -56,7 +66,7 @@ pub fn main() {
                     let segments = common::frames_to_segments(frames);
                     let reader = capnp::message::MessageReader::new(segments,
                                                                     capnp::message::DEFAULT_READER_OPTIONS);
-                    let obs = reader.get_root::<explorers_capnp::Observation::Reader>();
+                    let obs = reader.get_root::<Observation::Reader>();
 
                     if obs.get_x() >= 1.0 || obs.get_x() < 0.0 ||
                         obs.get_y() >= 1.0 || obs.get_y() < 0.0 {
