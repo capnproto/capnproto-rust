@@ -112,7 +112,6 @@ fn add_diagnostic<'a>(obs : explorers_capnp::Observation::Builder<'a>) {
     }
 }
 
-
 pub fn main () {
 
     let args = std::os::args();
@@ -143,8 +142,20 @@ pub fn main () {
         capnp::message::MessageBuilder::new_default(|message| {
                 let obs = message.init_root::<explorers_capnp::Observation::Builder>();
                 image.take_measurement(x, y, obs);
-                capnp::serialize::write_message(&mut std::io::stdout(), message);
+
+                message.get_segments_for_output(|segments| {
+                        for ii in range(0, segments.len()) {
+                            let flags = if ii == segments.len() - 1 { 0 } else { zmq::SNDMORE };
+                            publisher.send(unsafe { std::cast::transmute(
+                                        std::unstable::raw::Slice {data : segments[ii].unsafe_ref(0),
+                                                                   len : segments[ii].len() * 8 } )},
+                                           flags);
+                        }
+
+                    });
             });
+
+        std::io::timer::sleep(100);
     }
 
 }
