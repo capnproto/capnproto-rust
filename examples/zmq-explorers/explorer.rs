@@ -14,7 +14,7 @@ struct Pixel {
 }
 
 fn fudge(x : u8) -> u8 {
-    let error = std::rand::task_rng().gen_range::<i16>(-20, 20);
+    let error = std::rand::task_rng().gen_range::<i16>(-2, 2);
     let y = x as i16 + error;
     if y < 0 { return 0; }
     if y > 255 { return 255; }
@@ -89,6 +89,7 @@ impl Image {
         obs.set_green(fudge(pixel.green));
         obs.set_blue(fudge(pixel.blue));
 
+
         add_diagnostic(obs);
     }
 }
@@ -102,7 +103,7 @@ static WORDS : [&'static str, .. 20] = [
 
 fn add_diagnostic<'a>(obs : explorers_capnp::Observation::Builder<'a>) {
     let mut rng = std::rand::task_rng();
-    if rng.gen_range::<u16>(0, 1000) < 200 {
+    if rng.gen_range::<u16>(0, 1000) < 20 {
         let mut warning = ~"";
         warning.push_str(rng.choose(WORDS));
         warning.push_str(" ");
@@ -153,7 +154,7 @@ pub fn main () {
                     });
             });
 
-        std::io::timer::sleep(100);
+        std::io::timer::sleep(1);
     }
 
 }
