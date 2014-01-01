@@ -969,11 +969,69 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_struct_list_pointer<'a>(_origRefIndex : *mut WirePointer,
-                                                       _origSegment : *mut SegmentBuilder<'a>,
-                                                       _element_size : StructSize,
-                                                       _defaultValue : *Word) -> ListBuilder<'a> {
-        fail!("unimplemented")
+    pub unsafe fn get_writable_struct_list_pointer<'a>(orig_ref : *mut WirePointer,
+                                                       orig_segment : *mut SegmentBuilder<'a>,
+                                                       element_size : StructSize,
+                                                       default_value : *Word) -> ListBuilder<'a> {
+        let orig_ref_target = (*orig_ref).mut_target();
+
+        if (*orig_ref).is_null() {
+            if default_value.is_null() ||
+                (*std::cast::transmute::<*Word,*WirePointer>(default_value)).is_null() {
+                return ListBuilder::new_default();
+            }
+            fail!("unimplemented");
+        }
+
+        //# We must verify that the pointer has the right size and
+        //# potentially upgrade it if not.
+
+        let mut old_ref = orig_ref;
+        let mut old_segment = orig_segment;
+
+        let mut old_ptr = follow_builder_fars(&mut old_ref, orig_ref_target, &mut old_segment);
+
+        assert!((*old_ref).kind() == WP_LIST,
+                "Called getList\\{Field,Element\\} but existing pointer is not a list.");
+
+        let old_size = (*old_ref).list_ref().element_size();
+
+        if (old_size == INLINE_COMPOSITE) {
+            //# Existing list is INLINE_COMPOSITE, but we need to verify that the sizes match.
+
+            let old_tag : *WirePointer = std::cast::transmute(old_ptr);
+            old_ptr = old_ptr.offset(POINTER_SIZE_IN_WORDS as int);
+            assert!((*old_tag).kind() == WP_STRUCT,
+                    "INLINE_COMPOSITE list with non-STRUCT elements not supported.");
+
+            let old_data_size = (*old_tag).struct_ref().data_size.get();
+            let old_pointer_count = (*old_tag).struct_ref().ptr_count.get();
+            let old_step = old_data_size as uint + old_pointer_count as uint * WORDS_PER_POINTER;
+            let element_count = (*old_tag).inline_composite_list_element_count();
+
+            if (old_data_size >= element_size.data && old_pointer_count >= element_size.pointers) {
+                //# Old size is at least as large as we need. Ship it.
+                return ListBuilder {
+                    segment : old_segment,
+                    ptr : std::cast::transmute(old_ptr),
+                    element_count : element_count,
+                    step : old_step * BITS_PER_WORD,
+                    struct_data_size : old_data_size as u32 * BITS_PER_WORD as u32,
+                    struct_pointer_count : old_pointer_count
+                };
+            }
+
+            //# The structs in this list are smaller than expected,
+            //# probably written using an older version of the
+            //# protocol. We need to make a copy and expand them.
+
+            fail!("unimplemented");
+        } else if (old_size == element_size.preferred_list_encoding) {
+            //# Old size matches exactly.
+            fail!("unimplemented");
+        } else {
+            fail!("unimplemented");
+        }
     }
 
     #[inline]
