@@ -12,9 +12,11 @@ pub fn main() {
 
     let mut context = zmq::Context::new();
     let mut subscriber = context.socket(zmq::SUB).unwrap();
+    let mut responder = context.socket(zmq::REP).unwrap();
 
     assert!(subscriber.bind("tcp://*:5555").is_ok());
     assert!(subscriber.set_subscribe([]).is_ok());
+    assert!(responder.bind("tcp://*:5556").is_ok());
 
     capnp::message::MessageBuilder::new_default::<()>(|message| {
             let grid = message.init_root::<explorers_capnp::Grid::Builder>();
