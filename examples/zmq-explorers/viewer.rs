@@ -52,7 +52,6 @@ pub fn main() {
         let segments = capnp_zmq::frames_to_segments(frames);
         let reader = capnp::message::MessageReader::new(segments,
                                                         capnp::message::DEFAULT_READER_OPTIONS);
-
         let grid = reader.get_root::<Grid::Reader>();
 
         println!("{}", grid.get_latest_timestamp());

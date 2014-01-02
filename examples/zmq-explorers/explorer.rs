@@ -89,7 +89,6 @@ impl Image {
         obs.set_green(fudge(pixel.green));
         obs.set_blue(fudge(pixel.blue));
 
-
         add_diagnostic(obs);
     }
 }
