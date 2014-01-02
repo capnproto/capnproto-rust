@@ -1,7 +1,7 @@
 extern mod capnp;
 extern mod zmq;
 
-pub mod common;
+pub mod capnp_zmq;
 pub mod explorers_capnp;
 
 static GRID_WIDTH : uint = 100;
@@ -34,36 +34,14 @@ pub fn main() {
 
                 if (poll_items[0].revents & zmq::POLLIN) != 0 {
 
-                    match responder.recv_msg(0) {
-                        Ok(_) => (),
-                        Err(_) => fail!()
-                    }
-
-                    message.get_segments_for_output(|segments| {
-                            for ii in range(0, segments.len()) {
-                                let flags = if ii == segments.len() - 1 { 0 } else { zmq::SNDMORE };
-                                responder.send(common::slice_cast(segments[ii]), flags);
-                            }
-                    });
+                    assert!(responder.recv_msg(0).is_ok())
+                    capnp_zmq::send(&mut responder, message);
 
                 } else if (poll_items[1].revents & zmq::POLLIN) != 0 {
                     // there's an observation waiting for us
 
-                    let mut frames = ~[];
-                    loop {
-                        match subscriber.recv_msg(0) {
-                            Ok(m) => frames.push(m),
-                            Err(_) => fail!()
-                        }
-
-                        match subscriber.get_rcvmore() {
-                            Ok(true) => (),
-                            Ok(false) => break,
-                            Err(_) => fail!()
-                        }
-                    }
-
-                    let segments = common::frames_to_segments(frames);
+                    let frames = capnp_zmq::recv(&mut subscriber).unwrap();
+                    let segments = capnp_zmq::frames_to_segments(frames);
                     let reader = capnp::message::MessageReader::new(segments,
                                                                     capnp::message::DEFAULT_READER_OPTIONS);
                     let obs = reader.get_root::<Observation::Reader>();

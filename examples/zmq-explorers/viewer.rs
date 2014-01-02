@@ -1,7 +1,7 @@
 extern mod capnp;
 extern mod zmq;
 
-pub mod common;
+pub mod capnp_zmq;
 pub mod explorers_capnp;
 
 
@@ -48,20 +48,8 @@ pub fn main() {
     loop {
         requester.send([], 0);
 
-        let mut frames = ~[];
-        loop {
-            match requester.recv_msg(0) {
-                Ok(m) => frames.push(m),
-                Err(_) => fail!()
-            }
-            match requester.get_rcvmore() {
-                Ok(true) => (),
-                Ok(false) => break,
-                Err(_) => fail!()
-            }
-        }
-
-        let segments = common::frames_to_segments(frames);
+        let frames = capnp_zmq::recv(&mut requester).unwrap();
+        let segments = capnp_zmq::frames_to_segments(frames);
         let reader = capnp::message::MessageReader::new(segments,
                                                         capnp::message::DEFAULT_READER_OPTIONS);
 

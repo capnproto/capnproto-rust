@@ -4,7 +4,7 @@ extern mod extra;
 
 use std::rand::Rng;
 
-pub mod common;
+pub mod capnp_zmq;
 pub mod explorers_capnp;
 
 struct Pixel {
@@ -14,7 +14,7 @@ struct Pixel {
 }
 
 fn fudge(x : u8) -> u8 {
-    let error = std::rand::task_rng().gen_range::<i16>(-2, 2);
+    let error = std::rand::task_rng().gen_range::<i16>(-50, 50);
     let y = x as i16 + error;
     if y < 0 { return 0; }
     if y > 255 { return 255; }
@@ -144,14 +144,7 @@ pub fn main () {
         capnp::message::MessageBuilder::new_default(|message| {
                 let obs = message.init_root::<explorers_capnp::Observation::Builder>();
                 image.take_measurement(x, y, obs);
-
-                message.get_segments_for_output(|segments| {
-                        for ii in range(0, segments.len()) {
-                            let flags = if ii == segments.len() - 1 { 0 } else { zmq::SNDMORE };
-                            publisher.send(common::slice_cast(segments[ii]), flags);
-                        }
-
-                    });
+                capnp_zmq::send(&mut publisher, message);
             });
 
         std::io::timer::sleep(1);
