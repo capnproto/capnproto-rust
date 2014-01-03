@@ -1,11 +1,10 @@
-extern mod capnp;
-extern mod zmq;
+use capnp;
+use zmq;
+use capnp_zmq;
+use std;
+use explorers_capnp::Grid;
 
-pub mod capnp_zmq;
-pub mod explorers_capnp;
-
-
-fn write_ppm(path : &std::path::Path, grid : explorers_capnp::Grid::Reader) {
+fn write_ppm(path : &std::path::Path, grid : Grid::Reader) {
     match std::io::File::open_mode(path, std::io::Truncate, std::io::Write) {
         None => fail!("could not open"),
         Some(ref mut writer) => {
@@ -36,7 +35,6 @@ fn write_ppm(path : &std::path::Path, grid : explorers_capnp::Grid::Reader) {
 }
 
 pub fn main() {
-    use explorers_capnp::Grid;
 
     let mut context = zmq::Context::new();
     let mut requester = context.socket(zmq::REQ).unwrap();

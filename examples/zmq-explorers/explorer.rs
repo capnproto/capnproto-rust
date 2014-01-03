@@ -1,11 +1,10 @@
-extern mod capnp;
-extern mod zmq;
-extern mod extra;
-
+use capnp;
+use zmq;
+use extra;
+use std;
 use std::rand::Rng;
-
-pub mod capnp_zmq;
-pub mod explorers_capnp;
+use capnp_zmq;
+use explorers_capnp::Observation;
 
 struct Pixel {
     red : u8,
@@ -29,7 +28,7 @@ struct Image {
 
 impl Image {
 
-    // quick and dirty parsing of PPM image
+    // quick and dirty parsing of a PPM image
     fn load(file : &std::path::Path) -> Image {
         use std::io::{Open, Read};
         match std::io::File::open_mode(file, Open, Read) {
@@ -74,7 +73,7 @@ impl Image {
         self.pixels[((y * self.width) + x)]
     }
 
-    fn take_measurement(&self, x : f32, y : f32, obs : explorers_capnp::Observation::Builder) {
+    fn take_measurement(&self, x : f32, y : f32, obs : Observation::Builder) {
 
         assert!(x >= 0.0); assert!(y >= 0.0); assert!(x < 1.0); assert!(y < 1.0);
 
@@ -100,9 +99,9 @@ static WORDS : [&'static str, .. 20] = [
 ];
 
 
-fn add_diagnostic<'a>(obs : explorers_capnp::Observation::Builder<'a>) {
+fn add_diagnostic<'a>(obs : Observation::Builder<'a>) {
     let mut rng = std::rand::task_rng();
-    if rng.gen_range::<u16>(0, 1000) < 20 {
+    if rng.gen_range::<u16>(0, 1000) < 2 {
         let mut warning = ~"";
         warning.push_str(rng.choose(WORDS));
         warning.push_str(" ");
@@ -116,12 +115,12 @@ fn add_diagnostic<'a>(obs : explorers_capnp::Observation::Builder<'a>) {
 pub fn main () {
 
     let args = std::os::args();
-    if args.len() != 2 {
-        error!("please supply a file name");
+    if args.len() != 3 {
+        error!("usage: {} explorer [filename]", args[0]);
         return;
     }
 
-    let image = Image::load(&std::path::Path::new(args[1]));
+    let image = Image::load(&std::path::Path::new(args[2]));
 
     let mut context = zmq::Context::new();
     let mut publisher = context.socket(zmq::PUB).unwrap();
@@ -141,7 +140,7 @@ pub fn main () {
         if y < 0.0 { y += 1.0 }
 
         capnp::message::MessageBuilder::new_default(|message| {
-                let obs = message.init_root::<explorers_capnp::Observation::Builder>();
+                let obs = message.init_root::<Observation::Builder>();
                 image.take_measurement(x, y, obs);
                 capnp_zmq::send(&mut publisher, message);
             });

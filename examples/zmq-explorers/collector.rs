@@ -1,14 +1,12 @@
-extern mod capnp;
-extern mod zmq;
+use capnp;
+use zmq;
+use capnp_zmq;
 
-pub mod capnp_zmq;
-pub mod explorers_capnp;
-
-static GRID_WIDTH : uint = 100;
-static GRID_HEIGHT : uint = 100;
+static GRID_WIDTH : uint = 150;
+static GRID_HEIGHT : uint = 150;
 
 pub fn main() {
-    use explorers_capnp::Observation;
+    use explorers_capnp::{Observation, Grid};
 
     let mut context = zmq::Context::new();
     let mut subscriber = context.socket(zmq::SUB).unwrap();
@@ -22,7 +20,7 @@ pub fn main() {
                           subscriber.as_poll_item(zmq::POLLIN)];
 
     capnp::message::MessageBuilder::new_default::<()>(|message| {
-            let grid = message.init_root::<explorers_capnp::Grid::Builder>();
+            let grid = message.init_root::<Grid::Builder>();
             let cells = grid.init_cells(GRID_WIDTH);
             for ii in range::<uint>(0, cells.size()) {
                 cells.init(ii, GRID_HEIGHT);
