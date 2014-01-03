@@ -28,7 +28,7 @@ impl <'a> SegmentReader<'a> {
         let toAddr : uint = std::cast::transmute(to);
         let thisBegin : uint = std::cast::transmute(self.ptr);
         let thisEnd : uint = std::cast::transmute(self.ptr.offset(self.size as int));
-        return (fromAddr >= thisBegin && toAddr <= thisEnd);
+        return (fromAddr >= thisBegin && toAddr <= thisEnd && fromAddr <= toAddr);
         // TODO readLimiter
     }
 }
