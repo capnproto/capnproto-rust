@@ -20,6 +20,17 @@ pub fn main() {
                           subscriber.as_poll_item(zmq::POLLIN)];
 
     capnp::message::MessageBuilder::new_default::<()>(|message| {
+
+            // We hold onto a single message builder, modify it as
+            // updates come it, and send it out when requested.
+            // *Caution*: due to Cap'n Proto's arena allocation
+            // scheme, this usage pattern could waste memory if these
+            // updates caused allocations in the message. Fortunately,
+            // the updates only change the values of existing numeric
+            // fields, so no allocation occurs. If that were not the
+            // case, we could occasionally garbage collect by copying
+            // to a fresh message builder.
+
             let grid = message.init_root::<Grid::Builder>();
             let cells = grid.init_cells(GRID_WIDTH);
             for ii in range::<uint>(0, cells.size()) {

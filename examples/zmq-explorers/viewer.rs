@@ -7,16 +7,17 @@ use explorers_capnp::Grid;
 fn write_ppm(path : &std::path::Path, grid : Grid::Reader) {
     match std::io::File::open_mode(path, std::io::Truncate, std::io::Write) {
         None => fail!("could not open"),
-        Some(ref mut writer) => {
-            writeln!(writer, "P6");
+        Some(writer) => {
+            let mut buffered = std::io::buffered::BufferedWriter::new(writer);
+            writeln!(&mut buffered, "P6");
 
             let cells = grid.get_cells();
             let width = cells.size();
             assert!(width > 0);
             let height = cells[0].size();
 
-            writeln!(writer, "{} {}", width, height);
-            writeln!(writer, "255");
+            writeln!(&mut buffered, "{} {}", width, height);
+            writeln!(&mut buffered, "255");
 
             for x in range(0, width) {
                 assert!(cells[x].size() == height);
@@ -25,9 +26,9 @@ fn write_ppm(path : &std::path::Path, grid : Grid::Reader) {
             for y in range(0, height) {
                 for x in range(0, width) {
                     let cell = cells[x][y];
-                    writer.write_u8((cell.get_mean_red()).floor() as u8);
-                    writer.write_u8((cell.get_mean_green()).floor() as u8);
-                    writer.write_u8((cell.get_mean_blue()).floor() as u8);
+                    buffered.write_u8((cell.get_mean_red()).floor() as u8);
+                    buffered.write_u8((cell.get_mean_green()).floor() as u8);
+                    buffered.write_u8((cell.get_mean_blue()).floor() as u8);
                 }
             }
         }

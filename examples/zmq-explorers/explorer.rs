@@ -98,10 +98,10 @@ static WORDS : [&'static str, .. 20] = [
     "inframedian", "tamperer", "disentitle", "horary", "morsure", "bonnaz", "alien",
 ];
 
-
+// With small probability, add a gibberish warning to the observation.
 fn add_diagnostic<'a>(obs : Observation::Builder<'a>) {
     let mut rng = std::rand::task_rng();
-    if rng.gen_range::<u16>(0, 1000) < 2 {
+    if rng.gen_range::<u16>(0, 5000) < 2 {
         let mut warning = ~"";
         warning.push_str(rng.choose(WORDS));
         warning.push_str(" ");
