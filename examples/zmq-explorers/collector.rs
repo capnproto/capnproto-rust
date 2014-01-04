@@ -22,7 +22,7 @@ pub fn main() {
     capnp::message::MessageBuilder::new_default::<()>(|message| {
 
             // We hold onto a single message builder, modify it as
-            // updates come it, and send it out when requested.
+            // updates come in, and send it out when requested.
             // *Caution*: due to Cap'n Proto's arena allocation
             // scheme, this usage pattern could waste memory if these
             // updates caused allocations in the message. Fortunately,
@@ -47,7 +47,8 @@ pub fn main() {
                     capnp_zmq::send(&mut responder, message);
 
                 } else if (poll_items[1].revents & zmq::POLLIN) != 0 {
-                    // there's an observation waiting for us
+
+                    // there's a new observation waiting for us
 
                     let frames = capnp_zmq::recv(&mut subscriber).unwrap();
                     let segments = capnp_zmq::frames_to_segments(frames);
@@ -86,8 +87,6 @@ pub fn main() {
                         (n as f32 * cell.get_mean_blue() + obs.get_blue() as f32) / (n + 1) as f32);
                     cell.set_number_of_updates(n + 1);
                 }
-
             }
-
         });
 }
