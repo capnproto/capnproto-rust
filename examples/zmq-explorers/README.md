@@ -1,4 +1,4 @@
-# A toy data pipeline: zmq-explorers
+# zmq-explorers: a toy data pipeline
 
 This example illustrates one way to use capnproto-rust with ZeroMQ.
 

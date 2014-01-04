@@ -13,7 +13,7 @@ struct Pixel {
 }
 
 fn fudge(x : u8) -> u8 {
-    let error = std::rand::task_rng().gen_range::<i16>(-50, 50);
+    let error = std::rand::task_rng().gen_range::<i16>(-60, 60);
     let y = x as i16 + error;
     if y < 0 { return 0; }
     if y > 255 { return 255; }
@@ -101,7 +101,7 @@ static WORDS : [&'static str, .. 20] = [
 // With small probability, add a gibberish warning to the observation.
 fn add_diagnostic<'a>(obs : Observation::Builder<'a>) {
     let mut rng = std::rand::task_rng();
-    if rng.gen_range::<u16>(0, 5000) < 2 {
+    if rng.gen_range::<u16>(0, 3000) < 2 {
         let mut warning = ~"";
         warning.push_str(rng.choose(WORDS));
         warning.push_str(" ");
@@ -145,7 +145,7 @@ pub fn main () {
                 capnp_zmq::send(&mut publisher, message);
             });
 
-        std::io::timer::sleep(1);
+        std::io::timer::sleep(5);
     }
 
 }

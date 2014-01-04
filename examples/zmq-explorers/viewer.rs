@@ -2,9 +2,15 @@ use capnp;
 use zmq;
 use capnp_zmq;
 use std;
+use extra;
 use explorers_capnp::Grid;
 
-fn write_ppm(path : &std::path::Path, grid : Grid::Reader) {
+enum OutputMode {
+    Colors,
+    Confidence
+}
+
+fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) {
     match std::io::File::open_mode(path, std::io::Truncate, std::io::Write) {
         None => fail!("could not open"),
         Some(writer) => {
@@ -26,11 +32,35 @@ fn write_ppm(path : &std::path::Path, grid : Grid::Reader) {
             for y in range(0, height) {
                 for x in range(0, width) {
                     let cell = cells[x][y];
-                    buffered.write_u8((cell.get_mean_red()).floor() as u8);
-                    buffered.write_u8((cell.get_mean_green()).floor() as u8);
-                    buffered.write_u8((cell.get_mean_blue()).floor() as u8);
+
+                    match mode {
+                        Colors => {
+                            buffered.write_u8((cell.get_mean_red()).floor() as u8);
+                            buffered.write_u8((cell.get_mean_green()).floor() as u8);
+                            buffered.write_u8((cell.get_mean_blue()).floor() as u8);
+                        }
+                        Confidence => {
+                            let mut age = extra::time::now().to_timespec().sec - cell.get_latest_timestamp();
+                            if age < 0 { age = 0 };
+                            age *= 25;
+                            if age > 255 { age = 255 };
+                            age = 255 - age;
+
+                            let mut n = cell.get_number_of_updates();
+                            n *= 10;
+                            if n > 255 { n = 255 };
+
+                            buffered.write_u8(0 as u8);
+
+                            buffered.write_u8(n as u8);
+
+                            buffered.write_u8(age as u8);
+                        }
+                    }
                 }
             }
+
+            buffered.flush()
         }
     }
 }
@@ -53,12 +83,15 @@ pub fn main() {
                                                         capnp::message::DEFAULT_READER_OPTIONS);
         let grid = reader.get_root::<Grid::Reader>();
 
-        println!("{}", grid.get_latest_timestamp());
+        println!("{:05d}", grid.get_latest_timestamp());
 
-        let filename = std::path::Path::new(format!("out{}.ppm", c));
-        write_ppm(&filename, grid);
+        let filename = std::path::Path::new(format!("colors{}.ppm", c));
+        write_ppm(&filename, grid, Colors);
+
+        let filename = std::path::Path::new(format!("conf{}.ppm", c));
+        write_ppm(&filename, grid, Confidence);
 
         c += 1;
-        std::io::timer::sleep(1000);
+        std::io::timer::sleep(5000);
     }
 }

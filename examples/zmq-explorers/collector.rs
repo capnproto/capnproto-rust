@@ -2,8 +2,8 @@ use capnp;
 use zmq;
 use capnp_zmq;
 
-static GRID_WIDTH : uint = 150;
-static GRID_HEIGHT : uint = 150;
+static GRID_WIDTH : uint = 120;
+static GRID_HEIGHT : uint = 120;
 
 pub fn main() {
     use explorers_capnp::{Observation, Grid};
