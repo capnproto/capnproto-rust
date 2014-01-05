@@ -83,12 +83,12 @@ pub fn main() {
                                                         capnp::message::DEFAULT_READER_OPTIONS);
         let grid = reader.get_root::<Grid::Reader>();
 
-        println!("{:05d}", grid.get_latest_timestamp());
+        println!("{}", grid.get_latest_timestamp());
 
-        let filename = std::path::Path::new(format!("colors{}.ppm", c));
+        let filename = std::path::Path::new(format!("colors{:05}.ppm", c));
         write_ppm(&filename, grid, Colors);
 
-        let filename = std::path::Path::new(format!("conf{}.ppm", c));
+        let filename = std::path::Path::new(format!("conf{:05}.ppm", c));
         write_ppm(&filename, grid, Confidence);
 
         c += 1;

@@ -20,7 +20,11 @@ pub fn frames_to_segments<'a>(frames : &'a [zmq::Message] ) -> ~ [&'a [capnp::co
         unsafe {
             let slice = frame.with_bytes(|v|
                     std::unstable::raw::Slice { data : v.as_ptr(),
-                                                len : v.len() / 8 } );
+                                                len : v.len() / 8 });
+
+            // TODO check whether bytes are aligned on a word boundary.
+            // If not, copy them into a new buffer. Who will own that buffer?
+
             result.push(std::cast::transmute(slice));
         }
     }
