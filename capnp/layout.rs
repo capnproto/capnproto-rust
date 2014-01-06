@@ -1028,7 +1028,18 @@ mod WireHelpers {
             fail!("unimplemented");
         } else if (old_size == element_size.preferred_list_encoding) {
             //# Old size matches exactly.
-            fail!("unimplemented");
+
+            let data_size = data_bits_per_element(old_size);
+            let pointer_count = pointers_per_element(old_size);
+            let step = data_size + pointer_count * BITS_PER_POINTER;
+            return ListBuilder {
+                segment : old_segment,
+                ptr : std::cast::transmute(old_ptr),
+                step : step,
+                element_count : (*old_ref).list_ref().element_count(),
+                struct_data_size : data_size as u32,
+                struct_pointer_count : pointer_count as u16
+            };
         } else {
             fail!("unimplemented");
         }
@@ -1314,6 +1325,9 @@ mod WireHelpers {
         let ptr = follow_fars(&mut reff, refTarget, &mut segment);
 
         let data_size_words = (*reff).struct_ref().data_size.get();
+
+        assert!((*reff).kind() == WP_STRUCT,
+                "Message contains non-struct pointer where struct pointer was expected.");
 
         assert!(bounds_check(segment, ptr,
                             ptr.offset((*reff).struct_ref().word_size() as int)),
