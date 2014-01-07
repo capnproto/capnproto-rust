@@ -100,7 +100,15 @@ pub struct MessageBuilder<'a> {
     nextSize : uint,
     allocation_strategy : AllocationStrategy,
     arena : ~BuilderArena<'a>,
-    segments : ~[~[Word]]
+    segments : ~[*mut Word]
+}
+
+impl <'a> Drop for MessageBuilder<'a> {
+    fn drop(&mut self) {
+        for &segment_ptr in self.segments.iter() {
+            unsafe { std::libc::free(std::cast::transmute(segment_ptr)); }
+        }
+    }
 }
 
 impl <'a>MessageBuilder<'a> {
@@ -111,17 +119,19 @@ impl <'a>MessageBuilder<'a> {
                   allocationStrategy : AllocationStrategy,
                   cont : |&mut MessageBuilder<'a>| -> T) -> T {
 
-        let mut segments = ~[];
-        segments.push(allocate_zeroed_words(firstSegmentWords));
+        let mut segments : ~[*mut Word] = ~[];
+        segments.push(unsafe { std::cast::transmute(std::libc::calloc(firstSegmentWords as std::libc::size_t,
+                                                                      BYTES_PER_WORD as std::libc::size_t))});
+
         let mut arena = ~BuilderArena::<'a> {
             message : std::ptr::mut_null(),
             segment0 : SegmentBuilder {
                 reader : SegmentReader {
-                    ptr : unsafe { segments[0].unsafe_ref(0) },
-                    size : segments[0].len(),
+                    ptr : segments[0] as * Word,
+                    size : firstSegmentWords,
                     arena : Null },
                 id : 0,
-                pos : unsafe { segments[0].unsafe_mut_ref(0) }
+                pos : segments[0]
             },
             more_segments : None };
 
@@ -146,15 +156,16 @@ impl <'a>MessageBuilder<'a> {
 
     pub fn allocate_segment(&mut self, minimumSize : WordCount) -> (*mut Word, WordCount) {
         let size = std::cmp::max(minimumSize, self.nextSize);
-        let mut new_words = allocate_zeroed_words(size);
-        let ptr = unsafe { new_words.unsafe_mut_ref(0) };
+        let new_words : *mut Word = unsafe {
+            std::cast::transmute(std::libc::calloc(size as std::libc::size_t,
+                                                   BYTES_PER_WORD as std::libc::size_t)) };
         self.segments.push(new_words);
 
         match self.allocation_strategy {
             GROW_HEURISTICALLY => { self.nextSize += size; }
             _ => { }
         }
-        (ptr, size)
+        (new_words, size)
     }
 
     pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
