@@ -20,20 +20,31 @@ pub mod Text {
 
     pub struct Builder<'a> {
         priv ptr : *mut u8,
-        priv length : uint,
+        priv len : uint,
         priv pos : uint
     }
 
     impl <'a> Builder <'a> {
+
+        pub fn new<'b>(p : *mut u8, len : uint) -> Builder<'b> {
+            Builder { ptr : p, len : len, pos : 0 }
+        }
+
+        pub fn bytes(&self) -> &'a mut [u8] {
+             unsafe { std::cast::transmute(std::unstable::raw::Slice { data:self.ptr as *u8, len: self.len }) }
+        }
+
 /*        fn putc(&mut self, ) {
             unsafe {
                 *self.ptr
         } */
+
+
     }
 
     impl <'a> std::io::Writer for Builder<'a> {
         fn write(&mut self, buf: &[u8]) {
-            assert!(self.pos + buf.len() <= self.length);
+            assert!(self.pos + buf.len() <= self.len);
             unsafe {
                 std::ptr::copy_nonoverlapping_memory(self.ptr, buf.unsafe_ref(0), buf.len());
             }

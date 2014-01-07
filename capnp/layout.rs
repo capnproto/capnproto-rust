@@ -319,9 +319,9 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn allocate<'a>(reff : &mut *mut WirePointer,
-                               segment : &mut *mut SegmentBuilder<'a>,
-                               amount : WordCount, kind : WirePointerKind) -> *mut Word {
+    pub unsafe fn allocate(reff : &mut *mut WirePointer,
+                           segment : &mut *mut SegmentBuilder,
+                           amount : WordCount, kind : WirePointerKind) -> *mut Word {
         let is_null = (**reff).is_null();
         if (!is_null) {
             zero_object(*segment, *reff)
@@ -1045,15 +1045,27 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn init_text_pointer<'a>(_reff : *mut WirePointer,
-                                        _segment : *mut SegmentBuilder<'a>,
-                                        _size : ByteCount) -> super::SegmentAnd<Text::Builder<'a>> {
+    pub unsafe fn init_text_pointer<'a>(mut reff : *mut WirePointer,
+                                        mut segment : *mut SegmentBuilder<'a>,
+                                        size : ByteCount) -> super::SegmentAnd<Text::Builder<'a>> {
+        //# The byte list must include a NUL terminator.
+        let byte_size = size + 1;
+
+        //# Allocate the space.
+        let _ptr =
+            allocate(&mut reff, &mut segment, round_bytes_up_to_words(byte_size), WP_LIST);
+
+        //# Initialize the pointer.
+        (*reff).list_ref_mut().set(BYTE, byte_size);
+
         fail!("unimplemented")
+//        return super::SegmentAnd {segment : segment,
+//                                  value : Text::Builder::new(std::cast::transmute(ptr), size) }
     }
 
     #[inline]
     pub unsafe fn set_text_pointer<'a>(mut reff : *mut WirePointer,
-                                       mut segmentBuilder : *mut SegmentBuilder<'a>,
+                                       mut segment : *mut SegmentBuilder<'a>,
                                        value : &str) {
 
         // initTextPointer is rolled in here
@@ -1064,7 +1076,7 @@ mod WireHelpers {
         let byteSize = bytes.len() + 1;
 
         let ptr =
-            allocate(&mut reff, &mut segmentBuilder, round_bytes_up_to_words(byteSize), WP_LIST);
+            allocate(&mut reff, &mut segment, round_bytes_up_to_words(byteSize), WP_LIST);
 
         (*reff).list_ref_mut().set(BYTE, byteSize);
         let dst : *mut u8 = std::cast::transmute(ptr);
