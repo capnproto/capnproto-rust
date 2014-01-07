@@ -920,7 +920,7 @@ mod WireHelpers {
             let pointer_count = (*tag).struct_ref().ptr_count.get();
 
             match element_size {
-                VOID => {} //# Anything is a valid upgrad from Void.
+                VOID => {} //# Anything is a valid upgrade from Void.
                 BIT | BYTE | TWO_BYTES | FOUR_BYTES | EIGHT_BYTES => {
                     assert!(data_size >= 1,
                             "Existing list value is incompatible with expected type.");
@@ -935,7 +935,6 @@ mod WireHelpers {
                     unreachable!()
                 }
             }
-
             //# OK, looks valid.
 
             ListBuilder {

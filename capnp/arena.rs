@@ -19,16 +19,16 @@ pub struct SegmentReader<'a> {
 
 impl <'a> SegmentReader<'a> {
 
+    #[inline]
     pub unsafe fn get_start_ptr(&self) -> *Word {
         self.ptr.offset(0)
     }
 
-    pub unsafe fn contains_interval(&self, from : *Word, to : *Word) -> bool {
-        let fromAddr : uint = std::cast::transmute(from);
-        let toAddr : uint = std::cast::transmute(to);
-        let thisBegin : uint = std::cast::transmute(self.ptr);
-        let thisEnd : uint = std::cast::transmute(self.ptr.offset(self.size as int));
-        return (fromAddr >= thisBegin && toAddr <= thisEnd && fromAddr <= toAddr);
+    #[inline]
+    pub fn contains_interval(&self, from : *Word, to : *Word) -> bool {
+        let thisBegin : uint = self.ptr.to_uint();
+        let thisEnd : uint = unsafe { self.ptr.offset(self.size as int).to_uint() };
+        return (from.to_uint() >= thisBegin && to.to_uint() <= thisEnd && from.to_uint() <= to.to_uint());
         // TODO readLimiter
     }
 }
@@ -64,10 +64,12 @@ impl <'a> SegmentBuilder<'a> {
         return result;
     }
 
+    #[inline]
     pub fn current_size(&self) -> WordCount {
         ptr_sub(self.pos, self.reader.ptr)
     }
 
+    #[inline]
     pub fn allocate(&mut self, amount : WordCount) -> Option<*mut Word> {
         if (amount > self.reader.size - self.current_size()) {
             return None;
@@ -78,10 +80,6 @@ impl <'a> SegmentBuilder<'a> {
         }
     }
 
-    pub fn available(&self) -> WordCount {
-        self.reader.size - ptr_sub(self.pos, self.reader.ptr)
-    }
-
     #[inline]
     pub unsafe fn get_ptr_unchecked(&mut self, offset : WordCount) -> *mut Word {
         std::cast::transmute_mut_unsafe(self.reader.ptr.offset(offset as int))
@@ -90,10 +88,11 @@ impl <'a> SegmentBuilder<'a> {
     #[inline]
     pub fn get_segment_id(&self) -> SegmentId { self.id }
 
+    #[inline]
     pub fn get_arena(&self) -> *mut BuilderArena<'a> {
         match self.reader.arena {
             BuilderArenaPtr(b) => b,
-            _ => fail!()
+            _ => unreachable!()
         }
     }
 }
@@ -159,14 +158,13 @@ impl <'a> BuilderArena<'a> {
             std::ptr::to_mut_unsafe_ptr(&mut self.segment0)
         } else {
             match self.more_segments {
-                None => fail!("invalide segment id {}", id),
+                None => fail!("invalid segment id {}", id),
                 Some(ref mut msegs) => {
                     std::ptr::to_mut_unsafe_ptr(msegs[id - 1])
                 }
             }
         }
     }
-
 
     pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
         unsafe {
