@@ -1058,33 +1058,19 @@ mod WireHelpers {
         //# Initialize the pointer.
         (*reff).list_ref_mut().set(BYTE, byte_size);
 
-//        fail!("unimplemented")
         return super::SegmentAnd {segment : segment,
                                   value : Text::Builder::new(std::cast::transmute(ptr), size) }
     }
 
     #[inline]
-    pub unsafe fn set_text_pointer<'a>(mut reff : *mut WirePointer,
-                                       mut segment : *mut SegmentBuilder<'a>,
-                                       value : &str) {
-
-        // initTextPointer is rolled in here
-
-        let bytes : &[u8] = value.as_bytes();
-
-        //# The byte list must include a NUL terminator
-        let byteSize = bytes.len() + 1;
-
-        let ptr =
-            allocate(&mut reff, &mut segment, round_bytes_up_to_words(byteSize), WP_LIST);
-
-        (*reff).list_ref_mut().set(BYTE, byteSize);
-        let dst : *mut u8 = std::cast::transmute(ptr);
-        let src : *u8 = bytes.unsafe_ref(0);
-        std::ptr::copy_nonoverlapping_memory(dst, src, bytes.len());
-
-        // null terminate
-        std::ptr::zero_memory(dst.offset(bytes.len() as int), 1);
+    pub unsafe fn set_text_pointer<'a>(reff : *mut WirePointer,
+                                       segment : *mut SegmentBuilder<'a>,
+                                       value : &str) -> super::SegmentAnd<'a,Text::Builder<'a>> {
+        let value_bytes = value.as_bytes();
+        let allocation = init_text_pointer(reff, segment, value_bytes.len());
+        let builder = allocation.value;
+        builder.bytes().copy_memory(value_bytes);
+        allocation
     }
 
     #[inline]
@@ -1731,7 +1717,7 @@ impl <'a> PointerBuilder<'a> {
 
     pub fn set_text(&self, value : &str) {
         unsafe {
-            WireHelpers::set_text_pointer(self.pointer, self.segment, value)
+            WireHelpers::set_text_pointer(self.pointer, self.segment, value);
         }
     }
 
