@@ -319,9 +319,9 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn allocate(reff : &mut *mut WirePointer,
-                           segment : &mut *mut SegmentBuilder,
-                           amount : WordCount, kind : WirePointerKind) -> *mut Word {
+    pub unsafe fn allocate<'a>(reff : &mut *mut WirePointer,
+                               segment : &mut *mut SegmentBuilder<'a>,
+                               amount : WordCount, kind : WirePointerKind) -> *mut Word {
         let is_null = (**reff).is_null();
         if (!is_null) {
             zero_object(*segment, *reff)
@@ -1047,20 +1047,20 @@ mod WireHelpers {
     #[inline]
     pub unsafe fn init_text_pointer<'a>(mut reff : *mut WirePointer,
                                         mut segment : *mut SegmentBuilder<'a>,
-                                        size : ByteCount) -> super::SegmentAnd<Text::Builder<'a>> {
+                                        size : ByteCount) -> super::SegmentAnd<'a, Text::Builder<'a>> {
         //# The byte list must include a NUL terminator.
         let byte_size = size + 1;
 
         //# Allocate the space.
-        let _ptr =
+        let ptr =
             allocate(&mut reff, &mut segment, round_bytes_up_to_words(byte_size), WP_LIST);
 
         //# Initialize the pointer.
         (*reff).list_ref_mut().set(BYTE, byte_size);
 
-        fail!("unimplemented")
-//        return super::SegmentAnd {segment : segment,
-//                                  value : Text::Builder::new(std::cast::transmute(ptr), size) }
+//        fail!("unimplemented")
+        return super::SegmentAnd {segment : segment,
+                                  value : Text::Builder::new(std::cast::transmute(ptr), size) }
     }
 
     #[inline]
