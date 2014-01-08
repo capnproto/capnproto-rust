@@ -1074,6 +1074,36 @@ mod WireHelpers {
     }
 
     #[inline]
+    pub unsafe fn get_writable_text_pointer<'a>(mut reff : *mut WirePointer,
+                                                mut segment : *mut SegmentBuilder<'a>,
+                                                default_value : *Word,
+                                                default_size : ByteCount) -> Text::Builder<'a> {
+        if (*reff).is_null() {
+            if default_size == 0 {
+                return Text::Builder::new(std::ptr::mut_null(), 0);
+            } else {
+                let builder = init_text_pointer(reff, segment, default_size).value;
+                std::ptr::copy_nonoverlapping_memory::<u8, *u8>(builder.as_ptr(),
+                                                                std::cast::transmute(default_value),
+                                                                default_size);
+                return builder;
+            }
+        } else {
+            let ref_target = (*reff).mut_target();
+            let ptr = follow_builder_fars(&mut reff, ref_target, &mut segment);
+
+            assert!((*reff).kind() == WP_LIST,
+                    "Called getText\\{Field,Element\\}() but existing pointer is not a list.");
+            assert!((*reff).list_ref().element_size() == BYTE,
+                    "Called getText\\{Field,Element\\}() but existing list pointer is not byte-sized.");
+
+            //# Subtract 1 from the size for the NUL terminator.
+            return Text::Builder::new(std::cast::transmute(ptr), (*reff).list_ref().element_count() - 1);
+        }
+
+    }
+
+    #[inline]
     pub unsafe fn init_data_pointer<'a>(mut reff : *mut WirePointer,
                                         mut segment : *mut SegmentBuilder<'a>,
                                         size : ByteCount) -> super::SegmentAnd<'a, Data::Builder<'a>> {
@@ -1095,14 +1125,6 @@ mod WireHelpers {
         let allocation = init_data_pointer(reff, segment, value.len());
         allocation.value.copy_memory(value);
         return allocation;
-    }
-
-    #[inline]
-    pub unsafe fn get_writable_text_pointer<'a>(_refIndex : *mut WirePointer,
-                                                _segment : *mut SegmentBuilder<'a>,
-                                                _default_value : *Word,
-                                                _default_size : ByteCount) -> Text::Builder<'a> {
-        fail!("unimplemented");
     }
 
     #[inline]

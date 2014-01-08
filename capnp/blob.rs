@@ -33,6 +33,9 @@ pub mod Text {
              unsafe { std::cast::transmute(std::unstable::raw::Slice { data:self.ptr as *u8, len: self.len }) }
         }
 
+        pub fn as_ptr(&self) -> *mut u8 {
+            self.ptr
+        }
     }
 
 }
