@@ -117,6 +117,13 @@ fn test_blob () {
 
             assert_eq!(test_blob_reader.get_text_field(), "abcdefghi");
             assert_eq!(test_blob_reader.get_data_field(), [0u8, 1u8, 2u8, 3u8, 4u8]);
+
+            let text_builder = test_blob.init_text_field(10);
+            let mut writer = std::io::mem::BufWriter::new(text_builder.as_mut_bytes());
+            writer.write("aabbccddee".as_bytes());
+
+            assert_eq!(test_blob.as_reader().get_text_field(), "aabbccddee");
+
         });
 }
 
