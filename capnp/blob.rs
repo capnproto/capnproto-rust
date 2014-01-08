@@ -21,13 +21,12 @@ pub mod Text {
     pub struct Builder<'a> {
         priv ptr : *mut u8,
         priv len : uint,
-        priv pos : uint
     }
 
     impl <'a> Builder <'a> {
 
         pub fn new<'b>(p : *mut u8, len : uint) -> Builder<'b> {
-            Builder { ptr : p, len : len, pos : 0 }
+            Builder { ptr : p, len : len}
         }
 
         pub fn bytes(&self) -> &'a mut [u8] {
@@ -39,17 +38,6 @@ pub mod Text {
                 *self.ptr
         } */
 
-
-    }
-
-    impl <'a> std::io::Writer for Builder<'a> {
-        fn write(&mut self, buf: &[u8]) {
-            assert!(self.pos + buf.len() <= self.len);
-            unsafe {
-                std::ptr::copy_nonoverlapping_memory(self.ptr, buf.unsafe_ref(0), buf.len());
-            }
-            self.pos += buf.len();
-        }
     }
 
 }

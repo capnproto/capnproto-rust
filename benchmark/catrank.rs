@@ -32,16 +32,17 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
     for i in range(0, count) {
         let result = list[i];
         result.set_score(1000.0 - i as f64);
-        let urlSize = rng.nextLessThan(100) as uint;
+        let url_size = rng.nextLessThan(100) as uint;
 
-        // TODO: modify string field in place with Text::Builder?
-        let mut url = ~"http://example.com/";
+        let url_prefix_length = URL_PREFIX.as_bytes().len();
+        let url = result.init_url(url_size + url_prefix_length);
 
-        for _ in range(0, urlSize) {
-            url.push_char(std::char::from_u32(97 + rng.nextLessThan(26)).unwrap());
+        let bytes = url.bytes();
+        std::io::mem::BufWriter::new(bytes).write(URL_PREFIX.as_bytes());
+
+        for j in range(0, url_size) {
+            bytes[j + url_prefix_length] = (97 + rng.nextLessThan(26)) as u8;
         }
-
-        result.set_url(url);
 
         let isCat = rng.nextLessThan(8) == 0;
         let isDog = rng.nextLessThan(8) == 0;
