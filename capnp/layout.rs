@@ -1069,7 +1069,7 @@ mod WireHelpers {
         let value_bytes = value.as_bytes();
         let allocation = init_text_pointer(reff, segment, value_bytes.len());
         let builder = allocation.value;
-        builder.bytes().copy_memory(value_bytes);
+        builder.as_mut_bytes().copy_memory(value_bytes);
         allocation
     }
 

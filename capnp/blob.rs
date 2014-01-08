@@ -29,14 +29,9 @@ pub mod Text {
             Builder { ptr : p, len : len}
         }
 
-        pub fn bytes(&self) -> &'a mut [u8] {
+        pub fn as_mut_bytes(&self) -> &'a mut [u8] {
              unsafe { std::cast::transmute(std::unstable::raw::Slice { data:self.ptr as *u8, len: self.len }) }
         }
-
-/*        fn putc(&mut self, ) {
-            unsafe {
-                *self.ptr
-        } */
 
     }
 
