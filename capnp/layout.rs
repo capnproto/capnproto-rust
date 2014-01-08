@@ -1074,26 +1074,27 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn init_data_pointer<'a>(_reff : *mut WirePointer,
-                                        _segment : *mut SegmentBuilder<'a>,
-                                        _size : ByteCount) -> super::SegmentAnd<Data::Builder<'a>> {
-        fail!("unimplemented")
+    pub unsafe fn init_data_pointer<'a>(mut reff : *mut WirePointer,
+                                        mut segment : *mut SegmentBuilder<'a>,
+                                        size : ByteCount) -> super::SegmentAnd<'a, Data::Builder<'a>> {
+        //# Allocate the space.
+        let ptr =
+            allocate(&mut reff, &mut segment, round_bytes_up_to_words(size), WP_LIST);
+
+        //# Initialize the pointer.
+        (*reff).list_ref_mut().set(BYTE, size);
+
+        return super::SegmentAnd { segment : segment,
+                                   value : Data::new_builder(std::cast::transmute(ptr), size) };
     }
 
     #[inline]
-    pub unsafe fn set_data_pointer<'a>(mut reff : *mut WirePointer,
-                                       mut segmentBuilder : *mut SegmentBuilder<'a>,
-                                       value : &[u8]) {
-
-        // initDataPointer is rolled in here
-
-        let ptr =
-            allocate(&mut reff, &mut segmentBuilder, round_bytes_up_to_words(value.len()), WP_LIST);
-
-        (*reff).list_ref_mut().set(BYTE, value.len());
-        let dst : *mut u8 = std::cast::transmute(ptr);
-        let src : *u8 = value.unsafe_ref(0);
-        std::ptr::copy_nonoverlapping_memory(dst, src, value.len());
+    pub unsafe fn set_data_pointer<'a>(reff : *mut WirePointer,
+                                       segment : *mut SegmentBuilder<'a>,
+                                       value : &[u8]) -> super::SegmentAnd<'a, Data::Builder<'a>> {
+        let allocation = init_data_pointer(reff, segment, value.len());
+        allocation.value.copy_memory(value);
+        return allocation;
     }
 
     #[inline]
@@ -1723,7 +1724,7 @@ impl <'a> PointerBuilder<'a> {
 
     pub fn set_data(&self, value : &[u8]) {
         unsafe {
-            WireHelpers::set_data_pointer(self.pointer, self.segment, value)
+            WireHelpers::set_data_pointer(self.pointer, self.segment, value);
         }
     }
 

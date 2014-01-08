@@ -49,9 +49,13 @@ pub mod Data {
         }
     }
 
-    pub struct Builder<'a> {
-        priv ptr : *mut u8,
-        priv length : uint,
-        priv pos : uint
+    pub type Builder<'a> = &'a mut [u8];
+
+    pub fn new_builder<'a>(p : *mut u8, len : uint) -> Builder<'a> {
+        unsafe {
+            let v = std::unstable::raw::Slice { data: p as *u8, len: len };
+            std::cast::transmute(v)
+        }
     }
+
 }

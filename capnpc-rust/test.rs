@@ -119,9 +119,20 @@ fn test_blob () {
             assert_eq!(test_blob_reader.get_data_field(), [0u8, 1u8, 2u8, 3u8, 4u8]);
 
             let text_builder = test_blob.init_text_field(10);
+            assert_eq!(test_blob.as_reader().get_text_field(),
+                       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
             let mut writer = std::io::mem::BufWriter::new(text_builder.as_mut_bytes());
             writer.write("aabbccddee".as_bytes());
 
+            let data_builder = test_blob.init_data_field(7);
+            assert_eq!(test_blob.as_reader().get_data_field(),
+                       [0u8,0u8,0u8,0u8,0u8,0u8,0u8]);
+            for c in data_builder.mut_iter() {
+                *c = 5;
+            }
+            data_builder[0] = 4u8;
+
+            assert_eq!(test_blob.as_reader().get_data_field(), [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
             assert_eq!(test_blob.as_reader().get_text_field(), "aabbccddee");
 
         });
