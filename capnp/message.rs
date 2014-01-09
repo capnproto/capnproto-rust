@@ -100,13 +100,21 @@ pub struct MessageBuilder<'a> {
     nextSize : uint,
     allocation_strategy : AllocationStrategy,
     arena : ~BuilderArena<'a>,
-    segments : ~[*mut Word]
+    first_segment : *mut Word,
+    more_segments : Option<~[*mut Word]>
 }
 
 impl <'a> Drop for MessageBuilder<'a> {
     fn drop(&mut self) {
-        for &segment_ptr in self.segments.iter() {
-            unsafe { std::libc::free(std::cast::transmute(segment_ptr)); }
+        unsafe { std::libc::free(std::cast::transmute(self.first_segment)) }
+
+        match self.more_segments {
+            None => {},
+            Some(ref mut segs) => {
+                for &segment_ptr in segs.iter() {
+                    unsafe { std::libc::free(std::cast::transmute(segment_ptr)); }
+                }
+            }
         }
     }
 }
@@ -119,19 +127,19 @@ impl <'a>MessageBuilder<'a> {
                   allocationStrategy : AllocationStrategy,
                   cont : |&mut MessageBuilder<'a>| -> T) -> T {
 
-        let mut segments : ~[*mut Word] = ~[];
-        segments.push(unsafe { std::cast::transmute(std::libc::calloc(firstSegmentWords as std::libc::size_t,
-                                                                      BYTES_PER_WORD as std::libc::size_t))});
+        let first_segment : *mut Word =
+            unsafe { std::cast::transmute(std::libc::calloc(firstSegmentWords as std::libc::size_t,
+                                                            BYTES_PER_WORD as std::libc::size_t))};
 
         let mut arena = ~BuilderArena::<'a> {
             message : std::ptr::mut_null(),
             segment0 : SegmentBuilder {
                 reader : SegmentReader {
-                    ptr : segments[0] as * Word,
+                    ptr : first_segment as * Word,
                     size : firstSegmentWords,
                     arena : Null },
                 id : 0,
-                pos : segments[0]
+                pos : first_segment
             },
             more_segments : None };
 
@@ -141,8 +149,9 @@ impl <'a>MessageBuilder<'a> {
         let mut result = ~MessageBuilder {
             nextSize : firstSegmentWords,
             allocation_strategy : allocationStrategy,
-            segments : segments,
-            arena : arena
+            arena : arena,
+            first_segment : first_segment,
+            more_segments : None
         };
 
         (*result.arena).message = std::ptr::to_mut_unsafe_ptr(result);
@@ -159,7 +168,11 @@ impl <'a>MessageBuilder<'a> {
         let new_words : *mut Word = unsafe {
             std::cast::transmute(std::libc::calloc(size as std::libc::size_t,
                                                    BYTES_PER_WORD as std::libc::size_t)) };
-        self.segments.push(new_words);
+
+        match self.more_segments {
+            None => self.more_segments = Some(~[new_words]),
+            Some(ref mut segs) => segs.push(new_words)
+        }
 
         match self.allocation_strategy {
             GROW_HEURISTICALLY => { self.nextSize += size; }
