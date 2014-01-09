@@ -30,10 +30,6 @@ macro_rules! refresh_buffer(
     )
 
 impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b, R> {
-    fn eof(&mut self) -> bool {
-        self.inner.eof()
-    }
-
     fn read(&mut self, outBuf: &mut [u8]) -> Option<uint> {
         let len = outBuf.len();
 

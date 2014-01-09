@@ -74,10 +74,6 @@ impl<'a, R: Reader> BufferedInputStream<'a, R> {
 }
 
 impl<'a, R: Reader> Reader for BufferedInputStream<'a, R> {
-    fn eof(&mut self) -> bool {
-        self.inner.eof()
-    }
-
     fn read(&mut self, dst: &mut [u8]) -> Option<uint> {
         let mut num_bytes = dst.len();
         if (num_bytes <= self.cap - self.pos) {
