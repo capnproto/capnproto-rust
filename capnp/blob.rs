@@ -11,11 +11,9 @@ pub mod Text {
 
     // len does not include the required null terminator at the end
     pub fn new_reader<'a>(p : *u8, len : uint) -> Reader<'a> {
-        unsafe {
-            let v = std::unstable::raw::Slice { data: p, len: len };
-            assert!(std::str::is_utf8(std::cast::transmute(v)));
-            std::cast::transmute(v)
-        }
+        let v : &'a [u8] =
+            unsafe { std::cast::transmute(std::unstable::raw::Slice { data: p, len: len }) };
+        std::str::from_utf8(v)
     }
 
     pub struct Builder<'a> {
