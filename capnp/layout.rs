@@ -1128,11 +1128,31 @@ mod WireHelpers {
     }
 
     #[inline]
-    pub unsafe fn get_writable_data_pointer<'a>(_refIndex : *mut WirePointer,
-                                                _segment : *mut SegmentBuilder<'a>,
-                                                _default_value : *Word,
-                                                _default_size : ByteCount) -> Data::Builder<'a> {
-        fail!("unimplemented");
+    pub unsafe fn get_writable_data_pointer<'a>(mut reff : *mut WirePointer,
+                                                mut segment : *mut SegmentBuilder<'a>,
+                                                default_value : *Word,
+                                                default_size : ByteCount) -> Data::Builder<'a> {
+        if (*reff).is_null() {
+            if default_size == 0 {
+                return Data::new_builder(std::ptr::mut_null(), 0);
+            } else {
+                let builder = init_data_pointer(reff, segment, default_size).value;
+                std::ptr::copy_nonoverlapping_memory::<u8, *u8>(builder.as_mut_ptr(),
+                                                                std::cast::transmute(default_value),
+                                                                default_size);
+                return builder;
+            }
+        } else {
+            let ref_target = (*reff).mut_target();
+            let ptr = follow_builder_fars(&mut reff, ref_target, &mut segment);
+
+            assert!((*reff).kind() == WP_LIST,
+                    "Called getData\\{Field,Element\\}() but existing pointer is not a list.");
+            assert!((*reff).list_ref().element_size() == BYTE,
+                    "Called getData\\{Field,Element\\}() but existing list pointer is not byte-sized.");
+
+            return Data::new_builder(std::cast::transmute(ptr), (*reff).list_ref().element_count());
+        }
     }
 
     pub unsafe fn set_struct_pointer<'a>(mut segment : *mut SegmentBuilder<'a>,

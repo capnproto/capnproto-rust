@@ -132,13 +132,16 @@ fn test_blob () {
             }
             data_builder[0] = 4u8;
 
-            assert_eq!(test_blob.as_reader().get_data_field(), [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
             assert_eq!(test_blob.as_reader().get_text_field(), "aabbccddee");
+            assert_eq!(test_blob.as_reader().get_data_field(), [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
 
             let bytes = test_blob.get_text_field().as_mut_bytes();
             bytes[4] = 'z' as u8;
             bytes[5] = 'z' as u8;
             assert_eq!(test_blob.as_reader().get_text_field(), "aabbzzddee");
+
+            test_blob.get_data_field()[2] = 10;
+            assert_eq!(test_blob.as_reader().get_data_field(), [4u8,5u8,10u8,5u8,5u8,5u8,5u8]);
 
         });
 }
