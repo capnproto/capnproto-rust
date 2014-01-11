@@ -1180,16 +1180,16 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         }
 
         Some(Node::Annotation( annotationReader )) => {
-            println("  annotation node:");
+            println!("  annotation node:");
             if (annotationReader.get_targets_file()) {
-                println("  targets file");
+                println!("  targets file");
             }
             if (annotationReader.get_targets_const()) {
-                println("  targets const");
+                println!("  targets const");
             }
             // ...
             if (annotationReader.get_targets_annotation()) {
-                println("  targets annotation");
+                println!("  targets annotation");
             }
         }
 
@@ -1225,7 +1225,7 @@ fn main() {
             let requestedFile = requestedFilesReader[ii];
             let id = requestedFile.get_id();
             let name : &str = requestedFile.get_filename();
-            println(format!("requested file: {}", name));
+            println!("requested file: {}", name);
 
             let fileNode = nodeMap.get(&id);
             let displayName = fileNode.get_display_name();
@@ -1247,7 +1247,7 @@ fn main() {
             };
 
             outputFileName.push_str(".rs");
-            println(outputFileName);
+            println!("{}", outputFileName);
 
             populate_scope_map(&nodeMap, &mut scopeMap, rootName, id);
 

@@ -78,7 +78,7 @@ fn print_address_book() {
             }
             match person.get_employment().which() {
                 Some(Person::Employment::Unemployed(())) => {
-                    println("  unemployed");
+                    println!("  unemployed");
                 }
                 Some(Person::Employment::Employer(employer)) => {
                     println!("  employer: {}", employer);
@@ -87,7 +87,7 @@ fn print_address_book() {
                     println!("  student at: {}", school);
                 }
                 Some(Person::Employment::SelfEmployed(())) => {
-                    println("  self-employed");
+                    println!("  self-employed");
                 }
                 None => { }
             }
@@ -104,7 +104,7 @@ fn main() {
         match args[1] {
             ~"write" => write_address_book(),
             ~"read" => print_address_book(),
-            _ => {println("unrecognized argument") }
+            _ => {println!("unrecognized argument") }
         }
     }
 

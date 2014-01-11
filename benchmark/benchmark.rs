@@ -231,7 +231,7 @@ macro_rules! pass_by_pipe(
                     println!("{}", p.wait());
                 }
                 None => {
-                    println("bummer");
+                    println!("bummer");
                 }
             }
         });
