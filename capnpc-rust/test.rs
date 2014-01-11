@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ * Copyright (c) 2013 - 2014, David Renshaw (dwrenshaw@gmail.com)
  *
  * See the LICENSE file in the capnproto-rust root directory.
  */
@@ -12,11 +12,11 @@ pub mod test_capnp;
 
 #[test]
 fn test_prim_list () {
-    use capnp::message::{MessageBuilder, SUGGESTED_ALLOCATION_STRATEGY};
+    use capnp::message::{NumWords, MessageBuilder, SUGGESTED_ALLOCATION_STRATEGY};
     use test_capnp::TestPrimList;
 
     // Make the first segment small to force allocation of a second segment.
-    MessageBuilder::new(50,
+    MessageBuilder::new(NumWords(50),
                         SUGGESTED_ALLOCATION_STRATEGY,
                         |message| {
 
@@ -149,11 +149,11 @@ fn test_blob () {
 
 #[test]
 fn test_big_struct() {
-    use capnp::message::{MessageBuilder, SUGGESTED_ALLOCATION_STRATEGY};
+    use capnp::message::{NumWords, MessageBuilder, SUGGESTED_ALLOCATION_STRATEGY};
     use test_capnp::TestBigStruct;
 
     // Make the first segment small to force allocation of a second segment.
-    MessageBuilder::new(5,
+    MessageBuilder::new(NumWords(5),
                         SUGGESTED_ALLOCATION_STRATEGY,
                         |message| {
 

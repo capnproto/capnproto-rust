@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ * Copyright (c) 2013-2014, David Renshaw (dwrenshaw@gmail.com)
  *
  * See the LICENSE file in the capnproto-rust root directory.
  */
@@ -38,7 +38,6 @@ impl <'a> MessageReader<'a> {
     pub fn new<'b>(segments : &'b [&'b [Word]], options : ReaderOptions) -> ~MessageReader<'b> {
 
         assert!(segments.len() > 0);
-
         let mut result = ~MessageReader {
             segments : segments,
             arena : ReaderArena {
@@ -100,13 +99,22 @@ pub struct MessageBuilder<'a> {
     nextSize : uint,
     allocation_strategy : AllocationStrategy,
     arena : ~BuilderArena<'a>,
+    own_first_segment : bool,
     first_segment : *mut Word,
     more_segments : Option<~[*mut Word]>
 }
 
 impl <'a> Drop for MessageBuilder<'a> {
     fn drop(&mut self) {
-        unsafe { std::libc::free(std::cast::transmute(self.first_segment)) }
+        if self.own_first_segment {
+            unsafe { std::libc::free(std::cast::transmute(self.first_segment)) }
+        } else {
+            self.get_segments_for_output(|segments| {
+                    unsafe {
+                        std::ptr::zero_memory(self.first_segment, segments[0].len());
+                    }
+                });
+        }
 
         match self.more_segments {
             None => {},
@@ -119,24 +127,35 @@ impl <'a> Drop for MessageBuilder<'a> {
     }
 }
 
+pub enum FirstSegment<'a> {
+    NumWords(uint),
+    ZeroedWords(&'a mut [Word])
+}
+
 impl <'a>MessageBuilder<'a> {
 
     // TODO: maybe when Rust issue #5121 is fixed we can safely get away with not passing
     //  a closure here.
-    pub fn new<T>(firstSegmentWords : uint,
+    pub fn new<T>(first_segment_arg : FirstSegment<'a>,
                   allocationStrategy : AllocationStrategy,
                   cont : |&mut MessageBuilder<'a>| -> T) -> T {
 
-        let first_segment : *mut Word =
-            unsafe { std::cast::transmute(std::libc::calloc(firstSegmentWords as std::libc::size_t,
-                                                            BYTES_PER_WORD as std::libc::size_t))};
+        let (first_segment, num_words, own_first_segment) : (*mut Word, uint, bool) = unsafe {
+            match first_segment_arg {
+                NumWords(n) =>
+                    (std::cast::transmute(
+                        std::libc::calloc(n as std::libc::size_t,
+                                          BYTES_PER_WORD as std::libc::size_t)),
+                     n, true),
+                ZeroedWords(w) => (w.as_mut_ptr(), w.len(), false)
+            }};
 
         let mut arena = ~BuilderArena::<'a> {
             message : std::ptr::mut_null(),
             segment0 : SegmentBuilder {
                 reader : SegmentReader {
                     ptr : first_segment as * Word,
-                    size : firstSegmentWords,
+                    size : num_words,
                     arena : Null },
                 id : 0,
                 pos : first_segment
@@ -147,9 +166,10 @@ impl <'a>MessageBuilder<'a> {
         arena.segment0.reader.arena = BuilderArenaPtr(arena_ptr);
 
         let mut result = ~MessageBuilder {
-            nextSize : firstSegmentWords,
+            nextSize : num_words,
             allocation_strategy : allocationStrategy,
             arena : arena,
+            own_first_segment: own_first_segment,
             first_segment : first_segment,
             more_segments : None
         };
@@ -160,7 +180,7 @@ impl <'a>MessageBuilder<'a> {
     }
 
     pub fn new_default<T>(cont : |&mut MessageBuilder| -> T) -> T {
-        MessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY, cont)
+        MessageBuilder::new(NumWords(SUGGESTED_FIRST_SEGMENT_WORDS), SUGGESTED_ALLOCATION_STRATEGY, cont)
     }
 
     pub fn allocate_segment(&mut self, minimumSize : WordCount) -> (*mut Word, WordCount) {
