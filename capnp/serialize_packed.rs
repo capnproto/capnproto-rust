@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ * Copyright (c) 2013-2014, David Renshaw (dwrenshaw@gmail.com)
  *
  * See the LICENSE file in the capnproto-rust root directory.
  */
@@ -324,23 +324,14 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
    fn flush(&mut self) { self.inner.flush(); }
 }
 
-pub trait WritePacked {
-    fn write_packed_message(&mut self, message : &MessageBuilder);
+pub fn write_packed_message<T:io::BufferedOutputStream>(output : &mut T, message : &MessageBuilder) {
+    let mut packedOutputStream = PackedOutputStream {inner : output};
+    write_message(&mut packedOutputStream, message);
 }
 
-impl <'a, T : std::io::Writer> WritePacked for io::BufferedOutputStreamWrapper<'a, T> {
-    fn write_packed_message(&mut self, message : &MessageBuilder) {
-        let mut packedOutputStream = PackedOutputStream {inner : self};
-        write_message(&mut packedOutputStream, message);
-    }
-}
 
-pub struct WritePackedWrapper<'a, T> {writer : &'a mut T }
-
-impl <'a, T: std::io::Writer> WritePacked for WritePackedWrapper<'a, T> {
-    fn write_packed_message(&mut self, message : &MessageBuilder) {
-        let mut buffered = io::BufferedOutputStreamWrapper::new(self.writer);
-        buffered.write_packed_message(message);
-        buffered.flush();
-    }
+pub fn write_packed_message_unbuffered<T:std::io::Writer>(output : &mut T, message : &MessageBuilder) {
+    let mut buffered = io::BufferedOutputStreamWrapper::new(output);
+    write_packed_message(&mut buffered, message);
+    buffered.flush();
 }

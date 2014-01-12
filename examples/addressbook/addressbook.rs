@@ -12,7 +12,7 @@ pub mod addressbook_capnp;
 
 fn write_address_book() {
     use capnp::message::MessageBuilder;
-    use capnp::serialize_packed::{WritePackedWrapper, WritePacked};
+    use capnp::serialize_packed::{write_packed_message_unbuffered};
     use addressbook_capnp::{AddressBook, Person};
 
     MessageBuilder::new_default(|message| {
@@ -42,7 +42,7 @@ fn write_address_book() {
         bob_phones[1].set_type(Person::PhoneNumber::Type::Work);
         bob.get_employment().set_unemployed(());
 
-        WritePackedWrapper{writer:&mut std::io::stdout()}.write_packed_message(message);
+        write_packed_message_unbuffered(&mut std::io::stdout(), message);
     });
 }
 
