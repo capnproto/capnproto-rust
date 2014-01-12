@@ -124,7 +124,7 @@ macro_rules! pass_by_bytes(
                         let expected = $testcase::setup_request(&mut rng, request);
 
                         {
-                            let mut writer = std::io::mem::BufWriter::new(requestBytes);
+                            let mut writer = capnp::io::ArrayOutputStream::new(requestBytes);
                             $compression::write(&mut writer, messageReq)
                         }
 
@@ -137,7 +137,7 @@ macro_rules! pass_by_bytes(
                             });
 
                         {
-                            let mut writer = std::io::mem::BufWriter::new(responseBytes);
+                            let mut writer = capnp::io::ArrayOutputStream::new(responseBytes);
                             $compression::write(&mut writer, messageRes)
                         }
 
@@ -158,7 +158,7 @@ macro_rules! pass_by_bytes(
 
 macro_rules! server(
     ( $testcase:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
-            let mut outBuffered = capnp::io::BufferedOutputStream::new(&mut $output);
+            let mut outBuffered = capnp::io::BufferedOutputStreamWrapper::new(&mut $output);
             let mut inBuffered = capnp::io::BufferedInputStream::new(&mut $input);
             for _ in range(0, $iters) {
                 capnp::message::MessageBuilder::new_default(|messageRes| {
@@ -180,7 +180,7 @@ macro_rules! server(
 macro_rules! sync_client(
     ( $testcase:ident, $compression:ident, $iters:expr) => ({
             let mut outStream = std::io::stdout();
-            let mut outBuffered = capnp::io::BufferedOutputStream::new(&mut outStream);
+            let mut outBuffered = capnp::io::BufferedOutputStreamWrapper::new(&mut outStream);
             let mut inStream = std::io::stdin();
             let mut inBuffered = capnp::io::BufferedInputStream::new(&mut inStream);
             let mut rng = common::FastRand::new();

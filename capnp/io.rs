@@ -109,16 +109,21 @@ impl<'a, R: Reader> Reader for BufferedInputStream<'a, R> {
     }
 }
 
-pub struct BufferedOutputStream<'a, W> {
+
+pub trait BufferedOutputStream : Writer {
+    unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8);
+    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint);
+}
+
+pub struct BufferedOutputStreamWrapper<'a, W> {
     priv inner: &'a mut W,
     priv buf: ~[u8],
     priv pos: uint
 }
 
-impl<'a, W: Writer> BufferedOutputStream<'a, W> {
-
-    pub fn new<'b> (w : &'b mut W) -> BufferedOutputStream<'b, W> {
-        let mut result = BufferedOutputStream {
+impl <'a, W> BufferedOutputStreamWrapper<'a, W> {
+    pub fn new<'b> (w : &'b mut W) -> BufferedOutputStreamWrapper<'b, W> {
+        let mut result = BufferedOutputStreamWrapper {
             inner: w,
             buf : std::vec::with_capacity(8192),
             pos : 0
@@ -128,15 +133,17 @@ impl<'a, W: Writer> BufferedOutputStream<'a, W> {
         }
         return result;
     }
+}
 
+impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> {
     #[inline]
-    pub unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
+    unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.buf.len();
         (self.buf.unsafe_mut_ref(self.pos), self.buf.unsafe_mut_ref(len))
     }
 
     #[inline]
-    pub unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) {
+    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) {
         let easyCase = ptr == self.buf.unsafe_mut_ref(self.pos);
         if easyCase {
             self.pos += size;
@@ -146,11 +153,11 @@ impl<'a, W: Writer> BufferedOutputStream<'a, W> {
             })
         }
     }
+
 }
 
 
-impl<'a, W: Writer> Writer for BufferedOutputStream<'a, W> {
-    #[inline]
+impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
     fn write(&mut self, buf: &[u8]) {
         let available = self.buf.len() - self.pos;
         let mut size = buf.len();
@@ -185,6 +192,46 @@ impl<'a, W: Writer> Writer for BufferedOutputStream<'a, W> {
         if (self.pos > 0) {
             self.inner.write(self.buf.slice(0, self.pos));
             self.pos = 0;
+        }
+    }
+}
+
+pub struct ArrayOutputStream<'a> {
+    priv array : &'a mut [u8],
+    priv fill_pos : uint,
+}
+
+impl <'a> ArrayOutputStream<'a> {
+    pub fn new<'b>(array : &'b mut [u8]) -> ArrayOutputStream<'b> {
+        ArrayOutputStream {
+            array : array,
+            fill_pos : 0
+        }
+    }
+}
+
+impl <'a> Writer for ArrayOutputStream<'a> {
+    fn write(&mut self, buf: &[u8]) {
+        assert!(buf.len() <= self.array.len() - self.fill_pos,
+                "ArrayOutputStream's backing array was not large enough for the data written.");
+        unsafe { self.array.mut_slice_from(self.fill_pos).copy_memory(buf); }
+        self.fill_pos += buf.len();
+    }
+}
+
+impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
+    unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
+        let len = self.array.len();
+        (self.array.unsafe_mut_ref(self.fill_pos), self.array.unsafe_mut_ref(len))
+    }
+    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) {
+        let easyCase = ptr == self.array.unsafe_mut_ref(self.fill_pos);
+        if easyCase {
+            self.fill_pos += size;
+        } else {
+            std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, size, |buf| {
+                self.write(buf);
+            })
         }
     }
 }

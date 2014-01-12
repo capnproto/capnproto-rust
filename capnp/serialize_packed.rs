@@ -165,11 +165,11 @@ impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b,
     }
 }
 
-pub struct PackedOutputStream<'a, 'b, W> {
-    inner : &'a mut io::BufferedOutputStream<'b, W>
+pub struct PackedOutputStream<'a, W> {
+    inner : &'a mut W
 }
 
-impl <'a, 'b, W : std::io::Writer> std::io::Writer for PackedOutputStream<'a, 'b, W> {
+impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'a, W> {
     fn write(&mut self, inBuf : &[u8]) {
         unsafe {
             let (mut out, mut bufferEnd) = self.inner.get_write_buffer();
@@ -328,7 +328,7 @@ pub trait WritePacked {
     fn write_packed_message(&mut self, message : &MessageBuilder);
 }
 
-impl <'a, T : std::io::Writer> WritePacked for io::BufferedOutputStream<'a, T> {
+impl <'a, T : std::io::Writer> WritePacked for io::BufferedOutputStreamWrapper<'a, T> {
     fn write_packed_message(&mut self, message : &MessageBuilder) {
         let mut packedOutputStream = PackedOutputStream {inner : self};
         write_message(&mut packedOutputStream, message);
@@ -339,7 +339,7 @@ pub struct WritePackedWrapper<'a, T> {writer : &'a mut T }
 
 impl <'a, T: std::io::Writer> WritePacked for WritePackedWrapper<'a, T> {
     fn write_packed_message(&mut self, message : &MessageBuilder) {
-        let mut buffered = io::BufferedOutputStream::new(self.writer);
+        let mut buffered = io::BufferedOutputStreamWrapper::new(self.writer);
         buffered.write_packed_message(message);
         buffered.flush();
     }

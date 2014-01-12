@@ -18,9 +18,8 @@ pub fn expect_packs_to(unpacked : &[u8],
 
     let mut bytes : ~[u8] = std::vec::from_elem(packed.len(), 0u8);
     {
-        let mut buf_writer = std::io::mem::BufWriter::new(bytes);
-        let mut bufferedOutputStream = io::BufferedOutputStream::new(&mut buf_writer);
-        let mut packedOutputStream = PackedOutputStream {inner : &mut bufferedOutputStream};
+        let mut writer = io::ArrayOutputStream::new(bytes);
+        let mut packedOutputStream = PackedOutputStream {inner : &mut writer};
         packedOutputStream.write(unpacked);
         packedOutputStream.flush();
     }
