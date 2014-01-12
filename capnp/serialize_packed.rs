@@ -10,8 +10,8 @@ use message::*;
 use serialize::*;
 use common::ptr_sub;
 
-pub struct PackedInputStream<'a, 'b,  R> {
-    inner : &'a mut io::BufferedInputStream<'b, R>
+pub struct PackedInputStream<'a, R> {
+    inner : &'a mut R
 }
 
 macro_rules! refresh_buffer(
@@ -29,7 +29,7 @@ macro_rules! refresh_buffer(
         );
     )
 
-impl <'a, 'b, R : std::io::Reader> std::io::Reader for PackedInputStream<'a, 'b, R> {
+impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a, R> {
     fn read(&mut self, outBuf: &mut [u8]) -> Option<uint> {
         let len = outBuf.len();
 

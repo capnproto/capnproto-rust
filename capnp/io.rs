@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ * Copyright (c) 2013-2014, David Renshaw (dwrenshaw@gmail.com)
  *
  * See the LICENSE file in the capnproto-rust root directory.
  */
@@ -23,16 +23,21 @@ pub fn read_at_least<R : Reader>(reader : &mut R,
     return pos;
 }
 
-pub struct BufferedInputStream<'a, R> {
+pub trait BufferedInputStream : Reader {
+    fn skip(&mut self, bytes : uint);
+    unsafe fn get_read_buffer(&mut self) -> (*u8, *u8);
+}
+
+pub struct BufferedInputStreamWrapper<'a, R> {
     priv inner : &'a mut R,
     priv buf : ~[u8],
     priv pos : uint,
     priv cap : uint
 }
 
-impl<'a, R: Reader> BufferedInputStream<'a, R> {
-    pub fn new<'a> (r : &'a mut R) -> BufferedInputStream<'a, R> {
-        let mut result = BufferedInputStream {
+impl <'a, R> BufferedInputStreamWrapper<'a, R> {
+    pub fn new<'a> (r : &'a mut R) -> BufferedInputStreamWrapper<'a, R> {
+        let mut result = BufferedInputStreamWrapper {
             inner : r,
             buf : std::vec::with_capacity(8192),
             pos : 0,
@@ -43,8 +48,11 @@ impl<'a, R: Reader> BufferedInputStream<'a, R> {
         }
         return result;
     }
+}
 
-    pub fn skip(&mut self, mut bytes : uint) {
+impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
+
+   fn skip(&mut self, mut bytes : uint) {
         let available = self.cap - self.pos;
         if bytes <= available {
             self.pos += bytes;
@@ -63,7 +71,7 @@ impl<'a, R: Reader> BufferedInputStream<'a, R> {
         }
     }
 
-    pub unsafe fn get_read_buffer(&mut self) -> (*u8, *u8) {
+    unsafe fn get_read_buffer(&mut self) -> (*u8, *u8) {
         if self.cap - self.pos == 0 {
             let n = read_at_least(self.inner, self.buf, 1);
             self.cap = n;
@@ -73,7 +81,7 @@ impl<'a, R: Reader> BufferedInputStream<'a, R> {
     }
 }
 
-impl<'a, R: Reader> Reader for BufferedInputStream<'a, R> {
+impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
     fn read(&mut self, dst: &mut [u8]) -> Option<uint> {
         let mut num_bytes = dst.len();
         if (num_bytes <= self.cap - self.pos) {
@@ -109,6 +117,36 @@ impl<'a, R: Reader> Reader for BufferedInputStream<'a, R> {
     }
 }
 
+pub struct ArrayInputStream<'a> {
+    priv array : &'a [u8]
+}
+
+impl <'a> ArrayInputStream<'a> {
+    pub fn new<'b>(array : &'b [u8]) -> ArrayInputStream<'b> {
+        ArrayInputStream { array : array }
+    }
+}
+
+impl <'a> Reader for ArrayInputStream<'a> {
+    fn read(&mut self, dst: &mut [u8]) -> Option<uint> {
+        let n = std::cmp::min(dst.len(), self.array.len());
+        unsafe { dst.copy_memory(self.array.slice_to(n)); }
+        self.array = self.array.slice_from(n);
+        Some(n)
+    }
+}
+
+impl <'a> BufferedInputStream for ArrayInputStream<'a> {
+    fn skip(&mut self, bytes : uint) {
+        assert!(self.array.len() >= bytes,
+                "ArrayInputStream ended prematurely.");
+        self.array = self.array.slice_from(bytes);
+    }
+    unsafe fn get_read_buffer(&mut self) -> (*u8, *u8){
+        let len = self.array.len();
+        (self.array.as_ptr(), self.array.unsafe_ref(len))
+    }
+}
 
 pub trait BufferedOutputStream : Writer {
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8);

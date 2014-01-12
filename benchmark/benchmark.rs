@@ -38,8 +38,8 @@ mod Uncompressed {
         capnp::serialize::InputStreamMessageReader::new(inputStream, options, cont)
     }
 
-    pub fn new_buffered_reader<R: std::io::Reader, T>(
-        inputStream : &mut capnp::io::BufferedInputStream<R>,
+    pub fn new_buffered_reader<R: capnp::io::BufferedInputStream, T>(
+        inputStream : &mut R,
         options : capnp::message::ReaderOptions,
         cont : |&mut capnp::message::MessageReader| -> T) -> T {
         capnp::serialize::InputStreamMessageReader::new(inputStream, options, cont)
@@ -63,13 +63,13 @@ mod Packed {
         cont : |&mut capnp::message::MessageReader| -> T) -> T {
         capnp::serialize::InputStreamMessageReader::new(
             &mut capnp::serialize_packed::PackedInputStream{
-                inner : &mut capnp::io::BufferedInputStream::new(inputStream)
+                inner : &mut capnp::io::BufferedInputStreamWrapper::new(inputStream)
             },
             options, cont)
     }
 
-    pub fn new_buffered_reader<R:std::io::Reader, T>(
-        inputStream : &mut capnp::io::BufferedInputStream<R>,
+    pub fn new_buffered_reader<R:capnp::io::BufferedInputStream, T>(
+        inputStream : &mut R,
         options : capnp::message::ReaderOptions,
         cont : |&mut capnp::message::MessageReader| -> T) -> T {
         capnp::serialize::InputStreamMessageReader::new(
@@ -129,7 +129,7 @@ macro_rules! pass_by_bytes(
                         }
 
                         $compression::new_reader(
-                            &mut std::io::mem::BufReader::new(requestBytes),
+                            &mut capnp::io::ArrayInputStream::new(requestBytes),
                             capnp::message::DEFAULT_READER_OPTIONS,
                             |requestReader| {
                                 let requestReader : $testcase::RequestReader = requestReader.get_root();
@@ -142,7 +142,7 @@ macro_rules! pass_by_bytes(
                         }
 
                         $compression::new_reader(
-                            &mut std::io::mem::BufReader::new(responseBytes),
+                            &mut capnp::io::ArrayInputStream::new(responseBytes),
                             capnp::message::DEFAULT_READER_OPTIONS,
                             |responseReader| {
                                 let responseReader : $testcase::ResponseReader = responseReader.get_root();
@@ -159,7 +159,7 @@ macro_rules! pass_by_bytes(
 macro_rules! server(
     ( $testcase:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
             let mut outBuffered = capnp::io::BufferedOutputStreamWrapper::new(&mut $output);
-            let mut inBuffered = capnp::io::BufferedInputStream::new(&mut $input);
+            let mut inBuffered = capnp::io::BufferedInputStreamWrapper::new(&mut $input);
             for _ in range(0, $iters) {
                 capnp::message::MessageBuilder::new_default(|messageRes| {
                     let response = messageRes.init_root::<$testcase::ResponseBuilder>();
@@ -182,7 +182,7 @@ macro_rules! sync_client(
             let mut outStream = std::io::stdout();
             let mut outBuffered = capnp::io::BufferedOutputStreamWrapper::new(&mut outStream);
             let mut inStream = std::io::stdin();
-            let mut inBuffered = capnp::io::BufferedInputStream::new(&mut inStream);
+            let mut inBuffered = capnp::io::BufferedInputStreamWrapper::new(&mut inStream);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
                 capnp::message::MessageBuilder::new_default(|messageReq| {

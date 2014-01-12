@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ * Copyright (c) 2013-2014, David Renshaw (dwrenshaw@gmail.com)
  *
  * See the LICENSE file in the capnproto-rust root directory.
  */
@@ -52,7 +52,7 @@ fn print_address_book() {
 
     let mut inp1 = std::io::stdin();
     let mut inp = capnp::serialize_packed::PackedInputStream {
-        inner : &mut capnp::io::BufferedInputStream::new(&mut inp1)
+        inner : &mut capnp::io::BufferedInputStreamWrapper::new(&mut inp1)
     };
 
     capnp::serialize::InputStreamMessageReader::new(
