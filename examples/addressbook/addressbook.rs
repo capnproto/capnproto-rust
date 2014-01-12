@@ -50,13 +50,8 @@ fn print_address_book() {
     use capnp;
     use addressbook_capnp::{AddressBook, Person};
 
-    let mut inp1 = std::io::stdin();
-    let mut inp = capnp::serialize_packed::PackedInputStream {
-        inner : &mut capnp::io::BufferedInputStreamWrapper::new(&mut inp1)
-    };
-
-    capnp::serialize::InputStreamMessageReader::new(
-        &mut inp, capnp::message::DEFAULT_READER_OPTIONS,
+    capnp::serialize_packed::PackedInputStreamMessageReader::new(
+        &mut std::io::stdin(), capnp::message::DEFAULT_READER_OPTIONS,
         |message_reader| {
         let address_book = message_reader.get_root::<AddressBook::Reader>();
         let people = address_book.get_people();

@@ -10,6 +10,7 @@ use message::*;
 use serialize::*;
 use common::ptr_sub;
 
+
 pub struct PackedInputStream<'a, R> {
     inner : &'a mut R
 }
@@ -164,6 +165,25 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
         }
     }
 }
+
+pub mod PackedInputStreamMessageReader {
+    use serialize::InputStreamMessageReader;
+    use io;
+    use std;
+    use message::{ReaderOptions, MessageReader};
+
+    pub fn new<U : std::io::Reader, T>(input : &mut U,
+                                       options : ReaderOptions,
+                                       cont : |&mut MessageReader| -> T) -> T {
+        let mut packed_input = super::PackedInputStream {
+            inner : &mut io::BufferedInputStreamWrapper::new(input)
+        };
+
+        InputStreamMessageReader::new(&mut packed_input, options, cont)
+    }
+}
+
+
 
 pub struct PackedOutputStream<'a, W> {
     inner : &'a mut W

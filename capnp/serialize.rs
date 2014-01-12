@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ * Copyright (c) 2013-2014, David Renshaw (dwrenshaw@gmail.com)
  *
  * See the LICENSE file in the capnproto-rust root directory.
  */
@@ -18,8 +18,8 @@ pub mod InputStreamMessageReader {
     use message::*;
 
     pub fn new<U : std::io::Reader, T>(inputStream : &mut U,
-                                           options : ReaderOptions,
-                                           cont : |&mut MessageReader| -> T) -> T {
+                                       options : ReaderOptions,
+                                       cont : |&mut MessageReader| -> T) -> T {
 
         let firstWord = inputStream.read_bytes(8);
 
