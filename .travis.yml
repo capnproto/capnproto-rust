@@ -5,3 +5,4 @@ install:
   - sudo apt-get install rust-nightly
 script:
   - make capnpc-rust/capnpc-rust
+  - make capnp-test
