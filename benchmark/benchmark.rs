@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ * Copyright (c) 2013-2014, David Renshaw (dwrenshaw@gmail.com)
  *
  * See the LICENSE file in the capnproto-rust root directory.
  */
@@ -93,9 +93,7 @@ mod Packed {
 
 }
 
-
 static SCRATCH_SIZE : uint = 128 * 1024;
-//static scratchSpace : [u8, .. 6 * SCRATCH_SIZE] = [0, .. 6 * SCRATCH_SIZE];
 
 pub trait ScratchSpace {
     fn get_scratch<'a>(&mut self, idx : uint) -> capnp::message::FirstSegment<'a>;
