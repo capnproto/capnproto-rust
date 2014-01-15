@@ -92,12 +92,56 @@ mod Packed {
 }
 
 
+static SCRATCH_SIZE : uint = 128 * 1024;
+//static scratchSpace : [u8, .. 6 * SCRATCH_SIZE] = [0, .. 6 * SCRATCH_SIZE];
+
+pub trait ScratchSpace {
+    fn get_scratch<'a>(&mut self, idx : uint) -> capnp::message::FirstSegment<'a>;
+}
+
+pub struct NoScratch;
+
+impl ScratchSpace for NoScratch {
+    fn get_scratch<'a>(&mut self, _idx : uint) -> capnp::message::FirstSegment<'a> {
+        capnp::message::NumWords(capnp::message::SUGGESTED_FIRST_SEGMENT_WORDS)
+    }
+}
+
+pub struct UseScratch {
+    scratch_space : ~[capnp::common::Word]
+}
+
+impl UseScratch {
+    pub fn new() -> UseScratch {
+        UseScratch {
+            scratch_space : capnp::common::allocate_zeroed_words(SCRATCH_SIZE * 6)
+        }
+    }
+}
+
+impl ScratchSpace for UseScratch {
+    fn get_scratch<'a>(&mut self, idx : uint) -> capnp::message::FirstSegment<'a> {
+        assert!(idx < 6);
+        unsafe {
+            capnp::message::ZeroedWords(
+                std::cast::transmute(
+                    std::unstable::raw::Slice { data : self.scratch_space.unsafe_ref(idx * SCRATCH_SIZE),
+                                                len : SCRATCH_SIZE }))
+        }
+    }
+}
+
+
 macro_rules! pass_by_object(
-    ( $testcase:ident, $iters:expr ) => ({
+    ( $testcase:ident, $reuse:ident, $iters:expr ) => ({
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
-                capnp::message::MessageBuilder::new_default(|messageReq| {
-                    capnp::message::MessageBuilder::new_default(|messageRes| {
+                capnp::message::MessageBuilder::new($reuse.get_scratch(0),
+                                                    capnp::message::SUGGESTED_ALLOCATION_STRATEGY,
+                                                    |messageReq| {
+                    capnp::message::MessageBuilder::new($reuse.get_scratch(1),
+                                                        capnp::message::SUGGESTED_ALLOCATION_STRATEGY,
+                                                        |messageRes| {
 
                         let request = messageReq.init_root::<$testcase::RequestBuilder>();
                         let response = messageRes.init_root::<$testcase::ResponseBuilder>();
@@ -117,17 +161,18 @@ macro_rules! pass_by_object(
     )
 
 
-static SCRATCH_SIZE : uint = 128 * 1024;
-//static scratchSpace : [u8, .. 6 * SCRATCH_SIZE] = [0, .. 6 * SCRATCH_SIZE];
-
 macro_rules! pass_by_bytes(
-    ( $testcase:ident, $compression:ident, $iters:expr ) => ({
+    ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr ) => ({
             let mut requestBytes : ~[u8] = std::vec::from_elem(SCRATCH_SIZE * 8, 0u8);
             let mut responseBytes : ~[u8] = std::vec::from_elem(SCRATCH_SIZE * 8, 0u8);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
-                capnp::message::MessageBuilder::new_default(|messageReq| {
-                    capnp::message::MessageBuilder::new_default(|messageRes| {
+                capnp::message::MessageBuilder::new($reuse.get_scratch(0),
+                                                    capnp::message::SUGGESTED_ALLOCATION_STRATEGY,
+                                                    |messageReq| {
+                    capnp::message::MessageBuilder::new($reuse.get_scratch(1),
+                                                        capnp::message::SUGGESTED_ALLOCATION_STRATEGY,
+                                                        |messageRes| {
 
                         let request = messageReq.init_root::<$testcase::RequestBuilder>();
                         let response = messageRes.init_root::<$testcase::ResponseBuilder>();
@@ -167,11 +212,13 @@ macro_rules! pass_by_bytes(
     )
 
 macro_rules! server(
-    ( $testcase:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
+    ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
             let mut outBuffered = capnp::io::BufferedOutputStreamWrapper::new(&mut $output);
             let mut inBuffered = capnp::io::BufferedInputStreamWrapper::new(&mut $input);
             for _ in range(0, $iters) {
-                capnp::message::MessageBuilder::new_default(|messageRes| {
+                capnp::message::MessageBuilder::new($reuse.get_scratch(0),
+                                                    capnp::message::SUGGESTED_ALLOCATION_STRATEGY,
+                                                    |messageRes| {
                     let response = messageRes.init_root::<$testcase::ResponseBuilder>();
                     $compression::new_buffered_reader(
                         &mut inBuffered,
@@ -188,13 +235,15 @@ macro_rules! server(
     )
 
 macro_rules! sync_client(
-    ( $testcase:ident, $compression:ident, $iters:expr) => ({
+    ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
             let mut outStream = std::io::stdout();
             let mut inStream = std::io::stdin();
             let mut inBuffered = capnp::io::BufferedInputStreamWrapper::new(&mut inStream);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
-                capnp::message::MessageBuilder::new_default(|messageReq| {
+                capnp::message::MessageBuilder::new($reuse.get_scratch(0),
+                                                    capnp::message::SUGGESTED_ALLOCATION_STRATEGY,
+                                                    |messageReq| {
                     let request = messageReq.init_root::<$testcase::RequestBuilder>();
 
                     let expected = $testcase::setup_request(&mut rng, request);
@@ -214,7 +263,7 @@ macro_rules! sync_client(
 
 
 macro_rules! pass_by_pipe(
-    ( $testcase:ident, $compression:ident, $iters:expr) => ({
+    ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
             use std::io::process;
 
             let mut args = std::os::args();
@@ -235,7 +284,7 @@ macro_rules! pass_by_pipe(
                     let mut childStdOut = p.io.pop();
                     let mut childStdIn = p.io.pop();
 
-                    server!($testcase, $compression, $iters, childStdOut, childStdIn);
+                    server!($testcase, $reuse, $compression, $iters, childStdOut, childStdIn);
                     println!("{}", p.wait());
                 }
                 None => {
@@ -246,24 +295,24 @@ macro_rules! pass_by_pipe(
     )
 
 macro_rules! do_testcase(
-    ( $testcase:ident, $mode:expr, $reuse:expr, $compression:ident, $iters:expr ) => ({
+    ( $testcase:ident, $mode:expr, $reuse:ident, $compression:ident, $iters:expr ) => ({
             match $mode {
-                ~"object" => pass_by_object!($testcase, $iters),
-                ~"bytes" => pass_by_bytes!($testcase, $compression, $iters),
-                ~"client" => sync_client!($testcase, $compression, $iters),
+                ~"object" => pass_by_object!($testcase, $reuse, $iters),
+                ~"bytes" => pass_by_bytes!($testcase, $reuse, $compression, $iters),
+                ~"client" => sync_client!($testcase, $reuse, $compression, $iters),
                 ~"server" => {
                     let mut input = std::io::stdin();
                     let mut output = std::io::stdout();
-                    server!($testcase, $compression, $iters, input, output)
+                    server!($testcase, $reuse, $compression, $iters, input, output)
                 }
-                ~"pipe" => pass_by_pipe!($testcase, $compression, $iters),
+                ~"pipe" => pass_by_pipe!($testcase, $reuse, $compression, $iters),
                 s => fail!("unrecognized mode: {}", s)
             }
         });
     )
 
 macro_rules! do_testcase1(
-    ( $testcase:expr, $mode:expr, $reuse:expr, $compression:ident, $iters:expr) => ({
+    ( $testcase:expr, $mode:expr, $reuse:ident, $compression:ident, $iters:expr) => ({
             match $testcase {
                 ~"carsales" => do_testcase!(carsales, $mode, $reuse, $compression, $iters),
                 ~"catrank" => do_testcase!(catrank, $mode, $reuse, $compression, $iters),
@@ -272,6 +321,23 @@ macro_rules! do_testcase1(
             }
         });
     )
+
+macro_rules! do_testcase2(
+    ( $testcase:expr, $mode:expr, $reuse:expr, $compression:ident, $iters:expr) => ({
+            match $reuse {
+                ~"no-reuse" => {
+                    let mut scratch = NoScratch;
+                    do_testcase1!($testcase, $mode, scratch, $compression, $iters)
+                }
+                ~"reuse" => {
+                    let mut scratch = UseScratch::new();
+                    do_testcase1!($testcase, $mode, scratch, $compression, $iters)
+                }
+                s => fail!("unrecognized reuse option: {}", s)
+            }
+        });
+    )
+
 
 pub fn main () {
 
@@ -292,15 +358,9 @@ pub fn main () {
         }
     };
 
-    // For now, just insist that reuse = none
-    match args[3] {
-        ~"no-reuse" => {}
-        _ => fail!("for now, 'no-reuse' is the only allowed option for REUSE")
-    }
-
     match args[4] {
-        ~"none" => do_testcase1!(args[1], args[2],  args[3], Uncompressed, iters),
-        ~"packed" => do_testcase1!(args[1], args[2], args[3], Packed, iters),
+        ~"none" => do_testcase2!(args[1], args[2],  args[3], Uncompressed, iters),
+        ~"packed" => do_testcase2!(args[1], args[2], args[3], Packed, iters),
         s => fail!("unrecognized compression: {}", s)
     }
 }
