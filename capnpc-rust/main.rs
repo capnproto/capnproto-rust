@@ -914,11 +914,11 @@ fn generate_haser(discriminant_offset : u32,
     Branch(result)
 }
 
-
 fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                  rootName : &str,
-                 node_id : u64) -> FormattedText {
+                 node_id : u64,
+                 node_name: &str) -> FormattedText {
     use schema_capnp::*;
 
     let mut output: ~[FormattedText] = ~[];
@@ -927,7 +927,9 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
     let nodeReader = nodeMap.get(&node_id);
     let nestedNodes = nodeReader.get_nested_nodes();
     for ii in range(0, nestedNodes.size()) {
-        nested_output.push(generate_node(nodeMap, scopeMap, rootName, nestedNodes[ii].get_id()));
+        let id = nestedNodes[ii].get_id();
+        nested_output.push(generate_node(nodeMap, scopeMap, rootName,
+                                         id, *scopeMap.get(&id).last()));
     }
 
     match nodeReader.which() {
@@ -937,9 +939,8 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         }
 
         Some(Node::Struct(structReader)) => {
-            let names = scopeMap.get(&node_id);
             output.push(BlankLine);
-            output.push(Line(format!("pub mod {} \\{", *names.last())));
+            output.push(Line(format!("pub mod {} \\{", node_name)));
 
             let mut preamble = ~[];
             let mut builder_members = ~[];
@@ -1021,7 +1022,9 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
                 match field.which() {
                     Some(Field::Group(group)) => {
-                        let text = generate_node(nodeMap, scopeMap, rootName, group.get_type_id());
+                        let id = group.get_type_id();
+                        let text = generate_node(nodeMap, scopeMap, rootName,
+                                                 id, *scopeMap.get(&id).last());
                         nested_output.push(text);
                     }
                     _ => { }
@@ -1154,7 +1157,18 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 let method = methods[ii];
                 method.get_name();
                 method.get_code_order();
-                method.get_param_struct_type();
+                let param_id = method.get_param_struct_type();
+                let param_node = nodeMap.get(&param_id);
+                if param_node.get_scope_id() == 0 {
+                    let params_name = format!("{}Params", capitalize_first_letter(method.get_name()));
+
+                    nested_output.push(generate_node(nodeMap, scopeMap, rootName,
+                                                     param_id, params_name ));
+                    println!("param_node name: {}", param_node.get_display_name());
+                } else {
+                    fail!("unimplemented");
+                }
+
                 method.get_result_struct_type();
                 method.get_annotations();
             }
@@ -1274,7 +1288,8 @@ fn main() {
 
             let lines = Branch(~[Line(~"#[allow(unused_imports)];"),
                                  generate_node(&nodeMap, &scopeMap,
-                                               rootName, id)]);
+                                               rootName, id, rootName)]);
+
             let text = stringify(&lines);
 
             let path = std::path::Path::new(outputFileName);
