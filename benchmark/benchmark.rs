@@ -269,14 +269,17 @@ macro_rules! pass_by_pipe(
             let mut args = std::os::args();
             args[2] = ~"client";
 
+
+            let io = [process::CreatePipe(true, false), // stdin
+                      process::CreatePipe(false, true), // stdout
+                      process::Ignored];
+
             let config = process::ProcessConfig {
                 program: args[0].as_slice(),
                 args: args.slice(1, args.len()),
                 env : None,
                 cwd: None,
-                io : [process::CreatePipe(true, false), // stdin
-                      process::CreatePipe(false, true), // stdout
-                      process::Ignored]
+                io : io
             };
             match process::Process::new(config) {
                 Some(ref mut p) => {

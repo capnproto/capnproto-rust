@@ -38,7 +38,7 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
         let url = result.init_url(url_size + url_prefix_length);
 
         let bytes = url.as_mut_bytes();
-        std::io::mem::BufWriter::new(bytes).write(URL_PREFIX.as_bytes());
+        std::io::BufWriter::new(bytes).write(URL_PREFIX.as_bytes());
 
         for j in range(0, url_size) {
             bytes[j + url_prefix_length] = (97 + rng.nextLessThan(26)) as u8;
