@@ -806,7 +806,7 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
 
         getter_interior.push(Branch(~[
                     Line(format!("{} => \\{", dvalue)),
-                    Indent(~Line(format!("return Some({}(", qual_enumerant_name))),
+                    Indent(~Line(format!("return std::option::Some({}(", qual_enumerant_name))),
                     Indent(~Indent(~get)),
                     Indent(~Line(~"));")),
                     Line(~"}")
@@ -829,7 +829,7 @@ fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Read
     let lifetime_suffix = if requiresSelfVar { "<'a>" } else { "" };
     let enum_name = format!("Which{}{}", if is_reader { "Reader" } else { "Builder" }, lifetime_suffix);
 
-    getter_interior.push(Line(~"_ => return None"));
+    getter_interior.push(Line(~"_ => return std::option::None"));
 
     interior.push(
         Branch(~[Line(format!("pub enum {} \\{", enum_name)),
