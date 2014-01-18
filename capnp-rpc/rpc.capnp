@@ -111,7 +111,7 @@
 # bother implementing any other vat network protocol -- just use the correct container type and get
 # it for free.
 
-using Cxx = import "/capnp/c++.capnp";
+using Cxx = import "c++.capnp";
 $Cxx.namespace("capnp::rpc");
 
 # ========================================================================================
