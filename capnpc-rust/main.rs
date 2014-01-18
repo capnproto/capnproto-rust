@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ * Copyright (c) 2013-2014, David Renshaw (dwrenshaw@gmail.com)
  *
  * See the LICENSE file in the capnproto-rust root directory.
  */
@@ -36,7 +36,7 @@ fn element_size_str (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
     }
 }
 
-fn element_size (typ : schema_capnp::Type::Which) -> schema_capnp::ElementSize::Reader {
+fn element_size (typ : schema_capnp::Type::WhichReader) -> schema_capnp::ElementSize::Reader {
     use schema_capnp::Type::*;
     use schema_capnp::ElementSize::*;
     match typ {
@@ -56,7 +56,7 @@ fn element_size (typ : schema_capnp::Type::Which) -> schema_capnp::ElementSize::
     }
 }
 
-fn prim_type_str (typ : schema_capnp::Type::Which) -> ~str {
+fn prim_type_str (typ : schema_capnp::Type::WhichReader) -> ~str {
     use schema_capnp::Type::*;
     match typ {
         Void(()) => ~"()",
@@ -419,8 +419,10 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                             Line(format!("{}::{}::new(self.{}.get_pointer_field({}).get_struct({} std::ptr::null()))",
                                       theMod, module, member, offset, middleArg)))
                 }
-                Some((Type::Interface(_), _)) => {
-                        fail!("unimplemented");
+                Some((Type::Interface(interface), _)) => {
+                    let theMod = scopeMap.get(&interface.get_type_id()).connect("::");
+                    return (format!("{}::Client", theMod),
+                            Line(~"fail!(\"TODO\")"));
                 }
                 Some((Type::AnyPointer(()), _)) => {
                     return (format!("AnyPointer::{}<'a>", module),
@@ -496,13 +498,14 @@ fn zero_fields_of_group(node_map : &std::hashmap::HashMap<u64, schema_capnp::Nod
                                         if !result.contains(&line) { result.push(line) }
                                     }
                                     Type::Struct(_) | Type::List(_) | Type::Text(()) | Type::Data(()) |
-                                        Type::AnyPointer(()) => {
+                                        Type::AnyPointer(()) |
+                                        Type::Interface(_) // Is this the right thing to do for interfaces?
+                                        => {
                                         let line = Line(format!("self.builder.get_pointer_field({}).clear();",
                                                                 slot.get_offset()));
                                         // PERF could dedup more efficiently
                                         if !result.contains(&line) { result.push(line) }
                                     }
-                                    Type::Interface(_) => { fail!() }
                                 }
                             }
                             None => {fail!()}
@@ -727,8 +730,9 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                                 theMod, offset, theMod)));
                     (Some(format!("{}::Reader", theMod)), Some(format!("{}::Builder<'a>", theMod)))
                 }
-                Some(Type::Interface(_)) => {
-                    fail!("unimplemented");
+                Some(Type::Interface(interface)) => {
+                    error!("unimplemented {}", interface.get_type_id());
+                    (None, None)
                 }
                 Some(Type::AnyPointer(())) => {
                     initter_interior.push(Line(format!("let result = AnyPointer::Builder::new(self.builder.get_pointer_field({}));",
@@ -1111,6 +1115,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
         Some(Node::Enum(enumReader)) => {
             let names = scopeMap.get(&node_id);
+            output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", *names.last())));
 
             output.push(Indent(~Line(~"use capnp::list::{ToU16};")));
@@ -1143,7 +1148,27 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             output.push(Line(~"}"));
         }
 
-        Some(Node::Interface(_)) => { }
+        Some(Node::Interface(interface)) => {
+            let names = scopeMap.get(&node_id);
+            output.push(BlankLine);
+            output.push(Line(format!("pub mod {} \\{", *names.last())));
+
+            let methods = interface.get_methods();
+            for ii in range(0, methods.size()) {
+                let method = methods[ii];
+                method.get_name();
+                method.get_code_order();
+                method.get_param_struct_type();
+                method.get_result_struct_type();
+                method.get_annotations();
+            }
+
+            interface.get_extends();
+
+            output.push(Indent(~Branch(~[Branch(nested_output)])));
+
+            output.push(Line(~"}"));
+        }
 
         Some(Node::Const(c)) => {
             let names = scopeMap.get(&node_id);
@@ -1169,7 +1194,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 Some((Type::Data(()), Value::Data(_d))) => { fail!() }
                 Some((Type::List(_t), Value::List(_p))) => { fail!() }
                 Some((Type::Struct(_t), Value::Struct(_p))) => { fail!() }
-                Some((Type::Interface(_t), Value::Interface)) => { fail!() }
+                Some((Type::Interface(_t), Value::Interface(()))) => { fail!() }
                 Some((Type::AnyPointer(()), Value::AnyPointer(_pr))) => { fail!() }
                 None => { fail!("unrecognized type") }
                 _ => { fail!("type does not match value") }
