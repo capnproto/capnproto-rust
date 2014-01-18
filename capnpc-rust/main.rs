@@ -305,8 +305,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
     match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
-            let scope = scopeMap.get(&group.get_type_id());
-            let theMod = scope.connect("::");
+            let theMod = scopeMap.get(&group.get_type_id()).connect("::");
             if (isReader) {
                 return (format!("{}::Reader<'a>", theMod),
                         Line(format!("{}::Reader::new(self.reader)", theMod)));
@@ -358,16 +357,14 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     match ot1.get_element_type().which() {
                         None => { fail!("unsupported type") }
                         Some(Type::Struct(st)) => {
-                            let scope = scopeMap.get(&st.get_type_id());
-                            let theMod = scope.connect("::");
+                            let theMod = scopeMap.get(&st.get_type_id()).connect("::");
                             return (format!("StructList::{}<'a,{}::{}<'a>>", module, theMod, module),
                                     Line(format!("StructList::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
                                                  module, member, offset, theMod))
                                     );
                         }
                         Some(Type::Enum(e)) => {
-                            let scope = scopeMap.get(&e.get_type_id());
-                            let theMod = scope.connect("::");
+                            let theMod = scopeMap.get(&e.get_type_id()).connect("::");
                             let fullModuleName = format!("{}::Reader", theMod);
                             return (format!("EnumList::{}<'a,{}>",module,fullModuleName),
                                     Line(format!("EnumList::{}::new(self.{}.get_pointer_field({}).get_list(layout::TWO_BYTES, std::ptr::null()))",
@@ -402,8 +399,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     }
                 }
                 Some((Type::Enum(en), _)) => {
-                    let id = en.get_type_id();
-                    let scope = scopeMap.get(&id);
+                    let scope = scopeMap.get(&en.get_type_id());
                     let theMod = scope.connect("::");
                     return
                         (format!("Option<{}::Reader>", theMod), // Enums don't have builders.
