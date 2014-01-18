@@ -1157,21 +1157,30 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let methods = interface.get_methods();
             for ii in range(0, methods.size()) {
                 let method = methods[ii];
-                method.get_name();
+
                 method.get_code_order();
-                let param_id = method.get_param_struct_type();
-                let param_node = nodeMap.get(&param_id);
-                if param_node.get_scope_id() == 0 {
+                let params_id = method.get_param_struct_type();
+                let params_node = nodeMap.get(&params_id);
+                if params_node.get_scope_id() == 0 {
                     let params_name = format!("{}Params", capitalize_first_letter(method.get_name()));
 
                     nested_output.push(generate_node(nodeMap, scopeMap, rootName,
-                                                     param_id, params_name ));
-                    println!("param_node name: {}", param_node.get_display_name());
+                                                     params_id, params_name ));
                 } else {
                     fail!("unimplemented");
                 }
 
-                method.get_result_struct_type();
+                let results_id = method.get_result_struct_type();
+                let results_node = nodeMap.get(&results_id);
+                if results_node.get_scope_id() == 0 {
+                    let results_name = format!("{}Results", capitalize_first_letter(method.get_name()));
+
+                    nested_output.push(generate_node(nodeMap, scopeMap, rootName,
+                                                     results_id, results_name ));
+                } else {
+                    fail!("unimplemented");
+                }
+
                 method.get_annotations();
             }
 
