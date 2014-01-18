@@ -4,12 +4,13 @@
 
 extern mod capnp;
 
-//pub mod calculator_capnp;
+pub mod calculator_capnp;
 pub mod rpc_capnp;
 //pub mod rpc-twoparty_capnp;
 
 pub mod testing {
     use capnp;
+    use calculator_capnp::Calculator;
     use rpc_capnp::{Message, Return, CapDescriptor};
     use std::io::net;
     use std;
@@ -66,9 +67,44 @@ pub mod testing {
                 call.set_interface_id(0x97983392df35cc36);
                 call.set_method_id(0);
                 let payload = call.init_params();
-                // Hm... I need EvaluateParams.
+                let exp = payload.init_content().init_as_struct::<Calculator::Expression::Builder>();
+                exp.set_literal(1.23456);
+
+                capnp::serialize::write_message(&mut stream, message);
 
             });
+
+        capnp::serialize::InputStreamMessageReader::new(
+            &mut stream,
+            capnp::message::DEFAULT_READER_OPTIONS,
+            |message| {
+                match message.get_root::<Message::Reader>().which() {
+                    Some(Message::Return(ret)) => {
+                        println!("got a return {}", ret.get_answer_id());
+                        match ret.which() {
+                            Some(Return::Results(payload)) => {
+                                println!("with a payload");
+                                let cap_table = payload.get_cap_table();
+                                for ii in range(0, cap_table.size()) {
+                                    match cap_table[ii].which() {
+                                        Some(CapDescriptor::None(())) => {}
+                                        Some(CapDescriptor::SenderHosted(id)) => {
+                                            println!("sender hosted: {}", id);
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+                            Some(Return::Exception(_)) => {
+                                println!("exception");
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {println!("something else") }
+                }
+            });
+
 
     }
 }

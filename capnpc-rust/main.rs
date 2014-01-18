@@ -418,7 +418,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 Some((Type::Interface(interface), _)) => {
                     let theMod = scopeMap.get(&interface.get_type_id()).connect("::");
                     return (format!("{}::Client", theMod),
-                            Line(~"fail!(\"TODO\")"));
+                            Line(format!("{}::Client", theMod))); // TODO
                 }
                 Some((Type::AnyPointer(()), _)) => {
                     return (format!("AnyPointer::{}<'a>", module),
@@ -1151,6 +1151,8 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let names = scopeMap.get(&node_id);
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", *names.last())));
+
+            output.push(Indent(~Line(~"pub struct Client;")));
 
             let methods = interface.get_methods();
             for ii in range(0, methods.size()) {
