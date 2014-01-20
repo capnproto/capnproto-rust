@@ -4,6 +4,10 @@
 
 extern mod capnp;
 
+extern mod extra;
+
+pub mod async;
+
 pub mod calculator_capnp;
 pub mod rpc_capnp;
 //pub mod rpc-twoparty_capnp;
