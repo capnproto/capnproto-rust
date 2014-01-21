@@ -55,7 +55,7 @@ impl <'a> MessageReader<'a> {
 
         result.arena.segment0.arena = arena_ptr;
 
-        if (segments.len() > 1 ) {
+        if segments.len() > 1 {
             let mut moreSegmentReaders = ~[];
             for segment in segments.slice_from(1).iter() {
                 let segmentReader = SegmentReader {

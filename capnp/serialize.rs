@@ -30,7 +30,7 @@ pub mod InputStreamMessageReader {
 
 
         let segment0Size =
-            if (segmentCount == 0) { 0 } else {
+            if segmentCount == 0 { 0 } else {
             unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.unsafe_ref(4));
                     (*p).get()
                    }
@@ -38,13 +38,13 @@ pub mod InputStreamMessageReader {
 
         let mut totalWords = segment0Size;
 
-        if (segmentCount >= 512) {
+        if segmentCount >= 512 {
             fail!("too many segments");
         }
 
         let mut moreSizes : ~[u32] = std::vec::from_elem((segmentCount & !1) as uint, 0u32);
 
-        if (segmentCount > 1) {
+        if segmentCount > 1 {
             let moreSizesRaw = inputStream.read_bytes((4 * (segmentCount & !1)) as uint);
             for ii in range(0, segmentCount as uint - 1) {
                 moreSizes[ii] = unsafe {
@@ -80,7 +80,7 @@ pub mod InputStreamMessageReader {
 
         let mut segments : ~[&[Word]] = ~[segment0];
 
-        if (segmentCount > 1) {
+        if segmentCount > 1 {
             let mut offset = segment0Size;
 
             for ii in range(0, segmentCount as uint - 1) {
@@ -112,7 +112,7 @@ pub fn write_message<T: std::io::Writer>(outputStream : &mut T,
             for i in range(0, segments.len()) {
                 table[i + 1].set(segments[i].len() as u32);
             }
-            if (segments.len() % 2 == 0) {
+            if segments.len() % 2 == 0 {
                 // Set padding.
                 table[segments.len() + 1].set( 0 );
             }

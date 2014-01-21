@@ -82,7 +82,7 @@ fn camel_to_upper_case(s : &str) -> ~str {
     let mut result_chars : ~[char] = ~[];
     for c in s.chars() {
         assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
-        if (std::char::is_uppercase(c)) {
+        if std::char::is_uppercase(c) {
             result_chars.push('_');
         }
         result_chars.push((c as u8).to_ascii().to_upper().to_char());
@@ -95,7 +95,7 @@ fn camel_to_snake_case(s : &str) -> ~str {
     let mut result_chars : ~[char] = ~[];
     for c in s.chars() {
         assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}', i.e. {}", c, c as uint));
-        if (std::char::is_uppercase(c)) {
+        if std::char::is_uppercase(c) {
             result_chars.push('_');
         }
         result_chars.push((c as u8).to_ascii().to_lower().to_char());
@@ -306,7 +306,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
             let theMod = scopeMap.get(&group.get_type_id()).connect("::");
-            if (isReader) {
+            if isReader {
                 return (format!("{}::Reader<'a>", theMod),
                         Line(format!("{}::Reader::new(self.reader)", theMod)));
             } else {
@@ -318,9 +318,9 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
             let offset = reg_field.get_offset() as uint;
 
-            let member = if (isReader) { "reader" } else { "builder" };
-            let module = if (isReader) { "Reader" } else { "Builder" };
-            let moduleWithVar = if (isReader) { "Reader<'a>" } else { "Builder<'a>" };
+            let member = if isReader { "reader" } else { "builder" };
+            let module = if isReader { "Reader" } else { "Builder" };
+            let moduleWithVar = if isReader { "Reader<'a>" } else { "Builder<'a>" };
 
             match tuple_option(reg_field.get_type().which(), reg_field.get_default_value().which()) {
                 Some((Type::Void(()), Value::Void(()))) => { return (~"()", Line(~"()"))}
@@ -410,7 +410,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 }
                 Some((Type::Struct(st), _)) => {
                     let theMod = scopeMap.get(&st.get_type_id()).connect("::");
-                    let middleArg = if (isReader) {~""} else {format!("{}::STRUCT_SIZE,", theMod)};
+                    let middleArg = if isReader {~""} else {format!("{}::STRUCT_SIZE,", theMod)};
                     return (format!("{}::{}", theMod, moduleWithVar),
                             Line(format!("{}::{}::new(self.{}.get_pointer_field({}).get_struct({} std::ptr::null()))",
                                       theMod, module, member, offset, middleArg)))
@@ -459,7 +459,7 @@ fn zero_fields_of_group(node_map : &std::hashmap::HashMap<u64, schema_capnp::Nod
     match node_map.get(&node_id).which() {
         Some(Node::Struct(st)) => {
             let mut result = ~[];
-            if (st.get_discriminant_count() != 0) {
+            if st.get_discriminant_count() != 0 {
                 result.push(
                     Line(format!("self.builder.set_data_field::<u16>({}, 0);",
                                  st.get_discriminant_offset())));
@@ -529,7 +529,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
     let mut initter_params = ~[];
 
     let discriminantValue = field.get_discriminant_value();
-    if (discriminantValue != Field::NO_DISCRIMINANT) {
+    if discriminantValue != Field::NO_DISCRIMINANT {
         setter_interior.push(
             Line(format!("self.builder.set_data_field::<u16>({}, {});",
                          discriminantOffset as uint,
@@ -883,7 +883,7 @@ fn generate_haser(discriminant_offset : u32,
     let member = if is_reader { "reader" } else { "builder" };
 
     let discriminant_value = field.get_discriminant_value();
-    if (discriminant_value != Field::NO_DISCRIMINANT) {
+    if discriminant_value != Field::NO_DISCRIMINANT {
        interior.push(
             Line(format!("if self.{}.get_data_field::<u16>({}) != {} \\{ return false; \\}",
                          member,
@@ -963,7 +963,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             preamble.push(BlankLine);
 
 
-            if (!isGroup) {
+            if !isGroup {
                 preamble.push(Line(~"pub static STRUCT_SIZE : layout::StructSize ="));
                 preamble.push(
                    Indent(
@@ -985,7 +985,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 let discriminantValue = field.get_discriminant_value();
                 let isUnionField = (discriminantValue != 0xffff);
 
-                if (!isUnionField) {
+                if !isUnionField {
                     let (ty, get) = getter_text(nodeMap, scopeMap, &field, true);
 
                     reader_members.push(
@@ -1032,7 +1032,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
             }
 
-            if (discriminantCount > 0) {
+            if discriminantCount > 0 {
                 let (which_enums1, union_getter) =
                     generate_union(nodeMap, scopeMap, rootName,
                                    discriminantOffset, union_fields, true);
@@ -1047,7 +1047,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             }
 
             let builderStructSize =
-                if (isGroup) { Branch(~[] ) }
+                if isGroup { Branch(~[] ) }
                 else {
                   Branch(~[
                        Line(~"impl <'a> layout::HasStructSize for Builder<'a> {"),
@@ -1227,14 +1227,14 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
         Some(Node::Annotation( annotationReader )) => {
             println!("  annotation node:");
-            if (annotationReader.get_targets_file()) {
+            if annotationReader.get_targets_file() {
                 println!("  targets file");
             }
-            if (annotationReader.get_targets_const()) {
+            if annotationReader.get_targets_const() {
                 println!("  targets const");
             }
             // ...
-            if (annotationReader.get_targets_annotation()) {
+            if annotationReader.get_targets_annotation() {
                 println!("  targets annotation");
             }
         }

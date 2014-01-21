@@ -40,8 +40,8 @@ impl FastRand {
 
 #[inline]
 pub fn div(a : i32, b: i32) -> i32 {
-    if (b == 0) { return i32::max_value }
-    if (a == i32::min_value && b == -1) {
+    if b == 0 { return i32::max_value }
+    if a == i32::min_value && b == -1 {
         return i32::max_value;
     }
     return a / b;
@@ -49,8 +49,8 @@ pub fn div(a : i32, b: i32) -> i32 {
 
 #[inline]
 pub fn modulus(a : i32, b: i32) -> i32 {
-    if (b == 0) { return i32::max_value }
-    if (a == i32::min_value && b == -1) {
+    if b == 0 { return i32::max_value }
+    if a == i32::min_value && b == -1 {
         return i32::max_value;
     }
     return a % b;

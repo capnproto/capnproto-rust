@@ -58,7 +58,7 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
             self.pos += bytes;
         } else {
             bytes -= available;
-            if (bytes <= self.buf.len()) {
+            if bytes <= self.buf.len() {
                 //# Read the next buffer-full.
                 let n = read_at_least(self.inner, self.buf, bytes);
                 self.pos = bytes;
@@ -84,7 +84,7 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
 impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
     fn read(&mut self, dst: &mut [u8]) -> Option<uint> {
         let mut num_bytes = dst.len();
-        if (num_bytes <= self.cap - self.pos) {
+        if num_bytes <= self.cap - self.pos {
             //# Serve from the current buffer.
             std::vec::bytes::copy_memory(dst,
                                          self.buf.slice(self.pos, self.pos + num_bytes));
@@ -99,7 +99,7 @@ impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
 
             let dst1 = dst.mut_slice(fromFirstBuffer, num_bytes);
             num_bytes -= fromFirstBuffer;
-            if (num_bytes <= self.buf.len()) {
+            if num_bytes <= self.buf.len() {
                 //# Read the next buffer-full.
                 let n = read_at_least(self.inner, self.buf, num_bytes);
                 std::vec::bytes::copy_memory(dst1,
@@ -227,7 +227,7 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
     }
 
     fn flush(&mut self) {
-        if (self.pos > 0) {
+        if self.pos > 0 {
             self.inner.write(self.buf.slice(0, self.pos));
             self.pos = 0;
         }

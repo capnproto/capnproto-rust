@@ -93,7 +93,7 @@ fn print_address_book() {
 fn main() {
 
     let args = std::os::args();
-    if (args.len() < 2) {
+    if args.len() < 2 {
         println!("usage: $ {} [write | read]", args[0]);
     } else {
         match args[1] {

@@ -30,15 +30,15 @@ macro_rules! car_value_impl(
                     for i in range(0, self.get_wheels().size()) {
                         let wheel = self.get_wheels()[i];
                         result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
-                        result += if (wheel.get_snow_tires()) { 100 } else { 0 };
+                        result += if wheel.get_snow_tires() { 100 } else { 0 };
                     }
 
                     result += self.get_length() as u64 * self.get_width() as u64 * self.get_height() as u64 / 50;
 
                     let engine = self.get_engine();
                     result += engine.get_horsepower() as u64 * 40;
-                    if (engine.get_uses_electric()) {
-                        if (engine.get_uses_gas()) {
+                    if engine.get_uses_electric() {
+                        if engine.get_uses_gas() {
                             //# hybrid
                             result += 5000;
                         } else {
@@ -46,10 +46,10 @@ macro_rules! car_value_impl(
                         }
                     }
 
-                    result += if (self.get_has_power_windows()) { 100 } else { 0 };
-                    result += if (self.get_has_power_steering()) { 200 } else { 0 };
-                    result += if (self.get_has_cruise_control()) { 400 } else { 0 };
-                    result += if (self.get_has_nav_system()) { 2000 } else { 0 };
+                    result += if self.get_has_power_windows() { 100 } else { 0 };
+                    result += if self.get_has_power_steering() { 200 } else { 0 };
+                    result += if self.get_has_cruise_control() { 400 } else { 0 };
+                    result += if self.get_has_nav_system() { 2000 } else { 0 };
 
                     result += self.get_cup_holders() as u64 * 25;
 

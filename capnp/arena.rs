@@ -28,7 +28,7 @@ impl <'a> SegmentReader<'a> {
     pub fn contains_interval(&self, from : *Word, to : *Word) -> bool {
         let thisBegin : uint = self.ptr.to_uint();
         let thisEnd : uint = unsafe { self.ptr.offset(self.size as int).to_uint() };
-        return (from.to_uint() >= thisBegin && to.to_uint() <= thisEnd && from.to_uint() <= to.to_uint());
+        return from.to_uint() >= thisBegin && to.to_uint() <= thisEnd && from.to_uint() <= to.to_uint();
         // TODO readLimiter
     }
 }
@@ -71,7 +71,7 @@ impl <'a> SegmentBuilder<'a> {
 
     #[inline]
     pub fn allocate(&mut self, amount : WordCount) -> Option<*mut Word> {
-        if (amount > self.reader.size - self.current_size()) {
+        if amount > self.reader.size - self.current_size() {
             return None;
         } else {
             let result = self.pos;
@@ -154,7 +154,7 @@ impl <'a> BuilderArena<'a> {
     }
 
     pub fn get_segment(&mut self, id : SegmentId) -> *mut SegmentBuilder<'a> {
-        if (id == 0) {
+        if id == 0 {
             std::ptr::to_mut_unsafe_ptr(&mut self.segment0)
         } else {
             match self.more_segments {
@@ -204,7 +204,7 @@ impl <'a> ArenaPtr<'a>  {
         unsafe {
             match self {
                 &ReaderArenaPtr(reader) => {
-                    if (id == 0) {
+                    if id == 0 {
                         return std::ptr::to_unsafe_ptr(&(*reader).segment0);
                     } else {
                         match (*reader).more_segments {
@@ -216,7 +216,7 @@ impl <'a> ArenaPtr<'a>  {
                     }
                 }
                 &BuilderArenaPtr(builder) => {
-                    if (id == 0) {
+                    if id == 0 {
                         std::ptr::to_unsafe_ptr(&(*builder).segment0.reader)
                     } else {
                         match (*builder).more_segments {

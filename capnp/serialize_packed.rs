@@ -34,7 +34,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
     fn read(&mut self, outBuf: &mut [u8]) -> Option<uint> {
         let len = outBuf.len();
 
-        if (len == 0) { return Some(0); }
+        if len == 0 { return Some(0); }
 
         assert!(len % 8 == 0, "PackInputStream reads must be word-aligned");
 
@@ -103,7 +103,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                         inPtr = inPtr.offset(isNonzero as int);
                     }
                 }
-                if (tag == 0) {
+                if tag == 0 {
                     assert!(ptr_sub(inEnd, inPtr) > 0,
                             "Should always have non-empty buffer here");
 
@@ -116,7 +116,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                     std::ptr::set_memory(out, 0, runLength);
                     out = out.offset(runLength as int);
 
-                } else if (tag == 0xff) {
+                } else if tag == 0xff {
                     assert!(ptr_sub(inEnd, inPtr) > 0,
                             "Should always have non-empty buffer here");
 
@@ -127,7 +127,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                             "Packed input did not end cleanly on a segment boundary");
 
                     let inRemaining = ptr_sub(inEnd, inPtr);
-                    if (inRemaining >= runLength) {
+                    if inRemaining >= runLength {
                         //# Fast path.
                         std::ptr::copy_nonoverlapping_memory(out, inPtr, runLength);
                         out = out.offset(runLength as int);
@@ -144,7 +144,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                         });
                         out = out.offset(runLength as int);
 
-                        if (out == outEnd) {
+                        if out == outEnd {
                             return Some(len);
                         } else {
                             let (b, e) = self.inner.get_read_buffer();
@@ -157,7 +157,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                     }
                 }
 
-                if (out == outEnd) {
+                if out == outEnd {
                     self.inner.skip(ptr_sub(inPtr, bufferBegin));
                     return Some(len);
                 }
@@ -199,9 +199,9 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
             let mut inPtr : *u8 = inBuf.unsafe_ref(0);
             let inEnd : *u8 = inBuf.unsafe_ref(inBuf.len());
 
-            while (inPtr < inEnd) {
+            while inPtr < inEnd {
 
-                if (ptr_sub(bufferEnd, out) < 10) {
+                if ptr_sub(bufferEnd, out) < 10 {
                     //# Oops, we're out of space. We need at least 10
                     //# bytes for the fast path, since we don't
                     //# bounds-check on every byte.
@@ -261,17 +261,17 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
 
                 *tagPos = tag;
 
-                if (tag == 0) {
+                if tag == 0 {
                     //# An all-zero word is followed by a count of
                     //# consecutive zero words (not including the first
                     //# one).
 
                     let mut inWord : *u64 = std::cast::transmute(inPtr);
                     let mut limit : *u64 = std::cast::transmute(inEnd);
-                    if (ptr_sub(limit, inWord) > 255) {
+                    if ptr_sub(limit, inWord) > 255 {
                         limit = inWord.offset(255);
                     }
-                    while (inWord < limit && *inWord == 0) {
+                    while inWord < limit && *inWord == 0 {
                         inWord = inWord.offset(1);
                     }
                     *out = ptr_sub(inWord, std::cast::transmute::<*u8, *u64>(inPtr)) as u8;
@@ -279,7 +279,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     out = out.offset(1);
                     inPtr = std::cast::transmute::<*u64, *u8>(inWord);
 
-                } else if (tag == 0xff) {
+                } else if tag == 0xff {
                     //# An all-nonzero word is followed by a count of
                     //# consecutive uncompressed words, followed by the
                     //# uncompressed words themselves.
@@ -290,11 +290,11 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     //# where our compression scheme becomes a net win.
                     let runStart = inPtr;
                     let mut limit = inEnd;
-                    if (ptr_sub(limit, inPtr) > 255 * 8) {
+                    if ptr_sub(limit, inPtr) > 255 * 8 {
                         limit = inPtr.offset(255 * 8);
                     }
 
-                    while (inPtr < limit) {
+                    while inPtr < limit {
                         let mut c = 0;
 
                         for _ in range(0,8) {
@@ -302,7 +302,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                             inPtr = inPtr.offset(1);
                         }
 
-                        if (c >= 2) {
+                        if c >= 2 {
                             //# Un-read the word with multiple zeros, since
                             //# we'll want to compress that one.
                             inPtr = inPtr.offset(-8);
@@ -313,7 +313,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     *out = (count / 8) as u8;
                     out = out.offset(1);
 
-                    if (count <= ptr_sub(bufferEnd, out)) {
+                    if count <= ptr_sub(bufferEnd, out) {
                         //# There's enough space to memcpy.
 
                         let src : *u8 = runStart;

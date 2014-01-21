@@ -323,7 +323,7 @@ mod WireHelpers {
                                segment : &mut *mut SegmentBuilder<'a>,
                                amount : WordCount, kind : WirePointerKind) -> *mut Word {
         let is_null = (**reff).is_null();
-        if (!is_null) {
+        if !is_null {
             zero_object(*segment, *reff)
         }
         match (**segment).allocate(amount) {
@@ -375,7 +375,7 @@ mod WireHelpers {
         //# `ref->target()`, but may not be in cases where `ref` is
         //# only a tag.
 
-        if ((**reff).kind() == WP_FAR) {
+        if (**reff).kind() == WP_FAR {
             *segment = (*(**segment).get_arena()).get_segment((**reff).far_ref().segment_id.get());
             let pad : *mut WirePointer =
                 std::cast::transmute((**segment).get_ptr_unchecked((**reff).far_position_in_segment()));
@@ -408,12 +408,12 @@ mod WireHelpers {
             let ptr : *Word = (**segment).get_start_ptr().offset(
                 (**reff).far_position_in_segment() as int);
 
-            let padWords : int = if ((**reff).is_double_far()) { 2 } else { 1 };
+            let padWords : int = if (**reff).is_double_far() { 2 } else { 1 };
             assert!(bounds_check(*segment, ptr, ptr.offset(padWords)));
 
             let pad : *WirePointer = std::cast::transmute(ptr);
 
-            if (!(**reff).is_double_far() ) {
+            if !(**reff).is_double_far() {
                 *reff = pad;
                 return (*pad).target();
             } else {
@@ -448,7 +448,7 @@ mod WireHelpers {
                 let pad : *mut WirePointer =
                     std::cast::transmute((*segment).get_ptr_unchecked((*reff).far_position_in_segment()));
 
-                if ((*reff).is_double_far()) {
+                if (*reff).is_double_far() {
                     segment = (*(*segment).get_arena()).get_segment((*pad).far_ref().segment_id.get());
 
                     zero_object_helper(segment,
@@ -534,7 +534,7 @@ mod WireHelpers {
         //# zero the landing pad as well, but do not zero the object
         //# body. Used when upgrading.
 
-        if ((*reff).kind() == WP_FAR) {
+        if (*reff).kind() == WP_FAR {
             let pad = (*(*(*segment).get_arena()).get_segment((*reff).far_ref().segment_id.get()))
                 .get_ptr_unchecked((*reff).far_position_in_segment());
             let num_elements = if (*reff).is_double_far() { 2 } else { 1 };
@@ -552,7 +552,7 @@ mod WireHelpers {
 
         let ptr = follow_fars(&mut reff, (*reff).target(), &mut segment);
 
-        match ((*reff).kind()) {
+        match (*reff).kind() {
             WP_STRUCT => {
                 assert!(bounds_check(segment, ptr, ptr.offset((*reff).struct_ref().word_size() as int)),
                         "Message contains out-of-bounds struct pointer.");
@@ -627,7 +627,7 @@ mod WireHelpers {
                 fail!("Unexpedted FAR pointer.");
             }
             WP_OTHER => {
-                if ((*reff).is_capability()) {
+                if (*reff).is_capability() {
                     result.cap_count += 1;
                 } else {
                     fail!("Unknown pointer type.");
@@ -653,7 +653,7 @@ mod WireHelpers {
         assert!((*dst).is_null());
         // We expect the caller to ensure the target is already null so won't leak.
 
-        if ((*src).is_null()) {
+        if (*src).is_null() {
             std::ptr::zero_memory(dst, 1);
         } else if (*src).kind() == WP_FAR {
             std::ptr::copy_nonoverlapping_memory(dst, src, 1);
@@ -668,7 +668,7 @@ mod WireHelpers {
         // Like the other transfer_pointer, but splits src into a tag and a
         // target. Particularly useful for OrphanBuilder.
 
-        if (dst_segment == src_segment) {
+        if dst_segment == src_segment {
             //# Same segment, so create a direct pointer.
             (*dst).set_kind_and_target((*src_tag).kind(), src_ptr, dst_segment);
 
@@ -725,7 +725,7 @@ mod WireHelpers {
                                                   mut segment : *mut SegmentBuilder<'a>,
                                                   size : StructSize,
                                                   default_value : *Word) -> StructBuilder<'a> {
-        if((*reff).is_null()) {
+        if (*reff).is_null() {
             if default_value.is_null() ||
                 (*std::cast::transmute::<*Word,*WirePointer>(default_value)).is_null() {
 
@@ -745,7 +745,7 @@ mod WireHelpers {
         let old_pointer_count = (*old_ref).struct_ref().ptr_count.get();
         let old_pointer_section : *mut WirePointer = std::cast::transmute(old_ptr.offset(old_data_size as int));
 
-        if (old_data_size < size.data || old_pointer_count < size.pointers) {
+        if old_data_size < size.data || old_pointer_count < size.pointers {
             //# The space allocated for this struct is too small.
             //# Unlike with readers, we can't just run with it and do
             //# bounds checks at access time, because how would we
@@ -874,7 +874,7 @@ mod WireHelpers {
         assert!(element_size != INLINE_COMPOSITE,
                 "Use get_struct_list_{element,field}() for structs");
 
-        if((*orig_ref).is_null()) {
+        if (*orig_ref).is_null() {
             if default_value.is_null() ||
                 (*std::cast::transmute::<*Word,*WirePointer>(default_value)).is_null() {
 
@@ -900,7 +900,7 @@ mod WireHelpers {
 
         let old_size = (*reff).list_ref().element_size();
 
-        if (old_size == INLINE_COMPOSITE) {
+        if old_size == INLINE_COMPOSITE {
             //# The existing element size is INLINE_COMPOSITE, which
             //# means that it is at least two words, which makes it
             //# bigger than the expected element size. Since fields can
@@ -995,7 +995,7 @@ mod WireHelpers {
 
         let old_size = (*old_ref).list_ref().element_size();
 
-        if (old_size == INLINE_COMPOSITE) {
+        if old_size == INLINE_COMPOSITE {
             //# Existing list is INLINE_COMPOSITE, but we need to verify that the sizes match.
 
             let old_tag : *WirePointer = std::cast::transmute(old_ptr);
@@ -1008,7 +1008,7 @@ mod WireHelpers {
             let old_step = old_data_size as uint + old_pointer_count as uint * WORDS_PER_POINTER;
             let element_count = (*old_tag).inline_composite_list_element_count();
 
-            if (old_data_size >= element_size.data && old_pointer_count >= element_size.pointers) {
+            if old_data_size >= element_size.data && old_pointer_count >= element_size.pointers {
                 //# Old size is at least as large as we need. Ship it.
                 return ListBuilder {
                     segment : old_segment,
@@ -1025,7 +1025,7 @@ mod WireHelpers {
             //# protocol. We need to make a copy and expand them.
 
             fail!("unimplemented");
-        } else if (old_size == element_size.preferred_list_encoding) {
+        } else if old_size == element_size.preferred_list_encoding {
             //# Old size matches exactly.
 
             let data_size = data_bits_per_element(old_size);
@@ -1164,7 +1164,7 @@ mod WireHelpers {
         let ptr = allocate(&mut reff, &mut segment, total_size, WP_STRUCT);
         (*reff).struct_ref().set(data_size as u16, value.pointer_count);
 
-        if (value.data_size == 1) {
+        if value.data_size == 1 {
             *std::cast::transmute::<*mut Word, *mut u8>(ptr) = value.get_bool_field(0) as u8
         } else {
             std::ptr::copy_nonoverlapping_memory::<Word, *Word>(ptr, std::cast::transmute(value.data),
@@ -1185,11 +1185,11 @@ mod WireHelpers {
                                        value : ListReader) -> super::SegmentAnd<'a, *mut Word> {
         let total_size = round_bits_up_to_words((value.element_count * value.step) as u64);
 
-        if (value.step <= BITS_PER_WORD) {
+        if value.step <= BITS_PER_WORD {
             //# List of non-structs.
             let ptr = allocate(&mut reff, &mut segment, total_size, WP_LIST);
 
-            if (value.struct_pointer_count == 1) {
+            if value.struct_pointer_count == 1 {
                 //# List of pointers.
                 (*reff).list_ref().set(POINTER, value.element_count);
                 for i in range(0, value.element_count as int) {
@@ -1199,7 +1199,7 @@ mod WireHelpers {
                 }
             } else {
                 //# List of data.
-                let element_size = match (value.step) {
+                let element_size = match value.step {
                     0 => VOID,
                     1 => BIT,
                     8 => BYTE,
@@ -1281,7 +1281,7 @@ mod WireHelpers {
                 assert!(nesting_limit > 0,
                         "Message is too deeply-nested or contains cycles. See ReadOptions.");
 
-                if (element_size == INLINE_COMPOSITE) {
+                if element_size == INLINE_COMPOSITE {
                     let word_count = (*src).list_ref().inline_composite_word_count();
                     let tag : *WirePointer = std::cast::transmute(ptr);
                     ptr = ptr.offset(POINTER_SIZE_IN_WORDS as int);
@@ -1347,9 +1347,9 @@ mod WireHelpers {
                                         defaultValue : *Word,
                                         nesting_limit : int) -> StructReader<'a> {
 
-        if ((*reff).is_null()) {
-            if (defaultValue.is_null() ||
-                (*std::cast::transmute::<*Word,*WirePointer>(defaultValue)).is_null()) {
+        if (*reff).is_null() {
+            if defaultValue.is_null() ||
+                (*std::cast::transmute::<*Word,*WirePointer>(defaultValue)).is_null() {
                     return StructReader::new_default();
             }
 
@@ -1389,7 +1389,7 @@ mod WireHelpers {
                                       expectedElementSize : FieldSize,
                                       nesting_limit : int ) -> ListReader<'a> {
 
-        if ((*reff).is_null()) {
+        if (*reff).is_null() {
             if defaultValue.is_null() ||
                 (*std::cast::transmute::<*Word,*WirePointer>(defaultValue)).is_null() {
                 return ListReader::new_default();
@@ -1399,7 +1399,7 @@ mod WireHelpers {
 
         let refTarget : *Word = (*reff).target();
 
-        if (nesting_limit <= 0) {
+        if nesting_limit <= 0 {
            fail!("nesting limit exceeded");
         }
 
@@ -1518,7 +1518,7 @@ mod WireHelpers {
                                       default_value : *Word,
                                       default_size : ByteCount
                                       ) -> Text::Reader<'a> {
-        if (reff.is_null() || (*reff).is_null()) {
+        if reff.is_null() || (*reff).is_null() {
             return Text::new_reader(std::cast::transmute(default_value), default_size);
         }
 
@@ -1554,7 +1554,7 @@ mod WireHelpers {
                                         default_value : *Word,
                                         default_size : ByteCount
                                         ) -> Data::Reader<'a> {
-        if (reff.is_null() || (*reff).is_null()) {
+        if reff.is_null() || (*reff).is_null() {
             return Data::new_reader(std::cast::transmute(default_value), default_size);
         }
 
@@ -1813,7 +1813,7 @@ impl <'a> StructReader<'a>  {
         // We need to check the offset because the struct may have
         // been created with an old version of the protocol that did
         // not contain the field.
-        if ((offset + 1) * bits_per_element::<T>() <= self.data_size as uint) {
+        if (offset + 1) * bits_per_element::<T>() <= self.data_size as uint {
             unsafe {
                 let dwv : *WireValue<T> = std::cast::transmute(self.data);
                 (*dwv.offset(offset as int)).get()
@@ -1827,8 +1827,8 @@ impl <'a> StructReader<'a>  {
     #[inline]
     pub fn get_bool_field(&self, offset : ElementCount) -> bool {
         let mut boffset : BitCount32 = offset as BitCount32;
-        if (boffset < self.data_size) {
-            if (offset == 0) {
+        if boffset < self.data_size {
+            if offset == 0 {
                 boffset = self.bit0offset as BitCount32;
             }
             unsafe {
@@ -1856,7 +1856,7 @@ impl <'a> StructReader<'a>  {
 
     #[inline]
     pub fn get_pointer_field(&self, ptr_index : WirePointerCount) -> PointerReader<'a> {
-        if (ptr_index < self.pointer_count as WirePointerCount) {
+        if ptr_index < self.pointer_count as WirePointerCount {
             PointerReader {
                 segment : self.segment,
                 pointer : unsafe { self.pointers.offset(ptr_index as int) },
@@ -1955,7 +1955,7 @@ impl <'a> StructBuilder<'a> {
     pub fn set_bool_field(&self, offset : ElementCount, value : bool) {
         //# This branch should be compiled out whenever this is
         //# inlined with a constant offset.
-        let boffset : BitCount0 = if (offset == 0) { self.bit0offset as uint } else { offset };
+        let boffset : BitCount0 = if offset == 0 { self.bit0offset as uint } else { offset };
         let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as int)};
         let bitnum = boffset % BITS_PER_BYTE;
         unsafe { (*b) = (( (*b) & !(1 << bitnum)) | (value as u8 << bitnum)) }
@@ -1972,7 +1972,7 @@ impl <'a> StructBuilder<'a> {
     #[inline]
     pub fn get_bool_field(&self, offset : ElementCount) -> bool {
         let boffset : BitCount0 =
-            if (offset == 0) {self.bit0offset as BitCount0} else {offset};
+            if offset == 0 {self.bit0offset as BitCount0} else {offset};
         let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as int) };
         unsafe { ((*b) & (1 << (boffset % BITS_PER_BYTE ))) != 0 }
     }

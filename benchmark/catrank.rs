@@ -46,7 +46,7 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
 
         let isCat = rng.nextLessThan(8) == 0;
         let isDog = rng.nextLessThan(8) == 0;
-        if (isCat && !isDog) {
+        if isCat && !isDog {
             goodCount += 1;
         }
 
@@ -56,8 +56,8 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
         for _ in range(0, prefix) {
             snippet.push_str(WORDS[rng.nextLessThan(WORDS.len() as u32)]);
         }
-        if (isCat) { snippet.push_str("cat ") }
-        if (isDog) { snippet.push_str("dog ") }
+        if isCat { snippet.push_str("cat ") }
+        if isDog { snippet.push_str("dog ") }
 
         let suffix = rng.nextLessThan(20) as uint;
         for _ in range(0, suffix) {
@@ -78,10 +78,10 @@ pub fn handle_request(request : SearchResultList::Reader,
     for i in range(0, results.size()) {
         let result = results[i];
         let mut score = result.get_score();
-        if (result.get_snippet().contains(" cat ")) {
+        if result.get_snippet().contains(" cat ") {
             score *= 10000.0;
         }
-        if (result.get_snippet().contains(" dog ")) {
+        if result.get_snippet().contains(" dog ") {
             score /= 10000.0;
         }
         scoredResults.push(ScoredResult {score : score, result : result});
@@ -104,7 +104,7 @@ pub fn check_response(response : SearchResultList::Reader, expectedGoodCount : i
     let results = response.get_results();
     for i in range(0, results.size()) {
         let result = results[i];
-        if (result.get_score() > 1001.0) {
+        if result.get_score() > 1001.0 {
             goodCount += 1;
         } else {
             break;

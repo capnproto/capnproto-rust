@@ -151,7 +151,7 @@ macro_rules! pass_by_object(
                         $testcase::handle_request(requestReader, response);
 
                         let responseReader = response.as_reader();
-                        if (! $testcase::check_response(responseReader, expected)) {
+                        if !$testcase::check_response(responseReader, expected) {
                             fail!("Incorrect response.");
                         }
                     });
@@ -201,7 +201,7 @@ macro_rules! pass_by_bytes(
                             capnp::message::DEFAULT_READER_OPTIONS,
                             |responseReader| {
                                 let responseReader : $testcase::ResponseReader = responseReader.get_root();
-                                if (! $testcase::check_response(responseReader, expected)) {
+                                if !$testcase::check_response(responseReader, expected) {
                                     fail!("Incorrect response.");
                                 }
                         });
@@ -351,7 +351,7 @@ pub fn start (argc : int, argv: **u8) -> int {
 pub fn main() {
     let args = std::os::args();
 
-    if (args.len() != 6) {
+    if args.len() != 6 {
         println!("USAGE: {} CASE MODE REUSE COMPRESSION ITERATION_COUNT", args[0]);
         std::os::set_exit_status(1);
         return;

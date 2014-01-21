@@ -20,7 +20,7 @@ fn make_expression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) 
             std::cast::transmute(rng.nextLessThan( Operation::Modulus as u32 + 1) as u16)});
 
     let left : i32 =
-    if (rng.nextLessThan(8) < depth) {
+    if rng.nextLessThan(8) < depth {
         let tmp = (rng.nextLessThan(128) + 1) as i32;
         exp.get_left().set_value(tmp);
         tmp
@@ -29,7 +29,7 @@ fn make_expression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) 
     };
 
     let right : i32 =
-    if (rng.nextLessThan(8) < depth) {
+    if rng.nextLessThan(8) < depth {
         let tmp = (rng.nextLessThan(128) + 1) as i32;
         exp.get_right().set_value(tmp);
         tmp
