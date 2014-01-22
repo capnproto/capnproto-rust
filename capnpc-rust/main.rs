@@ -929,7 +929,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
     for ii in range(0, nestedNodes.size()) {
         let id = nestedNodes[ii].get_id();
         nested_output.push(generate_node(nodeMap, scopeMap, rootName,
-                                         id, *scopeMap.get(&id).last()));
+                                         id, *scopeMap.get(&id).last().unwrap()));
     }
 
     match nodeReader.which() {
@@ -1024,7 +1024,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     Some(Field::Group(group)) => {
                         let id = group.get_type_id();
                         let text = generate_node(nodeMap, scopeMap, rootName,
-                                                 id, *scopeMap.get(&id).last());
+                                                 id, *scopeMap.get(&id).last().unwrap());
                         nested_output.push(text);
                     }
                     _ => { }
@@ -1115,7 +1115,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         Some(Node::Enum(enumReader)) => {
             let names = scopeMap.get(&node_id);
             output.push(BlankLine);
-            output.push(Line(format!("pub mod {} \\{", *names.last())));
+            output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
 
             output.push(Indent(~Line(~"use capnp::list::{ToU16};")));
             output.push(BlankLine);
@@ -1150,7 +1150,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         Some(Node::Interface(interface)) => {
             let names = scopeMap.get(&node_id);
             output.push(BlankLine);
-            output.push(Line(format!("pub mod {} \\{", *names.last())));
+            output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
 
             output.push(Indent(~Line(~"pub struct Client;")));
 
@@ -1193,7 +1193,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
         Some(Node::Const(c)) => {
             let names = scopeMap.get(&node_id);
-            let styled_name = camel_to_upper_case(*names.last());
+            let styled_name = camel_to_upper_case(*names.last().unwrap());
 
             let (typ, txt) = match tuple_option(c.get_type().which(), c.get_value().which()) {
                 Some((Type::Void(()), Value::Void(()))) => (~"()", ~"()"),

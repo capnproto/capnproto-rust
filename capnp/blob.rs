@@ -13,7 +13,7 @@ pub mod Text {
     pub fn new_reader<'a>(p : *u8, len : uint) -> Reader<'a> {
         let v : &'a [u8] =
             unsafe { std::cast::transmute(std::unstable::raw::Slice { data: p, len: len }) };
-        std::str::from_utf8(v)
+        std::str::from_utf8(v).unwrap()
     }
 
     pub struct Builder<'a> {
