@@ -77,7 +77,8 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
             self.cap = n;
             self.pos = 0;
         }
-        (self.buf.unsafe_ref(self.pos), self.buf.unsafe_ref(self.cap))
+        (std::ptr::to_unsafe_ptr(self.buf.unsafe_ref(self.pos)),
+         std::ptr::to_unsafe_ptr(self.buf.unsafe_ref(self.cap)))
     }
 }
 
@@ -144,7 +145,8 @@ impl <'a> BufferedInputStream for ArrayInputStream<'a> {
     }
     unsafe fn get_read_buffer(&mut self) -> (*u8, *u8){
         let len = self.array.len();
-        (self.array.as_ptr(), self.array.unsafe_ref(len))
+        (self.array.as_ptr(),
+         std::ptr::to_unsafe_ptr(self.array.unsafe_ref(len)))
     }
 }
 
@@ -177,12 +179,13 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
     #[inline]
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.buf.len();
-        (self.buf.unsafe_mut_ref(self.pos), self.buf.unsafe_mut_ref(len))
+        (std::ptr::to_mut_unsafe_ptr(self.buf.unsafe_mut_ref(self.pos)),
+         std::ptr::to_mut_unsafe_ptr(self.buf.unsafe_mut_ref(len)))
     }
 
     #[inline]
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) {
-        let easyCase = ptr == self.buf.unsafe_mut_ref(self.pos);
+        let easyCase = ptr == std::ptr::to_mut_unsafe_ptr(self.buf.unsafe_mut_ref(self.pos));
         if easyCase {
             self.pos += size;
         } else {
@@ -260,10 +263,11 @@ impl <'a> Writer for ArrayOutputStream<'a> {
 impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.array.len();
-        (self.array.unsafe_mut_ref(self.fill_pos), self.array.unsafe_mut_ref(len))
+        (std::ptr::to_mut_unsafe_ptr(self.array.unsafe_mut_ref(self.fill_pos)),
+         std::ptr::to_mut_unsafe_ptr(self.array.unsafe_mut_ref(len)))
     }
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) {
-        let easyCase = ptr == self.array.unsafe_mut_ref(self.fill_pos);
+        let easyCase = ptr == std::ptr::to_mut_unsafe_ptr(self.array.unsafe_mut_ref(self.fill_pos));
         if easyCase {
             self.fill_pos += size;
         } else {

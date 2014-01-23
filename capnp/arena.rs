@@ -210,7 +210,7 @@ impl <'a> ArenaPtr<'a>  {
                         match (*reader).more_segments {
                             None => {fail!("no segments!")}
                             Some(ref segs) => {
-                                segs.unsafe_ref(id as uint - 1)
+                                std::ptr::to_unsafe_ptr(segs.unsafe_ref(id as uint - 1))
                             }
                         }
                     }

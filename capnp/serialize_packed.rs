@@ -39,8 +39,8 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
         assert!(len % 8 == 0, "PackInputStream reads must be word-aligned");
 
         unsafe {
-            let mut out = outBuf.unsafe_mut_ref(0);
-            let outEnd = outBuf.unsafe_mut_ref(len);
+            let mut out = outBuf.as_mut_ptr();
+            let outEnd = std::ptr::to_mut_unsafe_ptr(outBuf.unsafe_mut_ref(len));
 
             let (mut inPtr, mut inEnd) = self.inner.get_read_buffer();
             let mut bufferBegin = inPtr;
@@ -53,13 +53,13 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
 
                 let mut tag : u8;
 
-                assert!(ptr_sub(out, outBuf.unsafe_mut_ref(0)) % 8 == 0,
+                assert!(ptr_sub(out, outBuf.as_mut_ptr()) % 8 == 0,
                         "Output pointer should always be aligned here.");
 
                 if ptr_sub(inEnd, inPtr) < 10 {
                     if out >= outEnd {
                         self.inner.skip(ptr_sub(inPtr, bufferBegin));
-                        return Some(ptr_sub(out, outBuf.unsafe_mut_ref(0)));
+                        return Some(ptr_sub(out, outBuf.as_mut_ptr()));
                     }
 
                     if ptr_sub(inEnd, inPtr) == 0 {
@@ -207,8 +207,8 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     //# bounds-check on every byte.
                     self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
 
-                    out = slowBuffer.unsafe_mut_ref(0);
-                    bufferEnd = slowBuffer.unsafe_mut_ref(20);
+                    out = slowBuffer.as_mut_ptr();
+                    bufferEnd = std::ptr::to_mut_unsafe_ptr(slowBuffer.unsafe_mut_ref(20));
                     bufferBegin = out;
                 }
 
