@@ -117,6 +117,10 @@ pub struct FarRef {
     segment_id : WireValue<u32>
 }
 
+pub struct CapRef {
+    index : WireValue<u32>
+}
+
 impl StructRef {
     pub fn word_size(&self) -> WordCount {
         self.data_size.get() as WordCount +
@@ -170,6 +174,11 @@ impl ListRef {
 impl FarRef {
     #[inline]
     pub fn set(&mut self, si : SegmentId) { self.segment_id.set(si); }
+}
+
+impl CapRef {
+    #[inline]
+    pub fn set(&mut self, index : u32) { self.index.set(index); }
 }
 
 impl WirePointer {
@@ -242,12 +251,18 @@ impl WirePointer {
     }
 
     #[inline]
+    pub fn set_cap(&mut self, index : u32) {
+        self.offset_and_kind.set(WP_OTHER as u32);
+        self.mut_cap_ref().set(index);
+    }
+
+    #[inline]
     pub fn struct_ref(&self) -> StructRef {
         unsafe { std::cast::transmute(self.upper32bits) }
     }
 
     #[inline]
-    pub fn struct_ref_mut<'a>(&'a mut self) -> &'a mut StructRef {
+    pub fn mut_struct_ref<'a>(&'a mut self) -> &'a mut StructRef {
         unsafe { std::cast::transmute(& self.upper32bits) }
     }
 
@@ -257,7 +272,7 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn list_ref_mut<'a>(&'a self) -> &'a mut ListRef {
+    pub fn mut_list_ref<'a>(&'a self) -> &'a mut ListRef {
         unsafe { std::cast::transmute(& self.upper32bits) }
     }
 
@@ -267,9 +282,15 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn far_ref_mut<'a>(&'a mut self) -> &'a mut FarRef {
+    pub fn mut_far_ref<'a>(&'a mut self) -> &'a mut FarRef {
         unsafe { std::cast::transmute(& self.upper32bits) }
     }
+
+    #[inline]
+    pub fn mut_cap_ref<'a>(&'a mut self) -> &'a mut CapRef {
+        unsafe { std::cast::transmute(& self.upper32bits) }
+    }
+
 
     #[inline]
     pub fn is_null(&self) -> bool {
@@ -341,7 +362,7 @@ mod WireHelpers {
                 //# Set up the original pointer to be a far pointer to
                 //# the new segment.
                 (**reff).set_far(false, (**segment).get_word_offset_to(ptr));
-                (**reff).far_ref_mut().segment_id.set((**segment).id);
+                (**reff).mut_far_ref().segment_id.set((**segment).id);
 
                 //# Initialize the landing pad to indicate that the
                 //# data immediately follows the pad.
@@ -707,7 +728,7 @@ mod WireHelpers {
                                           mut segmentBuilder : *mut SegmentBuilder<'a>,
                                           size : StructSize) -> StructBuilder<'a> {
         let ptr : *mut Word = allocate(&mut reff, &mut segmentBuilder, size.total(), WP_STRUCT);
-        (*reff).struct_ref_mut().set_from_struct_size(size);
+        (*reff).mut_struct_ref().set_from_struct_size(size);
 
         StructBuilder {
             segment : segmentBuilder,
@@ -817,7 +838,7 @@ mod WireHelpers {
         let wordCount = round_bits_up_to_words(element_count as ElementCount64 * (step as u64));
         let ptr = allocate(&mut reff, &mut segmentBuilder, wordCount, WP_LIST);
 
-        (*reff).list_ref_mut().set(element_size, element_count);
+        (*reff).mut_list_ref().set(element_size, element_count);
 
         ListBuilder {
             segment : segmentBuilder,
@@ -850,9 +871,9 @@ mod WireHelpers {
                                           POINTER_SIZE_IN_WORDS + wordCount, WP_LIST));
 
         //# Initialize the pointer.
-        (*reff).list_ref_mut().set_inline_composite(wordCount);
+        (*reff).mut_list_ref().set_inline_composite(wordCount);
         (*ptr).set_kind_and_inline_composite_list_element_count(WP_STRUCT, element_count);
-        (*ptr).struct_ref_mut().set_from_struct_size(element_size);
+        (*ptr).mut_struct_ref().set_from_struct_size(element_size);
 
         let ptr1 = ptr.offset(POINTER_SIZE_IN_WORDS as int);
 
@@ -1056,7 +1077,7 @@ mod WireHelpers {
             allocate(&mut reff, &mut segment, round_bytes_up_to_words(byte_size), WP_LIST);
 
         //# Initialize the pointer.
-        (*reff).list_ref_mut().set(BYTE, byte_size);
+        (*reff).mut_list_ref().set(BYTE, byte_size);
 
         return super::SegmentAnd {segment : segment,
                                   value : Text::Builder::new(std::cast::transmute(ptr), size) }
@@ -1112,7 +1133,7 @@ mod WireHelpers {
             allocate(&mut reff, &mut segment, round_bytes_up_to_words(size), WP_LIST);
 
         //# Initialize the pointer.
-        (*reff).list_ref_mut().set(BYTE, size);
+        (*reff).mut_list_ref().set(BYTE, size);
 
         return super::SegmentAnd { segment : segment,
                                    value : Data::new_builder(std::cast::transmute(ptr), size) };
