@@ -425,7 +425,7 @@ struct Finish {
   # 3) If the call has not returned yet, the caller no longer cares about the result.  If nothing
   #    else cares about the result either (e.g. there are to other outstanding calls pipelined on
   #    the result of this one) then the callee may wish to immediately cancel the operation and
-  #    send back a Return message with "canceled" set.  However, implementations are not requried
+  #    send back a Return message with "canceled" set.  However, implementations are not required
   #    to support premature cancellation -- instead, the implementation may wait until the call
   #    actually completes and send a normal `Return` message.
   #
@@ -851,11 +851,11 @@ struct Payload {
 struct CapDescriptor {
   # **(level 1)**
   #
-  # When an application-defined type contains an interface pointer, that pointer's encoding is the
-  # same as a struct pointer except that the bottom two bits are 1's instead of 0's.  The pointer
-  # actually points to an instance of `CapDescriptor`.  The runtime API should not reveal the
-  # CapDescriptor directly to the application, but should instead wrap it in some kind of callable
-  # object with methods corresponding to the interface that the capability implements.
+  # When an application-defined type contains an interface pointer, that pointer contains an index
+  # into the message's capability table -- i.e. the `capTable` part of the `Payload`.  Each
+  # capability in the table is represented as a `CapDescriptor`.  The runtime API should not reveal
+  # the CapDescriptor directly to the application, but should instead wrap it in some kind of
+  # callable object with methods corresponding to the interface that the capability implements.
   #
   # Keep in mind that `ExportIds` in a `CapDescriptor` are subject to reference counting.  See the
   # description of `ExportId`.
@@ -935,9 +935,9 @@ struct PromisedAnswer {
       #   a SQL table join (not to be confused with the `Join` message type).
       # - Maybe some ability to test a union.
       # - Probably not a good idea:  the ability to specify an arbitrary script to run on the
-      #   result.  We could define a little stack-based language where `PathPart` specifies one
+      #   result.  We could define a little stack-based language where `Op` specifies one
       #   "instruction" or transformation to apply.  Although this is not a good idea
-      #   (over-engineered), any narrower additions to `PathPart` should be designed as if this
+      #   (over-engineered), any narrower additions to `Op` should be designed as if this
       #   were the eventual goal.
     }
   }
