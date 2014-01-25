@@ -34,24 +34,24 @@ impl FastRand {
     #[inline]
     pub fn nextDouble(&mut self, range : f64) -> f64 {
         use std::u32;
-        self.next_u32() as f64 * range / (u32::max_value as f64)
+        self.next_u32() as f64 * range / (u32::MAX as f64)
     }
 }
 
 #[inline]
 pub fn div(a : i32, b: i32) -> i32 {
-    if b == 0 { return i32::max_value }
-    if a == i32::min_value && b == -1 {
-        return i32::max_value;
+    if b == 0 { return i32::MAX }
+    if a == i32::MIN && b == -1 {
+        return i32::MAX;
     }
     return a / b;
 }
 
 #[inline]
 pub fn modulus(a : i32, b: i32) -> i32 {
-    if b == 0 { return i32::max_value }
-    if a == i32::min_value && b == -1 {
-        return i32::max_value;
+    if b == 0 { return i32::MAX }
+    if a == i32::MIN && b == -1 {
+        return i32::MAX;
     }
     return a % b;
 }
