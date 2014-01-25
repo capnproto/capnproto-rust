@@ -11,13 +11,13 @@ use message;
 
 pub type SegmentId = u32;
 
-pub struct SegmentReader<'a> {
-    arena : ArenaPtr<'a>,
-    ptr : * Word,
+pub struct SegmentReader {
+    arena : ArenaPtr,
+    ptr : *Word,
     size : WordCount
 }
 
-impl <'a> SegmentReader<'a> {
+impl SegmentReader {
 
     #[inline]
     pub unsafe fn get_start_ptr(&self) -> *Word {
@@ -33,18 +33,18 @@ impl <'a> SegmentReader<'a> {
     }
 }
 
-pub struct SegmentBuilder<'a> {
-    reader : SegmentReader<'a>,
+pub struct SegmentBuilder {
+    reader : SegmentReader,
     id : SegmentId,
     pos : *mut Word,
 }
 
-impl <'a> SegmentBuilder<'a> {
+impl SegmentBuilder {
 
-    pub fn new<'b>(arena : *mut BuilderArena<'b>,
+    pub fn new(arena : *mut BuilderArena,
                    id : SegmentId,
                    ptr : *mut Word,
-                   size : WordCount) -> SegmentBuilder<'b> {
+                   size : WordCount) -> SegmentBuilder {
         SegmentBuilder {
             reader : SegmentReader {
                 arena : BuilderArenaPtr(arena),
@@ -89,7 +89,7 @@ impl <'a> SegmentBuilder<'a> {
     pub fn get_segment_id(&self) -> SegmentId { self.id }
 
     #[inline]
-    pub fn get_arena(&self) -> *mut BuilderArena<'a> {
+    pub fn get_arena(&self) -> *mut BuilderArena {
         match self.reader.arena {
             BuilderArenaPtr(b) => b,
             _ => unreachable!()
@@ -97,24 +97,24 @@ impl <'a> SegmentBuilder<'a> {
     }
 }
 
-pub struct ReaderArena<'a> {
+pub struct ReaderArena {
 //    message : *message::MessageReader<'a>,
-    segment0 : SegmentReader<'a>,
+    segment0 : SegmentReader,
 
-    more_segments : Option<~[SegmentReader<'a>]>
+    more_segments : Option<~[SegmentReader]>
     //XXX should this be a map as in capnproto-c++?
 }
 
-pub struct BuilderArena<'a> {
-    message : *mut message::MessageBuilder<'a>,
-    segment0 : SegmentBuilder<'a>,
-    more_segments : Option<~[~SegmentBuilder<'a>]>,
+pub struct BuilderArena {
+    message : *mut message::MessageBuilder,
+    segment0 : SegmentBuilder,
+    more_segments : Option<~[~SegmentBuilder]>,
 }
 
-impl <'a> BuilderArena<'a> {
+impl BuilderArena {
 
     #[inline]
-    pub fn allocate(&mut self, amount : WordCount) -> (*mut SegmentBuilder<'a>, *mut Word) {
+    pub fn allocate(&mut self, amount : WordCount) -> (*mut SegmentBuilder, *mut Word) {
         unsafe {
             match self.segment0.allocate(amount) {
                 Some(result) => { return (std::ptr::to_mut_unsafe_ptr(&mut self.segment0), result) }
@@ -153,7 +153,7 @@ impl <'a> BuilderArena<'a> {
         }
     }
 
-    pub fn get_segment(&mut self, id : SegmentId) -> *mut SegmentBuilder<'a> {
+    pub fn get_segment(&mut self, id : SegmentId) -> *mut SegmentBuilder {
         if id == 0 {
             std::ptr::to_mut_unsafe_ptr(&mut self.segment0)
         } else {
@@ -193,14 +193,14 @@ impl <'a> BuilderArena<'a> {
     }
 }
 
-pub enum ArenaPtr<'a> {
-    ReaderArenaPtr(*ReaderArena<'a>),
-    BuilderArenaPtr(*mut BuilderArena<'a>),
+pub enum ArenaPtr {
+    ReaderArenaPtr(*ReaderArena),
+    BuilderArenaPtr(*mut BuilderArena),
     Null
 }
 
-impl <'a> ArenaPtr<'a>  {
-    pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader<'a> {
+impl ArenaPtr {
+    pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader {
         unsafe {
             match self {
                 &ReaderArenaPtr(reader) => {

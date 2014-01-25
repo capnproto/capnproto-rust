@@ -20,7 +20,7 @@ pub static DEFAULT_READER_OPTIONS : ReaderOptions =
 pub struct MessageReader<'a> {
     segments : &'a [ &'a [Word]],
     options : ReaderOptions,
-    arena : ReaderArena<'a>
+    arena : ReaderArena
 }
 
 type SegmentId = u32;
@@ -74,7 +74,7 @@ impl <'a> MessageReader<'a> {
 
     pub fn get_root<T : layout::FromStructReader<'a>>(&self) -> T {
         unsafe {
-            let segment : *SegmentReader<'a> = std::ptr::to_unsafe_ptr(&self.arena.segment0);
+            let segment : *SegmentReader = std::ptr::to_unsafe_ptr(&self.arena.segment0);
 
             let pointer_reader = layout::PointerReader::get_root::<'a>(
                 segment, (*segment).get_start_ptr(), self.options.nestingLimit as int);
@@ -95,16 +95,16 @@ pub enum AllocationStrategy {
 pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
 pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICALLY;
 
-pub struct MessageBuilder<'a> {
+pub struct MessageBuilder {
     nextSize : uint,
     allocation_strategy : AllocationStrategy,
-    arena : ~BuilderArena<'a>,
+    arena : ~BuilderArena,
     own_first_segment : bool,
     first_segment : *mut Word,
     more_segments : Option<~[*mut Word]>
 }
 
-impl <'a> Drop for MessageBuilder<'a> {
+impl Drop for MessageBuilder {
     fn drop(&mut self) {
         if self.own_first_segment {
             unsafe { std::libc::free(std::cast::transmute(self.first_segment)) }
@@ -132,13 +132,13 @@ pub enum FirstSegment<'a> {
     ZeroedWords(&'a mut [Word])
 }
 
-impl <'a>MessageBuilder<'a> {
+impl MessageBuilder {
 
     // TODO: maybe when Rust issue #5121 is fixed we can safely get away with not passing
     //  a closure here.
-    pub fn new<T>(first_segment_arg : FirstSegment<'a>,
+    pub fn new<'a, T>(first_segment_arg : FirstSegment<'a>,
                   allocationStrategy : AllocationStrategy,
-                  cont : |&mut MessageBuilder<'a>| -> T) -> T {
+                  cont : |&mut MessageBuilder| -> T) -> T {
 
         let (first_segment, num_words, own_first_segment) : (*mut Word, uint, bool) = unsafe {
             match first_segment_arg {
@@ -206,11 +206,11 @@ impl <'a>MessageBuilder<'a> {
     }
 }
 
-impl <'a>MessageBuilder<'a> {
+impl MessageBuilder {
     // Note: This type signature ought to prevent a MessageBuilder
     // from being initted twice simultaneously. It currently does not
     // fulfill that goal, perhaps due to Rust issue #5121.
-    pub fn init_root<T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&mut self) -> T {
+    pub fn init_root<'a, T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&mut self) -> T {
         // Rolled in this stuff form getRootSegment.
         let rootSegment = std::ptr::to_mut_unsafe_ptr(&mut self.arena.segment0);
 
