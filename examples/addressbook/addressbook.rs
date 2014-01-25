@@ -7,98 +7,95 @@
 #[crate_type = "bin"];
 
 extern mod capnp;
-
 pub mod addressbook_capnp;
 
-fn write_address_book() {
-    use capnp::message::MessageBuilder;
-    use capnp::serialize_packed::{write_packed_message_unbuffered};
+pub mod addressbook {
+    use std::io::{stdin, stdout};
     use addressbook_capnp::{AddressBook, Person};
+    use capnp::serialize_packed::{PackedInputStreamMessageReader, write_packed_message_unbuffered};
+    use capnp::message::{MessageBuilder, DEFAULT_READER_OPTIONS};
 
-    MessageBuilder::new_default(|message| {
+    pub fn write_address_book() {
+        MessageBuilder::new_default(|message| {
+                let address_book = message.init_root::<AddressBook::Builder>();
 
-        let address_book = message.init_root::<AddressBook::Builder>();
+                let people = address_book.init_people(2);
 
-        let people = address_book.init_people(2);
+                let alice = people[0];
+                alice.set_id(123);
+                alice.set_name("Alice");
+                alice.set_email("alice@example.com");
 
-        let alice = people[0];
-        alice.set_id(123);
-        alice.set_name("Alice");
-        alice.set_email("alice@example.com");
+                let alice_phones = alice.init_phones(1);
+                alice_phones[0].set_number("555-1212");
+                alice_phones[0].set_type(Person::PhoneNumber::Type::Mobile);
+                alice.get_employment().set_school("MIT");
 
-        let alice_phones = alice.init_phones(1);
-        alice_phones[0].set_number("555-1212");
-        alice_phones[0].set_type(Person::PhoneNumber::Type::Mobile);
-        alice.get_employment().set_school("MIT");
+                let bob = people[1];
+                bob.set_id(456);
+                bob.set_name("Bob");
+                bob.set_email("bob@example.com");
+                let bob_phones = bob.init_phones(2);
+                bob_phones[0].set_number("555-4567");
+                bob_phones[0].set_type(Person::PhoneNumber::Type::Home);
+                bob_phones[1].set_number("555-7654");
+                bob_phones[1].set_type(Person::PhoneNumber::Type::Work);
+                bob.get_employment().set_unemployed(());
 
-        let bob = people[1];
-        bob.set_id(456);
-        bob.set_name("Bob");
-        bob.set_email("bob@example.com");
-        let bob_phones = bob.init_phones(2);
-        bob_phones[0].set_number("555-4567");
-        bob_phones[0].set_type(Person::PhoneNumber::Type::Home);
-        bob_phones[1].set_number("555-7654");
-        bob_phones[1].set_type(Person::PhoneNumber::Type::Work);
-        bob.get_employment().set_unemployed(());
+                write_packed_message_unbuffered(&mut stdout(), message);
+            });
+    }
 
-        write_packed_message_unbuffered(&mut std::io::stdout(), message);
-    });
+    pub fn print_address_book() {
+        PackedInputStreamMessageReader::new(
+            &mut stdin(), DEFAULT_READER_OPTIONS,
+            |message_reader| {
+                let address_book = message_reader.get_root::<AddressBook::Reader>();
+                let people = address_book.get_people();
+
+                for i in range(0, people.size()) {
+                    let person = people[i];
+                    println!("{}: {}", person.get_name(), person.get_email());
+                    let phones = person.get_phones();
+                    for j in range(0, phones.size()) {
+                        let phone = phones[j];
+                        let type_name = match phone.get_type() {
+                            Some(Person::PhoneNumber::Type::Mobile) => {"mobile"}
+                            Some(Person::PhoneNumber::Type::Home) => {"home"}
+                            Some(Person::PhoneNumber::Type::Work) => {"work"}
+                            None => {"UNKNOWN"}
+                        };
+                        println!("  {} phone: {}", type_name, phone.get_number());
+                    }
+                    match person.get_employment().which() {
+                        Some(Person::Employment::Unemployed(())) => {
+                            println!("  unemployed");
+                        }
+                        Some(Person::Employment::Employer(employer)) => {
+                            println!("  employer: {}", employer);
+                        }
+                        Some(Person::Employment::School(school)) => {
+                            println!("  student at: {}", school);
+                        }
+                        Some(Person::Employment::SelfEmployed(())) => {
+                            println!("  self-employed");
+                        }
+                        None => { }
+                    }
+                }
+            });
+    }
 }
 
-fn print_address_book() {
-    use capnp;
-    use addressbook_capnp::{AddressBook, Person};
-
-    capnp::serialize_packed::PackedInputStreamMessageReader::new(
-        &mut std::io::stdin(), capnp::message::DEFAULT_READER_OPTIONS,
-        |message_reader| {
-        let address_book = message_reader.get_root::<AddressBook::Reader>();
-        let people = address_book.get_people();
-
-        for i in range(0, people.size()) {
-            let person = people[i];
-            println!("{}: {}", person.get_name(), person.get_email());
-            let phones = person.get_phones();
-            for j in range(0, phones.size()) {
-                let phone = phones[j];
-                let type_name = match phone.get_type() {
-                    Some(Person::PhoneNumber::Type::Mobile) => {"mobile"}
-                    Some(Person::PhoneNumber::Type::Home) => {"home"}
-                    Some(Person::PhoneNumber::Type::Work) => {"work"}
-                    None => {"UNKNOWN"}
-                };
-                println!("  {} phone: {}", type_name, phone.get_number());
-
-            }
-            match person.get_employment().which() {
-                Some(Person::Employment::Unemployed(())) => {
-                    println!("  unemployed");
-                }
-                Some(Person::Employment::Employer(employer)) => {
-                    println!("  employer: {}", employer);
-                }
-                Some(Person::Employment::School(school)) => {
-                    println!("  student at: {}", school);
-                }
-                Some(Person::Employment::SelfEmployed(())) => {
-                    println!("  self-employed");
-                }
-                None => { }
-            }
-        }
-    });
-}
-
-fn main() {
+pub fn main() {
 
     let args = std::os::args();
     if args.len() < 2 {
         println!("usage: $ {} [write | read]", args[0]);
     } else {
         match args[1] {
-            ~"write" => write_address_book(),
-            ~"read" => print_address_book(),
+            ~"write" => addressbook::write_address_book(),
+            ~"read" => addressbook::print_address_book(),
             _ => {println!("unrecognized argument") }
         }
     }
