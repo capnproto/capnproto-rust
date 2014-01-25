@@ -105,6 +105,21 @@ pub struct ReaderArena {
     //XXX should this be a map as in capnproto-c++?
 }
 
+impl ReaderArena {
+    pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader {
+        if id == 0 {
+            return std::ptr::to_unsafe_ptr(&self.segment0);
+        } else {
+            match self.more_segments {
+                None => {fail!("no segments!")}
+                Some(ref segs) => {
+                    unsafe { std::ptr::to_unsafe_ptr(segs.unsafe_ref(id as uint - 1)) }
+                }
+            }
+        }
+    }
+}
+
 pub struct BuilderArena {
     message : *mut message::MessageBuilder,
     segment0 : SegmentBuilder,
@@ -204,16 +219,7 @@ impl ArenaPtr {
         unsafe {
             match self {
                 &ReaderArenaPtr(reader) => {
-                    if id == 0 {
-                        return std::ptr::to_unsafe_ptr(&(*reader).segment0);
-                    } else {
-                        match (*reader).more_segments {
-                            None => {fail!("no segments!")}
-                            Some(ref segs) => {
-                                std::ptr::to_unsafe_ptr(segs.unsafe_ref(id as uint - 1))
-                            }
-                        }
-                    }
+                    (&*reader).try_get_segment(id)
                 }
                 &BuilderArenaPtr(builder) => {
                     if id == 0 {

@@ -25,12 +25,13 @@ pub struct MessageReader<'a> {
 
 type SegmentId = u32;
 
+/*
 pub trait MessageReader {
     fn get_segment<'a>(&'a self, id : uint) -> &'a [Word];
-    fn arena(&self) -> ReaderArena
+    fn arena<'a>(&'a self) -> &'a ReaderArena;
     fn get_root<T : layout::FromStructReader<'a>>(&self) -> T {
         unsafe {
-            let segment : *SegmentReader<'a> = std::ptr::to_unsafe_ptr(&self.arena.segment0);
+            let segment : *SegmentReader = std::ptr::to_unsafe_ptr(&self.arena.segment0);
 
             let pointer_reader = layout::PointerReader::get_root::<'a>(
                 segment, (*segment).get_start_ptr(), self.options.nestingLimit as int);
@@ -43,6 +44,7 @@ pub trait MessageReader {
 
     }
 }
+*/
 
 impl <'a> MessageReader<'a> {
 
