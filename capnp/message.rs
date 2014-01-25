@@ -41,9 +41,9 @@ pub trait MessageReader {
 }
 
 pub struct SegmentArrayMessageReader<'a> {
-    segments : &'a [ &'a [Word]],
-    options : ReaderOptions,
-    arena : ~ReaderArena
+    priv segments : &'a [ &'a [Word]],
+    priv options : ReaderOptions,
+    priv arena : ~ReaderArena
 }
 
 
