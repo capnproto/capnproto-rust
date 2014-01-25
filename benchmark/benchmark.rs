@@ -13,6 +13,8 @@
 extern mod capnp;
 extern mod native;
 
+use capnp::message::MessageReader;
+
 pub mod common;
 
 pub mod carsales_capnp;
@@ -23,6 +25,8 @@ pub mod catrank;
 
 pub mod eval_capnp;
 pub mod eval;
+
+
 
 mod Uncompressed {
     use capnp;
@@ -45,11 +49,10 @@ mod Uncompressed {
         capnp::serialize::InputStreamMessageReader::new(inputStream, options, cont)
     }
 */
-    pub fn new_buffered_reader<R: capnp::io::BufferedInputStream, T>(
+    pub fn new_buffered_reader<R: capnp::io::BufferedInputStream>(
         inputStream : &mut R,
-        options : capnp::message::ReaderOptions,
-        cont : |&mut capnp::message::MessageReader| -> T) -> T {
-        capnp::serialize::InputStreamMessageReader::new(inputStream, options, cont)
+        options : capnp::message::ReaderOptions) -> capnp::serialize::OwnedSpaceMessageReader {
+        capnp::serialize::new_reader(inputStream, options)
     }
 }
 
@@ -80,15 +83,10 @@ mod Packed {
             options, cont)
     }
 */
-    pub fn new_buffered_reader<R:capnp::io::BufferedInputStream, T>(
+    pub fn new_buffered_reader<R:capnp::io::BufferedInputStream>(
         inputStream : &mut R,
-        options : capnp::message::ReaderOptions,
-        cont : |&mut capnp::message::MessageReader| -> T) -> T {
-        capnp::serialize::InputStreamMessageReader::new(
-            &mut capnp::serialize_packed::PackedInputStream{
-                inner : inputStream
-            },
-            options, cont)
+        options : capnp::message::ReaderOptions) -> capnp::serialize::OwnedSpaceMessageReader {
+        capnp::serialize_packed::new_reader(inputStream, options)
     }
 
 }
@@ -183,28 +181,27 @@ macro_rules! pass_by_bytes(
                             $compression::write_buffered(&mut writer, messageReq)
                         }
 
-                        $compression::new_buffered_reader(
-                            &mut capnp::io::ArrayInputStream::new(requestBytes),
-                            capnp::message::DEFAULT_READER_OPTIONS,
-                            |requestReader| {
-                                let requestReader : $testcase::RequestReader = requestReader.get_root();
-                                $testcase::handle_request(requestReader, response);
-                            });
+                        let messageReader = $compression::new_buffered_reader(
+                                    &mut capnp::io::ArrayInputStream::new(requestBytes),
+                                    capnp::message::DEFAULT_READER_OPTIONS);
+
+                        let requestReader : $testcase::RequestReader = messageReader.get_root();
+                        $testcase::handle_request(requestReader, response);
 
                         {
                             let mut writer = capnp::io::ArrayOutputStream::new(responseBytes);
                             $compression::write_buffered(&mut writer, messageRes)
                         }
 
-                        $compression::new_buffered_reader(
+                        let messageReader = $compression::new_buffered_reader(
                             &mut capnp::io::ArrayInputStream::new(responseBytes),
-                            capnp::message::DEFAULT_READER_OPTIONS,
-                            |responseReader| {
-                                let responseReader : $testcase::ResponseReader = responseReader.get_root();
-                                if !$testcase::check_response(responseReader, expected) {
-                                    fail!("Incorrect response.");
-                                }
-                        });
+                            capnp::message::DEFAULT_READER_OPTIONS);
+
+                        let responseReader : $testcase::ResponseReader = messageReader.get_root();
+                        if !$testcase::check_response(responseReader, expected) {
+                            fail!("Incorrect response.");
+                        }
+
                     })
                 });
             }
@@ -220,13 +217,12 @@ macro_rules! server(
                                                     capnp::message::SUGGESTED_ALLOCATION_STRATEGY,
                                                     |messageRes| {
                     let response = messageRes.init_root::<$testcase::ResponseBuilder>();
-                    $compression::new_buffered_reader(
+                    let messageReader = $compression::new_buffered_reader(
                         &mut inBuffered,
-                        capnp::message::DEFAULT_READER_OPTIONS,
-                        |requestReader| {
-                            let requestReader : $testcase::RequestReader = requestReader.get_root();
-                            $testcase::handle_request(requestReader, response);
-                        });
+                        capnp::message::DEFAULT_READER_OPTIONS);
+                    let requestReader : $testcase::RequestReader = messageReader.get_root();
+                    $testcase::handle_request(requestReader, response);
+
                     $compression::write_buffered(&mut outBuffered, messageRes);
                     outBuffered.flush();
                 });
@@ -249,13 +245,12 @@ macro_rules! sync_client(
                     let expected = $testcase::setup_request(&mut rng, request);
                     $compression::write(&mut outStream, messageReq);
 
-                    $compression::new_buffered_reader(
-                        &mut inBuffered,
-                        capnp::message::DEFAULT_READER_OPTIONS,
-                        |responseReader| {
-                            let responseReader : $testcase::ResponseReader = responseReader.get_root();
-                            assert!($testcase::check_response(responseReader, expected));
-                    });
+                    let messageReader = $compression::new_buffered_reader(
+                            &mut inBuffered,
+                            capnp::message::DEFAULT_READER_OPTIONS);
+                    let responseReader : $testcase::ResponseReader = messageReader.get_root();
+                     assert!($testcase::check_response(responseReader, expected));
+
                 });
             }
         });

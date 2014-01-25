@@ -17,22 +17,10 @@ pub struct ReaderOptions {
 pub static DEFAULT_READER_OPTIONS : ReaderOptions =
     ReaderOptions { traversalLimitInWords : 8 * 1024 * 1024, nestingLimit : 64 };
 
-pub struct SegmentArrayMessageReader<'a> {
-    segments : &'a [ &'a [Word]],
-    options : ReaderOptions,
-    arena : ~ReaderArena
-}
-
-pub struct MessageReader<'a> {
-    segments : &'a [ &'a [Word]],
-    options : ReaderOptions,
-    arena : ~ReaderArena
-}
 
 type SegmentId = u32;
 
-
-pub trait MessageReaderT {
+pub trait MessageReader {
     fn get_segment<'a>(&'a self, id : uint) -> &'a [Word];
     fn arena<'a>(&'a self) -> &'a ReaderArena;
     fn get_options<'a>(&'a self) -> &'a ReaderOptions;
@@ -52,39 +40,39 @@ pub trait MessageReaderT {
     }
 }
 
+pub struct SegmentArrayMessageReader<'a> {
+    segments : &'a [ &'a [Word]],
+    options : ReaderOptions,
+    arena : ~ReaderArena
+}
 
-impl <'a> MessageReader<'a> {
 
-    #[inline]
-    pub fn get_options<'b>(&'b self) -> &'b ReaderOptions {
+impl <'a> MessageReader for SegmentArrayMessageReader<'a> {
+    fn get_segment<'b>(&'b self, id : uint) -> &'b [Word] {
+        self.segments[id]
+    }
+
+    fn arena<'b>(&'b self) -> &'b ReaderArena {
+        &*self.arena
+    }
+
+    fn get_options<'b>(&'b self) -> &'b ReaderOptions {
         return &self.options;
     }
 }
 
-impl <'a> MessageReader<'a> {
+impl <'a> SegmentArrayMessageReader<'a> {
 
-    pub fn new<'b>(segments : &'b [&'b [Word]], options : ReaderOptions) -> ~MessageReader<'b> {
+    pub fn new<'b>(segments : &'b [&'b [Word]], options : ReaderOptions) -> SegmentArrayMessageReader<'b> {
         assert!(segments.len() > 0);
-        ~MessageReader {
+        SegmentArrayMessageReader {
             segments : segments,
             arena : ReaderArena::new(segments),
             options : options
         }
     }
 
-    pub fn get_root<T : layout::FromStructReader<'a>>(&self) -> T {
-        unsafe {
-            let segment : *SegmentReader = std::ptr::to_unsafe_ptr(&self.arena.segment0);
 
-            let pointer_reader = layout::PointerReader::get_root::<'a>(
-                segment, (*segment).get_start_ptr(), self.options.nestingLimit as int);
-
-            let result : T = layout::FromStructReader::from_struct_reader(
-                pointer_reader.get_struct::<'a>(std::ptr::null()));
-
-            result
-        }
-    }
 }
 
 pub enum AllocationStrategy {

@@ -7,7 +7,7 @@
 use std;
 use io;
 use message::*;
-use serialize::*;
+use serialize;
 use common::ptr_sub;
 
 
@@ -166,23 +166,16 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
     }
 }
 
-pub mod PackedInputStreamMessageReader {
-    use serialize::InputStreamMessageReader;
-    use io;
-    use std;
-    use message::{ReaderOptions, MessageReader};
 
-    pub fn new<U : std::io::Reader, T>(input : &mut U,
-                                       options : ReaderOptions,
-                                       cont : |&mut MessageReader| -> T) -> T {
-        let mut packed_input = super::PackedInputStream {
-            inner : &mut io::BufferedInputStreamWrapper::new(input)
-        };
 
-        InputStreamMessageReader::new(&mut packed_input, options, cont)
-    }
+pub fn new_reader<U : std::io::Reader>(input : &mut U,
+                                       options : ReaderOptions) -> serialize::OwnedSpaceMessageReader {
+    let mut packed_input = PackedInputStream {
+        inner : &mut io::BufferedInputStreamWrapper::new(input)
+    };
+
+    serialize::new_reader(&mut packed_input, options)
 }
-
 
 
 pub struct PackedOutputStream<'a, W> {
@@ -346,7 +339,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
 
 pub fn write_packed_message<T:io::BufferedOutputStream>(output : &mut T, message : &MessageBuilder) {
     let mut packedOutputStream = PackedOutputStream {inner : output};
-    write_message(&mut packedOutputStream, message);
+    serialize::write_message(&mut packedOutputStream, message);
 }
 
 

@@ -1249,68 +1249,70 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 fn main() {
     use std::io::{Writer, File, Truncate, Write};
     use capnp::serialize::*;
+    use capnp::message::MessageReader;
 
     let mut inp = std::io::stdin();
 
-    InputStreamMessageReader::new(&mut inp, message::DEFAULT_READER_OPTIONS, |messageReader| {
-        let codeGeneratorRequest : schema_capnp::CodeGeneratorRequest::Reader = messageReader.get_root();
+    let messageReader = serialize::new_reader(&mut inp, message::DEFAULT_READER_OPTIONS);
 
-        let mut nodeMap = std::hashmap::HashMap::<u64, schema_capnp::Node::Reader>::new();
-        let mut scopeMap = std::hashmap::HashMap::<u64, ~[~str]>::new();
+    let codeGeneratorRequest : schema_capnp::CodeGeneratorRequest::Reader = messageReader.get_root();
 
-        let nodeListReader = codeGeneratorRequest.get_nodes();
+    let mut nodeMap = std::hashmap::HashMap::<u64, schema_capnp::Node::Reader>::new();
+    let mut scopeMap = std::hashmap::HashMap::<u64, ~[~str]>::new();
 
-        for ii in range(0, nodeListReader.size()) {
-            nodeMap.insert(nodeListReader[ii].get_id(), nodeListReader[ii]);
-        }
+    let nodeListReader = codeGeneratorRequest.get_nodes();
 
-        let requestedFilesReader = codeGeneratorRequest.get_requested_files();
+    for ii in range(0, nodeListReader.size()) {
+        nodeMap.insert(nodeListReader[ii].get_id(), nodeListReader[ii]);
+    }
 
-        for ii in range(0, requestedFilesReader.size()) {
+    let requestedFilesReader = codeGeneratorRequest.get_requested_files();
 
-            let requestedFile = requestedFilesReader[ii];
-            let id = requestedFile.get_id();
-            let name : &str = requestedFile.get_filename();
-            println!("requested file: {}", name);
+    for ii in range(0, requestedFilesReader.size()) {
 
-            let fileNode = nodeMap.get(&id);
-            let displayName = fileNode.get_display_name();
+        let requestedFile = requestedFilesReader[ii];
+        let id = requestedFile.get_id();
+        let name : &str = requestedFile.get_filename();
+        println!("requested file: {}", name);
 
-            let mut outputFileName : ~str =
-                match displayName.rfind('.') {
-                    Some(d) => {
-                        displayName.slice_chars(0, d).to_owned()
-                    }
-                    _ => { fail!("bad file name: {}", displayName) }
-                };
+        let fileNode = nodeMap.get(&id);
+        let displayName = fileNode.get_display_name();
 
-            outputFileName.push_str("_capnp");
-
-            let rootName : ~str =
-                match outputFileName.rfind('/') {
-                Some(s) => outputFileName.slice_chars(s + 1,outputFileName.len()).to_owned(),
-                None => outputFileName.as_slice().to_owned()
-            };
-
-            outputFileName.push_str(".rs");
-            println!("{}", outputFileName);
-
-            populate_scope_map(&nodeMap, &mut scopeMap, rootName, id);
-
-            let lines = Branch(~[Line(~"#[allow(unused_imports)];"),
-                                 generate_node(&nodeMap, &scopeMap,
-                                               rootName, id, rootName)]);
-
-            let text = stringify(&lines);
-
-            let path = std::path::Path::new(outputFileName);
-
-            match File::open_mode(&path, Truncate, Write) {
-                Some(ref mut writer) => {
-                    writer.write(text.as_bytes())
+        let mut outputFileName : ~str =
+            match displayName.rfind('.') {
+            Some(d) => {
+                displayName.slice_chars(0, d).to_owned()
             }
-                None => {fail!("could not open file for writing")}
+            _ => { fail!("bad file name: {}", displayName) }
+        };
+
+        outputFileName.push_str("_capnp");
+
+        let rootName : ~str =
+            match outputFileName.rfind('/') {
+            Some(s) => outputFileName.slice_chars(s + 1,outputFileName.len()).to_owned(),
+            None => outputFileName.as_slice().to_owned()
+        };
+
+        outputFileName.push_str(".rs");
+        println!("{}", outputFileName);
+
+        populate_scope_map(&nodeMap, &mut scopeMap, rootName, id);
+
+        let lines = Branch(~[Line(~"#[allow(unused_imports)];"),
+                             generate_node(&nodeMap, &scopeMap,
+                                           rootName, id, rootName)]);
+
+        let text = stringify(&lines);
+
+        let path = std::path::Path::new(outputFileName);
+
+        match File::open_mode(&path, Truncate, Write) {
+            Some(ref mut writer) => {
+                writer.write(text.as_bytes())
             }
+            None => {fail!("could not open file for writing")}
         }
-    });
+    }
+
 }

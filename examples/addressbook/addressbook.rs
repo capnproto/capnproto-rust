@@ -12,8 +12,8 @@ pub mod addressbook_capnp;
 pub mod addressbook {
     use std::io::{stdin, stdout};
     use addressbook_capnp::{AddressBook, Person};
-    use capnp::serialize_packed::{PackedInputStreamMessageReader, write_packed_message_unbuffered};
-    use capnp::message::{MessageBuilder, DEFAULT_READER_OPTIONS};
+    use capnp::serialize_packed;
+    use capnp::message::{MessageBuilder, DEFAULT_READER_OPTIONS, MessageReader};
 
     pub fn write_address_book() {
         MessageBuilder::new_default(|message| {
@@ -42,48 +42,46 @@ pub mod addressbook {
                 bob_phones[1].set_type(Person::PhoneNumber::Type::Work);
                 bob.get_employment().set_unemployed(());
 
-                write_packed_message_unbuffered(&mut stdout(), message);
+                serialize_packed::write_packed_message_unbuffered(&mut stdout(), message);
             });
     }
 
     pub fn print_address_book() {
-        PackedInputStreamMessageReader::new(
-            &mut stdin(), DEFAULT_READER_OPTIONS,
-            |message_reader| {
-                let address_book = message_reader.get_root::<AddressBook::Reader>();
-                let people = address_book.get_people();
 
-                for i in range(0, people.size()) {
-                    let person = people[i];
-                    println!("{}: {}", person.get_name(), person.get_email());
-                    let phones = person.get_phones();
-                    for j in range(0, phones.size()) {
-                        let phone = phones[j];
-                        let type_name = match phone.get_type() {
-                            Some(Person::PhoneNumber::Type::Mobile) => {"mobile"}
-                            Some(Person::PhoneNumber::Type::Home) => {"home"}
-                            Some(Person::PhoneNumber::Type::Work) => {"work"}
-                            None => {"UNKNOWN"}
-                        };
-                        println!("  {} phone: {}", type_name, phone.get_number());
-                    }
-                    match person.get_employment().which() {
-                        Some(Person::Employment::Unemployed(())) => {
-                            println!("  unemployed");
-                        }
-                        Some(Person::Employment::Employer(employer)) => {
-                            println!("  employer: {}", employer);
-                        }
-                        Some(Person::Employment::School(school)) => {
-                            println!("  student at: {}", school);
-                        }
-                        Some(Person::Employment::SelfEmployed(())) => {
-                            println!("  self-employed");
-                        }
-                        None => { }
-                    }
+        let message_reader = serialize_packed::new_reader(&mut stdin(), DEFAULT_READER_OPTIONS);
+        let address_book = message_reader.get_root::<AddressBook::Reader>();
+        let people = address_book.get_people();
+
+        for i in range(0, people.size()) {
+            let person = people[i];
+            println!("{}: {}", person.get_name(), person.get_email());
+            let phones = person.get_phones();
+            for j in range(0, phones.size()) {
+                let phone = phones[j];
+                let type_name = match phone.get_type() {
+                    Some(Person::PhoneNumber::Type::Mobile) => {"mobile"}
+                    Some(Person::PhoneNumber::Type::Home) => {"home"}
+                    Some(Person::PhoneNumber::Type::Work) => {"work"}
+                    None => {"UNKNOWN"}
+                };
+                println!("  {} phone: {}", type_name, phone.get_number());
+            }
+            match person.get_employment().which() {
+                Some(Person::Employment::Unemployed(())) => {
+                    println!("  unemployed");
                 }
-            });
+                Some(Person::Employment::Employer(employer)) => {
+                    println!("  employer: {}", employer);
+                }
+                Some(Person::Employment::School(school)) => {
+                    println!("  student at: {}", school);
+                }
+                Some(Person::Employment::SelfEmployed(())) => {
+                    println!("  self-employed");
+                }
+                None => { }
+            }
+        }
     }
 }
 

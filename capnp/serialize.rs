@@ -8,76 +8,93 @@ use std;
 use common::*;
 use endian::*;
 use message::*;
+use arena;
+use io;
 
-pub mod InputStreamMessageReader {
+pub struct OwnedSpaceMessageReader {
+    options : ReaderOptions,
+    arena : ~arena::ReaderArena,
+    segment_slices : ~[(uint, uint)],
+    owned_space : ~[Word],
+}
 
-    use std;
-    use io;
-    use common::*;
-    use endian::*;
-    use message::*;
+impl MessageReader for OwnedSpaceMessageReader {
+    fn get_segment<'b>(&'b self, id : uint) -> &'b [Word] {
+        let (a,b) = self.segment_slices[id];
+        self.owned_space.slice(a, b)
+    }
 
-    pub fn new<U : std::io::Reader, T>(inputStream : &mut U,
-                                       options : ReaderOptions,
-                                       cont : |&mut MessageReader| -> T) -> T {
+    fn arena<'b>(&'b self) -> &'b arena::ReaderArena {
+        &*self.arena
+    }
 
-        let firstWord = inputStream.read_bytes(8);
-
-        let segmentCount : u32 =
-            unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.unsafe_ref(0));
-                    (*p).get() + 1
-                   };
+    fn get_options<'b>(&'b self) -> &'b ReaderOptions {
+        return &self.options;
+    }
+}
 
 
-        let segment0Size =
-            if segmentCount == 0 { 0 } else {
-            unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.unsafe_ref(4));
-                    (*p).get()
-                   }
+pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
+                                       options : ReaderOptions) -> OwnedSpaceMessageReader {
+
+    let firstWord = inputStream.read_bytes(8);
+
+    let segmentCount : u32 =
+        unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.unsafe_ref(0));
+                (*p).get() + 1
+    };
+
+    let segment0Size =
+        if segmentCount == 0 { 0 } else {
+        unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.unsafe_ref(4));
+                (*p).get()
+        }
+    };
+
+    let mut totalWords = segment0Size;
+
+    if segmentCount >= 512 {
+        fail!("too many segments");
+    }
+
+    let mut moreSizes : ~[u32] = std::vec::from_elem((segmentCount & !1) as uint, 0u32);
+
+    if segmentCount > 1 {
+        let moreSizesRaw = inputStream.read_bytes((4 * (segmentCount & !1)) as uint);
+        for ii in range(0, segmentCount as uint - 1) {
+            moreSizes[ii] = unsafe {
+                let p : *WireValue<u32> =
+                    std::cast::transmute(moreSizesRaw.unsafe_ref(ii * 4));
+                (*p).get()
             };
-
-        let mut totalWords = segment0Size;
-
-        if segmentCount >= 512 {
-            fail!("too many segments");
+            totalWords += moreSizes[ii];
         }
+    }
 
-        let mut moreSizes : ~[u32] = std::vec::from_elem((segmentCount & !1) as uint, 0u32);
+    //# Don't accept a message which the receiver couldn't possibly
+    //# traverse without hitting the traversal limit. Without this
+    //# check, a malicious client could transmit a very large
+    //# segment size to make the receiver allocate excessive space
+    //# and possibly crash.
+    assert!(totalWords as u64 <= options.traversalLimitInWords);
 
-        if segmentCount > 1 {
-            let moreSizesRaw = inputStream.read_bytes((4 * (segmentCount & !1)) as uint);
-            for ii in range(0, segmentCount as uint - 1) {
-                moreSizes[ii] = unsafe {
-                    let p : *WireValue<u32> =
-                        std::cast::transmute(moreSizesRaw.unsafe_ref(ii * 4));
-                    (*p).get()
-                };
-                totalWords += moreSizes[ii];
-            }
-        }
+    let mut ownedSpace : ~[Word] = allocate_zeroed_words(totalWords as uint);
+    let bufLen = totalWords as uint * BYTES_PER_WORD;
 
-        //# Don't accept a message which the receiver couldn't possibly
-        //# traverse without hitting the traversal limit. Without this
-        //# check, a malicious client could transmit a very large
-        //# segment size to make the receiver allocate excessive space
-        //# and possibly crash.
-        assert!(totalWords as u64 <= options.traversalLimitInWords);
-
-        let mut ownedSpace : ~[Word] = allocate_zeroed_words(totalWords as uint);
-        let bufLen = totalWords as uint * BYTES_PER_WORD;
-
-        unsafe {
-            let ptr : *mut u8 = std::cast::transmute(ownedSpace.unsafe_mut_ref(0));
-            std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, bufLen, |buf| {
+    unsafe {
+        let ptr : *mut u8 = std::cast::transmute(ownedSpace.unsafe_mut_ref(0));
+        std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, bufLen, |buf| {
                 io::read_at_least(inputStream, buf, bufLen);
             })
-        }
+    }
 
-        // TODO lazy reading like in capnp-c++. Is that possible
-        // within the std::io::Reader interface?
+    // TODO lazy reading like in capnp-c++. Is that possible
+    // within the std::io::Reader interface?
 
+    let mut segment_slices : ~[(uint, uint)] = ~[(0, segment0Size as uint)];
+
+    let arena = {
         let segment0 : &[Word] = ownedSpace.slice(0, segment0Size as uint);
-
         let mut segments : ~[&[Word]] = ~[segment0];
 
         if segmentCount > 1 {
@@ -86,15 +103,22 @@ pub mod InputStreamMessageReader {
             for ii in range(0, segmentCount as uint - 1) {
                 segments.push(ownedSpace.slice(offset as uint,
                                                (offset + moreSizes[ii]) as uint));
+                segment_slices.push((offset as uint,
+                                     (offset + moreSizes[ii]) as uint));
                 offset += moreSizes[ii];
             }
         }
+        arena::ReaderArena::new(segments)
+    };
 
-        let mut result = MessageReader::new(segments, options);
-
-        cont(result)
+    OwnedSpaceMessageReader {
+        segment_slices : segment_slices,
+        owned_space : ownedSpace,
+        arena : arena,
+        options : options,
     }
 }
+
 
 pub fn write_message<T: std::io::Writer>(outputStream : &mut T,
                                          message : &MessageBuilder) {
