@@ -17,24 +17,31 @@ pub struct ReaderOptions {
 pub static DEFAULT_READER_OPTIONS : ReaderOptions =
     ReaderOptions { traversalLimitInWords : 8 * 1024 * 1024, nestingLimit : 64 };
 
+pub struct SegmentArrayMessageReader<'a> {
+    segments : &'a [ &'a [Word]],
+    options : ReaderOptions,
+    arena : ~ReaderArena
+}
+
 pub struct MessageReader<'a> {
     segments : &'a [ &'a [Word]],
     options : ReaderOptions,
-    arena : ReaderArena
+    arena : ~ReaderArena
 }
 
 type SegmentId = u32;
 
-/*
-pub trait MessageReader {
+
+pub trait MessageReaderT {
     fn get_segment<'a>(&'a self, id : uint) -> &'a [Word];
     fn arena<'a>(&'a self) -> &'a ReaderArena;
-    fn get_root<T : layout::FromStructReader<'a>>(&self) -> T {
+    fn get_options<'a>(&'a self) -> &'a ReaderOptions;
+    fn get_root<'a, T : layout::FromStructReader<'a>>(&'a self) -> T {
         unsafe {
-            let segment : *SegmentReader = std::ptr::to_unsafe_ptr(&self.arena.segment0);
+            let segment : *SegmentReader = std::ptr::to_unsafe_ptr(&self.arena().segment0);
 
             let pointer_reader = layout::PointerReader::get_root::<'a>(
-                segment, (*segment).get_start_ptr(), self.options.nestingLimit as int);
+                segment, (*segment).get_start_ptr(), self.get_options().nestingLimit as int);
 
             let result : T = layout::FromStructReader::from_struct_reader(
                 pointer_reader.get_struct::<'a>(std::ptr::null()));
@@ -44,7 +51,7 @@ pub trait MessageReader {
 
     }
 }
-*/
+
 
 impl <'a> MessageReader<'a> {
 
@@ -57,40 +64,12 @@ impl <'a> MessageReader<'a> {
 impl <'a> MessageReader<'a> {
 
     pub fn new<'b>(segments : &'b [&'b [Word]], options : ReaderOptions) -> ~MessageReader<'b> {
-
         assert!(segments.len() > 0);
-        let mut result = ~MessageReader {
+        ~MessageReader {
             segments : segments,
-            arena : ReaderArena {
-                segment0 : SegmentReader {
-                    arena : Null,
-                    ptr : unsafe { segments[0].unsafe_ref(0) },
-                    size : segments[0].len()
-                },
-                more_segments : None
-            },
+            arena : ReaderArena::new(segments),
             options : options
-        };
-
-        let arena_ptr = ReaderArenaPtr (std::ptr::to_unsafe_ptr(&result.arena));
-
-        result.arena.segment0.arena = arena_ptr;
-
-        if segments.len() > 1 {
-            let mut moreSegmentReaders = ~[];
-            for segment in segments.slice_from(1).iter() {
-                let segmentReader = SegmentReader {
-                    arena : arena_ptr,
-                    ptr : unsafe { segment.unsafe_ref(0) },
-                    size : segment.len()
-                };
-                moreSegmentReaders.push(segmentReader);
-            }
-            result.arena.more_segments = Some(moreSegmentReaders);
         }
-
-        result
-
     }
 
     pub fn get_root<T : layout::FromStructReader<'a>>(&self) -> T {

@@ -106,6 +106,38 @@ pub struct ReaderArena {
 }
 
 impl ReaderArena {
+    pub fn new(segments : &[&[Word]]) -> ~ReaderArena {
+        assert!(segments.len() > 0);
+        let mut arena = ~ReaderArena {
+                segment0 : SegmentReader {
+                    arena : Null,
+                    ptr : unsafe { segments[0].unsafe_ref(0) },
+                    size : segments[0].len()
+                },
+                more_segments : None
+        };
+
+
+        let arena_ptr = ReaderArenaPtr (std::ptr::to_unsafe_ptr(arena));
+
+        arena.segment0.arena = arena_ptr;
+
+        if segments.len() > 1 {
+            let mut moreSegmentReaders = ~[];
+            for segment in segments.slice_from(1).iter() {
+                let segmentReader = SegmentReader {
+                    arena : arena_ptr,
+                    ptr : unsafe { segment.unsafe_ref(0) },
+                    size : segment.len()
+                };
+                moreSegmentReaders.push(segmentReader);
+            }
+            arena.more_segments = Some(moreSegmentReaders);
+        }
+
+        arena
+    }
+
     pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader {
         if id == 0 {
             return std::ptr::to_unsafe_ptr(&self.segment0);
