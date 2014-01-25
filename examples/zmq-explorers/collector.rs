@@ -7,6 +7,7 @@ static GRID_HEIGHT : uint = 120;
 
 pub fn main() {
     use explorers_capnp::{Observation, Grid};
+    use capnp::message::MessageReader;
 
     let mut context = zmq::Context::new();
     let mut subscriber = context.socket(zmq::SUB).unwrap();
@@ -52,8 +53,9 @@ pub fn main() {
 
                     let frames = capnp_zmq::recv(&mut subscriber).unwrap();
                     let segments = capnp_zmq::frames_to_segments(frames);
-                    let reader = capnp::message::MessageReader::new(segments,
-                                                                    capnp::message::DEFAULT_READER_OPTIONS);
+                    let reader = capnp::message::SegmentArrayMessageReader::new(
+                        segments,
+                        capnp::message::DEFAULT_READER_OPTIONS);
                     let obs = reader.get_root::<Observation::Reader>();
 
                     if obs.get_x() >= 1.0 || obs.get_x() < 0.0 ||

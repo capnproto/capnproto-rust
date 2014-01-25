@@ -34,7 +34,7 @@ impl Image {
         match std::io::File::open_mode(file, Open, Read) {
             None => fail!("could not open"),
             Some(reader) => {
-                let mut buffered = std::io::buffered::BufferedReader::new(reader);
+                let mut buffered = std::io::BufferedReader::new(reader);
                 match buffered.read_line() {
                     Some(s) => {
                         assert!(s.trim() == "P6");

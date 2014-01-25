@@ -14,7 +14,7 @@ fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) {
     match std::io::File::open_mode(path, std::io::Truncate, std::io::Write) {
         None => fail!("could not open"),
         Some(writer) => {
-            let mut buffered = std::io::buffered::BufferedWriter::new(writer);
+            let mut buffered = std::io::BufferedWriter::new(writer);
             writeln!(&mut buffered, "P6");
 
             let cells = grid.get_cells();
@@ -66,6 +66,7 @@ fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) {
 }
 
 pub fn main() {
+    use capnp::message::MessageReader;
 
     let mut context = zmq::Context::new();
     let mut requester = context.socket(zmq::REQ).unwrap();
@@ -79,8 +80,8 @@ pub fn main() {
 
         let frames = capnp_zmq::recv(&mut requester).unwrap();
         let segments = capnp_zmq::frames_to_segments(frames);
-        let reader = capnp::message::MessageReader::new(segments,
-                                                        capnp::message::DEFAULT_READER_OPTIONS);
+        let reader = capnp::message::SegmentArrayMessageReader::new(segments,
+                                                                    capnp::message::DEFAULT_READER_OPTIONS);
         let grid = reader.get_root::<Grid::Reader>();
 
         println!("{}", grid.get_latest_timestamp());
