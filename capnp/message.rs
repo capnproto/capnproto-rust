@@ -81,94 +81,13 @@ pub enum AllocationStrategy {
 pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
 pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICALLY;
 
-pub struct MessageBuilder {
-    arena : ~BuilderArena,
-    own_first_segment : bool,
-    first_segment : *mut Word,
-}
+pub trait MessageBuilder {
+    fn arena<'a>(&'a mut self) -> &'a mut BuilderArena;
 
-impl Drop for MessageBuilder {
-    fn drop(&mut self) {
-        if self.own_first_segment {
-            unsafe { std::libc::free(std::cast::transmute(self.first_segment)) }
-        } else {
-            self.get_segments_for_output(|segments| {
-                    unsafe {
-                        std::ptr::zero_memory(self.first_segment, segments[0].len());
-                    }
-                });
-        }
-    }
-}
+    fn init_root<'a, T : layout::FromStructBuilder<'a> + layout::HasStructSize>(&'a mut self) -> T {
+        let rootSegment = std::ptr::to_mut_unsafe_ptr(&mut self.arena().segment0);
 
-pub enum FirstSegment<'a> {
-    NumWords(uint),
-    ZeroedWords(&'a mut [Word])
-}
-
-impl MessageBuilder {
-
-    // TODO: maybe when Rust issue #5121 is fixed we can safely get away with not passing
-    //  a closure here.
-    pub fn new<'a, T>(first_segment_arg : FirstSegment<'a>,
-                      allocationStrategy : AllocationStrategy,
-                      cont : |&mut MessageBuilder| -> T) -> T {
-
-        let (first_segment, num_words, own_first_segment) : (*mut Word, uint, bool) = unsafe {
-            match first_segment_arg {
-                NumWords(n) =>
-                    (std::cast::transmute(
-                        std::libc::calloc(n as std::libc::size_t,
-                                          BYTES_PER_WORD as std::libc::size_t)),
-                     n, true),
-                ZeroedWords(w) => (w.as_mut_ptr(), w.len(), false)
-            }};
-
-        let mut arena = ~BuilderArena::<'a> {
-            segment0 : SegmentBuilder {
-                reader : SegmentReader {
-                    ptr : first_segment as * Word,
-                    size : num_words,
-                    arena : Null },
-                id : 0,
-                pos : first_segment
-            },
-            more_segments : None,
-            allocation_strategy : allocationStrategy,
-            owned_memory : None,
-            nextSize : num_words,
-        };
-
-        let arena_ptr = std::ptr::to_mut_unsafe_ptr(arena);
-        arena.segment0.reader.arena = BuilderArenaPtr(arena_ptr);
-
-        let mut result = ~MessageBuilder {
-            arena : arena,
-            own_first_segment: own_first_segment,
-            first_segment : first_segment,
-        };
-
-        cont(result)
-    }
-
-    pub fn new_default<T>(cont : |&mut MessageBuilder| -> T) -> T {
-        MessageBuilder::new(NumWords(SUGGESTED_FIRST_SEGMENT_WORDS), SUGGESTED_ALLOCATION_STRATEGY, cont)
-    }
-
-    pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
-        self.arena.get_segments_for_output(cont)
-    }
-}
-
-impl MessageBuilder {
-    // Note: This type signature ought to prevent a MessageBuilder
-    // from being initted twice simultaneously. It currently does not
-    // fulfill that goal, perhaps due to Rust issue #5121.
-    pub fn init_root<'a, T : layout::HasStructSize + layout::FromStructBuilder<'a>>(&mut self) -> T {
-        // Rolled in this stuff form getRootSegment.
-        let rootSegment = std::ptr::to_mut_unsafe_ptr(&mut self.arena.segment0);
-
-        match self.arena.segment0.allocate(WORDS_PER_POINTER) {
+        match self.arena().segment0.allocate(WORDS_PER_POINTER) {
             None => {fail!("could not allocate root pointer") }
             Some(location) => {
                 //assert!(location == 0,
@@ -180,6 +99,81 @@ impl MessageBuilder {
                     pb.init_struct(layout::HasStructSize::struct_size(None::<T>)));
             }
         }
+
     }
 
+    fn get_segments_for_output<T>(&mut self, cont : |&[&[Word]]| -> T) -> T {
+        self.arena().get_segments_for_output(cont)
+    }
+
+
+}
+
+pub struct MallocMessageBuilder {
+    priv arena : ~BuilderArena,
+}
+
+impl Drop for MallocMessageBuilder {
+    fn drop(&mut self) { }
+}
+
+impl MallocMessageBuilder {
+
+    pub fn new(first_segment_size : uint, allocationStrategy : AllocationStrategy) -> MallocMessageBuilder {
+        let arena = BuilderArena::new(allocationStrategy, NumWords(first_segment_size));
+
+        MallocMessageBuilder { arena : arena }
+    }
+
+    pub fn new_default() -> MallocMessageBuilder {
+        MallocMessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY)
+    }
+
+}
+
+impl MessageBuilder for MallocMessageBuilder {
+    fn arena<'a>(&'a mut self) -> &'a mut BuilderArena {
+        &mut *self.arena
+    }
+
+}
+
+
+pub struct ScratchSpaceMallocMessageBuilder<'a> {
+    priv arena : ~BuilderArena,
+    priv scratch_space : &'a mut [Word],
+}
+
+
+// TODO: figure out why rust thinks this is unsafe.
+#[unsafe_destructor]
+impl <'a> Drop for ScratchSpaceMallocMessageBuilder<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            let len = self.scratch_space.len();
+            std::ptr::zero_memory(self.scratch_space.as_mut_ptr(), len);
+        }
+    }
+}
+
+
+impl <'a> ScratchSpaceMallocMessageBuilder<'a> {
+
+    pub fn new<'b>(scratch_space : &'b mut [Word], allocationStrategy : AllocationStrategy)
+               -> ScratchSpaceMallocMessageBuilder<'b> {
+        let arena = BuilderArena::new(allocationStrategy, ZeroedWords(scratch_space));
+
+        ScratchSpaceMallocMessageBuilder { arena : arena, scratch_space : scratch_space }
+    }
+
+    pub fn new_default<'b>(scratch_space : &'b mut [Word]) -> ScratchSpaceMallocMessageBuilder<'b> {
+        ScratchSpaceMallocMessageBuilder::new(scratch_space, SUGGESTED_ALLOCATION_STRATEGY)
+    }
+
+}
+
+impl <'a> MessageBuilder for ScratchSpaceMallocMessageBuilder<'a> {
+    fn arena<'a>(&'a mut self) -> &'a mut BuilderArena {
+        &mut *self.arena
+    }
 }

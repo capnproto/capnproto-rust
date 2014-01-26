@@ -346,13 +346,15 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
    fn flush(&mut self) { self.inner.flush(); }
 }
 
-pub fn write_packed_message<T:io::BufferedOutputStream>(output : &mut T, message : &MessageBuilder) {
+pub fn write_packed_message<T:io::BufferedOutputStream,U:MessageBuilder>(
+    output : &mut T, message : &mut U) {
     let mut packedOutputStream = PackedOutputStream {inner : output};
     serialize::write_message(&mut packedOutputStream, message);
 }
 
 
-pub fn write_packed_message_unbuffered<T:std::io::Writer>(output : &mut T, message : &MessageBuilder) {
+pub fn write_packed_message_unbuffered<T:std::io::Writer,U:MessageBuilder>(
+    output : &mut T, message : &mut U) {
     let mut buffered = io::BufferedOutputStreamWrapper::new(output);
     write_packed_message(&mut buffered, message);
     buffered.flush();

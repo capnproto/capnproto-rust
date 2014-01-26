@@ -120,8 +120,9 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
 }
 
 
-pub fn write_message<T: std::io::Writer>(outputStream : &mut T,
-                                         message : &MessageBuilder) {
+pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
+    outputStream : &mut T,
+    message : &mut U) {
 
     message.get_segments_for_output(
         |segments| {

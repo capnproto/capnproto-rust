@@ -177,7 +177,47 @@ impl Drop for BuilderArena {
     }
 }
 
+pub enum FirstSegment<'a> {
+    NumWords(uint),
+    ZeroedWords(&'a mut [Word])
+}
+
 impl BuilderArena {
+
+    pub fn new(allocationStrategy : message::AllocationStrategy,
+               first_segment : FirstSegment) -> ~BuilderArena {
+
+        let (first_segment, num_words, owned_memory) : (*mut Word, uint, Option<~[*mut Word]>) = unsafe {
+            match first_segment {
+                NumWords(n) => {
+                    let ptr = std::cast::transmute(
+                        std::libc::calloc(n as std::libc::size_t,
+                                          BYTES_PER_WORD as std::libc::size_t));
+                    (ptr, n, Some(~[ptr]))
+                }
+                ZeroedWords(w) => (w.as_mut_ptr(), w.len(), None)
+            }};
+
+        let mut result = ~BuilderArena {
+            segment0 : SegmentBuilder {
+                reader : SegmentReader {
+                    ptr : first_segment as * Word,
+                    size : num_words,
+                    arena : Null },
+                id : 0,
+                pos : first_segment
+            },
+            more_segments : None,
+            allocation_strategy : allocationStrategy,
+            owned_memory : owned_memory,
+            nextSize : num_words,
+        };
+
+        let arena_ptr = std::ptr::to_mut_unsafe_ptr(result);
+        result.segment0.reader.arena = BuilderArenaPtr(arena_ptr);
+
+        result
+    }
 
     pub fn allocate_owned_memory(&mut self, minimumSize : WordCount) -> (*mut Word, WordCount) {
         let size = std::cmp::max(minimumSize, self.nextSize);
