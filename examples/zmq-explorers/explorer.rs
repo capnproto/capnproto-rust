@@ -1,4 +1,5 @@
 use capnp;
+use capnp::message::MessageBuilder;
 use zmq;
 use extra;
 use std;
@@ -139,11 +140,11 @@ pub fn main () {
         if x < 0.0 { x += 1.0 }
         if y < 0.0 { y += 1.0 }
 
-        capnp::message::MessageBuilder::new_default(|message| {
-                let obs = message.init_root::<Observation::Builder>();
-                image.take_measurement(x, y, obs);
-                capnp_zmq::send(&mut publisher, message);
-            });
+        let mut message = capnp::message::MallocMessageBuilder::new_default();
+        let obs = message.init_root::<Observation::Builder>();
+        image.take_measurement(x, y, obs);
+        capnp_zmq::send(&mut publisher, message);
+
 
         std::io::timer::sleep(5);
     }
