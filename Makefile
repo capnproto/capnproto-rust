@@ -18,7 +18,8 @@ CAPNP_SOURCES= \
     capnp/serialize_packed.rs
 
 CAPNP_RPC_SOURCES= \
-    capnp-rpc/main.rs
+    capnp-rpc/main.rs \
+    capnp-rpc/rpc.rs
 
 COMPILATION_MARKER=capnp/compilation-marker
 

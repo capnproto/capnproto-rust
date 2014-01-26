@@ -71,8 +71,6 @@ impl <'a> SegmentArrayMessageReader<'a> {
             options : options
         }
     }
-
-
 }
 
 pub enum AllocationStrategy {

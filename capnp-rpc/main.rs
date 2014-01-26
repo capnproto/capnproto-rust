@@ -12,6 +12,7 @@ pub mod calculator_capnp;
 pub mod rpc_capnp;
 //pub mod rpc-twoparty_capnp;
 
+pub mod rpc;
 
 pub mod testing {
     use capnp;
@@ -49,8 +50,6 @@ pub mod testing {
 
 pub fn main() {
     use std::io::process;
-    use capnp::message::MessageReader;
-    use rpc_capnp::{Message, Return, CapDescriptor};
 
     let args = ~[std::os::args()[1].to_owned(), std::os::args()[2].to_owned()];
 
@@ -71,49 +70,21 @@ pub fn main() {
     let childStdOut = p.io.pop();
     let mut childStdIn = p.io.pop();
 
+    let (port, chan) = std::comm::Chan::<rpc::RpcEvent>::new();
+
     do spawn || {
         let mut r = childStdOut;
 
         loop {
-
-            let message = capnp::serialize::new_reader(
+            let message = box capnp::serialize::new_reader(
                 &mut r,
                 capnp::message::DEFAULT_READER_OPTIONS);
-            match message.get_root::<Message::Reader>().which() {
-                Some(Message::Return(ret)) => {
-                    println!("got a return {}", ret.get_answer_id());
-                    match ret.which() {
-                        Some(Return::Results(payload)) => {
-                            println!("with a payload");
-                            let cap_table = payload.get_cap_table();
-                            for ii in range(0, cap_table.size()) {
-                                match cap_table[ii].which() {
-                                    Some(CapDescriptor::None(())) => {}
-                                    Some(CapDescriptor::SenderHosted(id)) => {
-                                        println!("sender hosted: {}", id);
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-                        Some(Return::Exception(_)) => {
-                            println!("exception");
-                        }
-                        _ => {}
-                    }
-                }
-                Some(Message::Unimplemented(_)) => {
-                    println!("unimplemented");
-                }
-                Some(Message::Abort(exc)) => {
-                    println!("abort: {}", exc.get_reason());
-                }
-                None => { println!("Nothing there") }
-                _ => {println!("something else") }
-            }
 
+            chan.send(rpc::IncomingMessage(message));
         }
     }
+
+    do spawn || { rpc::run_loop(port); }
 
     testing::connect(&mut childStdIn);
 

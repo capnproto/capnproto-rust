@@ -11,6 +11,7 @@ use message::*;
 use arena;
 use io;
 
+
 pub struct OwnedSpaceMessageReader {
     priv options : ReaderOptions,
     priv arena : ~arena::ReaderArena,
@@ -32,7 +33,6 @@ impl MessageReader for OwnedSpaceMessageReader {
         return &self.options;
     }
 }
-
 
 pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
                                        options : ReaderOptions) -> OwnedSpaceMessageReader {
