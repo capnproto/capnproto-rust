@@ -5,6 +5,7 @@
  */
 
 use std;
+use capability::ClientHook;
 use common::*;
 use common::ptr_sub;
 use message;
@@ -98,23 +99,26 @@ impl SegmentBuilder {
 }
 
 pub struct ReaderArena {
-//    message : *message::MessageReader<'a>,
+    //    message : *message::MessageReader<'a>,
     segment0 : SegmentReader,
 
-    more_segments : Option<~[SegmentReader]>
-    //XXX should this be a map as in capnproto-c++?
+    more_segments : Option<~[SegmentReader]>,
+        //XXX should this be a map as in capnproto-c++?
+
+    cap_table : ~[Option<~ClientHook>]
 }
 
 impl ReaderArena {
     pub fn new(segments : &[&[Word]]) -> ~ReaderArena {
         assert!(segments.len() > 0);
         let mut arena = ~ReaderArena {
-                segment0 : SegmentReader {
-                    arena : Null,
-                    ptr : unsafe { segments[0].unsafe_ref(0) },
-                    size : segments[0].len()
-                },
-                more_segments : None
+            segment0 : SegmentReader {
+                arena : Null,
+                ptr : unsafe { segments[0].unsafe_ref(0) },
+                size : segments[0].len()
+            },
+            more_segments : None,
+            cap_table : ~[]
         };
 
 
@@ -267,6 +271,29 @@ impl ArenaPtr {
                 }
                 &Null => {
                     fail!()
+                }
+            }
+        }
+    }
+
+    pub fn extract_cap(&self, index : uint) -> Option<~ClientHook> {
+        unsafe {
+            match self {
+                &ReaderArenaPtr(reader) => {
+                    if index < (*reader).cap_table.len() {
+                        match (*reader).cap_table[index] {
+                            Some(_) => {fail!()}
+                            None => {None}
+                        }
+                    } else {
+                        None
+                    }
+                }
+                &BuilderArenaPtr(_builder) => {
+                    fail!();
+                }
+                &Null => {
+                    fail!();
                 }
             }
         }

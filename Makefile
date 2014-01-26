@@ -22,7 +22,7 @@ CAPNP_RPC_SOURCES= \
 
 COMPILATION_MARKER=capnp/compilation-marker
 
-.PHONY : capnprust clean all capnp-test capnpc-rust-test check benchmark
+.PHONY : capnp capnp-rpc clean all capnp-test capnpc-rust-test check benchmark
 
 all : examples/addressbook/addressbook
 
@@ -30,7 +30,7 @@ clean :
 	rm -rf capnp/libcapnp* $(COMPILATION_MARKER) capnpc-rust/capnpc-rust
 	rm -rf benchmark/*_capnp.rs benchmark/benchmark
 
-capnprust : $(COMPILATION_MARKER)
+capnp : $(COMPILATION_MARKER)
 
 $(COMPILATION_MARKER) : $(CAPNP_SOURCES)
 	$(RUSTC) capnp/lib.rs
@@ -58,3 +58,6 @@ benchmark : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
 	$(RUSTC) -L./capnp benchmark/benchmark.rs
 
+capnp-rpc : $(COMPILATION_MARKER) capnpc-rust/capnpc-rust
+	capnp compile -o./capnpc-rust/capnpc-rust capnp-rpc/rpc.capnp capnp-rpc/calculator.capnp
+	$(RUSTC) -L./capnp capnp-rpc/main.rs
