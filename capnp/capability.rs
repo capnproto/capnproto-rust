@@ -4,7 +4,7 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-use any;
+use any::{AnyPointer};
 use common::{MessageSize};
 
 pub trait RequestHook {
@@ -20,5 +20,5 @@ pub trait ClientHook {
     fn new_call(interface_id : u64,
                 method_id : u16,
                 size_hint : Option<MessageSize>)
-                -> Request<any::AnyPointer::Builder, any::AnyPointer::Reader>;
+                -> Request<AnyPointer::Builder, AnyPointer::Reader>;
 }

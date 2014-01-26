@@ -4,6 +4,9 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
+use capnp::any::{AnyPointer};
+use capnp::capability;
+use capnp::common;
 use capnp::message::{MessageReader};
 use capnp::serialize;
 use std;
@@ -52,7 +55,20 @@ impl RpcConnectionState {
     }
 }
 
+pub struct ImportClient {
+    import_id : ImportId,
+}
+
+impl capability::ClientHook for ImportClient {
+    fn new_call(interface_id : u64, method_id : u16,
+                size_hint : Option<common::MessageSize>)
+                -> capability::Request<AnyPointer::Builder, AnyPointer::Reader> {
+        fail!()
+    }
+}
+
 pub enum RpcEvent {
+    Nothing,
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
 }
 
@@ -97,7 +113,9 @@ pub fn run_loop (port : std::comm::Port<RpcEvent>) {
                     None => { println!("Nothing there") }
                     _ => {println!("something else") }
                 }
-
+            }
+            _ => {
+                println!("got another event");
             }
         }
     }

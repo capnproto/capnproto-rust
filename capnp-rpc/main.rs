@@ -70,7 +70,9 @@ pub fn main() {
     let childStdOut = p.io.pop();
     let mut childStdIn = p.io.pop();
 
-    let (port, chan) = std::comm::Chan::<rpc::RpcEvent>::new();
+    let (port, chan) = std::comm::SharedChan::<rpc::RpcEvent>::new();
+
+    let listener_chan = chan.clone();
 
     do spawn || {
         let mut r = childStdOut;
@@ -80,13 +82,15 @@ pub fn main() {
                 &mut r,
                 capnp::message::DEFAULT_READER_OPTIONS);
 
-            chan.send(rpc::IncomingMessage(message));
+            listener_chan.send(rpc::IncomingMessage(message));
         }
     }
 
     do spawn || { rpc::run_loop(port); }
 
     testing::connect(&mut childStdIn);
+
+    chan.send(rpc::Nothing);
 
     p.wait();
 }
