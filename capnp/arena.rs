@@ -157,12 +157,46 @@ impl ReaderArena {
 }
 
 pub struct BuilderArena {
-    message : *mut message::MessageBuilder,
     segment0 : SegmentBuilder,
     more_segments : Option<~[~SegmentBuilder]>,
+    allocation_strategy : message::AllocationStrategy,
+    owned_memory : Option<~[*mut Word]>,
+    nextSize : uint,
+}
+
+impl Drop for BuilderArena {
+    fn drop(&mut self) {
+        match self.owned_memory {
+            None => {},
+            Some(ref mut segs) => {
+                for &segment_ptr in segs.iter() {
+                    unsafe { std::libc::free(std::cast::transmute(segment_ptr)); }
+                }
+            }
+        }
+    }
 }
 
 impl BuilderArena {
+
+    pub fn allocate_owned_memory(&mut self, minimumSize : WordCount) -> (*mut Word, WordCount) {
+        let size = std::cmp::max(minimumSize, self.nextSize);
+        let new_words : *mut Word = unsafe {
+            std::cast::transmute(std::libc::calloc(size as std::libc::size_t,
+                                                   BYTES_PER_WORD as std::libc::size_t)) };
+
+        match self.owned_memory {
+            None => self.owned_memory = Some(~[new_words]),
+            Some(ref mut segs) => segs.push(new_words)
+        }
+
+        match self.allocation_strategy {
+            message::GROW_HEURISTICALLY => { self.nextSize += size; }
+            _ => { }
+        }
+        (new_words, size)
+    }
+
 
     #[inline]
     pub fn allocate(&mut self, amount : WordCount) -> (*mut SegmentBuilder, *mut Word) {
@@ -189,7 +223,7 @@ impl BuilderArena {
                 }
             };
 
-            let (words, size) = (*self.message).allocate_segment(amount);
+            let (words, size) = self.allocate_owned_memory(amount);
             let mut new_builder = ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(self), id as u32, words, size);
             let builder_ptr = std::ptr::to_mut_unsafe_ptr(new_builder);
 

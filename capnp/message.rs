@@ -82,12 +82,9 @@ pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
 pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICALLY;
 
 pub struct MessageBuilder {
-    nextSize : uint,
-    allocation_strategy : AllocationStrategy,
     arena : ~BuilderArena,
     own_first_segment : bool,
     first_segment : *mut Word,
-    more_segments : Option<~[*mut Word]>
 }
 
 impl Drop for MessageBuilder {
@@ -100,15 +97,6 @@ impl Drop for MessageBuilder {
                         std::ptr::zero_memory(self.first_segment, segments[0].len());
                     }
                 });
-        }
-
-        match self.more_segments {
-            None => {},
-            Some(ref mut segs) => {
-                for &segment_ptr in segs.iter() {
-                    unsafe { std::libc::free(std::cast::transmute(segment_ptr)); }
-                }
-            }
         }
     }
 }
@@ -123,8 +111,8 @@ impl MessageBuilder {
     // TODO: maybe when Rust issue #5121 is fixed we can safely get away with not passing
     //  a closure here.
     pub fn new<'a, T>(first_segment_arg : FirstSegment<'a>,
-                  allocationStrategy : AllocationStrategy,
-                  cont : |&mut MessageBuilder| -> T) -> T {
+                      allocationStrategy : AllocationStrategy,
+                      cont : |&mut MessageBuilder| -> T) -> T {
 
         let (first_segment, num_words, own_first_segment) : (*mut Word, uint, bool) = unsafe {
             match first_segment_arg {
@@ -137,7 +125,6 @@ impl MessageBuilder {
             }};
 
         let mut arena = ~BuilderArena::<'a> {
-            message : std::ptr::mut_null(),
             segment0 : SegmentBuilder {
                 reader : SegmentReader {
                     ptr : first_segment as * Word,
@@ -146,45 +133,26 @@ impl MessageBuilder {
                 id : 0,
                 pos : first_segment
             },
-            more_segments : None };
+            more_segments : None,
+            allocation_strategy : allocationStrategy,
+            owned_memory : None,
+            nextSize : num_words,
+        };
 
         let arena_ptr = std::ptr::to_mut_unsafe_ptr(arena);
         arena.segment0.reader.arena = BuilderArenaPtr(arena_ptr);
 
         let mut result = ~MessageBuilder {
-            nextSize : num_words,
-            allocation_strategy : allocationStrategy,
             arena : arena,
             own_first_segment: own_first_segment,
             first_segment : first_segment,
-            more_segments : None
         };
-
-        (*result.arena).message = std::ptr::to_mut_unsafe_ptr(result);
 
         cont(result)
     }
 
     pub fn new_default<T>(cont : |&mut MessageBuilder| -> T) -> T {
         MessageBuilder::new(NumWords(SUGGESTED_FIRST_SEGMENT_WORDS), SUGGESTED_ALLOCATION_STRATEGY, cont)
-    }
-
-    pub fn allocate_segment(&mut self, minimumSize : WordCount) -> (*mut Word, WordCount) {
-        let size = std::cmp::max(minimumSize, self.nextSize);
-        let new_words : *mut Word = unsafe {
-            std::cast::transmute(std::libc::calloc(size as std::libc::size_t,
-                                                   BYTES_PER_WORD as std::libc::size_t)) };
-
-        match self.more_segments {
-            None => self.more_segments = Some(~[new_words]),
-            Some(ref mut segs) => segs.push(new_words)
-        }
-
-        match self.allocation_strategy {
-            GROW_HEURISTICALLY => { self.nextSize += size; }
-            _ => { }
-        }
-        (new_words, size)
     }
 
     pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
