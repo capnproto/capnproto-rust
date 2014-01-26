@@ -1,9 +1,24 @@
 RUSTC = rustc -O -Z debug-info
 
-CAPNPRUST_SOURCES=capnp/arena.rs capnp/common.rs capnp/endian.rs \
-	capnp/layout.rs capnp/list.rs capnp/mask.rs capnp/message.rs \
-	capnp/serialize.rs capnp/serialize_packed.rs capnp/blob.rs \
-	capnp/io.rs capnp/any.rs capnp/pointer_helpers.rs
+CAPNP_SOURCES= \
+    capnp/any.rs \
+    capnp/arena.rs \
+    capnp/blob.rs \
+    capnp/capability.rs \
+    capnp/common.rs \
+    capnp/endian.rs \
+    capnp/io.rs \
+    capnp/layout.rs \
+    capnp/lib.rs \
+    capnp/list.rs \
+    capnp/mask.rs \
+    capnp/message.rs \
+    capnp/pointer_helpers.rs \
+    capnp/serialize.rs \
+    capnp/serialize_packed.rs
+
+CAPNP_RPC_SOURCES= \
+    capnp-rpc/main.rs
 
 COMPILATION_MARKER=capnp/compilation-marker
 
@@ -17,7 +32,7 @@ clean :
 
 capnprust : $(COMPILATION_MARKER)
 
-$(COMPILATION_MARKER) : $(CAPNPRUST_SOURCES)
+$(COMPILATION_MARKER) : $(CAPNP_SOURCES)
 	$(RUSTC) capnp/lib.rs
 	touch $(COMPILATION_MARKER)
 
@@ -42,3 +57,4 @@ check : capnp-test capnpc-rust-test
 benchmark : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
 	$(RUSTC) -L./capnp benchmark/benchmark.rs
+
