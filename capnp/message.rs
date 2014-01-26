@@ -149,10 +149,12 @@ pub struct ScratchSpaceMallocMessageBuilder<'a> {
 #[unsafe_destructor]
 impl <'a> Drop for ScratchSpaceMallocMessageBuilder<'a> {
     fn drop(&mut self) {
-        unsafe {
-            let len = self.scratch_space.len();
-            std::ptr::zero_memory(self.scratch_space.as_mut_ptr(), len);
-        }
+        let ptr = self.scratch_space.as_mut_ptr();
+        self.get_segments_for_output(|segments| {
+                unsafe {
+                    std::ptr::zero_memory(ptr, segments[0].len());
+                }
+            });
     }
 }
 
