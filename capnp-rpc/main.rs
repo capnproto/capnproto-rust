@@ -16,35 +16,32 @@ pub mod rpc;
 
 pub mod testing {
     use capnp;
+    use capnp::message::{MessageBuilder, MallocMessageBuilder};
     use calculator_capnp::Calculator;
-    use rpc_capnp::{Message, Return, CapDescriptor};
+    use rpc_capnp::{Message};
     use std;
 
     pub fn connect<T : std::io::Writer>(out_stream : &mut T) {
 
-        capnp::message::MessageBuilder::new_default(|message| {
-                let restore = message.init_root::<Message::Builder>().init_restore();
-                restore.set_question_id(0);
-                restore.init_object_id().set_as_text("calculator");
+        let mut message = MallocMessageBuilder::new_default();
+        let restore = message.init_root::<Message::Builder>().init_restore();
+        restore.set_question_id(0);
+        restore.init_object_id().set_as_text("calculator");
 
-                capnp::serialize::write_message(out_stream, message);
-            });
+        capnp::serialize::write_message(out_stream, &mut message);
 
-        capnp::message::MessageBuilder::new_default(|message| {
-                let call = message.init_root::<Message::Builder>().init_call();
-                call.set_question_id(1);
-                let promised_answer = call.init_target().init_promised_answer();
-                promised_answer.set_question_id(0);
-                call.set_interface_id(0x97983392df35cc36);
-                call.set_method_id(0);
-                let payload = call.init_params();
-                let exp = payload.init_content().init_as_struct::<Calculator::Expression::Builder>();
-                exp.set_literal(1.23456);
+        let mut message = MallocMessageBuilder::new_default();
+        let call = message.init_root::<Message::Builder>().init_call();
+        call.set_question_id(1);
+        let promised_answer = call.init_target().init_promised_answer();
+        promised_answer.set_question_id(0);
+        call.set_interface_id(0x97983392df35cc36);
+        call.set_method_id(0);
+        let payload = call.init_params();
+        let exp = payload.init_content().init_as_struct::<Calculator::Expression::Builder>();
+        exp.set_literal(1.23456);
 
-                capnp::serialize::write_message(out_stream, message);
-
-            });
-
+        capnp::serialize::write_message(out_stream, &mut message);
     }
 }
 
