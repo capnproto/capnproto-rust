@@ -143,7 +143,7 @@ pub fn main () {
         let mut message = capnp::message::MallocMessageBuilder::new_default();
         let obs = message.init_root::<Observation::Builder>();
         image.take_measurement(x, y, obs);
-        capnp_zmq::send(&mut publisher, message);
+        capnp_zmq::send(&mut publisher, &mut message);
 
 
         std::io::timer::sleep(5);

@@ -47,7 +47,8 @@ pub fn recv(socket : &mut zmq::Socket) -> Result<~[zmq::Message], zmq::Error> {
     }
 }
 
-pub fn send(socket : &mut zmq::Socket, message : &capnp::message::MessageBuilder)
+pub fn send<U:capnp::message::MessageBuilder>(
+    socket : &mut zmq::Socket, message : &mut U)
                   -> Result<(), zmq::Error>{
 
     message.get_segments_for_output(|segments| {

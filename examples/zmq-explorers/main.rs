@@ -1,7 +1,7 @@
 #[crate_id="zmq-explorers"];
 #[crate_type = "bin"];
 
-extern mod zmq;
+extern mod zmq = "rust-zmq";
 extern mod capnp;
 extern mod extra;
 
