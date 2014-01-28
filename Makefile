@@ -59,6 +59,6 @@ benchmark : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
 	$(RUSTC) -L./capnp benchmark/benchmark.rs
 
-capnp-rpc : $(COMPILATION_MARKER) capnpc-rust/capnpc-rust
+capnp-rpc : capnp capnpc-rust/capnpc-rust
 	capnp compile -o./capnpc-rust/capnpc-rust capnp-rpc/rpc.capnp capnp-rpc/calculator.capnp
 	$(RUSTC) -L./capnp capnp-rpc/main.rs

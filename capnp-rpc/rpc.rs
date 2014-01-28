@@ -6,8 +6,9 @@
 
 use capnp::any::{AnyPointer};
 use capnp::capability;
+use capnp::capability::{RequestHook};
 use capnp::common;
-use capnp::message::{MessageReader};
+use capnp::message::{MessageReader, MallocMessageBuilder};
 use capnp::serialize;
 use std;
 use rpc_capnp::{Message, Return, CapDescriptor};
@@ -61,10 +62,22 @@ pub struct ImportClient {
 
 impl capability::ClientHook for ImportClient {
     fn new_call(interface_id : u64, method_id : u16,
-                size_hint : Option<common::MessageSize>)
+                _size_hint : Option<common::MessageSize>)
                 -> capability::Request<AnyPointer::Builder, AnyPointer::Reader> {
-        fail!()
+        let hook = box RpcRequest { message : box MallocMessageBuilder::new_default() };
+        capability::Request { hook : hook as ~RequestHook}
     }
+}
+
+pub struct RpcRequest {
+    priv message : ~MallocMessageBuilder
+}
+
+impl RequestHook for RpcRequest {
+    fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
+        &mut *self.message
+    }
+    fn send(&self) {}
 }
 
 pub enum RpcEvent {

@@ -6,14 +6,22 @@
 
 use any::{AnyPointer};
 use common::{MessageSize};
+use layout::{FromStructBuilder, HasStructSize};
+use message::{MessageBuilder, MallocMessageBuilder};
 
 pub trait RequestHook {
+    fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder;
     fn send(&self);
 }
 
 pub struct Request<Params, Results> {
-    params : Params,
     hook : ~RequestHook
+}
+
+impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results> Request<Params, Results> {
+    pub fn init_params(&'a mut self) -> Params {
+        self.hook.message().init_root()
+    }
 }
 
 pub trait ClientHook {
