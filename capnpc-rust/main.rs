@@ -1151,38 +1151,54 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let names = scopeMap.get(&node_id);
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
-
+            output.push(Indent(~Line(~"use capnp::capability::Request;")));
+            output.push(BlankLine);
             output.push(Indent(~Line(~"pub struct Client;")));
+
+            let mut impl_interior = ~[];
 
             let methods = interface.get_methods();
             for ii in range(0, methods.size()) {
                 let method = methods[ii];
+                let name = method.get_name();
 
                 method.get_code_order();
                 let params_id = method.get_param_struct_type();
                 let params_node = nodeMap.get(&params_id);
-                if params_node.get_scope_id() == 0 {
-                    let params_name = format!("{}Params", capitalize_first_letter(method.get_name()));
+                let params_name = if params_node.get_scope_id() == 0 {
+                    let params_name = format!("{}Params", capitalize_first_letter(name));
 
                     nested_output.push(generate_node(nodeMap, scopeMap, rootName,
                                                      params_id, params_name ));
+                    params_name
                 } else {
                     fail!("unimplemented");
-                }
+                };
 
                 let results_id = method.get_result_struct_type();
                 let results_node = nodeMap.get(&results_id);
-                if results_node.get_scope_id() == 0 {
-                    let results_name = format!("{}Results", capitalize_first_letter(method.get_name()));
-
+                let results_name = if results_node.get_scope_id() == 0 {
+                    let results_name = format!("{}Results", capitalize_first_letter(name));
                     nested_output.push(generate_node(nodeMap, scopeMap, rootName,
                                                      results_id, results_name ));
+                    results_name
                 } else {
                     fail!("unimplemented");
-                }
+                };
+
+                impl_interior.push(
+                    Line(format!("pub fn {}Request() -> Request<{}::Builder,{}::Reader> \\{",
+                                 name, params_name, results_name)));
+
+                impl_interior.push(Indent(box Line(box "fail!();")));
+                impl_interior.push(Line(box "}"));
 
                 method.get_annotations();
             }
+            output.push(Indent(box Branch(box [Line(~"impl Client {"),
+                                               Indent(box Branch(impl_interior)),
+                                               Line(box "}")])));
+
 
             interface.get_extends();
 
