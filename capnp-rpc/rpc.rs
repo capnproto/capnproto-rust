@@ -61,7 +61,7 @@ pub struct ImportClient {
 }
 
 impl capability::ClientHook for ImportClient {
-    fn new_call(interface_id : u64, method_id : u16,
+    fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<common::MessageSize>)
                 -> capability::Request<AnyPointer::Builder, AnyPointer::Reader> {
         let hook = box RpcRequest { message : box MallocMessageBuilder::new_default() };

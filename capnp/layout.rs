@@ -4,6 +4,7 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
+use capability::{ClientHook};
 use common::*;
 use endian::*;
 use mask::*;
@@ -305,6 +306,7 @@ struct SegmentAnd<T> {
 
 mod WireHelpers {
     use std;
+    use capability::ClientHook;
     use common::*;
     use layout::*;
     use arena::*;
@@ -1404,6 +1406,13 @@ mod WireHelpers {
      }
 
     #[inline]
+    pub unsafe fn read_capability_pointer(_segment : *SegmentReader,
+                                          _reff : *WirePointer,
+                                          _nesting_limit : int) -> ~ClientHook {
+        fail!();
+    }
+
+    #[inline]
     pub unsafe fn read_list_pointer<'a>(mut segment: *SegmentReader,
                                       mut reff : *WirePointer,
                                       defaultValue : *Word,
@@ -1672,6 +1681,13 @@ impl <'a> PointerReader<'a> {
         }
     }
 
+    pub fn get_capability(&self) -> ~ClientHook {
+        let reff : *WirePointer = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
+        unsafe {
+            WireHelpers::read_capability_pointer(self.segment, reff, self.nesting_limit)
+        }
+    }
+
     pub fn total_size(&self) -> MessageSize {
         unsafe {
             WireHelpers::total_size(self.segment, self.pointer, self.nesting_limit)
@@ -1731,6 +1747,13 @@ impl <'a> PointerBuilder<'a> {
         unsafe {
             WireHelpers::get_writable_data_pointer(
                 self.pointer, self.segment, default_value, default_size)
+        }
+    }
+
+    pub fn get_capability(&self) -> ~ClientHook {
+        unsafe {
+            WireHelpers::read_capability_pointer(
+                std::ptr::to_unsafe_ptr(&(*self.segment).reader), self.pointer as *WirePointer, 1000000)
         }
     }
 

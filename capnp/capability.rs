@@ -25,8 +25,30 @@ impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results> Request<Param
 }
 
 pub trait ClientHook {
-    fn new_call(interface_id : u64,
+    fn new_call(&self,
+                interface_id : u64,
                 method_id : u16,
                 size_hint : Option<MessageSize>)
                 -> Request<AnyPointer::Builder, AnyPointer::Reader>;
 }
+
+
+pub struct Client {
+    hook : ~ClientHook
+}
+
+impl Client {
+    pub fn new(hook : ~ClientHook) -> Client {
+        Client { hook : hook }
+    }
+
+    pub fn new_call<Params, Results>(&self,
+                                     interface_id : u64,
+                                     method_id : u16,
+                                     size_hint : Option<MessageSize>)
+                                     -> Request<Params, Results> {
+        let _typeless = self.hook.new_call(interface_id, method_id, size_hint);
+        fail!();
+    }
+}
+

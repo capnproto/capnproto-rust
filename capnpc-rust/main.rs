@@ -418,7 +418,8 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 Some((Type::Interface(interface), _)) => {
                     let theMod = scopeMap.get(&interface.get_type_id()).connect("::");
                     return (format!("{}::Client", theMod),
-                            Line(format!("{}::Client", theMod))); // TODO
+                            Line(format!("{}::Client::new(self.{}.get_pointer_field({}).get_capability())",
+                                         theMod, member, offset)));
                 }
                 Some((Type::AnyPointer(()), _)) => {
                     return (format!("AnyPointer::{}<'a>", module),
@@ -1151,11 +1152,15 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let names = scopeMap.get(&node_id);
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
-            output.push(Indent(~Line(~"use capnp::capability::Request;")));
+            output.push(Indent(~Line(~"use capnp::capability::{ClientHook, Request};")));
             output.push(BlankLine);
-            output.push(Indent(~Line(~"pub struct Client;")));
+            output.push(Indent(~Line(~"pub struct Client{ hook : ~ClientHook }")));
 
             let mut impl_interior = ~[];
+
+            impl_interior.push(Line(box "pub fn new(hook : ~ClientHook) -> Client {"));
+            impl_interior.push(Indent(box Line(box "Client { hook : hook }")));
+            impl_interior.push(Line(box "}"));
 
             let methods = interface.get_methods();
             for ii in range(0, methods.size()) {
