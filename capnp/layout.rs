@@ -1753,7 +1753,7 @@ impl <'a> PointerBuilder<'a> {
     pub fn get_capability(&self) -> ~ClientHook {
         unsafe {
             WireHelpers::read_capability_pointer(
-                std::ptr::to_unsafe_ptr(&(*self.segment).reader), self.pointer as *WirePointer, 1000000)
+                std::ptr::to_unsafe_ptr(&(*self.segment).reader), self.pointer as *WirePointer, std::int::MAX)
         }
     }
 
