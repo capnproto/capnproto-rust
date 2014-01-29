@@ -61,6 +61,7 @@ pub struct ImportClient {
 }
 
 impl capability::ClientHook for ImportClient {
+    fn copy(&self) -> ~capability::ClientHook { fail!() }
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<common::MessageSize>)
                 -> capability::Request<AnyPointer::Builder, AnyPointer::Reader> {
