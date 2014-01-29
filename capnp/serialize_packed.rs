@@ -347,14 +347,14 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
 }
 
 pub fn write_packed_message<T:io::BufferedOutputStream,U:MessageBuilder>(
-    output : &mut T, message : &mut U) {
+    output : &mut T, message : &U) {
     let mut packedOutputStream = PackedOutputStream {inner : output};
     serialize::write_message(&mut packedOutputStream, message);
 }
 
 
 pub fn write_packed_message_unbuffered<T:std::io::Writer,U:MessageBuilder>(
-    output : &mut T, message : &mut U) {
+    output : &mut T, message : &U) {
     let mut buffered = io::BufferedOutputStreamWrapper::new(output);
     write_packed_message(&mut buffered, message);
     buffered.flush();

@@ -6,7 +6,7 @@
 
 use capnp::any::{AnyPointer};
 use capnp::capability;
-use capnp::capability::{RequestHook};
+use capnp::capability::{RequestHook, ClientHook};
 use capnp::common;
 use capnp::message::{MessageReader, MallocMessageBuilder};
 use capnp::serialize;
@@ -57,20 +57,27 @@ impl RpcConnectionState {
 }
 
 pub struct ImportClient {
+    priv channel : std::comm::SharedChan<RpcEvent>,
     import_id : ImportId,
 }
 
-impl capability::ClientHook for ImportClient {
-    fn copy(&self) -> ~capability::ClientHook { fail!() }
+impl ClientHook for ImportClient {
+    fn copy(&self) -> ~ClientHook {
+        (box ImportClient {channel : self.channel.clone(),
+                           import_id : self.import_id}) as ~ClientHook
+    }
+
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<common::MessageSize>)
                 -> capability::Request<AnyPointer::Builder, AnyPointer::Reader> {
-        let hook = box RpcRequest { message : box MallocMessageBuilder::new_default() };
+        let hook = box RpcRequest { channel : self.channel.clone(),
+                                    message : box MallocMessageBuilder::new_default() };
         capability::Request::new(hook as ~RequestHook)
     }
 }
 
 pub struct RpcRequest {
+    priv channel : std::comm::SharedChan<RpcEvent>,
     priv message : ~MallocMessageBuilder
 }
 
@@ -78,12 +85,16 @@ impl RequestHook for RpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
         &mut *self.message
     }
-    fn send(&self) {}
+    fn send(self) {
+        let RpcRequest { channel, message } = self;
+        channel.send(OutgoingMessage(message))
+    }
 }
 
 pub enum RpcEvent {
     Nothing,
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
+    OutgoingMessage(~MallocMessageBuilder)
 }
 
 pub fn run_loop (port : std::comm::Port<RpcEvent>) {
@@ -127,6 +138,9 @@ pub fn run_loop (port : std::comm::Port<RpcEvent>) {
                     None => { println!("Nothing there") }
                     _ => {println!("something else") }
                 }
+            }
+            OutgoingMessage(ref mut m) => {
+                println!("outgoing message");
             }
             _ => {
                 println!("got another event");

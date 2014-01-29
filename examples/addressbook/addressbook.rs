@@ -42,7 +42,7 @@ pub mod addressbook {
         bob_phones[1].set_type(Person::PhoneNumber::Type::Work);
         bob.get_employment().set_unemployed(());
 
-        serialize_packed::write_packed_message_unbuffered(&mut stdout(), &mut message);
+        serialize_packed::write_packed_message_unbuffered(&mut stdout(), & message);
     }
 
     pub fn print_address_book() {

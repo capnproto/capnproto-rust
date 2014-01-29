@@ -34,13 +34,13 @@ mod Uncompressed {
 
     pub fn write<T : std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
-        message: &mut U) {
+        message: &U) {
         capnp::serialize::write_message(writer, message);
     }
 
     pub fn write_buffered<T : std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
-        message: &mut U) {
+        message: &U) {
         capnp::serialize::write_message(writer, message);
     }
 /*
@@ -65,13 +65,13 @@ mod Packed {
 
     pub fn write<T : std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
-        message: &mut U) {
+        message: &U) {
         write_packed_message_unbuffered(writer, message);
     }
 
     pub fn write_buffered<T : capnp::io::BufferedOutputStream, U : capnp::message::MessageBuilder>(
         writer: &mut T,
-        message: &mut U) {
+        message: &U) {
         write_packed_message(writer, message);
     }
 /*
@@ -165,7 +165,7 @@ macro_rules! pass_by_bytes(
 
                 {
                     let mut writer = capnp::io::ArrayOutputStream::new(requestBytes);
-                    $compression::write_buffered(&mut writer, &mut messageReq)
+                    $compression::write_buffered(&mut writer, &messageReq)
                 }
 
                 let messageReader = $compression::new_buffered_reader(
@@ -177,7 +177,7 @@ macro_rules! pass_by_bytes(
 
                 {
                     let mut writer = capnp::io::ArrayOutputStream::new(responseBytes);
-                    $compression::write_buffered(&mut writer, &mut messageRes)
+                    $compression::write_buffered(&mut writer, &messageRes)
                 }
 
                 let messageReader = $compression::new_buffered_reader(
@@ -206,7 +206,7 @@ macro_rules! server(
                 let requestReader : $testcase::RequestReader = messageReader.get_root();
                 $testcase::handle_request(requestReader, response);
 
-                $compression::write_buffered(&mut outBuffered, &mut messageRes);
+                $compression::write_buffered(&mut outBuffered, &messageRes);
                 outBuffered.flush();
             }
         });
@@ -224,7 +224,7 @@ macro_rules! sync_client(
                 let request = messageReq.init_root::<$testcase::RequestBuilder>();
 
                 let expected = $testcase::setup_request(&mut rng, request);
-                $compression::write(&mut outStream, &mut messageReq);
+                $compression::write(&mut outStream, &messageReq);
 
                 let messageReader = $compression::new_buffered_reader(
                     &mut inBuffered,

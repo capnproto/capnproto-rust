@@ -9,6 +9,7 @@ use capability::ClientHook;
 use common::*;
 use arena::*;
 use layout;
+use layout::{FromStructBuilder, HasStructSize};
 
 pub struct ReaderOptions {
     traversalLimitInWords : u64,
@@ -87,12 +88,13 @@ pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
 pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICALLY;
 
 pub trait MessageBuilder {
-    fn arena<'a>(&'a mut self) -> &'a mut BuilderArena;
+    fn mut_arena<'a>(&'a mut self) -> &'a mut BuilderArena;
+    fn arena<'a>(&'a self) -> &'a BuilderArena;
 
     fn init_root<'a, T : layout::FromStructBuilder<'a> + layout::HasStructSize>(&'a mut self) -> T {
-        let rootSegment = std::ptr::to_mut_unsafe_ptr(&mut self.arena().segment0);
+        let rootSegment = std::ptr::to_mut_unsafe_ptr(&mut self.mut_arena().segment0);
 
-        match self.arena().segment0.allocate(WORDS_PER_POINTER) {
+        match self.mut_arena().segment0.allocate(WORDS_PER_POINTER) {
             None => {fail!("could not allocate root pointer") }
             Some(location) => {
                 //assert!(location == 0,
@@ -104,14 +106,15 @@ pub trait MessageBuilder {
                     pb.init_struct(layout::HasStructSize::struct_size(None::<T>)));
             }
         }
-
     }
 
-    fn get_segments_for_output<T>(&mut self, cont : |&[&[Word]]| -> T) -> T {
+    fn get_root<'a, T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
+        fail!()
+    }
+
+    fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
         self.arena().get_segments_for_output(cont)
     }
-
-
 }
 
 pub struct MallocMessageBuilder {
@@ -137,10 +140,12 @@ impl MallocMessageBuilder {
 }
 
 impl MessageBuilder for MallocMessageBuilder {
-    fn arena<'a>(&'a mut self) -> &'a mut BuilderArena {
+    fn mut_arena<'a>(&'a mut self) -> &'a mut BuilderArena {
         &mut *self.arena
     }
-
+    fn arena<'a>(&'a self) -> &'a BuilderArena {
+        & *self.arena
+    }
 }
 
 
@@ -180,7 +185,10 @@ impl <'a> ScratchSpaceMallocMessageBuilder<'a> {
 }
 
 impl <'a> MessageBuilder for ScratchSpaceMallocMessageBuilder<'a> {
-    fn arena<'a>(&'a mut self) -> &'a mut BuilderArena {
+    fn mut_arena<'a>(&'a mut self) -> &'a mut BuilderArena {
         &mut *self.arena
+    }
+    fn arena<'a>(&'a self) -> &'a BuilderArena {
+        & *self.arena
     }
 }
