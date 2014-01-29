@@ -25,9 +25,8 @@ impl MessageReader for OwnedSpaceMessageReader {
         self.owned_space.slice(a, b)
     }
 
-    fn arena<'b>(&'b self) -> &'b arena::ReaderArena {
-        &*self.arena
-    }
+    fn arena<'b>(&'b self) -> &'b arena::ReaderArena { &*self.arena }
+    fn mut_arena<'b>(&'b mut self) -> &'b mut arena::ReaderArena { &mut *self.arena }
 
     fn get_options<'b>(&'b self) -> &'b ReaderOptions {
         return &self.options;

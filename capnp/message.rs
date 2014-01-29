@@ -5,6 +5,7 @@
  */
 
 use std;
+use capability::ClientHook;
 use common::*;
 use arena::*;
 use layout;
@@ -23,7 +24,9 @@ type SegmentId = u32;
 pub trait MessageReader {
     fn get_segment<'a>(&'a self, id : uint) -> &'a [Word];
     fn arena<'a>(&'a self) -> &'a ReaderArena;
+    fn mut_arena<'a>(&'a mut self) -> &'a mut ReaderArena;
     fn get_options<'a>(&'a self) -> &'a ReaderOptions;
+
     fn get_root<'a, T : layout::FromStructReader<'a>>(&'a self) -> T {
         unsafe {
             let segment : *SegmentReader = std::ptr::to_unsafe_ptr(&self.arena().segment0);
@@ -36,7 +39,10 @@ pub trait MessageReader {
 
             result
         }
+    }
 
+    fn init_cap_table(&mut self, cap_table : ~[Option<~ClientHook>]) {
+        self.mut_arena().init_cap_table(cap_table);
     }
 }
 
@@ -52,9 +58,8 @@ impl <'a> MessageReader for SegmentArrayMessageReader<'a> {
         self.segments[id]
     }
 
-    fn arena<'b>(&'b self) -> &'b ReaderArena {
-        &*self.arena
-    }
+    fn arena<'b>(&'b self) -> &'b ReaderArena { &*self.arena }
+    fn mut_arena<'b>(&'b mut self) -> &'b mut ReaderArena { &mut *self.arena }
 
     fn get_options<'b>(&'b self) -> &'b ReaderOptions {
         return &self.options;

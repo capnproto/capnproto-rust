@@ -154,6 +154,12 @@ impl ReaderArena {
             }
         }
     }
+
+    #[inline]
+    pub fn init_cap_table(&mut self, cap_table : ~[Option<~ClientHook>]) {
+        self.cap_table = cap_table;
+    }
+
 }
 
 pub struct BuilderArena {
