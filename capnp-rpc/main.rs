@@ -71,7 +71,7 @@ pub fn main() {
 
     let listener_chan = chan.clone();
 
-    do spawn || {
+    spawn(proc() {
         let mut r = childStdOut;
 
         loop {
@@ -81,9 +81,9 @@ pub fn main() {
 
             listener_chan.send(rpc::IncomingMessage(message));
         }
-    }
+    });
 
-    do spawn || { rpc::run_loop(port); }
+    spawn(proc () { rpc::run_loop(port); });
 
     testing::connect(&mut childStdIn);
 

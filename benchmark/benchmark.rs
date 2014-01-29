@@ -318,9 +318,9 @@ macro_rules! do_testcase2(
 
 #[start]
 pub fn start (argc : int, argv: **u8) -> int {
-    do native::start(argc, argv) {
-        main();
-    }
+    native::start(argc, argv, proc () {
+            main();
+        })
 }
 
 pub fn main() {
