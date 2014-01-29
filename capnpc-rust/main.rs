@@ -1153,18 +1153,19 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
             output.push(Indent(~Line(~"use capnp::capability::{ClientHook, Request};")));
+            output.push(Indent(~Line(~"use capnp::capability;")));
             output.push(BlankLine);
-            output.push(Indent(~Line(~"pub struct Client{ hook : ~ClientHook }")));
+            output.push(Indent(~Line(~"pub struct Client{ priv client : capability::Client }")));
 
             let mut impl_interior = ~[];
 
             impl_interior.push(Line(box "pub fn new(hook : ~ClientHook) -> Client {"));
-            impl_interior.push(Indent(box Line(box "Client { hook : hook }")));
+            impl_interior.push(Indent(box Line(box "Client { client : capability::Client::new(hook) }")));
             impl_interior.push(Line(box "}"));
 
             let methods = interface.get_methods();
-            for ii in range(0, methods.size()) {
-                let method = methods[ii];
+            for ordinal in range(0, methods.size()) {
+                let method = methods[ordinal];
                 let name = method.get_name();
 
                 method.get_code_order();
@@ -1192,10 +1193,11 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 };
 
                 impl_interior.push(
-                    Line(format!("pub fn {}Request() -> Request<{}::Builder,{}::Reader> \\{",
+                    Line(format!("pub fn {}Request(&self) -> Request<{}::Builder,{}::Reader> \\{",
                                  name, params_name, results_name)));
 
-                impl_interior.push(Indent(box Line(box "fail!();")));
+                impl_interior.push(Indent(
+                        box Line(format!("self.client.new_call(0x{:x}, {}, None)", node_id, ordinal))));
                 impl_interior.push(Line(box "}"));
 
                 method.get_annotations();
