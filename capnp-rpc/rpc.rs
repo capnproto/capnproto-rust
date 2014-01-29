@@ -65,7 +65,7 @@ impl capability::ClientHook for ImportClient {
                 _size_hint : Option<common::MessageSize>)
                 -> capability::Request<AnyPointer::Builder, AnyPointer::Reader> {
         let hook = box RpcRequest { message : box MallocMessageBuilder::new_default() };
-        capability::Request { hook : hook as ~RequestHook}
+        capability::Request::new(hook as ~RequestHook)
     }
 }
 

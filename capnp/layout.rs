@@ -288,6 +288,11 @@ impl WirePointer {
     }
 
     #[inline]
+    pub fn cap_ref(&self) -> CapRef {
+        unsafe { std::cast::transmute(self.upper32bits) }
+    }
+
+    #[inline]
     pub fn mut_cap_ref<'a>(&'a mut self) -> &'a mut CapRef {
         unsafe { std::cast::transmute(& self.upper32bits) }
     }
@@ -1406,10 +1411,21 @@ mod WireHelpers {
      }
 
     #[inline]
-    pub unsafe fn read_capability_pointer(_segment : *SegmentReader,
-                                          _reff : *WirePointer,
+    pub unsafe fn read_capability_pointer(segment : *SegmentReader,
+                                          reff : *WirePointer,
                                           _nesting_limit : int) -> ~ClientHook {
-        fail!();
+        if (*reff).is_null() {
+            fail!("broken cap factory is unimplemented");
+        } else if !(*reff).is_capability() {
+            fail!("Message contains non-capability pointer where capability pointer was expected.");
+        } else {
+            match (*segment).arena.extract_cap((*reff).cap_ref().index.get() as uint) {
+                Some(client_hook) => { client_hook }
+                None => {
+                    fail!("Message contains invalid capability pointer.")
+                }
+            }
+        }
     }
 
     #[inline]

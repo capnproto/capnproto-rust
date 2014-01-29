@@ -15,7 +15,13 @@ pub trait RequestHook {
 }
 
 pub struct Request<Params, Results> {
-    hook : ~RequestHook
+    priv hook : ~RequestHook
+}
+
+impl <Params, Results> Request <Params, Results> {
+    pub fn new(hook : ~RequestHook) -> Request <Params, Results> {
+        Request { hook : hook }
+    }
 }
 
 impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results> Request<Params, Results> {
@@ -47,8 +53,8 @@ impl Client {
                                      method_id : u16,
                                      size_hint : Option<MessageSize>)
                                      -> Request<Params, Results> {
-        let _typeless = self.hook.new_call(interface_id, method_id, size_hint);
-        fail!();
+        let typeless = self.hook.new_call(interface_id, method_id, size_hint);
+        Request { hook : typeless.hook }
     }
 }
 
