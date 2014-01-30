@@ -15,7 +15,6 @@ pub mod rpc_capnp;
 pub mod rpc;
 
 pub mod testing {
-    use capnp;
     use capnp::message::{MessageBuilder, MallocMessageBuilder};
     use calculator_capnp::Calculator;
     use rpc_capnp::{Message};

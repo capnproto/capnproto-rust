@@ -56,7 +56,7 @@ impl RpcConnectionState {
     }
 
     pub fn run<T : std::io::Reader + Send, U : std::io::Writer + Send>(
-        &mut self, inpipe: T, mut outpipe: U)
+        &mut self, inpipe: T, outpipe: U)
          -> std::comm::SharedChan<RpcEvent> {
 
         let (port, chan) = std::comm::SharedChan::<RpcEvent>::new();
@@ -73,45 +73,59 @@ impl RpcConnectionState {
                 }
             });
 
+        let loop_chan = chan.clone();
+
         spawn(proc() {
                 let mut outpipe = outpipe;
                 loop {
                     match port.recv() {
-                        IncomingMessage(message) => {
-                            let root = message.get_root::<Message::Reader>();
+                        IncomingMessage(mut message) => {
+                            let mut the_cap_table : ~[Option<~ClientHook>] = ~[];
+                            {
+                                let root = message.get_root::<Message::Reader>();
 
-                            match root.which() {
-                                Some(Message::Return(ret)) => {
-                                    println!("got a return {}", ret.get_answer_id());
-                                    match ret.which() {
-                                        Some(Return::Results(payload)) => {
-                                            println!("with a payload");
-                                            let cap_table = payload.get_cap_table();
-                                            for ii in range(0, cap_table.size()) {
-                                                match cap_table[ii].which() {
-                                                    Some(CapDescriptor::None(())) => {}
-                                                    Some(CapDescriptor::SenderHosted(id)) => {
-                                                        println!("sender hosted: {}", id);
+                                match root.which() {
+                                    Some(Message::Return(ret)) => {
+                                        println!("got a return {}", ret.get_answer_id());
+                                        match ret.which() {
+                                            Some(Return::Results(payload)) => {
+                                                println!("with a payload");
+                                                let cap_table = payload.get_cap_table();
+                                                for ii in range(0, cap_table.size()) {
+                                                    match cap_table[ii].which() {
+                                                        Some(CapDescriptor::None(())) => {
+                                                            the_cap_table.push(None)
+                                                        }
+                                                        Some(CapDescriptor::SenderHosted(id)) => {
+                                                            the_cap_table.push(Some(
+                                                                    (box ImportClient {
+                                                                            channel : loop_chan.clone(),
+                                                                            import_id : id})
+                                                                        as ~ClientHook));
+                                                            println!("sender hosted: {}", id);
+                                                        }
+                                                        _ => {}
                                                     }
-                                                    _ => {}
                                                 }
                                             }
+                                            Some(Return::Exception(_)) => {
+                                                println!("exception");
+                                            }
+                                            _ => {}
                                         }
-                                    Some(Return::Exception(_)) => {
-                                            println!("exception");
-                                        }
-                                        _ => {}
                                     }
+                                    Some(Message::Unimplemented(_)) => {
+                                        println!("unimplemented");
+                                    }
+                                    Some(Message::Abort(exc)) => {
+                                        println!("abort: {}", exc.get_reason());
+                                    }
+                                    None => { println!("Nothing there") }
+                                    _ => {println!("something else") }
                                 }
-                                Some(Message::Unimplemented(_)) => {
-                                    println!("unimplemented");
-                                }
-                                Some(Message::Abort(exc)) => {
-                                    println!("abort: {}", exc.get_reason());
-                                }
-                                None => { println!("Nothing there") }
-                                _ => {println!("something else") }
                             }
+
+                            message.init_cap_table(the_cap_table);
                         }
                         OutgoingMessage(mut m) => {
                             let root = m.get_root::<Message::Builder>();
