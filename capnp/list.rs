@@ -178,7 +178,7 @@ pub mod StructList {
 
     impl <'a, T : FromStructReader<'a>> Index<uint, T> for Reader<'a, T> {
         fn index(&self, index : &uint) -> T {
-            let result : T = FromStructReader::from_struct_reader(self.reader.get_struct_element(*index));
+            let result : T = FromStructReader::new(self.reader.get_struct_element(*index));
             result
         }
     }
@@ -214,7 +214,7 @@ pub mod StructList {
     impl <'a, T : FromStructBuilder<'a>> Index<uint, T> for Builder<'a, T> {
         fn index(&self, index : &uint) -> T {
             let result : T =
-                FromStructBuilder::from_struct_builder(self.builder.get_struct_element(*index));
+                FromStructBuilder::new(self.builder.get_struct_element(*index));
             result
         }
     }

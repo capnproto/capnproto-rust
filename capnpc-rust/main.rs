@@ -1066,7 +1066,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                   Line(~"impl <'a> layout::FromStructReader<'a> for Reader<'a> {"),
                   Indent(
                     ~Branch(
-                        ~[Line(~"fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {"),
+                        ~[Line(~"fn new(reader: layout::StructReader<'a>) -> Reader<'a> {"),
                           Indent(~Line(~"Reader { reader : reader }")),
                           Line(~"}")])),
                   Line(~"}"),
@@ -1087,7 +1087,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                   Line(~"impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {"),
                   Indent(
                       ~Branch(
-                          ~[Line(~"fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {"),
+                          ~[Line(~"fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {"),
                             Indent(~Line(~"Builder { builder : builder }")),
                             Line(~"}")
                             ])),

@@ -1840,7 +1840,7 @@ impl <'a> PointerBuilder<'a> {
 }
 
 pub trait FromStructReader<'a> {
-    fn from_struct_reader(reader : StructReader<'a>) -> Self;
+    fn new(reader : StructReader<'a>) -> Self;
 }
 
 pub struct StructReader<'a> {
@@ -1951,7 +1951,7 @@ pub trait HasStructSize {
 }
 
 pub trait FromStructBuilder<'a> {
-    fn from_struct_builder(structBuilder : StructBuilder<'a>) -> Self;
+    fn new(structBuilder : StructBuilder<'a>) -> Self;
 }
 
 pub struct StructBuilder<'a> {

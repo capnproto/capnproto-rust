@@ -36,7 +36,7 @@ pub trait MessageReader {
             let pointer_reader = layout::PointerReader::get_root::<'a>(
                 segment, (*segment).get_start_ptr(), self.get_options().nestingLimit as int);
 
-            let result : T = layout::FromStructReader::from_struct_reader(
+            let result : T = layout::FromStructReader::new(
                 pointer_reader.get_struct::<'a>(std::ptr::null()));
 
             result

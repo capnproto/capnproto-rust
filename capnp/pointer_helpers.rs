@@ -30,7 +30,7 @@ struct FromStructReaderWrapper<T> {
 impl <'a, T: FromStructReader<'a>> PointerReaderHelpers<'a> for FromStructReaderWrapper<T> {
     fn get(reader : PointerReader<'a>, default_value : *Word) -> FromStructReaderWrapper<T> {
         FromStructReaderWrapper {
-            unwrap : FromStructReader::from_struct_reader(reader.get_struct(default_value))
+            unwrap : FromStructReader::new(reader.get_struct(default_value))
         }
     }
 }

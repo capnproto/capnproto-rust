@@ -15,7 +15,7 @@ pub mod Node {
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-    fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+    fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
@@ -101,7 +101,7 @@ pub mod Node {
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
   impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-    fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+    fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
   }
@@ -316,7 +316,7 @@ pub mod Node {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -344,7 +344,7 @@ pub mod Node {
       fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
     }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -393,7 +393,7 @@ pub mod Node {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -437,7 +437,7 @@ pub mod Node {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -527,7 +527,7 @@ pub mod Node {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -547,7 +547,7 @@ pub mod Node {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -589,7 +589,7 @@ pub mod Node {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -616,7 +616,7 @@ pub mod Node {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -675,7 +675,7 @@ pub mod Node {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -702,7 +702,7 @@ pub mod Node {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -758,7 +758,7 @@ pub mod Node {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -826,7 +826,7 @@ pub mod Node {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -968,7 +968,7 @@ pub mod Field {
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-    fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+    fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
@@ -1027,7 +1027,7 @@ pub mod Field {
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
   impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-    fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+    fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
   }
@@ -1158,7 +1158,7 @@ pub mod Field {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -1193,7 +1193,7 @@ pub mod Field {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -1265,7 +1265,7 @@ pub mod Field {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -1282,7 +1282,7 @@ pub mod Field {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -1316,7 +1316,7 @@ pub mod Field {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -1345,7 +1345,7 @@ pub mod Field {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -1418,7 +1418,7 @@ pub mod Enumerant {
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-    fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+    fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
@@ -1453,7 +1453,7 @@ pub mod Enumerant {
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
   impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-    fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+    fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
   }
@@ -1522,7 +1522,7 @@ pub mod Method {
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-    fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+    fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
@@ -1565,7 +1565,7 @@ pub mod Method {
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
   impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-    fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+    fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
   }
@@ -1650,7 +1650,7 @@ pub mod Type {
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-    fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+    fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
@@ -1768,7 +1768,7 @@ pub mod Type {
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
   impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-    fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+    fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
   }
@@ -2029,7 +2029,7 @@ pub mod Type {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -2049,7 +2049,7 @@ pub mod Type {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -2090,7 +2090,7 @@ pub mod Type {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -2107,7 +2107,7 @@ pub mod Type {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -2141,7 +2141,7 @@ pub mod Type {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -2158,7 +2158,7 @@ pub mod Type {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -2192,7 +2192,7 @@ pub mod Type {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -2209,7 +2209,7 @@ pub mod Type {
 
     pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -2248,7 +2248,7 @@ pub mod Value {
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-    fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+    fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
@@ -2386,7 +2386,7 @@ pub mod Value {
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
   impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-    fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+    fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
   }
@@ -2697,7 +2697,7 @@ pub mod Annotation {
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-    fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+    fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
@@ -2725,7 +2725,7 @@ pub mod Annotation {
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
   impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-    fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+    fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
   }
@@ -2799,7 +2799,7 @@ pub mod CodeGeneratorRequest {
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-    fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+    fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
@@ -2830,7 +2830,7 @@ pub mod CodeGeneratorRequest {
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
   impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-    fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+    fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
   }
@@ -2891,7 +2891,7 @@ pub mod CodeGeneratorRequest {
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-      fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+      fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
@@ -2926,7 +2926,7 @@ pub mod CodeGeneratorRequest {
       fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
     }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-      fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+      fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
     }
@@ -2994,7 +2994,7 @@ pub mod CodeGeneratorRequest {
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
       impl <'a> layout::FromStructReader<'a> for Reader<'a> {
-        fn from_struct_reader(reader: layout::StructReader<'a>) -> Reader<'a> {
+        fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
           Reader { reader : reader }
         }
       }
@@ -3022,7 +3022,7 @@ pub mod CodeGeneratorRequest {
         fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
       }
       impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
-        fn from_struct_builder(builder : layout::StructBuilder<'a>) -> Builder<'a> {
+        fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
           Builder { builder : builder }
         }
       }

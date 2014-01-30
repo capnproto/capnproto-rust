@@ -27,7 +27,7 @@ pub mod AnyPointer {
 
         #[inline]
         pub fn get_as_struct<T : FromStructReader<'a>>(&self) -> T {
-            FromStructReader::from_struct_reader(self.reader.get_struct(std::ptr::null()))
+            FromStructReader::new(self.reader.get_struct(std::ptr::null()))
         }
 
         pub fn get_as_text(&self) -> Text::Reader<'a> {
@@ -50,12 +50,12 @@ pub mod AnyPointer {
         }
 
         pub fn get_as_struct<T : FromStructBuilder<'a> + HasStructSize>(&self) -> T {
-            FromStructBuilder::from_struct_builder(
+            FromStructBuilder::new(
                 self.builder.get_struct(HasStructSize::struct_size(None::<T>), std::ptr::null()))
         }
 
         pub fn init_as_struct<T : FromStructBuilder<'a> + HasStructSize>(&self) -> T {
-            FromStructBuilder::from_struct_builder(
+            FromStructBuilder::new(
                 self.builder.init_struct(
                     HasStructSize::struct_size(None::<T>)))
         }
