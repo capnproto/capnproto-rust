@@ -216,11 +216,12 @@ fn populate_scope_map(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::
 
 fn generate_import_statements(rootName : &str) -> FormattedText {
     Branch(~[
-        Line(~"use std;"),
-        Line(~"use capnp::blob::{Text, Data};"),
-        Line(~"use capnp::layout;"),
-        Line(~"use capnp::any::AnyPointer;"),
-        Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};"),
+            Line(~"use std;"),
+            Line(~"use capnp::any::AnyPointer;"),
+            Line(~"use capnp::capability::{FromClientHook};"),
+            Line(~"use capnp::blob::{Text, Data};"),
+            Line(~"use capnp::layout;"),
+            Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};"),
         Line(format!("use {};", rootName))
     ])
 }
@@ -418,8 +419,8 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 Some((Type::Interface(interface), _)) => {
                     let theMod = scopeMap.get(&interface.get_type_id()).connect("::");
                     return (format!("{}::Client", theMod),
-                            Line(format!("{}::Client::new(self.{}.get_pointer_field({}).get_capability())",
-                                         theMod, member, offset)));
+                            Line(format!("FromClientHook::new(self.{}.get_pointer_field({}).get_capability())",
+                                         member, offset)));
                 }
                 Some((Type::AnyPointer(()), _)) => {
                     return (format!("AnyPointer::{}<'a>", module),
@@ -1152,16 +1153,21 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let names = scopeMap.get(&node_id);
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
-            output.push(Indent(~Line(~"use capnp::capability::{ClientHook, Request};")));
+            output.push(Indent(~Line(~"use capnp::capability::{ClientHook, FromClientHook, Request};")));
             output.push(Indent(~Line(~"use capnp::capability;")));
             output.push(BlankLine);
             output.push(Indent(~Line(~"pub struct Client{ priv client : capability::Client }")));
 
-            let mut impl_interior = ~[];
+            output.push(
+                Indent(
+                    ~Branch(~[
+                            Line(box "impl FromClientHook for Client {"),
+                            Indent(~Line(box "fn new(hook : ~ClientHook) -> Client {")),
+                            Indent(~Indent(box Line(box "Client { client : capability::Client::new(hook) }"))),
+                            Indent(~Line(box "}")),
+                            Line(box "}")])));
 
-            impl_interior.push(Line(box "pub fn new(hook : ~ClientHook) -> Client {"));
-            impl_interior.push(Indent(box Line(box "Client { client : capability::Client::new(hook) }")));
-            impl_interior.push(Line(box "}"));
+            let mut impl_interior = ~[];
 
             let methods = interface.get_methods();
             for ordinal in range(0, methods.size()) {

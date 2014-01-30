@@ -30,6 +30,10 @@ impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results> Request<Param
     }
 }
 
+pub trait FromClientHook {
+    fn new(~ClientHook) -> Self;
+}
+
 pub trait ClientHook {
     fn copy(&self) -> ~ClientHook;
     fn new_call(&self,
