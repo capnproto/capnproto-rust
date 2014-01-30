@@ -5,6 +5,7 @@
  */
 
 use std;
+use any::AnyPointer;
 use capability::ClientHook;
 use common::*;
 use arena::*;
@@ -91,7 +92,9 @@ pub trait MessageBuilder {
     fn mut_arena<'a>(&'a mut self) -> &'a mut BuilderArena;
     fn arena<'a>(&'a self) -> &'a BuilderArena;
 
-    fn init_root<'a, T : layout::FromStructBuilder<'a> + layout::HasStructSize>(&'a mut self) -> T {
+    // XXX is there a way to make this private?
+    fn get_root_internal<'a>(&'a mut self) -> AnyPointer::Builder<'a> {
+
         let rootSegment = std::ptr::to_mut_unsafe_ptr(&mut self.mut_arena().segment0);
 
         match self.mut_arena().segment0.allocate(WORDS_PER_POINTER) {
@@ -100,16 +103,18 @@ pub trait MessageBuilder {
                 //assert!(location == 0,
                 //        "First allocated word of new segment was not at offset 0");
 
-                let pb = layout::PointerBuilder::get_root(rootSegment, location);
-
-                return layout::FromStructBuilder::from_struct_builder(
-                    pb.init_struct(layout::HasStructSize::struct_size(None::<T>)));
+                AnyPointer::Builder::new(layout::PointerBuilder::get_root(rootSegment, location))
             }
         }
+
+    }
+
+    fn init_root<'a, T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
+        self.get_root_internal().init_as_struct()
     }
 
     fn get_root<'a, T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
-        fail!()
+        self.get_root_internal().get_as_struct()
     }
 
     fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {

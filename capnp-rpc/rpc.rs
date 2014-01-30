@@ -8,7 +8,7 @@ use capnp::any::{AnyPointer};
 use capnp::capability;
 use capnp::capability::{RequestHook, ClientHook};
 use capnp::common;
-use capnp::message::{MessageReader, MallocMessageBuilder};
+use capnp::message::{MessageReader, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use std;
 use rpc_capnp::{Message, Return, CapDescriptor};
@@ -139,7 +139,13 @@ pub fn run_loop (port : std::comm::Port<RpcEvent>) {
                     _ => {println!("something else") }
                 }
             }
-            OutgoingMessage(ref mut m) => {
+            OutgoingMessage(mut m) => {
+                let root = m.get_root::<Message::Builder>();
+                match root.which() {
+                    Some(Message::Which::Return(_)) => {}
+                    Some(Message::Which::Call(_)) => {}
+                    _ => {}
+                }
                 println!("outgoing message");
             }
             _ => {

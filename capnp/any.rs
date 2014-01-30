@@ -49,6 +49,11 @@ pub mod AnyPointer {
             Builder { builder : builder }
         }
 
+        pub fn get_as_struct<T : FromStructBuilder<'a> + HasStructSize>(&self) -> T {
+            FromStructBuilder::from_struct_builder(
+                self.builder.get_struct(HasStructSize::struct_size(None::<T>), std::ptr::null()))
+        }
+
         pub fn init_as_struct<T : FromStructBuilder<'a> + HasStructSize>(&self) -> T {
             FromStructBuilder::from_struct_builder(
                 self.builder.init_struct(
