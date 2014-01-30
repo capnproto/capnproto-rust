@@ -11,7 +11,7 @@ use message::{MessageBuilder, MallocMessageBuilder};
 
 pub trait RequestHook {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder;
-    fn send(self);
+    fn send(~self);
 }
 
 pub struct Request<Params, Results> {
@@ -21,6 +21,10 @@ pub struct Request<Params, Results> {
 impl <Params, Results> Request <Params, Results> {
     pub fn new(hook : ~RequestHook) -> Request <Params, Results> {
         Request { hook : hook }
+    }
+
+    pub fn send(~self) {
+        self.hook.send()
     }
 }
 

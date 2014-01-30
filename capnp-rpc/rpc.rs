@@ -10,6 +10,7 @@ use capnp::capability::{RequestHook, ClientHook};
 use capnp::common;
 use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
+use capnp::serialize::{OwnedSpaceMessageReader};
 use std;
 use rpc_capnp::{Message, Return, CapDescriptor};
 
@@ -19,7 +20,8 @@ type ExportId = u32;
 type ImportId = ExportId;
 
 pub struct Question {
-    is_awaiting_return : bool
+    port : std::comm::Port<OwnedSpaceMessageReader>,
+    is_awaiting_return : bool,
 }
 
 pub struct Answer {
@@ -178,8 +180,8 @@ impl RequestHook for RpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
         &mut *self.message
     }
-    fn send(self) {
-        let RpcRequest { channel, message } = self;
+    fn send(~self) {
+        let ~RpcRequest { channel, message } = self;
         channel.send(OutgoingMessage(message))
     }
 }
@@ -187,6 +189,6 @@ impl RequestHook for RpcRequest {
 pub enum RpcEvent {
     Nothing,
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
-    OutgoingMessage(~MallocMessageBuilder)
+    OutgoingMessage(~MallocMessageBuilder)//, std::comm::Port<~OwnedSpaceMessageReader>)
 }
 
