@@ -19,18 +19,19 @@ pub mod testing {
     use capnp::message::{MessageBuilder, MallocMessageBuilder};
     use calculator_capnp::Calculator;
     use rpc_capnp::{Message};
+    use rpc::{RpcEvent, OutgoingMessage};
     use std;
 
-    pub fn connect<T : std::io::Writer>(out_stream : &mut T) {
+    pub fn connect(chan : std::comm::SharedChan<RpcEvent>) {
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = ~MallocMessageBuilder::new_default();
         let restore = message.init_root::<Message::Builder>().init_restore();
         restore.set_question_id(0);
         restore.init_object_id().set_as_text("calculator");
 
-        capnp::serialize::write_message(out_stream, &mut message);
+        chan.send(OutgoingMessage(message));
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = ~MallocMessageBuilder::new_default();
         let call = message.init_root::<Message::Builder>().init_call();
         call.set_question_id(1);
         let promised_answer = call.init_target().init_promised_answer();
@@ -41,7 +42,7 @@ pub mod testing {
         let exp = payload.init_content().init_as_struct::<Calculator::Expression::Builder>();
         exp.set_literal(1.23456);
 
-        capnp::serialize::write_message(out_stream, &mut message);
+        chan.send(OutgoingMessage(message));
     }
 }
 
@@ -65,29 +66,13 @@ pub fn main() {
 
     p.io.pop();
     let childStdOut = p.io.pop();
-    let mut childStdIn = p.io.pop();
+    let childStdIn = p.io.pop();
 
-    let (port, chan) = std::comm::SharedChan::<rpc::RpcEvent>::new();
+    let mut connection_state = rpc::RpcConnectionState::new();
 
-    let listener_chan = chan.clone();
+    let chan = connection_state.run(childStdOut, childStdIn);
 
-    spawn(proc() {
-        let mut r = childStdOut;
-
-        loop {
-            let message = box capnp::serialize::new_reader(
-                &mut r,
-                capnp::message::DEFAULT_READER_OPTIONS);
-
-            listener_chan.send(rpc::IncomingMessage(message));
-        }
-    });
-
-    spawn(proc () { rpc::run_loop(port); });
-
-    testing::connect(&mut childStdIn);
-
-    chan.send(rpc::Nothing);
+    testing::connect(chan);
 
     p.wait();
 }

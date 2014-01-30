@@ -8,7 +8,7 @@ use capnp::any::{AnyPointer};
 use capnp::capability;
 use capnp::capability::{RequestHook, ClientHook};
 use capnp::common;
-use capnp::message::{MessageReader, MessageBuilder, MallocMessageBuilder};
+use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use std;
 use rpc_capnp::{Message, Return, CapDescriptor};
@@ -54,6 +54,85 @@ impl RpcConnectionState {
             imports : ImportTable { slots : ~[] },
         }
     }
+
+    pub fn run<T : std::io::Reader + Send, U : std::io::Writer + Send>(
+        &mut self, inpipe: T, mut outpipe: U)
+         -> std::comm::SharedChan<RpcEvent> {
+
+        let (port, chan) = std::comm::SharedChan::<RpcEvent>::new();
+
+        let listener_chan = chan.clone();
+
+        spawn(proc() {
+                let mut r = inpipe;
+                loop {
+                    let message = box serialize::new_reader(
+                        &mut r,
+                        DEFAULT_READER_OPTIONS);
+                    listener_chan.send(IncomingMessage(message));
+                }
+            });
+
+        spawn(proc() {
+                let mut outpipe = outpipe;
+                loop {
+                    match port.recv() {
+                        IncomingMessage(message) => {
+                            let root = message.get_root::<Message::Reader>();
+
+                            match root.which() {
+                                Some(Message::Return(ret)) => {
+                                    println!("got a return {}", ret.get_answer_id());
+                                    match ret.which() {
+                                        Some(Return::Results(payload)) => {
+                                            println!("with a payload");
+                                            let cap_table = payload.get_cap_table();
+                                            for ii in range(0, cap_table.size()) {
+                                                match cap_table[ii].which() {
+                                                    Some(CapDescriptor::None(())) => {}
+                                                    Some(CapDescriptor::SenderHosted(id)) => {
+                                                        println!("sender hosted: {}", id);
+                                                    }
+                                                    _ => {}
+                                                }
+                                            }
+                                        }
+                                    Some(Return::Exception(_)) => {
+                                            println!("exception");
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                Some(Message::Unimplemented(_)) => {
+                                    println!("unimplemented");
+                                }
+                                Some(Message::Abort(exc)) => {
+                                    println!("abort: {}", exc.get_reason());
+                                }
+                                None => { println!("Nothing there") }
+                                _ => {println!("something else") }
+                            }
+                        }
+                        OutgoingMessage(mut m) => {
+                            let root = m.get_root::<Message::Builder>();
+
+                            // add a question to the question table
+                            match root.which() {
+                                Some(Message::Which::Return(_)) => {}
+                                Some(Message::Which::Call(_)) => {}
+                                _ => {}
+                            }
+
+                            // send
+                            serialize::write_message(&mut outpipe, m);
+                        }
+                        _ => {
+                            println!("got another event");
+                        }
+                    }
+                }});
+        return chan;
+    }
 }
 
 pub struct ImportClient {
@@ -97,60 +176,3 @@ pub enum RpcEvent {
     OutgoingMessage(~MallocMessageBuilder)
 }
 
-pub fn run_loop (port : std::comm::Port<RpcEvent>) {
-
-    let mut connection_state = RpcConnectionState::new();
-
-    loop {
-        match port.recv() {
-            IncomingMessage(message) => {
-                let root = message.get_root::<Message::Reader>();
-
-                match root.which() {
-                    Some(Message::Return(ret)) => {
-                        println!("got a return {}", ret.get_answer_id());
-                        match ret.which() {
-                            Some(Return::Results(payload)) => {
-                                println!("with a payload");
-                                let cap_table = payload.get_cap_table();
-                                for ii in range(0, cap_table.size()) {
-                                    match cap_table[ii].which() {
-                                        Some(CapDescriptor::None(())) => {}
-                                        Some(CapDescriptor::SenderHosted(id)) => {
-                                            println!("sender hosted: {}", id);
-                                        }
-                                        _ => {}
-                                    }
-                                }
-                            }
-                            Some(Return::Exception(_)) => {
-                                println!("exception");
-                            }
-                            _ => {}
-                        }
-                    }
-                    Some(Message::Unimplemented(_)) => {
-                        println!("unimplemented");
-                    }
-                    Some(Message::Abort(exc)) => {
-                        println!("abort: {}", exc.get_reason());
-                    }
-                    None => { println!("Nothing there") }
-                    _ => {println!("something else") }
-                }
-            }
-            OutgoingMessage(mut m) => {
-                let root = m.get_root::<Message::Builder>();
-                match root.which() {
-                    Some(Message::Which::Return(_)) => {}
-                    Some(Message::Which::Call(_)) => {}
-                    _ => {}
-                }
-                println!("outgoing message");
-            }
-            _ => {
-                println!("got another event");
-            }
-        }
-    }
-}
