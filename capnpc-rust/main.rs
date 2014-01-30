@@ -221,6 +221,7 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
             Line(~"use capnp::capability::{FromClientHook};"),
             Line(~"use capnp::blob::{Text, Data};"),
             Line(~"use capnp::layout;"),
+            Line(~"use capnp::layout::{FromStructBuilder, FromStructReader};"),
             Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};"),
         Line(format!("use {};", rootName))
     ])
@@ -309,10 +310,10 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let theMod = scopeMap.get(&group.get_type_id()).connect("::");
             if isReader {
                 return (format!("{}::Reader<'a>", theMod),
-                        Line(format!("{}::Reader::new(self.reader)", theMod)));
+                        Line(format!("FromStructReader::new(self.reader)")));
             } else {
                 return (format!("{}::Builder<'a>", theMod),
-                        Line(format!("{}::Builder::new(self.builder)", theMod)));
+                        Line(format!("FromStructBuilder::new(self.builder)")));
             }
         }
         Some(Field::Slot(reg_field)) => {
@@ -413,8 +414,8 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     let theMod = scopeMap.get(&st.get_type_id()).connect("::");
                     let middleArg = if isReader {~""} else {format!("{}::STRUCT_SIZE,", theMod)};
                     return (format!("{}::{}", theMod, moduleWithVar),
-                            Line(format!("{}::{}::new(self.{}.get_pointer_field({}).get_struct({} std::ptr::null()))",
-                                      theMod, module, member, offset, middleArg)))
+                            Line(format!("FromStruct{}::new(self.{}.get_pointer_field({}).get_struct({} std::ptr::null()))",
+                                      module, member, offset, middleArg)))
                 }
                 Some((Type::Interface(interface), _)) => {
                     let theMod = scopeMap.get(&interface.get_type_id()).connect("::");
@@ -552,7 +553,7 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 
             initter_interior.push(zero_fields_of_group(node_map, group.get_type_id()));
 
-            initter_interior.push(Line(format!("{}::Builder::new(self.builder)", theMod)));
+            initter_interior.push(Line(format!("FromStructBuilder::new(self.builder)")));
 
             //setter_interior.push(Line(format!("Builder { builder : }")));
 
@@ -724,8 +725,8 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_struct(&value.reader)", offset)));
                     initter_interior.push(
-                      Line(format!("{}::Builder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
-                                theMod, offset, theMod)));
+                      Line(format!("FromStructBuilder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
+                                   offset, theMod)));
                     (Some(format!("{}::Reader", theMod)), Some(format!("{}::Builder<'a>", theMod)))
                 }
                 Some(Type::Interface(interface)) => {
@@ -1072,13 +1073,6 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                   Line(~"}"),
                   BlankLine,
                   Line(~"impl <'a> Reader<'a> {"),
-                  Indent(
-                      ~Branch(
-                          ~[Line(~"pub fn new<'a>(reader : layout::StructReader<'a>) \
-                                                  -> Reader<'a> {"),
-                            Indent(~Line(~"Reader { reader : reader }")),
-                            Line(~"}")
-                            ])),
                   Indent(~Branch(reader_members)),
                   Line(~"}"),
                   BlankLine,
@@ -1096,12 +1090,8 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                   Line(~"impl <'a> Builder<'a> {"),
                   Indent(
                       ~Branch(
-                          ~[Line(~"pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {"),
-                            Indent(~Line(~"Builder { builder : builder }")),
-                            Line(~"}"),
-                            BlankLine,
-                            Line(~"pub fn as_reader(&self) -> Reader<'a> {"),
-                            Indent(~Line(~"Reader::new(self.builder.as_reader())")),
+                          ~[Line(~"pub fn as_reader(&self) -> Reader<'a> {"),
+                            Indent(~Line(~"FromStructReader::new(self.builder.as_reader())")),
                             Line(~"}")
                             ])),
                   Indent(~Branch(builder_members)),

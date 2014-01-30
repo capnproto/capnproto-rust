@@ -2,9 +2,11 @@
 
 pub mod Node {
   use std;
+  use capnp::any::AnyPointer;
+  use capnp::capability::{FromClientHook};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::any::AnyPointer;
+  use capnp::layout::{FromStructBuilder, FromStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -21,9 +23,6 @@ pub mod Node {
   }
 
   impl <'a> Reader<'a> {
-    pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-      Reader { reader : reader }
-    }
     #[inline]
     pub fn get_id(&self) -> u64 {
       self.reader.get_data_field::<u64>(0)
@@ -67,27 +66,27 @@ pub mod Node {
         }
         1 => {
           return std::option::Some(Struct(
-            schema_capnp::Node::Struct::Reader::new(self.reader)
+            FromStructReader::new(self.reader)
           ));
         }
         2 => {
           return std::option::Some(Enum(
-            schema_capnp::Node::Enum::Reader::new(self.reader)
+            FromStructReader::new(self.reader)
           ));
         }
         3 => {
           return std::option::Some(Interface(
-            schema_capnp::Node::Interface::Reader::new(self.reader)
+            FromStructReader::new(self.reader)
           ));
         }
         4 => {
           return std::option::Some(Const(
-            schema_capnp::Node::Const::Reader::new(self.reader)
+            FromStructReader::new(self.reader)
           ));
         }
         5 => {
           return std::option::Some(Annotation(
-            schema_capnp::Node::Annotation::Reader::new(self.reader)
+            FromStructReader::new(self.reader)
           ));
         }
         _ => return std::option::None
@@ -106,12 +105,8 @@ pub mod Node {
     }
   }
   impl <'a> Builder<'a> {
-    pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-      Builder { builder : builder }
-    }
-
     pub fn as_reader(&self) -> Reader<'a> {
-      Reader::new(self.builder.as_reader())
+      FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
     pub fn get_id(&self) -> u64 {
@@ -198,27 +193,27 @@ pub mod Node {
       self.builder.set_data_field::<u16>(15, 0);
       self.builder.set_data_field::<u32>(8, 0);
       self.builder.get_pointer_field(3).clear();
-      schema_capnp::Node::Struct::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn init_enum(&self, ) -> schema_capnp::Node::Enum::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 2);
       self.builder.get_pointer_field(3).clear();
-      schema_capnp::Node::Enum::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn init_interface(&self, ) -> schema_capnp::Node::Interface::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 3);
       self.builder.get_pointer_field(3).clear();
       self.builder.get_pointer_field(4).clear();
-      schema_capnp::Node::Interface::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn init_const(&self, ) -> schema_capnp::Node::Const::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 4);
       self.builder.get_pointer_field(3).clear();
       self.builder.get_pointer_field(4).clear();
-      schema_capnp::Node::Const::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn init_annotation(&self, ) -> schema_capnp::Node::Annotation::Builder<'a> {
@@ -236,7 +231,7 @@ pub mod Node {
       self.builder.set_bool_field(121, false);
       self.builder.set_bool_field(122, false);
       self.builder.set_bool_field(123, false);
-      schema_capnp::Node::Annotation::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn which(&self) -> Option<Which::WhichBuilder<'a>> {
@@ -248,27 +243,27 @@ pub mod Node {
         }
         1 => {
           return std::option::Some(Which::Struct(
-            schema_capnp::Node::Struct::Builder::new(self.builder)
+            FromStructBuilder::new(self.builder)
           ));
         }
         2 => {
           return std::option::Some(Which::Enum(
-            schema_capnp::Node::Enum::Builder::new(self.builder)
+            FromStructBuilder::new(self.builder)
           ));
         }
         3 => {
           return std::option::Some(Which::Interface(
-            schema_capnp::Node::Interface::Builder::new(self.builder)
+            FromStructBuilder::new(self.builder)
           ));
         }
         4 => {
           return std::option::Some(Which::Const(
-            schema_capnp::Node::Const::Builder::new(self.builder)
+            FromStructBuilder::new(self.builder)
           ));
         }
         5 => {
           return std::option::Some(Which::Annotation(
-            schema_capnp::Node::Annotation::Builder::new(self.builder)
+            FromStructBuilder::new(self.builder)
           ));
         }
         _ => return std::option::None
@@ -285,9 +280,11 @@ pub mod Node {
   }
   pub mod Which {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -303,9 +300,11 @@ pub mod Node {
 
   pub mod NestedNode {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -322,9 +321,6 @@ pub mod Node {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_name(&self) -> Text::Reader<'a> {
         self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
@@ -349,12 +345,8 @@ pub mod Node {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_name(&self) -> Text::Builder<'a> {
@@ -384,9 +376,11 @@ pub mod Node {
 
   pub mod Struct {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -399,9 +393,6 @@ pub mod Node {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_data_word_count(&self) -> u16 {
         self.reader.get_data_field::<u16>(7)
@@ -442,12 +433,8 @@ pub mod Node {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_data_word_count(&self) -> u16 {
@@ -518,9 +505,11 @@ pub mod Node {
 
   pub mod Enum {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -533,9 +522,6 @@ pub mod Node {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_enumerants(&self) -> StructList::Reader<'a,schema_capnp::Enumerant::Reader<'a>> {
         StructList::Reader::new(self.reader.get_pointer_field(3).get_list(schema_capnp::Enumerant::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
@@ -552,12 +538,8 @@ pub mod Node {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_enumerants(&self) -> StructList::Builder<'a,schema_capnp::Enumerant::Builder<'a>> {
@@ -580,9 +562,11 @@ pub mod Node {
 
   pub mod Interface {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -595,9 +579,6 @@ pub mod Node {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_methods(&self) -> StructList::Reader<'a,schema_capnp::Method::Reader<'a>> {
         StructList::Reader::new(self.reader.get_pointer_field(3).get_list(schema_capnp::Method::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
@@ -621,12 +602,8 @@ pub mod Node {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_methods(&self) -> StructList::Builder<'a,schema_capnp::Method::Builder<'a>> {
@@ -666,9 +643,11 @@ pub mod Node {
 
   pub mod Const {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -681,19 +660,16 @@ pub mod Node {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_type(&self) -> schema_capnp::Type::Reader<'a> {
-        schema_capnp::Type::Reader::new(self.reader.get_pointer_field(3).get_struct( std::ptr::null()))
+        FromStructReader::new(self.reader.get_pointer_field(3).get_struct( std::ptr::null()))
       }
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
       #[inline]
       pub fn get_value(&self) -> schema_capnp::Value::Reader<'a> {
-        schema_capnp::Value::Reader::new(self.reader.get_pointer_field(4).get_struct( std::ptr::null()))
+        FromStructReader::new(self.reader.get_pointer_field(4).get_struct( std::ptr::null()))
       }
       pub fn has_value(&self) -> bool {
         !self.reader.get_pointer_field(4).is_null()
@@ -707,16 +683,12 @@ pub mod Node {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_type(&self) -> schema_capnp::Type::Builder<'a> {
-        schema_capnp::Type::Builder::new(self.builder.get_pointer_field(3).get_struct(schema_capnp::Type::STRUCT_SIZE, std::ptr::null()))
+        FromStructBuilder::new(self.builder.get_pointer_field(3).get_struct(schema_capnp::Type::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
       pub fn set_type(&self, value : schema_capnp::Type::Reader) {
@@ -724,14 +696,14 @@ pub mod Node {
       }
       #[inline]
       pub fn init_type(&self, ) -> schema_capnp::Type::Builder<'a> {
-        schema_capnp::Type::Builder::new(self.builder.get_pointer_field(3).init_struct(schema_capnp::Type::STRUCT_SIZE))
+        FromStructBuilder::new(self.builder.get_pointer_field(3).init_struct(schema_capnp::Type::STRUCT_SIZE))
       }
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
       #[inline]
       pub fn get_value(&self) -> schema_capnp::Value::Builder<'a> {
-        schema_capnp::Value::Builder::new(self.builder.get_pointer_field(4).get_struct(schema_capnp::Value::STRUCT_SIZE, std::ptr::null()))
+        FromStructBuilder::new(self.builder.get_pointer_field(4).get_struct(schema_capnp::Value::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
       pub fn set_value(&self, value : schema_capnp::Value::Reader) {
@@ -739,7 +711,7 @@ pub mod Node {
       }
       #[inline]
       pub fn init_value(&self, ) -> schema_capnp::Value::Builder<'a> {
-        schema_capnp::Value::Builder::new(self.builder.get_pointer_field(4).init_struct(schema_capnp::Value::STRUCT_SIZE))
+        FromStructBuilder::new(self.builder.get_pointer_field(4).init_struct(schema_capnp::Value::STRUCT_SIZE))
       }
       pub fn has_value(&self) -> bool {
         !self.builder.get_pointer_field(4).is_null()
@@ -749,9 +721,11 @@ pub mod Node {
 
   pub mod Annotation {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -764,12 +738,9 @@ pub mod Node {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_type(&self) -> schema_capnp::Type::Reader<'a> {
-        schema_capnp::Type::Reader::new(self.reader.get_pointer_field(3).get_struct( std::ptr::null()))
+        FromStructReader::new(self.reader.get_pointer_field(3).get_struct( std::ptr::null()))
       }
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
@@ -831,16 +802,12 @@ pub mod Node {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_type(&self) -> schema_capnp::Type::Builder<'a> {
-        schema_capnp::Type::Builder::new(self.builder.get_pointer_field(3).get_struct(schema_capnp::Type::STRUCT_SIZE, std::ptr::null()))
+        FromStructBuilder::new(self.builder.get_pointer_field(3).get_struct(schema_capnp::Type::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
       pub fn set_type(&self, value : schema_capnp::Type::Reader) {
@@ -848,7 +815,7 @@ pub mod Node {
       }
       #[inline]
       pub fn init_type(&self, ) -> schema_capnp::Type::Builder<'a> {
-        schema_capnp::Type::Builder::new(self.builder.get_pointer_field(3).init_struct(schema_capnp::Type::STRUCT_SIZE))
+        FromStructBuilder::new(self.builder.get_pointer_field(3).init_struct(schema_capnp::Type::STRUCT_SIZE))
       }
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
@@ -955,9 +922,11 @@ pub mod Node {
 
 pub mod Field {
   use std;
+  use capnp::any::AnyPointer;
+  use capnp::capability::{FromClientHook};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::any::AnyPointer;
+  use capnp::layout::{FromStructBuilder, FromStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -974,9 +943,6 @@ pub mod Field {
   }
 
   impl <'a> Reader<'a> {
-    pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-      Reader { reader : reader }
-    }
     #[inline]
     pub fn get_name(&self) -> Text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
@@ -1001,19 +967,19 @@ pub mod Field {
     }
     #[inline]
     pub fn get_ordinal(&self) -> schema_capnp::Field::Ordinal::Reader<'a> {
-      schema_capnp::Field::Ordinal::Reader::new(self.reader)
+      FromStructReader::new(self.reader)
     }
     #[inline]
     pub fn which(&self) -> Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(4) {
         0 => {
           return std::option::Some(Slot(
-            schema_capnp::Field::Slot::Reader::new(self.reader)
+            FromStructReader::new(self.reader)
           ));
         }
         1 => {
           return std::option::Some(Group(
-            schema_capnp::Field::Group::Reader::new(self.reader)
+            FromStructReader::new(self.reader)
           ));
         }
         _ => return std::option::None
@@ -1032,12 +998,8 @@ pub mod Field {
     }
   }
   impl <'a> Builder<'a> {
-    pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-      Builder { builder : builder }
-    }
-
     pub fn as_reader(&self) -> Reader<'a> {
-      Reader::new(self.builder.as_reader())
+      FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
     pub fn get_name(&self) -> Text::Builder<'a> {
@@ -1093,35 +1055,35 @@ pub mod Field {
       self.builder.get_pointer_field(2).clear();
       self.builder.get_pointer_field(3).clear();
       self.builder.set_bool_field(128, false);
-      schema_capnp::Field::Slot::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn init_group(&self, ) -> schema_capnp::Field::Group::Builder<'a> {
       self.builder.set_data_field::<u16>(4, 1);
       self.builder.set_data_field::<u64>(2, 0);
-      schema_capnp::Field::Group::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn get_ordinal(&self) -> schema_capnp::Field::Ordinal::Builder<'a> {
-      schema_capnp::Field::Ordinal::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn init_ordinal(&self, ) -> schema_capnp::Field::Ordinal::Builder<'a> {
       self.builder.set_data_field::<u16>(5, 0);
       self.builder.set_data_field::<u16>(6, 0);
-      schema_capnp::Field::Ordinal::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn which(&self) -> Option<Which::WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(4) {
         0 => {
           return std::option::Some(Which::Slot(
-            schema_capnp::Field::Slot::Builder::new(self.builder)
+            FromStructBuilder::new(self.builder)
           ));
         }
         1 => {
           return std::option::Some(Which::Group(
-            schema_capnp::Field::Group::Builder::new(self.builder)
+            FromStructBuilder::new(self.builder)
           ));
         }
         _ => return std::option::None
@@ -1134,9 +1096,11 @@ pub mod Field {
   }
   pub mod Which {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -1149,9 +1113,11 @@ pub mod Field {
 
   pub mod Slot {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -1164,23 +1130,20 @@ pub mod Field {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_offset(&self) -> u32 {
         self.reader.get_data_field::<u32>(1)
       }
       #[inline]
       pub fn get_type(&self) -> schema_capnp::Type::Reader<'a> {
-        schema_capnp::Type::Reader::new(self.reader.get_pointer_field(2).get_struct( std::ptr::null()))
+        FromStructReader::new(self.reader.get_pointer_field(2).get_struct( std::ptr::null()))
       }
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(2).is_null()
       }
       #[inline]
       pub fn get_default_value(&self) -> schema_capnp::Value::Reader<'a> {
-        schema_capnp::Value::Reader::new(self.reader.get_pointer_field(3).get_struct( std::ptr::null()))
+        FromStructReader::new(self.reader.get_pointer_field(3).get_struct( std::ptr::null()))
       }
       pub fn has_default_value(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
@@ -1198,12 +1161,8 @@ pub mod Field {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_offset(&self) -> u32 {
@@ -1215,7 +1174,7 @@ pub mod Field {
       }
       #[inline]
       pub fn get_type(&self) -> schema_capnp::Type::Builder<'a> {
-        schema_capnp::Type::Builder::new(self.builder.get_pointer_field(2).get_struct(schema_capnp::Type::STRUCT_SIZE, std::ptr::null()))
+        FromStructBuilder::new(self.builder.get_pointer_field(2).get_struct(schema_capnp::Type::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
       pub fn set_type(&self, value : schema_capnp::Type::Reader) {
@@ -1223,14 +1182,14 @@ pub mod Field {
       }
       #[inline]
       pub fn init_type(&self, ) -> schema_capnp::Type::Builder<'a> {
-        schema_capnp::Type::Builder::new(self.builder.get_pointer_field(2).init_struct(schema_capnp::Type::STRUCT_SIZE))
+        FromStructBuilder::new(self.builder.get_pointer_field(2).init_struct(schema_capnp::Type::STRUCT_SIZE))
       }
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(2).is_null()
       }
       #[inline]
       pub fn get_default_value(&self) -> schema_capnp::Value::Builder<'a> {
-        schema_capnp::Value::Builder::new(self.builder.get_pointer_field(3).get_struct(schema_capnp::Value::STRUCT_SIZE, std::ptr::null()))
+        FromStructBuilder::new(self.builder.get_pointer_field(3).get_struct(schema_capnp::Value::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
       pub fn set_default_value(&self, value : schema_capnp::Value::Reader) {
@@ -1238,7 +1197,7 @@ pub mod Field {
       }
       #[inline]
       pub fn init_default_value(&self, ) -> schema_capnp::Value::Builder<'a> {
-        schema_capnp::Value::Builder::new(self.builder.get_pointer_field(3).init_struct(schema_capnp::Value::STRUCT_SIZE))
+        FromStructBuilder::new(self.builder.get_pointer_field(3).init_struct(schema_capnp::Value::STRUCT_SIZE))
       }
       pub fn has_default_value(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
@@ -1256,9 +1215,11 @@ pub mod Field {
 
   pub mod Group {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -1271,9 +1232,6 @@ pub mod Field {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_type_id(&self) -> u64 {
         self.reader.get_data_field::<u64>(2)
@@ -1287,12 +1245,8 @@ pub mod Field {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_type_id(&self) -> u64 {
@@ -1307,9 +1261,11 @@ pub mod Field {
 
   pub mod Ordinal {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -1322,9 +1278,6 @@ pub mod Field {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn which(&self) -> Option<WhichReader> {
         match self.reader.get_data_field::<u16>(5) {
@@ -1350,12 +1303,8 @@ pub mod Field {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn set_implicit(&self, _value : ()) {
@@ -1389,9 +1338,11 @@ pub mod Field {
     }
     pub mod Which {
       use std;
+      use capnp::any::AnyPointer;
+      use capnp::capability::{FromClientHook};
       use capnp::blob::{Text, Data};
       use capnp::layout;
-      use capnp::any::AnyPointer;
+      use capnp::layout::{FromStructBuilder, FromStructReader};
       use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
       use schema_capnp;
 
@@ -1405,9 +1356,11 @@ pub mod Field {
 
 pub mod Enumerant {
   use std;
+  use capnp::any::AnyPointer;
+  use capnp::capability::{FromClientHook};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::any::AnyPointer;
+  use capnp::layout::{FromStructBuilder, FromStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -1424,9 +1377,6 @@ pub mod Enumerant {
   }
 
   impl <'a> Reader<'a> {
-    pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-      Reader { reader : reader }
-    }
     #[inline]
     pub fn get_name(&self) -> Text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
@@ -1458,12 +1408,8 @@ pub mod Enumerant {
     }
   }
   impl <'a> Builder<'a> {
-    pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-      Builder { builder : builder }
-    }
-
     pub fn as_reader(&self) -> Reader<'a> {
-      Reader::new(self.builder.as_reader())
+      FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
     pub fn get_name(&self) -> Text::Builder<'a> {
@@ -1509,9 +1455,11 @@ pub mod Enumerant {
 
 pub mod Method {
   use std;
+  use capnp::any::AnyPointer;
+  use capnp::capability::{FromClientHook};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::any::AnyPointer;
+  use capnp::layout::{FromStructBuilder, FromStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -1528,9 +1476,6 @@ pub mod Method {
   }
 
   impl <'a> Reader<'a> {
-    pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-      Reader { reader : reader }
-    }
     #[inline]
     pub fn get_name(&self) -> Text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
@@ -1570,12 +1515,8 @@ pub mod Method {
     }
   }
   impl <'a> Builder<'a> {
-    pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-      Builder { builder : builder }
-    }
-
     pub fn as_reader(&self) -> Reader<'a> {
-      Reader::new(self.builder.as_reader())
+      FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
     pub fn get_name(&self) -> Text::Builder<'a> {
@@ -1637,9 +1578,11 @@ pub mod Method {
 
 pub mod Type {
   use std;
+  use capnp::any::AnyPointer;
+  use capnp::capability::{FromClientHook};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::any::AnyPointer;
+  use capnp::layout::{FromStructBuilder, FromStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -1656,9 +1599,6 @@ pub mod Type {
   }
 
   impl <'a> Reader<'a> {
-    pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-      Reader { reader : reader }
-    }
     #[inline]
     pub fn which(&self) -> Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(0) {
@@ -1734,22 +1674,22 @@ pub mod Type {
         }
         14 => {
           return std::option::Some(List(
-            schema_capnp::Type::List::Reader::new(self.reader)
+            FromStructReader::new(self.reader)
           ));
         }
         15 => {
           return std::option::Some(Enum(
-            schema_capnp::Type::Enum::Reader::new(self.reader)
+            FromStructReader::new(self.reader)
           ));
         }
         16 => {
           return std::option::Some(Struct(
-            schema_capnp::Type::Struct::Reader::new(self.reader)
+            FromStructReader::new(self.reader)
           ));
         }
         17 => {
           return std::option::Some(Interface(
-            schema_capnp::Type::Interface::Reader::new(self.reader)
+            FromStructReader::new(self.reader)
           ));
         }
         18 => {
@@ -1773,12 +1713,8 @@ pub mod Type {
     }
   }
   impl <'a> Builder<'a> {
-    pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-      Builder { builder : builder }
-    }
-
     pub fn as_reader(&self) -> Reader<'a> {
-      Reader::new(self.builder.as_reader())
+      FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
     pub fn set_void(&self, _value : ()) {
@@ -1840,25 +1776,25 @@ pub mod Type {
     pub fn init_list(&self, ) -> schema_capnp::Type::List::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 14);
       self.builder.get_pointer_field(0).clear();
-      schema_capnp::Type::List::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn init_enum(&self, ) -> schema_capnp::Type::Enum::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 15);
       self.builder.set_data_field::<u64>(1, 0);
-      schema_capnp::Type::Enum::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn init_struct(&self, ) -> schema_capnp::Type::Struct::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 16);
       self.builder.set_data_field::<u64>(1, 0);
-      schema_capnp::Type::Struct::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn init_interface(&self, ) -> schema_capnp::Type::Interface::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 17);
       self.builder.set_data_field::<u64>(1, 0);
-      schema_capnp::Type::Interface::Builder::new(self.builder)
+      FromStructBuilder::new(self.builder)
     }
     #[inline]
     pub fn set_any_pointer(&self, _value : ()) {
@@ -1939,22 +1875,22 @@ pub mod Type {
         }
         14 => {
           return std::option::Some(Which::List(
-            schema_capnp::Type::List::Builder::new(self.builder)
+            FromStructBuilder::new(self.builder)
           ));
         }
         15 => {
           return std::option::Some(Which::Enum(
-            schema_capnp::Type::Enum::Builder::new(self.builder)
+            FromStructBuilder::new(self.builder)
           ));
         }
         16 => {
           return std::option::Some(Which::Struct(
-            schema_capnp::Type::Struct::Builder::new(self.builder)
+            FromStructBuilder::new(self.builder)
           ));
         }
         17 => {
           return std::option::Some(Which::Interface(
-            schema_capnp::Type::Interface::Builder::new(self.builder)
+            FromStructBuilder::new(self.builder)
           ));
         }
         18 => {
@@ -1989,9 +1925,11 @@ pub mod Type {
   }
   pub mod Which {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2020,9 +1958,11 @@ pub mod Type {
 
   pub mod List {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2035,12 +1975,9 @@ pub mod Type {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_element_type(&self) -> schema_capnp::Type::Reader<'a> {
-        schema_capnp::Type::Reader::new(self.reader.get_pointer_field(0).get_struct( std::ptr::null()))
+        FromStructReader::new(self.reader.get_pointer_field(0).get_struct( std::ptr::null()))
       }
       pub fn has_element_type(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
@@ -2054,16 +1991,12 @@ pub mod Type {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_element_type(&self) -> schema_capnp::Type::Builder<'a> {
-        schema_capnp::Type::Builder::new(self.builder.get_pointer_field(0).get_struct(schema_capnp::Type::STRUCT_SIZE, std::ptr::null()))
+        FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(schema_capnp::Type::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
       pub fn set_element_type(&self, value : schema_capnp::Type::Reader) {
@@ -2071,7 +2004,7 @@ pub mod Type {
       }
       #[inline]
       pub fn init_element_type(&self, ) -> schema_capnp::Type::Builder<'a> {
-        schema_capnp::Type::Builder::new(self.builder.get_pointer_field(0).init_struct(schema_capnp::Type::STRUCT_SIZE))
+        FromStructBuilder::new(self.builder.get_pointer_field(0).init_struct(schema_capnp::Type::STRUCT_SIZE))
       }
       pub fn has_element_type(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
@@ -2081,9 +2014,11 @@ pub mod Type {
 
   pub mod Enum {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2096,9 +2031,6 @@ pub mod Type {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_type_id(&self) -> u64 {
         self.reader.get_data_field::<u64>(1)
@@ -2112,12 +2044,8 @@ pub mod Type {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_type_id(&self) -> u64 {
@@ -2132,9 +2060,11 @@ pub mod Type {
 
   pub mod Struct {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2147,9 +2077,6 @@ pub mod Type {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_type_id(&self) -> u64 {
         self.reader.get_data_field::<u64>(1)
@@ -2163,12 +2090,8 @@ pub mod Type {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_type_id(&self) -> u64 {
@@ -2183,9 +2106,11 @@ pub mod Type {
 
   pub mod Interface {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2198,9 +2123,6 @@ pub mod Type {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_type_id(&self) -> u64 {
         self.reader.get_data_field::<u64>(1)
@@ -2214,12 +2136,8 @@ pub mod Type {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_type_id(&self) -> u64 {
@@ -2235,9 +2153,11 @@ pub mod Type {
 
 pub mod Value {
   use std;
+  use capnp::any::AnyPointer;
+  use capnp::capability::{FromClientHook};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::any::AnyPointer;
+  use capnp::layout::{FromStructBuilder, FromStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -2254,9 +2174,6 @@ pub mod Value {
   }
 
   impl <'a> Reader<'a> {
-    pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-      Reader { reader : reader }
-    }
     pub fn has_text(&self) -> bool {
       if self.reader.get_data_field::<u16>(0) != 12 { return false; }
       !self.reader.get_pointer_field(0).is_null()
@@ -2391,12 +2308,8 @@ pub mod Value {
     }
   }
   impl <'a> Builder<'a> {
-    pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-      Builder { builder : builder }
-    }
-
     pub fn as_reader(&self) -> Reader<'a> {
-      Reader::new(self.builder.as_reader())
+      FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
     pub fn set_void(&self, _value : ()) {
@@ -2652,9 +2565,11 @@ pub mod Value {
   }
   pub mod Which {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2684,9 +2599,11 @@ pub mod Value {
 
 pub mod Annotation {
   use std;
+  use capnp::any::AnyPointer;
+  use capnp::capability::{FromClientHook};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::any::AnyPointer;
+  use capnp::layout::{FromStructBuilder, FromStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -2703,16 +2620,13 @@ pub mod Annotation {
   }
 
   impl <'a> Reader<'a> {
-    pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-      Reader { reader : reader }
-    }
     #[inline]
     pub fn get_id(&self) -> u64 {
       self.reader.get_data_field::<u64>(0)
     }
     #[inline]
     pub fn get_value(&self) -> schema_capnp::Value::Reader<'a> {
-      schema_capnp::Value::Reader::new(self.reader.get_pointer_field(0).get_struct( std::ptr::null()))
+      FromStructReader::new(self.reader.get_pointer_field(0).get_struct( std::ptr::null()))
     }
     pub fn has_value(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
@@ -2730,12 +2644,8 @@ pub mod Annotation {
     }
   }
   impl <'a> Builder<'a> {
-    pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-      Builder { builder : builder }
-    }
-
     pub fn as_reader(&self) -> Reader<'a> {
-      Reader::new(self.builder.as_reader())
+      FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
     pub fn get_id(&self) -> u64 {
@@ -2747,7 +2657,7 @@ pub mod Annotation {
     }
     #[inline]
     pub fn get_value(&self) -> schema_capnp::Value::Builder<'a> {
-      schema_capnp::Value::Builder::new(self.builder.get_pointer_field(0).get_struct(schema_capnp::Value::STRUCT_SIZE, std::ptr::null()))
+      FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(schema_capnp::Value::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
     pub fn set_value(&self, value : schema_capnp::Value::Reader) {
@@ -2755,13 +2665,14 @@ pub mod Annotation {
     }
     #[inline]
     pub fn init_value(&self, ) -> schema_capnp::Value::Builder<'a> {
-      schema_capnp::Value::Builder::new(self.builder.get_pointer_field(0).init_struct(schema_capnp::Value::STRUCT_SIZE))
+      FromStructBuilder::new(self.builder.get_pointer_field(0).init_struct(schema_capnp::Value::STRUCT_SIZE))
     }
     pub fn has_value(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
   }
 }
+
 pub mod ElementSize {
   use capnp::list::{ToU16};
 
@@ -2786,9 +2697,11 @@ pub mod ElementSize {
 
 pub mod CodeGeneratorRequest {
   use std;
+  use capnp::any::AnyPointer;
+  use capnp::capability::{FromClientHook};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::any::AnyPointer;
+  use capnp::layout::{FromStructBuilder, FromStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -2805,9 +2718,6 @@ pub mod CodeGeneratorRequest {
   }
 
   impl <'a> Reader<'a> {
-    pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-      Reader { reader : reader }
-    }
     #[inline]
     pub fn get_nodes(&self) -> StructList::Reader<'a,schema_capnp::Node::Reader<'a>> {
       StructList::Reader::new(self.reader.get_pointer_field(0).get_list(schema_capnp::Node::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
@@ -2835,12 +2745,8 @@ pub mod CodeGeneratorRequest {
     }
   }
   impl <'a> Builder<'a> {
-    pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-      Builder { builder : builder }
-    }
-
     pub fn as_reader(&self) -> Reader<'a> {
-      Reader::new(self.builder.as_reader())
+      FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
     pub fn get_nodes(&self) -> StructList::Builder<'a,schema_capnp::Node::Builder<'a>> {
@@ -2878,9 +2784,11 @@ pub mod CodeGeneratorRequest {
 
   pub mod RequestedFile {
     use std;
+    use capnp::any::AnyPointer;
+    use capnp::capability::{FromClientHook};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::any::AnyPointer;
+    use capnp::layout::{FromStructBuilder, FromStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2897,9 +2805,6 @@ pub mod CodeGeneratorRequest {
     }
 
     impl <'a> Reader<'a> {
-      pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-        Reader { reader : reader }
-      }
       #[inline]
       pub fn get_id(&self) -> u64 {
         self.reader.get_data_field::<u64>(0)
@@ -2931,12 +2836,8 @@ pub mod CodeGeneratorRequest {
       }
     }
     impl <'a> Builder<'a> {
-      pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
-      }
-
       pub fn as_reader(&self) -> Reader<'a> {
-        Reader::new(self.builder.as_reader())
+        FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
       pub fn get_id(&self) -> u64 {
@@ -2981,9 +2882,11 @@ pub mod CodeGeneratorRequest {
 
     pub mod Import {
       use std;
+      use capnp::any::AnyPointer;
+      use capnp::capability::{FromClientHook};
       use capnp::blob::{Text, Data};
       use capnp::layout;
-      use capnp::any::AnyPointer;
+      use capnp::layout::{FromStructBuilder, FromStructReader};
       use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
       use schema_capnp;
 
@@ -3000,9 +2903,6 @@ pub mod CodeGeneratorRequest {
       }
 
       impl <'a> Reader<'a> {
-        pub fn new<'a>(reader : layout::StructReader<'a>) -> Reader<'a> {
-          Reader { reader : reader }
-        }
         #[inline]
         pub fn get_id(&self) -> u64 {
           self.reader.get_data_field::<u64>(0)
@@ -3027,12 +2927,8 @@ pub mod CodeGeneratorRequest {
         }
       }
       impl <'a> Builder<'a> {
-        pub fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
-          Builder { builder : builder }
-        }
-
         pub fn as_reader(&self) -> Reader<'a> {
-          Reader::new(self.builder.as_reader())
+          FromStructReader::new(self.builder.as_reader())
         }
         #[inline]
         pub fn get_id(&self) -> u64 {
