@@ -97,14 +97,20 @@ pub trait MessageBuilder {
 
         let rootSegment = std::ptr::to_mut_unsafe_ptr(&mut self.mut_arena().segment0);
 
-        match self.mut_arena().segment0.allocate(WORDS_PER_POINTER) {
-            None => {fail!("could not allocate root pointer") }
-            Some(location) => {
-                //assert!(location == 0,
-                //        "First allocated word of new segment was not at offset 0");
+        if self.mut_arena().segment0.current_size() == 0 {
+            match self.mut_arena().segment0.allocate(WORDS_PER_POINTER) {
+                None => {fail!("could not allocate root pointer") }
+                Some(location) => {
+                    assert!(location == self.arena().segment0.get_ptr_unchecked(0),
+                            "First allocated word of new segment was not at offset 0");
 
-                AnyPointer::Builder::new(layout::PointerBuilder::get_root(rootSegment, location))
+                    AnyPointer::Builder::new(layout::PointerBuilder::get_root(rootSegment, location))
+                }
             }
+        } else {
+            AnyPointer::Builder::new(
+                layout::PointerBuilder::get_root(rootSegment,
+                                                 self.mut_arena().segment0.get_ptr_unchecked(0)))
         }
 
     }
