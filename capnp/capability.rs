@@ -8,10 +8,16 @@ use any::{AnyPointer};
 use common::{MessageSize};
 use layout::{FromStructBuilder, HasStructSize};
 use message::{MessageBuilder, MallocMessageBuilder};
+use serialize::{OwnedSpaceMessageReader};
+use std;
+
+pub struct RemotePromise<T> {
+    port : std::comm::Port<~OwnedSpaceMessageReader>,
+}
 
 pub trait RequestHook {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder;
-    fn send(~self);
+    fn send(~self) -> RemotePromise<AnyPointer::Reader>;
 }
 
 pub struct Request<Params, Results> {
@@ -23,8 +29,9 @@ impl <Params, Results> Request <Params, Results> {
         Request { hook : hook }
     }
 
-    pub fn send(~self) {
-        self.hook.send()
+    pub fn send(~self) -> RemotePromise<Results> {
+        let promise = self.hook.send();
+        RemotePromise { port : promise.port }
     }
 }
 

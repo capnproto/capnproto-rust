@@ -16,20 +16,26 @@ pub mod rpc;
 
 pub mod testing {
     use capnp::message::{MessageBuilder, MallocMessageBuilder};
+    use capnp::serialize::{OwnedSpaceMessageReader};
     use calculator_capnp::Calculator;
     use rpc_capnp::{Message};
     use rpc::{RpcEvent, OutgoingMessage};
     use std;
 
-    pub fn connect(chan : std::comm::SharedChan<RpcEvent>) {
+    pub fn connect(rpc_chan : std::comm::SharedChan<RpcEvent>) {
 
         let mut message = ~MallocMessageBuilder::new_default();
         let restore = message.init_root::<Message::Builder>().init_restore();
         restore.set_question_id(0);
         restore.init_object_id().set_as_text("calculator");
 
-        chan.send(OutgoingMessage(message));
+        let (port, chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
 
+        rpc_chan.send(OutgoingMessage(message, chan));
+
+        let reader = port.recv();
+
+/*
         let mut message = ~MallocMessageBuilder::new_default();
         let call = message.init_root::<Message::Builder>().init_call();
         call.set_question_id(1);
@@ -42,6 +48,7 @@ pub mod testing {
         exp.set_literal(1.23456);
 
         chan.send(OutgoingMessage(message));
+*/
     }
 }
 

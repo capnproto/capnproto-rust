@@ -6,7 +6,7 @@
 
 use capnp::any::{AnyPointer};
 use capnp::capability;
-use capnp::capability::{RequestHook, ClientHook};
+use capnp::capability::{RemotePromise, RequestHook, ClientHook};
 use capnp::common;
 use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
@@ -20,7 +20,7 @@ type ExportId = u32;
 type ImportId = ExportId;
 
 pub struct Question {
-    port : std::comm::Port<OwnedSpaceMessageReader>,
+    chan : std::comm::Chan<OwnedSpaceMessageReader>,
     is_awaiting_return : bool,
 }
 
@@ -88,7 +88,7 @@ impl RpcConnectionState {
 
                                 match root.which() {
                                     Some(Message::Return(ret)) => {
-                                        println!("got a return {}", ret.get_answer_id());
+                                        println!("got a return with answer id {}", ret.get_answer_id());
                                         match ret.which() {
                                             Some(Return::Results(payload)) => {
                                                 println!("with a payload");
@@ -129,14 +129,18 @@ impl RpcConnectionState {
 
                             message.init_cap_table(the_cap_table);
                         }
-                        OutgoingMessage(mut m) => {
+                        OutgoingMessage(mut m, port) => {
                             let root = m.get_root::<Message::Builder>();
-
                             // add a question to the question table
                             match root.which() {
                                 Some(Message::Which::Return(_)) => {}
                                 Some(Message::Which::Call(_)) => {}
-                                _ => {}
+                                Some(Message::Which::Restore(res)) => {
+                                    res.set_question_id(55);
+                                }
+                                _ => {
+                                    error!("NONE OF THOSE");
+                                }
                             }
 
                             // send
@@ -180,15 +184,19 @@ impl RequestHook for RpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
         &mut *self.message
     }
-    fn send(~self) {
+    fn send(~self) -> RemotePromise<AnyPointer::Reader> {
+        let (port, chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
+
         let ~RpcRequest { channel, message } = self;
-        channel.send(OutgoingMessage(message))
+        channel.send(OutgoingMessage(message, chan));
+
+        RemotePromise {port : port}
     }
 }
 
 pub enum RpcEvent {
     Nothing,
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
-    OutgoingMessage(~MallocMessageBuilder)//, std::comm::Port<~OwnedSpaceMessageReader>)
+    OutgoingMessage(~MallocMessageBuilder, std::comm::Chan<~OwnedSpaceMessageReader>)
 }
 
