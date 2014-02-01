@@ -19,7 +19,7 @@ pub mod testing {
     use capnp::serialize::{OwnedSpaceMessageReader};
     use calculator_capnp::Calculator;
     use rpc_capnp::{Message, Return};
-    use rpc::{RpcEvent, OutgoingMessage, InitParams};
+    use rpc::{RpcEvent, OutgoingMessage, InitParams, WaitForContent};
     use std;
 
     pub fn connect(rpc_chan : std::comm::SharedChan<RpcEvent>) {
@@ -54,7 +54,10 @@ pub mod testing {
             exp.set_literal(1.2345e6);
         }
         let res = req.send();
-        res.port.recv();
+        {
+            let results = res.wait();
+            //let value = results.get_value();
+        }
     }
 }
 

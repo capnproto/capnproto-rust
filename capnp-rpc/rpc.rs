@@ -8,7 +8,7 @@ use capnp::any::{AnyPointer};
 use capnp::capability;
 use capnp::capability::{RemotePromise, RequestHook, ClientHook, Request};
 use capnp::common;
-use capnp::layout::{FromStructBuilder, HasStructSize};
+use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use capnp::serialize::{OwnedSpaceMessageReader};
@@ -257,6 +257,28 @@ for Request<Params, Results> {
                 params.get_content().init_as_struct()
             }
             _ => fail!(),
+        }
+    }
+}
+
+pub trait WaitForContent<'a, T> {
+    fn wait(&'a self) -> T;
+}
+
+impl <'a, Results : FromStructReader<'a>> WaitForContent<'a, Results> for RemotePromise<Results> {
+    fn wait(&'a self) -> Results {
+        let message = self.port.recv();
+        let root : Message::Reader = message.get_root();
+        match root.which() {
+            Some(Message::Return(ret)) => {
+                match ret.which() {
+                    Some(Return::Results(res)) => {
+                        res.get_content().get_as_struct()
+                    }
+                    _ => fail!(),
+                }
+            }
+            _ => {fail!()}
         }
     }
 }
