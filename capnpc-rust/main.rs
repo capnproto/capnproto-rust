@@ -1312,30 +1312,13 @@ fn main() {
         let requestedFile = requestedFilesReader[ii];
         let id = requestedFile.get_id();
         let name : &str = requestedFile.get_filename();
-        println!("requested file: {}", name);
 
-        let fileNode = nodeMap.get(&id);
-        let displayName = fileNode.get_display_name();
+        let mut filepath = std::path::Path::new(name);
 
-        let mut outputFileName : ~str =
-            match displayName.rfind('.') {
-            Some(d) => {
-                displayName.slice_chars(0, d).to_owned()
-            }
-            _ => { fail!("bad file name: {}", displayName) }
-        };
+        let rootName : ~str = format!("{}_capnp",
+                                  filepath.filestem_str().unwrap().replace("-", "_"));
 
-        outputFileName.push_str("_capnp");
-
-        let rootName : ~str =
-            match outputFileName.rfind('/') {
-            Some(s) => outputFileName.slice_chars(s + 1,outputFileName.len()).to_owned(),
-            None => outputFileName.as_slice().to_owned()
-        };
-
-        outputFileName.push_str(".rs");
-        println!("{}", outputFileName);
-
+        filepath.set_filename(format!("{}.rs", rootName));
         populate_scope_map(&nodeMap, &mut scopeMap, rootName, id);
 
         let lines = Branch(~[Line(~"#[allow(unused_imports)];"),
@@ -1344,9 +1327,7 @@ fn main() {
 
         let text = stringify(&lines);
 
-        let path = std::path::Path::new(outputFileName);
-
-        match File::open_mode(&path, Truncate, Write) {
+        match File::open_mode(&filepath, Truncate, Write) {
             Some(ref mut writer) => {
                 writer.write(text.as_bytes())
             }

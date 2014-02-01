@@ -11,7 +11,7 @@
 extern mod capnp;
 
 pub mod rpc_capnp;
-//pub mod rpc-twoparty_capnp;
+pub mod rpc_twoparty_capnp;
 
 pub mod rpc;
 

@@ -65,7 +65,7 @@ benchmark : capnpc-rust/capnpc-rust
 capnp-rpc : $(CAPNP_RPC_COMPILATION_MARKER)
 
 $(CAPNP_RPC_COMPILATION_MARKER) : capnpc-rust/capnpc-rust $(CAPNP_RPC_SOURCES)
-	capnp compile -o./capnpc-rust/capnpc-rust capnp-rpc/rpc.capnp
+	capnp compile -o./capnpc-rust/capnpc-rust capnp-rpc/rpc.capnp capnp-rpc/rpc-twoparty.capnp
 	$(RUSTC) -L./capnp capnp-rpc/lib.rs
 	touch $(CAPNP_RPC_COMPILATION_MARKER)
 
