@@ -1,25 +1,27 @@
+/*
+ * Copyright (c) 2014, David Renshaw (dwrenshaw@gmail.com)
+ *
+ * See the LICENSE file in the capnproto-rust root directory.
+ */
 
-#[crate_id="capnp-rpc"];
+
+#[crate_id="calculator"];
 #[crate_type="bin"];
 
 extern mod capnp;
-
 extern mod extra;
-
-pub mod async;
+extern mod capnp_rpc = "capnp-rpc";
 
 pub mod calculator_capnp;
-pub mod rpc_capnp;
-//pub mod rpc-twoparty_capnp;
 
-pub mod rpc;
+//pub mod rpc-twoparty_capnp;
 
 pub mod testing {
     use capnp::message::{MessageBuilder, MallocMessageBuilder, MessageReader};
     use capnp::serialize::{OwnedSpaceMessageReader};
     use calculator_capnp::Calculator;
-    use rpc_capnp::{Message, Return};
-    use rpc::{RpcEvent, OutgoingMessage, InitParams, WaitForContent};
+    use capnp_rpc::rpc_capnp::{Message, Return};
+    use capnp_rpc::rpc::{RpcEvent, OutgoingMessage, InitParams, WaitForContent};
     use std;
 
     pub fn connect(rpc_chan : std::comm::SharedChan<RpcEvent>) {
@@ -68,7 +70,14 @@ pub mod testing {
 pub fn main() {
     use std::io::process;
 
-    let args = ~[std::os::args()[1].to_owned(), std::os::args()[2].to_owned()];
+    let args = std::os::args();
+
+    if args.len() != 3 {
+        println!("usage: {} <ip address> <port number>", args[0]);
+        return;
+    }
+
+    let child_args = ~[args[1].to_owned(), args[2].to_owned()];
 
     let io = [process::CreatePipe(true, false), // stdin
               process::CreatePipe(false, true), // stdout
@@ -76,7 +85,7 @@ pub fn main() {
 
     let config = process::ProcessConfig {
         program: "nc",
-        args: args,
+        args: child_args,
         env : None,
         cwd: None,
         io : io
@@ -87,7 +96,7 @@ pub fn main() {
     let childStdOut = p.io.pop();
     let childStdIn = p.io.pop();
 
-    let mut connection_state = rpc::RpcConnectionState::new();
+    let connection_state = capnp_rpc::rpc::RpcConnectionState::new();
 
     let chan = connection_state.run(childStdOut, childStdIn);
 
