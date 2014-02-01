@@ -51,7 +51,7 @@ pub mod testing {
         {
             let params = req.init_params();
             let exp = params.init_expression();
-            exp.set_literal(1.2345e6);
+            exp.set_literal(123.45);
         }
         let mut res = req.send();
         let value = {
@@ -60,6 +60,7 @@ pub mod testing {
         };
 
         let mut result = value.read_request().send();
+        println!("the value is: {}", result.wait().get_value());
 
     }
 }

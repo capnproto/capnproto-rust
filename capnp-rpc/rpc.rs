@@ -216,6 +216,8 @@ impl ClientHook for ImportClient {
             let call = root.init_call();
             call.set_interface_id(interface_id);
             call.set_method_id(method_id);
+            let target = call.init_target();
+            target.set_imported_cap(self.import_id);
         }
         let hook = box RpcRequest { channel : self.channel.clone(),
                                     message : message };
