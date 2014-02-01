@@ -97,7 +97,7 @@ pub trait MessageBuilder {
 
         let rootSegment = std::ptr::to_mut_unsafe_ptr(&mut self.mut_arena().segment0);
 
-        if self.mut_arena().segment0.current_size() == 0 {
+        if self.arena().segment0.current_size() == 0 {
             match self.mut_arena().segment0.allocate(WORDS_PER_POINTER) {
                 None => {fail!("could not allocate root pointer") }
                 Some(location) => {
@@ -110,7 +110,7 @@ pub trait MessageBuilder {
         } else {
             AnyPointer::Builder::new(
                 layout::PointerBuilder::get_root(rootSegment,
-                                                 self.mut_arena().segment0.get_ptr_unchecked(0)))
+                                                 self.arena().segment0.get_ptr_unchecked(0)))
         }
 
     }

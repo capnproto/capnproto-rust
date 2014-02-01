@@ -12,6 +12,7 @@ use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, Mall
 use capnp::serialize;
 use capnp::serialize::{OwnedSpaceMessageReader};
 use std;
+use std::hashmap::HashMap;
 use rpc_capnp::{Message, Return, CapDescriptor};
 
 type QuestionId = u32;
@@ -20,7 +21,7 @@ type ExportId = u32;
 type ImportId = ExportId;
 
 pub struct Question {
-    chan : std::comm::Chan<OwnedSpaceMessageReader>,
+    chan : std::comm::Chan<~OwnedSpaceMessageReader>,
     is_awaiting_return : bool,
 }
 
@@ -33,11 +34,27 @@ pub struct Export;
 pub struct Import;
 
 pub struct ImportTable<T> {
-    slots : ~[T]
+    slots : HashMap<u32, T>,
+}
+
+impl <T> ImportTable<T> {
+    pub fn new() -> ImportTable<T> {
+        ImportTable { slots : HashMap::new() }
+    }
 }
 
 pub struct ExportTable<T> {
-    slots : ~[T]
+    slots : ~[T],
+}
+
+impl <T> ExportTable<T> {
+    pub fn new() -> ExportTable<T> {
+        ExportTable { slots : ~[] }
+    }
+
+    pub fn next(&mut self) -> u32 {
+        fail!()
+    }
 }
 
 pub struct RpcConnectionState {
@@ -50,15 +67,15 @@ pub struct RpcConnectionState {
 impl RpcConnectionState {
     pub fn new() -> RpcConnectionState {
         RpcConnectionState {
-            exports : ExportTable { slots : ~[] },
-            questions : ExportTable { slots : ~[] },
-            answers : ImportTable { slots : ~[] },
-            imports : ImportTable { slots : ~[] },
+            exports : ExportTable::new(),
+            questions : ExportTable::new(),
+            answers : ImportTable::new(),
+            imports : ImportTable::new(),
         }
     }
 
     pub fn run<T : std::io::Reader + Send, U : std::io::Writer + Send>(
-        &mut self, inpipe: T, outpipe: U)
+        self, inpipe: T, outpipe: U)
          -> std::comm::SharedChan<RpcEvent> {
 
         let (port, chan) = std::comm::SharedChan::<RpcEvent>::new();
@@ -78,6 +95,7 @@ impl RpcConnectionState {
         let loop_chan = chan.clone();
 
         spawn(proc() {
+                let RpcConnectionState {mut questions, exports, answers, imports} = self;
                 let mut outpipe = outpipe;
                 loop {
                     match port.recv() {
@@ -129,14 +147,16 @@ impl RpcConnectionState {
 
                             message.init_cap_table(the_cap_table);
                         }
-                        OutgoingMessage(mut m, port) => {
+                        OutgoingMessage(mut m, chan) => {
                             let root = m.get_root::<Message::Builder>();
                             // add a question to the question table
                             match root.which() {
                                 Some(Message::Which::Return(_)) => {}
                                 Some(Message::Which::Call(_)) => {}
                                 Some(Message::Which::Restore(res)) => {
-                                    res.set_question_id(55);
+                                    res.set_question_id(questions.slots.len() as u32);
+                                    questions.slots.push(Question {is_awaiting_return : true,
+                                                                   chan : chan} );
                                 }
                                 _ => {
                                     error!("NONE OF THOSE");
