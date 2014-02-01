@@ -53,11 +53,14 @@ pub mod testing {
             let exp = params.init_expression();
             exp.set_literal(1.2345e6);
         }
-        let res = req.send();
-        {
+        let mut res = req.send();
+        let value = {
             let results = res.wait();
-            //let value = results.get_value();
-        }
+            results.get_value()
+        };
+
+        let mut result = value.read_request().send();
+
     }
 }
 

@@ -13,6 +13,7 @@ use std;
 
 pub struct RemotePromise<T> {
     port : std::comm::Port<~OwnedSpaceMessageReader>,
+    result : Option<~OwnedSpaceMessageReader>,
 }
 
 pub trait RequestHook {
@@ -31,7 +32,7 @@ impl <Params, Results> Request <Params, Results> {
 
     pub fn send(self) -> RemotePromise<Results> {
         let promise = self.hook.send();
-        RemotePromise { port : promise.port }
+        RemotePromise { port : promise.port, result : None }
     }
 }
 

@@ -132,8 +132,8 @@ impl RpcConnectionState {
                                                     }
                                                 }
                                             }
-                                            Some(Return::Exception(_)) => {
-                                                println!("exception");
+                                            Some(Return::Exception(e)) => {
+                                                println!("exception: {}", e.get_reason());
                                             }
                                             _ => {}
                                         }
@@ -154,12 +154,11 @@ impl RpcConnectionState {
                                     }
                                 }
                             }
-
                             message.init_cap_table(the_cap_table);
 
                             match question {
                                 Some(id) => {
-                                    questions.slots[id].chan.send(message)
+                                    questions.slots[id].chan.try_send(message);
                                 }
                                 None => {}
                             }
@@ -239,7 +238,7 @@ impl RequestHook for RpcRequest {
         let ~RpcRequest { channel, message } = self;
         channel.send(OutgoingMessage(message, chan));
 
-        RemotePromise {port : port}
+        RemotePromise {port : port, result : None}
     }
 }
 
@@ -262,23 +261,29 @@ for Request<Params, Results> {
 }
 
 pub trait WaitForContent<'a, T> {
-    fn wait(&'a self) -> T;
+    fn wait(&'a mut self) -> T;
 }
 
 impl <'a, Results : FromStructReader<'a>> WaitForContent<'a, Results> for RemotePromise<Results> {
-    fn wait(&'a self) -> Results {
+    fn wait(&'a mut self) -> Results {
         let message = self.port.recv();
-        let root : Message::Reader = message.get_root();
-        match root.which() {
-            Some(Message::Return(ret)) => {
-                match ret.which() {
-                    Some(Return::Results(res)) => {
-                        res.get_content().get_as_struct()
+        self.result = Some(message);
+        match self.result {
+            None => unreachable!(),
+            Some(ref message) => {
+                let root : Message::Reader = message.get_root();
+                match root.which() {
+                    Some(Message::Return(ret)) => {
+                        match ret.which() {
+                            Some(Return::Results(res)) => {
+                                res.get_content().get_as_struct()
+                            }
+                            _ => fail!(),
+                        }
                     }
-                    _ => fail!(),
+                    _ => {fail!()}
                 }
             }
-            _ => {fail!()}
         }
     }
 }

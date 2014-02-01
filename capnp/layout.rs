@@ -1419,6 +1419,7 @@ mod WireHelpers {
         } else if !(*reff).is_capability() {
             fail!("Message contains non-capability pointer where capability pointer was expected.");
         } else {
+            println!("capability number {}", (*reff).cap_ref().index.get() as uint);
             match (*segment).arena.extract_cap((*reff).cap_ref().index.get() as uint) {
                 Some(client_hook) => { client_hook }
                 None => {

@@ -365,7 +365,9 @@ impl ArenaPtr {
                     if index < (*reader).cap_table.len() {
                         match (*reader).cap_table[index] {
                             Some( ref hook ) => { Some(hook.copy()) }
-                            None => {None}
+                            None => {
+                                None
+                            }
                         }
                     } else {
                         None
