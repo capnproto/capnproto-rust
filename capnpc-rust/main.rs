@@ -310,10 +310,10 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let theMod = scopeMap.get(&group.get_type_id()).connect("::");
             if isReader {
                 return (format!("{}::Reader<'a>", theMod),
-                        Line(format!("FromStructReader::new(self.reader)")));
+                        Line(box "FromStructReader::new(self.reader)"));
             } else {
                 return (format!("{}::Builder<'a>", theMod),
-                        Line(format!("FromStructBuilder::new(self.builder)")));
+                        Line(box "FromStructBuilder::new(self.builder)"));
             }
         }
         Some(Field::Slot(reg_field)) => {
@@ -986,7 +986,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 let styled_name = camel_to_snake_case(name);
 
                 let discriminantValue = field.get_discriminant_value();
-                let isUnionField = (discriminantValue != 0xffff);
+                let isUnionField = (discriminantValue != Field::NO_DISCRIMINANT);
 
                 if !isUnionField {
                     let (ty, get) = getter_text(nodeMap, scopeMap, &field, true);
@@ -1141,23 +1141,8 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
         Some(Node::Interface(interface)) => {
             let names = scopeMap.get(&node_id);
-            output.push(BlankLine);
-            output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
-            output.push(Indent(~Line(~"use capnp::capability::{ClientHook, FromClientHook, Request};")));
-            output.push(Indent(~Line(~"use capnp::capability;")));
-            output.push(BlankLine);
-            output.push(Indent(~Line(~"pub struct Client{ priv client : capability::Client }")));
-
-            output.push(
-                Indent(
-                    ~Branch(~[
-                            Line(box "impl FromClientHook for Client {"),
-                            Indent(~Line(box "fn new(hook : ~ClientHook) -> Client {")),
-                            Indent(~Indent(box Line(box "Client { client : capability::Client::new(hook) }"))),
-                            Indent(~Line(box "}")),
-                            Line(box "}")])));
-
-            let mut impl_interior = ~[];
+            let mut client_impl_interior = ~[];
+            let mut server_interior = ~[];
 
             let methods = interface.get_methods();
             for ordinal in range(0, methods.size()) {
@@ -1188,22 +1173,42 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     fail!("unimplemented");
                 };
 
-                impl_interior.push(
+                client_impl_interior.push(
                     Line(format!("pub fn {}_request(&self) -> Request<{}::Builder,{}::Reader> \\{",
                                  camel_to_snake_case(name), params_name, results_name)));
 
-                impl_interior.push(Indent(
+                client_impl_interior.push(Indent(
                         box Line(format!("self.client.new_call(0x{:x}, {}, None)", node_id, ordinal))));
-                impl_interior.push(Line(box "}"));
+                client_impl_interior.push(Line(box "}"));
 
                 method.get_annotations();
             }
+
+
+            output.push(BlankLine);
+            output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
+            output.push(Indent(~Line(~"use capnp::capability::{ClientHook, FromClientHook, Request};")));
+            output.push(Indent(~Line(~"use capnp::capability;")));
+            output.push(BlankLine);
+            output.push(Indent(~Line(~"pub struct Client{ priv client : capability::Client }")));
+
+            output.push(
+                Indent(
+                    ~Branch(~[
+                            Line(box "impl FromClientHook for Client {"),
+                            Indent(~Line(box "fn new(hook : ~ClientHook) -> Client {")),
+                            Indent(~Indent(box Line(box "Client { client : capability::Client::new(hook) }"))),
+                            Indent(~Line(box "}")),
+                            Line(box "}")])));
+
+
             output.push(Indent(box Branch(box [Line(~"impl Client {"),
-                                               Indent(box Branch(impl_interior)),
+                                               Indent(box Branch(client_impl_interior)),
                                                Line(box "}")])));
 
-
-            interface.get_extends();
+            output.push(Indent(box Branch(box [Line(box "pub trait Server {"),
+                                               Indent(box Branch(server_interior)),
+                                               Line(box "}")])));
 
             output.push(Indent(~Branch(~[Branch(nested_output)])));
 

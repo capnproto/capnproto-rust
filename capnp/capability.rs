@@ -6,8 +6,7 @@
 
 use any::{AnyPointer};
 use common::{MessageSize};
-use layout::{FromStructBuilder, HasStructSize};
-use message::{MessageBuilder, MallocMessageBuilder};
+use message::{MallocMessageBuilder};
 use serialize::{OwnedSpaceMessageReader};
 use std;
 
@@ -69,3 +68,10 @@ impl Client {
     }
 }
 
+pub struct CallContext<Params, Results> {
+    hook : ~CallContextHook,
+}
+
+pub trait CallContextHook {
+    fn get_params<'a>(&'a self) -> AnyPointer::Reader<'a>;
+}
