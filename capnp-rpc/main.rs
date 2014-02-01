@@ -19,7 +19,7 @@ pub mod testing {
     use capnp::serialize::{OwnedSpaceMessageReader};
     use calculator_capnp::Calculator;
     use rpc_capnp::{Message, Return};
-    use rpc::{RpcEvent, OutgoingMessage};
+    use rpc::{RpcEvent, OutgoingMessage, InitParams};
     use std;
 
     pub fn connect(rpc_chan : std::comm::SharedChan<RpcEvent>) {
@@ -53,7 +53,8 @@ pub mod testing {
             let exp = params.init_expression();
             exp.set_literal(1.2345e6);
         }
-        req.send();
+        let res = req.send();
+        res.port.recv();
     }
 }
 

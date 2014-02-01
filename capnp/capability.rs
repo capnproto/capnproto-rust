@@ -21,7 +21,7 @@ pub trait RequestHook {
 }
 
 pub struct Request<Params, Results> {
-    priv hook : ~RequestHook
+    hook : ~RequestHook
 }
 
 impl <Params, Results> Request <Params, Results> {
@@ -32,12 +32,6 @@ impl <Params, Results> Request <Params, Results> {
     pub fn send(self) -> RemotePromise<Results> {
         let promise = self.hook.send();
         RemotePromise { port : promise.port }
-    }
-}
-
-impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results> Request<Params, Results> {
-    pub fn init_params(&'a mut self) -> Params {
-        self.hook.message().init_root()
     }
 }
 

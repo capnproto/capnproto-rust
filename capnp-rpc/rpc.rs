@@ -6,8 +6,9 @@
 
 use capnp::any::{AnyPointer};
 use capnp::capability;
-use capnp::capability::{RemotePromise, RequestHook, ClientHook};
+use capnp::capability::{RemotePromise, RequestHook, ClientHook, Request};
 use capnp::common;
+use capnp::layout::{FromStructBuilder, HasStructSize};
 use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use capnp::serialize::{OwnedSpaceMessageReader};
@@ -169,7 +170,11 @@ impl RpcConnectionState {
                             // add a question to the question table
                             match root.which() {
                                 Some(Message::Which::Return(_)) => {}
-                                Some(Message::Which::Call(_)) => {}
+                                Some(Message::Which::Call(call)) => {
+                                    call.set_question_id(questions.slots.len() as u32);
+                                    questions.slots.push(Question {is_awaiting_return : true,
+                                                                   chan : chan} );
+                                }
                                 Some(Message::Which::Restore(res)) => {
                                     res.set_question_id(questions.slots.len() as u32);
                                     questions.slots.push(Question {is_awaiting_return : true,
@@ -206,9 +211,16 @@ impl ClientHook for ImportClient {
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<common::MessageSize>)
                 -> capability::Request<AnyPointer::Builder, AnyPointer::Reader> {
+        let mut message = box MallocMessageBuilder::new_default();
+        {
+            let root : Message::Builder = message.get_root();
+            let call = root.init_call();
+            call.set_interface_id(interface_id);
+            call.set_method_id(method_id);
+        }
         let hook = box RpcRequest { channel : self.channel.clone(),
-                                    message : box MallocMessageBuilder::new_default() };
-        capability::Request::new(hook as ~RequestHook)
+                                    message : message };
+        Request::new(hook as ~RequestHook)
     }
 }
 
@@ -230,6 +242,25 @@ impl RequestHook for RpcRequest {
         RemotePromise {port : port}
     }
 }
+
+pub trait InitParams<'a, T> {
+    fn init_params(&'a mut self) -> T;
+}
+
+impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results> InitParams<'a, Params>
+for Request<Params, Results> {
+    fn init_params(&'a mut self) -> Params {
+        let message : Message::Builder = self.hook.message().get_root();
+        match message.which() {
+            Some(Message::Which::Call(call)) => {
+                let params = call.init_params();
+                params.get_content().init_as_struct()
+            }
+            _ => fail!(),
+        }
+    }
+}
+
 
 pub enum RpcEvent {
     Nothing,
