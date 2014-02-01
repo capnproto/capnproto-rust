@@ -1143,6 +1143,13 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let names = scopeMap.get(&node_id);
             let mut client_impl_interior = ~[];
             let mut server_interior = ~[];
+            let mut mod_interior = ~[];
+
+            mod_interior.push(
+                Line(box "use capnp::capability::{ClientHook, FromClientHook, Request};"));
+            mod_interior.push(Line(box "use capnp::capability;"));
+            mod_interior.push(BlankLine);
+
 
             let methods = interface.get_methods();
             for ordinal in range(0, methods.size()) {
@@ -1173,6 +1180,16 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     fail!("unimplemented");
                 };
 
+                mod_interior.push(
+                    Line(format!(
+                            "pub type {}Context<'a> = capability::CallContext<{}::Reader<'a>, {}::Builder<'a>>;",
+                            capitalize_first_letter(name), params_name, results_name)));
+                server_interior.push(
+                    Line(format!(
+                            "fn {}({}Context) -> ();",
+                            camel_to_snake_case(name), capitalize_first_letter(name)
+                            )));
+
                 client_impl_interior.push(
                     Line(format!("pub fn {}_request(&self) -> Request<{}::Builder,{}::Reader> \\{",
                                  camel_to_snake_case(name), params_name, results_name)));
@@ -1185,33 +1202,31 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             }
 
 
-            output.push(BlankLine);
-            output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
-            output.push(Indent(~Line(~"use capnp::capability::{ClientHook, FromClientHook, Request};")));
-            output.push(Indent(~Line(~"use capnp::capability;")));
-            output.push(BlankLine);
-            output.push(Indent(~Line(~"pub struct Client{ priv client : capability::Client }")));
 
-            output.push(
-                Indent(
-                    ~Branch(~[
+            mod_interior.push(Line(~"pub struct Client{ priv client : capability::Client }"));
+            mod_interior.push(
+                    Branch(~[
                             Line(box "impl FromClientHook for Client {"),
                             Indent(~Line(box "fn new(hook : ~ClientHook) -> Client {")),
                             Indent(~Indent(box Line(box "Client { client : capability::Client::new(hook) }"))),
                             Indent(~Line(box "}")),
-                            Line(box "}")])));
+                            Line(box "}")]));
 
 
-            output.push(Indent(box Branch(box [Line(~"impl Client {"),
-                                               Indent(box Branch(client_impl_interior)),
-                                               Line(box "}")])));
+            mod_interior.push(Branch(box [Line(~"impl Client {"),
+                                          Indent(box Branch(client_impl_interior)),
+                                          Line(box "}")]));
 
-            output.push(Indent(box Branch(box [Line(box "pub trait Server {"),
-                                               Indent(box Branch(server_interior)),
-                                               Line(box "}")])));
+            mod_interior.push(Branch(box [Line(box "pub trait Server {"),
+                                          Indent(box Branch(server_interior)),
+                                          Line(box "}")]));
 
-            output.push(Indent(~Branch(~[Branch(nested_output)])));
+            mod_interior.push(Branch(~[Branch(nested_output)]));
 
+
+            output.push(BlankLine);
+            output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
+            output.push(Indent(box Branch(mod_interior)));
             output.push(Line(~"}"));
         }
 
