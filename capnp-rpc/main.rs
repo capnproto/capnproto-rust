@@ -15,10 +15,10 @@ pub mod rpc_capnp;
 pub mod rpc;
 
 pub mod testing {
-    use capnp::message::{MessageBuilder, MallocMessageBuilder};
+    use capnp::message::{MessageBuilder, MallocMessageBuilder, MessageReader};
     use capnp::serialize::{OwnedSpaceMessageReader};
     use calculator_capnp::Calculator;
-    use rpc_capnp::{Message};
+    use rpc_capnp::{Message, Return};
     use rpc::{RpcEvent, OutgoingMessage};
     use std;
 
@@ -34,21 +34,26 @@ pub mod testing {
         rpc_chan.send(OutgoingMessage(message, chan));
 
         let reader = port.recv();
+        let message = reader.get_root::<Message::Reader>();
+        let client = match message.which() {
+            Some(Message::Return(ret)) => {
+                match ret.which() {
+                    Some(Return::Results(payload)) => {
+                        payload.get_content().get_as_capability::<Calculator::Client>()
+                    }
+                    _ => { fail!() }
+                }
+            }
+            _ => {fail!()}
+        };
 
-/*
-        let mut message = ~MallocMessageBuilder::new_default();
-        let call = message.init_root::<Message::Builder>().init_call();
-        call.set_question_id(1);
-        let promised_answer = call.init_target().init_promised_answer();
-        promised_answer.set_question_id(0);
-        call.set_interface_id(0x97983392df35cc36);
-        call.set_method_id(0);
-        let payload = call.init_params();
-        let exp = payload.init_content().init_as_struct::<Calculator::Expression::Builder>();
-        exp.set_literal(1.23456);
-
-        chan.send(OutgoingMessage(message));
-*/
+        let mut req = client.evaluate_request();
+        {
+            let params = req.init_params();
+            let exp = params.init_expression();
+            exp.set_literal(1.2345e6);
+        }
+        req.send();
     }
 }
 

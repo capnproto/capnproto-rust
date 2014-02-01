@@ -6,6 +6,7 @@
 
 pub mod AnyPointer {
     use std;
+    use capability::{FromClientHook};
     use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
                  HasStructSize};
     use blob::{Text, Data};
@@ -36,6 +37,10 @@ pub mod AnyPointer {
 
         pub fn get_as_data(&self) -> Data::Reader<'a> {
             self.reader.get_data(std::ptr::null(), 0)
+        }
+
+        pub fn get_as_capability<T : FromClientHook>(&self) -> T {
+            FromClientHook::new(self.reader.get_capability())
         }
     }
 

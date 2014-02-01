@@ -1189,8 +1189,8 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 };
 
                 impl_interior.push(
-                    Line(format!("pub fn {}Request(&self) -> Request<{}::Builder,{}::Reader> \\{",
-                                 name, params_name, results_name)));
+                    Line(format!("pub fn {}_request(&self) -> Request<{}::Builder,{}::Reader> \\{",
+                                 camel_to_snake_case(name), params_name, results_name)));
 
                 impl_interior.push(Indent(
                         box Line(format!("self.client.new_call(0x{:x}, {}, None)", node_id, ordinal))));

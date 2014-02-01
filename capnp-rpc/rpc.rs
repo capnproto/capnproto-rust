@@ -101,12 +101,15 @@ impl RpcConnectionState {
                     match port.recv() {
                         IncomingMessage(mut message) => {
                             let mut the_cap_table : ~[Option<~ClientHook>] = ~[];
+                            let mut question = None::<u32>;
+                            // populate the cap table
                             {
                                 let root = message.get_root::<Message::Reader>();
 
                                 match root.which() {
                                     Some(Message::Return(ret)) => {
                                         println!("got a return with answer id {}", ret.get_answer_id());
+
                                         match ret.which() {
                                             Some(Return::Results(payload)) => {
                                                 println!("with a payload");
@@ -133,6 +136,8 @@ impl RpcConnectionState {
                                             }
                                             _ => {}
                                         }
+
+                                        question = Some(ret.get_answer_id());
                                     }
                                     Some(Message::Unimplemented(_)) => {
                                         println!("unimplemented");
@@ -140,12 +145,24 @@ impl RpcConnectionState {
                                     Some(Message::Abort(exc)) => {
                                         println!("abort: {}", exc.get_reason());
                                     }
-                                    None => { println!("Nothing there") }
-                                    _ => {println!("something else") }
+                                    None => {
+                                        println!("Nothing there");
+                                    }
+                                    _ => {
+                                        println!("something else");
+                                    }
                                 }
                             }
 
                             message.init_cap_table(the_cap_table);
+
+                            match question {
+                                Some(id) => {
+                                    questions.slots[id].chan.send(message)
+                                }
+                                None => {}
+                            }
+
                         }
                         OutgoingMessage(mut m, chan) => {
                             let root = m.get_root::<Message::Builder>();

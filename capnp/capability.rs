@@ -29,7 +29,7 @@ impl <Params, Results> Request <Params, Results> {
         Request { hook : hook }
     }
 
-    pub fn send(~self) -> RemotePromise<Results> {
+    pub fn send(self) -> RemotePromise<Results> {
         let promise = self.hook.send();
         RemotePromise { port : promise.port }
     }
