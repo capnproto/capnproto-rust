@@ -1308,12 +1308,9 @@ fn main() {
     let requestedFilesReader = codeGeneratorRequest.get_requested_files();
 
     for ii in range(0, requestedFilesReader.size()) {
-
         let requestedFile = requestedFilesReader[ii];
         let id = requestedFile.get_id();
-        let name : &str = requestedFile.get_filename();
-
-        let mut filepath = std::path::Path::new(name);
+        let mut filepath = std::path::Path::new(requestedFile.get_filename());
 
         let rootName : ~str = format!("{}_capnp",
                                   filepath.filestem_str().unwrap().replace("-", "_"));
