@@ -439,7 +439,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
         }
     }
 
-    fn common_case<T:std::num::Zero + std::fmt::Default>(
+    fn common_case<T:std::num::Zero + std::fmt::Show>(
         typ: &str, member : &str,
         offset: uint, default : T) -> (~str, FormattedText) {
         let interior = if default.is_zero() {
