@@ -1095,7 +1095,18 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                             Line(~"}")
                             ])),
                   Indent(~Branch(builder_members)),
-                  Line(~"}")];
+                  Line(~"}"),
+                  BlankLine,
+                  Line(box"pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }"),
+                  Line(box"impl Pipeline {"),
+                  Indent(
+                    box Branch(
+                        box [ Line(box "pub fn new(typeless : AnyPointer::Pipeline) -> Pipeline {"),
+                              Indent(box Line(box "Pipeline { _typeless : typeless }")),
+                              Line( box "}"),
+                            ])),
+                  Line(box"}"),
+                  ];
 
             output.push(Indent(~Branch(~[Branch(accessors),
                                          Branch(which_enums),
@@ -1202,7 +1213,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             }
 
 
-
+            mod_interior.push(BlankLine);
             mod_interior.push(Line(~"pub struct Client{ priv client : capability::Client }"));
             mod_interior.push(
                     Branch(~[

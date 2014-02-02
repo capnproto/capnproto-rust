@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ * Copyright (c) 2013-2014, David Renshaw (dwrenshaw@gmail.com)
  *
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
 pub mod AnyPointer {
     use std;
-    use capability::{FromClientHook};
+    use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
     use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
                  HasStructSize};
     use blob::{Text, Data};
@@ -76,6 +76,32 @@ pub mod AnyPointer {
         #[inline]
         pub fn clear(&self) {
             self.builder.clear()
+        }
+    }
+
+    pub struct Pipeline {
+        hook : ~PipelineHook,
+        ops : ~[PipelineOp::Type],
+    }
+
+    impl Pipeline {
+        pub fn new(hook : ~PipelineHook) -> Pipeline {
+            Pipeline { hook : hook, ops : box[] }
+        }
+
+        pub fn noop(&self) -> Pipeline {
+            let mut new_ops = ~[];
+            for &op in self.ops.iter() {new_ops.push(op)}
+            Pipeline { hook : self.hook.copy(), ops : new_ops }
+        }
+
+        pub fn get_pointer_field(&self, _pointer_index : u16) -> Pipeline {
+            fail!()
+        }
+
+        pub fn as_cap(~self) -> ~ClientHook {
+            let ~Pipeline { hook, ops } = self;
+            hook.get_pipelined_cap(ops)
         }
     }
 }

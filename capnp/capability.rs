@@ -75,3 +75,15 @@ pub struct CallContext<Params, Results> {
 pub trait CallContextHook {
     fn get_params<'a>(&'a self) -> AnyPointer::Reader<'a>;
 }
+
+pub trait PipelineHook {
+    fn copy(&self) -> ~PipelineHook;
+    fn get_pipelined_cap(&self, ops : ~[PipelineOp::Type]) -> ~ClientHook;
+}
+
+pub mod PipelineOp {
+    pub enum Type {
+        NoOp,
+        GetPointerField(u16),
+    }
+}

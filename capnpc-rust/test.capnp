@@ -141,3 +141,11 @@ struct TestConstants {
 }
 
 const globalInt :UInt32 = 12345;
+
+
+interface TestInterface {
+   foo @0 (i :UInt32, j :Bool) -> (x : Text);
+   bar @1 () -> ();
+   baz @2 (s : TestBigStruct);
+   qux @3 (s : TestBigStruct) -> (r : TestBigStruct);
+}
