@@ -917,6 +917,58 @@ fn generate_haser(discriminant_offset : u32,
     Branch(result)
 }
 
+fn generate_pipeline_getter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                            scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+                            field : schema_capnp::Field::Reader) -> FormattedText {
+    use schema_capnp::{Field, Type};
+
+    let name = field.get_name();
+
+    match field.which() {
+        None => fail!("unrecognized field type"),
+        Some(Field::Group(group)) => {
+            let theMod = scopeMap.get(&group.get_type_id()).connect("::");
+            return Branch(box[Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
+                                           camel_to_snake_case(name),
+                                           theMod)),
+                              Indent(box Line(format!("{}::Pipeline::new(self._typeless.noop())",
+                                                      theMod))),
+                              Line(box "}")]);
+        }
+        Some(Field::Slot(reg_field)) => {
+            match reg_field.get_type().which() {
+                None => fail!("unrecognized type"),
+                Some(Type::Struct(st)) => {
+                    let theMod = scopeMap.get(&st.get_type_id()).connect("::");
+                    return Branch(
+                        box[Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
+                                         camel_to_snake_case(name),
+                                         theMod)),
+                            Indent(box Line(
+                                    format!("{}::Pipeline::new(self._typeless.get_pointer_field({}))",
+                                            theMod, reg_field.get_offset()))),
+                            Line(box "}")]);
+                }
+                Some(Type::Interface(interface)) => {
+                    let theMod = scopeMap.get(&interface.get_type_id()).connect("::");
+                    return Branch(
+                        box[Line(format!("pub fn get_{}(&self) -> {}::Client \\{",
+                                         camel_to_snake_case(name),
+                                         theMod)),
+                            Indent(box Line(
+                                    format!("FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
+                                            reg_field.get_offset()))),
+                            Line(box "}")]);
+                }
+                _ => {
+                    return Branch(box []);
+                }
+            }
+        }
+    }
+}
+
+
 fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
                  rootName : &str,
@@ -950,6 +1002,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let mut reader_members = ~[];
             let mut union_fields = ~[];
             let mut which_enums = ~[];
+            let mut pipeline_impl_interior = ~[];
 
             let dataSize = structReader.get_data_word_count();
             let pointerSize = structReader.get_pointer_count();
@@ -989,6 +1042,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 let isUnionField = (discriminantValue != Field::NO_DISCRIMINANT);
 
                 if !isUnionField {
+                    pipeline_impl_interior.push(generate_pipeline_getter(nodeMap, scopeMap, field));
                     let (ty, get) = getter_text(nodeMap, scopeMap, &field, true);
 
                     reader_members.push(
@@ -996,21 +1050,16 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                               Line(~"#[inline]"),
                               Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, ty)),
                               Indent(~get),
-                              Line(~"}")
-                                    ])
-                                        );
+                              Line(~"}")]));
 
                     let (tyB, getB) = getter_text(nodeMap, scopeMap, &field, false);
 
                     builder_members.push(
-                                     Branch(~[
-                                              Line(~"#[inline]"),
-                                              Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, tyB)),
-                                              Indent(~getB),
-                                              Line(~"}")
-                                              ])
-                                     );
-
+                        Branch(~[
+                                Line(~"#[inline]"),
+                                Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, tyB)),
+                                Indent(~getB),
+                                Line(~"}")]));
 
                 } else {
                     union_fields.push(field);
@@ -1104,6 +1153,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                         box [ Line(box "pub fn new(typeless : AnyPointer::Pipeline) -> Pipeline {"),
                               Indent(box Line(box "Pipeline { _typeless : typeless }")),
                               Line( box "}"),
+                              Branch(pipeline_impl_interior),
                             ])),
                   Line(box"}"),
                   ];

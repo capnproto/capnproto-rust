@@ -90,17 +90,24 @@ pub mod AnyPointer {
         }
 
         pub fn noop(&self) -> Pipeline {
-            let mut new_ops = ~[];
-            for &op in self.ops.iter() {new_ops.push(op)}
+            let mut new_ops = std::vec::with_capacity(self.ops.len());
+            for &op in self.ops.iter() {
+                new_ops.push(op)
+            }
             Pipeline { hook : self.hook.copy(), ops : new_ops }
         }
 
-        pub fn get_pointer_field(&self, _pointer_index : u16) -> Pipeline {
-            fail!()
+        pub fn get_pointer_field(&self, pointer_index : u16) -> Pipeline {
+            let mut new_ops = std::vec::with_capacity(self.ops.len() + 1);
+            for &op in self.ops.iter() {
+                new_ops.push(op)
+            }
+            new_ops.push(PipelineOp::GetPointerField(pointer_index));
+            Pipeline { hook : self.hook.copy(), ops : new_ops }
         }
 
-        pub fn as_cap(~self) -> ~ClientHook {
-            let ~Pipeline { hook, ops } = self;
+        pub fn as_cap(self) -> ~ClientHook {
+            let Pipeline { hook, ops } = self;
             hook.get_pipelined_cap(ops)
         }
     }
