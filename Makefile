@@ -18,6 +18,7 @@ CAPNP_SOURCES= \
     capnp/serialize_packed.rs
 
 CAPNP_RPC_SOURCES= \
+	capnp-rpc/ez_rpc.rs \
     capnp-rpc/lib.rs \
     capnp-rpc/rpc.rs
 
