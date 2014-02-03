@@ -228,11 +228,13 @@ impl ClientHook for ImportClient {
 pub struct PipelineClient {
     priv channel : std::comm::SharedChan<RpcEvent>,
     ops : ~[PipelineOp::Type],
+//    question_id_port : std::comm::Port<ImportId>,
 }
 
 impl ClientHook for PipelineClient {
     fn copy(&self) -> ~ClientHook {
-        fail!()
+        (~PipelineClient { channel : self.channel.clone(),
+                           ops : self.ops.clone() }) as ~ClientHook
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
@@ -263,7 +265,7 @@ impl ClientHook for PipelineClient {
 
 pub struct RpcRequest {
     priv channel : std::comm::SharedChan<RpcEvent>,
-    priv message : ~MallocMessageBuilder
+    priv message : ~MallocMessageBuilder,
 }
 
 impl RequestHook for RpcRequest {
@@ -288,7 +290,7 @@ impl PipelineHook for RpcPipeline {
     fn copy(&self) -> ~PipelineHook {
         fail!()
     }
-    fn get_pipelined_cap(&self, ops : &[PipelineOp::Type]) -> ~ClientHook {
+    fn get_pipelined_cap(&self, ops : ~[PipelineOp::Type]) -> ~ClientHook {
         fail!()
     }
 }

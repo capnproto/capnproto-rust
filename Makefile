@@ -70,7 +70,9 @@ $(CAPNP_RPC_COMPILATION_MARKER) : capnpc-rust/capnpc-rust $(CAPNP_RPC_SOURCES)
 	$(RUSTC) -L./capnp capnp-rpc/lib.rs
 	touch $(CAPNP_RPC_COMPILATION_MARKER)
 
-examples/calculator/calculator : capnp-rpc
+examples/calculator/calculator : capnpc-rust/capnpc-rust $(CAPNP_RPC_COMPILATION_MARKER) \
+                                 examples/calculator/main.rs examples/calculator/client.rs \
+                                 examples/calculator/calculator.capnp
 	capnp compile -o./capnpc-rust/capnpc-rust examples/calculator/calculator.capnp
 	$(RUSTC) -L./capnp -L./capnp-rpc examples/calculator/main.rs
 

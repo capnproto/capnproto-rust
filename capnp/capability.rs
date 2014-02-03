@@ -78,10 +78,12 @@ pub trait CallContextHook {
 
 pub trait PipelineHook {
     fn copy(&self) -> ~PipelineHook;
-    fn get_pipelined_cap(&self, ops : &[PipelineOp::Type]) -> ~ClientHook;
+    fn get_pipelined_cap(&self, ops : ~[PipelineOp::Type]) -> ~ClientHook;
 }
 
 pub mod PipelineOp {
+
+    #[deriving(Clone)]
     pub enum Type {
         Noop,
         GetPointerField(u16),
