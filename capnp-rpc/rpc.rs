@@ -6,7 +6,7 @@
 
 use capnp::any::{AnyPointer};
 use capnp::capability;
-use capnp::capability::{RemotePromise, RequestHook, ClientHook, Request};
+use capnp::capability::{RemotePromise, RequestHook, ClientHook, PipelineHook, Request, PipelineOp};
 use capnp::common;
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, MallocMessageBuilder};
@@ -14,7 +14,7 @@ use capnp::serialize;
 use capnp::serialize::{OwnedSpaceMessageReader};
 use std;
 use std::hashmap::HashMap;
-use rpc_capnp::{Message, Return, CapDescriptor};
+use rpc_capnp::{Message, Return, CapDescriptor, PromisedAnswer};
 
 type QuestionId = u32;
 type AnswerId = QuestionId;
@@ -225,6 +225,42 @@ impl ClientHook for ImportClient {
     }
 }
 
+pub struct PipelineClient {
+    priv channel : std::comm::SharedChan<RpcEvent>,
+    ops : ~[PipelineOp::Type],
+}
+
+impl ClientHook for PipelineClient {
+    fn copy(&self) -> ~ClientHook {
+        fail!()
+    }
+
+    fn new_call(&self, interface_id : u64, method_id : u16,
+                _size_hint : Option<common::MessageSize>)
+                -> capability::Request<AnyPointer::Builder, AnyPointer::Reader> {
+        let mut message = box MallocMessageBuilder::new_default();
+        {
+            let root : Message::Builder = message.get_root();
+            let call = root.init_call();
+            call.set_interface_id(interface_id);
+            call.set_method_id(method_id);
+            let target = call.init_target();
+            let promised_answer = target.init_promised_answer();
+            promised_answer.set_question_id(0); //XXX
+            let transform = promised_answer.init_transform(self.ops.len());
+            for ii in range(0, self.ops.len()) {
+                match self.ops[ii] {
+                    PipelineOp::Noop => transform[ii].set_noop(()),
+                    PipelineOp::GetPointerField(idx) => transform[ii].set_get_pointer_field(idx),
+                }
+            }
+        }
+        let hook = box RpcRequest { channel : self.channel.clone(),
+                                    message : message };
+        Request::new(hook as ~RequestHook)
+    }
+}
+
 pub struct RpcRequest {
     priv channel : std::comm::SharedChan<RpcEvent>,
     priv message : ~MallocMessageBuilder
@@ -241,6 +277,19 @@ impl RequestHook for RpcRequest {
         channel.send(OutgoingMessage(message, chan));
 
         RemotePromise {port : port, result : None}
+    }
+}
+
+pub struct RpcPipeline {
+    _dummy : ()
+}
+
+impl PipelineHook for RpcPipeline {
+    fn copy(&self) -> ~PipelineHook {
+        fail!()
+    }
+    fn get_pipelined_cap(&self, ops : &[PipelineOp::Type]) -> ~ClientHook {
+        fail!()
     }
 }
 

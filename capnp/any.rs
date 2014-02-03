@@ -106,9 +106,8 @@ pub mod AnyPointer {
             Pipeline { hook : self.hook.copy(), ops : new_ops }
         }
 
-        pub fn as_cap(self) -> ~ClientHook {
-            let Pipeline { hook, ops } = self;
-            hook.get_pipelined_cap(ops)
+        pub fn as_cap(&self) -> ~ClientHook {
+            self.hook.get_pipelined_cap(self.ops)
         }
     }
 }
