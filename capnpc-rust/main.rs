@@ -218,7 +218,7 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
     Branch(~[
             Line(~"use std;"),
             Line(~"use capnp::any::AnyPointer;"),
-            Line(~"use capnp::capability::{FromClientHook};"),
+            Line(~"use capnp::capability::{FromClientHook, FromTypelessPipeline};"),
             Line(~"use capnp::blob::{Text, Data};"),
             Line(~"use capnp::layout;"),
             Line(~"use capnp::layout::{FromStructBuilder, FromStructReader};"),
@@ -931,8 +931,7 @@ fn generate_pipeline_getter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp:
             return Branch(box[Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
                                            camel_to_snake_case(name),
                                            theMod)),
-                              Indent(box Line(format!("{}::Pipeline::new(self._typeless.noop())",
-                                                      theMod))),
+                              Indent(box Line(box "FromTypelessPipeline::new(self._typeless.noop())")),
                               Line(box "}")]);
         }
         Some(Field::Slot(reg_field)) => {
@@ -945,8 +944,8 @@ fn generate_pipeline_getter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp:
                                          camel_to_snake_case(name),
                                          theMod)),
                             Indent(box Line(
-                                    format!("{}::Pipeline::new(self._typeless.get_pointer_field({}))",
-                                            theMod, reg_field.get_offset()))),
+                                    format!("FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
+                                            reg_field.get_offset()))),
                             Line(box "}")]);
                 }
                 Some(Type::Interface(interface)) => {
@@ -1147,14 +1146,15 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                   Line(~"}"),
                   BlankLine,
                   Line(box"pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }"),
-                  Line(box"impl Pipeline {"),
+                  Line(box"impl FromTypelessPipeline for Pipeline {"),
                   Indent(
                     box Branch(
-                        box [ Line(box "pub fn new(typeless : AnyPointer::Pipeline) -> Pipeline {"),
+                        box [ Line(box "fn new(typeless : AnyPointer::Pipeline) -> Pipeline {"),
                               Indent(box Line(box "Pipeline { _typeless : typeless }")),
-                              Line( box "}"),
-                              Branch(pipeline_impl_interior),
-                            ])),
+                              Line( box "}")])),
+                  Line(box"}"),
+                  Line(box "impl Pipeline {"),
+                  Indent(box Branch(pipeline_impl_interior)),
                   Line(box"}"),
                   ];
 
@@ -1252,8 +1252,8 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                             )));
 
                 client_impl_interior.push(
-                    Line(format!("pub fn {}_request(&self) -> Request<{}::Builder,{}::Reader> \\{",
-                                 camel_to_snake_case(name), params_name, results_name)));
+                    Line(format!("pub fn {}_request(&self) -> Request<{}::Builder,{}::Reader,{}::Pipeline> \\{",
+                                 camel_to_snake_case(name), params_name, results_name, results_name)));
 
                 client_impl_interior.push(Indent(
                         box Line(format!("self.client.new_call(0x{:x}, {}, None)", node_id, ordinal))));

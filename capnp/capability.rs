@@ -10,28 +10,31 @@ use message::{MallocMessageBuilder};
 use serialize::{OwnedSpaceMessageReader};
 use std;
 
-pub struct RemotePromise<T> {
-    port : std::comm::Port<~OwnedSpaceMessageReader>,
-    result : Option<~OwnedSpaceMessageReader>,
+pub struct RemotePromise<Results, Pipeline> {
+    answer_port : std::comm::Port<~OwnedSpaceMessageReader>,
+    answer_result : Option<~OwnedSpaceMessageReader>,
+    pipeline : Pipeline,
 }
 
 pub trait RequestHook {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder;
-    fn send(~self) -> RemotePromise<AnyPointer::Reader>;
+    fn send(~self) -> RemotePromise<AnyPointer::Reader, AnyPointer::Pipeline>;
 }
 
-pub struct Request<Params, Results> {
+pub struct Request<Params, Results, Pipeline> {
     hook : ~RequestHook
 }
 
-impl <Params, Results> Request <Params, Results> {
-    pub fn new(hook : ~RequestHook) -> Request <Params, Results> {
+impl <Params, Results, Pipeline > Request <Params, Results, Pipeline> {
+    pub fn new(hook : ~RequestHook) -> Request <Params, Results, Pipeline> {
         Request { hook : hook }
     }
-
-    pub fn send(self) -> RemotePromise<Results> {
-        let promise = self.hook.send();
-        RemotePromise { port : promise.port, result : None }
+}
+impl <Params, Results, Pipeline : FromTypelessPipeline> Request <Params, Results, Pipeline> {
+    pub fn send(self) -> RemotePromise<Results, Pipeline> {
+        let RemotePromise {answer_port, answer_result, pipeline} = self.hook.send();
+        RemotePromise { answer_port : answer_port, answer_result : answer_result,
+                        pipeline : FromTypelessPipeline::new(pipeline) }
     }
 }
 
@@ -45,7 +48,7 @@ pub trait ClientHook {
                 interface_id : u64,
                 method_id : u16,
                 size_hint : Option<MessageSize>)
-                -> Request<AnyPointer::Builder, AnyPointer::Reader>;
+                -> Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline>;
 }
 
 
@@ -58,11 +61,11 @@ impl Client {
         Client { hook : hook }
     }
 
-    pub fn new_call<Params, Results>(&self,
-                                     interface_id : u64,
-                                     method_id : u16,
-                                     size_hint : Option<MessageSize>)
-                                     -> Request<Params, Results> {
+    pub fn new_call<Params, Results, Pipeline>(&self,
+                                               interface_id : u64,
+                                               method_id : u16,
+                                               size_hint : Option<MessageSize>)
+                                               -> Request<Params, Results, Pipeline> {
         let typeless = self.hook.new_call(interface_id, method_id, size_hint);
         Request { hook : typeless.hook }
     }
@@ -88,4 +91,8 @@ pub mod PipelineOp {
         Noop,
         GetPointerField(u16),
     }
+}
+
+pub trait FromTypelessPipeline {
+    fn new (typeless : AnyPointer::Pipeline) -> Self;
 }

@@ -20,20 +20,38 @@ pub fn main() {
 
     let calculator_client : Calculator::Client  = rpc_client.import_cap("calculator");
 
-    let mut req = calculator_client.evaluate_request();
     {
-        let params = req.init_params();
-        let exp = params.init_expression();
-        exp.set_literal(123.45);
-    }
-    let mut res = req.send();
-    let value = {
-        let results = res.wait();
-        results.get_value()
-    };
+        let mut req = calculator_client.evaluate_request();
+        {
+            let params = req.init_params();
+            let exp = params.init_expression();
+            exp.set_literal(123.45);
+        }
+        let mut res = req.send();
+        let value = {
+            let results = res.wait();
+            results.get_value()
+        };
 
-    let mut result = value.read_request().send();
-    println!("the value is: {}", result.wait().get_value());
+        let mut result = value.read_request().send();
+        println!("the value is: {}", result.wait().get_value());
+    }
+
+
+    {
+        let mut req = calculator_client.evaluate_request();
+        {
+            let params = req.init_params();
+            let exp = params.init_expression();
+            exp.set_literal(55.5);
+        }
+        let res = req.send();
+        let mut result = res.pipeline.get_value().read_request().send();
+        let answer = result.wait().get_value();
+        println!("the value is: {}", answer);
+    }
+
+
 
 
     rpc_client.netcat.wait();

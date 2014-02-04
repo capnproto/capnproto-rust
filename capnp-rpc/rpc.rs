@@ -174,7 +174,9 @@ impl RpcConnectionState {
                             }
 
                         }
-                        OutgoingMessage(mut m, chan) => {
+                        Outgoing(OutgoingMessage { message : mut m,
+                                                   answer_chan,
+                                                   question_chan} ) => {
                             let root = m.get_root::<Message::Builder>();
                             // add a question to the question table
                             match root.which() {
@@ -182,12 +184,14 @@ impl RpcConnectionState {
                                 Some(Message::Which::Call(call)) => {
                                     call.set_question_id(questions.slots.len() as u32);
                                     questions.slots.push(Question {is_awaiting_return : true,
-                                                                   chan : chan} );
+                                                                   chan : answer_chan} );
+                                    question_chan.try_send(call.get_question_id());
                                 }
                                 Some(Message::Which::Restore(res)) => {
                                     res.set_question_id(questions.slots.len() as u32);
                                     questions.slots.push(Question {is_awaiting_return : true,
-                                                                   chan : chan} );
+                                                                   chan : answer_chan} );
+                                    question_chan.try_send(res.get_question_id());
                                 }
                                 _ => {
                                     error!("NONE OF THOSE");
@@ -219,7 +223,7 @@ impl ClientHook for ImportClient {
 
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<common::MessageSize>)
-                -> capability::Request<AnyPointer::Builder, AnyPointer::Reader> {
+                -> capability::Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline> {
         let mut message = box MallocMessageBuilder::new_default();
         {
             let root : Message::Builder = message.get_root();
@@ -238,18 +242,20 @@ impl ClientHook for ImportClient {
 pub struct PipelineClient {
     priv channel : std::comm::SharedChan<RpcEvent>,
     ops : ~[PipelineOp::Type],
-//    question_id_port : std::comm::Port<ImportId>,
+    question_id : ExportId,
 }
 
 impl ClientHook for PipelineClient {
     fn copy(&self) -> ~ClientHook {
         (~PipelineClient { channel : self.channel.clone(),
-                           ops : self.ops.clone() }) as ~ClientHook
+                           ops : self.ops.clone(),
+                           question_id : self.question_id,
+            }) as ~ClientHook
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<common::MessageSize>)
-                -> capability::Request<AnyPointer::Builder, AnyPointer::Reader> {
+                -> capability::Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline> {
         let mut message = box MallocMessageBuilder::new_default();
         {
             let root : Message::Builder = message.get_root();
@@ -258,7 +264,7 @@ impl ClientHook for PipelineClient {
             call.set_method_id(method_id);
             let target = call.init_target();
             let promised_answer = target.init_promised_answer();
-            promised_answer.set_question_id(0); //XXX
+            promised_answer.set_question_id(self.question_id);
             let transform = promised_answer.init_transform(self.ops.len());
             for ii in range(0, self.ops.len()) {
                 match self.ops[ii] {
@@ -282,26 +288,37 @@ impl RequestHook for RpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
         &mut *self.message
     }
-    fn send(~self) -> RemotePromise<AnyPointer::Reader> {
-        let (port, chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
+    fn send(~self) -> RemotePromise<AnyPointer::Reader, AnyPointer::Pipeline> {
 
         let ~RpcRequest { channel, message } = self;
-        channel.send(OutgoingMessage(message, chan));
+        let (event, answer_port, question_port) = RpcEvent::new_outgoing(message);
+        channel.send(event);
 
-        RemotePromise {port : port, result : None}
+        let question_id = question_port.recv();
+
+        let pipeline = ~RpcPipeline {channel : channel, question_id : question_id};
+        let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
+
+        RemotePromise {answer_port : answer_port, answer_result : None,
+                       pipeline : typeless  }
     }
 }
 
 pub struct RpcPipeline {
-    _dummy : ()
+    channel : std::comm::SharedChan<RpcEvent>,
+    question_id : ExportId,
 }
 
 impl PipelineHook for RpcPipeline {
     fn copy(&self) -> ~PipelineHook {
-        fail!()
+        (~RpcPipeline { channel : self.channel.clone(),
+                        question_id : self.question_id }) as ~PipelineHook
     }
     fn get_pipelined_cap(&self, ops : ~[PipelineOp::Type]) -> ~ClientHook {
-        fail!()
+        (~PipelineClient { channel : self.channel.clone(),
+                           ops : ops,
+                           question_id : self.question_id,
+        }) as ~ClientHook
     }
 }
 
@@ -309,8 +326,8 @@ pub trait InitParams<'a, T> {
     fn init_params(&'a mut self) -> T;
 }
 
-impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results> InitParams<'a, Params>
-for Request<Params, Results> {
+impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results, Pipeline> InitParams<'a, Params>
+for Request<Params, Results, Pipeline> {
     fn init_params(&'a mut self) -> Params {
         let message : Message::Builder = self.hook.message().get_root();
         match message.which() {
@@ -327,11 +344,13 @@ pub trait WaitForContent<'a, T> {
     fn wait(&'a mut self) -> T;
 }
 
-impl <'a, Results : FromStructReader<'a>> WaitForContent<'a, Results> for RemotePromise<Results> {
+impl <'a, Results : FromStructReader<'a>, Pipeline> WaitForContent<'a, Results>
+for RemotePromise<Results, Pipeline> {
     fn wait(&'a mut self) -> Results {
-        let message = self.port.recv();
-        self.result = Some(message);
-        match self.result {
+        // XXX should check that it's not already been received.
+        let message = self.answer_port.recv();
+        self.answer_result = Some(message);
+        match self.answer_result {
             None => unreachable!(),
             Some(ref message) => {
                 let root : Message::Reader = message.get_root();
@@ -352,9 +371,32 @@ impl <'a, Results : FromStructReader<'a>> WaitForContent<'a, Results> for Remote
 }
 
 
+pub struct OutgoingMessage {
+    message : ~MallocMessageBuilder,
+    answer_chan : std::comm::Chan<~OwnedSpaceMessageReader>,
+    question_chan : std::comm::Chan<ExportId>,
+}
+
+
 pub enum RpcEvent {
     Nothing,
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
-    OutgoingMessage(~MallocMessageBuilder, std::comm::Chan<~OwnedSpaceMessageReader>)
+    Outgoing(OutgoingMessage),
 }
 
+
+impl RpcEvent {
+    pub fn new_outgoing(message : ~MallocMessageBuilder)
+                        -> (RpcEvent, std::comm::Port<~OwnedSpaceMessageReader>,
+                            std::comm::Port<ExportId>) {
+        let (answer_port, answer_chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
+
+        let (question_port, question_chan) = std::comm::Chan::<ExportId>::new();
+
+        (Outgoing(OutgoingMessage{ message : message,
+                                   answer_chan : answer_chan,
+                                   question_chan : question_chan }),
+         answer_port,
+         question_port)
+    }
+}

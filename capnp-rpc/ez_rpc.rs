@@ -8,9 +8,8 @@
 use std;
 use capnp::capability::{FromClientHook};
 use capnp::message::{MessageBuilder, MallocMessageBuilder, MessageReader};
-use capnp::serialize::{OwnedSpaceMessageReader};
 use rpc_capnp::{Message, Return};
-use rpc::{RpcConnectionState, RpcEvent, OutgoingMessage};
+use rpc::{RpcConnectionState, RpcEvent, OutgoingMessage, Outgoing};
 
 pub struct EzRpcClient {
     chan : std::comm::SharedChan<RpcEvent>,
@@ -55,11 +54,11 @@ impl EzRpcClient {
         let restore = message.init_root::<Message::Builder>().init_restore();
         restore.init_object_id().set_as_text(name);
 
-        let (port, chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
 
-        self.chan.send(OutgoingMessage(message, chan));
+        let (event, answer_port, question_port) = RpcEvent::new_outgoing(message);
+        self.chan.send(event);
 
-        let reader = port.recv();
+        let reader = answer_port.recv();
         let message = reader.get_root::<Message::Reader>();
         let client = match message.which() {
             Some(Message::Return(ret)) => {
