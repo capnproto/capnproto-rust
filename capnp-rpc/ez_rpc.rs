@@ -40,8 +40,8 @@ impl EzRpcClient {
         let mut p = process::Process::new(config).unwrap();
 
         p.io.pop();
-        let childStdOut = p.io.pop();
-        let childStdIn = p.io.pop();
+        let childStdOut = p.io.pop().unwrap().unwrap();
+        let childStdIn = p.io.pop().unwrap().unwrap();
 
         let connection_state = RpcConnectionState::new();
 

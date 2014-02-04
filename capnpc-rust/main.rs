@@ -1386,10 +1386,10 @@ fn main() {
         let text = stringify(&lines);
 
         match File::open_mode(&filepath, Truncate, Write) {
-            Some(ref mut writer) => {
-                writer.write(text.as_bytes())
+            Ok(ref mut writer) => {
+                writer.write(text.as_bytes()).unwrap();
             }
-            None => {fail!("could not open file for writing")}
+            Err(e) => {fail!("could not open file for writing: {}", e)}
         }
     }
 

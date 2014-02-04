@@ -207,7 +207,7 @@ macro_rules! server(
                 $testcase::handle_request(requestReader, response);
 
                 $compression::write_buffered(&mut outBuffered, &messageRes);
-                outBuffered.flush();
+                outBuffered.flush().unwrap();
             }
         });
     )
@@ -257,16 +257,16 @@ macro_rules! pass_by_pipe(
                 io : io
             };
             match process::Process::new(config) {
-                Some(ref mut p) => {
+                Ok(ref mut p) => {
                     p.io.pop();
-                    let mut childStdOut = p.io.pop();
-                    let mut childStdIn = p.io.pop();
+                    let mut childStdOut = p.io.pop().unwrap().unwrap();
+                    let mut childStdIn = p.io.pop().unwrap().unwrap();
 
                     server!($testcase, $reuse, $compression, $iters, childStdOut, childStdIn);
                     println!("{}", p.wait());
                 }
-                None => {
-                    println!("bummer");
+                Err(e) => {
+                    println!("could not start process: {}", e);
                 }
             }
         });

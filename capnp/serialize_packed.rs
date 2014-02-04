@@ -31,10 +31,10 @@ macro_rules! refresh_buffer(
     )
 
 impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a, R> {
-    fn read(&mut self, outBuf: &mut [u8]) -> Option<uint> {
+    fn read(&mut self, outBuf: &mut [u8]) -> std::io::IoResult<uint> {
         let len = outBuf.len();
 
-        if len == 0 { return Some(0); }
+        if len == 0 { return Ok(0); }
 
         assert!(len % 8 == 0, "PackInputStream reads must be word-aligned");
 
@@ -46,7 +46,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
             let mut bufferBegin = inPtr;
             let mut size = ptr_sub(inEnd, inPtr);
             if size == 0 {
-                return Some(0);
+                return Ok(0);
             }
 
             loop {
@@ -59,7 +59,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                 if ptr_sub(inEnd, inPtr) < 10 {
                     if out >= outEnd {
                         self.inner.skip(ptr_sub(inPtr, bufferBegin));
-                        return Some(ptr_sub(out, outBuf.as_mut_ptr()));
+                        return Ok(ptr_sub(out, outBuf.as_mut_ptr()));
                     }
 
                     if ptr_sub(inEnd, inPtr) == 0 {
@@ -140,12 +140,12 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
 
                         self.inner.skip(size);
                         std::vec::raw::mut_buf_as_slice::<u8,()>(out, runLength, |buf| {
-                            self.inner.read(buf);
+                            self.inner.read(buf).unwrap();
                         });
                         out = out.offset(runLength as int);
 
                         if out == outEnd {
-                            return Some(len);
+                            return Ok(len);
                         } else {
                             let (b, e) = self.inner.get_read_buffer();
                             inPtr = b;
@@ -159,7 +159,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
 
                 if out == outEnd {
                     self.inner.skip(ptr_sub(inPtr, bufferBegin));
-                    return Some(len);
+                    return Ok(len);
                 }
             }
         }
@@ -192,7 +192,7 @@ pub struct PackedOutputStream<'a, W> {
 }
 
 impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'a, W> {
-    fn write(&mut self, inBuf : &[u8]) {
+    fn write(&mut self, inBuf : &[u8]) -> std::io::IoResult<()> {
         unsafe {
             let (mut out, mut bufferEnd) = self.inner.get_write_buffer();
             let mut bufferBegin = out;
@@ -207,7 +207,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     //# Oops, we're out of space. We need at least 10
                     //# bytes for the fast path, since we don't
                     //# bounds-check on every byte.
-                    self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
+                    if_ok!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
 
                     out = slowBuffer.as_mut_ptr();
                     bufferEnd = std::ptr::to_mut_unsafe_ptr(slowBuffer.unsafe_mut_ref(20));
@@ -326,10 +326,10 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                         //# Input overruns the output buffer. We'll give it
                         //# to the output stream in one chunk and let it
                         //# decide what to do.
-                        self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
+                        if_ok!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
 
                         std::vec::raw::buf_as_slice::<u8,()>(runStart, count, |buf| {
-                            self.inner.write(buf);
+                            self.inner.write(buf).unwrap();
                         });
 
                         let (out1, bufferEnd1) = self.inner.get_write_buffer();
@@ -339,11 +339,12 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                 }
             }
 
-            self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin));
+            if_ok!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
+            Ok(())
         }
     }
 
-   fn flush(&mut self) { self.inner.flush(); }
+   fn flush(&mut self) -> std::io::IoResult<()> { self.inner.flush() }
 }
 
 pub fn write_packed_message<T:io::BufferedOutputStream,U:MessageBuilder>(
@@ -357,5 +358,5 @@ pub fn write_packed_message_unbuffered<T:std::io::Writer,U:MessageBuilder>(
     output : &mut T, message : &U) {
     let mut buffered = io::BufferedOutputStreamWrapper::new(output);
     write_packed_message(&mut buffered, message);
-    buffered.flush();
+    buffered.flush().unwrap();
 }

@@ -36,10 +36,10 @@ impl MessageReader for OwnedSpaceMessageReader {
 pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
                                        options : ReaderOptions) -> OwnedSpaceMessageReader {
 
-    let firstWord = inputStream.read_bytes(8);
+    let firstWord = inputStream.read_bytes(8).unwrap();
 
     let segmentCount : u32 =
-        unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.unsafe_ref(0));
+        unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.as_ptr());
                 (*p).get() + 1
     };
 
@@ -59,7 +59,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
     let mut moreSizes : ~[u32] = std::vec::from_elem((segmentCount & !1) as uint, 0u32);
 
     if segmentCount > 1 {
-        let moreSizesRaw = inputStream.read_bytes((4 * (segmentCount & !1)) as uint);
+        let moreSizesRaw = inputStream.read_bytes((4 * (segmentCount & !1)) as uint).unwrap();
         for ii in range(0, segmentCount as uint - 1) {
             moreSizes[ii] = unsafe {
                 let p : *WireValue<u32> =
@@ -144,7 +144,7 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
             unsafe {
                 let ptr : *u8 = std::cast::transmute(table.unsafe_ref(0));
                 std::vec::raw::buf_as_slice::<u8,()>(ptr, table.len() * 4, |buf| {
-                        outputStream.write(buf);
+                        outputStream.write(buf).unwrap();
                     })
             }
 
@@ -154,7 +154,7 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
                     std::vec::raw::buf_as_slice::<u8,()>(
                         ptr,
                         segments[i].len() * BYTES_PER_WORD,
-                        |buf| { outputStream.write(buf) });
+                        |buf| { outputStream.write(buf).unwrap(); });
                 }
             }
         });
