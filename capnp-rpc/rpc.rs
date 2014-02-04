@@ -93,11 +93,21 @@ impl RpcConnectionState {
                 }
             });
 
+
         let loop_chan = chan.clone();
+
+        let (writer_port, writer_chan) = std::comm::Chan::<~MallocMessageBuilder>::new();
+
+        spawn(proc() {
+                let mut w = outpipe;
+                loop {
+                    let message = writer_port.recv();
+                    serialize::write_message(&mut w, message);
+                }
+            });
 
         spawn(proc() {
                 let RpcConnectionState {mut questions, exports, answers, imports} = self;
-                let mut outpipe = outpipe;
                 loop {
                     match port.recv() {
                         IncomingMessage(mut message) => {
@@ -185,7 +195,7 @@ impl RpcConnectionState {
                             }
 
                             // send
-                            serialize::write_message(&mut outpipe, m);
+                            writer_chan.send(m);
                         }
                         _ => {
                             println!("got another event");
