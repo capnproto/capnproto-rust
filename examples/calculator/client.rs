@@ -18,10 +18,10 @@ pub fn main() {
 
     let mut rpc_client = EzRpcClient::new(args[2]);
 
-    let calculator_client : Calculator::Client  = rpc_client.import_cap("calculator");
+    let calculator : Calculator::Client  = rpc_client.import_cap("calculator");
 
     {
-        let mut req = calculator_client.evaluate_request();
+        let mut req = calculator.evaluate_request();
         {
             let params = req.init_params();
             let exp = params.init_expression();
@@ -39,19 +39,41 @@ pub fn main() {
 
 
     {
-        let mut req = calculator_client.evaluate_request();
-        {
-            let params = req.init_params();
-            let exp = params.init_expression();
-            exp.set_literal(55.5);
-        }
-        let res = req.send();
-        let mut result = res.pipeline.get_value().read_request().send();
-        let answer = result.wait().get_value();
-        println!("the value is: {}", answer);
+        println!("Evaluating a literal... ");
+
+        let mut request = calculator.evaluate_request();
+        request.init_params().get_expression().set_literal(123.0);
+
+        let eval_promise = request.send();
+
+        let mut read_promise = eval_promise.pipeline.get_value().read_request().send();
+
+        let response = read_promise.wait();
+        assert_eq!(response.get_value(), 123.0);
+
+        println!("PASS")
     }
 
+    {
+        println!("Using add and subtract... ");
 
+        let add = {
+            let mut request = calculator.get_operator_request();
+            request.init_params().set_op(Calculator::Operator::Add);
+            request.send().pipeline.get_func()
+        };
+
+        let subtract = {
+            let mut request = calculator.get_operator_request();
+            request.init_params().set_op(Calculator::Operator::Subtract);
+            request.send().pipeline.get_func()
+        };
+
+        let mut request = calculator.evaluate_request();
+
+        let subtract_call = request.init_params().get_expression().init_call();
+        // subtract_call.set_function(subtract);
+    }
 
 
     rpc_client.netcat.wait();
