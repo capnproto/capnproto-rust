@@ -126,6 +126,10 @@ pub trait MessageBuilder {
     fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
         self.arena().get_segments_for_output(cont)
     }
+
+    fn get_cap_table<'a>(&'a self) -> &'a [Option<~ClientHook>] {
+        self.arena().get_cap_table()
+    }
 }
 
 pub struct MallocMessageBuilder {

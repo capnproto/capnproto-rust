@@ -327,6 +327,10 @@ impl BuilderArena {
         }
     }
 
+    pub fn get_cap_table<'a>(&'a self) -> &'a [Option<~ClientHook>] {
+        self.cap_table.as_slice()
+    }
+
     pub fn inject_cap(&mut self, cap : ~ClientHook) -> u32 {
         self.cap_table.push(Some(cap));
         self.cap_table.len() as u32 - 1
