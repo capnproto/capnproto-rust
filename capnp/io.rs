@@ -5,7 +5,7 @@
  */
 
 use std;
-use std::io::{Reader, Writer};
+use std::io::{Reader, Writer, IoResult};
 
 
 pub fn read_at_least<R : Reader>(reader : &mut R,
@@ -83,7 +83,7 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
 }
 
 impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
-    fn read(&mut self, dst: &mut [u8]) -> Result<uint, std::io::IoError> {
+    fn read(&mut self, dst: &mut [u8]) -> IoResult<uint> {
         let mut num_bytes = dst.len();
         if num_bytes <= self.cap - self.pos {
             //# Serve from the current buffer.
@@ -152,7 +152,7 @@ impl <'a> BufferedInputStream for ArrayInputStream<'a> {
 
 pub trait BufferedOutputStream : Writer {
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8);
-    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> std::io::IoResult<()>;
+    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()>;
 }
 
 pub struct BufferedOutputStreamWrapper<'a, W> {
@@ -184,13 +184,13 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
     }
 
     #[inline]
-    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> std::io::IoResult<()> {
+    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
         let easyCase = ptr == std::ptr::to_mut_unsafe_ptr(self.buf.unsafe_mut_ref(self.pos));
         if easyCase {
             self.pos += size;
             Ok(())
         } else {
-            std::vec::raw::mut_buf_as_slice::<u8,std::io::IoResult<()>>(ptr, size, |buf| {
+            std::vec::raw::mut_buf_as_slice::<u8,IoResult<()>>(ptr, size, |buf| {
                 self.write(buf)
             })
         }
@@ -200,7 +200,7 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
 
 
 impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
-    fn write(&mut self, buf: &[u8]) -> std::io::IoResult<()> {
+    fn write(&mut self, buf: &[u8]) -> IoResult<()> {
         let available = self.buf.len() - self.pos;
         let mut size = buf.len();
         if size <= available {
@@ -224,14 +224,14 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
         } else {
             //# Writing so much data that we might as well write
             //# directly to avoid a copy.
-            self.inner.write(self.buf.slice(0, self.pos)).unwrap();
+            if_ok!(self.inner.write(self.buf.slice(0, self.pos)));
             self.pos = 0;
             if_ok!(self.inner.write(buf));
         }
         return Ok(());
     }
 
-    fn flush(&mut self) -> std::io::IoResult<()> {
+    fn flush(&mut self) -> IoResult<()> {
         if self.pos > 0 {
             if_ok!(self.inner.write(self.buf.slice(0, self.pos)));
             self.pos = 0;
@@ -255,7 +255,7 @@ impl <'a> ArrayOutputStream<'a> {
 }
 
 impl <'a> Writer for ArrayOutputStream<'a> {
-    fn write(&mut self, buf: &[u8]) -> std::io::IoResult<()> {
+    fn write(&mut self, buf: &[u8]) -> IoResult<()> {
         assert!(buf.len() <= self.array.len() - self.fill_pos,
                 "ArrayOutputStream's backing array was not large enough for the data written.");
         unsafe { self.array.mut_slice_from(self.fill_pos).copy_memory(buf); }
@@ -270,13 +270,13 @@ impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
         (std::ptr::to_mut_unsafe_ptr(self.array.unsafe_mut_ref(self.fill_pos)),
          std::ptr::to_mut_unsafe_ptr(self.array.unsafe_mut_ref(len)))
     }
-    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> std::io::IoResult<()> {
+    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
         let easyCase = ptr == std::ptr::to_mut_unsafe_ptr(self.array.unsafe_mut_ref(self.fill_pos));
         if easyCase {
             self.fill_pos += size;
             Ok(())
         } else {
-            std::vec::raw::mut_buf_as_slice::<u8,std::io::IoResult<()>>(ptr, size, |buf| {
+            std::vec::raw::mut_buf_as_slice::<u8,IoResult<()>>(ptr, size, |buf| {
                 self.write(buf)
             })
         }
