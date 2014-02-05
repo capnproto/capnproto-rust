@@ -36,7 +36,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
 
         if len == 0 { return Ok(0); }
 
-        assert!(len % 8 == 0, "PackInputStream reads must be word-aligned");
+        assert!(len % 8 == 0, "PackedInputStream reads must be word-aligned");
 
         unsafe {
             let mut out = outBuf.as_mut_ptr();

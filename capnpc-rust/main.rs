@@ -730,8 +730,11 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     (Some(format!("{}::Reader", theMod)), Some(format!("{}::Builder<'a>", theMod)))
                 }
                 Some(Type::Interface(interface)) => {
-                    error!("unimplemented {}", interface.get_type_id());
-                    (None, None)
+                    let theMod = scopeMap.get(&interface.get_type_id()).connect("::");
+                    setter_interior.push(
+                        Line(format!("self.builder.get_pointer_field({}).set_capability(value.client.hook);",
+                                     offset)));
+                    (Some(format!("{}::Client",theMod)), None)
                 }
                 Some(Type::AnyPointer(())) => {
                     initter_interior.push(Line(format!("let result = AnyPointer::Builder::new(self.builder.get_pointer_field({}));",
@@ -1264,7 +1267,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
 
             mod_interior.push(BlankLine);
-            mod_interior.push(Line(~"pub struct Client{ priv client : capability::Client }"));
+            mod_interior.push(Line(~"pub struct Client{ client : capability::Client }"));
             mod_interior.push(
                     Branch(~[
                             Line(box "impl FromClientHook for Client {"),

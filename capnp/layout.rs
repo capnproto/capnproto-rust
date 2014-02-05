@@ -1208,6 +1208,12 @@ mod WireHelpers {
         super::SegmentAnd { segment : segment, value : ptr }
     }
 
+    pub unsafe fn set_capability_pointer(segment : *mut SegmentBuilder,
+                                         reff : *mut WirePointer,
+                                         cap : ~ClientHook) {
+        (*reff).set_cap((*(*segment).get_arena()).inject_cap(cap));
+    }
+
     pub unsafe fn set_list_pointer<'a>(mut segment : *mut SegmentBuilder,
                                        mut reff : *mut WirePointer,
                                        value : ListReader) -> super::SegmentAnd<*mut Word> {
@@ -1831,6 +1837,11 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
+    pub fn set_capability(&self, cap : ~ClientHook) {
+        unsafe {
+            WireHelpers::set_capability_pointer(self.segment, self.pointer, cap);
+        }
+    }
 
     pub fn clear(&self) {
         unsafe {

@@ -72,7 +72,20 @@ pub fn main() {
         let mut request = calculator.evaluate_request();
 
         let subtract_call = request.init_params().get_expression().init_call();
-        // subtract_call.set_function(subtract);
+        subtract_call.set_function(subtract);
+        let subtract_params = subtract_call.init_params(2);
+        subtract_params[1].set_literal(67.0);
+
+        let add_call = subtract_params[0].init_call();
+        add_call.set_function(add);
+        let add_params = add_call.init_params(2);
+        add_params[0].set_literal(123.0);
+        add_params[1].set_literal(45.0);
+
+        let eval_promise = request.send();
+        let mut read_promise = eval_promise.pipeline.get_value().read_request().send();
+        //let response = read_promise.wait();
+        //assert_eq!(response.get_value(), 101.0);
     }
 
 

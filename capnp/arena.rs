@@ -107,7 +107,7 @@ pub struct ReaderArena {
     more_segments : Option<~[SegmentReader]>,
         //XXX should this be a map as in capnproto-c++?
 
-    cap_table : ~[Option<~ClientHook>]
+    cap_table : ~[Option<~ClientHook>],
 }
 
 impl ReaderArena {
@@ -170,6 +170,7 @@ pub struct BuilderArena {
     allocation_strategy : message::AllocationStrategy,
     owned_memory : Option<~[*mut Word]>,
     nextSize : uint,
+    cap_table : ~[Option<~ClientHook>],
 }
 
 impl Drop for BuilderArena {
@@ -213,12 +214,13 @@ impl BuilderArena {
                     size : num_words,
                     arena : Null },
                 id : 0,
-                pos : first_segment
+                pos : first_segment,
             },
             more_segments : None,
             allocation_strategy : allocationStrategy,
             owned_memory : owned_memory,
             nextSize : num_words,
+            cap_table : box [],
         };
 
         let arena_ptr = std::ptr::to_mut_unsafe_ptr(result);
@@ -323,6 +325,11 @@ impl BuilderArena {
                 }
             }
         }
+    }
+
+    pub fn inject_cap(&mut self, cap : ~ClientHook) -> u32 {
+        self.cap_table.push(Some(cap));
+        self.cap_table.len() as u32 - 1
     }
 }
 
