@@ -166,6 +166,93 @@ pub fn main() {
         println!("PASS");
     }
 
+    {
+        //# Our calculator interface supports defining functions.  Here we use it
+        //# to define two functions and then make calls to them as follows:
+        //#
+        //#   f(x, y) = x * 100 + y
+        //#   g(x) = f(x, x + 1) * 2;
+        //#   f(12, 34)
+        //#   g(21)
+        //#
+        //# Once again, the whole thing takes only one network round trip.
+
+        println!("Defining functions... ");
+
+        let add = {
+            let mut request = calculator.get_operator_request();
+            request.init_params().set_op(Calculator::Operator::Add);
+            request.send().pipeline.get_func()
+        };
+
+        let multiply = {
+            let mut request = calculator.get_operator_request();
+            request.init_params().set_op(Calculator::Operator::Multiply);
+            request.send().pipeline.get_func()
+        };
+
+        let f = {
+            let mut request = calculator.def_function_request();
+            let def_function_params = request.init_params();
+            def_function_params.set_param_count(2);
+            {
+                let add_call = def_function_params.get_body().init_call();
+                add_call.set_function(add.clone());
+                let add_params = add_call.init_params(2);
+                add_params[1].set_parameter(1);
+
+                let multiply_call = add_params[0].init_call();
+                multiply_call.set_function(multiply.clone());
+                let multiply_params = multiply_call.init_params(2);
+                multiply_params[0].set_parameter(0);
+                multiply_params[1].set_literal(100.0);
+            }
+            request.send().pipeline.get_func()
+        };
+
+        let g = {
+            let mut request = calculator.def_function_request();
+            let def_function_params = request.init_params();
+            def_function_params.set_param_count(1);
+            {
+                let multiply_call = def_function_params.get_body().init_call();
+                multiply_call.set_function(multiply);
+                let multiply_params = multiply_call.init_params(2);
+                multiply_params[1].set_literal(2.0);
+
+                let f_call = multiply_params[0].init_call();
+                f_call.set_function(f.clone());
+                let f_params = f_call.init_params(2);
+                f_params[0].set_parameter(0);
+
+                let add_call = f_params[1].init_call();
+                add_call.set_function(add);
+                let add_params = add_call.init_params(2);
+                add_params[0].set_parameter(0);
+                add_params[1].set_literal(1.0);
+            }
+            request.send().pipeline.get_func()
+        };
+
+        let mut f_eval_request = calculator.evaluate_request();
+        let f_call = f_eval_request.init_params().init_expression().init_call();
+        f_call.set_function(f);
+        let f_params = f_call.init_params(2);
+        f_params[0].set_literal(12.0);
+        f_params[1].set_literal(34.0);
+        let mut f_eval_promise = f_eval_request.send().pipeline.get_value().read_request().send();
+
+        let mut g_eval_request = calculator.evaluate_request();
+        let g_call = g_eval_request.init_params().init_expression().init_call();
+        g_call.set_function(g);
+        g_call.init_params(1)[0].set_literal(21.0);
+        let mut g_eval_promise = g_eval_request.send().pipeline.get_value().read_request().send();
+
+        assert!(f_eval_promise.wait().get_value() == 1234.0);
+        assert!(g_eval_promise.wait().get_value() == 4244.0);
+
+        println!("PASS")
+    }
 
 
     rpc_client.netcat.wait();

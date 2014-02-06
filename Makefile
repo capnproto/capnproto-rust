@@ -37,42 +37,42 @@ clean :
 capnp : $(CAPNP_COMPILATION_MARKER)
 
 $(CAPNP_COMPILATION_MARKER) : $(CAPNP_SOURCES)
-	$(RUSTC) capnp/lib.rs
+	$(RUSTC) capnp/lib.rs --out-dir capnp
 	touch $(CAPNP_COMPILATION_MARKER)
 
 capnpc-rust/capnpc-rust : $(CAPNP_COMPILATION_MARKER) capnpc-rust/main.rs capnpc-rust/schema_capnp.rs
-	$(RUSTC) -L./capnp capnpc-rust/main.rs
+	$(RUSTC) -L./capnp capnpc-rust/main.rs --out-dir capnpc-rust
 
 examples/addressbook/addressbook : capnpc-rust/capnpc-rust examples/addressbook/addressbook.rs
 	capnpc -o ./capnpc-rust/capnpc-rust examples/addressbook/addressbook.capnp
-	$(RUSTC) -L./capnp examples/addressbook/addressbook.rs
+	$(RUSTC) -L./capnp examples/addressbook/addressbook.rs --out-dir examples/addressbook
 
 capnp-test :
-	$(RUSTC) --test capnp/lib.rs
+	$(RUSTC) --test capnp/lib.rs --out-dir capnp
 	./capnp/capnp
 
 capnpc-rust-test : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust capnpc-rust/test.capnp
-	$(RUSTC) --test -L./capnp capnpc-rust/test.rs
+	$(RUSTC) --test -L./capnp capnpc-rust/test.rs --out-dir capnpc-rust
 	./capnpc-rust/test
 
 check : capnp-test capnpc-rust-test
 
 benchmark : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
-	$(RUSTC) -L./capnp benchmark/benchmark.rs
+	$(RUSTC) -L./capnp benchmark/benchmark.rs --out-dir benchmark
 
 
 capnp-rpc : $(CAPNP_RPC_COMPILATION_MARKER)
 
 $(CAPNP_RPC_COMPILATION_MARKER) : capnpc-rust/capnpc-rust $(CAPNP_RPC_SOURCES)
 	capnp compile -o./capnpc-rust/capnpc-rust capnp-rpc/rpc.capnp capnp-rpc/rpc-twoparty.capnp
-	$(RUSTC) -L./capnp capnp-rpc/lib.rs
+	$(RUSTC) -L./capnp capnp-rpc/lib.rs --out-dir capnp-rpc
 	touch $(CAPNP_RPC_COMPILATION_MARKER)
 
 examples/calculator/calculator : capnpc-rust/capnpc-rust $(CAPNP_RPC_COMPILATION_MARKER) \
                                  examples/calculator/main.rs examples/calculator/client.rs \
                                  examples/calculator/calculator.capnp
 	capnp compile -o./capnpc-rust/capnpc-rust examples/calculator/calculator.capnp
-	$(RUSTC) -L./capnp -L./capnp-rpc examples/calculator/main.rs
+	$(RUSTC) -L./capnp -L./capnp-rpc examples/calculator/main.rs --out-dir examples/calculator
 
