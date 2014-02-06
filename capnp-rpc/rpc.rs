@@ -13,6 +13,7 @@ use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, Mall
 use capnp::serialize;
 use capnp::serialize::{OwnedSpaceMessageReader};
 use std;
+use std::any::AnyRefExt;
 use std::hashmap::HashMap;
 use rpc_capnp::{Message, Return, CapDescriptor, PromisedAnswer};
 
@@ -210,6 +211,15 @@ impl RpcConnectionState {
     }
 }
 
+// HACK
+enum OwnedCapDescriptor {
+    NoDescriptor,
+    SenderHosted(ExportId),
+    SenderPromise(ExportId),
+    ReceiverHosted(ImportId),
+    ReceiverAnswer(QuestionId, ~[PipelineOp::Type]),
+}
+
 pub struct ImportClient {
     priv channel : std::comm::SharedChan<RpcEvent>,
     import_id : ImportId,
@@ -237,12 +247,16 @@ impl ClientHook for ImportClient {
                                     message : message };
         Request::new(hook as ~RequestHook)
     }
+
+    fn get_descriptor(&self) -> ~std::any::Any {
+        (box ReceiverHosted(self.import_id)) as ~std::any::Any
+    }
 }
 
 pub struct PipelineClient {
     priv channel : std::comm::SharedChan<RpcEvent>,
     ops : ~[PipelineOp::Type],
-    question_id : ExportId,
+    question_id : QuestionId,
 }
 
 impl ClientHook for PipelineClient {
@@ -277,7 +291,12 @@ impl ClientHook for PipelineClient {
                                     message : message };
         Request::new(hook as ~RequestHook)
     }
+
+    fn get_descriptor(&self) -> ~std::any::Any {
+        (box ReceiverAnswer(self.question_id, self.ops.clone())) as ~std::any::Any
+    }
 }
+
 
 pub struct RpcRequest {
     priv channel : std::comm::SharedChan<RpcEvent>,
@@ -290,7 +309,52 @@ impl RequestHook for RpcRequest {
     }
     fn send(~self) -> RemotePromise<AnyPointer::Reader, AnyPointer::Pipeline> {
 
-        let ~RpcRequest { channel, message } = self;
+        let ~RpcRequest { channel, mut message } = self;
+
+        {
+            let cap_table = {
+                let mut caps = box [];
+                for cap in message.get_cap_table().iter() {
+                    match cap {
+                        &Some(ref client_hook) => {
+                            caps.push(client_hook.get_descriptor())
+                        }
+                        &None => {}
+                    }
+                }
+                caps
+            };
+            let root : Message::Builder = message.get_root();
+            match root.which() {
+                Some(Message::Which::Call(call)) => {
+                    let new_cap_table = call.get_params().init_cap_table(cap_table.len());
+                    for ii in range(0, cap_table.len()) {
+                        match cap_table[ii].as_ref::<OwnedCapDescriptor>() {
+                            None => {fail!("noncompliant client hook")}
+                            Some(&NoDescriptor) => {}
+                            Some(&ReceiverHosted(import_id)) => {
+                                new_cap_table[ii].set_receiver_hosted(import_id);
+                            }
+                            Some(&ReceiverAnswer(question_id,ref ops)) => {
+                                let promised_answer = new_cap_table[ii].init_receiver_answer();
+                                promised_answer.set_question_id(question_id);
+                                let transform = promised_answer.init_transform(ops.len());
+                                for ii in range(0, ops.len()) {
+                                    match ops[ii] {
+                                        PipelineOp::Noop => transform[ii].set_noop(()),
+                                        PipelineOp::GetPointerField(idx) => transform[ii].set_get_pointer_field(idx),
+                                    }
+                                }
+
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
         let (event, answer_port, question_port) = RpcEvent::new_outgoing(message);
         channel.send(event);
 

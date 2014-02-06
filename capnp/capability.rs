@@ -49,6 +49,9 @@ pub trait ClientHook {
                 method_id : u16,
                 size_hint : Option<MessageSize>)
                 -> Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline>;
+
+    // HACK
+    fn get_descriptor(&self) -> ~std::any::Any;
 }
 
 

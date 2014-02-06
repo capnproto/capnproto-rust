@@ -1277,6 +1277,15 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                             Line(box "}")]));
 
 
+            mod_interior.push(
+                    Branch(~[
+                            Line(box "impl Clone for Client {"),
+                            Indent(~Line(box "fn clone(&self) -> Client {")),
+                            Indent(~Indent(box Line(box "Client { client : capability::Client::new(self.client.hook.copy()) }"))),
+                            Indent(~Line(box "}")),
+                            Line(box "}")]));
+
+
             mod_interior.push(Branch(box [Line(~"impl Client {"),
                                           Indent(box Branch(client_impl_interior)),
                                           Line(box "}")]));
