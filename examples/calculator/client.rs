@@ -254,6 +254,4 @@ pub fn main() {
         println!("PASS")
     }
 
-
-    rpc_client.netcat.wait();
 }

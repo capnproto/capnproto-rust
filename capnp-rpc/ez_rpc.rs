@@ -13,40 +13,21 @@ use rpc::{RpcConnectionState, RpcEvent, OutgoingMessage, Outgoing};
 
 pub struct EzRpcClient {
     chan : std::comm::SharedChan<RpcEvent>,
-    netcat : std::io::process::Process,
 }
 
 impl EzRpcClient {
     pub fn new(server_address : &str) -> EzRpcClient {
-        use std::io::process;
-        use std::io::net::ip::SocketAddr;
+        use std::io::net::{ip, tcp};
 
-        let addr : SocketAddr = FromStr::from_str(server_address).expect("bad server address");
+        let addr : ip::SocketAddr = FromStr::from_str(server_address).expect("bad server address");
 
-        let child_args = ~[addr.ip.to_str(), addr.port.to_str()];
-
-        let io = [process::CreatePipe(true, false), // stdin
-                  process::CreatePipe(false, true), // stdout
-                  process::InheritFd(2)];
-
-        let config = process::ProcessConfig {
-            program: "nc",
-            args: child_args,
-            env : None,
-            cwd: None,
-            io : io
-        };
-        let mut p = process::Process::new(config).unwrap();
-
-        p.io.pop();
-        let childStdOut = p.io.pop().unwrap().unwrap();
-        let childStdIn = p.io.pop().unwrap().unwrap();
+        let mut tcp = tcp::TcpStream::connect(addr).unwrap();
 
         let connection_state = RpcConnectionState::new();
 
-        let chan = connection_state.run(childStdOut, childStdIn);
+        let chan = connection_state.run(tcp.clone(), tcp);
 
-        return EzRpcClient { chan : chan, netcat : p };
+        return EzRpcClient { chan : chan };
     }
 
     pub fn import_cap<T : FromClientHook>(&mut self, name : &str) -> T {
