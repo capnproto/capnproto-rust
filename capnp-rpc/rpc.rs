@@ -386,13 +386,13 @@ impl PipelineHook for RpcPipeline {
     }
 }
 
-pub trait InitParams<'a, T> {
-    fn init_params(&'a mut self) -> T;
+pub trait InitRequest<'a, T> {
+    fn init(&'a mut self) -> T;
 }
 
-impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results, Pipeline> InitParams<'a, Params>
+impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results, Pipeline> InitRequest<'a, Params>
 for Request<Params, Results, Pipeline> {
-    fn init_params(&'a mut self) -> Params {
+    fn init(&'a mut self) -> Params {
         let message : Message::Builder = self.hook.message().get_root();
         match message.which() {
             Some(Message::Which::Call(call)) => {
