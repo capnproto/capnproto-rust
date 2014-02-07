@@ -1209,6 +1209,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let mut server_interior = ~[];
             let mut mod_interior = ~[];
 
+            mod_interior.push(Line(box "use capnp::any::AnyPointer;"));
             mod_interior.push(
                 Line(box "use capnp::capability::{ClientHook, FromClientHook, Request};"));
             mod_interior.push(Line(box "use capnp::capability;"));
@@ -1293,6 +1294,27 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             mod_interior.push(Branch(box [Line(box "pub trait Server {"),
                                           Indent(box Branch(server_interior)),
                                           Line(box "}")]));
+
+            mod_interior.push(Branch(box [Line(box "pub struct ServerDispatch<T> {"),
+                                          Indent(box Line(box "server : T,")),
+                                          Line(box "}")]));
+
+            mod_interior.push(
+                Branch(
+                    box [Line(box "impl <T : Server> capability::Server for ServerDispatch<T> {"),
+                         Indent(box Line(box "fn dispatch_call(&self, _interface_id : u64, _method_id : u16, _context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {}")),
+                         Line(box "}")]));
+
+            mod_interior.push(
+                Branch(
+                    box [Line(box "impl <T : Server> ServerDispatch<T> {"),
+                         Indent(box Line(box "pub fn dispatch_call_internal(&self, method_id : u16, _context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
+                         Indent(box Indent(box Line(box "match method_id {"))),
+                         Indent(box Indent(box Indent(box Line(box "_ => {}")))),
+                         Indent(box Indent(box Line(box "}"))),
+                         Indent(box Line(box "}")),
+                         Line(box "}")]));
+
 
             mod_interior.push(Branch(~[Branch(nested_output)]));
 

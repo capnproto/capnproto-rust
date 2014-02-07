@@ -82,6 +82,12 @@ pub trait CallContextHook {
     fn get_params<'a>(&'a self) -> AnyPointer::Reader<'a>;
 }
 
+pub trait Server {
+    fn dispatch_call(&self, interface_id : u64, method_id : u16,
+                     context : CallContext<AnyPointer::Reader, AnyPointer::Builder>);
+}
+
+
 pub trait PipelineHook {
     fn copy(&self) -> ~PipelineHook;
     fn get_pipelined_cap(&self, ops : ~[PipelineOp::Type]) -> ~ClientHook;
