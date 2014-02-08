@@ -64,6 +64,10 @@ impl Client {
         Client { hook : hook }
     }
 
+    pub fn from_server<T : Server>(_server : ~T) -> Client {
+        fail!()
+    }
+
     pub fn new_call<Params, Results, Pipeline>(&self,
                                                interface_id : u64,
                                                method_id : u16,
@@ -80,6 +84,8 @@ pub struct CallContext<Params, Results> {
 
 pub trait CallContextHook {
     fn get_params<'a>(&'a self) -> AnyPointer::Reader<'a>;
+    fn release_params(&self);
+    fn get_results<'a>(&'a self) -> AnyPointer::Builder<'a>;
 }
 
 pub trait Server {

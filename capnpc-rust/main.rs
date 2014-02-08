@@ -1217,6 +1217,13 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             mod_interior.push(Line(format!( "use {};", rootName)));
             mod_interior.push(BlankLine);
 
+            client_impl_interior.push(
+                Branch(
+                    box [Line(box "pub fn from_server<T : Server>(server : ~T) -> Client {"),
+                         Indent(
+                            box Line(box "Client { client :capability::Client::from_server(~ServerDispatch { server : server})}")),
+                         Line(box "}")]));
+
 
             let methods = interface.get_methods();
             for ordinal in range(0, methods.size()) {
@@ -1282,7 +1289,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     let the_mod = scopeMap.get(&base_id).connect("::");
                     base_dispatch_arms.push(
                         Line(format!(
-                                "0x{:x} => {}::ServerDispatch::<T>::dispatch_call_internal(&self.server, method_id, context),",
+                                "0x{:x} => {}::ServerDispatch::<T>::dispatch_call_internal(self.server, method_id, context),",
                                 base_id, the_mod)));
                     base_traits.push(format!("{}::Server", the_mod));
                 }
@@ -1311,16 +1318,17 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                             Line(box "}")]));
 
 
-            mod_interior.push(Branch(box [Line(~"impl Client {"),
-                                          Indent(box Branch(client_impl_interior)),
-                                          Line(box "}")]));
+            mod_interior.push(
+                Branch(box [Line(~"impl Client {"),
+                            Indent(box Branch(client_impl_interior)),
+                            Line(box "}")]));
 
             mod_interior.push(Branch(box [Line(format!("pub trait Server {} \\{", server_base)),
                                           Indent(box Branch(server_interior)),
                                           Line(box "}")]));
 
             mod_interior.push(Branch(box [Line(box "pub struct ServerDispatch<T> {"),
-                                          Indent(box Line(box "server : T,")),
+                                          Indent(box Line(box "server : ~T,")),
                                           Line(box "}")]));
 
             mod_interior.push(
@@ -1329,7 +1337,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                          Indent(box Line(box "fn dispatch_call(&self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
                          Indent(box Indent(box Line(box "match interface_id {"))),
                          Indent(box Indent(box Indent(
-                                    box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(&self.server, method_id, context),",
+                                    box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(self.server, method_id, context),",
                                                      node_id))))),
                          Indent(box Indent(box Indent(box Branch(base_dispatch_arms)))),
                          Indent(box Indent(box Indent(box Line(box "_ => {}")))),
