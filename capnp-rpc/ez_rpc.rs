@@ -4,12 +4,13 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
+use rpc_capnp::{Message, Return};
 
 use std;
-use capnp::capability::{FromClientHook};
+use capnp::capability::{ClientHook, FromClientHook, ServerHook, Server, Client};
 use capnp::message::{MessageBuilder, MallocMessageBuilder, MessageReader};
-use rpc_capnp::{Message, Return};
-use rpc::{RpcConnectionState, RpcEvent, OutgoingMessage, Outgoing};
+use rpc::{RpcConnectionState, RpcEvent, OutgoingMessage, Outgoing, NewLocalServer};
+use capability;
 
 pub struct EzRpcClient {
     chan : std::comm::SharedChan<RpcEvent>,
@@ -36,7 +37,7 @@ impl EzRpcClient {
         restore.init_object_id().set_as_text(name);
 
 
-        let (event, answer_port, question_port) = RpcEvent::new_outgoing(message);
+        let (event, answer_port, _question_port) = RpcEvent::new_outgoing(message);
         self.chan.send(event);
 
         let reader = answer_port.recv();
@@ -56,6 +57,15 @@ impl EzRpcClient {
 
         return client;
 
+    }
+}
+
+impl ServerHook for EzRpcClient {
+    fn new_client(&self, server : ~Server) -> Client {
+        let (port, chan) = std::comm::Chan::<u32>::new();
+        self.chan.send(NewLocalServer(server, chan));
+        let export_id = port.recv();
+        Client::new((~capability::LocalClient { export_id : export_id }) as ~ClientHook)
     }
 }
 

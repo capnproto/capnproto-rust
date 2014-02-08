@@ -1212,16 +1212,16 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
             mod_interior.push(Line(box "use capnp::any::AnyPointer;"));
             mod_interior.push(
-                Line(box "use capnp::capability::{ClientHook, FromClientHook, Request};"));
+                Line(box "use capnp::capability::{ClientHook, FromClientHook, Request, ServerHook};"));
             mod_interior.push(Line(box "use capnp::capability;"));
             mod_interior.push(Line(format!( "use {};", rootName)));
             mod_interior.push(BlankLine);
 
             client_impl_interior.push(
                 Branch(
-                    box [Line(box "pub fn from_server<T : Server>(server : ~T) -> Client {"),
+                    box [Line(box "pub fn from_server<T : ServerHook, U : Server + Send>(hook : &T, server : ~U) -> Client {"),
                          Indent(
-                            box Line(box "Client { client :capability::Client::from_server(~ServerDispatch { server : server})}")),
+                            box Line(box "Client { client : hook.new_client(~ServerDispatch { server : server})}")),
                          Line(box "}")]));
 
 

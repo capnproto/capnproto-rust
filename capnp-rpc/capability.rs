@@ -11,14 +11,15 @@ use std;
 use capnp::any::{AnyPointer};
 use capnp::common::{MessageSize};
 use capnp::capability::{ClientHook, Request, Server};
+use rpc::{ExportId, SenderHosted};
 
 pub struct LocalClient {
-    server : ~Server,
+    export_id : ExportId,
 }
 
 impl ClientHook for LocalClient {
     fn copy(&self) -> ~ClientHook {
-        fail!()
+        (~LocalClient { export_id : self.export_id }) as ~ClientHook
     }
     fn new_call(&self,
                 interface_id : u64,
@@ -30,7 +31,7 @@ impl ClientHook for LocalClient {
 
     // HACK
     fn get_descriptor(&self) -> ~std::any::Any {
-        fail!()
+        (~SenderHosted(self.export_id)) as ~std::any::Any
     }
 
 }

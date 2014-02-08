@@ -9,6 +9,14 @@ use capnp_rpc::ez_rpc::EzRpcClient;
 use capnp_rpc::rpc::{InitRequest, WaitForContent};
 use calculator_capnp::Calculator;
 
+pub struct PowerFunction;
+
+impl Calculator::Function::Server for PowerFunction {
+    fn call(&self, context : Calculator::Function::CallContext) {
+        fail!()
+    }
+}
+
 pub fn main() {
     let args = std::os::args();
     if args.len() != 3 {
@@ -254,4 +262,42 @@ pub fn main() {
         println!("PASS")
     }
 
+    {
+        //# Make a request that will call back to a function defined locally.
+        //#
+        //# Specifically, we will compute 2^(4 + 5).  However, exponent is not
+        //# defined by the Calculator server.  So, we'll implement the Function
+        //# interface locally and pass it to the server for it to use when
+        //# evaluating the expression.
+        //#
+        //# This example requires two network round trips to complete, because the
+        //# server calls back to the client once before finishing.  In this
+        //# particular case, this could potentially be optimized by using a tail
+        //# call on the server side -- see CallContext::tailCall().  However, to
+        //# keep the example simpler, we haven't implemented this optimization in
+        //# the sample server.
+
+        println!("Using a callback... ");
+
+        let add = {
+            let mut request = calculator.get_operator_request();
+            request.init().set_op(Calculator::Operator::Add);
+            request.send().pipeline.get_func()
+        };
+
+        let mut request = calculator.evaluate_request();
+        let pow_call = request.init().get_expression().init_call();
+        pow_call.set_function(Calculator::Function::Client::from_server(&rpc_client, ~PowerFunction));
+        let pow_params = pow_call.init_params(2);
+        pow_params[0].set_literal(2.0);
+
+        let add_call = pow_params[1].init_call();
+        add_call.set_function(add);
+        let add_params = add_call.init_params(2);
+        add_params[0].set_literal(4.0);
+        add_params[1].set_literal(5.0);
+
+        let response = request.send().pipeline.get_value().read_request()
+                              .send().wait();
+    }
 }

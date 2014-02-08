@@ -6,7 +6,8 @@
 
 use capnp::any::{AnyPointer};
 use capnp::capability;
-use capnp::capability::{RemotePromise, RequestHook, ClientHook, PipelineHook, Request, PipelineOp};
+use capnp::capability::{ClientHook, PipelineHook, PipelineOp, RemotePromise,
+                        RequestHook, Request, Server};
 use capnp::common;
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, MallocMessageBuilder};
@@ -17,10 +18,10 @@ use std::any::AnyRefExt;
 use std::hashmap::HashMap;
 use rpc_capnp::{Message, Return, CapDescriptor, PromisedAnswer};
 
-type QuestionId = u32;
-type AnswerId = QuestionId;
-type ExportId = u32;
-type ImportId = ExportId;
+pub type QuestionId = u32;
+pub type AnswerId = QuestionId;
+pub type ExportId = u32;
+pub type ImportId = ExportId;
 
 pub struct Question {
     chan : std::comm::Chan<~OwnedSpaceMessageReader>,
@@ -31,7 +32,22 @@ pub struct Answer {
     result_exports : ~[ExportId]
 }
 
-pub struct Export;
+pub struct Export {
+    server_chan : std::comm::Chan<~OwnedSpaceMessageReader>,
+}
+
+impl Export {
+    pub fn new(server : ~Server) -> Export {
+        let (port, chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
+        std::task::spawn(proc () {
+                loop {
+                    port.recv();
+                }
+            });
+
+        Export { server_chan : chan }
+    }
+}
 
 pub struct Import;
 
@@ -108,7 +124,7 @@ impl RpcConnectionState {
             });
 
         spawn(proc() {
-                let RpcConnectionState {mut questions, exports, answers, imports} = self;
+                let RpcConnectionState {mut questions, mut exports, answers, imports} = self;
                 loop {
                     match port.recv() {
                         IncomingMessage(mut message) => {
@@ -202,8 +218,10 @@ impl RpcConnectionState {
                             // send
                             writer_chan.send(m);
                         }
-                        _ => {
-                            println!("got another event");
+                        NewLocalServer(server, export_chan) => {
+                            let export_id = exports.slots.len() as u32;
+                            export_chan.send(export_id);
+                            exports.slots.push(Export::new(server));
                         }
                     }
                 }});
@@ -212,7 +230,7 @@ impl RpcConnectionState {
 }
 
 // HACK
-enum OwnedCapDescriptor {
+pub enum OwnedCapDescriptor {
     NoDescriptor,
     SenderHosted(ExportId),
     SenderPromise(ExportId),
@@ -345,7 +363,9 @@ impl RequestHook for RpcRequest {
                                         PipelineOp::GetPointerField(idx) => transform[ii].set_get_pointer_field(idx),
                                     }
                                 }
-
+                            }
+                            Some(&SenderHosted(export_id)) => {
+                                new_cap_table[ii].set_sender_hosted(export_id);
                             }
                             _ => {}
                         }
@@ -438,14 +458,14 @@ for RemotePromise<Results, Pipeline> {
 pub struct OutgoingMessage {
     message : ~MallocMessageBuilder,
     answer_chan : std::comm::Chan<~OwnedSpaceMessageReader>,
-    question_chan : std::comm::Chan<ExportId>,
+    question_chan : std::comm::Chan<QuestionId>,
 }
 
 
 pub enum RpcEvent {
-    Nothing,
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
+    NewLocalServer(~Server, std::comm::Chan<ExportId>),
 }
 
 

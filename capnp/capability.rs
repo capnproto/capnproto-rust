@@ -54,6 +54,9 @@ pub trait ClientHook {
     fn get_descriptor(&self) -> ~std::any::Any;
 }
 
+pub trait ServerHook {
+    fn new_client(&self, server : ~Server) -> Client;
+}
 
 pub struct Client {
     hook : ~ClientHook
@@ -62,10 +65,6 @@ pub struct Client {
 impl Client {
     pub fn new(hook : ~ClientHook) -> Client {
         Client { hook : hook }
-    }
-
-    pub fn from_server<T : Server>(_server : ~T) -> Client {
-        fail!()
     }
 
     pub fn new_call<Params, Results, Pipeline>(&self,
