@@ -85,6 +85,14 @@ pub trait CallContextHook {
 pub trait Server {
     fn dispatch_call(&self, interface_id : u64, method_id : u16,
                      context : CallContext<AnyPointer::Reader, AnyPointer::Builder>);
+
+}
+
+// Where should this live?
+pub fn internal_get_typed_context<Params, Results>(
+    typeless : CallContext<AnyPointer::Reader, AnyPointer::Builder>)
+    -> CallContext<Params, Results> {
+    CallContext { hook : typeless.hook }
 }
 
 

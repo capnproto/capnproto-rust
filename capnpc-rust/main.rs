@@ -1208,6 +1208,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             let mut client_impl_interior = ~[];
             let mut server_interior = ~[];
             let mut mod_interior = ~[];
+            let mut dispatch_arms = ~[];
 
             mod_interior.push(Line(box "use capnp::any::AnyPointer;"));
             mod_interior.push(
@@ -1245,13 +1246,18 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     fail!("unimplemented");
                 };
 
+                dispatch_arms.push(
+                    Line(format!(
+                            "{} => self.server.{}(capability::internal_get_typed_context(context)),",
+                            ordinal, camel_to_snake_case(name))));
+
                 mod_interior.push(
                     Line(format!(
                             "pub type {}Context<'a> = capability::CallContext<{}::Reader<'a>, {}::Builder<'a>>;",
                             capitalize_first_letter(name), params_name, results_name)));
                 server_interior.push(
                     Line(format!(
-                            "fn {}({}Context) -> ();",
+                            "fn {}(&self, {}Context);",
                             camel_to_snake_case(name), capitalize_first_letter(name)
                             )));
 
@@ -1302,14 +1308,22 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             mod_interior.push(
                 Branch(
                     box [Line(box "impl <T : Server> capability::Server for ServerDispatch<T> {"),
-                         Indent(box Line(box "fn dispatch_call(&self, _interface_id : u64, _method_id : u16, _context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {}")),
+                         Indent(box Line(box "fn dispatch_call(&self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
+                         Indent(box Indent(box Line(box "match interface_id {"))),
+                         Indent(box Indent(box Indent(
+                                    box Line(format!("0x{:x} => self.dispatch_call_internal(method_id, context),",
+                                                     node_id))))),
+                         Indent(box Indent(box Indent(box Line(box "_ => {}")))),
+                         Indent(box Indent(box Line(box "}"))),
+                         Indent(box Line(box "}")),
                          Line(box "}")]));
 
             mod_interior.push(
                 Branch(
                     box [Line(box "impl <T : Server> ServerDispatch<T> {"),
-                         Indent(box Line(box "pub fn dispatch_call_internal(&self, method_id : u16, _context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
+                         Indent(box Line(box "pub fn dispatch_call_internal(&self, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
                          Indent(box Indent(box Line(box "match method_id {"))),
+                         Indent(box Indent(box Indent(box Branch(dispatch_arms)))),
                          Indent(box Indent(box Indent(box Line(box "_ => {}")))),
                          Indent(box Indent(box Line(box "}"))),
                          Indent(box Line(box "}")),

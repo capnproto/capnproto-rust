@@ -21,7 +21,7 @@ impl EzRpcClient {
 
         let addr : ip::SocketAddr = FromStr::from_str(server_address).expect("bad server address");
 
-        let mut tcp = tcp::TcpStream::connect(addr).unwrap();
+        let tcp = tcp::TcpStream::connect(addr).unwrap();
 
         let connection_state = RpcConnectionState::new();
 
