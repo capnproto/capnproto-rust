@@ -82,6 +82,8 @@ pub struct CallContext<Params, Results> {
 }
 
 pub trait CallContextHook {
+    fn params_message<'a>(&'a self) -> &'a OwnedSpaceMessageReader;
+    fn results_message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder;
     fn get_params<'a>(&'a self) -> AnyPointer::Reader<'a>;
     fn release_params(&self);
     fn get_results<'a>(&'a self) -> AnyPointer::Builder<'a>;

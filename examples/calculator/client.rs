@@ -6,14 +6,16 @@
 
 use std;
 use capnp_rpc::ez_rpc::EzRpcClient;
-use capnp_rpc::rpc::{InitRequest, WaitForContent};
+use capnp_rpc::capability::{GetParams, GetResults, InitRequest, WaitForContent};
 use calculator_capnp::Calculator;
 
 pub struct PowerFunction;
 
 impl Calculator::Function::Server for PowerFunction {
-    fn call(&self, context : Calculator::Function::CallContext) {
-        fail!()
+    fn call(&self, mut context : Calculator::Function::CallContext) {
+        let params = context.get_params().get_params();
+        assert!(params.size() == 2, "Wrong number of parameters");
+        context.get_results().set_value(std::f64::pow(params[0], params[1]));
     }
 }
 

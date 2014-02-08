@@ -13,9 +13,12 @@ use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use capnp::serialize::{OwnedSpaceMessageReader};
+
 use std;
 use std::any::AnyRefExt;
 use std::hashmap::HashMap;
+
+//use capability::{LocalClient};
 use rpc_capnp::{Message, Return, CapDescriptor, PromisedAnswer, MessageTarget};
 
 pub type QuestionId = u32;
@@ -118,7 +121,6 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
             Some(Message::Call(call)) => {
                 match call.get_target().which() {
                     Some(MessageTarget::ImportedCap(import_id)) => {
-//                        exports.slots[import_id].server_chan.send();
                     }
                     _ => {
                     }
@@ -185,19 +187,26 @@ impl RpcConnectionState {
                 loop {
                     match port.recv() {
                         IncomingMessage(mut message) => {
+                            enum MessageReceiver {
+                                Nobody,
+                                QuestionReceiver(QuestionId),
+                                ExportReceiver(ExportId),
+                            }
+
+
                             populate_cap_table(message, &loop_chan);
                             let root = message.get_root::<Message::Reader>();
-                            match root.which() {
+                            let receiver = match root.which() {
                                 Some(Message::Return(ret)) => {
                                     println!("got a return with answer id {}", ret.get_answer_id());
-                                    questions.slots[ret.get_answer_id()].chan.try_send(message);
+                                    QuestionReceiver(ret.get_answer_id())
                                 }
                                 Some(Message::Call(call)) => {
                                     println!("a call");
                                     match call.get_target().which() {
                                         Some(MessageTarget::ImportedCap(import_id)) => {
                                             println!("import id: {}", import_id);
-                                            //exports.slots[import_id].server_chan.send();
+                                            ExportReceiver(import_id)
                                         }
                                         _ => {
                                             fail!("call targets something else");
@@ -206,17 +215,32 @@ impl RpcConnectionState {
                                 }
                                 Some(Message::Unimplemented(_)) => {
                                     println!("unimplemented");
+                                    Nobody
                                 }
                                 Some(Message::Abort(exc)) => {
                                     println!("abort: {}", exc.get_reason());
+                                    Nobody
                                 }
                                 None => {
                                     println!("Nothing there");
+                                    Nobody
                                 }
                                 _ => {
                                     println!("something else");
+                                    Nobody
+                                }
+                            };
+                            match receiver {
+                                Nobody => {}
+                                QuestionReceiver(id) => {
+                                    questions.slots[id].chan.try_send(message);
+                                }
+                                ExportReceiver(id) => {
+                                    exports.slots[id].server_chan.send(message);
                                 }
                             }
+
+
                         }
                         Outgoing(OutgoingMessage { message : mut m,
                                                    answer_chan,
@@ -434,12 +458,19 @@ impl PipelineHook for RpcPipeline {
 }
 
 pub struct RpcCallContext {
-    call_message : ~OwnedSpaceMessageReader,
+    params_message : ~OwnedSpaceMessageReader,
+    results_message : ~MallocMessageBuilder,
 }
 
 impl CallContextHook for RpcCallContext {
+    fn params_message<'a>(&'a self) -> &'a OwnedSpaceMessageReader {
+        &*self.params_message
+    }
+    fn results_message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
+        &mut *self.results_message
+    }
     fn get_params<'a>(&'a self) -> AnyPointer::Reader<'a> {
-        let root : Message::Reader = self.call_message.get_root();
+        let root : Message::Reader = self.params_message.get_root();
         match root.which() {
             Some(Message::Call(call)) => {
                 call.get_params().get_content()
@@ -454,55 +485,6 @@ impl CallContextHook for RpcCallContext {
         fail!()
     }
 }
-
-pub trait InitRequest<'a, T> {
-    fn init(&'a mut self) -> T;
-}
-
-impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results, Pipeline> InitRequest<'a, Params>
-for Request<Params, Results, Pipeline> {
-    fn init(&'a mut self) -> Params {
-        let message : Message::Builder = self.hook.message().get_root();
-        match message.which() {
-            Some(Message::Which::Call(call)) => {
-                let params = call.init_params();
-                params.get_content().init_as_struct()
-            }
-            _ => fail!(),
-        }
-    }
-}
-
-pub trait WaitForContent<'a, T> {
-    fn wait(&'a mut self) -> T;
-}
-
-impl <'a, Results : FromStructReader<'a>, Pipeline> WaitForContent<'a, Results>
-for RemotePromise<Results, Pipeline> {
-    fn wait(&'a mut self) -> Results {
-        // XXX should check that it's not already been received.
-        let message = self.answer_port.recv();
-        self.answer_result = Some(message);
-        match self.answer_result {
-            None => unreachable!(),
-            Some(ref message) => {
-                let root : Message::Reader = message.get_root();
-                match root.which() {
-                    Some(Message::Return(ret)) => {
-                        match ret.which() {
-                            Some(Return::Results(res)) => {
-                                res.get_content().get_as_struct()
-                            }
-                            _ => fail!(),
-                        }
-                    }
-                    _ => {fail!()}
-                }
-            }
-        }
-    }
-}
-
 
 pub struct OutgoingMessage {
     message : ~MallocMessageBuilder,
