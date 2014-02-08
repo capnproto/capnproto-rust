@@ -147,5 +147,10 @@ interface TestInterface {
    foo @0 (i :UInt32, j :Bool) -> (x : Text);
    bar @1 () -> ();
    baz @2 (s : TestBigStruct);
-   qux @3 (s : TestBigStruct) -> (r : TestBigStruct);
+   bazz @3 (s : TestBigStruct) -> (r : TestBigStruct);
+}
+
+
+interface TestExtends extends(TestInterface) {
+   qux @0 ();
 }
