@@ -6,7 +6,7 @@
 
 use capnp::any::{AnyPointer};
 use capnp::capability;
-use capnp::capability::{ClientHook, PipelineHook, PipelineOp, RemotePromise,
+use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, RemotePromise,
                         RequestHook, Request, Server};
 use capnp::common;
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
@@ -16,7 +16,7 @@ use capnp::serialize::{OwnedSpaceMessageReader};
 use std;
 use std::any::AnyRefExt;
 use std::hashmap::HashMap;
-use rpc_capnp::{Message, Return, CapDescriptor, PromisedAnswer};
+use rpc_capnp::{Message, Return, CapDescriptor, PromisedAnswer, MessageTarget};
 
 pub type QuestionId = u32;
 pub type AnswerId = QuestionId;
@@ -82,6 +82,63 @@ pub struct RpcConnectionState {
     imports : ImportTable<Import>,
 }
 
+fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
+                      loop_chan : &std::comm::SharedChan<RpcEvent>) {
+    let mut the_cap_table : ~[Option<~ClientHook>] = ~[];
+    {
+        let root = message.get_root::<Message::Reader>();
+
+        match root.which() {
+            Some(Message::Return(ret)) => {
+                match ret.which() {
+                    Some(Return::Results(payload)) => {
+                        let cap_table = payload.get_cap_table();
+                        for ii in range(0, cap_table.size()) {
+                            match cap_table[ii].which() {
+                                Some(CapDescriptor::None(())) => {
+                                    the_cap_table.push(None)
+                                }
+                                Some(CapDescriptor::SenderHosted(id)) => {
+                                    the_cap_table.push(Some(
+                                            (box ImportClient {
+                                                    channel : loop_chan.clone(),
+                                                    import_id : id})
+                                                as ~ClientHook));
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    Some(Return::Exception(e)) => {
+                    }
+                    _ => {}
+                }
+
+            }
+            Some(Message::Call(call)) => {
+                match call.get_target().which() {
+                    Some(MessageTarget::ImportedCap(import_id)) => {
+//                        exports.slots[import_id].server_chan.send();
+                    }
+                    _ => {
+                    }
+
+                }
+            }
+            Some(Message::Unimplemented(_)) => {
+            }
+            Some(Message::Abort(exc)) => {
+            }
+            None => {
+            }
+            _ => {
+            }
+        }
+    }
+    message.init_cap_table(the_cap_table);
+
+}
+
 impl RpcConnectionState {
     pub fn new() -> RpcConnectionState {
         RpcConnectionState {
@@ -128,68 +185,38 @@ impl RpcConnectionState {
                 loop {
                     match port.recv() {
                         IncomingMessage(mut message) => {
-                            let mut the_cap_table : ~[Option<~ClientHook>] = ~[];
-                            let mut question = None::<u32>;
-                            // populate the cap table
-                            {
-                                let root = message.get_root::<Message::Reader>();
-
-                                match root.which() {
-                                    Some(Message::Return(ret)) => {
-                                        println!("got a return with answer id {}", ret.get_answer_id());
-
-                                        match ret.which() {
-                                            Some(Return::Results(payload)) => {
-                                                println!("with a payload");
-                                                let cap_table = payload.get_cap_table();
-                                                for ii in range(0, cap_table.size()) {
-                                                    match cap_table[ii].which() {
-                                                        Some(CapDescriptor::None(())) => {
-                                                            the_cap_table.push(None)
-                                                        }
-                                                        Some(CapDescriptor::SenderHosted(id)) => {
-                                                            the_cap_table.push(Some(
-                                                                    (box ImportClient {
-                                                                            channel : loop_chan.clone(),
-                                                                            import_id : id})
-                                                                        as ~ClientHook));
-                                                            println!("sender hosted: {}", id);
-                                                        }
-                                                        _ => {}
-                                                    }
-                                                }
-                                            }
-                                            Some(Return::Exception(e)) => {
-                                                println!("exception: {}", e.get_reason());
-                                            }
-                                            _ => {}
+                            populate_cap_table(message, &loop_chan);
+                            let root = message.get_root::<Message::Reader>();
+                            match root.which() {
+                                Some(Message::Return(ret)) => {
+                                    println!("got a return with answer id {}", ret.get_answer_id());
+                                    questions.slots[ret.get_answer_id()].chan.try_send(message);
+                                }
+                                Some(Message::Call(call)) => {
+                                    println!("a call");
+                                    match call.get_target().which() {
+                                        Some(MessageTarget::ImportedCap(import_id)) => {
+                                            println!("import id: {}", import_id);
+                                            //exports.slots[import_id].server_chan.send();
                                         }
-
-                                        question = Some(ret.get_answer_id());
-                                    }
-                                    Some(Message::Unimplemented(_)) => {
-                                        println!("unimplemented");
-                                    }
-                                    Some(Message::Abort(exc)) => {
-                                        println!("abort: {}", exc.get_reason());
-                                    }
-                                    None => {
-                                        println!("Nothing there");
-                                    }
-                                    _ => {
-                                        println!("something else");
+                                        _ => {
+                                            fail!("call targets something else");
+                                        }
                                     }
                                 }
-                            }
-                            message.init_cap_table(the_cap_table);
-
-                            match question {
-                                Some(id) => {
-                                    questions.slots[id].chan.try_send(message);
+                                Some(Message::Unimplemented(_)) => {
+                                    println!("unimplemented");
                                 }
-                                None => {}
+                                Some(Message::Abort(exc)) => {
+                                    println!("abort: {}", exc.get_reason());
+                                }
+                                None => {
+                                    println!("Nothing there");
+                                }
+                                _ => {
+                                    println!("something else");
+                                }
                             }
-
                         }
                         Outgoing(OutgoingMessage { message : mut m,
                                                    answer_chan,
@@ -403,6 +430,28 @@ impl PipelineHook for RpcPipeline {
                            ops : ops,
                            question_id : self.question_id,
         }) as ~ClientHook
+    }
+}
+
+pub struct RpcCallContext {
+    call_message : ~OwnedSpaceMessageReader,
+}
+
+impl CallContextHook for RpcCallContext {
+    fn get_params<'a>(&'a self) -> AnyPointer::Reader<'a> {
+        let root : Message::Reader = self.call_message.get_root();
+        match root.which() {
+            Some(Message::Call(call)) => {
+                call.get_params().get_content()
+            }
+            _ => fail!(),
+        }
+    }
+    fn release_params(&self) {
+        fail!()
+    }
+    fn get_results<'a>(&'a self) -> AnyPointer::Builder<'a> {
+        fail!()
     }
 }
 
