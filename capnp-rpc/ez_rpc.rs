@@ -9,26 +9,32 @@ use rpc_capnp::{Message, Return};
 use std;
 use capnp::capability::{ClientHook, FromClientHook, ServerHook, Server, Client};
 use capnp::message::{MessageBuilder, MallocMessageBuilder, MessageReader};
-use rpc::{RpcConnectionState, RpcEvent, NewLocalServer};
+use rpc::{RpcConnectionState, RpcEvent, NewLocalServer, ShutdownEvent};
 use capability;
 
 pub struct EzRpcClient {
     chan : std::comm::SharedChan<RpcEvent>,
 }
 
+impl Drop for EzRpcClient {
+    fn drop(&mut self) {
+        self.chan.send(ShutdownEvent);
+    }
+}
+
 impl EzRpcClient {
-    pub fn new(server_address : &str) -> EzRpcClient {
+    pub fn new(server_address : &str) -> std::io::IoResult<EzRpcClient> {
         use std::io::net::{ip, tcp};
 
         let addr : ip::SocketAddr = FromStr::from_str(server_address).expect("bad server address");
 
-        let tcp = tcp::TcpStream::connect(addr).unwrap();
+        let tcp = if_ok!(tcp::TcpStream::connect(addr));
 
         let connection_state = RpcConnectionState::new();
 
         let chan = connection_state.run(tcp.clone(), tcp);
 
-        return EzRpcClient { chan : chan };
+        return Ok(EzRpcClient { chan : chan });
     }
 
     pub fn import_cap<T : FromClientHook>(&mut self, name : &str) -> T {
@@ -72,7 +78,16 @@ pub struct EzRpcServer {
 }
 
 impl EzRpcServer {
-    pub fn new(_bind_address : &str) -> EzRpcClient {
+    pub fn new(bind_address : &str) -> std::io::IoResult<EzRpcClient> {
+        use std::io::net::{ip, tcp};
+        use std::io::Listener;
+
+        let addr : ip::SocketAddr = FromStr::from_str(bind_address).expect("bad bind address");
+
+        let tcp_listener = if_ok!(tcp::TcpListener::bind(addr));
+
+        let tcp_acceptor = if_ok!(tcp_listener.listen());
+
         fail!();
     }
 }

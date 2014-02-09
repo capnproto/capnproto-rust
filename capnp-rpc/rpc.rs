@@ -43,7 +43,10 @@ impl Export {
         let (port, chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
         std::task::spawn(proc () {
                 loop {
-                    let message = port.recv();
+                    let message = match port.recv_opt() {
+                        None => break,
+                        Some(m) => m,
+                    };
 
                     // XXX
                     let (interface_id, method_id) = {
@@ -187,7 +190,10 @@ impl RpcConnectionState {
         spawn(proc() {
                 let mut w = outpipe;
                 loop {
-                    let message = writer_port.recv();
+                    let message = match writer_port.recv_opt() {
+                        None => break,
+                        Some(m) => m,
+                    };
                     serialize::write_message(&mut w, message);
                 }
             });
@@ -293,6 +299,9 @@ impl RpcConnectionState {
                         }
                         ReturnEvent(message) => {
                             writer_chan.send(message);
+                        }
+                        ShutdownEvent => {
+                            break;
                         }
                     }
                 }});
@@ -558,6 +567,7 @@ pub enum RpcEvent {
     Outgoing(OutgoingMessage),
     NewLocalServer(~Server, std::comm::Chan<ExportId>),
     ReturnEvent(~MallocMessageBuilder),
+    ShutdownEvent,
 }
 
 
