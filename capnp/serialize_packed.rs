@@ -169,7 +169,8 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
 
 
 pub fn new_reader<U : io::BufferedInputStream>(input : &mut U,
-                                               options : ReaderOptions) -> serialize::OwnedSpaceMessageReader {
+                                               options : ReaderOptions)
+                                               -> std::io::IoResult<serialize::OwnedSpaceMessageReader> {
     let mut packed_input = PackedInputStream {
         inner : input
     };
@@ -178,7 +179,8 @@ pub fn new_reader<U : io::BufferedInputStream>(input : &mut U,
 }
 
 pub fn new_reader_unbuffered<U : std::io::Reader>(input : &mut U,
-                                                  options : ReaderOptions) -> serialize::OwnedSpaceMessageReader {
+                                                  options : ReaderOptions)
+                                                  -> std::io::IoResult<serialize::OwnedSpaceMessageReader> {
     let mut packed_input = PackedInputStream {
         inner : &mut io::BufferedInputStreamWrapper::new(input)
     };

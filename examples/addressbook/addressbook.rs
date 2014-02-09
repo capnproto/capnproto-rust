@@ -47,7 +47,7 @@ pub mod addressbook {
 
     pub fn print_address_book() {
 
-        let message_reader = serialize_packed::new_reader_unbuffered(&mut stdin(), DEFAULT_READER_OPTIONS);
+        let message_reader = serialize_packed::new_reader_unbuffered(&mut stdin(), DEFAULT_READER_OPTIONS).unwrap();
         let address_book = message_reader.get_root::<AddressBook::Reader>();
         let people = address_book.get_people();
 

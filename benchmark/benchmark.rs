@@ -54,7 +54,7 @@ mod Uncompressed {
     pub fn new_buffered_reader<R: capnp::io::BufferedInputStream>(
         inputStream : &mut R,
         options : capnp::message::ReaderOptions) -> capnp::serialize::OwnedSpaceMessageReader {
-        capnp::serialize::new_reader(inputStream, options)
+        capnp::serialize::new_reader(inputStream, options).unwrap()
     }
 }
 
@@ -89,7 +89,7 @@ mod Packed {
     pub fn new_buffered_reader<R:capnp::io::BufferedInputStream>(
         inputStream : &mut R,
         options : capnp::message::ReaderOptions) -> capnp::serialize::OwnedSpaceMessageReader {
-        capnp::serialize_packed::new_reader(inputStream, options)
+        capnp::serialize_packed::new_reader(inputStream, options).unwrap()
     }
 
 }

@@ -33,10 +33,17 @@ impl MessageReader for OwnedSpaceMessageReader {
     }
 }
 
-pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
-                                       options : ReaderOptions) -> OwnedSpaceMessageReader {
+fn invalid_input<T>(desc : &'static str) -> std::io::IoResult<T> {
+    return Err(std::io::IoError{ kind : std::io::InvalidInput,
+                                 desc : desc,
+                                 detail : None});
+}
 
-    let firstWord = inputStream.read_bytes(8).unwrap();
+pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
+                                       options : ReaderOptions)
+                                       -> std::io::IoResult<OwnedSpaceMessageReader> {
+
+    let firstWord = if_ok!(inputStream.read_bytes(8));
 
     let segmentCount : u32 =
         unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.as_ptr());
@@ -53,13 +60,13 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
     let mut totalWords = segment0Size;
 
     if segmentCount >= 512 {
-        fail!("too many segments");
+        return invalid_input("too many segments");
     }
 
     let mut moreSizes : ~[u32] = std::vec::from_elem((segmentCount & !1) as uint, 0u32);
 
     if segmentCount > 1 {
-        let moreSizesRaw = inputStream.read_bytes((4 * (segmentCount & !1)) as uint).unwrap();
+        let moreSizesRaw = if_ok!(inputStream.read_bytes((4 * (segmentCount & !1)) as uint));
         for ii in range(0, segmentCount as uint - 1) {
             moreSizes[ii] = unsafe {
                 let p : *WireValue<u32> =
@@ -75,20 +82,22 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
     //# check, a malicious client could transmit a very large
     //# segment size to make the receiver allocate excessive space
     //# and possibly crash.
-    assert!(totalWords as u64 <= options.traversalLimitInWords);
+    if ! (totalWords as u64 <= options.traversalLimitInWords)  {
+        return invalid_input("Message is too large. To increase the limit on the \
+                              receiving end, see capnp::ReaderOptions.");
+    }
 
     let mut ownedSpace : ~[Word] = allocate_zeroed_words(totalWords as uint);
     let bufLen = totalWords as uint * BYTES_PER_WORD;
 
     unsafe {
         let ptr : *mut u8 = std::cast::transmute(ownedSpace.unsafe_mut_ref(0));
-        std::vec::raw::mut_buf_as_slice::<u8,()>(ptr, bufLen, |buf| {
-                io::read_at_least(inputStream, buf, bufLen);
-            })
+        if_ok!(std::vec::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(ptr, bufLen, |buf| {
+                    io::read_at_least(inputStream, buf, bufLen)
+                }));
     }
 
-    // TODO lazy reading like in capnp-c++. Is that possible
-    // within the std::io::Reader interface?
+    // TODO(maybe someday) lazy reading like in capnp-c++?
 
     let mut segment_slices : ~[(uint, uint)] = ~[(0, segment0Size as uint)];
 
@@ -110,12 +119,12 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
         arena::ReaderArena::new(segments)
     };
 
-    OwnedSpaceMessageReader {
+    Ok(OwnedSpaceMessageReader {
         segment_slices : segment_slices,
         owned_space : ownedSpace,
         arena : arena,
         options : options,
-    }
+    })
 }
 
 

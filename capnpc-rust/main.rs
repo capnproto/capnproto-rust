@@ -1428,7 +1428,7 @@ fn main() {
 
     let mut inp = std::io::stdin();
 
-    let messageReader = serialize::new_reader(&mut inp, message::DEFAULT_READER_OPTIONS);
+    let messageReader = serialize::new_reader(&mut inp, message::DEFAULT_READER_OPTIONS).unwrap();
 
     let codeGeneratorRequest : schema_capnp::CodeGeneratorRequest::Reader = messageReader.get_root();
 

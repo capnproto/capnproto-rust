@@ -177,7 +177,7 @@ impl RpcConnectionState {
                 loop {
                     let message = box serialize::new_reader(
                         &mut r,
-                        DEFAULT_READER_OPTIONS);
+                        DEFAULT_READER_OPTIONS).unwrap();
                     listener_chan.send(IncomingMessage(message));
                 }
             });
