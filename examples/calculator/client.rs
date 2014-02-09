@@ -24,7 +24,7 @@ impl Calculator::Function::Server for PowerFunction {
 pub fn main() {
     let args = std::os::args();
     if args.len() != 3 {
-        println!("usage: {} client <server address>", args[0]);
+        println!("usage: {} client HOST:PORT", args[0]);
         return;
     }
 

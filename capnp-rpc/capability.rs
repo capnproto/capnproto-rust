@@ -10,7 +10,7 @@ use std;
 
 use capnp::any::{AnyPointer};
 use capnp::common::{MessageSize};
-use capnp::capability::{CallContext, ClientHook, Request, RemotePromise};
+use capnp::capability::{ClientHook, Request, RemotePromise};
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::message::{MessageReader, MessageBuilder};
 use rpc::{ExportId, SenderHosted};

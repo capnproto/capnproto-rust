@@ -15,11 +15,12 @@ extern mod capnp_rpc = "capnp-rpc";
 pub mod calculator_capnp;
 
 pub mod client;
+pub mod server;
 
 pub fn main() {
     match std::os::args() {
         [_, ~"client", ..] => client::main(),
-        [_, ~"server", ..] => fail!("server unimplemented"),
-        args => println!("usage: {} [client | server] <address>", args[0]),
+        [_, ~"server", ..] => server::main(),
+        args => println!("usage: {} [client | server] ADDRESS", args[0]),
     }
 }

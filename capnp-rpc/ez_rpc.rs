@@ -54,9 +54,7 @@ impl EzRpcClient {
             _ => {fail!()}
         };
 
-
         return client;
-
     }
 }
 
@@ -71,4 +69,10 @@ impl ServerHook for EzRpcClient {
 
 pub struct EzRpcServer {
     chan : std::comm::SharedChan<RpcEvent>,
+}
+
+impl EzRpcServer {
+    pub fn new(_bind_address : &str) -> EzRpcClient {
+        fail!();
+    }
 }
