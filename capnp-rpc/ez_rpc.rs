@@ -42,7 +42,6 @@ impl EzRpcClient {
         let restore = message.init_root::<Message::Builder>().init_restore();
         restore.init_object_id().set_as_text(name);
 
-
         let (event, answer_port, _question_port) = RpcEvent::new_outgoing(message);
         self.chan.send(event);
 

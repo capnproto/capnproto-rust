@@ -1212,18 +1212,10 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
             mod_interior.push(Line(box "use capnp::any::AnyPointer;"));
             mod_interior.push(
-                Line(box "use capnp::capability::{ClientHook, FromClientHook, Request, ServerHook};"));
+                Line(box "use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};"));
             mod_interior.push(Line(box "use capnp::capability;"));
             mod_interior.push(Line(format!( "use {};", rootName)));
             mod_interior.push(BlankLine);
-
-            client_impl_interior.push(
-                Branch(
-                    box [Line(box "pub fn from_server<T : ServerHook, U : Server + Send>(hook : &T, server : ~U) -> Client {"),
-                         Indent(
-                            box Line(box "Client { client : hook.new_client(~ServerDispatch { server : server})}")),
-                         Line(box "}")]));
-
 
             let methods = interface.get_methods();
             for ordinal in range(0, methods.size()) {
@@ -1307,6 +1299,18 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                             Indent(~Indent(box Line(box "Client { client : capability::Client::new(hook) }"))),
                             Indent(~Line(box "}")),
                             Line(box "}")]));
+
+
+            mod_interior.push(
+                Branch(
+                    box [
+                        Line(box "impl <T:ServerHook, U : Server + Send> FromServer<T,U> for Client {"),
+                        Indent(box Branch(
+                                box [Line(box "fn new(hook : &T, server : ~U) -> Client {"),
+                                     Indent(
+                                        box Line(box "Client { client : hook.new_client(~ServerDispatch { server : server})}")),
+                                     Line(box "}")])),
+                        Line(box "}")]));
 
 
             mod_interior.push(

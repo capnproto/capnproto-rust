@@ -59,6 +59,10 @@ pub trait ServerHook {
     fn new_client(&self, server : ~Server) -> Client;
 }
 
+pub trait FromServer<T, U> {
+    fn new(hook : &T, server : ~U) -> Self;
+}
+
 pub struct Client {
     hook : ~ClientHook
 }
