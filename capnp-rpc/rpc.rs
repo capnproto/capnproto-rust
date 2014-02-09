@@ -42,6 +42,7 @@ impl Export {
     pub fn new(rpc_chan : std::comm::SharedChan<RpcEvent>, server : ~Server) -> Export {
         let (port, chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
         std::task::spawn(proc () {
+                let mut server = server;
                 loop {
                     let message = match port.recv_opt() {
                         None => break,

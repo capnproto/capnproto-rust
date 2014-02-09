@@ -100,7 +100,7 @@ pub trait CallContextHook {
 }
 
 pub trait Server {
-    fn dispatch_call(&self, interface_id : u64, method_id : u16,
+    fn dispatch_call(&mut self, interface_id : u64, method_id : u16,
                      context : CallContext<AnyPointer::Reader, AnyPointer::Builder>);
 
 }

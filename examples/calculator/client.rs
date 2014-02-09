@@ -12,7 +12,7 @@ use calculator_capnp::Calculator;
 pub struct PowerFunction;
 
 impl Calculator::Function::Server for PowerFunction {
-    fn call(&self, mut context : Calculator::Function::CallContext) {
+    fn call(&mut self, mut context : Calculator::Function::CallContext) {
         let (params, results) = context.get();
         let params = params.get_params();
         assert!(params.size() == 2, "Wrong number of parameters");

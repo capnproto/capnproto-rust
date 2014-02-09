@@ -1265,7 +1265,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                             capitalize_first_letter(name), params_name, results_name)));
                 server_interior.push(
                     Line(format!(
-                            "fn {}(&self, {}Context);",
+                            "fn {}(&mut self, {}Context);",
                             camel_to_snake_case(name), capitalize_first_letter(name)
                             )));
 
@@ -1334,7 +1334,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             mod_interior.push(
                 Branch(
                     box [Line(box "impl <T : Server> capability::Server for ServerDispatch<T> {"),
-                         Indent(box Line(box "fn dispatch_call(&self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
+                         Indent(box Line(box "fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
                          Indent(box Indent(box Line(box "match interface_id {"))),
                          Indent(box Indent(box Indent(
                                     box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(self.server, method_id, context),",
@@ -1348,7 +1348,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
             mod_interior.push(
                 Branch(
                     box [Line(box "impl <T : Server> ServerDispatch<T> {"),
-                         Indent(box Line(box "pub fn dispatch_call_internal(server :&T, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
+                         Indent(box Line(box "pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
                          Indent(box Indent(box Line(box "match method_id {"))),
                          Indent(box Indent(box Indent(box Branch(dispatch_arms)))),
                          Indent(box Indent(box Indent(box Line(box "_ => {}")))),
