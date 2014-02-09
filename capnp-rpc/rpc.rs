@@ -511,37 +511,34 @@ impl RpcCallContext {
 }
 
 impl CallContextHook for RpcCallContext {
-    fn params_message<'a>(&'a self) -> &'a OwnedSpaceMessageReader {
-        &*self.params_message
-    }
-    fn results_message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
-        &mut *self.results_message
-    }
-    fn get_params<'a>(&'a self) -> AnyPointer::Reader<'a> {
-        let root : Message::Reader = self.params_message.get_root();
-        match root.which() {
-            Some(Message::Call(call)) => {
-                call.get_params().get_content()
-            }
-            _ => fail!(),
-        }
-    }
-    fn release_params(&self) {
-        fail!()
-    }
-    fn get_results<'a>(&'a mut self) -> AnyPointer::Builder<'a> {
-        let root : Message::Builder = self.results_message.get_root();
-        match root.which() {
-            Some(Message::Which::Return(ret)) => {
-                match ret.which() {
-                    Some(Return::Which::Results(results)) => {
-                        results.get_content()
-                    }
-                    _ => fail!(),
+    fn get<'a>(&'a mut self) -> (AnyPointer::Reader<'a>, AnyPointer::Builder<'a>) {
+
+        let params = {
+            let root : Message::Reader = self.params_message.get_root();
+            match root.which() {
+                Some(Message::Call(call)) => {
+                    call.get_params().get_content()
                 }
+                _ => fail!(),
             }
-            _ => fail!(),
-        }
+        };
+
+        let results = {
+            let root : Message::Builder = self.results_message.get_root();
+            match root.which() {
+                Some(Message::Which::Return(ret)) => {
+                    match ret.which() {
+                        Some(Return::Which::Results(results)) => {
+                            results.get_content()
+                        }
+                        _ => fail!(),
+                    }
+                }
+                _ => fail!(),
+            }
+        };
+
+        (params, results)
     }
     fn done(~self) {
         let ~RpcCallContext { params_message : _, results_message, rpc_chan} = self;

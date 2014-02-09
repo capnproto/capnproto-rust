@@ -58,47 +58,6 @@ for Request<Params, Results, Pipeline> {
     }
 }
 
-pub trait GetParams<'a, T> {
-    fn get_params(&'a self) -> T;
-}
-
-impl <'a, Params : FromStructReader<'a>, Results> GetParams<'a, Params>
-for CallContext<Params, Results> {
-    fn get_params(&'a self) -> Params {
-        let message : Message::Reader = self.hook.params_message().get_root();
-        match message.which() {
-            Some(Message::Call(call)) => {
-                let params = call.get_params();
-                params.get_content().get_as_struct()
-            }
-            _ => fail!(),
-        }
-    }
-}
-
-pub trait GetResults<'a, T> {
-    fn get_results(&'a mut self) -> T;
-}
-
-impl <'a, Params, Results : FromStructBuilder<'a> + HasStructSize> GetResults<'a, Results>
-for CallContext<Params, Results> {
-    fn get_results(&'a mut self) -> Results {
-        let message : Message::Builder = self.hook.results_message().get_root();
-        match message.which() {
-            Some(Message::Which::Return(ret)) => {
-                match ret.which() {
-                    Some(Return::Which::Results(results)) => {
-                        results.get_content().get_as_struct()
-                    }
-                    _ => fail!()
-                }
-            }
-            _ => fail!(),
-        }
-    }
-}
-
-
 pub trait WaitForContent<'a, T> {
     fn wait(&'a mut self) -> T;
 }

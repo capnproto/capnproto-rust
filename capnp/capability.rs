@@ -6,6 +6,7 @@
 
 use any::{AnyPointer};
 use common::{MessageSize};
+use layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use message::{MallocMessageBuilder};
 use serialize::{OwnedSpaceMessageReader};
 use std;
@@ -85,12 +86,16 @@ impl <Params, Results> CallContext<Params, Results> {
     pub fn done(self) {self.hook.done();}
 }
 
+impl <'a, Params : FromStructReader<'a>, Results : FromStructBuilder<'a> + HasStructSize>
+CallContext<Params, Results> {
+    pub fn get<'a>(&'a mut self) -> (Params, Results) {
+        let (any_params, any_results) = self.hook.get();
+        (any_params.get_as_struct(), any_results.get_as_struct())
+    }
+}
+
 pub trait CallContextHook {
-    fn params_message<'a>(&'a self) -> &'a OwnedSpaceMessageReader;
-    fn results_message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder;
-    fn get_params<'a>(&'a self) -> AnyPointer::Reader<'a>;
-    fn release_params(&self);
-    fn get_results<'a>(&'a mut self) -> AnyPointer::Builder<'a>;
+    fn get<'a>(&'a mut self) -> (AnyPointer::Reader<'a>, AnyPointer::Builder<'a>);
     fn done(~self);
 }
 
