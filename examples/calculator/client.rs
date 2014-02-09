@@ -16,6 +16,7 @@ impl Calculator::Function::Server for PowerFunction {
         let params = context.get_params().get_params();
         assert!(params.size() == 2, "Wrong number of parameters");
         context.get_results().set_value(std::f64::pow(params[0], params[1]));
+        context.done();
     }
 }
 
@@ -301,5 +302,9 @@ pub fn main() {
 
         let response = request.send().pipeline.get_value().read_request()
                               .send().wait();
+
+        assert!(response.get_value() == 512.0);
+
+        println!("PASS");
     }
 }

@@ -6,10 +6,9 @@
 
 use capnp::any::{AnyPointer};
 use capnp::capability;
-use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, RemotePromise,
+use capnp::capability::{CallContext, CallContextHook, ClientHook, PipelineHook, PipelineOp, RemotePromise,
                         RequestHook, Request, Server};
 use capnp::common;
-use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use capnp::serialize::{OwnedSpaceMessageReader};
@@ -19,7 +18,7 @@ use std::any::AnyRefExt;
 use std::hashmap::HashMap;
 
 //use capability::{LocalClient};
-use rpc_capnp::{Message, Return, CapDescriptor, PromisedAnswer, MessageTarget};
+use rpc_capnp::{Message, Return, CapDescriptor, MessageTarget};
 
 pub type QuestionId = u32;
 pub type AnswerId = QuestionId;
@@ -40,11 +39,22 @@ pub struct Export {
 }
 
 impl Export {
-    pub fn new(server : ~Server) -> Export {
+    pub fn new(rpc_chan : std::comm::SharedChan<RpcEvent>, server : ~Server) -> Export {
         let (port, chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
         std::task::spawn(proc () {
                 loop {
-                    port.recv();
+                    let message = port.recv();
+
+                    // XXX
+                    let (interface_id, method_id) = {
+                        let root : Message::Reader = message.get_root();
+                        match root.which() {
+                            Some(Message::Call(call)) => (call.get_interface_id(), call.get_method_id()),
+                            _ => fail!(),
+                        }
+                    };
+                    let context = CallContext { hook : ~RpcCallContext::new(message, rpc_chan.clone())};
+                    server.dispatch_call(interface_id, method_id, context);
                 }
             });
 
@@ -112,7 +122,7 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
                             }
                         }
                     }
-                    Some(Return::Exception(e)) => {
+                    Some(Return::Exception(_e)) => {
                     }
                     _ => {}
                 }
@@ -120,7 +130,7 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
             }
             Some(Message::Call(call)) => {
                 match call.get_target().which() {
-                    Some(MessageTarget::ImportedCap(import_id)) => {
+                    Some(MessageTarget::ImportedCap(_import_id)) => {
                     }
                     _ => {
                     }
@@ -129,7 +139,7 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
             }
             Some(Message::Unimplemented(_)) => {
             }
-            Some(Message::Abort(exc)) => {
+            Some(Message::Abort(_exc)) => {
             }
             None => {
             }
@@ -183,7 +193,7 @@ impl RpcConnectionState {
             });
 
         spawn(proc() {
-                let RpcConnectionState {mut questions, mut exports, answers, imports} = self;
+                let RpcConnectionState {mut questions, mut exports, answers : _answers, imports : _imports} = self;
                 loop {
                     match port.recv() {
                         IncomingMessage(mut message) => {
@@ -197,15 +207,14 @@ impl RpcConnectionState {
                             populate_cap_table(message, &loop_chan);
                             let root = message.get_root::<Message::Reader>();
                             let receiver = match root.which() {
-                                Some(Message::Return(ret)) => {
-                                    println!("got a return with answer id {}", ret.get_answer_id());
-                                    QuestionReceiver(ret.get_answer_id())
+                                Some(Message::Unimplemented(_)) => {
+                                    println!("unimplemented");
+                                    Nobody
                                 }
+
                                 Some(Message::Call(call)) => {
-                                    println!("a call");
                                     match call.get_target().which() {
                                         Some(MessageTarget::ImportedCap(import_id)) => {
-                                            println!("import id: {}", import_id);
                                             ExportReceiver(import_id)
                                         }
                                         _ => {
@@ -213,12 +222,20 @@ impl RpcConnectionState {
                                         }
                                     }
                                 }
-                                Some(Message::Unimplemented(_)) => {
-                                    println!("unimplemented");
+
+                                Some(Message::Return(ret)) => {
+                                    QuestionReceiver(ret.get_answer_id())
+                                }
+                                Some(Message::Finish(_finish)) => {
+                                    println!("finish");
                                     Nobody
                                 }
                                 Some(Message::Abort(exc)) => {
                                     println!("abort: {}", exc.get_reason());
+                                    Nobody
+                                }
+                                Some(Message::Release(_rel)) => {
+                                    println!("release");
                                     Nobody
                                 }
                                 None => {
@@ -272,7 +289,10 @@ impl RpcConnectionState {
                         NewLocalServer(server, export_chan) => {
                             let export_id = exports.slots.len() as u32;
                             export_chan.send(export_id);
-                            exports.slots.push(Export::new(server));
+                            exports.slots.push(Export::new(loop_chan.clone(), server));
+                        }
+                        ReturnEvent(message) => {
+                            writer_chan.send(message);
                         }
                     }
                 }});
@@ -460,6 +480,34 @@ impl PipelineHook for RpcPipeline {
 pub struct RpcCallContext {
     params_message : ~OwnedSpaceMessageReader,
     results_message : ~MallocMessageBuilder,
+    rpc_chan : std::comm::SharedChan<RpcEvent>,
+}
+
+impl RpcCallContext {
+    pub fn new(params_message : ~OwnedSpaceMessageReader,
+               rpc_chan : std::comm::SharedChan<RpcEvent>) -> RpcCallContext {
+        let answer_id = {
+            let root : Message::Reader = params_message.get_root();
+            match root.which() {
+                Some(Message::Call(call)) => {
+                    call.get_question_id()
+                }
+                _ => fail!(),
+            }
+        };
+        let mut results_message = ~MallocMessageBuilder::new_default();
+        {
+            let root : Message::Builder = results_message.init_root();
+            let ret = root.init_return();
+            ret.set_answer_id(answer_id);
+            ret.init_results();
+        }
+        RpcCallContext {
+            params_message : params_message,
+            results_message : results_message,
+            rpc_chan : rpc_chan,
+        }
+    }
 }
 
 impl CallContextHook for RpcCallContext {
@@ -481,8 +529,23 @@ impl CallContextHook for RpcCallContext {
     fn release_params(&self) {
         fail!()
     }
-    fn get_results<'a>(&'a self) -> AnyPointer::Builder<'a> {
-        fail!()
+    fn get_results<'a>(&'a mut self) -> AnyPointer::Builder<'a> {
+        let root : Message::Builder = self.results_message.get_root();
+        match root.which() {
+            Some(Message::Which::Return(ret)) => {
+                match ret.which() {
+                    Some(Return::Which::Results(results)) => {
+                        results.get_content()
+                    }
+                    _ => fail!(),
+                }
+            }
+            _ => fail!(),
+        }
+    }
+    fn done(~self) {
+        let ~RpcCallContext { params_message : _, results_message, rpc_chan} = self;
+        rpc_chan.send(ReturnEvent(results_message));
     }
 }
 
@@ -497,6 +560,7 @@ pub enum RpcEvent {
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
     NewLocalServer(~Server, std::comm::Chan<ExportId>),
+    ReturnEvent(~MallocMessageBuilder),
 }
 
 

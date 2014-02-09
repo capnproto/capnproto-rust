@@ -12,7 +12,7 @@ use capnp::any::{AnyPointer};
 use capnp::common::{MessageSize};
 use capnp::capability::{CallContext, ClientHook, Request, RemotePromise};
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
-use capnp::message::{MessageReader, MessageBuilder, MallocMessageBuilder};
+use capnp::message::{MessageReader, MessageBuilder};
 use rpc::{ExportId, SenderHosted};
 
 use rpc_capnp::{Message, Return};
@@ -85,8 +85,13 @@ for CallContext<Params, Results> {
     fn get_results(&'a mut self) -> Results {
         let message : Message::Builder = self.hook.results_message().get_root();
         match message.which() {
-            Some(Message::Which::Call(call)) => {
-                call.get_params().get_content().get_as_struct()
+            Some(Message::Which::Return(ret)) => {
+                match ret.which() {
+                    Some(Return::Which::Results(results)) => {
+                        results.get_content().get_as_struct()
+                    }
+                    _ => fail!()
+                }
             }
             _ => fail!(),
         }

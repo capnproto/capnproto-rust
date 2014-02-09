@@ -9,7 +9,7 @@ use rpc_capnp::{Message, Return};
 use std;
 use capnp::capability::{ClientHook, FromClientHook, ServerHook, Server, Client};
 use capnp::message::{MessageBuilder, MallocMessageBuilder, MessageReader};
-use rpc::{RpcConnectionState, RpcEvent, OutgoingMessage, Outgoing, NewLocalServer};
+use rpc::{RpcConnectionState, RpcEvent, NewLocalServer};
 use capability;
 
 pub struct EzRpcClient {
