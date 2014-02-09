@@ -19,8 +19,8 @@ macro_rules! refresh_buffer(
     ($inner:expr, $size:ident, $inPtr:ident, $inEnd:ident, $out:ident,
      $outBuf:ident, $bufferBegin:ident) => (
         {
-            $inner.skip($size);
-            let (b, e) = $inner.get_read_buffer();
+            if_ok!($inner.skip($size));
+            let (b, e) = if_ok!($inner.get_read_buffer());
             $inPtr = b;
             $inEnd = e;
             $size = ptr_sub($inEnd, $inPtr);
@@ -42,7 +42,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
             let mut out = outBuf.as_mut_ptr();
             let outEnd = std::ptr::to_mut_unsafe_ptr(outBuf.unsafe_mut_ref(len));
 
-            let (mut inPtr, mut inEnd) = self.inner.get_read_buffer();
+            let (mut inPtr, mut inEnd) = if_ok!(self.inner.get_read_buffer());
             let mut bufferBegin = inPtr;
             let mut size = ptr_sub(inEnd, inPtr);
             if size == 0 {
@@ -58,7 +58,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
 
                 if ptr_sub(inEnd, inPtr) < 10 {
                     if out >= outEnd {
-                        self.inner.skip(ptr_sub(inPtr, bufferBegin));
+                        if_ok!(self.inner.skip(ptr_sub(inPtr, bufferBegin)));
                         return Ok(ptr_sub(out, outBuf.as_mut_ptr()));
                     }
 
@@ -138,7 +138,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                         out = out.offset(inRemaining as int);
                         runLength -= inRemaining;
 
-                        self.inner.skip(size);
+                        if_ok!(self.inner.skip(size));
                         std::vec::raw::mut_buf_as_slice::<u8,()>(out, runLength, |buf| {
                             self.inner.read(buf).unwrap();
                         });
@@ -147,7 +147,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                         if out == outEnd {
                             return Ok(len);
                         } else {
-                            let (b, e) = self.inner.get_read_buffer();
+                            let (b, e) = if_ok!(self.inner.get_read_buffer());
                             inPtr = b;
                             inEnd = e;
                             size = ptr_sub(e, b);
@@ -158,7 +158,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                 }
 
                 if out == outEnd {
-                    self.inner.skip(ptr_sub(inPtr, bufferBegin));
+                    if_ok!(self.inner.skip(ptr_sub(inPtr, bufferBegin)));
                     return Ok(len);
                 }
             }
