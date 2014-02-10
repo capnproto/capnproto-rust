@@ -64,8 +64,10 @@ struct FunctionImpl {
 }
 
 impl FunctionImpl {
-    fn new(_param_count : uint, _body : Calculator::Expression::Reader) -> FunctionImpl {
-        fail!()
+    fn new(param_count : uint, body : Calculator::Expression::Reader) -> FunctionImpl {
+        let mut result = FunctionImpl { param_count : param_count, body : MallocMessageBuilder::new_default() };
+        result.body.set_root(&body.reader);
+        result
     }
 }
 
@@ -79,6 +81,28 @@ impl Calculator::Function::Server for FunctionImpl {
             let expression = self.body.get_root::<Calculator::Expression::Builder>().as_reader();
             results.set_value(evaluate_impl(expression, Some(params.get_params())));
         }
+        context.done();
+    }
+}
+
+pub struct OperatorImpl {
+    op : Calculator::Operator::Reader,
+}
+
+impl Calculator::Function::Server for OperatorImpl {
+    fn call(&mut self, mut context : Calculator::Function::CallContext) {
+        let (params, results) = context.get();
+        let params = params.get_params();
+        assert!(params.size() == 2, "Wrong number of parameters.");
+
+        let result = match self.op {
+            Calculator::Operator::Add => params[0] + params[1],
+            Calculator::Operator::Subtract => params[0] - params[1],
+            Calculator::Operator::Multiply => params[0] * params[1],
+            Calculator::Operator::Divide => params[0] / params[1],
+        };
+
+        results.set_value(result);
         context.done();
     }
 }
@@ -105,7 +129,17 @@ impl <T : ServerHook> Calculator::Server for CalculatorImpl<T> {
                 ~FunctionImpl::new(params.get_param_count() as uint, params.get_body())));
     }
     fn get_operator(&mut self, mut context : Calculator::GetOperatorContext) {
-        let (_params, _results) = context.get();
+        let (params, results) = context.get();
+        results.set_func(
+            match params.get_op() {
+                Some(op) => {
+                    FromServer::new(
+                        &self.server_hook,
+                        ~OperatorImpl {op : op})
+                }
+                None => fail!("Unknown operator."),
+            });
+        context.done();
     }
 }
 

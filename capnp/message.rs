@@ -123,6 +123,10 @@ pub trait MessageBuilder {
         self.get_root_internal().get_as_struct()
     }
 
+    fn set_root(&mut self, value : &layout::StructReader) {
+        self.get_root_internal().set_as_struct(value);
+    }
+
     fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
         self.arena().get_segments_for_output(cont)
     }

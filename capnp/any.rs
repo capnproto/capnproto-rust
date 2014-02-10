@@ -8,7 +8,7 @@ pub mod AnyPointer {
     use std;
     use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
     use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
-                 HasStructSize};
+                 HasStructSize, StructReader};
     use blob::{Text, Data};
 
     pub struct Reader<'a> {
@@ -63,6 +63,11 @@ pub mod AnyPointer {
             FromStructBuilder::new(
                 self.builder.init_struct(
                     HasStructSize::struct_size(None::<T>)))
+        }
+
+        // XXX value should be a user struct.
+        pub fn set_as_struct(&self, value : &StructReader) {
+            self.builder.set_struct(value);
         }
 
         pub fn set_as_text(&self, value : &str) {
