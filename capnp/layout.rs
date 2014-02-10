@@ -684,7 +684,7 @@ mod WireHelpers {
         if (*src).is_null() {
             std::ptr::zero_memory(dst, 1);
         } else if (*src).kind() == WP_FAR {
-            std::ptr::copy_nonoverlapping_memory(dst, src, 1);
+            std::ptr::copy_nonoverlapping_memory(dst, src as *WirePointer, 1);
         } else {
             transfer_pointer_split(dst_segment, dst, src_segment, src, (*src).mut_target());
         }
@@ -792,7 +792,7 @@ mod WireHelpers {
 
             //# Copy data section.
             // Note: copy_nonoverlapping memory's third argument is an element count, not a byte count.
-            std::ptr::copy_nonoverlapping_memory(ptr, old_ptr,
+            std::ptr::copy_nonoverlapping_memory(ptr, old_ptr as *Word,
                                                  old_data_size as uint);
 
 
@@ -1111,9 +1111,9 @@ mod WireHelpers {
                 return Text::Builder::new(std::ptr::mut_null(), 0);
             } else {
                 let builder = init_text_pointer(reff, segment, default_size).value;
-                std::ptr::copy_nonoverlapping_memory::<u8, *u8>(builder.as_ptr(),
-                                                                std::cast::transmute(default_value),
-                                                                default_size);
+                std::ptr::copy_nonoverlapping_memory::<u8>(builder.as_ptr(),
+                                                           std::cast::transmute(default_value),
+                                                           default_size);
                 return builder;
             }
         } else {
@@ -1165,9 +1165,9 @@ mod WireHelpers {
                 return Data::new_builder(std::ptr::mut_null(), 0);
             } else {
                 let builder = init_data_pointer(reff, segment, default_size).value;
-                std::ptr::copy_nonoverlapping_memory::<u8, *u8>(builder.as_mut_ptr(),
-                                                                std::cast::transmute(default_value),
-                                                                default_size);
+                std::ptr::copy_nonoverlapping_memory::<u8>(builder.as_mut_ptr(),
+                                                           std::cast::transmute(default_value),
+                                                           default_size);
                 return builder;
             }
         } else {
@@ -1195,8 +1195,8 @@ mod WireHelpers {
         if value.data_size == 1 {
             *std::cast::transmute::<*mut Word, *mut u8>(ptr) = value.get_bool_field(0) as u8
         } else {
-            std::ptr::copy_nonoverlapping_memory::<Word, *Word>(ptr, std::cast::transmute(value.data),
-                                                                value.data_size as uint / BITS_PER_WORD);
+            std::ptr::copy_nonoverlapping_memory::<Word>(ptr, std::cast::transmute(value.data),
+                                                         value.data_size as uint / BITS_PER_WORD);
         }
 
         let pointer_section : *mut WirePointer = std::cast::transmute(ptr.offset(data_size as int));

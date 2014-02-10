@@ -1,4 +1,4 @@
-RUSTC = rustc -O -Z debug-info
+RUSTC = rustc -O
 
 CAPNP_SOURCES= \
     capnp/any.rs \
