@@ -72,12 +72,41 @@ impl ServerHook for EzRpcClient {
     }
 }
 
+
+
 pub struct EzRpcServer {
     chan : std::comm::SharedChan<RpcEvent>,
 }
 
+impl ServerHook for EzRpcServer {
+    fn new_client(&self, server : ~Server) -> Client {
+        let (port, chan) = std::comm::Chan::<u32>::new();
+        self.chan.send(NewLocalServer(server, chan));
+        let export_id = port.recv();
+        Client::new((~capability::LocalClient { export_id : export_id }) as ~ClientHook)
+    }
+}
+
+
+pub struct EzRpcServerAcceptor {
+    tcp_acceptor : std::io::net::tcp::TcpAcceptor,
+}
+
+impl std::io::Acceptor<EzRpcServer> for EzRpcServerAcceptor {
+    fn accept(&mut self) -> std::io::IoResult<EzRpcServer> {
+        let tcp = if_ok!(self.tcp_acceptor.accept());
+
+        let connection_state = RpcConnectionState::new();
+
+        let chan = connection_state.run(tcp.clone(), tcp);
+
+        return Ok(EzRpcServer { chan : chan });
+
+    }
+}
+
 impl EzRpcServer {
-    pub fn new(bind_address : &str) -> std::io::IoResult<EzRpcClient> {
+    pub fn new(bind_address : &str) -> std::io::IoResult<EzRpcServerAcceptor> {
         use std::io::net::{ip, tcp};
         use std::io::Listener;
 
@@ -87,6 +116,7 @@ impl EzRpcServer {
 
         let tcp_acceptor = if_ok!(tcp_listener.listen());
 
-        fail!();
+        Ok(EzRpcServerAcceptor { tcp_acceptor : tcp_acceptor })
     }
+
 }

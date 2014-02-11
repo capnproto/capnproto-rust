@@ -218,7 +218,10 @@ impl RpcConnectionState {
                                     println!("unimplemented");
                                     Nobody
                                 }
-
+                                Some(Message::Abort(exc)) => {
+                                    println!("abort: {}", exc.get_reason());
+                                    Nobody
+                                }
                                 Some(Message::Call(call)) => {
                                     match call.get_target().which() {
                                         Some(MessageTarget::ImportedCap(import_id)) => {
@@ -237,20 +240,38 @@ impl RpcConnectionState {
                                     println!("finish");
                                     Nobody
                                 }
-                                Some(Message::Abort(exc)) => {
-                                    println!("abort: {}", exc.get_reason());
+                                Some(Message::Resolve(_resolve)) => {
+                                    println!("resolve");
                                     Nobody
                                 }
                                 Some(Message::Release(_rel)) => {
                                     println!("release");
                                     Nobody
                                 }
-                                None => {
-                                    println!("Nothing there");
+                                Some(Message::Disembargo(_dis)) => {
+                                    println!("disembargo");
                                     Nobody
                                 }
-                                _ => {
-                                    println!("something else");
+                                Some(Message::Save(_save)) => {
+                                    Nobody
+                                }
+                                Some(Message::Restore(_restore)) => {
+                                    Nobody
+                                }
+                                Some(Message::Delete(_delete)) => {
+                                    Nobody
+                                }
+                                Some(Message::Provide(_provide)) => {
+                                    Nobody
+                                }
+                                Some(Message::Accept(_accept)) => {
+                                    Nobody
+                                }
+                                Some(Message::Join(_join)) => {
+                                    Nobody
+                                }
+                                None => {
+                                    println!("Nothing there");
                                     Nobody
                                 }
                             };

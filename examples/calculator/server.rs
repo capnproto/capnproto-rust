@@ -5,12 +5,14 @@
  */
 
 use std;
+use std::io::Acceptor;
 
 use capnp::capability::{FromServer, ServerHook};
 use capnp::list::{PrimitiveList};
 use capnp::message::{MallocMessageBuilder, MessageBuilder};
 
 use capnp_rpc::capability::{WaitForContent};
+use capnp_rpc::ez_rpc::EzRpcServer;
 
 use calculator_capnp::Calculator;
 
@@ -112,6 +114,12 @@ struct CalculatorImpl<T>{
     server_hook : T,
 }
 
+impl <T> CalculatorImpl<T> {
+    pub fn new(hook : T) -> CalculatorImpl<T> {
+        CalculatorImpl { server_hook: hook }
+    }
+}
+
 impl <T : ServerHook> Calculator::Server for CalculatorImpl<T> {
     fn evaluate(&mut self, mut context : Calculator::EvaluateContext) {
         let (params, results) = context.get();
@@ -148,6 +156,15 @@ pub fn main() {
     if args.len() != 3 {
         println!("usage: {} server ADDRESS[:PORT]", args[0]);
         return;
+    }
+
+    let mut acceptor = EzRpcServer::new(args[2]).unwrap();
+
+    // this is not the right way to do this.
+    for x in acceptor.incoming() {
+        spawn(proc() {
+                let _calc = CalculatorImpl::new(x.unwrap());
+            });
     }
 
     println!("calculator server is unimplemented");
