@@ -360,10 +360,17 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                         None => { fail!("unsupported type") }
                         Some(Type::Struct(st)) => {
                             let theMod = scopeMap.get(&st.get_type_id()).connect("::");
-                            return (format!("StructList::{}<'a,{}::{}<'a>>", module, theMod, module),
-                                    Line(format!("StructList::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
-                                                 module, member, offset, theMod))
-                                    );
+                            if isReader {
+                                return (format!("StructList::{}<'a,{}::{}<'a>>", module, theMod, module),
+                                        Line(format!("StructList::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
+                                                     module, member, offset, theMod))
+                                        );
+                            } else {
+                                return (format!("StructList::{}<'a,{}::{}<'a>>", module, theMod, module),
+                                        Line(format!("StructList::{}::new(self.{}.get_pointer_field({}).get_struct_list({}::STRUCT_SIZE, std::ptr::null()))",
+                                                     module, member, offset, theMod))
+                                        );
+                            }
                         }
                         Some(Type::Enum(e)) => {
                             let theMod = scopeMap.get(&e.get_type_id()).connect("::");

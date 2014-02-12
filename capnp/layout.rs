@@ -1733,7 +1733,6 @@ impl <'a> PointerBuilder<'a> {
         unsafe { (*self.pointer).is_null() }
     }
 
-
     pub fn get_struct(&self, size : StructSize, default_value : *Word) -> StructBuilder<'a> {
         unsafe {
             WireHelpers::get_writable_struct_pointer(

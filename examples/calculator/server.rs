@@ -6,7 +6,7 @@
 
 use std;
 
-use capnp::capability::{FromServer, ServerHook};
+use capnp::capability::{FromServer, ServerHook, Server};
 use capnp::list::{PrimitiveList};
 use capnp::message::{MallocMessageBuilder, MessageBuilder};
 
@@ -152,8 +152,8 @@ pub fn main() {
 
     let mut rpc_server = EzRpcServer::new(args[2]).unwrap();
 
-    let calculator = ~CalculatorImpl;
-//    let server = FromServer::new(None::<EzRpcServer>, calculator);
+    // There's got to be a better way to do this.
+    let calculator = (~Calculator::ServerDispatch { server : ~CalculatorImpl}) as ~Server;
+    rpc_server.export_cap("calculator", calculator);
 
-   println!("calculator server is unimplemented");
 }

@@ -93,6 +93,19 @@ mod tests {
     }
 
     #[test]
+    fn test_struct_list () {
+
+        use test_capnp::TestStructList;
+
+        let mut message = MallocMessageBuilder::new_default();
+
+        let test_struct_list = message.init_root::<TestStructList::Builder>();
+
+        test_struct_list.init_struct_list(4);
+        test_struct_list.get_struct_list();
+    }
+
+    #[test]
     fn test_blob () {
         use test_capnp::TestBlob;
 
@@ -323,8 +336,10 @@ mod tests {
         let any_pointer = test_any_pointer.init_any_pointer_field();
         any_pointer.set_as_text("xyzzy");
 
-        let reader = test_any_pointer.as_reader();
-        assert_eq!(reader.get_any_pointer_field().get_as_text(), "xyzzy");
+        {
+            let reader = test_any_pointer.as_reader();
+            assert_eq!(reader.get_any_pointer_field().get_as_text(), "xyzzy");
+        }
     }
 
     #[test]
