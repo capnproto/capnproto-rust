@@ -234,14 +234,17 @@ impl RpcConnectionState {
                                     let localclient = port.recv().unwrap();
                                     let idx = exports.slots.len();
                                     exports.slots.push(Export { object : localclient.object.clone() });
-                                    let mut message = MallocMessageBuilder::new_default();
-                                    let root : Message::Builder = message.init_root();
-                                    let ret = root.init_return();
-                                    ret.set_answer_id(restore.get_question_id());
-                                    let payload = ret.init_results();
-                                    payload.init_cap_table(1);
-                                    payload.get_cap_table()[0].set_sender_hosted(idx as u32);
-                                    payload.get_content().set_as_capability(localclient.copy());
+                                    let mut message = ~MallocMessageBuilder::new_default();
+                                    {
+                                        let root : Message::Builder = message.init_root();
+                                        let ret = root.init_return();
+                                        ret.set_answer_id(restore.get_question_id());
+                                        let payload = ret.init_results();
+                                        payload.init_cap_table(1);
+                                        payload.get_cap_table()[0].set_sender_hosted(idx as u32);
+                                        payload.get_content().set_as_capability(localclient.copy());
+                                    }
+                                    writer_chan.send(message);
                                     Nobody
                                 }
                                 Some(Message::Delete(_delete)) => {
