@@ -153,7 +153,7 @@ pub fn main() {
     let mut rpc_server = EzRpcServer::new(args[2]).unwrap();
 
     let calculator = ~CalculatorImpl;
-    let server = FromServer::new(None::<EzRpcServer>, calculator);
+//    let server = FromServer::new(None::<EzRpcServer>, calculator);
 
    println!("calculator server is unimplemented");
 }

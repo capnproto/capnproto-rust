@@ -646,7 +646,7 @@ impl ObjectHandle {
 }
 
 pub enum VatEvent {
-    VatEventRestore(~str, std::comm::SharedChan<Option<LocalClient>>),
+    VatEventRestore(~str /* XXX */, std::comm::SharedChan<Option<LocalClient>>),
     VatEventRegister(~str /* XXX */, ~Server),
 }
 
@@ -662,13 +662,14 @@ impl Vat {
                 let mut vat = Vat { objects : std::hashmap::HashMap::new() };
 
                 loop {
-                    match port.recv() {
-                        VatEventRegister(name, server) => {
+                    match port.recv_opt() {
+                        Some(VatEventRegister(name, server)) => {
                             vat.objects.insert(name, LocalClient { object : ObjectHandle::new(server)} );
                         }
-                        VatEventRestore(name, return_chan) => {
+                        Some(VatEventRestore(name, return_chan)) => {
                             return_chan.send(Some((*vat.objects.get(&name)).clone()));
                         }
+                        None => break,
                     }
                 }
             });

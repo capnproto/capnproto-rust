@@ -555,14 +555,11 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 
             initter_interior.push(Line(format!("FromStructBuilder::new(self.builder)")));
 
-            //setter_interior.push(Line(format!("Builder { builder : }")));
-
             (None, Some(format!("{}::Builder<'a>", theMod)))
         }
         Some(Field::Slot(reg_field)) => {
-            let offset = reg_field.get_offset() as uint;
-
-            let common_case = |typ: &str| {
+            fn common_case (typ: &str, offset : uint, reg_field : Field::Slot::Reader,
+                            setter_interior : &mut ~[FormattedText] ) -> (Option<~str>, Option<~str>) {
                 match prim_default(&reg_field.get_default_value()) {
                     None => {
                         setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
@@ -576,6 +573,9 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                 }
                 (Some(typ.to_owned()), None)
             };
+
+
+            let offset = reg_field.get_offset() as uint;
 
             match reg_field.get_type().which() {
                 Some(Type::Void(())) => {
@@ -594,16 +594,16 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
                     }
                     (Some(~"bool"), None)
                 }
-                Some(Type::Int8(())) => common_case("i8"),
-                Some(Type::Int16(())) => common_case("i16"),
-                Some(Type::Int32(())) => common_case("i32"),
-                Some(Type::Int64(())) => common_case("i64"),
-                Some(Type::Uint8(())) => common_case("u8"),
-                Some(Type::Uint16(())) => common_case("u16"),
-                Some(Type::Uint32(())) => common_case("u32"),
-                Some(Type::Uint64(())) => common_case("u64"),
-                Some(Type::Float32(())) => common_case("f32"),
-                Some(Type::Float64(())) => common_case("f64"),
+                Some(Type::Int8(())) => common_case("i8", offset, reg_field, &mut setter_interior),
+                Some(Type::Int16(())) => common_case("i16", offset, reg_field, &mut setter_interior),
+                Some(Type::Int32(())) => common_case("i32", offset, reg_field, &mut setter_interior),
+                Some(Type::Int64(())) => common_case("i64", offset, reg_field, &mut setter_interior),
+                Some(Type::Uint8(())) => common_case("u8", offset, reg_field, &mut setter_interior),
+                Some(Type::Uint16(())) => common_case("u16", offset, reg_field, &mut setter_interior),
+                Some(Type::Uint32(())) => common_case("u32", offset, reg_field, &mut setter_interior),
+                Some(Type::Uint64(())) => common_case("u64", offset, reg_field, &mut setter_interior),
+                Some(Type::Float32(())) => common_case("f32", offset, reg_field, &mut setter_interior),
+                Some(Type::Float64(())) => common_case("f64", offset, reg_field, &mut setter_interior),
                 Some(Type::Text(())) => {
                     setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_text(value);",
                                                       offset)));
@@ -1306,7 +1306,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     box [
                         Line(box "impl <T:ServerHook, U : Server + Send> FromServer<T,U> for Client {"),
                         Indent(box Branch(
-                                box [Line(box "fn new(hook : Option<T>, server : ~U) -> Client {"),
+                                box [Line(box "fn new(_hook : Option<T>, server : ~U) -> Client {"),
                                      Indent(
                                         box Line(box "Client { client : ServerHook::new_client(None::<T>, ~ServerDispatch { server : server})}")),
                                      Line(box "}")])),
