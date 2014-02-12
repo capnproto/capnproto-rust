@@ -1306,9 +1306,9 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                     box [
                         Line(box "impl <T:ServerHook, U : Server + Send> FromServer<T,U> for Client {"),
                         Indent(box Branch(
-                                box [Line(box "fn new(hook : &T, server : ~U) -> Client {"),
+                                box [Line(box "fn new(hook : Option<T>, server : ~U) -> Client {"),
                                      Indent(
-                                        box Line(box "Client { client : hook.new_client(~ServerDispatch { server : server})}")),
+                                        box Line(box "Client { client : ServerHook::new_client(None::<T>, ~ServerDispatch { server : server})}")),
                                      Line(box "}")])),
                         Line(box "}")]));
 

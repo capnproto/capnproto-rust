@@ -67,7 +67,7 @@ impl EzRpcClient {
 }
 
 impl ServerHook for EzRpcClient {
-    fn new_client(&self, server : ~Server) -> Client {
+    fn new_client(_unused_self : Option<EzRpcClient>, server : ~Server) -> Client {
         Client::new((~capability::LocalClient {
                     object :  ObjectHandle::new(server) }) as ~ClientHook)
     }
@@ -80,7 +80,7 @@ pub struct EzRpcServer {
 }
 
 impl ServerHook for EzRpcServer {
-    fn new_client(&self, server : ~Server) -> Client {
+    fn new_client(_unused_self : Option<EzRpcServer>, server : ~Server) -> Client {
         Client::new((~capability::LocalClient {
                     object :  ObjectHandle::new(server) }) as ~ClientHook)
     }

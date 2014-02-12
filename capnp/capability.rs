@@ -56,11 +56,11 @@ pub trait ClientHook {
 }
 
 pub trait ServerHook {
-    fn new_client(&self, server : ~Server) -> Client;
+    fn new_client(unused : Option<Self>, server : ~Server) -> Client;
 }
 
 pub trait FromServer<T, U> {
-    fn new(hook : &T, server : ~U) -> Self;
+    fn new(hook : Option<T>, server : ~U) -> Self;
 }
 
 pub struct Client {

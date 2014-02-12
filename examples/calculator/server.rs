@@ -109,22 +109,14 @@ impl Calculator::Function::Server for OperatorImpl {
 }
 
 
-struct CalculatorImpl<T>{
-    server_hook : T,
-}
+struct CalculatorImpl;
 
-impl <T> CalculatorImpl<T> {
-    pub fn new(hook : T) -> CalculatorImpl<T> {
-        CalculatorImpl { server_hook: hook }
-    }
-}
-
-impl <T : ServerHook> Calculator::Server for CalculatorImpl<T> {
+impl Calculator::Server for CalculatorImpl {
     fn evaluate(&mut self, mut context : Calculator::EvaluateContext) {
         let (params, results) = context.get();
         results.set_value(
             FromServer::new(
-                &self.server_hook,
+                None::<EzRpcServer>,
                 ~ValueImpl::new(evaluate_impl(params.get_expression(), None))));
         context.done();
     }
@@ -132,7 +124,7 @@ impl <T : ServerHook> Calculator::Server for CalculatorImpl<T> {
         let (params, results) = context.get();
         results.set_func(
             FromServer::new(
-                &self.server_hook,
+                None::<EzRpcServer>,
                 ~FunctionImpl::new(params.get_param_count() as uint, params.get_body())));
     }
     fn get_operator(&mut self, mut context : Calculator::GetOperatorContext) {
@@ -141,7 +133,7 @@ impl <T : ServerHook> Calculator::Server for CalculatorImpl<T> {
             match params.get_op() {
                 Some(op) => {
                     FromServer::new(
-                        &self.server_hook,
+                        None::<EzRpcServer>,
                         ~OperatorImpl {op : op})
                 }
                 None => fail!("Unknown operator."),
@@ -160,13 +152,8 @@ pub fn main() {
 
     let mut rpc_server = EzRpcServer::new(args[2]).unwrap();
 
-    // this is not the right way to do this.
-/*
-    for x in acceptor.incoming() {
-        spawn(proc() {
-                let _calc = CalculatorImpl::new(x.unwrap());
-            });
-    }
-*/
-    println!("calculator server is unimplemented");
+    let calculator = ~CalculatorImpl;
+    let server = FromServer::new(None::<EzRpcServer>, calculator);
+
+   println!("calculator server is unimplemented");
 }
