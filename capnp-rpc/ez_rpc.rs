@@ -9,16 +9,17 @@ use rpc_capnp::{Message, Return};
 use std;
 use capnp::capability::{ClientHook, FromClientHook, ServerHook, Server, Client};
 use capnp::message::{MessageBuilder, MallocMessageBuilder, MessageReader};
-use rpc::{RpcConnectionState, RpcEvent, NewLocalServer, ShutdownEvent};
+use rpc::{RpcConnectionState, RpcEvent, ShutdownEvent};
+use rpc::{Vat, ObjectHandle};
 use capability;
 
 pub struct EzRpcClient {
-    chan : std::comm::SharedChan<RpcEvent>,
+    rpc_chan : std::comm::SharedChan<RpcEvent>,
 }
 
 impl Drop for EzRpcClient {
     fn drop(&mut self) {
-        self.chan.send(ShutdownEvent);
+        self.rpc_chan.send(ShutdownEvent);
     }
 }
 
@@ -34,7 +35,7 @@ impl EzRpcClient {
 
         let chan = connection_state.run(tcp.clone(), tcp);
 
-        return Ok(EzRpcClient { chan : chan });
+        return Ok(EzRpcClient { rpc_chan : chan });
     }
 
     pub fn import_cap<T : FromClientHook>(&mut self, name : &str) -> T {
@@ -43,7 +44,7 @@ impl EzRpcClient {
         restore.init_object_id().set_as_text(name);
 
         let (event, answer_port, _question_port) = RpcEvent::new_outgoing(message);
-        self.chan.send(event);
+        self.rpc_chan.send(event);
 
         let reader = answer_port.recv();
         let message = reader.get_root::<Message::Reader>();
@@ -65,25 +66,22 @@ impl EzRpcClient {
 
 impl ServerHook for EzRpcClient {
     fn new_client(&self, server : ~Server) -> Client {
-        let (port, chan) = std::comm::Chan::<u32>::new();
-        self.chan.send(NewLocalServer(server, chan));
-        let export_id = port.recv();
-        Client::new((~capability::LocalClient { export_id : export_id }) as ~ClientHook)
+        Client::new((~capability::LocalClient {
+                    object :  ObjectHandle::new(server) }) as ~ClientHook)
     }
 }
 
 
 
 pub struct EzRpcServer {
-    chan : std::comm::SharedChan<RpcEvent>,
+    rpc_chan : std::comm::SharedChan<RpcEvent>,
+    vat : Vat,
 }
 
 impl ServerHook for EzRpcServer {
     fn new_client(&self, server : ~Server) -> Client {
-        let (port, chan) = std::comm::Chan::<u32>::new();
-        self.chan.send(NewLocalServer(server, chan));
-        let export_id = port.recv();
-        Client::new((~capability::LocalClient { export_id : export_id }) as ~ClientHook)
+        Client::new((~capability::LocalClient {
+                    object :  ObjectHandle::new(server) }) as ~ClientHook)
     }
 }
 
@@ -100,13 +98,13 @@ impl std::io::Acceptor<EzRpcServer> for EzRpcServerAcceptor {
 
         let chan = connection_state.run(tcp.clone(), tcp);
 
-        return Ok(EzRpcServer { chan : chan });
+        return Ok(EzRpcServer { rpc_chan : chan, vat : Vat::new() });
 
     }
 }
 
 impl EzRpcServer {
-    pub fn new(bind_address : &str) -> std::io::IoResult<EzRpcServerAcceptor> {
+    pub fn acceptor(bind_address : &str) -> std::io::IoResult<EzRpcServerAcceptor> {
         use std::io::net::{ip, tcp};
         use std::io::Listener;
 

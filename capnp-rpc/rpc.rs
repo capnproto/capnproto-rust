@@ -35,35 +35,7 @@ pub struct Answer {
 }
 
 pub struct Export {
-    server_chan : std::comm::Chan<~OwnedSpaceMessageReader>,
-}
-
-impl Export {
-    pub fn new(rpc_chan : std::comm::SharedChan<RpcEvent>, server : ~Server) -> Export {
-        let (port, chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
-        std::task::spawn(proc () {
-                let mut server = server;
-                loop {
-                    let message = match port.recv_opt() {
-                        None => break,
-                        Some(m) => m,
-                    };
-
-                    // XXX
-                    let (interface_id, method_id) = {
-                        let root : Message::Reader = message.get_root();
-                        match root.which() {
-                            Some(Message::Call(call)) => (call.get_interface_id(), call.get_method_id()),
-                            _ => fail!(),
-                        }
-                    };
-                    let context = CallContext { hook : ~RpcCallContext::new(message, rpc_chan.clone())};
-                    server.dispatch_call(interface_id, method_id, context);
-                }
-            });
-
-        Export { server_chan : chan }
-    }
+    object : ObjectHandle,
 }
 
 pub struct Import;
@@ -281,7 +253,7 @@ impl RpcConnectionState {
                                     questions.slots[id].chan.try_send(message);
                                 }
                                 ExportReceiver(id) => {
-                                    exports.slots[id].server_chan.send(message);
+                                    exports.slots[id].object.chan.send((message, loop_chan.clone()));
                                 }
                             }
 
@@ -314,10 +286,10 @@ impl RpcConnectionState {
                             // send
                             writer_chan.send(m);
                         }
-                        NewLocalServer(server, export_chan) => {
+                        NewLocalServer(obj, export_chan) => {
                             let export_id = exports.slots.len() as u32;
                             export_chan.send(export_id);
-                            exports.slots.push(Export::new(loop_chan.clone(), server));
+                            exports.slots.push(Export { object : obj });
                         }
                         ReturnEvent(message) => {
                             writer_chan.send(message);
@@ -450,7 +422,6 @@ impl RequestHook for RpcRequest {
                     let new_cap_table = call.get_params().init_cap_table(cap_table.len());
                     for ii in range(0, cap_table.len()) {
                         match cap_table[ii].as_ref::<OwnedCapDescriptor>() {
-                            None => {fail!("noncompliant client hook")}
                             Some(&NoDescriptor) => {}
                             Some(&ReceiverHosted(import_id)) => {
                                 new_cap_table[ii].set_receiver_hosted(import_id);
@@ -468,6 +439,18 @@ impl RequestHook for RpcRequest {
                             }
                             Some(&SenderHosted(export_id)) => {
                                 new_cap_table[ii].set_sender_hosted(export_id);
+                            }
+                            None => {
+                                match cap_table[ii].as_ref::<ObjectHandle>() {
+                                    Some(obj) => {
+                                        let (port, chan) = std::comm::Chan::<ExportId>::new();
+                                        channel.send(NewLocalServer(obj.clone(), chan));
+                                        let idx = port.recv();
+                                        new_cap_table[ii].set_sender_hosted(idx);
+                                        println!("yay")
+                                    }
+                                    None => fail!("noncompliant client hook"),
+                                }
                             }
                             _ => {}
                         }
@@ -587,7 +570,7 @@ pub struct OutgoingMessage {
 pub enum RpcEvent {
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
-    NewLocalServer(~Server, std::comm::Chan<ExportId>),
+    NewLocalServer(ObjectHandle, std::comm::Chan<ExportId>),
     ReturnEvent(~MallocMessageBuilder),
     ShutdownEvent,
 }
@@ -606,5 +589,56 @@ impl RpcEvent {
                                    question_chan : question_chan }),
          answer_port,
          question_port)
+    }
+}
+
+
+// ----
+
+
+
+
+#[deriving(Clone)]
+pub struct ObjectHandle {
+    chan : std::comm::SharedChan<(~OwnedSpaceMessageReader, std::comm::SharedChan<RpcEvent>)>,
+}
+
+impl ObjectHandle {
+    pub fn new(server : ~Server) -> ObjectHandle {
+        let (port, chan) =
+            std::comm::SharedChan::<(~OwnedSpaceMessageReader, std::comm::SharedChan<RpcEvent>)>::new();
+        std::task::spawn(proc () {
+                let mut server = server;
+                loop {
+                    let (message, rpc_chan) = match port.recv_opt() {
+                        None => break,
+                        Some((m,c)) => (m,c),
+                    };
+
+                    // XXX
+                    let (interface_id, method_id) = {
+                        let root : Message::Reader = message.get_root();
+                        match root.which() {
+                            Some(Message::Call(call)) => (call.get_interface_id(), call.get_method_id()),
+                            _ => fail!(),
+                        }
+                    };
+                    let context = CallContext { hook : ~RpcCallContext::new(message, rpc_chan)};
+                    server.dispatch_call(interface_id, method_id, context);
+                }
+            });
+
+        ObjectHandle { chan : chan }
+    }
+}
+
+
+pub struct Vat {
+    objects : std::hashmap::HashMap<~str, ObjectHandle>,
+}
+
+impl Vat {
+    pub fn new() -> Vat {
+        Vat { objects : std::hashmap::HashMap::new() }
     }
 }

@@ -13,17 +13,17 @@ use capnp::common::{MessageSize};
 use capnp::capability::{ClientHook, Request, RemotePromise};
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::message::{MessageReader, MessageBuilder};
-use rpc::{ExportId, SenderHosted};
+use rpc::{ObjectHandle};
 
 use rpc_capnp::{Message, Return};
 
 pub struct LocalClient {
-    export_id : ExportId,
+    object : ObjectHandle,
 }
 
 impl ClientHook for LocalClient {
     fn copy(&self) -> ~ClientHook {
-        (~LocalClient { export_id : self.export_id }) as ~ClientHook
+        (~LocalClient { object : self.object.clone() }) as ~ClientHook
     }
     fn new_call(&self,
                 _interface_id : u64,
@@ -35,7 +35,7 @@ impl ClientHook for LocalClient {
 
     // HACK
     fn get_descriptor(&self) -> ~std::any::Any {
-        (~SenderHosted(self.export_id)) as ~std::any::Any
+        (~self.object.clone()) as ~std::any::Any
     }
 
 }

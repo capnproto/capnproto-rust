@@ -158,14 +158,16 @@ pub fn main() {
         return;
     }
 
+/*
     let mut acceptor = EzRpcServer::new(args[2]).unwrap();
 
     // this is not the right way to do this.
+
     for x in acceptor.incoming() {
         spawn(proc() {
                 let _calc = CalculatorImpl::new(x.unwrap());
             });
     }
-
+*/
     println!("calculator server is unimplemented");
 }
