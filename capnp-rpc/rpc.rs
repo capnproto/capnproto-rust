@@ -72,7 +72,7 @@ pub struct RpcConnectionState {
 }
 
 fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
-                      loop_chan : &std::comm::SharedChan<RpcEvent>) {
+                      loop_chan : &std::comm::Chan<RpcEvent>) {
     let mut the_cap_table : ~[Option<~ClientHook>] = ~[];
     {
         let root = message.get_root::<Message::Reader>();
@@ -138,10 +138,10 @@ impl RpcConnectionState {
     }
 
     pub fn run<T : std::io::Reader + Send, U : std::io::Writer + Send>(
-        self, inpipe: T, outpipe: U, vat_chan : std::comm::SharedChan<VatEvent>)
-         -> std::comm::SharedChan<RpcEvent> {
+        self, inpipe: T, outpipe: U, vat_chan : std::comm::Chan<VatEvent>)
+         -> std::comm::Chan<RpcEvent> {
 
-        let (port, chan) = std::comm::SharedChan::<RpcEvent>::new();
+        let (port, chan) = std::comm::Chan::<RpcEvent>::new();
 
         let listener_chan = chan.clone();
 
@@ -228,7 +228,7 @@ impl RpcConnectionState {
                                     Nobody
                                 }
                                 Some(Message::Restore(restore)) => {
-                                    let (port, chan) = std::comm::SharedChan::new();
+                                    let (port, chan) = std::comm::Chan::new();
                                     vat_chan.send(
                                         VatEventRestore(restore.get_object_id().get_as_text().to_owned(), chan));
                                     let localclient = port.recv().unwrap();
@@ -330,7 +330,7 @@ pub enum OwnedCapDescriptor {
 }
 
 pub struct ImportClient {
-    priv channel : std::comm::SharedChan<RpcEvent>,
+    priv channel : std::comm::Chan<RpcEvent>,
     import_id : ImportId,
 }
 
@@ -363,7 +363,7 @@ impl ClientHook for ImportClient {
 }
 
 pub struct PipelineClient {
-    priv channel : std::comm::SharedChan<RpcEvent>,
+    priv channel : std::comm::Chan<RpcEvent>,
     ops : ~[PipelineOp::Type],
     question_id : QuestionId,
 }
@@ -408,7 +408,7 @@ impl ClientHook for PipelineClient {
 
 
 pub struct RpcRequest {
-    priv channel : std::comm::SharedChan<RpcEvent>,
+    priv channel : std::comm::Chan<RpcEvent>,
     priv message : ~MallocMessageBuilder,
 }
 
@@ -490,7 +490,7 @@ impl RequestHook for RpcRequest {
 }
 
 pub struct RpcPipeline {
-    channel : std::comm::SharedChan<RpcEvent>,
+    channel : std::comm::Chan<RpcEvent>,
     question_id : ExportId,
 }
 
@@ -510,12 +510,12 @@ impl PipelineHook for RpcPipeline {
 pub struct RpcCallContext {
     params_message : ~OwnedSpaceMessageReader,
     results_message : ~MallocMessageBuilder,
-    rpc_chan : std::comm::SharedChan<RpcEvent>,
+    rpc_chan : std::comm::Chan<RpcEvent>,
 }
 
 impl RpcCallContext {
     pub fn new(params_message : ~OwnedSpaceMessageReader,
-               rpc_chan : std::comm::SharedChan<RpcEvent>) -> RpcCallContext {
+               rpc_chan : std::comm::Chan<RpcEvent>) -> RpcCallContext {
         let answer_id = {
             let root : Message::Reader = params_message.get_root();
             match root.which() {
@@ -616,13 +616,13 @@ impl RpcEvent {
 
 #[deriving(Clone)]
 pub struct ObjectHandle {
-    chan : std::comm::SharedChan<(~OwnedSpaceMessageReader, std::comm::SharedChan<RpcEvent>)>,
+    chan : std::comm::Chan<(~OwnedSpaceMessageReader, std::comm::Chan<RpcEvent>)>,
 }
 
 impl ObjectHandle {
     pub fn new(server : ~Server) -> ObjectHandle {
         let (port, chan) =
-            std::comm::SharedChan::<(~OwnedSpaceMessageReader, std::comm::SharedChan<RpcEvent>)>::new();
+            std::comm::Chan::<(~OwnedSpaceMessageReader, std::comm::Chan<RpcEvent>)>::new();
         std::task::spawn(proc () {
                 let mut server = server;
                 loop {
@@ -649,7 +649,7 @@ impl ObjectHandle {
 }
 
 pub enum VatEvent {
-    VatEventRestore(~str /* XXX */, std::comm::SharedChan<Option<LocalClient>>),
+    VatEventRestore(~str /* XXX */, std::comm::Chan<Option<LocalClient>>),
     VatEventRegister(~str /* XXX */, ~Server),
 }
 
@@ -658,8 +658,8 @@ pub struct Vat {
 }
 
 impl Vat {
-    pub fn new() -> std::comm::SharedChan<VatEvent> {
-        let (port, chan) = std::comm::SharedChan::<VatEvent>::new();
+    pub fn new() -> std::comm::Chan<VatEvent> {
+        let (port, chan) = std::comm::Chan::<VatEvent>::new();
 
         std::task::spawn(proc() {
                 let mut vat = Vat { objects : std::hashmap::HashMap::new() };

@@ -15,7 +15,7 @@ use rpc::{Vat, ObjectHandle};
 use capability;
 
 pub struct EzRpcClient {
-    rpc_chan : std::comm::SharedChan<RpcEvent>,
+    rpc_chan : std::comm::Chan<RpcEvent>,
 }
 
 impl Drop for EzRpcClient {
@@ -76,7 +76,7 @@ impl ServerHook for EzRpcClient {
 
 
 pub struct EzRpcServer {
-    vat_chan : std::comm::SharedChan<VatEvent>,
+    vat_chan : std::comm::Chan<VatEvent>,
 }
 
 impl ServerHook for EzRpcServer {
