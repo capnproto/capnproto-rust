@@ -70,6 +70,11 @@ pub mod AnyPointer {
             self.builder.set_struct(value);
         }
 
+        // XXX value should be a user client.
+        pub fn set_as_capability(&self, value : ~ClientHook) {
+            self.builder.set_capability(value);
+        }
+
         pub fn set_as_text(&self, value : &str) {
             self.builder.set_text(value);
         }

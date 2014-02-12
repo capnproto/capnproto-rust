@@ -17,7 +17,7 @@ use std;
 use std::any::AnyRefExt;
 use std::hashmap::HashMap;
 
-//use capability::{LocalClient};
+use capability::{LocalClient};
 use rpc_capnp::{Message, Return, CapDescriptor, MessageTarget};
 
 pub type QuestionId = u32;
@@ -138,7 +138,7 @@ impl RpcConnectionState {
     }
 
     pub fn run<T : std::io::Reader + Send, U : std::io::Writer + Send>(
-        self, inpipe: T, outpipe: U)
+        self, inpipe: T, outpipe: U, vat_chan : std::comm::SharedChan<VatEvent>)
          -> std::comm::SharedChan<RpcEvent> {
 
         let (port, chan) = std::comm::SharedChan::<RpcEvent>::new();
@@ -227,7 +227,21 @@ impl RpcConnectionState {
                                 Some(Message::Save(_save)) => {
                                     Nobody
                                 }
-                                Some(Message::Restore(_restore)) => {
+                                Some(Message::Restore(restore)) => {
+                                    let (port, chan) = std::comm::SharedChan::new();
+                                    vat_chan.send(
+                                        VatEventRestore(restore.get_object_id().get_as_text().to_owned(), chan));
+                                    let localclient = port.recv().unwrap();
+                                    let idx = exports.slots.len();
+                                    exports.slots.push(Export { object : localclient.object.clone() });
+                                    let mut message = MallocMessageBuilder::new_default();
+                                    let root : Message::Builder = message.init_root();
+                                    let ret = root.init_return();
+                                    ret.set_answer_id(restore.get_question_id());
+                                    let payload = ret.init_results();
+                                    payload.init_cap_table(1);
+                                    payload.get_cap_table()[0].set_sender_hosted(idx as u32);
+                                    payload.get_content().set_as_capability(localclient.copy());
                                     Nobody
                                 }
                                 Some(Message::Delete(_delete)) => {
@@ -447,7 +461,6 @@ impl RequestHook for RpcRequest {
                                         channel.send(NewLocalServer(obj.clone(), chan));
                                         let idx = port.recv();
                                         new_cap_table[ii].set_sender_hosted(idx);
-                                        println!("yay")
                                     }
                                     None => fail!("noncompliant client hook"),
                                 }
@@ -632,13 +645,34 @@ impl ObjectHandle {
     }
 }
 
+pub enum VatEvent {
+    VatEventRestore(~str, std::comm::SharedChan<Option<LocalClient>>),
+    VatEventRegister(~str /* XXX */, ~Server),
+}
 
 pub struct Vat {
-    objects : std::hashmap::HashMap<~str, ObjectHandle>,
+    objects : std::hashmap::HashMap<~str, LocalClient>,
 }
 
 impl Vat {
-    pub fn new() -> Vat {
-        Vat { objects : std::hashmap::HashMap::new() }
+    pub fn new() -> std::comm::SharedChan<VatEvent> {
+        let (port, chan) = std::comm::SharedChan::<VatEvent>::new();
+
+        std::task::spawn(proc() {
+                let mut vat = Vat { objects : std::hashmap::HashMap::new() };
+
+                loop {
+                    match port.recv() {
+                        VatEventRegister(name, server) => {
+                            vat.objects.insert(name, LocalClient { object : ObjectHandle::new(server)} );
+                        }
+                        VatEventRestore(name, return_chan) => {
+                            return_chan.send(Some((*vat.objects.get(&name)).clone()));
+                        }
+                    }
+                }
+            });
+
+        chan
     }
 }

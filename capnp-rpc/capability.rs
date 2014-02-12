@@ -21,6 +21,13 @@ pub struct LocalClient {
     object : ObjectHandle,
 }
 
+impl Clone for LocalClient {
+    fn clone(&self) -> LocalClient {
+        LocalClient { object : self.object.clone() }
+    }
+
+}
+
 impl ClientHook for LocalClient {
     fn copy(&self) -> ~ClientHook {
         (~LocalClient { object : self.object.clone() }) as ~ClientHook

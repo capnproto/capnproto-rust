@@ -5,7 +5,6 @@
  */
 
 use std;
-use std::io::Acceptor;
 
 use capnp::capability::{FromServer, ServerHook};
 use capnp::list::{PrimitiveList};
@@ -158,11 +157,11 @@ pub fn main() {
         return;
     }
 
-/*
-    let mut acceptor = EzRpcServer::new(args[2]).unwrap();
+
+    let mut rpc_server = EzRpcServer::new(args[2]).unwrap();
 
     // this is not the right way to do this.
-
+/*
     for x in acceptor.incoming() {
         spawn(proc() {
                 let _calc = CalculatorImpl::new(x.unwrap());
