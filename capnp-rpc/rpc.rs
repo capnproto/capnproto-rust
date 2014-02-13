@@ -18,7 +18,7 @@ use std::any::AnyRefExt;
 use std::hashmap::HashMap;
 
 use capability::{LocalClient};
-use rpc_capnp::{Message, Return, CapDescriptor, MessageTarget, Payload};
+use rpc_capnp::{Message, Return, CapDescriptor, MessageTarget, Payload, PromisedAnswer};
 
 pub type QuestionId = u32;
 pub type AnswerId = QuestionId;
@@ -31,7 +31,8 @@ pub struct Question {
 }
 
 pub struct Answer {
-    result_exports : ~[ExportId]
+    result_exports : ~[ExportId],
+    pipeline : ~PipelineHook,
 }
 
 pub struct Export {
@@ -124,7 +125,19 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
         }
     }
     message.init_cap_table(the_cap_table);
+}
 
+fn get_pipeline_ops(promised_answer : PromisedAnswer::Reader) -> ~[PipelineOp::Type] {
+    let mut result = box [];
+    let transform = promised_answer.get_transform();
+    for ii in range(0, transform.size()) {
+        match transform[ii].which() {
+            Some(PromisedAnswer::Op::Noop(())) => result.push(PipelineOp::Noop),
+            Some(PromisedAnswer::Op::GetPointerField(idx)) => result.push(PipelineOp::GetPointerField(idx)),
+            None => {}
+        }
+    }
+    return result;
 }
 
 impl RpcConnectionState {
@@ -172,7 +185,7 @@ impl RpcConnectionState {
             });
 
         spawn(proc() {
-                let RpcConnectionState {mut questions, mut exports, answers : _answers, imports : _imports} = self;
+                let RpcConnectionState {mut questions, mut exports, answers, imports : _imports} = self;
                 loop {
                     match port.recv() {
                         IncomingMessage(mut message) => {
@@ -180,6 +193,7 @@ impl RpcConnectionState {
                                 Nobody,
                                 QuestionReceiver(QuestionId),
                                 ExportReceiver(ExportId),
+                                PromisedAnswerReceiver(AnswerId, ~[PipelineOp::Type]),
                             }
 
 
@@ -200,7 +214,9 @@ impl RpcConnectionState {
                                             ExportReceiver(import_id)
                                         }
                                         Some(MessageTarget::PromisedAnswer(promised_answer)) => {
-                                            fail!("call targets a promised answer");
+                                            PromisedAnswerReceiver(
+                                                promised_answer.get_question_id(),
+                                                get_pipeline_ops(promised_answer))
                                         }
                                         None => {
                                             fail!("call targets something else");
@@ -268,24 +284,36 @@ impl RpcConnectionState {
                                     Nobody
                                 }
                             };
+
+                            fn get_interface_and_method(message : &OwnedSpaceMessageReader) -> (u64, u16) {
+                                let root : Message::Reader = message.get_root();
+                                match root.which() {
+                                    Some(Message::Call(call)) =>
+                                        (call.get_interface_id(), call.get_method_id()),
+                                    _ => fail!(),
+                                }
+                            }
+
                             match receiver {
                                 Nobody => {}
                                 QuestionReceiver(id) => {
                                     questions.slots[id].chan.try_send(message);
                                 }
                                 ExportReceiver(id) => {
-                                    let (interface_id, method_id) = {
-                                        let root : Message::Reader = message.get_root();
-                                        match root.which() {
-                                            Some(Message::Call(call)) =>
-                                                (call.get_interface_id(), call.get_method_id()),
-                                            _ => fail!(),
-                                        }
-                                    };
+                                    let (interface_id, method_id) = get_interface_and_method(message);
                                     let context =
                                         ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook;
 
                                     exports.slots[id].hook.call(interface_id, method_id, context);
+                                }
+                                PromisedAnswerReceiver(id, ops) => {
+                                    let (interface_id, method_id) = get_interface_and_method(message);
+                                    let context =
+                                        ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook;
+
+
+                                    answers.slots.get(&id).pipeline
+                                        .get_pipelined_cap(ops).call(interface_id, method_id, context);
                                 }
                             }
 
