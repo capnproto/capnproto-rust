@@ -18,7 +18,7 @@ use std::any::AnyRefExt;
 use std::hashmap::HashMap;
 
 use capability::{LocalClient};
-use rpc_capnp::{Message, Return, CapDescriptor, MessageTarget};
+use rpc_capnp::{Message, Return, CapDescriptor, MessageTarget, Payload};
 
 pub type QuestionId = u32;
 pub type AnswerId = QuestionId;
@@ -406,6 +406,74 @@ impl ClientHook for PipelineClient {
     }
 }
 
+fn write_outgoing_cap_table(rpc_chan : &std::comm::Chan<RpcEvent>, message : &mut MallocMessageBuilder) {
+    fn write_payload(rpc_chan : &std::comm::Chan<RpcEvent>, cap_table : & [~std::any::Any],
+                     payload : Payload::Builder) {
+        let new_cap_table = payload.init_cap_table(cap_table.len());
+        for ii in range(0, cap_table.len()) {
+            match cap_table[ii].as_ref::<OwnedCapDescriptor>() {
+                Some(&NoDescriptor) => {}
+                Some(&ReceiverHosted(import_id)) => {
+                    new_cap_table[ii].set_receiver_hosted(import_id);
+                }
+                Some(&ReceiverAnswer(question_id,ref ops)) => {
+                    let promised_answer = new_cap_table[ii].init_receiver_answer();
+                    promised_answer.set_question_id(question_id);
+                    let transform = promised_answer.init_transform(ops.len());
+                    for ii in range(0, ops.len()) {
+                        match ops[ii] {
+                            PipelineOp::Noop => transform[ii].set_noop(()),
+                            PipelineOp::GetPointerField(idx) => transform[ii].set_get_pointer_field(idx),
+                        }
+                    }
+                }
+                Some(&SenderHosted(export_id)) => {
+                    new_cap_table[ii].set_sender_hosted(export_id);
+                }
+                None => {
+                    match cap_table[ii].as_ref::<ObjectHandle>() {
+                        Some(obj) => {
+                            let (port, chan) = std::comm::Chan::<ExportId>::new();
+                            rpc_chan.send(NewLocalServer(obj.clone(), chan));
+                            let idx = port.recv();
+                            new_cap_table[ii].set_sender_hosted(idx);
+                        }
+                        None => fail!("noncompliant client hook"),
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    let cap_table = {
+        let mut caps = box [];
+        for cap in message.get_cap_table().iter() {
+            match cap {
+                &Some(ref client_hook) => {
+                    caps.push(client_hook.get_descriptor())
+                }
+                &None => {}
+            }
+        }
+        caps
+    };
+    let root : Message::Builder = message.get_root();
+    match root.which() {
+        Some(Message::Which::Call(call)) => {
+            write_payload(rpc_chan, cap_table, call.get_params())
+        }
+        Some(Message::Which::Return(ret)) => {
+            match ret.which() {
+                Some(Return::Which::Results(payload)) => {
+                    write_payload(rpc_chan, cap_table, payload);
+                }
+                _ => {}
+            }
+        }
+        _ => {}
+    }
+}
 
 pub struct RpcRequest {
     priv channel : std::comm::Chan<RpcEvent>,
@@ -417,64 +485,8 @@ impl RequestHook for RpcRequest {
         &mut *self.message
     }
     fn send(~self) -> RemotePromise<AnyPointer::Reader, AnyPointer::Pipeline> {
-
         let ~RpcRequest { channel, mut message } = self;
-
-        {
-            let cap_table = {
-                let mut caps = box [];
-                for cap in message.get_cap_table().iter() {
-                    match cap {
-                        &Some(ref client_hook) => {
-                            caps.push(client_hook.get_descriptor())
-                        }
-                        &None => {}
-                    }
-                }
-                caps
-            };
-            let root : Message::Builder = message.get_root();
-            match root.which() {
-                Some(Message::Which::Call(call)) => {
-                    let new_cap_table = call.get_params().init_cap_table(cap_table.len());
-                    for ii in range(0, cap_table.len()) {
-                        match cap_table[ii].as_ref::<OwnedCapDescriptor>() {
-                            Some(&NoDescriptor) => {}
-                            Some(&ReceiverHosted(import_id)) => {
-                                new_cap_table[ii].set_receiver_hosted(import_id);
-                            }
-                            Some(&ReceiverAnswer(question_id,ref ops)) => {
-                                let promised_answer = new_cap_table[ii].init_receiver_answer();
-                                promised_answer.set_question_id(question_id);
-                                let transform = promised_answer.init_transform(ops.len());
-                                for ii in range(0, ops.len()) {
-                                    match ops[ii] {
-                                        PipelineOp::Noop => transform[ii].set_noop(()),
-                                        PipelineOp::GetPointerField(idx) => transform[ii].set_get_pointer_field(idx),
-                                    }
-                                }
-                            }
-                            Some(&SenderHosted(export_id)) => {
-                                new_cap_table[ii].set_sender_hosted(export_id);
-                            }
-                            None => {
-                                match cap_table[ii].as_ref::<ObjectHandle>() {
-                                    Some(obj) => {
-                                        let (port, chan) = std::comm::Chan::<ExportId>::new();
-                                        channel.send(NewLocalServer(obj.clone(), chan));
-                                        let idx = port.recv();
-                                        new_cap_table[ii].set_sender_hosted(idx);
-                                    }
-                                    None => fail!("noncompliant client hook"),
-                                }
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
+        write_outgoing_cap_table(&channel, message);
 
         let (event, answer_port, question_port) = RpcEvent::new_outgoing(message);
         channel.send(event);
@@ -571,7 +583,9 @@ impl CallContextHook for RpcCallContext {
         (params, results)
     }
     fn done(~self) {
-        let ~RpcCallContext { params_message : _, results_message, rpc_chan} = self;
+        let ~RpcCallContext { params_message : _, mut results_message, rpc_chan} = self;
+        write_outgoing_cap_table(&rpc_chan, results_message);
+
         rpc_chan.send(ReturnEvent(results_message));
     }
 }

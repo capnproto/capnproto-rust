@@ -1425,10 +1425,11 @@ mod WireHelpers {
         } else if !(*reff).is_capability() {
             fail!("Message contains non-capability pointer where capability pointer was expected.");
         } else {
-            match (*segment).arena.extract_cap((*reff).cap_ref().index.get() as uint) {
+            let n = (*reff).cap_ref().index.get() as uint;
+            match (*segment).arena.extract_cap(n) {
                 Some(client_hook) => { client_hook }
                 None => {
-                    fail!("Message contains invalid capability pointer.")
+                    fail!("Message contains invalid capability pointer: {}", n)
                 }
             }
         }
