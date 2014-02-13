@@ -199,7 +199,10 @@ impl RpcConnectionState {
                                         Some(MessageTarget::ImportedCap(import_id)) => {
                                             ExportReceiver(import_id)
                                         }
-                                        _ => {
+                                        Some(MessageTarget::PromisedAnswer(promised_answer)) => {
+                                            fail!("call targets a promised answer");
+                                        }
+                                        None => {
                                             fail!("call targets something else");
                                         }
                                     }

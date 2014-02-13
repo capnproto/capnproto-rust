@@ -102,7 +102,15 @@ mod tests {
         let test_struct_list = message.init_root::<TestStructList::Builder>();
 
         test_struct_list.init_struct_list(4);
-        test_struct_list.get_struct_list();
+        let struct_list = test_struct_list.get_struct_list();
+        struct_list[0].init_uint8_list(1).set(0, 5u8);
+
+        // why does the next line pass the typechecker?
+//        struct_list[0].get_uint8_list()[0] = 6u8;
+        {
+            let reader = test_struct_list.as_reader();
+            assert_eq!(reader.get_struct_list()[0].get_uint8_list()[0], 5u8);
+        }
     }
 
     #[test]
