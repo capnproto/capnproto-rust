@@ -11,7 +11,7 @@ use std::io::Acceptor;
 use capnp::capability::{ClientHook, FromClientHook, FromServer, ServerHook, Server, Client};
 use capnp::message::{MessageBuilder, MallocMessageBuilder, MessageReader};
 use rpc::{RpcConnectionState, RpcEvent, ShutdownEvent, VatEvent, VatEventRegister};
-use rpc::{Vat, ObjectHandle};
+use rpc::{Vat};
 use capability;
 
 pub struct EzRpcClient {
@@ -68,8 +68,7 @@ impl EzRpcClient {
 
 impl ServerHook for EzRpcClient {
     fn new_client(_unused_self : Option<EzRpcClient>, server : ~Server) -> Client {
-        Client::new((~capability::LocalClient {
-                    object :  ObjectHandle::new(server) }) as ~ClientHook)
+        Client::new((~capability::LocalClient::new(server) ) as ~ClientHook)
     }
 }
 
@@ -81,8 +80,7 @@ pub struct EzRpcServer {
 
 impl ServerHook for EzRpcServer {
     fn new_client(_unused_self : Option<EzRpcServer>, server : ~Server) -> Client {
-        Client::new((~capability::LocalClient {
-                    object :  ObjectHandle::new(server) }) as ~ClientHook)
+        Client::new((~capability::LocalClient::new(server)) as ~ClientHook)
     }
 }
 

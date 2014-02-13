@@ -10,27 +10,48 @@ use std;
 
 use capnp::any::{AnyPointer};
 use capnp::common::{MessageSize};
-use capnp::capability::{ClientHook, Request, RemotePromise};
+use capnp::capability::{CallContext, CallContextHook, ClientHook, PipelineHook, Request, RemotePromise, Server};
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::message::{MessageReader, MessageBuilder};
-use rpc::{ObjectHandle};
+
+use rpc::{RpcEvent};
 
 use rpc_capnp::{Message, Return};
 
 pub struct LocalClient {
-    object : ObjectHandle,
+    object_channel : std::comm::Chan<(u64, u16, ~CallContextHook)>,
 }
 
 impl Clone for LocalClient {
     fn clone(&self) -> LocalClient {
-        LocalClient { object : self.object.clone() }
+        LocalClient { object_channel : self.object_channel.clone() }
     }
-
 }
+
+impl LocalClient {
+    pub fn new(server : ~Server) -> LocalClient {
+        let (port, chan) = std::comm::Chan::<(u64, u16, ~CallContextHook)>::new();
+        std::task::spawn(proc () {
+                let mut server = server;
+                loop {
+                    let (interface_id, method_id, context_hook) = match port.recv_opt() {
+                        None => break,
+                        Some(x) => x,
+                    };
+
+                    let context = CallContext { hook : context_hook };
+                    server.dispatch_call(interface_id, method_id, context);
+                }
+            });
+
+        LocalClient { object_channel : chan }
+    }
+}
+
 
 impl ClientHook for LocalClient {
     fn copy(&self) -> ~ClientHook {
-        (~LocalClient { object : self.object.clone() }) as ~ClientHook
+        (~LocalClient { object_channel : self.object_channel.clone() }) as ~ClientHook
     }
     fn new_call(&self,
                 _interface_id : u64,
@@ -39,10 +60,13 @@ impl ClientHook for LocalClient {
                 -> Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline> {
         fail!()
     }
+    fn call(&self, interface_id : u64, method_id : u16, context : ~CallContextHook) {
+        self.object_channel.send((interface_id, method_id, context));
+    }
 
     // HACK
     fn get_descriptor(&self) -> ~std::any::Any {
-        (~self.object.clone()) as ~std::any::Any
+        (~self.copy()) as ~std::any::Any
     }
 
 }

@@ -6,7 +6,7 @@
 
 use std;
 
-use capnp::capability::{FromServer, ServerHook, Server};
+use capnp::capability::{FromServer, Server};
 use capnp::list::{PrimitiveList};
 use capnp::message::{MallocMessageBuilder, MessageBuilder};
 

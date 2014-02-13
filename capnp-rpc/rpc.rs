@@ -35,7 +35,7 @@ pub struct Answer {
 }
 
 pub struct Export {
-    object : ObjectHandle,
+    hook : ~ClientHook,
 }
 
 pub struct Import;
@@ -72,7 +72,7 @@ pub struct RpcConnectionState {
 }
 
 fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
-                      loop_chan : &std::comm::Chan<RpcEvent>) {
+                      rpc_chan : &std::comm::Chan<RpcEvent>) {
     let mut the_cap_table : ~[Option<~ClientHook>] = ~[];
     {
         let root = message.get_root::<Message::Reader>();
@@ -90,7 +90,7 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
                                 Some(CapDescriptor::SenderHosted(id)) => {
                                     the_cap_table.push(Some(
                                             (box ImportClient {
-                                                    channel : loop_chan.clone(),
+                                                    channel : rpc_chan.clone(),
                                                     import_id : id})
                                                 as ~ClientHook));
                                 }
@@ -156,7 +156,7 @@ impl RpcConnectionState {
             });
 
 
-        let loop_chan = chan.clone();
+        let rpc_chan = chan.clone();
 
         let (writer_port, writer_chan) = std::comm::Chan::<~MallocMessageBuilder>::new();
 
@@ -183,7 +183,7 @@ impl RpcConnectionState {
                             }
 
 
-                            populate_cap_table(message, &loop_chan);
+                            populate_cap_table(message, &rpc_chan);
                             let root = message.get_root::<Message::Reader>();
                             let receiver = match root.which() {
                                 Some(Message::Unimplemented(_)) => {
@@ -234,9 +234,10 @@ impl RpcConnectionState {
                                     let (port, chan) = std::comm::Chan::new();
                                     vat_chan.send(
                                         VatEventRestore(restore.get_object_id().get_as_text().to_owned(), chan));
-                                    let localclient = port.recv().unwrap();
+                                    let clienthook = port.recv().unwrap();
                                     let idx = exports.slots.len();
-                                    exports.slots.push(Export { object : localclient.object.clone() });
+                                    exports.slots.push(Export { hook : clienthook.copy() });
+
                                     let mut message = ~MallocMessageBuilder::new_default();
                                     {
                                         let root : Message::Builder = message.init_root();
@@ -245,7 +246,7 @@ impl RpcConnectionState {
                                         let payload = ret.init_results();
                                         payload.init_cap_table(1);
                                         payload.get_cap_table()[0].set_sender_hosted(idx as u32);
-                                        payload.get_content().set_as_capability(localclient.copy());
+                                        payload.get_content().set_as_capability(clienthook);
                                     }
                                     writer_chan.send(message);
                                     Nobody
@@ -273,7 +274,18 @@ impl RpcConnectionState {
                                     questions.slots[id].chan.try_send(message);
                                 }
                                 ExportReceiver(id) => {
-                                    exports.slots[id].object.chan.send((message, loop_chan.clone()));
+                                    let (interface_id, method_id) = {
+                                        let root : Message::Reader = message.get_root();
+                                        match root.which() {
+                                            Some(Message::Call(call)) =>
+                                                (call.get_interface_id(), call.get_method_id()),
+                                            _ => fail!(),
+                                        }
+                                    };
+                                    let context =
+                                        ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook;
+
+                                    exports.slots[id].hook.call(interface_id, method_id, context);
                                 }
                             }
 
@@ -306,10 +318,10 @@ impl RpcConnectionState {
                             // send
                             writer_chan.send(m);
                         }
-                        NewLocalServer(obj, export_chan) => {
+                        NewLocalServer(clienthook, export_chan) => {
                             let export_id = exports.slots.len() as u32;
                             export_chan.send(export_id);
-                            exports.slots.push(Export { object : obj });
+                            exports.slots.push(Export { hook : clienthook });
                         }
                         ReturnEvent(message) => {
                             writer_chan.send(message);
@@ -360,6 +372,10 @@ impl ClientHook for ImportClient {
         Request::new(hook as ~RequestHook)
     }
 
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : ~CallContextHook) {
+        fail!()
+    }
+
     fn get_descriptor(&self) -> ~std::any::Any {
         (box ReceiverHosted(self.import_id)) as ~std::any::Any
     }
@@ -404,6 +420,10 @@ impl ClientHook for PipelineClient {
         Request::new(hook as ~RequestHook)
     }
 
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : ~CallContextHook) {
+        fail!()
+    }
+
     fn get_descriptor(&self) -> ~std::any::Any {
         (box ReceiverAnswer(self.question_id, self.ops.clone())) as ~std::any::Any
     }
@@ -434,10 +454,10 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Chan<RpcEvent>, message : &mu
                     new_cap_table[ii].set_sender_hosted(export_id);
                 }
                 None => {
-                    match cap_table[ii].as_ref::<ObjectHandle>() {
-                        Some(obj) => {
+                    match cap_table[ii].as_ref::<~ClientHook>() {
+                        Some(clienthook) => {
                             let (port, chan) = std::comm::Chan::<ExportId>::new();
-                            rpc_chan.send(NewLocalServer(obj.clone(), chan));
+                            rpc_chan.send(NewLocalServer(clienthook.copy(), chan));
                             let idx = port.recv();
                             new_cap_table[ii].set_sender_hosted(idx);
                         }
@@ -603,7 +623,7 @@ pub struct OutgoingMessage {
 pub enum RpcEvent {
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
-    NewLocalServer(ObjectHandle, std::comm::Chan<ExportId>),
+    NewLocalServer(~ClientHook, std::comm::Chan<ExportId>),
     ReturnEvent(~MallocMessageBuilder),
     ShutdownEvent,
 }
@@ -629,49 +649,13 @@ impl RpcEvent {
 // ----
 
 
-
-
-#[deriving(Clone)]
-pub struct ObjectHandle {
-    chan : std::comm::Chan<(~OwnedSpaceMessageReader, std::comm::Chan<RpcEvent>)>,
-}
-
-impl ObjectHandle {
-    pub fn new(server : ~Server) -> ObjectHandle {
-        let (port, chan) =
-            std::comm::Chan::<(~OwnedSpaceMessageReader, std::comm::Chan<RpcEvent>)>::new();
-        std::task::spawn(proc () {
-                let mut server = server;
-                loop {
-                    let (message, rpc_chan) = match port.recv_opt() {
-                        None => break,
-                        Some((m,c)) => (m,c),
-                    };
-
-                    // XXX
-                    let (interface_id, method_id) = {
-                        let root : Message::Reader = message.get_root();
-                        match root.which() {
-                            Some(Message::Call(call)) => (call.get_interface_id(), call.get_method_id()),
-                            _ => fail!(),
-                        }
-                    };
-                    let context = CallContext { hook : ~RpcCallContext::new(message, rpc_chan)};
-                    server.dispatch_call(interface_id, method_id, context);
-                }
-            });
-
-        ObjectHandle { chan : chan }
-    }
-}
-
 pub enum VatEvent {
-    VatEventRestore(~str /* XXX */, std::comm::Chan<Option<LocalClient>>),
+    VatEventRestore(~str /* XXX */, std::comm::Chan<Option<~ClientHook>>),
     VatEventRegister(~str /* XXX */, ~Server),
 }
 
 pub struct Vat {
-    objects : std::hashmap::HashMap<~str, LocalClient>,
+    objects : std::hashmap::HashMap<~str, ~ClientHook>,
 }
 
 impl Vat {
@@ -684,10 +668,10 @@ impl Vat {
                 loop {
                     match port.recv_opt() {
                         Some(VatEventRegister(name, server)) => {
-                            vat.objects.insert(name, LocalClient { object : ObjectHandle::new(server)} );
+                            vat.objects.insert(name, ~LocalClient::new(server) as ~ClientHook);
                         }
                         Some(VatEventRestore(name, return_chan)) => {
-                            return_chan.send(Some((*vat.objects.get(&name)).clone()));
+                            return_chan.send(Some((*vat.objects.get(&name)).copy()));
                         }
                         None => break,
                     }
