@@ -42,6 +42,24 @@ pub mod AnyPointer {
         pub fn get_as_capability<T : FromClientHook>(&self) -> T {
             FromClientHook::new(self.reader.get_capability())
         }
+
+
+        //# Used by RPC system to implement pipelining. Applications
+        //# generally shouldn't use this directly.
+        pub fn get_pipelined_cap(&self, ops : &[PipelineOp::Type]) -> ~ClientHook {
+            let mut pointer = self.reader;
+
+            for op in ops.iter() {
+                match op {
+                    &PipelineOp::Noop =>  { }
+                    &PipelineOp::GetPointerField(idx) => {
+                        pointer = pointer.get_struct(std::ptr::null()).get_pointer_field(idx as uint)
+                    }
+                }
+            }
+
+            pointer.get_capability()
+        }
     }
 
     pub struct Builder<'a> {
