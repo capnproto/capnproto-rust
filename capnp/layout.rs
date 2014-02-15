@@ -1370,7 +1370,15 @@ mod WireHelpers {
             }
             WP_OTHER => {
                 assert!((*src).is_capability(), "Unknown pointer type.");
-                fail!("unimplemented");
+                match (*src_segment).arena.extract_cap((*src).cap_ref().index.get() as uint) {
+                    Some(cap) => {
+                        set_capability_pointer(dst_segment, dst, cap);
+                        return super::SegmentAnd { segment : dst_segment, value : std::ptr::mut_null() };
+                    }
+                    None => {
+                        fail!("Message contained invalid capability pointer.")
+                    }
+                }
             }
         }
     }
