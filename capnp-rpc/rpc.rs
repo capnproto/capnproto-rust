@@ -92,6 +92,7 @@ impl Answer {
                 }
             }
         }
+        self.status = AnswerStatusSent(message);
     }
 }
 

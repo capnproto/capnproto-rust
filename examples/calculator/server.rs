@@ -54,7 +54,6 @@ fn evaluate_impl(
             }
         }
         Some(Calculator::Expression::Call(call)) => {
-            println!("call");
             let func = call.get_function();
             let call_params = call.get_params();
             let mut param_values = ~[];
