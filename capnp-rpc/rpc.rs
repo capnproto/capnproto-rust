@@ -159,7 +159,7 @@ fn client_hooks_of_payload(payload : Payload::Reader,
                 result.push(Some(
                         (box PromisedAnswerClient {
                                 rpc_chan : rpc_chan.clone(),
-                                ops : ~[],
+                                ops : get_pipeline_ops(promised_answer),
                                 answer_id : promised_answer.get_question_id(),} as ~ClientHook)));
             }
             Some(CapDescriptor::ThirdPartyHosted(_)) => {
