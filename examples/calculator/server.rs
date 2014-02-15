@@ -39,7 +39,9 @@ fn evaluate_impl(
     params : Option<PrimitiveList::Reader<f64>>) -> f64 {
 
     match expression.which() {
-        Some(Calculator::Expression::Literal(v)) => v,
+        Some(Calculator::Expression::Literal(v)) => {
+            v
+        },
         Some(Calculator::Expression::PreviousResult(p)) => {
             p.read_request().send().wait().get_value()
         }
@@ -52,6 +54,7 @@ fn evaluate_impl(
             }
         }
         Some(Calculator::Expression::Call(call)) => {
+            println!("call");
             let func = call.get_function();
             let call_params = call.get_params();
             let mut param_values = ~[];

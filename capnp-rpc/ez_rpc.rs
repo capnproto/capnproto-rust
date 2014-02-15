@@ -10,7 +10,7 @@ use std;
 use std::io::Acceptor;
 use capnp::capability::{ClientHook, FromClientHook, FromServer, ServerHook, Server, Client};
 use capnp::message::{MessageBuilder, MallocMessageBuilder, MessageReader};
-use rpc::{RpcConnectionState, RpcEvent, ShutdownEvent, VatEvent, VatEventRegister};
+use rpc::{Outgoing, RpcConnectionState, RpcEvent, ShutdownEvent, VatEvent, VatEventRegister};
 use rpc::{Vat};
 use capability;
 
@@ -45,8 +45,8 @@ impl EzRpcClient {
         let restore = message.init_root::<Message::Builder>().init_restore();
         restore.init_object_id().set_as_text(name);
 
-        let (event, answer_port, _question_port) = RpcEvent::new_outgoing(message);
-        self.rpc_chan.send(event);
+        let (outgoing, answer_port, _question_port) = RpcEvent::new_outgoing(message);
+        self.rpc_chan.send(Outgoing(outgoing));
 
         let reader = answer_port.recv();
         let message = reader.get_root::<Message::Reader>();

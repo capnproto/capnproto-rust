@@ -154,8 +154,12 @@ fn client_hooks_of_payload(payload : Payload::Reader,
             Some(CapDescriptor::ReceiverHosted(_id)) => {
                 fail!()
             }
-            Some(CapDescriptor::ReceiverAnswer(_promised_answer)) => {
-                fail!()
+            Some(CapDescriptor::ReceiverAnswer(promised_answer)) => {
+                result.push(Some(
+                        (box PromisedAnswerClient {
+                                rpc_chan : rpc_chan.clone(),
+                                ops : ~[],
+                                answer_id : promised_answer.get_question_id(),} as ~ClientHook)));
             }
             Some(CapDescriptor::ThirdPartyHosted(_)) => {
                 fail!()
@@ -449,6 +453,30 @@ impl RpcConnectionState {
                             // send
                             writer_chan.send(m);
                         }
+                        OutgoingDeferred(OutgoingMessage { message : mut m,
+                                                           answer_chan,
+                                                           question_chan}, answer_id, ops ) => {
+                            // XXX
+                            question_chan.send(0);
+
+                            let root = m.get_root::<Message::Builder>();
+                            let (interface_id, method_id) = match root.which() {
+                                Some(Message::Which::Call(call)) => {
+                                    (call.get_interface_id(), call.get_method_id())
+                                }
+                                _ => {
+                                    fail!("NONE OF THOSE");
+                                }
+                            };
+
+                            let context =
+                                (~PromisedAnswerRpcCallContext::new(m, rpc_chan.clone(), answer_chan))
+                                as ~CallContextHook;
+
+
+                            answers.slots.get_mut(&answer_id).receive(interface_id, method_id, ops, context);
+                        }
+
                         NewLocalServer(clienthook, export_chan) => {
                             let export_id = exports.slots.len() as u32;
                             export_chan.send(export_id);
@@ -560,6 +588,48 @@ impl ClientHook for PipelineClient {
     }
 }
 
+pub struct PromisedAnswerClient {
+    rpc_chan : std::comm::Chan<RpcEvent>,
+    ops : ~[PipelineOp::Type],
+    answer_id : AnswerId,
+}
+
+impl ClientHook for PromisedAnswerClient {
+    fn copy(&self) -> ~ClientHook {
+        (~PromisedAnswerClient { rpc_chan : self.rpc_chan.clone(),
+                                 ops : self.ops.clone(),
+                                 answer_id : self.answer_id,
+            }) as ~ClientHook
+    }
+
+    fn new_call(&self, interface_id : u64, method_id : u16,
+                _size_hint : Option<common::MessageSize>)
+                -> capability::Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline> {
+        let mut message = box MallocMessageBuilder::new_default();
+        {
+            let root : Message::Builder = message.get_root();
+            let call = root.init_call();
+            call.set_interface_id(interface_id);
+            call.set_method_id(method_id);
+        }
+
+        let hook = box PromisedAnswerRpcRequest { rpc_chan : self.rpc_chan.clone(),
+                                                  message : message,
+                                                  answer_id : self.answer_id,
+                                                  ops : self.ops.clone() };
+        Request::new(hook as ~RequestHook)
+    }
+
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : ~CallContextHook) {
+        fail!()
+    }
+
+    fn get_descriptor(&self) -> ~std::any::Any {
+        fail!()
+    }
+}
+
+
 fn write_outgoing_cap_table(rpc_chan : &std::comm::Chan<RpcEvent>, message : &mut MallocMessageBuilder) {
     fn write_payload(rpc_chan : &std::comm::Chan<RpcEvent>, cap_table : & [~std::any::Any],
                      payload : Payload::Builder) {
@@ -642,8 +712,8 @@ impl RequestHook for RpcRequest {
         let ~RpcRequest { channel, mut message } = self;
         write_outgoing_cap_table(&channel, message);
 
-        let (event, answer_port, question_port) = RpcEvent::new_outgoing(message);
-        channel.send(event);
+        let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
+        channel.send(Outgoing(outgoing));
 
         let question_id = question_port.recv();
 
@@ -654,6 +724,32 @@ impl RequestHook for RpcRequest {
                        pipeline : typeless  }
     }
 }
+
+pub struct PromisedAnswerRpcRequest {
+    rpc_chan : std::comm::Chan<RpcEvent>,
+    message : ~MallocMessageBuilder,
+    answer_id : AnswerId,
+    ops : ~[PipelineOp::Type],
+}
+
+impl RequestHook for PromisedAnswerRpcRequest {
+    fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
+        &mut *self.message
+    }
+    fn send(~self) -> RemotePromise<AnyPointer::Reader, AnyPointer::Pipeline> {
+        let ~PromisedAnswerRpcRequest { rpc_chan, mut message, answer_id, ops } = self;
+        let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
+        rpc_chan.send(OutgoingDeferred(outgoing, answer_id, ops));
+        let question_id = question_port.recv();
+
+        let pipeline = ~PromisedAnswerRpcPipeline;
+        let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
+
+        RemotePromise {answer_port : answer_port, answer_result : None,
+                       pipeline : typeless  }
+    }
+}
+
 
 pub struct RpcPipeline {
     channel : std::comm::Chan<RpcEvent>,
@@ -672,6 +768,18 @@ impl PipelineHook for RpcPipeline {
         }) as ~ClientHook
     }
 }
+
+pub struct PromisedAnswerRpcPipeline;
+
+impl PipelineHook for PromisedAnswerRpcPipeline {
+    fn copy(&self) -> ~PipelineHook {
+        (~PromisedAnswerRpcPipeline) as ~PipelineHook
+    }
+    fn get_pipelined_cap(&self, ops : ~[PipelineOp::Type]) -> ~ClientHook {
+        fail!()
+    }
+}
+
 
 pub struct RpcCallContext {
     params_message : ~OwnedSpaceMessageReader,
@@ -744,6 +852,88 @@ impl CallContextHook for RpcCallContext {
     }
 }
 
+
+pub struct PromisedAnswerRpcCallContext {
+    params_message : ~OwnedSpaceMessageReader,
+    results_message : ~MallocMessageBuilder,
+    rpc_chan : std::comm::Chan<RpcEvent>,
+    answer_chan : std::comm::Chan<~OwnedSpaceMessageReader>,
+}
+
+impl PromisedAnswerRpcCallContext {
+    pub fn new(params_message : ~MallocMessageBuilder,
+               rpc_chan : std::comm::Chan<RpcEvent>,
+               answer_chan : std::comm::Chan<~OwnedSpaceMessageReader>)
+               -> PromisedAnswerRpcCallContext {
+
+
+        // yuck!
+        let mut writer = std::io::MemWriter::new();
+        serialize::write_message(&mut writer, params_message);
+        let mut reader = std::io::MemReader::new(writer.get_ref().to_owned());
+        let params_reader = ~serialize::new_reader(&mut reader, DEFAULT_READER_OPTIONS).unwrap();
+
+
+        let mut results_message = ~MallocMessageBuilder::new_default();
+        {
+            let root : Message::Builder = results_message.init_root();
+            let ret = root.init_return();
+            ret.init_results();
+        }
+        PromisedAnswerRpcCallContext {
+            params_message : params_reader,
+            results_message : results_message,
+            rpc_chan : rpc_chan,
+            answer_chan : answer_chan,
+        }
+    }
+}
+
+impl CallContextHook for PromisedAnswerRpcCallContext {
+    fn get<'a>(&'a mut self) -> (AnyPointer::Reader<'a>, AnyPointer::Builder<'a>) {
+
+        let params = {
+            let root : Message::Reader = self.params_message.get_root();
+            match root.which() {
+                Some(Message::Call(call)) => {
+                    call.get_params().get_content()
+                }
+                _ => fail!(),
+            }
+        };
+
+        let results = {
+            let root : Message::Builder = self.results_message.get_root();
+            match root.which() {
+                Some(Message::Which::Return(ret)) => {
+                    match ret.which() {
+                        Some(Return::Which::Results(results)) => {
+                            results.get_content()
+                        }
+                        _ => fail!(),
+                    }
+                }
+                _ => fail!(),
+            }
+        };
+
+        (params, results)
+    }
+    fn done(~self) {
+        let ~PromisedAnswerRpcCallContext {
+            params_message : _, results_message, rpc_chan : _, answer_chan} = self;
+
+        // yuck!
+        let mut writer = std::io::MemWriter::new();
+        serialize::write_message(&mut writer, results_message);
+        let mut reader = std::io::MemReader::new(writer.get_ref().to_owned());
+        let results_reader = ~serialize::new_reader(&mut reader, DEFAULT_READER_OPTIONS).unwrap();
+
+        answer_chan.send(results_reader);
+    }
+}
+
+
 pub struct OutgoingMessage {
     message : ~MallocMessageBuilder,
     answer_chan : std::comm::Chan<~OwnedSpaceMessageReader>,
@@ -755,6 +945,7 @@ pub enum RpcEvent {
     AnswerSent(~MallocMessageBuilder),
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
+    OutgoingDeferred(OutgoingMessage, AnswerId, ~[PipelineOp::Type]),
     NewLocalServer(~ClientHook, std::comm::Chan<ExportId>),
     ReturnEvent(~MallocMessageBuilder),
     ShutdownEvent,
@@ -763,15 +954,15 @@ pub enum RpcEvent {
 
 impl RpcEvent {
     pub fn new_outgoing(message : ~MallocMessageBuilder)
-                        -> (RpcEvent, std::comm::Port<~OwnedSpaceMessageReader>,
+                        -> (OutgoingMessage, std::comm::Port<~OwnedSpaceMessageReader>,
                             std::comm::Port<ExportId>) {
         let (answer_port, answer_chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
 
         let (question_port, question_chan) = std::comm::Chan::<ExportId>::new();
 
-        (Outgoing(OutgoingMessage{ message : message,
-                                   answer_chan : answer_chan,
-                                   question_chan : question_chan }),
+        (OutgoingMessage{ message : message,
+                          answer_chan : answer_chan,
+                          question_chan : question_chan },
          answer_port,
          question_port)
     }
