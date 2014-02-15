@@ -10,7 +10,7 @@ use capnp::capability::{FromServer, Server};
 use capnp::list::{PrimitiveList};
 use capnp::message::{MallocMessageBuilder, MessageBuilder};
 
-use capnp_rpc::capability::{WaitForContent};
+use capnp_rpc::capability::{InitRequest, WaitForContent};
 use capnp_rpc::ez_rpc::EzRpcServer;
 
 use calculator_capnp::Calculator;
@@ -52,8 +52,18 @@ fn evaluate_impl(
             }
         }
         Some(Calculator::Expression::Call(call)) => {
-            let _func = call.get_function();
-            fail!()
+            let func = call.get_function();
+            let call_params = call.get_params();
+            let mut param_values = ~[];
+            for ii in range(0, call_params.size()) {
+                param_values.push(evaluate_impl(call_params[ii], params));
+            }
+            let mut request = func.call_request();
+            let request_params = request.init().init_params(param_values.len());
+            for ii in range(0, param_values.len()) {
+                request_params.set(ii, param_values[ii]);
+            }
+            return request.send().wait().get_value();
         }
         None => fail!("unsupported expression"),
     }
@@ -150,7 +160,7 @@ pub fn main() {
     }
 
 
-    let mut rpc_server = EzRpcServer::new(args[2]).unwrap();
+    let rpc_server = EzRpcServer::new(args[2]).unwrap();
 
     // There's got to be a better way to do this.
     let calculator = (~Calculator::ServerDispatch { server : ~CalculatorImpl}) as ~Server;
