@@ -132,6 +132,40 @@ pub struct RpcConnectionState {
     imports : ImportTable<Import>,
 }
 
+fn client_hooks_of_payload(payload : Payload::Reader,
+                           rpc_chan : &std::comm::Chan<RpcEvent>) -> ~[Option<~ClientHook>] {
+    let mut result : ~[Option<~ClientHook>] = ~[];
+    let cap_table = payload.get_cap_table();
+    for ii in range(0, cap_table.size()) {
+        match cap_table[ii].which() {
+            Some(CapDescriptor::None(())) => {
+                result.push(None)
+            }
+            Some(CapDescriptor::SenderHosted(id)) => {
+                result.push(Some(
+                        (box ImportClient {
+                                channel : rpc_chan.clone(),
+                                import_id : id})
+                            as ~ClientHook));
+            }
+            Some(CapDescriptor::SenderPromise(_id)) => {
+                fail!()
+            }
+            Some(CapDescriptor::ReceiverHosted(_id)) => {
+                fail!()
+            }
+            Some(CapDescriptor::ReceiverAnswer(_promised_answer)) => {
+                fail!()
+            }
+            Some(CapDescriptor::ThirdPartyHosted(_)) => {
+                fail!()
+            }
+            None => { fail!("unknown cap descriptor")}
+        }
+    }
+    result
+}
+
 fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
                       rpc_chan : &std::comm::Chan<RpcEvent>) {
     let mut the_cap_table : ~[Option<~ClientHook>] = ~[];
@@ -142,22 +176,7 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
             Some(Message::Return(ret)) => {
                 match ret.which() {
                     Some(Return::Results(payload)) => {
-                        let cap_table = payload.get_cap_table();
-                        for ii in range(0, cap_table.size()) {
-                            match cap_table[ii].which() {
-                                Some(CapDescriptor::None(())) => {
-                                    the_cap_table.push(None)
-                                }
-                                Some(CapDescriptor::SenderHosted(id)) => {
-                                    the_cap_table.push(Some(
-                                            (box ImportClient {
-                                                    channel : rpc_chan.clone(),
-                                                    import_id : id})
-                                                as ~ClientHook));
-                                }
-                                _ => {}
-                            }
-                        }
+                        the_cap_table = client_hooks_of_payload(payload, rpc_chan);
                     }
                     Some(Return::Exception(_e)) => {
                     }
@@ -166,13 +185,7 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
 
             }
             Some(Message::Call(call)) => {
-                match call.get_target().which() {
-                    Some(MessageTarget::ImportedCap(_import_id)) => {
-                    }
-                    _ => {
-                    }
-
-                }
+               the_cap_table = client_hooks_of_payload(call.get_params(), rpc_chan);
             }
             Some(Message::Unimplemented(_)) => {
             }
@@ -221,10 +234,14 @@ impl RpcConnectionState {
         spawn(proc() {
                 let mut r = inpipe;
                 loop {
-                    let message = box serialize::new_reader(
+                    match serialize::new_reader(
                         &mut r,
-                        DEFAULT_READER_OPTIONS).unwrap();
-                    listener_chan.send(IncomingMessage(message));
+                        DEFAULT_READER_OPTIONS) {
+                        Err(_e) => { listener_chan.try_send(ShutdownEvent); break; }
+                        Ok(message) => {
+                            listener_chan.send(IncomingMessage(box message));
+                        }
+                    }
                 }
             });
 
