@@ -30,9 +30,25 @@ pub struct Question {
     is_awaiting_return : bool,
 }
 
+pub enum AnswerStatus {
+    AnswerStatusSent(~MallocMessageBuilder),
+    AnswerStatusPending,
+}
+
 pub struct Answer {
+    status : AnswerStatus,
     result_exports : ~[ExportId],
-    pipeline : ~PipelineHook,
+    pipeline : Option<~PipelineHook>,
+}
+
+impl Answer {
+    pub fn new() -> Answer {
+        Answer {
+            status : AnswerStatusPending,
+            result_exports : box [],
+            pipeline : None,
+        }
+    }
 }
 
 pub struct Export {
@@ -154,9 +170,9 @@ impl RpcConnectionState {
         self, inpipe: T, outpipe: U, vat_chan : std::comm::Chan<VatEvent>)
          -> std::comm::Chan<RpcEvent> {
 
-        let (port, chan) = std::comm::Chan::<RpcEvent>::new();
+        let (port, result_rpc_chan) = std::comm::Chan::<RpcEvent>::new();
 
-        let listener_chan = chan.clone();
+        let listener_chan = result_rpc_chan.clone();
 
         spawn(proc() {
                 let mut r = inpipe;
@@ -169,9 +185,9 @@ impl RpcConnectionState {
             });
 
 
-        let rpc_chan = chan.clone();
-
         let (writer_port, writer_chan) = std::comm::Chan::<~MallocMessageBuilder>::new();
+
+        let writer_rpc_chan = result_rpc_chan.clone();
 
         spawn(proc() {
                 let mut w = outpipe;
@@ -181,13 +197,39 @@ impl RpcConnectionState {
                         Some(m) => m,
                     };
                     serialize::write_message(&mut w, message);
+                    writer_rpc_chan.send(AnswerSent(message));
                 }
             });
 
+        let rpc_chan = result_rpc_chan.clone();
+
         spawn(proc() {
-                let RpcConnectionState {mut questions, mut exports, answers, imports : _imports} = self;
+                let RpcConnectionState {mut questions, mut exports, mut answers, imports : _imports} = self;
                 loop {
                     match port.recv() {
+                        AnswerSent(mut message) => {
+                            let root = message.get_root::<Message::Builder>();
+                            let answer_id_opt = match root.which() {
+                                Some(Message::Which::Return(ret)) => {
+                                    Some(ret.get_answer_id())
+                                }
+                                _ => {None}
+                            };
+                            match answer_id_opt {
+                                Some(answer_id) => {
+                                    match answers.slots.find_mut(&answer_id) {
+                                        Some(ref mut answer) => {
+                                            answer.status = AnswerStatusSent(message);
+                                        }
+                                        None => {
+                                            println!("could not find answer {}", answer_id);
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+
+                        }
                         IncomingMessage(mut message) => {
                             enum MessageReceiver {
                                 Nobody,
@@ -195,7 +237,6 @@ impl RpcConnectionState {
                                 ExportReceiver(ExportId),
                                 PromisedAnswerReceiver(AnswerId, ~[PipelineOp::Type]),
                             }
-
 
                             populate_cap_table(message, &rpc_chan);
                             let root = message.get_root::<Message::Reader>();
@@ -254,16 +295,20 @@ impl RpcConnectionState {
                                     let idx = exports.slots.len();
                                     exports.slots.push(Export { hook : clienthook.copy() });
 
+                                    let answer_id = restore.get_question_id();
                                     let mut message = ~MallocMessageBuilder::new_default();
                                     {
                                         let root : Message::Builder = message.init_root();
                                         let ret = root.init_return();
-                                        ret.set_answer_id(restore.get_question_id());
+                                        ret.set_answer_id(answer_id);
                                         let payload = ret.init_results();
                                         payload.init_cap_table(1);
                                         payload.get_cap_table()[0].set_sender_hosted(idx as u32);
                                         payload.get_content().set_as_capability(clienthook);
+
                                     }
+                                    answers.slots.insert(answer_id, Answer::new());
+
                                     writer_chan.send(message);
                                     Nobody
                                 }
@@ -280,16 +325,17 @@ impl RpcConnectionState {
                                     Nobody
                                 }
                                 None => {
-                                    println!("Nothing there");
+                                    println!("unknown message");
                                     Nobody
                                 }
                             };
 
-                            fn get_interface_and_method(message : &OwnedSpaceMessageReader) -> (u64, u16) {
+                            fn get_call_ids(message : &OwnedSpaceMessageReader)
+                                                        -> (QuestionId, u64, u16) {
                                 let root : Message::Reader = message.get_root();
                                 match root.which() {
                                     Some(Message::Call(call)) =>
-                                        (call.get_interface_id(), call.get_method_id()),
+                                        (call.get_question_id(), call.get_interface_id(), call.get_method_id()),
                                     _ => fail!(),
                                 }
                             }
@@ -300,20 +346,32 @@ impl RpcConnectionState {
                                     questions.slots[id].chan.try_send(message);
                                 }
                                 ExportReceiver(id) => {
-                                    let (interface_id, method_id) = get_interface_and_method(message);
+                                    println!("export receiver {}", id)
+                                    let (answer_id, interface_id, method_id) = get_call_ids(message);
                                     let context =
                                         ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook;
 
+                                    answers.slots.insert(answer_id, Answer::new());
                                     exports.slots[id].hook.call(interface_id, method_id, context);
                                 }
                                 PromisedAnswerReceiver(id, ops) => {
-                                    let (interface_id, method_id) = get_interface_and_method(message);
+                                    println!("promised answer receiver {}", id)
+                                    let (answer_id, interface_id, method_id) = get_call_ids(message);
                                     let context =
                                         ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook;
 
+                                    answers.slots.insert(answer_id, Answer::new());
 
-                                    answers.slots.get(&id).pipeline
-                                        .get_pipelined_cap(ops).call(interface_id, method_id, context);
+                                    match answers.slots.get(&id).status {
+                                        AnswerStatusSent(ref message) => {
+                                            println!("we've got it already!");
+                                        }
+                                        _ => {
+                                            println!("still pending")
+                                        }
+                                    }
+                                    //answers.slots.get(&id).pipeline
+                                    //    .get_pipelined_cap(ops).call(interface_id, method_id, context);
                                 }
                             }
 
@@ -359,7 +417,7 @@ impl RpcConnectionState {
                         }
                     }
                 }});
-        return chan;
+        return result_rpc_chan;
     }
 }
 
@@ -649,6 +707,7 @@ pub struct OutgoingMessage {
 
 
 pub enum RpcEvent {
+    AnswerSent(~MallocMessageBuilder),
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
     NewLocalServer(~ClientHook, std::comm::Chan<ExportId>),
