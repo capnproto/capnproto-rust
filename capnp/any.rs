@@ -105,6 +105,11 @@ pub mod AnyPointer {
         pub fn clear(&self) {
             self.builder.clear()
         }
+
+        #[inline]
+        pub fn as_reader(&self) -> Reader<'a> {
+            Reader { reader : self.builder.as_reader() }
+        }
     }
 
     pub struct Pipeline {

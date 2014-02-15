@@ -1848,6 +1848,15 @@ impl <'a> PointerBuilder<'a> {
             std::ptr::zero_memory(self.pointer, 1);
         }
     }
+
+    pub fn as_reader(&self) -> PointerReader<'a> {
+        unsafe {
+            let segment_reader = &(*self.segment).reader;
+            PointerReader { segment : segment_reader,
+                            pointer : self.pointer as *WirePointer,
+                            nesting_limit : 0x7fffffff }
+        }
+    }
 }
 
 pub trait FromStructReader<'a> {

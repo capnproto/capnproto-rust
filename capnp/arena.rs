@@ -384,8 +384,17 @@ impl ArenaPtr {
                         None
                     }
                 }
-                &BuilderArenaPtr(_builder) => {
-                    fail!();
+                &BuilderArenaPtr(builder) => {
+                    if index < (*builder).cap_table.len() {
+                        match (*builder).cap_table[index] {
+                            Some( ref hook ) => { Some(hook.copy()) }
+                            None => {
+                                None
+                            }
+                        }
+                    } else {
+                        None
+                    }
                 }
                 &Null => {
                     fail!();

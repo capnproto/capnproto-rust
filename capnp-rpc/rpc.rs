@@ -32,7 +32,7 @@ pub struct Question {
 
 pub enum AnswerStatus {
     AnswerStatusSent(~MallocMessageBuilder),
-    AnswerStatusPending,
+    AnswerStatusPending(~[(u64, u16, ~[PipelineOp::Type], ~CallContextHook)]),
 }
 
 pub struct Answer {
@@ -44,9 +44,53 @@ pub struct Answer {
 impl Answer {
     pub fn new() -> Answer {
         Answer {
-            status : AnswerStatusPending,
+            status : AnswerStatusPending(box[]),
             result_exports : box [],
             pipeline : None,
+        }
+    }
+
+
+    fn do_call(answer_message : &mut ~MallocMessageBuilder, interface_id : u64, method_id : u16,
+               ops : ~[PipelineOp::Type], context : ~CallContextHook) {
+        let root : Message::Builder = answer_message.get_root();
+        match root.which() {
+            Some(Message::Which::Return(ret)) => {
+                match ret.which() {
+                    Some(Return::Which::Results(payload)) => {
+                        let hook = payload.get_content().as_reader().
+                            get_pipelined_cap(ops);
+                        hook.call(interface_id, method_id, context);
+                    }
+                    _ => fail!(),
+                }
+            }
+            _ => fail!(),
+        }
+    }
+
+    pub fn receive(&mut self, interface_id : u64, method_id : u16,
+                   ops : ~[PipelineOp::Type], context : ~CallContextHook) {
+        match self.status {
+            AnswerStatusSent(ref mut answer_message) => {
+                Answer::do_call(answer_message, interface_id, method_id, ops, context);
+            }
+            AnswerStatusPending(ref mut waiters) => {
+                waiters.push((interface_id, method_id, ops, context));
+            }
+        }
+    }
+
+    pub fn sent(&mut self, mut message : ~MallocMessageBuilder) {
+        match self.status {
+            AnswerStatusSent(_) => {fail!()}
+            AnswerStatusPending(ref mut waiters) => {
+                waiters.reverse();
+                while waiters.len() > 0 {
+                    let (interface_id, method_id, ops, context) = waiters.pop().unwrap();
+                    Answer::do_call(&mut message, interface_id, method_id, ops, context);
+                }
+            }
         }
     }
 }
@@ -217,14 +261,7 @@ impl RpcConnectionState {
                             };
                             match answer_id_opt {
                                 Some(answer_id) => {
-                                    match answers.slots.find_mut(&answer_id) {
-                                        Some(ref mut answer) => {
-                                            answer.status = AnswerStatusSent(message);
-                                        }
-                                        None => {
-                                            println!("could not find answer {}", answer_id);
-                                        }
-                                    }
+                                    answers.slots.get_mut(&answer_id).sent(message)
                                 }
                                 _ => {}
                             }
@@ -361,17 +398,8 @@ impl RpcConnectionState {
                                         ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook;
 
                                     answers.slots.insert(answer_id, Answer::new());
+                                    answers.slots.get_mut(&id).receive(interface_id, method_id, ops, context);
 
-                                    match answers.slots.get(&id).status {
-                                        AnswerStatusSent(ref message) => {
-                                            println!("we've got it already!");
-                                        }
-                                        _ => {
-                                            println!("still pending")
-                                        }
-                                    }
-                                    //answers.slots.get(&id).pipeline
-                                    //    .get_pipelined_cap(ops).call(interface_id, method_id, context);
                                 }
                             }
 
