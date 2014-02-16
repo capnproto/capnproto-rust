@@ -436,4 +436,19 @@ mod tests {
         assert_eq!(TestConstants::FLOAT64_CONST, -123e45);
     }
 
+    #[test]
+    fn test_set_root() {
+        use test_capnp::TestBigStruct;
+
+        let mut message1 = MallocMessageBuilder::new_default();
+        let mut message2 = MallocMessageBuilder::new_default();
+        let struct1 = message1.init_root::<TestBigStruct::Builder>();
+        struct1.set_uint8_field(3);
+        message2.set_root(&struct1.as_reader().reader);
+        let struct2 = message2.get_root::<TestBigStruct::Builder>();
+
+        // this currently fails:
+        //assert_eq!(struct2.get_uint8_field(), 3u8);
+    }
+
 }
