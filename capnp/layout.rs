@@ -1210,7 +1210,7 @@ mod WireHelpers {
         let total_size : WordCount = data_size + value.pointer_count as uint * WORDS_PER_POINTER;
 
         let ptr = allocate(&mut reff, &mut segment, total_size, WP_STRUCT);
-        (*reff).struct_ref().set(data_size as u16, value.pointer_count);
+        (*reff).mut_struct_ref().set(data_size as u16, value.pointer_count);
 
         if value.data_size == 1 {
             *std::cast::transmute::<*mut Word, *mut u8>(ptr) = value.get_bool_field(0) as u8

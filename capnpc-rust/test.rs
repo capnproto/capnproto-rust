@@ -447,8 +447,7 @@ mod tests {
         message2.set_root(&struct1.as_reader().reader);
         let struct2 = message2.get_root::<TestBigStruct::Builder>();
 
-        // this currently fails:
-        //assert_eq!(struct2.get_uint8_field(), 3u8);
+        assert_eq!(struct2.get_uint8_field(), 3u8);
     }
 
 }
