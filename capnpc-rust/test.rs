@@ -336,7 +336,7 @@ mod tests {
 
     #[test]
     fn test_any_pointer() {
-        use test_capnp::TestAnyPointer;
+        use test_capnp::{TestAnyPointer, TestEmptyStruct};
 
         let mut message = MallocMessageBuilder::new_default();
         let test_any_pointer = message.init_root::<TestAnyPointer::Builder>();
@@ -348,6 +348,15 @@ mod tests {
             let reader = test_any_pointer.as_reader();
             assert_eq!(reader.get_any_pointer_field().get_as_text(), "xyzzy");
         }
+
+        any_pointer.init_as_struct::<TestEmptyStruct::Builder>();
+        any_pointer.get_as_struct::<TestEmptyStruct::Builder>();
+
+        {
+            let reader = test_any_pointer.as_reader();
+            reader.get_any_pointer_field().get_as_struct::<TestEmptyStruct::Reader>();
+        }
+
     }
 
     #[test]

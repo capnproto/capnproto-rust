@@ -225,6 +225,20 @@ impl WirePointer {
     }
 
     #[inline]
+    pub fn set_kind_and_target_for_empty_struct(&mut self) {
+        //# This pointer points at an empty struct. Assuming the
+        //# WirePointer itself is in-bounds, we can set the target to
+        //# point either at the WirePointer itself or immediately after
+        //# it. The latter would cause the WirePointer to be "null"
+        //# (since for an empty struct the upper 32 bits are going to
+        //# be zero). So we set an offset of -1, as if the struct were
+        //# allocated immediately before this pointer, to distinguish
+        //# it from null.
+
+        self.offset_and_kind.set(0xfffffffc);
+    }
+
+    #[inline]
     pub fn inline_composite_list_element_count(&self) -> ElementCount {
         (self.offset_and_kind.get() >> 2) as ElementCount
     }
@@ -354,6 +368,12 @@ mod WireHelpers {
         if !is_null {
             zero_object(*segment, *reff)
         }
+
+        if amount == 0 && kind == WP_STRUCT {
+            (**reff).set_kind_and_target_for_empty_struct();
+            return std::cast::transmute(reff);
+        }
+
         match (**segment).allocate(amount) {
             None => {
 

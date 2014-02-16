@@ -92,6 +92,10 @@ struct TestDefaults {
    float64Field  @11 :Float64   = -123e45;
 }
 
+struct TestEmptyStruct {
+
+}
+
 struct TestAnyPointer {
    anyPointerField @0 :AnyPointer;
 }
