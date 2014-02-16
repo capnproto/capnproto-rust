@@ -106,7 +106,7 @@ impl Calculator::Function::Server for OperatorImpl {
     fn call(&mut self, mut context : Calculator::Function::CallContext) {
         let (params, results) = context.get();
         let params = params.get_params();
-        assert!(params.size() == 2, "Wrong number of parameters.");
+        assert!(params.size() == 2, "Wrong number of parameters: {}", params.size());
 
         let result = match self.op {
             Calculator::Operator::Add => params[0] + params[1],

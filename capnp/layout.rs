@@ -808,7 +808,7 @@ mod WireHelpers {
             zero_pointer_and_fars(segment, reff);
 
             let ptr = allocate(&mut reff, &mut segment, total_size, WP_STRUCT);
-            (*reff).struct_ref().set(new_data_size, new_pointer_count);
+            (*reff).mut_struct_ref().set(new_data_size, new_pointer_count);
 
             //# Copy data section.
             // Note: copy_nonoverlapping memory's third argument is an element count, not a byte count.
@@ -1278,7 +1278,7 @@ mod WireHelpers {
 
             let tag : *mut WirePointer = std::cast::transmute(ptr);
             (*tag).set_kind_and_inline_composite_list_element_count(WP_STRUCT, value.element_count);
-            (*tag).struct_ref().set(data_size as u16, pointer_count);
+            (*tag).mut_struct_ref().set(data_size as u16, pointer_count);
             let mut dst = ptr.offset(POINTER_SIZE_IN_WORDS as int);
 
             let mut src : *Word = std::cast::transmute(value.ptr);
