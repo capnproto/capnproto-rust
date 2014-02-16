@@ -58,7 +58,8 @@ fn evaluate_impl(
             let call_params = call.get_params();
             let mut param_values = ~[];
             for ii in range(0, call_params.size()) {
-                param_values.push(evaluate_impl(call_params[ii], params));
+                let x = evaluate_impl(call_params[ii], params);
+                param_values.push(x);
             }
             let mut request = func.call_request();
             let request_params = request.init().init_params(param_values.len());

@@ -1245,7 +1245,7 @@ mod WireHelpers {
 
             if value.struct_pointer_count == 1 {
                 //# List of pointers.
-                (*reff).list_ref().set(POINTER, value.element_count);
+                (*reff).mut_list_ref().set(POINTER, value.element_count);
                 for i in range(0, value.element_count as int) {
                     copy_pointer(segment, std::cast::transmute::<*mut Word,*mut WirePointer>(ptr).offset(i),
                                  value.segment, std::cast::transmute::<*u8,*WirePointer>(value.ptr).offset(i),
@@ -1263,7 +1263,7 @@ mod WireHelpers {
                     _ => { fail!("invalid list step size: {}", value.step) }
                 };
 
-                (*reff).list_ref().set(element_size, value.element_count);
+                (*reff).mut_list_ref().set(element_size, value.element_count);
                 std::ptr::copy_memory(ptr, std::cast::transmute::<*u8,*Word>(value.ptr), total_size);
             }
 
@@ -1271,7 +1271,7 @@ mod WireHelpers {
         } else {
             //# List of structs.
             let ptr = allocate(&mut reff, &mut segment, total_size + POINTER_SIZE_IN_WORDS, WP_LIST);
-            (*reff).list_ref().set_inline_composite(total_size);
+            (*reff).mut_list_ref().set_inline_composite(total_size);
 
             let data_size = round_bits_up_to_words(value.struct_data_size as u64);
             let pointer_count = value.struct_pointer_count;

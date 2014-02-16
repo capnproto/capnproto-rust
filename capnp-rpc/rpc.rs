@@ -405,7 +405,6 @@ impl RpcConnectionState {
                                     questions.slots[id].chan.try_send(message);
                                 }
                                 ExportReceiver(id) => {
-                                    println!("export receiver {}", id)
                                     let (answer_id, interface_id, method_id) = get_call_ids(message);
                                     let context =
                                         ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook;
@@ -414,7 +413,6 @@ impl RpcConnectionState {
                                     exports.slots[id].hook.call(interface_id, method_id, context);
                                 }
                                 PromisedAnswerReceiver(id, ops) => {
-                                    println!("promised answer receiver {}", id)
                                     let (answer_id, interface_id, method_id) = get_call_ids(message);
                                     let context =
                                         ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook;
