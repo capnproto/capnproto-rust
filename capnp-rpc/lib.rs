@@ -8,7 +8,7 @@
 #[crate_id="capnp-rpc"];
 #[crate_type="lib"];
 
-extern mod capnp;
+extern crate capnp;
 
 pub mod rpc_capnp;
 pub mod rpc_twoparty_capnp;

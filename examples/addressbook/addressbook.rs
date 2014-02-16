@@ -6,7 +6,7 @@
 
 #[crate_type = "bin"];
 
-extern mod capnp;
+extern crate capnp;
 pub mod addressbook_capnp;
 
 pub mod addressbook {

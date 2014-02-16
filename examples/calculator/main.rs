@@ -8,9 +8,9 @@
 #[crate_id="calculator"];
 #[crate_type="bin"];
 
-extern mod capnp;
-extern mod extra;
-extern mod capnp_rpc = "capnp-rpc";
+extern crate capnp;
+extern crate extra;
+extern crate capnp_rpc = "capnp-rpc";
 
 pub mod calculator_capnp;
 

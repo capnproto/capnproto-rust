@@ -9,7 +9,7 @@
 #[crate_id="capnpc-rust"];
 #[crate_type = "bin"];
 
-extern mod capnp;
+extern crate capnp;
 
 use capnp::*;
 

@@ -10,8 +10,8 @@
 #[crate_type = "bin"];
 #[no_uv];
 
-extern mod capnp;
-extern mod native;
+extern crate capnp;
+extern crate native;
 
 use capnp::message::{MessageReader, MessageBuilder};
 
