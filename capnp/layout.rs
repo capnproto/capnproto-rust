@@ -272,8 +272,8 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn struct_ref(&self) -> StructRef {
-        unsafe { std::cast::transmute(self.upper32bits) }
+    pub fn struct_ref<'a>(&'a self) -> &'a StructRef {
+        unsafe { std::cast::transmute(& self.upper32bits) }
     }
 
     #[inline]
@@ -282,8 +282,8 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn list_ref(&self) -> ListRef {
-        unsafe { std::cast::transmute(self.upper32bits) }
+    pub fn list_ref<'a>(&'a self) -> &'a ListRef {
+        unsafe { std::cast::transmute(& self.upper32bits) }
     }
 
     #[inline]
@@ -292,8 +292,8 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn far_ref(&self) -> FarRef {
-        unsafe { std::cast::transmute(self.upper32bits) }
+    pub fn far_ref<'a>(&'a self) -> &'a FarRef {
+        unsafe { std::cast::transmute(& self.upper32bits) }
     }
 
     #[inline]
@@ -302,8 +302,8 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn cap_ref(&self) -> CapRef {
-        unsafe { std::cast::transmute(self.upper32bits) }
+    pub fn cap_ref<'a>(&'a self) -> &'a CapRef {
+        unsafe { std::cast::transmute(& self.upper32bits) }
     }
 
     #[inline]
@@ -744,7 +744,7 @@ mod WireHelpers {
                         & (*src_tag).upper32bits, 1);
 
                     (*dst).set_far(false, (*src_segment).get_word_offset_to(landing_pad_word));
-                    (*dst).far_ref().set((*src_segment).get_segment_id());
+                    (*dst).mut_far_ref().set((*src_segment).get_segment_id());
                 }
             }
         }
