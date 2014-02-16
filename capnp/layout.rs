@@ -199,13 +199,13 @@ impl WirePointer {
     #[inline]
     pub fn target(&self) -> *Word {
         let thisAddr : *Word = unsafe {std::cast::transmute(&*self) };
-        unsafe { thisAddr.offset(1 + ((self.offset_and_kind.get() as int) >> 2)) }
+        unsafe { thisAddr.offset((1 + ((self.offset_and_kind.get() as i32) >> 2)) as int) }
     }
 
     #[inline]
     pub fn mut_target(&mut self) -> *mut Word {
         let thisAddr : *mut Word = unsafe {std::cast::transmute(&*self) };
-        unsafe { thisAddr.offset(1 + ((self.offset_and_kind.get() as int) >> 2)) }
+        unsafe { thisAddr.offset((1 + ((self.offset_and_kind.get() as i32) >> 2)) as int) }
     }
 
     #[inline]
