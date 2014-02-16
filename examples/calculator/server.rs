@@ -138,6 +138,7 @@ impl Calculator::Server for CalculatorImpl {
             FromServer::new(
                 None::<EzRpcServer>,
                 ~FunctionImpl::new(params.get_param_count() as uint, params.get_body())));
+        context.done();
     }
     fn get_operator(&mut self, mut context : Calculator::GetOperatorContext) {
         let (params, results) = context.get();
