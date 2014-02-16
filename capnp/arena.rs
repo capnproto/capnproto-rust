@@ -124,7 +124,7 @@ impl ReaderArena {
         };
 
 
-        let arena_ptr = ReaderArenaPtr (std::ptr::to_unsafe_ptr(arena));
+        let arena_ptr = ReaderArenaPtr (&*arena);
 
         arena.segment0.arena = arena_ptr;
 
@@ -146,12 +146,12 @@ impl ReaderArena {
 
     pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader {
         if id == 0 {
-            return std::ptr::to_unsafe_ptr(&self.segment0);
+            return &self.segment0 as *SegmentReader;
         } else {
             match self.more_segments {
                 None => {fail!("no segments!")}
                 Some(ref segs) => {
-                    unsafe { std::ptr::to_unsafe_ptr(segs.unsafe_ref(id as uint - 1)) }
+                    unsafe { segs.unsafe_ref(id as uint - 1) as *SegmentReader }
                 }
             }
         }
@@ -223,7 +223,7 @@ impl BuilderArena {
             cap_table : box [],
         };
 
-        let arena_ptr = std::ptr::to_mut_unsafe_ptr(result);
+        let arena_ptr = { let ref mut ptr = *result; ptr as *mut BuilderArena};
         result.segment0.reader.arena = BuilderArenaPtr(arena_ptr);
 
         result
@@ -252,7 +252,7 @@ impl BuilderArena {
     pub fn allocate(&mut self, amount : WordCount) -> (*mut SegmentBuilder, *mut Word) {
         unsafe {
             match self.segment0.allocate(amount) {
-                Some(result) => { return (std::ptr::to_mut_unsafe_ptr(&mut self.segment0), result) }
+                Some(result) => { return ((&mut self.segment0) as *mut SegmentBuilder, result) }
                 None => {}
             }
 
@@ -265,7 +265,7 @@ impl BuilderArena {
                 }
                 Some(ref mut msegs) => {
                     let len = msegs.len();
-                    let result_ptr = std::ptr::to_mut_unsafe_ptr(msegs[len-1]);
+                    let result_ptr = &mut *msegs[len-1] as *mut SegmentBuilder;
                     match msegs[len - 1].allocate(amount) {
                         Some(result) => { return (result_ptr, result) }
                         None => { len + 1 }
@@ -274,8 +274,8 @@ impl BuilderArena {
             };
 
             let (words, size) = self.allocate_owned_memory(amount);
-            let mut new_builder = ~SegmentBuilder::new(std::ptr::to_mut_unsafe_ptr(self), id as u32, words, size);
-            let builder_ptr = std::ptr::to_mut_unsafe_ptr(new_builder);
+            let mut new_builder = ~SegmentBuilder::new(self, id as u32, words, size);
+            let builder_ptr = &mut *new_builder as *mut SegmentBuilder;
 
             match self.more_segments {
                 None => fail!("impossible"),
@@ -290,12 +290,12 @@ impl BuilderArena {
 
     pub fn get_segment(&mut self, id : SegmentId) -> *mut SegmentBuilder {
         if id == 0 {
-            std::ptr::to_mut_unsafe_ptr(&mut self.segment0)
+            &mut self.segment0 as *mut SegmentBuilder
         } else {
             match self.more_segments {
                 None => fail!("invalid segment id {}", id),
                 Some(ref mut msegs) => {
-                    std::ptr::to_mut_unsafe_ptr(msegs[id - 1])
+                    &mut *msegs[id - 1] as *mut SegmentBuilder
                 }
             }
         }
@@ -352,12 +352,12 @@ impl ArenaPtr {
                 }
                 &BuilderArenaPtr(builder) => {
                     if id == 0 {
-                        std::ptr::to_unsafe_ptr(&(*builder).segment0.reader)
+                        &(*builder).segment0.reader as *SegmentReader
                     } else {
                         match (*builder).more_segments {
                             None => {fail!("no more segments!")}
                             Some(ref segs) => {
-                               std::ptr::to_unsafe_ptr(&segs[id as uint - 1].reader)
+                               &segs[id as uint - 1].reader as *SegmentReader
                             }
                         }
                     }

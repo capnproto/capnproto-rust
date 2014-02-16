@@ -31,7 +31,7 @@ pub trait MessageReader {
 
     fn get_root<'a, T : layout::FromStructReader<'a>>(&'a self) -> T {
         unsafe {
-            let segment : *SegmentReader = std::ptr::to_unsafe_ptr(&self.arena().segment0);
+            let segment : *SegmentReader = &self.arena().segment0;
 
             let pointer_reader = layout::PointerReader::get_root::<'a>(
                 segment, (*segment).get_start_ptr(), self.get_options().nestingLimit as int);
@@ -95,7 +95,7 @@ pub trait MessageBuilder {
     // XXX is there a way to make this private?
     fn get_root_internal<'a>(&'a mut self) -> AnyPointer::Builder<'a> {
 
-        let rootSegment = std::ptr::to_mut_unsafe_ptr(&mut self.mut_arena().segment0);
+        let rootSegment = &mut self.mut_arena().segment0 as *mut SegmentBuilder;
 
         if self.arena().segment0.current_size() == 0 {
             match self.mut_arena().segment0.allocate(WORDS_PER_POINTER) {

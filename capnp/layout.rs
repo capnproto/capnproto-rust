@@ -702,8 +702,8 @@ mod WireHelpers {
 
             //# We can just copy the upper 32 bits. (Use memcpy() to complt with aliasing rules.)
             // (?)
-            std::ptr::copy_nonoverlapping_memory(std::ptr::to_mut_unsafe_ptr(&mut (*dst).upper32bits),
-                                                 std::ptr::to_unsafe_ptr(&(*src_tag).upper32bits),
+            std::ptr::copy_nonoverlapping_memory(&mut (*dst).upper32bits,
+                                                 &(*src_tag).upper32bits,
                                                  1);
         } else {
             //# Need to create a far pointer. Try to allocate it in the
@@ -720,8 +720,8 @@ mod WireHelpers {
                     let landing_pad : *mut WirePointer = std::cast::transmute(landing_pad_word);
                     (*landing_pad).set_kind_and_target((*src_tag).kind(), src_ptr, src_segment);
                     std::ptr::copy_nonoverlapping_memory(
-                        std::ptr::to_mut_unsafe_ptr(&mut (*landing_pad).upper32bits),
-                        std::ptr::to_unsafe_ptr(& (*src_tag).upper32bits), 1);
+                        &mut (*landing_pad).upper32bits,
+                        & (*src_tag).upper32bits, 1);
 
                     (*dst).set_far(false, (*src_segment).get_word_offset_to(landing_pad_word));
                     (*dst).far_ref().set((*src_segment).get_segment_id());
@@ -1644,7 +1644,7 @@ mod WireHelpers {
 }
 
 static zero : u64 = 0;
-fn zero_pointer() -> *WirePointer { unsafe {std::cast::transmute(std::ptr::to_unsafe_ptr(&zero))}}
+fn zero_pointer() -> *WirePointer { unsafe {std::cast::transmute(&zero)}}
 
 pub struct PointerReader<'a> {
     segment : *SegmentReader,
@@ -1783,7 +1783,7 @@ impl <'a> PointerBuilder<'a> {
     pub fn get_capability(&self) -> ~ClientHook {
         unsafe {
             WireHelpers::read_capability_pointer(
-                std::ptr::to_unsafe_ptr(&(*self.segment).reader), self.pointer as *WirePointer, std::int::MAX)
+                &(*self.segment).reader, self.pointer as *WirePointer, std::int::MAX)
         }
     }
 
@@ -1996,7 +1996,7 @@ impl <'a> StructBuilder<'a> {
         unsafe {
             let segmentReader = &(*self.segment).reader;
             StructReader {
-                    segment : std::ptr::to_unsafe_ptr(segmentReader),
+                    segment : segmentReader,
                     data : std::cast::transmute(self.data),
                     pointers : std::cast::transmute(self.pointers),
                     data_size : self.data_size,

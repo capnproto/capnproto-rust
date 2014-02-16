@@ -75,8 +75,8 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
             self.cap = n;
             self.pos = 0;
         }
-        Ok((std::ptr::to_unsafe_ptr(self.buf.unsafe_ref(self.pos)),
-            std::ptr::to_unsafe_ptr(self.buf.unsafe_ref(self.cap))))
+        Ok((self.buf.unsafe_ref(self.pos) as *u8,
+            self.buf.unsafe_ref(self.cap) as *u8))
     }
 }
 
@@ -144,8 +144,8 @@ impl <'a> BufferedInputStream for ArrayInputStream<'a> {
     }
     unsafe fn get_read_buffer(&mut self) -> IoResult<(*u8, *u8)> {
         let len = self.array.len();
-        Ok((self.array.as_ptr(),
-            std::ptr::to_unsafe_ptr(self.array.unsafe_ref(len))))
+        Ok((self.array.as_ptr() as *u8,
+           self.array.unsafe_ref(len) as *u8))
     }
 }
 
@@ -178,13 +178,13 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
     #[inline]
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.buf.len();
-        (std::ptr::to_mut_unsafe_ptr(self.buf.unsafe_mut_ref(self.pos)),
-         std::ptr::to_mut_unsafe_ptr(self.buf.unsafe_mut_ref(len)))
+        (self.buf.unsafe_mut_ref(self.pos) as *mut u8,
+         self.buf.unsafe_mut_ref(len) as *mut u8)
     }
 
     #[inline]
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
-        let easyCase = ptr == std::ptr::to_mut_unsafe_ptr(self.buf.unsafe_mut_ref(self.pos));
+        let easyCase = ptr == self.buf.unsafe_mut_ref(self.pos) as *mut u8;
         if easyCase {
             self.pos += size;
             Ok(())
@@ -266,11 +266,11 @@ impl <'a> Writer for ArrayOutputStream<'a> {
 impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.array.len();
-        (std::ptr::to_mut_unsafe_ptr(self.array.unsafe_mut_ref(self.fill_pos)),
-         std::ptr::to_mut_unsafe_ptr(self.array.unsafe_mut_ref(len)))
+        (self.array.unsafe_mut_ref(self.fill_pos) as *mut u8,
+         self.array.unsafe_mut_ref(len) as *mut u8)
     }
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
-        let easyCase = ptr == std::ptr::to_mut_unsafe_ptr(self.array.unsafe_mut_ref(self.fill_pos));
+        let easyCase = ptr == self.array.unsafe_mut_ref(self.fill_pos) as *mut u8;
         if easyCase {
             self.fill_pos += size;
             Ok(())
