@@ -252,9 +252,8 @@ macro_rules! pass_by_pipe(
             let config = process::ProcessConfig {
                 program: args[0].as_slice(),
                 args: args.slice(1, args.len()),
-                env : None,
-                cwd: None,
-                io : io
+                io : io,
+                .. process::ProcessConfig::new()
             };
             match process::Process::new(config) {
                 Ok(ref mut p) => {

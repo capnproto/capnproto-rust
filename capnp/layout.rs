@@ -383,8 +383,8 @@ mod WireHelpers {
 
                 let amountPlusRef = amount + POINTER_SIZE_IN_WORDS;
                 let allocation = (*(**segment).get_arena()).allocate(amountPlusRef);
-                *segment = allocation.first();
-                let ptr = allocation.second();
+                *segment = allocation.val0();
+                let ptr = allocation.val1();
 
                 //# Set up the original pointer to be a far pointer to
                 //# the new segment.
