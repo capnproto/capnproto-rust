@@ -18,9 +18,14 @@ pub mod client;
 pub mod server;
 
 pub fn main() {
-    match std::os::args() {
-        [_, ~"client", ..] => client::main(),
-        [_, ~"server", ..] => server::main(),
-        args => println!("usage: {} [client | server] ADDRESS", args[0]),
+    let args = std::os::args();
+    if args.len() >= 2 {
+        match args[1] {
+            ~"client" => return client::main(),
+            ~"server" => return server::main(),
+            _ => (),
+        }
     }
+
+    println!("usage: {} [client | server] ADDRESS", args[0]);
 }
