@@ -19,8 +19,8 @@ macro_rules! refresh_buffer(
     ($inner:expr, $size:ident, $inPtr:ident, $inEnd:ident, $out:ident,
      $outBuf:ident, $bufferBegin:ident) => (
         {
-            if_ok!($inner.skip($size));
-            let (b, e) = if_ok!($inner.get_read_buffer());
+            try!($inner.skip($size));
+            let (b, e) = try!($inner.get_read_buffer());
             $inPtr = b;
             $inEnd = e;
             $size = ptr_sub($inEnd, $inPtr);
@@ -42,7 +42,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
             let mut out = outBuf.as_mut_ptr();
             let outEnd = outBuf.unsafe_mut_ref(len) as *mut u8;
 
-            let (mut inPtr, mut inEnd) = if_ok!(self.inner.get_read_buffer());
+            let (mut inPtr, mut inEnd) = try!(self.inner.get_read_buffer());
             let mut bufferBegin = inPtr;
             let mut size = ptr_sub(inEnd, inPtr);
             if size == 0 {
@@ -58,7 +58,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
 
                 if ptr_sub(inEnd, inPtr) < 10 {
                     if out >= outEnd {
-                        if_ok!(self.inner.skip(ptr_sub(inPtr, bufferBegin)));
+                        try!(self.inner.skip(ptr_sub(inPtr, bufferBegin)));
                         return Ok(ptr_sub(out, outBuf.as_mut_ptr()));
                     }
 
@@ -138,7 +138,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                         out = out.offset(inRemaining as int);
                         runLength -= inRemaining;
 
-                        if_ok!(self.inner.skip(size));
+                        try!(self.inner.skip(size));
                         std::vec::raw::mut_buf_as_slice::<u8,()>(out, runLength, |buf| {
                             self.inner.read(buf).unwrap();
                         });
@@ -147,7 +147,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                         if out == outEnd {
                             return Ok(len);
                         } else {
-                            let (b, e) = if_ok!(self.inner.get_read_buffer());
+                            let (b, e) = try!(self.inner.get_read_buffer());
                             inPtr = b;
                             inEnd = e;
                             size = ptr_sub(e, b);
@@ -158,7 +158,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                 }
 
                 if out == outEnd {
-                    if_ok!(self.inner.skip(ptr_sub(inPtr, bufferBegin)));
+                    try!(self.inner.skip(ptr_sub(inPtr, bufferBegin)));
                     return Ok(len);
                 }
             }
@@ -209,7 +209,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     //# Oops, we're out of space. We need at least 10
                     //# bytes for the fast path, since we don't
                     //# bounds-check on every byte.
-                    if_ok!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
+                    try!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
 
                     out = slowBuffer.as_mut_ptr();
                     bufferEnd = slowBuffer.unsafe_mut_ref(20) as *mut u8;
@@ -328,7 +328,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                         //# Input overruns the output buffer. We'll give it
                         //# to the output stream in one chunk and let it
                         //# decide what to do.
-                        if_ok!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
+                        try!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
 
                         std::vec::raw::buf_as_slice::<u8,()>(runStart, count, |buf| {
                             self.inner.write(buf).unwrap();
@@ -341,7 +341,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                 }
             }
 
-            if_ok!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
+            try!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
             Ok(())
         }
     }

@@ -15,7 +15,7 @@ pub fn read_at_least<R : Reader>(reader : &mut R,
     let bufLen = buf.len();
     while pos < min_bytes {
         let buf1 = buf.mut_slice(pos, bufLen);
-        let n = if_ok!(reader.read(buf1));
+        let n = try!(reader.read(buf1));
         pos += n;
     }
     return Ok(pos);
@@ -58,7 +58,7 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
             bytes -= available;
             if bytes <= self.buf.len() {
                 //# Read the next buffer-full.
-                let n = if_ok!(read_at_least(self.inner, self.buf, bytes));
+                let n = try!(read_at_least(self.inner, self.buf, bytes));
                 self.pos = bytes;
                 self.cap = n;
             } else {
@@ -71,7 +71,7 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
 
     unsafe fn get_read_buffer(&mut self) -> IoResult<(*u8, *u8)> {
         if self.cap - self.pos == 0 {
-            let n = if_ok!(read_at_least(self.inner, self.buf, 1));
+            let n = try!(read_at_least(self.inner, self.buf, 1));
             self.cap = n;
             self.pos = 0;
         }
@@ -100,7 +100,7 @@ impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
             num_bytes -= fromFirstBuffer;
             if num_bytes <= self.buf.len() {
                 //# Read the next buffer-full.
-                let n = if_ok!(read_at_least(self.inner, self.buf, num_bytes));
+                let n = try!(read_at_least(self.inner, self.buf, num_bytes));
                 std::vec::bytes::copy_memory(dst1,
                                              self.buf.slice(0, num_bytes));
                 self.cap = n;
@@ -110,7 +110,7 @@ impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
                 //# Forward large read to the underlying stream.
                 self.pos = 0;
                 self.cap = 0;
-                return Ok(fromFirstBuffer + if_ok!(read_at_least(self.inner, dst1, num_bytes)));
+                return Ok(fromFirstBuffer + try!(read_at_least(self.inner, dst1, num_bytes)));
             }
         }
     }
@@ -213,7 +213,7 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
                 let dst = self.buf.mut_slice_from(self.pos);
                 std::vec::bytes::copy_memory(dst, buf.slice(0, available));
             }
-            if_ok!(self.inner.write(self.buf));
+            try!(self.inner.write(self.buf));
 
             size -= available;
             let src = buf.slice_from(available);
@@ -223,16 +223,16 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
         } else {
             //# Writing so much data that we might as well write
             //# directly to avoid a copy.
-            if_ok!(self.inner.write(self.buf.slice(0, self.pos)));
+            try!(self.inner.write(self.buf.slice(0, self.pos)));
             self.pos = 0;
-            if_ok!(self.inner.write(buf));
+            try!(self.inner.write(buf));
         }
         return Ok(());
     }
 
     fn flush(&mut self) -> IoResult<()> {
         if self.pos > 0 {
-            if_ok!(self.inner.write(self.buf.slice(0, self.pos)));
+            try!(self.inner.write(self.buf.slice(0, self.pos)));
             self.pos = 0;
         }
         return Ok(())

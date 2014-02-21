@@ -43,7 +43,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
                                        options : ReaderOptions)
                                        -> std::io::IoResult<OwnedSpaceMessageReader> {
 
-    let firstWord = if_ok!(inputStream.read_bytes(8));
+    let firstWord = try!(inputStream.read_bytes(8));
 
     let segmentCount : u32 =
         unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.as_ptr());
@@ -66,7 +66,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
     let mut moreSizes : ~[u32] = std::vec::from_elem((segmentCount & !1) as uint, 0u32);
 
     if segmentCount > 1 {
-        let moreSizesRaw = if_ok!(inputStream.read_bytes((4 * (segmentCount & !1)) as uint));
+        let moreSizesRaw = try!(inputStream.read_bytes((4 * (segmentCount & !1)) as uint));
         for ii in range(0, segmentCount as uint - 1) {
             moreSizes[ii] = unsafe {
                 let p : *WireValue<u32> =
@@ -92,7 +92,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
 
     unsafe {
         let ptr : *mut u8 = std::cast::transmute(ownedSpace.unsafe_mut_ref(0));
-        if_ok!(std::vec::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(ptr, bufLen, |buf| {
+        try!(std::vec::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(ptr, bufLen, |buf| {
                     io::read_at_least(inputStream, buf, bufLen)
                 }));
     }

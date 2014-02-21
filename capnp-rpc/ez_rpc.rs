@@ -30,7 +30,7 @@ impl EzRpcClient {
 
         let addr : ip::SocketAddr = FromStr::from_str(server_address).expect("bad server address");
 
-        let tcp = if_ok!(tcp::TcpStream::connect(addr));
+        let tcp = try!(tcp::TcpStream::connect(addr));
 
         let vat_chan = Vat::new();
         let connection_state = RpcConnectionState::new();
@@ -91,9 +91,9 @@ impl EzRpcServer {
 
         let addr : ip::SocketAddr = FromStr::from_str(bind_address).expect("bad bind address");
 
-        let tcp_listener = if_ok!(tcp::TcpListener::bind(addr));
+        let tcp_listener = try!(tcp::TcpListener::bind(addr));
 
-        let tcp_acceptor = if_ok!(tcp_listener.listen());
+        let tcp_acceptor = try!(tcp_listener.listen());
 
         let vat_chan = Vat::new();
 
