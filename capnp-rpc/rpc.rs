@@ -9,7 +9,7 @@ use capnp::capability;
 use capnp::capability::{CallContext, CallContextHook, ClientHook, PipelineHook, PipelineOp, RemotePromise,
                         RequestHook, Request, Server};
 use capnp::common;
-use capnp::message::{DEFAULT_READER_OPTIONS, MessageReader, MessageBuilder, MallocMessageBuilder};
+use capnp::message::{DefaultReaderOptions, MessageReader, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use capnp::serialize::{OwnedSpaceMessageReader};
 
@@ -241,7 +241,7 @@ impl RpcConnectionState {
                 loop {
                     match serialize::new_reader(
                         &mut r,
-                        DEFAULT_READER_OPTIONS) {
+                        DefaultReaderOptions) {
                         Err(_e) => { listener_chan.try_send(ShutdownEvent); break; }
                         Ok(message) => {
                             listener_chan.send(IncomingMessage(box message));
@@ -870,7 +870,7 @@ impl PromisedAnswerRpcCallContext {
         let mut writer = std::io::MemWriter::new();
         serialize::write_message(&mut writer, params_message);
         let mut reader = std::io::MemReader::new(writer.get_ref().to_owned());
-        let params_reader = ~serialize::new_reader(&mut reader, DEFAULT_READER_OPTIONS).unwrap();
+        let params_reader = ~serialize::new_reader(&mut reader, DefaultReaderOptions).unwrap();
 
 
         let mut results_message = ~MallocMessageBuilder::new_default();
@@ -926,7 +926,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         let mut writer = std::io::MemWriter::new();
         serialize::write_message(&mut writer, results_message);
         let mut reader = std::io::MemReader::new(writer.get_ref().to_owned());
-        let results_reader = ~serialize::new_reader(&mut reader, DEFAULT_READER_OPTIONS).unwrap();
+        let results_reader = ~serialize::new_reader(&mut reader, DefaultReaderOptions).unwrap();
 
         answer_chan.send(results_reader);
     }

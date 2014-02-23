@@ -55,7 +55,7 @@ pub fn main() {
             let segments = capnp_zmq::frames_to_segments(frames);
             let reader = capnp::message::SegmentArrayMessageReader::new(
                 segments,
-                capnp::message::DEFAULT_READER_OPTIONS);
+                capnp::message::DefaultReaderOptions);
             let obs = reader.get_root::<Observation::Reader>();
 
             if obs.get_x() >= 1.0 || obs.get_x() < 0.0 ||

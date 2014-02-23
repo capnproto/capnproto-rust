@@ -170,7 +170,7 @@ macro_rules! pass_by_bytes(
 
                 let messageReader = $compression::new_buffered_reader(
                     &mut capnp::io::ArrayInputStream::new(requestBytes),
-                    capnp::message::DEFAULT_READER_OPTIONS);
+                    capnp::message::DefaultReaderOptions);
 
                 let requestReader : $testcase::RequestReader = messageReader.get_root();
                 $testcase::handle_request(requestReader, response);
@@ -182,7 +182,7 @@ macro_rules! pass_by_bytes(
 
                 let messageReader = $compression::new_buffered_reader(
                     &mut capnp::io::ArrayInputStream::new(responseBytes),
-                    capnp::message::DEFAULT_READER_OPTIONS);
+                    capnp::message::DefaultReaderOptions);
 
                 let responseReader : $testcase::ResponseReader = messageReader.get_root();
                 if !$testcase::check_response(responseReader, expected) {
@@ -202,7 +202,7 @@ macro_rules! server(
                 let response = messageRes.init_root::<$testcase::ResponseBuilder>();
                 let messageReader = $compression::new_buffered_reader(
                     &mut inBuffered,
-                    capnp::message::DEFAULT_READER_OPTIONS);
+                    capnp::message::DefaultReaderOptions);
                 let requestReader : $testcase::RequestReader = messageReader.get_root();
                 $testcase::handle_request(requestReader, response);
 
@@ -228,7 +228,7 @@ macro_rules! sync_client(
 
                 let messageReader = $compression::new_buffered_reader(
                     &mut inBuffered,
-                    capnp::message::DEFAULT_READER_OPTIONS);
+                    capnp::message::DefaultReaderOptions);
                 let responseReader : $testcase::ResponseReader = messageReader.get_root();
                 assert!($testcase::check_response(responseReader, expected));
 

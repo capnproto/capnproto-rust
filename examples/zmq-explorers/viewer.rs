@@ -2,7 +2,7 @@ use capnp;
 use zmq;
 use capnp_zmq;
 use std;
-use extra;
+use time;
 use explorers_capnp::Grid;
 
 enum OutputMode {
@@ -12,8 +12,8 @@ enum OutputMode {
 
 fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) {
     match std::io::File::open_mode(path, std::io::Truncate, std::io::Write) {
-        None => fail!("could not open"),
-        Some(writer) => {
+        Err(_e) => fail!("could not open"),
+        Ok(writer) => {
             let mut buffered = std::io::BufferedWriter::new(writer);
             writeln!(&mut buffered, "P6");
 
@@ -40,7 +40,7 @@ fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) {
                             buffered.write_u8((cell.get_mean_blue()).floor() as u8);
                         }
                         Confidence => {
-                            let mut age = extra::time::now().to_timespec().sec - cell.get_latest_timestamp();
+                            let mut age = time::now().to_timespec().sec - cell.get_latest_timestamp();
                             if age < 0 { age = 0 };
                             age *= 25;
                             if age > 255 { age = 255 };
@@ -60,7 +60,7 @@ fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) {
                 }
             }
 
-            buffered.flush()
+            buffered.flush();
         }
     }
 }
@@ -81,7 +81,7 @@ pub fn main() {
         let frames = capnp_zmq::recv(&mut requester).unwrap();
         let segments = capnp_zmq::frames_to_segments(frames);
         let reader = capnp::message::SegmentArrayMessageReader::new(segments,
-                                                                    capnp::message::DEFAULT_READER_OPTIONS);
+                                                                    capnp::message::DefaultReaderOptions);
         let grid = reader.get_root::<Grid::Reader>();
 
         println!("{}", grid.get_latest_timestamp());

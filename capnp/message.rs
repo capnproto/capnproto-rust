@@ -17,7 +17,7 @@ pub struct ReaderOptions {
     nestingLimit : uint
 }
 
-pub static DEFAULT_READER_OPTIONS : ReaderOptions =
+pub static DefaultReaderOptions : ReaderOptions =
     ReaderOptions { traversalLimitInWords : 8 * 1024 * 1024, nestingLimit : 64 };
 
 

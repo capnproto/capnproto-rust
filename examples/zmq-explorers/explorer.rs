@@ -1,11 +1,11 @@
 use capnp;
 use capnp::message::MessageBuilder;
 use zmq;
-use extra;
 use std;
 use std::rand::Rng;
 use capnp_zmq;
 use explorers_capnp::Observation;
+use time;
 
 struct Pixel {
     red : u8,
@@ -30,40 +30,40 @@ struct Image {
 impl Image {
 
     // quick and dirty parsing of a PPM image
-    fn load(file : &std::path::Path) -> Image {
+    fn load(file : &std::path::Path) -> std::io::IoResult<Image> {
         use std::io::{Open, Read};
         match std::io::File::open_mode(file, Open, Read) {
-            None => fail!("could not open"),
-            Some(reader) => {
+            Err(_e) => fail!("could not open"),
+            Ok(reader) => {
                 let mut buffered = std::io::BufferedReader::new(reader);
                 match buffered.read_line() {
-                    Some(s) => {
+                    Ok(s) => {
                         assert!(s.trim() == "P6");
                     }
-                    None => fail!("premature end of file")
+                    Err(_e) => fail!("premature end of file")
                 }
                 let (width, height) = match buffered.read_line() {
-                    Some(s) => {
+                    Ok(s) => {
                         let dims : ~[&str] = s.split(' ').collect();
                         if dims.len() != 2 { fail!("could not read dimensions") }
                         (from_str::<u32>(dims[0].trim()).unwrap(), from_str::<u32>(dims[1].trim()).unwrap())
                     }
-                    None => { fail!("premature end of file") }
+                    Err(_e) => { fail!("premature end of file") }
                 };
                 match buffered.read_line() {
-                    Some(s) => { assert!(s.trim() == "255") }
-                    None => fail!("premature end of file")
+                    Ok(s) => { assert!(s.trim() == "255") }
+                    Err(_e) => fail!("premature end of file")
                 }
                 let mut result = Image { width : width, height : height, pixels : ~[] };
                 for _ in range(0, width * height) {
                     result.pixels.push(
                         Pixel {
-                            red : buffered.read_u8(),
-                            green : buffered.read_u8(),
-                            blue : buffered.read_u8()
+                            red : try!(buffered.read_u8()),
+                            green : try!(buffered.read_u8()),
+                            blue : try!(buffered.read_u8())
                         });
                 }
-                return result;
+                return Ok(result);
             }
         }
     }
@@ -78,7 +78,7 @@ impl Image {
 
         assert!(x >= 0.0); assert!(y >= 0.0); assert!(x < 1.0); assert!(y < 1.0);
 
-        obs.set_timestamp(extra::time::now().to_timespec().sec);
+        obs.set_timestamp(time::now().to_timespec().sec);
         obs.set_x(x);
         obs.set_y(y);
 
@@ -121,7 +121,7 @@ pub fn main () {
         return;
     }
 
-    let image = Image::load(&std::path::Path::new(args[2]));
+    let image = Image::load(&std::path::Path::new(args[2])).unwrap();
 
     let mut context = zmq::Context::new();
     let mut publisher = context.socket(zmq::PUB).unwrap();

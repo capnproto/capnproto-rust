@@ -1048,7 +1048,7 @@ fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
                 let styled_name = camel_to_snake_case(name);
 
                 let discriminantValue = field.get_discriminant_value();
-                let isUnionField = (discriminantValue != Field::NO_DISCRIMINANT);
+                let isUnionField = discriminantValue != Field::NO_DISCRIMINANT;
 
                 if !isUnionField {
                     pipeline_impl_interior.push(generate_pipeline_getter(nodeMap, scopeMap, field));
@@ -1439,7 +1439,7 @@ fn main() {
 
     let mut inp = std::io::stdin();
 
-    let messageReader = serialize::new_reader(&mut inp, message::DEFAULT_READER_OPTIONS).unwrap();
+    let messageReader = serialize::new_reader(&mut inp, message::DefaultReaderOptions).unwrap();
 
     let codeGeneratorRequest : schema_capnp::CodeGeneratorRequest::Reader = messageReader.get_root();
 
