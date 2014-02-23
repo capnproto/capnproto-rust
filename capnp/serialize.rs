@@ -135,7 +135,7 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
     message.get_segments_for_output(
         |segments| {
 
-            let tableSize : uint = ((segments.len() + 2) & (!1));
+            let tableSize : uint = (segments.len() + 2) & (!1);
 
             let mut table : ~[WireValue<u32>] = std::vec::with_capacity(tableSize);
             unsafe { table.set_len(tableSize) }

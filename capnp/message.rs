@@ -81,12 +81,12 @@ impl <'a> SegmentArrayMessageReader<'a> {
 }
 
 pub enum AllocationStrategy {
-    FIXED_SIZE,
-    GROW_HEURISTICALLY
+    FixedSize,
+    GrowHeuristically
 }
 
 pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
-pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GROW_HEURISTICALLY;
+pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GrowHeuristically;
 
 pub trait MessageBuilder {
     fn mut_arena<'a>(&'a mut self) -> &'a mut BuilderArena;

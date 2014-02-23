@@ -11,7 +11,7 @@ pub mod Node {
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 5, pointers : 5, preferred_list_encoding : layout::INLINE_COMPOSITE};
+    layout::StructSize { data : 5, pointers : 5, preferred_list_encoding : layout::InlineComposite};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -309,7 +309,7 @@ pub mod Node {
     use schema_capnp;
 
     pub static STRUCT_SIZE : layout::StructSize =
-      layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::INLINE_COMPOSITE};
+      layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::InlineComposite};
 
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -588,7 +588,7 @@ pub mod Node {
       }
       #[inline]
       pub fn get_extends(&self) -> PrimitiveList::Reader<'a,u64> {
-        PrimitiveList::Reader::new(self.reader.get_pointer_field(4).get_list(layout::EIGHT_BYTES, std::ptr::null()))
+        PrimitiveList::Reader::new(self.reader.get_pointer_field(4).get_list(layout::EightBytes, std::ptr::null()))
       }
       pub fn has_extends(&self) -> bool {
         !self.reader.get_pointer_field(4).is_null()
@@ -623,7 +623,7 @@ pub mod Node {
       }
       #[inline]
       pub fn get_extends(&self) -> PrimitiveList::Builder<'a,u64> {
-        PrimitiveList::Builder::new(self.builder.get_pointer_field(4).get_list(layout::EIGHT_BYTES, std::ptr::null()))
+        PrimitiveList::Builder::new(self.builder.get_pointer_field(4).get_list(layout::EightBytes, std::ptr::null()))
       }
       #[inline]
       pub fn set_extends(&self, value : PrimitiveList::Reader<'a,u64>) {
@@ -632,7 +632,7 @@ pub mod Node {
       #[inline]
       pub fn init_extends(&self, size : uint) -> PrimitiveList::Builder<'a,u64> {
         PrimitiveList::Builder::<'a,u64>::new(
-          self.builder.get_pointer_field(4).init_list(layout::EIGHT_BYTES,size)
+          self.builder.get_pointer_field(4).init_list(layout::EightBytes,size)
         )
       }
       pub fn has_extends(&self) -> bool {
@@ -931,7 +931,7 @@ pub mod Field {
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 3, pointers : 4, preferred_list_encoding : layout::INLINE_COMPOSITE};
+    layout::StructSize { data : 3, pointers : 4, preferred_list_encoding : layout::InlineComposite};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1365,7 +1365,7 @@ pub mod Enumerant {
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 1, pointers : 2, preferred_list_encoding : layout::INLINE_COMPOSITE};
+    layout::StructSize { data : 1, pointers : 2, preferred_list_encoding : layout::InlineComposite};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1464,7 +1464,7 @@ pub mod Method {
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 3, pointers : 2, preferred_list_encoding : layout::INLINE_COMPOSITE};
+    layout::StructSize { data : 3, pointers : 2, preferred_list_encoding : layout::InlineComposite};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1587,7 +1587,7 @@ pub mod Type {
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 2, pointers : 1, preferred_list_encoding : layout::INLINE_COMPOSITE};
+    layout::StructSize { data : 2, pointers : 1, preferred_list_encoding : layout::InlineComposite};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2162,7 +2162,7 @@ pub mod Value {
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 2, pointers : 1, preferred_list_encoding : layout::INLINE_COMPOSITE};
+    layout::StructSize { data : 2, pointers : 1, preferred_list_encoding : layout::InlineComposite};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2608,7 +2608,7 @@ pub mod Annotation {
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::INLINE_COMPOSITE};
+    layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::InlineComposite};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2706,7 +2706,7 @@ pub mod CodeGeneratorRequest {
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 0, pointers : 2, preferred_list_encoding : layout::INLINE_COMPOSITE};
+    layout::StructSize { data : 0, pointers : 2, preferred_list_encoding : layout::InlineComposite};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2793,7 +2793,7 @@ pub mod CodeGeneratorRequest {
     use schema_capnp;
 
     pub static STRUCT_SIZE : layout::StructSize =
-      layout::StructSize { data : 1, pointers : 2, preferred_list_encoding : layout::INLINE_COMPOSITE};
+      layout::StructSize { data : 1, pointers : 2, preferred_list_encoding : layout::InlineComposite};
 
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2891,7 +2891,7 @@ pub mod CodeGeneratorRequest {
       use schema_capnp;
 
       pub static STRUCT_SIZE : layout::StructSize =
-        layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::INLINE_COMPOSITE};
+        layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::InlineComposite};
 
 
       pub struct Reader<'a> { reader : layout::StructReader<'a> }

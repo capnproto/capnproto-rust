@@ -241,7 +241,7 @@ impl BuilderArena {
         }
 
         match self.allocation_strategy {
-            message::GROW_HEURISTICALLY => { self.nextSize += size; }
+            message::GrowHeuristically => { self.nextSize += size; }
             _ => { }
         }
         (new_words, size)

@@ -15,32 +15,32 @@ use std;
 #[repr(u8)]
 #[deriving(Eq)]
 pub enum FieldSize {
-    VOID = 0,
-    BIT = 1,
-    BYTE = 2,
-    TWO_BYTES = 3,
-    FOUR_BYTES = 4,
-    EIGHT_BYTES = 5,
-    POINTER = 6,
-    INLINE_COMPOSITE = 7
+    Void = 0,
+    Bit = 1,
+    Byte = 2,
+    TwoBytes = 3,
+    FourBytes = 4,
+    EightBytes = 5,
+    Pointer = 6,
+    InlineComposite = 7
 }
 
 pub fn data_bits_per_element(size : FieldSize) -> BitCount0 {
     match size {
-        VOID => 0,
-        BIT => 1,
-        BYTE => 8,
-        TWO_BYTES => 16,
-        FOUR_BYTES => 32,
-        EIGHT_BYTES => 64,
-        POINTER => 0,
-        INLINE_COMPOSITE => 0
+        Void => 0,
+        Bit => 1,
+        Byte => 8,
+        TwoBytes => 16,
+        FourBytes => 32,
+        EightBytes => 64,
+        Pointer => 0,
+        InlineComposite => 0
     }
 }
 
 pub fn pointers_per_element(size : FieldSize) -> WirePointerCount {
     match size {
-        POINTER => 1,
+        Pointer => 1,
         _ => 0
     }
 }
@@ -50,25 +50,14 @@ pub fn pointers_per_element(size : FieldSize) -> WirePointerCount {
 // structs and pointers.
 pub fn element_size_for_type<T>() -> FieldSize {
     match bits_per_element::<T>() {
-        0 => VOID,
-        1 => BIT,
-        8 => BYTE,
-        16 => TWO_BYTES,
-        32 => FOUR_BYTES,
-        64 => EIGHT_BYTES,
+        0 => Void,
+        1 => Bit,
+        8 => Byte,
+        16 => TwoBytes,
+        32 => FourBytes,
+        64 => EightBytes,
         b => fail!("don't know how to get field size with {} bits", b)
     }
-}
-
-pub enum Kind {
-  PRIMITIVE,
-  BLOB,
-  ENUM,
-  STRUCT,
-  UNION,
-  INTERFACE,
-  LIST,
-  UNKNOWN
 }
 
 // In the future, Rust will have an alignment attribute
@@ -90,15 +79,16 @@ impl StructSize {
     }
 }
 
-#[repr(u8)]
-#[deriving(Eq)]
-pub enum WirePointerKind {
-    WP_STRUCT = 0,
-    WP_LIST = 1,
-    WP_FAR = 2,
-    WP_OTHER = 3
+pub mod WirePointerKind {
+    #[repr(u8)]
+    #[deriving(Eq)]
+    pub enum Type {
+        Struct = 0,
+        List = 1,
+        Far = 2,
+        Other = 3
+    }
 }
-
 
 pub struct WirePointer {
     offset_and_kind : WireValue<u32>,
@@ -168,7 +158,7 @@ impl ListRef {
     #[inline]
     pub fn set_inline_composite(& mut self, wc : WordCount) {
         assert!(wc < (1 << 29), "Inline composite lists are limited to 2 ** 29 words");
-        self.element_size_and_count.set((( wc as u32) << 3) | (INLINE_COMPOSITE as u32));
+        self.element_size_and_count.set((( wc as u32) << 3) | (InlineComposite as u32));
     }
 }
 
@@ -185,7 +175,7 @@ impl CapRef {
 impl WirePointer {
 
     #[inline]
-    pub fn kind(&self) -> WirePointerKind {
+    pub fn kind(&self) -> WirePointerKind::Type {
         unsafe {
             std::cast::transmute((self.offset_and_kind.get() & 3) as u8)
         }
@@ -193,7 +183,7 @@ impl WirePointer {
 
     #[inline]
     pub fn is_capability(&self) -> bool {
-        self.offset_and_kind.get() == WP_OTHER as u32
+        self.offset_and_kind.get() == WirePointerKind::Other as u32
     }
 
     #[inline]
@@ -209,7 +199,7 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn set_kind_and_target(&mut self, kind : WirePointerKind,
+    pub fn set_kind_and_target(&mut self, kind : WirePointerKind::Type,
                                target : *mut Word,
                                _segmentBuilder : *mut SegmentBuilder) {
         let thisAddr : int = unsafe {std::cast::transmute(&*self)};
@@ -220,7 +210,7 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn set_kind_with_zero_offset(&mut self, kind : WirePointerKind) {
+    pub fn set_kind_with_zero_offset(&mut self, kind : WirePointerKind::Type) {
         self.offset_and_kind.set( kind as u32)
     }
 
@@ -245,7 +235,7 @@ impl WirePointer {
 
     #[inline]
     pub fn set_kind_and_inline_composite_list_element_count(
-        &mut self, kind : WirePointerKind, element_count : ElementCount) {
+        &mut self, kind : WirePointerKind::Type, element_count : ElementCount) {
         self.offset_and_kind.set((( element_count as u32 << 2) | (kind as u32)))
     }
 
@@ -262,12 +252,12 @@ impl WirePointer {
     #[inline]
     pub fn set_far(&mut self, is_double_far : bool, pos : WordCount) {
         self.offset_and_kind.set
-            (( pos << 3) as u32 | (is_double_far as u32 << 2) | WP_FAR as u32);
+            (( pos << 3) as u32 | (is_double_far as u32 << 2) | WirePointerKind::Far as u32);
     }
 
     #[inline]
     pub fn set_cap(&mut self, index : u32) {
-        self.offset_and_kind.set(WP_OTHER as u32);
+        self.offset_and_kind.set(WirePointerKind::Other as u32);
         self.mut_cap_ref().set(index);
     }
 
@@ -363,13 +353,13 @@ mod WireHelpers {
     #[inline]
     pub unsafe fn allocate(reff : &mut *mut WirePointer,
                            segment : &mut *mut SegmentBuilder,
-                           amount : WordCount, kind : WirePointerKind) -> *mut Word {
+                           amount : WordCount, kind : WirePointerKind::Type) -> *mut Word {
         let is_null = (**reff).is_null();
         if !is_null {
             zero_object(*segment, *reff)
         }
 
-        if amount == 0 && kind == WP_STRUCT {
+        if amount == 0 && kind == WirePointerKind::Struct {
             (**reff).set_kind_and_target_for_empty_struct();
             return std::cast::transmute(reff);
         }
@@ -423,7 +413,7 @@ mod WireHelpers {
         //# `ref->target()`, but may not be in cases where `ref` is
         //# only a tag.
 
-        if (**reff).kind() == WP_FAR {
+        if (**reff).kind() == WirePointerKind::Far {
             *segment = (*(**segment).get_arena()).get_segment((**reff).far_ref().segment_id.get());
             let pad : *mut WirePointer =
                 std::cast::transmute((**segment).get_ptr_unchecked((**reff).far_position_in_segment()));
@@ -449,7 +439,7 @@ mod WireHelpers {
 
         //# If the segment is null, this is an unchecked message,
         //# so there are no FAR pointers.
-        if !(*segment).is_null() && (**reff).kind() == WP_FAR {
+        if !(*segment).is_null() && (**reff).kind() == WirePointerKind::Far {
             *segment =
                 (**segment).arena.try_get_segment((**reff).far_ref().segment_id.get());
 
@@ -487,11 +477,11 @@ mod WireHelpers {
         //# reachable.
 
         match (*reff).kind() {
-            WP_STRUCT | WP_LIST | WP_OTHER => {
+            WirePointerKind::Struct | WirePointerKind::List | WirePointerKind::Other => {
                 zero_object_helper(segment,
                                  reff, (*reff).mut_target())
             }
-            WP_FAR => {
+            WirePointerKind::Far => {
                 segment = (*(*segment).get_arena()).get_segment((*reff).far_ref().segment_id.get());
                 let pad : *mut WirePointer =
                     std::cast::transmute((*segment).get_ptr_unchecked((*reff).far_position_in_segment()));
@@ -517,8 +507,8 @@ mod WireHelpers {
                                      tag : *mut WirePointer,
                                      ptr: *mut Word) {
         match (*tag).kind() {
-            WP_OTHER => { fail!("Don't know how to handle OTHER") }
-            WP_STRUCT => {
+            WirePointerKind::Other => { fail!("Don't know how to handle OTHER") }
+            WirePointerKind::Struct => {
                 let pointerSection : *mut WirePointer =
                     std::cast::transmute(
                     ptr.offset((*tag).struct_ref().data_size.get() as int));
@@ -529,10 +519,10 @@ mod WireHelpers {
                 }
                 std::ptr::set_memory(ptr, 0u8, (*tag).struct_ref().word_size());
             }
-            WP_LIST => {
+            WirePointerKind::List => {
                 match (*tag).list_ref().element_size() {
-                    VOID =>  { }
-                    BIT | BYTE | TWO_BYTES | FOUR_BYTES | EIGHT_BYTES => {
+                    Void =>  { }
+                    Bit | Byte | TwoBytes | FourBytes | EightBytes => {
                         std::ptr::set_memory(
                             ptr, 0u8,
                             round_bits_up_to_words((
@@ -540,7 +530,7 @@ mod WireHelpers {
                                         data_bits_per_element(
                                         (*tag).list_ref().element_size())) as u64))
                     }
-                    POINTER => {
+                    Pointer => {
                         let count = (*tag).list_ref().element_count() as uint;
                         for i in range::<int>(0, count as int) {
                             zero_object(segment,
@@ -548,10 +538,10 @@ mod WireHelpers {
                         }
                         std::ptr::set_memory(ptr, 0u8, count);
                     }
-                    INLINE_COMPOSITE => {
+                    InlineComposite => {
                         let elementTag : *mut WirePointer = std::cast::transmute(ptr);
 
-                        assert!((*elementTag).kind() == WP_STRUCT,
+                        assert!((*elementTag).kind() == WirePointerKind::Struct,
                                 "Don't know how to handle non-STRUCT inline composite");
 
                         let data_size = (*elementTag).struct_ref().data_size.get();
@@ -572,7 +562,7 @@ mod WireHelpers {
                     }
                 }
             }
-            WP_FAR => { fail!("Unexpected FAR pointer") }
+            WirePointerKind::Far => { fail!("Unexpected FAR pointer") }
         }
     }
 
@@ -582,7 +572,7 @@ mod WireHelpers {
         //# zero the landing pad as well, but do not zero the object
         //# body. Used when upgrading.
 
-        if (*reff).kind() == WP_FAR {
+        if (*reff).kind() == WirePointerKind::Far {
             let pad = (*(*(*segment).get_arena()).get_segment((*reff).far_ref().segment_id.get()))
                 .get_ptr_unchecked((*reff).far_position_in_segment());
             let num_elements = if (*reff).is_double_far() { 2 } else { 1 };
@@ -601,7 +591,7 @@ mod WireHelpers {
         let ptr = follow_fars(&mut reff, (*reff).target(), &mut segment);
 
         match (*reff).kind() {
-            WP_STRUCT => {
+            WirePointerKind::Struct => {
                 assert!(bounds_check(segment, ptr, ptr.offset((*reff).struct_ref().word_size() as int)),
                         "Message contains out-of-bounds struct pointer.");
                 result.word_count += (*reff).struct_ref().word_size() as u64;
@@ -613,10 +603,10 @@ mod WireHelpers {
                     result.plus_eq(total_size(segment, pointer_section.offset(i), nesting_limit));
                 }
             }
-            WP_LIST => {
+            WirePointerKind::List => {
                 match (*reff).list_ref().element_size() {
-                    VOID => {}
-                    BIT | BYTE | TWO_BYTES | FOUR_BYTES | EIGHT_BYTES => {
+                    Void => {}
+                    Bit | Byte | TwoBytes | FourBytes | EightBytes => {
                         let total_words = round_bits_up_to_words(
                             (*reff).list_ref().element_count() as u64 *
                                 data_bits_per_element((*reff).list_ref().element_size()) as u64);
@@ -624,7 +614,7 @@ mod WireHelpers {
                                 "Message contains out-of-bounds list pointer.");
                         result.word_count += total_words as u64;
                     }
-                    POINTER => {
+                    Pointer => {
                         let count = (*reff).list_ref().element_count();
                         assert!(bounds_check(segment, ptr, ptr.offset((count * WORDS_PER_POINTER) as int)),
                                 "Message contains out-of-bounds list pointer.");
@@ -637,7 +627,7 @@ mod WireHelpers {
                                            nesting_limit));
                         }
                     }
-                    INLINE_COMPOSITE => {
+                    InlineComposite => {
                         let word_count = (*reff).list_ref().inline_composite_word_count();
                         assert!(bounds_check(segment, ptr,
                                              ptr.offset(word_count as int + POINTER_SIZE_IN_WORDS as int)),
@@ -648,11 +638,11 @@ mod WireHelpers {
                         let element_tag : *WirePointer = std::cast::transmute(ptr);
                         let count = (*element_tag).inline_composite_list_element_count();
 
-                        assert!((*element_tag).kind() == WP_STRUCT,
+                        assert!((*element_tag).kind() == WirePointerKind::Struct,
                                 "Don't know how to handle non-STRUCT inline composite.");
 
                         assert!((*element_tag).struct_ref().word_size() * count <= word_count,
-                                "INLINE_COMPOSITE list's elements overrun its word count");
+                                "InlineComposite list's elements overrun its word count");
 
                         let data_size = (*element_tag).struct_ref().data_size.get();
                         let pointer_count = (*element_tag).struct_ref().ptr_count.get();
@@ -671,10 +661,10 @@ mod WireHelpers {
                     }
                 }
             }
-            WP_FAR => {
+            WirePointerKind::Far => {
                 fail!("Unexpedted FAR pointer.");
             }
-            WP_OTHER => {
+            WirePointerKind::Other => {
                 if (*reff).is_capability() {
                     result.cap_count += 1;
                 } else {
@@ -703,7 +693,7 @@ mod WireHelpers {
 
         if (*src).is_null() {
             std::ptr::zero_memory(dst, 1);
-        } else if (*src).kind() == WP_FAR {
+        } else if (*src).kind() == WirePointerKind::Far {
             std::ptr::copy_nonoverlapping_memory(dst, src as *WirePointer, 1);
         } else {
             transfer_pointer_split(dst_segment, dst, src_segment, src, (*src).mut_target());
@@ -754,7 +744,7 @@ mod WireHelpers {
     pub unsafe fn init_struct_pointer<'a>(mut reff : *mut WirePointer,
                                           mut segmentBuilder : *mut SegmentBuilder,
                                           size : StructSize) -> StructBuilder<'a> {
-        let ptr : *mut Word = allocate(&mut reff, &mut segmentBuilder, size.total(), WP_STRUCT);
+        let ptr : *mut Word = allocate(&mut reff, &mut segmentBuilder, size.total(), WirePointerKind::Struct);
         (*reff).mut_struct_ref().set_from_struct_size(size);
 
         StructBuilder {
@@ -786,7 +776,7 @@ mod WireHelpers {
         let mut old_ref = reff;
         let mut old_segment = segment;
         let old_ptr = follow_builder_fars(&mut old_ref, ref_target, &mut old_segment);
-        assert!((*old_ref).kind() == WP_STRUCT,
+        assert!((*old_ref).kind() == WirePointerKind::Struct,
                 "Message contains non-struct pointer where struct pointer was expected.");
 
         let old_data_size = (*old_ref).struct_ref().data_size.get();
@@ -807,7 +797,7 @@ mod WireHelpers {
             //# Don't let allocate() zero out the object just yet.
             zero_pointer_and_fars(segment, reff);
 
-            let ptr = allocate(&mut reff, &mut segment, total_size, WP_STRUCT);
+            let ptr = allocate(&mut reff, &mut segment, total_size, WirePointerKind::Struct);
             (*reff).mut_struct_ref().set(new_data_size, new_pointer_count);
 
             //# Copy data section.
@@ -853,7 +843,7 @@ mod WireHelpers {
                                         element_count : ElementCount,
                                         element_size : FieldSize) -> ListBuilder<'a> {
         match element_size {
-            INLINE_COMPOSITE => {
+            InlineComposite => {
                 fail!("Should have called initStructListPointer() instead")
             }
             _ => { }
@@ -861,9 +851,9 @@ mod WireHelpers {
 
         let data_size : BitCount0 = data_bits_per_element(element_size);
         let pointer_count = pointers_per_element(element_size);
-        let step = (data_size + pointer_count * BITS_PER_POINTER);
+        let step = data_size + pointer_count * BITS_PER_POINTER;
         let wordCount = round_bits_up_to_words(element_count as ElementCount64 * (step as u64));
-        let ptr = allocate(&mut reff, &mut segmentBuilder, wordCount, WP_LIST);
+        let ptr = allocate(&mut reff, &mut segmentBuilder, wordCount, WirePointerKind::List);
 
         (*reff).mut_list_ref().set(element_size, element_count);
 
@@ -883,7 +873,7 @@ mod WireHelpers {
                                                element_count : ElementCount,
                                                element_size : StructSize) -> ListBuilder<'a> {
         match element_size.preferred_list_encoding {
-            INLINE_COMPOSITE => { }
+            InlineComposite => { }
             otherEncoding => {
                 return init_list_pointer(reff, segmentBuilder, element_count, otherEncoding);
             }
@@ -895,11 +885,11 @@ mod WireHelpers {
         let wordCount : WordCount = element_count * wordsPerElement;
         let ptr : *mut WirePointer =
             std::cast::transmute(allocate(&mut reff, &mut segmentBuilder,
-                                          POINTER_SIZE_IN_WORDS + wordCount, WP_LIST));
+                                          POINTER_SIZE_IN_WORDS + wordCount, WirePointerKind::List));
 
         //# Initialize the pointer.
         (*reff).mut_list_ref().set_inline_composite(wordCount);
-        (*ptr).set_kind_and_inline_composite_list_element_count(WP_STRUCT, element_count);
+        (*ptr).set_kind_and_inline_composite_list_element_count(WirePointerKind::Struct, element_count);
         (*ptr).mut_struct_ref().set_from_struct_size(element_size);
 
         let ptr1 = ptr.offset(POINTER_SIZE_IN_WORDS as int);
@@ -919,7 +909,7 @@ mod WireHelpers {
                                                 orig_segment : *mut SegmentBuilder,
                                                 element_size : FieldSize,
                                                 default_value : *Word) -> ListBuilder<'a> {
-        assert!(element_size != INLINE_COMPOSITE,
+        assert!(element_size != InlineComposite,
                 "Use get_struct_list_{element,field}() for structs");
 
         if (*orig_ref).is_null() {
@@ -943,13 +933,13 @@ mod WireHelpers {
         let mut segment = orig_segment;
         let mut ptr = follow_builder_fars(&mut reff, orig_ref_target, &mut segment);
 
-        assert!((*reff).kind() == WP_LIST,
+        assert!((*reff).kind() == WirePointerKind::List,
                 "Called get_list_{field,element}() but existing pointer is not a list");
 
         let old_size = (*reff).list_ref().element_size();
 
-        if old_size == INLINE_COMPOSITE {
-            //# The existing element size is INLINE_COMPOSITE, which
+        if old_size == InlineComposite {
+            //# The existing element size is InlineComposite, which
             //# means that it is at least two words, which makes it
             //# bigger than the expected element size. Since fields can
             //# only grow when upgraded, the existing data must have
@@ -960,26 +950,26 @@ mod WireHelpers {
 
             //# Read the tag to get the actual element count.
             let tag : *WirePointer = std::cast::transmute(ptr);
-            assert!((*tag).kind() == WP_STRUCT,
-                    "INLINE_COMPOSITE list with non-STRUCT elements not supported.");
+            assert!((*tag).kind() == WirePointerKind::Struct,
+                    "InlineComposite list with non-STRUCT elements not supported.");
             ptr = ptr.offset(POINTER_SIZE_IN_WORDS as int);
 
             let data_size = (*tag).struct_ref().data_size.get();
             let pointer_count = (*tag).struct_ref().ptr_count.get();
 
             match element_size {
-                VOID => {} //# Anything is a valid upgrade from Void.
-                BIT | BYTE | TWO_BYTES | FOUR_BYTES | EIGHT_BYTES => {
+                Void => {} //# Anything is a valid upgrade from Void.
+                Bit | Byte | TwoBytes | FourBytes | EightBytes => {
                     assert!(data_size >= 1,
                             "Existing list value is incompatible with expected type.");
                 }
-                POINTER => {
+                Pointer => {
                     assert!(pointer_count >= 1,
                             "Existing list value is incompatible with expected type.");
                     //# Adjust the pointer to point at the reference segment.
                     ptr = ptr.offset(data_size as int);
                 }
-                INLINE_COMPOSITE => {
+                InlineComposite => {
                     unreachable!()
                 }
             }
@@ -1038,18 +1028,18 @@ mod WireHelpers {
 
         let mut old_ptr = follow_builder_fars(&mut old_ref, orig_ref_target, &mut old_segment);
 
-        assert!((*old_ref).kind() == WP_LIST,
+        assert!((*old_ref).kind() == WirePointerKind::List,
                 "Called getList\\{Field,Element\\} but existing pointer is not a list.");
 
         let old_size = (*old_ref).list_ref().element_size();
 
-        if old_size == INLINE_COMPOSITE {
-            //# Existing list is INLINE_COMPOSITE, but we need to verify that the sizes match.
+        if old_size == InlineComposite {
+            //# Existing list is InlineComposite, but we need to verify that the sizes match.
 
             let old_tag : *WirePointer = std::cast::transmute(old_ptr);
             old_ptr = old_ptr.offset(POINTER_SIZE_IN_WORDS as int);
-            assert!((*old_tag).kind() == WP_STRUCT,
-                    "INLINE_COMPOSITE list with non-STRUCT elements not supported.");
+            assert!((*old_tag).kind() == WirePointerKind::Struct,
+                    "InlineComposite list with non-STRUCT elements not supported.");
 
             let old_data_size = (*old_tag).struct_ref().data_size.get();
             let old_pointer_count = (*old_tag).struct_ref().ptr_count.get();
@@ -1101,10 +1091,10 @@ mod WireHelpers {
 
         //# Allocate the space.
         let ptr =
-            allocate(&mut reff, &mut segment, round_bytes_up_to_words(byte_size), WP_LIST);
+            allocate(&mut reff, &mut segment, round_bytes_up_to_words(byte_size), WirePointerKind::List);
 
         //# Initialize the pointer.
-        (*reff).mut_list_ref().set(BYTE, byte_size);
+        (*reff).mut_list_ref().set(Byte, byte_size);
 
         return super::SegmentAnd {segment : segment,
                                   value : Text::Builder::new(std::cast::transmute(ptr), size) }
@@ -1140,9 +1130,9 @@ mod WireHelpers {
             let ref_target = (*reff).mut_target();
             let ptr = follow_builder_fars(&mut reff, ref_target, &mut segment);
 
-            assert!((*reff).kind() == WP_LIST,
+            assert!((*reff).kind() == WirePointerKind::List,
                     "Called getText\\{Field,Element\\}() but existing pointer is not a list.");
-            assert!((*reff).list_ref().element_size() == BYTE,
+            assert!((*reff).list_ref().element_size() == Byte,
                     "Called getText\\{Field,Element\\}() but existing list pointer is not byte-sized.");
 
             //# Subtract 1 from the size for the NUL terminator.
@@ -1157,10 +1147,10 @@ mod WireHelpers {
                                         size : ByteCount) -> super::SegmentAnd<Data::Builder<'a>> {
         //# Allocate the space.
         let ptr =
-            allocate(&mut reff, &mut segment, round_bytes_up_to_words(size), WP_LIST);
+            allocate(&mut reff, &mut segment, round_bytes_up_to_words(size), WirePointerKind::List);
 
         //# Initialize the pointer.
-        (*reff).mut_list_ref().set(BYTE, size);
+        (*reff).mut_list_ref().set(Byte, size);
 
         return super::SegmentAnd { segment : segment,
                                    value : Data::new_builder(std::cast::transmute(ptr), size) };
@@ -1194,9 +1184,9 @@ mod WireHelpers {
             let ref_target = (*reff).mut_target();
             let ptr = follow_builder_fars(&mut reff, ref_target, &mut segment);
 
-            assert!((*reff).kind() == WP_LIST,
+            assert!((*reff).kind() == WirePointerKind::List,
                     "Called getData\\{Field,Element\\}() but existing pointer is not a list.");
-            assert!((*reff).list_ref().element_size() == BYTE,
+            assert!((*reff).list_ref().element_size() == Byte,
                     "Called getData\\{Field,Element\\}() but existing list pointer is not byte-sized.");
 
             return Data::new_builder(std::cast::transmute(ptr), (*reff).list_ref().element_count());
@@ -1209,7 +1199,7 @@ mod WireHelpers {
         let data_size : WordCount = round_bits_up_to_words(value.data_size as u64);
         let total_size : WordCount = data_size + value.pointer_count as uint * WORDS_PER_POINTER;
 
-        let ptr = allocate(&mut reff, &mut segment, total_size, WP_STRUCT);
+        let ptr = allocate(&mut reff, &mut segment, total_size, WirePointerKind::Struct);
         (*reff).mut_struct_ref().set(data_size as u16, value.pointer_count);
 
         if value.data_size == 1 {
@@ -1241,11 +1231,11 @@ mod WireHelpers {
 
         if value.step <= BITS_PER_WORD {
             //# List of non-structs.
-            let ptr = allocate(&mut reff, &mut segment, total_size, WP_LIST);
+            let ptr = allocate(&mut reff, &mut segment, total_size, WirePointerKind::List);
 
             if value.struct_pointer_count == 1 {
                 //# List of pointers.
-                (*reff).mut_list_ref().set(POINTER, value.element_count);
+                (*reff).mut_list_ref().set(Pointer, value.element_count);
                 for i in range(0, value.element_count as int) {
                     copy_pointer(segment, std::cast::transmute::<*mut Word,*mut WirePointer>(ptr).offset(i),
                                  value.segment, std::cast::transmute::<*u8,*WirePointer>(value.ptr).offset(i),
@@ -1254,12 +1244,12 @@ mod WireHelpers {
             } else {
                 //# List of data.
                 let element_size = match value.step {
-                    0 => VOID,
-                    1 => BIT,
-                    8 => BYTE,
-                    16 => TWO_BYTES,
-                    32 => FOUR_BYTES,
-                    64 => EIGHT_BYTES,
+                    0 => Void,
+                    1 => Bit,
+                    8 => Byte,
+                    16 => TwoBytes,
+                    32 => FourBytes,
+                    64 => EightBytes,
                     _ => { fail!("invalid list step size: {}", value.step) }
                 };
 
@@ -1270,14 +1260,14 @@ mod WireHelpers {
             super::SegmentAnd { segment : segment, value : ptr }
         } else {
             //# List of structs.
-            let ptr = allocate(&mut reff, &mut segment, total_size + POINTER_SIZE_IN_WORDS, WP_LIST);
+            let ptr = allocate(&mut reff, &mut segment, total_size + POINTER_SIZE_IN_WORDS, WirePointerKind::List);
             (*reff).mut_list_ref().set_inline_composite(total_size);
 
             let data_size = round_bits_up_to_words(value.struct_data_size as u64);
             let pointer_count = value.struct_pointer_count;
 
             let tag : *mut WirePointer = std::cast::transmute(ptr);
-            (*tag).set_kind_and_inline_composite_list_element_count(WP_STRUCT, value.element_count);
+            (*tag).set_kind_and_inline_composite_list_element_count(WirePointerKind::Struct, value.element_count);
             (*tag).mut_struct_ref().set(data_size as u16, pointer_count);
             let mut dst = ptr.offset(POINTER_SIZE_IN_WORDS as int);
 
@@ -1313,7 +1303,7 @@ mod WireHelpers {
         // TODO what if ptr is null?
 
         match (*src).kind() {
-            WP_STRUCT => {
+            WirePointerKind::Struct => {
                 assert!(nesting_limit > 0,
                         "Message is too deeply-nested or contains cycles.  See ReadOptions.");
                 assert!(bounds_check(src_segment, ptr, ptr.offset((*src).struct_ref().word_size() as int)),
@@ -1330,12 +1320,12 @@ mod WireHelpers {
                         nesting_limit : nesting_limit - 1 })
 
             }
-            WP_LIST => {
+            WirePointerKind::List => {
                 let element_size = (*src).list_ref().element_size();
                 assert!(nesting_limit > 0,
                         "Message is too deeply-nested or contains cycles. See ReadOptions.");
 
-                if element_size == INLINE_COMPOSITE {
+                if element_size == InlineComposite {
                     let word_count = (*src).list_ref().inline_composite_word_count();
                     let tag : *WirePointer = std::cast::transmute(ptr);
                     ptr = ptr.offset(POINTER_SIZE_IN_WORDS as int);
@@ -1343,14 +1333,14 @@ mod WireHelpers {
                     assert!(bounds_check(src_segment, ptr.offset(-1), ptr.offset(word_count as int)),
                             "Message contains out-of-bounds list pointer.");
 
-                    assert!((*tag).kind() == WP_STRUCT,
-                            "INLINE_COMPOSITE lists of non-STRUCT type are not supported.");
+                    assert!((*tag).kind() == WirePointerKind::Struct,
+                            "InlineComposite lists of non-STRUCT type are not supported.");
 
                     let element_count = (*tag).inline_composite_list_element_count();
                     let words_per_element = (*tag).struct_ref().word_size();
 
                     assert!(words_per_element * element_count <= word_count,
-                            "INLINE_COMPOSITE list's elements overrun its word count.");
+                            "InlineComposite list's elements overrun its word count.");
                     set_list_pointer(
                         dst_segment, dst,
                         ListReader {
@@ -1385,10 +1375,10 @@ mod WireHelpers {
                         })
                 }
             }
-            WP_FAR => {
+            WirePointerKind::Far => {
                 fail!("Far pointer should have been handled above");
             }
-            WP_OTHER => {
+            WirePointerKind::Other => {
                 assert!((*src).is_capability(), "Unknown pointer type.");
                 match (*src_segment).arena.extract_cap((*src).cap_ref().index.get() as uint) {
                     Some(cap) => {
@@ -1428,7 +1418,7 @@ mod WireHelpers {
 
         let data_size_words = (*reff).struct_ref().data_size.get();
 
-        assert!((*reff).kind() == WP_STRUCT,
+        assert!((*reff).kind() == WirePointerKind::Struct,
                 "Message contains non-struct pointer where struct pointer was expected.");
 
         assert!(bounds_check(segment, ptr,
@@ -1486,13 +1476,13 @@ mod WireHelpers {
 
         let mut ptr : *Word = follow_fars(&mut reff, refTarget, &mut segment);
 
-        assert!((*reff).kind() == WP_LIST,
+        assert!((*reff).kind() == WirePointerKind::List,
                 "Message contains non-list pointer where list pointer was expected {:?}", reff);
 
         let list_ref = (*reff).list_ref();
 
         match list_ref.element_size() {
-            INLINE_COMPOSITE => {
+            InlineComposite => {
                 let wordCount = list_ref.inline_composite_word_count();
 
                 let tag: *WirePointer = std::cast::transmute(ptr);
@@ -1502,15 +1492,15 @@ mod WireHelpers {
                 assert!(bounds_check(segment, ptr.offset(-1),
                                     ptr.offset(wordCount as int)));
 
-                assert!((*tag).kind() == WP_STRUCT,
-                        "INLINE_COMPOSITE lists of non-STRUCT type are not supported");
+                assert!((*tag).kind() == WirePointerKind::Struct,
+                        "InlineComposite lists of non-STRUCT type are not supported");
 
                 let size = (*tag).inline_composite_list_element_count();
                 let struct_ref = (*tag).struct_ref();
                 let wordsPerElement = struct_ref.word_size();
 
                 assert!(size * wordsPerElement <= wordCount,
-                       "INLINE_COMPOSITE list's elements overrun its word count");
+                       "InlineComposite list's elements overrun its word count");
 
                 //# If a struct list was not expected, then presumably
                 //# a non-struct list was upgraded to a struct list.
@@ -1522,18 +1512,18 @@ mod WireHelpers {
 
                 //# Check whether the size is compatible.
                 match expectedElementSize {
-                    VOID => {}
-                    BIT => fail!("Expected a bit list, but got a list of structs"),
-                    BYTE | TWO_BYTES | FOUR_BYTES | EIGHT_BYTES => {
+                    Void => {}
+                    Bit => fail!("Expected a bit list, but got a list of structs"),
+                    Byte | TwoBytes | FourBytes | EightBytes => {
                         assert!(struct_ref.data_size.get() > 0,
                                "Expected a primitive list, but got a list of pointer-only structs")
                     }
-                    POINTER => {
+                    Pointer => {
                         ptr = ptr.offset(struct_ref.data_size.get() as int);
                         assert!(struct_ref.ptr_count.get() > 0,
                                "Expected a pointer list, but got a list of data-only structs")
                     }
-                    INLINE_COMPOSITE => {}
+                    InlineComposite => {}
                 }
 
                 ListReader {
@@ -1565,7 +1555,7 @@ mod WireHelpers {
 
                 //# Verify that the elements are at least as large as
                 //# the expected type. Note that if we expected
-                //# INLINE_COMPOSITE, the expected sizes here will be
+                //# InlineComposite, the expected sizes here will be
                 //# zero, because bounds checking will be performed at
                 //# field access time. So this check here is for the
                 //# case where we expected a list of some primitive or
@@ -1611,10 +1601,10 @@ mod WireHelpers {
 
         let size : uint = list_ref.element_count();
 
-        assert!((*reff).kind() == WP_LIST,
+        assert!((*reff).kind() == WirePointerKind::List,
                 "Message contains non-list pointer where text was expected");
 
-        assert!(list_ref.element_size() == BYTE);
+        assert!(list_ref.element_size() == Byte);
 
         assert!(bounds_check(segment, ptr,
                             ptr.offset(round_bytes_up_to_words(size) as int)));
@@ -1647,10 +1637,10 @@ mod WireHelpers {
 
         let size : uint = list_ref.element_count();
 
-        assert!((*reff).kind() == WP_LIST,
+        assert!((*reff).kind() == WirePointerKind::List,
                 "Message contains non-list pointer where text was expected");
 
-        assert!(list_ref.element_size() == BYTE,
+        assert!(list_ref.element_size() == Byte,
                 "Message contains list pointer of non-bytes where data was expected");
 
         assert!(bounds_check(segment, ptr,
@@ -2066,7 +2056,7 @@ impl <'a> StructBuilder<'a> {
         let boffset : BitCount0 = if offset == 0 { self.bit0offset as uint } else { offset };
         let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as int)};
         let bitnum = boffset % BITS_PER_BYTE;
-        unsafe { (*b) = (( (*b) & !(1 << bitnum)) | (value as u8 << bitnum)) }
+        unsafe { (*b) = ( (*b) & !(1 << bitnum)) | (value as u8 << bitnum) }
     }
 
     #[inline]
@@ -2290,7 +2280,7 @@ impl PrimitiveElement for bool {
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE) as int) };
 
         let bitnum = bindex % BITS_PER_BYTE;
-        unsafe { (*b) = (( (*b) & !(1 << bitnum)) | (value as u8 << bitnum)) }
+        unsafe { (*b) = ((*b) & !(1 << bitnum)) | (value as u8 << bitnum) }
     }
 }
 

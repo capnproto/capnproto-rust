@@ -26,14 +26,14 @@ pub fn tuple_option<T,U>(t : Option<T>, u : Option<U>) -> Option<(T,U)> {
 fn element_size_str (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
     use schema_capnp::ElementSize::*;
     match elementSize {
-        Empty => ~"VOID",
-        Bit => ~"BIT",
-        Byte => ~"BYTE",
-        TwoBytes => ~"TWO_BYTES",
-        FourBytes => ~"FOUR_BYTES",
-        EightBytes => ~"EIGHT_BYTES",
-        Pointer => ~"POINTER",
-        InlineComposite => ~"INLINE_COMPOSITE"
+        Empty => ~"Void",
+        Bit => ~"Bit",
+        Byte => ~"Byte",
+        TwoBytes => ~"TwoBytes",
+        FourBytes => ~"FourBytes",
+        EightBytes => ~"EightBytes",
+        Pointer => ~"Pointer",
+        InlineComposite => ~"InlineComposite"
     }
 }
 
@@ -376,23 +376,23 @@ fn getter_text (_nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
                             let theMod = scopeMap.get(&e.get_type_id()).connect("::");
                             let fullModuleName = format!("{}::Reader", theMod);
                             return (format!("EnumList::{}<'a,{}>",module,fullModuleName),
-                                    Line(format!("EnumList::{}::new(self.{}.get_pointer_field({}).get_list(layout::TWO_BYTES, std::ptr::null()))",
+                                    Line(format!("EnumList::{}::new(self.{}.get_pointer_field({}).get_list(layout::TwoBytes, std::ptr::null()))",
                                          module, member, offset)));
                         }
                         Some(Type::List(t1)) => {
                             let type_param = list_list_type_param(scopeMap, t1.get_element_type(), isReader, "'a");
                             return (format!("ListList::{}<'a,{}>", module, type_param),
-                                    Line(format!("ListList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
+                                    Line(format!("ListList::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
                                                  module, member, offset)))
                         }
                         Some(Type::Text(())) => {
                             return (format!("TextList::{}<'a>", module),
-                                    Line(format!("TextList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
+                                    Line(format!("TextList::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
                                                  module, member, offset)))
                         }
                         Some(Type::Data(())) => {
                             return (format!("DataList::{}<'a>", module),
-                                    Line(format!("DataList::{}::new(self.{}.get_pointer_field({}).get_list(layout::POINTER, std::ptr::null()))",
+                                    Line(format!("DataList::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
                                                  module, member, offset)))
                         }
                         Some(Type::Interface(_)) => {fail!("unimplemented") }
@@ -665,7 +665,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                     initter_interior.push(
                                         Indent(
                                             ~Line(
-                                                format!("self.builder.get_pointer_field({}).init_list(layout::TWO_BYTES,size)",
+                                                format!("self.builder.get_pointer_field({}).init_list(layout::TwoBytes,size)",
                                                      offset))));
                                     initter_interior.push(Line(~")"));
                                     (Some(format!("EnumList::Reader<'a,{}>", typeStr)),
@@ -688,14 +688,14 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                 }
                                 Type::Text(()) => {
                                     initter_interior.push(
-                                        Line(format!("TextList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
+                                        Line(format!("TextList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer, size))", offset)));
 
                                     (Some(format!("TextList::Reader")),
                                      Some(format!("TextList::Builder<'a>")))
                                 }
                                 Type::Data(()) => {
                                     initter_interior.push(
-                                        Line(format!("DataList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER, size))", offset)));
+                                        Line(format!("DataList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer, size))", offset)));
 
                                     (Some(format!("DataList::Reader")),
                                      Some(format!("DataList::Builder<'a>")))
@@ -704,7 +704,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                     let type_param = list_list_type_param(scopeMap, t1.get_element_type(),
                                                                           false, "'a");
                                     initter_interior.push(
-                                        Line(format!("ListList::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::POINTER,size))",
+                                        Line(format!("ListList::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer,size))",
                                                      type_param, offset)));
 
                                     setter_lifetime_param = "<'b>";
