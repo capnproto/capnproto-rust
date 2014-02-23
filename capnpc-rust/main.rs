@@ -9,6 +9,7 @@
 #[crate_id="capnpc-rust"];
 #[crate_type = "bin"];
 
+extern crate collections;
 extern crate capnp;
 
 use capnp::*;
@@ -167,10 +168,9 @@ fn append_name (names : &[~str], name : ~str) -> ~[~str] {
     return result;
 }
 
-//type NodeMap = std::hashmap::HashMap<u64, schema_capnp::Node::Reader>;
 
-fn populate_scope_map(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                      scopeMap : &mut std::hashmap::HashMap<u64, ~[~str]>,
+fn populate_scope_map(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                      scopeMap : &mut collections::hashmap::HashMap<u64, ~[~str]>,
                       rootName : &str,
                       nodeId : u64) {
     let nodeReader = nodeMap.get(&nodeId);
@@ -227,7 +227,7 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
     ])
 }
 
-fn list_list_type_param(scope_map : &std::hashmap::HashMap<u64, ~[~str]>,
+fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
                         typ : schema_capnp::Type::Reader,
                         is_reader: bool,
                         lifetime_name: &str) -> ~str {
@@ -296,8 +296,8 @@ fn prim_default (value : &schema_capnp::Value::Reader) -> Option<~str> {
     }
 }
 
-fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-               scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+fn getter_text (_nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+               scopeMap : &collections::hashmap::HashMap<u64, ~[~str]>,
                field : &schema_capnp::Field::Reader,
                isReader : bool)
     -> (~str, FormattedText) {
@@ -462,7 +462,7 @@ fn getter_text (_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reade
 
 }
 
-fn zero_fields_of_group(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                         node_id : u64
                         ) -> FormattedText {
     use schema_capnp::*;
@@ -525,8 +525,8 @@ fn zero_fields_of_group(node_map : &std::hashmap::HashMap<u64, schema_capnp::Nod
     }
 }
 
-fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                  scopeMap : &collections::hashmap::HashMap<u64, ~[~str]>,
                   discriminantOffset : u32,
                   styled_name : &str,
                   field :&schema_capnp::Field::Reader) -> FormattedText {
@@ -781,8 +781,8 @@ fn generate_setter(node_map : &std::hashmap::HashMap<u64, schema_capnp::Node::Re
 
 
 // return (the 'Which' enum, the 'which()' accessor)
-fn generate_union(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                  scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                  scopeMap : &collections::hashmap::HashMap<u64, ~[~str]>,
                   root_name : &str,
                   discriminantOffset : u32,
                   fields : &[schema_capnp::Field::Reader],
@@ -927,8 +927,8 @@ fn generate_haser(discriminant_offset : u32,
     Branch(result)
 }
 
-fn generate_pipeline_getter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                            scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+fn generate_pipeline_getter(_nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                            scopeMap : &collections::hashmap::HashMap<u64, ~[~str]>,
                             field : schema_capnp::Field::Reader) -> FormattedText {
     use schema_capnp::{Field, Type};
 
@@ -978,8 +978,8 @@ fn generate_pipeline_getter(_nodeMap : &std::hashmap::HashMap<u64, schema_capnp:
 }
 
 
-fn generate_node(nodeMap : &std::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                 scopeMap : &std::hashmap::HashMap<u64, ~[~str]>,
+fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                 scopeMap : &collections::hashmap::HashMap<u64, ~[~str]>,
                  rootName : &str,
                  node_id : u64,
                  node_name: &str) -> FormattedText {
@@ -1443,8 +1443,8 @@ fn main() {
 
     let codeGeneratorRequest : schema_capnp::CodeGeneratorRequest::Reader = messageReader.get_root();
 
-    let mut nodeMap = std::hashmap::HashMap::<u64, schema_capnp::Node::Reader>::new();
-    let mut scopeMap = std::hashmap::HashMap::<u64, ~[~str]>::new();
+    let mut nodeMap = collections::hashmap::HashMap::<u64, schema_capnp::Node::Reader>::new();
+    let mut scopeMap = collections::hashmap::HashMap::<u64, ~[~str]>::new();
 
     let nodeListReader = codeGeneratorRequest.get_nodes();
 

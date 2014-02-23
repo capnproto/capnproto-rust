@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ * Copyright (c) 2013-2014, David Renshaw (dwrenshaw@gmail.com)
  *
  * See the LICENSE file in the capnproto-rust root directory.
  */
@@ -12,7 +12,7 @@ pub mod Text {
     // len does not include the required null terminator at the end
     pub fn new_reader<'a>(p : *u8, len : uint) -> Reader<'a> {
         let v : &'a [u8] =
-            unsafe { std::cast::transmute(std::unstable::raw::Slice { data: p, len: len }) };
+            unsafe { std::cast::transmute(std::raw::Slice { data: p, len: len }) };
         std::str::from_utf8(v).unwrap()
     }
 
@@ -28,7 +28,7 @@ pub mod Text {
         }
 
         pub fn as_mut_bytes(&self) -> &'a mut [u8] {
-             unsafe { std::cast::transmute(std::unstable::raw::Slice { data:self.ptr as *u8, len: self.len }) }
+             unsafe { std::cast::transmute(std::raw::Slice { data:self.ptr as *u8, len: self.len }) }
         }
 
         pub fn as_ptr(&self) -> *mut u8 {
@@ -45,7 +45,7 @@ pub mod Data {
 
     pub fn new_reader<'a>(p : *u8, len : uint) -> Reader<'a> {
         unsafe {
-            let v = std::unstable::raw::Slice { data: p, len: len };
+            let v = std::raw::Slice { data: p, len: len };
             std::cast::transmute(v)
         }
     }
@@ -54,7 +54,7 @@ pub mod Data {
 
     pub fn new_builder<'a>(p : *mut u8, len : uint) -> Builder<'a> {
         unsafe {
-            let v = std::unstable::raw::Slice { data: p as *u8, len: len };
+            let v = std::raw::Slice { data: p as *u8, len: len };
             std::cast::transmute(v)
         }
     }

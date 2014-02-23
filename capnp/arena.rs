@@ -313,12 +313,12 @@ impl BuilderArena {
                 Some(ref msegs) => {
                     let mut result = ~[];
                     result.push(std::cast::transmute(
-                            std::unstable::raw::Slice { data : self.segment0.reader.ptr,
+                            std::raw::Slice { data : self.segment0.reader.ptr,
                                                        len : self.segment0.current_size()}));
 
                     for seg in msegs.iter() {
                         result.push(std::cast::transmute(
-                            std::unstable::raw::Slice { data : seg.reader.ptr,
+                            std::raw::Slice { data : seg.reader.ptr,
                                                         len : seg.current_size()}));
                     }
                     cont(result)

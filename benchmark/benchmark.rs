@@ -120,8 +120,8 @@ impl UseScratch {
         unsafe {
             capnp::message::ScratchSpaceMallocMessageBuilder::new_default(
                 std::cast::transmute(
-                    std::unstable::raw::Slice { data : self.scratch_space.unsafe_ref(idx * SCRATCH_SIZE),
-                                                len : SCRATCH_SIZE }))
+                    std::raw::Slice { data : self.scratch_space.unsafe_ref(idx * SCRATCH_SIZE),
+                                      len : SCRATCH_SIZE }))
         }
     }
 }

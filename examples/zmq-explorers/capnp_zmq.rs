@@ -6,8 +6,8 @@ use zmq;
 fn slice_cast<'a, T, V>(s : &'a [T]) -> &'a [V] {
     unsafe {
         std::cast::transmute(
-            std::unstable::raw::Slice {data : s.as_ptr(),
-                                       len : s.len() * std::mem::size_of::<T>() / std::mem::size_of::<V>()  })
+            std::raw::Slice {data : s.as_ptr(),
+                             len : s.len() * std::mem::size_of::<T>() / std::mem::size_of::<V>()  })
     }
 }
 
@@ -19,8 +19,8 @@ pub fn frames_to_segments<'a>(frames : &'a [zmq::Message] ) -> ~ [&'a [capnp::co
     for frame in frames.iter() {
         unsafe {
             let slice = frame.with_bytes(|v|
-                    std::unstable::raw::Slice { data : v.as_ptr(),
-                                                len : v.len() / 8 });
+                    std::raw::Slice { data : v.as_ptr(),
+                                      len : v.len() / 8 });
 
             // TODO check whether bytes are aligned on a word boundary.
             // If not, copy them into a new buffer. Who will own that buffer?

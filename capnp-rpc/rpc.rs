@@ -15,7 +15,7 @@ use capnp::serialize::{OwnedSpaceMessageReader};
 
 use std;
 use std::any::AnyRefExt;
-use std::hashmap::HashMap;
+use collections::hashmap::HashMap;
 
 use capability::{LocalClient};
 use rpc_capnp::{Message, Return, CapDescriptor, MessageTarget, Payload, PromisedAnswer};
@@ -977,7 +977,7 @@ pub enum VatEvent {
 }
 
 pub struct Vat {
-    objects : std::hashmap::HashMap<~str, ~ClientHook>,
+    objects : HashMap<~str, ~ClientHook>,
 }
 
 impl Vat {
@@ -985,7 +985,7 @@ impl Vat {
         let (port, chan) = std::comm::Chan::<VatEvent>::new();
 
         std::task::spawn(proc() {
-                let mut vat = Vat { objects : std::hashmap::HashMap::new() };
+                let mut vat = Vat { objects : HashMap::new() };
 
                 loop {
                     match port.recv_opt() {
