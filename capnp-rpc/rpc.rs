@@ -62,6 +62,9 @@ impl Answer {
                             get_pipelined_cap(ops);
                         hook.call(interface_id, method_id, context);
                     }
+                    Some(Return::Which::Exception(_exc)) => {
+                        // TODO
+                    }
                     _ => fail!(),
                 }
             }
@@ -779,11 +782,33 @@ impl PipelineHook for PromisedAnswerRpcPipeline {
     }
 }
 
+pub struct Aborter {
+    succeeded : bool,
+    answer_id : AnswerId,
+    rpc_chan : std::comm::Chan<RpcEvent>,
+}
+
+impl Drop for Aborter {
+    fn drop(&mut self) {
+        if !self.succeeded {
+            let mut results_message = ~MallocMessageBuilder::new_default();
+            {
+                let root : Message::Builder = results_message.init_root();
+                let ret = root.init_return();
+                ret.set_answer_id(self.answer_id);
+                let exc = ret.init_exception();
+                exc.set_reason("aborted");
+            }
+            self.rpc_chan.send(ReturnEvent(results_message));
+        }
+    }
+}
 
 pub struct RpcCallContext {
     params_message : ~OwnedSpaceMessageReader,
     results_message : ~MallocMessageBuilder,
     rpc_chan : std::comm::Chan<RpcEvent>,
+    aborter : Aborter,
 }
 
 impl RpcCallContext {
@@ -808,7 +833,8 @@ impl RpcCallContext {
         RpcCallContext {
             params_message : params_message,
             results_message : results_message,
-            rpc_chan : rpc_chan,
+            rpc_chan : rpc_chan.clone(),
+            aborter : Aborter { succeeded : false, answer_id : answer_id, rpc_chan : rpc_chan},
         }
     }
 }
@@ -844,7 +870,8 @@ impl CallContextHook for RpcCallContext {
         (params, results)
     }
     fn done(~self) {
-        let ~RpcCallContext { params_message : _, mut results_message, rpc_chan} = self;
+        let ~RpcCallContext { params_message : _, mut results_message, rpc_chan, mut aborter} = self;
+        aborter.succeeded = true;
         write_outgoing_cap_table(&rpc_chan, results_message);
 
         rpc_chan.send(ReturnEvent(results_message));
