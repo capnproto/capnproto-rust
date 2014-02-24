@@ -43,14 +43,7 @@ mod Uncompressed {
         message: &U) {
         capnp::serialize::write_message(writer, message);
     }
-/*
-    pub fn new_reader<U : std::io::Reader, T>(
-        inputStream : &mut U,
-        options : capnp::message::ReaderOptions,
-        cont : |&mut capnp::message::MessageReader| -> T) -> T {
-        capnp::serialize::InputStreamMessageReader::new(inputStream, options, cont)
-    }
-*/
+
     pub fn new_buffered_reader<R: capnp::io::BufferedInputStream>(
         inputStream : &mut R,
         options : capnp::message::ReaderOptions) -> capnp::serialize::OwnedSpaceMessageReader {
@@ -74,18 +67,7 @@ mod Packed {
         message: &U) {
         write_packed_message(writer, message);
     }
-/*
-    pub fn new_reader<U : std::io::Reader, T>(
-        inputStream : &mut U,
-        options : capnp::message::ReaderOptions,
-        cont : |&mut capnp::message::MessageReader| -> T) -> T {
-        capnp::serialize::InputStreamMessageReader::new(
-            &mut capnp::serialize_packed::PackedInputStream{
-                inner : &mut capnp::io::BufferedInputStreamWrapper::new(inputStream)
-            },
-            options, cont)
-    }
-*/
+
     pub fn new_buffered_reader<R:capnp::io::BufferedInputStream>(
         inputStream : &mut R,
         options : capnp::message::ReaderOptions) -> capnp::serialize::OwnedSpaceMessageReader {
@@ -244,22 +226,18 @@ macro_rules! pass_by_pipe(
             let mut args = std::os::args();
             args[2] = ~"client";
 
-
-            let io = [process::CreatePipe(true, false), // stdin
-                      process::CreatePipe(false, true), // stdout
-                      process::Ignored];
-
             let config = process::ProcessConfig {
                 program: args[0].as_slice(),
                 args: args.slice(1, args.len()),
-                io : io,
+                stdin : process::CreatePipe(true, false),
+                stdout : process::CreatePipe(false, true),
+                stderr : process::Ignored,
                 .. process::ProcessConfig::new()
             };
-            match process::Process::new(config) {
+            match process::Process::configure(config) {
                 Ok(ref mut p) => {
-                    p.io.pop();
-                    let mut childStdOut = p.io.pop().unwrap().unwrap();
-                    let mut childStdIn = p.io.pop().unwrap().unwrap();
+                    let mut childStdOut = p.stdout.take().unwrap();
+                    let mut childStdIn = p.stdin.take().unwrap();
 
                     server!($testcase, $reuse, $compression, $iters, childStdOut, childStdIn);
                     println!("{}", p.wait());
