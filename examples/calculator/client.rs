@@ -34,24 +34,6 @@ pub fn main() {
     let calculator : Calculator::Client  = rpc_client.import_cap("calculator");
 
     {
-        let mut req = calculator.evaluate_request();
-        {
-            let params = req.init();
-            let exp = params.init_expression();
-            exp.set_literal(123.45);
-        }
-        let mut res = req.send();
-        let value = {
-            let results = res.wait();
-            results.get_value()
-        };
-
-        let mut result = value.read_request().send();
-        println!("the value is: {}", result.wait().get_value());
-    }
-
-
-    {
         //# Make a request that just evaluates the literal value 123.
         //#
         //# What's interesting here is that evaluate() returns a "Value", which is
@@ -71,7 +53,7 @@ pub fn main() {
 
         let mut read_promise = eval_promise.pipeline.get_value().read_request().send();
 
-        let response = read_promise.wait();
+        let response = read_promise.wait().unwrap();
         assert_eq!(response.get_value(), 123.0);
 
         println!("PASS")
@@ -115,7 +97,7 @@ pub fn main() {
 
         let eval_promise = request.send();
         let mut read_promise = eval_promise.pipeline.get_value().read_request().send();
-        let response = read_promise.wait();
+        let response = read_promise.wait().unwrap();
         assert_eq!(response.get_value(), 101.0);
 
         println!("PASS");
@@ -173,8 +155,8 @@ pub fn main() {
         add5_params[1].set_literal(5.0);
         let mut add5_promise = add5_request.send().pipeline.get_value().read_request().send();
 
-        assert!(add3_promise.wait().get_value() == 27.0);
-        assert!(add5_promise.wait().get_value() == 29.0);
+        assert!(add3_promise.wait().unwrap().get_value() == 27.0);
+        assert!(add5_promise.wait().unwrap().get_value() == 29.0);
 
         println!("PASS");
     }
@@ -261,8 +243,8 @@ pub fn main() {
         g_call.init_params(1)[0].set_literal(21.0);
         let mut g_eval_promise = g_eval_request.send().pipeline.get_value().read_request().send();
 
-        assert!(f_eval_promise.wait().get_value() == 1234.0);
-        assert!(g_eval_promise.wait().get_value() == 4244.0);
+        assert!(f_eval_promise.wait().unwrap().get_value() == 1234.0);
+        assert!(g_eval_promise.wait().unwrap().get_value() == 4244.0);
 
         println!("PASS")
     }
@@ -303,7 +285,7 @@ pub fn main() {
         add_params[1].set_literal(5.0);
 
         let response = request.send().pipeline.get_value().read_request()
-                              .send().wait();
+                              .send().wait().unwrap();
 
         assert!(response.get_value() == 512.0);
 

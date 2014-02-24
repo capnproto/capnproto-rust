@@ -88,12 +88,12 @@ for Request<Params, Results, Pipeline> {
 }
 
 pub trait WaitForContent<'a, T> {
-    fn wait(&'a mut self) -> T;
+    fn wait(&'a mut self) -> Result<T, ~str>;
 }
 
 impl <'a, Results : FromStructReader<'a>, Pipeline> WaitForContent<'a, Results>
 for RemotePromise<Results, Pipeline> {
-    fn wait(&'a mut self) -> Results {
+    fn wait(&'a mut self) -> Result<Results, ~str> {
         // XXX should check that it's not already been received.
         let message = self.answer_port.recv();
         self.answer_result = Some(message);
@@ -105,7 +105,10 @@ for RemotePromise<Results, Pipeline> {
                     Some(Message::Return(ret)) => {
                         match ret.which() {
                             Some(Return::Results(res)) => {
-                                res.get_content().get_as_struct()
+                                Ok(res.get_content().get_as_struct())
+                            }
+                            Some(Return::Exception(e)) => {
+                                Err(e.get_reason().to_owned())
                             }
                             _ => fail!(),
                         }

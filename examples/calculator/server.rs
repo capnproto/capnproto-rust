@@ -43,7 +43,7 @@ fn evaluate_impl(
             v
         },
         Some(Calculator::Expression::PreviousResult(p)) => {
-            p.read_request().send().wait().get_value()
+            p.read_request().send().wait().unwrap().get_value()
         }
         Some(Calculator::Expression::Parameter(p)) => {
             match params {
@@ -66,7 +66,7 @@ fn evaluate_impl(
             for ii in range(0, param_values.len()) {
                 request_params.set(ii, param_values[ii]);
             }
-            return request.send().wait().get_value();
+            return request.send().wait().unwrap().get_value();
         }
         None => fail!("unsupported expression"),
     }
