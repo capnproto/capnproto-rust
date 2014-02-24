@@ -8,7 +8,7 @@ use rpc_capnp::{Message, Return};
 
 use std;
 use std::io::Acceptor;
-use capnp::capability::{ClientHook, FromClientHook, FromServer, ServerHook, Server, Client};
+use capnp::capability::{ClientHook, FromClientHook, ServerHook, Server, Client};
 use capnp::message::{MessageBuilder, MallocMessageBuilder, MessageReader};
 use rpc::{Outgoing, RpcConnectionState, RpcEvent, ShutdownEvent, VatEvent, VatEventRegister};
 use rpc::{Vat};

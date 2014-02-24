@@ -1466,6 +1466,7 @@ fn main() {
         populate_scope_map(&nodeMap, &mut scopeMap, rootName, id);
 
         let lines = Branch(~[Line(~"#[allow(unused_imports)];"),
+                             Line(~"#[allow(dead_code)];"),
                              generate_node(&nodeMap, &scopeMap,
                                            rootName, id, rootName)]);
 

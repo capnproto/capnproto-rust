@@ -6,7 +6,7 @@
 
 use capnp::any::{AnyPointer};
 use capnp::capability;
-use capnp::capability::{CallContext, CallContextHook, ClientHook, PipelineHook, PipelineOp, RemotePromise,
+use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, RemotePromise,
                         RequestHook, Request, Server};
 use capnp::common;
 use capnp::message::{DefaultReaderOptions, MessageReader, MessageBuilder, MallocMessageBuilder};
@@ -736,10 +736,10 @@ impl RequestHook for PromisedAnswerRpcRequest {
         &mut *self.message
     }
     fn send(~self) -> RemotePromise<AnyPointer::Reader, AnyPointer::Pipeline> {
-        let ~PromisedAnswerRpcRequest { rpc_chan, mut message, answer_id, ops } = self;
+        let ~PromisedAnswerRpcRequest { rpc_chan, message, answer_id, ops } = self;
         let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
         rpc_chan.send(OutgoingDeferred(outgoing, answer_id, ops));
-        let question_id = question_port.recv();
+        let _question_id = question_port.recv();
 
         let pipeline = ~PromisedAnswerRpcPipeline;
         let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
@@ -774,7 +774,7 @@ impl PipelineHook for PromisedAnswerRpcPipeline {
     fn copy(&self) -> ~PipelineHook {
         (~PromisedAnswerRpcPipeline) as ~PipelineHook
     }
-    fn get_pipelined_cap(&self, ops : ~[PipelineOp::Type]) -> ~ClientHook {
+    fn get_pipelined_cap(&self, _ops : ~[PipelineOp::Type]) -> ~ClientHook {
         fail!()
     }
 }

@@ -14,8 +14,6 @@ use capnp::capability::{CallContext, CallContextHook, ClientHook, PipelineHook, 
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::message::{MessageReader, MessageBuilder};
 
-use rpc::{RpcEvent};
-
 use rpc_capnp::{Message, Return};
 
 pub struct LocalClient {
