@@ -105,6 +105,16 @@ pub trait CallContextHook {
 }
 
 pub trait Server {
+    fn try_dispatch_call(&mut self, interface_id : u64, method_id : u16,
+                         context : CallContext<AnyPointer::Reader, AnyPointer::Builder>) {
+        let self_address = (self as *mut Self).to_uint();
+        let _result = std::task::try(proc() {
+                unsafe {
+                    let self_pointer : *mut Self = std::cast::transmute(self_address);
+                    (*self_pointer).dispatch_call(interface_id, method_id, context)
+                    }
+            });
+    }
     fn dispatch_call(&mut self, interface_id : u64, method_id : u16,
                      context : CallContext<AnyPointer::Reader, AnyPointer::Builder>);
 
