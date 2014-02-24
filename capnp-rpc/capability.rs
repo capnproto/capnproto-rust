@@ -95,10 +95,9 @@ impl <'a, Results : FromStructReader<'a>, Pipeline> WaitForContent<'a, Results>
 for RemotePromise<Results, Pipeline> {
     fn wait(&'a mut self) -> Result<Results, ~str> {
         // XXX should check that it's not already been received.
-        let message = self.answer_port.recv();
-        self.answer_result = Some(message);
+        self.answer_result = self.answer_port.recv_opt();
         match self.answer_result {
-            None => unreachable!(),
+            None => Err(~"answer channel closed"),
             Some(ref message) => {
                 let root : Message::Reader = message.get_root();
                 match root.which() {
