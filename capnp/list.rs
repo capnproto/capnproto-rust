@@ -47,6 +47,7 @@ pub mod PrimitiveList {
 
     impl <'a, T : PrimitiveElement> Index<uint, T> for Reader<'a, T> {
         fn index(&self, index : &uint) -> T {
+            assert!(*index < self.size());
             PrimitiveElement::get(&self.reader, *index)
         }
     }
@@ -78,6 +79,7 @@ pub mod PrimitiveList {
 
     impl <'a, T : PrimitiveElement> Index<uint, T> for Builder<'a, T> {
         fn index(&self, index : &uint) -> T {
+            assert!(*index < self.size());
             PrimitiveElement::get_from_builder(&self.builder, *index)
         }
     }
@@ -114,6 +116,7 @@ pub mod EnumList {
 
     impl <'a, T : FromPrimitive> Index<uint, Option<T>> for Reader<'a, T> {
         fn index(&self, index : &uint) -> Option<T> {
+            assert!(*index < self.size());
             let result : u16 = PrimitiveElement::get(&self.reader, *index);
             FromPrimitive::from_u16(result)
         }
@@ -131,6 +134,7 @@ pub mod EnumList {
         pub fn size(&self) -> uint { self.builder.size() }
 
         pub fn set(&self, index : uint, value : T) {
+            assert!(index < self.size());
             PrimitiveElement::set(&self.builder, index, value.to_u16());
         }
     }
@@ -147,6 +151,7 @@ pub mod EnumList {
 
     impl <'a, T : ToU16 + FromPrimitive> Index<uint, Option<T>> for Builder<'a, T> {
         fn index(&self, index : &uint) -> Option<T> {
+            assert!(*index < self.size());
             let result : u16 = PrimitiveElement::get_from_builder(&self.builder, *index);
             FromPrimitive::from_u16(result)
         }
@@ -178,6 +183,7 @@ pub mod StructList {
 
     impl <'a, T : FromStructReader<'a>> Index<uint, T> for Reader<'a, T> {
         fn index(&self, index : &uint) -> T {
+            assert!(*index < self.size());
             let result : T = FromStructReader::new(self.reader.get_struct_element(*index));
             result
         }
@@ -213,6 +219,7 @@ pub mod StructList {
 
     impl <'a, T : FromStructBuilder<'a>> Index<uint, T> for Builder<'a, T> {
         fn index(&self, index : &uint) -> T {
+            assert!(*index < self.size());
             let result : T =
                 FromStructBuilder::new(self.builder.get_struct_element(*index));
             result
@@ -286,6 +293,7 @@ pub mod ListList {
 
     impl <'a, T : FromPointerBuilder<'a>> Index<uint, T> for Builder<'a, T> {
         fn index(&self, index : &uint) -> T {
+            assert!(*index < self.size());
             let result : T =
                 FromPointerBuilder::get_from_pointer(
                 self.builder.get_pointer_element(*index),
@@ -432,6 +440,7 @@ pub mod DataList {
 
     impl <'a> Index<uint, Data::Builder<'a>> for Builder<'a> {
         fn index(&self, index : &uint) -> Data::Builder<'a> {
+            assert!(*index < self.size());
             self.builder.get_pointer_element(*index).get_data(std::ptr::null(), 0)
         }
     }
