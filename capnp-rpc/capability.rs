@@ -10,7 +10,7 @@ use std;
 
 use capnp::any::{AnyPointer};
 use capnp::common::{MessageSize};
-use capnp::capability::{CallContext, CallContextHook, ClientHook, PipelineHook, Request, RemotePromise, Server};
+use capnp::capability::{CallContext, CallContextHook, ClientHook, PipelineHook, Request, ResultFuture, Server};
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::message::{MessageReader, MessageBuilder};
 
@@ -92,7 +92,7 @@ pub trait WaitForContent<'a, T> {
 }
 
 impl <'a, Results : FromStructReader<'a>, Pipeline> WaitForContent<'a, Results>
-for RemotePromise<Results, Pipeline> {
+for ResultFuture<Results, Pipeline> {
     fn wait(&'a mut self) -> Result<Results, ~str> {
         // XXX should check that it's not already been received.
         self.answer_result = self.answer_port.recv_opt();

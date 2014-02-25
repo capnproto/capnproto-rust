@@ -6,7 +6,7 @@
 
 use capnp::any::{AnyPointer};
 use capnp::capability;
-use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, RemotePromise,
+use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, ResultFuture,
                         RequestHook, Request, Server};
 use capnp::common;
 use capnp::message::{DefaultReaderOptions, MessageReader, MessageBuilder, MallocMessageBuilder};
@@ -709,7 +709,7 @@ impl RequestHook for RpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
         &mut *self.message
     }
-    fn send(~self) -> RemotePromise<AnyPointer::Reader, AnyPointer::Pipeline> {
+    fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline> {
         let ~RpcRequest { channel, mut message } = self;
         write_outgoing_cap_table(&channel, message);
 
@@ -721,7 +721,7 @@ impl RequestHook for RpcRequest {
         let pipeline = ~RpcPipeline {channel : channel, question_id : question_id};
         let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
 
-        RemotePromise {answer_port : answer_port, answer_result : None,
+        ResultFuture {answer_port : answer_port, answer_result : None,
                        pipeline : typeless  }
     }
 }
@@ -737,7 +737,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
         &mut *self.message
     }
-    fn send(~self) -> RemotePromise<AnyPointer::Reader, AnyPointer::Pipeline> {
+    fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline> {
         let ~PromisedAnswerRpcRequest { rpc_chan, message, answer_id, ops } = self;
         let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
         rpc_chan.send(OutgoingDeferred(outgoing, answer_id, ops));
@@ -746,7 +746,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
         let pipeline = ~PromisedAnswerRpcPipeline;
         let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
 
-        RemotePromise {answer_port : answer_port, answer_result : None,
+        ResultFuture {answer_port : answer_port, answer_result : None,
                        pipeline : typeless  }
     }
 }

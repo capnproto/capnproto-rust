@@ -11,7 +11,7 @@ use message::{MallocMessageBuilder};
 use serialize::{OwnedSpaceMessageReader};
 use std;
 
-pub struct RemotePromise<Results, Pipeline> {
+pub struct ResultFuture<Results, Pipeline> {
     answer_port : std::comm::Port<~OwnedSpaceMessageReader>,
     answer_result : Option<~OwnedSpaceMessageReader>,
     pipeline : Pipeline,
@@ -19,7 +19,7 @@ pub struct RemotePromise<Results, Pipeline> {
 
 pub trait RequestHook {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder;
-    fn send(~self) -> RemotePromise<AnyPointer::Reader, AnyPointer::Pipeline>;
+    fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline>;
 }
 
 pub struct Request<Params, Results, Pipeline> {
@@ -32,9 +32,9 @@ impl <Params, Results, Pipeline > Request <Params, Results, Pipeline> {
     }
 }
 impl <Params, Results, Pipeline : FromTypelessPipeline> Request <Params, Results, Pipeline> {
-    pub fn send(self) -> RemotePromise<Results, Pipeline> {
-        let RemotePromise {answer_port, answer_result, pipeline} = self.hook.send();
-        RemotePromise { answer_port : answer_port, answer_result : answer_result,
+    pub fn send(self) -> ResultFuture<Results, Pipeline> {
+        let ResultFuture {answer_port, answer_result, pipeline} = self.hook.send();
+        ResultFuture { answer_port : answer_port, answer_result : answer_result,
                         pipeline : FromTypelessPipeline::new(pipeline) }
     }
 }
