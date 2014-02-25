@@ -50,7 +50,6 @@ impl Answer {
         }
     }
 
-
     fn do_call(answer_message : &mut ~MallocMessageBuilder, interface_id : u64, method_id : u16,
                ops : ~[PipelineOp::Type], context : ~CallContextHook) {
         let root : Message::Builder = answer_message.get_root();
