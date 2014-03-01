@@ -134,7 +134,7 @@ mod tests {
         assert_eq!(test_blob_reader.has_data_field(), true);
 
         assert_eq!(test_blob_reader.get_text_field(), "abcdefghi");
-        assert_eq!(test_blob_reader.get_data_field(), [0u8, 1u8, 2u8, 3u8, 4u8]);
+        assert!(test_blob_reader.get_data_field() == [0u8, 1u8, 2u8, 3u8, 4u8]);
 
         let text_builder = test_blob.init_text_field(10);
         assert_eq!(test_blob.as_reader().get_text_field(),
@@ -143,15 +143,15 @@ mod tests {
         writer.write("aabbccddee".as_bytes()).unwrap();
 
         let data_builder = test_blob.init_data_field(7);
-        assert_eq!(test_blob.as_reader().get_data_field(),
-                   [0u8,0u8,0u8,0u8,0u8,0u8,0u8]);
+        assert!(test_blob.as_reader().get_data_field() ==
+                [0u8,0u8,0u8,0u8,0u8,0u8,0u8]);
         for c in data_builder.mut_iter() {
             *c = 5;
         }
         data_builder[0] = 4u8;
 
         assert_eq!(test_blob.as_reader().get_text_field(), "aabbccddee");
-        assert_eq!(test_blob.as_reader().get_data_field(), [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
+        assert!(test_blob.as_reader().get_data_field() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
 
         let bytes = test_blob.get_text_field().as_mut_bytes();
         bytes[4] = 'z' as u8;
@@ -159,7 +159,7 @@ mod tests {
         assert_eq!(test_blob.as_reader().get_text_field(), "aabbzzddee");
 
         test_blob.get_data_field()[2] = 10;
-        assert_eq!(test_blob.as_reader().get_data_field(), [4u8,5u8,10u8,5u8,5u8,5u8,5u8]);
+        assert!(test_blob.as_reader().get_data_field() == [4u8,5u8,10u8,5u8,5u8,5u8,5u8]);
     }
 
 
@@ -265,10 +265,10 @@ mod tests {
         let complex_list_reader = test_complex_list.as_reader();
         let enumListReader = complex_list_reader.get_enum_list();
         for i in range::<uint>(0,10) {
-            assert_eq!(enumListReader[i], Some(AnEnum::Qux));
+            assert!(enumListReader[i] == Some(AnEnum::Qux));
         }
         for i in range::<uint>(10,20) {
-            assert_eq!(enumListReader[i], Some(AnEnum::Bar));
+            assert!(enumListReader[i] == Some(AnEnum::Bar));
         }
 
         let text_list = complex_list_reader.get_text_list();
@@ -278,8 +278,8 @@ mod tests {
 
         let data_list = complex_list_reader.get_data_list();
         assert_eq!(data_list.size(), 2);
-        assert_eq!(data_list[0], [0u8, 1u8, 2u8]);
-        assert_eq!(data_list[1], [255u8, 254u8, 253u8]);
+        assert!(data_list[0] == [0u8, 1u8, 2u8]);
+        assert!(data_list[1] == [255u8, 254u8, 253u8]);
 
         let prim_list_list = complex_list_reader.get_prim_list_list();
         assert_eq!(prim_list_list.size(), 2);
