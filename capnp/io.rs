@@ -235,7 +235,7 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
             try!(self.inner.write(self.buf.slice(0, self.pos)));
             self.pos = 0;
         }
-        return Ok(())
+        self.inner.flush()
     }
 }
 

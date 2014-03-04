@@ -35,13 +35,13 @@ mod Uncompressed {
     pub fn write<T : std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
-        capnp::serialize::write_message(writer, message);
+        capnp::serialize::write_message(writer, message).unwrap();
     }
 
     pub fn write_buffered<T : std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
-        capnp::serialize::write_message(writer, message);
+        capnp::serialize::write_message(writer, message).unwrap();
     }
 
     pub fn new_buffered_reader<R: capnp::io::BufferedInputStream>(
@@ -59,13 +59,13 @@ mod Packed {
     pub fn write<T : std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
-        write_packed_message_unbuffered(writer, message);
+        write_packed_message_unbuffered(writer, message).unwrap();
     }
 
     pub fn write_buffered<T : capnp::io::BufferedOutputStream, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
-        write_packed_message(writer, message);
+        write_packed_message(writer, message).unwrap();
     }
 
     pub fn new_buffered_reader<R:capnp::io::BufferedInputStream>(

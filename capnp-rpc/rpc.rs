@@ -264,7 +264,7 @@ impl RpcConnectionState {
                         None => break,
                         Some(m) => m,
                     };
-                    serialize::write_message(&mut w, message);
+                    serialize::write_message(&mut w, message).unwrap();
                     writer_rpc_chan.send(AnswerSent(message));
                 }
             });
@@ -894,7 +894,7 @@ impl PromisedAnswerRpcCallContext {
 
         // yuck!
         let mut writer = std::io::MemWriter::new();
-        serialize::write_message(&mut writer, params_message);
+        serialize::write_message(&mut writer, params_message).unwrap();
         let mut reader = std::io::MemReader::new(writer.get_ref().to_owned());
         let params_reader = ~serialize::new_reader(&mut reader, DefaultReaderOptions).unwrap();
 
@@ -950,7 +950,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 
         // yuck!
         let mut writer = std::io::MemWriter::new();
-        serialize::write_message(&mut writer, results_message);
+        serialize::write_message(&mut writer, results_message).unwrap();
         let mut reader = std::io::MemReader::new(writer.get_ref().to_owned());
         let results_reader = ~serialize::new_reader(&mut reader, DefaultReaderOptions).unwrap();
 

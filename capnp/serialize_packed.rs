@@ -350,15 +350,15 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
 }
 
 pub fn write_packed_message<T:io::BufferedOutputStream,U:MessageBuilder>(
-    output : &mut T, message : &U) {
+    output : &mut T, message : &U) -> std::io::IoResult<()> {
     let mut packedOutputStream = PackedOutputStream {inner : output};
-    serialize::write_message(&mut packedOutputStream, message);
+    serialize::write_message(&mut packedOutputStream, message)
 }
 
 
 pub fn write_packed_message_unbuffered<T:std::io::Writer,U:MessageBuilder>(
-    output : &mut T, message : &U) {
+    output : &mut T, message : &U) -> std::io::IoResult<()> {
     let mut buffered = io::BufferedOutputStreamWrapper::new(output);
-    write_packed_message(&mut buffered, message);
-    buffered.flush().unwrap();
+    try!(write_packed_message(&mut buffered, message));
+    buffered.flush()
 }

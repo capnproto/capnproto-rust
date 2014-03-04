@@ -130,7 +130,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
 
 pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
     outputStream : &mut T,
-    message : &U) {
+    message : &U) -> std::io::IoResult<()> {
 
     message.get_segments_for_output(
         |segments| {
@@ -167,4 +167,6 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
                 }
             }
         });
+
+    outputStream.flush()
 }
