@@ -139,9 +139,9 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                         runLength -= inRemaining;
 
                         try!(self.inner.skip(size));
-                        std::vec::raw::mut_buf_as_slice::<u8,()>(out, runLength, |buf| {
-                            self.inner.read(buf).unwrap();
-                        });
+                        try!(std::vec::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(out, runLength, |buf| {
+                            self.inner.read(buf)
+                        }));
                         out = out.offset(runLength as int);
 
                         if out == outEnd {
@@ -330,9 +330,9 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                         //# decide what to do.
                         try!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
 
-                        std::vec::raw::buf_as_slice::<u8,()>(runStart, count, |buf| {
-                            self.inner.write(buf).unwrap();
-                        });
+                        try!(std::vec::raw::buf_as_slice::<u8,std::io::IoResult<()>>(runStart, count, |buf| {
+                            self.inner.write(buf)
+                        }));
 
                         let (out1, bufferEnd1) = self.inner.get_write_buffer();
                         out = out1; bufferEnd = bufferEnd1;

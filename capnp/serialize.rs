@@ -132,7 +132,7 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
     outputStream : &mut T,
     message : &U) -> std::io::IoResult<()> {
 
-    message.get_segments_for_output(
+    try!(message.get_segments_for_output(
         |segments| {
 
             let tableSize : uint = (segments.len() + 2) & (!1);
@@ -152,21 +152,22 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
 
             unsafe {
                 let ptr : *u8 = std::cast::transmute(table.unsafe_ref(0));
-                std::vec::raw::buf_as_slice::<u8,()>(ptr, table.len() * 4, |buf| {
-                        outputStream.write(buf).unwrap();
-                    })
+                try!(std::vec::raw::buf_as_slice::<u8,std::io::IoResult<()>>(ptr, table.len() * 4, |buf| {
+                        outputStream.write(buf)
+                    }));
             }
 
             for i in range(0, segments.len()) {
                 unsafe {
-                    let ptr : *u8 = std::cast::transmute(segments[i].unsafe_ref(0));
-                    std::vec::raw::buf_as_slice::<u8,()>(
+                    let ptr : *u8 = std::cast::transmute(segments[i].as_ptr());
+                    try!(std::vec::raw::buf_as_slice::<u8,std::io::IoResult<()>>(
                         ptr,
                         segments[i].len() * BYTES_PER_WORD,
-                        |buf| { outputStream.write(buf).unwrap(); });
+                        |buf| { outputStream.write(buf) }));
                 }
             }
-        });
+            Ok(())
+        }));
 
     outputStream.flush()
 }
