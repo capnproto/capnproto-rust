@@ -1,17 +1,19 @@
 /*
- * Copyright (c) 2013, David Renshaw (dwrenshaw@gmail.com)
+ * Copyright (c) 2013-2014, David Renshaw (dwrenshaw@gmail.com)
  *
  * See the LICENSE file in the capnproto-rust root directory.
  */
+
+use std;
 
 pub struct WireValue<T> {
     priv value : T
 }
 
-impl<T : Clone> WireValue<T> {
-
+#[cfg(target_endian = "little")]
+impl<T> WireValue<T> {
     #[inline]
-    pub fn get(&self) -> T { self.value.clone() }
+    pub fn get(&self) -> T { unsafe {std::ptr::read(&self.value) } }
 
     #[inline]
     pub fn set(&mut self, value : T) { self.value = value }

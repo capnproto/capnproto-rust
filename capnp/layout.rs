@@ -1907,7 +1907,7 @@ impl <'a> StructReader<'a>  {
     pub fn get_data_section_as_blob(&self) -> uint { fail!("unimplemented") }
 
     #[inline]
-    pub fn get_data_field<T:Clone + std::num::Zero>(&self, offset : ElementCount) -> T {
+    pub fn get_data_field<T:std::num::Zero>(&self, offset : ElementCount) -> T {
         // We need to check the offset because the struct may have
         // been created with an old version of the protocol that did
         // not contain the field.
@@ -1939,9 +1939,9 @@ impl <'a> StructReader<'a>  {
     }
 
     #[inline]
-    pub fn get_data_field_mask<T:Clone + std::num::Zero + Mask>(&self,
-                                                                offset : ElementCount,
-                                                                mask : T) -> T {
+    pub fn get_data_field_mask<T:std::num::Zero + Mask>(&self,
+                                                        offset : ElementCount,
+                                                        mask : T) -> T {
         Mask::mask(self.get_data_field(offset), mask)
     }
 
@@ -2018,7 +2018,7 @@ impl <'a> StructBuilder<'a> {
     }
 
     #[inline]
-    pub fn set_data_field<T:Clone>(&self, offset : ElementCount, value : T) {
+    pub fn set_data_field<T>(&self, offset : ElementCount, value : T) {
         unsafe {
             let ptr : *mut WireValue<T> = std::cast::transmute(self.data);
             (*ptr.offset(offset as int)).set(value)
@@ -2026,15 +2026,15 @@ impl <'a> StructBuilder<'a> {
     }
 
     #[inline]
-    pub fn set_data_field_mask<T:Clone + std::num::Zero + Mask>(&self,
-                                                                offset : ElementCount,
-                                                                value : T,
-                                                                mask : T) {
+    pub fn set_data_field_mask<T:std::num::Zero + Mask>(&self,
+                                                        offset : ElementCount,
+                                                        value : T,
+                                                        mask : T) {
         self.set_data_field(offset, Mask::mask(value, mask));
     }
 
     #[inline]
-    pub fn get_data_field<T:Clone>(&self, offset : ElementCount) -> T {
+    pub fn get_data_field<T>(&self, offset : ElementCount) -> T {
         unsafe {
             let ptr : *mut WireValue<T> = std::cast::transmute(self.data);
             (*ptr.offset(offset as int)).get()
@@ -2042,9 +2042,9 @@ impl <'a> StructBuilder<'a> {
     }
 
     #[inline]
-    pub fn get_data_field_mask<T:Clone + std::num::Zero + Mask>(&self,
-                                                                offset : ElementCount,
-                                                                mask : T) -> T {
+    pub fn get_data_field_mask<T:std::num::Zero + Mask>(&self,
+                                                        offset : ElementCount,
+                                                        mask : T) -> T {
         Mask::mask(self.get_data_field(offset), mask)
     }
 
@@ -2208,7 +2208,7 @@ impl <'a> ListBuilder<'a> {
 }
 
 
-pub trait PrimitiveElement : Clone {
+pub trait PrimitiveElement {
     #[inline]
     fn get(listReader : &ListReader, index : ElementCount) -> Self {
         unsafe {
