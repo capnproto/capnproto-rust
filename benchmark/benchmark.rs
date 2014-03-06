@@ -196,8 +196,8 @@ macro_rules! server(
 
 macro_rules! sync_client(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
-            let mut outStream = std::io::stdout();
-            let mut inStream = std::io::stdin();
+            let mut outStream = std::io::stdio::stdout_raw();
+            let mut inStream = std::io::stdio::stdin_raw();
             let mut inBuffered = capnp::io::BufferedInputStreamWrapper::new(&mut inStream);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
@@ -256,8 +256,8 @@ macro_rules! do_testcase(
                 ~"bytes" => pass_by_bytes!($testcase, $reuse, $compression, $iters),
                 ~"client" => sync_client!($testcase, $reuse, $compression, $iters),
                 ~"server" => {
-                    let mut input = std::io::stdin();
-                    let mut output = std::io::stdout();
+                    let mut input = std::io::stdio::stdin_raw();
+                    let mut output = std::io::stdio::stdout_raw();
                     server!($testcase, $reuse, $compression, $iters, input, output)
                 }
                 ~"pipe" => pass_by_pipe!($testcase, $reuse, $compression, $iters),
