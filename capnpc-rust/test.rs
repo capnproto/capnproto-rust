@@ -400,17 +400,17 @@ mod tests {
 
         union_struct.get_union0().set_u0f0s0(());
         match union_struct.get_union0().which() {
-            Some(TestUnion::Union0::Which::U0f0s0(())) => {}
+            Some(TestUnion::Union0::U0f0s0(())) => {}
             _ => fail!()
         }
         union_struct.init_union0().set_u0f0s1(true);
         match union_struct.get_union0().which() {
-            Some(TestUnion::Union0::Which::U0f0s1(true)) => {}
+            Some(TestUnion::Union0::U0f0s1(true)) => {}
             _ => fail!()
         }
         union_struct.init_union0().set_u0f0s8(127);
         match union_struct.get_union0().which() {
-            Some(TestUnion::Union0::Which::U0f0s8(127)) => {}
+            Some(TestUnion::Union0::U0f0s8(127)) => {}
             _ => fail!()
         }
 

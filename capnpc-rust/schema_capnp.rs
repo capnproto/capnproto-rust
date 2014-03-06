@@ -1,9 +1,10 @@
 #[allow(unused_imports)];
+#[allow(dead_code)];
 
 pub mod Node {
   use std;
   use capnp::any::AnyPointer;
-  use capnp::capability::{FromClientHook};
+  use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -57,7 +58,7 @@ pub mod Node {
       !self.reader.get_pointer_field(2).is_null()
     }
     #[inline]
-    pub fn which(&self) -> Option<WhichReader<'a>> {
+    pub fn which(&self) -> std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(6) {
         0 => {
           return std::option::Some(File(
@@ -149,7 +150,7 @@ pub mod Node {
     }
     #[inline]
     pub fn get_nested_nodes(&self) -> StructList::Builder<'a,schema_capnp::Node::NestedNode::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(1).get_list(schema_capnp::Node::NestedNode::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+      StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Node::NestedNode::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
     pub fn set_nested_nodes(&self, value : StructList::Reader<'a,schema_capnp::Node::NestedNode::Reader<'a>>) {
@@ -165,7 +166,7 @@ pub mod Node {
     }
     #[inline]
     pub fn get_annotations(&self) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(2).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+      StructList::Builder::new(self.builder.get_pointer_field(2).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
     pub fn set_annotations(&self, value : StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
@@ -234,35 +235,35 @@ pub mod Node {
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn which(&self) -> Option<Which::WhichBuilder<'a>> {
+    pub fn which(&self) -> std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(6) {
         0 => {
-          return std::option::Some(Which::File(
+          return std::option::Some(File(
             ()
           ));
         }
         1 => {
-          return std::option::Some(Which::Struct(
+          return std::option::Some(Struct(
             FromStructBuilder::new(self.builder)
           ));
         }
         2 => {
-          return std::option::Some(Which::Enum(
+          return std::option::Some(Enum(
             FromStructBuilder::new(self.builder)
           ));
         }
         3 => {
-          return std::option::Some(Which::Interface(
+          return std::option::Some(Interface(
             FromStructBuilder::new(self.builder)
           ));
         }
         4 => {
-          return std::option::Some(Which::Const(
+          return std::option::Some(Const(
             FromStructBuilder::new(self.builder)
           ));
         }
         5 => {
-          return std::option::Some(Which::Annotation(
+          return std::option::Some(Annotation(
             FromStructBuilder::new(self.builder)
           ));
         }
@@ -270,38 +271,30 @@ pub mod Node {
       }
     }
   }
-  pub enum WhichReader<'a> {
-    File(()),
-    Struct(schema_capnp::Node::Struct::Reader<'a>),
-    Enum(schema_capnp::Node::Enum::Reader<'a>),
-    Interface(schema_capnp::Node::Interface::Reader<'a>),
-    Const(schema_capnp::Node::Const::Reader<'a>),
-    Annotation(schema_capnp::Node::Annotation::Reader<'a>),
-  }
-  pub mod Which {
-    use std;
-    use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
-    use capnp::blob::{Text, Data};
-    use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
-    use schema_capnp;
 
-    pub enum WhichBuilder<'a> {
-      File(()),
-      Struct(schema_capnp::Node::Struct::Builder<'a>),
-      Enum(schema_capnp::Node::Enum::Builder<'a>),
-      Interface(schema_capnp::Node::Interface::Builder<'a>),
-      Const(schema_capnp::Node::Const::Builder<'a>),
-      Annotation(schema_capnp::Node::Annotation::Builder<'a>),
+  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  impl FromTypelessPipeline for Pipeline {
+    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      Pipeline { _typeless : typeless }
     }
   }
+  impl Pipeline {
+  }
+  pub enum Which<'a,A0,A1,A2,A3,A4> {
+    File(()),
+    Struct(A0),
+    Enum(A1),
+    Interface(A2),
+    Const(A3),
+    Annotation(A4),
+  }
+  pub type WhichReader<'a> = Which<'a,schema_capnp::Node::Struct::Reader<'a>,schema_capnp::Node::Enum::Reader<'a>,schema_capnp::Node::Interface::Reader<'a>,schema_capnp::Node::Const::Reader<'a>,schema_capnp::Node::Annotation::Reader<'a>>;
+  pub type WhichBuilder<'a> = Which<'a,schema_capnp::Node::Struct::Builder<'a>,schema_capnp::Node::Enum::Builder<'a>,schema_capnp::Node::Interface::Builder<'a>,schema_capnp::Node::Const::Builder<'a>,schema_capnp::Node::Annotation::Builder<'a>>;
 
   pub mod NestedNode {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -372,12 +365,21 @@ pub mod Node {
         self.builder.set_data_field::<u64>(0, value);
       }
     }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
+    }
   }
 
   pub mod Struct {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -486,7 +488,7 @@ pub mod Node {
       }
       #[inline]
       pub fn get_fields(&self) -> StructList::Builder<'a,schema_capnp::Field::Builder<'a>> {
-        StructList::Builder::new(self.builder.get_pointer_field(3).get_list(schema_capnp::Field::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+        StructList::Builder::new(self.builder.get_pointer_field(3).get_struct_list(schema_capnp::Field::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
       pub fn set_fields(&self, value : StructList::Reader<'a,schema_capnp::Field::Reader<'a>>) {
@@ -501,12 +503,21 @@ pub mod Node {
         !self.builder.get_pointer_field(3).is_null()
       }
     }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
+    }
   }
 
   pub mod Enum {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -543,7 +554,7 @@ pub mod Node {
       }
       #[inline]
       pub fn get_enumerants(&self) -> StructList::Builder<'a,schema_capnp::Enumerant::Builder<'a>> {
-        StructList::Builder::new(self.builder.get_pointer_field(3).get_list(schema_capnp::Enumerant::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+        StructList::Builder::new(self.builder.get_pointer_field(3).get_struct_list(schema_capnp::Enumerant::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
       pub fn set_enumerants(&self, value : StructList::Reader<'a,schema_capnp::Enumerant::Reader<'a>>) {
@@ -558,12 +569,21 @@ pub mod Node {
         !self.builder.get_pointer_field(3).is_null()
       }
     }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
+    }
   }
 
   pub mod Interface {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -607,7 +627,7 @@ pub mod Node {
       }
       #[inline]
       pub fn get_methods(&self) -> StructList::Builder<'a,schema_capnp::Method::Builder<'a>> {
-        StructList::Builder::new(self.builder.get_pointer_field(3).get_list(schema_capnp::Method::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+        StructList::Builder::new(self.builder.get_pointer_field(3).get_struct_list(schema_capnp::Method::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
       pub fn set_methods(&self, value : StructList::Reader<'a,schema_capnp::Method::Reader<'a>>) {
@@ -639,12 +659,21 @@ pub mod Node {
         !self.builder.get_pointer_field(4).is_null()
       }
     }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
+    }
   }
 
   pub mod Const {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -717,12 +746,27 @@ pub mod Node {
         !self.builder.get_pointer_field(4).is_null()
       }
     }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
+      pub fn get_type(&self) -> schema_capnp::Type::Pipeline {
+        FromTypelessPipeline::new(self._typeless.get_pointer_field(3))
+      }
+      pub fn get_value(&self) -> schema_capnp::Value::Pipeline {
+        FromTypelessPipeline::new(self._typeless.get_pointer_field(4))
+      }
+    }
   }
 
   pub mod Annotation {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -917,13 +961,25 @@ pub mod Node {
         self.builder.set_bool_field(123, value);
       }
     }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
+      pub fn get_type(&self) -> schema_capnp::Type::Pipeline {
+        FromTypelessPipeline::new(self._typeless.get_pointer_field(3))
+      }
+    }
   }
 }
 
 pub mod Field {
   use std;
   use capnp::any::AnyPointer;
-  use capnp::capability::{FromClientHook};
+  use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -970,7 +1026,7 @@ pub mod Field {
       FromStructReader::new(self.reader)
     }
     #[inline]
-    pub fn which(&self) -> Option<WhichReader<'a>> {
+    pub fn which(&self) -> std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(4) {
         0 => {
           return std::option::Some(Slot(
@@ -1026,7 +1082,7 @@ pub mod Field {
     }
     #[inline]
     pub fn get_annotations(&self) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(1).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+      StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
     pub fn set_annotations(&self, value : StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
@@ -1074,15 +1130,15 @@ pub mod Field {
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn which(&self) -> Option<Which::WhichBuilder<'a>> {
+    pub fn which(&self) -> std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(4) {
         0 => {
-          return std::option::Some(Which::Slot(
+          return std::option::Some(Slot(
             FromStructBuilder::new(self.builder)
           ));
         }
         1 => {
-          return std::option::Some(Which::Group(
+          return std::option::Some(Group(
             FromStructBuilder::new(self.builder)
           ));
         }
@@ -1090,31 +1146,30 @@ pub mod Field {
       }
     }
   }
-  pub enum WhichReader<'a> {
-    Slot(schema_capnp::Field::Slot::Reader<'a>),
-    Group(schema_capnp::Field::Group::Reader<'a>),
-  }
-  pub mod Which {
-    use std;
-    use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
-    use capnp::blob::{Text, Data};
-    use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
-    use schema_capnp;
 
-    pub enum WhichBuilder<'a> {
-      Slot(schema_capnp::Field::Slot::Builder<'a>),
-      Group(schema_capnp::Field::Group::Builder<'a>),
+  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  impl FromTypelessPipeline for Pipeline {
+    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      Pipeline { _typeless : typeless }
     }
   }
+  impl Pipeline {
+    pub fn get_ordinal(&self) -> schema_capnp::Field::Ordinal::Pipeline {
+      FromTypelessPipeline::new(self._typeless.noop())
+    }
+  }
+  pub enum Which<'a,A0,A1> {
+    Slot(A0),
+    Group(A1),
+  }
+  pub type WhichReader<'a> = Which<'a,schema_capnp::Field::Slot::Reader<'a>,schema_capnp::Field::Group::Reader<'a>>;
+  pub type WhichBuilder<'a> = Which<'a,schema_capnp::Field::Slot::Builder<'a>,schema_capnp::Field::Group::Builder<'a>>;
   pub static NO_DISCRIMINANT : u16 = 65535;
 
   pub mod Slot {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -1211,12 +1266,27 @@ pub mod Field {
         self.builder.set_bool_field(128, value);
       }
     }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
+      pub fn get_type(&self) -> schema_capnp::Type::Pipeline {
+        FromTypelessPipeline::new(self._typeless.get_pointer_field(2))
+      }
+      pub fn get_default_value(&self) -> schema_capnp::Value::Pipeline {
+        FromTypelessPipeline::new(self._typeless.get_pointer_field(3))
+      }
+    }
   }
 
   pub mod Group {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -1257,12 +1327,21 @@ pub mod Field {
         self.builder.set_data_field::<u64>(2, value);
       }
     }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
+    }
   }
 
   pub mod Ordinal {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -1279,7 +1358,7 @@ pub mod Field {
 
     impl <'a> Reader<'a> {
       #[inline]
-      pub fn which(&self) -> Option<WhichReader> {
+      pub fn which(&self) -> std::option::Option<WhichReader> {
         match self.reader.get_data_field::<u16>(5) {
           0 => {
             return std::option::Some(Implicit(
@@ -1316,15 +1395,15 @@ pub mod Field {
         self.builder.set_data_field::<u16>(6, value);
       }
       #[inline]
-      pub fn which(&self) -> Option<Which::WhichBuilder> {
+      pub fn which(&self) -> std::option::Option<WhichBuilder> {
         match self.builder.get_data_field::<u16>(5) {
           0 => {
-            return std::option::Some(Which::Implicit(
+            return std::option::Some(Implicit(
               ()
             ));
           }
           1 => {
-            return std::option::Some(Which::Explicit(
+            return std::option::Some(Explicit(
               self.builder.get_data_field::<u16>(6)
             ));
           }
@@ -1332,32 +1411,28 @@ pub mod Field {
         }
       }
     }
-    pub enum WhichReader {
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
+    }
+    pub enum Which {
       Implicit(()),
       Explicit(u16),
     }
-    pub mod Which {
-      use std;
-      use capnp::any::AnyPointer;
-      use capnp::capability::{FromClientHook};
-      use capnp::blob::{Text, Data};
-      use capnp::layout;
-      use capnp::layout::{FromStructBuilder, FromStructReader};
-      use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
-      use schema_capnp;
-
-      pub enum WhichBuilder {
-        Implicit(()),
-        Explicit(u16),
-      }
-    }
+    pub type WhichReader = Which;
+    pub type WhichBuilder = Which;
   }
 }
 
 pub mod Enumerant {
   use std;
   use capnp::any::AnyPointer;
-  use capnp::capability::{FromClientHook};
+  use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -1436,7 +1511,7 @@ pub mod Enumerant {
     }
     #[inline]
     pub fn get_annotations(&self) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(1).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+      StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
     pub fn set_annotations(&self, value : StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
@@ -1451,12 +1526,21 @@ pub mod Enumerant {
       !self.builder.get_pointer_field(1).is_null()
     }
   }
+
+  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  impl FromTypelessPipeline for Pipeline {
+    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      Pipeline { _typeless : typeless }
+    }
+  }
+  impl Pipeline {
+  }
 }
 
 pub mod Method {
   use std;
   use capnp::any::AnyPointer;
-  use capnp::capability::{FromClientHook};
+  use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -1559,7 +1643,7 @@ pub mod Method {
     }
     #[inline]
     pub fn get_annotations(&self) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(1).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+      StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
     pub fn set_annotations(&self, value : StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
@@ -1574,12 +1658,21 @@ pub mod Method {
       !self.builder.get_pointer_field(1).is_null()
     }
   }
+
+  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  impl FromTypelessPipeline for Pipeline {
+    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      Pipeline { _typeless : typeless }
+    }
+  }
+  impl Pipeline {
+  }
 }
 
 pub mod Type {
   use std;
   use capnp::any::AnyPointer;
-  use capnp::capability::{FromClientHook};
+  use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -1600,7 +1693,7 @@ pub mod Type {
 
   impl <'a> Reader<'a> {
     #[inline]
-    pub fn which(&self) -> Option<WhichReader<'a>> {
+    pub fn which(&self) -> std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(0) {
         0 => {
           return std::option::Some(Void(
@@ -1801,100 +1894,100 @@ pub mod Type {
       self.builder.set_data_field::<u16>(0, 18);
     }
     #[inline]
-    pub fn which(&self) -> Option<Which::WhichBuilder<'a>> {
+    pub fn which(&self) -> std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(0) {
         0 => {
-          return std::option::Some(Which::Void(
+          return std::option::Some(Void(
             ()
           ));
         }
         1 => {
-          return std::option::Some(Which::Bool(
+          return std::option::Some(Bool(
             ()
           ));
         }
         2 => {
-          return std::option::Some(Which::Int8(
+          return std::option::Some(Int8(
             ()
           ));
         }
         3 => {
-          return std::option::Some(Which::Int16(
+          return std::option::Some(Int16(
             ()
           ));
         }
         4 => {
-          return std::option::Some(Which::Int32(
+          return std::option::Some(Int32(
             ()
           ));
         }
         5 => {
-          return std::option::Some(Which::Int64(
+          return std::option::Some(Int64(
             ()
           ));
         }
         6 => {
-          return std::option::Some(Which::Uint8(
+          return std::option::Some(Uint8(
             ()
           ));
         }
         7 => {
-          return std::option::Some(Which::Uint16(
+          return std::option::Some(Uint16(
             ()
           ));
         }
         8 => {
-          return std::option::Some(Which::Uint32(
+          return std::option::Some(Uint32(
             ()
           ));
         }
         9 => {
-          return std::option::Some(Which::Uint64(
+          return std::option::Some(Uint64(
             ()
           ));
         }
         10 => {
-          return std::option::Some(Which::Float32(
+          return std::option::Some(Float32(
             ()
           ));
         }
         11 => {
-          return std::option::Some(Which::Float64(
+          return std::option::Some(Float64(
             ()
           ));
         }
         12 => {
-          return std::option::Some(Which::Text(
+          return std::option::Some(Text(
             ()
           ));
         }
         13 => {
-          return std::option::Some(Which::Data(
+          return std::option::Some(Data(
             ()
           ));
         }
         14 => {
-          return std::option::Some(Which::List(
+          return std::option::Some(List(
             FromStructBuilder::new(self.builder)
           ));
         }
         15 => {
-          return std::option::Some(Which::Enum(
+          return std::option::Some(Enum(
             FromStructBuilder::new(self.builder)
           ));
         }
         16 => {
-          return std::option::Some(Which::Struct(
+          return std::option::Some(Struct(
             FromStructBuilder::new(self.builder)
           ));
         }
         17 => {
-          return std::option::Some(Which::Interface(
+          return std::option::Some(Interface(
             FromStructBuilder::new(self.builder)
           ));
         }
         18 => {
-          return std::option::Some(Which::AnyPointer(
+          return std::option::Some(AnyPointer(
             ()
           ));
         }
@@ -1902,7 +1995,16 @@ pub mod Type {
       }
     }
   }
-  pub enum WhichReader<'a> {
+
+  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  impl FromTypelessPipeline for Pipeline {
+    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      Pipeline { _typeless : typeless }
+    }
+  }
+  impl Pipeline {
+  }
+  pub enum Which<'a,A0,A1,A2,A3> {
     Void(()),
     Bool(()),
     Int8(()),
@@ -1917,49 +2019,19 @@ pub mod Type {
     Float64(()),
     Text(()),
     Data(()),
-    List(schema_capnp::Type::List::Reader<'a>),
-    Enum(schema_capnp::Type::Enum::Reader<'a>),
-    Struct(schema_capnp::Type::Struct::Reader<'a>),
-    Interface(schema_capnp::Type::Interface::Reader<'a>),
+    List(A0),
+    Enum(A1),
+    Struct(A2),
+    Interface(A3),
     AnyPointer(()),
   }
-  pub mod Which {
-    use std;
-    use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
-    use capnp::blob::{Text, Data};
-    use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
-    use schema_capnp;
-
-    pub enum WhichBuilder<'a> {
-      Void(()),
-      Bool(()),
-      Int8(()),
-      Int16(()),
-      Int32(()),
-      Int64(()),
-      Uint8(()),
-      Uint16(()),
-      Uint32(()),
-      Uint64(()),
-      Float32(()),
-      Float64(()),
-      Text(()),
-      Data(()),
-      List(schema_capnp::Type::List::Builder<'a>),
-      Enum(schema_capnp::Type::Enum::Builder<'a>),
-      Struct(schema_capnp::Type::Struct::Builder<'a>),
-      Interface(schema_capnp::Type::Interface::Builder<'a>),
-      AnyPointer(()),
-    }
-  }
+  pub type WhichReader<'a> = Which<'a,schema_capnp::Type::List::Reader<'a>,schema_capnp::Type::Enum::Reader<'a>,schema_capnp::Type::Struct::Reader<'a>,schema_capnp::Type::Interface::Reader<'a>>;
+  pub type WhichBuilder<'a> = Which<'a,schema_capnp::Type::List::Builder<'a>,schema_capnp::Type::Enum::Builder<'a>,schema_capnp::Type::Struct::Builder<'a>,schema_capnp::Type::Interface::Builder<'a>>;
 
   pub mod List {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -2010,12 +2082,24 @@ pub mod Type {
         !self.builder.get_pointer_field(0).is_null()
       }
     }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
+      pub fn get_element_type(&self) -> schema_capnp::Type::Pipeline {
+        FromTypelessPipeline::new(self._typeless.get_pointer_field(0))
+      }
+    }
   }
 
   pub mod Enum {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -2055,13 +2139,22 @@ pub mod Type {
       pub fn set_type_id(&self, value : u64) {
         self.builder.set_data_field::<u64>(1, value);
       }
+    }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
     }
   }
 
   pub mod Struct {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -2101,13 +2194,22 @@ pub mod Type {
       pub fn set_type_id(&self, value : u64) {
         self.builder.set_data_field::<u64>(1, value);
       }
+    }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
     }
   }
 
   pub mod Interface {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -2147,6 +2249,15 @@ pub mod Type {
       pub fn set_type_id(&self, value : u64) {
         self.builder.set_data_field::<u64>(1, value);
       }
+    }
+
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
     }
   }
 }
@@ -2154,7 +2265,7 @@ pub mod Type {
 pub mod Value {
   use std;
   use capnp::any::AnyPointer;
-  use capnp::capability::{FromClientHook};
+  use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -2195,7 +2306,7 @@ pub mod Value {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn which(&self) -> Option<WhichReader<'a>> {
+    pub fn which(&self) -> std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(0) {
         0 => {
           return std::option::Some(Void(
@@ -2441,100 +2552,100 @@ pub mod Value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn which(&self) -> Option<Which::WhichBuilder<'a>> {
+    pub fn which(&self) -> std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(0) {
         0 => {
-          return std::option::Some(Which::Void(
+          return std::option::Some(Void(
             ()
           ));
         }
         1 => {
-          return std::option::Some(Which::Bool(
+          return std::option::Some(Bool(
             self.builder.get_bool_field(16)
           ));
         }
         2 => {
-          return std::option::Some(Which::Int8(
+          return std::option::Some(Int8(
             self.builder.get_data_field::<i8>(2)
           ));
         }
         3 => {
-          return std::option::Some(Which::Int16(
+          return std::option::Some(Int16(
             self.builder.get_data_field::<i16>(1)
           ));
         }
         4 => {
-          return std::option::Some(Which::Int32(
+          return std::option::Some(Int32(
             self.builder.get_data_field::<i32>(1)
           ));
         }
         5 => {
-          return std::option::Some(Which::Int64(
+          return std::option::Some(Int64(
             self.builder.get_data_field::<i64>(1)
           ));
         }
         6 => {
-          return std::option::Some(Which::Uint8(
+          return std::option::Some(Uint8(
             self.builder.get_data_field::<u8>(2)
           ));
         }
         7 => {
-          return std::option::Some(Which::Uint16(
+          return std::option::Some(Uint16(
             self.builder.get_data_field::<u16>(1)
           ));
         }
         8 => {
-          return std::option::Some(Which::Uint32(
+          return std::option::Some(Uint32(
             self.builder.get_data_field::<u32>(1)
           ));
         }
         9 => {
-          return std::option::Some(Which::Uint64(
+          return std::option::Some(Uint64(
             self.builder.get_data_field::<u64>(1)
           ));
         }
         10 => {
-          return std::option::Some(Which::Float32(
+          return std::option::Some(Float32(
             self.builder.get_data_field::<f32>(1)
           ));
         }
         11 => {
-          return std::option::Some(Which::Float64(
+          return std::option::Some(Float64(
             self.builder.get_data_field::<f64>(1)
           ));
         }
         12 => {
-          return std::option::Some(Which::Text(
+          return std::option::Some(Text(
             self.builder.get_pointer_field(0).get_text(std::ptr::null(), 0)
           ));
         }
         13 => {
-          return std::option::Some(Which::Data(
+          return std::option::Some(Data(
             self.builder.get_pointer_field(0).get_data(std::ptr::null(), 0)
           ));
         }
         14 => {
-          return std::option::Some(Which::List(
+          return std::option::Some(List(
             AnyPointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
         15 => {
-          return std::option::Some(Which::Enum(
+          return std::option::Some(Enum(
             self.builder.get_data_field::<u16>(1)
           ));
         }
         16 => {
-          return std::option::Some(Which::Struct(
+          return std::option::Some(Struct(
             AnyPointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
         17 => {
-          return std::option::Some(Which::Interface(
+          return std::option::Some(Interface(
             ()
           ));
         }
         18 => {
-          return std::option::Some(Which::AnyPointer(
+          return std::option::Some(AnyPointer(
             AnyPointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
@@ -2542,7 +2653,16 @@ pub mod Value {
       }
     }
   }
-  pub enum WhichReader<'a> {
+
+  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  impl FromTypelessPipeline for Pipeline {
+    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      Pipeline { _typeless : typeless }
+    }
+  }
+  impl Pipeline {
+  }
+  pub enum Which<'a,A0,A1,A2,A3,A4> {
     Void(()),
     Bool(bool),
     Int8(i8),
@@ -2555,52 +2675,22 @@ pub mod Value {
     Uint64(u64),
     Float32(f32),
     Float64(f64),
-    Text(Text::Reader<'a>),
-    Data(Data::Reader<'a>),
-    List(AnyPointer::Reader<'a>),
+    Text(A0),
+    Data(A1),
+    List(A2),
     Enum(u16),
-    Struct(AnyPointer::Reader<'a>),
+    Struct(A3),
     Interface(()),
-    AnyPointer(AnyPointer::Reader<'a>),
+    AnyPointer(A4),
   }
-  pub mod Which {
-    use std;
-    use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
-    use capnp::blob::{Text, Data};
-    use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
-    use schema_capnp;
-
-    pub enum WhichBuilder<'a> {
-      Void(()),
-      Bool(bool),
-      Int8(i8),
-      Int16(i16),
-      Int32(i32),
-      Int64(i64),
-      Uint8(u8),
-      Uint16(u16),
-      Uint32(u32),
-      Uint64(u64),
-      Float32(f32),
-      Float64(f64),
-      Text(Text::Builder<'a>),
-      Data(Data::Builder<'a>),
-      List(AnyPointer::Builder<'a>),
-      Enum(u16),
-      Struct(AnyPointer::Builder<'a>),
-      Interface(()),
-      AnyPointer(AnyPointer::Builder<'a>),
-    }
-  }
+  pub type WhichReader<'a> = Which<'a,Text::Reader<'a>,Data::Reader<'a>,AnyPointer::Reader<'a>,AnyPointer::Reader<'a>,AnyPointer::Reader<'a>>;
+  pub type WhichBuilder<'a> = Which<'a,Text::Builder<'a>,Data::Builder<'a>,AnyPointer::Builder<'a>,AnyPointer::Builder<'a>,AnyPointer::Builder<'a>>;
 }
 
 pub mod Annotation {
   use std;
   use capnp::any::AnyPointer;
-  use capnp::capability::{FromClientHook};
+  use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -2671,6 +2761,18 @@ pub mod Annotation {
       !self.builder.get_pointer_field(0).is_null()
     }
   }
+
+  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  impl FromTypelessPipeline for Pipeline {
+    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      Pipeline { _typeless : typeless }
+    }
+  }
+  impl Pipeline {
+    pub fn get_value(&self) -> schema_capnp::Value::Pipeline {
+      FromTypelessPipeline::new(self._typeless.get_pointer_field(0))
+    }
+  }
 }
 
 pub mod ElementSize {
@@ -2698,7 +2800,7 @@ pub mod ElementSize {
 pub mod CodeGeneratorRequest {
   use std;
   use capnp::any::AnyPointer;
-  use capnp::capability::{FromClientHook};
+  use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -2750,7 +2852,7 @@ pub mod CodeGeneratorRequest {
     }
     #[inline]
     pub fn get_nodes(&self) -> StructList::Builder<'a,schema_capnp::Node::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(0).get_list(schema_capnp::Node::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+      StructList::Builder::new(self.builder.get_pointer_field(0).get_struct_list(schema_capnp::Node::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
     pub fn set_nodes(&self, value : StructList::Reader<'a,schema_capnp::Node::Reader<'a>>) {
@@ -2766,7 +2868,7 @@ pub mod CodeGeneratorRequest {
     }
     #[inline]
     pub fn get_requested_files(&self) -> StructList::Builder<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(1).get_list(schema_capnp::CodeGeneratorRequest::RequestedFile::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+      StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::CodeGeneratorRequest::RequestedFile::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
     pub fn set_requested_files(&self, value : StructList::Reader<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Reader<'a>>) {
@@ -2782,10 +2884,19 @@ pub mod CodeGeneratorRequest {
     }
   }
 
+  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  impl FromTypelessPipeline for Pipeline {
+    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      Pipeline { _typeless : typeless }
+    }
+  }
+  impl Pipeline {
+  }
+
   pub mod RequestedFile {
     use std;
     use capnp::any::AnyPointer;
-    use capnp::capability::{FromClientHook};
+    use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -2864,7 +2975,7 @@ pub mod CodeGeneratorRequest {
       }
       #[inline]
       pub fn get_imports(&self) -> StructList::Builder<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Builder<'a>> {
-        StructList::Builder::new(self.builder.get_pointer_field(1).get_list(schema_capnp::CodeGeneratorRequest::RequestedFile::Import::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+        StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::CodeGeneratorRequest::RequestedFile::Import::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
       pub fn set_imports(&self, value : StructList::Reader<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Reader<'a>>) {
@@ -2880,10 +2991,19 @@ pub mod CodeGeneratorRequest {
       }
     }
 
+    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    impl FromTypelessPipeline for Pipeline {
+      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        Pipeline { _typeless : typeless }
+      }
+    }
+    impl Pipeline {
+    }
+
     pub mod Import {
       use std;
       use capnp::any::AnyPointer;
-      use capnp::capability::{FromClientHook};
+      use capnp::capability::{FromClientHook, FromTypelessPipeline};
       use capnp::blob::{Text, Data};
       use capnp::layout;
       use capnp::layout::{FromStructBuilder, FromStructReader};
@@ -2953,6 +3073,15 @@ pub mod CodeGeneratorRequest {
         pub fn has_name(&self) -> bool {
           !self.builder.get_pointer_field(0).is_null()
         }
+      }
+
+      pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+      impl FromTypelessPipeline for Pipeline {
+        fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+          Pipeline { _typeless : typeless }
+        }
+      }
+      impl Pipeline {
       }
     }
   }

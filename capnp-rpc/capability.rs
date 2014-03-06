@@ -78,7 +78,7 @@ for Request<Params, Results, Pipeline> {
     fn init(&'a mut self) -> Params {
         let message : Message::Builder = self.hook.message().get_root();
         match message.which() {
-            Some(Message::Which::Call(call)) => {
+            Some(Message::Call(call)) => {
                 let params = call.init_params();
                 params.get_content().init_as_struct()
             }

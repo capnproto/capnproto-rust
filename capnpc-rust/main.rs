@@ -780,21 +780,29 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 }
 
 
-// return (the 'Which' enum, the 'which()' accessor)
+// return (the 'Which' enum, the 'which()' accessor, typedef)
 fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scopeMap : &collections::hashmap::HashMap<u64, ~[~str]>,
                   root_name : &str,
                   discriminantOffset : u32,
                   fields : &[schema_capnp::Field::Reader],
                   is_reader : bool)
-    -> (FormattedText, FormattedText) {
+    -> (FormattedText, FormattedText, FormattedText) {
 
     use schema_capnp::*;
 
-    let mut getter_interior = ~[];
+    fn new_ty_param(ty_params : &mut ~[~str]) -> ~str {
+        let result = format!("A{}", ty_params.len());
+        ty_params.push(result.clone());
+        result
+    }
 
+    let mut getter_interior = ~[];
     let mut interior = ~[];
     let mut enum_interior = ~[];
+
+    let mut ty_params = box [];
+    let mut ty_args = box[];
 
     let doffset = discriminantOffset as uint;
 
@@ -807,40 +815,44 @@ fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::No
         let fieldName = field.get_name();
         let enumerantName = capitalize_first_letter(fieldName);
 
-        let qual_enumerant_name = if is_reader {
-            enumerantName.clone()
-        } else {
-            format!("Which::{}", enumerantName)
-        };
-
         let (ty, get) = getter_text(nodeMap, scopeMap, field, is_reader);
-
-        enum_interior.push(Line(format!("{}({}),", enumerantName, ty)));
 
         getter_interior.push(Branch(~[
                     Line(format!("{} => \\{", dvalue)),
-                    Indent(~Line(format!("return std::option::Some({}(", qual_enumerant_name))),
+                    Indent(~Line(format!("return std::option::Some({}(", enumerantName.clone()))),
                     Indent(~Indent(~get)),
                     Indent(~Line(~"));")),
                     Line(~"}")
                 ]));
 
-        match field.which() {
-            Some(Field::Group(_)) => requiresSelfVar = true,
+        let ty1 = match field.which() {
+            Some(Field::Group(_)) => {
+                requiresSelfVar = true;
+                ty_args.push(ty);
+                new_ty_param(&mut ty_params)
+            }
             Some(Field::Slot(reg_field)) => {
                 match reg_field.get_type().which() {
                     Some(Type::Text(())) | Some(Type::Data(())) |
                     Some(Type::List(_)) | Some(Type::Struct(_)) |
-                    Some(Type::AnyPointer(())) => requiresSelfVar = true,
-                    _ => ()
+                    Some(Type::AnyPointer(())) => {
+                        requiresSelfVar = true;
+                        ty_args.push(ty);
+                        new_ty_param(&mut ty_params)
+                    }
+                    _ => ty
                 }
             }
-            _ => ()
-        }
+            _ => ty
+        };
+
+        enum_interior.push(Line(format!("{}({}),", enumerantName, ty1)));
     }
 
-    let lifetime_suffix = if requiresSelfVar { "<'a>" } else { "" };
-    let enum_name = format!("Which{}{}", if is_reader { "Reader" } else { "Builder" }, lifetime_suffix);
+    let enum_name = format!("Which{}",
+                            if requiresSelfVar { format!("<'a,{}>",ty_params.connect(",")) }
+                            else {box ""} );
+
 
     getter_interior.push(Line(~"_ => return std::option::None"));
 
@@ -862,16 +874,20 @@ fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::No
 
     let field_name = if is_reader { "reader" } else { "builder" };
 
-    let which_return_type = if is_reader {
-        format!("Option<{}>", enum_name)
-    } else {
-        format!("Option<Which::{}>", enum_name)
-    };
+   let concrete_type =
+            format!("Which{}{}",
+                    if is_reader {"Reader"} else {"Builder"},
+                    if requiresSelfVar {"<'a>"} else {""});
+
+    let typedef = Line(format!("pub type {} = Which{};",
+                               concrete_type,
+                               if requiresSelfVar {format!("<'a,{}>",ty_args.connect(","))} else {~""}));
+
 
     let getter_result =
         Branch(~[Line(~"#[inline]"),
-                 Line(format!("pub fn which(&self) -> {} \\{",
-                              which_return_type)),
+                 Line(format!("pub fn which(&self) -> std::option::Option<{}> \\{",
+                              concrete_type)),
                  Indent(~Branch(~[
                      Line(format!("match self.{}.get_data_field::<u16>({}) \\{", field_name, doffset)),
                      Indent(~Branch(getter_interior)),
@@ -881,7 +897,7 @@ fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::No
 
     // TODO set_which() for builders?
 
-    return (result, getter_result);
+    return (result, getter_result, typedef);
 }
 
 fn generate_haser(discriminant_offset : u32,
@@ -1094,16 +1110,17 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
             }
 
             if discriminantCount > 0 {
-                let (which_enums1, union_getter) =
+                let (which_enums1, union_getter, typedef) =
                     generate_union(nodeMap, scopeMap, rootName,
                                    discriminantOffset, union_fields, true);
                 which_enums.push(which_enums1);
+                which_enums.push(typedef);
                 reader_members.push(union_getter);
 
-                let (which_enums2, union_getter) =
+                let (_, union_getter, typedef) =
                     generate_union(nodeMap, scopeMap, rootName,
                                    discriminantOffset, union_fields, false);
-                which_enums.push(which_enums2);
+                which_enums.push(typedef);
                 builder_members.push(union_getter);
             }
 

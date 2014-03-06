@@ -54,14 +54,14 @@ impl Answer {
                ops : ~[PipelineOp::Type], context : ~CallContextHook) {
         let root : Message::Builder = answer_message.get_root();
         match root.which() {
-            Some(Message::Which::Return(ret)) => {
+            Some(Message::Return(ret)) => {
                 match ret.which() {
-                    Some(Return::Which::Results(payload)) => {
+                    Some(Return::Results(payload)) => {
                         let hook = payload.get_content().as_reader().
                             get_pipelined_cap(ops);
                         hook.call(interface_id, method_id, context);
                     }
-                    Some(Return::Which::Exception(_exc)) => {
+                    Some(Return::Exception(_exc)) => {
                         // TODO
                     }
                     _ => fail!(),
@@ -278,7 +278,7 @@ impl RpcConnectionState {
                         AnswerSent(mut message) => {
                             let root = message.get_root::<Message::Builder>();
                             let answer_id_opt = match root.which() {
-                                Some(Message::Which::Return(ret)) => {
+                                Some(Message::Return(ret)) => {
                                     Some(ret.get_answer_id())
                                 }
                                 _ => {None}
@@ -433,14 +433,14 @@ impl RpcConnectionState {
                             let root = m.get_root::<Message::Builder>();
                             // add a question to the question table
                             match root.which() {
-                                Some(Message::Which::Return(_)) => {}
-                                Some(Message::Which::Call(call)) => {
+                                Some(Message::Return(_)) => {}
+                                Some(Message::Call(call)) => {
                                     call.set_question_id(questions.slots.len() as u32);
                                     questions.slots.push(Question {is_awaiting_return : true,
                                                                    chan : answer_chan} );
                                     question_chan.try_send(call.get_question_id());
                                 }
-                                Some(Message::Which::Restore(res)) => {
+                                Some(Message::Restore(res)) => {
                                     res.set_question_id(questions.slots.len() as u32);
                                     questions.slots.push(Question {is_awaiting_return : true,
                                                                    chan : answer_chan} );
@@ -462,7 +462,7 @@ impl RpcConnectionState {
 
                             let root = m.get_root::<Message::Builder>();
                             let (interface_id, method_id) = match root.which() {
-                                Some(Message::Which::Call(call)) => {
+                                Some(Message::Call(call)) => {
                                     (call.get_interface_id(), call.get_method_id())
                                 }
                                 _ => {
@@ -685,12 +685,12 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Chan<RpcEvent>, message : &mu
     };
     let root : Message::Builder = message.get_root();
     match root.which() {
-        Some(Message::Which::Call(call)) => {
+        Some(Message::Call(call)) => {
             write_payload(rpc_chan, cap_table, call.get_params())
         }
-        Some(Message::Which::Return(ret)) => {
+        Some(Message::Return(ret)) => {
             match ret.which() {
-                Some(Return::Which::Results(payload)) => {
+                Some(Return::Results(payload)) => {
                     write_payload(rpc_chan, cap_table, payload);
                 }
                 _ => {}
@@ -854,9 +854,9 @@ impl CallContextHook for RpcCallContext {
         let results = {
             let root : Message::Builder = self.results_message.get_root();
             match root.which() {
-                Some(Message::Which::Return(ret)) => {
+                Some(Message::Return(ret)) => {
                     match ret.which() {
-                        Some(Return::Which::Results(results)) => {
+                        Some(Return::Results(results)) => {
                             results.get_content()
                         }
                         _ => fail!(),
@@ -930,9 +930,9 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         let results = {
             let root : Message::Builder = self.results_message.get_root();
             match root.which() {
-                Some(Message::Which::Return(ret)) => {
+                Some(Message::Return(ret)) => {
                     match ret.which() {
-                        Some(Return::Which::Results(results)) => {
+                        Some(Return::Results(results)) => {
                             results.get_content()
                         }
                         _ => fail!(),
