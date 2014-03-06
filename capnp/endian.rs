@@ -37,7 +37,9 @@ macro_rules! endian_impl(
         );
     ($typ:ty, $typ2:ty, $swapper:ident) => (
         impl Endian for $typ {
+            #[inline]
             fn get(&self) -> $typ { unsafe { transmute($swapper(transmute::<$typ, $typ2>(*self)))} }
+            #[inline]
             fn set(&mut self, value : $typ) {
                 *self = unsafe { transmute($swapper(transmute::<$typ,$typ2>(value))) };
             }
