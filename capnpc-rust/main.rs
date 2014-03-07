@@ -169,11 +169,11 @@ fn append_name (names : &[~str], name : ~str) -> ~[~str] {
 }
 
 
-fn populate_scope_map(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                      scopeMap : &mut collections::hashmap::HashMap<u64, ~[~str]>,
+fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                      scope_map : &mut collections::hashmap::HashMap<u64, ~[~str]>,
                       rootName : &str,
                       nodeId : u64) {
-    let nodeReader = nodeMap.get(&nodeId);
+    let nodeReader = node_map.get(&nodeId);
 
     let nestedNodes = nodeReader.get_nested_nodes();
     for ii in range(0, nestedNodes.size()) {
@@ -181,12 +181,12 @@ fn populate_scope_map(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp
         let id = nestedNode.get_id();
         let name = nestedNode.get_name().to_owned();
 
-        let scopeNames = match scopeMap.find(&nodeId) {
+        let scopeNames = match scope_map.find(&nodeId) {
             Some(names) => append_name(*names, name),
             None => ~[rootName.to_owned(), name]
         };
-        scopeMap.insert(id, scopeNames);
-        populate_scope_map(nodeMap, scopeMap, rootName, id);
+        scope_map.insert(id, scopeNames);
+        populate_scope_map(node_map, scope_map, rootName, id);
     }
 
     match nodeReader.which() {
@@ -198,13 +198,13 @@ fn populate_scope_map(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp
                     Some(schema_capnp::Field::Group(group)) => {
                         let id = group.get_type_id();
                         let name = capitalize_first_letter(field.get_name());
-                        let scopeNames = match scopeMap.find(&nodeId) {
+                        let scopeNames = match scope_map.find(&nodeId) {
                             Some(names) => append_name(*names, name),
                             None => ~[rootName.to_owned(), name]
                         };
 
-                        scopeMap.insert(id, scopeNames);
-                        populate_scope_map(nodeMap, scopeMap, rootName, id);
+                        scope_map.insert(id, scopeNames);
+                        populate_scope_map(node_map, scope_map, rootName, id);
                     }
                     _ => {}
                 }
@@ -296,8 +296,8 @@ fn prim_default (value : &schema_capnp::Value::Reader) -> Option<~str> {
     }
 }
 
-fn getter_text (_nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-               scopeMap : &collections::hashmap::HashMap<u64, ~[~str]>,
+fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+               scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
                field : &schema_capnp::Field::Reader,
                isReader : bool)
     -> (~str, FormattedText) {
@@ -307,7 +307,7 @@ fn getter_text (_nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
     match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
-            let theMod = scopeMap.get(&group.get_type_id()).connect("::");
+            let theMod = scope_map.get(&group.get_type_id()).connect("::");
             if isReader {
                 return (format!("{}::Reader<'a>", theMod),
                         Line(box "FromStructReader::new(self.reader)"));
@@ -359,7 +359,7 @@ fn getter_text (_nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
                     match ot1.get_element_type().which() {
                         None => { fail!("unsupported type") }
                         Some(Type::Struct(st)) => {
-                            let theMod = scopeMap.get(&st.get_type_id()).connect("::");
+                            let theMod = scope_map.get(&st.get_type_id()).connect("::");
                             if isReader {
                                 return (format!("StructList::{}<'a,{}::{}<'a>>", module, theMod, module),
                                         Line(format!("StructList::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
@@ -373,14 +373,14 @@ fn getter_text (_nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
                             }
                         }
                         Some(Type::Enum(e)) => {
-                            let theMod = scopeMap.get(&e.get_type_id()).connect("::");
+                            let theMod = scope_map.get(&e.get_type_id()).connect("::");
                             let fullModuleName = format!("{}::Reader", theMod);
                             return (format!("EnumList::{}<'a,{}>",module,fullModuleName),
                                     Line(format!("EnumList::{}::new(self.{}.get_pointer_field({}).get_list(layout::TwoBytes, std::ptr::null()))",
                                          module, member, offset)));
                         }
                         Some(Type::List(t1)) => {
-                            let type_param = list_list_type_param(scopeMap, t1.get_element_type(), isReader, "'a");
+                            let type_param = list_list_type_param(scope_map, t1.get_element_type(), isReader, "'a");
                             return (format!("ListList::{}<'a,{}>", module, type_param),
                                     Line(format!("ListList::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
                                                  module, member, offset)))
@@ -408,7 +408,7 @@ fn getter_text (_nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
                     }
                 }
                 Some((Type::Enum(en), _)) => {
-                    let scope = scopeMap.get(&en.get_type_id());
+                    let scope = scope_map.get(&en.get_type_id());
                     let theMod = scope.connect("::");
                     return
                         (format!("Option<{}::Reader>", theMod), // Enums don't have builders.
@@ -418,14 +418,14 @@ fn getter_text (_nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
                               ]));
                 }
                 Some((Type::Struct(st), _)) => {
-                    let theMod = scopeMap.get(&st.get_type_id()).connect("::");
+                    let theMod = scope_map.get(&st.get_type_id()).connect("::");
                     let middleArg = if isReader {~""} else {format!("{}::STRUCT_SIZE,", theMod)};
                     return (format!("{}::{}", theMod, moduleWithVar),
                             Line(format!("FromStruct{}::new(self.{}.get_pointer_field({}).get_struct({} std::ptr::null()))",
                                       module, member, offset, middleArg)))
                 }
                 Some((Type::Interface(interface), _)) => {
-                    let theMod = scopeMap.get(&interface.get_type_id()).connect("::");
+                    let theMod = scope_map.get(&interface.get_type_id()).connect("::");
                     return (format!("{}::Client", theMod),
                             Line(format!("FromClientHook::new(self.{}.get_pointer_field({}).get_capability())",
                                          member, offset)));
@@ -526,7 +526,7 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
 }
 
 fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                  scopeMap : &collections::hashmap::HashMap<u64, ~[~str]>,
+                  scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
                   discriminantOffset : u32,
                   styled_name : &str,
                   field :&schema_capnp::Field::Reader) -> FormattedText {
@@ -555,7 +555,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
     let (maybe_reader_type, maybe_builder_type) : (Option<~str>, Option<~str>) = match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
-            let scope = scopeMap.get(&group.get_type_id());
+            let scope = scope_map.get(&group.get_type_id());
             let theMod = scope.connect("::");
 
             initter_interior.push(zero_fields_of_group(node_map, group.get_type_id()));
@@ -657,7 +657,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                 }
                                 Type::Enum(e) => {
                                     let id = e.get_type_id();
-                                    let scope = scopeMap.get(&id);
+                                    let scope = scope_map.get(&id);
                                     let theMod = scope.connect("::");
                                     let typeStr = format!("{}::Reader", theMod);
                                     initter_interior.push(Line(format!("EnumList::Builder::<'a, {}>::new(",
@@ -673,7 +673,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                 }
                                 Type::Struct(st) => {
                                     let id = st.get_type_id();
-                                    let scope = scopeMap.get(&id);
+                                    let scope = scope_map.get(&id);
                                     let theMod = scope.connect("::");
 
                                     initter_interior.push(Line(format!("StructList::Builder::<'a, {}::Builder<'a>>::new(", theMod)));
@@ -701,7 +701,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                      Some(format!("DataList::Builder<'a>")))
                                 }
                                 Type::List(t1) => {
-                                    let type_param = list_list_type_param(scopeMap, t1.get_element_type(),
+                                    let type_param = list_list_type_param(scope_map, t1.get_element_type(),
                                                                           false, "'a");
                                     initter_interior.push(
                                         Line(format!("ListList::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer,size))",
@@ -710,7 +710,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                     setter_lifetime_param = "<'b>";
 
                                     (Some(format!("ListList::Reader<'b, {}>",
-                                             list_list_type_param(scopeMap, t1.get_element_type(), true, "'b"))),
+                                             list_list_type_param(scope_map, t1.get_element_type(), true, "'b"))),
                                      Some(format!("ListList::Builder<'a, {}>", type_param)))
                                 }
                                 Type::AnyPointer(()) => {fail!("List(AnyPointer) not supported")}
@@ -721,14 +721,14 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                 }
                 Some(Type::Enum(e)) => {
                     let id = e.get_type_id();
-                    let theMod = scopeMap.get(&id).connect("::");
+                    let theMod = scope_map.get(&id).connect("::");
                     setter_interior.push(
                         Line(format!("self.builder.set_data_field::<u16>({}, value as u16)",
                                      offset)));
                     (Some(format!("{}::Reader", theMod)), None)
                 }
                 Some(Type::Struct(st)) => {
-                    let theMod = scopeMap.get(&st.get_type_id()).connect("::");
+                    let theMod = scope_map.get(&st.get_type_id()).connect("::");
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_struct(&value.reader)", offset)));
                     initter_interior.push(
@@ -737,7 +737,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                     (Some(format!("{}::Reader", theMod)), Some(format!("{}::Builder<'a>", theMod)))
                 }
                 Some(Type::Interface(interface)) => {
-                    let theMod = scopeMap.get(&interface.get_type_id()).connect("::");
+                    let theMod = scope_map.get(&interface.get_type_id()).connect("::");
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_capability(value.client.hook);",
                                      offset)));
@@ -781,14 +781,14 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 
 
 // return (the 'Which' enum, the 'which()' accessor, typedef)
-fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                  scopeMap : &collections::hashmap::HashMap<u64, ~[~str]>,
+fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                  scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
                   root_name : &str,
-                  discriminantOffset : u32,
+                  discriminant_offset : u32,
                   fields : &[schema_capnp::Field::Reader],
                   is_reader : bool)
-    -> (FormattedText, FormattedText, FormattedText) {
-
+                  -> (FormattedText, FormattedText, FormattedText)
+{
     use schema_capnp::*;
 
     fn new_ty_param(ty_params : &mut ~[~str]) -> ~str {
@@ -804,9 +804,7 @@ fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::No
     let mut ty_params = box [];
     let mut ty_args = box[];
 
-    let doffset = discriminantOffset as uint;
-
-    let mut requiresSelfVar = false;
+    let doffset = discriminant_offset as uint;
 
     for field in fields.iter() {
 
@@ -815,7 +813,7 @@ fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::No
         let fieldName = field.get_name();
         let enumerantName = capitalize_first_letter(fieldName);
 
-        let (ty, get) = getter_text(nodeMap, scopeMap, field, is_reader);
+        let (ty, get) = getter_text(node_map, scope_map, field, is_reader);
 
         getter_interior.push(Branch(~[
                     Line(format!("{} => \\{", dvalue)),
@@ -827,7 +825,6 @@ fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::No
 
         let ty1 = match field.which() {
             Some(Field::Group(_)) => {
-                requiresSelfVar = true;
                 ty_args.push(ty);
                 new_ty_param(&mut ty_params)
             }
@@ -836,7 +833,6 @@ fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::No
                     Some(Type::Text(())) | Some(Type::Data(())) |
                     Some(Type::List(_)) | Some(Type::Struct(_)) |
                     Some(Type::AnyPointer(())) => {
-                        requiresSelfVar = true;
                         ty_args.push(ty);
                         new_ty_param(&mut ty_params)
                     }
@@ -850,7 +846,7 @@ fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::No
     }
 
     let enum_name = format!("Which{}",
-                            if requiresSelfVar { format!("<'a,{}>",ty_params.connect(",")) }
+                            if ty_params.len() > 0 { format!("<'a,{}>",ty_params.connect(",")) }
                             else {box ""} );
 
 
@@ -874,15 +870,14 @@ fn generate_union(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::No
 
     let field_name = if is_reader { "reader" } else { "builder" };
 
-   let concrete_type =
+    let concrete_type =
             format!("Which{}{}",
                     if is_reader {"Reader"} else {"Builder"},
-                    if requiresSelfVar {"<'a>"} else {""});
+                    if ty_params.len() > 0 {"<'a>"} else {""});
 
     let typedef = Line(format!("pub type {} = Which{};",
                                concrete_type,
-                               if requiresSelfVar {format!("<'a,{}>",ty_args.connect(","))} else {~""}));
-
+                               if ty_args.len() > 0 {format!("<'a,{}>",ty_args.connect(","))} else {~""}));
 
     let getter_result =
         Branch(~[Line(~"#[inline]"),
@@ -943,8 +938,8 @@ fn generate_haser(discriminant_offset : u32,
     Branch(result)
 }
 
-fn generate_pipeline_getter(_nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                            scopeMap : &collections::hashmap::HashMap<u64, ~[~str]>,
+fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                            scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
                             field : schema_capnp::Field::Reader) -> FormattedText {
     use schema_capnp::{Field, Type};
 
@@ -953,7 +948,7 @@ fn generate_pipeline_getter(_nodeMap : &collections::hashmap::HashMap<u64, schem
     match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
-            let theMod = scopeMap.get(&group.get_type_id()).connect("::");
+            let theMod = scope_map.get(&group.get_type_id()).connect("::");
             return Branch(box[Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
                                            camel_to_snake_case(name),
                                            theMod)),
@@ -964,7 +959,7 @@ fn generate_pipeline_getter(_nodeMap : &collections::hashmap::HashMap<u64, schem
             match reg_field.get_type().which() {
                 None => fail!("unrecognized type"),
                 Some(Type::Struct(st)) => {
-                    let theMod = scopeMap.get(&st.get_type_id()).connect("::");
+                    let theMod = scope_map.get(&st.get_type_id()).connect("::");
                     return Branch(
                         box[Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
                                          camel_to_snake_case(name),
@@ -975,7 +970,7 @@ fn generate_pipeline_getter(_nodeMap : &collections::hashmap::HashMap<u64, schem
                             Line(box "}")]);
                 }
                 Some(Type::Interface(interface)) => {
-                    let theMod = scopeMap.get(&interface.get_type_id()).connect("::");
+                    let theMod = scope_map.get(&interface.get_type_id()).connect("::");
                     return Branch(
                         box[Line(format!("pub fn get_{}(&self) -> {}::Client \\{",
                                          camel_to_snake_case(name),
@@ -994,8 +989,8 @@ fn generate_pipeline_getter(_nodeMap : &collections::hashmap::HashMap<u64, schem
 }
 
 
-fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                 scopeMap : &collections::hashmap::HashMap<u64, ~[~str]>,
+fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+                 scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
                  rootName : &str,
                  node_id : u64,
                  node_name: &str) -> FormattedText {
@@ -1004,12 +999,12 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
     let mut output: ~[FormattedText] = ~[];
     let mut nested_output: ~[FormattedText] = ~[];
 
-    let nodeReader = nodeMap.get(&node_id);
+    let nodeReader = node_map.get(&node_id);
     let nestedNodes = nodeReader.get_nested_nodes();
     for ii in range(0, nestedNodes.size()) {
         let id = nestedNodes[ii].get_id();
-        nested_output.push(generate_node(nodeMap, scopeMap, rootName,
-                                         id, *scopeMap.get(&id).last().unwrap()));
+        nested_output.push(generate_node(node_map, scope_map, rootName,
+                                         id, *scope_map.get(&id).last().unwrap()));
     }
 
     match nodeReader.which() {
@@ -1038,7 +1033,7 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
                         };
             let isGroup = structReader.get_is_group();
             let discriminantCount = structReader.get_discriminant_count();
-            let discriminantOffset = structReader.get_discriminant_offset();
+            let discriminant_offset = structReader.get_discriminant_offset();
 
             preamble.push(generate_import_statements(rootName));
             preamble.push(BlankLine);
@@ -1067,8 +1062,8 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
                 let isUnionField = discriminantValue != Field::NO_DISCRIMINANT;
 
                 if !isUnionField {
-                    pipeline_impl_interior.push(generate_pipeline_getter(nodeMap, scopeMap, field));
-                    let (ty, get) = getter_text(nodeMap, scopeMap, &field, true);
+                    pipeline_impl_interior.push(generate_pipeline_getter(node_map, scope_map, field));
+                    let (ty, get) = getter_text(node_map, scope_map, &field, true);
 
                     reader_members.push(
                            Branch(~[
@@ -1077,7 +1072,7 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
                               Indent(~get),
                               Line(~"}")]));
 
-                    let (tyB, getB) = getter_text(nodeMap, scopeMap, &field, false);
+                    let (tyB, getB) = getter_text(node_map, scope_map, &field, false);
 
                     builder_members.push(
                         Branch(~[
@@ -1090,18 +1085,18 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
                     union_fields.push(field);
                 }
 
-                builder_members.push(generate_setter(nodeMap, scopeMap,
-                                                    discriminantOffset,
+                builder_members.push(generate_setter(node_map, scope_map,
+                                                    discriminant_offset,
                                                     styled_name, &field));
 
-                reader_members.push(generate_haser(discriminantOffset, styled_name, &field, true));
-                builder_members.push(generate_haser(discriminantOffset, styled_name, &field, false));
+                reader_members.push(generate_haser(discriminant_offset, styled_name, &field, true));
+                builder_members.push(generate_haser(discriminant_offset, styled_name, &field, false));
 
                 match field.which() {
                     Some(Field::Group(group)) => {
                         let id = group.get_type_id();
-                        let text = generate_node(nodeMap, scopeMap, rootName,
-                                                 id, *scopeMap.get(&id).last().unwrap());
+                        let text = generate_node(node_map, scope_map, rootName,
+                                                 id, *scope_map.get(&id).last().unwrap());
                         nested_output.push(text);
                     }
                     _ => { }
@@ -1111,15 +1106,15 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
 
             if discriminantCount > 0 {
                 let (which_enums1, union_getter, typedef) =
-                    generate_union(nodeMap, scopeMap, rootName,
-                                   discriminantOffset, union_fields, true);
+                    generate_union(node_map, scope_map, rootName,
+                                   discriminant_offset, union_fields, true);
                 which_enums.push(which_enums1);
                 which_enums.push(typedef);
                 reader_members.push(union_getter);
 
                 let (_, union_getter, typedef) =
-                    generate_union(nodeMap, scopeMap, rootName,
-                                   discriminantOffset, union_fields, false);
+                    generate_union(node_map, scope_map, rootName,
+                                   discriminant_offset, union_fields, false);
                 which_enums.push(typedef);
                 builder_members.push(union_getter);
             }
@@ -1193,7 +1188,7 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
         }
 
         Some(Node::Enum(enumReader)) => {
-            let names = scopeMap.get(&node_id);
+            let names = scope_map.get(&node_id);
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
 
@@ -1228,7 +1223,7 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
         }
 
         Some(Node::Interface(interface)) => {
-            let names = scopeMap.get(&node_id);
+            let names = scope_map.get(&node_id);
             let mut client_impl_interior = ~[];
             let mut server_interior = ~[];
             let mut mod_interior = ~[];
@@ -1248,11 +1243,11 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
 
                 method.get_code_order();
                 let params_id = method.get_param_struct_type();
-                let params_node = nodeMap.get(&params_id);
+                let params_node = node_map.get(&params_id);
                 let params_name = if params_node.get_scope_id() == 0 {
                     let params_name = format!("{}Params", capitalize_first_letter(name));
 
-                    nested_output.push(generate_node(nodeMap, scopeMap, rootName,
+                    nested_output.push(generate_node(node_map, scope_map, rootName,
                                                      params_id, params_name ));
                     params_name
                 } else {
@@ -1260,10 +1255,10 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
                 };
 
                 let results_id = method.get_result_struct_type();
-                let results_node = nodeMap.get(&results_id);
+                let results_node = node_map.get(&results_id);
                 let results_name = if results_node.get_scope_id() == 0 {
                     let results_name = format!("{}Results", capitalize_first_letter(name));
-                    nested_output.push(generate_node(nodeMap, scopeMap, rootName,
+                    nested_output.push(generate_node(node_map, scope_map, rootName,
                                                      results_id, results_name ));
                     results_name
                 } else {
@@ -1302,7 +1297,7 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
                 let extends = interface.get_extends();
                 for ii in range(0, extends.size()) {
                     let base_id = extends[ii];
-                    let the_mod = scopeMap.get(&base_id).connect("::");
+                    let the_mod = scope_map.get(&base_id).connect("::");
                     base_dispatch_arms.push(
                         Line(format!(
                                 "0x{:x} => {}::ServerDispatch::<T>::dispatch_call_internal(self.server, method_id, context),",
@@ -1395,7 +1390,7 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
         }
 
         Some(Node::Const(c)) => {
-            let names = scopeMap.get(&node_id);
+            let names = scope_map.get(&node_id);
             let styled_name = camel_to_upper_case(*names.last().unwrap());
 
             let (typ, txt) = match tuple_option(c.get_type().which(), c.get_value().which()) {
@@ -1451,40 +1446,39 @@ fn generate_node(nodeMap : &collections::hashmap::HashMap<u64, schema_capnp::Nod
 
 fn main() {
     use std::io::{Writer, File, Truncate, Write};
-    use capnp::serialize::*;
+    use capnp::serialize;
     use capnp::message::MessageReader;
 
     let mut inp = std::io::stdin();
 
-    let messageReader = serialize::new_reader(&mut inp, message::DefaultReaderOptions).unwrap();
+    let message = serialize::new_reader(&mut inp, message::DefaultReaderOptions).unwrap();
 
-    let codeGeneratorRequest : schema_capnp::CodeGeneratorRequest::Reader = messageReader.get_root();
+    let request : schema_capnp::CodeGeneratorRequest::Reader = message.get_root();
 
-    let mut nodeMap = collections::hashmap::HashMap::<u64, schema_capnp::Node::Reader>::new();
-    let mut scopeMap = collections::hashmap::HashMap::<u64, ~[~str]>::new();
+    let mut node_map = collections::hashmap::HashMap::<u64, schema_capnp::Node::Reader>::new();
+    let mut scope_map = collections::hashmap::HashMap::<u64, ~[~str]>::new();
 
-    let nodeListReader = codeGeneratorRequest.get_nodes();
-
-    for ii in range(0, nodeListReader.size()) {
-        nodeMap.insert(nodeListReader[ii].get_id(), nodeListReader[ii]);
+    let nodes = request.get_nodes();
+    for ii in range(0, nodes.size()) {
+        node_map.insert(nodes[ii].get_id(), nodes[ii]);
     }
 
-    let requestedFilesReader = codeGeneratorRequest.get_requested_files();
+    let files = request.get_requested_files();
 
-    for ii in range(0, requestedFilesReader.size()) {
-        let requestedFile = requestedFilesReader[ii];
-        let id = requestedFile.get_id();
-        let mut filepath = std::path::Path::new(requestedFile.get_filename());
+    for ii in range(0, files.size()) {
+        let requested_file = files[ii];
+        let id = requested_file.get_id();
+        let mut filepath = std::path::Path::new(requested_file.get_filename());
 
         let rootName : ~str = format!("{}_capnp",
                                   filepath.filestem_str().unwrap().replace("-", "_"));
 
         filepath.set_filename(format!("{}.rs", rootName));
-        populate_scope_map(&nodeMap, &mut scopeMap, rootName, id);
+        populate_scope_map(&node_map, &mut scope_map, rootName, id);
 
         let lines = Branch(~[Line(~"#[allow(unused_imports)];"),
                              Line(~"#[allow(dead_code)];"),
-                             generate_node(&nodeMap, &scopeMap,
+                             generate_node(&node_map, &scope_map,
                                            rootName, id, rootName)]);
 
         let text = stringify(&lines);
