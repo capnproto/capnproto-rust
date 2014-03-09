@@ -76,6 +76,7 @@ impl ServerHook for EzRpcClient {
 
 pub struct EzRpcServer {
     vat_chan : std::comm::Chan<VatEvent>,
+    tcp_acceptor : std::io::net::tcp::TcpAcceptor,
 }
 
 impl ServerHook for EzRpcServer {
@@ -97,20 +98,38 @@ impl EzRpcServer {
 
         let vat_chan = Vat::new();
 
-        let vat_chan2 = vat_chan.clone();
-        std::task::spawn(proc() {
-                let mut tcp_acceptor = tcp_acceptor;
-                for tcp_result in tcp_acceptor.incoming() {
-                    let tcp = tcp_result.unwrap();
-                    let connection_state = RpcConnectionState::new();
-                    let _rpc_chan = connection_state.run(tcp.clone(), tcp, vat_chan2.clone());
-                }
-            });
-
-        Ok(EzRpcServer { vat_chan : vat_chan })
+        Ok(EzRpcServer { vat_chan : vat_chan, tcp_acceptor : tcp_acceptor  })
     }
 
     pub fn export_cap(&self, name : &str, server : ~Server) {
         self.vat_chan.send(VatEventRegister(name.to_owned(), server))
+    }
+
+    pub fn serve(self) {
+        std::task::spawn(proc() {
+            let mut server = self;
+            for res in server.incoming() {
+                match res {
+                    Ok(()) => {}
+                    Err(e) => {
+                        println!("error: {}", e)
+                    }
+                }
+            }
+
+        });
+    }
+}
+
+impl std::io::Acceptor<()> for EzRpcServer {
+    fn accept(&mut self) -> std::io::IoResult<()> {
+
+        let vat_chan2 = self.vat_chan.clone();
+        let tcp = try!(self.tcp_acceptor.accept());
+        std::task::spawn(proc() {
+            let connection_state = RpcConnectionState::new();
+            let _rpc_chan = connection_state.run(tcp.clone(), tcp, vat_chan2.clone());
+        });
+        Ok(())
     }
 }
