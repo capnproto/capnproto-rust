@@ -20,9 +20,9 @@ pub mod server;
 pub fn main() {
     let args = std::os::args();
     if args.len() >= 2 {
-        match args[1] {
-            ~"client" => return client::main(),
-            ~"server" => return server::main(),
+        match args[1].as_slice() {
+            "client" => return client::main(),
+            "server" => return server::main(),
             _ => (),
         }
     }

@@ -90,9 +90,9 @@ pub fn main() {
     if args.len() < 2 {
         println!("usage: $ {} [write | read]", args[0]);
     } else {
-        match args[1] {
-            ~"write" => addressbook::write_address_book(),
-            ~"read" => addressbook::print_address_book(),
+        match args[1].as_slice() {
+            "write" => addressbook::write_address_book(),
+            "read" => addressbook::print_address_book(),
             _ => {println!("unrecognized argument") }
         }
     }

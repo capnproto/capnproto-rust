@@ -12,6 +12,7 @@
 
 extern crate capnp;
 extern crate native;
+extern crate rand;
 
 use capnp::message::{MessageReader, MessageBuilder};
 
@@ -251,16 +252,16 @@ macro_rules! pass_by_pipe(
 
 macro_rules! do_testcase(
     ( $testcase:ident, $mode:expr, $reuse:ident, $compression:ident, $iters:expr ) => ({
-            match $mode {
-                ~"object" => pass_by_object!($testcase, $reuse, $iters),
-                ~"bytes" => pass_by_bytes!($testcase, $reuse, $compression, $iters),
-                ~"client" => sync_client!($testcase, $reuse, $compression, $iters),
-                ~"server" => {
+            match $mode.as_slice() {
+                "object" => pass_by_object!($testcase, $reuse, $iters),
+                "bytes" => pass_by_bytes!($testcase, $reuse, $compression, $iters),
+                "client" => sync_client!($testcase, $reuse, $compression, $iters),
+                "server" => {
                     let mut input = std::io::stdio::stdin_raw();
                     let mut output = std::io::stdio::stdout_raw();
                     server!($testcase, $reuse, $compression, $iters, input, output)
                 }
-                ~"pipe" => pass_by_pipe!($testcase, $reuse, $compression, $iters),
+                "pipe" => pass_by_pipe!($testcase, $reuse, $compression, $iters),
                 s => fail!("unrecognized mode: {}", s)
             }
         });
@@ -268,10 +269,10 @@ macro_rules! do_testcase(
 
 macro_rules! do_testcase1(
     ( $testcase:expr, $mode:expr, $reuse:ident, $compression:ident, $iters:expr) => ({
-            match $testcase {
-                ~"carsales" => do_testcase!(carsales, $mode, $reuse, $compression, $iters),
-                ~"catrank" => do_testcase!(catrank, $mode, $reuse, $compression, $iters),
-                ~"eval" => do_testcase!(eval, $mode, $reuse, $compression, $iters),
+            match $testcase.as_slice() {
+                "carsales" => do_testcase!(carsales, $mode, $reuse, $compression, $iters),
+                "catrank" => do_testcase!(catrank, $mode, $reuse, $compression, $iters),
+                "eval" => do_testcase!(eval, $mode, $reuse, $compression, $iters),
                 s => fail!("unrecognized test case: {}", s)
             }
         });
@@ -279,12 +280,12 @@ macro_rules! do_testcase1(
 
 macro_rules! do_testcase2(
     ( $testcase:expr, $mode:expr, $reuse:expr, $compression:ident, $iters:expr) => ({
-            match $reuse {
-                ~"no-reuse" => {
+            match $reuse.as_slice() {
+                "no-reuse" => {
                     let mut scratch = NoScratch;
                     do_testcase1!($testcase, $mode, scratch, $compression, $iters)
                 }
-                ~"reuse" => {
+                "reuse" => {
                     let mut scratch = UseScratch::new();
                     do_testcase1!($testcase, $mode, scratch, $compression, $iters)
                 }
@@ -318,9 +319,9 @@ pub fn main() {
         }
     };
 
-    match args[4] {
-        ~"none" => do_testcase2!(args[1], args[2],  args[3], Uncompressed, iters),
-        ~"packed" => do_testcase2!(args[1], args[2], args[3], Packed, iters),
+    match args[4].as_slice() {
+        "none" => do_testcase2!(args[1], args[2],  args[3], Uncompressed, iters),
+        "packed" => do_testcase2!(args[1], args[2], args[3], Packed, iters),
         s => fail!("unrecognized compression: {}", s)
     }
 }

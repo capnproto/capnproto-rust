@@ -4,7 +4,7 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-use std::rand::*;
+use rand::*;
 use common::*;
 use carsales_capnp::*;
 

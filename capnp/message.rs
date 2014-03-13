@@ -29,15 +29,16 @@ pub trait MessageReader {
     fn mut_arena<'a>(&'a mut self) -> &'a mut ReaderArena;
     fn get_options<'a>(&'a self) -> &'a ReaderOptions;
 
-    fn get_root<'a, T : layout::FromStructReader<'a>>(&'a self) -> T {
+    // XXX lifetime should not be 'static
+    fn get_root<T : layout::FromStructReader<'static>>(&self) -> T {
         unsafe {
             let segment : *SegmentReader = &self.arena().segment0;
 
-            let pointer_reader = layout::PointerReader::get_root::<'a>(
+            let pointer_reader = layout::PointerReader::get_root(
                 segment, (*segment).get_start_ptr(), self.get_options().nestingLimit as int);
 
             let result : T = layout::FromStructReader::new(
-                pointer_reader.get_struct::<'a>(std::ptr::null()));
+                pointer_reader.get_struct(std::ptr::null()));
 
             result
         }
@@ -92,9 +93,10 @@ pub trait MessageBuilder {
     fn mut_arena<'a>(&'a mut self) -> &'a mut BuilderArena;
     fn arena<'a>(&'a self) -> &'a BuilderArena;
 
-    // XXX is there a way to make this private?
-    fn get_root_internal<'a>(&'a mut self) -> AnyPointer::Builder<'a> {
 
+
+    // XXX is there a way to make this private?
+    fn get_root_internal<'a>(&mut self) -> AnyPointer::Builder<'a> {
         let rootSegment = &mut self.mut_arena().segment0 as *mut SegmentBuilder;
 
         if self.arena().segment0.current_size() == 0 {
@@ -105,6 +107,7 @@ pub trait MessageBuilder {
                             "First allocated word of new segment was not at offset 0");
 
                     AnyPointer::Builder::new(layout::PointerBuilder::get_root(rootSegment, location))
+
                 }
             }
         } else {
@@ -115,11 +118,13 @@ pub trait MessageBuilder {
 
     }
 
-    fn init_root<'a, T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
+    // XXX lifetime should not be 'static
+    fn init_root<T : FromStructBuilder<'static> + HasStructSize>(&mut self) -> T {
         self.get_root_internal().init_as_struct()
     }
 
-    fn get_root<'a, T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
+    // XXX lifetime should not be 'static
+    fn get_root<T : FromStructBuilder<'static> + HasStructSize>(&mut self) -> T {
         self.get_root_internal().get_as_struct()
     }
 
