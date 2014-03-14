@@ -12,7 +12,7 @@ use serialize::{OwnedSpaceMessageReader};
 use std;
 
 pub struct ResultFuture<Results, Pipeline> {
-    answer_port : std::comm::Port<~OwnedSpaceMessageReader>,
+    answer_port : std::comm::Receiver<~OwnedSpaceMessageReader>,
     answer_result : Option<~OwnedSpaceMessageReader>,
     pipeline : Pipeline,
 }

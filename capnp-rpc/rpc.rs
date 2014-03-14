@@ -26,7 +26,7 @@ pub type ExportId = u32;
 pub type ImportId = ExportId;
 
 pub struct Question {
-    chan : std::comm::Chan<~OwnedSpaceMessageReader>,
+    chan : std::comm::Sender<~OwnedSpaceMessageReader>,
     is_awaiting_return : bool,
 }
 
@@ -136,7 +136,7 @@ pub struct RpcConnectionState {
 }
 
 fn client_hooks_of_payload(payload : Payload::Reader,
-                           rpc_chan : &std::comm::Chan<RpcEvent>) -> ~[Option<~ClientHook>] {
+                           rpc_chan : &std::comm::Sender<RpcEvent>) -> ~[Option<~ClientHook>] {
     let mut result : ~[Option<~ClientHook>] = ~[];
     let cap_table = payload.get_cap_table();
     for ii in range(0, cap_table.size()) {
@@ -174,7 +174,7 @@ fn client_hooks_of_payload(payload : Payload::Reader,
 }
 
 fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
-                      rpc_chan : &std::comm::Chan<RpcEvent>) {
+                      rpc_chan : &std::comm::Sender<RpcEvent>) {
     let mut the_cap_table : ~[Option<~ClientHook>] = ~[];
     {
         let root = message.get_root::<Message::Reader>();
@@ -231,10 +231,10 @@ impl RpcConnectionState {
     }
 
     pub fn run<T : std::io::Reader + Send, U : std::io::Writer + Send>(
-        self, inpipe: T, outpipe: U, vat_chan : std::comm::Chan<VatEvent>)
-         -> std::comm::Chan<RpcEvent> {
+        self, inpipe: T, outpipe: U, vat_chan : std::comm::Sender<VatEvent>)
+         -> std::comm::Sender<RpcEvent> {
 
-        let (port, result_rpc_chan) = std::comm::Chan::<RpcEvent>::new();
+        let (result_rpc_chan, port) = std::comm::channel::<RpcEvent>();
 
         let listener_chan = result_rpc_chan.clone();
 
@@ -253,7 +253,7 @@ impl RpcConnectionState {
             });
 
 
-        let (writer_port, writer_chan) = std::comm::Chan::<~MallocMessageBuilder>::new();
+        let (writer_chan, writer_port) = std::comm::channel::<~MallocMessageBuilder>();
 
         let writer_rpc_chan = result_rpc_chan.clone();
 
@@ -349,7 +349,7 @@ impl RpcConnectionState {
                                     Nobody
                                 }
                                 Some(Message::Restore(restore)) => {
-                                    let (port, chan) = std::comm::Chan::new();
+                                    let (chan, port) = std::comm::channel();
                                     vat_chan.send(
                                         VatEventRestore(restore.get_object_id().get_as_text().to_owned(), chan));
                                     let clienthook = port.recv().unwrap();
@@ -505,7 +505,7 @@ pub enum OwnedCapDescriptor {
 }
 
 pub struct ImportClient {
-    priv channel : std::comm::Chan<RpcEvent>,
+    priv channel : std::comm::Sender<RpcEvent>,
     import_id : ImportId,
 }
 
@@ -542,7 +542,7 @@ impl ClientHook for ImportClient {
 }
 
 pub struct PipelineClient {
-    priv channel : std::comm::Chan<RpcEvent>,
+    priv channel : std::comm::Sender<RpcEvent>,
     ops : ~[PipelineOp::Type],
     question_id : QuestionId,
 }
@@ -590,7 +590,7 @@ impl ClientHook for PipelineClient {
 }
 
 pub struct PromisedAnswerClient {
-    rpc_chan : std::comm::Chan<RpcEvent>,
+    rpc_chan : std::comm::Sender<RpcEvent>,
     ops : ~[PipelineOp::Type],
     answer_id : AnswerId,
 }
@@ -631,8 +631,8 @@ impl ClientHook for PromisedAnswerClient {
 }
 
 
-fn write_outgoing_cap_table(rpc_chan : &std::comm::Chan<RpcEvent>, message : &mut MallocMessageBuilder) {
-    fn write_payload(rpc_chan : &std::comm::Chan<RpcEvent>, cap_table : & [~std::any::Any],
+fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &mut MallocMessageBuilder) {
+    fn write_payload(rpc_chan : &std::comm::Sender<RpcEvent>, cap_table : & [~std::any::Any],
                      payload : Payload::Builder) {
         let new_cap_table = payload.init_cap_table(cap_table.len());
         for ii in range(0, cap_table.len()) {
@@ -658,7 +658,7 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Chan<RpcEvent>, message : &mu
                 None => {
                     match cap_table[ii].as_ref::<~ClientHook>() {
                         Some(clienthook) => {
-                            let (port, chan) = std::comm::Chan::<ExportId>::new();
+                            let (chan, port) = std::comm::channel::<ExportId>();
                             rpc_chan.send(NewLocalServer(clienthook.copy(), chan));
                             let idx = port.recv();
                             new_cap_table[ii].set_sender_hosted(idx);
@@ -701,7 +701,7 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Chan<RpcEvent>, message : &mu
 }
 
 pub struct RpcRequest {
-    priv channel : std::comm::Chan<RpcEvent>,
+    priv channel : std::comm::Sender<RpcEvent>,
     priv message : ~MallocMessageBuilder,
 }
 
@@ -727,7 +727,7 @@ impl RequestHook for RpcRequest {
 }
 
 pub struct PromisedAnswerRpcRequest {
-    rpc_chan : std::comm::Chan<RpcEvent>,
+    rpc_chan : std::comm::Sender<RpcEvent>,
     message : ~MallocMessageBuilder,
     answer_id : AnswerId,
     ops : ~[PipelineOp::Type],
@@ -753,7 +753,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
 
 
 pub struct RpcPipeline {
-    channel : std::comm::Chan<RpcEvent>,
+    channel : std::comm::Sender<RpcEvent>,
     question_id : ExportId,
 }
 
@@ -784,7 +784,7 @@ impl PipelineHook for PromisedAnswerRpcPipeline {
 pub struct Aborter {
     succeeded : bool,
     answer_id : AnswerId,
-    rpc_chan : std::comm::Chan<RpcEvent>,
+    rpc_chan : std::comm::Sender<RpcEvent>,
 }
 
 impl Drop for Aborter {
@@ -806,13 +806,13 @@ impl Drop for Aborter {
 pub struct RpcCallContext {
     params_message : ~OwnedSpaceMessageReader,
     results_message : ~MallocMessageBuilder,
-    rpc_chan : std::comm::Chan<RpcEvent>,
+    rpc_chan : std::comm::Sender<RpcEvent>,
     aborter : Aborter,
 }
 
 impl RpcCallContext {
     pub fn new(params_message : ~OwnedSpaceMessageReader,
-               rpc_chan : std::comm::Chan<RpcEvent>) -> RpcCallContext {
+               rpc_chan : std::comm::Sender<RpcEvent>) -> RpcCallContext {
         let answer_id = {
             let root : Message::Reader = params_message.get_root();
             match root.which() {
@@ -881,14 +881,14 @@ impl CallContextHook for RpcCallContext {
 pub struct PromisedAnswerRpcCallContext {
     params_message : ~OwnedSpaceMessageReader,
     results_message : ~MallocMessageBuilder,
-    rpc_chan : std::comm::Chan<RpcEvent>,
-    answer_chan : std::comm::Chan<~OwnedSpaceMessageReader>,
+    rpc_chan : std::comm::Sender<RpcEvent>,
+    answer_chan : std::comm::Sender<~OwnedSpaceMessageReader>,
 }
 
 impl PromisedAnswerRpcCallContext {
     pub fn new(params_message : ~MallocMessageBuilder,
-               rpc_chan : std::comm::Chan<RpcEvent>,
-               answer_chan : std::comm::Chan<~OwnedSpaceMessageReader>)
+               rpc_chan : std::comm::Sender<RpcEvent>,
+               answer_chan : std::comm::Sender<~OwnedSpaceMessageReader>)
                -> PromisedAnswerRpcCallContext {
 
 
@@ -961,8 +961,8 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 
 pub struct OutgoingMessage {
     message : ~MallocMessageBuilder,
-    answer_chan : std::comm::Chan<~OwnedSpaceMessageReader>,
-    question_chan : std::comm::Chan<QuestionId>,
+    answer_chan : std::comm::Sender<~OwnedSpaceMessageReader>,
+    question_chan : std::comm::Sender<QuestionId>,
 }
 
 
@@ -971,7 +971,7 @@ pub enum RpcEvent {
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
     OutgoingDeferred(OutgoingMessage, AnswerId, ~[PipelineOp::Type]),
-    NewLocalServer(~ClientHook, std::comm::Chan<ExportId>),
+    NewLocalServer(~ClientHook, std::comm::Sender<ExportId>),
     ReturnEvent(~MallocMessageBuilder),
     ShutdownEvent,
 }
@@ -979,11 +979,11 @@ pub enum RpcEvent {
 
 impl RpcEvent {
     pub fn new_outgoing(message : ~MallocMessageBuilder)
-                        -> (OutgoingMessage, std::comm::Port<~OwnedSpaceMessageReader>,
-                            std::comm::Port<ExportId>) {
-        let (answer_port, answer_chan) = std::comm::Chan::<~OwnedSpaceMessageReader>::new();
+                        -> (OutgoingMessage, std::comm::Receiver<~OwnedSpaceMessageReader>,
+                            std::comm::Receiver<ExportId>) {
+        let (answer_chan, answer_port) = std::comm::channel::<~OwnedSpaceMessageReader>();
 
-        let (question_port, question_chan) = std::comm::Chan::<ExportId>::new();
+        let (question_chan, question_port) = std::comm::channel::<ExportId>();
 
         (OutgoingMessage{ message : message,
                           answer_chan : answer_chan,
@@ -998,7 +998,7 @@ impl RpcEvent {
 
 
 pub enum VatEvent {
-    VatEventRestore(~str /* XXX */, std::comm::Chan<Option<~ClientHook>>),
+    VatEventRestore(~str /* XXX */, std::comm::Sender<Option<~ClientHook>>),
     VatEventRegister(~str /* XXX */, ~Server),
 }
 
@@ -1007,8 +1007,8 @@ pub struct Vat {
 }
 
 impl Vat {
-    pub fn new() -> std::comm::Chan<VatEvent> {
-        let (port, chan) = std::comm::Chan::<VatEvent>::new();
+    pub fn new() -> std::comm::Sender<VatEvent> {
+        let (chan, port) = std::comm::channel::<VatEvent>();
 
         std::task::spawn(proc() {
                 let mut vat = Vat { objects : HashMap::new() };

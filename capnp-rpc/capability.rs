@@ -17,7 +17,7 @@ use capnp::message::{MessageReader, MessageBuilder};
 use rpc_capnp::{Message, Return};
 
 pub struct LocalClient {
-    object_channel : std::comm::Chan<(u64, u16, ~CallContextHook)>,
+    object_channel : std::comm::Sender<(u64, u16, ~CallContextHook)>,
 }
 
 impl Clone for LocalClient {
@@ -28,7 +28,7 @@ impl Clone for LocalClient {
 
 impl LocalClient {
     pub fn new(server : ~Server) -> LocalClient {
-        let (port, chan) = std::comm::Chan::<(u64, u16, ~CallContextHook)>::new();
+        let (chan, port) = std::comm::channel::<(u64, u16, ~CallContextHook)>();
         std::task::spawn(proc () {
                 let mut server = server;
                 loop {
