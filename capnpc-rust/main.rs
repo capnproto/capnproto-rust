@@ -12,6 +12,7 @@
 extern crate collections;
 extern crate capnp;
 
+use std::vec_ng::Vec;
 use capnp::*;
 
 pub mod schema_capnp;
@@ -80,7 +81,7 @@ fn prim_type_str (typ : schema_capnp::Type::WhichReader) -> ~str {
 #[allow(dead_code)]
 fn camel_to_upper_case(s : &str) -> ~str {
     use std::ascii::*;
-    let mut result_chars : ~[char] = ~[];
+    let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() {
         assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
         if std::char::is_uppercase(c) {
@@ -88,12 +89,12 @@ fn camel_to_upper_case(s : &str) -> ~str {
         }
         result_chars.push((c as u8).to_ascii().to_upper().to_char());
     }
-    return std::str::from_chars(result_chars);
+    return std::str::from_chars(result_chars.as_slice());
 }
 
 fn camel_to_snake_case(s : &str) -> ~str {
     use std::ascii::*;
-    let mut result_chars : ~[char] = ~[];
+    let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() {
         assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}', i.e. {}", c, c as uint));
         if std::char::is_uppercase(c) {
@@ -101,15 +102,15 @@ fn camel_to_snake_case(s : &str) -> ~str {
         }
         result_chars.push((c as u8).to_ascii().to_lower().to_char());
     }
-    return std::str::from_chars(result_chars);
+    return std::str::from_chars(result_chars.as_slice());
 }
 
 fn capitalize_first_letter(s : &str) -> ~str {
     use std::ascii::*;
-    let mut result_chars : ~[char] = ~[];
+    let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() { result_chars.push(c) }
-    result_chars[0] = (result_chars[0] as u8).to_ascii().to_upper().to_char();
-    return std::str::from_chars(result_chars);
+    result_chars.as_mut_slice()[0] = (result_chars.as_slice()[0] as u8).to_ascii().to_upper().to_char();
+    return std::str::from_chars(result_chars.as_slice());
 }
 
 #[test]
@@ -130,26 +131,32 @@ fn test_camel_to_snake_case() {
 #[deriving(Eq)]
 enum FormattedText {
     Indent(~FormattedText),
-    Branch(~[FormattedText]),
+    Branch(Vec<FormattedText>),
     Line(~str),
     BlankLine
 }
 
-fn to_lines(ft : &FormattedText, indent : uint) -> ~[~str] {
+fn to_lines(ft : &FormattedText, indent : uint) -> Vec<~str> {
     match *ft {
         Indent (ref ft) => {
             return to_lines(*ft, indent + 1);
         }
         Branch (ref fts) => {
-            return fts.flat_map(|ft| {to_lines(ft, indent)});
+            let mut result = Vec::new();
+            for ft in fts.iter() {
+                for line in to_lines(ft, indent).iter() {
+                    result.push(line.clone());  // TODO there's probably a better way to do this.
+                }
+            }
+            return result;
         }
         Line(ref s) => {
             let mut s1 : ~str = std::str::from_chars(
-                std::vec::from_elem(indent * 2, ' '));
+                Vec::from_elem(indent * 2, ' ').as_slice());
             s1.push_str(*s);
-            return ~[s1];
+            return vec!(s1);
         }
-        BlankLine => return ~[~""]
+        BlankLine => return vec!(~"")
     }
 }
 
@@ -215,16 +222,16 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
 }
 
 fn generate_import_statements(rootName : &str) -> FormattedText {
-    Branch(~[
-            Line(~"use std;"),
-            Line(~"use capnp::any::AnyPointer;"),
-            Line(~"use capnp::capability::{FromClientHook, FromTypelessPipeline};"),
-            Line(~"use capnp::blob::{Text, Data};"),
-            Line(~"use capnp::layout;"),
-            Line(~"use capnp::layout::{FromStructBuilder, FromStructReader};"),
-            Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};"),
+    Branch(vec!(
+        Line(~"use std;"),
+        Line(~"use capnp::any::AnyPointer;"),
+        Line(~"use capnp::capability::{FromClientHook, FromTypelessPipeline};"),
+        Line(~"use capnp::blob::{Text, Data};"),
+        Line(~"use capnp::layout;"),
+        Line(~"use capnp::layout::{FromStructBuilder, FromStructReader};"),
+        Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};"),
         Line(format!("use {};", rootName))
-    ])
+    ))
 }
 
 fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
@@ -412,10 +419,10 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                     let theMod = scope.connect("::");
                     return
                         (format!("Option<{}::Reader>", theMod), // Enums don't have builders.
-                         Branch(
-                            ~[Line(format!("FromPrimitive::from_u16(self.{}.get_data_field::<u16>({}))",
+                         Branch(vec!(
+                            Line(format!("FromPrimitive::from_u16(self.{}.get_data_field::<u16>({}))",
                                         member, offset))
-                              ]));
+                              )));
                 }
                 Some((Type::Struct(st), _)) => {
                     let theMod = scope_map.get(&st.get_type_id()).connect("::");
@@ -468,7 +475,7 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
     use schema_capnp::*;
     match node_map.get(&node_id).which() {
         Some(Node::Struct(st)) => {
-            let mut result = ~[];
+            let mut result = Vec::new();
             if st.get_discriminant_count() != 0 {
                 result.push(
                     Line(format!("self.builder.set_data_field::<u16>({}, 0);",
@@ -533,10 +540,10 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 
     use schema_capnp::*;
 
-    let mut setter_interior = ~[];
+    let mut setter_interior = Vec::new();
     let mut setter_param = ~"value";
-    let mut initter_interior = ~[];
-    let mut initter_params = ~[];
+    let mut initter_interior = Vec::new();
+    let mut initter_params = Vec::new();
 
     let discriminantValue = field.get_discriminant_value();
     if discriminantValue != Field::NO_DISCRIMINANT {
@@ -566,7 +573,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
         }
         Some(Field::Slot(reg_field)) => {
             fn common_case (typ: &str, offset : uint, reg_field : Field::Slot::Reader,
-                            setter_interior : &mut ~[FormattedText] ) -> (Option<~str>, Option<~str>) {
+                            setter_interior : &mut Vec<FormattedText> ) -> (Option<~str>, Option<~str>) {
                 match prim_default(&reg_field.get_default_value()) {
                     None => {
                         setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
@@ -754,7 +761,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
             }
         }
     };
-    let mut result = ~[];
+    let mut result = Vec::new();
     match maybe_reader_type {
         Some(reader_type) => {
             result.push(Line(~"#[inline]"));
@@ -791,18 +798,18 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
 {
     use schema_capnp::*;
 
-    fn new_ty_param(ty_params : &mut ~[~str]) -> ~str {
+    fn new_ty_param(ty_params : &mut Vec<~str>) -> ~str {
         let result = format!("A{}", ty_params.len());
         ty_params.push(result.clone());
         result
     }
 
-    let mut getter_interior = ~[];
-    let mut interior = ~[];
-    let mut enum_interior = ~[];
+    let mut getter_interior = Vec::new();
+    let mut interior = Vec::new();
+    let mut enum_interior = Vec::new();
 
-    let mut ty_params = box [];
-    let mut ty_args = box[];
+    let mut ty_params = Vec::new();
+    let mut ty_args = Vec::new();
 
     let doffset = discriminant_offset as uint;
 
@@ -815,13 +822,13 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
 
         let (ty, get) = getter_text(node_map, scope_map, field, is_reader);
 
-        getter_interior.push(Branch(~[
+        getter_interior.push(Branch(vec!(
                     Line(format!("{} => \\{", dvalue)),
                     Indent(~Line(format!("return std::option::Some({}(", enumerantName.clone()))),
                     Indent(~Indent(~get)),
                     Indent(~Line(~"));")),
                     Line(~"}")
-                ]));
+                )));
 
         let ty1 = match field.which() {
             Some(Field::Group(_)) => {
@@ -853,19 +860,19 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
     getter_interior.push(Line(~"_ => return std::option::None"));
 
     interior.push(
-        Branch(~[Line(format!("pub enum {} \\{", enum_name)),
-                 Indent(~Branch(enum_interior)),
-                 Line(~"}")]));
+        Branch(vec!(Line(format!("pub enum {} \\{", enum_name)),
+                    Indent(~Branch(enum_interior)),
+                    Line(~"}"))));
 
 
     let result = if is_reader {
         Branch(interior)
     } else {
-        Branch(~[Line(~"pub mod Which {"),
-                 Indent(~generate_import_statements(root_name)),
-                 BlankLine,
-                 Indent(~Branch(interior)),
-                 Line(~"}")])
+        Branch(vec!(Line(~"pub mod Which {"),
+                    Indent(~generate_import_statements(root_name)),
+                    BlankLine,
+                    Indent(~Branch(interior)),
+                    Line(~"}")))
     };
 
     let field_name = if is_reader { "reader" } else { "builder" };
@@ -880,15 +887,14 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
                                if ty_args.len() > 0 {format!("<'a,{}>",ty_args.connect(","))} else {~""}));
 
     let getter_result =
-        Branch(~[Line(~"#[inline]"),
-                 Line(format!("pub fn which(&self) -> std::option::Option<{}> \\{",
-                              concrete_type)),
-                 Indent(~Branch(~[
-                     Line(format!("match self.{}.get_data_field::<u16>({}) \\{", field_name, doffset)),
-                     Indent(~Branch(getter_interior)),
-                     Line(~"}")
-                 ])),
-                 Line(~"}")]);
+        Branch(vec!(Line(~"#[inline]"),
+                    Line(format!("pub fn which(&self) -> std::option::Option<{}> \\{",
+                                 concrete_type)),
+                    Indent(~Branch(vec!(
+                        Line(format!("match self.{}.get_data_field::<u16>({}) \\{", field_name, doffset)),
+                        Indent(~Branch(getter_interior)),
+                        Line(~"}")))),
+                    Line(~"}")));
 
     // TODO set_which() for builders?
 
@@ -902,8 +908,8 @@ fn generate_haser(discriminant_offset : u32,
 
     use schema_capnp::*;
 
-    let mut result = ~[];
-    let mut interior = ~[];
+    let mut result = Vec::new();
+    let mut interior = Vec::new();
     let member = if is_reader { "reader" } else { "builder" };
 
     let discriminant_value = field.get_discriminant_value();
@@ -949,39 +955,39 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
             let theMod = scope_map.get(&group.get_type_id()).connect("::");
-            return Branch(box[Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
-                                           camel_to_snake_case(name),
-                                           theMod)),
-                              Indent(box Line(box "FromTypelessPipeline::new(self._typeless.noop())")),
-                              Line(box "}")]);
+            return Branch(vec!(Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
+                                            camel_to_snake_case(name),
+                                            theMod)),
+                               Indent(box Line(box "FromTypelessPipeline::new(self._typeless.noop())")),
+                               Line(box "}")));
         }
         Some(Field::Slot(reg_field)) => {
             match reg_field.get_type().which() {
                 None => fail!("unrecognized type"),
                 Some(Type::Struct(st)) => {
                     let theMod = scope_map.get(&st.get_type_id()).connect("::");
-                    return Branch(
-                        box[Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
-                                         camel_to_snake_case(name),
-                                         theMod)),
-                            Indent(box Line(
-                                    format!("FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
-                                            reg_field.get_offset()))),
-                            Line(box "}")]);
+                    return Branch(vec!(
+                        Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
+                                     camel_to_snake_case(name),
+                                     theMod)),
+                        Indent(box Line(
+                            format!("FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
+                                    reg_field.get_offset()))),
+                        Line(box "}")));
                 }
                 Some(Type::Interface(interface)) => {
                     let theMod = scope_map.get(&interface.get_type_id()).connect("::");
-                    return Branch(
-                        box[Line(format!("pub fn get_{}(&self) -> {}::Client \\{",
-                                         camel_to_snake_case(name),
-                                         theMod)),
-                            Indent(box Line(
-                                    format!("FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
-                                            reg_field.get_offset()))),
-                            Line(box "}")]);
+                    return Branch(vec!(
+                        Line(format!("pub fn get_{}(&self) -> {}::Client \\{",
+                                     camel_to_snake_case(name),
+                                     theMod)),
+                        Indent(box Line(
+                            format!("FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
+                                    reg_field.get_offset()))),
+                        Line(box "}")));
                 }
                 _ => {
-                    return Branch(box []);
+                    return Branch(Vec::new());
                 }
             }
         }
@@ -996,8 +1002,8 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                  node_name: &str) -> FormattedText {
     use schema_capnp::*;
 
-    let mut output: ~[FormattedText] = ~[];
-    let mut nested_output: ~[FormattedText] = ~[];
+    let mut output: Vec<FormattedText> = Vec::new();
+    let mut nested_output: Vec<FormattedText> = Vec::new();
 
     let nodeReader = node_map.get(&node_id);
     let nestedNodes = nodeReader.get_nested_nodes();
@@ -1017,12 +1023,12 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", node_name)));
 
-            let mut preamble = ~[];
-            let mut builder_members = ~[];
-            let mut reader_members = ~[];
-            let mut union_fields = ~[];
-            let mut which_enums = ~[];
-            let mut pipeline_impl_interior = ~[];
+            let mut preamble = Vec::new();
+            let mut builder_members = Vec::new();
+            let mut reader_members = Vec::new();
+            let mut union_fields = Vec::new();
+            let mut which_enums = Vec::new();
+            let mut pipeline_impl_interior = Vec::new();
 
             let dataSize = structReader.get_data_word_count();
             let pointerSize = structReader.get_pointer_count();
@@ -1066,20 +1072,20 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                     let (ty, get) = getter_text(node_map, scope_map, &field, true);
 
                     reader_members.push(
-                           Branch(~[
-                              Line(~"#[inline]"),
-                              Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, ty)),
-                              Indent(~get),
-                              Line(~"}")]));
+                        Branch(vec!(
+                            Line(~"#[inline]"),
+                            Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, ty)),
+                            Indent(~get),
+                            Line(~"}"))));
 
                     let (tyB, getB) = getter_text(node_map, scope_map, &field, false);
 
                     builder_members.push(
-                        Branch(~[
-                                Line(~"#[inline]"),
-                                Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, tyB)),
-                                Indent(~getB),
-                                Line(~"}")]));
+                        Branch(vec!(
+                            Line(~"#[inline]"),
+                            Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, tyB)),
+                            Indent(~getB),
+                            Line(~"}"))));
 
                 } else {
                     union_fields.push(field);
@@ -1107,82 +1113,80 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             if discriminantCount > 0 {
                 let (which_enums1, union_getter, typedef) =
                     generate_union(node_map, scope_map, rootName,
-                                   discriminant_offset, union_fields, true);
+                                   discriminant_offset, union_fields.as_slice(), true);
                 which_enums.push(which_enums1);
                 which_enums.push(typedef);
                 reader_members.push(union_getter);
 
                 let (_, union_getter, typedef) =
                     generate_union(node_map, scope_map, rootName,
-                                   discriminant_offset, union_fields, false);
+                                   discriminant_offset, union_fields.as_slice(), false);
                 which_enums.push(typedef);
                 builder_members.push(union_getter);
             }
 
             let builderStructSize =
-                if isGroup { Branch(~[] ) }
+                if isGroup { Branch(Vec::new()) }
                 else {
-                  Branch(~[
-                       Line(~"impl <'a> layout::HasStructSize for Builder<'a> {"),
-                       Indent(~Branch(~[Line(~"#[inline]"),
-                                        Line(~"fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }")])),
-                       Line(~"}")])
+                    Branch(vec!(
+                        Line(~"impl <'a> layout::HasStructSize for Builder<'a> {"),
+                        Indent(~Branch(vec!(Line(~"#[inline]"),
+                                            Line(~"fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }")))),
+                       Line(~"}")))
             };
 
-            let accessors =
-                ~[Branch(preamble),
-                  // TODO figure out how to arrange that this field can be private.
-                  Line(~"pub struct Reader<'a> { reader : layout::StructReader<'a> }"),
-                  BlankLine,
-                  Line(~"impl <'a> layout::FromStructReader<'a> for Reader<'a> {"),
-                  Indent(
-                    ~Branch(
-                        ~[Line(~"fn new(reader: layout::StructReader<'a>) -> Reader<'a> {"),
-                          Indent(~Line(~"Reader { reader : reader }")),
-                          Line(~"}")])),
-                  Line(~"}"),
-                  BlankLine,
-                  Line(~"impl <'a> Reader<'a> {"),
-                  Indent(~Branch(reader_members)),
-                  Line(~"}"),
-                  BlankLine,
-                  Line(~"pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }"),
-                  builderStructSize,
-                  Line(~"impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {"),
-                  Indent(
-                      ~Branch(
-                          ~[Line(~"fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {"),
-                            Indent(~Line(~"Builder { builder : builder }")),
-                            Line(~"}")
-                            ])),
-                  Line(~"}"),
+            let accessors = vec!(
+                Branch(preamble),
+                // TODO figure out how to arrange that this field can be private.
+                Line(~"pub struct Reader<'a> { reader : layout::StructReader<'a> }"),
+                BlankLine,
+                Line(~"impl <'a> layout::FromStructReader<'a> for Reader<'a> {"),
+                Indent(
+                    ~Branch(vec!(
+                        Line(~"fn new(reader: layout::StructReader<'a>) -> Reader<'a> {"),
+                        Indent(~Line(~"Reader { reader : reader }")),
+                        Line(~"}")))),
+                Line(~"}"),
+                BlankLine,
+                Line(~"impl <'a> Reader<'a> {"),
+                Indent(~Branch(reader_members)),
+                Line(~"}"),
+                BlankLine,
+                Line(~"pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }"),
+                builderStructSize,
+                Line(~"impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {"),
+                Indent(
+                    ~Branch(vec!(
+                        Line(~"fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {"),
+                        Indent(~Line(~"Builder { builder : builder }")),
+                        Line(~"}")))),
+                Line(~"}"),
 
-                  Line(~"impl <'a> Builder<'a> {"),
-                  Indent(
-                      ~Branch(
-                          ~[Line(~"pub fn as_reader(&self) -> Reader<'a> {"),
-                            Indent(~Line(~"FromStructReader::new(self.builder.as_reader())")),
-                            Line(~"}")
-                            ])),
-                  Indent(~Branch(builder_members)),
-                  Line(~"}"),
-                  BlankLine,
-                  Line(box"pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }"),
-                  Line(box"impl FromTypelessPipeline for Pipeline {"),
-                  Indent(
-                    box Branch(
-                        box [ Line(box "fn new(typeless : AnyPointer::Pipeline) -> Pipeline {"),
-                              Indent(box Line(box "Pipeline { _typeless : typeless }")),
-                              Line( box "}")])),
-                  Line(box"}"),
-                  Line(box "impl Pipeline {"),
-                  Indent(box Branch(pipeline_impl_interior)),
-                  Line(box"}"),
-                  ];
+                Line(~"impl <'a> Builder<'a> {"),
+                Indent(
+                    ~Branch(vec!(
+                        Line(~"pub fn as_reader(&self) -> Reader<'a> {"),
+                        Indent(~Line(~"FromStructReader::new(self.builder.as_reader())")),
+                        Line(~"}")))),
+                Indent(~Branch(builder_members)),
+                Line(~"}"),
+                BlankLine,
+                Line(box"pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }"),
+                Line(box"impl FromTypelessPipeline for Pipeline {"),
+                Indent(
+                    box Branch(vec!(
+                        Line(box "fn new(typeless : AnyPointer::Pipeline) -> Pipeline {"),
+                        Indent(box Line(box "Pipeline { _typeless : typeless }")),
+                        Line( box "}")))),
+                Line(box"}"),
+                Line(box "impl Pipeline {"),
+                Indent(box Branch(pipeline_impl_interior)),
+                Line(box"}")
+                );
 
-            output.push(Indent(~Branch(~[Branch(accessors),
-                                         Branch(which_enums),
-                                         Branch(nested_output)])));
+            output.push(Indent(~Branch(vec!(Branch(accessors),
+                                            Branch(which_enums),
+                                            Branch(nested_output)))));
             output.push(Line(~"}"));
 
         }
@@ -1195,7 +1199,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             output.push(Indent(~Line(~"use capnp::list::{ToU16};")));
             output.push(BlankLine);
 
-            let mut members = ~[];
+            let mut members = Vec::new();
             let enumerants = enumReader.get_enumerants();
             for ii in range(0, enumerants.size()) {
                 let enumerant = enumerants[ii];
@@ -1204,30 +1208,32 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                               ii)));
             }
 
-            output.push(Indent(~Branch(~[Line(~"#[repr(u16)]"),
-                                         Line(~"#[deriving(FromPrimitive)]"),
-                                         Line(~"#[deriving(Eq)]"),
-                                         Line(~"pub enum Reader {"),
-                                         Indent(~Branch(members)),
-                                         Line(~"}")])));
+            output.push(Indent(~Branch(vec!(
+                Line(~"#[repr(u16)]"),
+                Line(~"#[deriving(FromPrimitive)]"),
+                Line(~"#[deriving(Eq)]"),
+                Line(~"pub enum Reader {"),
+                Indent(~Branch(members)),
+                Line(~"}")))));
+
             output.push(
                 Indent(
-                    ~Branch(
-                        ~[Line(~"impl ToU16 for Reader {"),
-                          Indent(~Line(~"#[inline]")),
-                          Indent(
+                    ~Branch(vec!(
+                        Line(~"impl ToU16 for Reader {"),
+                        Indent(~Line(~"#[inline]")),
+                        Indent(
                             ~Line(~"fn to_u16(self) -> u16 { self as u16 }")),
-                          Line(~"}")])));
+                        Line(~"}")))));
 
             output.push(Line(~"}"));
         }
 
         Some(Node::Interface(interface)) => {
             let names = scope_map.get(&node_id);
-            let mut client_impl_interior = ~[];
-            let mut server_interior = ~[];
-            let mut mod_interior = ~[];
-            let mut dispatch_arms = ~[];
+            let mut client_impl_interior = Vec::new();
+            let mut server_interior = Vec::new();
+            let mut mod_interior = Vec::new();
+            let mut dispatch_arms = Vec::new();
 
             mod_interior.push(Line(box "use capnp::any::AnyPointer;"));
             mod_interior.push(
@@ -1291,9 +1297,9 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 method.get_annotations();
             }
 
-            let mut base_dispatch_arms = box [];
+            let mut base_dispatch_arms = Vec::new();
             let server_base = {
-                let mut base_traits = ~[];
+                let mut base_traits = Vec::new();
                 let extends = interface.get_extends();
                 for ii in range(0, extends.size()) {
                     let base_id = extends[ii];
@@ -1304,7 +1310,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                                 base_id, the_mod)));
                     base_traits.push(format!("{}::Server", the_mod));
                 }
-                if extends.size() > 0 { format!(": {}", base_traits.connect(" + ")) }
+                if extends.size() > 0 { format!(": {}", base_traits.as_slice().connect(" + ")) }
                 else { box "" }
             };
 
@@ -1312,75 +1318,74 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             mod_interior.push(BlankLine);
             mod_interior.push(Line(~"pub struct Client{ client : capability::Client }"));
             mod_interior.push(
-                    Branch(~[
-                            Line(box "impl FromClientHook for Client {"),
-                            Indent(~Line(box "fn new(hook : ~ClientHook) -> Client {")),
-                            Indent(~Indent(box Line(box "Client { client : capability::Client::new(hook) }"))),
-                            Indent(~Line(box "}")),
-                            Line(box "}")]));
+                Branch(vec!(
+                    Line(box "impl FromClientHook for Client {"),
+                    Indent(~Line(box "fn new(hook : ~ClientHook) -> Client {")),
+                    Indent(~Indent(box Line(box "Client { client : capability::Client::new(hook) }"))),
+                    Indent(~Line(box "}")),
+                    Line(box "}"))));
 
 
             mod_interior.push(
-                Branch(
-                    box [
-                        Line(box "impl <T:ServerHook, U : Server + Send> FromServer<T,U> for Client {"),
-                        Indent(box Branch(
-                                box [Line(box "fn new(_hook : Option<T>, server : ~U) -> Client {"),
-                                     Indent(
-                                        box Line(box "Client { client : ServerHook::new_client(None::<T>, ~ServerDispatch { server : server})}")),
-                                     Line(box "}")])),
-                        Line(box "}")]));
+                Branch(vec!(
+                    Line(box "impl <T:ServerHook, U : Server + Send> FromServer<T,U> for Client {"),
+                    Indent(box Branch( vec!(
+                        Line(box "fn new(_hook : Option<T>, server : ~U) -> Client {"),
+                        Indent(
+                            box Line(box "Client { client : ServerHook::new_client(None::<T>, ~ServerDispatch { server : server})}")),
+                        Line(box "}")))),
+                    Line(box "}"))));
 
 
             mod_interior.push(
-                    Branch(~[
-                            Line(box "impl Clone for Client {"),
-                            Indent(~Line(box "fn clone(&self) -> Client {")),
-                            Indent(~Indent(box Line(box "Client { client : capability::Client::new(self.client.hook.copy()) }"))),
-                            Indent(~Line(box "}")),
-                            Line(box "}")]));
+                    Branch(vec!(
+                        Line(box "impl Clone for Client {"),
+                        Indent(~Line(box "fn clone(&self) -> Client {")),
+                        Indent(~Indent(box Line(box "Client { client : capability::Client::new(self.client.hook.copy()) }"))),
+                        Indent(~Line(box "}")),
+                        Line(box "}"))));
 
 
             mod_interior.push(
-                Branch(box [Line(~"impl Client {"),
+                Branch(vec!(Line(~"impl Client {"),
                             Indent(box Branch(client_impl_interior)),
-                            Line(box "}")]));
+                            Line(box "}"))));
 
-            mod_interior.push(Branch(box [Line(format!("pub trait Server {} \\{", server_base)),
+            mod_interior.push(Branch(vec!(Line(format!("pub trait Server {} \\{", server_base)),
                                           Indent(box Branch(server_interior)),
-                                          Line(box "}")]));
+                                          Line(box "}"))));
 
-            mod_interior.push(Branch(box [Line(box "pub struct ServerDispatch<T> {"),
+            mod_interior.push(Branch(vec!(Line(box "pub struct ServerDispatch<T> {"),
                                           Indent(box Line(box "server : ~T,")),
-                                          Line(box "}")]));
+                                          Line(box "}"))));
 
             mod_interior.push(
-                Branch(
-                    box [Line(box "impl <T : Server> capability::Server for ServerDispatch<T> {"),
-                         Indent(box Line(box "fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
-                         Indent(box Indent(box Line(box "match interface_id {"))),
-                         Indent(box Indent(box Indent(
-                                    box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(self.server, method_id, context),",
+                Branch(vec!(
+                    Line(box "impl <T : Server> capability::Server for ServerDispatch<T> {"),
+                    Indent(box Line(box "fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
+                    Indent(box Indent(box Line(box "match interface_id {"))),
+                    Indent(box Indent(box Indent(
+                        box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(self.server, method_id, context),",
                                                      node_id))))),
-                         Indent(box Indent(box Indent(box Branch(base_dispatch_arms)))),
-                         Indent(box Indent(box Indent(box Line(box "_ => {}")))),
-                         Indent(box Indent(box Line(box "}"))),
-                         Indent(box Line(box "}")),
-                         Line(box "}")]));
+                    Indent(box Indent(box Indent(box Branch(base_dispatch_arms)))),
+                    Indent(box Indent(box Indent(box Line(box "_ => {}")))),
+                    Indent(box Indent(box Line(box "}"))),
+                    Indent(box Line(box "}")),
+                    Line(box "}"))));
 
             mod_interior.push(
-                Branch(
-                    box [Line(box "impl <T : Server> ServerDispatch<T> {"),
-                         Indent(box Line(box "pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
-                         Indent(box Indent(box Line(box "match method_id {"))),
-                         Indent(box Indent(box Indent(box Branch(dispatch_arms)))),
-                         Indent(box Indent(box Indent(box Line(box "_ => {}")))),
-                         Indent(box Indent(box Line(box "}"))),
-                         Indent(box Line(box "}")),
-                         Line(box "}")]));
+                Branch(vec!(
+                    Line(box "impl <T : Server> ServerDispatch<T> {"),
+                    Indent(box Line(box "pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
+                    Indent(box Indent(box Line(box "match method_id {"))),
+                    Indent(box Indent(box Indent(box Branch(dispatch_arms)))),
+                    Indent(box Indent(box Indent(box Line(box "_ => {}")))),
+                    Indent(box Indent(box Line(box "}"))),
+                    Indent(box Line(box "}")),
+                    Line(box "}"))));
 
 
-            mod_interior.push(Branch(~[Branch(nested_output)]));
+            mod_interior.push(Branch(vec!(Branch(nested_output))));
 
 
             output.push(BlankLine);
@@ -1476,10 +1481,10 @@ fn main() {
         filepath.set_filename(format!("{}.rs", rootName));
         populate_scope_map(&node_map, &mut scope_map, rootName, id);
 
-        let lines = Branch(~[Line(~"#[allow(unused_imports)];"),
-                             Line(~"#[allow(dead_code)];"),
-                             generate_node(&node_map, &scope_map,
-                                           rootName, id, rootName)]);
+        let lines = Branch(vec!(Line(~"#[allow(unused_imports)];"),
+                                Line(~"#[allow(dead_code)];"),
+                                generate_node(&node_map, &scope_map,
+                                              rootName, id, rootName)));
 
         let text = stringify(&lines);
 
