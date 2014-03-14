@@ -88,7 +88,7 @@ impl NoScratch {
 }
 
 pub struct UseScratch {
-    scratch_space : ~[capnp::common::Word]
+    scratch_space : std::vec_ng::Vec<capnp::common::Word>
 }
 
 impl UseScratch {
@@ -103,7 +103,7 @@ impl UseScratch {
         unsafe {
             capnp::message::ScratchSpaceMallocMessageBuilder::new_default(
                 std::cast::transmute(
-                    std::raw::Slice { data : self.scratch_space.unsafe_ref(idx * SCRATCH_SIZE),
+                    std::raw::Slice { data : self.scratch_space.as_slice().unsafe_ref(idx * SCRATCH_SIZE),
                                       len : SCRATCH_SIZE }))
         }
     }

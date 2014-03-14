@@ -5,6 +5,7 @@
  */
 
 use std;
+use std::vec_ng::Vec;
 use common::*;
 use endian::*;
 use message::*;
@@ -16,7 +17,7 @@ pub struct OwnedSpaceMessageReader {
     priv options : ReaderOptions,
     priv arena : ~arena::ReaderArena,
     priv segment_slices : ~[(uint, uint)],
-    priv owned_space : ~[Word],
+    priv owned_space : Vec<Word>,
 }
 
 impl MessageReader for OwnedSpaceMessageReader {
@@ -87,11 +88,11 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
                               receiving end, see capnp::ReaderOptions.");
     }
 
-    let mut ownedSpace : ~[Word] = allocate_zeroed_words(totalWords as uint);
+    let mut ownedSpace : Vec<Word> = allocate_zeroed_words(totalWords as uint);
     let bufLen = totalWords as uint * BYTES_PER_WORD;
 
     unsafe {
-        let ptr : *mut u8 = std::cast::transmute(ownedSpace.unsafe_mut_ref(0));
+        let ptr : *mut u8 = std::cast::transmute(ownedSpace.as_mut_slice().as_mut_ptr());
         try!(std::vec::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(ptr, bufLen, |buf| {
                     io::read_at_least(inputStream, buf, bufLen)
                 }));
@@ -137,21 +138,21 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
 
             let tableSize : uint = (segments.len() + 2) & (!1);
 
-            let mut table : ~[WireValue<u32>] = std::vec::with_capacity(tableSize);
+            let mut table : Vec<WireValue<u32>> = Vec::with_capacity(tableSize);
             unsafe { table.set_len(tableSize) }
 
-            table[0].set((segments.len() - 1) as u32);
+            table.as_mut_slice()[0].set((segments.len() - 1) as u32);
 
             for i in range(0, segments.len()) {
-                table[i + 1].set(segments[i].len() as u32);
+                table.as_mut_slice()[i + 1].set(segments[i].len() as u32);
             }
             if segments.len() % 2 == 0 {
                 // Set padding.
-                table[segments.len() + 1].set( 0 );
+                table.as_mut_slice()[segments.len() + 1].set( 0 );
             }
 
             unsafe {
-                let ptr : *u8 = std::cast::transmute(table.unsafe_ref(0));
+                let ptr : *u8 = std::cast::transmute(table.as_ptr());
                 try!(std::vec::raw::buf_as_slice::<u8,std::io::IoResult<()>>(ptr, table.len() * 4, |buf| {
                         outputStream.write(buf)
                     }));

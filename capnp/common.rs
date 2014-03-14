@@ -6,6 +6,7 @@
 
 
 use std;
+use std::vec_ng::Vec;
 
 pub type BitCount0 = uint; // `BitCount` clashes with a standard trait
 pub type BitCount8 = u8;
@@ -58,15 +59,15 @@ pub fn bits_per_element<T>() -> BitCount0 {
 }
 
 #[inline]
-pub fn allocate_zeroed_words(size : WordCount) -> ~[Word] {
+pub fn allocate_zeroed_words(size : WordCount) -> Vec<Word> {
 
 //    Do this, but faster:
-//    return std::vec::from_elem(size, 0);
+//    return std::vec::Vec::from_elem(size, 0);
 
-    let mut result : ~[Word] = std::vec::with_capacity(size);
+    let mut result : Vec<Word> = Vec::with_capacity(size);
     unsafe {
         result.set_len(size);
-        let p : *mut u8 = std::cast::transmute(result.unsafe_mut_ref(0));
+        let p : *mut u8 = std::cast::transmute(result.as_mut_slice().as_mut_ptr());
         std::ptr::set_memory(p, 0, size * BYTES_PER_WORD);
     }
     return result;
