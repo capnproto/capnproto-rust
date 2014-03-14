@@ -10,6 +10,7 @@ use layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use message::{MallocMessageBuilder};
 use serialize::{OwnedSpaceMessageReader};
 use std;
+use std::vec_ng::Vec;
 
 pub struct ResultFuture<Results, Pipeline> {
     answer_port : std::comm::Receiver<~OwnedSpaceMessageReader>,
@@ -130,7 +131,7 @@ pub fn internal_get_typed_context<Params, Results>(
 
 pub trait PipelineHook {
     fn copy(&self) -> ~PipelineHook;
-    fn get_pipelined_cap(&self, ops : ~[PipelineOp::Type]) -> ~ClientHook;
+    fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> ~ClientHook;
 }
 
 pub mod PipelineOp {

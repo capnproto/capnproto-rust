@@ -6,6 +6,7 @@
 
 pub mod AnyPointer {
     use std;
+    use std::vec_ng::Vec;
     use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
     use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
                  HasStructSize, StructReader};
@@ -114,12 +115,12 @@ pub mod AnyPointer {
 
     pub struct Pipeline {
         hook : ~PipelineHook,
-        ops : ~[PipelineOp::Type],
+        ops : Vec<PipelineOp::Type>,
     }
 
     impl Pipeline {
         pub fn new(hook : ~PipelineHook) -> Pipeline {
-            Pipeline { hook : hook, ops : box[] }
+            Pipeline { hook : hook, ops : Vec::new() }
         }
 
         pub fn noop(&self) -> Pipeline {
@@ -127,7 +128,7 @@ pub mod AnyPointer {
         }
 
         pub fn get_pointer_field(&self, pointer_index : u16) -> Pipeline {
-            let mut new_ops = std::vec::with_capacity(self.ops.len() + 1);
+            let mut new_ops = Vec::with_capacity(self.ops.len() + 1);
             for &op in self.ops.iter() {
                 new_ops.push(op)
             }

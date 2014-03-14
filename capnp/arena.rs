@@ -5,6 +5,7 @@
  */
 
 use std;
+use std::vec_ng::Vec;
 use capability::ClientHook;
 use common::*;
 use common::ptr_sub;
@@ -107,7 +108,7 @@ pub struct ReaderArena {
     more_segments : Option<~[SegmentReader]>,
         //XXX should this be a map as in capnproto-c++?
 
-    cap_table : ~[Option<~ClientHook>],
+    cap_table : Vec<Option<~ClientHook>>,
 }
 
 impl ReaderArena {
@@ -120,7 +121,7 @@ impl ReaderArena {
                 size : segments[0].len()
             },
             more_segments : None,
-            cap_table : ~[]
+            cap_table : Vec::new()
         };
 
 
@@ -158,7 +159,7 @@ impl ReaderArena {
     }
 
     #[inline]
-    pub fn init_cap_table(&mut self, cap_table : ~[Option<~ClientHook>]) {
+    pub fn init_cap_table(&mut self, cap_table : Vec<Option<~ClientHook>>) {
         self.cap_table = cap_table;
     }
 
@@ -374,7 +375,7 @@ impl ArenaPtr {
             match self {
                 &ReaderArenaPtr(reader) => {
                     if index < (*reader).cap_table.len() {
-                        match (*reader).cap_table[index] {
+                        match (*reader).cap_table.as_slice()[index] {
                             Some( ref hook ) => { Some(hook.copy()) }
                             None => {
                                 None
@@ -386,7 +387,7 @@ impl ArenaPtr {
                 }
                 &BuilderArenaPtr(builder) => {
                     if index < (*builder).cap_table.len() {
-                        match (*builder).cap_table[index] {
+                        match (*builder).cap_table.as_slice()[index] {
                             Some( ref hook ) => { Some(hook.copy()) }
                             None => {
                                 None

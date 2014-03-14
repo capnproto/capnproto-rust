@@ -166,8 +166,8 @@ fn stringify(ft : & FormattedText) -> ~str {
     return result;
 }
 
-fn append_name (names : &[~str], name : ~str) -> ~[~str] {
-    let mut result : ~[~str] = ~[];
+fn append_name (names : &[~str], name : ~str) -> Vec<~str> {
+    let mut result = Vec::new();
     for n in names.iter() {
         result.push(n.to_owned());
     }
@@ -177,7 +177,7 @@ fn append_name (names : &[~str], name : ~str) -> ~[~str] {
 
 
 fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                      scope_map : &mut collections::hashmap::HashMap<u64, ~[~str]>,
+                      scope_map : &mut collections::hashmap::HashMap<u64, Vec<~str>>,
                       rootName : &str,
                       nodeId : u64) {
     let nodeReader = node_map.get(&nodeId);
@@ -189,8 +189,8 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
         let name = nestedNode.get_name().to_owned();
 
         let scopeNames = match scope_map.find(&nodeId) {
-            Some(names) => append_name(*names, name),
-            None => ~[rootName.to_owned(), name]
+            Some(names) => append_name(names.as_slice(), name),
+            None => vec!(rootName.to_owned(), name)
         };
         scope_map.insert(id, scopeNames);
         populate_scope_map(node_map, scope_map, rootName, id);
@@ -206,8 +206,8 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
                         let id = group.get_type_id();
                         let name = capitalize_first_letter(field.get_name());
                         let scopeNames = match scope_map.find(&nodeId) {
-                            Some(names) => append_name(*names, name),
-                            None => ~[rootName.to_owned(), name]
+                            Some(names) => append_name(names.as_slice(), name),
+                            None => vec!(rootName.to_owned(), name)
                         };
 
                         scope_map.insert(id, scopeNames);
@@ -234,7 +234,7 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
     ))
 }
 
-fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
+fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
                         typ : schema_capnp::Type::Reader,
                         is_reader: bool,
                         lifetime_name: &str) -> ~str {
@@ -304,7 +304,7 @@ fn prim_default (value : &schema_capnp::Value::Reader) -> Option<~str> {
 }
 
 fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-               scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
+               scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
                field : &schema_capnp::Field::Reader,
                isReader : bool)
     -> (~str, FormattedText) {
@@ -533,7 +533,7 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
 }
 
 fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                  scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
+                  scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
                   discriminantOffset : u32,
                   styled_name : &str,
                   field :&schema_capnp::Field::Reader) -> FormattedText {
@@ -789,7 +789,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 
 // return (the 'Which' enum, the 'which()' accessor, typedef)
 fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                  scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
+                  scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
                   root_name : &str,
                   discriminant_offset : u32,
                   fields : &[schema_capnp::Field::Reader],
@@ -945,7 +945,7 @@ fn generate_haser(discriminant_offset : u32,
 }
 
 fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                            scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
+                            scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
                             field : schema_capnp::Field::Reader) -> FormattedText {
     use schema_capnp::{Field, Type};
 
@@ -996,7 +996,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
 
 
 fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                 scope_map : &collections::hashmap::HashMap<u64, ~[~str]>,
+                 scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
                  rootName : &str,
                  node_id : u64,
                  node_name: &str) -> FormattedText {
@@ -1461,7 +1461,7 @@ fn main() {
     let request : schema_capnp::CodeGeneratorRequest::Reader = message.get_root();
 
     let mut node_map = collections::hashmap::HashMap::<u64, schema_capnp::Node::Reader>::new();
-    let mut scope_map = collections::hashmap::HashMap::<u64, ~[~str]>::new();
+    let mut scope_map = collections::hashmap::HashMap::<u64, Vec<~str>>::new();
 
     let nodes = request.get_nodes();
     for ii in range(0, nodes.size()) {

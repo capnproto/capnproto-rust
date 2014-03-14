@@ -15,6 +15,7 @@ use capnp::serialize::{OwnedSpaceMessageReader};
 
 use std;
 use std::any::AnyRefExt;
+use std::vec_ng::Vec;
 use collections::hashmap::HashMap;
 
 use capability::{LocalClient};
@@ -136,8 +137,8 @@ pub struct RpcConnectionState {
 }
 
 fn client_hooks_of_payload(payload : Payload::Reader,
-                           rpc_chan : &std::comm::Sender<RpcEvent>) -> ~[Option<~ClientHook>] {
-    let mut result : ~[Option<~ClientHook>] = ~[];
+                           rpc_chan : &std::comm::Sender<RpcEvent>) -> Vec<Option<~ClientHook>> {
+    let mut result = Vec::new();
     let cap_table = payload.get_cap_table();
     for ii in range(0, cap_table.size()) {
         match cap_table[ii].which() {
@@ -175,7 +176,7 @@ fn client_hooks_of_payload(payload : Payload::Reader,
 
 fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
                       rpc_chan : &std::comm::Sender<RpcEvent>) {
-    let mut the_cap_table : ~[Option<~ClientHook>] = ~[];
+    let mut the_cap_table : Vec<Option<~ClientHook>> = Vec::new();
     {
         let root = message.get_root::<Message::Reader>();
 
@@ -501,7 +502,7 @@ pub enum OwnedCapDescriptor {
     SenderHosted(ExportId),
     SenderPromise(ExportId),
     ReceiverHosted(ImportId),
-    ReceiverAnswer(QuestionId, ~[PipelineOp::Type]),
+    ReceiverAnswer(QuestionId, Vec<PipelineOp::Type>),
 }
 
 pub struct ImportClient {
@@ -543,7 +544,7 @@ impl ClientHook for ImportClient {
 
 pub struct PipelineClient {
     priv channel : std::comm::Sender<RpcEvent>,
-    ops : ~[PipelineOp::Type],
+    ops : Vec<PipelineOp::Type>,
     question_id : QuestionId,
 }
 
@@ -569,7 +570,7 @@ impl ClientHook for PipelineClient {
             promised_answer.set_question_id(self.question_id);
             let transform = promised_answer.init_transform(self.ops.len());
             for ii in range(0, self.ops.len()) {
-                match self.ops[ii] {
+                match self.ops.as_slice()[ii] {
                     PipelineOp::Noop => transform[ii].set_noop(()),
                     PipelineOp::GetPointerField(idx) => transform[ii].set_get_pointer_field(idx),
                 }
@@ -646,7 +647,7 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
                     promised_answer.set_question_id(question_id);
                     let transform = promised_answer.init_transform(ops.len());
                     for ii in range(0, ops.len()) {
-                        match ops[ii] {
+                        match ops.as_slice()[ii] {
                             PipelineOp::Noop => transform[ii].set_noop(()),
                             PipelineOp::GetPointerField(idx) => transform[ii].set_get_pointer_field(idx),
                         }
@@ -762,7 +763,7 @@ impl PipelineHook for RpcPipeline {
         (~RpcPipeline { channel : self.channel.clone(),
                         question_id : self.question_id }) as ~PipelineHook
     }
-    fn get_pipelined_cap(&self, ops : ~[PipelineOp::Type]) -> ~ClientHook {
+    fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> ~ClientHook {
         (~PipelineClient { channel : self.channel.clone(),
                            ops : ops,
                            question_id : self.question_id,
@@ -776,7 +777,7 @@ impl PipelineHook for PromisedAnswerRpcPipeline {
     fn copy(&self) -> ~PipelineHook {
         (~PromisedAnswerRpcPipeline) as ~PipelineHook
     }
-    fn get_pipelined_cap(&self, _ops : ~[PipelineOp::Type]) -> ~ClientHook {
+    fn get_pipelined_cap(&self, _ops : Vec<PipelineOp::Type>) -> ~ClientHook {
         fail!()
     }
 }

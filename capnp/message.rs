@@ -5,6 +5,7 @@
  */
 
 use std;
+use std::vec_ng::Vec;
 use any::AnyPointer;
 use capability::ClientHook;
 use common::*;
@@ -44,7 +45,7 @@ pub trait MessageReader {
         }
     }
 
-    fn init_cap_table(&mut self, cap_table : ~[Option<~ClientHook>]) {
+    fn init_cap_table(&mut self, cap_table : Vec<Option<~ClientHook>>) {
         self.mut_arena().init_cap_table(cap_table);
     }
 }

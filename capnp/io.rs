@@ -6,7 +6,7 @@
 
 use std;
 use std::io::{Reader, Writer, IoResult};
-
+use std::vec_ng::Vec;
 
 pub fn read_at_least<R : Reader>(reader : &mut R,
                                  buf: &mut [u8],
@@ -28,7 +28,7 @@ pub trait BufferedInputStream : Reader {
 
 pub struct BufferedInputStreamWrapper<'a, R> {
     priv inner : &'a mut R,
-    priv buf : ~[u8],
+    priv buf : Vec<u8>,
     priv pos : uint,
     priv cap : uint
 }
@@ -37,7 +37,7 @@ impl <'a, R> BufferedInputStreamWrapper<'a, R> {
     pub fn new<'a> (r : &'a mut R) -> BufferedInputStreamWrapper<'a, R> {
         let mut result = BufferedInputStreamWrapper {
             inner : r,
-            buf : std::vec::with_capacity(8192),
+            buf : Vec::with_capacity(8192),
             pos : 0,
             cap : 0
         };
@@ -58,7 +58,7 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
             bytes -= available;
             if bytes <= self.buf.len() {
                 //# Read the next buffer-full.
-                let n = try!(read_at_least(self.inner, self.buf, bytes));
+                let n = try!(read_at_least(self.inner, self.buf.as_mut_slice(), bytes));
                 self.pos = bytes;
                 self.cap = n;
             } else {
@@ -71,12 +71,12 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
 
     unsafe fn get_read_buffer(&mut self) -> IoResult<(*u8, *u8)> {
         if self.cap - self.pos == 0 {
-            let n = try!(read_at_least(self.inner, self.buf, 1));
+            let n = try!(read_at_least(self.inner, self.buf.as_mut_slice(), 1));
             self.cap = n;
             self.pos = 0;
         }
-        Ok((self.buf.unsafe_ref(self.pos) as *u8,
-            self.buf.unsafe_ref(self.cap) as *u8))
+        Ok((self.buf.as_slice().unsafe_ref(self.pos) as *u8,
+            self.buf.as_slice().unsafe_ref(self.cap) as *u8))
     }
 }
 
@@ -100,7 +100,7 @@ impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
             num_bytes -= fromFirstBuffer;
             if num_bytes <= self.buf.len() {
                 //# Read the next buffer-full.
-                let n = try!(read_at_least(self.inner, self.buf, num_bytes));
+                let n = try!(read_at_least(self.inner, self.buf.as_mut_slice(), num_bytes));
                 std::vec::bytes::copy_memory(dst1,
                                              self.buf.slice(0, num_bytes));
                 self.cap = n;
@@ -156,7 +156,7 @@ pub trait BufferedOutputStream : Writer {
 
 pub struct BufferedOutputStreamWrapper<'a, W> {
     priv inner: &'a mut W,
-    priv buf: ~[u8],
+    priv buf: Vec<u8>,
     priv pos: uint
 }
 
@@ -164,7 +164,7 @@ impl <'a, W> BufferedOutputStreamWrapper<'a, W> {
     pub fn new<'b> (w : &'b mut W) -> BufferedOutputStreamWrapper<'b, W> {
         let mut result = BufferedOutputStreamWrapper {
             inner: w,
-            buf : std::vec::with_capacity(8192),
+            buf : Vec::with_capacity(8192),
             pos : 0
         };
         unsafe {
@@ -178,13 +178,13 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
     #[inline]
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.buf.len();
-        (self.buf.unsafe_mut_ref(self.pos) as *mut u8,
-         self.buf.unsafe_mut_ref(len) as *mut u8)
+        (self.buf.as_mut_slice().unsafe_mut_ref(self.pos) as *mut u8,
+         self.buf.as_mut_slice().unsafe_mut_ref(len) as *mut u8)
     }
 
     #[inline]
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
-        let easyCase = ptr == self.buf.unsafe_mut_ref(self.pos) as *mut u8;
+        let easyCase = ptr == self.buf.as_mut_slice().unsafe_mut_ref(self.pos) as *mut u8;
         if easyCase {
             self.pos += size;
             Ok(())
@@ -203,21 +203,21 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
         let available = self.buf.len() - self.pos;
         let mut size = buf.len();
         if size <= available {
-            let dst = self.buf.mut_slice_from(self.pos);
+            let dst = self.buf.as_mut_slice().mut_slice_from(self.pos);
             std::vec::bytes::copy_memory(dst, buf);
             self.pos += size;
         } else if size <= self.buf.len() {
             //# Too much for this buffer, but not a full buffer's
             //# worth, so we'll go ahead and copy.
             {
-                let dst = self.buf.mut_slice_from(self.pos);
+                let dst = self.buf.as_mut_slice().mut_slice_from(self.pos);
                 std::vec::bytes::copy_memory(dst, buf.slice(0, available));
             }
-            try!(self.inner.write(self.buf));
+            try!(self.inner.write(self.buf.as_mut_slice()));
 
             size -= available;
             let src = buf.slice_from(available);
-            let dst = self.buf.mut_slice_from(0);
+            let dst = self.buf.as_mut_slice().mut_slice_from(0);
             std::vec::bytes::copy_memory(dst, src);
             self.pos = size;
         } else {
