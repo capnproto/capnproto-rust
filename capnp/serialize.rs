@@ -16,13 +16,13 @@ use io;
 pub struct OwnedSpaceMessageReader {
     priv options : ReaderOptions,
     priv arena : ~arena::ReaderArena,
-    priv segment_slices : ~[(uint, uint)],
+    priv segment_slices : Vec<(uint, uint)>,
     priv owned_space : Vec<Word>,
 }
 
 impl MessageReader for OwnedSpaceMessageReader {
     fn get_segment<'b>(&'b self, id : uint) -> &'b [Word] {
-        let (a,b) = self.segment_slices[id];
+        let (a,b) = self.segment_slices.as_slice()[id];
         self.owned_space.slice(a, b)
     }
 
@@ -64,17 +64,18 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
         return invalid_input("too many segments");
     }
 
-    let mut moreSizes : ~[u32] = std::vec::from_elem((segmentCount & !1) as uint, 0u32);
+    let mut moreSizes : Vec<u32> = Vec::with_capacity((segmentCount & !1) as uint);
 
     if segmentCount > 1 {
         let moreSizesRaw = try!(inputStream.read_bytes((4 * (segmentCount & !1)) as uint));
         for ii in range(0, segmentCount as uint - 1) {
-            moreSizes[ii] = unsafe {
+            let size = unsafe {
                 let p : *WireValue<u32> =
                     std::cast::transmute(moreSizesRaw.unsafe_ref(ii * 4));
                 (*p).get()
             };
-            totalWords += moreSizes[ii];
+            moreSizes.push(size);
+            totalWords += size;
         }
     }
 
@@ -100,24 +101,24 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
 
     // TODO(maybe someday) lazy reading like in capnp-c++?
 
-    let mut segment_slices : ~[(uint, uint)] = ~[(0, segment0Size as uint)];
+    let mut segment_slices : Vec<(uint, uint)> = vec!((0, segment0Size as uint));
 
     let arena = {
         let segment0 : &[Word] = ownedSpace.slice(0, segment0Size as uint);
-        let mut segments : ~[&[Word]] = ~[segment0];
+        let mut segments : Vec<&[Word]> = vec!(segment0);
 
         if segmentCount > 1 {
             let mut offset = segment0Size;
 
             for ii in range(0, segmentCount as uint - 1) {
                 segments.push(ownedSpace.slice(offset as uint,
-                                               (offset + moreSizes[ii]) as uint));
+                                               (offset + moreSizes.as_slice()[ii]) as uint));
                 segment_slices.push((offset as uint,
-                                     (offset + moreSizes[ii]) as uint));
-                offset += moreSizes[ii];
+                                     (offset + moreSizes.as_slice()[ii]) as uint));
+                offset += moreSizes.as_slice()[ii];
             }
         }
-        arena::ReaderArena::new(segments)
+        arena::ReaderArena::new(segments.as_slice())
     };
 
     Ok(OwnedSpaceMessageReader {

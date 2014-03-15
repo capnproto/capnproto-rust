@@ -44,9 +44,9 @@ pub struct SegmentBuilder {
 impl SegmentBuilder {
 
     pub fn new(arena : *mut BuilderArena,
-                   id : SegmentId,
-                   ptr : *mut Word,
-                   size : WordCount) -> SegmentBuilder {
+               id : SegmentId,
+               ptr : *mut Word,
+               size : WordCount) -> SegmentBuilder {
         SegmentBuilder {
             reader : SegmentReader {
                 arena : BuilderArenaPtr(arena),
@@ -105,8 +105,8 @@ pub struct ReaderArena {
     //    message : *message::MessageReader<'a>,
     segment0 : SegmentReader,
 
-    more_segments : Option<Vec<SegmentReader>>,
-        //XXX should this be a map as in capnproto-c++?
+    more_segments : Vec<SegmentReader>,
+    //XXX should this be a map as in capnproto-c++?
 
     cap_table : Vec<Option<~ClientHook>>,
 }
@@ -120,7 +120,7 @@ impl ReaderArena {
                 ptr : unsafe { segments[0].unsafe_ref(0) },
                 size : segments[0].len()
             },
-            more_segments : None,
+            more_segments : Vec::new(),
             cap_table : Vec::new()
         };
 
@@ -139,7 +139,7 @@ impl ReaderArena {
                 };
                 moreSegmentReaders.push(segmentReader);
             }
-            arena.more_segments = Some(moreSegmentReaders);
+            arena.more_segments = moreSegmentReaders;
         }
 
         arena
@@ -149,12 +149,7 @@ impl ReaderArena {
         if id == 0 {
             return &self.segment0 as *SegmentReader;
         } else {
-            match self.more_segments {
-                None => {fail!("no segments!")}
-                Some(ref segs) => {
-                    unsafe { segs.as_slice().unsafe_ref(id as uint - 1) as *SegmentReader }
-                }
-            }
+            unsafe { self.more_segments.as_slice().unsafe_ref(id as uint - 1) as *SegmentReader }
         }
     }
 
@@ -167,22 +162,17 @@ impl ReaderArena {
 
 pub struct BuilderArena {
     segment0 : SegmentBuilder,
-    more_segments : Option<Vec<~SegmentBuilder>>,
+    more_segments : Vec<~SegmentBuilder>,
     allocation_strategy : message::AllocationStrategy,
-    owned_memory : Option<Vec<*mut Word>>,
+    owned_memory : Vec<*mut Word>,
     nextSize : uint,
     cap_table : Vec<Option<~ClientHook>>,
 }
 
 impl Drop for BuilderArena {
     fn drop(&mut self) {
-        match self.owned_memory {
-            None => {},
-            Some(ref mut segs) => {
-                for &segment_ptr in segs.iter() {
-                    unsafe { std::libc::free(std::cast::transmute(segment_ptr)); }
-                }
-            }
+        for &segment_ptr in self.owned_memory.iter() {
+            unsafe { std::libc::free(std::cast::transmute(segment_ptr)); }
         }
     }
 }
@@ -197,15 +187,15 @@ impl BuilderArena {
     pub fn new(allocationStrategy : message::AllocationStrategy,
                first_segment : FirstSegment) -> ~BuilderArena {
 
-        let (first_segment, num_words, owned_memory) : (*mut Word, uint, Option<Vec<*mut Word>>) = unsafe {
+        let (first_segment, num_words, owned_memory) : (*mut Word, uint, Vec<*mut Word>) = unsafe {
             match first_segment {
                 NumWords(n) => {
                     let ptr = std::cast::transmute(
                         std::libc::calloc(n as std::libc::size_t,
                                           BYTES_PER_WORD as std::libc::size_t));
-                    (ptr, n, Some(vec!(ptr)))
+                    (ptr, n, vec!(ptr))
                 }
-                ZeroedWords(w) => (w.as_mut_ptr(), w.len(), None)
+                ZeroedWords(w) => (w.as_mut_ptr(), w.len(), Vec::new())
             }};
 
         let mut result = ~BuilderArena {
@@ -217,7 +207,7 @@ impl BuilderArena {
                 id : 0,
                 pos : first_segment,
             },
-            more_segments : None,
+            more_segments : Vec::new(),
             allocation_strategy : allocationStrategy,
             owned_memory : owned_memory,
             nextSize : num_words,
@@ -236,10 +226,7 @@ impl BuilderArena {
             std::cast::transmute(std::libc::calloc(size as std::libc::size_t,
                                                    BYTES_PER_WORD as std::libc::size_t)) };
 
-        match self.owned_memory {
-            None => self.owned_memory = Some(vec!(new_words)),
-            Some(ref mut segs) => segs.push(new_words)
-        }
+        self.owned_memory.push(new_words);
 
         match self.allocation_strategy {
             message::GrowHeuristically => { self.nextSize += size; }
@@ -259,31 +246,22 @@ impl BuilderArena {
 
             //# Need to fall back to additional segments.
 
-            let id = match self.more_segments {
-                None => {
-                    self.more_segments = Some(Vec::new());
-                    1
-                }
-                Some(ref mut msegs) => {
-                    let len = msegs.len();
-                    let result_ptr = &mut *msegs.as_mut_slice()[len-1] as *mut SegmentBuilder;
-                    match msegs.as_mut_slice()[len - 1].allocate(amount) {
+            let id = {
+                let len = self.more_segments.len();
+                if len == 0 { 1 }
+                else {
+                    let result_ptr = &mut *self.more_segments.as_mut_slice()[len-1] as *mut SegmentBuilder;
+                    match self.more_segments.as_mut_slice()[len - 1].allocate(amount) {
                         Some(result) => { return (result_ptr, result) }
                         None => { len + 1 }
                     }
-                }
-            };
+                }};
 
             let (words, size) = self.allocate_owned_memory(amount);
             let mut new_builder = ~SegmentBuilder::new(self, id as u32, words, size);
             let builder_ptr = &mut *new_builder as *mut SegmentBuilder;
 
-            match self.more_segments {
-                None => fail!("impossible"),
-                Some(ref mut msegs) => {
-                    msegs.push(new_builder);
-                }
-            }
+            self.more_segments.push(new_builder);
 
             (builder_ptr, (*builder_ptr).allocate(amount).unwrap() )
         }
@@ -293,37 +271,29 @@ impl BuilderArena {
         if id == 0 {
             &mut self.segment0 as *mut SegmentBuilder
         } else {
-            match self.more_segments {
-                None => fail!("invalid segment id {}", id),
-                Some(ref mut msegs) => {
-                    &mut *msegs.as_mut_slice()[id - 1] as *mut SegmentBuilder
-                }
-            }
+            &mut *self.more_segments.as_mut_slice()[id - 1] as *mut SegmentBuilder
         }
     }
 
     pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
         unsafe {
-            match self.more_segments {
-                None => {
-                    std::vec::raw::buf_as_slice::<Word, T>(
-                        self.segment0.reader.ptr,
-                        self.segment0.current_size(),
-                        |v| cont([v]) )
-                }
-                Some(ref msegs) => {
-                    let mut result = Vec::new();
-                    result.push(std::cast::transmute(
-                            std::raw::Slice { data : self.segment0.reader.ptr,
-                                                       len : self.segment0.current_size()}));
+            if self.more_segments.len() == 0 {
+                std::vec::raw::buf_as_slice::<Word, T>(
+                    self.segment0.reader.ptr,
+                    self.segment0.current_size(),
+                    |v| cont([v]) )
+            } else {
+                let mut result = Vec::new();
+                result.push(std::cast::transmute(
+                    std::raw::Slice { data : self.segment0.reader.ptr,
+                                      len : self.segment0.current_size()}));
 
-                    for seg in msegs.iter() {
-                        result.push(std::cast::transmute(
-                            std::raw::Slice { data : seg.reader.ptr,
-                                                        len : seg.current_size()}));
-                    }
-                    cont(result.as_slice())
+                for seg in self.more_segments.iter() {
+                    result.push(std::cast::transmute(
+                        std::raw::Slice { data : seg.reader.ptr,
+                                          len : seg.current_size()}));
                 }
+                cont(result.as_slice())
             }
         }
     }
@@ -355,12 +325,7 @@ impl ArenaPtr {
                     if id == 0 {
                         &(*builder).segment0.reader as *SegmentReader
                     } else {
-                        match (*builder).more_segments {
-                            None => {fail!("no more segments!")}
-                            Some(ref segs) => {
-                               &segs.as_slice()[id as uint - 1].reader as *SegmentReader
-                            }
-                        }
+                        &(*builder).more_segments.as_slice()[id as uint - 1].reader as *SegmentReader
                     }
                 }
                 &Null => {
