@@ -33,33 +33,33 @@ pub struct Question {
 
 pub enum AnswerStatus {
     AnswerStatusSent(~MallocMessageBuilder),
-    AnswerStatusPending(~[(u64, u16, ~[PipelineOp::Type], ~CallContextHook)]),
+    AnswerStatusPending(Vec<(u64, u16, Vec<PipelineOp::Type>, ~CallContextHook)>),
 }
 
 pub struct Answer {
     status : AnswerStatus,
-    result_exports : ~[ExportId],
+    result_exports : Vec<ExportId>,
     pipeline : Option<~PipelineHook>,
 }
 
 impl Answer {
     pub fn new() -> Answer {
         Answer {
-            status : AnswerStatusPending(box[]),
-            result_exports : box [],
+            status : AnswerStatusPending(Vec::new()),
+            result_exports : Vec::new(),
             pipeline : None,
         }
     }
 
     fn do_call(answer_message : &mut ~MallocMessageBuilder, interface_id : u64, method_id : u16,
-               ops : ~[PipelineOp::Type], context : ~CallContextHook) {
+               ops : Vec<PipelineOp::Type>, context : ~CallContextHook) {
         let root : Message::Builder = answer_message.get_root();
         match root.which() {
             Some(Message::Return(ret)) => {
                 match ret.which() {
                     Some(Return::Results(payload)) => {
                         let hook = payload.get_content().as_reader().
-                            get_pipelined_cap(ops);
+                            get_pipelined_cap(ops.as_slice());
                         hook.call(interface_id, method_id, context);
                     }
                     Some(Return::Exception(_exc)) => {
@@ -73,7 +73,7 @@ impl Answer {
     }
 
     pub fn receive(&mut self, interface_id : u64, method_id : u16,
-                   ops : ~[PipelineOp::Type], context : ~CallContextHook) {
+                   ops : Vec<PipelineOp::Type>, context : ~CallContextHook) {
         match self.status {
             AnswerStatusSent(ref mut answer_message) => {
                 Answer::do_call(answer_message, interface_id, method_id, ops, context);
@@ -116,12 +116,12 @@ impl <T> ImportTable<T> {
 }
 
 pub struct ExportTable<T> {
-    slots : ~[T],
+    slots : Vec<T>,
 }
 
 impl <T> ExportTable<T> {
     pub fn new() -> ExportTable<T> {
-        ExportTable { slots : ~[] }
+        ExportTable { slots : Vec::new() }
     }
 
     pub fn next(&mut self) -> u32 {
@@ -208,8 +208,8 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
     message.init_cap_table(the_cap_table);
 }
 
-fn get_pipeline_ops(promised_answer : PromisedAnswer::Reader) -> ~[PipelineOp::Type] {
-    let mut result = box [];
+fn get_pipeline_ops(promised_answer : PromisedAnswer::Reader) -> Vec<PipelineOp::Type> {
+    let mut result = Vec::new();
     let transform = promised_answer.get_transform();
     for ii in range(0, transform.size()) {
         match transform[ii].which() {
@@ -297,7 +297,7 @@ impl RpcConnectionState {
                                 Nobody,
                                 QuestionReceiver(QuestionId),
                                 ExportReceiver(ExportId),
-                                PromisedAnswerReceiver(AnswerId, ~[PipelineOp::Type]),
+                                PromisedAnswerReceiver(AnswerId, Vec<PipelineOp::Type>),
                             }
 
                             populate_cap_table(message, &rpc_chan);
@@ -405,7 +405,7 @@ impl RpcConnectionState {
                             match receiver {
                                 Nobody => {}
                                 QuestionReceiver(id) => {
-                                    questions.slots[id].chan.try_send(message);
+                                    questions.slots.get(id as uint).chan.try_send(message);
                                 }
                                 ExportReceiver(id) => {
                                     let (answer_id, interface_id, method_id) = get_call_ids(message);
@@ -413,7 +413,7 @@ impl RpcConnectionState {
                                         ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook;
 
                                     answers.slots.insert(answer_id, Answer::new());
-                                    exports.slots[id].hook.call(interface_id, method_id, context);
+                                    exports.slots.get(id as uint).hook.call(interface_id, method_id, context);
                                 }
                                 PromisedAnswerReceiver(id, ops) => {
                                     let (answer_id, interface_id, method_id) = get_call_ids(message);
@@ -592,7 +592,7 @@ impl ClientHook for PipelineClient {
 
 pub struct PromisedAnswerClient {
     rpc_chan : std::comm::Sender<RpcEvent>,
-    ops : ~[PipelineOp::Type],
+    ops : Vec<PipelineOp::Type>,
     answer_id : AnswerId,
 }
 
@@ -673,7 +673,7 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
     }
 
     let cap_table = {
-        let mut caps = box [];
+        let mut caps = Vec::new();
         for cap in message.get_cap_table().iter() {
             match cap {
                 &Some(ref client_hook) => {
@@ -687,12 +687,12 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
     let root : Message::Builder = message.get_root();
     match root.which() {
         Some(Message::Call(call)) => {
-            write_payload(rpc_chan, cap_table, call.get_params())
+            write_payload(rpc_chan, cap_table.as_slice(), call.get_params())
         }
         Some(Message::Return(ret)) => {
             match ret.which() {
                 Some(Return::Results(payload)) => {
-                    write_payload(rpc_chan, cap_table, payload);
+                    write_payload(rpc_chan, cap_table.as_slice(), payload);
                 }
                 _ => {}
             }
@@ -731,7 +731,7 @@ pub struct PromisedAnswerRpcRequest {
     rpc_chan : std::comm::Sender<RpcEvent>,
     message : ~MallocMessageBuilder,
     answer_id : AnswerId,
-    ops : ~[PipelineOp::Type],
+    ops : Vec<PipelineOp::Type>,
 }
 
 impl RequestHook for PromisedAnswerRpcRequest {
@@ -971,7 +971,7 @@ pub enum RpcEvent {
     AnswerSent(~MallocMessageBuilder),
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
-    OutgoingDeferred(OutgoingMessage, AnswerId, ~[PipelineOp::Type]),
+    OutgoingDeferred(OutgoingMessage, AnswerId, Vec<PipelineOp::Type>),
     NewLocalServer(~ClientHook, std::comm::Sender<ExportId>),
     ReturnEvent(~MallocMessageBuilder),
     ShutdownEvent,

@@ -5,6 +5,7 @@
  */
 
 use std;
+use std::vec_ng::Vec;
 
 use capnp::capability::{FromServer, Server};
 use capnp::list::{PrimitiveList};
@@ -56,7 +57,7 @@ fn evaluate_impl(
         Some(Calculator::Expression::Call(call)) => {
             let func = call.get_function();
             let call_params = call.get_params();
-            let mut param_values = ~[];
+            let mut param_values = Vec::new();
             for ii in range(0, call_params.size()) {
                 let x = evaluate_impl(call_params[ii], params);
                 param_values.push(x);
@@ -64,7 +65,7 @@ fn evaluate_impl(
             let mut request = func.call_request();
             let request_params = request.init().init_params(param_values.len());
             for ii in range(0, param_values.len()) {
-                request_params.set(ii, param_values[ii]);
+                request_params.set(ii, *param_values.get(ii));
             }
             return request.send().wait().unwrap().get_value();
         }
