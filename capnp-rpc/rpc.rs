@@ -448,7 +448,7 @@ impl RpcConnectionState {
                                     question_chan.try_send(res.get_question_id());
                                 }
                                 _ => {
-                                    error!("NONE OF THOSE");
+                                    fail!("NONE OF THOSE");
                                 }
                             }
 
