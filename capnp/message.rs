@@ -30,7 +30,7 @@ pub trait MessageReader {
     fn mut_arena<'a>(&'a mut self) -> &'a mut ReaderArena;
     fn get_options<'a>(&'a self) -> &'a ReaderOptions;
 
-    // XXX lifetime should not be 'static
+    // XXX lifetime should not be 'static. See rustc issues #12856 #12857.
     fn get_root<T : layout::FromStructReader<'static>>(&self) -> T {
         unsafe {
             let segment : *SegmentReader = &self.arena().segment0;
@@ -119,7 +119,7 @@ pub trait MessageBuilder {
 
     }
 
-    // XXX lifetime should not be 'static
+    // XXX lifetime should not be 'static.
     fn init_root<T : FromStructBuilder<'static> + HasStructSize>(&mut self) -> T {
         self.get_root_internal().init_as_struct()
     }
@@ -129,7 +129,9 @@ pub trait MessageBuilder {
         self.get_root_internal().get_as_struct()
     }
 
-    fn set_root(&mut self, value : &layout::StructReader) {
+    // XXX lifetime should not be 'static
+    fn set_root<T : layout::ToStructReader<'static> + layout::ToStructReader<'static>>(&mut self, value : &T) {
+        use layout::ToStructReader;
         self.get_root_internal().set_as_struct(value);
     }
 

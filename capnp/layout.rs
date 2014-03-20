@@ -1881,6 +1881,10 @@ pub trait FromStructReader<'a> {
     fn new(reader : StructReader<'a>) -> Self;
 }
 
+pub trait ToStructReader<'a> {
+    fn struct_reader(&self) -> StructReader<'a>;
+}
+
 pub struct StructReader<'a> {
     segment : *SegmentReader,
     data : *u8,

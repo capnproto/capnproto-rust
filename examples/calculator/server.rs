@@ -81,7 +81,7 @@ struct FunctionImpl {
 impl FunctionImpl {
     fn new(param_count : uint, body : Calculator::Expression::Reader) -> FunctionImpl {
         let mut result = FunctionImpl { param_count : param_count, body : MallocMessageBuilder::new_default() };
-        result.body.set_root(&body.reader);
+        result.body.set_root(&body);
         result
     }
 }

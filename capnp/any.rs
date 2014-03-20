@@ -9,7 +9,7 @@ pub mod AnyPointer {
     use std::vec_ng::Vec;
     use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
     use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
-                 HasStructSize, StructReader};
+                 HasStructSize, StructReader, ToStructReader};
     use blob::{Text, Data};
 
     pub struct Reader<'a> {
@@ -84,9 +84,8 @@ pub mod AnyPointer {
                     HasStructSize::struct_size(None::<T>)))
         }
 
-        // XXX value should be a user struct.
-        pub fn set_as_struct(&self, value : &StructReader) {
-            self.builder.set_struct(value);
+        pub fn set_as_struct<T : ToStructReader<'a>>(&self, value : &T) {
+            self.builder.set_struct(&value.struct_reader());
         }
 
         // XXX value should be a user client.

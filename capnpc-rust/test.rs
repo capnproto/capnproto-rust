@@ -444,7 +444,7 @@ mod tests {
         let mut message2 = MallocMessageBuilder::new_default();
         let struct1 = message1.init_root::<TestBigStruct::Builder>();
         struct1.set_uint8_field(3);
-        message2.set_root(&struct1.as_reader().reader);
+        message2.set_root(&struct1.as_reader());
         let struct2 = message2.get_root::<TestBigStruct::Builder>();
 
         assert_eq!(struct2.get_uint8_field(), 3u8);
