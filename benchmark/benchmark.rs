@@ -88,7 +88,7 @@ impl NoScratch {
 }
 
 pub struct UseScratch {
-    scratch_space : std::vec_ng::Vec<capnp::common::Word>
+    scratch_space : std::vec::Vec<capnp::common::Word>
 }
 
 impl UseScratch {
@@ -135,8 +135,8 @@ macro_rules! pass_by_object(
 
 macro_rules! pass_by_bytes(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr ) => ({
-            let mut requestBytes : ~[u8] = std::vec::from_elem(SCRATCH_SIZE * 8, 0u8);
-            let mut responseBytes : ~[u8] = std::vec::from_elem(SCRATCH_SIZE * 8, 0u8);
+            let mut requestBytes = std::vec::Vec::from_elem(SCRATCH_SIZE * 8, 0u8);
+            let mut responseBytes = std::vec::Vec::from_elem(SCRATCH_SIZE * 8, 0u8);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
                 let mut messageReq = $reuse.new_builder(0);
@@ -147,24 +147,24 @@ macro_rules! pass_by_bytes(
                 let expected = $testcase::setup_request(&mut rng, request);
 
                 {
-                    let mut writer = capnp::io::ArrayOutputStream::new(requestBytes);
+                    let mut writer = capnp::io::ArrayOutputStream::new(requestBytes.as_mut_slice());
                     $compression::write_buffered(&mut writer, &messageReq)
                 }
 
                 let messageReader = $compression::new_buffered_reader(
-                    &mut capnp::io::ArrayInputStream::new(requestBytes),
+                    &mut capnp::io::ArrayInputStream::new(requestBytes.as_slice()),
                     capnp::message::DefaultReaderOptions);
 
                 let requestReader : $testcase::RequestReader = messageReader.get_root();
                 $testcase::handle_request(requestReader, response);
 
                 {
-                    let mut writer = capnp::io::ArrayOutputStream::new(responseBytes);
+                    let mut writer = capnp::io::ArrayOutputStream::new(responseBytes.as_mut_slice());
                     $compression::write_buffered(&mut writer, &messageRes)
                 }
 
                 let messageReader = $compression::new_buffered_reader(
-                    &mut capnp::io::ArrayInputStream::new(responseBytes),
+                    &mut capnp::io::ArrayInputStream::new(responseBytes.as_slice()),
                     capnp::message::DefaultReaderOptions);
 
                 let responseReader : $testcase::ResponseReader = messageReader.get_root();

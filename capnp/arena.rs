@@ -5,7 +5,7 @@
  */
 
 use std;
-use std::vec_ng::Vec;
+use std::vec::Vec;
 use capability::ClientHook;
 use common::*;
 use common::ptr_sub;
@@ -278,7 +278,7 @@ impl BuilderArena {
     pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
         unsafe {
             if self.more_segments.len() == 0 {
-                std::vec::raw::buf_as_slice::<Word, T>(
+                std::slice::raw::buf_as_slice::<Word, T>(
                     self.segment0.reader.ptr,
                     self.segment0.current_size(),
                     |v| cont([v]) )

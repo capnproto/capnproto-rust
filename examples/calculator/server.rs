@@ -5,7 +5,7 @@
  */
 
 use std;
-use std::vec_ng::Vec;
+use std::vec::Vec;
 
 use capnp::capability::{FromServer, Server};
 use capnp::list::{PrimitiveList};

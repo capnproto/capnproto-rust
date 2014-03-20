@@ -10,7 +10,7 @@ use layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use message::{MallocMessageBuilder};
 use serialize::{OwnedSpaceMessageReader};
 use std;
-use std::vec_ng::Vec;
+use std::vec::Vec;
 
 pub struct ResultFuture<Results, Pipeline> {
     answer_port : std::comm::Receiver<~OwnedSpaceMessageReader>,

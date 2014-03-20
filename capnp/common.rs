@@ -6,7 +6,7 @@
 
 
 use std;
-use std::vec_ng::Vec;
+use std::vec::Vec;
 
 pub type BitCount0 = uint; // `BitCount` clashes with a standard trait
 pub type BitCount8 = u8;

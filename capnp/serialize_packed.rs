@@ -139,7 +139,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                         runLength -= inRemaining;
 
                         try!(self.inner.skip(size));
-                        try!(std::vec::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(out, runLength, |buf| {
+                        try!(std::slice::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(out, runLength, |buf| {
                             self.inner.read(buf)
                         }));
                         out = out.offset(runLength as int);
@@ -330,7 +330,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                         //# decide what to do.
                         try!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
 
-                        try!(std::vec::raw::buf_as_slice::<u8,std::io::IoResult<()>>(runStart, count, |buf| {
+                        try!(std::slice::raw::buf_as_slice::<u8,std::io::IoResult<()>>(runStart, count, |buf| {
                             self.inner.write(buf)
                         }));
 

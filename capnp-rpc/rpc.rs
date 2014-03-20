@@ -15,7 +15,7 @@ use capnp::serialize::{OwnedSpaceMessageReader};
 
 use std;
 use std::any::AnyRefExt;
-use std::vec_ng::Vec;
+use std::vec::Vec;
 use collections::hashmap::HashMap;
 
 use capability::{LocalClient};

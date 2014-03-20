@@ -5,8 +5,8 @@
  */
 
 use std;
+use std::vec::Vec;
 use std::io::{Reader, Writer, IoResult};
-use std::vec_ng::Vec;
 
 pub fn read_at_least<R : Reader>(reader : &mut R,
                                  buf: &mut [u8],
@@ -85,15 +85,15 @@ impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
         let mut num_bytes = dst.len();
         if num_bytes <= self.cap - self.pos {
             //# Serve from the current buffer.
-            std::vec::bytes::copy_memory(dst,
-                                         self.buf.slice(self.pos, self.pos + num_bytes));
+            std::slice::bytes::copy_memory(dst,
+                                           self.buf.slice(self.pos, self.pos + num_bytes));
             self.pos += num_bytes;
             return Ok(num_bytes);
         } else {
             //# Copy current available into destination.
 
-            std::vec::bytes::copy_memory(dst,
-                                         self.buf.slice(self.pos, self.cap));
+            std::slice::bytes::copy_memory(dst,
+                                           self.buf.slice(self.pos, self.cap));
             let fromFirstBuffer = self.cap - self.pos;
 
             let dst1 = dst.mut_slice(fromFirstBuffer, num_bytes);
@@ -101,8 +101,8 @@ impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
             if num_bytes <= self.buf.len() {
                 //# Read the next buffer-full.
                 let n = try!(read_at_least(self.inner, self.buf.as_mut_slice(), num_bytes));
-                std::vec::bytes::copy_memory(dst1,
-                                             self.buf.slice(0, num_bytes));
+                std::slice::bytes::copy_memory(dst1,
+                                               self.buf.slice(0, num_bytes));
                 self.cap = n;
                 self.pos = num_bytes;
                 return Ok(fromFirstBuffer + num_bytes);
@@ -189,7 +189,7 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
             self.pos += size;
             Ok(())
         } else {
-            std::vec::raw::mut_buf_as_slice::<u8,IoResult<()>>(ptr, size, |buf| {
+            std::slice::raw::mut_buf_as_slice::<u8,IoResult<()>>(ptr, size, |buf| {
                 self.write(buf)
             })
         }
@@ -204,21 +204,21 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
         let mut size = buf.len();
         if size <= available {
             let dst = self.buf.as_mut_slice().mut_slice_from(self.pos);
-            std::vec::bytes::copy_memory(dst, buf);
+            std::slice::bytes::copy_memory(dst, buf);
             self.pos += size;
         } else if size <= self.buf.len() {
             //# Too much for this buffer, but not a full buffer's
             //# worth, so we'll go ahead and copy.
             {
                 let dst = self.buf.as_mut_slice().mut_slice_from(self.pos);
-                std::vec::bytes::copy_memory(dst, buf.slice(0, available));
+                std::slice::bytes::copy_memory(dst, buf.slice(0, available));
             }
             try!(self.inner.write(self.buf.as_mut_slice()));
 
             size -= available;
             let src = buf.slice_from(available);
             let dst = self.buf.as_mut_slice().mut_slice_from(0);
-            std::vec::bytes::copy_memory(dst, src);
+            std::slice::bytes::copy_memory(dst, src);
             self.pos = size;
         } else {
             //# Writing so much data that we might as well write
@@ -275,7 +275,7 @@ impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
             self.fill_pos += size;
             Ok(())
         } else {
-            std::vec::raw::mut_buf_as_slice::<u8,IoResult<()>>(ptr, size, |buf| {
+            std::slice::raw::mut_buf_as_slice::<u8,IoResult<()>>(ptr, size, |buf| {
                 self.write(buf)
             })
         }

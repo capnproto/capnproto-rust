@@ -12,7 +12,7 @@
 extern crate collections;
 extern crate capnp;
 
-use std::vec_ng::Vec;
+use std::vec::Vec;
 use capnp::*;
 
 pub mod schema_capnp;

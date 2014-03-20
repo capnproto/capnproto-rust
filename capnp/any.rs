@@ -6,7 +6,8 @@
 
 pub mod AnyPointer {
     use std;
-    use std::vec_ng::Vec;
+    use std::vec::Vec;
+
     use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
     use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
                  HasStructSize, StructReader, ToStructReader};

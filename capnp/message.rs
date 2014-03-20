@@ -5,7 +5,7 @@
  */
 
 use std;
-use std::vec_ng::Vec;
+use std::vec::Vec;
 use any::AnyPointer;
 use capability::ClientHook;
 use common::*;
