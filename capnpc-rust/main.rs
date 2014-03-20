@@ -228,7 +228,7 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
         Line(~"use capnp::capability::{FromClientHook, FromTypelessPipeline};"),
         Line(~"use capnp::blob::{Text, Data};"),
         Line(~"use capnp::layout;"),
-        Line(~"use capnp::layout::{FromStructBuilder, FromStructReader};"),
+        Line(~"use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};"),
         Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};"),
         Line(format!("use {};", rootName))
     ))
@@ -737,7 +737,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                 Some(Type::Struct(st)) => {
                     let theMod = scope_map.get(&st.get_type_id()).connect("::");
                     setter_interior.push(
-                        Line(format!("self.builder.get_pointer_field({}).set_struct(&value.reader)", offset)));
+                        Line(format!("self.builder.get_pointer_field({}).set_struct(&value.struct_reader())", offset)));
                     initter_interior.push(
                       Line(format!("FromStructBuilder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
                                    offset, theMod)));
@@ -1137,8 +1137,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
             let accessors = vec!(
                 Branch(preamble),
-                // TODO figure out how to arrange that this field can be private.
-                Line(~"pub struct Reader<'a> { reader : layout::StructReader<'a> }"),
+                Line(~"pub struct Reader<'a> { priv reader : layout::StructReader<'a> }"),
                 BlankLine,
                 Line(~"impl <'a> layout::FromStructReader<'a> for Reader<'a> {"),
                 Indent(
