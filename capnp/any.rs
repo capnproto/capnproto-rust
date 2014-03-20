@@ -10,7 +10,7 @@ pub mod AnyPointer {
 
     use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
     use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
-                 HasStructSize, StructReader, ToStructReader};
+                 HasStructSize, ToStructReader};
     use blob::{Text, Data};
 
     pub struct Reader<'a> {

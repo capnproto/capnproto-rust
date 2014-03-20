@@ -131,7 +131,6 @@ pub trait MessageBuilder {
 
     // XXX lifetime should not be 'static
     fn set_root<T : layout::ToStructReader<'static> + layout::ToStructReader<'static>>(&mut self, value : &T) {
-        use layout::ToStructReader;
         self.get_root_internal().set_as_struct(value);
     }
 
