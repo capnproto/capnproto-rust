@@ -8,10 +8,8 @@
 #[feature(globs)];
 
 #[crate_type = "bin"];
-#[no_uv];
 
 extern crate capnp;
-extern crate native;
 extern crate rand;
 
 use capnp::message::{MessageReader, MessageBuilder};
@@ -293,13 +291,6 @@ macro_rules! do_testcase2(
             }
         });
     )
-
-#[start]
-pub fn start (argc : int, argv: **u8) -> int {
-    native::start(argc, argv, proc () {
-            main();
-        })
-}
 
 pub fn main() {
     let args = std::os::args();

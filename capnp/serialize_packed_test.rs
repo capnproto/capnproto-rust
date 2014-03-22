@@ -33,7 +33,7 @@ pub fn expect_packs_to(unpacked : &[u8],
     let mut reader = io::ArrayInputStream::new(packed);
     let mut packedInputStream = PackedInputStream {inner : &mut reader};
 
-    let bytes = packedInputStream.read_bytes(unpacked.len()).unwrap();
+    let bytes = packedInputStream.read_exact(unpacked.len()).unwrap();
 
 //    assert!(packedInputStream.eof());
     assert!(bytes.slice(0, bytes.len()).equals(&unpacked),

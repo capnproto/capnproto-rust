@@ -44,7 +44,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
                                        options : ReaderOptions)
                                        -> std::io::IoResult<OwnedSpaceMessageReader> {
 
-    let firstWord = try!(inputStream.read_bytes(8));
+    let firstWord = try!(inputStream.read_exact(8));
 
     let segmentCount : u32 =
         unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.as_ptr());
@@ -67,7 +67,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
     let mut moreSizes : Vec<u32> = Vec::with_capacity((segmentCount & !1) as uint);
 
     if segmentCount > 1 {
-        let moreSizesRaw = try!(inputStream.read_bytes((4 * (segmentCount & !1)) as uint));
+        let moreSizesRaw = try!(inputStream.read_exact((4 * (segmentCount & !1)) as uint));
         for ii in range(0, segmentCount as uint - 1) {
             let size = unsafe {
                 let p : *WireValue<u32> =
