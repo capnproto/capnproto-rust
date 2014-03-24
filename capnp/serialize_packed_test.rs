@@ -24,7 +24,7 @@ pub fn expect_packs_to(unpacked : &[u8],
         packedOutputStream.flush().unwrap();
     }
 
-    assert!(bytes.as_slice().equals(&packed),
+    assert!(bytes.as_slice().eq(&packed),
             "expected: {:?}, got: {:?}", packed, bytes);
 
     // --------
@@ -36,7 +36,7 @@ pub fn expect_packs_to(unpacked : &[u8],
     let bytes = packedInputStream.read_exact(unpacked.len()).unwrap();
 
 //    assert!(packedInputStream.eof());
-    assert!(bytes.slice(0, bytes.len()).equals(&unpacked),
+    assert!(bytes.slice(0, bytes.len()).eq(&unpacked),
             "expected: {:?}, got: {:?}", unpacked, bytes);
 
 }
