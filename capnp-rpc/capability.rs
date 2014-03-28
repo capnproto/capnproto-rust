@@ -17,7 +17,7 @@ use capnp::message::{MessageReader, MessageBuilder};
 use rpc_capnp::{Message, Return};
 
 pub struct LocalClient {
-    object_channel : std::comm::Sender<(u64, u16, ~CallContextHook)>,
+    object_channel : std::comm::Sender<(u64, u16, ~CallContextHook:Send)>,
 }
 
 impl Clone for LocalClient {
@@ -27,8 +27,8 @@ impl Clone for LocalClient {
 }
 
 impl LocalClient {
-    pub fn new(server : ~Server) -> LocalClient {
-        let (chan, port) = std::comm::channel::<(u64, u16, ~CallContextHook)>();
+    pub fn new(server : ~Server:Send) -> LocalClient {
+        let (chan, port) = std::comm::channel::<(u64, u16, ~CallContextHook:Send)>();
         std::task::spawn(proc () {
                 let mut server = server;
                 loop {
@@ -48,8 +48,8 @@ impl LocalClient {
 
 
 impl ClientHook for LocalClient {
-    fn copy(&self) -> ~ClientHook {
-        (~LocalClient { object_channel : self.object_channel.clone() }) as ~ClientHook
+    fn copy(&self) -> ~ClientHook:Send {
+        (~LocalClient { object_channel : self.object_channel.clone() }) as ~ClientHook:Send
     }
     fn new_call(&self,
                 _interface_id : u64,
@@ -58,7 +58,7 @@ impl ClientHook for LocalClient {
                 -> Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline> {
         fail!()
     }
-    fn call(&self, interface_id : u64, method_id : u16, context : ~CallContextHook) {
+    fn call(&self, interface_id : u64, method_id : u16, context : ~CallContextHook:Send) {
         self.object_channel.send((interface_id, method_id, context));
     }
 

@@ -136,7 +136,7 @@ pub mod AnyPointer {
             Pipeline { hook : self.hook.copy(), ops : new_ops }
         }
 
-        pub fn as_cap(&self) -> ~ClientHook {
+        pub fn as_cap(&self) -> ~ClientHook:Send {
             self.hook.get_pipelined_cap(self.ops.clone())
         }
     }

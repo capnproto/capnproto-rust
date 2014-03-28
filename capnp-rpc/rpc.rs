@@ -33,13 +33,13 @@ pub struct Question {
 
 pub enum AnswerStatus {
     AnswerStatusSent(~MallocMessageBuilder),
-    AnswerStatusPending(Vec<(u64, u16, Vec<PipelineOp::Type>, ~CallContextHook)>),
+    AnswerStatusPending(Vec<(u64, u16, Vec<PipelineOp::Type>, ~CallContextHook:Send)>),
 }
 
 pub struct Answer {
     status : AnswerStatus,
     result_exports : Vec<ExportId>,
-    pipeline : Option<~PipelineHook>,
+    pipeline : Option<~PipelineHook:Send>,
 }
 
 impl Answer {
@@ -52,7 +52,7 @@ impl Answer {
     }
 
     fn do_call(answer_message : &mut ~MallocMessageBuilder, interface_id : u64, method_id : u16,
-               ops : Vec<PipelineOp::Type>, context : ~CallContextHook) {
+               ops : Vec<PipelineOp::Type>, context : ~CallContextHook:Send) {
         let root : Message::Builder = answer_message.get_root();
         match root.which() {
             Some(Message::Return(ret)) => {
@@ -73,7 +73,7 @@ impl Answer {
     }
 
     pub fn receive(&mut self, interface_id : u64, method_id : u16,
-                   ops : Vec<PipelineOp::Type>, context : ~CallContextHook) {
+                   ops : Vec<PipelineOp::Type>, context : ~CallContextHook:Send) {
         match self.status {
             AnswerStatusSent(ref mut answer_message) => {
                 Answer::do_call(answer_message, interface_id, method_id, ops, context);
@@ -100,7 +100,7 @@ impl Answer {
 }
 
 pub struct Export {
-    hook : ~ClientHook,
+    hook : ~ClientHook:Send,
 }
 
 pub struct Import;
@@ -137,7 +137,7 @@ pub struct RpcConnectionState {
 }
 
 fn client_hooks_of_payload(payload : Payload::Reader,
-                           rpc_chan : &std::comm::Sender<RpcEvent>) -> Vec<Option<~ClientHook>> {
+                           rpc_chan : &std::comm::Sender<RpcEvent>) -> Vec<Option<~ClientHook:Send>> {
     let mut result = Vec::new();
     let cap_table = payload.get_cap_table();
     for ii in range(0, cap_table.size()) {
@@ -150,7 +150,7 @@ fn client_hooks_of_payload(payload : Payload::Reader,
                         (box ImportClient {
                                 channel : rpc_chan.clone(),
                                 import_id : id})
-                            as ~ClientHook));
+                            as ~ClientHook:Send));
             }
             Some(CapDescriptor::SenderPromise(_id)) => {
                 fail!()
@@ -163,7 +163,7 @@ fn client_hooks_of_payload(payload : Payload::Reader,
                         (box PromisedAnswerClient {
                                 rpc_chan : rpc_chan.clone(),
                                 ops : get_pipeline_ops(promised_answer),
-                                answer_id : promised_answer.get_question_id(),} as ~ClientHook)));
+                                answer_id : promised_answer.get_question_id(),} as ~ClientHook:Send)));
             }
             Some(CapDescriptor::ThirdPartyHosted(_)) => {
                 fail!()
@@ -176,7 +176,7 @@ fn client_hooks_of_payload(payload : Payload::Reader,
 
 fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
                       rpc_chan : &std::comm::Sender<RpcEvent>) {
-    let mut the_cap_table : Vec<Option<~ClientHook>> = Vec::new();
+    let mut the_cap_table : Vec<Option<~ClientHook:Send>> = Vec::new();
     {
         let root = message.get_root::<Message::Reader>();
 
@@ -410,7 +410,7 @@ impl RpcConnectionState {
                                 ExportReceiver(id) => {
                                     let (answer_id, interface_id, method_id) = get_call_ids(message);
                                     let context =
-                                        ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook;
+                                        ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook:Send;
 
                                     answers.slots.insert(answer_id, Answer::new());
                                     exports.slots.get(id as uint).hook.call(interface_id, method_id, context);
@@ -418,7 +418,7 @@ impl RpcConnectionState {
                                 PromisedAnswerReceiver(id, ops) => {
                                     let (answer_id, interface_id, method_id) = get_call_ids(message);
                                     let context =
-                                        ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook;
+                                        ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook:Send;
 
                                     answers.slots.insert(answer_id, Answer::new());
                                     answers.slots.get_mut(&id).receive(interface_id, method_id, ops, context);
@@ -473,7 +473,7 @@ impl RpcConnectionState {
 
                             let context =
                                 (~PromisedAnswerRpcCallContext::new(m, rpc_chan.clone(), answer_chan))
-                                as ~CallContextHook;
+                                as ~CallContextHook:Send;
 
 
                             answers.slots.get_mut(&answer_id).receive(interface_id, method_id, ops, context);
@@ -511,9 +511,9 @@ pub struct ImportClient {
 }
 
 impl ClientHook for ImportClient {
-    fn copy(&self) -> ~ClientHook {
+    fn copy(&self) -> ~ClientHook:Send {
         (box ImportClient {channel : self.channel.clone(),
-                           import_id : self.import_id}) as ~ClientHook
+                           import_id : self.import_id}) as ~ClientHook:Send
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
@@ -549,11 +549,11 @@ pub struct PipelineClient {
 }
 
 impl ClientHook for PipelineClient {
-    fn copy(&self) -> ~ClientHook {
+    fn copy(&self) -> ~ClientHook:Send {
         (~PipelineClient { channel : self.channel.clone(),
                            ops : self.ops.clone(),
                            question_id : self.question_id,
-            }) as ~ClientHook
+            }) as ~ClientHook:Send
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
@@ -597,11 +597,11 @@ pub struct PromisedAnswerClient {
 }
 
 impl ClientHook for PromisedAnswerClient {
-    fn copy(&self) -> ~ClientHook {
+    fn copy(&self) -> ~ClientHook:Send {
         (~PromisedAnswerClient { rpc_chan : self.rpc_chan.clone(),
                                  ops : self.ops.clone(),
                                  answer_id : self.answer_id,
-            }) as ~ClientHook
+            }) as ~ClientHook:Send
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
@@ -657,7 +657,7 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
                     new_cap_table[ii].set_sender_hosted(export_id);
                 }
                 None => {
-                    match cap_table[ii].as_ref::<~ClientHook>() {
+                    match cap_table[ii].as_ref::<~ClientHook:Send>() {
                         Some(clienthook) => {
                             let (chan, port) = std::comm::channel::<ExportId>();
                             rpc_chan.send(NewLocalServer(clienthook.copy(), chan));
@@ -763,11 +763,11 @@ impl PipelineHook for RpcPipeline {
         (~RpcPipeline { channel : self.channel.clone(),
                         question_id : self.question_id }) as ~PipelineHook
     }
-    fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> ~ClientHook {
+    fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> ~ClientHook:Send {
         (~PipelineClient { channel : self.channel.clone(),
                            ops : ops,
                            question_id : self.question_id,
-        }) as ~ClientHook
+        }) as ~ClientHook:Send
     }
 }
 
@@ -777,7 +777,7 @@ impl PipelineHook for PromisedAnswerRpcPipeline {
     fn copy(&self) -> ~PipelineHook {
         (~PromisedAnswerRpcPipeline) as ~PipelineHook
     }
-    fn get_pipelined_cap(&self, _ops : Vec<PipelineOp::Type>) -> ~ClientHook {
+    fn get_pipelined_cap(&self, _ops : Vec<PipelineOp::Type>) -> ~ClientHook:Send {
         fail!()
     }
 }
@@ -972,7 +972,7 @@ pub enum RpcEvent {
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
     OutgoingDeferred(OutgoingMessage, AnswerId, Vec<PipelineOp::Type>),
-    NewLocalServer(~ClientHook, std::comm::Sender<ExportId>),
+    NewLocalServer(~ClientHook:Send, std::comm::Sender<ExportId>),
     ReturnEvent(~MallocMessageBuilder),
     ShutdownEvent,
 }
@@ -999,12 +999,12 @@ impl RpcEvent {
 
 
 pub enum VatEvent {
-    VatEventRestore(~str /* XXX */, std::comm::Sender<Option<~ClientHook>>),
-    VatEventRegister(~str /* XXX */, ~Server),
+    VatEventRestore(~str /* XXX */, std::comm::Sender<Option<~ClientHook:Send>>),
+    VatEventRegister(~str /* XXX */, ~Server:Send),
 }
 
 pub struct Vat {
-    objects : HashMap<~str, ~ClientHook>,
+    objects : HashMap<~str, ~ClientHook:Send>,
 }
 
 impl Vat {
@@ -1017,7 +1017,7 @@ impl Vat {
                 loop {
                     match port.recv_opt() {
                         Some(VatEventRegister(name, server)) => {
-                            vat.objects.insert(name, ~LocalClient::new(server) as ~ClientHook);
+                            vat.objects.insert(name, ~LocalClient::new(server) as ~ClientHook:Send);
                         }
                         Some(VatEventRestore(name, return_chan)) => {
                             return_chan.send(Some((*vat.objects.get(&name)).copy()));

@@ -67,8 +67,8 @@ impl EzRpcClient {
 }
 
 impl ServerHook for EzRpcClient {
-    fn new_client(_unused_self : Option<EzRpcClient>, server : ~Server) -> Client {
-        Client::new((~capability::LocalClient::new(server) ) as ~ClientHook)
+    fn new_client(_unused_self : Option<EzRpcClient>, server : ~Server:Send) -> Client {
+        Client::new((~capability::LocalClient::new(server) ) as ~ClientHook:Send)
     }
 }
 
@@ -80,8 +80,8 @@ pub struct EzRpcServer {
 }
 
 impl ServerHook for EzRpcServer {
-    fn new_client(_unused_self : Option<EzRpcServer>, server : ~Server) -> Client {
-        Client::new((~capability::LocalClient::new(server)) as ~ClientHook)
+    fn new_client(_unused_self : Option<EzRpcServer>, server : ~Server:Send) -> Client {
+        Client::new((~capability::LocalClient::new(server)) as ~ClientHook:Send)
     }
 }
 
@@ -101,7 +101,7 @@ impl EzRpcServer {
         Ok(EzRpcServer { vat_chan : vat_chan, tcp_acceptor : tcp_acceptor  })
     }
 
-    pub fn export_cap(&self, name : &str, server : ~Server) {
+    pub fn export_cap(&self, name : &str, server : ~Server:Send) {
         self.vat_chan.send(VatEventRegister(name.to_owned(), server))
     }
 

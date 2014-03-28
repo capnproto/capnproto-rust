@@ -41,7 +41,7 @@ impl <Params, Results, Pipeline : FromTypelessPipeline> Request <Params, Results
 }
 
 pub trait FromClientHook {
-    fn new(~ClientHook) -> Self;
+    fn new(~ClientHook:Send) -> Self;
 }
 
 pub trait ClientHook : Send {
@@ -51,14 +51,14 @@ pub trait ClientHook : Send {
                 method_id : u16,
                 size_hint : Option<MessageSize>)
                 -> Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline>;
-    fn call(&self, interface_id : u64, method_id : u16, context : ~CallContextHook);
+    fn call(&self, interface_id : u64, method_id : u16, context : ~CallContextHook:Send);
 
     // HACK
     fn get_descriptor(&self) -> ~std::any::Any;
 }
 
 pub trait ServerHook {
-    fn new_client(unused : Option<Self>, server : ~Server) -> Client;
+    fn new_client(unused : Option<Self>, server : ~Server:Send) -> Client;
 }
 
 pub trait FromServer<T, U> {
@@ -66,11 +66,11 @@ pub trait FromServer<T, U> {
 }
 
 pub struct Client {
-    hook : ~ClientHook
+    hook : ~ClientHook:Send
 }
 
 impl Client {
-    pub fn new(hook : ~ClientHook) -> Client {
+    pub fn new(hook : ~ClientHook:Send) -> Client {
         Client { hook : hook }
     }
 
@@ -131,7 +131,7 @@ pub fn internal_get_typed_context<Params, Results>(
 
 pub trait PipelineHook {
     fn copy(&self) -> ~PipelineHook;
-    fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> ~ClientHook;
+    fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> ~ClientHook:Send;
 }
 
 pub mod PipelineOp {

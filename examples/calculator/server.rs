@@ -167,7 +167,7 @@ pub fn main() {
     let rpc_server = EzRpcServer::new(args[2]).unwrap();
 
     // There's got to be a better way to do this.
-    let calculator = (~Calculator::ServerDispatch { server : ~CalculatorImpl}) as ~Server;
+    let calculator = (~Calculator::ServerDispatch { server : ~CalculatorImpl}) as ~Server:Send;
     rpc_server.export_cap("calculator", calculator);
 
     rpc_server.serve();
