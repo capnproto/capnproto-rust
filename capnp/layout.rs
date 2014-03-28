@@ -157,7 +157,7 @@ impl ListRef {
 
     #[inline]
     pub fn set_inline_composite(& mut self, wc : WordCount) {
-        assert!(wc < (1 << 29), "Inline composite lists are limited to 2 ** 29 words");
+        assert!(wc < (1 << 29), "Inline composite lists are limited to 2**29 words");
         self.element_size_and_count.set((( wc as u32) << 3) | (InlineComposite as u32));
     }
 }
@@ -321,6 +321,16 @@ mod WireHelpers {
     use arena::*;
     use blob::*;
 
+
+    macro_rules! require(
+        ($condition:expr, $message:expr, $fail:stmt) => (
+            if !($condition) {
+                debug!($message);
+                $fail
+            }
+            );
+        )
+
     #[inline]
     pub fn round_bytes_up_to_words(bytes : ByteCount) -> WordCount {
         //# This code assumes 64-bit words.
@@ -447,7 +457,9 @@ mod WireHelpers {
                 (**reff).far_position_in_segment() as int);
 
             let padWords : int = if (**reff).is_double_far() { 2 } else { 1 };
-            assert!(bounds_check(*segment, ptr, ptr.offset(padWords)));
+            require!(bounds_check(*segment, ptr, ptr.offset(padWords)),
+                     "Message contains out-of-bounds far pointer.",
+                     return std::ptr::null());
 
             let pad : *WirePointer = std::cast::transmute(ptr);
 
@@ -581,19 +593,24 @@ mod WireHelpers {
         std::ptr::zero_memory(reff, 1);
     }
 
-    pub unsafe fn total_size(mut segment : *SegmentReader, mut reff : *WirePointer, mut nesting_limit : int)
-                             -> MessageSize {
+    pub unsafe fn total_size(mut segment : *SegmentReader,
+                             mut reff : *WirePointer,
+                             mut nesting_limit : int) -> MessageSize {
         let mut result = MessageSize { word_count : 0, cap_count : 0};
 
         if (*reff).is_null() { return result };
+
+        require!(nesting_limit > 0, "Message is too deeply nested.", return result);
+
         nesting_limit -= 1;
 
         let ptr = follow_fars(&mut reff, (*reff).target(), &mut segment);
 
         match (*reff).kind() {
             WirePointerKind::Struct => {
-                assert!(bounds_check(segment, ptr, ptr.offset((*reff).struct_ref().word_size() as int)),
-                        "Message contains out-of-bounds struct pointer.");
+                require!(bounds_check(segment, ptr, ptr.offset((*reff).struct_ref().word_size() as int)),
+                        "Message contains out-of-bounds struct pointer.",
+                         return result);
                 result.word_count += (*reff).struct_ref().word_size() as u64;
 
                 let pointer_section : *WirePointer =
@@ -610,14 +627,16 @@ mod WireHelpers {
                         let total_words = round_bits_up_to_words(
                             (*reff).list_ref().element_count() as u64 *
                                 data_bits_per_element((*reff).list_ref().element_size()) as u64);
-                        assert!(bounds_check(segment, ptr, ptr.offset(total_words as int)),
-                                "Message contains out-of-bounds list pointer.");
+                        require!(bounds_check(segment, ptr, ptr.offset(total_words as int)),
+                                 "Message contains out-of-bounds list pointer.",
+                                 return result);
                         result.word_count += total_words as u64;
                     }
                     Pointer => {
                         let count = (*reff).list_ref().element_count();
-                        assert!(bounds_check(segment, ptr, ptr.offset((count * WORDS_PER_POINTER) as int)),
-                                "Message contains out-of-bounds list pointer.");
+                        require!(bounds_check(segment, ptr, ptr.offset((count * WORDS_PER_POINTER) as int)),
+                                 "Message contains out-of-bounds list pointer.",
+                                 return result);
 
                         result.word_count += count as u64 * WORDS_PER_POINTER as u64;
 
@@ -629,20 +648,23 @@ mod WireHelpers {
                     }
                     InlineComposite => {
                         let word_count = (*reff).list_ref().inline_composite_word_count();
-                        assert!(bounds_check(segment, ptr,
-                                             ptr.offset(word_count as int + POINTER_SIZE_IN_WORDS as int)),
-                                "Message contains out-of-bounds list pointer.");
+                        require!(bounds_check(segment, ptr,
+                                              ptr.offset(word_count as int + POINTER_SIZE_IN_WORDS as int)),
+                                 "Message contains out-of-bounds list pointer.",
+                                 return result);
 
                         result.word_count += word_count as u64 + POINTER_SIZE_IN_WORDS as u64;
 
                         let element_tag : *WirePointer = std::cast::transmute(ptr);
                         let count = (*element_tag).inline_composite_list_element_count();
 
-                        assert!((*element_tag).kind() == WirePointerKind::Struct,
-                                "Don't know how to handle non-STRUCT inline composite.");
+                        require!((*element_tag).kind() == WirePointerKind::Struct,
+                                 "Don't know how to handle non-STRUCT inline composite.",
+                                 return result);
 
-                        assert!((*element_tag).struct_ref().word_size() * count <= word_count,
-                                "InlineComposite list's elements overrun its word count");
+                        require!((*element_tag).struct_ref().word_size() * count <= word_count,
+                                 "InlineComposite list's elements overrun its word count",
+                                 return result);
 
                         let data_size = (*element_tag).struct_ref().data_size.get();
                         let pointer_count = (*element_tag).struct_ref().ptr_count.get();
@@ -1292,22 +1314,35 @@ mod WireHelpers {
     pub unsafe fn copy_pointer(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer,
                                mut src_segment : *SegmentReader, mut src : *WirePointer,
                                nesting_limit : int) -> super::SegmentAnd<*mut Word> {
+
+        unsafe fn use_default(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer)
+            -> super::SegmentAnd<*mut Word> {
+                std::ptr::zero_memory(dst, 1);
+                return super::SegmentAnd { segment : dst_segment, value : std::ptr::mut_null() };
+            }
+
+
         let src_target = (*src).target();
 
         if (*src).is_null() {
-            std::ptr::zero_memory(dst, 1);
-            return super::SegmentAnd { segment : dst_segment, value : std::ptr::mut_null() };
+            return use_default(dst_segment, dst);
         }
 
         let mut ptr = follow_fars(&mut src, src_target, &mut src_segment);
-        // TODO what if ptr is null?
+        if ptr.is_null() {
+            return use_default(dst_segment, dst);
+        }
 
         match (*src).kind() {
             WirePointerKind::Struct => {
-                assert!(nesting_limit > 0,
-                        "Message is too deeply-nested or contains cycles.  See ReadOptions.");
-                assert!(bounds_check(src_segment, ptr, ptr.offset((*src).struct_ref().word_size() as int)),
-                        "Message contains out-of-bounds struct pointer.");
+                require!(nesting_limit > 0,
+                        "Message is too deeply-nested or contains cycles.  See ReaderOptions.",
+                         return use_default(dst_segment, dst));
+
+                require!(bounds_check(src_segment, ptr, ptr.offset((*src).struct_ref().word_size() as int)),
+                        "Message contains out-of-bounds struct pointer.",
+                         return use_default(dst_segment, dst));
+
                 set_struct_pointer(
                     dst_segment, dst,
                     StructReader {
@@ -1322,8 +1357,9 @@ mod WireHelpers {
             }
             WirePointerKind::List => {
                 let element_size = (*src).list_ref().element_size();
-                assert!(nesting_limit > 0,
-                        "Message is too deeply-nested or contains cycles. See ReadOptions.");
+                require!(nesting_limit > 0,
+                        "Message is too deeply-nested or contains cycles. See ReadOptions.",
+                         return use_default(dst_segment, dst));
 
                 if element_size == InlineComposite {
                     let word_count = (*src).list_ref().inline_composite_word_count();
