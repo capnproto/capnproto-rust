@@ -48,7 +48,7 @@ pub mod AnyPointer {
 
         //# Used by RPC system to implement pipelining. Applications
         //# generally shouldn't use this directly.
-        pub fn get_pipelined_cap(&self, ops : &[PipelineOp::Type]) -> ~ClientHook {
+        pub fn get_pipelined_cap(&self, ops : &[PipelineOp::Type]) -> ~ClientHook:Send {
             let mut pointer = self.reader;
 
             for op in ops.iter() {
@@ -90,7 +90,7 @@ pub mod AnyPointer {
         }
 
         // XXX value should be a user client.
-        pub fn set_as_capability(&self, value : ~ClientHook) {
+        pub fn set_as_capability(&self, value : ~ClientHook:Send) {
             self.builder.set_capability(value);
         }
 

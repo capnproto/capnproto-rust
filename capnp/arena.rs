@@ -108,7 +108,7 @@ pub struct ReaderArena {
     more_segments : Vec<SegmentReader>,
     //XXX should this be a map as in capnproto-c++?
 
-    cap_table : Vec<Option<~ClientHook>>,
+    cap_table : Vec<Option<~ClientHook:Send>>,
 }
 
 impl ReaderArena {
@@ -154,7 +154,7 @@ impl ReaderArena {
     }
 
     #[inline]
-    pub fn init_cap_table(&mut self, cap_table : Vec<Option<~ClientHook>>) {
+    pub fn init_cap_table(&mut self, cap_table : Vec<Option<~ClientHook:Send>>) {
         self.cap_table = cap_table;
     }
 
@@ -166,7 +166,7 @@ pub struct BuilderArena {
     allocation_strategy : message::AllocationStrategy,
     owned_memory : Vec<*mut Word>,
     nextSize : uint,
-    cap_table : Vec<Option<~ClientHook>>,
+    cap_table : Vec<Option<~ClientHook:Send>>,
 }
 
 impl Drop for BuilderArena {
@@ -298,11 +298,11 @@ impl BuilderArena {
         }
     }
 
-    pub fn get_cap_table<'a>(&'a self) -> &'a [Option<~ClientHook>] {
+    pub fn get_cap_table<'a>(&'a self) -> &'a [Option<~ClientHook:Send>] {
         self.cap_table.as_slice()
     }
 
-    pub fn inject_cap(&mut self, cap : ~ClientHook) -> u32 {
+    pub fn inject_cap(&mut self, cap : ~ClientHook:Send) -> u32 {
         self.cap_table.push(Some(cap));
         self.cap_table.len() as u32 - 1
     }
@@ -335,7 +335,7 @@ impl ArenaPtr {
         }
     }
 
-    pub fn extract_cap(&self, index : uint) -> Option<~ClientHook> {
+    pub fn extract_cap(&self, index : uint) -> Option<~ClientHook:Send> {
         unsafe {
             match self {
                 &ReaderArenaPtr(reader) => {

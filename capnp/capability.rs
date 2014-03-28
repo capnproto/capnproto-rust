@@ -44,8 +44,8 @@ pub trait FromClientHook {
     fn new(~ClientHook) -> Self;
 }
 
-pub trait ClientHook {
-    fn copy(&self) -> ~ClientHook;
+pub trait ClientHook : Send {
+    fn copy(&self) -> ~ClientHook:Send;
     fn new_call(&self,
                 interface_id : u64,
                 method_id : u16,
@@ -85,7 +85,7 @@ impl Client {
 }
 
 pub struct CallContext<Params, Results> {
-    hook : ~CallContextHook,
+    hook : ~CallContextHook:Send,
 }
 
 impl <Params, Results> CallContext<Params, Results> {
