@@ -4,7 +4,7 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-#[crate_type = "bin"];
+#![crate_type = "bin"]
 
 extern crate capnp;
 pub mod addressbook_capnp;

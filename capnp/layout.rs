@@ -785,21 +785,28 @@ mod WireHelpers {
                                                   mut segment : *mut SegmentBuilder,
                                                   size : StructSize,
                                                   default_value : *Word) -> StructBuilder<'a> {
-        if (*reff).is_null() {
+
+        unsafe fn use_default<'a>(reff : *mut WirePointer, segment : *mut SegmentBuilder,
+                                  size : StructSize, default_value : *Word) -> StructBuilder<'a> {
             if default_value.is_null() ||
                 (*std::cast::transmute::<*Word,*WirePointer>(default_value)).is_null() {
 
-                return init_struct_pointer(reff, segment, size);
-            }
-            fail!("TODO")
+                    return init_struct_pointer(reff, segment, size);
+                }
+            unimplemented!()
+        }
+
+        if (*reff).is_null() {
+            return use_default(reff, segment, size, default_value);
         }
 
         let ref_target = (*reff).mut_target();
         let mut old_ref = reff;
         let mut old_segment = segment;
         let old_ptr = follow_builder_fars(&mut old_ref, ref_target, &mut old_segment);
-        assert!((*old_ref).kind() == WirePointerKind::Struct,
-                "Message contains non-struct pointer where struct pointer was expected.");
+        require!((*old_ref).kind() == WirePointerKind::Struct,
+                 "Message contains non-struct pointer where struct pointer was expected.",
+                 return use_default(reff, segment, size, default_value));
 
         let old_data_size = (*old_ref).struct_ref().data_size.get();
         let old_pointer_count = (*old_ref).struct_ref().ptr_count.get();
@@ -864,12 +871,8 @@ mod WireHelpers {
                                         mut segmentBuilder : *mut SegmentBuilder,
                                         element_count : ElementCount,
                                         element_size : FieldSize) -> ListBuilder<'a> {
-        match element_size {
-            InlineComposite => {
-                fail!("Should have called initStructListPointer() instead")
-            }
-            _ => { }
-        }
+        assert!(element_size != InlineComposite,
+                "Should have called initStructListPointer() instead");
 
         let data_size : BitCount0 = data_bits_per_element(element_size);
         let pointer_count = pointers_per_element(element_size);
@@ -894,11 +897,10 @@ mod WireHelpers {
                                                mut segmentBuilder : *mut SegmentBuilder,
                                                element_count : ElementCount,
                                                element_size : StructSize) -> ListBuilder<'a> {
-        match element_size.preferred_list_encoding {
-            InlineComposite => { }
-            otherEncoding => {
-                return init_list_pointer(reff, segmentBuilder, element_count, otherEncoding);
-            }
+        if element_size.preferred_list_encoding != InlineComposite {
+            //# Small data-only struct. Allocate a list of primitives instead.
+            return init_list_pointer(reff, segmentBuilder, element_count,
+                                     element_size.preferred_list_encoding);
         }
 
         let wordsPerElement = element_size.total();
@@ -934,13 +936,18 @@ mod WireHelpers {
         assert!(element_size != InlineComposite,
                 "Use get_struct_list_{element,field}() for structs");
 
-        if (*orig_ref).is_null() {
+        unsafe fn use_default<'a>(_orig_ref : *mut WirePointer, _orig_segment : *mut SegmentBuilder,
+                                  default_value : *Word) -> ListBuilder<'a> {
             if default_value.is_null() ||
                 (*std::cast::transmute::<*Word,*WirePointer>(default_value)).is_null() {
+                    return ListBuilder::new_default();
+                }
+            unimplemented!()
+        }
 
-                return ListBuilder::new_default();
-            }
-            fail!("TODO")
+
+        if (*orig_ref).is_null() {
+            return use_default(orig_ref, orig_segment, default_value);
         }
 
         let orig_ref_target = (*orig_ref).mut_target();
@@ -955,8 +962,9 @@ mod WireHelpers {
         let mut segment = orig_segment;
         let mut ptr = follow_builder_fars(&mut reff, orig_ref_target, &mut segment);
 
-        assert!((*reff).kind() == WirePointerKind::List,
-                "Called get_list_{field,element}() but existing pointer is not a list");
+        require!((*reff).kind() == WirePointerKind::List,
+                 "Called get_list_\\{field,element\\}() but existing pointer is not a list",
+                 return use_default(orig_ref, orig_segment, default_value));
 
         let old_size = (*reff).list_ref().element_size();
 

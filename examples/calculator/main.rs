@@ -5,8 +5,8 @@
  */
 
 
-#[crate_id="calculator"];
-#[crate_type="bin"];
+#![crate_id="calculator"]
+#![crate_type="bin"]
 
 extern crate capnp;
 extern crate capnp_rpc = "capnp-rpc";

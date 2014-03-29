@@ -4,10 +4,10 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-#[feature(globs)];
+#![feature(globs)]
 
-#[crate_id="capnpc-rust"];
-#[crate_type = "bin"];
+#![crate_id="capnpc-rust"]
+#![crate_type = "bin"]
 
 extern crate collections;
 extern crate capnp;
@@ -1484,8 +1484,8 @@ fn main() {
         filepath.set_filename(format!("{}.rs", rootName));
         populate_scope_map(&node_map, &mut scope_map, rootName, id);
 
-        let lines = Branch(vec!(Line(~"#[allow(unused_imports)];"),
-                                Line(~"#[allow(dead_code)];"),
+        let lines = Branch(vec!(Line(~"#![allow(unused_imports)]"),
+                                Line(~"#![allow(dead_code)]"),
                                 generate_node(&node_map, &scope_map,
                                               rootName, id, rootName)));
 

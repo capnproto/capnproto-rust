@@ -1,5 +1,5 @@
-#[allow(unused_imports)];
-#[allow(dead_code)];
+#![allow(unused_imports)]
+#![allow(dead_code)]
 
 pub mod Node {
   use std;

@@ -5,8 +5,8 @@
  */
 
 
-#[crate_id="capnp-rpc"];
-#[crate_type="lib"];
+#![crate_id="capnp-rpc"]
+#![crate_type="lib"]
 
 extern crate collections;
 extern crate capnp;

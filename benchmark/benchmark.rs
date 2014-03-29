@@ -4,10 +4,10 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-#[feature(macro_rules)];
-#[feature(globs)];
+#![feature(macro_rules)]
+#![feature(globs)]
 
-#[crate_type = "bin"];
+#![crate_type = "bin"]
 
 extern crate capnp;
 extern crate rand;
