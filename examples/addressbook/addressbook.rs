@@ -10,12 +10,12 @@ extern crate capnp;
 pub mod addressbook_capnp;
 
 pub mod addressbook {
-    use std::io::{stdin, stdout};
+    use std::io::{stdin, stdout, IoResult};
     use addressbook_capnp::{AddressBook, Person};
     use capnp::serialize_packed;
     use capnp::message::{MallocMessageBuilder, MessageBuilder, DefaultReaderOptions, MessageReader};
 
-    pub fn write_address_book() {
+    pub fn write_address_book() -> IoResult<()> {
         let mut message = MallocMessageBuilder::new_default();
         let address_book = message.init_root::<AddressBook::Builder>();
 
@@ -42,12 +42,12 @@ pub mod addressbook {
         bob_phones[1].set_type(Person::PhoneNumber::Type::Work);
         bob.get_employment().set_unemployed(());
 
-        serialize_packed::write_packed_message_unbuffered(&mut stdout(), & message).unwrap();
+        serialize_packed::write_packed_message_unbuffered(&mut stdout(), & message)
     }
 
-    pub fn print_address_book() {
+    pub fn print_address_book() -> IoResult<()> {
 
-        let message_reader = serialize_packed::new_reader_unbuffered(&mut stdin(), DefaultReaderOptions).unwrap();
+        let message_reader = try!(serialize_packed::new_reader_unbuffered(&mut stdin(), DefaultReaderOptions));
         let address_book = message_reader.get_root::<AddressBook::Reader>();
         let people = address_book.get_people();
 
@@ -81,6 +81,7 @@ pub mod addressbook {
                 None => { }
             }
         }
+        Ok(())
     }
 }
 
@@ -91,8 +92,8 @@ pub fn main() {
         println!("usage: $ {} [write | read]", args[0]);
     } else {
         match args[1].as_slice() {
-            "write" => addressbook::write_address_book(),
-            "read" => addressbook::print_address_book(),
+            "write" => addressbook::write_address_book().unwrap(),
+            "read" => addressbook::print_address_book().unwrap(),
             _ => {println!("unrecognized argument") }
         }
     }
