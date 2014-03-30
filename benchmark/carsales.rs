@@ -27,8 +27,9 @@ macro_rules! car_value_impl(
                     result += self.get_doors() as u64 * 350;
 
                     // TODO Lists should have iterators.
-                    for i in range(0, self.get_wheels().size()) {
-                        let wheel = self.get_wheels()[i];
+                    let wheels = self.get_wheels();
+                    for i in range(0, wheels.size()) {
+                        let wheel = wheels[i];
                         result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
                         result += if wheel.get_snow_tires() { 100 } else { 0 };
                     }

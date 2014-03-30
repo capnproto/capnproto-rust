@@ -13,7 +13,6 @@ CAPNP_SOURCES= \
     capnp/list.rs \
     capnp/mask.rs \
     capnp/message.rs \
-    capnp/pointer_helpers.rs \
     capnp/serialize.rs \
     capnp/serialize_packed.rs
 
