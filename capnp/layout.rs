@@ -316,7 +316,7 @@ struct SegmentAnd<T> {
 macro_rules! require(
     ($condition:expr, $message:expr, $fail:stmt) => (
         if !($condition) {
-            debug!($message);
+            error!($message);
             $fail
         }
         );
@@ -325,7 +325,7 @@ macro_rules! require(
 macro_rules! require_fail(
     ($message:expr, $fail:stmt) => (
         {
-            debug!($message);
+            error!($message);
             $fail;
         }
         );
@@ -2240,8 +2240,10 @@ impl <'a> ListReader<'a> {
     pub fn size(&self) -> ElementCount { self.element_count }
 
     pub fn get_struct_element(&self, index : ElementCount) -> StructReader<'a> {
-        assert!(self.nesting_limit > 0,
-                "Message is too deeply-nested or contains cycles");
+        require!(self.nesting_limit > 0,
+                 "Message is too deeply-nested or contains cycles",
+                 return StructReader::new_default());
+
         let indexBit : BitCount64 = index as ElementCount64 * (self.step as BitCount64);
 
         let structData : *u8 = unsafe {
