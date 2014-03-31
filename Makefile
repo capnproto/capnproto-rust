@@ -40,7 +40,7 @@ $(CAPNP_COMPILATION_MARKER) : $(CAPNP_SOURCES)
 	$(RUSTC) capnp/lib.rs --out-dir capnp
 	touch $(CAPNP_COMPILATION_MARKER)
 
-capnpc-rust/capnpc-rust : $(CAPNP_COMPILATION_MARKER) capnpc-rust/main.rs capnpc-rust/schema_capnp.rs
+capnpc-rust/capnpc-rust : $(CAPNP_COMPILATION_MARKER) capnpc-rust/codegen.rs capnpc-rust/main.rs capnpc-rust/schema_capnp.rs
 	$(RUSTC) -L./capnp capnpc-rust/main.rs --out-dir capnpc-rust
 
 examples/addressbook/addressbook : capnpc-rust/capnpc-rust examples/addressbook/addressbook.rs
