@@ -1692,7 +1692,9 @@ mod WireHelpers {
                                         ) -> Text::Reader<'a> {
         unsafe fn use_default<'a>(default_value : *Word, default_size : ByteCount) -> Text::Reader<'a> {
             //   TODO?       if default_value.is_null() { default_value = &"" }
-            return Text::new_reader(std::cast::transmute(default_value), default_size);
+
+            // assume that the default value is valid utf-8.
+            return Text::new_reader(std::cast::transmute(default_value), default_size).unwrap();
         }
 
         if (*reff).is_null() {
@@ -1729,7 +1731,11 @@ mod WireHelpers {
                  "Message contains text that is not NUL-terminated",
                  return use_default(default_value, default_size));
 
-        Text::new_reader(str_ptr, size-1)
+        match Text::new_reader(str_ptr, size-1) {
+            Some(t) => return t,
+            None => require_fail!("Text contains non-utf8 data.",
+                                  return use_default(default_value, default_size)),
+        }
     }
 
     #[inline]
