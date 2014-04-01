@@ -14,7 +14,7 @@ pub mod AnyPointer {
     use blob::{Text, Data};
 
     pub struct Reader<'a> {
-        priv reader : PointerReader<'a>
+        reader : PointerReader<'a>
     }
 
     impl <'a> Reader<'a> {
@@ -65,7 +65,7 @@ pub mod AnyPointer {
     }
 
     pub struct Builder<'a> {
-        priv builder : PointerBuilder<'a>
+        builder : PointerBuilder<'a>
     }
 
     impl <'a> Builder<'a> {

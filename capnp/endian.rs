@@ -10,7 +10,7 @@ use std::intrinsics::{bswap16, bswap32, bswap64};
 use std::cast::transmute;
 
 pub struct WireValue<T> {
-    priv value : T
+    value : T
 }
 
 impl<T:Endian> WireValue<T> {

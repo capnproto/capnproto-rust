@@ -27,10 +27,10 @@ pub trait BufferedInputStream : Reader {
 }
 
 pub struct BufferedInputStreamWrapper<'a, R> {
-    priv inner : &'a mut R,
-    priv buf : Vec<u8>,
-    priv pos : uint,
-    priv cap : uint
+    inner : &'a mut R,
+    buf : Vec<u8>,
+    pos : uint,
+    cap : uint
 }
 
 impl <'a, R> BufferedInputStreamWrapper<'a, R> {
@@ -117,7 +117,7 @@ impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
 }
 
 pub struct ArrayInputStream<'a> {
-    priv array : &'a [u8]
+    array : &'a [u8]
 }
 
 impl <'a> ArrayInputStream<'a> {
@@ -155,9 +155,9 @@ pub trait BufferedOutputStream : Writer {
 }
 
 pub struct BufferedOutputStreamWrapper<'a, W> {
-    priv inner: &'a mut W,
-    priv buf: Vec<u8>,
-    priv pos: uint
+    inner: &'a mut W,
+    buf: Vec<u8>,
+    pos: uint
 }
 
 impl <'a, W> BufferedOutputStreamWrapper<'a, W> {
@@ -240,8 +240,8 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
 }
 
 pub struct ArrayOutputStream<'a> {
-    priv array : &'a mut [u8],
-    priv fill_pos : uint,
+    array : &'a mut [u8],
+    fill_pos : uint,
 }
 
 impl <'a> ArrayOutputStream<'a> {

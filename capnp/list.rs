@@ -28,7 +28,7 @@ pub mod PrimitiveList {
 
     pub struct Reader<'a, T> {
         // I want this field to be private, but then I can't access it in set_list()
-        reader : ListReader<'a>
+        pub reader : ListReader<'a>
     }
 
     impl <'a, T : PrimitiveElement> Reader<'a, T> {
@@ -53,7 +53,7 @@ pub mod PrimitiveList {
     }
 
     pub struct Builder<'a, T> {
-        builder : ListBuilder<'a>
+        pub builder : ListBuilder<'a>
     }
 
     impl <'a, T : PrimitiveElement> Builder<'a, T> {
@@ -96,7 +96,7 @@ pub mod EnumList {
     use common::Word;
 
     pub struct Reader<'a, T> {
-        reader : ListReader<'a>
+        pub reader : ListReader<'a>
     }
 
     impl <'a, T : FromPrimitive> Reader<'a, T> {
@@ -123,7 +123,7 @@ pub mod EnumList {
     }
 
     pub struct Builder<'a, T> {
-        builder : ListBuilder<'a>
+        pub builder : ListBuilder<'a>
     }
 
     impl <'a, T : ToU16 + FromPrimitive> Builder<'a, T> {
@@ -164,7 +164,7 @@ pub mod StructList {
     use layout::*;
 
     pub struct Reader<'a, T> {
-        reader : ListReader<'a>
+        pub reader : ListReader<'a>
     }
 
     impl <'a, T : FromStructReader<'a>> Reader<'a, T> {
@@ -190,7 +190,7 @@ pub mod StructList {
     }
 
     pub struct Builder<'a, T> {
-        builder : ListBuilder<'a>
+        pub builder : ListBuilder<'a>
     }
 
     impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
@@ -234,7 +234,7 @@ pub mod ListList {
     use layout::*;
 
     pub struct Reader<'a, T> {
-        reader : ListReader<'a>
+        pub reader : ListReader<'a>
     }
 
     impl <'a, T> Reader<'a, T> {
@@ -260,7 +260,7 @@ pub mod ListList {
     }
 
     pub struct Builder<'a, T> {
-        builder : ListBuilder<'a>
+        pub builder : ListBuilder<'a>
     }
 
     impl <'a, T : FromPointerBuilder<'a>> Builder<'a, T> {
@@ -312,7 +312,7 @@ pub mod TextList {
     use layout::*;
 
     pub struct Reader<'a> {
-        reader : ListReader<'a>
+        pub reader : ListReader<'a>
     }
 
     impl <'a> Reader<'a> {
@@ -337,7 +337,7 @@ pub mod TextList {
     }
 
     pub struct Builder<'a> {
-        builder : ListBuilder<'a>
+        pub builder : ListBuilder<'a>
     }
 
     impl <'a> Builder<'a> {
@@ -383,7 +383,7 @@ pub mod DataList {
     use layout::*;
 
     pub struct Reader<'a> {
-        reader : ListReader<'a>
+        pub reader : ListReader<'a>
     }
 
     impl <'a> Reader<'a> {
@@ -408,7 +408,7 @@ pub mod DataList {
     }
 
     pub struct Builder<'a> {
-        builder : ListBuilder<'a>
+        pub builder : ListBuilder<'a>
     }
 
     impl <'a> Builder<'a> {

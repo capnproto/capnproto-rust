@@ -13,9 +13,9 @@ use std;
 use std::vec::Vec;
 
 pub struct ResultFuture<Results, Pipeline> {
-    answer_port : std::comm::Receiver<~OwnedSpaceMessageReader>,
-    answer_result : Option<~OwnedSpaceMessageReader>,
-    pipeline : Pipeline,
+    pub answer_port : std::comm::Receiver<~OwnedSpaceMessageReader>,
+    pub answer_result : Option<~OwnedSpaceMessageReader>,
+    pub pipeline : Pipeline,
 }
 
 pub trait RequestHook {
@@ -24,7 +24,7 @@ pub trait RequestHook {
 }
 
 pub struct Request<Params, Results, Pipeline> {
-    hook : ~RequestHook
+    pub hook : ~RequestHook
 }
 
 impl <Params, Results, Pipeline > Request <Params, Results, Pipeline> {
@@ -66,7 +66,7 @@ pub trait FromServer<T, U> {
 }
 
 pub struct Client {
-    hook : ~ClientHook:Send
+    pub hook : ~ClientHook:Send
 }
 
 impl Client {
@@ -85,7 +85,7 @@ impl Client {
 }
 
 pub struct CallContext<Params, Results> {
-    hook : ~CallContextHook:Send,
+    pub hook : ~CallContextHook:Send,
 }
 
 impl <Params, Results> CallContext<Params, Results> {

@@ -14,10 +14,10 @@ use io;
 
 
 pub struct OwnedSpaceMessageReader {
-    priv options : ReaderOptions,
-    priv arena : ~arena::ReaderArena,
-    priv segment_slices : Vec<(uint, uint)>,
-    priv owned_space : Vec<Word>,
+    options : ReaderOptions,
+    arena : ~arena::ReaderArena,
+    segment_slices : Vec<(uint, uint)>,
+    owned_space : Vec<Word>,
 }
 
 impl MessageReader for OwnedSpaceMessageReader {

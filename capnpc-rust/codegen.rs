@@ -1129,7 +1129,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
             let accessors = vec!(
                 Branch(preamble),
-                Line(~"pub struct Reader<'a> { priv reader : layout::StructReader<'a> }"),
+                Line(~"pub struct Reader<'a> { reader : layout::StructReader<'a> }"),
                 BlankLine,
                 Line(~"impl <'a> layout::FromStructReader<'a> for Reader<'a> {"),
                 Indent(
@@ -1147,7 +1147,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 Indent(~Branch(reader_members)),
                 Line(~"}"),
                 BlankLine,
-                Line(~"pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }"),
+                Line(~"pub struct Builder<'a> { builder : layout::StructBuilder<'a> }"),
                 builderStructSize,
                 Line(~"impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {"),
                 Indent(
@@ -1166,7 +1166,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 Indent(~Branch(builder_members)),
                 Line(~"}"),
                 BlankLine,
-                Line(box"pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }"),
+                Line(box"pub struct Pipeline { _typeless : AnyPointer::Pipeline }"),
                 Line(box"impl FromTypelessPipeline for Pipeline {"),
                 Indent(
                     box Branch(vec!(
@@ -1311,7 +1311,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
 
             mod_interior.push(BlankLine);
-            mod_interior.push(Line(~"pub struct Client{ client : capability::Client }"));
+            mod_interior.push(Line(~"pub struct Client{ pub client : capability::Client }"));
             mod_interior.push(
                 Branch(vec!(
                     Line(box "impl FromClientHook for Client {"),
@@ -1351,7 +1351,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                                           Line(box "}"))));
 
             mod_interior.push(Branch(vec!(Line(box "pub struct ServerDispatch<T> {"),
-                                          Indent(box Line(box "server : ~T,")),
+                                          Indent(box Line(box "pub server : ~T,")),
                                           Line(box "}"))));
 
             mod_interior.push(

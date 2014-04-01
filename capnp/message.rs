@@ -14,8 +14,8 @@ use layout;
 use layout::{FromStructBuilder, HasStructSize};
 
 pub struct ReaderOptions {
-    traversalLimitInWords : u64,
-    nestingLimit : uint
+    pub traversalLimitInWords : u64,
+    pub nestingLimit : uint
 }
 
 pub static DefaultReaderOptions : ReaderOptions =
@@ -51,9 +51,9 @@ pub trait MessageReader {
 }
 
 pub struct SegmentArrayMessageReader<'a> {
-    priv segments : &'a [ &'a [Word]],
-    priv options : ReaderOptions,
-    priv arena : ~ReaderArena
+    segments : &'a [ &'a [Word]],
+    options : ReaderOptions,
+    arena : ~ReaderArena
 }
 
 
@@ -144,7 +144,7 @@ pub trait MessageBuilder {
 }
 
 pub struct MallocMessageBuilder {
-    priv arena : ~BuilderArena,
+    arena : ~BuilderArena,
 }
 
 impl Drop for MallocMessageBuilder {
@@ -176,8 +176,8 @@ impl MessageBuilder for MallocMessageBuilder {
 
 
 pub struct ScratchSpaceMallocMessageBuilder<'a> {
-    priv arena : ~BuilderArena,
-    priv scratch_space : &'a mut [Word],
+    arena : ~BuilderArena,
+    scratch_space : &'a mut [Word],
 }
 
 

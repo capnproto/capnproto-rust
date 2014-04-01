@@ -12,7 +12,7 @@ use common::ptr_sub;
 
 
 pub struct PackedInputStream<'a, R> {
-    inner : &'a mut R
+    pub inner : &'a mut R
 }
 
 macro_rules! refresh_buffer(
@@ -190,7 +190,7 @@ pub fn new_reader_unbuffered<U : std::io::Reader>(input : &mut U,
 
 
 pub struct PackedOutputStream<'a, W> {
-    inner : &'a mut W
+    pub inner : &'a mut W
 }
 
 impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'a, W> {

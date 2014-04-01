@@ -63,14 +63,14 @@ pub fn element_size_for_type<T>() -> FieldSize {
 // In the future, Rust will have an alignment attribute
 // and we won't need the dummy field.
 pub struct AlignedData<T> {
-    _dummy : u64,
-    words : T
+    pub _dummy : u64,
+    pub words : T
 }
 
 pub struct StructSize {
-    data : WordCount16,
-    pointers : WirePointerCount16,
-    preferred_list_encoding : FieldSize
+    pub data : WordCount16,
+    pub pointers : WirePointerCount16,
+    pub preferred_list_encoding : FieldSize
 }
 
 impl StructSize {

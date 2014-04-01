@@ -7,7 +7,7 @@ pub mod Node {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader};
+  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -21,6 +21,10 @@ pub mod Node {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
+  }
+
+  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
   impl <'a> Reader<'a> {
@@ -95,7 +99,7 @@ pub mod Node {
     }
   }
 
-  pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+  pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
   impl <'a> layout::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
@@ -272,7 +276,7 @@ pub mod Node {
     }
   }
 
-  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
     fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
@@ -297,7 +301,7 @@ pub mod Node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -311,6 +315,10 @@ pub mod Node {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
+    }
+
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
     impl <'a> Reader<'a> {
@@ -327,7 +335,7 @@ pub mod Node {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::HasStructSize for Builder<'a> {
       #[inline]
       fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
@@ -366,7 +374,7 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -382,7 +390,7 @@ pub mod Node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -392,6 +400,10 @@ pub mod Node {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
+    }
+
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
     impl <'a> Reader<'a> {
@@ -428,7 +440,7 @@ pub mod Node {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -504,7 +516,7 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -520,7 +532,7 @@ pub mod Node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -530,6 +542,10 @@ pub mod Node {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
+    }
+
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
     impl <'a> Reader<'a> {
@@ -542,7 +558,7 @@ pub mod Node {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -570,7 +586,7 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -586,7 +602,7 @@ pub mod Node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -596,6 +612,10 @@ pub mod Node {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
+    }
+
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
     impl <'a> Reader<'a> {
@@ -615,7 +635,7 @@ pub mod Node {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -660,7 +680,7 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -676,7 +696,7 @@ pub mod Node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -686,6 +706,10 @@ pub mod Node {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
+    }
+
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
     impl <'a> Reader<'a> {
@@ -705,7 +729,7 @@ pub mod Node {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -721,7 +745,7 @@ pub mod Node {
       }
       #[inline]
       pub fn set_type(&self, value : schema_capnp::Type::Reader) {
-        self.builder.get_pointer_field(3).set_struct(&value.reader)
+        self.builder.get_pointer_field(3).set_struct(&value.struct_reader())
       }
       #[inline]
       pub fn init_type(&self, ) -> schema_capnp::Type::Builder<'a> {
@@ -736,7 +760,7 @@ pub mod Node {
       }
       #[inline]
       pub fn set_value(&self, value : schema_capnp::Value::Reader) {
-        self.builder.get_pointer_field(4).set_struct(&value.reader)
+        self.builder.get_pointer_field(4).set_struct(&value.struct_reader())
       }
       #[inline]
       pub fn init_value(&self, ) -> schema_capnp::Value::Builder<'a> {
@@ -747,7 +771,7 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -769,7 +793,7 @@ pub mod Node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -779,6 +803,10 @@ pub mod Node {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
+    }
+
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
     impl <'a> Reader<'a> {
@@ -839,7 +867,7 @@ pub mod Node {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -855,7 +883,7 @@ pub mod Node {
       }
       #[inline]
       pub fn set_type(&self, value : schema_capnp::Type::Reader) {
-        self.builder.get_pointer_field(3).set_struct(&value.reader)
+        self.builder.get_pointer_field(3).set_struct(&value.struct_reader())
       }
       #[inline]
       pub fn init_type(&self, ) -> schema_capnp::Type::Builder<'a> {
@@ -962,7 +990,7 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -982,7 +1010,7 @@ pub mod Field {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader};
+  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -996,6 +1024,10 @@ pub mod Field {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
+  }
+
+  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
   impl <'a> Reader<'a> {
@@ -1043,7 +1075,7 @@ pub mod Field {
     }
   }
 
-  pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+  pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
   impl <'a> layout::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
@@ -1147,7 +1179,7 @@ pub mod Field {
     }
   }
 
-  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
     fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
@@ -1172,7 +1204,7 @@ pub mod Field {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -1182,6 +1214,10 @@ pub mod Field {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
+    }
+
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
     impl <'a> Reader<'a> {
@@ -1209,7 +1245,7 @@ pub mod Field {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -1233,7 +1269,7 @@ pub mod Field {
       }
       #[inline]
       pub fn set_type(&self, value : schema_capnp::Type::Reader) {
-        self.builder.get_pointer_field(2).set_struct(&value.reader)
+        self.builder.get_pointer_field(2).set_struct(&value.struct_reader())
       }
       #[inline]
       pub fn init_type(&self, ) -> schema_capnp::Type::Builder<'a> {
@@ -1248,7 +1284,7 @@ pub mod Field {
       }
       #[inline]
       pub fn set_default_value(&self, value : schema_capnp::Value::Reader) {
-        self.builder.get_pointer_field(3).set_struct(&value.reader)
+        self.builder.get_pointer_field(3).set_struct(&value.struct_reader())
       }
       #[inline]
       pub fn init_default_value(&self, ) -> schema_capnp::Value::Builder<'a> {
@@ -1267,7 +1303,7 @@ pub mod Field {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -1289,7 +1325,7 @@ pub mod Field {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -1301,6 +1337,10 @@ pub mod Field {
       }
     }
 
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
+    }
+
     impl <'a> Reader<'a> {
       #[inline]
       pub fn get_type_id(&self) -> u64 {
@@ -1308,7 +1348,7 @@ pub mod Field {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -1328,7 +1368,7 @@ pub mod Field {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -1344,7 +1384,7 @@ pub mod Field {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -1354,6 +1394,10 @@ pub mod Field {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
+    }
+
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
     impl <'a> Reader<'a> {
@@ -1375,7 +1419,7 @@ pub mod Field {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -1412,7 +1456,7 @@ pub mod Field {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -1435,7 +1479,7 @@ pub mod Enumerant {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader};
+  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -1449,6 +1493,10 @@ pub mod Enumerant {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
+  }
+
+  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
   impl <'a> Reader<'a> {
@@ -1472,7 +1520,7 @@ pub mod Enumerant {
     }
   }
 
-  pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+  pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
   impl <'a> layout::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
@@ -1527,7 +1575,7 @@ pub mod Enumerant {
     }
   }
 
-  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
     fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
@@ -1543,7 +1591,7 @@ pub mod Method {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader};
+  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -1557,6 +1605,10 @@ pub mod Method {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
+  }
+
+  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
   impl <'a> Reader<'a> {
@@ -1588,7 +1640,7 @@ pub mod Method {
     }
   }
 
-  pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+  pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
   impl <'a> layout::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
@@ -1659,7 +1711,7 @@ pub mod Method {
     }
   }
 
-  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
     fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
@@ -1675,7 +1727,7 @@ pub mod Type {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader};
+  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -1689,6 +1741,10 @@ pub mod Type {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
+  }
+
+  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
   impl <'a> Reader<'a> {
@@ -1795,7 +1851,7 @@ pub mod Type {
     }
   }
 
-  pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+  pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
   impl <'a> layout::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
@@ -1996,7 +2052,7 @@ pub mod Type {
     }
   }
 
-  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
     fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
@@ -2034,7 +2090,7 @@ pub mod Type {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2044,6 +2100,10 @@ pub mod Type {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
+    }
+
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
     impl <'a> Reader<'a> {
@@ -2056,7 +2116,7 @@ pub mod Type {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -2072,7 +2132,7 @@ pub mod Type {
       }
       #[inline]
       pub fn set_element_type(&self, value : schema_capnp::Type::Reader) {
-        self.builder.get_pointer_field(0).set_struct(&value.reader)
+        self.builder.get_pointer_field(0).set_struct(&value.struct_reader())
       }
       #[inline]
       pub fn init_element_type(&self, ) -> schema_capnp::Type::Builder<'a> {
@@ -2083,7 +2143,7 @@ pub mod Type {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -2102,7 +2162,7 @@ pub mod Type {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2114,6 +2174,10 @@ pub mod Type {
       }
     }
 
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
+    }
+
     impl <'a> Reader<'a> {
       #[inline]
       pub fn get_type_id(&self) -> u64 {
@@ -2121,7 +2185,7 @@ pub mod Type {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -2141,7 +2205,7 @@ pub mod Type {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -2157,7 +2221,7 @@ pub mod Type {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2169,6 +2233,10 @@ pub mod Type {
       }
     }
 
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
+    }
+
     impl <'a> Reader<'a> {
       #[inline]
       pub fn get_type_id(&self) -> u64 {
@@ -2176,7 +2244,7 @@ pub mod Type {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -2196,7 +2264,7 @@ pub mod Type {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -2212,7 +2280,7 @@ pub mod Type {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2224,6 +2292,10 @@ pub mod Type {
       }
     }
 
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
+    }
+
     impl <'a> Reader<'a> {
       #[inline]
       pub fn get_type_id(&self) -> u64 {
@@ -2231,7 +2303,7 @@ pub mod Type {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -2251,7 +2323,7 @@ pub mod Type {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -2268,7 +2340,7 @@ pub mod Value {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader};
+  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -2282,6 +2354,10 @@ pub mod Value {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
+  }
+
+  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
   impl <'a> Reader<'a> {
@@ -2408,7 +2484,7 @@ pub mod Value {
     }
   }
 
-  pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+  pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
   impl <'a> layout::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
@@ -2654,7 +2730,7 @@ pub mod Value {
     }
   }
 
-  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
     fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
@@ -2693,7 +2769,7 @@ pub mod Annotation {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader};
+  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -2707,6 +2783,10 @@ pub mod Annotation {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
+  }
+
+  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
   impl <'a> Reader<'a> {
@@ -2723,7 +2803,7 @@ pub mod Annotation {
     }
   }
 
-  pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+  pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
   impl <'a> layout::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
@@ -2751,7 +2831,7 @@ pub mod Annotation {
     }
     #[inline]
     pub fn set_value(&self, value : schema_capnp::Value::Reader) {
-      self.builder.get_pointer_field(0).set_struct(&value.reader)
+      self.builder.get_pointer_field(0).set_struct(&value.struct_reader())
     }
     #[inline]
     pub fn init_value(&self, ) -> schema_capnp::Value::Builder<'a> {
@@ -2762,7 +2842,7 @@ pub mod Annotation {
     }
   }
 
-  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
     fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
@@ -2803,7 +2883,7 @@ pub mod CodeGeneratorRequest {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{Text, Data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader};
+  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
   use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
   use schema_capnp;
 
@@ -2817,6 +2897,10 @@ pub mod CodeGeneratorRequest {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
+  }
+
+  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
   impl <'a> Reader<'a> {
@@ -2836,7 +2920,7 @@ pub mod CodeGeneratorRequest {
     }
   }
 
-  pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+  pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
   impl <'a> layout::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
@@ -2884,7 +2968,7 @@ pub mod CodeGeneratorRequest {
     }
   }
 
-  pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
     fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
@@ -2899,7 +2983,7 @@ pub mod CodeGeneratorRequest {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{Text, Data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader};
+    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
     use schema_capnp;
 
@@ -2913,6 +2997,10 @@ pub mod CodeGeneratorRequest {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
+    }
+
+    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
     impl <'a> Reader<'a> {
@@ -2936,7 +3024,7 @@ pub mod CodeGeneratorRequest {
       }
     }
 
-    pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+    pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
     impl <'a> layout::HasStructSize for Builder<'a> {
       #[inline]
       fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
@@ -2991,7 +3079,7 @@ pub mod CodeGeneratorRequest {
       }
     }
 
-    pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
       fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
@@ -3006,7 +3094,7 @@ pub mod CodeGeneratorRequest {
       use capnp::capability::{FromClientHook, FromTypelessPipeline};
       use capnp::blob::{Text, Data};
       use capnp::layout;
-      use capnp::layout::{FromStructBuilder, FromStructReader};
+      use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
       use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
       use schema_capnp;
 
@@ -3020,6 +3108,10 @@ pub mod CodeGeneratorRequest {
         fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
           Reader { reader : reader }
         }
+      }
+
+      impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+        fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
       }
 
       impl <'a> Reader<'a> {
@@ -3036,7 +3128,7 @@ pub mod CodeGeneratorRequest {
         }
       }
 
-      pub struct Builder<'a> { priv builder : layout::StructBuilder<'a> }
+      pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
       impl <'a> layout::HasStructSize for Builder<'a> {
         #[inline]
         fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
@@ -3075,7 +3167,7 @@ pub mod CodeGeneratorRequest {
         }
       }
 
-      pub struct Pipeline { priv _typeless : AnyPointer::Pipeline }
+      pub struct Pipeline { _typeless : AnyPointer::Pipeline }
       impl FromTypelessPipeline for Pipeline {
         fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
           Pipeline { _typeless : typeless }

@@ -506,8 +506,8 @@ pub enum OwnedCapDescriptor {
 }
 
 pub struct ImportClient {
-    priv channel : std::comm::Sender<RpcEvent>,
-    import_id : ImportId,
+    channel : std::comm::Sender<RpcEvent>,
+    pub import_id : ImportId,
 }
 
 impl ClientHook for ImportClient {
@@ -543,9 +543,9 @@ impl ClientHook for ImportClient {
 }
 
 pub struct PipelineClient {
-    priv channel : std::comm::Sender<RpcEvent>,
-    ops : Vec<PipelineOp::Type>,
-    question_id : QuestionId,
+    channel : std::comm::Sender<RpcEvent>,
+    pub ops : Vec<PipelineOp::Type>,
+    pub question_id : QuestionId,
 }
 
 impl ClientHook for PipelineClient {
@@ -702,8 +702,8 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
 }
 
 pub struct RpcRequest {
-    priv channel : std::comm::Sender<RpcEvent>,
-    priv message : ~MallocMessageBuilder,
+    channel : std::comm::Sender<RpcEvent>,
+    message : ~MallocMessageBuilder,
 }
 
 impl RequestHook for RpcRequest {

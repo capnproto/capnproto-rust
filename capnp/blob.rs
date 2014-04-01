@@ -17,8 +17,8 @@ pub mod Text {
     }
 
     pub struct Builder<'a> {
-        priv ptr : *mut u8,
-        priv len : uint,
+        ptr : *mut u8,
+        len : uint,
     }
 
     impl <'a> Builder <'a> {

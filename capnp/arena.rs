@@ -14,9 +14,9 @@ use message;
 pub type SegmentId = u32;
 
 pub struct SegmentReader {
-    arena : ArenaPtr,
-    ptr : *Word,
-    size : WordCount
+    pub arena : ArenaPtr,
+    pub ptr : *Word,
+    pub size : WordCount
 }
 
 impl SegmentReader {
@@ -36,8 +36,8 @@ impl SegmentReader {
 }
 
 pub struct SegmentBuilder {
-    reader : SegmentReader,
-    id : SegmentId,
+    pub reader : SegmentReader,
+    pub id : SegmentId,
     pos : *mut Word,
 }
 
@@ -103,12 +103,12 @@ impl SegmentBuilder {
 
 pub struct ReaderArena {
     //    message : *message::MessageReader<'a>,
-    segment0 : SegmentReader,
+    pub segment0 : SegmentReader,
 
-    more_segments : Vec<SegmentReader>,
+    pub more_segments : Vec<SegmentReader>,
     //XXX should this be a map as in capnproto-c++?
 
-    cap_table : Vec<Option<~ClientHook:Send>>,
+    pub cap_table : Vec<Option<~ClientHook:Send>>,
 }
 
 impl ReaderArena {
@@ -161,12 +161,12 @@ impl ReaderArena {
 }
 
 pub struct BuilderArena {
-    segment0 : SegmentBuilder,
-    more_segments : Vec<~SegmentBuilder>,
-    allocation_strategy : message::AllocationStrategy,
-    owned_memory : Vec<*mut Word>,
-    nextSize : uint,
-    cap_table : Vec<Option<~ClientHook:Send>>,
+    pub segment0 : SegmentBuilder,
+    pub more_segments : Vec<~SegmentBuilder>,
+    pub allocation_strategy : message::AllocationStrategy,
+    pub owned_memory : Vec<*mut Word>,
+    pub nextSize : uint,
+    pub cap_table : Vec<Option<~ClientHook:Send>>,
 }
 
 impl Drop for BuilderArena {

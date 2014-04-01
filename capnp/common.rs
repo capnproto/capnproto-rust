@@ -38,7 +38,7 @@ pub type WirePointerCount16 = u16;
 pub type WirePointerCount32 = u32;
 pub type WirePointerCount64 = u64;
 
-pub struct Word {priv _x : u64}
+pub struct Word {_x : u64}
 
 pub static BITS_PER_BYTE : BitCount0 = 8;
 pub static BITS_PER_WORD : BitCount0 = 64;
@@ -75,8 +75,8 @@ pub fn allocate_zeroed_words(size : WordCount) -> Vec<Word> {
 
 pub struct MessageSize {
     //# Size of a message. Every struct type has a method `.total_size()` that returns this.
-    word_count : u64,
-    cap_count : uint
+    pub word_count : u64,
+    pub cap_count : uint
 }
 
 impl MessageSize {
