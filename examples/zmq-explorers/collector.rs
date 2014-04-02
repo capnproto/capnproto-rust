@@ -60,7 +60,7 @@ pub fn main() {
 
             if obs.get_x() >= 1.0 || obs.get_x() < 0.0 ||
                 obs.get_y() >= 1.0 || obs.get_y() < 0.0 {
-                error!("out of range");
+                println!("out of range");
                 continue;
             }
 

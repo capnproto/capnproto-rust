@@ -2,7 +2,8 @@ use capnp;
 use capnp::message::MessageBuilder;
 use zmq;
 use std;
-use std::rand::Rng;
+use rand;
+use rand::Rng;
 use capnp_zmq;
 use explorers_capnp::Observation;
 use time;
@@ -14,7 +15,7 @@ struct Pixel {
 }
 
 fn fudge(x : u8) -> u8 {
-    let error = std::rand::task_rng().gen_range::<i16>(-60, 60);
+    let error = rand::task_rng().gen_range::<i16>(-60, 60);
     let y = x as i16 + error;
     if y < 0 { return 0; }
     if y > 255 { return 255; }
@@ -101,7 +102,7 @@ static WORDS : [&'static str, .. 20] = [
 
 // With small probability, add a gibberish warning to the observation.
 fn add_diagnostic<'a>(obs : Observation::Builder<'a>) {
-    let mut rng = std::rand::task_rng();
+    let mut rng = rand::task_rng();
     if rng.gen_range::<u16>(0, 3000) < 2 {
         let mut warning = ~"";
         warning.push_str(rng.choose(WORDS));
@@ -117,7 +118,7 @@ pub fn main () {
 
     let args = std::os::args();
     if args.len() != 3 {
-        error!("usage: {} explorer [filename]", args[0]);
+        println!("usage: {} explorer [filename]", args[0]);
         return;
     }
 
@@ -127,7 +128,7 @@ pub fn main () {
     let mut publisher = context.socket(zmq::PUB).unwrap();
     assert!(publisher.connect("tcp://localhost:5555").is_ok());
 
-    let mut rng = std::rand::task_rng();
+    let mut rng = rand::task_rng();
     let mut x = rng.gen_range::<f32>(0.0, 1.0);
     let mut y = rng.gen_range::<f32>(0.0, 1.0);
 
