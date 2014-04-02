@@ -10,7 +10,7 @@ enum OutputMode {
     Confidence
 }
 
-fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) {
+fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) -> std::io::IoResult<()> {
     match std::io::File::open_mode(path, std::io::Truncate, std::io::Write) {
         Err(_e) => fail!("could not open"),
         Ok(writer) => {
@@ -35,9 +35,9 @@ fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) {
 
                     match mode {
                         Colors => {
-                            buffered.write_u8((cell.get_mean_red()).floor() as u8);
-                            buffered.write_u8((cell.get_mean_green()).floor() as u8);
-                            buffered.write_u8((cell.get_mean_blue()).floor() as u8);
+                            try!(buffered.write_u8((cell.get_mean_red()).floor() as u8));
+                            try!(buffered.write_u8((cell.get_mean_green()).floor() as u8));
+                            try!(buffered.write_u8((cell.get_mean_blue()).floor() as u8));
                         }
                         Confidence => {
                             let mut age = time::now().to_timespec().sec - cell.get_latest_timestamp();
@@ -50,19 +50,19 @@ fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) {
                             n *= 10;
                             if n > 255 { n = 255 };
 
-                            buffered.write_u8(0 as u8);
+                            try!(buffered.write_u8(0 as u8));
 
-                            buffered.write_u8(n as u8);
+                            try!(buffered.write_u8(n as u8));
 
-                            buffered.write_u8(age as u8);
+                            try!(buffered.write_u8(age as u8));
                         }
                     }
                 }
             }
-
-            buffered.flush();
+            try!(buffered.flush());
         }
     }
+    Ok(())
 }
 
 pub fn main() {
@@ -76,7 +76,7 @@ pub fn main() {
     let mut c : uint = 0;
 
     loop {
-        requester.send([], 0);
+        requester.send([], 0).unwrap();
 
         let frames = capnp_zmq::recv(&mut requester).unwrap();
         let segments = capnp_zmq::frames_to_segments(frames);
@@ -87,10 +87,10 @@ pub fn main() {
         println!("{}", grid.get_latest_timestamp());
 
         let filename = std::path::Path::new(format!("colors{:05}.ppm", c));
-        write_ppm(&filename, grid, Colors);
+        write_ppm(&filename, grid, Colors).unwrap();
 
         let filename = std::path::Path::new(format!("conf{:05}.ppm", c));
-        write_ppm(&filename, grid, Confidence);
+        write_ppm(&filename, grid, Confidence).unwrap();
 
         c += 1;
         std::io::timer::sleep(5000);

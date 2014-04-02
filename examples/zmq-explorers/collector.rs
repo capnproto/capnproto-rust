@@ -45,7 +45,7 @@ pub fn main() {
         if (poll_items[0].revents & zmq::POLLIN) != 0 {
 
             assert!(responder.recv_msg(0).is_ok());
-            capnp_zmq::send(&mut responder, &mut message);
+            capnp_zmq::send(&mut responder, &mut message).unwrap();
 
         } else if (poll_items[1].revents & zmq::POLLIN) != 0 {
 
