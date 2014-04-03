@@ -271,7 +271,7 @@ impl BuilderArena {
         if id == 0 {
             &mut self.segment0 as *mut SegmentBuilder
         } else {
-            &mut *self.more_segments.as_mut_slice()[id - 1] as *mut SegmentBuilder
+            &mut *self.more_segments.as_mut_slice()[(id - 1) as uint] as *mut SegmentBuilder
         }
     }
 

@@ -54,14 +54,14 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
 
         let prefix = rng.nextLessThan(20) as uint;
         for _ in range(0, prefix) {
-            snippet.push_str(WORDS[rng.nextLessThan(WORDS.len() as u32)]);
+            snippet.push_str(WORDS[rng.nextLessThan(WORDS.len() as u32) as uint]);
         }
         if isCat { snippet.push_str("cat ") }
         if isDog { snippet.push_str("dog ") }
 
         let suffix = rng.nextLessThan(20) as uint;
         for _ in range(0, suffix) {
-            snippet.push_str(WORDS[rng.nextLessThan(WORDS.len() as u32)]);
+            snippet.push_str(WORDS[rng.nextLessThan(WORDS.len() as u32) as uint]);
         }
 
         result.set_snippet(snippet);

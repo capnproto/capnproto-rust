@@ -70,8 +70,8 @@ static MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Lea
 pub fn random_car(rng : &mut FastRand, car : Car::Builder) {
     use std::cast::*;
 
-    car.set_make(MAKES[rng.nextLessThan(MAKES.len() as u32)]);
-    car.set_model(MODELS[rng.nextLessThan(MODELS.len() as u32)]);
+    car.set_make(MAKES[rng.nextLessThan(MAKES.len() as u32) as uint]);
+    car.set_model(MODELS[rng.nextLessThan(MODELS.len() as u32) as uint]);
 
     car.set_color(unsafe {transmute(rng.nextLessThan(Color::Silver as u32 + 1) as u16) });
     car.set_seats(2 + rng.nextLessThan(6) as u8);
