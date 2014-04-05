@@ -72,7 +72,7 @@ impl Image {
     fn get_pixel(&self, x : u32, y : u32) -> Pixel {
         assert!(x < self.width);
         assert!(y < self.height);
-        self.pixels[((y * self.width) + x)]
+        self.pixels[((y * self.width) + x) as uint]
     }
 
     fn take_measurement(&self, x : f32, y : f32, obs : Observation::Builder) {
