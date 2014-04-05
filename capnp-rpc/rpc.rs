@@ -90,7 +90,10 @@ impl Answer {
             AnswerStatusPending(ref mut waiters) => {
                 waiters.reverse();
                 while waiters.len() > 0 {
-                    let (interface_id, method_id, ops, context) = waiters.pop().unwrap();
+                    let (interface_id, method_id, ops, context) = match waiters.pop() {
+                        Some(r) => r,
+                        None => fail!(),
+                    };
                     Answer::do_call(&mut message, interface_id, method_id, ops, context);
                 }
             }
@@ -869,6 +872,10 @@ impl CallContextHook for RpcCallContext {
 
         (params, results)
     }
+    fn fail(mut ~self) {
+        self.aborter.succeeded = false;
+    }
+
     fn done(~self) {
         let ~RpcCallContext { params_message : _, mut results_message, rpc_chan, mut aborter} = self;
         aborter.succeeded = true;
@@ -895,7 +902,7 @@ impl PromisedAnswerRpcCallContext {
 
         // yuck!
         let mut writer = std::io::MemWriter::new();
-        serialize::write_message(&mut writer, params_message).unwrap();
+        assert!(serialize::write_message(&mut writer, params_message).is_ok());
         let mut reader = std::io::MemReader::new(writer.get_ref().to_owned());
         let params_reader = ~serialize::new_reader(&mut reader, DefaultReaderOptions).unwrap();
 
@@ -945,6 +952,29 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 
         (params, results)
     }
+    fn fail(~self) {
+        let ~PromisedAnswerRpcCallContext {
+            params_message : _, mut results_message, rpc_chan : _, answer_chan} = self;
+
+        let message : Message::Builder = results_message.get_root();
+        match message.which() {
+            Some(Message::Return(ret)) => {
+                let exc = ret.init_exception();
+                exc.set_reason("aborted");
+            }
+            _ => fail!(),
+        }
+
+        // yuck!
+        let mut writer = std::io::MemWriter::new();
+        assert!(serialize::write_message(&mut writer, results_message).is_ok());
+        let mut reader = std::io::MemReader::new(writer.get_ref().to_owned());
+        let results_reader = ~serialize::new_reader(&mut reader, DefaultReaderOptions).unwrap();
+
+        answer_chan.send(results_reader);
+
+    }
+
     fn done(~self) {
         let ~PromisedAnswerRpcCallContext {
             params_message : _, results_message, rpc_chan : _, answer_chan} = self;

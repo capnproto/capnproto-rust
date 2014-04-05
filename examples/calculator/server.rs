@@ -37,20 +37,20 @@ impl Calculator::Value::Server for ValueImpl {
 
 fn evaluate_impl(
     expression : Calculator::Expression::Reader,
-    params : Option<PrimitiveList::Reader<f64>>) -> f64 {
+    params : Option<PrimitiveList::Reader<f64>>) -> Result<f64, ~str> {
 
     match expression.which() {
         Some(Calculator::Expression::Literal(v)) => {
-            v
+            Ok(v)
         },
         Some(Calculator::Expression::PreviousResult(p)) => {
-            p.read_request().send().wait().unwrap().get_value()
+            Ok(try!(p.read_request().send().wait()).get_value())
         }
         Some(Calculator::Expression::Parameter(p)) => {
             match params {
-                None => {fail!()}
+                None => {Err(~"bad parameter")}
                 Some(params) => {
-                    params[p as uint]
+                    Ok(params[p as uint])
                 }
             }
         }
@@ -59,7 +59,7 @@ fn evaluate_impl(
             let call_params = call.get_params();
             let mut param_values = Vec::new();
             for ii in range(0, call_params.size()) {
-                let x = evaluate_impl(call_params[ii], params);
+                let x = try!(evaluate_impl(call_params[ii], params));
                 param_values.push(x);
             }
             let mut request = func.call_request();
@@ -67,7 +67,7 @@ fn evaluate_impl(
             for ii in range(0, param_values.len()) {
                 request_params.set(ii, *param_values.get(ii));
             }
-            return request.send().wait().unwrap().get_value();
+            Ok(try!(request.send().wait()).get_value())
         }
         None => fail!("unsupported expression"),
     }
@@ -89,12 +89,18 @@ impl FunctionImpl {
 impl Calculator::Function::Server for FunctionImpl {
     fn call(&mut self, mut context : Calculator::Function::CallContext) {
         let (params, results) = context.get();
-        assert!(params.get_params().size() == self.param_count,
-                "Wrong number of parameters.");
+        if params.get_params().size() != self.param_count{
+            //"Wrong number of parameters."
+            return context.fail();
+        };
 
         {
             let expression = self.body.get_root::<Calculator::Expression::Builder>().as_reader();
-            results.set_value(evaluate_impl(expression, Some(params.get_params())));
+            match evaluate_impl(expression, Some(params.get_params())) {
+                Ok(r) => results.set_value(r),
+                Err(_) => return context.fail(),
+            }
+
         }
         context.done();
     }
@@ -108,7 +114,10 @@ impl Calculator::Function::Server for OperatorImpl {
     fn call(&mut self, mut context : Calculator::Function::CallContext) {
         let (params, results) = context.get();
         let params = params.get_params();
-        assert!(params.size() == 2, "Wrong number of parameters: {}", params.size());
+        if params.size() != 2 {
+            //"Wrong number of parameters: {}", params.size()
+            return context.fail();
+        }
 
         let result = match self.op {
             Calculator::Operator::Add => params[0] + params[1],
@@ -128,10 +137,15 @@ struct CalculatorImpl;
 impl Calculator::Server for CalculatorImpl {
     fn evaluate(&mut self, mut context : Calculator::EvaluateContext) {
         let (params, results) = context.get();
-        results.set_value(
-            FromServer::new(
-                None::<EzRpcServer>,
-                ~ValueImpl::new(evaluate_impl(params.get_expression(), None))));
+        match evaluate_impl(params.get_expression(), None) {
+            Ok(r) => {
+                results.set_value(
+                    FromServer::new(
+                        None::<EzRpcServer>,
+                        ~ValueImpl::new(r)))
+            }
+            Err(_) => return context.fail(),
+        }
         context.done();
     }
     fn def_function(&mut self, mut context : Calculator::DefFunctionContext) {

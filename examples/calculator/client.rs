@@ -16,7 +16,10 @@ impl Calculator::Function::Server for PowerFunction {
     fn call(&mut self, mut context : Calculator::Function::CallContext) {
         let (params, results) = context.get();
         let params = params.get_params();
-        assert!(params.size() == 2, "Wrong number of parameters");
+        if params.size() != 2 {
+            //"Wrong number of parameters"
+            return context.fail();
+        };
         results.set_value(std::f64::pow(params[0], params[1]));
         context.done();
     }
