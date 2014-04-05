@@ -11,57 +11,53 @@ enum OutputMode {
 }
 
 fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) -> std::io::IoResult<()> {
-    match std::io::File::open_mode(path, std::io::Truncate, std::io::Write) {
-        Err(_e) => fail!("could not open"),
-        Ok(writer) => {
-            let mut buffered = std::io::BufferedWriter::new(writer);
-            writeln!(&mut buffered, "P6");
+    let writer = try!(std::io::File::open_mode(path, std::io::Truncate, std::io::Write));
+    let mut buffered = std::io::BufferedWriter::new(writer);
+    try!(buffered.write(bytes!("P6\n")));
 
-            let cells = grid.get_cells();
-            let width = cells.size();
-            assert!(width > 0);
-            let height = cells[0].size();
+    let cells = grid.get_cells();
+    let width = cells.size();
+    assert!(width > 0);
+    let height = cells[0].size();
 
-            writeln!(&mut buffered, "{} {}", width, height);
-            writeln!(&mut buffered, "255");
+    try!(buffered.write(format!("{} {}\n", width, height).as_bytes()));
+    try!(buffered.write(bytes!("255\n")));
 
-            for x in range(0, width) {
-                assert!(cells[x].size() == height);
-            }
+    for x in range(0, width) {
+        assert!(cells[x].size() == height);
+    }
 
-            for y in range(0, height) {
-                for x in range(0, width) {
-                    let cell = cells[x][y];
+    for y in range(0, height) {
+        for x in range(0, width) {
+            let cell = cells[x][y];
 
-                    match mode {
-                        Colors => {
-                            try!(buffered.write_u8((cell.get_mean_red()).floor() as u8));
-                            try!(buffered.write_u8((cell.get_mean_green()).floor() as u8));
-                            try!(buffered.write_u8((cell.get_mean_blue()).floor() as u8));
-                        }
-                        Confidence => {
-                            let mut age = time::now().to_timespec().sec - cell.get_latest_timestamp();
-                            if age < 0 { age = 0 };
-                            age *= 25;
-                            if age > 255 { age = 255 };
-                            age = 255 - age;
+            match mode {
+                Colors => {
+                    try!(buffered.write_u8((cell.get_mean_red()).floor() as u8));
+                    try!(buffered.write_u8((cell.get_mean_green()).floor() as u8));
+                    try!(buffered.write_u8((cell.get_mean_blue()).floor() as u8));
+                }
+                Confidence => {
+                    let mut age = time::now().to_timespec().sec - cell.get_latest_timestamp();
+                    if age < 0 { age = 0 };
+                    age *= 25;
+                    if age > 255 { age = 255 };
+                    age = 255 - age;
 
-                            let mut n = cell.get_number_of_updates();
-                            n *= 10;
-                            if n > 255 { n = 255 };
+                    let mut n = cell.get_number_of_updates();
+                    n *= 10;
+                    if n > 255 { n = 255 };
 
-                            try!(buffered.write_u8(0 as u8));
+                    try!(buffered.write_u8(0 as u8));
 
-                            try!(buffered.write_u8(n as u8));
+                    try!(buffered.write_u8(n as u8));
 
-                            try!(buffered.write_u8(age as u8));
-                        }
-                    }
+                    try!(buffered.write_u8(age as u8));
                 }
             }
-            try!(buffered.flush());
         }
     }
+    try!(buffered.flush());
     Ok(())
 }
 
