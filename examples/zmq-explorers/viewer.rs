@@ -65,20 +65,20 @@ fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) ->
     Ok(())
 }
 
-pub fn main() {
+pub fn main() -> Result<(), zmq::Error> {
     use capnp::message::MessageReader;
 
     let mut context = zmq::Context::new();
-    let mut requester = context.socket(zmq::REQ).unwrap();
+    let mut requester = try!(context.socket(zmq::REQ));
 
-    assert!(requester.connect("tcp://localhost:5556").is_ok());
+    try!(requester.connect("tcp://localhost:5556"));
 
     let mut c : uint = 0;
 
     loop {
-        requester.send([], 0).unwrap();
+        try!(requester.send([], 0));
 
-        let frames = capnp_zmq::recv(&mut requester).unwrap();
+        let frames = try!(capnp_zmq::recv(&mut requester));
         let segments = capnp_zmq::frames_to_segments(frames);
         let reader = capnp::message::SegmentArrayMessageReader::new(segments,
                                                                     capnp::message::DefaultReaderOptions);

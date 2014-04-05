@@ -5,17 +5,17 @@ use capnp_zmq;
 static GRID_WIDTH : uint = 120;
 static GRID_HEIGHT : uint = 120;
 
-pub fn main() {
+pub fn main() -> Result<(), zmq::Error> {
     use explorers_capnp::{Observation, Grid};
     use capnp::message::{MessageReader, MessageBuilder};
 
     let mut context = zmq::Context::new();
-    let mut subscriber = context.socket(zmq::SUB).unwrap();
-    let mut responder = context.socket(zmq::REP).unwrap();
+    let mut subscriber = try!(context.socket(zmq::SUB));
+    let mut responder = try!(context.socket(zmq::REP));
 
-    assert!(subscriber.bind("tcp://*:5555").is_ok());
-    assert!(subscriber.set_subscribe([]).is_ok());
-    assert!(responder.bind("tcp://*:5556").is_ok());
+    try!(subscriber.bind("tcp://*:5555"));
+    try!(subscriber.set_subscribe([]));
+    try!(responder.bind("tcp://*:5556"));
 
     let mut poll_items = [responder.as_poll_item(zmq::POLLIN),
                           subscriber.as_poll_item(zmq::POLLIN)];
@@ -40,18 +40,18 @@ pub fn main() {
 
     loop {
 
-        match zmq::poll(poll_items, -1) { Ok(()) => {}, Err(_) => fail!("poll failure") };
+        try!(zmq::poll(poll_items, -1));
 
         if (poll_items[0].revents & zmq::POLLIN) != 0 {
 
-            assert!(responder.recv_msg(0).is_ok());
-            capnp_zmq::send(&mut responder, &mut message).unwrap();
+            try!(responder.recv_msg(0));
+            try!(capnp_zmq::send(&mut responder, &mut message));
 
         } else if (poll_items[1].revents & zmq::POLLIN) != 0 {
 
             // there's a new observation waiting for us
 
-            let frames = capnp_zmq::recv(&mut subscriber).unwrap();
+            let frames = try!(capnp_zmq::recv(&mut subscriber));
             let segments = capnp_zmq::frames_to_segments(frames);
             let reader = capnp::message::SegmentArrayMessageReader::new(
                 segments,

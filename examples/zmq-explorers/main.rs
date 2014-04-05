@@ -27,11 +27,19 @@ pub fn main() {
         return;
     }
 
-    match args[1].as_slice() {
+    let result = match args[1].as_slice() {
         "explorer" => explorer::main(),
         "collector" => collector::main(),
         "viewer" => viewer::main(),
-        _ => usage(args[0]),
+        _ => { usage(args[0]); Ok(()) }
+    };
+
+    match result {
+        Ok(()) => {}
+        Err(e) => {
+            std::os::set_exit_status(1);
+            println!("{}", e)
+        },
     }
 
 }

@@ -114,19 +114,19 @@ fn add_diagnostic<'a>(obs : Observation::Builder<'a>) {
     }
 }
 
-pub fn main () {
+pub fn main () -> Result<(), zmq::Error> {
 
     let args = std::os::args();
     if args.len() != 3 {
         println!("usage: {} explorer [filename]", args[0]);
-        return;
+        return Ok(());
     }
 
     let image = Image::load(&std::path::Path::new(args[2])).unwrap();
 
     let mut context = zmq::Context::new();
-    let mut publisher = context.socket(zmq::PUB).unwrap();
-    assert!(publisher.connect("tcp://localhost:5555").is_ok());
+    let mut publisher = try!(context.socket(zmq::PUB));
+    try!(publisher.connect("tcp://localhost:5555"));
 
     let mut rng = rand::task_rng();
     let mut x = rng.gen_range::<f32>(0.0, 1.0);
@@ -144,7 +144,7 @@ pub fn main () {
         let mut message = capnp::message::MallocMessageBuilder::new_default();
         let obs = message.init_root::<Observation::Builder>();
         image.take_measurement(x, y, obs);
-        capnp_zmq::send(&mut publisher, &mut message).unwrap();
+        try!(capnp_zmq::send(&mut publisher, &mut message));
 
 
         std::io::timer::sleep(5);
