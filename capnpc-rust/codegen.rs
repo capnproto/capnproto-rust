@@ -172,11 +172,11 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
                       scope_map : &mut collections::hashmap::HashMap<u64, Vec<~str>>,
                       rootName : &str,
                       nodeId : u64) {
-    let nodeReader = node_map.get(&nodeId);
+    let node_reader = node_map.get(&nodeId);
 
-    let nestedNodes = nodeReader.get_nested_nodes();
-    for ii in range(0, nestedNodes.size()) {
-        let nestedNode = nestedNodes[ii];
+    let nested_nodes = node_reader.get_nested_nodes();
+    for ii in range(0, nested_nodes.size()) {
+        let nestedNode = nested_nodes[ii];
         let id = nestedNode.get_id();
         let name = nestedNode.get_name().to_owned();
 
@@ -188,7 +188,7 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
         populate_scope_map(node_map, scope_map, rootName, id);
     }
 
-    match nodeReader.which() {
+    match node_reader.which() {
         Some(schema_capnp::Node::Struct(structReader)) => {
             let fields = structReader.get_fields();
             for jj in range(0, fields.size()) {
@@ -464,7 +464,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                         node_id : u64
                         ) -> FormattedText {
-    use schema_capnp::*;
+    use schema_capnp::{Node, Field, Type};
     match node_map.get(&node_id).which() {
         Some(Node::Struct(st)) => {
             let mut result = Vec::new();
@@ -492,10 +492,10 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
                                         if !result.contains(&line) { result.push(line) }
                                     }
                                     Type::Int8(()) |
-                                        Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
-                                        Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
-                                        Type::Uint64(()) | Type::Float32(()) | Type::Float64(())
-                                        | Type::Enum(_) => {
+                                    Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
+                                    Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
+                                    Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) |
+                                    Type::Enum(_) => {
                                         let line = Line(format!("self.builder.set_data_field::<{}>({}, 0);",
                                                          prim_type_str(typ),
                                                          slot.get_offset()));
@@ -503,8 +503,8 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
                                         if !result.contains(&line) { result.push(line) }
                                     }
                                     Type::Struct(_) | Type::List(_) | Type::Text(()) | Type::Data(()) |
-                                        Type::AnyPointer(()) |
-                                        Type::Interface(_) // Is this the right thing to do for interfaces?
+                                    Type::AnyPointer(()) |
+                                    Type::Interface(_) // Is this the right thing to do for interfaces?
                                         => {
                                         let line = Line(format!("self.builder.get_pointer_field({}).clear();",
                                                                 slot.get_offset()));
@@ -997,15 +997,15 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
     let mut output: Vec<FormattedText> = Vec::new();
     let mut nested_output: Vec<FormattedText> = Vec::new();
 
-    let nodeReader = node_map.get(&node_id);
-    let nestedNodes = nodeReader.get_nested_nodes();
-    for ii in range(0, nestedNodes.size()) {
-        let id = nestedNodes[ii].get_id();
+    let node_reader = node_map.get(&node_id);
+    let nested_nodes = node_reader.get_nested_nodes();
+    for ii in range(0, nested_nodes.size()) {
+        let id = nested_nodes[ii].get_id();
         nested_output.push(generate_node(node_map, scope_map, rootName,
                                          id, *scope_map.get(&id).last().unwrap()));
     }
 
-    match nodeReader.which() {
+    match node_reader.which() {
 
         Some(Node::File(())) => {
             output.push(Branch(nested_output));
