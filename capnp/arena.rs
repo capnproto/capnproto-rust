@@ -6,6 +6,7 @@
 
 use std;
 use std::vec::Vec;
+use libc;
 use capability::ClientHook;
 use common::*;
 use common::ptr_sub;
@@ -172,7 +173,7 @@ pub struct BuilderArena {
 impl Drop for BuilderArena {
     fn drop(&mut self) {
         for &segment_ptr in self.owned_memory.iter() {
-            unsafe { std::libc::free(std::cast::transmute(segment_ptr)); }
+            unsafe { libc::free(std::cast::transmute(segment_ptr)); }
         }
     }
 }
@@ -191,8 +192,8 @@ impl BuilderArena {
             match first_segment {
                 NumWords(n) => {
                     let ptr = std::cast::transmute(
-                        std::libc::calloc(n as std::libc::size_t,
-                                          BYTES_PER_WORD as std::libc::size_t));
+                        libc::calloc(n as libc::size_t,
+                                          BYTES_PER_WORD as libc::size_t));
                     (ptr, n, vec!(ptr))
                 }
                 ZeroedWords(w) => (w.as_mut_ptr(), w.len(), Vec::new())
@@ -223,8 +224,8 @@ impl BuilderArena {
     pub fn allocate_owned_memory(&mut self, minimumSize : WordCount) -> (*mut Word, WordCount) {
         let size = std::cmp::max(minimumSize, self.nextSize);
         let new_words : *mut Word = unsafe {
-            std::cast::transmute(std::libc::calloc(size as std::libc::size_t,
-                                                   BYTES_PER_WORD as std::libc::size_t)) };
+            std::cast::transmute(libc::calloc(size as libc::size_t,
+                                                   BYTES_PER_WORD as libc::size_t)) };
 
         self.owned_memory.push(new_words);
 

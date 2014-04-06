@@ -13,6 +13,7 @@
 
 // import logging macros
 #[phase(syntax, link)] extern crate log;
+extern crate libc;
 
 pub mod any;
 pub mod arena;
