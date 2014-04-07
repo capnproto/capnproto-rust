@@ -314,18 +314,24 @@ struct SegmentAnd<T> {
 }
 
 macro_rules! require(
-    ($condition:expr, $message:expr, $fail:stmt) => (
+    ($condition:expr, $segment:expr, $message:expr, $fail:stmt) => (
         if !($condition) {
             error!($message);
+            if ($segment).arena.fail_fast() {
+                fail!();
+            }
             $fail
         }
         );
     )
 
 macro_rules! require_fail(
-    ($message:expr, $fail:stmt) => (
+    ($segment:expr, $message:expr, $fail:stmt) => (
         {
             error!($message);
+            if ($segment).arena.fail_fast() {
+                fail!();
+            }
             $fail;
         }
         );
@@ -467,6 +473,7 @@ mod WireHelpers {
 
             let padWords : int = if (**reff).is_double_far() { 2 } else { 1 };
             require!(bounds_check(*segment, ptr, ptr.offset(padWords)),
+                     **segment,
                      "Message contains out-of-bounds far pointer.",
                      return std::ptr::null());
 
@@ -609,7 +616,7 @@ mod WireHelpers {
 
         if (*reff).is_null() { return result };
 
-        require!(nesting_limit > 0, "Message is too deeply nested.", return result);
+        require!(nesting_limit > 0, *segment, "Message is too deeply nested.", return result);
 
         nesting_limit -= 1;
 
@@ -618,6 +625,7 @@ mod WireHelpers {
         match (*reff).kind() {
             WirePointerKind::Struct => {
                 require!(bounds_check(segment, ptr, ptr.offset((*reff).struct_ref().word_size() as int)),
+                         *segment,
                         "Message contains out-of-bounds struct pointer.",
                          return result);
                 result.word_count += (*reff).struct_ref().word_size() as u64;
@@ -637,6 +645,7 @@ mod WireHelpers {
                             (*reff).list_ref().element_count() as u64 *
                                 data_bits_per_element((*reff).list_ref().element_size()) as u64);
                         require!(bounds_check(segment, ptr, ptr.offset(total_words as int)),
+                                 *segment,
                                  "Message contains out-of-bounds list pointer.",
                                  return result);
                         result.word_count += total_words as u64;
@@ -644,6 +653,7 @@ mod WireHelpers {
                     Pointer => {
                         let count = (*reff).list_ref().element_count();
                         require!(bounds_check(segment, ptr, ptr.offset((count * WORDS_PER_POINTER) as int)),
+                                 *segment,
                                  "Message contains out-of-bounds list pointer.",
                                  return result);
 
@@ -659,6 +669,7 @@ mod WireHelpers {
                         let word_count = (*reff).list_ref().inline_composite_word_count();
                         require!(bounds_check(segment, ptr,
                                               ptr.offset(word_count as int + POINTER_SIZE_IN_WORDS as int)),
+                                 *segment,
                                  "Message contains out-of-bounds list pointer.",
                                  return result);
 
@@ -668,10 +679,12 @@ mod WireHelpers {
                         let count = (*element_tag).inline_composite_list_element_count();
 
                         require!((*element_tag).kind() == WirePointerKind::Struct,
+                                 *segment,
                                  "Don't know how to handle non-STRUCT inline composite.",
                                  return result);
 
                         require!((*element_tag).struct_ref().word_size() * count <= word_count,
+                                 *segment,
                                  "InlineComposite list's elements overrun its word count",
                                  return result);
 
@@ -693,13 +706,13 @@ mod WireHelpers {
                 }
             }
             WirePointerKind::Far => {
-                fail!("Unexpedted FAR pointer.");
+                fail!("Unexpected FAR pointer.");
             }
             WirePointerKind::Other => {
                 if (*reff).is_capability() {
                     result.cap_count += 1;
                 } else {
-                    require_fail!("Unknown pointer type.", return result);
+                    require_fail!(*segment, "Unknown pointer type.", return result);
                 }
             }
         }
@@ -811,6 +824,7 @@ mod WireHelpers {
             let mut old_segment = segment;
             let old_ptr = follow_builder_fars(&mut old_ref, ref_target, &mut old_segment);
             require!((*old_ref).kind() == WirePointerKind::Struct,
+                     (*segment).reader,
                      "Message contains non-struct pointer where struct pointer was expected.",
                      continue 'use_default);
 
@@ -967,7 +981,7 @@ mod WireHelpers {
             let mut segment = orig_segment;
             let mut ptr = follow_builder_fars(&mut reff, orig_ref_target, &mut segment);
 
-            require!((*reff).kind() == WirePointerKind::List,
+            require!((*reff).kind() == WirePointerKind::List, (*segment).reader,
                      "Called get_list_\\{field,element\\}() but existing pointer is not a list",
                      continue 'use_default);
 
@@ -987,7 +1001,7 @@ mod WireHelpers {
                 let tag : *WirePointer = std::cast::transmute(ptr);
 
                 // capnproto-c++ doesn't go to useDefault here --- why not?
-                require!((*tag).kind() == WirePointerKind::Struct,
+                require!((*tag).kind() == WirePointerKind::Struct, (*segment).reader,
                          "InlineComposite list with non-STRUCT elements not supported.",
                          continue 'use_default);
 
@@ -999,12 +1013,12 @@ mod WireHelpers {
                 match element_size {
                     Void => {} //# Anything is a valid upgrade from Void.
                     Bit | Byte | TwoBytes | FourBytes | EightBytes => {
-                        require!(data_size >= 1,
+                        require!(data_size >= 1, (*segment).reader,
                                  "Existing list value is incompatible with expected type.",
                                  continue 'use_default);
                     }
                     Pointer => {
-                        require!(pointer_count >= 1,
+                        require!(pointer_count >= 1, (*segment).reader,
                                  "Existing list value is incompatible with expected type.",
                                  continue 'use_default);
                         //# Adjust the pointer to point at the reference segment.
@@ -1029,9 +1043,11 @@ mod WireHelpers {
                 let pointer_count = pointers_per_element(old_size);
 
                 require!(data_size >= data_bits_per_element(element_size),
+                         (*segment).reader,
                          "Existing list value is incompatible with expected type.",
                          continue 'use_default);
                 require!(pointer_count >= pointers_per_element(element_size),
+                         (*segment).reader,
                          "Existing list value is incompatible with expected type.",
                          continue 'use_default);
 
@@ -1075,7 +1091,7 @@ mod WireHelpers {
 
             let mut old_ptr = follow_builder_fars(&mut old_ref, orig_ref_target, &mut old_segment);
 
-            require!((*old_ref).kind() == WirePointerKind::List,
+            require!((*old_ref).kind() == WirePointerKind::List, (*old_segment).reader,
                      "Called getList\\{Field,Element\\} but existing pointer is not a list.",
                      continue 'use_default);
 
@@ -1086,7 +1102,7 @@ mod WireHelpers {
 
                 let old_tag : *WirePointer = std::cast::transmute(old_ptr);
                 old_ptr = old_ptr.offset(POINTER_SIZE_IN_WORDS as int);
-                require!((*old_tag).kind() == WirePointerKind::Struct,
+                require!((*old_tag).kind() == WirePointerKind::Struct, (*old_segment).reader,
                          "InlineComposite list with non-STRUCT elements not supported.",
                          continue 'use_default);
 
@@ -1186,10 +1202,10 @@ mod WireHelpers {
         let ref_target = (*reff).mut_target();
         let ptr = follow_builder_fars(&mut reff, ref_target, &mut segment);
 
-        require!((*reff).kind() == WirePointerKind::List,
+        require!((*reff).kind() == WirePointerKind::List, (*segment).reader,
                 "Called getText\\{Field,Element\\}() but existing pointer is not a list.",
                  return use_default(reff, segment, default_value, default_size));
-        require!((*reff).list_ref().element_size() == Byte,
+        require!((*reff).list_ref().element_size() == Byte, (*segment).reader,
                 "Called getText\\{Field,Element\\}() but existing list pointer is not byte-sized.",
                  return use_default(reff, segment, default_value, default_size));
 
@@ -1247,10 +1263,10 @@ mod WireHelpers {
         let ref_target = (*reff).mut_target();
         let ptr = follow_builder_fars(&mut reff, ref_target, &mut segment);
 
-        require!((*reff).kind() == WirePointerKind::List,
+        require!((*reff).kind() == WirePointerKind::List, (*segment).reader,
                  "Called getData\\{Field,Element\\}() but existing pointer is not a list.",
                  return use_default(reff, segment, default_value, default_size));
-        require!((*reff).list_ref().element_size() == Byte,
+        require!((*reff).list_ref().element_size() == Byte, (*segment).reader,
                  "Called getData\\{Field,Element\\}() but existing list pointer is not byte-sized.",
                  return use_default(reff, segment, default_value, default_size));
 
@@ -1376,11 +1392,12 @@ mod WireHelpers {
 
         match (*src).kind() {
             WirePointerKind::Struct => {
-                require!(nesting_limit > 0,
+                require!(nesting_limit > 0, *src_segment,
                         "Message is too deeply-nested or contains cycles.  See ReaderOptions.",
                          return use_default(dst_segment, dst));
 
                 require!(bounds_check(src_segment, ptr, ptr.offset((*src).struct_ref().word_size() as int)),
+                         *src_segment,
                         "Message contains out-of-bounds struct pointer.",
                          return use_default(dst_segment, dst));
 
@@ -1398,7 +1415,7 @@ mod WireHelpers {
             }
             WirePointerKind::List => {
                 let element_size = (*src).list_ref().element_size();
-                require!(nesting_limit > 0,
+                require!(nesting_limit > 0, *src_segment,
                         "Message is too deeply-nested or contains cycles. See ReaderOptions.",
                          return use_default(dst_segment, dst));
 
@@ -1408,10 +1425,12 @@ mod WireHelpers {
                     ptr = ptr.offset(POINTER_SIZE_IN_WORDS as int);
 
                     require!(bounds_check(src_segment, ptr.offset(-1), ptr.offset(word_count as int)),
+                             *src_segment,
                              "Message contains out-of-bounds list pointer.",
                              return use_default(dst_segment, dst));
 
                     require!((*tag).kind() == WirePointerKind::Struct,
+                             *src_segment,
                              "InlineComposite lists of non-STRUCT type are not supported.",
                              return use_default(dst_segment, dst));
 
@@ -1419,6 +1438,7 @@ mod WireHelpers {
                     let words_per_element = (*tag).struct_ref().word_size();
 
                     require!(words_per_element * element_count <= word_count,
+                             *src_segment,
                              "InlineComposite list's elements overrun its word count.",
                              return use_default(dst_segment, dst));
                     return set_list_pointer(
@@ -1440,6 +1460,7 @@ mod WireHelpers {
                     let word_count = round_bits_up_to_words(element_count as u64 * step as u64);
 
                     require!(bounds_check(src_segment, ptr, ptr.offset(word_count as int)),
+                             *src_segment,
                              "Message contains out-of-bounds list pointer.",
                              return use_default(dst_segment, dst));
 
@@ -1460,7 +1481,7 @@ mod WireHelpers {
                 fail!("Far pointer should have been handled above");
             }
             WirePointerKind::Other => {
-                require!((*src).is_capability(), "Unknown pointer type.",
+                require!((*src).is_capability(), *src_segment, "Unknown pointer type.",
                          return use_default(dst_segment, dst));
                 match (*src_segment).arena.extract_cap((*src).cap_ref().index.get() as uint) {
                     Some(cap) => {
@@ -1468,7 +1489,8 @@ mod WireHelpers {
                         return super::SegmentAnd { segment : dst_segment, value : std::ptr::mut_null() };
                     }
                     None => {
-                        require_fail!("Message contained invalid capability pointer.",
+                        require_fail!(*src_segment,
+                                      "Message contained invalid capability pointer.",
                                       return use_default(dst_segment, dst));
                     }
                 }
@@ -1496,19 +1518,20 @@ mod WireHelpers {
             }
             first_time = true;
 
-            require!(nesting_limit > 0, "Message is too deeply-nested or contains cycles.",
+            require!(nesting_limit > 0, *segment, "Message is too deeply-nested or contains cycles.",
                      continue 'use_default);
 
             let ptr = follow_fars(&mut reff, ref_target, &mut segment);
 
             let data_size_words = (*reff).struct_ref().data_size.get();
 
-            require!((*reff).kind() == WirePointerKind::Struct,
+            require!((*reff).kind() == WirePointerKind::Struct, *segment,
                      "Message contains non-struct pointer where struct pointer was expected.",
                      continue 'use_default);
 
             require!(bounds_check(segment, ptr,
                                   ptr.offset((*reff).struct_ref().word_size() as int)),
+                     *segment,
                      "Message contains out-of-bounds struct pointer.",
                      continue 'use_default);
 
@@ -1560,11 +1583,11 @@ mod WireHelpers {
             }
             first_time = false;
 
-            require!(nesting_limit > 0, "nesting limit exceeded", continue 'use_default);
+            require!(nesting_limit > 0, *segment, "nesting limit exceeded", continue 'use_default);
 
             let mut ptr : *Word = follow_fars(&mut reff, ref_target, &mut segment);
 
-            require!((*reff).kind() == WirePointerKind::List,
+            require!((*reff).kind() == WirePointerKind::List, *segment,
                      "Message contains non-list pointer where list pointer was expected",
                      continue 'use_default);
 
@@ -1580,10 +1603,12 @@ mod WireHelpers {
 
                     require!(bounds_check(segment, ptr.offset(-1),
                                           ptr.offset(wordCount as int)),
+                             *segment,
                              "Message contains out-of-bounds list pointer",
                              continue 'use_default);
 
                     require!((*tag).kind() == WirePointerKind::Struct,
+                             *segment,
                              "InlineComposite lists of non-STRUCT type are not supported",
                              continue 'use_default);
 
@@ -1592,6 +1617,7 @@ mod WireHelpers {
                     let wordsPerElement = struct_ref.word_size();
 
                     require!(size * wordsPerElement <= wordCount,
+                             *segment,
                              "InlineComposite list's elements overrun its word count",
                              continue 'use_default);
 
@@ -1609,12 +1635,14 @@ mod WireHelpers {
                         Bit |
                         Byte | TwoBytes | FourBytes | EightBytes => {
                             require!(struct_ref.data_size.get() > 0,
+                                     *segment,
                                     "Expected a primitive list, but got a list of pointer-only structs",
                                      continue 'use_default);
                         }
                         Pointer => {
                             ptr = ptr.offset(struct_ref.data_size.get() as int);
                             require!(struct_ref.ptr_count.get() > 0,
+                                     *segment,
                                      "Expected a pointer list, but got a list of data-only structs",
                                      continue 'use_default);
                         }
@@ -1647,6 +1675,7 @@ mod WireHelpers {
                             ptr.offset(
                                 round_bits_up_to_words(
                                     (list_ref.element_count() * step) as u64) as int)),
+                        *segment,
                         "Message contains out-of-bounds list pointer.",
                         continue 'use_default);
 
@@ -1663,10 +1692,10 @@ mod WireHelpers {
                     let expectedPointersPerElement =
                         pointers_per_element(expectedElementSize);
 
-                    require!(expectedDataBitsPerElement <= data_size,
+                    require!(expectedDataBitsPerElement <= data_size, *segment,
                              "Message contains list with imcompatible element type.",
                              continue 'use_default);
-                    require!(expectedPointersPerElement <= pointer_count,
+                    require!(expectedPointersPerElement <= pointer_count, *segment,
                              "Message contains list with incompatible element type",
                              continue 'use_default);
 
@@ -1709,31 +1738,33 @@ mod WireHelpers {
 
         let size : uint = list_ref.element_count();
 
-        require!((*reff).kind() == WirePointerKind::List,
+        require!((*reff).kind() == WirePointerKind::List, *segment,
                  "Message contains non-list pointer where text was expected",
                  return use_default(default_value, default_size));
 
-        require!(list_ref.element_size() == Byte,
+        require!(list_ref.element_size() == Byte, *segment,
                  "Message contains list pointer of non-bytes where text was expected.",
                  return use_default(default_value, default_size));
 
         require!(bounds_check(segment, ptr,
                               ptr.offset(round_bytes_up_to_words(size) as int)),
+                 *segment,
                  "Message contains out-of-bounds text pointer.",
                  return use_default(default_value, default_size));
 
-        require!(size > 0, "Message contains text that is not NUL-terminated",
+        require!(size > 0, *segment, "Message contains text that is not NUL-terminated",
                  return use_default(default_value, default_size));
 
         let str_ptr = std::cast::transmute::<*Word,*u8>(ptr);
 
-        require!((*str_ptr.offset((size - 1) as int)) == 0u8,
+        require!((*str_ptr.offset((size - 1) as int)) == 0u8, *segment,
                  "Message contains text that is not NUL-terminated",
                  return use_default(default_value, default_size));
 
         match Text::new_reader(str_ptr, size-1) {
             Some(t) => return t,
-            None => require_fail!("Text contains non-utf8 data.",
+            None => require_fail!(*segment,
+                                  "Text contains non-utf8 data.",
                                   return use_default(default_value, default_size)),
         }
     }
@@ -1760,16 +1791,17 @@ mod WireHelpers {
 
         let size : uint = list_ref.element_count();
 
-        require!((*reff).kind() == WirePointerKind::List,
+        require!((*reff).kind() == WirePointerKind::List, *segment,
                  "Message contains non-list pointer where text was expected",
                  return use_default(default_value, default_size));
 
-        require!(list_ref.element_size() == Byte,
+        require!(list_ref.element_size() == Byte, *segment,
                  "Message contains list pointer of non-bytes where data was expected",
                  return use_default(default_value, default_size));
 
         require!(bounds_check(segment, ptr,
                               ptr.offset(round_bytes_up_to_words(size) as int)),
+                 *segment,
                  "Message contains out-of-bounds data pointer.",
                  return use_default(default_value, default_size));
 
@@ -1800,6 +1832,7 @@ impl <'a> PointerReader<'a> {
         unsafe {
             require!(WireHelpers::bounds_check(segment, location,
                                                location.offset(POINTER_SIZE_IN_WORDS as int)),
+                     *segment,
                      "Root location out of bounds.",
                      location = std::ptr::null());
 
@@ -2246,7 +2279,7 @@ impl <'a> ListReader<'a> {
     pub fn size(&self) -> ElementCount { self.element_count }
 
     pub fn get_struct_element(&self, index : ElementCount) -> StructReader<'a> {
-        require!(self.nesting_limit > 0,
+        require!(self.nesting_limit > 0, unsafe {*self.segment},
                  "Message is too deeply-nested or contains cycles",
                  return StructReader::new_default());
 

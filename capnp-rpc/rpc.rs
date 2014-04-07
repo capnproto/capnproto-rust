@@ -9,7 +9,7 @@ use capnp::capability;
 use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, ResultFuture,
                         RequestHook, Request, Server};
 use capnp::common;
-use capnp::message::{DefaultReaderOptions, MessageReader, MessageBuilder, MallocMessageBuilder};
+use capnp::message::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use capnp::serialize::{OwnedSpaceMessageReader};
 
@@ -247,7 +247,7 @@ impl RpcConnectionState {
                 loop {
                     match serialize::new_reader(
                         &mut r,
-                        DefaultReaderOptions) {
+                        *ReaderOptions::new().fail_fast(false)) {
                         Err(_e) => { listener_chan.try_send(ShutdownEvent); break; }
                         Ok(message) => {
                             listener_chan.send(IncomingMessage(box message));
@@ -522,7 +522,7 @@ impl ClientHook for ImportClient {
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<common::MessageSize>)
                 -> capability::Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline> {
-        let mut message = box MallocMessageBuilder::new_default();
+        let mut message = box MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
         {
             let root : Message::Builder = message.get_root();
             let call = root.init_call();
@@ -562,7 +562,7 @@ impl ClientHook for PipelineClient {
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<common::MessageSize>)
                 -> capability::Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline> {
-        let mut message = box MallocMessageBuilder::new_default();
+        let mut message = box MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
         {
             let root : Message::Builder = message.get_root();
             let call = root.init_call();
@@ -610,7 +610,7 @@ impl ClientHook for PromisedAnswerClient {
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<common::MessageSize>)
                 -> capability::Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline> {
-        let mut message = box MallocMessageBuilder::new_default();
+        let mut message = box MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
         {
             let root : Message::Builder = message.get_root();
             let call = root.init_call();
@@ -826,7 +826,7 @@ impl RpcCallContext {
                 _ => fail!(),
             }
         };
-        let mut results_message = ~MallocMessageBuilder::new_default();
+        let mut results_message = ~MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
         {
             let root : Message::Builder = results_message.init_root();
             let ret = root.init_return();
@@ -904,10 +904,10 @@ impl PromisedAnswerRpcCallContext {
         let mut writer = std::io::MemWriter::new();
         assert!(serialize::write_message(&mut writer, params_message).is_ok());
         let mut reader = std::io::MemReader::new(Vec::from_slice(writer.get_ref()));
-        let params_reader = ~serialize::new_reader(&mut reader, DefaultReaderOptions).unwrap();
+        let params_reader = ~serialize::new_reader(&mut reader, *ReaderOptions::new().fail_fast(false)).unwrap();
 
 
-        let mut results_message = ~MallocMessageBuilder::new_default();
+        let mut results_message = ~MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
         {
             let root : Message::Builder = results_message.init_root();
             let ret = root.init_return();
@@ -969,7 +969,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         let mut writer = std::io::MemWriter::new();
         assert!(serialize::write_message(&mut writer, results_message).is_ok());
         let mut reader = std::io::MemReader::new(Vec::from_slice(writer.get_ref()));
-        let results_reader = ~serialize::new_reader(&mut reader, DefaultReaderOptions).unwrap();
+        let results_reader = ~serialize::new_reader(&mut reader, *ReaderOptions::new().fail_fast(false)).unwrap();
 
         answer_chan.send(results_reader);
 
@@ -983,7 +983,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         let mut writer = std::io::MemWriter::new();
         serialize::write_message(&mut writer, results_message).unwrap();
         let mut reader = std::io::MemReader::new(Vec::from_slice(writer.get_ref()));
-        let results_reader = ~serialize::new_reader(&mut reader, DefaultReaderOptions).unwrap();
+        let results_reader = ~serialize::new_reader(&mut reader, *ReaderOptions::new().fail_fast(false)).unwrap();
 
         answer_chan.send(results_reader);
     }

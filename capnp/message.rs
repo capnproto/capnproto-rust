@@ -14,12 +14,33 @@ use layout;
 use layout::{FromStructBuilder, HasStructSize};
 
 pub struct ReaderOptions {
-    pub traversalLimitInWords : u64,
-    pub nestingLimit : uint
+    pub traversal_limit_in_words : u64,
+    pub nesting_limit : int,
+    pub fail_fast : bool,
 }
 
 pub static DefaultReaderOptions : ReaderOptions =
-    ReaderOptions { traversalLimitInWords : 8 * 1024 * 1024, nestingLimit : 64 };
+    ReaderOptions { traversal_limit_in_words : 8 * 1024 * 1024, nesting_limit : 64,
+                    fail_fast : true };
+
+impl ReaderOptions {
+    pub fn new() -> ReaderOptions { DefaultReaderOptions }
+
+    pub fn nesting_limit<'a>(&'a mut self, value : int) -> &'a mut ReaderOptions {
+        self.nesting_limit = value;
+        return self;
+    }
+
+    pub fn traversal_limit_in_words<'a>(&'a mut self, value : u64) -> &'a mut ReaderOptions {
+        self.traversal_limit_in_words = value;
+        return self;
+    }
+
+    pub fn fail_fast<'a>(&'a mut self, value : bool) -> &'a mut ReaderOptions {
+        self.fail_fast = value;
+        return self;
+    }
+}
 
 
 type SegmentId = u32;
@@ -36,7 +57,7 @@ pub trait MessageReader {
             let segment : *SegmentReader = &self.arena().segment0;
 
             let pointer_reader = layout::PointerReader::get_root(
-                segment, (*segment).get_start_ptr(), self.get_options().nestingLimit as int);
+                segment, (*segment).get_start_ptr(), self.get_options().nesting_limit as int);
 
             let result : T = layout::FromStructReader::new(
                 pointer_reader.get_struct(std::ptr::null()));
@@ -76,7 +97,7 @@ impl <'a> SegmentArrayMessageReader<'a> {
         assert!(segments.len() > 0);
         SegmentArrayMessageReader {
             segments : segments,
-            arena : ReaderArena::new(segments),
+            arena : ReaderArena::new(segments, options),
             options : options
         }
     }
@@ -90,10 +111,39 @@ pub enum AllocationStrategy {
 pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
 pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GrowHeuristically;
 
+pub struct BuilderOptions {
+    pub first_segment_words : uint,
+    pub allocation_strategy : AllocationStrategy,
+    pub fail_fast : bool,
+}
+
+impl BuilderOptions {
+    pub fn new() -> BuilderOptions {
+        BuilderOptions {first_segment_words : SUGGESTED_FIRST_SEGMENT_WORDS,
+                        allocation_strategy : GrowHeuristically,
+                        fail_fast : true }
+    }
+
+    pub fn first_segment_words<'a>(&'a mut self, value : uint) -> &'a mut BuilderOptions {
+        self.first_segment_words = value;
+        return self;
+    }
+
+    pub fn allocation_strategy<'a>(&'a mut self, value : AllocationStrategy) -> &'a mut BuilderOptions {
+        self.allocation_strategy = value;
+        return self;
+    }
+
+    pub fn fail_fast<'a>(&'a mut self, value : bool) -> &'a mut BuilderOptions {
+        self.fail_fast = value;
+        return self;
+    }
+}
+
+
 pub trait MessageBuilder {
     fn mut_arena<'a>(&'a mut self) -> &'a mut BuilderArena;
     fn arena<'a>(&'a self) -> &'a BuilderArena;
-
 
 
     // XXX is there a way to make this private?
@@ -153,14 +203,16 @@ impl Drop for MallocMessageBuilder {
 
 impl MallocMessageBuilder {
 
-    pub fn new(first_segment_size : uint, allocationStrategy : AllocationStrategy) -> MallocMessageBuilder {
-        let arena = BuilderArena::new(allocationStrategy, NumWords(first_segment_size));
+    pub fn new(options : BuilderOptions) -> MallocMessageBuilder {
+        let arena = BuilderArena::new(options.allocation_strategy,
+                                      NumWords(options.first_segment_words),
+                                      options.fail_fast);
 
         MallocMessageBuilder { arena : arena }
     }
 
     pub fn new_default() -> MallocMessageBuilder {
-        MallocMessageBuilder::new(SUGGESTED_FIRST_SEGMENT_WORDS, SUGGESTED_ALLOCATION_STRATEGY)
+        MallocMessageBuilder::new(BuilderOptions::new())
     }
 
 }
@@ -197,15 +249,16 @@ impl <'a> Drop for ScratchSpaceMallocMessageBuilder<'a> {
 
 impl <'a> ScratchSpaceMallocMessageBuilder<'a> {
 
-    pub fn new<'b>(scratch_space : &'b mut [Word], allocationStrategy : AllocationStrategy)
+    pub fn new<'b>(scratch_space : &'b mut [Word], options : BuilderOptions)
                -> ScratchSpaceMallocMessageBuilder<'b> {
-        let arena = BuilderArena::new(allocationStrategy, ZeroedWords(scratch_space));
+        let arena = BuilderArena::new(options.allocation_strategy, ZeroedWords(scratch_space),
+                                      options.fail_fast);
 
         ScratchSpaceMallocMessageBuilder { arena : arena, scratch_space : scratch_space }
     }
 
     pub fn new_default<'b>(scratch_space : &'b mut [Word]) -> ScratchSpaceMallocMessageBuilder<'b> {
-        ScratchSpaceMallocMessageBuilder::new(scratch_space, SUGGESTED_ALLOCATION_STRATEGY)
+        ScratchSpaceMallocMessageBuilder::new(scratch_space, BuilderOptions::new())
     }
 
 }

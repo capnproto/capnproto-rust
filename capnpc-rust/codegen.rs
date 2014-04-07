@@ -1451,7 +1451,7 @@ pub fn main() -> std::io::IoResult<()> {
 
     let mut inp = std::io::stdin();
 
-    let message = try!(serialize::new_reader(&mut inp, message::DefaultReaderOptions));
+    let message = try!(serialize::new_reader(&mut inp, message::ReaderOptions::new()));
 
     let request : schema_capnp::CodeGeneratorRequest::Reader = message.get_root();
 

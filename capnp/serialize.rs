@@ -84,7 +84,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
     //# check, a malicious client could transmit a very large
     //# segment size to make the receiver allocate excessive space
     //# and possibly crash.
-    if ! (totalWords as u64 <= options.traversalLimitInWords)  {
+    if ! (totalWords as u64 <= options.traversal_limit_in_words)  {
         return invalid_input("Message is too large. To increase the limit on the \
                               receiving end, see capnp::ReaderOptions.");
     }
@@ -118,7 +118,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
                 offset += moreSizes.as_slice()[ii];
             }
         }
-        arena::ReaderArena::new(segments.as_slice())
+        arena::ReaderArena::new(segments.as_slice(), options)
     };
 
     Ok(OwnedSpaceMessageReader {

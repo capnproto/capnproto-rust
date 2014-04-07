@@ -12,7 +12,7 @@ pub mod test_capnp;
 
 mod tests {
     use std;
-    use capnp::message::{MessageBuilder, MallocMessageBuilder, SUGGESTED_ALLOCATION_STRATEGY};
+    use capnp::message::{MessageBuilder, MallocMessageBuilder, BuilderOptions};
 
     #[test]
     fn test_prim_list () {
@@ -20,7 +20,7 @@ mod tests {
         use test_capnp::TestPrimList;
 
         // Make the first segment small to force allocation of a second segment.
-        let mut message = MallocMessageBuilder::new(50, SUGGESTED_ALLOCATION_STRATEGY);
+        let mut message = MallocMessageBuilder::new(*BuilderOptions::new().first_segment_words(50));
 
         let testPrimList = message.init_root::<TestPrimList::Builder>();
 
@@ -168,7 +168,7 @@ mod tests {
         use test_capnp::TestBigStruct;
 
         // Make the first segment small to force allocation of a second segment.
-        let mut message = MallocMessageBuilder::new(5, SUGGESTED_ALLOCATION_STRATEGY);
+        let mut message = MallocMessageBuilder::new(*BuilderOptions::new().first_segment_words(5));
 
         let bigStruct = message.init_root::<TestBigStruct::Builder>();
 

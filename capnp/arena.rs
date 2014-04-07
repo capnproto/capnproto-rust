@@ -110,10 +110,12 @@ pub struct ReaderArena {
     //XXX should this be a map as in capnproto-c++?
 
     pub cap_table : Vec<Option<~ClientHook:Send>>,
+
+    pub fail_fast : bool,
 }
 
 impl ReaderArena {
-    pub fn new(segments : &[&[Word]]) -> ~ReaderArena {
+    pub fn new(segments : &[&[Word]], options : message::ReaderOptions) -> ~ReaderArena {
         assert!(segments.len() > 0);
         let mut arena = ~ReaderArena {
             segment0 : SegmentReader {
@@ -122,7 +124,8 @@ impl ReaderArena {
                 size : segments[0].len()
             },
             more_segments : Vec::new(),
-            cap_table : Vec::new()
+            cap_table : Vec::new(),
+            fail_fast : options.fail_fast,
         };
 
 
@@ -168,6 +171,7 @@ pub struct BuilderArena {
     pub owned_memory : Vec<*mut Word>,
     pub nextSize : uint,
     pub cap_table : Vec<Option<~ClientHook:Send>>,
+    pub fail_fast : bool,
 }
 
 impl Drop for BuilderArena {
@@ -186,7 +190,8 @@ pub enum FirstSegment<'a> {
 impl BuilderArena {
 
     pub fn new(allocationStrategy : message::AllocationStrategy,
-               first_segment : FirstSegment) -> ~BuilderArena {
+               first_segment : FirstSegment,
+               fail_fast : bool) -> ~BuilderArena {
 
         let (first_segment, num_words, owned_memory) : (*mut Word, uint, Vec<*mut Word>) = unsafe {
             match first_segment {
@@ -213,6 +218,7 @@ impl BuilderArena {
             owned_memory : owned_memory,
             nextSize : num_words,
             cap_table : Vec::new(),
+            fail_fast : fail_fast,
         };
 
         let arena_ptr = { let ref mut ptr = *result; ptr as *mut BuilderArena};
@@ -369,4 +375,21 @@ impl ArenaPtr {
             }
         }
     }
+
+    pub fn fail_fast(&self) -> bool {
+        unsafe {
+            match self {
+                &ReaderArenaPtr(reader) => {
+                    (*reader).fail_fast
+                }
+                &BuilderArenaPtr(builder) => {
+                    (*builder).fail_fast
+                }
+                &Null => {
+                    fail!()
+                }
+            }
+        }
+    }
+
 }
