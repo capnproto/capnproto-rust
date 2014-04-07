@@ -53,7 +53,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
 
     let segment0Size =
         if segmentCount == 0 { 0 } else {
-        unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.unsafe_ref(4));
+        unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.as_slice().unsafe_ref(4));
                 (*p).get()
         }
     };
@@ -71,7 +71,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
         for ii in range(0, segmentCount as uint - 1) {
             let size = unsafe {
                 let p : *WireValue<u32> =
-                    std::cast::transmute(moreSizesRaw.unsafe_ref(ii * 4));
+                    std::cast::transmute(moreSizesRaw.as_slice().unsafe_ref(ii * 4));
                 (*p).get()
             };
             moreSizes.push(size);
