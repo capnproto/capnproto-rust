@@ -887,7 +887,7 @@ impl CallContextHook for RpcCallContext {
 
 
 pub struct PromisedAnswerRpcCallContext {
-    params_message : ~OwnedSpaceMessageReader,
+    params_message : ~MallocMessageBuilder,
     results_message : ~MallocMessageBuilder,
     rpc_chan : std::comm::Sender<RpcEvent>,
     answer_chan : std::comm::Sender<~OwnedSpaceMessageReader>,
@@ -900,13 +900,6 @@ impl PromisedAnswerRpcCallContext {
                -> PromisedAnswerRpcCallContext {
 
 
-        // yuck!
-        let mut writer = std::io::MemWriter::new();
-        assert!(serialize::write_message(&mut writer, params_message).is_ok());
-        let mut reader = std::io::MemReader::new(Vec::from_slice(writer.get_ref()));
-        let params_reader = ~serialize::new_reader(&mut reader, *ReaderOptions::new().fail_fast(false)).unwrap();
-
-
         let mut results_message = ~MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
         {
             let root : Message::Builder = results_message.init_root();
@@ -914,7 +907,7 @@ impl PromisedAnswerRpcCallContext {
             ret.init_results();
         }
         PromisedAnswerRpcCallContext {
-            params_message : params_reader,
+            params_message : params_message,
             results_message : results_message,
             rpc_chan : rpc_chan,
             answer_chan : answer_chan,
@@ -926,10 +919,10 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
     fn get<'a>(&'a mut self) -> (AnyPointer::Reader<'a>, AnyPointer::Builder<'a>) {
 
         let params = {
-            let root : Message::Reader = self.params_message.get_root();
+            let root : Message::Builder = self.params_message.get_root();
             match root.which() {
                 Some(Message::Call(call)) => {
-                    call.get_params().get_content()
+                    call.get_params().get_content().as_reader()
                 }
                 _ => fail!(),
             }
