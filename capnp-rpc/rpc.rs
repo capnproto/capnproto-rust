@@ -9,9 +9,9 @@ use capnp::capability;
 use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, ResultFuture,
                         RequestHook, Request, Server};
 use capnp::common;
-use capnp::message::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, MallocMessageBuilder};
+use capnp::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
-use capnp::serialize::{OwnedSpaceMessageReader};
+use capnp::OwnedSpaceMessageReader;
 
 use std;
 use std::any::AnyRefExt;

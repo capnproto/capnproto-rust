@@ -8,11 +8,11 @@
 
 use std;
 
-use capnp::any::{AnyPointer};
-use capnp::common::{MessageSize};
+use capnp::AnyPointer;
+use capnp::MessageSize;
 use capnp::capability::{CallContext, CallContextHook, ClientHook, PipelineHook, Request, ResultFuture, Server};
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
-use capnp::message::{MessageReader, MessageBuilder};
+use capnp::{MessageReader, MessageBuilder};
 
 use rpc_capnp::{Message, Return};
 

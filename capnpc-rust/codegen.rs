@@ -4,7 +4,7 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-use capnp::message;
+use capnp;
 use collections;
 use std;
 use schema_capnp;
@@ -1447,11 +1447,11 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 pub fn main() -> std::io::IoResult<()> {
     use std::io::{Writer, File, Truncate, Write};
     use capnp::serialize;
-    use capnp::message::MessageReader;
+    use capnp::MessageReader;
 
     let mut inp = std::io::stdin();
 
-    let message = try!(serialize::new_reader(&mut inp, message::ReaderOptions::new()));
+    let message = try!(serialize::new_reader(&mut inp, capnp::ReaderOptions::new()));
 
     let request : schema_capnp::CodeGeneratorRequest::Reader = message.get_root();
 

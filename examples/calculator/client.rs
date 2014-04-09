@@ -34,7 +34,7 @@ pub fn main() {
 
     let mut rpc_client = EzRpcClient::new(args[2]).unwrap();
 
-    let calculator : Calculator::Client  = rpc_client.import_cap("calculator");
+    let calculator : Calculator::Client = rpc_client.import_cap("calculator");
 
     {
         //# Make a request that just evaluates the literal value 123.

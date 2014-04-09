@@ -16,6 +16,9 @@ use layout::{FromStructBuilder, HasStructSize};
 pub struct ReaderOptions {
     pub traversal_limit_in_words : u64,
     pub nesting_limit : int,
+
+    // If true, malformed messages trigger task failure.
+    // If false, malformed messages fall back to default values.
     pub fail_fast : bool,
 }
 
@@ -114,6 +117,9 @@ pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GrowHeuristicall
 pub struct BuilderOptions {
     pub first_segment_words : uint,
     pub allocation_strategy : AllocationStrategy,
+
+    // If true, malformed messages trigger task failure.
+    // If false, malformed messages fall back to default values.
     pub fail_fast : bool,
 }
 

@@ -12,7 +12,7 @@
 extern crate capnp;
 extern crate rand;
 
-use capnp::message::{MessageReader, MessageBuilder};
+use capnp::{MessageReader, MessageBuilder};
 
 pub mod common;
 

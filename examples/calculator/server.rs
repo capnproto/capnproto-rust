@@ -9,7 +9,7 @@ use std::vec::Vec;
 
 use capnp::capability::{FromServer, Server};
 use capnp::list::{PrimitiveList};
-use capnp::message::{MallocMessageBuilder, MessageBuilder};
+use capnp::{MallocMessageBuilder, MessageBuilder};
 
 use capnp_rpc::capability::{InitRequest, WaitForContent};
 use capnp_rpc::ez_rpc::EzRpcServer;

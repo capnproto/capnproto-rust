@@ -13,7 +13,7 @@ pub mod addressbook {
     use std::io::{stdin, stdout, IoResult};
     use addressbook_capnp::{AddressBook, Person};
     use capnp::serialize_packed;
-    use capnp::message::{MallocMessageBuilder, MessageBuilder, DefaultReaderOptions, MessageReader};
+    use capnp::{MessageBuilder, MessageReader, ReaderOptions, MallocMessageBuilder};
 
     pub fn write_address_book() -> IoResult<()> {
         let mut message = MallocMessageBuilder::new_default();
@@ -47,7 +47,7 @@ pub mod addressbook {
 
     pub fn print_address_book() -> IoResult<()> {
 
-        let message_reader = try!(serialize_packed::new_reader_unbuffered(&mut stdin(), DefaultReaderOptions));
+        let message_reader = try!(serialize_packed::new_reader_unbuffered(&mut stdin(), ReaderOptions::new()));
         let address_book = message_reader.get_root::<AddressBook::Reader>();
         let people = address_book.get_people();
 

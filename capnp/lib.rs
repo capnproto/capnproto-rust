@@ -15,6 +15,13 @@
 #[phase(syntax, link)] extern crate log;
 extern crate libc;
 
+// reexports
+pub use any::AnyPointer;
+pub use common::{MessageSize};
+pub use message::{MessageBuilder, BuilderOptions, MessageReader, ReaderOptions};
+pub use message::MallocMessageBuilder;
+pub use serialize::OwnedSpaceMessageReader;
+
 pub mod any;
 pub mod arena;
 pub mod blob;
@@ -34,3 +41,7 @@ pub mod serialize_packed;
 pub mod layout_test;
 #[cfg(test)]
 pub mod serialize_packed_test;
+
+
+
+
