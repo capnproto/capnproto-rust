@@ -17,7 +17,9 @@ extern crate libc;
 
 // reexports
 pub use any::AnyPointer;
+pub use blob::{Text, Data};
 pub use common::{MessageSize};
+pub use list::{PrimitiveList, EnumList, StructList, TextList, DataList, ListList};
 pub use message::{MessageBuilder, BuilderOptions, MessageReader, ReaderOptions};
 pub use message::MallocMessageBuilder;
 pub use serialize::OwnedSpaceMessageReader;

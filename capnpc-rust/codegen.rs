@@ -216,12 +216,13 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
 fn generate_import_statements(rootName : &str) -> FormattedText {
     Branch(vec!(
         Line(~"use std;"),
-        Line(~"use capnp::any::AnyPointer;"),
+        Line(~"use capnp::AnyPointer;"),
         Line(~"use capnp::capability::{FromClientHook, FromTypelessPipeline};"),
-        Line(~"use capnp::blob::{Text, Data};"),
+        Line(~"use capnp::{Text, Data};"),
         Line(~"use capnp::layout;"),
         Line(~"use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};"),
-        Line(~"use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};"),
+        Line(~"use capnp::{PrimitiveList, EnumList, StructList, TextList, DataList, ListList};"),
+        Line(~"use capnp::list::ToU16;"),
         Line(format!("use {};", rootName))
     ))
 }
@@ -237,9 +238,9 @@ fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<~str
         Some(t) => {
             match t {
                 Type::Void(()) | Type::Bool(()) | Type::Int8(()) |
-                    Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
-                    Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
-                    Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) => {
+                Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
+                Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
+                Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) => {
                     format!("PrimitiveList::{}<{}, {}>", module, lifetime_name, prim_type_str(t))
                 }
                 Type::Enum(en) => {
