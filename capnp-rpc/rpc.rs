@@ -460,9 +460,7 @@ impl RpcConnectionState {
                         }
                         OutgoingDeferred(OutgoingMessage { message : mut m,
                                                            answer_chan,
-                                                           question_chan}, answer_id, ops ) => {
-                            // XXX
-                            question_chan.send(0);
+                                                           question_chan: _}, answer_id, ops ) => {
 
                             let root = m.get_root::<Message::Builder>();
                             let (interface_id, method_id) = match root.which() {
@@ -743,9 +741,8 @@ impl RequestHook for PromisedAnswerRpcRequest {
     }
     fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline> {
         let ~PromisedAnswerRpcRequest { rpc_chan, message, answer_id, ops } = self;
-        let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
+        let (outgoing, answer_port, _question_port) = RpcEvent::new_outgoing(message);
         rpc_chan.send(OutgoingDeferred(outgoing, answer_id, ops));
-        let _question_id = question_port.recv();
 
         let pipeline = ~PromisedAnswerRpcPipeline;
         let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
