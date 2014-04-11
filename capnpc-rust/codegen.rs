@@ -143,19 +143,18 @@ fn to_lines(ft : &FormattedText, indent : uint) -> Vec<~str> {
             return result;
         }
         Line(ref s) => {
-            let mut s1 : ~str = std::str::from_chars(
-                Vec::from_elem(indent * 2, ' ').as_slice());
+            let mut s1 = StrBuf::from_char(indent * 2, ' ');
             s1.push_str(*s);
-            return vec!(s1);
+            return vec!(s1.into_owned());
         }
         BlankLine => return vec!(~"")
     }
 }
 
 fn stringify(ft : & FormattedText) -> ~str {
-    let mut result = to_lines(ft, 0).connect("\n");
+    let mut result = StrBuf::from_owned_str(to_lines(ft, 0).connect("\n"));
     result.push_str("\n");
-    return result;
+    return result.into_owned();
 }
 
 fn append_name (names : &[~str], name : ~str) -> Vec<~str> {
