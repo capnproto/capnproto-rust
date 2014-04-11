@@ -50,7 +50,7 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
             goodCount += 1;
         }
 
-        let mut snippet = ~" ";
+        let mut snippet = StrBuf::from_str(" ");
 
         let prefix = rng.nextLessThan(20) as uint;
         for _ in range(0, prefix) {
@@ -64,7 +64,7 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
             snippet.push_str(WORDS[rng.nextLessThan(WORDS.len() as u32) as uint]);
         }
 
-        result.set_snippet(snippet);
+        result.set_snippet(snippet.as_slice());
     }
 
     goodCount
