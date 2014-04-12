@@ -10,7 +10,8 @@ use std;
 
 use capnp::AnyPointer;
 use capnp::MessageSize;
-use capnp::capability::{CallContext, CallContextHook, ClientHook, PipelineHook, Request, ResultFuture, Server};
+use capnp::capability::{CallContext, CallContextHook, Client,
+                        ClientHook, PipelineHook, Request, ResultFuture, Server, ServerHook};
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::{MessageReader, MessageBuilder};
 
@@ -67,6 +68,12 @@ impl ClientHook for LocalClient {
         (~self.copy()) as ~std::any::Any
     }
 
+}
+
+impl ServerHook for LocalClient {
+    fn new_client(_unused_self : Option<LocalClient>, server : ~Server:Send) -> Client {
+        Client::new((~LocalClient::new(server)) as ~ClientHook:Send)
+    }
 }
 
 pub trait InitRequest<'a, T> {

@@ -10,9 +10,8 @@ use std;
 use std::io::Acceptor;
 use collections::hashmap::HashMap;
 use capnp::{AnyPointer, MessageBuilder, MallocMessageBuilder, MessageReader};
-use capnp::capability::{ClientHook, FromClientHook, ServerHook, Server, Client};
+use capnp::capability::{ClientHook, FromClientHook, Server};
 use rpc::{Outgoing, RpcConnectionState, RpcEvent, ShutdownEvent, SturdyRefRestorer};
-use capability;
 use capability::{LocalClient};
 
 pub struct EzRpcClient {
@@ -65,13 +64,6 @@ impl EzRpcClient {
         return client;
     }
 }
-
-impl ServerHook for EzRpcClient {
-    fn new_client(_unused_self : Option<EzRpcClient>, server : ~Server:Send) -> Client {
-        Client::new((~capability::LocalClient::new(server) ) as ~ClientHook:Send)
-    }
-}
-
 
 enum ExportEvent {
     ExportEventRestore(~str, std::comm::Sender<Option<~ClientHook:Send>>),
@@ -127,12 +119,6 @@ impl SturdyRefRestorer for Restorer {
 pub struct EzRpcServer {
     sender : std::comm::Sender<ExportEvent>,
     tcp_acceptor : std::io::net::tcp::TcpAcceptor,
-}
-
-impl ServerHook for EzRpcServer {
-    fn new_client(_unused_self : Option<EzRpcServer>, server : ~Server:Send) -> Client {
-        Client::new((~capability::LocalClient::new(server)) as ~ClientHook:Send)
-    }
 }
 
 impl EzRpcServer {

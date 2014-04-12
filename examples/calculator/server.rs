@@ -11,7 +11,7 @@ use capnp::capability::{FromServer, Server};
 use capnp::list::{PrimitiveList};
 use capnp::{MallocMessageBuilder, MessageBuilder};
 
-use capnp_rpc::capability::{InitRequest, WaitForContent};
+use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
 use capnp_rpc::ez_rpc::EzRpcServer;
 
 use calculator_capnp::Calculator;
@@ -141,7 +141,7 @@ impl Calculator::Server for CalculatorImpl {
             Ok(r) => {
                 results.set_value(
                     FromServer::new(
-                        None::<EzRpcServer>,
+                        None::<LocalClient>,
                         ~ValueImpl::new(r)))
             }
             Err(_) => return context.fail(),
@@ -152,7 +152,7 @@ impl Calculator::Server for CalculatorImpl {
         let (params, results) = context.get();
         results.set_func(
             FromServer::new(
-                None::<EzRpcServer>,
+                None::<LocalClient>,
                 ~FunctionImpl::new(params.get_param_count() as uint, params.get_body())));
         context.done();
     }
@@ -162,7 +162,7 @@ impl Calculator::Server for CalculatorImpl {
             match params.get_op() {
                 Some(op) => {
                     FromServer::new(
-                        None::<EzRpcServer>,
+                        None::<LocalClient>,
                         ~OperatorImpl {op : op})
                 }
                 None => fail!("Unknown operator."),

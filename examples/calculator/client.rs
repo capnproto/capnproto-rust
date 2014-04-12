@@ -7,7 +7,7 @@
 use std;
 use capnp::capability::{FromServer};
 use capnp_rpc::ez_rpc::EzRpcClient;
-use capnp_rpc::capability::{InitRequest, WaitForContent};
+use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
 use calculator_capnp::Calculator;
 
 pub struct PowerFunction;
@@ -277,7 +277,7 @@ pub fn main() {
 
         let mut request = calculator.evaluate_request();
         let pow_call = request.init().get_expression().init_call();
-        pow_call.set_function(FromServer::new(None::<EzRpcClient>, ~PowerFunction));
+        pow_call.set_function(FromServer::new(None::<LocalClient>, ~PowerFunction));
         let pow_params = pow_call.init_params(2);
         pow_params[0].set_literal(2.0);
 
