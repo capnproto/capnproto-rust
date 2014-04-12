@@ -25,7 +25,7 @@ CAPNP_RPC_SOURCES= \
 CAPNP_COMPILATION_MARKER=capnp/compilation-marker
 CAPNP_RPC_COMPILATION_MARKER=capnp-rpc/compilation-marker
 
-.PHONY : capnp capnp-rpc clean all capnp-test capnpc-rust-test check benchmark
+.PHONY : capnp capnp-rpc clean all capnp-test capnpc-rust-test check benchmark install
 
 all : examples/addressbook/addressbook
 
@@ -57,6 +57,9 @@ capnpc-rust-test : capnpc-rust/capnpc-rust
 	./capnpc-rust/test
 
 check : capnp-test capnpc-rust-test
+
+install : capnpc-rust/capnpc-rust
+	cp capnpc-rust/capnpc-rust /usr/local/bin
 
 benchmark : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
