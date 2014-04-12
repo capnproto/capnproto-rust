@@ -157,37 +157,21 @@ fn stringify(ft : & FormattedText) -> ~str {
     return result.into_owned();
 }
 
-fn append_name (names : &[~str], name : ~str) -> Vec<~str> {
-    let mut result = Vec::new();
-    for n in names.iter() {
-        result.push(n.to_owned());
-    }
-    result.push(name);
-    return result;
-}
-
-
 fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                       scope_map : &mut collections::hashmap::HashMap<u64, Vec<~str>>,
-                      rootName : &str,
                       scope_names : Vec<~str>,
                       nodeId : u64) {
 
-    scope_map.insert(nodeId, scope_names);
+    scope_map.insert(nodeId, scope_names.clone());
 
     // unused nodes in imported files might be omitted from the node map
     let node_reader = match node_map.find(&nodeId) { Some(node) => node, None => return (), };
 
     let nested_nodes = node_reader.get_nested_nodes();
     for ii in range(0, nested_nodes.size()) {
-        let nestedNode = nested_nodes[ii];
-        let id = nestedNode.get_id();
-        let name = nestedNode.get_name().to_owned();
-        let scopeNames = match scope_map.find(&nodeId) {
-            Some(names) => append_name(names.as_slice(), name),
-            None => vec!(rootName.to_owned(), name)
-        };
-        populate_scope_map(node_map, scope_map, rootName, scopeNames, id);
+        let mut scope_names = scope_names.clone();
+        scope_names.push(nested_nodes[ii].get_name().to_owned());
+        populate_scope_map(node_map, scope_map, scope_names, nested_nodes[ii].get_id());
     }
 
     match node_reader.which() {
@@ -197,14 +181,10 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
                 let field = fields[jj];
                 match field.which() {
                     Some(schema_capnp::Field::Group(group)) => {
-                        let id = group.get_type_id();
                         let name = capitalize_first_letter(field.get_name());
-                        let scopeNames = match scope_map.find(&nodeId) {
-                            Some(names) => append_name(names.as_slice(), name),
-                            None => vec!(rootName.to_owned(), name)
-                        };
-
-                        populate_scope_map(node_map, scope_map, rootName, scopeNames, id);
+                        let mut scope_names = scope_names.clone();
+                        scope_names.push(name);
+                        populate_scope_map(node_map, scope_map, scope_names, group.get_type_id());
                     }
                     _ => {}
                 }
@@ -1480,14 +1460,14 @@ pub fn main() -> std::io::IoResult<()> {
             let importpath = std::path::Path::new(import.get_name());
             let root_name : ~str = format!("{}_capnp",
                                            importpath.filestem_str().unwrap().replace("-", "_"));
-            populate_scope_map(&node_map, &mut scope_map, root_name.clone(), vec!(root_name), import.get_id());
+            populate_scope_map(&node_map, &mut scope_map, vec!(root_name), import.get_id());
         }
 
         let rootName : ~str = format!("{}_capnp",
                                   filepath.filestem_str().unwrap().replace("-", "_"));
 
         filepath.set_filename(format!("{}.rs", rootName));
-        populate_scope_map(&node_map, &mut scope_map, rootName.clone(), vec!(rootName.clone()), id);
+        populate_scope_map(&node_map, &mut scope_map, vec!(rootName.clone()), id);
 
         let lines = Branch(vec!(Line(~"#![allow(unused_imports)]"),
                                 Line(~"#![allow(dead_code)]"),
