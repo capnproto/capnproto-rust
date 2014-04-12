@@ -37,15 +37,15 @@ clean :
 capnp : $(CAPNP_COMPILATION_MARKER)
 
 $(CAPNP_COMPILATION_MARKER) : $(CAPNP_SOURCES)
-	$(RUSTC) capnp/lib.rs --out-dir capnp
+	$(RUSTC) capnp/lib.rs
 	touch $(CAPNP_COMPILATION_MARKER)
 
 capnpc-rust/capnpc-rust : $(CAPNP_COMPILATION_MARKER) capnpc-rust/codegen.rs capnpc-rust/main.rs capnpc-rust/schema_capnp.rs
-	$(RUSTC) -L./capnp capnpc-rust/main.rs --out-dir capnpc-rust
+	$(RUSTC) -L. capnpc-rust/main.rs --out-dir capnpc-rust
 
 examples/addressbook/addressbook : capnpc-rust/capnpc-rust examples/addressbook/addressbook.rs
 	capnpc -o ./capnpc-rust/capnpc-rust examples/addressbook/addressbook.capnp
-	$(RUSTC) -L./capnp examples/addressbook/addressbook.rs --out-dir examples/addressbook
+	$(RUSTC) -L. examples/addressbook/addressbook.rs --out-dir examples/addressbook
 
 capnp-test :
 	$(RUSTC) --test capnp/lib.rs --out-dir capnp
@@ -53,7 +53,7 @@ capnp-test :
 
 capnpc-rust-test : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust capnpc-rust/test.capnp
-	$(RUSTC) --test -L./capnp capnpc-rust/test.rs --out-dir capnpc-rust
+	$(RUSTC) --test -L. capnpc-rust/test.rs --out-dir capnpc-rust
 	./capnpc-rust/test
 
 check : capnp-test capnpc-rust-test
@@ -63,14 +63,14 @@ install : capnpc-rust/capnpc-rust
 
 benchmark : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
-	$(RUSTC) -L./capnp benchmark/benchmark.rs --out-dir benchmark
+	$(RUSTC) -L. benchmark/benchmark.rs --out-dir benchmark
 
 
 capnp-rpc : $(CAPNP_RPC_COMPILATION_MARKER)
 
 $(CAPNP_RPC_COMPILATION_MARKER) : capnpc-rust/capnpc-rust $(CAPNP_RPC_SOURCES)
 	capnp compile -o./capnpc-rust/capnpc-rust capnp-rpc/rpc.capnp capnp-rpc/rpc-twoparty.capnp
-	$(RUSTC) -L./capnp capnp-rpc/lib.rs --out-dir capnp-rpc
+	$(RUSTC) -L. capnp-rpc/lib.rs
 	touch $(CAPNP_RPC_COMPILATION_MARKER)
 
 examples/calculator/calculator : capnpc-rust/capnpc-rust $(CAPNP_RPC_COMPILATION_MARKER) \
@@ -78,5 +78,5 @@ examples/calculator/calculator : capnpc-rust/capnpc-rust $(CAPNP_RPC_COMPILATION
 	                             examples/calculator/client.rs examples/calculator/server.rs \
                                  examples/calculator/calculator.capnp
 	capnp compile -o./capnpc-rust/capnpc-rust examples/calculator/calculator.capnp
-	$(RUSTC) -L./capnp -L./capnp-rpc examples/calculator/main.rs --out-dir examples/calculator
+	$(RUSTC) -L. examples/calculator/main.rs --out-dir examples/calculator
 
