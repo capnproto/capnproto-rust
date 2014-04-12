@@ -170,7 +170,10 @@ fn append_name (names : &[~str], name : ~str) -> Vec<~str> {
 fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                       scope_map : &mut collections::hashmap::HashMap<u64, Vec<~str>>,
                       rootName : &str,
+                      scope_names : Vec<~str>,
                       nodeId : u64) {
+
+    scope_map.insert(nodeId, scope_names);
 
     // unused nodes in imported files might be omitted from the node map
     let node_reader = match node_map.find(&nodeId) { Some(node) => node, None => return (), };
@@ -184,8 +187,7 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
             Some(names) => append_name(names.as_slice(), name),
             None => vec!(rootName.to_owned(), name)
         };
-        scope_map.insert(id, scopeNames);
-        populate_scope_map(node_map, scope_map, rootName, id);
+        populate_scope_map(node_map, scope_map, rootName, scopeNames, id);
     }
 
     match node_reader.which() {
@@ -202,8 +204,7 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
                             None => vec!(rootName.to_owned(), name)
                         };
 
-                        scope_map.insert(id, scopeNames);
-                        populate_scope_map(node_map, scope_map, rootName, id);
+                        populate_scope_map(node_map, scope_map, rootName, scopeNames, id);
                     }
                     _ => {}
                 }
@@ -1250,10 +1251,10 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                     let params_name = format!("{}Params", capitalize_first_letter(name));
 
                     nested_output.push(generate_node(node_map, scope_map, rootName,
-                                                     params_id, params_name ));
+                                                     params_id, params_name));
                     params_name
                 } else {
-                    fail!("unimplemented");
+                    scope_map.get(&params_node.get_id()).connect("::")
                 };
 
                 let results_id = method.get_result_struct_type();
@@ -1264,7 +1265,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                                                      results_id, results_name ));
                     results_name
                 } else {
-                    fail!("unimplemented");
+                    scope_map.get(&results_node.get_id()).connect("::")
                 };
 
                 dispatch_arms.push(
@@ -1479,14 +1480,14 @@ pub fn main() -> std::io::IoResult<()> {
             let importpath = std::path::Path::new(import.get_name());
             let root_name : ~str = format!("{}_capnp",
                                            importpath.filestem_str().unwrap().replace("-", "_"));
-            populate_scope_map(&node_map, &mut scope_map, root_name, import.get_id());
+            populate_scope_map(&node_map, &mut scope_map, root_name.clone(), vec!(root_name), import.get_id());
         }
 
         let rootName : ~str = format!("{}_capnp",
                                   filepath.filestem_str().unwrap().replace("-", "_"));
 
         filepath.set_filename(format!("{}.rs", rootName));
-        populate_scope_map(&node_map, &mut scope_map, rootName, id);
+        populate_scope_map(&node_map, &mut scope_map, rootName.clone(), vec!(rootName.clone()), id);
 
         let lines = Branch(vec!(Line(~"#![allow(unused_imports)]"),
                                 Line(~"#![allow(dead_code)]"),

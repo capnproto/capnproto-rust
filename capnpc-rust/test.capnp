@@ -161,4 +161,6 @@ interface TestInterface {
 
 interface TestExtends extends(TestInterface) {
    qux @0 ();
+   corge @1 TestBigStruct -> ();
+   grault @2 () -> TestBigStruct;
 }
