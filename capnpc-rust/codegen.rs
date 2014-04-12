@@ -194,7 +194,7 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
     }
 }
 
-fn generate_import_statements(rootName : &str) -> FormattedText {
+fn generate_import_statements() -> FormattedText {
     Branch(vec!(
         Line(~"use std;"),
         Line(~"use capnp::AnyPointer;"),
@@ -204,7 +204,6 @@ fn generate_import_statements(rootName : &str) -> FormattedText {
         Line(~"use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};"),
         Line(~"use capnp::{PrimitiveList, EnumList, StructList, TextList, DataList, ListList};"),
         Line(~"use capnp::list::ToU16;"),
-        Line(format!("use {};", rootName))
     ))
 }
 
@@ -764,7 +763,6 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 // return (the 'Which' enum, the 'which()' accessor, typedef)
 fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
-                  root_name : &str,
                   discriminant_offset : u32,
                   fields : &[schema_capnp::Field::Reader],
                   is_reader : bool)
@@ -843,7 +841,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
         Branch(interior)
     } else {
         Branch(vec!(Line(~"pub mod Which {"),
-                    Indent(~generate_import_statements(root_name)),
+                    Indent(~generate_import_statements()),
                     BlankLine,
                     Indent(~Branch(interior)),
                     Line(~"}")))
@@ -971,7 +969,6 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
 
 fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                  scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
-                 rootName : &str,
                  node_id : u64,
                  node_name: &str) -> FormattedText {
     use schema_capnp::*;
@@ -983,7 +980,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
     let nested_nodes = node_reader.get_nested_nodes();
     for ii in range(0, nested_nodes.size()) {
         let id = nested_nodes[ii].get_id();
-        nested_output.push(generate_node(node_map, scope_map, rootName,
+        nested_output.push(generate_node(node_map, scope_map,
                                          id, *scope_map.get(&id).last().unwrap()));
     }
 
@@ -1015,7 +1012,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let discriminantCount = structReader.get_discriminant_count();
             let discriminant_offset = structReader.get_discriminant_offset();
 
-            preamble.push(generate_import_statements(rootName));
+            preamble.push(generate_import_statements());
             preamble.push(BlankLine);
 
 
@@ -1075,7 +1072,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 match field.which() {
                     Some(Field::Group(group)) => {
                         let id = group.get_type_id();
-                        let text = generate_node(node_map, scope_map, rootName,
+                        let text = generate_node(node_map, scope_map,
                                                  id, *scope_map.get(&id).last().unwrap());
                         nested_output.push(text);
                     }
@@ -1086,14 +1083,14 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
             if discriminantCount > 0 {
                 let (which_enums1, union_getter, typedef) =
-                    generate_union(node_map, scope_map, rootName,
+                    generate_union(node_map, scope_map,
                                    discriminant_offset, union_fields.as_slice(), true);
                 which_enums.push(which_enums1);
                 which_enums.push(typedef);
                 reader_members.push(union_getter);
 
                 let (_, union_getter, typedef) =
-                    generate_union(node_map, scope_map, rootName,
+                    generate_union(node_map, scope_map,
                                    discriminant_offset, union_fields.as_slice(), false);
                 which_enums.push(typedef);
                 builder_members.push(union_getter);
@@ -1216,7 +1213,6 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             mod_interior.push(
                 Line(box "use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};"));
             mod_interior.push(Line(box "use capnp::capability;"));
-            mod_interior.push(Line(format!( "use {};", rootName)));
             mod_interior.push(BlankLine);
 
             let methods = interface.get_methods();
@@ -1230,7 +1226,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 let params_name = if params_node.get_scope_id() == 0 {
                     let params_name = format!("{}Params", capitalize_first_letter(name));
 
-                    nested_output.push(generate_node(node_map, scope_map, rootName,
+                    nested_output.push(generate_node(node_map, scope_map,
                                                      params_id, params_name));
                     params_name
                 } else {
@@ -1241,7 +1237,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 let results_node = node_map.get(&results_id);
                 let results_name = if results_node.get_scope_id() == 0 {
                     let results_name = format!("{}Results", capitalize_first_letter(name));
-                    nested_output.push(generate_node(node_map, scope_map, rootName,
+                    nested_output.push(generate_node(node_map, scope_map,
                                                      results_id, results_name ));
                     results_name
                 } else {
@@ -1458,7 +1454,7 @@ pub fn main() -> std::io::IoResult<()> {
         for jj in range(0, imports.size()) {
             let import = imports[jj];
             let importpath = std::path::Path::new(import.get_name());
-            let root_name : ~str = format!("{}_capnp",
+            let root_name : ~str = format!("::{}_capnp",
                                            importpath.filestem_str().unwrap().replace("-", "_"));
             populate_scope_map(&node_map, &mut scope_map, vec!(root_name), import.get_id());
         }
@@ -1467,12 +1463,15 @@ pub fn main() -> std::io::IoResult<()> {
                                   filepath.filestem_str().unwrap().replace("-", "_"));
 
         filepath.set_filename(format!("{}.rs", rootName));
-        populate_scope_map(&node_map, &mut scope_map, vec!(rootName.clone()), id);
+
+        let root_mod = format!("::{}", rootName);
+
+        populate_scope_map(&node_map, &mut scope_map, vec!(root_mod), id);
 
         let lines = Branch(vec!(Line(~"#![allow(unused_imports)]"),
                                 Line(~"#![allow(dead_code)]"),
                                 generate_node(&node_map, &scope_map,
-                                              rootName, id, rootName)));
+                                              id, rootName)));
 
         let text = stringify(&lines);
 
