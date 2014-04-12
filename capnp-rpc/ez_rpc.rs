@@ -8,11 +8,12 @@ use rpc_capnp::{Message, Return};
 
 use std;
 use std::io::Acceptor;
+use collections::hashmap::HashMap;
+use capnp::{AnyPointer, MessageBuilder, MallocMessageBuilder, MessageReader};
 use capnp::capability::{ClientHook, FromClientHook, ServerHook, Server, Client};
-use capnp::message::{MessageBuilder, MallocMessageBuilder, MessageReader};
-use rpc::{Outgoing, RpcConnectionState, RpcEvent, ShutdownEvent, VatEvent, VatEventRegister};
-use rpc::{Vat};
+use rpc::{Outgoing, RpcConnectionState, RpcEvent, ShutdownEvent, SturdyRefRestorer};
 use capability;
+use capability::{LocalClient};
 
 pub struct EzRpcClient {
     rpc_chan : std::comm::Sender<RpcEvent>,
@@ -32,10 +33,9 @@ impl EzRpcClient {
 
         let tcp = try!(tcp::TcpStream::connect(addr));
 
-        let vat_chan = Vat::new();
         let connection_state = RpcConnectionState::new();
 
-        let chan = connection_state.run(tcp.clone(), tcp, vat_chan);
+        let chan = connection_state.run(tcp.clone(), tcp, ());
 
         return Ok(EzRpcClient { rpc_chan : chan });
     }
@@ -73,9 +73,59 @@ impl ServerHook for EzRpcClient {
 }
 
 
+enum ExportEvent {
+    ExportEventRestore(~str, std::comm::Sender<Option<~ClientHook:Send>>),
+    ExportEventRegister(~str, ~Server:Send),
+}
+
+struct ExportedCaps {
+    objects : HashMap<~str, ~ClientHook:Send>,
+}
+
+impl ExportedCaps {
+    pub fn new() -> std::comm::Sender<ExportEvent> {
+        let (chan, port) = std::comm::channel::<ExportEvent>();
+
+        std::task::spawn(proc() {
+                let mut vat = ExportedCaps { objects : HashMap::new() };
+
+                loop {
+                    match port.recv_opt() {
+                        Some(ExportEventRegister(name, server)) => {
+                            vat.objects.insert(name, ~LocalClient::new(server) as ~ClientHook:Send);
+                        }
+                        Some(ExportEventRestore(name, return_chan)) => {
+                            return_chan.send(Some((*vat.objects.get(&name)).copy()));
+                        }
+                        None => break,
+                    }
+                }
+            });
+
+        chan
+    }
+}
+
+pub struct Restorer {
+    sender : std::comm::Sender<ExportEvent>,
+}
+
+impl Restorer {
+    fn new(sender : std::comm::Sender<ExportEvent>) -> Restorer {
+        Restorer { sender : sender }
+    }
+}
+
+impl SturdyRefRestorer for Restorer {
+    fn restore(&self, obj_id : AnyPointer::Reader) -> Option<~ClientHook:Send> {
+        let (tx, rx) = std::comm::channel();
+        self.sender.send(ExportEventRestore(obj_id.get_as_text().to_owned(), tx));
+        return rx.recv();
+    }
+}
 
 pub struct EzRpcServer {
-    vat_chan : std::comm::Sender<VatEvent>,
+    sender : std::comm::Sender<ExportEvent>,
     tcp_acceptor : std::io::net::tcp::TcpAcceptor,
 }
 
@@ -96,13 +146,13 @@ impl EzRpcServer {
 
         let tcp_acceptor = try!(tcp_listener.listen());
 
-        let vat_chan = Vat::new();
+        let sender = ExportedCaps::new();
 
-        Ok(EzRpcServer { vat_chan : vat_chan, tcp_acceptor : tcp_acceptor  })
+        Ok(EzRpcServer { sender : sender, tcp_acceptor : tcp_acceptor  })
     }
 
     pub fn export_cap(&self, name : &str, server : ~Server:Send) {
-        self.vat_chan.send(VatEventRegister(name.to_owned(), server))
+        self.sender.send(ExportEventRegister(name.to_owned(), server))
     }
 
     pub fn serve(self) {
@@ -124,11 +174,11 @@ impl EzRpcServer {
 impl std::io::Acceptor<()> for EzRpcServer {
     fn accept(&mut self) -> std::io::IoResult<()> {
 
-        let vat_chan2 = self.vat_chan.clone();
+        let sender2 = self.sender.clone();
         let tcp = try!(self.tcp_acceptor.accept());
         std::task::spawn(proc() {
             let connection_state = RpcConnectionState::new();
-            let _rpc_chan = connection_state.run(tcp.clone(), tcp, vat_chan2.clone());
+            let _rpc_chan = connection_state.run(tcp.clone(), tcp, Restorer::new(sender2));
         });
         Ok(())
     }

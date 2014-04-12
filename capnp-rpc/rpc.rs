@@ -4,10 +4,10 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-use capnp::any::{AnyPointer};
+use capnp::{AnyPointer};
 use capnp::capability;
 use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, ResultFuture,
-                        RequestHook, Request, Server};
+                        RequestHook, Request};
 use capnp::common;
 use capnp::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
@@ -18,7 +18,6 @@ use std::any::AnyRefExt;
 use std::vec::Vec;
 use collections::hashmap::HashMap;
 
-use capability::{LocalClient};
 use rpc_capnp::{Message, Return, CapDescriptor, MessageTarget, Payload, PromisedAnswer};
 
 pub type QuestionId = u32;
@@ -132,6 +131,13 @@ impl <T> ExportTable<T> {
     }
 }
 
+pub trait SturdyRefRestorer {
+    fn restore(&self, _obj_id : AnyPointer::Reader) -> Option<~ClientHook:Send> { None }
+}
+
+impl SturdyRefRestorer for () { }
+
+
 pub struct RpcConnectionState {
     exports : ExportTable<Export>,
     questions : ExportTable<Question>,
@@ -234,8 +240,8 @@ impl RpcConnectionState {
         }
     }
 
-    pub fn run<T : std::io::Reader + Send, U : std::io::Writer + Send>(
-        self, inpipe: T, outpipe: U, vat_chan : std::comm::Sender<VatEvent>)
+    pub fn run<T : std::io::Reader + Send, U : std::io::Writer + Send, V : SturdyRefRestorer + Send>(
+        self, inpipe: T, outpipe: U, restorer : V)
          -> std::comm::Sender<RpcEvent> {
 
         let (result_rpc_chan, port) = std::comm::channel::<RpcEvent>();
@@ -353,10 +359,7 @@ impl RpcConnectionState {
                                     Nobody
                                 }
                                 Some(Message::Restore(restore)) => {
-                                    let (chan, port) = std::comm::channel();
-                                    vat_chan.send(
-                                        VatEventRestore(restore.get_object_id().get_as_text().to_owned(), chan));
-                                    let clienthook = port.recv().unwrap();
+                                    let clienthook = restorer.restore(restore.get_object_id()).unwrap();
                                     let idx = exports.slots.len();
                                     exports.slots.push(Export { hook : clienthook.copy() });
 
@@ -1014,39 +1017,3 @@ impl RpcEvent {
     }
 }
 
-
-// ----
-
-
-pub enum VatEvent {
-    VatEventRestore(~str /* XXX */, std::comm::Sender<Option<~ClientHook:Send>>),
-    VatEventRegister(~str /* XXX */, ~Server:Send),
-}
-
-pub struct Vat {
-    objects : HashMap<~str, ~ClientHook:Send>,
-}
-
-impl Vat {
-    pub fn new() -> std::comm::Sender<VatEvent> {
-        let (chan, port) = std::comm::channel::<VatEvent>();
-
-        std::task::spawn(proc() {
-                let mut vat = Vat { objects : HashMap::new() };
-
-                loop {
-                    match port.recv_opt() {
-                        Some(VatEventRegister(name, server)) => {
-                            vat.objects.insert(name, ~LocalClient::new(server) as ~ClientHook:Send);
-                        }
-                        Some(VatEventRestore(name, return_chan)) => {
-                            return_chan.send(Some((*vat.objects.get(&name)).copy()));
-                        }
-                        None => break,
-                    }
-                }
-            });
-
-        chan
-    }
-}
