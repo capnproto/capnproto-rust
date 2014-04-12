@@ -162,7 +162,8 @@ fn client_hooks_of_payload(payload : Payload::Reader,
                             as ~ClientHook:Send));
             }
             Some(CapDescriptor::SenderPromise(_id)) => {
-                fail!()
+                println!("warning: SenderPromise is unimiplemented");
+                result.push(None);
             }
             Some(CapDescriptor::ReceiverHosted(_id)) => {
                 fail!()
