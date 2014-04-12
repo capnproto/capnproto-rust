@@ -171,14 +171,15 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
                       scope_map : &mut collections::hashmap::HashMap<u64, Vec<~str>>,
                       rootName : &str,
                       nodeId : u64) {
-    let node_reader = node_map.get(&nodeId);
+
+    // unused nodes in imported files might be omitted from the node map
+    let node_reader = match node_map.find(&nodeId) { Some(node) => node, None => return (), };
 
     let nested_nodes = node_reader.get_nested_nodes();
     for ii in range(0, nested_nodes.size()) {
         let nestedNode = nested_nodes[ii];
         let id = nestedNode.get_id();
         let name = nestedNode.get_name().to_owned();
-
         let scopeNames = match scope_map.find(&nodeId) {
             Some(names) => append_name(names.as_slice(), name),
             None => vec!(rootName.to_owned(), name)
@@ -1444,6 +1445,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 }
 
 
+
 pub fn main() -> std::io::IoResult<()> {
     use std::io::{Writer, File, Truncate, Write};
     use capnp::serialize;
@@ -1469,6 +1471,16 @@ pub fn main() -> std::io::IoResult<()> {
         let requested_file = files[ii];
         let id = requested_file.get_id();
         let mut filepath = std::path::Path::new(requested_file.get_filename());
+
+
+        let imports = requested_file.get_imports();
+        for jj in range(0, imports.size()) {
+            let import = imports[jj];
+            let importpath = std::path::Path::new(import.get_name());
+            let root_name : ~str = format!("{}_capnp",
+                                           importpath.filestem_str().unwrap().replace("-", "_"));
+            populate_scope_map(&node_map, &mut scope_map, root_name, import.get_id());
+        }
 
         let rootName : ~str = format!("{}_capnp",
                                   filepath.filestem_str().unwrap().replace("-", "_"));
