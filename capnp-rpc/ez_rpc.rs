@@ -83,13 +83,13 @@ impl ExportedCaps {
 
                 loop {
                     match port.recv_opt() {
-                        Some(ExportEventRegister(name, server)) => {
+                        Ok(ExportEventRegister(name, server)) => {
                             vat.objects.insert(name, ~LocalClient::new(server) as ~ClientHook:Send);
                         }
-                        Some(ExportEventRestore(name, return_chan)) => {
+                        Ok(ExportEventRestore(name, return_chan)) => {
                             return_chan.send(Some((*vat.objects.get(&name)).copy()));
                         }
-                        None => break,
+                        Err(_) => break,
                     }
                 }
             });

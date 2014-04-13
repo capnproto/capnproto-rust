@@ -34,8 +34,8 @@ impl LocalClient {
                 let mut server = server;
                 loop {
                     let (interface_id, method_id, context_hook) = match port.recv_opt() {
-                        None => break,
-                        Some(x) => x,
+                        Err(_) => break,
+                        Ok(x) => x,
                     };
 
                     let context = CallContext { hook : context_hook };
@@ -104,8 +104,8 @@ for ResultFuture<Results, Pipeline> {
         // XXX should check that it's not already been received.
         self.answer_result = self.answer_port.recv_opt();
         match self.answer_result {
-            None => Err(~"answer channel closed"),
-            Some(ref message) => {
+            Err(_) => Err(~"answer channel closed"),
+            Ok(ref message) => {
                 let root : Message::Reader = message.get_root();
                 match root.which() {
                     Some(Message::Return(ret)) => {

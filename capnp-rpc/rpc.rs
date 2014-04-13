@@ -255,7 +255,7 @@ impl RpcConnectionState {
                     match serialize::new_reader(
                         &mut r,
                         *ReaderOptions::new().fail_fast(false)) {
-                        Err(_e) => { listener_chan.try_send(ShutdownEvent); break; }
+                        Err(_e) => { listener_chan.send_opt(ShutdownEvent).unwrap(); break; }
                         Ok(message) => {
                             listener_chan.send(IncomingMessage(box message));
                         }
@@ -272,8 +272,8 @@ impl RpcConnectionState {
                 let mut w = outpipe;
                 loop {
                     let message = match writer_port.recv_opt() {
-                        None => break,
-                        Some(m) => m,
+                        Err(_) => break,
+                        Ok(m) => m,
                     };
                     serialize::write_message(&mut w, message).unwrap();
                     writer_rpc_chan.send(AnswerSent(message));
@@ -412,7 +412,7 @@ impl RpcConnectionState {
                             match receiver {
                                 Nobody => {}
                                 QuestionReceiver(id) => {
-                                    questions.slots.get(id as uint).chan.try_send(message);
+                                    questions.slots.get(id as uint).chan.send_opt(message);
                                 }
                                 ExportReceiver(id) => {
                                     let (answer_id, interface_id, method_id) = get_call_ids(message);
@@ -446,13 +446,13 @@ impl RpcConnectionState {
                                     call.set_question_id(questions.slots.len() as u32);
                                     questions.slots.push(Question {is_awaiting_return : true,
                                                                    chan : answer_chan} );
-                                    question_chan.try_send(call.get_question_id());
+                                    question_chan.send_opt(call.get_question_id()).is_ok();
                                 }
                                 Some(Message::Restore(res)) => {
                                     res.set_question_id(questions.slots.len() as u32);
                                     questions.slots.push(Question {is_awaiting_return : true,
                                                                    chan : answer_chan} );
-                                    question_chan.try_send(res.get_question_id());
+                                    question_chan.send_opt(res.get_question_id()).is_ok();
                                 }
                                 _ => {
                                     fail!("NONE OF THOSE");
@@ -727,7 +727,7 @@ impl RequestHook for RpcRequest {
         let pipeline = ~RpcPipeline {channel : channel, question_id : question_id};
         let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
 
-        ResultFuture {answer_port : answer_port, answer_result : None,
+        ResultFuture {answer_port : answer_port, answer_result : Err(()) /* XXX */,
                        pipeline : typeless  }
     }
 }
@@ -751,7 +751,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
         let pipeline = ~PromisedAnswerRpcPipeline;
         let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
 
-        ResultFuture {answer_port : answer_port, answer_result : None,
+        ResultFuture {answer_port : answer_port, answer_result : Err(()) /* XXX */,
                        pipeline : typeless  }
     }
 }

@@ -14,7 +14,7 @@ use std::vec::Vec;
 
 pub struct ResultFuture<Results, Pipeline> {
     pub answer_port : std::comm::Receiver<~OwnedSpaceMessageReader>,
-    pub answer_result : Option<~OwnedSpaceMessageReader>,
+    pub answer_result : Result<~OwnedSpaceMessageReader, ()>,
     pub pipeline : Pipeline,
 }
 
