@@ -255,7 +255,7 @@ impl RpcConnectionState {
                     match serialize::new_reader(
                         &mut r,
                         *ReaderOptions::new().fail_fast(false)) {
-                        Err(_e) => { listener_chan.send_opt(ShutdownEvent).unwrap(); break; }
+                        Err(_e) => { assert!(listener_chan.send_opt(ShutdownEvent).is_ok()); break; }
                         Ok(message) => {
                             listener_chan.send(IncomingMessage(box message));
                         }
@@ -412,7 +412,7 @@ impl RpcConnectionState {
                             match receiver {
                                 Nobody => {}
                                 QuestionReceiver(id) => {
-                                    questions.slots.get(id as uint).chan.send_opt(message);
+                                    questions.slots.get(id as uint).chan.send_opt(message).is_ok();
                                 }
                                 ExportReceiver(id) => {
                                     let (answer_id, interface_id, method_id) = get_call_ids(message);
