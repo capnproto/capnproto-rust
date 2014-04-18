@@ -72,7 +72,7 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
 
 pub fn handle_request(request : SearchResultList::Reader,
                      response : SearchResultList::Builder) {
-    let mut scoredResults : ~[ScoredResult] = ~[];
+    let mut scoredResults : Vec<ScoredResult> = Vec::new();
 
     let results = request.get_results();
     for i in range(0, results.size()) {
@@ -92,7 +92,7 @@ pub fn handle_request(request : SearchResultList::Reader,
     let list = response.init_results(scoredResults.len());
     for i in range(0, list.size()) {
         let item = list[i];
-        let result = scoredResults[i];
+        let result = scoredResults.get(i);
         item.set_score(result.score);
         item.set_url(result.result.get_url());
         item.set_snippet(result.result.get_snippet());
