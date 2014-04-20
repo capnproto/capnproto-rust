@@ -16,17 +16,17 @@ pub fn tuple_option<T,U>(t : Option<T>, u : Option<U>) -> Option<(T,U)> {
     }
 }
 
-fn element_size_str (elementSize : schema_capnp::ElementSize::Reader) -> ~ str {
+fn element_size_str (elementSize : schema_capnp::ElementSize::Reader) -> &'static str {
     use schema_capnp::ElementSize::*;
     match elementSize {
-        Empty => ~"Void",
-        Bit => ~"Bit",
-        Byte => ~"Byte",
-        TwoBytes => ~"TwoBytes",
-        FourBytes => ~"FourBytes",
-        EightBytes => ~"EightBytes",
-        Pointer => ~"Pointer",
-        InlineComposite => ~"InlineComposite"
+        Empty => "Void",
+        Bit => "Bit",
+        Byte => "Byte",
+        TwoBytes => "TwoBytes",
+        FourBytes => "FourBytes",
+        EightBytes => "EightBytes",
+        Pointer => "Pointer",
+        InlineComposite => "InlineComposite"
     }
 }
 
@@ -50,22 +50,22 @@ fn element_size (typ : schema_capnp::Type::WhichReader) -> schema_capnp::Element
     }
 }
 
-fn prim_type_str (typ : schema_capnp::Type::WhichReader) -> ~str {
+fn prim_type_str (typ : schema_capnp::Type::WhichReader) -> &'static str {
     use schema_capnp::Type::*;
     match typ {
-        Void(()) => ~"()",
-        Bool(()) => ~"bool",
-        Int8(()) => ~"i8",
-        Int16(()) => ~"i16",
-        Int32(()) => ~"i32",
-        Int64(()) => ~"i64",
-        Uint8(()) => ~"u8",
-        Uint16(()) => ~"u16",
-        Uint32(()) => ~"u32",
-        Uint64(()) => ~"u64",
-        Float32(()) => ~"f32",
-        Float64(()) => ~"f64",
-        Enum(_) => ~"u16",
+        Void(()) => "()",
+        Bool(()) => "bool",
+        Int8(()) => "i8",
+        Int16(()) => "i16",
+        Int32(()) => "i32",
+        Int64(()) => "i64",
+        Uint8(()) => "u8",
+        Uint16(()) => "u16",
+        Uint32(()) => "u32",
+        Uint64(()) => "u64",
+        Float32(()) => "f32",
+        Float64(()) => "f64",
+        Enum(_) => "u16",
         _ => fail!("not primitive")
     }
 }
