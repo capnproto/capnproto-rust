@@ -196,14 +196,14 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
 
 fn generate_import_statements() -> FormattedText {
     Branch(vec!(
-        Line(~"use std;"),
-        Line(~"use capnp::AnyPointer;"),
-        Line(~"use capnp::capability::{FromClientHook, FromTypelessPipeline};"),
-        Line(~"use capnp::{Text, Data};"),
-        Line(~"use capnp::layout;"),
-        Line(~"use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};"),
-        Line(~"use capnp::{PrimitiveList, EnumList, StructList, TextList, DataList, ListList};"),
-        Line(~"use capnp::list::ToU16;"),
+        Line("use std;".to_owned()),
+        Line("use capnp::AnyPointer;".to_owned()),
+        Line("use capnp::capability::{FromClientHook, FromTypelessPipeline};".to_owned()),
+        Line("use capnp::{Text, Data};".to_owned()),
+        Line("use capnp::layout;".to_owned()),
+        Line("use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};".to_owned()),
+        Line("use capnp::{PrimitiveList, EnumList, StructList, TextList, DataList, ListList};".to_owned()),
+        Line("use capnp::list::ToU16;".to_owned()),
     ))
 }
 
@@ -261,7 +261,7 @@ fn prim_default (value : &schema_capnp::Value::Reader) -> Option<~str> {
         Some(Value::Uint32(0)) | Some(Value::Uint64(0)) | Some(Value::Float32(0.0)) |
         Some(Value::Float64(0.0)) => None,
 
-        Some(Value::Bool(true)) => Some(~"true"),
+        Some(Value::Bool(true)) => Some(format!("true")),
         Some(Value::Int8(i)) => Some(i.to_str()),
         Some(Value::Int16(i)) => Some(i.to_str()),
         Some(Value::Int32(i)) => Some(i.to_str()),
@@ -1210,7 +1210,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let mut dispatch_arms = Vec::new();
 
             mod_interior.push(Line (box "#![allow(unused_variable)]"));
-            mod_interior.push(Line(box "use capnp::any::AnyPointer;"));
+            mod_interior.push(Line(box "use capnp::AnyPointer;"));
             mod_interior.push(
                 Line(box "use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};"));
             mod_interior.push(Line(box "use capnp::capability;"));
@@ -1460,19 +1460,19 @@ pub fn main() -> std::io::IoResult<()> {
             populate_scope_map(&node_map, &mut scope_map, vec!(root_name), import.get_id());
         }
 
-        let rootName : ~str = format!("{}_capnp",
-                                  filepath.filestem_str().unwrap().replace("-", "_"));
+        let root_name : ~str = format!("{}_capnp",
+                                      filepath.filestem_str().unwrap().replace("-", "_"));
 
-        filepath.set_filename(format!("{}.rs", rootName));
+        filepath.set_filename(format!("{}.rs", root_name));
 
-        let root_mod = format!("::{}", rootName);
+        let root_mod = format!("::{}", root_name);
 
         populate_scope_map(&node_map, &mut scope_map, vec!(root_mod), id);
 
-        let lines = Branch(vec!(Line(~"#![allow(unused_imports)]"),
-                                Line(~"#![allow(dead_code)]"),
+        let lines = Branch(vec!(Line("#![allow(unused_imports)]".to_owned()),
+                                Line("#![allow(dead_code)]".to_owned()),
                                 generate_node(&node_map, &scope_map,
-                                              id, rootName)));
+                                              id, root_name)));
 
         let text = stringify(&lines);
 
