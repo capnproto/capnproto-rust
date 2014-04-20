@@ -47,7 +47,7 @@ impl EzRpcClient {
         let (outgoing, answer_port, _question_port) = RpcEvent::new_outgoing(message);
         self.rpc_chan.send(Outgoing(outgoing));
 
-        let response_hook = answer_port.recv();
+        let mut response_hook = answer_port.recv();
         let message : Message::Reader = response_hook.get().get_as_struct();
         let client = match message.which() {
             Some(Message::Return(ret)) => {

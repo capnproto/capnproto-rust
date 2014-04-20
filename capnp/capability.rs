@@ -18,7 +18,7 @@ pub struct ResultFuture<Results, Pipeline> {
 }
 
 pub trait ResponseHook:Send {
-    fn get<'a>(&'a self) -> AnyPointer::Reader<'a>;
+    fn get<'a>(&'a mut self) -> AnyPointer::Reader<'a>;
 }
 
 pub trait RequestHook {

@@ -718,7 +718,7 @@ impl RpcResponse {
 }
 
 impl ResponseHook for RpcResponse {
-    fn get<'a>(&'a self) -> AnyPointer::Reader<'a> {
+    fn get<'a>(&'a mut self) -> AnyPointer::Reader<'a> {
         self.message.get_root_internal()
     }
 }
@@ -903,6 +903,22 @@ impl CallContextHook for RpcCallContext {
     }
 }
 
+pub struct LocalResponse {
+    message : ~MallocMessageBuilder,
+}
+
+impl LocalResponse {
+    pub fn new(message : ~MallocMessageBuilder) -> LocalResponse {
+        LocalResponse { message : message }
+    }
+}
+
+impl ResponseHook for LocalResponse {
+    fn get<'a>(&'a mut self) -> AnyPointer::Reader<'a> {
+        self.message.get_root_internal().as_reader()
+    }
+}
+
 
 pub struct PromisedAnswerRpcCallContext {
     params_message : ~MallocMessageBuilder,
@@ -976,13 +992,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
             _ => fail!(),
         }
 
-        // yuck!
-        let mut writer = std::io::MemWriter::new();
-        assert!(serialize::write_message(&mut writer, results_message).is_ok());
-        let mut reader = std::io::MemReader::new(Vec::from_slice(writer.get_ref()));
-        let results_reader = ~serialize::new_reader(&mut reader, *ReaderOptions::new().fail_fast(false)).unwrap();
-
-        answer_chan.send(~RpcResponse::new(results_reader) as ~ResponseHook:Send);
+        answer_chan.send(~LocalResponse::new(results_message) as ~ResponseHook:Send);
 
     }
 
@@ -990,13 +1000,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         let ~PromisedAnswerRpcCallContext {
             params_message : _, results_message, rpc_chan : _, answer_chan} = self;
 
-        // yuck!
-        let mut writer = std::io::MemWriter::new();
-        serialize::write_message(&mut writer, results_message).unwrap();
-        let mut reader = std::io::MemReader::new(Vec::from_slice(writer.get_ref()));
-        let results_reader = ~serialize::new_reader(&mut reader, *ReaderOptions::new().fail_fast(false)).unwrap();
-
-        answer_chan.send(~RpcResponse::new(results_reader) as ~ResponseHook:Send);
+        answer_chan.send(~LocalResponse::new(results_message) as ~ResponseHook:Send);
     }
 }
 
