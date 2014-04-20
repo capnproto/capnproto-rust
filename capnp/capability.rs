@@ -8,14 +8,17 @@ use any::{AnyPointer};
 use common::{MessageSize};
 use layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use message::{MallocMessageBuilder};
-use serialize::{OwnedSpaceMessageReader};
 use std;
 use std::vec::Vec;
 
 pub struct ResultFuture<Results, Pipeline> {
-    pub answer_port : std::comm::Receiver<~OwnedSpaceMessageReader>,
-    pub answer_result : Result<~OwnedSpaceMessageReader, ()>,
+    pub answer_port : std::comm::Receiver<~ResponseHook:Send>,
+    pub answer_result : Result<~ResponseHook:Send, ()>,
     pub pipeline : Pipeline,
+}
+
+pub trait ResponseHook:Send {
+    fn get<'a>(&'a self) -> AnyPointer::Reader<'a>;
 }
 
 pub trait RequestHook {

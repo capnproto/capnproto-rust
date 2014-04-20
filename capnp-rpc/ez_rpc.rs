@@ -9,7 +9,7 @@ use rpc_capnp::{Message, Return};
 use std;
 use std::io::Acceptor;
 use collections::hashmap::HashMap;
-use capnp::{AnyPointer, MessageBuilder, MallocMessageBuilder, MessageReader};
+use capnp::{AnyPointer, MessageBuilder, MallocMessageBuilder};
 use capnp::capability::{ClientHook, FromClientHook, Server};
 use rpc::{Outgoing, RpcConnectionState, RpcEvent, ShutdownEvent, SturdyRefRestorer};
 use capability::{LocalClient};
@@ -47,8 +47,8 @@ impl EzRpcClient {
         let (outgoing, answer_port, _question_port) = RpcEvent::new_outgoing(message);
         self.rpc_chan.send(Outgoing(outgoing));
 
-        let reader = answer_port.recv();
-        let message = reader.get_root::<Message::Reader>();
+        let response_hook = answer_port.recv();
+        let message : Message::Reader = response_hook.get().get_as_struct();
         let client = match message.which() {
             Some(Message::Return(ret)) => {
                 match ret.which() {

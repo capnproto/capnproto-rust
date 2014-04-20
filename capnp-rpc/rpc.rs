@@ -7,7 +7,7 @@
 use capnp::{AnyPointer};
 use capnp::capability;
 use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, ResultFuture,
-                        RequestHook, Request};
+                        RequestHook, Request, ResponseHook};
 use capnp::common;
 use capnp::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
@@ -26,7 +26,7 @@ pub type ExportId = u32;
 pub type ImportId = ExportId;
 
 pub struct Question {
-    chan : std::comm::Sender<~OwnedSpaceMessageReader>,
+    chan : std::comm::Sender<~ResponseHook:Send>,
     is_awaiting_return : bool,
 }
 
@@ -412,7 +412,8 @@ impl RpcConnectionState {
                             match receiver {
                                 Nobody => {}
                                 QuestionReceiver(id) => {
-                                    questions.slots.get(id as uint).chan.send_opt(message).is_ok();
+                                    questions.slots.get(id as uint).chan.send_opt(
+                                        ~RpcResponse::new(message) as ~ResponseHook:Send).is_ok();
                                 }
                                 ExportReceiver(id) => {
                                     let (answer_id, interface_id, method_id) = get_call_ids(message);
@@ -706,6 +707,22 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
     }
 }
 
+pub struct RpcResponse {
+    message : ~OwnedSpaceMessageReader,
+}
+
+impl RpcResponse {
+    pub fn new(message : ~OwnedSpaceMessageReader) -> RpcResponse {
+        RpcResponse { message : message }
+    }
+}
+
+impl ResponseHook for RpcResponse {
+    fn get<'a>(&'a self) -> AnyPointer::Reader<'a> {
+        self.message.get_root_internal()
+    }
+}
+
 pub struct RpcRequest {
     channel : std::comm::Sender<RpcEvent>,
     message : ~MallocMessageBuilder,
@@ -891,13 +908,13 @@ pub struct PromisedAnswerRpcCallContext {
     params_message : ~MallocMessageBuilder,
     results_message : ~MallocMessageBuilder,
     rpc_chan : std::comm::Sender<RpcEvent>,
-    answer_chan : std::comm::Sender<~OwnedSpaceMessageReader>,
+    answer_chan : std::comm::Sender<~ResponseHook:Send>,
 }
 
 impl PromisedAnswerRpcCallContext {
     pub fn new(params_message : ~MallocMessageBuilder,
                rpc_chan : std::comm::Sender<RpcEvent>,
-               answer_chan : std::comm::Sender<~OwnedSpaceMessageReader>)
+               answer_chan : std::comm::Sender<~ResponseHook:Send>)
                -> PromisedAnswerRpcCallContext {
 
 
@@ -965,7 +982,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         let mut reader = std::io::MemReader::new(Vec::from_slice(writer.get_ref()));
         let results_reader = ~serialize::new_reader(&mut reader, *ReaderOptions::new().fail_fast(false)).unwrap();
 
-        answer_chan.send(results_reader);
+        answer_chan.send(~RpcResponse::new(results_reader) as ~ResponseHook:Send);
 
     }
 
@@ -979,14 +996,14 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         let mut reader = std::io::MemReader::new(Vec::from_slice(writer.get_ref()));
         let results_reader = ~serialize::new_reader(&mut reader, *ReaderOptions::new().fail_fast(false)).unwrap();
 
-        answer_chan.send(results_reader);
+        answer_chan.send(~RpcResponse::new(results_reader) as ~ResponseHook:Send);
     }
 }
 
 
 pub struct OutgoingMessage {
     message : ~MallocMessageBuilder,
-    answer_chan : std::comm::Sender<~OwnedSpaceMessageReader>,
+    answer_chan : std::comm::Sender<~ResponseHook:Send>,
     question_chan : std::comm::Sender<QuestionId>,
 }
 
@@ -1004,9 +1021,9 @@ pub enum RpcEvent {
 
 impl RpcEvent {
     pub fn new_outgoing(message : ~MallocMessageBuilder)
-                        -> (OutgoingMessage, std::comm::Receiver<~OwnedSpaceMessageReader>,
+                        -> (OutgoingMessage, std::comm::Receiver<~ResponseHook:Send>,
                             std::comm::Receiver<ExportId>) {
-        let (answer_chan, answer_port) = std::comm::channel::<~OwnedSpaceMessageReader>();
+        let (answer_chan, answer_port) = std::comm::channel::<~ResponseHook:Send>();
 
         let (question_chan, question_port) = std::comm::channel::<ExportId>();
 

@@ -105,8 +105,8 @@ for ResultFuture<Results, Pipeline> {
         self.answer_result = self.answer_port.recv_opt();
         match self.answer_result {
             Err(_) => Err(~"answer channel closed"),
-            Ok(ref message) => {
-                let root : Message::Reader = message.get_root();
+            Ok(ref response_hook) => {
+                let root : Message::Reader = response_hook.get().get_as_struct();
                 match root.which() {
                     Some(Message::Return(ret)) => {
                         match ret.which() {
