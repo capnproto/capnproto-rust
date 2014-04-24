@@ -17,6 +17,7 @@ use std;
 use std::any::AnyRefExt;
 use std::vec::Vec;
 use collections::hashmap::HashMap;
+use collections::priority_queue::PriorityQueue;
 
 use rpc_capnp::{Message, Return, CapDescriptor, MessageTarget, Payload, PromisedAnswer};
 
@@ -117,13 +118,31 @@ impl <T> ImportTable<T> {
     }
 }
 
+#[deriving(Eq)]
+struct ReverseU32 { val : u32 }
+
+impl ::std::cmp::Ord for ReverseU32 {
+    fn lt(&self, other : &ReverseU32) -> bool {
+        self.val > other.val
+    }
+}
+
 pub struct ExportTable<T> {
     slots : Vec<Option<T>>,
+
+    // prioritize lower values
+    free_ids : PriorityQueue<ReverseU32>,
 }
 
 impl <T> ExportTable<T> {
     pub fn new() -> ExportTable<T> {
-        ExportTable { slots : Vec::new() }
+        ExportTable { slots : Vec::new(),
+                      free_ids : PriorityQueue::new() }
+    }
+
+    pub fn erase(&mut self, id : u32) {
+        *self.slots.get_mut(id as uint) = None;
+        self.free_ids.push(ReverseU32 { val : id } );
     }
 
     pub fn next(&mut self) -> u32 {
@@ -350,7 +369,7 @@ impl RpcConnectionState {
                                 }
                                 Some(Message::Release(rel)) => {
                                     assert!(rel.get_reference_count() == 1);
-                                    *exports.slots.get_mut(rel.get_id() as uint) = None;
+                                    exports.erase(rel.get_id());
                                     Nobody
                                 }
                                 Some(Message::Disembargo(_dis)) => {
