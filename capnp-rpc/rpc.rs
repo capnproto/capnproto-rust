@@ -145,8 +145,15 @@ impl <T> ExportTable<T> {
         self.free_ids.push(ReverseU32 { val : id } );
     }
 
-    pub fn next(&mut self) -> u32 {
-        fail!()
+    pub fn push(&mut self, val : T) {
+        match self.free_ids.maybe_pop() {
+            Some(ReverseU32 { val : id }) => {
+                *self.slots.get_mut(id as uint) = Some(val);
+            }
+            None => {
+                self.slots.push(Some(val));
+            }
+        }
     }
 }
 
@@ -382,7 +389,7 @@ impl RpcConnectionState {
                                 Some(Message::Restore(restore)) => {
                                     let clienthook = restorer.restore(restore.get_object_id()).unwrap();
                                     let idx = exports.slots.len();
-                                    exports.slots.push(Some(Export { hook : clienthook.copy() }));
+                                    exports.push(Export { hook : clienthook.copy() });
 
                                     let answer_id = restore.get_question_id();
                                     let mut message = ~MallocMessageBuilder::new_default();
@@ -482,14 +489,14 @@ impl RpcConnectionState {
                                 Some(Message::Return(_)) => {}
                                 Some(Message::Call(call)) => {
                                     call.set_question_id(questions.slots.len() as u32);
-                                    questions.slots.push(Some(Question {is_awaiting_return : true,
-                                                                        chan : answer_chan} ));
+                                    questions.push(Question {is_awaiting_return : true,
+                                                             chan : answer_chan});
                                     question_chan.send_opt(call.get_question_id()).is_ok();
                                 }
                                 Some(Message::Restore(res)) => {
                                     res.set_question_id(questions.slots.len() as u32);
-                                    questions.slots.push(Some(Question {is_awaiting_return : true,
-                                                                        chan : answer_chan}));
+                                    questions.push(Question {is_awaiting_return : true,
+                                                             chan : answer_chan});
                                     question_chan.send_opt(res.get_question_id()).is_ok();
                                 }
                                 _ => {
