@@ -20,7 +20,7 @@ impl Calculator::Function::Server for PowerFunction {
             //"Wrong number of parameters"
             return context.fail();
         };
-        results.set_value(params[0].powf(&params[1]));
+        results.set_value(params[0].powf(params[1]));
         context.done();
     }
 }
