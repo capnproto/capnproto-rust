@@ -104,6 +104,13 @@ impl Answer {
 
 pub struct Export {
     hook : ~ClientHook:Send,
+    reference_count : i32,
+}
+
+impl Export {
+    pub fn new(hook : ~ClientHook:Send) -> Export {
+        Export { hook : hook, reference_count : 0 }
+    }
 }
 
 pub struct Import;
@@ -393,7 +400,7 @@ impl RpcConnectionState {
                                 }
                                 Some(Message::Restore(restore)) => {
                                     let clienthook = restorer.restore(restore.get_object_id()).unwrap();
-                                    let idx = exports.push(Export { hook : clienthook.copy() });
+                                    let idx = exports.push(Export::new(clienthook.copy()));
 
                                     let answer_id = restore.get_question_id();
                                     let mut message = ~MallocMessageBuilder::new_default();
@@ -533,7 +540,7 @@ impl RpcConnectionState {
                         }
 
                         NewLocalServer(clienthook, export_chan) => {
-                            let export_id = exports.push(Export { hook : clienthook });
+                            let export_id = exports.push(Export::new(clienthook));
                             export_chan.send(export_id);
                         }
                         ReturnEvent(message) => {
