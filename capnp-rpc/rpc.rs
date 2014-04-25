@@ -285,7 +285,7 @@ impl RpcConnectionState {
                         *ReaderOptions::new().fail_fast(false)) {
                         Err(_e) => { assert!(listener_chan.send_opt(ShutdownEvent).is_ok()); break; }
                         Ok(message) => {
-                            listener_chan.send(IncomingMessage(box message));
+                            listener_chan.send_opt(IncomingMessage(box message)).is_ok();
                         }
                     }
                 }
@@ -303,8 +303,11 @@ impl RpcConnectionState {
                         Err(_) => break,
                         Ok(m) => m,
                     };
-                    serialize::write_message(&mut w, message).unwrap();
-                    writer_rpc_chan.send(AnswerSent(message));
+                    match serialize::write_message(&mut w, message) {
+                        Err(_) => break,
+                        Ok(()) => (),
+                    }
+                    if !writer_rpc_chan.send_opt(AnswerSent(message)).is_ok() {fail!()}
                 }
             });
 
@@ -406,7 +409,7 @@ impl RpcConnectionState {
                                     }
                                     answers.slots.insert(answer_id, Answer::new());
 
-                                    writer_chan.send(message);
+                                    if !writer_chan.send_opt(message).is_ok() { fail!() }
                                     Nobody
                                 }
                                 Some(Message::Delete(_delete)) => {
@@ -450,6 +453,7 @@ impl RpcConnectionState {
                                             fail!()
                                         }
                                     }
+                                    //questions.erase(id);
                                 }
                                 ExportReceiver(id) => {
                                     let (answer_id, interface_id, method_id) = get_call_ids(message);
@@ -465,7 +469,6 @@ impl RpcConnectionState {
                                             // XXX todo
                                             fail!()
                                         }
-
                                     }
                                 }
                                 PromisedAnswerReceiver(id, ops) => {
@@ -492,20 +495,19 @@ impl RpcConnectionState {
                                     let id = questions.push(Question {is_awaiting_return : true,
                                                                       chan : answer_chan});
                                     call.set_question_id(id);
-                                    question_chan.send_opt(id).is_ok();
+                                    if !question_chan.send_opt(id).is_ok() { fail!() }
                                 }
                                 Some(Message::Restore(res)) => {
                                     let id = questions.push(Question {is_awaiting_return : true,
                                                                       chan : answer_chan});
                                     res.set_question_id(id);
-                                    question_chan.send_opt(id).is_ok();
+                                    if !question_chan.send_opt(id).is_ok() {fail!()}
                                 }
                                 _ => {
                                     fail!("NONE OF THOSE");
                                 }
                             }
 
-                            // send
                             writer_chan.send(m);
                         }
                         OutgoingDeferred(OutgoingMessage { message : mut m,

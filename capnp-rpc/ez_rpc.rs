@@ -20,7 +20,7 @@ pub struct EzRpcClient {
 
 impl Drop for EzRpcClient {
     fn drop(&mut self) {
-        self.rpc_chan.send(ShutdownEvent);
+        self.rpc_chan.send_opt(ShutdownEvent).is_ok();
     }
 }
 
