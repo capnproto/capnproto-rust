@@ -283,7 +283,7 @@ impl RpcConnectionState {
                     match serialize::new_reader(
                         &mut r,
                         *ReaderOptions::new().fail_fast(false)) {
-                        Err(_e) => { assert!(listener_chan.send_opt(ShutdownEvent).is_ok()); break; }
+                        Err(_e) => { listener_chan.send_opt(ShutdownEvent).is_ok(); break; }
                         Ok(message) => {
                             listener_chan.send_opt(IncomingMessage(box message)).is_ok();
                         }
@@ -866,7 +866,7 @@ impl Drop for Aborter {
                 let exc = ret.init_exception();
                 exc.set_reason("aborted");
             }
-            self.rpc_chan.send(ReturnEvent(results_message));
+            self.rpc_chan.send_opt(ReturnEvent(results_message)).is_ok();
         }
     }
 }
