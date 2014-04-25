@@ -145,13 +145,15 @@ impl <T> ExportTable<T> {
         self.free_ids.push(ReverseU32 { val : id } );
     }
 
-    pub fn push(&mut self, val : T) {
+    pub fn push(&mut self, val : T) -> u32 {
         match self.free_ids.maybe_pop() {
             Some(ReverseU32 { val : id }) => {
                 *self.slots.get_mut(id as uint) = Some(val);
+                id
             }
             None => {
                 self.slots.push(Some(val));
+                self.slots.len() as u32 - 1
             }
         }
     }
@@ -388,8 +390,7 @@ impl RpcConnectionState {
                                 }
                                 Some(Message::Restore(restore)) => {
                                     let clienthook = restorer.restore(restore.get_object_id()).unwrap();
-                                    let idx = exports.slots.len();
-                                    exports.push(Export { hook : clienthook.copy() });
+                                    let idx = exports.push(Export { hook : clienthook.copy() });
 
                                     let answer_id = restore.get_question_id();
                                     let mut message = ~MallocMessageBuilder::new_default();
@@ -488,16 +489,16 @@ impl RpcConnectionState {
                             match root.which() {
                                 Some(Message::Return(_)) => {}
                                 Some(Message::Call(call)) => {
-                                    call.set_question_id(questions.slots.len() as u32);
-                                    questions.push(Question {is_awaiting_return : true,
-                                                             chan : answer_chan});
-                                    question_chan.send_opt(call.get_question_id()).is_ok();
+                                    let id = questions.push(Question {is_awaiting_return : true,
+                                                                      chan : answer_chan});
+                                    call.set_question_id(id);
+                                    question_chan.send_opt(id).is_ok();
                                 }
                                 Some(Message::Restore(res)) => {
-                                    res.set_question_id(questions.slots.len() as u32);
-                                    questions.push(Question {is_awaiting_return : true,
-                                                             chan : answer_chan});
-                                    question_chan.send_opt(res.get_question_id()).is_ok();
+                                    let id = questions.push(Question {is_awaiting_return : true,
+                                                                      chan : answer_chan});
+                                    res.set_question_id(id);
+                                    question_chan.send_opt(id).is_ok();
                                 }
                                 _ => {
                                     fail!("NONE OF THOSE");
@@ -530,9 +531,8 @@ impl RpcConnectionState {
                         }
 
                         NewLocalServer(clienthook, export_chan) => {
-                            let export_id = exports.slots.len() as u32;
+                            let export_id = exports.push(Export { hook : clienthook });
                             export_chan.send(export_id);
-                            exports.slots.push(Some(Export { hook : clienthook }));
                         }
                         ReturnEvent(message) => {
                             writer_chan.send(message);
