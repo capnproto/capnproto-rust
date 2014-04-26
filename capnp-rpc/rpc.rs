@@ -29,14 +29,44 @@ pub type ImportId = ExportId;
 pub struct Question {
     chan : std::comm::Sender<~ResponseHook:Send>,
     is_awaiting_return : bool,
+    ref_counter : ::std::comm::Receiver<()>,
 }
 
 impl Question {
-    pub fn new(sender : std::comm::Sender<~ResponseHook:Send>) -> Question {
-        Question {
+    pub fn new(sender : std::comm::Sender<~ResponseHook:Send>) -> (Question, std::comm::Sender<()>) {
+        let (tx, rx) = std::comm::channel::<()>();
+        (Question {
             chan : sender,
             is_awaiting_return : true,
-        }
+            ref_counter : rx,
+        },
+         tx)
+    }
+}
+
+pub struct QuestionRef {
+    pub id : u32,
+
+    // piggy back to get ref counting. we never actually send on this channel.
+    ref_count : ::std::comm::Sender<()>,
+
+    rpc_chan : ::std::comm::Sender<RpcEvent>,
+}
+
+impl QuestionRef {
+    pub fn new(id : u32, ref_count : std::comm::Sender<()>,
+               rpc_chan : ::std::comm::Sender<RpcEvent>) -> QuestionRef {
+        QuestionRef { id : id,
+                      ref_count : ref_count,
+                      rpc_chan : rpc_chan }
+    }
+}
+
+impl Clone for QuestionRef {
+    fn clone(&self) -> QuestionRef {
+        QuestionRef { id : self.id,
+                      ref_count : self.ref_count.clone(),
+                      rpc_chan : self.rpc_chan.clone()}
     }
 }
 
@@ -425,17 +455,23 @@ impl RpcConnectionState {
                         match receiver {
                             Nobody => {}
                             QuestionReceiver(id) => {
-                                match questions.slots.get(id as uint) {
-                                    &Some(ref q) => {
+                                match questions.slots.get_mut(id as uint) {
+                                    &Some(ref mut q) => {
                                         q.chan.send_opt(
                                             ~RpcResponse::new(message) as ~ResponseHook:Send).is_ok();
+                                        q.is_awaiting_return = false;
+                                        match q.ref_counter.try_recv() {
+                                            Err(std::comm::Disconnected) => {
+                                                // erase it!
+                                            }
+                                            _ => {}
+                                        }
                                     }
                                     &None => {
                                         // XXX Todo
                                         fail!()
                                     }
                                 }
-                                //questions.erase(id);
                             }
                             ExportReceiver(id) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(message);
@@ -472,14 +508,18 @@ impl RpcConnectionState {
                         match root.which() {
                             Some(Message::Return(_)) => {}
                             Some(Message::Call(call)) => {
-                                let id = questions.push(Question::new(answer_chan));
+                                let (question, ref_count) = Question::new(answer_chan);
+                                let id = questions.push(question);
                                 call.set_question_id(id);
-                                if !question_chan.send_opt(id).is_ok() { fail!() }
+                                let qref = QuestionRef::new(id, ref_count, rpc_chan.clone());
+                                if !question_chan.send_opt(qref).is_ok() { fail!() }
                             }
                             Some(Message::Restore(res)) => {
-                                let id = questions.push(Question::new(answer_chan));
+                                let (question, ref_count) = Question::new(answer_chan);
+                                let id = questions.push(question);
                                 res.set_question_id(id);
-                                if !question_chan.send_opt(id).is_ok() {fail!()}
+                                let qref = QuestionRef::new(id, ref_count, rpc_chan.clone());
+                                if !question_chan.send_opt(qref).is_ok() { fail!() }
                             }
                             _ => {
                                 fail!("NONE OF THOSE");
@@ -487,7 +527,6 @@ impl RpcConnectionState {
                         }
 
                         serialize::write_message(&mut outpipe, m).is_ok();
-//                        answers.slots.get_mut(&answer_id).sent(message);
                     }
                     OutgoingDeferred(OutgoingMessage { message : mut m,
                                                        answer_chan,
@@ -513,6 +552,10 @@ impl RpcConnectionState {
                     NewLocalServer(clienthook, export_chan) => {
                         let export_id = exports.push(Export::new(clienthook));
                         export_chan.send(export_id);
+                    }
+                    DoneWithQuestion(_id) => {
+                        // if the question is not awaiting response, erase it.
+                        fail!()
                     }
                     ReturnEvent(mut message) => {
                         serialize::write_message(&mut outpipe, message).is_ok();
@@ -588,14 +631,14 @@ impl ClientHook for ImportClient {
 pub struct PipelineClient {
     channel : std::comm::Sender<RpcEvent>,
     pub ops : Vec<PipelineOp::Type>,
-    pub question_id : QuestionId,
+    pub question_ref : QuestionRef,
 }
 
 impl ClientHook for PipelineClient {
     fn copy(&self) -> ~ClientHook:Send {
         (~PipelineClient { channel : self.channel.clone(),
                            ops : self.ops.clone(),
-                           question_id : self.question_id,
+                           question_ref : self.question_ref.clone(),
             }) as ~ClientHook:Send
     }
 
@@ -610,7 +653,7 @@ impl ClientHook for PipelineClient {
             call.set_method_id(method_id);
             let target = call.init_target();
             let promised_answer = target.init_promised_answer();
-            promised_answer.set_question_id(self.question_id);
+            promised_answer.set_question_id(self.question_ref.id);
             let transform = promised_answer.init_transform(self.ops.len());
             for ii in range(0, self.ops.len()) {
                 match self.ops.as_slice()[ii] {
@@ -629,7 +672,7 @@ impl ClientHook for PipelineClient {
     }
 
     fn get_descriptor(&self) -> ~std::any::Any {
-        (box ReceiverAnswer(self.question_id, self.ops.clone())) as ~std::any::Any
+        (box ReceiverAnswer(self.question_ref.id, self.ops.clone())) as ~std::any::Any
     }
 }
 
@@ -776,9 +819,9 @@ impl RequestHook for RpcRequest {
         let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
         channel.send(Outgoing(outgoing));
 
-        let question_id = question_port.recv();
+        let question_ref = question_port.recv();
 
-        let pipeline = ~RpcPipeline {channel : channel, question_id : question_id};
+        let pipeline = ~RpcPipeline {channel : channel, question_ref : question_ref};
         let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
 
         ResultFuture {answer_port : answer_port, answer_result : Err(()) /* XXX */,
@@ -813,18 +856,18 @@ impl RequestHook for PromisedAnswerRpcRequest {
 
 pub struct RpcPipeline {
     channel : std::comm::Sender<RpcEvent>,
-    question_id : ExportId,
+    question_ref : QuestionRef,
 }
 
 impl PipelineHook for RpcPipeline {
     fn copy(&self) -> ~PipelineHook {
         (~RpcPipeline { channel : self.channel.clone(),
-                        question_id : self.question_id }) as ~PipelineHook
+                        question_ref : self.question_ref.clone() }) as ~PipelineHook
     }
     fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> ~ClientHook:Send {
         (~PipelineClient { channel : self.channel.clone(),
                            ops : ops,
-                           question_id : self.question_id,
+                           question_ref : self.question_ref.clone(),
         }) as ~ClientHook:Send
     }
 }
@@ -1045,7 +1088,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 pub struct OutgoingMessage {
     message : ~MallocMessageBuilder,
     answer_chan : std::comm::Sender<~ResponseHook:Send>,
-    question_chan : std::comm::Sender<QuestionId>,
+    question_chan : std::comm::Sender<QuestionRef>,
 }
 
 
@@ -1055,6 +1098,7 @@ pub enum RpcEvent {
     OutgoingDeferred(OutgoingMessage, AnswerId, Vec<PipelineOp::Type>),
     NewLocalServer(~ClientHook:Send, std::comm::Sender<ExportId>),
     ReturnEvent(~MallocMessageBuilder),
+    DoneWithQuestion(QuestionId),
     ShutdownEvent,
 }
 
@@ -1062,10 +1106,10 @@ pub enum RpcEvent {
 impl RpcEvent {
     pub fn new_outgoing(message : ~MallocMessageBuilder)
                         -> (OutgoingMessage, std::comm::Receiver<~ResponseHook:Send>,
-                            std::comm::Receiver<ExportId>) {
+                            std::comm::Receiver<QuestionRef>) {
         let (answer_chan, answer_port) = std::comm::channel::<~ResponseHook:Send>();
 
-        let (question_chan, question_port) = std::comm::channel::<ExportId>();
+        let (question_chan, question_port) = std::comm::channel::<QuestionRef>();
 
         (OutgoingMessage{ message : message,
                           answer_chan : answer_chan,
