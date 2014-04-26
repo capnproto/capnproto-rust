@@ -31,6 +31,15 @@ pub struct Question {
     is_awaiting_return : bool,
 }
 
+impl Question {
+    pub fn new(sender : std::comm::Sender<~ResponseHook:Send>) -> Question {
+        Question {
+            chan : sender,
+            is_awaiting_return : true,
+        }
+    }
+}
+
 pub enum AnswerStatus {
     AnswerStatusSent(~MallocMessageBuilder),
     AnswerStatusPending(Vec<(u64, u16, Vec<PipelineOp::Type>, ~CallContextHook:Send)>),
@@ -463,14 +472,12 @@ impl RpcConnectionState {
                         match root.which() {
                             Some(Message::Return(_)) => {}
                             Some(Message::Call(call)) => {
-                                let id = questions.push(Question {is_awaiting_return : true,
-                                                                  chan : answer_chan});
+                                let id = questions.push(Question::new(answer_chan));
                                 call.set_question_id(id);
                                 if !question_chan.send_opt(id).is_ok() { fail!() }
                             }
                             Some(Message::Restore(res)) => {
-                                let id = questions.push(Question {is_awaiting_return : true,
-                                                                  chan : answer_chan});
+                                let id = questions.push(Question::new(answer_chan));
                                 res.set_question_id(id);
                                 if !question_chan.send_opt(id).is_ok() {fail!()}
                             }
