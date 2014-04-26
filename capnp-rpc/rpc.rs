@@ -298,261 +298,238 @@ impl RpcConnectionState {
                 }
             });
 
-
-        let (writer_chan, writer_port) = std::comm::channel::<~MallocMessageBuilder>();
-
-        let writer_rpc_chan = result_rpc_chan.clone();
-
-        spawn(proc() {
-                let mut w = outpipe;
-                loop {
-                    let message = match writer_port.recv_opt() {
-                        Err(_) => break,
-                        Ok(m) => m,
-                    };
-                    match serialize::write_message(&mut w, message) {
-                        Err(_) => break,
-                        Ok(()) => (),
-                    }
-                    if !writer_rpc_chan.send_opt(AnswerSent(message)).is_ok() {fail!()}
-                }
-            });
-
         let rpc_chan = result_rpc_chan.clone();
 
         spawn(proc() {
-                let RpcConnectionState {mut questions, mut exports, mut answers, imports : _imports} = self;
-                loop {
-                    match port.recv() {
-                        AnswerSent(mut message) => {
-                            let root = message.get_root::<Message::Builder>();
-                            let answer_id_opt = match root.which() {
-                                Some(Message::Return(ret)) => {
-                                    Some(ret.get_answer_id())
-                                }
-                                _ => {None}
-                            };
-                            match answer_id_opt {
-                                Some(answer_id) => {
-                                    answers.slots.get_mut(&answer_id).sent(message)
-                                }
-                                _ => {}
-                            }
-
+            let RpcConnectionState {mut questions, mut exports, mut answers, imports : _imports} = self;
+            let mut outpipe = outpipe;
+            loop {
+                match port.recv() {
+                    IncomingMessage(mut message) => {
+                        enum MessageReceiver {
+                            Nobody,
+                            QuestionReceiver(QuestionId),
+                            ExportReceiver(ExportId),
+                            PromisedAnswerReceiver(AnswerId, Vec<PipelineOp::Type>),
                         }
-                        IncomingMessage(mut message) => {
-                            enum MessageReceiver {
-                                Nobody,
-                                QuestionReceiver(QuestionId),
-                                ExportReceiver(ExportId),
-                                PromisedAnswerReceiver(AnswerId, Vec<PipelineOp::Type>),
+
+                        populate_cap_table(message, &rpc_chan);
+                        let root = message.get_root::<Message::Reader>();
+                        let receiver = match root.which() {
+                            Some(Message::Unimplemented(_)) => {
+                                println!("unimplemented");
+                                Nobody
                             }
-
-                            populate_cap_table(message, &rpc_chan);
-                            let root = message.get_root::<Message::Reader>();
-                            let receiver = match root.which() {
-                                Some(Message::Unimplemented(_)) => {
-                                    println!("unimplemented");
-                                    Nobody
-                                }
-                                Some(Message::Abort(exc)) => {
-                                    println!("abort: {}", exc.get_reason());
-                                    Nobody
-                                }
-                                Some(Message::Call(call)) => {
-                                    match call.get_target().which() {
-                                        Some(MessageTarget::ImportedCap(import_id)) => {
-                                            ExportReceiver(import_id)
-                                        }
-                                        Some(MessageTarget::PromisedAnswer(promised_answer)) => {
-                                            PromisedAnswerReceiver(
-                                                promised_answer.get_question_id(),
-                                                get_pipeline_ops(promised_answer))
-                                        }
-                                        None => {
-                                            fail!("call targets something else");
-                                        }
+                            Some(Message::Abort(exc)) => {
+                                println!("abort: {}", exc.get_reason());
+                                Nobody
+                            }
+                            Some(Message::Call(call)) => {
+                                match call.get_target().which() {
+                                    Some(MessageTarget::ImportedCap(import_id)) => {
+                                        ExportReceiver(import_id)
                                     }
-                                }
-
-                                Some(Message::Return(ret)) => {
-                                    QuestionReceiver(ret.get_answer_id())
-                                }
-                                Some(Message::Finish(_finish)) => {
-                                    println!("finish");
-                                    Nobody
-                                }
-                                Some(Message::Resolve(_resolve)) => {
-                                    println!("resolve");
-                                    Nobody
-                                }
-                                Some(Message::Release(rel)) => {
-                                    assert!(rel.get_reference_count() == 1);
-                                    exports.erase(rel.get_id());
-                                    Nobody
-                                }
-                                Some(Message::Disembargo(_dis)) => {
-                                    println!("disembargo");
-                                    Nobody
-                                }
-                                Some(Message::Save(_save)) => {
-                                    Nobody
-                                }
-                                Some(Message::Restore(restore)) => {
-                                    let clienthook = restorer.restore(restore.get_object_id()).unwrap();
-                                    let idx = exports.push(Export::new(clienthook.copy()));
-
-                                    let answer_id = restore.get_question_id();
-                                    let mut message = ~MallocMessageBuilder::new_default();
-                                    {
-                                        let root : Message::Builder = message.init_root();
-                                        let ret = root.init_return();
-                                        ret.set_answer_id(answer_id);
-                                        let payload = ret.init_results();
-                                        payload.init_cap_table(1);
-                                        payload.get_cap_table()[0].set_sender_hosted(idx as u32);
-                                        payload.get_content().set_as_capability(clienthook);
-
+                                    Some(MessageTarget::PromisedAnswer(promised_answer)) => {
+                                        PromisedAnswerReceiver(
+                                            promised_answer.get_question_id(),
+                                            get_pipeline_ops(promised_answer))
                                     }
-                                    answers.slots.insert(answer_id, Answer::new());
-
-                                    if !writer_chan.send_opt(message).is_ok() { fail!() }
-                                    Nobody
-                                }
-                                Some(Message::Delete(_delete)) => {
-                                    Nobody
-                                }
-                                Some(Message::Provide(_provide)) => {
-                                    Nobody
-                                }
-                                Some(Message::Accept(_accept)) => {
-                                    Nobody
-                                }
-                                Some(Message::Join(_join)) => {
-                                    Nobody
-                                }
-                                None => {
-                                    println!("unknown message");
-                                    Nobody
-                                }
-                            };
-
-                            fn get_call_ids(message : &OwnedSpaceMessageReader)
-                                                        -> (QuestionId, u64, u16) {
-                                let root : Message::Reader = message.get_root();
-                                match root.which() {
-                                    Some(Message::Call(call)) =>
-                                        (call.get_question_id(), call.get_interface_id(), call.get_method_id()),
-                                    _ => fail!(),
+                                    None => {
+                                        fail!("call targets something else");
+                                    }
                                 }
                             }
 
-                            match receiver {
-                                Nobody => {}
-                                QuestionReceiver(id) => {
-                                    match questions.slots.get(id as uint) {
-                                        &Some(ref q) => {
-                                            q.chan.send_opt(
-                                                ~RpcResponse::new(message) as ~ResponseHook:Send).is_ok();
-                                        }
-                                        &None => {
-                                            // XXX Todo
-                                            fail!()
-                                        }
-                                    }
-                                    //questions.erase(id);
-                                }
-                                ExportReceiver(id) => {
-                                    let (answer_id, interface_id, method_id) = get_call_ids(message);
-                                    let context =
-                                        ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook:Send;
-
-                                    answers.slots.insert(answer_id, Answer::new());
-                                    match exports.slots.get(id as uint) {
-                                        &Some(ref ex) => {
-                                            ex.hook.call(interface_id, method_id, context);
-                                        }
-                                        &None => {
-                                            // XXX todo
-                                            fail!()
-                                        }
-                                    }
-                                }
-                                PromisedAnswerReceiver(id, ops) => {
-                                    let (answer_id, interface_id, method_id) = get_call_ids(message);
-                                    let context =
-                                        ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook:Send;
-
-                                    answers.slots.insert(answer_id, Answer::new());
-                                    answers.slots.get_mut(&id).receive(interface_id, method_id, ops, context);
-
-                                }
+                            Some(Message::Return(ret)) => {
+                                QuestionReceiver(ret.get_answer_id())
                             }
+                            Some(Message::Finish(_finish)) => {
+                                println!("finish");
+                                Nobody
+                            }
+                            Some(Message::Resolve(_resolve)) => {
+                                println!("resolve");
+                                Nobody
+                            }
+                            Some(Message::Release(rel)) => {
+                                assert!(rel.get_reference_count() == 1);
+                                exports.erase(rel.get_id());
+                                Nobody
+                            }
+                            Some(Message::Disembargo(_dis)) => {
+                                println!("disembargo");
+                                Nobody
+                            }
+                            Some(Message::Save(_save)) => {
+                                Nobody
+                            }
+                            Some(Message::Restore(restore)) => {
+                                let clienthook = restorer.restore(restore.get_object_id()).unwrap();
+                                let idx = exports.push(Export::new(clienthook.copy()));
 
+                                let answer_id = restore.get_question_id();
+                                let mut message = ~MallocMessageBuilder::new_default();
+                                {
+                                    let root : Message::Builder = message.init_root();
+                                    let ret = root.init_return();
+                                    ret.set_answer_id(answer_id);
+                                    let payload = ret.init_results();
+                                    payload.init_cap_table(1);
+                                    payload.get_cap_table()[0].set_sender_hosted(idx as u32);
+                                    payload.get_content().set_as_capability(clienthook);
 
-                        }
-                        Outgoing(OutgoingMessage { message : mut m,
-                                                   answer_chan,
-                                                   question_chan} ) => {
-                            let root = m.get_root::<Message::Builder>();
-                            // add a question to the question table
+                                }
+                                answers.slots.insert(answer_id, Answer::new());
+
+                                serialize::write_message(&mut outpipe, message).is_ok();
+                                answers.slots.get_mut(&answer_id).sent(message);
+
+                                Nobody
+                            }
+                            Some(Message::Delete(_delete)) => {
+                                Nobody
+                            }
+                            Some(Message::Provide(_provide)) => {
+                                Nobody
+                            }
+                            Some(Message::Accept(_accept)) => {
+                                Nobody
+                            }
+                            Some(Message::Join(_join)) => {
+                                Nobody
+                            }
+                            None => {
+                                println!("unknown message");
+                                Nobody
+                            }
+                        };
+
+                        fn get_call_ids(message : &OwnedSpaceMessageReader) -> (QuestionId, u64, u16) {
+                            let root : Message::Reader = message.get_root();
                             match root.which() {
-                                Some(Message::Return(_)) => {}
-                                Some(Message::Call(call)) => {
-                                    let id = questions.push(Question {is_awaiting_return : true,
-                                                                      chan : answer_chan});
-                                    call.set_question_id(id);
-                                    if !question_chan.send_opt(id).is_ok() { fail!() }
+                                Some(Message::Call(call)) =>
+                                    (call.get_question_id(), call.get_interface_id(), call.get_method_id()),
+                                _ => fail!(),
+                            }
+                        }
+
+                        match receiver {
+                            Nobody => {}
+                            QuestionReceiver(id) => {
+                                match questions.slots.get(id as uint) {
+                                    &Some(ref q) => {
+                                        q.chan.send_opt(
+                                            ~RpcResponse::new(message) as ~ResponseHook:Send).is_ok();
+                                    }
+                                    &None => {
+                                        // XXX Todo
+                                        fail!()
+                                    }
                                 }
-                                Some(Message::Restore(res)) => {
-                                    let id = questions.push(Question {is_awaiting_return : true,
-                                                                      chan : answer_chan});
-                                    res.set_question_id(id);
-                                    if !question_chan.send_opt(id).is_ok() {fail!()}
-                                }
-                                _ => {
-                                    fail!("NONE OF THOSE");
+                                //questions.erase(id);
+                            }
+                            ExportReceiver(id) => {
+                                let (answer_id, interface_id, method_id) = get_call_ids(message);
+                                let context =
+                                    ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook:Send;
+
+                                answers.slots.insert(answer_id, Answer::new());
+                                match exports.slots.get(id as uint) {
+                                    &Some(ref ex) => {
+                                        ex.hook.call(interface_id, method_id, context);
+                                    }
+                                    &None => {
+                                        // XXX todo
+                                        fail!()
+                                    }
                                 }
                             }
+                            PromisedAnswerReceiver(id, ops) => {
+                                let (answer_id, interface_id, method_id) = get_call_ids(message);
+                                let context =
+                                    ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook:Send;
 
-                            writer_chan.send(m);
-                        }
-                        OutgoingDeferred(OutgoingMessage { message : mut m,
-                                                           answer_chan,
-                                                           question_chan: _}, answer_id, ops ) => {
-
-                            let root = m.get_root::<Message::Builder>();
-                            let (interface_id, method_id) = match root.which() {
-                                Some(Message::Call(call)) => {
-                                    (call.get_interface_id(), call.get_method_id())
-                                }
-                                _ => {
-                                    fail!("NONE OF THOSE");
-                                }
-                            };
-
-                            let context =
-                                (~PromisedAnswerRpcCallContext::new(m, rpc_chan.clone(), answer_chan))
-                                as ~CallContextHook:Send;
-
-
-                            answers.slots.get_mut(&answer_id).receive(interface_id, method_id, ops, context);
+                                answers.slots.insert(answer_id, Answer::new());
+                                answers.slots.get_mut(&id).receive(interface_id, method_id, ops, context);
+                            }
                         }
 
-                        NewLocalServer(clienthook, export_chan) => {
-                            let export_id = exports.push(Export::new(clienthook));
-                            export_chan.send(export_id);
+                    }
+                    Outgoing(OutgoingMessage { message : mut m,
+                                               answer_chan,
+                                               question_chan} ) => {
+                        let root = m.get_root::<Message::Builder>();
+                        // add a question to the question table
+                        match root.which() {
+                            Some(Message::Return(_)) => {}
+                            Some(Message::Call(call)) => {
+                                let id = questions.push(Question {is_awaiting_return : true,
+                                                                  chan : answer_chan});
+                                call.set_question_id(id);
+                                if !question_chan.send_opt(id).is_ok() { fail!() }
+                            }
+                            Some(Message::Restore(res)) => {
+                                let id = questions.push(Question {is_awaiting_return : true,
+                                                                  chan : answer_chan});
+                                res.set_question_id(id);
+                                if !question_chan.send_opt(id).is_ok() {fail!()}
+                            }
+                            _ => {
+                                fail!("NONE OF THOSE");
+                            }
                         }
-                        ReturnEvent(message) => {
-                            writer_chan.send(message);
-                        }
-                        ShutdownEvent => {
-                            break;
+
+                        serialize::write_message(&mut outpipe, m).is_ok();
+//                        answers.slots.get_mut(&answer_id).sent(message);
+                    }
+                    OutgoingDeferred(OutgoingMessage { message : mut m,
+                                                       answer_chan,
+                                                       question_chan: _}, answer_id, ops ) => {
+
+                        let root = m.get_root::<Message::Builder>();
+                        let (interface_id, method_id) = match root.which() {
+                            Some(Message::Call(call)) => {
+                                (call.get_interface_id(), call.get_method_id())
+                            }
+                            _ => {
+                                fail!("NONE OF THOSE");
+                            }
+                        };
+
+                        let context =
+                            (~PromisedAnswerRpcCallContext::new(m, rpc_chan.clone(), answer_chan))
+                            as ~CallContextHook:Send;
+
+                        answers.slots.get_mut(&answer_id).receive(interface_id, method_id, ops, context);
+                    }
+
+                    NewLocalServer(clienthook, export_chan) => {
+                        let export_id = exports.push(Export::new(clienthook));
+                        export_chan.send(export_id);
+                    }
+                    ReturnEvent(mut message) => {
+                        serialize::write_message(&mut outpipe, message).is_ok();
+
+                        let root = message.get_root::<Message::Builder>();
+                        let answer_id_opt = match root.which() {
+                            Some(Message::Return(ret)) => {
+                                Some(ret.get_answer_id())
+                            }
+                            _ => {None}
+                        };
+                        match answer_id_opt {
+                            Some(answer_id) => {
+                                answers.slots.get_mut(&answer_id).sent(message)
+                            }
+                            _ => {}
                         }
                     }
-                }});
-        return result_rpc_chan;
-    }
+                    ShutdownEvent => {
+                        break;
+                    }
+                }}});
+             return result_rpc_chan;
+         }
 }
 
 // HACK
@@ -1066,7 +1043,6 @@ pub struct OutgoingMessage {
 
 
 pub enum RpcEvent {
-    AnswerSent(~MallocMessageBuilder),
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
     OutgoingDeferred(OutgoingMessage, AnswerId, Vec<PipelineOp::Type>),
