@@ -78,7 +78,6 @@ pub enum AnswerStatus {
 pub struct Answer {
     status : AnswerStatus,
     result_exports : Vec<ExportId>,
-    pipeline : Option<~PipelineHook:Send>,
 }
 
 impl Answer {
@@ -86,7 +85,6 @@ impl Answer {
         Answer {
             status : AnswerStatusPending(Vec::new()),
             result_exports : Vec::new(),
-            pipeline : None,
         }
     }
 
