@@ -76,18 +76,22 @@ pub enum AnswerStatus {
     AnswerStatusPending(Vec<(u64, u16, Vec<PipelineOp::Type>, ~CallContextHook:Send)>),
 }
 
-pub type AnswerRef = Arc<Mutex<AnswerStatus>>;
-
-pub struct Answer {
-    answer_ref : AnswerRef,
-    result_exports : Vec<ExportId>,
+pub struct AnswerRef {
+    status : Arc<Mutex<AnswerStatus>>,
 }
 
-impl Answer {
-    pub fn new() -> Answer {
-        Answer {
-            answer_ref : Arc::new(Mutex::new(AnswerStatusPending(Vec::new()))),
-            result_exports : Vec::new(),
+impl Clone for AnswerRef {
+    fn clone(&self) -> AnswerRef {
+        AnswerRef {
+            status : self.status.clone(),
+        }
+    }
+}
+
+impl AnswerRef {
+    pub fn new() -> AnswerRef {
+        AnswerRef {
+            status : Arc::new(Mutex::new(AnswerStatusPending(Vec::new()))),
         }
     }
 
@@ -114,31 +118,47 @@ impl Answer {
 
     pub fn receive(&mut self, interface_id : u64, method_id : u16,
                    ops : Vec<PipelineOp::Type>, context : ~CallContextHook:Send) {
-        match self.status {
-            AnswerStatusSent(ref mut answer_message) => {
-                Answer::do_call(answer_message, interface_id, method_id, ops, context);
+        match self.status.lock().deref_mut() {
+            &AnswerStatusSent(ref mut answer_message) => {
+                AnswerRef::do_call(answer_message, interface_id, method_id, ops, context);
             }
-            AnswerStatusPending(ref mut waiters) => {
+            &AnswerStatusPending(ref mut waiters) => {
                 waiters.push((interface_id, method_id, ops, context));
             }
         }
     }
 
     pub fn sent(&mut self, mut message : ~MallocMessageBuilder) {
-        match self.status {
-            AnswerStatusSent(_) => {fail!()}
-            AnswerStatusPending(ref mut waiters) => {
+        match self.status.lock().deref_mut() {
+            &AnswerStatusSent(_) => {fail!()}
+            &AnswerStatusPending(ref mut waiters) => {
                 waiters.reverse();
                 while waiters.len() > 0 {
                     let (interface_id, method_id, ops, context) = match waiters.pop() {
                         Some(r) => r,
                         None => fail!(),
                     };
-                    Answer::do_call(&mut message, interface_id, method_id, ops, context);
+                    AnswerRef::do_call(&mut message, interface_id, method_id, ops, context);
                 }
             }
         }
-        self.status = AnswerStatusSent(message);
+        *self.status.lock() = AnswerStatusSent(message);
+    }
+
+
+}
+
+pub struct Answer {
+    answer_ref : AnswerRef,
+    result_exports : Vec<ExportId>,
+}
+
+impl Answer {
+    pub fn new() -> Answer {
+        Answer {
+            answer_ref : AnswerRef::new(),
+            result_exports : Vec::new(),
+        }
     }
 }
 
@@ -425,7 +445,7 @@ impl RpcConnectionState {
                                 answers.slots.insert(answer_id, Answer::new());
 
                                 serialize::write_message(&mut outpipe, message).is_ok();
-                                answers.slots.get_mut(&answer_id).sent(message);
+                                answers.slots.get_mut(&answer_id).answer_ref.sent(message);
 
                                 Nobody
                             }
@@ -513,7 +533,8 @@ impl RpcConnectionState {
                                     ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook:Send;
 
                                 answers.slots.insert(answer_id, Answer::new());
-                                answers.slots.get_mut(&id).receive(interface_id, method_id, ops, context);
+                                answers.slots.get_mut(&id).answer_ref
+                                    .receive(interface_id, method_id, ops, context);
                             }
                         }
 
@@ -564,7 +585,7 @@ impl RpcConnectionState {
                             (~PromisedAnswerRpcCallContext::new(m, rpc_chan.clone(), answer_chan))
                             as ~CallContextHook:Send;
 
-                        answers.slots.get_mut(&answer_id).receive(interface_id, method_id, ops, context);
+                        answers.slots.get_mut(&answer_id).answer_ref.receive(interface_id, method_id, ops, context);
                     }
 
                     NewLocalServer(clienthook, export_chan) => {
@@ -587,7 +608,7 @@ impl RpcConnectionState {
                         };
                         match answer_id_opt {
                             Some(answer_id) => {
-                                answers.slots.get_mut(&answer_id).sent(message)
+                                answers.slots.get_mut(&answer_id).answer_ref.sent(message)
                             }
                             _ => {}
                         }
