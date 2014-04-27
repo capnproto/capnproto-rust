@@ -330,6 +330,22 @@ fn get_pipeline_ops(promised_answer : PromisedAnswer::Reader) -> Vec<PipelineOp:
     return result;
 }
 
+fn finish_question<W : std::io::Writer>(questions : &mut ExportTable<Question>,
+                                        outpipe : &mut W,
+                                        id : u32) {
+    questions.erase(id);
+
+    let mut finish_message = ~MallocMessageBuilder::new_default();
+    {
+        let root : Message::Builder = finish_message.init_root();
+        let finish = root.init_finish();
+        finish.set_question_id(id);
+        finish.set_release_result_caps(false);
+    }
+
+    serialize::write_message(outpipe, finish_message).is_ok();
+}
+
 impl RpcConnectionState {
     pub fn new() -> RpcConnectionState {
         RpcConnectionState {
@@ -501,19 +517,8 @@ impl RpcConnectionState {
                                     }
                                 };
                                 if erase_it {
-                                    questions.erase(id);
-
-                                    // write finish message
-                                    let mut finish_message = ~MallocMessageBuilder::new_default();
-                                    {
-                                        let root : Message::Builder = finish_message.init_root();
-                                        let finish = root.init_finish();
-                                        finish.set_question_id(id);
-                                        finish.set_release_result_caps(false);
-                                    }
-
-                                    serialize::write_message(&mut outpipe, finish_message).is_ok();
-                                } // get deadlock still. why?
+                                    finish_question(&mut questions, &mut outpipe, id);
+                                }
                             }
                             ExportReceiver(id) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(message);
@@ -575,9 +580,21 @@ impl RpcConnectionState {
                         let export_id = exports.push(Export::new(clienthook));
                         export_chan.send(export_id);
                     }
-                    DoneWithQuestion(_id) => {
-                        // if the question is not awaiting response, erase it.
-                        fail!()
+                    DoneWithQuestion(id) => {
+
+                        // This isn't used anywhere yet.
+                        // The idea is that when the last reference to a question
+                        // is erased, this event will be triggered.
+
+                        let erase_it = match questions.slots.get(id as uint) {
+                            &Some(ref q) if q.is_awaiting_return => {
+                                true
+                            }
+                            _ => {false}
+                        };
+                        if erase_it {
+                            finish_question(&mut questions, &mut outpipe, id);
+                        }
                     }
                     ReturnEvent(mut message) => {
                         serialize::write_message(&mut outpipe, message).is_ok();
