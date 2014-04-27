@@ -435,8 +435,11 @@ impl RpcConnectionState {
                                 Nobody
                             }
                             Some(Message::Release(rel)) => {
-                                assert!(rel.get_reference_count() == 1);
-                                exports.erase(rel.get_id());
+                                if rel.get_reference_count() == 1 {
+                                    exports.erase(rel.get_id());
+                                } else {
+                                    println!("warning: release count = {}", rel.get_reference_count());
+                                }
                                 Nobody
                             }
                             Some(Message::Disembargo(_dis)) => {
