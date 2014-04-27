@@ -382,8 +382,11 @@ impl RpcConnectionState {
                             Some(Message::Return(ret)) => {
                                 QuestionReceiver(ret.get_answer_id())
                             }
-                            Some(Message::Finish(_finish)) => {
+                            Some(Message::Finish(finish)) => {
                                 println!("finish");
+                                //answers.slots.remove(&finish.get_question_id());
+                                finish.get_release_result_caps();
+
                                 Nobody
                             }
                             Some(Message::Resolve(_resolve)) => {
@@ -455,23 +458,24 @@ impl RpcConnectionState {
                         match receiver {
                             Nobody => {}
                             QuestionReceiver(id) => {
-                                match questions.slots.get_mut(id as uint) {
+                                let _erase_it = match questions.slots.get_mut(id as uint) {
                                     &Some(ref mut q) => {
                                         q.chan.send_opt(
                                             ~RpcResponse::new(message) as ~ResponseHook:Send).is_ok();
                                         q.is_awaiting_return = false;
                                         match q.ref_counter.try_recv() {
                                             Err(std::comm::Disconnected) => {
-                                                // erase it!
+                                                true
                                             }
-                                            _ => {}
+                                            _ => {false}
                                         }
                                     }
                                     &None => {
                                         // XXX Todo
                                         fail!()
                                     }
-                                }
+                                };
+                                //if erase_it {questions.erase(id);} // get deadlock still. why?
                             }
                             ExportReceiver(id) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(message);
@@ -615,7 +619,8 @@ impl ClientHook for ImportClient {
             target.set_imported_cap(self.import_id);
         }
         let hook = box RpcRequest { channel : self.channel.clone(),
-                                    message : message };
+                                    message : message,
+                                    question_ref : None};
         Request::new(hook as ~RequestHook)
     }
 
@@ -663,7 +668,8 @@ impl ClientHook for PipelineClient {
             }
         }
         let hook = box RpcRequest { channel : self.channel.clone(),
-                                    message : message };
+                                    message : message,
+                                    question_ref : Some(self.question_ref.clone())};
         Request::new(hook as ~RequestHook)
     }
 
@@ -806,6 +812,7 @@ impl ResponseHook for RpcResponse {
 pub struct RpcRequest {
     channel : std::comm::Sender<RpcEvent>,
     message : ~MallocMessageBuilder,
+    question_ref : Option<QuestionRef>,
 }
 
 impl RequestHook for RpcRequest {
@@ -813,7 +820,7 @@ impl RequestHook for RpcRequest {
         &mut *self.message
     }
     fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline> {
-        let ~RpcRequest { channel, mut message } = self;
+        let ~RpcRequest { channel, mut message, question_ref : _ } = self;
         write_outgoing_cap_table(&channel, message);
 
         let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
