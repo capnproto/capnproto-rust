@@ -241,7 +241,8 @@ pub struct RpcConnectionState {
 }
 
 fn client_hooks_of_payload(payload : Payload::Reader,
-                           rpc_chan : &std::comm::Sender<RpcEvent>) -> Vec<Option<~ClientHook:Send>> {
+                           rpc_chan : &std::comm::Sender<RpcEvent>,
+                           answers : &ImportTable<Answer>) -> Vec<Option<~ClientHook:Send>> {
     let mut result = Vec::new();
     let cap_table = payload.get_cap_table();
     for ii in range(0, cap_table.size()) {
@@ -268,7 +269,9 @@ fn client_hooks_of_payload(payload : Payload::Reader,
                         (box PromisedAnswerClient {
                                 rpc_chan : rpc_chan.clone(),
                                 ops : get_pipeline_ops(promised_answer),
-                                answer_id : promised_answer.get_question_id(),} as ~ClientHook:Send)));
+                                answer_ref : answers.slots.get(&promised_answer.get_question_id())
+                                .answer_ref.clone(),
+                                } as ~ClientHook:Send)));
             }
             Some(CapDescriptor::ThirdPartyHosted(_)) => {
                 fail!()
@@ -280,7 +283,8 @@ fn client_hooks_of_payload(payload : Payload::Reader,
 }
 
 fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
-                      rpc_chan : &std::comm::Sender<RpcEvent>) {
+                      rpc_chan : &std::comm::Sender<RpcEvent>,
+                      answers : &ImportTable<Answer>) {
     let mut the_cap_table : Vec<Option<~ClientHook:Send>> = Vec::new();
     {
         let root = message.get_root::<Message::Reader>();
@@ -289,7 +293,7 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
             Some(Message::Return(ret)) => {
                 match ret.which() {
                     Some(Return::Results(payload)) => {
-                        the_cap_table = client_hooks_of_payload(payload, rpc_chan);
+                        the_cap_table = client_hooks_of_payload(payload, rpc_chan, answers);
                     }
                     Some(Return::Exception(_e)) => {
                     }
@@ -298,7 +302,7 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
 
             }
             Some(Message::Call(call)) => {
-               the_cap_table = client_hooks_of_payload(call.get_params(), rpc_chan);
+               the_cap_table = client_hooks_of_payload(call.get_params(), rpc_chan, answers);
             }
             Some(Message::Unimplemented(_)) => {
             }
@@ -373,7 +377,7 @@ impl RpcConnectionState {
                             PromisedAnswerReceiver(AnswerId, Vec<PipelineOp::Type>),
                         }
 
-                        populate_cap_table(message, &rpc_chan);
+                        populate_cap_table(message, &rpc_chan, &answers);
                         let root = message.get_root::<Message::Reader>();
                         let receiver = match root.which() {
                             Some(Message::Unimplemented(_)) => {
@@ -405,7 +409,7 @@ impl RpcConnectionState {
                             }
                             Some(Message::Finish(finish)) => {
                                 println!("finish");
-                                //answers.slots.remove(&finish.get_question_id());
+                                answers.slots.remove(&finish.get_question_id());
                                 finish.get_release_result_caps();
 
                                 Nobody
@@ -479,7 +483,7 @@ impl RpcConnectionState {
                         match receiver {
                             Nobody => {}
                             QuestionReceiver(id) => {
-                                let _erase_it = match questions.slots.get_mut(id as uint) {
+                                let erase_it = match questions.slots.get_mut(id as uint) {
                                     &Some(ref mut q) => {
                                         q.chan.send_opt(
                                             ~RpcResponse::new(message) as ~ResponseHook:Send).is_ok();
@@ -496,7 +500,7 @@ impl RpcConnectionState {
                                         fail!()
                                     }
                                 };
-                                if false { //_erase_it {
+                                if erase_it {
                                     questions.erase(id);
 
                                     // write finish message
@@ -569,7 +573,7 @@ impl RpcConnectionState {
                     }
                     OutgoingDeferred(OutgoingMessage { message : mut m,
                                                        answer_chan,
-                                                       question_chan: _}, answer_id, ops ) => {
+                                                       question_chan: _}, mut answer_ref, ops ) => {
 
                         let root = m.get_root::<Message::Builder>();
                         let (interface_id, method_id) = match root.which() {
@@ -585,7 +589,7 @@ impl RpcConnectionState {
                             (~PromisedAnswerRpcCallContext::new(m, rpc_chan.clone(), answer_chan))
                             as ~CallContextHook:Send;
 
-                        answers.slots.get_mut(&answer_id).answer_ref.receive(interface_id, method_id, ops, context);
+                        answer_ref.receive(interface_id, method_id, ops, context);
                     }
 
                     NewLocalServer(clienthook, export_chan) => {
@@ -720,14 +724,14 @@ impl ClientHook for PipelineClient {
 pub struct PromisedAnswerClient {
     rpc_chan : std::comm::Sender<RpcEvent>,
     ops : Vec<PipelineOp::Type>,
-    answer_id : AnswerId,
+    answer_ref : AnswerRef,
 }
 
 impl ClientHook for PromisedAnswerClient {
     fn copy(&self) -> ~ClientHook:Send {
         (~PromisedAnswerClient { rpc_chan : self.rpc_chan.clone(),
                                  ops : self.ops.clone(),
-                                 answer_id : self.answer_id,
+                                 answer_ref : self.answer_ref.clone(),
             }) as ~ClientHook:Send
     }
 
@@ -744,7 +748,7 @@ impl ClientHook for PromisedAnswerClient {
 
         let hook = box PromisedAnswerRpcRequest { rpc_chan : self.rpc_chan.clone(),
                                                   message : message,
-                                                  answer_id : self.answer_id,
+                                                  answer_ref : self.answer_ref.clone(),
                                                   ops : self.ops.clone() };
         Request::new(hook as ~RequestHook)
     }
@@ -874,7 +878,7 @@ impl RequestHook for RpcRequest {
 pub struct PromisedAnswerRpcRequest {
     rpc_chan : std::comm::Sender<RpcEvent>,
     message : ~MallocMessageBuilder,
-    answer_id : AnswerId,
+    answer_ref : AnswerRef,
     ops : Vec<PipelineOp::Type>,
 }
 
@@ -883,9 +887,9 @@ impl RequestHook for PromisedAnswerRpcRequest {
         &mut *self.message
     }
     fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline> {
-        let ~PromisedAnswerRpcRequest { rpc_chan, message, answer_id, ops } = self;
+        let ~PromisedAnswerRpcRequest { rpc_chan, message, answer_ref, ops } = self;
         let (outgoing, answer_port, _question_port) = RpcEvent::new_outgoing(message);
-        rpc_chan.send(OutgoingDeferred(outgoing, answer_id, ops));
+        rpc_chan.send(OutgoingDeferred(outgoing, answer_ref, ops));
 
         let pipeline = ~PromisedAnswerRpcPipeline;
         let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
@@ -1137,7 +1141,7 @@ pub struct OutgoingMessage {
 pub enum RpcEvent {
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
-    OutgoingDeferred(OutgoingMessage, AnswerId, Vec<PipelineOp::Type>),
+    OutgoingDeferred(OutgoingMessage, AnswerRef, Vec<PipelineOp::Type>),
     NewLocalServer(~ClientHook:Send, std::comm::Sender<ExportId>),
     ReturnEvent(~MallocMessageBuilder),
     DoneWithQuestion(QuestionId),
