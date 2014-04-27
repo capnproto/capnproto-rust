@@ -18,6 +18,7 @@ use std::any::AnyRefExt;
 use std::vec::Vec;
 use collections::hashmap::HashMap;
 use collections::priority_queue::PriorityQueue;
+use sync::{Arc, Mutex};
 
 use rpc_capnp::{Message, Return, CapDescriptor, MessageTarget, Payload, PromisedAnswer};
 
@@ -75,15 +76,17 @@ pub enum AnswerStatus {
     AnswerStatusPending(Vec<(u64, u16, Vec<PipelineOp::Type>, ~CallContextHook:Send)>),
 }
 
+pub type AnswerRef = Arc<Mutex<AnswerStatus>>;
+
 pub struct Answer {
-    status : AnswerStatus,
+    answer_ref : AnswerRef,
     result_exports : Vec<ExportId>,
 }
 
 impl Answer {
     pub fn new() -> Answer {
         Answer {
-            status : AnswerStatusPending(Vec::new()),
+            answer_ref : Arc::new(Mutex::new(AnswerStatusPending(Vec::new()))),
             result_exports : Vec::new(),
         }
     }

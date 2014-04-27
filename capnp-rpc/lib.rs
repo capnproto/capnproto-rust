@@ -10,6 +10,7 @@
 
 extern crate collections;
 extern crate capnp;
+extern crate sync;
 
 pub mod rpc_capnp;
 pub mod rpc_twoparty_capnp;
