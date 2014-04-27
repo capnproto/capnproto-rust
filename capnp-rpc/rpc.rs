@@ -473,7 +473,20 @@ impl RpcConnectionState {
                                         fail!()
                                     }
                                 };
-                                //if erase_it {questions.erase(id);} // get deadlock still. why?
+                                if false { //_erase_it {
+                                    questions.erase(id);
+
+                                    // write finish message
+                                    let mut finish_message = ~MallocMessageBuilder::new_default();
+                                    {
+                                        let root : Message::Builder = finish_message.init_root();
+                                        let finish = root.init_finish();
+                                        finish.set_question_id(id);
+                                        finish.set_release_result_caps(false);
+                                    }
+
+                                    serialize::write_message(&mut outpipe, finish_message).is_ok();
+                                } // get deadlock still. why?
                             }
                             ExportReceiver(id) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(message);
