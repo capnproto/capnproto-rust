@@ -571,27 +571,6 @@ impl RpcConnectionState {
 
                         serialize::write_message(&mut outpipe, m).is_ok();
                     }
-                    OutgoingDeferred(OutgoingMessage { message : mut m,
-                                                       answer_chan,
-                                                       question_chan: _}, mut answer_ref, ops ) => {
-
-                        let root = m.get_root::<Message::Builder>();
-                        let (interface_id, method_id) = match root.which() {
-                            Some(Message::Call(call)) => {
-                                (call.get_interface_id(), call.get_method_id())
-                            }
-                            _ => {
-                                fail!("NONE OF THOSE");
-                            }
-                        };
-
-                        let context =
-                            (~PromisedAnswerRpcCallContext::new(m, rpc_chan.clone(), answer_chan))
-                            as ~CallContextHook:Send;
-
-                        answer_ref.receive(interface_id, method_id, ops, context);
-                    }
-
                     NewLocalServer(clienthook, export_chan) => {
                         let export_id = exports.push(Export::new(clienthook));
                         export_chan.send(export_id);
@@ -887,14 +866,29 @@ impl RequestHook for PromisedAnswerRpcRequest {
         &mut *self.message
     }
     fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline> {
-        let ~PromisedAnswerRpcRequest { rpc_chan, message, answer_ref, ops } = self;
-        let (outgoing, answer_port, _question_port) = RpcEvent::new_outgoing(message);
-        rpc_chan.send(OutgoingDeferred(outgoing, answer_ref, ops));
+        let ~PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = self;
+        let (answer_tx, answer_rx) = std::comm::channel();
+
+        let root = message.get_root::<Message::Builder>();
+        let (interface_id, method_id) = match root.which() {
+            Some(Message::Call(call)) => {
+                (call.get_interface_id(), call.get_method_id())
+            }
+            _ => {
+                fail!("bad call");
+            }
+        };
+
+        let context =
+            (~PromisedAnswerRpcCallContext::new(message, rpc_chan.clone(), answer_tx))
+            as ~CallContextHook:Send;
+
+        answer_ref.receive(interface_id, method_id, ops, context);
 
         let pipeline = ~PromisedAnswerRpcPipeline;
         let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
 
-        ResultFuture {answer_port : answer_port, answer_result : Err(()) /* XXX */,
+        ResultFuture {answer_port : answer_rx, answer_result : Err(()) /* XXX */,
                        pipeline : typeless  }
     }
 }
@@ -1141,7 +1135,6 @@ pub struct OutgoingMessage {
 pub enum RpcEvent {
     IncomingMessage(~serialize::OwnedSpaceMessageReader),
     Outgoing(OutgoingMessage),
-    OutgoingDeferred(OutgoingMessage, AnswerRef, Vec<PipelineOp::Type>),
     NewLocalServer(~ClientHook:Send, std::comm::Sender<ExportId>),
     ReturnEvent(~MallocMessageBuilder),
     DoneWithQuestion(QuestionId),
