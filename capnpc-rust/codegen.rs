@@ -290,10 +290,10 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let theMod = scope_map.get(&group.get_type_id()).connect("::");
             if isReader {
                 return (format!("{}::Reader<'a>", theMod),
-                        Line(box "FromStructReader::new(self.reader)"));
+                        Line("FromStructReader::new(self.reader)".to_owned()));
             } else {
                 return (format!("{}::Builder<'a>", theMod),
-                        Line(box "FromStructBuilder::new(self.builder)"));
+                        Line("FromStructBuilder::new(self.builder)".to_owned()));
             }
         }
         Some(Field::Slot(reg_field)) => {
@@ -826,7 +826,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
 
     let enum_name = format!("Which{}",
                             if ty_params.len() > 0 { format!("<'a,{}>",ty_params.connect(",")) }
-                            else {box ""} );
+                            else {"".to_owned()} );
 
 
     getter_interior.push(Line("_ => return std::option::None".to_owned()));
@@ -930,8 +930,8 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
             return Branch(vec!(Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
                                             camel_to_snake_case(name),
                                             theMod)),
-                               Indent(box Line(box "FromTypelessPipeline::new(self._typeless.noop())")),
-                               Line(box "}")));
+                               Indent(box Line("FromTypelessPipeline::new(self._typeless.noop())".to_owned())),
+                               Line("}".to_owned())));
         }
         Some(Field::Slot(reg_field)) => {
             match reg_field.get_type().which() {
@@ -945,7 +945,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
                         Indent(box Line(
                             format!("FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
                                     reg_field.get_offset()))),
-                        Line(box "}")));
+                        Line("}".to_owned())));
                 }
                 Some(Type::Interface(interface)) => {
                     let theMod = scope_map.get(&interface.get_type_id()).connect("::");
@@ -956,7 +956,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
                         Indent(box Line(
                             format!("FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
                                     reg_field.get_offset()))),
-                        Line(box "}")));
+                        Line("}".to_owned())));
                 }
                 _ => {
                     return Branch(Vec::new());
@@ -1145,17 +1145,17 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 Indent(~Branch(builder_members)),
                 Line("}".to_owned()),
                 BlankLine,
-                Line(box"pub struct Pipeline { _typeless : AnyPointer::Pipeline }"),
-                Line(box"impl FromTypelessPipeline for Pipeline {"),
+                Line("pub struct Pipeline { _typeless : AnyPointer::Pipeline }".to_owned()),
+                Line("impl FromTypelessPipeline for Pipeline {".to_owned()),
                 Indent(
                     box Branch(vec!(
-                        Line(box "fn new(typeless : AnyPointer::Pipeline) -> Pipeline {"),
-                        Indent(box Line(box "Pipeline { _typeless : typeless }")),
-                        Line( box "}")))),
-                Line(box"}"),
-                Line(box "impl Pipeline {"),
+                        Line("fn new(typeless : AnyPointer::Pipeline) -> Pipeline {".to_owned()),
+                        Indent(box Line("Pipeline { _typeless : typeless }".to_owned())),
+                        Line("}".to_owned())))),
+                Line("}".to_owned()),
+                Line("impl Pipeline {".to_owned()),
                 Indent(box Branch(pipeline_impl_interior)),
-                Line(box"}")
+                Line("}".to_owned()),
                 );
 
             output.push(Indent(~Branch(vec!(Branch(accessors),
@@ -1209,11 +1209,11 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let mut mod_interior = Vec::new();
             let mut dispatch_arms = Vec::new();
 
-            mod_interior.push(Line (box "#![allow(unused_variable)]"));
-            mod_interior.push(Line(box "use capnp::AnyPointer;"));
+            mod_interior.push(Line ("#![allow(unused_variable)]".to_owned()));
+            mod_interior.push(Line("use capnp::AnyPointer;".to_owned()));
             mod_interior.push(
-                Line(box "use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};"));
-            mod_interior.push(Line(box "use capnp::capability;"));
+                Line("use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};".to_owned()));
+            mod_interior.push(Line("use capnp::capability;".to_owned()));
             mod_interior.push(BlankLine);
 
             let methods = interface.get_methods();
@@ -1266,7 +1266,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
                 client_impl_interior.push(Indent(
                         box Line(format!("self.client.new_call(0x{:x}, {}, None)", node_id, ordinal))));
-                client_impl_interior.push(Line(box "}"));
+                client_impl_interior.push(Line("}".to_owned()));
 
                 method.get_annotations();
             }
@@ -1285,7 +1285,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                     base_traits.push(format!("{}::Server", the_mod));
                 }
                 if extends.size() > 0 { format!(": {}", base_traits.as_slice().connect(" + ")) }
-                else { box "" }
+                else { "".to_owned() }
             };
 
 
@@ -1293,70 +1293,70 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             mod_interior.push(Line("pub struct Client{ pub client : capability::Client }".to_owned()));
             mod_interior.push(
                 Branch(vec!(
-                    Line(box "impl FromClientHook for Client {"),
-                    Indent(~Line(box "fn new(hook : ~ClientHook:Send) -> Client {")),
-                    Indent(~Indent(box Line(box "Client { client : capability::Client::new(hook) }"))),
-                    Indent(~Line(box "}")),
-                    Line(box "}"))));
+                    Line("impl FromClientHook for Client {".to_owned()),
+                    Indent(~Line("fn new(hook : ~ClientHook:Send) -> Client {".to_owned())),
+                    Indent(~Indent(box Line("Client { client : capability::Client::new(hook) }".to_owned()))),
+                    Indent(~Line("}".to_owned())),
+                    Line("}".to_owned()))));
 
 
             mod_interior.push(
                 Branch(vec!(
-                    Line(box "impl <T:ServerHook, U : Server + Send> FromServer<T,U> for Client {"),
+                    Line("impl <T:ServerHook, U : Server + Send> FromServer<T,U> for Client {".to_owned()),
                     Indent(box Branch( vec!(
-                        Line(box "fn new(_hook : Option<T>, server : ~U) -> Client {"),
+                        Line("fn new(_hook : Option<T>, server : ~U) -> Client {".to_owned()),
                         Indent(
-                            box Line(box "Client { client : ServerHook::new_client(None::<T>, ~ServerDispatch { server : server})}")),
-                        Line(box "}")))),
-                    Line(box "}"))));
+                            box Line("Client { client : ServerHook::new_client(None::<T>, ~ServerDispatch { server : server})}".to_owned())),
+                        Line("}".to_owned())))),
+                    Line("}".to_owned()))));
 
 
             mod_interior.push(
                     Branch(vec!(
-                        Line(box "impl Clone for Client {"),
-                        Indent(~Line(box "fn clone(&self) -> Client {")),
-                        Indent(~Indent(box Line(box "Client { client : capability::Client::new(self.client.hook.copy()) }"))),
-                        Indent(~Line(box "}")),
-                        Line(box "}"))));
+                        Line("impl Clone for Client {".to_owned()),
+                        Indent(~Line("fn clone(&self) -> Client {".to_owned())),
+                        Indent(~Indent(box Line("Client { client : capability::Client::new(self.client.hook.copy()) }".to_owned()))),
+                        Indent(~Line("}".to_owned())),
+                        Line("}".to_owned()))));
 
 
             mod_interior.push(
                 Branch(vec!(Line("impl Client {".to_owned()),
                             Indent(box Branch(client_impl_interior)),
-                            Line(box "}"))));
+                            Line("}".to_owned()))));
 
             mod_interior.push(Branch(vec!(Line(format!("pub trait Server {} \\{", server_base)),
                                           Indent(box Branch(server_interior)),
-                                          Line(box "}"))));
+                                          Line("}".to_owned()))));
 
-            mod_interior.push(Branch(vec!(Line(box "pub struct ServerDispatch<T> {"),
-                                          Indent(box Line(box "pub server : ~T,")),
-                                          Line(box "}"))));
+            mod_interior.push(Branch(vec!(Line("pub struct ServerDispatch<T> {".to_owned()),
+                                          Indent(box Line("pub server : ~T,".to_owned())),
+                                          Line("}".to_owned()))));
 
             mod_interior.push(
                 Branch(vec!(
-                    Line(box "impl <T : Server> capability::Server for ServerDispatch<T> {"),
-                    Indent(box Line(box "fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
-                    Indent(box Indent(box Line(box "match interface_id {"))),
+                    Line("impl <T : Server> capability::Server for ServerDispatch<T> {".to_owned()),
+                    Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {".to_owned())),
+                    Indent(box Indent(box Line("match interface_id {".to_owned()))),
                     Indent(box Indent(box Indent(
                         box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(self.server, method_id, context),",
                                                      node_id))))),
                     Indent(box Indent(box Indent(box Branch(base_dispatch_arms)))),
-                    Indent(box Indent(box Indent(box Line(box "_ => {}")))),
-                    Indent(box Indent(box Line(box "}"))),
-                    Indent(box Line(box "}")),
-                    Line(box "}"))));
+                    Indent(box Indent(box Indent(box Line("_ => {}".to_owned())))),
+                    Indent(box Indent(box Line("}".to_owned()))),
+                    Indent(box Line("}".to_owned())),
+                    Line("}".to_owned()))));
 
             mod_interior.push(
                 Branch(vec!(
-                    Line(box "impl <T : Server> ServerDispatch<T> {"),
-                    Indent(box Line(box "pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {")),
-                    Indent(box Indent(box Line(box "match method_id {"))),
+                    Line("impl <T : Server> ServerDispatch<T> {".to_owned()),
+                    Indent(box Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {".to_owned())),
+                    Indent(box Indent(box Line("match method_id {".to_owned()))),
                     Indent(box Indent(box Indent(box Branch(dispatch_arms)))),
-                    Indent(box Indent(box Indent(box Line(box "_ => {}")))),
-                    Indent(box Indent(box Line(box "}"))),
-                    Indent(box Line(box "}")),
-                    Line(box "}"))));
+                    Indent(box Indent(box Indent(box Line("_ => {}".to_owned())))),
+                    Indent(box Indent(box Line("}".to_owned()))),
+                    Indent(box Line("}".to_owned())),
+                    Line("}".to_owned()))));
 
 
             mod_interior.push(Branch(vec!(Branch(nested_output))));
