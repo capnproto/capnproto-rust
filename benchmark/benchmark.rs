@@ -223,7 +223,7 @@ macro_rules! pass_by_pipe(
             use std::io::process;
 
             let mut args = std::os::args();
-            args[2] = ~"client";
+            args[2] = "client".to_owned();
 
             let config = process::ProcessConfig {
                 program: args[0].as_slice(),
