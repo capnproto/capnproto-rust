@@ -109,15 +109,15 @@ pub struct ReaderArena {
     pub more_segments : Vec<SegmentReader>,
     //XXX should this be a map as in capnproto-c++?
 
-    pub cap_table : Vec<Option<~ClientHook:Send>>,
+    pub cap_table : Vec<Option<Box<ClientHook:Send>>>,
 
     pub fail_fast : bool,
 }
 
 impl ReaderArena {
-    pub fn new(segments : &[&[Word]], options : message::ReaderOptions) -> ~ReaderArena {
+    pub fn new(segments : &[&[Word]], options : message::ReaderOptions) -> Box<ReaderArena> {
         assert!(segments.len() > 0);
-        let mut arena = ~ReaderArena {
+        let mut arena = box ReaderArena {
             segment0 : SegmentReader {
                 arena : Null,
                 ptr : unsafe { segments[0].unsafe_ref(0) },
@@ -158,7 +158,7 @@ impl ReaderArena {
     }
 
     #[inline]
-    pub fn init_cap_table(&mut self, cap_table : Vec<Option<~ClientHook:Send>>) {
+    pub fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook:Send>>>) {
         self.cap_table = cap_table;
     }
 
@@ -166,11 +166,11 @@ impl ReaderArena {
 
 pub struct BuilderArena {
     pub segment0 : SegmentBuilder,
-    pub more_segments : Vec<~SegmentBuilder>,
+    pub more_segments : Vec<Box<SegmentBuilder>>,
     pub allocation_strategy : message::AllocationStrategy,
     pub owned_memory : Vec<*mut Word>,
     pub nextSize : uint,
-    pub cap_table : Vec<Option<~ClientHook:Send>>,
+    pub cap_table : Vec<Option<Box<ClientHook:Send>>>,
     pub fail_fast : bool,
 }
 
@@ -191,7 +191,7 @@ impl BuilderArena {
 
     pub fn new(allocationStrategy : message::AllocationStrategy,
                first_segment : FirstSegment,
-               fail_fast : bool) -> ~BuilderArena {
+               fail_fast : bool) -> Box<BuilderArena> {
 
         let (first_segment, num_words, owned_memory) : (*mut Word, uint, Vec<*mut Word>) = unsafe {
             match first_segment {
@@ -204,7 +204,7 @@ impl BuilderArena {
                 ZeroedWords(w) => (w.as_mut_ptr(), w.len(), Vec::new())
             }};
 
-        let mut result = ~BuilderArena {
+        let mut result = box BuilderArena {
             segment0 : SegmentBuilder {
                 reader : SegmentReader {
                     ptr : first_segment as * Word,
@@ -265,7 +265,7 @@ impl BuilderArena {
                 }};
 
             let (words, size) = self.allocate_owned_memory(amount);
-            let mut new_builder = ~SegmentBuilder::new(self, id as u32, words, size);
+            let mut new_builder = box SegmentBuilder::new(self, id as u32, words, size);
             let builder_ptr = &mut *new_builder as *mut SegmentBuilder;
 
             self.more_segments.push(new_builder);
@@ -305,11 +305,11 @@ impl BuilderArena {
         }
     }
 
-    pub fn get_cap_table<'a>(&'a self) -> &'a [Option<~ClientHook:Send>] {
+    pub fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook:Send>>] {
         self.cap_table.as_slice()
     }
 
-    pub fn inject_cap(&mut self, cap : ~ClientHook:Send) -> u32 {
+    pub fn inject_cap(&mut self, cap : Box<ClientHook:Send>) -> u32 {
         self.cap_table.push(Some(cap));
         self.cap_table.len() as u32 - 1
     }
@@ -342,7 +342,7 @@ impl ArenaPtr {
         }
     }
 
-    pub fn extract_cap(&self, index : uint) -> Option<~ClientHook:Send> {
+    pub fn extract_cap(&self, index : uint) -> Option<Box<ClientHook:Send>> {
         unsafe {
             match self {
                 &ReaderArenaPtr(reader) => {

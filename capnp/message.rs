@@ -69,7 +69,7 @@ pub trait MessageReader {
         self.get_root_internal().get_as_struct()
     }
 
-    fn init_cap_table(&mut self, cap_table : Vec<Option<~ClientHook:Send>>) {
+    fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook:Send>>>) {
         self.mut_arena().init_cap_table(cap_table);
     }
 }
@@ -77,7 +77,7 @@ pub trait MessageReader {
 pub struct SegmentArrayMessageReader<'a> {
     segments : &'a [ &'a [Word]],
     options : ReaderOptions,
-    arena : ~ReaderArena
+    arena : Box<ReaderArena>
 }
 
 
@@ -191,13 +191,13 @@ pub trait MessageBuilder {
         self.arena().get_segments_for_output(cont)
     }
 
-    fn get_cap_table<'a>(&'a self) -> &'a [Option<~ClientHook:Send>] {
+    fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook:Send>>] {
         self.arena().get_cap_table()
     }
 }
 
 pub struct MallocMessageBuilder {
-    arena : ~BuilderArena,
+    arena : Box<BuilderArena>,
 }
 
 impl Drop for MallocMessageBuilder {
@@ -231,7 +231,7 @@ impl MessageBuilder for MallocMessageBuilder {
 
 
 pub struct ScratchSpaceMallocMessageBuilder<'a> {
-    arena : ~BuilderArena,
+    arena : Box<BuilderArena>,
     scratch_space : &'a mut [Word],
 }
 

@@ -142,7 +142,7 @@ impl Calculator::Server for CalculatorImpl {
                 results.set_value(
                     FromServer::new(
                         None::<LocalClient>,
-                        ~ValueImpl::new(r)))
+                        box ValueImpl::new(r)))
             }
             Err(_) => return context.fail(),
         }
@@ -153,7 +153,7 @@ impl Calculator::Server for CalculatorImpl {
         results.set_func(
             FromServer::new(
                 None::<LocalClient>,
-                ~FunctionImpl::new(params.get_param_count() as uint, params.get_body())));
+                box FunctionImpl::new(params.get_param_count() as uint, params.get_body())));
         context.done();
     }
     fn get_operator(&mut self, mut context : Calculator::GetOperatorContext) {
@@ -163,7 +163,7 @@ impl Calculator::Server for CalculatorImpl {
                 Some(op) => {
                     FromServer::new(
                         None::<LocalClient>,
-                        ~OperatorImpl {op : op})
+                        box OperatorImpl {op : op})
                 }
                 None => fail!("Unknown operator."),
             });
@@ -181,7 +181,7 @@ pub fn main() {
     let rpc_server = EzRpcServer::new(args[2]).unwrap();
 
     // There's got to be a better way to do this.
-    let calculator = (~Calculator::ServerDispatch { server : ~CalculatorImpl}) as ~Server:Send;
+    let calculator = (box Calculator::ServerDispatch { server : box CalculatorImpl}) as Box<Server:Send>;
     rpc_server.export_cap("calculator", calculator);
 
     rpc_server.serve();

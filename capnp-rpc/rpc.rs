@@ -28,13 +28,13 @@ pub type ExportId = u32;
 pub type ImportId = ExportId;
 
 pub struct Question {
-    chan : std::comm::Sender<~ResponseHook:Send>,
+    chan : std::comm::Sender<Box<ResponseHook:Send>>,
     is_awaiting_return : bool,
     ref_counter : ::std::comm::Receiver<()>,
 }
 
 impl Question {
-    pub fn new(sender : std::comm::Sender<~ResponseHook:Send>) -> (Question, std::comm::Sender<()>) {
+    pub fn new(sender : std::comm::Sender<Box<ResponseHook:Send>>) -> (Question, std::comm::Sender<()>) {
         let (tx, rx) = std::comm::channel::<()>();
         (Question {
             chan : sender,
@@ -72,8 +72,8 @@ impl Clone for QuestionRef {
 }
 
 pub enum AnswerStatus {
-    AnswerStatusSent(~MallocMessageBuilder),
-    AnswerStatusPending(Vec<(u64, u16, Vec<PipelineOp::Type>, ~CallContextHook:Send)>),
+    AnswerStatusSent(Box<MallocMessageBuilder>),
+    AnswerStatusPending(Vec<(u64, u16, Vec<PipelineOp::Type>, Box<CallContextHook:Send>)>),
 }
 
 pub struct AnswerRef {
@@ -95,8 +95,8 @@ impl AnswerRef {
         }
     }
 
-    fn do_call(answer_message : &mut ~MallocMessageBuilder, interface_id : u64, method_id : u16,
-               ops : Vec<PipelineOp::Type>, context : ~CallContextHook:Send) {
+    fn do_call(answer_message : &mut Box<MallocMessageBuilder>, interface_id : u64, method_id : u16,
+               ops : Vec<PipelineOp::Type>, context : Box<CallContextHook:Send>) {
         let root : Message::Builder = answer_message.get_root();
         match root.which() {
             Some(Message::Return(ret)) => {
@@ -117,7 +117,7 @@ impl AnswerRef {
     }
 
     pub fn receive(&mut self, interface_id : u64, method_id : u16,
-                   ops : Vec<PipelineOp::Type>, context : ~CallContextHook:Send) {
+                   ops : Vec<PipelineOp::Type>, context : Box<CallContextHook:Send>) {
         match self.status.lock().deref_mut() {
             &AnswerStatusSent(ref mut answer_message) => {
                 AnswerRef::do_call(answer_message, interface_id, method_id, ops, context);
@@ -128,7 +128,7 @@ impl AnswerRef {
         }
     }
 
-    pub fn sent(&mut self, mut message : ~MallocMessageBuilder) {
+    pub fn sent(&mut self, mut message : Box<MallocMessageBuilder>) {
         match self.status.lock().deref_mut() {
             &AnswerStatusSent(_) => {fail!()}
             &AnswerStatusPending(ref mut waiters) => {
@@ -163,12 +163,12 @@ impl Answer {
 }
 
 pub struct Export {
-    hook : ~ClientHook:Send,
+    hook : Box<ClientHook:Send>,
     reference_count : i32,
 }
 
 impl Export {
-    pub fn new(hook : ~ClientHook:Send) -> Export {
+    pub fn new(hook : Box<ClientHook:Send>) -> Export {
         Export { hook : hook, reference_count : 0 }
     }
 }
@@ -227,7 +227,7 @@ impl <T> ExportTable<T> {
 }
 
 pub trait SturdyRefRestorer {
-    fn restore(&self, _obj_id : AnyPointer::Reader) -> Option<~ClientHook:Send> { None }
+    fn restore(&self, _obj_id : AnyPointer::Reader) -> Option<Box<ClientHook:Send>> { None }
 }
 
 impl SturdyRefRestorer for () { }
@@ -242,7 +242,7 @@ pub struct RpcConnectionState {
 
 fn client_hooks_of_payload(payload : Payload::Reader,
                            rpc_chan : &std::comm::Sender<RpcEvent>,
-                           answers : &ImportTable<Answer>) -> Vec<Option<~ClientHook:Send>> {
+                           answers : &ImportTable<Answer>) -> Vec<Option<Box<ClientHook:Send>>> {
     let mut result = Vec::new();
     let cap_table = payload.get_cap_table();
     for ii in range(0, cap_table.size()) {
@@ -255,7 +255,7 @@ fn client_hooks_of_payload(payload : Payload::Reader,
                         (box ImportClient {
                                 channel : rpc_chan.clone(),
                                 import_id : id})
-                            as ~ClientHook:Send));
+                            as Box<ClientHook:Send>));
             }
             Some(CapDescriptor::SenderPromise(_id)) => {
                 println!("warning: SenderPromise is unimplemented");
@@ -271,7 +271,7 @@ fn client_hooks_of_payload(payload : Payload::Reader,
                                 ops : get_pipeline_ops(promised_answer),
                                 answer_ref : answers.slots.get(&promised_answer.get_question_id())
                                 .answer_ref.clone(),
-                                } as ~ClientHook:Send)));
+                                } as Box<ClientHook:Send>)));
             }
             Some(CapDescriptor::ThirdPartyHosted(_)) => {
                 fail!()
@@ -285,7 +285,7 @@ fn client_hooks_of_payload(payload : Payload::Reader,
 fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
                       rpc_chan : &std::comm::Sender<RpcEvent>,
                       answers : &ImportTable<Answer>) {
-    let mut the_cap_table : Vec<Option<~ClientHook:Send>> = Vec::new();
+    let mut the_cap_table : Vec<Option<Box<ClientHook:Send>>> = Vec::new();
     {
         let root = message.get_root::<Message::Reader>();
 
@@ -335,7 +335,7 @@ fn finish_question<W : std::io::Writer>(questions : &mut ExportTable<Question>,
                                         id : u32) {
     questions.erase(id);
 
-    let mut finish_message = ~MallocMessageBuilder::new_default();
+    let mut finish_message = box MallocMessageBuilder::new_default();
     {
         let root : Message::Builder = finish_message.init_root();
         let finish = root.init_finish();
@@ -454,7 +454,7 @@ impl RpcConnectionState {
                                 let idx = exports.push(Export::new(clienthook.copy()));
 
                                 let answer_id = restore.get_question_id();
-                                let mut message = ~MallocMessageBuilder::new_default();
+                                let mut message = box MallocMessageBuilder::new_default();
                                 {
                                     let root : Message::Builder = message.init_root();
                                     let ret = root.init_return();
@@ -505,7 +505,7 @@ impl RpcConnectionState {
                                 let erase_it = match questions.slots.get_mut(id as uint) {
                                     &Some(ref mut q) => {
                                         q.chan.send_opt(
-                                            ~RpcResponse::new(message) as ~ResponseHook:Send).is_ok();
+                                            box RpcResponse::new(message) as Box<ResponseHook:Send>).is_ok();
                                         q.is_awaiting_return = false;
                                         match q.ref_counter.try_recv() {
                                             Err(std::comm::Disconnected) => {
@@ -526,7 +526,7 @@ impl RpcConnectionState {
                             ExportReceiver(id) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(message);
                                 let context =
-                                    ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook:Send;
+                                    box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook:Send>;
 
                                 answers.slots.insert(answer_id, Answer::new());
                                 match exports.slots.get(id as uint) {
@@ -542,7 +542,7 @@ impl RpcConnectionState {
                             PromisedAnswerReceiver(id, ops) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(message);
                                 let context =
-                                    ~RpcCallContext::new(message, rpc_chan.clone()) as ~CallContextHook:Send;
+                                    box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook:Send>;
 
                                 answers.slots.insert(answer_id, Answer::new());
                                 answers.slots.get_mut(&id).answer_ref
@@ -639,9 +639,9 @@ pub struct ImportClient {
 }
 
 impl ClientHook for ImportClient {
-    fn copy(&self) -> ~ClientHook:Send {
+    fn copy(&self) -> Box<ClientHook:Send> {
         (box ImportClient {channel : self.channel.clone(),
-                           import_id : self.import_id}) as ~ClientHook:Send
+                           import_id : self.import_id}) as Box<ClientHook:Send>
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
@@ -659,15 +659,15 @@ impl ClientHook for ImportClient {
         let hook = box RpcRequest { channel : self.channel.clone(),
                                     message : message,
                                     question_ref : None};
-        Request::new(hook as ~RequestHook)
+        Request::new(hook as Box<RequestHook>)
     }
 
-    fn call(&self, _interface_id : u64, _method_id : u16, _context : ~CallContextHook) {
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
         fail!()
     }
 
-    fn get_descriptor(&self) -> ~std::any::Any {
-        (box ReceiverHosted(self.import_id)) as ~std::any::Any
+    fn get_descriptor(&self) -> Box<std::any::Any> {
+        (box ReceiverHosted(self.import_id)) as Box<std::any::Any>
     }
 }
 
@@ -678,11 +678,11 @@ pub struct PipelineClient {
 }
 
 impl ClientHook for PipelineClient {
-    fn copy(&self) -> ~ClientHook:Send {
-        (~PipelineClient { channel : self.channel.clone(),
-                           ops : self.ops.clone(),
-                           question_ref : self.question_ref.clone(),
-            }) as ~ClientHook:Send
+    fn copy(&self) -> Box<ClientHook:Send> {
+        (box PipelineClient { channel : self.channel.clone(),
+                              ops : self.ops.clone(),
+                              question_ref : self.question_ref.clone(),
+            }) as Box<ClientHook:Send>
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
@@ -708,15 +708,15 @@ impl ClientHook for PipelineClient {
         let hook = box RpcRequest { channel : self.channel.clone(),
                                     message : message,
                                     question_ref : Some(self.question_ref.clone())};
-        Request::new(hook as ~RequestHook)
+        Request::new(hook as Box<RequestHook>)
     }
 
-    fn call(&self, _interface_id : u64, _method_id : u16, _context : ~CallContextHook) {
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
         fail!()
     }
 
-    fn get_descriptor(&self) -> ~std::any::Any {
-        (box ReceiverAnswer(self.question_ref.id, self.ops.clone())) as ~std::any::Any
+    fn get_descriptor(&self) -> Box<std::any::Any> {
+        (box ReceiverAnswer(self.question_ref.id, self.ops.clone())) as Box<std::any::Any>
     }
 }
 
@@ -727,11 +727,11 @@ pub struct PromisedAnswerClient {
 }
 
 impl ClientHook for PromisedAnswerClient {
-    fn copy(&self) -> ~ClientHook:Send {
-        (~PromisedAnswerClient { rpc_chan : self.rpc_chan.clone(),
+    fn copy(&self) -> Box<ClientHook:Send> {
+        (box PromisedAnswerClient { rpc_chan : self.rpc_chan.clone(),
                                  ops : self.ops.clone(),
                                  answer_ref : self.answer_ref.clone(),
-            }) as ~ClientHook:Send
+            }) as Box<ClientHook:Send>
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
@@ -749,21 +749,21 @@ impl ClientHook for PromisedAnswerClient {
                                                   message : message,
                                                   answer_ref : self.answer_ref.clone(),
                                                   ops : self.ops.clone() };
-        Request::new(hook as ~RequestHook)
+        Request::new(hook as Box<RequestHook>)
     }
 
-    fn call(&self, _interface_id : u64, _method_id : u16, _context : ~CallContextHook) {
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
         fail!()
     }
 
-    fn get_descriptor(&self) -> ~std::any::Any {
+    fn get_descriptor(&self) -> Box<std::any::Any> {
         fail!()
     }
 }
 
 
 fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &mut MallocMessageBuilder) {
-    fn write_payload(rpc_chan : &std::comm::Sender<RpcEvent>, cap_table : & [~std::any::Any],
+    fn write_payload(rpc_chan : &std::comm::Sender<RpcEvent>, cap_table : & [Box<std::any::Any>],
                      payload : Payload::Builder) {
         let new_cap_table = payload.init_cap_table(cap_table.len());
         for ii in range(0, cap_table.len()) {
@@ -787,7 +787,7 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
                     new_cap_table[ii].set_sender_hosted(export_id);
                 }
                 None => {
-                    match cap_table[ii].as_ref::<~ClientHook:Send>() {
+                    match cap_table[ii].as_ref::<Box<ClientHook:Send>>() {
                         Some(clienthook) => {
                             let (chan, port) = std::comm::channel::<ExportId>();
                             rpc_chan.send(NewLocalServer(clienthook.copy(), chan));
@@ -832,11 +832,11 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
 }
 
 pub struct RpcResponse {
-    message : ~OwnedSpaceMessageReader,
+    message : Box<OwnedSpaceMessageReader>,
 }
 
 impl RpcResponse {
-    pub fn new(message : ~OwnedSpaceMessageReader) -> RpcResponse {
+    pub fn new(message : Box<OwnedSpaceMessageReader>) -> RpcResponse {
         RpcResponse { message : message }
     }
 }
@@ -849,7 +849,7 @@ impl ResponseHook for RpcResponse {
 
 pub struct RpcRequest {
     channel : std::comm::Sender<RpcEvent>,
-    message : ~MallocMessageBuilder,
+    message : Box<MallocMessageBuilder>,
     question_ref : Option<QuestionRef>,
 }
 
@@ -858,7 +858,7 @@ impl RequestHook for RpcRequest {
         &mut *self.message
     }
     fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline> {
-        let ~RpcRequest { channel, mut message, question_ref : _ } = self;
+        let box RpcRequest { channel, mut message, question_ref : _ } = self;
         write_outgoing_cap_table(&channel, message);
 
         let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
@@ -866,8 +866,8 @@ impl RequestHook for RpcRequest {
 
         let question_ref = question_port.recv();
 
-        let pipeline = ~RpcPipeline {channel : channel, question_ref : question_ref};
-        let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
+        let pipeline = box RpcPipeline {channel : channel, question_ref : question_ref};
+        let typeless = AnyPointer::Pipeline::new(pipeline as Box<PipelineHook>);
 
         ResultFuture {answer_port : answer_port, answer_result : Err(()) /* XXX */,
                        pipeline : typeless  }
@@ -876,7 +876,7 @@ impl RequestHook for RpcRequest {
 
 pub struct PromisedAnswerRpcRequest {
     rpc_chan : std::comm::Sender<RpcEvent>,
-    message : ~MallocMessageBuilder,
+    message : Box<MallocMessageBuilder>,
     answer_ref : AnswerRef,
     ops : Vec<PipelineOp::Type>,
 }
@@ -886,7 +886,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
         &mut *self.message
     }
     fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline> {
-        let ~PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = self;
+        let box PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = self;
         let (answer_tx, answer_rx) = std::comm::channel();
 
         let root = message.get_root::<Message::Builder>();
@@ -900,13 +900,13 @@ impl RequestHook for PromisedAnswerRpcRequest {
         };
 
         let context =
-            (~PromisedAnswerRpcCallContext::new(message, rpc_chan.clone(), answer_tx))
-            as ~CallContextHook:Send;
+            (box PromisedAnswerRpcCallContext::new(message, rpc_chan.clone(), answer_tx))
+            as Box<CallContextHook:Send>;
 
         answer_ref.receive(interface_id, method_id, ops, context);
 
-        let pipeline = ~PromisedAnswerRpcPipeline;
-        let typeless = AnyPointer::Pipeline::new(pipeline as ~PipelineHook);
+        let pipeline = box PromisedAnswerRpcPipeline;
+        let typeless = AnyPointer::Pipeline::new(pipeline as Box<PipelineHook>);
 
         ResultFuture {answer_port : answer_rx, answer_result : Err(()) /* XXX */,
                        pipeline : typeless  }
@@ -920,25 +920,25 @@ pub struct RpcPipeline {
 }
 
 impl PipelineHook for RpcPipeline {
-    fn copy(&self) -> ~PipelineHook {
-        (~RpcPipeline { channel : self.channel.clone(),
-                        question_ref : self.question_ref.clone() }) as ~PipelineHook
+    fn copy(&self) -> Box<PipelineHook> {
+        (box RpcPipeline { channel : self.channel.clone(),
+                        question_ref : self.question_ref.clone() }) as Box<PipelineHook>
     }
-    fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> ~ClientHook:Send {
-        (~PipelineClient { channel : self.channel.clone(),
+    fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> Box<ClientHook:Send> {
+        (box PipelineClient { channel : self.channel.clone(),
                            ops : ops,
                            question_ref : self.question_ref.clone(),
-        }) as ~ClientHook:Send
+        }) as Box<ClientHook:Send>
     }
 }
 
 pub struct PromisedAnswerRpcPipeline;
 
 impl PipelineHook for PromisedAnswerRpcPipeline {
-    fn copy(&self) -> ~PipelineHook {
-        (~PromisedAnswerRpcPipeline) as ~PipelineHook
+    fn copy(&self) -> Box<PipelineHook> {
+        (box PromisedAnswerRpcPipeline) as Box<PipelineHook>
     }
-    fn get_pipelined_cap(&self, _ops : Vec<PipelineOp::Type>) -> ~ClientHook:Send {
+    fn get_pipelined_cap(&self, _ops : Vec<PipelineOp::Type>) -> Box<ClientHook:Send> {
         fail!()
     }
 }
@@ -952,7 +952,7 @@ pub struct Aborter {
 impl Drop for Aborter {
     fn drop(&mut self) {
         if !self.succeeded {
-            let mut results_message = ~MallocMessageBuilder::new_default();
+            let mut results_message = box MallocMessageBuilder::new_default();
             {
                 let root : Message::Builder = results_message.init_root();
                 let ret = root.init_return();
@@ -966,14 +966,14 @@ impl Drop for Aborter {
 }
 
 pub struct RpcCallContext {
-    params_message : ~OwnedSpaceMessageReader,
-    results_message : ~MallocMessageBuilder,
+    params_message : Box<OwnedSpaceMessageReader>,
+    results_message : Box<MallocMessageBuilder>,
     rpc_chan : std::comm::Sender<RpcEvent>,
     aborter : Aborter,
 }
 
 impl RpcCallContext {
-    pub fn new(params_message : ~OwnedSpaceMessageReader,
+    pub fn new(params_message : Box<OwnedSpaceMessageReader>,
                rpc_chan : std::comm::Sender<RpcEvent>) -> RpcCallContext {
         let answer_id = {
             let root : Message::Reader = params_message.get_root();
@@ -984,7 +984,7 @@ impl RpcCallContext {
                 _ => fail!(),
             }
         };
-        let mut results_message = ~MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
+        let mut results_message = box MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
         {
             let root : Message::Builder = results_message.init_root();
             let ret = root.init_return();
@@ -1035,7 +1035,7 @@ impl CallContextHook for RpcCallContext {
     }
 
     fn done(~self) {
-        let ~RpcCallContext { params_message : _, mut results_message, rpc_chan, mut aborter} = self;
+        let box RpcCallContext { params_message : _, mut results_message, rpc_chan, mut aborter} = self;
         aborter.succeeded = true;
         write_outgoing_cap_table(&rpc_chan, results_message);
 
@@ -1044,11 +1044,11 @@ impl CallContextHook for RpcCallContext {
 }
 
 pub struct LocalResponse {
-    message : ~MallocMessageBuilder,
+    message : Box<MallocMessageBuilder>,
 }
 
 impl LocalResponse {
-    pub fn new(message : ~MallocMessageBuilder) -> LocalResponse {
+    pub fn new(message : Box<MallocMessageBuilder>) -> LocalResponse {
         LocalResponse { message : message }
     }
 }
@@ -1061,20 +1061,20 @@ impl ResponseHook for LocalResponse {
 
 
 pub struct PromisedAnswerRpcCallContext {
-    params_message : ~MallocMessageBuilder,
-    results_message : ~MallocMessageBuilder,
+    params_message : Box<MallocMessageBuilder>,
+    results_message : Box<MallocMessageBuilder>,
     rpc_chan : std::comm::Sender<RpcEvent>,
-    answer_chan : std::comm::Sender<~ResponseHook:Send>,
+    answer_chan : std::comm::Sender<Box<ResponseHook:Send>>,
 }
 
 impl PromisedAnswerRpcCallContext {
-    pub fn new(params_message : ~MallocMessageBuilder,
+    pub fn new(params_message : Box <MallocMessageBuilder>,
                rpc_chan : std::comm::Sender<RpcEvent>,
-               answer_chan : std::comm::Sender<~ResponseHook:Send>)
+               answer_chan : std::comm::Sender<Box<ResponseHook:Send>>)
                -> PromisedAnswerRpcCallContext {
 
 
-        let mut results_message = ~MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
+        let mut results_message = box MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
         {
             let root : Message::Builder = results_message.init_root();
             let ret = root.init_return();
@@ -1120,7 +1120,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         (params, results)
     }
     fn fail(~self) {
-        let ~PromisedAnswerRpcCallContext {
+        let box PromisedAnswerRpcCallContext {
             params_message : _, mut results_message, rpc_chan : _, answer_chan} = self;
 
         let message : Message::Builder = results_message.get_root();
@@ -1132,41 +1132,41 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
             _ => fail!(),
         }
 
-        answer_chan.send(~LocalResponse::new(results_message) as ~ResponseHook:Send);
+        answer_chan.send(box LocalResponse::new(results_message) as Box<ResponseHook:Send>);
 
     }
 
     fn done(~self) {
-        let ~PromisedAnswerRpcCallContext {
+        let box PromisedAnswerRpcCallContext {
             params_message : _, results_message, rpc_chan : _, answer_chan} = self;
 
-        answer_chan.send(~LocalResponse::new(results_message) as ~ResponseHook:Send);
+        answer_chan.send(box LocalResponse::new(results_message) as Box<ResponseHook:Send>);
     }
 }
 
 
 pub struct OutgoingMessage {
-    message : ~MallocMessageBuilder,
-    answer_chan : std::comm::Sender<~ResponseHook:Send>,
+    message : Box<MallocMessageBuilder>,
+    answer_chan : std::comm::Sender<Box<ResponseHook:Send>>,
     question_chan : std::comm::Sender<QuestionRef>,
 }
 
 
 pub enum RpcEvent {
-    IncomingMessage(~serialize::OwnedSpaceMessageReader),
+    IncomingMessage(Box<serialize::OwnedSpaceMessageReader>),
     Outgoing(OutgoingMessage),
-    NewLocalServer(~ClientHook:Send, std::comm::Sender<ExportId>),
-    ReturnEvent(~MallocMessageBuilder),
+    NewLocalServer(Box<ClientHook:Send>, std::comm::Sender<ExportId>),
+    ReturnEvent(Box<MallocMessageBuilder>),
     DoneWithQuestion(QuestionId),
     ShutdownEvent,
 }
 
 
 impl RpcEvent {
-    pub fn new_outgoing(message : ~MallocMessageBuilder)
-                        -> (OutgoingMessage, std::comm::Receiver<~ResponseHook:Send>,
+    pub fn new_outgoing(message : Box<MallocMessageBuilder>)
+                        -> (OutgoingMessage, std::comm::Receiver<Box<ResponseHook:Send>>,
                             std::comm::Receiver<QuestionRef>) {
-        let (answer_chan, answer_port) = std::comm::channel::<~ResponseHook:Send>();
+        let (answer_chan, answer_port) = std::comm::channel::<Box<ResponseHook:Send>>();
 
         let (question_chan, question_port) = std::comm::channel::<QuestionRef>();
 

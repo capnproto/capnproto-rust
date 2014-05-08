@@ -15,7 +15,7 @@ use io;
 
 pub struct OwnedSpaceMessageReader {
     options : ReaderOptions,
-    arena : ~arena::ReaderArena,
+    arena : Box<arena::ReaderArena>,
     segment_slices : Vec<(uint, uint)>,
     owned_space : Vec<Word>,
 }

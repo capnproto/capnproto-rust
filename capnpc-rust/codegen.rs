@@ -122,7 +122,7 @@ fn test_camel_to_snake_case() {
 
 #[deriving(Eq)]
 enum FormattedText {
-    Indent(~FormattedText),
+    Indent(Box<FormattedText>),
     Branch(Vec<FormattedText>),
     Line(~str),
     BlankLine
@@ -628,7 +628,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                     initter_interior.push(Line(format!("PrimitiveList::Builder::<'a,{}>::new(",
                                                                typeStr)));
                                     initter_interior.push(
-                                        Indent(~Line(format!("self.builder.get_pointer_field({}).init_list(layout::{},size)",
+                                        Indent(box Line(format!("self.builder.get_pointer_field({}).init_list(layout::{},size)",
                                                           offset, sizeStr))));
                                     initter_interior.push(Line(")".to_owned()));
 
@@ -644,7 +644,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                                             typeStr)));
                                     initter_interior.push(
                                         Indent(
-                                            ~Line(
+                                            box Line(
                                                 format!("self.builder.get_pointer_field({}).init_list(layout::TwoBytes,size)",
                                                      offset))));
                                     initter_interior.push(Line(")".to_owned()));
@@ -659,7 +659,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                     initter_interior.push(Line(format!("StructList::Builder::<'a, {}::Builder<'a>>::new(", theMod)));
                                     initter_interior.push(
                                        Indent(
-                                          ~Line(
+                                          box Line(
                                              format!("self.builder.get_pointer_field({}).init_struct_list(size, {}::STRUCT_SIZE))",
                                                   offset, theMod))));
 
@@ -740,7 +740,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
             result.push(Line("#[inline]".to_owned()));
             result.push(Line(format!("pub fn set_{}{}(&self, {} : {}) \\{",
                                      styled_name, setter_lifetime_param, setter_param, reader_type)));
-            result.push(Indent(~Branch(setter_interior)));
+            result.push(Indent(box Branch(setter_interior)));
             result.push(Line("}".to_owned()));
         }
         None => {}
@@ -751,7 +751,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
             let args = initter_params.connect(", ");
             result.push(Line(format!("pub fn init_{}(&self, {}) -> {} \\{",
                                      styled_name, args, builder_type)));
-            result.push(Indent(~Branch(initter_interior)));
+            result.push(Indent(box Branch(initter_interior)));
             result.push(Line("}".to_owned()));
         }
         None => {}
@@ -796,9 +796,9 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
 
         getter_interior.push(Branch(vec!(
                     Line(format!("{} => \\{", dvalue)),
-                    Indent(~Line(format!("return std::option::Some({}(", enumerantName.clone()))),
-                    Indent(~Indent(~get)),
-                    Indent(~Line("));".to_owned())),
+                    Indent(box Line(format!("return std::option::Some({}(", enumerantName.clone()))),
+                    Indent(box Indent(box get)),
+                    Indent(box Line("));".to_owned())),
                     Line("}".to_owned())
                 )));
 
@@ -833,7 +833,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
 
     interior.push(
         Branch(vec!(Line(format!("pub enum {} \\{", enum_name)),
-                    Indent(~Branch(enum_interior)),
+                    Indent(box Branch(enum_interior)),
                     Line("}".to_owned()))));
 
 
@@ -841,9 +841,9 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
         Branch(interior)
     } else {
         Branch(vec!(Line("pub mod Which {".to_owned()),
-                    Indent(~generate_import_statements()),
+                    Indent(box generate_import_statements()),
                     BlankLine,
-                    Indent(~Branch(interior)),
+                    Indent(box Branch(interior)),
                     Line("}".to_owned())))
     };
 
@@ -862,9 +862,9 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
         Branch(vec!(Line("#[inline]".to_owned()),
                     Line(format!("pub fn which(&self) -> std::option::Option<{}> \\{",
                                  concrete_type)),
-                    Indent(~Branch(vec!(
+                    Indent(box Branch(vec!(
                         Line(format!("match self.{}.get_data_field::<u16>({}) \\{", field_name, doffset)),
-                        Indent(~Branch(getter_interior)),
+                        Indent(box Branch(getter_interior)),
                         Line("}".to_owned())))),
                     Line("}".to_owned())));
 
@@ -905,7 +905,7 @@ fn generate_haser(discriminant_offset : u32,
                     result.push(
                         Line(format!("pub fn has_{}(&self) -> bool \\{", styled_name)));
                     result.push(
-                        Indent(~Branch(interior)));
+                        Indent(box Branch(interior)));
                     result.push(Line("}".to_owned()));
                 }
                 _ => {}
@@ -1020,7 +1020,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 preamble.push(Line("pub static STRUCT_SIZE : layout::StructSize =".to_owned()));
                 preamble.push(
                    Indent(
-                      ~Line(
+                      box Line(
                         format!("layout::StructSize \\{ data : {}, pointers : {}, preferred_list_encoding : layout::{}\\};",
                              dataSize as uint, pointerSize as uint,
                              element_size_str(preferred_list_encoding)))));
@@ -1046,7 +1046,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                         Branch(vec!(
                             Line("#[inline]".to_owned()),
                             Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, ty)),
-                            Indent(~get),
+                            Indent(box get),
                             Line("}".to_owned()))));
 
                     let (tyB, getB) = getter_text(node_map, scope_map, &field, false);
@@ -1055,7 +1055,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                         Branch(vec!(
                             Line("#[inline]".to_owned()),
                             Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, tyB)),
-                            Indent(~getB),
+                            Indent(box getB),
                             Line("}".to_owned()))));
 
                 } else {
@@ -1101,7 +1101,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 else {
                     Branch(vec!(
                         Line("impl <'a> layout::HasStructSize for Builder<'a> {".to_owned()),
-                        Indent(~Branch(vec!(Line("#[inline]".to_owned()),
+                        Indent(box Branch(vec!(Line("#[inline]".to_owned()),
                                             Line("fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }".to_owned())))),
                        Line("}".to_owned())))
             };
@@ -1112,37 +1112,37 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 BlankLine,
                 Line("impl <'a> layout::FromStructReader<'a> for Reader<'a> {".to_owned()),
                 Indent(
-                    ~Branch(vec!(
+                    box Branch(vec!(
                         Line("fn new(reader: layout::StructReader<'a>) -> Reader<'a> {".to_owned()),
-                        Indent(~Line("Reader { reader : reader }".to_owned())),
+                        Indent(box Line("Reader { reader : reader }".to_owned())),
                         Line("}".to_owned())))),
                 Line("}".to_owned()),
                 BlankLine,
                 Line("impl <'a> layout::ToStructReader<'a> for Reader<'a> {".to_owned()),
-                Indent(~Line("fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }".to_owned())),
+                Indent(box Line("fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }".to_owned())),
                 Line("}".to_owned()),
                 BlankLine,
                 Line("impl <'a> Reader<'a> {".to_owned()),
-                Indent(~Branch(reader_members)),
+                Indent(box Branch(reader_members)),
                 Line("}".to_owned()),
                 BlankLine,
                 Line("pub struct Builder<'a> { builder : layout::StructBuilder<'a> }".to_owned()),
                 builderStructSize,
                 Line("impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {".to_owned()),
                 Indent(
-                    ~Branch(vec!(
+                    box Branch(vec!(
                         Line("fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {".to_owned()),
-                        Indent(~Line("Builder { builder : builder }".to_owned())),
+                        Indent(box Line("Builder { builder : builder }".to_owned())),
                         Line("}".to_owned())))),
                 Line("}".to_owned()),
 
                 Line("impl <'a> Builder<'a> {".to_owned()),
                 Indent(
-                    ~Branch(vec!(
+                    box Branch(vec!(
                         Line("pub fn as_reader(&self) -> Reader<'a> {".to_owned()),
-                        Indent(~Line("FromStructReader::new(self.builder.as_reader())".to_owned())),
+                        Indent(box Line("FromStructReader::new(self.builder.as_reader())".to_owned())),
                         Line("}".to_owned())))),
-                Indent(~Branch(builder_members)),
+                Indent(box Branch(builder_members)),
                 Line("}".to_owned()),
                 BlankLine,
                 Line("pub struct Pipeline { _typeless : AnyPointer::Pipeline }".to_owned()),
@@ -1158,7 +1158,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 Line("}".to_owned()),
                 );
 
-            output.push(Indent(~Branch(vec!(Branch(accessors),
+            output.push(Indent(box Branch(vec!(Branch(accessors),
                                             Branch(which_enums),
                                             Branch(nested_output)))));
             output.push(Line("}".to_owned()));
@@ -1170,7 +1170,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
 
-            output.push(Indent(~Line("use capnp::list::{ToU16};".to_owned())));
+            output.push(Indent(box Line("use capnp::list::{ToU16};".to_owned())));
             output.push(BlankLine);
 
             let mut members = Vec::new();
@@ -1182,21 +1182,21 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                               ii)));
             }
 
-            output.push(Indent(~Branch(vec!(
+            output.push(Indent(box Branch(vec!(
                 Line("#[repr(u16)]".to_owned()),
                 Line("#[deriving(FromPrimitive)]".to_owned()),
                 Line("#[deriving(Eq)]".to_owned()),
                 Line("pub enum Reader {".to_owned()),
-                Indent(~Branch(members)),
+                Indent(box Branch(members)),
                 Line("}".to_owned())))));
 
             output.push(
                 Indent(
-                    ~Branch(vec!(
+                    box Branch(vec!(
                         Line("impl ToU16 for Reader {".to_owned()),
-                        Indent(~Line("#[inline]".to_owned())),
+                        Indent(box Line("#[inline]".to_owned())),
                         Indent(
-                            ~Line("fn to_u16(self) -> u16 { self as u16 }".to_owned())),
+                            box Line("fn to_u16(self) -> u16 { self as u16 }".to_owned())),
                         Line("}".to_owned())))));
 
             output.push(Line("}".to_owned()));
@@ -1294,9 +1294,9 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             mod_interior.push(
                 Branch(vec!(
                     Line("impl FromClientHook for Client {".to_owned()),
-                    Indent(~Line("fn new(hook : ~ClientHook:Send) -> Client {".to_owned())),
-                    Indent(~Indent(box Line("Client { client : capability::Client::new(hook) }".to_owned()))),
-                    Indent(~Line("}".to_owned())),
+                    Indent(box Line("fn new(hook : Box<ClientHook:Send>) -> Client {".to_owned())),
+                    Indent(box Indent(box Line("Client { client : capability::Client::new(hook) }".to_owned()))),
+                    Indent(box Line("}".to_owned())),
                     Line("}".to_owned()))));
 
 
@@ -1304,9 +1304,9 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 Branch(vec!(
                     Line("impl <T:ServerHook, U : Server + Send> FromServer<T,U> for Client {".to_owned()),
                     Indent(box Branch( vec!(
-                        Line("fn new(_hook : Option<T>, server : ~U) -> Client {".to_owned()),
+                        Line("fn new(_hook : Option<T>, server : Box<U>) -> Client {".to_owned()),
                         Indent(
-                            box Line("Client { client : ServerHook::new_client(None::<T>, ~ServerDispatch { server : server})}".to_owned())),
+                            box Line("Client { client : ServerHook::new_client(None::<T>, box ServerDispatch { server : server})}".to_owned())),
                         Line("}".to_owned())))),
                     Line("}".to_owned()))));
 
@@ -1314,9 +1314,9 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             mod_interior.push(
                     Branch(vec!(
                         Line("impl Clone for Client {".to_owned()),
-                        Indent(~Line("fn clone(&self) -> Client {".to_owned())),
-                        Indent(~Indent(box Line("Client { client : capability::Client::new(self.client.hook.copy()) }".to_owned()))),
-                        Indent(~Line("}".to_owned())),
+                        Indent(box Line("fn clone(&self) -> Client {".to_owned())),
+                        Indent(box Indent(box Line("Client { client : capability::Client::new(self.client.hook.copy()) }".to_owned()))),
+                        Indent(box Line("}".to_owned())),
                         Line("}".to_owned()))));
 
 
@@ -1330,7 +1330,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                                           Line("}".to_owned()))));
 
             mod_interior.push(Branch(vec!(Line("pub struct ServerDispatch<T> {".to_owned()),
-                                          Indent(box Line("pub server : ~T,".to_owned())),
+                                          Indent(box Line("pub server : Box<T>,".to_owned())),
                                           Line("}".to_owned()))));
 
             mod_interior.push(
@@ -1456,12 +1456,12 @@ pub fn main() -> std::io::IoResult<()> {
             let import = imports[jj];
             let importpath = std::path::Path::new(import.get_name());
             let root_name : ~str = format!("::{}_capnp",
-                                           importpath.filestem_str().unwrap().replace("-", "_"));
+                                               importpath.filestem_str().unwrap().replace("-", "_"));
             populate_scope_map(&node_map, &mut scope_map, vec!(root_name), import.get_id());
         }
 
         let root_name : ~str = format!("{}_capnp",
-                                      filepath.filestem_str().unwrap().replace("-", "_"));
+                                       filepath.filestem_str().unwrap().replace("-", "_"));
 
         filepath.set_filename(format!("{}.rs", root_name));
 

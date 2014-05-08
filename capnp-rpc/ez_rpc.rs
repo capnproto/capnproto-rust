@@ -40,7 +40,7 @@ impl EzRpcClient {
     }
 
     pub fn import_cap<T : FromClientHook>(&mut self, name : &str) -> T {
-        let mut message = ~MallocMessageBuilder::new_default();
+        let mut message = box MallocMessageBuilder::new_default();
         let restore = message.init_root::<Message::Builder>().init_restore();
         restore.init_object_id().set_as_text(name);
 
@@ -66,12 +66,12 @@ impl EzRpcClient {
 }
 
 enum ExportEvent {
-    ExportEventRestore(~str, std::comm::Sender<Option<~ClientHook:Send>>),
-    ExportEventRegister(~str, ~Server:Send),
+    ExportEventRestore(~str, std::comm::Sender<Option<Box<ClientHook:Send>>>),
+    ExportEventRegister(~str, Box<Server:Send>),
 }
 
 struct ExportedCaps {
-    objects : HashMap<~str, ~ClientHook:Send>,
+    objects : HashMap<~str, Box<ClientHook:Send>>,
 }
 
 impl ExportedCaps {
@@ -84,7 +84,7 @@ impl ExportedCaps {
                 loop {
                     match port.recv_opt() {
                         Ok(ExportEventRegister(name, server)) => {
-                            vat.objects.insert(name, ~LocalClient::new(server) as ~ClientHook:Send);
+                            vat.objects.insert(name, box LocalClient::new(server) as Box<ClientHook:Send>);
                         }
                         Ok(ExportEventRestore(name, return_chan)) => {
                             return_chan.send(Some((*vat.objects.get(&name)).copy()));
@@ -109,7 +109,7 @@ impl Restorer {
 }
 
 impl SturdyRefRestorer for Restorer {
-    fn restore(&self, obj_id : AnyPointer::Reader) -> Option<~ClientHook:Send> {
+    fn restore(&self, obj_id : AnyPointer::Reader) -> Option<Box<ClientHook:Send>> {
         let (tx, rx) = std::comm::channel();
         self.sender.send(ExportEventRestore(obj_id.get_as_text().to_owned(), tx));
         return rx.recv();
@@ -137,7 +137,7 @@ impl EzRpcServer {
         Ok(EzRpcServer { sender : sender, tcp_acceptor : tcp_acceptor  })
     }
 
-    pub fn export_cap(&self, name : &str, server : ~Server:Send) {
+    pub fn export_cap(&self, name : &str, server : Box<Server:Send>) {
         self.sender.send(ExportEventRegister(name.to_owned(), server))
     }
 

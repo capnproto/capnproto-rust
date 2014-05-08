@@ -18,7 +18,7 @@ use capnp::{MessageReader, MessageBuilder};
 use rpc_capnp::{Message, Return};
 
 pub struct LocalClient {
-    object_channel : std::comm::Sender<(u64, u16, ~CallContextHook:Send)>,
+    object_channel : std::comm::Sender<(u64, u16, Box<CallContextHook:Send>)>,
 }
 
 impl Clone for LocalClient {
@@ -28,8 +28,8 @@ impl Clone for LocalClient {
 }
 
 impl LocalClient {
-    pub fn new(server : ~Server:Send) -> LocalClient {
-        let (chan, port) = std::comm::channel::<(u64, u16, ~CallContextHook:Send)>();
+    pub fn new(server : Box<Server:Send>) -> LocalClient {
+        let (chan, port) = std::comm::channel::<(u64, u16, Box<CallContextHook:Send>)>();
         std::task::spawn(proc () {
                 let mut server = server;
                 loop {
@@ -49,8 +49,8 @@ impl LocalClient {
 
 
 impl ClientHook for LocalClient {
-    fn copy(&self) -> ~ClientHook:Send {
-        (~LocalClient { object_channel : self.object_channel.clone() }) as ~ClientHook:Send
+    fn copy(&self) -> Box<ClientHook:Send> {
+        (box LocalClient { object_channel : self.object_channel.clone() }) as Box<ClientHook:Send>
     }
     fn new_call(&self,
                 _interface_id : u64,
@@ -59,20 +59,20 @@ impl ClientHook for LocalClient {
                 -> Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline> {
         fail!()
     }
-    fn call(&self, interface_id : u64, method_id : u16, context : ~CallContextHook:Send) {
+    fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook:Send>) {
         self.object_channel.send((interface_id, method_id, context));
     }
 
     // HACK
-    fn get_descriptor(&self) -> ~std::any::Any {
-        (~self.copy()) as ~std::any::Any
+    fn get_descriptor(&self) -> Box<std::any::Any> {
+        (box self.copy()) as Box<std::any::Any>
     }
 
 }
 
 impl ServerHook for LocalClient {
-    fn new_client(_unused_self : Option<LocalClient>, server : ~Server:Send) -> Client {
-        Client::new((~LocalClient::new(server)) as ~ClientHook:Send)
+    fn new_client(_unused_self : Option<LocalClient>, server : Box<Server:Send>) -> Client {
+        Client::new((box LocalClient::new(server)) as Box<ClientHook:Send>)
     }
 }
 
