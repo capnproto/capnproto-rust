@@ -16,11 +16,13 @@ use capability::{LocalClient};
 
 pub struct EzRpcClient {
     rpc_chan : std::comm::Sender<RpcEvent>,
+    tcp : std::io::net::tcp::TcpStream,
 }
 
 impl Drop for EzRpcClient {
     fn drop(&mut self) {
         self.rpc_chan.send_opt(ShutdownEvent).is_ok();
+        self.tcp.close_read().is_ok();
     }
 }
 
@@ -34,9 +36,9 @@ impl EzRpcClient {
 
         let connection_state = RpcConnectionState::new();
 
-        let chan = connection_state.run(tcp.clone(), tcp, ());
+        let chan = connection_state.run(tcp.clone(), tcp.clone(), ());
 
-        return Ok(EzRpcClient { rpc_chan : chan });
+        return Ok(EzRpcClient { rpc_chan : chan, tcp : tcp });
     }
 
     pub fn import_cap<T : FromClientHook>(&mut self, name : &str) -> T {
