@@ -28,11 +28,11 @@ impl Calculator::Function::Server for PowerFunction {
 pub fn main() {
     let args = std::os::args();
     if args.len() != 3 {
-        println!("usage: {} client HOST:PORT", args[0]);
+        println!("usage: {} client HOST:PORT", args.get(0));
         return;
     }
 
-    let mut rpc_client = EzRpcClient::new(args[2]).unwrap();
+    let mut rpc_client = EzRpcClient::new(*args.get(2)).unwrap();
 
     let calculator : Calculator::Client = rpc_client.import_cap("calculator");
 

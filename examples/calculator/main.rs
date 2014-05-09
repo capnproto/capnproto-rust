@@ -19,12 +19,12 @@ pub mod server;
 pub fn main() {
     let args = std::os::args();
     if args.len() >= 2 {
-        match args[1].as_slice() {
+        match args.get(1).as_slice() {
             "client" => return client::main(),
             "server" => return server::main(),
             _ => (),
         }
     }
 
-    println!("usage: {} [client | server] ADDRESS", args[0]);
+    println!("usage: {} [client | server] ADDRESS", args.get(0));
 }

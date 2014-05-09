@@ -174,11 +174,11 @@ impl Calculator::Server for CalculatorImpl {
 pub fn main() {
     let args = std::os::args();
     if args.len() != 3 {
-        println!("usage: {} server ADDRESS[:PORT]", args[0]);
+        println!("usage: {} server ADDRESS[:PORT]", args.get(0));
         return;
     }
 
-    let rpc_server = EzRpcServer::new(args[2]).unwrap();
+    let rpc_server = EzRpcServer::new(*args.get(2)).unwrap();
 
     // There's got to be a better way to do this.
     let calculator = (box Calculator::ServerDispatch { server : box CalculatorImpl}) as Box<Server:Send>;

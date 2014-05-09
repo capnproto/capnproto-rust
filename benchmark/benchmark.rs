@@ -223,10 +223,10 @@ macro_rules! pass_by_pipe(
             use std::io::process;
 
             let mut args = std::os::args();
-            args[2] = "client".to_owned();
+            *args.get_mut(2) = "client".to_owned();
 
             let config = process::ProcessConfig {
-                program: args[0].as_slice(),
+                program: args.get(0).as_slice(),
                 args: args.slice(1, args.len()),
                 stdin : process::CreatePipe(true, false),
                 stdout : process::CreatePipe(false, true),
@@ -296,23 +296,23 @@ pub fn main() {
     let args = std::os::args();
 
     if args.len() != 6 {
-        println!("USAGE: {} CASE MODE REUSE COMPRESSION ITERATION_COUNT", args[0]);
+        println!("USAGE: {} CASE MODE REUSE COMPRESSION ITERATION_COUNT", args.get(0));
         std::os::set_exit_status(1);
         return;
     }
 
-    let iters = match from_str::<u64>(args[5]) {
+    let iters = match from_str::<u64>(*args.get(5)) {
         Some (n) => n,
         None => {
-            println!("Could not parse a u64 from: {}", args[5]);
+            println!("Could not parse a u64 from: {}", args.get(5));
             std::os::set_exit_status(1);
             return;
         }
     };
 
-    match args[4].as_slice() {
-        "none" => do_testcase2!(args[1], args[2],  args[3], Uncompressed, iters),
-        "packed" => do_testcase2!(args[1], args[2], args[3], Packed, iters),
+    match args.get(4).as_slice() {
+        "none" => do_testcase2!(args.get(1), args.get(2),  args.get(3), Uncompressed, iters),
+        "packed" => do_testcase2!(args.get(1), args.get(2), args.get(3), Packed, iters),
         s => fail!("unrecognized compression: {}", s)
     }
 }

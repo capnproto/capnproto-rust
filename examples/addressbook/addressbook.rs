@@ -89,9 +89,9 @@ pub fn main() {
 
     let args = std::os::args();
     if args.len() < 2 {
-        println!("usage: $ {} [write | read]", args[0]);
+        println!("usage: $ {} [write | read]", args.get(0));
     } else {
-        match args[1].as_slice() {
+        match args.get(1).as_slice() {
             "write" => addressbook::write_address_book().unwrap(),
             "read" => addressbook::print_address_book().unwrap(),
             _ => {println!("unrecognized argument") }
