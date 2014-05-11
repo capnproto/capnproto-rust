@@ -68,7 +68,7 @@ static MAKES : [&'static str, .. 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"]
 static MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
 
 pub fn random_car(rng : &mut FastRand, car : Car::Builder) {
-    use std::cast::*;
+    use std::mem::transmute;
 
     car.set_make(MAKES[rng.nextLessThan(MAKES.len() as u32) as uint]);
     car.set_model(MODELS[rng.nextLessThan(MODELS.len() as u32) as uint]);

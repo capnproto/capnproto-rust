@@ -100,7 +100,7 @@ impl UseScratch {
         assert!(idx < 6);
         unsafe {
             capnp::message::ScratchSpaceMallocMessageBuilder::new_default(
-                std::cast::transmute(
+                std::mem::transmute(
                     std::raw::Slice { data : self.scratch_space.as_slice().unsafe_ref(idx * SCRATCH_SIZE),
                                       len : SCRATCH_SIZE }))
         }

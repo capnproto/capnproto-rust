@@ -47,13 +47,13 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
     let firstWord = try!(inputStream.read_exact(8));
 
     let segmentCount : u32 =
-        unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.as_ptr());
+        unsafe {let p : *WireValue<u32> = std::mem::transmute(firstWord.as_ptr());
                 (*p).get() + 1
     };
 
     let segment0Size =
         if segmentCount == 0 { 0 } else {
-        unsafe {let p : *WireValue<u32> = std::cast::transmute(firstWord.as_slice().unsafe_ref(4));
+        unsafe {let p : *WireValue<u32> = std::mem::transmute(firstWord.as_slice().unsafe_ref(4));
                 (*p).get()
         }
     };
@@ -71,7 +71,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
         for ii in range(0, segmentCount as uint - 1) {
             let size = unsafe {
                 let p : *WireValue<u32> =
-                    std::cast::transmute(moreSizesRaw.as_slice().unsafe_ref(ii * 4));
+                    std::mem::transmute(moreSizesRaw.as_slice().unsafe_ref(ii * 4));
                 (*p).get()
             };
             moreSizes.push(size);
@@ -93,7 +93,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
     let bufLen = totalWords as uint * BYTES_PER_WORD;
 
     unsafe {
-        let ptr : *mut u8 = std::cast::transmute(ownedSpace.as_mut_slice().as_mut_ptr());
+        let ptr : *mut u8 = std::mem::transmute(ownedSpace.as_mut_slice().as_mut_ptr());
         try!(std::slice::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(ptr, bufLen, |buf| {
                     io::read_at_least(inputStream, buf, bufLen)
                 }));
@@ -153,7 +153,7 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
             }
 
             unsafe {
-                let ptr : *u8 = std::cast::transmute(table.as_ptr());
+                let ptr : *u8 = std::mem::transmute(table.as_ptr());
                 try!(std::slice::raw::buf_as_slice::<u8,std::io::IoResult<()>>(ptr, table.len() * 4, |buf| {
                         outputStream.write(buf)
                     }));
@@ -161,7 +161,7 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
 
             for i in range(0, segments.len()) {
                 unsafe {
-                    let ptr : *u8 = std::cast::transmute(segments[i].as_ptr());
+                    let ptr : *u8 = std::mem::transmute(segments[i].as_ptr());
                     try!(std::slice::raw::buf_as_slice::<u8,std::io::IoResult<()>>(
                         ptr,
                         segments[i].len() * BYTES_PER_WORD,

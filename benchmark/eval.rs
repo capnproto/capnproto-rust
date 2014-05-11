@@ -17,7 +17,7 @@ pub type ResponseReader<'a> = EvaluationResult::Reader<'a>;
 
 fn make_expression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -> i32 {
     exp.set_op(unsafe {
-            std::cast::transmute(rng.nextLessThan( Operation::Modulus as u32 + 1) as u16)});
+            std::mem::transmute(rng.nextLessThan( Operation::Modulus as u32 + 1) as u16)});
 
     let left : i32 =
     if rng.nextLessThan(8) < depth {

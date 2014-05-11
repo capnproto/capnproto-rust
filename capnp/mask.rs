@@ -36,9 +36,9 @@ impl Mask for f32 {
     fn mask(value : f32, mask : f32) -> f32 {
         use std;
         unsafe {
-            let v : u32 = std::cast::transmute(value);
-            let m : u32 = std::cast::transmute(mask);
-            std::cast::transmute(v ^ m)
+            let v : u32 = std::mem::transmute(value);
+            let m : u32 = std::mem::transmute(mask);
+            std::mem::transmute(v ^ m)
         }
     }
 }
@@ -48,9 +48,9 @@ impl Mask for f64 {
     fn mask(value : f64, mask : f64) -> f64 {
         use std;
         unsafe {
-            let v : u64 = std::cast::transmute(value);
-            let m : u64 = std::cast::transmute(mask);
-            std::cast::transmute(v ^ m)
+            let v : u64 = std::mem::transmute(value);
+            let m : u64 = std::mem::transmute(mask);
+            std::mem::transmute(v ^ m)
         }
     }
 }

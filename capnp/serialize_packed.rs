@@ -270,18 +270,18 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     //# consecutive zero words (not including the first
                     //# one).
 
-                    let mut inWord : *u64 = std::cast::transmute(inPtr);
-                    let mut limit : *u64 = std::cast::transmute(inEnd);
+                    let mut inWord : *u64 = std::mem::transmute(inPtr);
+                    let mut limit : *u64 = std::mem::transmute(inEnd);
                     if ptr_sub(limit, inWord) > 255 {
                         limit = inWord.offset(255);
                     }
                     while inWord < limit && *inWord == 0 {
                         inWord = inWord.offset(1);
                     }
-                    *out = ptr_sub(inWord, std::cast::transmute::<*u8, *u64>(inPtr)) as u8;
+                    *out = ptr_sub(inWord, std::mem::transmute::<*u8, *u64>(inPtr)) as u8;
 
                     out = out.offset(1);
-                    inPtr = std::cast::transmute::<*u64, *u8>(inWord);
+                    inPtr = std::mem::transmute::<*u64, *u8>(inWord);
 
                 } else if tag == 0xff {
                     //# An all-nonzero word is followed by a count of
