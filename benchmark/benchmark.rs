@@ -220,32 +220,29 @@ macro_rules! sync_client(
 
 macro_rules! pass_by_pipe(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
-            use std::io::process;
+        use std::io::process;
 
-            let mut args = std::os::args();
-            *args.get_mut(2) = "client".to_owned();
+        let mut args = std::os::args();
+        *args.get_mut(2) = "client".to_owned();
 
-            let config = process::ProcessConfig {
-                program: args.get(0).as_slice(),
-                args: args.slice(1, args.len()),
-                stdin : process::CreatePipe(true, false),
-                stdout : process::CreatePipe(false, true),
-                stderr : process::Ignored,
-                .. process::ProcessConfig::new()
-            };
-            match process::Process::configure(config) {
-                Ok(ref mut p) => {
-                    let mut childStdOut = p.stdout.take().unwrap();
-                    let mut childStdIn = p.stdin.take().unwrap();
+        let mut command = process::Command::new(args.get(0).as_slice());
+        command.args(args.slice(1, args.len()));
+        command.stdin(process::CreatePipe(true, false));
+        command.stdout(process::CreatePipe(false, true));
+        command.stderr(process::Ignored);
+        match command.spawn() {
+            Ok(ref mut p) => {
+                let mut childStdOut = p.stdout.take().unwrap();
+                let mut childStdIn = p.stdin.take().unwrap();
 
-                    server!($testcase, $reuse, $compression, $iters, childStdOut, childStdIn);
-                    println!("{}", p.wait());
-                }
-                Err(e) => {
-                    println!("could not start process: {}", e);
-                }
+                server!($testcase, $reuse, $compression, $iters, childStdOut, childStdIn);
+                println!("{}", p.wait());
             }
-        });
+            Err(e) => {
+                println!("could not start process: {}", e);
+            }
+        }
+    });
     )
 
 macro_rules! do_testcase(
