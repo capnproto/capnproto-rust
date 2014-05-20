@@ -185,12 +185,20 @@ impl <T> ImportTable<T> {
     }
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, TotalEq)]
 struct ReverseU32 { val : u32 }
 
-impl ::std::cmp::Ord for ReverseU32 {
+impl ::core::cmp::Ord for ReverseU32 {
     fn lt(&self, other : &ReverseU32) -> bool {
         self.val > other.val
+    }
+}
+
+impl ::core::cmp::TotalOrd for ReverseU32 {
+    fn cmp(&self, other : &ReverseU32) -> Ordering {
+        if *self < *other { Less }
+        else if *self > *other { Greater }
+        else { Equal }
     }
 }
 
@@ -213,7 +221,7 @@ impl <T> ExportTable<T> {
     }
 
     pub fn push(&mut self, val : T) -> u32 {
-        match self.free_ids.maybe_pop() {
+        match self.free_ids.pop() {
             Some(ReverseU32 { val : id }) => {
                 *self.slots.get_mut(id as uint) = Some(val);
                 id
