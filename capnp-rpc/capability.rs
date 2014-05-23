@@ -95,12 +95,12 @@ for Request<Params, Results, Pipeline> {
 }
 
 pub trait WaitForContent<'a, T> {
-    fn wait(&'a mut self) -> Result<T, ~str>;
+    fn wait(&'a mut self) -> Result<T, StrBuf>;
 }
 
 impl <'a, Results : FromStructReader<'a>, Pipeline> WaitForContent<'a, Results>
 for ResultFuture<Results, Pipeline> {
-    fn wait(&'a mut self) -> Result<Results, ~str> {
+    fn wait(&'a mut self) -> Result<Results, StrBuf> {
         // XXX should check that it's not already been received.
         self.answer_result = self.answer_port.recv_opt();
         match self.answer_result {

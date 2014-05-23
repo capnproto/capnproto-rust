@@ -71,7 +71,7 @@ fn prim_type_str (typ : schema_capnp::Type::WhichReader) -> &'static str {
 }
 
 #[allow(dead_code)]
-fn camel_to_upper_case(s : &str) -> ~str {
+fn camel_to_upper_case(s : &str) -> StrBuf {
     use std::ascii::*;
     let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() {
@@ -84,7 +84,7 @@ fn camel_to_upper_case(s : &str) -> ~str {
     return std::str::from_chars(result_chars.as_slice());
 }
 
-fn camel_to_snake_case(s : &str) -> ~str {
+fn camel_to_snake_case(s : &str) -> StrBuf {
     use std::ascii::*;
     let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() {
@@ -97,7 +97,7 @@ fn camel_to_snake_case(s : &str) -> ~str {
     return std::str::from_chars(result_chars.as_slice());
 }
 
-fn capitalize_first_letter(s : &str) -> ~str {
+fn capitalize_first_letter(s : &str) -> StrBuf {
     use std::ascii::*;
     let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() { result_chars.push(c) }
@@ -124,11 +124,11 @@ fn test_camel_to_snake_case() {
 enum FormattedText {
     Indent(Box<FormattedText>),
     Branch(Vec<FormattedText>),
-    Line(~str),
+    Line(StrBuf),
     BlankLine
 }
 
-fn to_lines(ft : &FormattedText, indent : uint) -> Vec<~str> {
+fn to_lines(ft : &FormattedText, indent : uint) -> Vec<StrBuf> {
     match *ft {
         Indent (ref ft) => {
             return to_lines(*ft, indent + 1);
@@ -144,22 +144,22 @@ fn to_lines(ft : &FormattedText, indent : uint) -> Vec<~str> {
         }
         Line(ref s) => {
             let mut s1 = StrBuf::from_char(indent * 2, ' ');
-            s1.push_str(*s);
+            s1.push_str(s.as_slice());
             return vec!(s1.into_owned());
         }
         BlankLine => return vec!("".to_owned())
     }
 }
 
-fn stringify(ft : & FormattedText) -> ~str {
+fn stringify(ft : & FormattedText) -> StrBuf {
     let mut result = StrBuf::from_owned_str(to_lines(ft, 0).connect("\n"));
     result.push_str("\n");
     return result.into_owned();
 }
 
 fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                      scope_map : &mut collections::hashmap::HashMap<u64, Vec<~str>>,
-                      scope_names : Vec<~str>,
+                      scope_map : &mut collections::hashmap::HashMap<u64, Vec<StrBuf>>,
+                      scope_names : Vec<StrBuf>,
                       nodeId : u64) {
 
     scope_map.insert(nodeId, scope_names.clone());
@@ -207,10 +207,10 @@ fn generate_import_statements() -> FormattedText {
     ))
 }
 
-fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
+fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<StrBuf>>,
                         typ : schema_capnp::Type::Reader,
                         is_reader: bool,
-                        lifetime_name: &str) -> ~str {
+                        lifetime_name: &str) -> StrBuf {
     use schema_capnp::Type;
     let module = if is_reader { "Reader" } else { "Builder" };
     match typ.which() {
@@ -252,7 +252,7 @@ fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<~str
     }
 }
 
-fn prim_default (value : &schema_capnp::Value::Reader) -> Option<~str> {
+fn prim_default (value : &schema_capnp::Value::Reader) -> Option<StrBuf> {
     use schema_capnp::Value;
     match value.which() {
         Some(Value::Bool(false)) |
@@ -277,10 +277,10 @@ fn prim_default (value : &schema_capnp::Value::Reader) -> Option<~str> {
 }
 
 fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-               scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
+               scope_map : &collections::hashmap::HashMap<u64, Vec<StrBuf>>,
                field : &schema_capnp::Field::Reader,
                isReader : bool)
-    -> (~str, FormattedText) {
+    -> (StrBuf, FormattedText) {
 
     use schema_capnp::*;
 
@@ -428,7 +428,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
     fn common_case<T:std::num::Zero + std::fmt::Show>(
         typ: &str, member : &str,
-        offset: uint, default : T) -> (~str, FormattedText) {
+        offset: uint, default : T) -> (StrBuf, FormattedText) {
         let interior = if default.is_zero() {
             Line(format!("self.{}.get_data_field::<{}>({})",
                          member, typ, offset))
@@ -506,7 +506,7 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
 }
 
 fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                  scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
+                  scope_map : &collections::hashmap::HashMap<u64, Vec<StrBuf>>,
                   discriminantOffset : u32,
                   styled_name : &str,
                   field :&schema_capnp::Field::Reader) -> FormattedText {
@@ -532,7 +532,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 
     let mut setter_lifetime_param = "";
 
-    let (maybe_reader_type, maybe_builder_type) : (Option<~str>, Option<~str>) = match field.which() {
+    let (maybe_reader_type, maybe_builder_type) : (Option<StrBuf>, Option<StrBuf>) = match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
             let scope = scope_map.get(&group.get_type_id());
@@ -546,7 +546,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
         }
         Some(Field::Slot(reg_field)) => {
             fn common_case (typ: &str, offset : uint, reg_field : Field::Slot::Reader,
-                            setter_interior : &mut Vec<FormattedText> ) -> (Option<~str>, Option<~str>) {
+                            setter_interior : &mut Vec<FormattedText> ) -> (Option<StrBuf>, Option<StrBuf>) {
                 match prim_default(&reg_field.get_default_value()) {
                     None => {
                         setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
@@ -762,7 +762,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 
 // return (the 'Which' enum, the 'which()' accessor, typedef)
 fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                  scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
+                  scope_map : &collections::hashmap::HashMap<u64, Vec<StrBuf>>,
                   discriminant_offset : u32,
                   fields : &[schema_capnp::Field::Reader],
                   is_reader : bool)
@@ -770,7 +770,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
 {
     use schema_capnp::*;
 
-    fn new_ty_param(ty_params : &mut Vec<~str>) -> ~str {
+    fn new_ty_param(ty_params : &mut Vec<StrBuf>) -> StrBuf {
         let result = format!("A{}", ty_params.len());
         ty_params.push(result.clone());
         result
@@ -917,7 +917,7 @@ fn generate_haser(discriminant_offset : u32,
 }
 
 fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                            scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
+                            scope_map : &collections::hashmap::HashMap<u64, Vec<StrBuf>>,
                             field : schema_capnp::Field::Reader) -> FormattedText {
     use schema_capnp::{Field, Type};
 
@@ -968,7 +968,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
 
 
 fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
-                 scope_map : &collections::hashmap::HashMap<u64, Vec<~str>>,
+                 scope_map : &collections::hashmap::HashMap<u64, Vec<StrBuf>>,
                  node_id : u64,
                  node_name: &str) -> FormattedText {
     use schema_capnp::*;
@@ -981,7 +981,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
     for ii in range(0, nested_nodes.size()) {
         let id = nested_nodes[ii].get_id();
         nested_output.push(generate_node(node_map, scope_map,
-                                         id, *scope_map.get(&id).last().unwrap()));
+                                         id, scope_map.get(&id).last().unwrap().as_slice()));
     }
 
     match node_reader.which() {
@@ -1064,16 +1064,16 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
                 builder_members.push(generate_setter(node_map, scope_map,
                                                     discriminant_offset,
-                                                    styled_name, &field));
+                                                    styled_name.as_slice(), &field));
 
-                reader_members.push(generate_haser(discriminant_offset, styled_name, &field, true));
-                builder_members.push(generate_haser(discriminant_offset, styled_name, &field, false));
+                reader_members.push(generate_haser(discriminant_offset, styled_name.as_slice(), &field, true));
+                builder_members.push(generate_haser(discriminant_offset, styled_name.as_slice(), &field, false));
 
                 match field.which() {
                     Some(Field::Group(group)) => {
                         let id = group.get_type_id();
                         let text = generate_node(node_map, scope_map,
-                                                 id, *scope_map.get(&id).last().unwrap());
+                                                 id, scope_map.get(&id).last().unwrap().as_slice());
                         nested_output.push(text);
                     }
                     _ => { }
@@ -1228,7 +1228,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                     let params_name = format!("{}Params", capitalize_first_letter(name));
 
                     nested_output.push(generate_node(node_map, scope_map,
-                                                     params_id, params_name));
+                                                     params_id, params_name.as_slice()));
                     params_name
                 } else {
                     scope_map.get(&params_node.get_id()).connect("::")
@@ -1239,7 +1239,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 let results_name = if results_node.get_scope_id() == 0 {
                     let results_name = format!("{}Results", capitalize_first_letter(name));
                     nested_output.push(generate_node(node_map, scope_map,
-                                                     results_id, results_name ));
+                                                     results_id, results_name.as_slice() ));
                     results_name
                 } else {
                     scope_map.get(&results_node.get_id()).connect("::")
@@ -1370,7 +1370,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
         Some(Node::Const(c)) => {
             let names = scope_map.get(&node_id);
-            let styled_name = camel_to_upper_case(*names.last().unwrap());
+            let styled_name = camel_to_upper_case(names.last().unwrap().as_slice());
 
             let (typ, txt) = match tuple_option(c.get_type().which(), c.get_value().which()) {
                 Some((Type::Void(()), Value::Void(()))) => ("()".to_owned(), "()".to_owned()),
@@ -1436,7 +1436,7 @@ pub fn main() -> std::io::IoResult<()> {
     let request : schema_capnp::CodeGeneratorRequest::Reader = message.get_root();
 
     let mut node_map = collections::hashmap::HashMap::<u64, schema_capnp::Node::Reader>::new();
-    let mut scope_map = collections::hashmap::HashMap::<u64, Vec<~str>>::new();
+    let mut scope_map = collections::hashmap::HashMap::<u64, Vec<StrBuf>>::new();
 
     let nodes = request.get_nodes();
     for ii in range(0, nodes.size()) {
@@ -1455,12 +1455,12 @@ pub fn main() -> std::io::IoResult<()> {
         for jj in range(0, imports.size()) {
             let import = imports[jj];
             let importpath = std::path::Path::new(import.get_name());
-            let root_name : ~str = format!("::{}_capnp",
+            let root_name : StrBuf = format!("::{}_capnp",
                                                importpath.filestem_str().unwrap().replace("-", "_"));
             populate_scope_map(&node_map, &mut scope_map, vec!(root_name), import.get_id());
         }
 
-        let root_name : ~str = format!("{}_capnp",
+        let root_name : StrBuf = format!("{}_capnp",
                                        filepath.filestem_str().unwrap().replace("-", "_"));
 
         filepath.set_filename(format!("{}.rs", root_name));
@@ -1472,7 +1472,7 @@ pub fn main() -> std::io::IoResult<()> {
         let lines = Branch(vec!(Line("#![allow(unused_imports)]".to_owned()),
                                 Line("#![allow(dead_code)]".to_owned()),
                                 generate_node(&node_map, &scope_map,
-                                              id, root_name)));
+                                              id, root_name.as_slice())));
 
         let text = stringify(&lines);
 

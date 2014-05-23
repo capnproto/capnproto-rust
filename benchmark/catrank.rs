@@ -6,7 +6,6 @@
 
 use std;
 
-use rand::*;
 use common::*;
 use catrank_capnp::*;
 

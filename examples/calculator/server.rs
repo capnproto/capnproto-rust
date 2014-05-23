@@ -37,7 +37,7 @@ impl Calculator::Value::Server for ValueImpl {
 
 fn evaluate_impl(
     expression : Calculator::Expression::Reader,
-    params : Option<PrimitiveList::Reader<f64>>) -> Result<f64, ~str> {
+    params : Option<PrimitiveList::Reader<f64>>) -> Result<f64, StrBuf> {
 
     match expression.which() {
         Some(Calculator::Expression::Literal(v)) => {
@@ -178,7 +178,7 @@ pub fn main() {
         return;
     }
 
-    let rpc_server = EzRpcServer::new(*args.get(2)).unwrap();
+    let rpc_server = EzRpcServer::new(args.get(2).as_slice()).unwrap();
 
     // There's got to be a better way to do this.
     let calculator = (box Calculator::ServerDispatch { server : box CalculatorImpl}) as Box<Server:Send>;

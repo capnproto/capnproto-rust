@@ -5,7 +5,6 @@
  */
 
 use std;
-use rand::*;
 use common::*;
 use eval_capnp::*;
 

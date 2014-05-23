@@ -32,7 +32,7 @@ impl EzRpcClient {
 
         let addr : ip::SocketAddr = std::from_str::FromStr::from_str(server_address).expect("bad server address");
 
-        let tcp = try!(tcp::TcpStream::connect(format!("{}", addr.ip),  addr.port));
+        let tcp = try!(tcp::TcpStream::connect(format!("{}", addr.ip).as_slice(),  addr.port));
 
         let connection_state = RpcConnectionState::new();
 
@@ -68,12 +68,12 @@ impl EzRpcClient {
 }
 
 enum ExportEvent {
-    ExportEventRestore(~str, std::comm::Sender<Option<Box<ClientHook:Send>>>),
-    ExportEventRegister(~str, Box<Server:Send>),
+    ExportEventRestore(StrBuf, std::comm::Sender<Option<Box<ClientHook:Send>>>),
+    ExportEventRegister(StrBuf, Box<Server:Send>),
 }
 
 struct ExportedCaps {
-    objects : HashMap<~str, Box<ClientHook:Send>>,
+    objects : HashMap<StrBuf, Box<ClientHook:Send>>,
 }
 
 impl ExportedCaps {
@@ -130,7 +130,7 @@ impl EzRpcServer {
 
         let addr : ip::SocketAddr = std::from_str::FromStr::from_str(bind_address).expect("bad bind address");
 
-        let tcp_listener = try!(tcp::TcpListener::bind(format!("{}", addr.ip), addr.port));
+        let tcp_listener = try!(tcp::TcpListener::bind(format!("{}", addr.ip).as_slice(), addr.port));
 
         let tcp_acceptor = try!(tcp_listener.listen());
 

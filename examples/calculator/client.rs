@@ -32,7 +32,7 @@ pub fn main() {
         return;
     }
 
-    let mut rpc_client = EzRpcClient::new(*args.get(2)).unwrap();
+    let mut rpc_client = EzRpcClient::new(args.get(2).as_slice()).unwrap();
 
     let calculator : Calculator::Client = rpc_client.import_cap("calculator");
 

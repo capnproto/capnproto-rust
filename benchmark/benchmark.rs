@@ -298,7 +298,7 @@ pub fn main() {
         return;
     }
 
-    let iters = match from_str::<u64>(*args.get(5)) {
+    let iters = match from_str::<u64>(args.get(5).as_slice()) {
         Some (n) => n,
         None => {
             println!("Could not parse a u64 from: {}", args.get(5));
