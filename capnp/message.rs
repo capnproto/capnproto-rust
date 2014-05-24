@@ -154,7 +154,7 @@ pub trait MessageBuilder {
 
     // XXX is there a way to make this private?
     fn get_root_internal<'a>(&mut self) -> AnyPointer::Builder<'a> {
-        let rootSegment = &mut self.mut_arena().segment0 as *mut SegmentBuilder;
+        let root_segment = &mut self.mut_arena().segment0 as *mut SegmentBuilder;
 
         if self.arena().segment0.current_size() == 0 {
             match self.mut_arena().segment0.allocate(WORDS_PER_POINTER) {
@@ -163,13 +163,13 @@ pub trait MessageBuilder {
                     assert!(location == self.arena().segment0.get_ptr_unchecked(0),
                             "First allocated word of new segment was not at offset 0");
 
-                    AnyPointer::Builder::new(layout::PointerBuilder::get_root(rootSegment, location))
+                    AnyPointer::Builder::new(layout::PointerBuilder::get_root(root_segment, location))
 
                 }
             }
         } else {
             AnyPointer::Builder::new(
-                layout::PointerBuilder::get_root(rootSegment,
+                layout::PointerBuilder::get_root(root_segment,
                                                  self.arena().segment0.get_ptr_unchecked(0)))
         }
 

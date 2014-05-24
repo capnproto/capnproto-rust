@@ -16,9 +16,9 @@ pub fn tuple_option<T,U>(t : Option<T>, u : Option<U>) -> Option<(T,U)> {
     }
 }
 
-fn element_size_str (elementSize : schema_capnp::ElementSize::Reader) -> &'static str {
+fn element_size_str (element_size : schema_capnp::ElementSize::Reader) -> &'static str {
     use schema_capnp::ElementSize::*;
-    match elementSize {
+    match element_size {
         Empty => "Void",
         Bit => "Bit",
         Byte => "Byte",
@@ -160,12 +160,12 @@ fn stringify(ft : & FormattedText) -> StrBuf {
 fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                       scope_map : &mut collections::hashmap::HashMap<u64, Vec<StrBuf>>,
                       scope_names : Vec<StrBuf>,
-                      nodeId : u64) {
+                      node_id : u64) {
 
-    scope_map.insert(nodeId, scope_names.clone());
+    scope_map.insert(node_id, scope_names.clone());
 
     // unused nodes in imported files might be omitted from the node map
-    let node_reader = match node_map.find(&nodeId) { Some(node) => node, None => return (), };
+    let node_reader = match node_map.find(&node_id) { Some(node) => node, None => return (), };
 
     let nested_nodes = node_reader.get_nested_nodes();
     for ii in range(0, nested_nodes.size()) {
@@ -175,8 +175,8 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
     }
 
     match node_reader.which() {
-        Some(schema_capnp::Node::Struct(structReader)) => {
-            let fields = structReader.get_fields();
+        Some(schema_capnp::Node::Struct(struct_reader)) => {
+            let fields = struct_reader.get_fields();
             for jj in range(0, fields.size()) {
                 let field = fields[jj];
                 match field.which() {
@@ -990,7 +990,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             output.push(Branch(nested_output));
         }
 
-        Some(Node::Struct(structReader)) => {
+        Some(Node::Struct(struct_reader)) => {
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", node_name)));
 
@@ -1001,16 +1001,16 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let mut which_enums = Vec::new();
             let mut pipeline_impl_interior = Vec::new();
 
-            let dataSize = structReader.get_data_word_count();
-            let pointerSize = structReader.get_pointer_count();
+            let dataSize = struct_reader.get_data_word_count();
+            let pointerSize = struct_reader.get_pointer_count();
             let preferred_list_encoding =
-                  match structReader.get_preferred_list_encoding() {
+                  match struct_reader.get_preferred_list_encoding() {
                                 Some(e) => e,
                                 None => fail!("unsupported list encoding")
                         };
-            let isGroup = structReader.get_is_group();
-            let discriminantCount = structReader.get_discriminant_count();
-            let discriminant_offset = structReader.get_discriminant_offset();
+            let isGroup = struct_reader.get_is_group();
+            let discriminantCount = struct_reader.get_discriminant_count();
+            let discriminant_offset = struct_reader.get_discriminant_offset();
 
             preamble.push(generate_import_statements());
             preamble.push(BlankLine);
@@ -1029,7 +1029,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 preamble.push(BlankLine);
             }
 
-            let fields = structReader.get_fields();
+            let fields = struct_reader.get_fields();
             for ii in range(0, fields.size()) {
                 let field = fields[ii];
                 let name = field.get_name();
