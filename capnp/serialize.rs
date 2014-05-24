@@ -131,16 +131,16 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
 
 
 pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
-    outputStream : &mut T,
+    output_stream : &mut T,
     message : &U) -> std::io::IoResult<()> {
 
     try!(message.get_segments_for_output(
         |segments| {
 
-            let tableSize : uint = (segments.len() + 2) & (!1);
+            let table_size : uint = (segments.len() + 2) & (!1);
 
-            let mut table : Vec<WireValue<u32>> = Vec::with_capacity(tableSize);
-            unsafe { table.set_len(tableSize) }
+            let mut table : Vec<WireValue<u32>> = Vec::with_capacity(table_size);
+            unsafe { table.set_len(table_size) }
 
             table.as_mut_slice()[0].set((segments.len() - 1) as u32);
 
@@ -155,7 +155,7 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
             unsafe {
                 let ptr : *u8 = std::mem::transmute(table.as_ptr());
                 try!(std::slice::raw::buf_as_slice::<u8,std::io::IoResult<()>>(ptr, table.len() * 4, |buf| {
-                        outputStream.write(buf)
+                        output_stream.write(buf)
                     }));
             }
 
@@ -165,11 +165,11 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
                     try!(std::slice::raw::buf_as_slice::<u8,std::io::IoResult<()>>(
                         ptr,
                         segments[i].len() * BYTES_PER_WORD,
-                        |buf| { outputStream.write(buf) }));
+                        |buf| { output_stream.write(buf) }));
                 }
             }
             Ok(())
         }));
 
-    outputStream.flush()
+    output_stream.flush()
 }
