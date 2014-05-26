@@ -68,12 +68,12 @@ impl EzRpcClient {
 }
 
 enum ExportEvent {
-    ExportEventRestore(StrBuf, std::comm::Sender<Option<Box<ClientHook:Send>>>),
-    ExportEventRegister(StrBuf, Box<Server:Send>),
+    ExportEventRestore(String, std::comm::Sender<Option<Box<ClientHook:Send>>>),
+    ExportEventRegister(String, Box<Server:Send>),
 }
 
 struct ExportedCaps {
-    objects : HashMap<StrBuf, Box<ClientHook:Send>>,
+    objects : HashMap<String, Box<ClientHook:Send>>,
 }
 
 impl ExportedCaps {

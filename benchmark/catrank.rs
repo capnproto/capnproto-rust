@@ -49,7 +49,7 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
             goodCount += 1;
         }
 
-        let mut snippet = StrBuf::from_str(" ");
+        let mut snippet = String::from_str(" ");
 
         let prefix = rng.nextLessThan(20) as uint;
         for _ in range(0, prefix) {

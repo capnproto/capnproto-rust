@@ -37,7 +37,7 @@ impl Calculator::Value::Server for ValueImpl {
 
 fn evaluate_impl(
     expression : Calculator::Expression::Reader,
-    params : Option<PrimitiveList::Reader<f64>>) -> Result<f64, StrBuf> {
+    params : Option<PrimitiveList::Reader<f64>>) -> Result<f64, String> {
 
     match expression.which() {
         Some(Calculator::Expression::Literal(v)) => {
