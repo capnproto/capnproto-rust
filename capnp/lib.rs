@@ -15,6 +15,9 @@
 #[phase(syntax, link)] extern crate log;
 extern crate libc;
 
+#[cfg(test)]
+extern crate debug;
+
 // reexports
 pub use any::AnyPointer;
 pub use blob::{Text, Data};

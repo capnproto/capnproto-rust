@@ -113,7 +113,7 @@ impl Restorer {
 impl SturdyRefRestorer for Restorer {
     fn restore(&self, obj_id : AnyPointer::Reader) -> Option<Box<ClientHook:Send>> {
         let (tx, rx) = std::comm::channel();
-        self.sender.send(ExportEventRestore(obj_id.get_as_text().to_owned(), tx));
+        self.sender.send(ExportEventRestore(obj_id.get_as_text().to_string(), tx));
         return rx.recv();
     }
 }
@@ -140,7 +140,7 @@ impl EzRpcServer {
     }
 
     pub fn export_cap(&self, name : &str, server : Box<Server:Send>) {
-        self.sender.send(ExportEventRegister(name.to_owned(), server))
+        self.sender.send(ExportEventRegister(name.to_string(), server))
     }
 
     pub fn serve(self) {

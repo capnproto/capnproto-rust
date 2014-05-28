@@ -107,17 +107,17 @@ fn capitalize_first_letter(s : &str) -> String {
 
 #[test]
 fn test_camel_to_upper_case() {
-    assert_eq!(camel_to_upper_case("fooBar"), "FOO_BAR".to_owned());
-    assert_eq!(camel_to_upper_case("fooBarBaz"), "FOO_BAR_BAZ".to_owned());
-    assert_eq!(camel_to_upper_case("helloWorld"), "HELLO_WORLD".to_owned());
+    assert_eq!(camel_to_upper_case("fooBar"), "FOO_BAR".to_string());
+    assert_eq!(camel_to_upper_case("fooBarBaz"), "FOO_BAR_BAZ".to_string());
+    assert_eq!(camel_to_upper_case("helloWorld"), "HELLO_WORLD".to_string());
 }
 
 #[test]
 fn test_camel_to_snake_case() {
-    assert_eq!(camel_to_snake_case("fooBar"), "foo_bar".to_owned());
-    assert_eq!(camel_to_snake_case("fooBarBaz"), "foo_bar_baz".to_owned());
-    assert_eq!(camel_to_snake_case("helloWorld"), "hello_world".to_owned());
-    assert_eq!(camel_to_snake_case("uint32Id"), "uint32_id".to_owned());
+    assert_eq!(camel_to_snake_case("fooBar"), "foo_bar".to_string());
+    assert_eq!(camel_to_snake_case("fooBarBaz"), "foo_bar_baz".to_string());
+    assert_eq!(camel_to_snake_case("helloWorld"), "hello_world".to_string());
+    assert_eq!(camel_to_snake_case("uint32Id"), "uint32_id".to_string());
 }
 
 #[deriving(Eq)]
@@ -147,12 +147,12 @@ fn to_lines(ft : &FormattedText, indent : uint) -> Vec<String> {
             s1.push_str(s.as_slice());
             return vec!(s1.into_owned());
         }
-        BlankLine => return vec!("".to_owned())
+        BlankLine => return vec!("".to_string())
     }
 }
 
 fn stringify(ft : & FormattedText) -> String {
-    let mut result = String::from_owned_str(to_lines(ft, 0).connect("\n"));
+    let mut result = to_lines(ft, 0).connect("\n");
     result.push_str("\n");
     return result.into_owned();
 }
@@ -170,7 +170,7 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
     let nested_nodes = node_reader.get_nested_nodes();
     for ii in range(0, nested_nodes.size()) {
         let mut scope_names = scope_names.clone();
-        scope_names.push(nested_nodes[ii].get_name().to_owned());
+        scope_names.push(nested_nodes[ii].get_name().to_string());
         populate_scope_map(node_map, scope_map, scope_names, nested_nodes[ii].get_id());
     }
 
@@ -196,14 +196,14 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
 
 fn generate_import_statements() -> FormattedText {
     Branch(vec!(
-        Line("use std;".to_owned()),
-        Line("use capnp::AnyPointer;".to_owned()),
-        Line("use capnp::capability::{FromClientHook, FromTypelessPipeline};".to_owned()),
-        Line("use capnp::{Text, Data};".to_owned()),
-        Line("use capnp::layout;".to_owned()),
-        Line("use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};".to_owned()),
-        Line("use capnp::{PrimitiveList, EnumList, StructList, TextList, DataList, ListList};".to_owned()),
-        Line("use capnp::list::ToU16;".to_owned()),
+        Line("use std;".to_string()),
+        Line("use capnp::AnyPointer;".to_string()),
+        Line("use capnp::capability::{FromClientHook, FromTypelessPipeline};".to_string()),
+        Line("use capnp::{Text, Data};".to_string()),
+        Line("use capnp::layout;".to_string()),
+        Line("use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};".to_string()),
+        Line("use capnp::{PrimitiveList, EnumList, StructList, TextList, DataList, ListList};".to_string()),
+        Line("use capnp::list::ToU16;".to_string()),
     ))
 }
 
@@ -290,10 +290,10 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let theMod = scope_map.get(&group.get_type_id()).connect("::");
             if isReader {
                 return (format!("{}::Reader<'a>", theMod),
-                        Line("FromStructReader::new(self.reader)".to_owned()));
+                        Line("FromStructReader::new(self.reader)".to_string()));
             } else {
                 return (format!("{}::Builder<'a>", theMod),
-                        Line("FromStructBuilder::new(self.builder)".to_owned()));
+                        Line("FromStructBuilder::new(self.builder)".to_string()));
             }
         }
         Some(Field::Slot(reg_field)) => {
@@ -305,13 +305,13 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let moduleWithVar = if isReader { "Reader<'a>" } else { "Builder<'a>" };
 
             match tuple_option(reg_field.get_type().which(), reg_field.get_default_value().which()) {
-                Some((Type::Void(()), Value::Void(()))) => { return ("()".to_owned(), Line("()".to_owned()))}
+                Some((Type::Void(()), Value::Void(()))) => { return ("()".to_string(), Line("()".to_string()))}
                 Some((Type::Bool(()), Value::Bool(b))) => {
                     if b {
-                        return ("bool".to_owned(), Line(format!("self.{}.get_bool_field_mask({}, true)",
+                        return ("bool".to_string(), Line(format!("self.{}.get_bool_field_mask({}, true)",
                                                                 member, offset)))
                     } else {
-                        return ("bool".to_owned(), Line(format!("self.{}.get_bool_field({})",
+                        return ("bool".to_string(), Line(format!("self.{}.get_bool_field({})",
                                                                 member, offset)))
                     }
                 }
@@ -436,7 +436,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             Line(format!("self.{}.get_data_field_mask::<{typ}>({}, {}{typ})",
                          member, offset, default, typ=typ))
         };
-        return (typ.to_owned(), interior);
+        return (typ.to_string(), interior);
     }
 
 
@@ -514,7 +514,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
     use schema_capnp::*;
 
     let mut setter_interior = Vec::new();
-    let mut setter_param = "value".to_owned();
+    let mut setter_param = "value".to_string();
     let mut initter_interior = Vec::new();
     let mut initter_params = Vec::new();
 
@@ -558,7 +558,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                          typ, offset, s)));
                     }
                 }
-                (Some(typ.to_owned()), None)
+                (Some(typ.to_string()), None)
             };
 
 
@@ -566,8 +566,8 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 
             match reg_field.get_type().which() {
                 Some(Type::Void(())) => {
-                    setter_param = "_value".to_owned();
-                    (Some("()".to_owned()), None)
+                    setter_param = "_value".to_string();
+                    (Some("()".to_string()), None)
                 }
                 Some(Type::Bool(())) => {
                     match prim_default(&reg_field.get_default_value()) {
@@ -579,7 +579,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                 Line(format!("self.builder.set_bool_field_mask({}, value, {});", offset, s)));
                         }
                     }
-                    (Some("bool".to_owned()), None)
+                    (Some("bool".to_string()), None)
                 }
                 Some(Type::Int8(())) => common_case("i8", offset, reg_field, &mut setter_interior),
                 Some(Type::Int16(())) => common_case("i16", offset, reg_field, &mut setter_interior),
@@ -597,7 +597,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
                                                        offset)));
                     initter_params.push("size : uint");
-                    (Some("Text::Reader".to_owned()), Some("Text::Builder<'a>".to_owned()))
+                    (Some("Text::Reader".to_string()), Some("Text::Builder<'a>".to_string()))
                 }
                 Some(Type::Data(())) => {
                     setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);",
@@ -605,7 +605,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
                                                        offset)));
                     initter_params.push("size : uint");
-                    (Some("Data::Reader".to_owned()), Some("Data::Builder<'a>".to_owned()))
+                    (Some("Data::Reader".to_string()), Some("Data::Builder<'a>".to_string()))
                 }
                 Some(Type::List(ot1)) => {
                     setter_interior.push(
@@ -630,7 +630,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                     initter_interior.push(
                                         Indent(box Line(format!("self.builder.get_pointer_field({}).init_list(layout::{},size)",
                                                           offset, sizeStr))));
-                                    initter_interior.push(Line(")".to_owned()));
+                                    initter_interior.push(Line(")".to_string()));
 
                                     (Some(format!("PrimitiveList::Reader<'a,{}>", typeStr)),
                                      Some(format!("PrimitiveList::Builder<'a,{}>", typeStr)))
@@ -647,7 +647,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                             box Line(
                                                 format!("self.builder.get_pointer_field({}).init_list(layout::TwoBytes,size)",
                                                      offset))));
-                                    initter_interior.push(Line(")".to_owned()));
+                                    initter_interior.push(Line(")".to_string()));
                                     (Some(format!("EnumList::Reader<'a,{}>", typeStr)),
                                      Some(format!("EnumList::Builder<'a,{}>", typeStr)))
                                 }
@@ -726,9 +726,9 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                 Some(Type::AnyPointer(())) => {
                     initter_interior.push(Line(format!("let result = AnyPointer::Builder::new(self.builder.get_pointer_field({}));",
                                                offset)));
-                    initter_interior.push(Line("result.clear();".to_owned()));
-                    initter_interior.push(Line("result".to_owned()));
-                    (None, Some("AnyPointer::Builder<'a>".to_owned()))
+                    initter_interior.push(Line("result.clear();".to_string()));
+                    initter_interior.push(Line("result".to_string()));
+                    (None, Some("AnyPointer::Builder<'a>".to_string()))
                 }
                 None => { fail!("unrecognized type") }
             }
@@ -737,22 +737,22 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
     let mut result = Vec::new();
     match maybe_reader_type {
         Some(reader_type) => {
-            result.push(Line("#[inline]".to_owned()));
+            result.push(Line("#[inline]".to_string()));
             result.push(Line(format!("pub fn set_{}{}(&self, {} : {}) \\{",
                                      styled_name, setter_lifetime_param, setter_param, reader_type)));
             result.push(Indent(box Branch(setter_interior)));
-            result.push(Line("}".to_owned()));
+            result.push(Line("}".to_string()));
         }
         None => {}
     }
     match maybe_builder_type {
         Some(builder_type) => {
-            result.push(Line("#[inline]".to_owned()));
+            result.push(Line("#[inline]".to_string()));
             let args = initter_params.connect(", ");
             result.push(Line(format!("pub fn init_{}(&self, {}) -> {} \\{",
                                      styled_name, args, builder_type)));
             result.push(Indent(box Branch(initter_interior)));
-            result.push(Line("}".to_owned()));
+            result.push(Line("}".to_string()));
         }
         None => {}
     }
@@ -798,8 +798,8 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
                     Line(format!("{} => \\{", dvalue)),
                     Indent(box Line(format!("return std::option::Some({}(", enumerantName.clone()))),
                     Indent(box Indent(box get)),
-                    Indent(box Line("));".to_owned())),
-                    Line("}".to_owned())
+                    Indent(box Line("));".to_string())),
+                    Line("}".to_string())
                 )));
 
         let ty1 = match field.which() {
@@ -826,25 +826,25 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
 
     let enum_name = format!("Which{}",
                             if ty_params.len() > 0 { format!("<'a,{}>",ty_params.connect(",")) }
-                            else {"".to_owned()} );
+                            else {"".to_string()} );
 
 
-    getter_interior.push(Line("_ => return std::option::None".to_owned()));
+    getter_interior.push(Line("_ => return std::option::None".to_string()));
 
     interior.push(
         Branch(vec!(Line(format!("pub enum {} \\{", enum_name)),
                     Indent(box Branch(enum_interior)),
-                    Line("}".to_owned()))));
+                    Line("}".to_string()))));
 
 
     let result = if is_reader {
         Branch(interior)
     } else {
-        Branch(vec!(Line("pub mod Which {".to_owned()),
+        Branch(vec!(Line("pub mod Which {".to_string()),
                     Indent(box generate_import_statements()),
                     BlankLine,
                     Indent(box Branch(interior)),
-                    Line("}".to_owned())))
+                    Line("}".to_string())))
     };
 
     let field_name = if is_reader { "reader" } else { "builder" };
@@ -856,17 +856,17 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
 
     let typedef = Line(format!("pub type {} = Which{};",
                                concrete_type,
-                               if ty_args.len() > 0 {format!("<'a,{}>",ty_args.connect(","))} else {"".to_owned()}));
+                               if ty_args.len() > 0 {format!("<'a,{}>",ty_args.connect(","))} else {"".to_string()}));
 
     let getter_result =
-        Branch(vec!(Line("#[inline]".to_owned()),
+        Branch(vec!(Line("#[inline]".to_string()),
                     Line(format!("pub fn which(&self) -> std::option::Option<{}> \\{",
                                  concrete_type)),
                     Indent(box Branch(vec!(
                         Line(format!("match self.{}.get_data_field::<u16>({}) \\{", field_name, doffset)),
                         Indent(box Branch(getter_interior)),
-                        Line("}".to_owned())))),
-                    Line("}".to_owned())));
+                        Line("}".to_string())))),
+                    Line("}".to_string())));
 
     // TODO set_which() for builders?
 
@@ -906,7 +906,7 @@ fn generate_haser(discriminant_offset : u32,
                         Line(format!("pub fn has_{}(&self) -> bool \\{", styled_name)));
                     result.push(
                         Indent(box Branch(interior)));
-                    result.push(Line("}".to_owned()));
+                    result.push(Line("}".to_string()));
                 }
                 _ => {}
             }
@@ -930,8 +930,8 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
             return Branch(vec!(Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
                                             camel_to_snake_case(name),
                                             theMod)),
-                               Indent(box Line("FromTypelessPipeline::new(self._typeless.noop())".to_owned())),
-                               Line("}".to_owned())));
+                               Indent(box Line("FromTypelessPipeline::new(self._typeless.noop())".to_string())),
+                               Line("}".to_string())));
         }
         Some(Field::Slot(reg_field)) => {
             match reg_field.get_type().which() {
@@ -945,7 +945,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
                         Indent(box Line(
                             format!("FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
                                     reg_field.get_offset()))),
-                        Line("}".to_owned())));
+                        Line("}".to_string())));
                 }
                 Some(Type::Interface(interface)) => {
                     let theMod = scope_map.get(&interface.get_type_id()).connect("::");
@@ -956,7 +956,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
                         Indent(box Line(
                             format!("FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
                                     reg_field.get_offset()))),
-                        Line("}".to_owned())));
+                        Line("}".to_string())));
                 }
                 _ => {
                     return Branch(Vec::new());
@@ -1017,7 +1017,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
 
             if !isGroup {
-                preamble.push(Line("pub static STRUCT_SIZE : layout::StructSize =".to_owned()));
+                preamble.push(Line("pub static STRUCT_SIZE : layout::StructSize =".to_string()));
                 preamble.push(
                    Indent(
                       box Line(
@@ -1044,19 +1044,19 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
                     reader_members.push(
                         Branch(vec!(
-                            Line("#[inline]".to_owned()),
+                            Line("#[inline]".to_string()),
                             Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, ty)),
                             Indent(box get),
-                            Line("}".to_owned()))));
+                            Line("}".to_string()))));
 
                     let (tyB, getB) = getter_text(node_map, scope_map, &field, false);
 
                     builder_members.push(
                         Branch(vec!(
-                            Line("#[inline]".to_owned()),
+                            Line("#[inline]".to_string()),
                             Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, tyB)),
                             Indent(box getB),
-                            Line("}".to_owned()))));
+                            Line("}".to_string()))));
 
                 } else {
                     union_fields.push(field);
@@ -1100,68 +1100,68 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 if isGroup { Branch(Vec::new()) }
                 else {
                     Branch(vec!(
-                        Line("impl <'a> layout::HasStructSize for Builder<'a> {".to_owned()),
-                        Indent(box Branch(vec!(Line("#[inline]".to_owned()),
-                                            Line("fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }".to_owned())))),
-                       Line("}".to_owned())))
+                        Line("impl <'a> layout::HasStructSize for Builder<'a> {".to_string()),
+                        Indent(box Branch(vec!(Line("#[inline]".to_string()),
+                                            Line("fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }".to_string())))),
+                       Line("}".to_string())))
             };
 
             let accessors = vec!(
                 Branch(preamble),
-                Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_owned()),
+                Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_string()),
                 BlankLine,
-                Line("impl <'a> layout::FromStructReader<'a> for Reader<'a> {".to_owned()),
+                Line("impl <'a> layout::FromStructReader<'a> for Reader<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("fn new(reader: layout::StructReader<'a>) -> Reader<'a> {".to_owned()),
-                        Indent(box Line("Reader { reader : reader }".to_owned())),
-                        Line("}".to_owned())))),
-                Line("}".to_owned()),
+                        Line("fn new(reader: layout::StructReader<'a>) -> Reader<'a> {".to_string()),
+                        Indent(box Line("Reader { reader : reader }".to_string())),
+                        Line("}".to_string())))),
+                Line("}".to_string()),
                 BlankLine,
-                Line("impl <'a> layout::ToStructReader<'a> for Reader<'a> {".to_owned()),
-                Indent(box Line("fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }".to_owned())),
-                Line("}".to_owned()),
+                Line("impl <'a> layout::ToStructReader<'a> for Reader<'a> {".to_string()),
+                Indent(box Line("fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }".to_string())),
+                Line("}".to_string()),
                 BlankLine,
-                Line("impl <'a> Reader<'a> {".to_owned()),
+                Line("impl <'a> Reader<'a> {".to_string()),
                 Indent(box Branch(reader_members)),
-                Line("}".to_owned()),
+                Line("}".to_string()),
                 BlankLine,
-                Line("pub struct Builder<'a> { builder : layout::StructBuilder<'a> }".to_owned()),
+                Line("pub struct Builder<'a> { builder : layout::StructBuilder<'a> }".to_string()),
                 builderStructSize,
-                Line("impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {".to_owned()),
+                Line("impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {".to_owned()),
-                        Indent(box Line("Builder { builder : builder }".to_owned())),
-                        Line("}".to_owned())))),
-                Line("}".to_owned()),
+                        Line("fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {".to_string()),
+                        Indent(box Line("Builder { builder : builder }".to_string())),
+                        Line("}".to_string())))),
+                Line("}".to_string()),
 
-                Line("impl <'a> Builder<'a> {".to_owned()),
+                Line("impl <'a> Builder<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("pub fn as_reader(&self) -> Reader<'a> {".to_owned()),
-                        Indent(box Line("FromStructReader::new(self.builder.as_reader())".to_owned())),
-                        Line("}".to_owned())))),
+                        Line("pub fn as_reader(&self) -> Reader<'a> {".to_string()),
+                        Indent(box Line("FromStructReader::new(self.builder.as_reader())".to_string())),
+                        Line("}".to_string())))),
                 Indent(box Branch(builder_members)),
-                Line("}".to_owned()),
+                Line("}".to_string()),
                 BlankLine,
-                Line("pub struct Pipeline { _typeless : AnyPointer::Pipeline }".to_owned()),
-                Line("impl FromTypelessPipeline for Pipeline {".to_owned()),
+                Line("pub struct Pipeline { _typeless : AnyPointer::Pipeline }".to_string()),
+                Line("impl FromTypelessPipeline for Pipeline {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("fn new(typeless : AnyPointer::Pipeline) -> Pipeline {".to_owned()),
-                        Indent(box Line("Pipeline { _typeless : typeless }".to_owned())),
-                        Line("}".to_owned())))),
-                Line("}".to_owned()),
-                Line("impl Pipeline {".to_owned()),
+                        Line("fn new(typeless : AnyPointer::Pipeline) -> Pipeline {".to_string()),
+                        Indent(box Line("Pipeline { _typeless : typeless }".to_string())),
+                        Line("}".to_string())))),
+                Line("}".to_string()),
+                Line("impl Pipeline {".to_string()),
                 Indent(box Branch(pipeline_impl_interior)),
-                Line("}".to_owned()),
+                Line("}".to_string()),
                 );
 
             output.push(Indent(box Branch(vec!(Branch(accessors),
                                             Branch(which_enums),
                                             Branch(nested_output)))));
-            output.push(Line("}".to_owned()));
+            output.push(Line("}".to_string()));
 
         }
 
@@ -1170,7 +1170,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
 
-            output.push(Indent(box Line("use capnp::list::{ToU16};".to_owned())));
+            output.push(Indent(box Line("use capnp::list::{ToU16};".to_string())));
             output.push(BlankLine);
 
             let mut members = Vec::new();
@@ -1183,23 +1183,23 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             }
 
             output.push(Indent(box Branch(vec!(
-                Line("#[repr(u16)]".to_owned()),
-                Line("#[deriving(FromPrimitive)]".to_owned()),
-                Line("#[deriving(Eq)]".to_owned()),
-                Line("pub enum Reader {".to_owned()),
+                Line("#[repr(u16)]".to_string()),
+                Line("#[deriving(FromPrimitive)]".to_string()),
+                Line("#[deriving(Eq)]".to_string()),
+                Line("pub enum Reader {".to_string()),
                 Indent(box Branch(members)),
-                Line("}".to_owned())))));
+                Line("}".to_string())))));
 
             output.push(
                 Indent(
                     box Branch(vec!(
-                        Line("impl ToU16 for Reader {".to_owned()),
-                        Indent(box Line("#[inline]".to_owned())),
+                        Line("impl ToU16 for Reader {".to_string()),
+                        Indent(box Line("#[inline]".to_string())),
                         Indent(
-                            box Line("fn to_u16(self) -> u16 { self as u16 }".to_owned())),
-                        Line("}".to_owned())))));
+                            box Line("fn to_u16(self) -> u16 { self as u16 }".to_string())),
+                        Line("}".to_string())))));
 
-            output.push(Line("}".to_owned()));
+            output.push(Line("}".to_string()));
         }
 
         Some(Node::Interface(interface)) => {
@@ -1209,11 +1209,11 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let mut mod_interior = Vec::new();
             let mut dispatch_arms = Vec::new();
 
-            mod_interior.push(Line ("#![allow(unused_variable)]".to_owned()));
-            mod_interior.push(Line("use capnp::AnyPointer;".to_owned()));
+            mod_interior.push(Line ("#![allow(unused_variable)]".to_string()));
+            mod_interior.push(Line("use capnp::AnyPointer;".to_string()));
             mod_interior.push(
-                Line("use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};".to_owned()));
-            mod_interior.push(Line("use capnp::capability;".to_owned()));
+                Line("use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};".to_string()));
+            mod_interior.push(Line("use capnp::capability;".to_string()));
             mod_interior.push(BlankLine);
 
             let methods = interface.get_methods();
@@ -1266,7 +1266,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
                 client_impl_interior.push(Indent(
                         box Line(format!("self.client.new_call(0x{:x}, {}, None)", node_id, ordinal))));
-                client_impl_interior.push(Line("}".to_owned()));
+                client_impl_interior.push(Line("}".to_string()));
 
                 method.get_annotations();
             }
@@ -1285,78 +1285,78 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                     base_traits.push(format!("{}::Server", the_mod));
                 }
                 if extends.size() > 0 { format!(": {}", base_traits.as_slice().connect(" + ")) }
-                else { "".to_owned() }
+                else { "".to_string() }
             };
 
 
             mod_interior.push(BlankLine);
-            mod_interior.push(Line("pub struct Client{ pub client : capability::Client }".to_owned()));
+            mod_interior.push(Line("pub struct Client{ pub client : capability::Client }".to_string()));
             mod_interior.push(
                 Branch(vec!(
-                    Line("impl FromClientHook for Client {".to_owned()),
-                    Indent(box Line("fn new(hook : Box<ClientHook:Send>) -> Client {".to_owned())),
-                    Indent(box Indent(box Line("Client { client : capability::Client::new(hook) }".to_owned()))),
-                    Indent(box Line("}".to_owned())),
-                    Line("}".to_owned()))));
+                    Line("impl FromClientHook for Client {".to_string()),
+                    Indent(box Line("fn new(hook : Box<ClientHook:Send>) -> Client {".to_string())),
+                    Indent(box Indent(box Line("Client { client : capability::Client::new(hook) }".to_string()))),
+                    Indent(box Line("}".to_string())),
+                    Line("}".to_string()))));
 
 
             mod_interior.push(
                 Branch(vec!(
-                    Line("impl <T:ServerHook, U : Server + Send> FromServer<T,U> for Client {".to_owned()),
+                    Line("impl <T:ServerHook, U : Server + Send> FromServer<T,U> for Client {".to_string()),
                     Indent(box Branch( vec!(
-                        Line("fn new(_hook : Option<T>, server : Box<U>) -> Client {".to_owned()),
+                        Line("fn new(_hook : Option<T>, server : Box<U>) -> Client {".to_string()),
                         Indent(
-                            box Line("Client { client : ServerHook::new_client(None::<T>, box ServerDispatch { server : server})}".to_owned())),
-                        Line("}".to_owned())))),
-                    Line("}".to_owned()))));
+                            box Line("Client { client : ServerHook::new_client(None::<T>, box ServerDispatch { server : server})}".to_string())),
+                        Line("}".to_string())))),
+                    Line("}".to_string()))));
 
 
             mod_interior.push(
                     Branch(vec!(
-                        Line("impl Clone for Client {".to_owned()),
-                        Indent(box Line("fn clone(&self) -> Client {".to_owned())),
-                        Indent(box Indent(box Line("Client { client : capability::Client::new(self.client.hook.copy()) }".to_owned()))),
-                        Indent(box Line("}".to_owned())),
-                        Line("}".to_owned()))));
+                        Line("impl Clone for Client {".to_string()),
+                        Indent(box Line("fn clone(&self) -> Client {".to_string())),
+                        Indent(box Indent(box Line("Client { client : capability::Client::new(self.client.hook.copy()) }".to_string()))),
+                        Indent(box Line("}".to_string())),
+                        Line("}".to_string()))));
 
 
             mod_interior.push(
-                Branch(vec!(Line("impl Client {".to_owned()),
+                Branch(vec!(Line("impl Client {".to_string()),
                             Indent(box Branch(client_impl_interior)),
-                            Line("}".to_owned()))));
+                            Line("}".to_string()))));
 
             mod_interior.push(Branch(vec!(Line(format!("pub trait Server {} \\{", server_base)),
                                           Indent(box Branch(server_interior)),
-                                          Line("}".to_owned()))));
+                                          Line("}".to_string()))));
 
-            mod_interior.push(Branch(vec!(Line("pub struct ServerDispatch<T> {".to_owned()),
-                                          Indent(box Line("pub server : Box<T>,".to_owned())),
-                                          Line("}".to_owned()))));
+            mod_interior.push(Branch(vec!(Line("pub struct ServerDispatch<T> {".to_string()),
+                                          Indent(box Line("pub server : Box<T>,".to_string())),
+                                          Line("}".to_string()))));
 
             mod_interior.push(
                 Branch(vec!(
-                    Line("impl <T : Server> capability::Server for ServerDispatch<T> {".to_owned()),
-                    Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {".to_owned())),
-                    Indent(box Indent(box Line("match interface_id {".to_owned()))),
+                    Line("impl <T : Server> capability::Server for ServerDispatch<T> {".to_string()),
+                    Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {".to_string())),
+                    Indent(box Indent(box Line("match interface_id {".to_string()))),
                     Indent(box Indent(box Indent(
                         box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(self.server, method_id, context),",
                                                      node_id))))),
                     Indent(box Indent(box Indent(box Branch(base_dispatch_arms)))),
-                    Indent(box Indent(box Indent(box Line("_ => {}".to_owned())))),
-                    Indent(box Indent(box Line("}".to_owned()))),
-                    Indent(box Line("}".to_owned())),
-                    Line("}".to_owned()))));
+                    Indent(box Indent(box Indent(box Line("_ => {}".to_string())))),
+                    Indent(box Indent(box Line("}".to_string()))),
+                    Indent(box Line("}".to_string())),
+                    Line("}".to_string()))));
 
             mod_interior.push(
                 Branch(vec!(
-                    Line("impl <T : Server> ServerDispatch<T> {".to_owned()),
-                    Indent(box Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {".to_owned())),
-                    Indent(box Indent(box Line("match method_id {".to_owned()))),
+                    Line("impl <T : Server> ServerDispatch<T> {".to_string()),
+                    Indent(box Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {".to_string())),
+                    Indent(box Indent(box Line("match method_id {".to_string()))),
                     Indent(box Indent(box Indent(box Branch(dispatch_arms)))),
-                    Indent(box Indent(box Indent(box Line("_ => {}".to_owned())))),
-                    Indent(box Indent(box Line("}".to_owned()))),
-                    Indent(box Line("}".to_owned())),
-                    Line("}".to_owned()))));
+                    Indent(box Indent(box Indent(box Line("_ => {}".to_string())))),
+                    Indent(box Indent(box Line("}".to_string()))),
+                    Indent(box Line("}".to_string())),
+                    Line("}".to_string()))));
 
 
             mod_interior.push(Branch(vec!(Branch(nested_output))));
@@ -1365,7 +1365,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
             output.push(Indent(box Branch(mod_interior)));
-            output.push(Line("}".to_owned()));
+            output.push(Line("}".to_string()));
         }
 
         Some(Node::Const(c)) => {
@@ -1373,20 +1373,20 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let styled_name = camel_to_upper_case(names.last().unwrap().as_slice());
 
             let (typ, txt) = match tuple_option(c.get_type().which(), c.get_value().which()) {
-                Some((Type::Void(()), Value::Void(()))) => ("()".to_owned(), "()".to_owned()),
-                Some((Type::Bool(()), Value::Bool(b))) => ("bool".to_owned(), b.to_str()),
-                Some((Type::Int8(()), Value::Int8(i))) => ("i8".to_owned(), i.to_str()),
-                Some((Type::Int16(()), Value::Int16(i))) => ("i16".to_owned(), i.to_str()),
-                Some((Type::Int32(()), Value::Int32(i))) => ("i32".to_owned(), i.to_str()),
-                Some((Type::Int64(()), Value::Int64(i))) => ("i64".to_owned(), i.to_str()),
-                Some((Type::Uint8(()), Value::Uint8(i))) => ("u8".to_owned(), i.to_str()),
-                Some((Type::Uint16(()), Value::Uint16(i))) => ("u16".to_owned(), i.to_str()),
-                Some((Type::Uint32(()), Value::Uint32(i))) => ("u32".to_owned(), i.to_str()),
-                Some((Type::Uint64(()), Value::Uint64(i))) => ("u64".to_owned(), i.to_str()),
+                Some((Type::Void(()), Value::Void(()))) => ("()".to_string(), "()".to_string()),
+                Some((Type::Bool(()), Value::Bool(b))) => ("bool".to_string(), b.to_str()),
+                Some((Type::Int8(()), Value::Int8(i))) => ("i8".to_string(), i.to_str()),
+                Some((Type::Int16(()), Value::Int16(i))) => ("i16".to_string(), i.to_str()),
+                Some((Type::Int32(()), Value::Int32(i))) => ("i32".to_string(), i.to_str()),
+                Some((Type::Int64(()), Value::Int64(i))) => ("i64".to_string(), i.to_str()),
+                Some((Type::Uint8(()), Value::Uint8(i))) => ("u8".to_string(), i.to_str()),
+                Some((Type::Uint16(()), Value::Uint16(i))) => ("u16".to_string(), i.to_str()),
+                Some((Type::Uint32(()), Value::Uint32(i))) => ("u32".to_string(), i.to_str()),
+                Some((Type::Uint64(()), Value::Uint64(i))) => ("u64".to_string(), i.to_str()),
 
                 // float string formatting appears to be a bit broken currently, in Rust.
-                Some((Type::Float32(()), Value::Float32(f))) => ("f32".to_owned(), format!("{}f32", f.to_str())),
-                Some((Type::Float64(()), Value::Float64(f))) => ("f64".to_owned(), format!("{}f64", f.to_str())),
+                Some((Type::Float32(()), Value::Float32(f))) => ("f32".to_string(), format!("{}f32", f.to_str())),
+                Some((Type::Float64(()), Value::Float64(f))) => ("f64".to_string(), format!("{}f64", f.to_str())),
 
                 Some((Type::Text(()), Value::Text(_t))) => { fail!() }
                 Some((Type::Data(()), Value::Data(_d))) => { fail!() }
@@ -1469,8 +1469,8 @@ pub fn main() -> std::io::IoResult<()> {
 
         populate_scope_map(&node_map, &mut scope_map, vec!(root_mod), id);
 
-        let lines = Branch(vec!(Line("#![allow(unused_imports)]".to_owned()),
-                                Line("#![allow(dead_code)]".to_owned()),
+        let lines = Branch(vec!(Line("#![allow(unused_imports)]".to_string()),
+                                Line("#![allow(dead_code)]".to_string()),
                                 generate_node(&node_map, &scope_map,
                                               id, root_name.as_slice())));
 

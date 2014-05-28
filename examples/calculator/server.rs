@@ -48,7 +48,7 @@ fn evaluate_impl(
         }
         Some(Calculator::Expression::Parameter(p)) => {
             match params {
-                None => {Err("bad parameter".to_owned())}
+                None => {Err("bad parameter".to_string())}
                 Some(params) => {
                     Ok(params[p as uint])
                 }

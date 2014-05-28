@@ -104,7 +104,7 @@ for ResultFuture<Results, Pipeline> {
         // XXX should check that it's not already been received.
         self.answer_result = self.answer_port.recv_opt();
         match self.answer_result {
-            Err(_) => Err("answer channel closed".to_owned()),
+            Err(_) => Err("answer channel closed".to_string()),
             Ok(ref mut response_hook) => {
                 let root : Message::Reader = response_hook.get().get_as_struct();
                 match root.which() {
@@ -114,7 +114,7 @@ for ResultFuture<Results, Pipeline> {
                                 Ok(res.get_content().get_as_struct())
                             }
                             Some(Return::Exception(e)) => {
-                                Err(e.get_reason().to_owned())
+                                Err(e.get_reason().to_string())
                             }
                             _ => fail!(),
                         }
