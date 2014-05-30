@@ -23,7 +23,7 @@ pub struct ScoredResult<'a> {
 static URL_PREFIX : &'static str = "http://example.com";
 
 pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -> int {
-    let count = rng.nextLessThan(1000) as uint;
+    let count = rng.next_less_than(1000) as uint;
     let mut goodCount : int = 0;
 
     let list = request.init_results(count);
@@ -31,7 +31,7 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
     for i in range(0, count) {
         let result = list[i];
         result.set_score(1000.0 - i as f64);
-        let url_size = rng.nextLessThan(100) as uint;
+        let url_size = rng.next_less_than(100) as uint;
 
         let url_prefix_length = URL_PREFIX.as_bytes().len();
         let url = result.init_url(url_size + url_prefix_length);
@@ -40,27 +40,27 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
         std::io::BufWriter::new(bytes).write(URL_PREFIX.as_bytes()).unwrap();
 
         for j in range(0, url_size) {
-            bytes[j + url_prefix_length] = (97 + rng.nextLessThan(26)) as u8;
+            bytes[j + url_prefix_length] = (97 + rng.next_less_than(26)) as u8;
         }
 
-        let isCat = rng.nextLessThan(8) == 0;
-        let isDog = rng.nextLessThan(8) == 0;
+        let isCat = rng.next_less_than(8) == 0;
+        let isDog = rng.next_less_than(8) == 0;
         if isCat && !isDog {
             goodCount += 1;
         }
 
         let mut snippet = String::from_str(" ");
 
-        let prefix = rng.nextLessThan(20) as uint;
+        let prefix = rng.next_less_than(20) as uint;
         for _ in range(0, prefix) {
-            snippet.push_str(WORDS[rng.nextLessThan(WORDS.len() as u32) as uint]);
+            snippet.push_str(WORDS[rng.next_less_than(WORDS.len() as u32) as uint]);
         }
         if isCat { snippet.push_str("cat ") }
         if isDog { snippet.push_str("dog ") }
 
-        let suffix = rng.nextLessThan(20) as uint;
+        let suffix = rng.next_less_than(20) as uint;
         for _ in range(0, suffix) {
-            snippet.push_str(WORDS[rng.nextLessThan(WORDS.len() as u32) as uint]);
+            snippet.push_str(WORDS[rng.next_less_than(WORDS.len() as u32) as uint]);
         }
 
         result.set_snippet(snippet.as_slice());

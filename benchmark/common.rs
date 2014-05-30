@@ -27,12 +27,12 @@ impl FastRand {
     }
 
     #[inline]
-    pub fn nextLessThan(&mut self, range : u32) -> u32 {
+    pub fn next_less_than(&mut self, range : u32) -> u32 {
         self.next_u32() % range
     }
 
     #[inline]
-    pub fn nextDouble(&mut self, range : f64) -> f64 {
+    pub fn next_double(&mut self, range : f64) -> f64 {
         use std::u32;
         self.next_u32() as f64 * range / (u32::MAX as f64)
     }

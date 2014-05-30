@@ -16,11 +16,11 @@ pub type ResponseReader<'a> = EvaluationResult::Reader<'a>;
 
 fn make_expression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -> i32 {
     exp.set_op(unsafe {
-            std::mem::transmute(rng.nextLessThan( Operation::Modulus as u32 + 1) as u16)});
+            std::mem::transmute(rng.next_less_than( Operation::Modulus as u32 + 1) as u16)});
 
     let left : i32 =
-    if rng.nextLessThan(8) < depth {
-        let tmp = (rng.nextLessThan(128) + 1) as i32;
+    if rng.next_less_than(8) < depth {
+        let tmp = (rng.next_less_than(128) + 1) as i32;
         exp.get_left().set_value(tmp);
         tmp
     } else {
@@ -28,8 +28,8 @@ fn make_expression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) 
     };
 
     let right : i32 =
-    if rng.nextLessThan(8) < depth {
-        let tmp = (rng.nextLessThan(128) + 1) as i32;
+    if rng.next_less_than(8) < depth {
+        let tmp = (rng.next_less_than(128) + 1) as i32;
         exp.get_right().set_value(tmp);
         tmp
     } else {

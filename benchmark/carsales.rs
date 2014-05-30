@@ -70,46 +70,46 @@ static MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Lea
 pub fn random_car(rng : &mut FastRand, car : Car::Builder) {
     use std::mem::transmute;
 
-    car.set_make(MAKES[rng.nextLessThan(MAKES.len() as u32) as uint]);
-    car.set_model(MODELS[rng.nextLessThan(MODELS.len() as u32) as uint]);
+    car.set_make(MAKES[rng.next_less_than(MAKES.len() as u32) as uint]);
+    car.set_model(MODELS[rng.next_less_than(MODELS.len() as u32) as uint]);
 
-    car.set_color(unsafe {transmute(rng.nextLessThan(Color::Silver as u32 + 1) as u16) });
-    car.set_seats(2 + rng.nextLessThan(6) as u8);
-    car.set_doors(2 + rng.nextLessThan(3) as u8);
+    car.set_color(unsafe {transmute(rng.next_less_than(Color::Silver as u32 + 1) as u16) });
+    car.set_seats(2 + rng.next_less_than(6) as u8);
+    car.set_doors(2 + rng.next_less_than(3) as u8);
 
     let wheels = car.init_wheels(4);
     for i in range(0, wheels.size()) {
         let wheel = wheels[i];
-        wheel.set_diameter(25 + rng.nextLessThan(15) as u16);
-        wheel.set_air_pressure((30.0 + rng.nextDouble(20.0)) as f32);
-        wheel.set_snow_tires(rng.nextLessThan(16) == 0);
+        wheel.set_diameter(25 + rng.next_less_than(15) as u16);
+        wheel.set_air_pressure((30.0 + rng.next_double(20.0)) as f32);
+        wheel.set_snow_tires(rng.next_less_than(16) == 0);
     }
 
-    car.set_length(170 + rng.nextLessThan(150) as u16);
-    car.set_width(48 + rng.nextLessThan(36) as u16);
-    car.set_height(54 + rng.nextLessThan(48) as u16);
+    car.set_length(170 + rng.next_less_than(150) as u16);
+    car.set_width(48 + rng.next_less_than(36) as u16);
+    car.set_height(54 + rng.next_less_than(48) as u16);
     car.set_weight(car.get_length() as u32 * car.get_width() as u32 *
                    car.get_height() as u32 / 200);
 
     let engine = car.init_engine();
-    engine.set_horsepower(100 * rng.nextLessThan(400) as u16);
-    engine.set_cylinders(4 + 2 * rng.nextLessThan(3) as u8);
-    engine.set_cc(800 + rng.nextLessThan(10000));
+    engine.set_horsepower(100 * rng.next_less_than(400) as u16);
+    engine.set_cylinders(4 + 2 * rng.next_less_than(3) as u8);
+    engine.set_cc(800 + rng.next_less_than(10000));
     engine.set_uses_gas(true);
     engine.set_uses_electric(rng.gen());
 
-    car.set_fuel_capacity((10.0 + rng.nextDouble(30.0)) as f32);
-    car.set_fuel_level(rng.nextDouble(car.get_fuel_capacity() as f64) as f32);
+    car.set_fuel_capacity((10.0 + rng.next_double(30.0)) as f32);
+    car.set_fuel_level(rng.next_double(car.get_fuel_capacity() as f64) as f32);
     car.set_has_power_windows(rng.gen());
     car.set_has_power_steering(rng.gen());
     car.set_has_cruise_control(rng.gen());
-    car.set_cup_holders(rng.nextLessThan(12) as u8);
+    car.set_cup_holders(rng.next_less_than(12) as u8);
     car.set_has_nav_system(rng.gen());
 }
 
 pub fn setup_request(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 {
     let mut result = 0;
-    let cars = request.init_cars(rng.nextLessThan(200) as uint);
+    let cars = request.init_cars(rng.next_less_than(200) as uint);
     for i in range(0, cars.size()) {
         let car = cars[i];
         random_car(rng, car);

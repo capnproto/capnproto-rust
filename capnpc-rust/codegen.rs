@@ -145,7 +145,7 @@ fn to_lines(ft : &FormattedText, indent : uint) -> Vec<String> {
         Line(ref s) => {
             let mut s1 = String::from_char(indent * 2, ' ');
             s1.push_str(s.as_slice());
-            return vec!(s1.into_owned());
+            return vec!(s1.into_string());
         }
         BlankLine => return vec!("".to_string())
     }
@@ -154,7 +154,7 @@ fn to_lines(ft : &FormattedText, indent : uint) -> Vec<String> {
 fn stringify(ft : & FormattedText) -> String {
     let mut result = to_lines(ft, 0).connect("\n");
     result.push_str("\n");
-    return result.into_owned();
+    return result.into_string();
 }
 
 fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
