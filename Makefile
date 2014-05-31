@@ -1,5 +1,7 @@
 RUSTC = rustc -O
 
+CAPNP_INCLUDE_DIR=/usr/local/include
+
 CAPNP_SOURCES= \
     capnp/any.rs \
     capnp/arena.rs \
@@ -69,7 +71,8 @@ benchmark : capnpc-rust/capnpc-rust
 capnp-rpc : $(CAPNP_RPC_COMPILATION_MARKER)
 
 $(CAPNP_RPC_COMPILATION_MARKER) : capnpc-rust/capnpc-rust $(CAPNP_RPC_SOURCES)
-	capnp compile -o./capnpc-rust/capnpc-rust capnp-rpc/rpc.capnp capnp-rpc/rpc-twoparty.capnp
+	capnp compile -o./capnpc-rust/capnpc-rust:capnp-rpc --src-prefix=$(CAPNP_INCLUDE_DIR)/capnp \
+      $(CAPNP_INCLUDE_DIR)/capnp/rpc.capnp $(CAPNP_INCLUDE_DIR)/capnp/rpc-twoparty.capnp
 	$(RUSTC) -L. capnp-rpc/lib.rs
 	touch $(CAPNP_RPC_COMPILATION_MARKER)
 
