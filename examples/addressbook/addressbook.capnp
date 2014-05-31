@@ -1,6 +1,6 @@
 @0x9eb32e19f86ee174;
 
-using Cxx = import "/capnp/c++.capnp";
+using Cxx = import "../../capnp-rpc/c++.capnp";
 $Cxx.namespace("addressbook");
 
 struct Person {
