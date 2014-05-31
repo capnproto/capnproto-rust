@@ -13,7 +13,7 @@ use blob::*;
 use std;
 
 #[repr(u8)]
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum FieldSize {
     Void = 0,
     Bit = 1,
@@ -81,7 +81,7 @@ impl StructSize {
 
 pub mod WirePointerKind {
     #[repr(u8)]
-    #[deriving(Eq)]
+    #[deriving(PartialEq)]
     pub enum Type {
         Struct = 0,
         List = 1,

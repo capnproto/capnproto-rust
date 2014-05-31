@@ -2860,7 +2860,7 @@ pub mod ElementSize {
 
   #[repr(u16)]
   #[deriving(FromPrimitive)]
-  #[deriving(Eq)]
+  #[deriving(PartialEq)]
   pub enum Reader {
     Empty = 0,
     Bit = 1,

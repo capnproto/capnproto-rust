@@ -120,7 +120,7 @@ fn test_camel_to_snake_case() {
     assert_eq!(camel_to_snake_case("uint32Id"), "uint32_id".to_string());
 }
 
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 enum FormattedText {
     Indent(Box<FormattedText>),
     Branch(Vec<FormattedText>),
@@ -1185,7 +1185,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             output.push(Indent(box Branch(vec!(
                 Line("#[repr(u16)]".to_string()),
                 Line("#[deriving(FromPrimitive)]".to_string()),
-                Line("#[deriving(Eq)]".to_string()),
+                Line("#[deriving(PartialEq)]".to_string()),
                 Line("pub enum Reader {".to_string()),
                 Indent(box Branch(members)),
                 Line("}".to_string())))));

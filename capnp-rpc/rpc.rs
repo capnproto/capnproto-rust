@@ -185,16 +185,16 @@ impl <T> ImportTable<T> {
     }
 }
 
-#[deriving(Eq, TotalEq)]
+#[deriving(PartialEq, TotalEq)]
 struct ReverseU32 { val : u32 }
 
-impl ::core::cmp::Ord for ReverseU32 {
+impl ::core::cmp::PartialOrd for ReverseU32 {
     fn lt(&self, other : &ReverseU32) -> bool {
         self.val > other.val
     }
 }
 
-impl ::core::cmp::TotalOrd for ReverseU32 {
+impl ::core::cmp::Ord for ReverseU32 {
     fn cmp(&self, other : &ReverseU32) -> Ordering {
         if *self < *other { Less }
         else if *self > *other { Greater }
