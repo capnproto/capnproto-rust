@@ -2,8 +2,9 @@
 
 ## About
 
-[Cap'n Proto](http://kentonv.github.io/capnproto/) is a
-data interchange format designed for extreme efficiency.
+[Cap'n Proto](http://kentonv.github.io/capnproto/) is an
+extremely efficient protocol
+for sharing data and capabilities.
 
 capnproto-rust is a (work-in-progress) implementation of Cap'n Proto
 for [Rust](http://www.rust-lang.org).
@@ -13,7 +14,7 @@ for [Rust](http://www.rust-lang.org).
 You will need Cap'n Proto and
 an up-to-date version of Rust from the master branch.
 
-To build capnproto-rust, just type `make` in this directory. This
+To build capnproto-rust, type `make` in this directory. This
 should produce the library `libcapnp`, the compiler plugin
 `capnpc-rust`, and the sample program `addressbook`. You can run the
 sample program like this:
