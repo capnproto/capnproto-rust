@@ -52,9 +52,9 @@ pub fn main() -> Result<(), zmq::Error> {
             // there's a new observation waiting for us
 
             let frames = try!(capnp_zmq::recv(&mut subscriber));
-            let segments = capnp_zmq::frames_to_segments(frames);
+            let segments = capnp_zmq::frames_to_segments(frames.as_slice());
             let reader = capnp::message::SegmentArrayMessageReader::new(
-                segments,
+                segments.as_slice(),
                 capnp::message::DefaultReaderOptions);
             let obs = reader.get_root::<Observation::Reader>();
 

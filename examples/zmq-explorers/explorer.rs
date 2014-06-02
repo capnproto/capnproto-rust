@@ -2,7 +2,6 @@ use capnp;
 use capnp::message::MessageBuilder;
 use zmq;
 use std;
-use rand;
 use rand::Rng;
 use capnp_zmq;
 use explorers_capnp::Observation;
@@ -15,7 +14,7 @@ struct Pixel {
 }
 
 fn fudge(x : u8) -> u8 {
-    let error = rand::task_rng().gen_range::<i16>(-60, 60);
+    let error = std::rand::task_rng().gen_range::<i16>(-60, 60);
     let y = x as i16 + error;
     if y < 0 { return 0; }
     if y > 255 { return 255; }
@@ -25,7 +24,7 @@ fn fudge(x : u8) -> u8 {
 struct Image {
     width : u32,
     height : u32,
-    pixels : ~[Pixel]
+    pixels : Vec<Pixel>
 }
 
 impl Image {
@@ -39,23 +38,23 @@ impl Image {
                 let mut buffered = std::io::BufferedReader::new(reader);
                 match buffered.read_line() {
                     Ok(s) => {
-                        assert!(s.trim() == "P6");
+                        assert!(s.as_slice().trim() == "P6");
                     }
                     Err(_e) => fail!("premature end of file")
                 }
                 let (width, height) = match buffered.read_line() {
                     Ok(s) => {
-                        let dims : ~[&str] = s.split(' ').collect();
+                        let dims : Vec<&str> = s.as_slice().split(' ').collect();
                         if dims.len() != 2 { fail!("could not read dimensions") }
-                        (from_str::<u32>(dims[0].trim()).unwrap(), from_str::<u32>(dims[1].trim()).unwrap())
+                        (from_str::<u32>(dims.get(0).trim()).unwrap(), from_str::<u32>(dims.get(1).trim()).unwrap())
                     }
                     Err(_e) => { fail!("premature end of file") }
                 };
                 match buffered.read_line() {
-                    Ok(s) => { assert!(s.trim() == "255") }
+                    Ok(s) => { assert!(s.as_slice().trim() == "255") }
                     Err(_e) => fail!("premature end of file")
                 }
-                let mut result = Image { width : width, height : height, pixels : ~[] };
+                let mut result = Image { width : width, height : height, pixels : Vec::new() };
                 for _ in range(0, width * height) {
                     result.pixels.push(
                         Pixel {
@@ -72,7 +71,7 @@ impl Image {
     fn get_pixel(&self, x : u32, y : u32) -> Pixel {
         assert!(x < self.width);
         assert!(y < self.height);
-        self.pixels[((y * self.width) + x) as uint]
+        *self.pixels.get(((y * self.width) + x) as uint)
     }
 
     fn take_measurement(&self, x : f32, y : f32, obs : Observation::Builder) {
@@ -102,15 +101,15 @@ static WORDS : [&'static str, .. 20] = [
 
 // With small probability, add a gibberish warning to the observation.
 fn add_diagnostic<'a>(obs : Observation::Builder<'a>) {
-    let mut rng = rand::task_rng();
+    let mut rng = std::rand::task_rng();
     if rng.gen_range::<u16>(0, 3000) < 2 {
-        let mut warning = ~"";
-        warning.push_str(rng.choose(WORDS));
+        let mut warning = String::new();
+        warning.push_str(*rng.choose(WORDS).unwrap());
         warning.push_str(" ");
-        warning.push_str(rng.gen_ascii_str(8));
+        warning.push_str(rng.gen_ascii_chars().take(8).collect::<String>().as_slice());
         warning.push_str(" ");
-        warning.push_str(rng.choose(WORDS));
-        obs.init_diagnostic().set_warning(warning);
+        warning.push_str(*rng.choose(WORDS).unwrap());
+        obs.init_diagnostic().set_warning(warning.as_slice());
     }
 }
 
@@ -118,17 +117,17 @@ pub fn main () -> Result<(), zmq::Error> {
 
     let args = std::os::args();
     if args.len() != 3 {
-        println!("usage: {} explorer [filename]", args[0]);
+        println!("usage: {} explorer [filename]", args.get(0));
         return Ok(());
     }
 
-    let image = Image::load(&std::path::Path::new(args[2])).unwrap();
+    let image = Image::load(&std::path::Path::new(args.get(2).as_slice())).unwrap();
 
     let mut context = zmq::Context::new();
     let mut publisher = try!(context.socket(zmq::PUB));
     try!(publisher.connect("tcp://localhost:5555"));
 
-    let mut rng = rand::task_rng();
+    let mut rng = std::rand::task_rng();
     let mut x = rng.gen_range::<f32>(0.0, 1.0);
     let mut y = rng.gen_range::<f32>(0.0, 1.0);
 

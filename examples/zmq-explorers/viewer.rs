@@ -75,8 +75,8 @@ pub fn main() -> Result<(), zmq::Error> {
         try!(requester.send([], 0));
 
         let frames = try!(capnp_zmq::recv(&mut requester));
-        let segments = capnp_zmq::frames_to_segments(frames);
-        let reader = capnp::message::SegmentArrayMessageReader::new(segments,
+        let segments = capnp_zmq::frames_to_segments(frames.as_slice());
+        let reader = capnp::message::SegmentArrayMessageReader::new(segments.as_slice(),
                                                                     capnp::message::DefaultReaderOptions);
         let grid = reader.get_root::<Grid::Reader>();
 

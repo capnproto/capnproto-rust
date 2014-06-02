@@ -5,16 +5,16 @@ use zmq;
 
 fn slice_cast<'a, T, V>(s : &'a [T]) -> &'a [V] {
     unsafe {
-        std::cast::transmute(
+        std::mem::transmute(
             std::raw::Slice {data : s.as_ptr(),
                              len : s.len() * std::mem::size_of::<T>() / std::mem::size_of::<V>()  })
     }
 }
 
 
-pub fn frames_to_segments<'a>(frames : &'a [zmq::Message] ) -> ~ [&'a [capnp::common::Word]] {
+pub fn frames_to_segments<'a>(frames : &'a [zmq::Message] ) -> Vec<&'a [capnp::common::Word]> {
 
-    let mut result : ~ [&'a [capnp::common::Word]] = box [];
+    let mut result : Vec<&'a [capnp::common::Word]> = Vec::new();
 
     for frame in frames.iter() {
         unsafe {
@@ -25,15 +25,15 @@ pub fn frames_to_segments<'a>(frames : &'a [zmq::Message] ) -> ~ [&'a [capnp::co
             // TODO check whether bytes are aligned on a word boundary.
             // If not, copy them into a new buffer. Who will own that buffer?
 
-            result.push(std::cast::transmute(slice));
+            result.push(std::mem::transmute(slice));
         }
     }
 
     return result;
 }
 
-pub fn recv(socket : &mut zmq::Socket) -> Result<~[zmq::Message], zmq::Error> {
-    let mut frames = ~[];
+pub fn recv(socket : &mut zmq::Socket) -> Result<Vec<zmq::Message>, zmq::Error> {
+    let mut frames = Vec::new();
     loop {
         match socket.recv_msg(0) {
             Ok(m) => frames.push(m),
