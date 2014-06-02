@@ -185,7 +185,7 @@ impl <T> ImportTable<T> {
     }
 }
 
-#[deriving(PartialEq, TotalEq)]
+#[deriving(PartialEq, Eq)]
 struct ReverseU32 { val : u32 }
 
 impl ::core::cmp::PartialOrd for ReverseU32 {
