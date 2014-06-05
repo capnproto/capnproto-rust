@@ -7,6 +7,7 @@
 #![feature(globs)]
 #![feature(macro_rules)]
 #![feature(phase)]
+#![allow(experimental)]
 
 #![crate_id="capnp"]
 #![crate_type = "lib"]
