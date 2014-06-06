@@ -8,7 +8,6 @@
 #![crate_id="capnp-rpc"]
 #![crate_type="lib"]
 
-extern crate collections;
 extern crate core;
 extern crate capnp;
 extern crate sync;

@@ -5,7 +5,7 @@
  */
 
 use capnp;
-use collections;
+use std::collections;
 use std;
 use schema_capnp;
 

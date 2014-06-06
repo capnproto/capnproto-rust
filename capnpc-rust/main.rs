@@ -9,7 +9,6 @@
 #![crate_id="capnpc-rust"]
 #![crate_type = "bin"]
 
-extern crate collections;
 extern crate capnp;
 
 pub mod schema_capnp;

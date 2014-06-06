@@ -16,8 +16,8 @@ use capnp::OwnedSpaceMessageReader;
 use std;
 use std::any::AnyRefExt;
 use std::vec::Vec;
-use collections::hashmap::HashMap;
-use collections::priority_queue::PriorityQueue;
+use std::collections::hashmap::HashMap;
+use std::collections::priority_queue::PriorityQueue;
 use sync::{Arc, Mutex};
 
 use rpc_capnp::{Message, Return, CapDescriptor, MessageTarget, Payload, PromisedAnswer};
