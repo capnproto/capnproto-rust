@@ -13,7 +13,7 @@
 #![crate_type = "lib"]
 
 // import logging macros
-#[phase(syntax, link)] extern crate log;
+#[phase(plugin, link)] extern crate log;
 extern crate libc;
 
 #[cfg(test)]
