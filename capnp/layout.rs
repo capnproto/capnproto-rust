@@ -982,7 +982,7 @@ mod WireHelpers {
             let mut ptr = follow_builder_fars(&mut reff, orig_ref_target, &mut segment);
 
             require!((*reff).kind() == WirePointerKind::List, (*segment).reader,
-                     "Called get_list_\\{field,element\\}() but existing pointer is not a list",
+                     "Called get_list_{{field,element}}() but existing pointer is not a list",
                      continue 'use_default);
 
             let old_size = (*reff).list_ref().element_size();
@@ -1092,7 +1092,7 @@ mod WireHelpers {
             let mut old_ptr = follow_builder_fars(&mut old_ref, orig_ref_target, &mut old_segment);
 
             require!((*old_ref).kind() == WirePointerKind::List, (*old_segment).reader,
-                     "Called getList\\{Field,Element\\} but existing pointer is not a list.",
+                     "Called getList{{Field,Element}} but existing pointer is not a list.",
                      continue 'use_default);
 
             let old_size = (*old_ref).list_ref().element_size();
@@ -1203,10 +1203,10 @@ mod WireHelpers {
         let ptr = follow_builder_fars(&mut reff, ref_target, &mut segment);
 
         require!((*reff).kind() == WirePointerKind::List, (*segment).reader,
-                "Called getText\\{Field,Element\\}() but existing pointer is not a list.",
+                "Called getText{{Field,Element}}() but existing pointer is not a list.",
                  return use_default(reff, segment, default_value, default_size));
         require!((*reff).list_ref().element_size() == Byte, (*segment).reader,
-                "Called getText\\{Field,Element\\}() but existing list pointer is not byte-sized.",
+                "Called getText{{Field,Element}}() but existing list pointer is not byte-sized.",
                  return use_default(reff, segment, default_value, default_size));
 
         //# Subtract 1 from the size for the NUL terminator.
@@ -1264,10 +1264,10 @@ mod WireHelpers {
         let ptr = follow_builder_fars(&mut reff, ref_target, &mut segment);
 
         require!((*reff).kind() == WirePointerKind::List, (*segment).reader,
-                 "Called getData\\{Field,Element\\}() but existing pointer is not a list.",
+                 "Called getData{{Field,Element}}() but existing pointer is not a list.",
                  return use_default(reff, segment, default_value, default_size));
         require!((*reff).list_ref().element_size() == Byte, (*segment).reader,
-                 "Called getData\\{Field,Element\\}() but existing list pointer is not byte-sized.",
+                 "Called getData{{Field,Element}}() but existing list pointer is not byte-sized.",
                  return use_default(reff, segment, default_value, default_size));
 
         return Data::new_builder(std::mem::transmute(ptr), (*reff).list_ref().element_count());

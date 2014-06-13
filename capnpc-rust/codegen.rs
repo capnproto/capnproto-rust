@@ -738,7 +738,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
     match maybe_reader_type {
         Some(reader_type) => {
             result.push(Line("#[inline]".to_string()));
-            result.push(Line(format!("pub fn set_{}{}(&self, {} : {}) \\{",
+            result.push(Line(format!("pub fn set_{}{}(&self, {} : {}) {{",
                                      styled_name, setter_lifetime_param, setter_param, reader_type)));
             result.push(Indent(box Branch(setter_interior)));
             result.push(Line("}".to_string()));
@@ -749,7 +749,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
         Some(builder_type) => {
             result.push(Line("#[inline]".to_string()));
             let args = initter_params.connect(", ");
-            result.push(Line(format!("pub fn init_{}(&self, {}) -> {} \\{",
+            result.push(Line(format!("pub fn init_{}(&self, {}) -> {} {{",
                                      styled_name, args, builder_type)));
             result.push(Indent(box Branch(initter_interior)));
             result.push(Line("}".to_string()));
@@ -795,7 +795,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
         let (ty, get) = getter_text(node_map, scope_map, field, is_reader);
 
         getter_interior.push(Branch(vec!(
-                    Line(format!("{} => \\{", dvalue)),
+                    Line(format!("{} => {{", dvalue)),
                     Indent(box Line(format!("return std::option::Some({}(", enumerantName.clone()))),
                     Indent(box Indent(box get)),
                     Indent(box Line("));".to_string())),
@@ -832,7 +832,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
     getter_interior.push(Line("_ => return std::option::None".to_string()));
 
     interior.push(
-        Branch(vec!(Line(format!("pub enum {} \\{", enum_name)),
+        Branch(vec!(Line(format!("pub enum {} {{", enum_name)),
                     Indent(box Branch(enum_interior)),
                     Line("}".to_string()))));
 
@@ -860,10 +860,10 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
 
     let getter_result =
         Branch(vec!(Line("#[inline]".to_string()),
-                    Line(format!("pub fn which(&self) -> std::option::Option<{}> \\{",
+                    Line(format!("pub fn which(&self) -> std::option::Option<{}> {{",
                                  concrete_type)),
                     Indent(box Branch(vec!(
-                        Line(format!("match self.{}.get_data_field::<u16>({}) \\{", field_name, doffset)),
+                        Line(format!("match self.{}.get_data_field::<u16>({}) {{", field_name, doffset)),
                         Indent(box Branch(getter_interior)),
                         Line("}".to_string())))),
                     Line("}".to_string())));
@@ -887,7 +887,7 @@ fn generate_haser(discriminant_offset : u32,
     let discriminant_value = field.get_discriminant_value();
     if discriminant_value != Field::NO_DISCRIMINANT {
        interior.push(
-            Line(format!("if self.{}.get_data_field::<u16>({}) != {} \\{ return false; \\}",
+            Line(format!("if self.{}.get_data_field::<u16>({}) != {} {{ return false; }}",
                          member,
                          discriminant_offset as uint,
                          discriminant_value as uint)));
@@ -903,7 +903,7 @@ fn generate_haser(discriminant_offset : u32,
                         Line(format!("!self.{}.get_pointer_field({}).is_null()",
                                      member, reg_field.get_offset())));
                     result.push(
-                        Line(format!("pub fn has_{}(&self) -> bool \\{", styled_name)));
+                        Line(format!("pub fn has_{}(&self) -> bool {{", styled_name)));
                     result.push(
                         Indent(box Branch(interior)));
                     result.push(Line("}".to_string()));
@@ -927,7 +927,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
             let theMod = scope_map.get(&group.get_type_id()).connect("::");
-            return Branch(vec!(Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
+            return Branch(vec!(Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
                                             camel_to_snake_case(name),
                                             theMod)),
                                Indent(box Line("FromTypelessPipeline::new(self._typeless.noop())".to_string())),
@@ -939,7 +939,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
                 Some(Type::Struct(st)) => {
                     let theMod = scope_map.get(&st.get_type_id()).connect("::");
                     return Branch(vec!(
-                        Line(format!("pub fn get_{}(&self) -> {}::Pipeline \\{",
+                        Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
                                      camel_to_snake_case(name),
                                      theMod)),
                         Indent(box Line(
@@ -950,7 +950,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
                 Some(Type::Interface(interface)) => {
                     let theMod = scope_map.get(&interface.get_type_id()).connect("::");
                     return Branch(vec!(
-                        Line(format!("pub fn get_{}(&self) -> {}::Client \\{",
+                        Line(format!("pub fn get_{}(&self) -> {}::Client {{",
                                      camel_to_snake_case(name),
                                      theMod)),
                         Indent(box Line(
@@ -992,7 +992,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
         Some(Node::Struct(struct_reader)) => {
             output.push(BlankLine);
-            output.push(Line(format!("pub mod {} \\{", node_name)));
+            output.push(Line(format!("pub mod {} {{", node_name)));
 
             let mut preamble = Vec::new();
             let mut builder_members = Vec::new();
@@ -1021,7 +1021,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 preamble.push(
                    Indent(
                       box Line(
-                        format!("layout::StructSize \\{ data : {}, pointers : {}, preferred_list_encoding : layout::{}\\};",
+                        format!("layout::StructSize {{ data : {}, pointers : {}, preferred_list_encoding : layout::{}}};",
                              dataSize as uint, pointerSize as uint,
                              element_size_str(preferred_list_encoding)))));
                 preamble.push(BlankLine);
@@ -1045,7 +1045,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                     reader_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, ty)),
+                            Line(format!("pub fn get_{}(&self) -> {} {{", styled_name, ty)),
                             Indent(box get),
                             Line("}".to_string()))));
 
@@ -1054,7 +1054,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                     builder_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(&self) -> {} \\{", styled_name, tyB)),
+                            Line(format!("pub fn get_{}(&self) -> {} {{", styled_name, tyB)),
                             Indent(box getB),
                             Line("}".to_string()))));
 
@@ -1168,7 +1168,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
         Some(Node::Enum(enumReader)) => {
             let names = scope_map.get(&node_id);
             output.push(BlankLine);
-            output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
+            output.push(Line(format!("pub mod {} {{", *names.last().unwrap())));
 
             output.push(Indent(box Line("use capnp::list::{ToU16};".to_string())));
             output.push(BlankLine);
@@ -1261,7 +1261,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                             )));
 
                 client_impl_interior.push(
-                    Line(format!("pub fn {}_request(&self) -> Request<{}::Builder,{}::Reader,{}::Pipeline> \\{",
+                    Line(format!("pub fn {}_request(&self) -> Request<{}::Builder,{}::Reader,{}::Pipeline> {{",
                                  camel_to_snake_case(name), params_name, results_name, results_name)));
 
                 client_impl_interior.push(Indent(
@@ -1325,7 +1325,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                             Indent(box Branch(client_impl_interior)),
                             Line("}".to_string()))));
 
-            mod_interior.push(Branch(vec!(Line(format!("pub trait Server {} \\{", server_base)),
+            mod_interior.push(Branch(vec!(Line(format!("pub trait Server {} {{", server_base)),
                                           Indent(box Branch(server_interior)),
                                           Line("}".to_string()))));
 
@@ -1363,7 +1363,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
 
             output.push(BlankLine);
-            output.push(Line(format!("pub mod {} \\{", *names.last().unwrap())));
+            output.push(Line(format!("pub mod {} {{", *names.last().unwrap())));
             output.push(Indent(box Branch(mod_interior)));
             output.push(Line("}".to_string()));
         }
