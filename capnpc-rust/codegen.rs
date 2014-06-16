@@ -1294,7 +1294,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             mod_interior.push(
                 Branch(vec!(
                     Line("impl FromClientHook for Client {".to_string()),
-                    Indent(box Line("fn new(hook : Box<ClientHook:Send>) -> Client {".to_string())),
+                    Indent(box Line("fn new(hook : Box<ClientHook+Send>) -> Client {".to_string())),
                     Indent(box Indent(box Line("Client { client : capability::Client::new(hook) }".to_string()))),
                     Indent(box Line("}".to_string())),
                     Line("}".to_string()))));

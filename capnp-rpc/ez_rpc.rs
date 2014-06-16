@@ -68,12 +68,12 @@ impl EzRpcClient {
 }
 
 enum ExportEvent {
-    ExportEventRestore(String, std::comm::Sender<Option<Box<ClientHook:Send>>>),
-    ExportEventRegister(String, Box<Server:Send>),
+    ExportEventRestore(String, std::comm::Sender<Option<Box<ClientHook+Send>>>),
+    ExportEventRegister(String, Box<Server+Send>),
 }
 
 struct ExportedCaps {
-    objects : HashMap<String, Box<ClientHook:Send>>,
+    objects : HashMap<String, Box<ClientHook+Send>>,
 }
 
 impl ExportedCaps {
@@ -86,7 +86,7 @@ impl ExportedCaps {
                 loop {
                     match port.recv_opt() {
                         Ok(ExportEventRegister(name, server)) => {
-                            vat.objects.insert(name, box LocalClient::new(server) as Box<ClientHook:Send>);
+                            vat.objects.insert(name, box LocalClient::new(server) as Box<ClientHook+Send>);
                         }
                         Ok(ExportEventRestore(name, return_chan)) => {
                             return_chan.send(Some((*vat.objects.get(&name)).copy()));
@@ -111,7 +111,7 @@ impl Restorer {
 }
 
 impl SturdyRefRestorer for Restorer {
-    fn restore(&self, obj_id : AnyPointer::Reader) -> Option<Box<ClientHook:Send>> {
+    fn restore(&self, obj_id : AnyPointer::Reader) -> Option<Box<ClientHook+Send>> {
         let (tx, rx) = std::comm::channel();
         self.sender.send(ExportEventRestore(obj_id.get_as_text().to_string(), tx));
         return rx.recv();
@@ -139,7 +139,7 @@ impl EzRpcServer {
         Ok(EzRpcServer { sender : sender, tcp_acceptor : tcp_acceptor  })
     }
 
-    pub fn export_cap(&self, name : &str, server : Box<Server:Send>) {
+    pub fn export_cap(&self, name : &str, server : Box<Server+Send>) {
         self.sender.send(ExportEventRegister(name.to_string(), server))
     }
 

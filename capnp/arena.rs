@@ -109,7 +109,7 @@ pub struct ReaderArena {
     pub more_segments : Vec<SegmentReader>,
     //XXX should this be a map as in capnproto-c++?
 
-    pub cap_table : Vec<Option<Box<ClientHook:Send>>>,
+    pub cap_table : Vec<Option<Box<ClientHook+Send>>>,
 
     pub fail_fast : bool,
 }
@@ -158,7 +158,7 @@ impl ReaderArena {
     }
 
     #[inline]
-    pub fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook:Send>>>) {
+    pub fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook+Send>>>) {
         self.cap_table = cap_table;
     }
 
@@ -170,7 +170,7 @@ pub struct BuilderArena {
     pub allocation_strategy : message::AllocationStrategy,
     pub owned_memory : Vec<*mut Word>,
     pub nextSize : uint,
-    pub cap_table : Vec<Option<Box<ClientHook:Send>>>,
+    pub cap_table : Vec<Option<Box<ClientHook+Send>>>,
     pub fail_fast : bool,
 }
 
@@ -305,11 +305,11 @@ impl BuilderArena {
         }
     }
 
-    pub fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook:Send>>] {
+    pub fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
         self.cap_table.as_slice()
     }
 
-    pub fn inject_cap(&mut self, cap : Box<ClientHook:Send>) -> u32 {
+    pub fn inject_cap(&mut self, cap : Box<ClientHook+Send>) -> u32 {
         self.cap_table.push(Some(cap));
         self.cap_table.len() as u32 - 1
     }
@@ -342,7 +342,7 @@ impl ArenaPtr {
         }
     }
 
-    pub fn extract_cap(&self, index : uint) -> Option<Box<ClientHook:Send>> {
+    pub fn extract_cap(&self, index : uint) -> Option<Box<ClientHook+Send>> {
         unsafe {
             match self {
                 &ReaderArenaPtr(reader) => {

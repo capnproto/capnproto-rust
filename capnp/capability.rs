@@ -12,8 +12,8 @@ use std;
 use std::vec::Vec;
 
 pub struct ResultFuture<Results, Pipeline> {
-    pub answer_port : std::comm::Receiver<Box<ResponseHook:Send>>,
-    pub answer_result : Result<Box<ResponseHook:Send>, ()>,
+    pub answer_port : std::comm::Receiver<Box<ResponseHook+Send>>,
+    pub answer_result : Result<Box<ResponseHook+Send>, ()>,
     pub pipeline : Pipeline,
 }
 
@@ -44,24 +44,24 @@ impl <Params, Results, Pipeline : FromTypelessPipeline> Request <Params, Results
 }
 
 pub trait FromClientHook {
-    fn new(Box<ClientHook:Send>) -> Self;
+    fn new(Box<ClientHook+Send>) -> Self;
 }
 
 pub trait ClientHook : Send {
-    fn copy(&self) -> Box<ClientHook:Send>;
+    fn copy(&self) -> Box<ClientHook+Send>;
     fn new_call(&self,
                 interface_id : u64,
                 method_id : u16,
                 size_hint : Option<MessageSize>)
                 -> Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline>;
-    fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook:Send>);
+    fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>);
 
     // HACK
     fn get_descriptor(&self) -> Box<std::any::Any>;
 }
 
 pub trait ServerHook {
-    fn new_client(unused : Option<Self>, server : Box<Server:Send>) -> Client;
+    fn new_client(unused : Option<Self>, server : Box<Server+Send>) -> Client;
 }
 
 pub trait FromServer<T, U> {
@@ -69,11 +69,11 @@ pub trait FromServer<T, U> {
 }
 
 pub struct Client {
-    pub hook : Box<ClientHook:Send>
+    pub hook : Box<ClientHook+Send>
 }
 
 impl Client {
-    pub fn new(hook : Box<ClientHook:Send>) -> Client {
+    pub fn new(hook : Box<ClientHook+Send>) -> Client {
         Client { hook : hook }
     }
 
@@ -88,7 +88,7 @@ impl Client {
 }
 
 pub struct CallContext<Params, Results> {
-    pub hook : Box<CallContextHook:Send>,
+    pub hook : Box<CallContextHook+Send>,
 }
 
 impl <Params, Results> CallContext<Params, Results> {
@@ -126,7 +126,7 @@ pub fn internal_get_typed_context<Params, Results>(
 
 pub trait PipelineHook {
     fn copy(&self) -> Box<PipelineHook>;
-    fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> Box<ClientHook:Send>;
+    fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> Box<ClientHook+Send>;
 }
 
 pub mod PipelineOp {

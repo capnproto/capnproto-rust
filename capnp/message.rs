@@ -69,7 +69,7 @@ pub trait MessageReader {
         self.get_root_internal().get_as_struct()
     }
 
-    fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook:Send>>>) {
+    fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook+Send>>>) {
         self.mut_arena().init_cap_table(cap_table);
     }
 }
@@ -191,7 +191,7 @@ pub trait MessageBuilder {
         self.arena().get_segments_for_output(cont)
     }
 
-    fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook:Send>>] {
+    fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
         self.arena().get_cap_table()
     }
 }
