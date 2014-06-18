@@ -1687,15 +1687,15 @@ mod WireHelpers {
                     //# case where we expected a list of some primitive or
                     //# pointer type.
 
-                    let expectedDataBitsPerElement =
+                    let expected_data_bits_per_element =
                         data_bits_per_element(expectedElementSize);
-                    let expectedPointersPerElement =
+                    let expected_pointers_per_element =
                         pointers_per_element(expectedElementSize);
 
-                    require!(expectedDataBitsPerElement <= data_size, *segment,
-                             "Message contains list with imcompatible element type.",
+                    require!(expected_data_bits_per_element <= data_size, *segment,
+                             "Message contains list with incompatible element type.",
                              continue 'use_default);
-                    require!(expectedPointersPerElement <= pointer_count, *segment,
+                    require!(expected_pointers_per_element <= pointer_count, *segment,
                              "Message contains list with incompatible element type",
                              continue 'use_default);
 
