@@ -8,6 +8,7 @@
 #![feature(macro_rules)]
 #![feature(phase)]
 #![allow(experimental)]
+#![feature(unsafe_destructor)]
 
 #![crate_id="capnp"]
 #![crate_type = "lib"]
