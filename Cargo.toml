@@ -1,0 +1,15 @@
+[package]
+
+name = "capnp"
+version = "0.1.0"
+authors = [ "dwrenshaw@gmail.com" ]
+
+[[lib]]
+
+name = "capnp"
+path = "capnp/lib.rs"
+
+[[bin]]
+
+name = "capnpc-rust"
+path = "capnpc-rust/main.rs"
