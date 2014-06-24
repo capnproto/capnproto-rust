@@ -86,7 +86,8 @@ pub fn handle_request(request : SearchResultList::Reader,
         scoredResults.push(ScoredResult {score : score, result : result});
     }
 
-    scoredResults.sort_by(|v1, v2| { if v1.score < v2.score { std::cmp::Less } else { std::cmp::Greater } });
+    // sort in decreasing order
+    scoredResults.sort_by(|v1, v2| { if v1.score < v2.score { std::cmp::Greater } else { std::cmp::Less } });
 
     let list = response.init_results(scoredResults.len());
     for i in range(0, list.size()) {
