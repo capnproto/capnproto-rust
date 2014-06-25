@@ -8,22 +8,32 @@ use rand::*;
 use std::i32;
 
 pub struct FastRand {
-    state : u32
+    x : u32,
+    y : u32,
+    z : u32,
+    w : u32,
 }
 
 impl Rng for FastRand {
     #[inline]
     fn next_u32(&mut self) -> u32 {
-        let a = 1664525;
-        let c = 1013904223;
-        self.state = a * self.state + c;
-        self.state
+        let tmp = self.x ^ (self.x << 11);
+        self.x = self.y;
+        self.y = self.z;
+        self.z = self.w;
+        self.w = self.w ^ (self.w >> 19) ^ tmp ^ (tmp >> 8);
+        return self.w;
     }
 }
 
 impl FastRand {
     pub fn new() -> FastRand {
-        FastRand {state : 1013904223}
+        FastRand {
+            x : 0x1d2acd47,
+            y : 0x58ca3e14,
+            z : 0xf563f232,
+            w : 0x0bc76199,
+        }
     }
 
     #[inline]
