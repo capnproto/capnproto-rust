@@ -415,11 +415,10 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                             Line(format!("AnyPointer::{}::new(self.{}.get_pointer_field({}))",
                                          module, member, offset)))
                 }
-                /* XXX uncomment this once pattern matching is unbroken, see #15086
                 None => {
                     // XXX should probably silently ignore, instead.
                     fail!("unrecognized type")
-                } */
+                }
                 _ => {
                     fail!("default value was of wrong type");
                 }

@@ -73,7 +73,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                     tag = *inPtr;
                     inPtr = inPtr.offset(1);
 
-                    for i in range(0, 8) {
+                    for i in range(0u, 8) {
                         if (tag & (1u8 << i)) != 0 {
                             if ptr_sub(inEnd, inPtr) == 0 {
                                 refresh_buffer!(self.inner, size, inPtr, inEnd,
@@ -96,7 +96,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                     tag = *inPtr;
                     inPtr = inPtr.offset(1);
 
-                    for n in range(0, 8) {
+                    for n in range(0u, 8) {
                         let isNonzero = (tag & (1 as u8 << n)) != 0;
                         *out = (*inPtr) & ((-(isNonzero as i8)) as u8);
                         out = out.offset(1);
@@ -301,7 +301,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     while inPtr < limit {
                         let mut c = 0;
 
-                        for _ in range(0,8) {
+                        for _ in range(0u, 8) {
                             c += (*inPtr == 0) as u8;
                             inPtr = inPtr.offset(1);
                         }

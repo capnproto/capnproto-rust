@@ -2095,7 +2095,7 @@ impl <'a> StructReader<'a>  {
             }
             unsafe {
                 let b : *u8 = self.data.offset((boffset as uint / BITS_PER_BYTE) as int);
-                ((*b) & (1 << (boffset % BITS_PER_BYTE as u32 ))) != 0
+                ((*b) & (1u8 << (boffset as u32 % BITS_PER_BYTE as u32) as uint)) != 0
             }
         } else {
             false
