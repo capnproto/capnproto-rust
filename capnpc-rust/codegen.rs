@@ -1281,7 +1281,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                     let the_mod = scope_map.get(&base_id).connect("::");
                     base_dispatch_arms.push(
                         Line(format!(
-                                "0x{:x} => {}::ServerDispatch::<T>::dispatch_call_internal(self.server, method_id, context),",
+                                "0x{:x} => {}::ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),",
                                 base_id, the_mod)));
                     base_traits.push(format!("{}::Server", the_mod));
                 }
@@ -1340,7 +1340,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                     Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {".to_string())),
                     Indent(box Indent(box Line("match interface_id {".to_string()))),
                     Indent(box Indent(box Indent(
-                        box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(self.server, method_id, context),",
+                        box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),",
                                                      node_id))))),
                     Indent(box Indent(box Indent(box Branch(base_dispatch_arms)))),
                     Indent(box Indent(box Indent(box Line("_ => {}".to_string())))),

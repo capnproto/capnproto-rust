@@ -401,7 +401,7 @@ impl RpcConnectionState {
                             PromisedAnswerReceiver(AnswerId, Vec<PipelineOp::Type>),
                         }
 
-                        populate_cap_table(message, &rpc_chan, &answers);
+                        populate_cap_table(&mut *message, &rpc_chan, &answers);
                         let root = message.get_root::<Message::Reader>();
                         let receiver = match root.which() {
                             Some(Message::Unimplemented(_)) => {
@@ -867,7 +867,7 @@ impl RequestHook for RpcRequest {
     }
     fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline> {
         let box RpcRequest { channel, mut message, question_ref : _ } = self;
-        write_outgoing_cap_table(&channel, message);
+        write_outgoing_cap_table(&channel, &mut *message);
 
         let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
         channel.send(Outgoing(outgoing));
@@ -1045,7 +1045,7 @@ impl CallContextHook for RpcCallContext {
     fn done(~self) {
         let box RpcCallContext { params_message : _, mut results_message, rpc_chan, mut aborter} = self;
         aborter.succeeded = true;
-        write_outgoing_cap_table(&rpc_chan, results_message);
+        write_outgoing_cap_table(&rpc_chan, &mut *results_message);
 
         rpc_chan.send(ReturnEvent(results_message));
     }
