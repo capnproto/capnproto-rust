@@ -56,7 +56,7 @@ pub trait MessageReader {
 
     fn get_root_internal<'a> (&'a self) -> AnyPointer::Reader<'a> {
         unsafe {
-            let segment : *SegmentReader = &self.arena().segment0;
+            let segment : *const SegmentReader = &self.arena().segment0;
 
             let pointer_reader = layout::PointerReader::get_root(
                 segment, (*segment).get_start_ptr(), self.get_options().nesting_limit as int);

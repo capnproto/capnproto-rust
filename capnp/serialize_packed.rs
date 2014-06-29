@@ -200,8 +200,8 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
             let mut bufferBegin = out;
             let mut slowBuffer : [u8,..20] = [0, ..20];
 
-            let mut inPtr : *u8 = inBuf.unsafe_ref(0);
-            let inEnd : *u8 = inBuf.unsafe_ref(inBuf.len());
+            let mut inPtr : *const u8 = inBuf.unsafe_ref(0);
+            let inEnd : *const u8 = inBuf.unsafe_ref(inBuf.len());
 
             while inPtr < inEnd {
 
@@ -270,18 +270,18 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     //# consecutive zero words (not including the first
                     //# one).
 
-                    let mut inWord : *u64 = std::mem::transmute(inPtr);
-                    let mut limit : *u64 = std::mem::transmute(inEnd);
+                    let mut inWord : *const u64 = std::mem::transmute(inPtr);
+                    let mut limit : *const u64 = std::mem::transmute(inEnd);
                     if ptr_sub(limit, inWord) > 255 {
                         limit = inWord.offset(255);
                     }
                     while inWord < limit && *inWord == 0 {
                         inWord = inWord.offset(1);
                     }
-                    *out = ptr_sub(inWord, std::mem::transmute::<*u8, *u64>(inPtr)) as u8;
+                    *out = ptr_sub(inWord, std::mem::transmute::<*const u8, *const u64>(inPtr)) as u8;
 
                     out = out.offset(1);
-                    inPtr = std::mem::transmute::<*u64, *u8>(inWord);
+                    inPtr = std::mem::transmute::<*const u64, *const u8>(inWord);
 
                 } else if tag == 0xff {
                     //# An all-nonzero word is followed by a count of
@@ -320,7 +320,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     if count <= ptr_sub(bufferEnd, out) {
                         //# There's enough space to memcpy.
 
-                        let src : *u8 = runStart;
+                        let src : *const u8 = runStart;
                         std::ptr::copy_nonoverlapping_memory(out, src, count);
 
                         out = out.offset(count as int);

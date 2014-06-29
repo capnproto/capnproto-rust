@@ -23,7 +23,7 @@ pub fn read_at_least<R : Reader>(reader : &mut R,
 
 pub trait BufferedInputStream : Reader {
     fn skip(&mut self, bytes : uint) -> IoResult<()>;
-    unsafe fn get_read_buffer(&mut self) -> IoResult<(*u8, *u8)>;
+    unsafe fn get_read_buffer(&mut self) -> IoResult<(*const u8, *const u8)>;
 }
 
 pub struct BufferedInputStreamWrapper<'a, R> {
@@ -69,14 +69,14 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
         Ok(())
     }
 
-    unsafe fn get_read_buffer(&mut self) -> IoResult<(*u8, *u8)> {
+    unsafe fn get_read_buffer(&mut self) -> IoResult<(*const u8, *const u8)> {
         if self.cap - self.pos == 0 {
             let n = try!(read_at_least(self.inner, self.buf.as_mut_slice(), 1));
             self.cap = n;
             self.pos = 0;
         }
-        Ok((self.buf.as_slice().unsafe_ref(self.pos) as *u8,
-            self.buf.as_slice().unsafe_ref(self.cap) as *u8))
+        Ok((self.buf.as_slice().unsafe_ref(self.pos) as *const u8,
+            self.buf.as_slice().unsafe_ref(self.cap) as *const u8))
     }
 }
 
@@ -142,10 +142,10 @@ impl <'a> BufferedInputStream for ArrayInputStream<'a> {
         self.array = self.array.slice_from(bytes);
         Ok(())
     }
-    unsafe fn get_read_buffer(&mut self) -> IoResult<(*u8, *u8)> {
+    unsafe fn get_read_buffer(&mut self) -> IoResult<(*const u8, *const u8)> {
         let len = self.array.len();
-        Ok((self.array.as_ptr() as *u8,
-           self.array.unsafe_ref(len) as *u8))
+        Ok((self.array.as_ptr() as *const u8,
+           self.array.unsafe_ref(len) as *const u8))
     }
 }
 

@@ -47,13 +47,13 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
     let firstWord = try!(inputStream.read_exact(8));
 
     let segmentCount : u32 =
-        unsafe {let p : *WireValue<u32> = std::mem::transmute(firstWord.as_ptr());
+        unsafe {let p : *const WireValue<u32> = std::mem::transmute(firstWord.as_ptr());
                 (*p).get() + 1
     };
 
     let segment0Size =
         if segmentCount == 0 { 0 } else {
-        unsafe {let p : *WireValue<u32> = std::mem::transmute(firstWord.as_slice().unsafe_ref(4));
+        unsafe {let p : *const WireValue<u32> = std::mem::transmute(firstWord.as_slice().unsafe_ref(4));
                 (*p).get()
         }
     };
@@ -70,7 +70,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
         let moreSizesRaw = try!(inputStream.read_exact((4 * (segmentCount & !1)) as uint));
         for ii in range(0, segmentCount as uint - 1) {
             let size = unsafe {
-                let p : *WireValue<u32> =
+                let p : *const WireValue<u32> =
                     std::mem::transmute(moreSizesRaw.as_slice().unsafe_ref(ii * 4));
                 (*p).get()
             };
@@ -153,7 +153,7 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
             }
 
             unsafe {
-                let ptr : *u8 = std::mem::transmute(table.as_ptr());
+                let ptr : *const u8 = std::mem::transmute(table.as_ptr());
                 try!(std::slice::raw::buf_as_slice::<u8,std::io::IoResult<()>>(ptr, table.len() * 4, |buf| {
                         output_stream.write(buf)
                     }));
@@ -161,7 +161,7 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
 
             for i in range(0, segments.len()) {
                 unsafe {
-                    let ptr : *u8 = std::mem::transmute(segments[i].as_ptr());
+                    let ptr : *const u8 = std::mem::transmute(segments[i].as_ptr());
                     try!(std::slice::raw::buf_as_slice::<u8,std::io::IoResult<()>>(
                         ptr,
                         segments[i].len() * BYTES_PER_WORD,

@@ -16,19 +16,19 @@ pub type SegmentId = u32;
 
 pub struct SegmentReader {
     pub arena : ArenaPtr,
-    pub ptr : *Word,
+    pub ptr : *const Word,
     pub size : WordCount
 }
 
 impl SegmentReader {
 
     #[inline]
-    pub unsafe fn get_start_ptr(&self) -> *Word {
+    pub unsafe fn get_start_ptr(&self) -> *const Word {
         self.ptr.offset(0)
     }
 
     #[inline]
-    pub fn contains_interval(&self, from : *Word, to : *Word) -> bool {
+    pub fn contains_interval(&self, from : *const Word, to : *const Word) -> bool {
         let thisBegin : uint = self.ptr.to_uint();
         let thisEnd : uint = unsafe { self.ptr.offset(self.size as int).to_uint() };
         return from.to_uint() >= thisBegin && to.to_uint() <= thisEnd && from.to_uint() <= to.to_uint();
@@ -149,11 +149,11 @@ impl ReaderArena {
         arena
     }
 
-    pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader {
+    pub fn try_get_segment(&self, id : SegmentId) -> *const SegmentReader {
         if id == 0 {
-            return &self.segment0 as *SegmentReader;
+            return &self.segment0 as *const SegmentReader;
         } else {
-            unsafe { self.more_segments.as_slice().unsafe_ref(id as uint - 1) as *SegmentReader }
+            unsafe { self.more_segments.as_slice().unsafe_ref(id as uint - 1) as *const SegmentReader }
         }
     }
 
@@ -207,7 +207,7 @@ impl BuilderArena {
         let mut result = box BuilderArena {
             segment0 : SegmentBuilder {
                 reader : SegmentReader {
-                    ptr : first_segment as * Word,
+                    ptr : first_segment as *const Word,
                     size : num_words,
                     arena : Null },
                 id : 0,
@@ -316,13 +316,13 @@ impl BuilderArena {
 }
 
 pub enum ArenaPtr {
-    ReaderArenaPtr(*ReaderArena),
+    ReaderArenaPtr(*const ReaderArena),
     BuilderArenaPtr(*mut BuilderArena),
     Null
 }
 
 impl ArenaPtr {
-    pub fn try_get_segment(&self, id : SegmentId) -> *SegmentReader {
+    pub fn try_get_segment(&self, id : SegmentId) -> *const SegmentReader {
         unsafe {
             match self {
                 &ReaderArenaPtr(reader) => {
@@ -330,9 +330,9 @@ impl ArenaPtr {
                 }
                 &BuilderArenaPtr(builder) => {
                     if id == 0 {
-                        &(*builder).segment0.reader as *SegmentReader
+                        &(*builder).segment0.reader as *const SegmentReader
                     } else {
-                        &(*builder).more_segments.as_slice()[id as uint - 1].reader as *SegmentReader
+                        &(*builder).more_segments.as_slice()[id as uint - 1].reader as *const SegmentReader
                     }
                 }
                 &Null => {
