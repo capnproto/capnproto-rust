@@ -188,19 +188,20 @@ impl <T> ImportTable<T> {
 #[deriving(PartialEq, Eq)]
 struct ReverseU32 { val : u32 }
 
-impl ::core::cmp::PartialOrd for ReverseU32 {
-    fn lt(&self, other : &ReverseU32) -> bool {
-        self.val > other.val
-    }
-}
-
 impl ::core::cmp::Ord for ReverseU32 {
     fn cmp(&self, other : &ReverseU32) -> Ordering {
-        if *self < *other { Less }
-        else if *self > *other { Greater }
+        if self.val > other.val { Less }
+        else if self.val < other.val { Greater }
         else { Equal }
     }
 }
+
+impl ::core::cmp::PartialOrd for ReverseU32 {
+    fn partial_cmp(&self, other : &ReverseU32) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 
 pub struct ExportTable<T> {
     slots : Vec<Option<T>>,
