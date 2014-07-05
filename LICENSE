@@ -1,4 +1,4 @@
-Copyright (c) 2013-2014, David Renshaw
+Copyright (c) 2013-2014, David Renshaw <dwrenshaw@gmail.com>
 
 Capnproto-rust is based on the original C++ implementation of Cap'n
 Proto, which is released under the below license. For simplicity,
