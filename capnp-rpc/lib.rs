@@ -5,7 +5,7 @@
  */
 
 
-#![crate_id="capnp-rpc"]
+#![crate_name="capnp-rpc"]
 #![crate_type="lib"]
 
 extern crate core;

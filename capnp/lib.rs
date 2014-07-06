@@ -10,7 +10,7 @@
 #![allow(experimental)]
 #![feature(unsafe_destructor)]
 
-#![crate_id="capnp"]
+#![crate_name="capnp"]
 #![crate_type = "lib"]
 
 // import logging macros

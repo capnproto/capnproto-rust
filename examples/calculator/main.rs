@@ -5,7 +5,7 @@
  */
 
 
-#![crate_id="calculator"]
+#![crate_name="calculator"]
 #![crate_type="bin"]
 
 extern crate capnp;

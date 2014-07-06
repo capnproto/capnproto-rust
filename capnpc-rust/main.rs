@@ -6,7 +6,7 @@
 
 #![feature(globs)]
 
-#![crate_id="capnpc-rust"]
+#![crate_name="capnpc-rust"]
 #![crate_type = "bin"]
 
 extern crate capnp;
