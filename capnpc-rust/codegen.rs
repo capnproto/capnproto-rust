@@ -170,15 +170,15 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
     let nested_nodes = node_reader.get_nested_nodes();
     for ii in range(0, nested_nodes.size()) {
         let mut scope_names = scope_names.clone();
-        scope_names.push(nested_nodes[ii].get_name().to_string());
-        populate_scope_map(node_map, scope_map, scope_names, nested_nodes[ii].get_id());
+        scope_names.push(nested_nodes.get(ii).get_name().to_string());
+        populate_scope_map(node_map, scope_map, scope_names, nested_nodes.get(ii).get_id());
     }
 
     match node_reader.which() {
         Some(schema_capnp::Node::Struct(struct_reader)) => {
             let fields = struct_reader.get_fields();
             for jj in range(0, fields.size()) {
-                let field = fields[jj];
+                let field = fields.get(jj);
                 match field.which() {
                     Some(schema_capnp::Field::Group(group)) => {
                         let name = capitalize_first_letter(field.get_name());
@@ -297,7 +297,6 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             }
         }
         Some(Field::Slot(reg_field)) => {
-
             let offset = reg_field.get_offset() as uint;
 
             let member = if isReader { "reader" } else { "builder" };
@@ -457,7 +456,7 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
             }
             let fields = st.get_fields();
             for ii in range(0, fields.size()) {
-                match fields[ii].which() {
+                match fields.get(ii).which() {
                     None => {fail!()}
                     Some(Field::Group(group)) => {
                         result.push(zero_fields_of_group(node_map, group.get_type_id()));
@@ -980,7 +979,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
     let node_reader = node_map.get(&node_id);
     let nested_nodes = node_reader.get_nested_nodes();
     for ii in range(0, nested_nodes.size()) {
-        let id = nested_nodes[ii].get_id();
+        let id = nested_nodes.get(ii).get_id();
         nested_output.push(generate_node(node_map, scope_map,
                                          id, scope_map.get(&id).last().unwrap().as_slice()));
     }
@@ -1032,7 +1031,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
             let fields = struct_reader.get_fields();
             for ii in range(0, fields.size()) {
-                let field = fields[ii];
+                let field = fields.get(ii);
                 let name = field.get_name();
                 let styled_name = camel_to_snake_case(name);
 
@@ -1042,7 +1041,6 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 if !isUnionField {
                     pipeline_impl_interior.push(generate_pipeline_getter(node_map, scope_map, field));
                     let (ty, get) = getter_text(node_map, scope_map, &field, true);
-
                     reader_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
@@ -1177,7 +1175,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let mut members = Vec::new();
             let enumerants = enumReader.get_enumerants();
             for ii in range(0, enumerants.size()) {
-                let enumerant = enumerants[ii];
+                let enumerant = enumerants.get(ii);
                 members.push(
                     Line(format!("{} = {},", capitalize_first_letter(enumerant.get_name()),
                               ii)));
@@ -1219,7 +1217,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
             let methods = interface.get_methods();
             for ordinal in range(0, methods.size()) {
-                let method = methods[ordinal];
+                let method = methods.get(ordinal);
                 let name = method.get_name();
 
                 method.get_code_order();
@@ -1277,7 +1275,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 let mut base_traits = Vec::new();
                 let extends = interface.get_extends();
                 for ii in range(0, extends.size()) {
-                    let base_id = extends[ii];
+                    let base_id = extends.get(ii);
                     let the_mod = scope_map.get(&base_id).connect("::");
                     base_dispatch_arms.push(
                         Line(format!(
@@ -1441,20 +1439,20 @@ pub fn main() -> std::io::IoResult<()> {
 
     let nodes = request.get_nodes();
     for ii in range(0, nodes.size()) {
-        node_map.insert(nodes[ii].get_id(), nodes[ii]);
+        node_map.insert(nodes.get(ii).get_id(), nodes.get(ii));
     }
 
     let files = request.get_requested_files();
 
     for ii in range(0, files.size()) {
-        let requested_file = files[ii];
+        let requested_file = files.get(ii);
         let id = requested_file.get_id();
         let mut filepath = std::path::Path::new(requested_file.get_filename());
 
 
         let imports = requested_file.get_imports();
         for jj in range(0, imports.size()) {
-            let import = imports[jj];
+            let import = imports.get(jj);
             let importpath = std::path::Path::new(import.get_name());
             let root_name : String = format!("::{}_capnp",
                                                importpath.filestem_str().unwrap().replace("-", "_"));
@@ -1474,6 +1472,7 @@ pub fn main() -> std::io::IoResult<()> {
                                 Line("#![allow(dead_code)]".to_string()),
                                 generate_node(&node_map, &scope_map,
                                               id, root_name.as_slice())));
+
 
         let text = stringify(&lines);
 

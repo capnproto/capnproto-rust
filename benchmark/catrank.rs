@@ -29,7 +29,7 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
     let list = request.init_results(count);
 
     for i in range(0, count) {
-        let result = list[i];
+        let result = list.get(i);
         result.set_score(1000.0 - i as f64);
         let url_size = rng.next_less_than(100) as uint;
 
@@ -75,7 +75,7 @@ pub fn handle_request(request : SearchResultList::Reader,
 
     let results = request.get_results();
     for i in range(0, results.size()) {
-        let result = results[i];
+        let result = results.get(i);
         let mut score = result.get_score();
         if result.get_snippet().contains(" cat ") {
             score *= 10000.0;
@@ -91,7 +91,7 @@ pub fn handle_request(request : SearchResultList::Reader,
 
     let list = response.init_results(scoredResults.len());
     for i in range(0, list.size()) {
-        let item = list[i];
+        let item = list.get(i);
         let result = scoredResults.get(i);
         item.set_score(result.score);
         item.set_url(result.result.get_url());
@@ -103,7 +103,7 @@ pub fn check_response(response : SearchResultList::Reader, expectedGoodCount : i
     let mut goodCount : int = 0;
     let results = response.get_results();
     for i in range(0, results.size()) {
-        let result = results[i];
+        let result = results.get(i);
         if result.get_score() > 1001.0 {
             goodCount += 1;
         } else {

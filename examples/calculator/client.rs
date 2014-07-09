@@ -20,7 +20,7 @@ impl Calculator::Function::Server for PowerFunction {
             //"Wrong number of parameters"
             return context.fail();
         };
-        results.set_value(params[0].powf(params[1]));
+        results.set_value(params.get(0).powf(params.get(1)));
         context.done();
     }
 }
@@ -90,13 +90,13 @@ pub fn main() {
         let subtract_call = request.init().get_expression().init_call();
         subtract_call.set_function(subtract);
         let subtract_params = subtract_call.init_params(2);
-        subtract_params[1].set_literal(67.0);
+        subtract_params.get(1).set_literal(67.0);
 
-        let add_call = subtract_params[0].init_call();
+        let add_call = subtract_params.get(0).init_call();
         add_call.set_function(add);
         let add_params = add_call.init_params(2);
-        add_params[0].set_literal(123.0);
-        add_params[1].set_literal(45.0);
+        add_params.get(0).set_literal(123.0);
+        add_params.get(1).set_literal(45.0);
 
         let eval_promise = request.send();
         let mut read_promise = eval_promise.pipeline.get_value().read_request().send();
@@ -135,8 +135,8 @@ pub fn main() {
         let multiply_call = request.init().get_expression().init_call();
         multiply_call.set_function(multiply);
         let multiply_params = multiply_call.init_params(2);
-        multiply_params[0].set_literal(4.0);
-        multiply_params[1].set_literal(6.0);
+        multiply_params.get(0).set_literal(4.0);
+        multiply_params.get(1).set_literal(6.0);
 
         let multiply_result = request.send().pipeline.get_value();
 
@@ -146,16 +146,16 @@ pub fn main() {
         let add3_call = add3_request.init().get_expression().init_call();
         add3_call.set_function(add.clone());
         let add3_params = add3_call.init_params(2);
-        add3_params[0].set_previous_result(multiply_result.clone());
-        add3_params[1].set_literal(3.0);
+        add3_params.get(0).set_previous_result(multiply_result.clone());
+        add3_params.get(1).set_literal(3.0);
         let mut add3_promise = add3_request.send().pipeline.get_value().read_request().send();
 
         let mut add5_request = calculator.evaluate_request();
         let add5_call = add5_request.init().get_expression().init_call();
         add5_call.set_function(add);
         let add5_params = add5_call.init_params(2);
-        add5_params[0].set_previous_result(multiply_result);
-        add5_params[1].set_literal(5.0);
+        add5_params.get(0).set_previous_result(multiply_result);
+        add5_params.get(1).set_literal(5.0);
         let mut add5_promise = add5_request.send().pipeline.get_value().read_request().send();
 
         assert!(add3_promise.wait().unwrap().get_value() == 27.0);
@@ -197,13 +197,13 @@ pub fn main() {
                 let add_call = def_function_params.get_body().init_call();
                 add_call.set_function(add.clone());
                 let add_params = add_call.init_params(2);
-                add_params[1].set_parameter(1);
+                add_params.get(1).set_parameter(1);
 
-                let multiply_call = add_params[0].init_call();
+                let multiply_call = add_params.get(0).init_call();
                 multiply_call.set_function(multiply.clone());
                 let multiply_params = multiply_call.init_params(2);
-                multiply_params[0].set_parameter(0);
-                multiply_params[1].set_literal(100.0);
+                multiply_params.get(0).set_parameter(0);
+                multiply_params.get(1).set_literal(100.0);
             }
             request.send().pipeline.get_func()
         };
@@ -216,18 +216,18 @@ pub fn main() {
                 let multiply_call = def_function_params.get_body().init_call();
                 multiply_call.set_function(multiply);
                 let multiply_params = multiply_call.init_params(2);
-                multiply_params[1].set_literal(2.0);
+                multiply_params.get(1).set_literal(2.0);
 
-                let f_call = multiply_params[0].init_call();
+                let f_call = multiply_params.get(0).init_call();
                 f_call.set_function(f.clone());
                 let f_params = f_call.init_params(2);
-                f_params[0].set_parameter(0);
+                f_params.get(0).set_parameter(0);
 
-                let add_call = f_params[1].init_call();
+                let add_call = f_params.get(1).init_call();
                 add_call.set_function(add);
                 let add_params = add_call.init_params(2);
-                add_params[0].set_parameter(0);
-                add_params[1].set_literal(1.0);
+                add_params.get(0).set_parameter(0);
+                add_params.get(1).set_literal(1.0);
             }
             request.send().pipeline.get_func()
         };
@@ -236,14 +236,14 @@ pub fn main() {
         let f_call = f_eval_request.init().init_expression().init_call();
         f_call.set_function(f);
         let f_params = f_call.init_params(2);
-        f_params[0].set_literal(12.0);
-        f_params[1].set_literal(34.0);
+        f_params.get(0).set_literal(12.0);
+        f_params.get(1).set_literal(34.0);
         let mut f_eval_promise = f_eval_request.send().pipeline.get_value().read_request().send();
 
         let mut g_eval_request = calculator.evaluate_request();
         let g_call = g_eval_request.init().init_expression().init_call();
         g_call.set_function(g);
-        g_call.init_params(1)[0].set_literal(21.0);
+        g_call.init_params(1).get(0).set_literal(21.0);
         let mut g_eval_promise = g_eval_request.send().pipeline.get_value().read_request().send();
 
         assert!(f_eval_promise.wait().unwrap().get_value() == 1234.0);
@@ -279,13 +279,13 @@ pub fn main() {
         let pow_call = request.init().get_expression().init_call();
         pow_call.set_function(FromServer::new(None::<LocalClient>, box PowerFunction));
         let pow_params = pow_call.init_params(2);
-        pow_params[0].set_literal(2.0);
+        pow_params.get(0).set_literal(2.0);
 
-        let add_call = pow_params[1].init_call();
+        let add_call = pow_params.get(1).init_call();
         add_call.set_function(add);
         let add_params = add_call.init_params(2);
-        add_params[0].set_literal(4.0);
-        add_params[1].set_literal(5.0);
+        add_params.get(0).set_literal(4.0);
+        add_params.get(1).set_literal(5.0);
 
         let response = request.send().pipeline.get_value().read_request()
                               .send().wait().unwrap();

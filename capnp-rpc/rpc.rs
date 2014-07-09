@@ -255,7 +255,7 @@ fn client_hooks_of_payload(payload : Payload::Reader,
     let mut result = Vec::new();
     let cap_table = payload.get_cap_table();
     for ii in range(0, cap_table.size()) {
-        match cap_table[ii].which() {
+        match cap_table.get(ii).which() {
             Some(CapDescriptor::None(())) => {
                 result.push(None)
             }
@@ -330,7 +330,7 @@ fn get_pipeline_ops(promised_answer : PromisedAnswer::Reader) -> Vec<PipelineOp:
     let mut result = Vec::new();
     let transform = promised_answer.get_transform();
     for ii in range(0, transform.size()) {
-        match transform[ii].which() {
+        match transform.get(ii).which() {
             Some(PromisedAnswer::Op::Noop(())) => result.push(PipelineOp::Noop),
             Some(PromisedAnswer::Op::GetPointerField(idx)) => result.push(PipelineOp::GetPointerField(idx)),
             None => {}
@@ -470,7 +470,7 @@ impl RpcConnectionState {
                                     ret.set_answer_id(answer_id);
                                     let payload = ret.init_results();
                                     payload.init_cap_table(1);
-                                    payload.get_cap_table()[0].set_sender_hosted(idx as u32);
+                                    payload.get_cap_table().get(0).set_sender_hosted(idx as u32);
                                     payload.get_content().set_as_capability(clienthook);
 
                                 }
@@ -709,8 +709,8 @@ impl ClientHook for PipelineClient {
             let transform = promised_answer.init_transform(self.ops.len());
             for ii in range(0, self.ops.len()) {
                 match self.ops.as_slice()[ii] {
-                    PipelineOp::Noop => transform[ii].set_noop(()),
-                    PipelineOp::GetPointerField(idx) => transform[ii].set_get_pointer_field(idx),
+                    PipelineOp::Noop => transform.get(ii).set_noop(()),
+                    PipelineOp::GetPointerField(idx) => transform.get(ii).set_get_pointer_field(idx),
                 }
             }
         }
@@ -779,21 +779,21 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
             match cap_table[ii].as_ref::<OwnedCapDescriptor>() {
                 Some(&NoDescriptor) => {}
                 Some(&ReceiverHosted(import_id)) => {
-                    new_cap_table[ii].set_receiver_hosted(import_id);
+                    new_cap_table.get(ii).set_receiver_hosted(import_id);
                 }
                 Some(&ReceiverAnswer(question_id,ref ops)) => {
-                    let promised_answer = new_cap_table[ii].init_receiver_answer();
+                    let promised_answer = new_cap_table.get(ii).init_receiver_answer();
                     promised_answer.set_question_id(question_id);
                     let transform = promised_answer.init_transform(ops.len());
                     for ii in range(0, ops.len()) {
                         match ops.as_slice()[ii] {
-                            PipelineOp::Noop => transform[ii].set_noop(()),
-                            PipelineOp::GetPointerField(idx) => transform[ii].set_get_pointer_field(idx),
+                            PipelineOp::Noop => transform.get(ii).set_noop(()),
+                            PipelineOp::GetPointerField(idx) => transform.get(ii).set_get_pointer_field(idx),
                         }
                     }
                 }
                 Some(&SenderHosted(export_id)) => {
-                    new_cap_table[ii].set_sender_hosted(export_id);
+                    new_cap_table.get(ii).set_sender_hosted(export_id);
                 }
                 None => {
                     match cap_table[ii].as_ref::<Box<ClientHook+Send>>() {
@@ -801,7 +801,7 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
                             let (chan, port) = std::comm::channel::<ExportId>();
                             rpc_chan.send(NewLocalServer(clienthook.copy(), chan));
                             let idx = port.recv();
-                            new_cap_table[ii].set_sender_hosted(idx);
+                            new_cap_table.get(ii).set_sender_hosted(idx);
                         }
                         None => fail!("noncompliant client hook"),
                     }

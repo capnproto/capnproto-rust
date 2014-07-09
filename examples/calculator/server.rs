@@ -50,7 +50,7 @@ fn evaluate_impl(
             match params {
                 None => {Err("bad parameter".to_string())}
                 Some(params) => {
-                    Ok(params[p as uint])
+                    Ok(params.get(p as uint))
                 }
             }
         }
@@ -59,7 +59,7 @@ fn evaluate_impl(
             let call_params = call.get_params();
             let mut param_values = Vec::new();
             for ii in range(0, call_params.size()) {
-                let x = try!(evaluate_impl(call_params[ii], params));
+                let x = try!(evaluate_impl(call_params.get(ii), params));
                 param_values.push(x);
             }
             let mut request = func.call_request();
@@ -120,10 +120,10 @@ impl Calculator::Function::Server for OperatorImpl {
         }
 
         let result = match self.op {
-            Calculator::Operator::Add => params[0] + params[1],
-            Calculator::Operator::Subtract => params[0] - params[1],
-            Calculator::Operator::Multiply => params[0] * params[1],
-            Calculator::Operator::Divide => params[0] / params[1],
+            Calculator::Operator::Add => params.get(0) + params.get(1),
+            Calculator::Operator::Subtract => params.get(0) - params.get(1),
+            Calculator::Operator::Multiply => params.get(0) * params.get(1),
+            Calculator::Operator::Divide => params.get(0) / params.get(1),
         };
 
         results.set_value(result);

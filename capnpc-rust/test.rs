@@ -49,10 +49,10 @@ mod tests {
         boolList.set(13, true);
         boolList.set(64, true);
 
-        assert!(boolList[0]);
-        assert!(!boolList[4]);
-        assert!(!boolList[63]);
-        assert!(boolList[64]);
+        assert!(boolList.get(0));
+        assert!(!boolList.get(4));
+        assert!(!boolList.get(63));
+        assert!(boolList.get(64));
 
         assert_eq!(testPrimList.has_void_list(), false);
         let voidList = testPrimList.init_void_list(1025);
@@ -63,31 +63,31 @@ mod tests {
         let testPrimListReader = testPrimList.as_reader();
         let uint8List = testPrimListReader.get_uint8_list();
         for i in range(0, uint8List.size()) {
-            assert_eq!(uint8List[i], i as u8);
+            assert_eq!(uint8List.get(i), i as u8);
         }
         let uint64List = testPrimListReader.get_uint64_list();
         for i in range(0, uint64List.size()) {
-            assert_eq!(uint64List[i], i as u64);
+            assert_eq!(uint64List.get(i), i as u64);
         }
 
         assert_eq!(testPrimListReader.has_bool_list(), true);
         let boolList = testPrimListReader.get_bool_list();
-        assert!(boolList[0]);
-        assert!(boolList[1]);
-        assert!(boolList[2]);
-        assert!(boolList[3]);
-        assert!(!boolList[4]);
-        assert!(boolList[5]);
-        assert!(!boolList[6]);
-        assert!(!boolList[7]);
-        assert!(boolList[8]);
-        assert!(!boolList[9]);
-        assert!(!boolList[10]);
-        assert!(!boolList[11]);
-        assert!(!boolList[12]);
-        assert!(boolList[13]);
-        assert!(!boolList[63]);
-        assert!(boolList[64]);
+        assert!(boolList.get(0));
+        assert!(boolList.get(1));
+        assert!(boolList.get(2));
+        assert!(boolList.get(3));
+        assert!(!boolList.get(4));
+        assert!(boolList.get(5));
+        assert!(!boolList.get(6));
+        assert!(!boolList.get(7));
+        assert!(boolList.get(8));
+        assert!(!boolList.get(9));
+        assert!(!boolList.get(10));
+        assert!(!boolList.get(11));
+        assert!(!boolList.get(12));
+        assert!(boolList.get(13));
+        assert!(!boolList.get(63));
+        assert!(boolList.get(64));
 
         assert_eq!(testPrimListReader.get_void_list().size(), 1025);
     }
@@ -103,13 +103,11 @@ mod tests {
 
         test_struct_list.init_struct_list(4);
         let struct_list = test_struct_list.get_struct_list();
-        struct_list[0].init_uint8_list(1).set(0, 5u8);
+        struct_list.get(0).init_uint8_list(1).set(0, 5u8);
 
-        // why does the next line pass the typechecker?
-//        struct_list[0].get_uint8_list()[0] = 6u8;
         {
             let reader = test_struct_list.as_reader();
-            assert_eq!(reader.get_struct_list()[0].get_uint8_list()[0], 5u8);
+            assert_eq!(reader.get_struct_list().get(0).get_uint8_list().get(0), 5u8);
         }
     }
 
@@ -259,53 +257,53 @@ mod tests {
         data_list_list.init(0,1).set(0, [255, 254, 253]);
 
         let struct_list_list = test_complex_list.init_struct_list_list(1);
-        struct_list_list.init(0,1)[0].set_int8_field(-1);
+        struct_list_list.init(0,1).get(0).set_int8_field(-1);
 
 
         let complex_list_reader = test_complex_list.as_reader();
         let enumListReader = complex_list_reader.get_enum_list();
         for i in range::<uint>(0,10) {
-            assert!(enumListReader[i] == Some(AnEnum::Qux));
+            assert!(enumListReader.get(i) == Some(AnEnum::Qux));
         }
         for i in range::<uint>(10,20) {
-            assert!(enumListReader[i] == Some(AnEnum::Bar));
+            assert!(enumListReader.get(i) == Some(AnEnum::Bar));
         }
 
         let text_list = complex_list_reader.get_text_list();
         assert_eq!(text_list.size(), 2);
-        assert_eq!(text_list[0], "garply");
-        assert_eq!(text_list[1], "foo");
+        assert_eq!(text_list.get(0), "garply");
+        assert_eq!(text_list.get(1), "foo");
 
         let data_list = complex_list_reader.get_data_list();
         assert_eq!(data_list.size(), 2);
-        assert!(data_list[0] == [0u8, 1u8, 2u8]);
-        assert!(data_list[1] == [255u8, 254u8, 253u8]);
+        assert!(data_list.get(0) == [0u8, 1u8, 2u8]);
+        assert!(data_list.get(1) == [255u8, 254u8, 253u8]);
 
         let prim_list_list = complex_list_reader.get_prim_list_list();
         assert_eq!(prim_list_list.size(), 2);
-        assert_eq!(prim_list_list[0].size(), 3);
-        assert!(prim_list_list[0][0] == 5);
-        assert!(prim_list_list[0][1] == 6);
-        assert!(prim_list_list[0][2] == 7);
-        assert!(prim_list_list[1][0] == -1);
+        assert_eq!(prim_list_list.get(0).size(), 3);
+        assert!(prim_list_list.get(0).get(0) == 5);
+        assert!(prim_list_list.get(0).get(1) == 6);
+        assert!(prim_list_list.get(0).get(2) == 7);
+        assert!(prim_list_list.get(1).get(0) == -1);
 
         let prim_list_list_list = complex_list_reader.get_prim_list_list_list();
-        assert!(prim_list_list_list[0][0][0] == 0);
-        assert!(prim_list_list_list[0][0][1] == 1);
-        assert!(prim_list_list_list[0][1][0] == 255);
-        assert!(prim_list_list_list[1][0][0] == 10);
-        assert!(prim_list_list_list[1][0][1] == 9);
-        assert!(prim_list_list_list[1][0][2] == 8);
+        assert!(prim_list_list_list.get(0).get(0).get(0) == 0);
+        assert!(prim_list_list_list.get(0).get(0).get(1) == 1);
+        assert!(prim_list_list_list.get(0).get(1).get(0) == 255);
+        assert!(prim_list_list_list.get(1).get(0).get(0) == 10);
+        assert!(prim_list_list_list.get(1).get(0).get(1) == 9);
+        assert!(prim_list_list_list.get(1).get(0).get(2) == 8);
 
         let enum_list_list = complex_list_reader.get_enum_list_list();
-        assert!(enum_list_list[0][0] == Some(AnEnum::Bar));
-        assert!(enum_list_list[1][0] == Some(AnEnum::Foo));
-        assert!(enum_list_list[1][1] == Some(AnEnum::Qux));
+        assert!(enum_list_list.get(0).get(0) == Some(AnEnum::Bar));
+        assert!(enum_list_list.get(1).get(0) == Some(AnEnum::Foo));
+        assert!(enum_list_list.get(1).get(1) == Some(AnEnum::Qux));
 
-        assert!(complex_list_reader.get_text_list_list()[0][0] == "abc");
-        assert!(complex_list_reader.get_data_list_list()[0][0] == [255, 254, 253]);
+        assert!(complex_list_reader.get_text_list_list().get(0).get(0) == "abc");
+        assert!(complex_list_reader.get_data_list_list().get(0).get(0) == [255, 254, 253]);
 
-        assert!(complex_list_reader.get_struct_list_list()[0][0].get_int8_field() == -1);
+        assert!(complex_list_reader.get_struct_list_list().get(0).get(0).get_int8_field() == -1);
     }
 
     #[test]

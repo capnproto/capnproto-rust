@@ -21,25 +21,25 @@ pub mod addressbook {
 
         let people = address_book.init_people(2);
 
-        let alice = people[0];
+        let alice = people.get(0);
         alice.set_id(123);
         alice.set_name("Alice");
         alice.set_email("alice@example.com");
 
         let alice_phones = alice.init_phones(1);
-        alice_phones[0].set_number("555-1212");
-        alice_phones[0].set_type(Person::PhoneNumber::Type::Mobile);
+        alice_phones.get(0).set_number("555-1212");
+        alice_phones.get(0).set_type(Person::PhoneNumber::Type::Mobile);
         alice.get_employment().set_school("MIT");
 
-        let bob = people[1];
+        let bob = people.get(1);
         bob.set_id(456);
         bob.set_name("Bob");
         bob.set_email("bob@example.com");
         let bob_phones = bob.init_phones(2);
-        bob_phones[0].set_number("555-4567");
-        bob_phones[0].set_type(Person::PhoneNumber::Type::Home);
-        bob_phones[1].set_number("555-7654");
-        bob_phones[1].set_type(Person::PhoneNumber::Type::Work);
+        bob_phones.get(0).set_number("555-4567");
+        bob_phones.get(0).set_type(Person::PhoneNumber::Type::Home);
+        bob_phones.get(1).set_number("555-7654");
+        bob_phones.get(1).set_type(Person::PhoneNumber::Type::Work);
         bob.get_employment().set_unemployed(());
 
         serialize_packed::write_packed_message_unbuffered(&mut stdout(), & message)
@@ -52,11 +52,11 @@ pub mod addressbook {
         let people = address_book.get_people();
 
         for i in range(0, people.size()) {
-            let person = people[i];
+            let person = people.get(i);
             println!("{}: {}", person.get_name(), person.get_email());
             let phones = person.get_phones();
             for j in range(0, phones.size()) {
-                let phone = phones[j];
+                let phone = phones.get(j);
                 let type_name = match phone.get_type() {
                     Some(Person::PhoneNumber::Type::Mobile) => {"mobile"}
                     Some(Person::PhoneNumber::Type::Home) => {"home"}

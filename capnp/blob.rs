@@ -9,8 +9,12 @@ pub mod Text {
 
     pub type Reader<'a> = &'a str;
 
+    static EMPTY : &'static str = "";
+
     // len does not include the required null terminator at the end
     pub fn new_reader<'a>(p : *const u8, len : uint) -> Option<Reader<'a>> {
+        // XXX The empty case is special and I don't know why.
+        if len == 0 { return Some(EMPTY); }
         let v : &'a [u8] =
             unsafe { std::mem::transmute(std::raw::Slice { data: p, len: len }) };
         std::str::from_utf8(v)

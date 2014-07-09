@@ -29,7 +29,7 @@ macro_rules! car_value_impl(
                     // TODO Lists should have iterators.
                     let wheels = self.get_wheels();
                     for i in range(0, wheels.size()) {
-                        let wheel = wheels[i];
+                        let wheel = wheels.get(i);
                         result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
                         result += if wheel.get_snow_tires() { 100 } else { 0 };
                     }
@@ -79,7 +79,7 @@ pub fn random_car(rng : &mut FastRand, car : Car::Builder) {
 
     let wheels = car.init_wheels(4);
     for i in range(0, wheels.size()) {
-        let wheel = wheels[i];
+        let wheel = wheels.get(i);
         wheel.set_diameter(25 + rng.next_less_than(15) as u16);
         wheel.set_air_pressure((30.0 + rng.next_double(20.0)) as f32);
         wheel.set_snow_tires(rng.next_less_than(16) == 0);
@@ -111,7 +111,7 @@ pub fn setup_request(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 
     let mut result = 0;
     let cars = request.init_cars(rng.next_less_than(200) as uint);
     for i in range(0, cars.size()) {
-        let car = cars[i];
+        let car = cars.get(i);
         random_car(rng, car);
         result += car.car_value();
     }
@@ -123,7 +123,7 @@ pub fn handle_request(request : ParkingLot::Reader, response : TotalValue::Build
     let mut result = 0;
     let cars = request.get_cars();
     for i in range(0, cars.size()) {
-        result += cars[i].car_value();
+        result += cars.get(i).car_value();
     }
     response.set_amount(result);
 }
