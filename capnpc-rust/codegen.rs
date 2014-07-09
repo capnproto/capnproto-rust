@@ -262,16 +262,16 @@ fn prim_default (value : &schema_capnp::Value::Reader) -> Option<String> {
         Some(Value::Float64(0.0)) => None,
 
         Some(Value::Bool(true)) => Some(format!("true")),
-        Some(Value::Int8(i)) => Some(i.to_str()),
-        Some(Value::Int16(i)) => Some(i.to_str()),
-        Some(Value::Int32(i)) => Some(i.to_str()),
-        Some(Value::Int64(i)) => Some(i.to_str()),
-        Some(Value::Uint8(i)) => Some(i.to_str()),
-        Some(Value::Uint16(i)) => Some(i.to_str()),
-        Some(Value::Uint32(i)) => Some(i.to_str()),
-        Some(Value::Uint64(i)) => Some(i.to_str()),
-        Some(Value::Float32(f)) => Some(format!("{}f32", f.to_str())),
-        Some(Value::Float64(f)) => Some(format!("{}f64", f.to_str())),
+        Some(Value::Int8(i)) => Some(i.to_string()),
+        Some(Value::Int16(i)) => Some(i.to_string()),
+        Some(Value::Int32(i)) => Some(i.to_string()),
+        Some(Value::Int64(i)) => Some(i.to_string()),
+        Some(Value::Uint8(i)) => Some(i.to_string()),
+        Some(Value::Uint16(i)) => Some(i.to_string()),
+        Some(Value::Uint32(i)) => Some(i.to_string()),
+        Some(Value::Uint64(i)) => Some(i.to_string()),
+        Some(Value::Float32(f)) => Some(format!("{}f32", f.to_string())),
+        Some(Value::Float64(f)) => Some(format!("{}f64", f.to_string())),
         _ => {fail!()}
     }
 }
@@ -1373,19 +1373,19 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
             let (typ, txt) = match tuple_option(c.get_type().which(), c.get_value().which()) {
                 Some((Type::Void(()), Value::Void(()))) => ("()".to_string(), "()".to_string()),
-                Some((Type::Bool(()), Value::Bool(b))) => ("bool".to_string(), b.to_str()),
-                Some((Type::Int8(()), Value::Int8(i))) => ("i8".to_string(), i.to_str()),
-                Some((Type::Int16(()), Value::Int16(i))) => ("i16".to_string(), i.to_str()),
-                Some((Type::Int32(()), Value::Int32(i))) => ("i32".to_string(), i.to_str()),
-                Some((Type::Int64(()), Value::Int64(i))) => ("i64".to_string(), i.to_str()),
-                Some((Type::Uint8(()), Value::Uint8(i))) => ("u8".to_string(), i.to_str()),
-                Some((Type::Uint16(()), Value::Uint16(i))) => ("u16".to_string(), i.to_str()),
-                Some((Type::Uint32(()), Value::Uint32(i))) => ("u32".to_string(), i.to_str()),
-                Some((Type::Uint64(()), Value::Uint64(i))) => ("u64".to_string(), i.to_str()),
+                Some((Type::Bool(()), Value::Bool(b))) => ("bool".to_string(), b.to_string()),
+                Some((Type::Int8(()), Value::Int8(i))) => ("i8".to_string(), i.to_string()),
+                Some((Type::Int16(()), Value::Int16(i))) => ("i16".to_string(), i.to_string()),
+                Some((Type::Int32(()), Value::Int32(i))) => ("i32".to_string(), i.to_string()),
+                Some((Type::Int64(()), Value::Int64(i))) => ("i64".to_string(), i.to_string()),
+                Some((Type::Uint8(()), Value::Uint8(i))) => ("u8".to_string(), i.to_string()),
+                Some((Type::Uint16(()), Value::Uint16(i))) => ("u16".to_string(), i.to_string()),
+                Some((Type::Uint32(()), Value::Uint32(i))) => ("u32".to_string(), i.to_string()),
+                Some((Type::Uint64(()), Value::Uint64(i))) => ("u64".to_string(), i.to_string()),
 
                 // float string formatting appears to be a bit broken currently, in Rust.
-                Some((Type::Float32(()), Value::Float32(f))) => ("f32".to_string(), format!("{}f32", f.to_str())),
-                Some((Type::Float64(()), Value::Float64(f))) => ("f64".to_string(), format!("{}f64", f.to_str())),
+                Some((Type::Float32(()), Value::Float32(f))) => ("f32".to_string(), format!("{}f32", f.to_string())),
+                Some((Type::Float64(()), Value::Float64(f))) => ("f64".to_string(), format!("{}f64", f.to_string())),
 
                 Some((Type::Text(()), Value::Text(_t))) => { fail!() }
                 Some((Type::Data(()), Value::Data(_d))) => { fail!() }
