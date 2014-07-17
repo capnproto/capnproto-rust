@@ -538,11 +538,11 @@ impl RpcConnectionState {
                                     box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
 
                                 answers.slots.insert(answer_id, Answer::new());
-                                match exports.slots.get(id as uint) {
-                                    &Some(ref ex) => {
+                                match exports.slots[id as uint] {
+                                    Some(ref ex) => {
                                         ex.hook.call(interface_id, method_id, context);
                                     }
-                                    &None => {
+                                    None => {
                                         // XXX todo
                                         fail!()
                                     }
@@ -598,8 +598,8 @@ impl RpcConnectionState {
                         // The idea is that when the last reference to a question
                         // is erased, this event will be triggered.
 
-                        let erase_it = match questions.slots.get(id as uint) {
-                            &Some(ref q) if q.is_awaiting_return => {
+                        let erase_it = match questions.slots[id as uint] {
+                            Some(ref q) if q.is_awaiting_return => {
                                 true
                             }
                             _ => {false}

@@ -65,7 +65,7 @@ fn evaluate_impl(
             let mut request = func.call_request();
             let request_params = request.init().init_params(param_values.len());
             for ii in range(0, param_values.len()) {
-                request_params.set(ii, *param_values.get(ii));
+                request_params.set(ii, param_values[ii]);
             }
             Ok(try!(request.send().wait()).get_value())
         }
@@ -174,11 +174,11 @@ impl Calculator::Server for CalculatorImpl {
 pub fn main() {
     let args = std::os::args();
     if args.len() != 3 {
-        println!("usage: {} server ADDRESS[:PORT]", args.get(0));
+        println!("usage: {} server ADDRESS[:PORT]", args[0]);
         return;
     }
 
-    let rpc_server = EzRpcServer::new(args.get(2).as_slice()).unwrap();
+    let rpc_server = EzRpcServer::new(args[2].as_slice()).unwrap();
 
     // There's got to be a better way to do this.
     let calculator = (box Calculator::ServerDispatch { server : box CalculatorImpl}) as Box<Server+Send>;
