@@ -352,7 +352,7 @@ fn finish_question<W : std::io::Writer>(questions : &mut ExportTable<Question>,
         finish.set_release_result_caps(false);
     }
 
-    serialize::write_message(outpipe, finish_message).is_ok();
+    serialize::write_message(outpipe, &*finish_message).is_ok();
 }
 
 impl RpcConnectionState {
@@ -476,7 +476,7 @@ impl RpcConnectionState {
                                 }
                                 answers.slots.insert(answer_id, Answer::new());
 
-                                serialize::write_message(&mut outpipe, message).is_ok();
+                                serialize::write_message(&mut outpipe, &*message).is_ok();
                                 answers.slots.get_mut(&answer_id).answer_ref.sent(message);
 
                                 Nobody
@@ -533,7 +533,7 @@ impl RpcConnectionState {
                                 }
                             }
                             ExportReceiver(id) => {
-                                let (answer_id, interface_id, method_id) = get_call_ids(message);
+                                let (answer_id, interface_id, method_id) = get_call_ids(&*message);
                                 let context =
                                     box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
 
@@ -549,7 +549,7 @@ impl RpcConnectionState {
                                 }
                             }
                             PromisedAnswerReceiver(id, ops) => {
-                                let (answer_id, interface_id, method_id) = get_call_ids(message);
+                                let (answer_id, interface_id, method_id) = get_call_ids(&*message);
                                 let context =
                                     box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
 
@@ -586,7 +586,7 @@ impl RpcConnectionState {
                             }
                         }
 
-                        serialize::write_message(&mut outpipe, m).is_ok();
+                        serialize::write_message(&mut outpipe, &*m).is_ok();
                     }
                     NewLocalServer(clienthook, export_chan) => {
                         let export_id = exports.push(Export::new(clienthook));
@@ -609,7 +609,7 @@ impl RpcConnectionState {
                         }
                     }
                     ReturnEvent(mut message) => {
-                        serialize::write_message(&mut outpipe, message).is_ok();
+                        serialize::write_message(&mut outpipe, &*message).is_ok();
 
                         let root = message.get_root::<Message::Builder>();
                         let answer_id_opt = match root.which() {

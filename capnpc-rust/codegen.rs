@@ -131,7 +131,7 @@ enum FormattedText {
 fn to_lines(ft : &FormattedText, indent : uint) -> Vec<String> {
     match *ft {
         Indent (ref ft) => {
-            return to_lines(*ft, indent + 1);
+            return to_lines(&**ft, indent + 1);
         }
         Branch (ref fts) => {
             let mut result = Vec::new();
