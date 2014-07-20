@@ -23,7 +23,7 @@ pub trait ResponseHook:Send {
 
 pub trait RequestHook {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder;
-    fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline>;
+    fn send<'a>(~self) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline>;
 }
 
 pub struct Request<Params, Results, Pipeline> {

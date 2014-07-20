@@ -2059,7 +2059,7 @@ pub struct StructReader<'a> {
 
 impl <'a> StructReader<'a>  {
 
-    pub fn new_default() -> StructReader {
+    pub fn new_default<'a>() -> StructReader<'a> {
         StructReader { segment : std::ptr::null(),
                        data : std::ptr::null(),
                        pointers : std::ptr::null(), data_size : 0, pointer_count : 0,
@@ -2271,7 +2271,7 @@ pub struct ListReader<'a> {
 
 impl <'a> ListReader<'a> {
 
-    pub fn new_default() -> ListReader {
+    pub fn new_default<'a>() -> ListReader<'a> {
         ListReader { segment : std::ptr::null(),
                     ptr : std::ptr::null(), element_count : 0, step: 0, struct_data_size : 0,
                     struct_pointer_count : 0, nesting_limit : 0x7fffffff}

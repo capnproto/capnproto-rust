@@ -866,7 +866,7 @@ impl RequestHook for RpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
         &mut *self.message
     }
-    fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline> {
+    fn send<'a>(~self) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline> {
         let box RpcRequest { channel, mut message, question_ref : _ } = self;
         write_outgoing_cap_table(&channel, &mut *message);
 
@@ -894,7 +894,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
         &mut *self.message
     }
-    fn send(~self) -> ResultFuture<AnyPointer::Reader, AnyPointer::Pipeline> {
+    fn send<'a>(~self) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline> {
         let box PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = self;
         let (answer_tx, answer_rx) = std::comm::channel();
 
