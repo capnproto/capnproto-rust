@@ -23,7 +23,7 @@ pub trait ResponseHook:Send {
 
 pub trait RequestHook {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder;
-    fn send<'a>(~self) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline>;
+    fn send<'a>(self : Box<Self>) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline>;
 }
 
 pub struct Request<Params, Results, Pipeline> {
@@ -106,8 +106,8 @@ CallContext<Params, Results> {
 
 pub trait CallContextHook {
     fn get<'a>(&'a mut self) -> (AnyPointer::Reader<'a>, AnyPointer::Builder<'a>);
-    fn fail(~self);
-    fn done(~self);
+    fn fail(self : Box<Self>);
+    fn done(self : Box<Self>);
 }
 
 pub trait Server {

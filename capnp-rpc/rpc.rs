@@ -866,7 +866,7 @@ impl RequestHook for RpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
         &mut *self.message
     }
-    fn send<'a>(~self) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline> {
+    fn send<'a>(self : Box<RpcRequest>) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline> {
         let box RpcRequest { channel, mut message, question_ref : _ } = self;
         write_outgoing_cap_table(&channel, &mut *message);
 
@@ -894,7 +894,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
         &mut *self.message
     }
-    fn send<'a>(~self) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline> {
+    fn send<'a>(self : Box<PromisedAnswerRpcRequest>) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline> {
         let box PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = self;
         let (answer_tx, answer_rx) = std::comm::channel();
 
@@ -1039,11 +1039,11 @@ impl CallContextHook for RpcCallContext {
 
         (params, results)
     }
-    fn fail(mut ~self) {
+    fn fail(mut self : Box<RpcCallContext>) {
         self.aborter.succeeded = false;
     }
 
-    fn done(~self) {
+    fn done(self : Box<RpcCallContext>) {
         let box RpcCallContext { params_message : _, mut results_message, rpc_chan, mut aborter} = self;
         aborter.succeeded = true;
         write_outgoing_cap_table(&rpc_chan, &mut *results_message);
@@ -1128,7 +1128,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 
         (params, results)
     }
-    fn fail(~self) {
+    fn fail(self : Box<PromisedAnswerRpcCallContext>) {
         let box PromisedAnswerRpcCallContext {
             params_message : _, mut results_message, rpc_chan : _, answer_chan} = self;
 
@@ -1145,7 +1145,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 
     }
 
-    fn done(~self) {
+    fn done(self : Box<PromisedAnswerRpcCallContext>) {
         let box PromisedAnswerRpcCallContext {
             params_message : _, results_message, rpc_chan : _, answer_chan} = self;
 
