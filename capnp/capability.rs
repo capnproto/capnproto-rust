@@ -98,8 +98,10 @@ impl <Params, Results> CallContext<Params, Results> {
 
 impl <'a, Params : FromStructReader<'a>, Results : FromStructBuilder<'a> + HasStructSize>
 CallContext<Params, Results> {
-    pub fn get(&'a mut self) -> (Params, Results) {
-        let (any_params, any_results) = self.hook.get();
+    // XXX this 'b lifetime should be 'a.
+    pub fn get<'b>(&'b mut self) -> (Params, Results) {
+        let tmp : &'a mut Box<CallContextHook+Send> = unsafe { ::std::mem::transmute(& mut self.hook)};
+        let (any_params, any_results) = tmp.get();
         (any_params.get_as_struct(), any_results.get_as_struct())
     }
 }

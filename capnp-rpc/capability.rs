@@ -76,11 +76,11 @@ impl ServerHook for LocalClient {
     }
 }
 
-pub trait InitRequest<'a, T> {
-    fn init(&'a mut self) -> T;
+pub trait InitRequest<'a, 'b, T> {
+    fn init(&'b mut self) -> T;
 }
 
-impl <'a, 'b, Params : FromStructBuilder<'a> + HasStructSize, Results, Pipeline> InitRequest<'a, Params>
+impl <'a, 'b, Params : FromStructBuilder<'a> + HasStructSize, Results, Pipeline> InitRequest<'a, 'b, Params>
 for Request<Params, Results, Pipeline> {
 
     // XXX we are bypassing lifetime tracking here.

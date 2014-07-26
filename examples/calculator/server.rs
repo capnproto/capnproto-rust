@@ -7,7 +7,7 @@
 use std;
 use std::vec::Vec;
 
-use capnp::capability::{FromServer, Server, Request};
+use capnp::capability::{FromServer, Server};
 use capnp::list::{PrimitiveList};
 use capnp::{MallocMessageBuilder, MessageBuilder};
 
@@ -161,7 +161,6 @@ impl Calculator::Server for CalculatorImpl {
     fn get_operator<'a>(& mut self, mut context : Calculator::GetOperatorContext<'a>) {
         {
             let (params, results) = context.get();
-/*
             results.set_func(
                 match params.get_op() {
                     Some(op) => {
@@ -171,9 +170,8 @@ impl Calculator::Server for CalculatorImpl {
                     }
                     None => fail!("Unknown operator."),
                 });
-*/
         }
-  //      context.done();
+        context.done();
     }
 }
 

@@ -289,8 +289,8 @@ pub fn main() {
             add_params.get(1).set_literal(5.0);
         }
 
-        let response = request.send().pipeline.get_value().read_request()
-                              .send().wait().unwrap();
+        let mut response_promise = request.send().pipeline.get_value().read_request().send();
+        let response = response_promise.wait().unwrap();
 
         assert!(response.get_value() == 512.0);
 
