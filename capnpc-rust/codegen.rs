@@ -1255,12 +1255,12 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                             capitalize_first_letter(name), params_name, results_name)));
                 server_interior.push(
                     Line(format!(
-                            "fn {}(&mut self, {}Context);",
+                            "fn {}<'a>(&mut self, {}Context<'a>);",
                             camel_to_snake_case(name), capitalize_first_letter(name)
                             )));
 
                 client_impl_interior.push(
-                    Line(format!("pub fn {}_request(&self) -> Request<{}::Builder<'static>,{}::Reader<'static>,{}::Pipeline> {{",
+                    Line(format!("pub fn {}_request<'a>(&self) -> Request<{}::Builder<'a>,{}::Reader<'a>,{}::Pipeline> {{",
                                  camel_to_snake_case(name), params_name, results_name, results_name)));
 
                 client_impl_interior.push(Indent(

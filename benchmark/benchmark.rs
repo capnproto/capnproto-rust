@@ -140,21 +140,26 @@ macro_rules! pass_by_bytes(
                 let mut messageReq = $reuse.new_builder(0);
                 let mut messageRes = $reuse.new_builder(1);
 
-                let request = messageReq.init_root::<$testcase::RequestBuilder>();
-                let response = messageRes.init_root::<$testcase::ResponseBuilder>();
-                let expected = $testcase::setup_request(&mut rng, request);
+                let expected = {
+                    let request = messageReq.init_root::<$testcase::RequestBuilder>();
+                    $testcase::setup_request(&mut rng, request)
+                };
 
                 {
-                    let mut writer = capnp::io::ArrayOutputStream::new(requestBytes.as_mut_slice());
-                    $compression::write_buffered(&mut writer, &messageReq)
+                    let response = messageRes.init_root::<$testcase::ResponseBuilder>();
+
+                    {
+                        let mut writer = capnp::io::ArrayOutputStream::new(requestBytes.as_mut_slice());
+                        $compression::write_buffered(&mut writer, &messageReq)
+                    }
+
+                    let messageReader = $compression::new_buffered_reader(
+                        &mut capnp::io::ArrayInputStream::new(requestBytes.as_slice()),
+                        capnp::message::DefaultReaderOptions);
+
+                    let requestReader : $testcase::RequestReader = messageReader.get_root();
+                    $testcase::handle_request(requestReader, response);
                 }
-
-                let messageReader = $compression::new_buffered_reader(
-                    &mut capnp::io::ArrayInputStream::new(requestBytes.as_slice()),
-                    capnp::message::DefaultReaderOptions);
-
-                let requestReader : $testcase::RequestReader = messageReader.get_root();
-                $testcase::handle_request(requestReader, response);
 
                 {
                     let mut writer = capnp::io::ArrayOutputStream::new(responseBytes.as_mut_slice());
@@ -180,12 +185,14 @@ macro_rules! server(
             for _ in range(0, $iters) {
                 let mut messageRes = $reuse.new_builder(0);
 
-                let response = messageRes.init_root::<$testcase::ResponseBuilder>();
-                let messageReader = $compression::new_buffered_reader(
-                    &mut inBuffered,
-                    capnp::message::DefaultReaderOptions);
-                let requestReader : $testcase::RequestReader = messageReader.get_root();
-                $testcase::handle_request(requestReader, response);
+                {
+                    let response = messageRes.init_root::<$testcase::ResponseBuilder>();
+                    let messageReader = $compression::new_buffered_reader(
+                        &mut inBuffered,
+                        capnp::message::DefaultReaderOptions);
+                    let requestReader : $testcase::RequestReader = messageReader.get_root();
+                    $testcase::handle_request(requestReader, response);
+                }
 
                 $compression::write_buffered(&mut outBuffered, &messageRes);
                 outBuffered.flush().unwrap();
@@ -202,9 +209,10 @@ macro_rules! sync_client(
             for _ in range(0, $iters) {
                 let mut messageReq = $reuse.new_builder(0);
 
-                let request = messageReq.init_root::<$testcase::RequestBuilder>();
-
-                let expected = $testcase::setup_request(&mut rng, request);
+                let expected = {
+                    let request = messageReq.init_root::<$testcase::RequestBuilder>();
+                    $testcase::setup_request(&mut rng, request)
+                };
                 $compression::write(&mut outStream, &messageReq);
 
                 let messageReader = $compression::new_buffered_reader(

@@ -907,6 +907,7 @@ mod WireHelpers {
         (*reff).mut_list_ref().set(element_size, element_count);
 
         ListBuilder {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
             segment : segmentBuilder,
             ptr : std::mem::transmute(ptr),
             step : step,
@@ -943,6 +944,7 @@ mod WireHelpers {
         let ptr1 = ptr.offset(POINTER_SIZE_IN_WORDS as int);
 
         ListBuilder {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
             segment : segmentBuilder,
             ptr : std::mem::transmute(ptr1),
             step : wordsPerElement * BITS_PER_WORD,
@@ -1035,6 +1037,7 @@ mod WireHelpers {
                 //# OK, looks valid.
 
                 return ListBuilder {
+                    marker : std::kinds::marker::ContravariantLifetime::<'a>,
                     segment : segment,
                     ptr : std::mem::transmute(ptr),
                     element_count : (*tag).inline_composite_list_element_count(),
@@ -1058,6 +1061,7 @@ mod WireHelpers {
                 let step = data_size + pointer_count * BITS_PER_POINTER;
 
                 return ListBuilder {
+                    marker : std::kinds::marker::ContravariantLifetime::<'a>,
                     segment : segment,
                     ptr : std::mem::transmute(ptr),
                     step : step,
@@ -1118,6 +1122,7 @@ mod WireHelpers {
                 if old_data_size >= element_size.data && old_pointer_count >= element_size.pointers {
                     //# Old size is at least as large as we need. Ship it.
                     return ListBuilder {
+                        marker : std::kinds::marker::ContravariantLifetime::<'a>,
                         segment : old_segment,
                         ptr : std::mem::transmute(old_ptr),
                         element_count : element_count,
@@ -1139,6 +1144,7 @@ mod WireHelpers {
                 let pointer_count = pointers_per_element(old_size);
                 let step = data_size + pointer_count * BITS_PER_POINTER;
                 return ListBuilder {
+                    marker : std::kinds::marker::ContravariantLifetime::<'a>,
                     segment : old_segment,
                     ptr : std::mem::transmute(old_ptr),
                     step : step,
@@ -1409,6 +1415,7 @@ mod WireHelpers {
                 return set_struct_pointer(
                     dst_segment, dst,
                     StructReader {
+                        marker : std::kinds::marker::ContravariantLifetime,
                         segment : src_segment,
                         data : std::mem::transmute(ptr),
                         pointers : std::mem::transmute(ptr.offset((*src).struct_ref().data_size.get() as int)),
@@ -1449,6 +1456,7 @@ mod WireHelpers {
                     return set_list_pointer(
                         dst_segment, dst,
                         ListReader {
+                            marker : std::kinds::marker::ContravariantLifetime,
                             segment : src_segment,
                             ptr : std::mem::transmute(ptr),
                             element_count : element_count,
@@ -1472,6 +1480,7 @@ mod WireHelpers {
                     return set_list_pointer(
                         dst_segment, dst,
                         ListReader {
+                            marker : std::kinds::marker::ContravariantLifetime,
                             segment : src_segment,
                             ptr : std::mem::transmute(ptr),
                             element_count : element_count,
@@ -1540,13 +1549,15 @@ mod WireHelpers {
                      "Message contains out-of-bounds struct pointer.",
                      continue 'use_default);
 
-            return StructReader {segment : segment,
-                          data : std::mem::transmute(ptr),
-                          pointers : std::mem::transmute(ptr.offset(data_size_words as int)),
-                          data_size : data_size_words as u32 * BITS_PER_WORD as BitCount32,
-                          pointer_count : (*reff).struct_ref().ptr_count.get(),
-                          bit0offset : 0,
-                          nesting_limit : nesting_limit - 1 };
+            return StructReader {
+                marker : std::kinds::marker::ContravariantLifetime::<'a>,
+                segment : segment,
+                data : std::mem::transmute(ptr),
+                pointers : std::mem::transmute(ptr.offset(data_size_words as int)),
+                data_size : data_size_words as u32 * BITS_PER_WORD as BitCount32,
+                pointer_count : (*reff).struct_ref().ptr_count.get(),
+                bit0offset : 0,
+                nesting_limit : nesting_limit - 1 };
         }
      }
 
@@ -1655,6 +1666,7 @@ mod WireHelpers {
                     }
 
                     return ListReader {
+                        marker : std::kinds::marker::ContravariantLifetime::<'a>,
                         segment : segment,
                         ptr : std::mem::transmute(ptr),
                         element_count : size,
@@ -1705,6 +1717,7 @@ mod WireHelpers {
                              continue 'use_default);
 
                     return ListReader {
+                        marker : std::kinds::marker::ContravariantLifetime::<'a>,
                         segment : segment,
                         ptr : std::mem::transmute(ptr),
                         element_count : list_ref.element_count(),
@@ -1820,6 +1833,7 @@ static zero : u64 = 0;
 fn zero_pointer() -> *const WirePointer { unsafe {std::mem::transmute(&zero)}}
 
 pub struct PointerReader<'a> {
+    marker : std::kinds::marker::ContravariantLifetime<'a>,
     segment : *const SegmentReader,
     pointer : *const WirePointer,
     nesting_limit : int
@@ -1827,9 +1841,11 @@ pub struct PointerReader<'a> {
 
 impl <'a> PointerReader<'a> {
     pub fn new_default<'b>() -> PointerReader<'b> {
-        PointerReader { segment : std::ptr::null(),
-                        pointer : std::ptr::null(),
-                        nesting_limit : 0x7fffffff }
+        PointerReader {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
+            segment : std::ptr::null(),
+            pointer : std::ptr::null(),
+            nesting_limit : 0x7fffffff }
     }
 
     pub fn get_root<'b>(segment : *const SegmentReader, mut location : *const Word,
@@ -1841,16 +1857,20 @@ impl <'a> PointerReader<'a> {
                      "Root location out of bounds.",
                      location = std::ptr::null());
 
-            PointerReader { segment : segment,
-                            pointer : std::mem::transmute(location),
-                            nesting_limit : nesting_limit }
+            PointerReader {
+                marker : std::kinds::marker::ContravariantLifetime::<'a>,
+                segment : segment,
+                pointer : std::mem::transmute(location),
+                nesting_limit : nesting_limit }
         }
     }
 
     pub fn get_root_unchecked<'b>(location : *const Word) -> PointerReader<'b> {
-        PointerReader { segment : std::ptr::null(),
-                        pointer : unsafe { std::mem::transmute(location) },
-                        nesting_limit : 0x7fffffff }
+        PointerReader {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
+            segment : std::ptr::null(),
+            pointer : unsafe { std::mem::transmute(location) },
+            nesting_limit : 0x7fffffff }
     }
 
     pub fn is_null(&self) -> bool {
@@ -1902,6 +1922,7 @@ impl <'a> PointerReader<'a> {
 }
 
 pub struct PointerBuilder<'a> {
+    marker : std::kinds::marker::ContravariantLifetime<'a>,
     segment : *mut SegmentBuilder,
     pointer : *mut WirePointer
 }
@@ -1910,7 +1931,9 @@ impl <'a> PointerBuilder<'a> {
 
     #[inline]
     pub fn get_root(segment : *mut SegmentBuilder, location : *mut Word) -> PointerBuilder<'a> {
-        PointerBuilder {segment : segment, pointer : unsafe { std::mem::transmute(location) }}
+        PointerBuilder {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
+            segment : segment, pointer : unsafe { std::mem::transmute(location) }}
     }
 
     pub fn is_null(&self) -> bool {
@@ -2035,9 +2058,11 @@ impl <'a> PointerBuilder<'a> {
     pub fn as_reader(&self) -> PointerReader<'a> {
         unsafe {
             let segment_reader = &(*self.segment).reader;
-            PointerReader { segment : segment_reader,
-                            pointer : self.pointer as *const WirePointer,
-                            nesting_limit : 0x7fffffff }
+            PointerReader {
+                marker : std::kinds::marker::ContravariantLifetime::<'a>,
+                segment : segment_reader,
+                pointer : self.pointer as *const WirePointer,
+                nesting_limit : 0x7fffffff }
         }
     }
 }
@@ -2051,6 +2076,7 @@ pub trait ToStructReader<'a> {
 }
 
 pub struct StructReader<'a> {
+    marker : std::kinds::marker::ContravariantLifetime<'a>,
     segment : *const SegmentReader,
     data : *const u8,
     pointers : *const WirePointer,
@@ -2063,10 +2089,12 @@ pub struct StructReader<'a> {
 impl <'a> StructReader<'a>  {
 
     pub fn new_default<'a>() -> StructReader<'a> {
-        StructReader { segment : std::ptr::null(),
-                       data : std::ptr::null(),
-                       pointers : std::ptr::null(), data_size : 0, pointer_count : 0,
-                       bit0offset : 0, nesting_limit : 0x7fffffff}
+        StructReader {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
+            segment : std::ptr::null(),
+            data : std::ptr::null(),
+            pointers : std::ptr::null(), data_size : 0, pointer_count : 0,
+            bit0offset : 0, nesting_limit : 0x7fffffff}
     }
 
     pub fn get_data_section_size(&self) -> BitCount32 { self.data_size }
@@ -2125,6 +2153,7 @@ impl <'a> StructReader<'a>  {
     pub fn get_pointer_field(&self, ptr_index : WirePointerCount) -> PointerReader<'a> {
         if ptr_index < self.pointer_count as WirePointerCount {
             PointerReader {
+                marker : std::kinds::marker::ContravariantLifetime::<'a>,
                 segment : self.segment,
                 pointer : unsafe { self.pointers.offset(ptr_index as int) },
                 nesting_limit : self.nesting_limit
@@ -2176,14 +2205,15 @@ impl <'a> StructBuilder<'a> {
         unsafe {
             let segmentReader = &(*self.segment).reader;
             StructReader {
-                    segment : segmentReader,
-                    data : std::mem::transmute(self.data),
-                    pointers : std::mem::transmute(self.pointers),
-                    data_size : self.data_size,
-                    pointer_count : self.pointer_count,
-                    bit0offset : self.bit0offset,
-                    nesting_limit : 0x7fffffff
-                }
+                marker : std::kinds::marker::ContravariantLifetime::<'a>,
+                segment : segmentReader,
+                data : std::mem::transmute(self.data),
+                pointers : std::mem::transmute(self.pointers),
+                data_size : self.data_size,
+                pointer_count : self.pointer_count,
+                bit0offset : self.bit0offset,
+                nesting_limit : 0x7fffffff
+            }
         }
     }
 
@@ -2256,14 +2286,16 @@ impl <'a> StructBuilder<'a> {
     #[inline]
     pub fn get_pointer_field(&self, ptr_index : WirePointerCount) -> PointerBuilder<'a> {
         PointerBuilder {
-                segment : self.segment,
-                pointer : unsafe { self.pointers.offset(ptr_index as int) }
-            }
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
+            segment : self.segment,
+            pointer : unsafe { self.pointers.offset(ptr_index as int) }
+        }
     }
 
 }
 
 pub struct ListReader<'a> {
+    marker : std::kinds::marker::ContravariantLifetime<'a>,
     segment : *const SegmentReader,
     ptr : *const u8,
     element_count : ElementCount,
@@ -2276,9 +2308,11 @@ pub struct ListReader<'a> {
 impl <'a> ListReader<'a> {
 
     pub fn new_default<'a>() -> ListReader<'a> {
-        ListReader { segment : std::ptr::null(),
-                    ptr : std::ptr::null(), element_count : 0, step: 0, struct_data_size : 0,
-                    struct_pointer_count : 0, nesting_limit : 0x7fffffff}
+        ListReader {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
+            segment : std::ptr::null(),
+            ptr : std::ptr::null(), element_count : 0, step: 0, struct_data_size : 0,
+            struct_pointer_count : 0, nesting_limit : 0x7fffffff}
     }
 
     #[inline]
@@ -2306,6 +2340,7 @@ impl <'a> ListReader<'a> {
                );
 */
         StructReader {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
             segment : self.segment,
             data : structData,
             pointers : structPointers,
@@ -2319,6 +2354,7 @@ impl <'a> ListReader<'a> {
     #[inline]
     pub fn get_pointer_element(&self, index : ElementCount) -> PointerReader<'a> {
         PointerReader {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
             segment : self.segment,
             pointer : unsafe {
                 std::mem::transmute(self.ptr.offset((index * self.step / BITS_PER_BYTE) as int))
@@ -2330,6 +2366,7 @@ impl <'a> ListReader<'a> {
 
 
 pub struct ListBuilder<'a> {
+    marker : std::kinds::marker::ContravariantLifetime<'a>,
     segment : *mut SegmentBuilder,
     ptr : *mut u8,
     element_count : ElementCount,
@@ -2343,6 +2380,7 @@ impl <'a> ListBuilder<'a> {
     #[inline]
     pub fn new_default<'a>() -> ListBuilder<'a> {
         ListBuilder {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
             segment : std::ptr::mut_null(), ptr : std::ptr::mut_null(), element_count : 0,
             step : 0, struct_data_size : 0, struct_pointer_count : 0
         }
@@ -2372,6 +2410,7 @@ impl <'a> ListBuilder<'a> {
     #[inline]
     pub fn get_pointer_element(&self, index : ElementCount) -> PointerBuilder<'a> {
         PointerBuilder {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
             segment : self.segment,
             pointer : unsafe {
                 std::mem::transmute(self.ptr.offset((index * self.step / BITS_PER_BYTE) as int))

@@ -98,7 +98,7 @@ impl <Params, Results> CallContext<Params, Results> {
 
 impl <'a, Params : FromStructReader<'a>, Results : FromStructBuilder<'a> + HasStructSize>
 CallContext<Params, Results> {
-    pub fn get<'a>(&'a mut self) -> (Params, Results) {
+    pub fn get(&'a mut self) -> (Params, Results) {
         let (any_params, any_results) = self.hook.get();
         (any_params.get_as_struct(), any_results.get_as_struct())
     }

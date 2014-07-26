@@ -403,8 +403,7 @@ impl RpcConnectionState {
                         }
 
                         populate_cap_table(&mut *message, &rpc_chan, &answers);
-                        let root = message.get_root::<Message::Reader>();
-                        let receiver = match root.which() {
+                        let receiver = match message.get_root::<Message::Reader>().which() {
                             Some(Message::Unimplemented(_)) => {
                                 println!("unimplemented");
                                 Nobody

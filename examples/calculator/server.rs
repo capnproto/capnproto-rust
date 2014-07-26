@@ -158,18 +158,22 @@ impl Calculator::Server for CalculatorImpl {
                 box FunctionImpl::new(params.get_param_count() as uint, params.get_body())));
         context.done();
     }
-    fn get_operator(&mut self, mut context : Calculator::GetOperatorContext) {
-        let (params, results) = context.get();
-        results.set_func(
-            match params.get_op() {
-                Some(op) => {
-                    FromServer::new(
-                        None::<LocalClient>,
-                        box OperatorImpl {op : op})
-                }
-                None => fail!("Unknown operator."),
-            });
-        context.done();
+    fn get_operator<'a>(& mut self, mut context : Calculator::GetOperatorContext<'a>) {
+        {
+            let (params, results) = context.get();
+/*
+            results.set_func(
+                match params.get_op() {
+                    Some(op) => {
+                        FromServer::new(
+                            None::<LocalClient>,
+                            box OperatorImpl {op : op})
+                    }
+                    None => fail!("Unknown operator."),
+                });
+*/
+        }
+  //      context.done();
     }
 }
 
