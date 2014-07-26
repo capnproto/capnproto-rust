@@ -563,26 +563,28 @@ impl RpcConnectionState {
                     Outgoing(OutgoingMessage { message : mut m,
                                                answer_chan,
                                                question_chan} ) => {
-                        let root = m.get_root::<Message::Builder>();
-                        // add a question to the question table
-                        match root.which() {
-                            Some(Message::Return(_)) => {}
-                            Some(Message::Call(call)) => {
-                                let (question, ref_count) = Question::new(answer_chan);
-                                let id = questions.push(question);
-                                call.set_question_id(id);
-                                let qref = QuestionRef::new(id, ref_count, rpc_chan.clone());
-                                if !question_chan.send_opt(qref).is_ok() { fail!() }
-                            }
-                            Some(Message::Restore(res)) => {
-                                let (question, ref_count) = Question::new(answer_chan);
-                                let id = questions.push(question);
-                                res.set_question_id(id);
-                                let qref = QuestionRef::new(id, ref_count, rpc_chan.clone());
-                                if !question_chan.send_opt(qref).is_ok() { fail!() }
-                            }
-                            _ => {
-                                fail!("NONE OF THOSE");
+                        {
+                            let root = m.get_root::<Message::Builder>();
+                            // add a question to the question table
+                            match root.which() {
+                                Some(Message::Return(_)) => {}
+                                Some(Message::Call(call)) => {
+                                    let (question, ref_count) = Question::new(answer_chan);
+                                    let id = questions.push(question);
+                                    call.set_question_id(id);
+                                    let qref = QuestionRef::new(id, ref_count, rpc_chan.clone());
+                                    if !question_chan.send_opt(qref).is_ok() { fail!() }
+                                }
+                                Some(Message::Restore(res)) => {
+                                    let (question, ref_count) = Question::new(answer_chan);
+                                    let id = questions.push(question);
+                                    res.set_question_id(id);
+                                    let qref = QuestionRef::new(id, ref_count, rpc_chan.clone());
+                                    if !question_chan.send_opt(qref).is_ok() { fail!() }
+                                }
+                                _ => {
+                                    fail!("NONE OF THOSE");
+                                }
                             }
                         }
 
@@ -611,13 +613,14 @@ impl RpcConnectionState {
                     ReturnEvent(mut message) => {
                         serialize::write_message(&mut outpipe, &*message).is_ok();
 
-                        let root = message.get_root::<Message::Builder>();
-                        let answer_id_opt = match root.which() {
-                            Some(Message::Return(ret)) => {
-                                Some(ret.get_answer_id())
-                            }
-                            _ => {None}
-                        };
+                        let answer_id_opt =
+                            match message.get_root::<Message::Builder>().which() {
+                                Some(Message::Return(ret)) => {
+                                    Some(ret.get_answer_id())
+                                }
+                                _ => {None}
+                            };
+
                         match answer_id_opt {
                             Some(answer_id) => {
                                 answers.slots.get_mut(&answer_id).answer_ref.sent(message)
@@ -898,8 +901,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
         let box PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = self;
         let (answer_tx, answer_rx) = std::comm::channel();
 
-        let root = message.get_root::<Message::Builder>();
-        let (interface_id, method_id) = match root.which() {
+        let (interface_id, method_id) = match message.get_root::<Message::Builder>().which() {
             Some(Message::Call(call)) => {
                 (call.get_interface_id(), call.get_method_id())
             }
@@ -1132,8 +1134,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         let box PromisedAnswerRpcCallContext {
             params_message : _, mut results_message, rpc_chan : _, answer_chan} = self;
 
-        let message : Message::Builder = results_message.get_root();
-        match message.which() {
+        match results_message.get_root::<Message::Builder>().which() {
             Some(Message::Return(ret)) => {
                 let exc = ret.init_exception();
                 exc.set_reason("aborted");

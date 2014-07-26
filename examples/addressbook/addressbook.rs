@@ -17,32 +17,35 @@ pub mod addressbook {
 
     pub fn write_address_book() -> IoResult<()> {
         let mut message = MallocMessageBuilder::new_default();
-        let address_book = message.init_root::<AddressBook::Builder>();
 
-        let people = address_book.init_people(2);
+        {
+            let address_book = message.init_root::<AddressBook::Builder>();
 
-        let alice = people.get(0);
-        alice.set_id(123);
-        alice.set_name("Alice");
-        alice.set_email("alice@example.com");
+            let people = address_book.init_people(2);
 
-        let alice_phones = alice.init_phones(1);
-        alice_phones.get(0).set_number("555-1212");
-        alice_phones.get(0).set_type(Person::PhoneNumber::Type::Mobile);
-        alice.get_employment().set_school("MIT");
+            let alice = people.get(0);
+            alice.set_id(123);
+            alice.set_name("Alice");
+            alice.set_email("alice@example.com");
 
-        let bob = people.get(1);
-        bob.set_id(456);
-        bob.set_name("Bob");
-        bob.set_email("bob@example.com");
-        let bob_phones = bob.init_phones(2);
-        bob_phones.get(0).set_number("555-4567");
-        bob_phones.get(0).set_type(Person::PhoneNumber::Type::Home);
-        bob_phones.get(1).set_number("555-7654");
-        bob_phones.get(1).set_type(Person::PhoneNumber::Type::Work);
-        bob.get_employment().set_unemployed(());
+            let alice_phones = alice.init_phones(1);
+            alice_phones.get(0).set_number("555-1212");
+            alice_phones.get(0).set_type(Person::PhoneNumber::Type::Mobile);
+            alice.get_employment().set_school("MIT");
 
-        serialize_packed::write_packed_message_unbuffered(&mut stdout(), & message)
+            let bob = people.get(1);
+            bob.set_id(456);
+            bob.set_name("Bob");
+            bob.set_email("bob@example.com");
+            let bob_phones = bob.init_phones(2);
+            bob_phones.get(0).set_number("555-4567");
+            bob_phones.get(0).set_type(Person::PhoneNumber::Type::Home);
+            bob_phones.get(1).set_number("555-7654");
+            bob_phones.get(1).set_type(Person::PhoneNumber::Type::Work);
+            bob.get_employment().set_unemployed(());
+        }
+
+        serialize_packed::write_packed_message_unbuffered(&mut stdout(), &message)
     }
 
     pub fn print_address_book() -> IoResult<()> {
@@ -93,7 +96,7 @@ pub fn main() {
     } else {
         match args[1].as_slice() {
             "write" => addressbook::write_address_book().unwrap(),
-            "read" => addressbook::print_address_book().unwrap(),
+            "read" =>  addressbook::print_address_book().unwrap(),
             _ => {println!("unrecognized argument") }
         }
     }

@@ -793,6 +793,7 @@ mod WireHelpers {
         (*reff).mut_struct_ref().set_from_struct_size(size);
 
         StructBuilder {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
             segment : segmentBuilder,
             data : std::mem::transmute(ptr),
             pointers : std::mem::transmute(
@@ -867,6 +868,7 @@ mod WireHelpers {
                 std::ptr::zero_memory(old_ptr, old_data_size as uint + old_pointer_count as uint);
 
                 return StructBuilder {
+                    marker : std::kinds::marker::ContravariantLifetime::<'a>,
                     segment : segment,
                     data : std::mem::transmute(ptr),
                     pointers : new_pointer_section,
@@ -876,6 +878,7 @@ mod WireHelpers {
                 };
             } else {
                 return StructBuilder {
+                    marker : std::kinds::marker::ContravariantLifetime::<'a>,
                     segment : old_segment,
                     data : std::mem::transmute(old_ptr),
                     pointers : old_pointer_section,
@@ -2159,6 +2162,7 @@ pub trait FromStructBuilder<'a> {
 }
 
 pub struct StructBuilder<'a> {
+    marker : std::kinds::marker::ContravariantLifetime<'a>,
     segment : *mut SegmentBuilder,
     data : *mut u8,
     pointers : *mut WirePointer,
@@ -2355,6 +2359,7 @@ impl <'a> ListBuilder<'a> {
                 structData.offset(((self.struct_data_size as uint) / BITS_PER_BYTE) as int))
         };
         StructBuilder {
+            marker : std::kinds::marker::ContravariantLifetime::<'a>,
             segment : self.segment,
             data : structData,
             pointers : structPointers,

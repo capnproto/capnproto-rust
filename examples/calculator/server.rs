@@ -7,7 +7,7 @@
 use std;
 use std::vec::Vec;
 
-use capnp::capability::{FromServer, Server};
+use capnp::capability::{FromServer, Server, Request};
 use capnp::list::{PrimitiveList};
 use capnp::{MallocMessageBuilder, MessageBuilder};
 
@@ -63,9 +63,11 @@ fn evaluate_impl(
                 param_values.push(x);
             }
             let mut request = func.call_request();
-            let request_params = request.init().init_params(param_values.len());
-            for ii in range(0, param_values.len()) {
-                request_params.set(ii, param_values[ii]);
+            {
+                let request_params = request.init().init_params(param_values.len());
+                for ii in range(0, param_values.len()) {
+                    request_params.set(ii, param_values[ii]);
+                }
             }
             Ok(try!(request.send().wait()).get_value())
         }

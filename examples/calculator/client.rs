@@ -276,16 +276,18 @@ pub fn main() {
         };
 
         let mut request = calculator.evaluate_request();
-        let pow_call = request.init().get_expression().init_call();
-        pow_call.set_function(FromServer::new(None::<LocalClient>, box PowerFunction));
-        let pow_params = pow_call.init_params(2);
-        pow_params.get(0).set_literal(2.0);
+        {
+            let pow_call = request.init().get_expression().init_call();
+            pow_call.set_function(FromServer::new(None::<LocalClient>, box PowerFunction));
+            let pow_params = pow_call.init_params(2);
+            pow_params.get(0).set_literal(2.0);
 
-        let add_call = pow_params.get(1).init_call();
-        add_call.set_function(add);
-        let add_params = add_call.init_params(2);
-        add_params.get(0).set_literal(4.0);
-        add_params.get(1).set_literal(5.0);
+            let add_call = pow_params.get(1).init_call();
+            add_call.set_function(add);
+            let add_params = add_call.init_params(2);
+            add_params.get(0).set_literal(4.0);
+            add_params.get(1).set_literal(5.0);
+        }
 
         let response = request.send().pipeline.get_value().read_request()
                               .send().wait().unwrap();
