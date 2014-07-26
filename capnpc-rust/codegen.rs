@@ -1260,7 +1260,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                             )));
 
                 client_impl_interior.push(
-                    Line(format!("pub fn {}_request(&self) -> Request<{}::Builder,{}::Reader,{}::Pipeline> {{",
+                    Line(format!("pub fn {}_request(&self) -> Request<{}::Builder<'static>,{}::Reader<'static>,{}::Pipeline> {{",
                                  camel_to_snake_case(name), params_name, results_name, results_name)));
 
                 client_impl_interior.push(Indent(

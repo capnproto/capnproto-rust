@@ -80,9 +80,13 @@ pub trait InitRequest<'a, T> {
     fn init(&'a mut self) -> T;
 }
 
-impl <'a, Params : FromStructBuilder<'a> + HasStructSize, Results, Pipeline> InitRequest<'a, Params>
+impl <'a, 'b, Params : FromStructBuilder<'a> + HasStructSize, Results, Pipeline> InitRequest<'a, Params>
 for Request<Params, Results, Pipeline> {
-    fn init(&'a mut self) -> Params {
+
+    // XXX we are bypassing lifetime tracking here.
+    // TODO: maybe there's something clever we can do to get this to work.
+    // We may have to wait for associated types or higher-kinded types.
+    fn init(&'b mut self) -> Params {
         let message : Message::Builder = self.hook.message().get_root();
         match message.which() {
             Some(Message::Call(call)) => {
