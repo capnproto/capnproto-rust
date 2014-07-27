@@ -778,7 +778,7 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
                      payload : Payload::Builder) {
         let new_cap_table = payload.init_cap_table(cap_table.len());
         for ii in range(0, cap_table.len()) {
-            match cap_table[ii].as_ref::<OwnedCapDescriptor>() {
+            match cap_table[ii].downcast_ref::<OwnedCapDescriptor>() {
                 Some(&NoDescriptor) => {}
                 Some(&ReceiverHosted(import_id)) => {
                     new_cap_table.get(ii).set_receiver_hosted(import_id);
@@ -798,7 +798,7 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
                     new_cap_table.get(ii).set_sender_hosted(export_id);
                 }
                 None => {
-                    match cap_table[ii].as_ref::<Box<ClientHook+Send>>() {
+                    match cap_table[ii].downcast_ref::<Box<ClientHook+Send>>() {
                         Some(clienthook) => {
                             let (chan, port) = std::comm::channel::<ExportId>();
                             rpc_chan.send(NewLocalServer(clienthook.copy(), chan));
