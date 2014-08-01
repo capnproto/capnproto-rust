@@ -869,7 +869,8 @@ impl RequestHook for RpcRequest {
         &mut *self.message
     }
     fn send<'a>(self : Box<RpcRequest>) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline> {
-        let box RpcRequest { channel, mut message, question_ref : _ } = self;
+        let tmp = *self;
+        let RpcRequest { channel, mut message, question_ref : _ } = tmp;
         write_outgoing_cap_table(&channel, &mut *message);
 
         let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
@@ -897,7 +898,8 @@ impl RequestHook for PromisedAnswerRpcRequest {
         &mut *self.message
     }
     fn send<'a>(self : Box<PromisedAnswerRpcRequest>) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline> {
-        let box PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = self;
+        let tmp = *self;
+        let PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = tmp;
         let (answer_tx, answer_rx) = std::comm::channel();
 
         let (interface_id, method_id) = match message.get_root::<Message::Builder>().which() {
@@ -1045,7 +1047,8 @@ impl CallContextHook for RpcCallContext {
     }
 
     fn done(self : Box<RpcCallContext>) {
-        let box RpcCallContext { params_message : _, mut results_message, rpc_chan, mut aborter} = self;
+        let tmp = *self;
+        let RpcCallContext { params_message : _, mut results_message, rpc_chan, mut aborter} = tmp;
         aborter.succeeded = true;
         write_outgoing_cap_table(&rpc_chan, &mut *results_message);
 
@@ -1130,8 +1133,9 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         (params, results)
     }
     fn fail(self : Box<PromisedAnswerRpcCallContext>) {
-        let box PromisedAnswerRpcCallContext {
-            params_message : _, mut results_message, rpc_chan : _, answer_chan} = self;
+        let tmp = *self;
+        let PromisedAnswerRpcCallContext {
+            params_message : _, mut results_message, rpc_chan : _, answer_chan} = tmp;
 
         match results_message.get_root::<Message::Builder>().which() {
             Some(Message::Return(ret)) => {
@@ -1146,8 +1150,10 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
     }
 
     fn done(self : Box<PromisedAnswerRpcCallContext>) {
-        let box PromisedAnswerRpcCallContext {
-            params_message : _, results_message, rpc_chan : _, answer_chan} = self;
+        let tmp = *self;
+
+        let PromisedAnswerRpcCallContext {
+            params_message : _, results_message, rpc_chan : _, answer_chan} = tmp;
 
         answer_chan.send(box LocalResponse::new(results_message) as Box<ResponseHook+Send>);
     }
