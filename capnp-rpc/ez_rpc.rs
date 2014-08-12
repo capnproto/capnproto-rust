@@ -91,7 +91,7 @@ impl ExportedCaps {
                             vat.objects.insert(name, box LocalClient::new(server) as Box<ClientHook+Send>);
                         }
                         Ok(ExportEventRestore(name, return_chan)) => {
-                            return_chan.send(Some((*vat.objects.get(&name)).copy()));
+                            return_chan.send(Some(vat.objects[name].copy()));
                         }
                         Err(_) => break,
                     }
