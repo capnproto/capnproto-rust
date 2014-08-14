@@ -200,8 +200,8 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
             let mut bufferBegin = out;
             let mut slowBuffer : [u8,..20] = [0, ..20];
 
-            let mut inPtr : *const u8 = inBuf.unsafe_ref(0);
-            let inEnd : *const u8 = inBuf.unsafe_ref(inBuf.len());
+            let mut inPtr : *const u8 = inBuf.unsafe_get(0);
+            let inEnd : *const u8 = inBuf.unsafe_get(inBuf.len());
 
             while inPtr < inEnd {
 

@@ -75,8 +75,8 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
             self.cap = n;
             self.pos = 0;
         }
-        Ok((self.buf.as_slice().unsafe_ref(self.pos) as *const u8,
-            self.buf.as_slice().unsafe_ref(self.cap) as *const u8))
+        Ok((self.buf.as_slice().unsafe_get(self.pos) as *const u8,
+            self.buf.as_slice().unsafe_get(self.cap) as *const u8))
     }
 }
 
@@ -145,7 +145,7 @@ impl <'a> BufferedInputStream for ArrayInputStream<'a> {
     unsafe fn get_read_buffer(&mut self) -> IoResult<(*const u8, *const u8)> {
         let len = self.array.len();
         Ok((self.array.as_ptr() as *const u8,
-           self.array.unsafe_ref(len) as *const u8))
+           self.array.unsafe_get(len) as *const u8))
     }
 }
 

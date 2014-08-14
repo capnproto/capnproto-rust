@@ -120,7 +120,7 @@ impl ReaderArena {
         let mut arena = box ReaderArena {
             segment0 : SegmentReader {
                 arena : Null,
-                ptr : unsafe { segments[0].unsafe_ref(0) },
+                ptr : unsafe { segments[0].unsafe_get(0) },
                 size : segments[0].len()
             },
             more_segments : Vec::new(),
@@ -138,7 +138,7 @@ impl ReaderArena {
             for segment in segments.slice_from(1).iter() {
                 let segmentReader = SegmentReader {
                     arena : arena_ptr,
-                    ptr : unsafe { segment.unsafe_ref(0) },
+                    ptr : unsafe { segment.unsafe_get(0) },
                     size : segment.len()
                 };
                 moreSegmentReaders.push(segmentReader);
@@ -153,7 +153,7 @@ impl ReaderArena {
         if id == 0 {
             return &self.segment0 as *const SegmentReader;
         } else {
-            unsafe { self.more_segments.as_slice().unsafe_ref(id as uint - 1) as *const SegmentReader }
+            unsafe { self.more_segments.as_slice().unsafe_get(id as uint - 1) as *const SegmentReader }
         }
     }
 
