@@ -1,4 +1,4 @@
-#![crate_id="zmq-explorers"]
+#![crate_name="zmq-explorers"]
 #![crate_type = "bin"]
 
 extern crate zmq;
@@ -23,15 +23,15 @@ pub fn main() {
     let args = std::os::args();
 
     if args.len() < 2 {
-        usage(args.get(0).as_slice());
+        usage(args[0].as_slice());
         return;
     }
 
-    let result = match args.get(1).as_slice() {
+    let result = match args[1].as_slice() {
         "explorer" => explorer::main(),
         "collector" => collector::main(),
         "viewer" => viewer::main(),
-        _ => { usage(args.get(0).as_slice()); Ok(()) }
+        _ => { usage(args[0].as_slice()); Ok(()) }
     };
 
     match result {

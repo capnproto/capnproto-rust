@@ -13,23 +13,23 @@ enum OutputMode {
 fn write_ppm(path : &std::path::Path, grid : Grid::Reader, mode : OutputMode) -> std::io::IoResult<()> {
     let writer = try!(std::io::File::open_mode(path, std::io::Truncate, std::io::Write));
     let mut buffered = std::io::BufferedWriter::new(writer);
-    try!(buffered.write(bytes!("P6\n")));
+    try!(buffered.write(b"P6\n"));
 
     let cells = grid.get_cells();
     let width = cells.size();
     assert!(width > 0);
-    let height = cells[0].size();
+    let height = cells.get(0).size();
 
     try!(buffered.write(format!("{} {}\n", width, height).as_bytes()));
-    try!(buffered.write(bytes!("255\n")));
+    try!(buffered.write(b"255\n"));
 
     for x in range(0, width) {
-        assert!(cells[x].size() == height);
+        assert!(cells.get(x).size() == height);
     }
 
     for y in range(0, height) {
         for x in range(0, width) {
-            let cell = cells[x][y];
+            let cell = cells.get(x).get(y);
 
             match mode {
                 Colors => {
@@ -89,6 +89,6 @@ pub fn main() -> Result<(), zmq::Error> {
         write_ppm(&filename, grid, Confidence).unwrap();
 
         c += 1;
-        std::io::timer::sleep(5000);
+        std::io::timer::sleep(std::time::Duration::seconds(5));
     }
 }

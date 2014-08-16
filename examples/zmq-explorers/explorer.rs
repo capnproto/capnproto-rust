@@ -46,7 +46,7 @@ impl Image {
                     Ok(s) => {
                         let dims : Vec<&str> = s.as_slice().split(' ').collect();
                         if dims.len() != 2 { fail!("could not read dimensions") }
-                        (from_str::<u32>(dims.get(0).trim()).unwrap(), from_str::<u32>(dims.get(1).trim()).unwrap())
+                        (from_str::<u32>(dims[0].trim()).unwrap(), from_str::<u32>(dims[1].trim()).unwrap())
                     }
                     Err(_e) => { fail!("premature end of file") }
                 };
@@ -71,7 +71,7 @@ impl Image {
     fn get_pixel(&self, x : u32, y : u32) -> Pixel {
         assert!(x < self.width);
         assert!(y < self.height);
-        *self.pixels.get(((y * self.width) + x) as uint)
+        self.pixels[((y * self.width) + x) as uint]
     }
 
     fn take_measurement(&self, x : f32, y : f32, obs : Observation::Builder) {
@@ -121,7 +121,7 @@ pub fn main () -> Result<(), zmq::Error> {
         return Ok(());
     }
 
-    let image = Image::load(&std::path::Path::new(args.get(2).as_slice())).unwrap();
+    let image = Image::load(&std::path::Path::new(args[2].as_slice())).unwrap();
 
     let mut context = zmq::Context::new();
     let mut publisher = try!(context.socket(zmq::PUB));
@@ -141,12 +141,14 @@ pub fn main () -> Result<(), zmq::Error> {
         if y < 0.0 { y += 1.0 }
 
         let mut message = capnp::message::MallocMessageBuilder::new_default();
-        let obs = message.init_root::<Observation::Builder>();
-        image.take_measurement(x, y, obs);
+        {
+            let obs = message.init_root::<Observation::Builder>();
+            image.take_measurement(x, y, obs);
+        }
         try!(capnp_zmq::send(&mut publisher, &mut message));
 
 
-        std::io::timer::sleep(5);
+        std::io::timer::sleep(std::time::Duration::milliseconds(5));
     }
 
 }
