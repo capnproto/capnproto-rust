@@ -9,7 +9,7 @@ use std::vec::Vec;
 use any::AnyPointer;
 use capability::ClientHook;
 use common::*;
-use arena::*;
+use arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};
 use layout;
 use layout::{FromStructBuilder, HasStructSize};
 

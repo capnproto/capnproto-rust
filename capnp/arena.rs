@@ -9,7 +9,6 @@ use std::vec::Vec;
 use libc;
 use capability::ClientHook;
 use common::*;
-use common::ptr_sub;
 use message;
 
 pub type SegmentId = u32;
