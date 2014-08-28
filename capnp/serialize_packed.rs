@@ -11,7 +11,7 @@ use serialize;
 use common::ptr_sub;
 
 
-pub struct PackedInputStream<'a, R> {
+pub struct PackedInputStream<'a, R:'a> {
     pub inner : &'a mut R
 }
 
@@ -189,7 +189,7 @@ pub fn new_reader_unbuffered<U : std::io::Reader>(input : &mut U,
 }
 
 
-pub struct PackedOutputStream<'a, W> {
+pub struct PackedOutputStream<'a, W:'a> {
     pub inner : &'a mut W
 }
 

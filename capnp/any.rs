@@ -114,12 +114,12 @@ pub mod AnyPointer {
     }
 
     pub struct Pipeline {
-        hook : Box<PipelineHook>,
+        hook : Box<PipelineHook+Send>,
         ops : Vec<PipelineOp::Type>,
     }
 
     impl Pipeline {
-        pub fn new(hook : Box<PipelineHook>) -> Pipeline {
+        pub fn new(hook : Box<PipelineHook+Send>) -> Pipeline {
             Pipeline { hook : hook, ops : Vec::new() }
         }
 

@@ -26,7 +26,7 @@ pub trait BufferedInputStream : Reader {
     unsafe fn get_read_buffer(&mut self) -> IoResult<(*const u8, *const u8)>;
 }
 
-pub struct BufferedInputStreamWrapper<'a, R> {
+pub struct BufferedInputStreamWrapper<'a, R: 'a> {
     inner : &'a mut R,
     buf : Vec<u8>,
     pos : uint,
@@ -154,7 +154,7 @@ pub trait BufferedOutputStream : Writer {
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()>;
 }
 
-pub struct BufferedOutputStreamWrapper<'a, W> {
+pub struct BufferedOutputStreamWrapper<'a, W:'a> {
     inner: &'a mut W,
     buf: Vec<u8>,
     pos: uint

@@ -27,11 +27,11 @@ pub trait RequestHook {
 }
 
 pub struct Request<Params, Results, Pipeline> {
-    pub hook : Box<RequestHook>
+    pub hook : Box<RequestHook+Send>
 }
 
 impl <Params, Results, Pipeline > Request <Params, Results, Pipeline> {
-    pub fn new(hook : Box<RequestHook>) -> Request <Params, Results, Pipeline> {
+    pub fn new(hook : Box<RequestHook+Send>) -> Request <Params, Results, Pipeline> {
         Request { hook : hook }
     }
 }
@@ -57,7 +57,7 @@ pub trait ClientHook : Send {
     fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>);
 
     // HACK
-    fn get_descriptor(&self) -> Box<std::any::Any>;
+    fn get_descriptor(&self) -> Box<std::any::Any + 'static>;
 }
 
 pub trait ServerHook {
@@ -127,7 +127,7 @@ pub fn internal_get_typed_context<Params, Results>(
 
 
 pub trait PipelineHook {
-    fn copy(&self) -> Box<PipelineHook>;
+    fn copy(&self) -> Box<PipelineHook+Send>;
     fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> Box<ClientHook+Send>;
 }
 
