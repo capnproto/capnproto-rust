@@ -12,9 +12,9 @@ pub fn read_at_least<R : Reader>(reader : &mut R,
                                  buf: &mut [u8],
                                  min_bytes : uint) -> IoResult<uint> {
     let mut pos = 0;
-    let bufLen = buf.len();
+    let buf_len = buf.len();
     while pos < min_bytes {
-        let buf1 = buf.mut_slice(pos, bufLen);
+        let buf1 = buf.mut_slice(pos, buf_len);
         let n = try!(reader.read(buf1));
         pos += n;
     }
@@ -94,10 +94,10 @@ impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
 
             std::slice::bytes::copy_memory(dst,
                                            self.buf.slice(self.pos, self.cap));
-            let fromFirstBuffer = self.cap - self.pos;
+            let from_first_buffer = self.cap - self.pos;
 
-            let dst1 = dst.mut_slice(fromFirstBuffer, num_bytes);
-            num_bytes -= fromFirstBuffer;
+            let dst1 = dst.mut_slice(from_first_buffer, num_bytes);
+            num_bytes -= from_first_buffer;
             if num_bytes <= self.buf.len() {
                 //# Read the next buffer-full.
                 let n = try!(read_at_least(self.inner, self.buf.as_mut_slice(), num_bytes));
@@ -105,12 +105,12 @@ impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
                                                self.buf.slice(0, num_bytes));
                 self.cap = n;
                 self.pos = num_bytes;
-                return Ok(fromFirstBuffer + num_bytes);
+                return Ok(from_first_buffer + num_bytes);
             } else {
                 //# Forward large read to the underlying stream.
                 self.pos = 0;
                 self.cap = 0;
-                return Ok(fromFirstBuffer + try!(read_at_least(self.inner, dst1, num_bytes)));
+                return Ok(from_first_buffer + try!(read_at_least(self.inner, dst1, num_bytes)));
             }
         }
     }
@@ -184,8 +184,8 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
 
     #[inline]
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
-        let easyCase = ptr == self.buf.as_mut_slice().unsafe_mut_ref(self.pos) as *mut u8;
-        if easyCase {
+        let easy_case = ptr == self.buf.as_mut_slice().unsafe_mut_ref(self.pos) as *mut u8;
+        if easy_case {
             self.pos += size;
             Ok(())
         } else {
@@ -270,8 +270,8 @@ impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
          self.array.unsafe_mut_ref(len) as *mut u8)
     }
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
-        let easyCase = ptr == self.array.unsafe_mut_ref(self.fill_pos) as *mut u8;
-        if easyCase {
+        let easy_case = ptr == self.array.unsafe_mut_ref(self.fill_pos) as *mut u8;
+        if easy_case {
             self.fill_pos += size;
             Ok(())
         } else {

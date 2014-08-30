@@ -40,42 +40,42 @@ fn invalid_input<T>(desc : &'static str) -> std::io::IoResult<T> {
                                  detail : None});
 }
 
-pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
+pub fn new_reader<U : std::io::Reader>(input_stream : &mut U,
                                        options : ReaderOptions)
                                        -> std::io::IoResult<OwnedSpaceMessageReader> {
 
-    let firstWord = try!(inputStream.read_exact(8));
+    let first_word = try!(input_stream.read_exact(8));
 
-    let segmentCount : u32 =
-        unsafe {let p : *const WireValue<u32> = std::mem::transmute(firstWord.as_ptr());
+    let segment_count : u32 =
+        unsafe {let p : *const WireValue<u32> = std::mem::transmute(first_word.as_ptr());
                 (*p).get() + 1
     };
 
-    let segment0Size =
-        if segmentCount == 0 { 0 } else {
-        unsafe {let p : *const WireValue<u32> = std::mem::transmute(firstWord.as_slice().unsafe_get(4));
+    let segment0_size =
+        if segment_count == 0 { 0 } else {
+        unsafe {let p : *const WireValue<u32> = std::mem::transmute(first_word.as_slice().unsafe_get(4));
                 (*p).get()
         }
     };
 
-    let mut totalWords = segment0Size;
+    let mut total_words = segment0_size;
 
-    if segmentCount >= 512 {
+    if segment_count >= 512 {
         return invalid_input("too many segments");
     }
 
-    let mut moreSizes : Vec<u32> = Vec::with_capacity((segmentCount & !1) as uint);
+    let mut more_sizes : Vec<u32> = Vec::with_capacity((segment_count & !1) as uint);
 
-    if segmentCount > 1 {
-        let moreSizesRaw = try!(inputStream.read_exact((4 * (segmentCount & !1)) as uint));
-        for ii in range(0, segmentCount as uint - 1) {
+    if segment_count > 1 {
+        let more_sizes_raw = try!(input_stream.read_exact((4 * (segment_count & !1)) as uint));
+        for ii in range(0, segment_count as uint - 1) {
             let size = unsafe {
                 let p : *const WireValue<u32> =
-                    std::mem::transmute(moreSizesRaw.as_slice().unsafe_get(ii * 4));
+                    std::mem::transmute(more_sizes_raw.as_slice().unsafe_get(ii * 4));
                 (*p).get()
             };
-            moreSizes.push(size);
-            totalWords += size;
+            more_sizes.push(size);
+            total_words += size;
         }
     }
 
@@ -84,38 +84,38 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
     //# check, a malicious client could transmit a very large
     //# segment size to make the receiver allocate excessive space
     //# and possibly crash.
-    if ! (totalWords as u64 <= options.traversal_limit_in_words)  {
+    if ! (total_words as u64 <= options.traversal_limit_in_words)  {
         return invalid_input("Message is too large. To increase the limit on the \
                               receiving end, see capnp::ReaderOptions.");
     }
 
-    let mut ownedSpace : Vec<Word> = allocate_zeroed_words(totalWords as uint);
-    let bufLen = totalWords as uint * BYTES_PER_WORD;
+    let mut owned_space : Vec<Word> = allocate_zeroed_words(total_words as uint);
+    let buf_len = total_words as uint * BYTES_PER_WORD;
 
     unsafe {
-        let ptr : *mut u8 = std::mem::transmute(ownedSpace.as_mut_slice().as_mut_ptr());
-        try!(std::slice::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(ptr, bufLen, |buf| {
-                    io::read_at_least(inputStream, buf, bufLen)
+        let ptr : *mut u8 = std::mem::transmute(owned_space.as_mut_slice().as_mut_ptr());
+        try!(std::slice::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(ptr, buf_len, |buf| {
+                    io::read_at_least(input_stream, buf, buf_len)
                 }));
     }
 
     // TODO(maybe someday) lazy reading like in capnp-c++?
 
-    let mut segment_slices : Vec<(uint, uint)> = vec!((0, segment0Size as uint));
+    let mut segment_slices : Vec<(uint, uint)> = vec!((0, segment0_size as uint));
 
     let arena = {
-        let segment0 : &[Word] = ownedSpace.slice(0, segment0Size as uint);
+        let segment0 : &[Word] = owned_space.slice(0, segment0_size as uint);
         let mut segments : Vec<&[Word]> = vec!(segment0);
 
-        if segmentCount > 1 {
-            let mut offset = segment0Size;
+        if segment_count > 1 {
+            let mut offset = segment0_size;
 
-            for ii in range(0, segmentCount as uint - 1) {
-                segments.push(ownedSpace.slice(offset as uint,
-                                               (offset + moreSizes.as_slice()[ii]) as uint));
+            for ii in range(0, segment_count as uint - 1) {
+                segments.push(owned_space.slice(offset as uint,
+                                               (offset + more_sizes.as_slice()[ii]) as uint));
                 segment_slices.push((offset as uint,
-                                     (offset + moreSizes.as_slice()[ii]) as uint));
-                offset += moreSizes.as_slice()[ii];
+                                     (offset + more_sizes.as_slice()[ii]) as uint));
+                offset += more_sizes.as_slice()[ii];
             }
         }
         arena::ReaderArena::new(segments.as_slice(), options)
@@ -123,7 +123,7 @@ pub fn new_reader<U : std::io::Reader>(inputStream : &mut U,
 
     Ok(OwnedSpaceMessageReader {
         segment_slices : segment_slices,
-        owned_space : ownedSpace,
+        owned_space : owned_space,
         arena : arena,
         options : options,
     })

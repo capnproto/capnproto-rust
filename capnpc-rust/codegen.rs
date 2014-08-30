@@ -224,8 +224,8 @@ fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<Stri
                     format!("PrimitiveList::{}<{}, {}>", module, lifetime_name, prim_type_str(t))
                 }
                 Type::Enum(en) => {
-                    let theMod = scope_map[en.get_type_id()].connect("::");
-                    format!("EnumList::{}<{},{}::Reader>", module, lifetime_name, theMod)
+                    let the_mod = scope_map[en.get_type_id()].connect("::");
+                    format!("EnumList::{}<{},{}::Reader>", module, lifetime_name, the_mod)
                 }
                 Type::Text(()) => {
                     format!("TextList::{}<{}>", module, lifetime_name)
@@ -279,7 +279,7 @@ fn prim_default (value : &schema_capnp::Value::Reader) -> Option<String> {
 fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
                field : &schema_capnp::Field::Reader,
-               isReader : bool)
+               is_reader : bool)
     -> (String, FormattedText) {
 
     use schema_capnp::*;
@@ -287,21 +287,21 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
     match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
-            let theMod = scope_map[group.get_type_id()].connect("::");
-            if isReader {
-                return (format!("{}::Reader<'a>", theMod),
+            let the_mod = scope_map[group.get_type_id()].connect("::");
+            if is_reader {
+                return (format!("{}::Reader<'a>", the_mod),
                         Line("FromStructReader::new(self.reader)".to_string()));
             } else {
-                return (format!("{}::Builder<'a>", theMod),
+                return (format!("{}::Builder<'a>", the_mod),
                         Line("FromStructBuilder::new(self.builder)".to_string()));
             }
         }
         Some(Field::Slot(reg_field)) => {
             let offset = reg_field.get_offset() as uint;
 
-            let member = if isReader { "reader" } else { "builder" };
-            let module = if isReader { "Reader" } else { "Builder" };
-            let moduleWithVar = if isReader { "Reader<'a>" } else { "Builder<'a>" };
+            let member = if is_reader { "reader" } else { "builder" };
+            let module = if is_reader { "Reader" } else { "Builder" };
+            let module_with_var = if is_reader { "Reader<'a>" } else { "Builder<'a>" };
 
             match tuple_option(reg_field.get_type().which(), reg_field.get_default_value().which()) {
                 Some((Type::Void(()), Value::Void(()))) => { return ("()".to_string(), Line("()".to_string()))}
@@ -325,12 +325,12 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 Some((Type::Float32(()), Value::Float32(f))) => return common_case("f32", member, offset, f),
                 Some((Type::Float64(()), Value::Float64(f))) => return common_case("f64", member, offset, f),
                 Some((Type::Text(()), _)) => {
-                    return (format!("Text::{}", moduleWithVar),
+                    return (format!("Text::{}", module_with_var),
                             Line(format!("self.{}.get_pointer_field({}).get_text(std::ptr::null(), 0)",
                                       member, offset)));
                 }
                 Some((Type::Data(()), _)) => {
-                    return (format!("Data::{}", moduleWithVar),
+                    return (format!("Data::{}", module_with_var),
                             Line(format!("self.{}.get_pointer_field({}).get_data(std::ptr::null(), 0)",
                                       member, offset)));
                 }
@@ -338,28 +338,28 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                     match ot1.get_element_type().which() {
                         None => { fail!("unsupported type") }
                         Some(Type::Struct(st)) => {
-                            let theMod = scope_map[st.get_type_id()].connect("::");
-                            if isReader {
-                                return (format!("StructList::{}<'a,{}::{}<'a>>", module, theMod, module),
+                            let the_mod = scope_map[st.get_type_id()].connect("::");
+                            if is_reader {
+                                return (format!("StructList::{}<'a,{}::{}<'a>>", module, the_mod, module),
                                         Line(format!("StructList::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
-                                                     module, member, offset, theMod))
+                                                     module, member, offset, the_mod))
                                         );
                             } else {
-                                return (format!("StructList::{}<'a,{}::{}<'a>>", module, theMod, module),
+                                return (format!("StructList::{}<'a,{}::{}<'a>>", module, the_mod, module),
                                         Line(format!("StructList::{}::new(self.{}.get_pointer_field({}).get_struct_list({}::STRUCT_SIZE, std::ptr::null()))",
-                                                     module, member, offset, theMod))
+                                                     module, member, offset, the_mod))
                                         );
                             }
                         }
                         Some(Type::Enum(e)) => {
-                            let theMod = scope_map[e.get_type_id()].connect("::");
-                            let fullModuleName = format!("{}::Reader", theMod);
-                            return (format!("EnumList::{}<'a,{}>",module,fullModuleName),
+                            let the_mod = scope_map[e.get_type_id()].connect("::");
+                            let full_module_name = format!("{}::Reader", the_mod);
+                            return (format!("EnumList::{}<'a,{}>",module,full_module_name),
                                     Line(format!("EnumList::{}::new(self.{}.get_pointer_field({}).get_list(layout::TwoBytes, std::ptr::null()))",
                                          module, member, offset)));
                         }
                         Some(Type::List(t1)) => {
-                            let type_param = list_list_type_param(scope_map, t1.get_element_type(), isReader, "'a");
+                            let type_param = list_list_type_param(scope_map, t1.get_element_type(), is_reader, "'a");
                             return (format!("ListList::{}<'a,{}>", module, type_param),
                                     Line(format!("ListList::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
                                                  module, member, offset)))
@@ -376,36 +376,36 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                         }
                         Some(Type::Interface(_)) => {fail!("unimplemented") }
                         Some(Type::AnyPointer(())) => {fail!("List(AnyPointer) is unsupported")}
-                        Some(primType) => {
-                            let typeStr = prim_type_str(primType);
-                            let sizeStr = element_size_str(element_size(primType));
+                        Some(prim_type) => {
+                            let type_str = prim_type_str(prim_type);
+                            let size_str = element_size_str(element_size(prim_type));
                             return
-                                (format!("PrimitiveList::{}<'a,{}>", module, typeStr),
+                                (format!("PrimitiveList::{}<'a,{}>", module, type_str),
                                  Line(format!("PrimitiveList::{}::new(self.{}.get_pointer_field({}).get_list(layout::{}, std::ptr::null()))",
-                                           module, member, offset, sizeStr)))
+                                           module, member, offset, size_str)))
                         }
                     }
                 }
                 Some((Type::Enum(en), _)) => {
                     let scope = &scope_map[en.get_type_id()];
-                    let theMod = scope.connect("::");
+                    let the_mod = scope.connect("::");
                     return
-                        (format!("Option<{}::Reader>", theMod), // Enums don't have builders.
+                        (format!("Option<{}::Reader>", the_mod), // Enums don't have builders.
                          Branch(vec!(
                             Line(format!("FromPrimitive::from_u16(self.{}.get_data_field::<u16>({}))",
                                         member, offset))
                               )));
                 }
                 Some((Type::Struct(st), _)) => {
-                    let theMod = scope_map[st.get_type_id()].connect("::");
-                    let middleArg = if isReader {format!("")} else {format!("{}::STRUCT_SIZE,", theMod)};
-                    return (format!("{}::{}", theMod, moduleWithVar),
+                    let the_mod = scope_map[st.get_type_id()].connect("::");
+                    let middle_arg = if is_reader {format!("")} else {format!("{}::STRUCT_SIZE,", the_mod)};
+                    return (format!("{}::{}", the_mod, module_with_var),
                             Line(format!("FromStruct{}::new(self.{}.get_pointer_field({}).get_struct({} std::ptr::null()))",
-                                      module, member, offset, middleArg)))
+                                      module, member, offset, middle_arg)))
                 }
                 Some((Type::Interface(interface), _)) => {
-                    let theMod = scope_map[interface.get_type_id()].connect("::");
-                    return (format!("{}::Client", theMod),
+                    let the_mod = scope_map[interface.get_type_id()].connect("::");
+                    return (format!("{}::Client", the_mod),
                             Line(format!("FromClientHook::new(self.{}.get_pointer_field({}).get_capability())",
                                          member, offset)));
                 }
@@ -507,7 +507,7 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
 
 fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
                   scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
-                  discriminantOffset : u32,
+                  discriminant_offset : u32,
                   styled_name : &str,
                   field :&schema_capnp::Field::Reader) -> FormattedText {
 
@@ -518,16 +518,16 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
     let mut initter_interior = Vec::new();
     let mut initter_params = Vec::new();
 
-    let discriminantValue = field.get_discriminant_value();
-    if discriminantValue != Field::NO_DISCRIMINANT {
+    let discriminant_value = field.get_discriminant_value();
+    if discriminant_value != Field::NO_DISCRIMINANT {
         setter_interior.push(
             Line(format!("self.builder.set_data_field::<u16>({}, {});",
-                         discriminantOffset as uint,
-                         discriminantValue as uint)));
+                         discriminant_offset as uint,
+                         discriminant_value as uint)));
         initter_interior.push(
             Line(format!("self.builder.set_data_field::<u16>({}, {});",
-                         discriminantOffset as uint,
-                         discriminantValue as uint)));
+                         discriminant_offset as uint,
+                         discriminant_value as uint)));
     }
 
     let mut setter_lifetime_param = "";
@@ -536,13 +536,13 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
             let scope = &scope_map[group.get_type_id()];
-            let theMod = scope.connect("::");
+            let the_mod = scope.connect("::");
 
             initter_interior.push(zero_fields_of_group(node_map, group.get_type_id()));
 
             initter_interior.push(Line(format!("FromStructBuilder::new(self.builder)")));
 
-            (None, Some(format!("{}::Builder<'a>", theMod)))
+            (None, Some(format!("{}::Builder<'a>", the_mod)))
         }
         Some(Field::Slot(reg_field)) => {
             fn common_case (typ: &str, offset : uint, reg_field : Field::Slot::Reader,
@@ -618,53 +618,53 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                         Some(t1) => {
                             match t1 {
                                 Type::Void(()) | Type::Bool(()) | Type::Int8(()) |
-                                    Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
-                                    Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
-                                    Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) => {
+                                Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
+                                Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
+                                Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) => {
 
-                                    let typeStr = prim_type_str(t1);
-                                    let sizeStr = element_size_str(element_size(t1));
+                                    let type_str = prim_type_str(t1);
+                                    let size_str = element_size_str(element_size(t1));
 
                                     initter_interior.push(Line(format!("PrimitiveList::Builder::<'a,{}>::new(",
-                                                               typeStr)));
+                                                               type_str)));
                                     initter_interior.push(
                                         Indent(box Line(format!("self.builder.get_pointer_field({}).init_list(layout::{},size)",
-                                                          offset, sizeStr))));
+                                                                offset, size_str))));
                                     initter_interior.push(Line(")".to_string()));
 
-                                    (Some(format!("PrimitiveList::Reader<'a,{}>", typeStr)),
-                                     Some(format!("PrimitiveList::Builder<'a,{}>", typeStr)))
+                                    (Some(format!("PrimitiveList::Reader<'a,{}>", type_str)),
+                                     Some(format!("PrimitiveList::Builder<'a,{}>", type_str)))
                                 }
                                 Type::Enum(e) => {
                                     let id = e.get_type_id();
                                     let scope = &scope_map[id];
-                                    let theMod = scope.connect("::");
-                                    let typeStr = format!("{}::Reader", theMod);
+                                    let the_mod = scope.connect("::");
+                                    let type_str = format!("{}::Reader", the_mod);
                                     initter_interior.push(Line(format!("EnumList::Builder::<'a, {}>::new(",
-                                                            typeStr)));
+                                                            type_str)));
                                     initter_interior.push(
                                         Indent(
                                             box Line(
                                                 format!("self.builder.get_pointer_field({}).init_list(layout::TwoBytes,size)",
                                                      offset))));
                                     initter_interior.push(Line(")".to_string()));
-                                    (Some(format!("EnumList::Reader<'a,{}>", typeStr)),
-                                     Some(format!("EnumList::Builder<'a,{}>", typeStr)))
+                                    (Some(format!("EnumList::Reader<'a,{}>", type_str)),
+                                     Some(format!("EnumList::Builder<'a,{}>", type_str)))
                                 }
                                 Type::Struct(st) => {
                                     let id = st.get_type_id();
                                     let scope = &scope_map[id];
-                                    let theMod = scope.connect("::");
+                                    let the_mod = scope.connect("::");
 
-                                    initter_interior.push(Line(format!("StructList::Builder::<'a, {}::Builder<'a>>::new(", theMod)));
+                                    initter_interior.push(Line(format!("StructList::Builder::<'a, {}::Builder<'a>>::new(", the_mod)));
                                     initter_interior.push(
                                        Indent(
                                           box Line(
                                              format!("self.builder.get_pointer_field({}).init_struct_list(size, {}::STRUCT_SIZE))",
-                                                  offset, theMod))));
+                                                  offset, the_mod))));
 
-                                    (Some(format!("StructList::Reader<'a,{}::Reader<'a>>", theMod)),
-                                     Some(format!("StructList::Builder<'a,{}::Builder<'a>>", theMod)))
+                                    (Some(format!("StructList::Reader<'a,{}::Reader<'a>>", the_mod)),
+                                     Some(format!("StructList::Builder<'a,{}::Builder<'a>>", the_mod)))
                                 }
                                 Type::Text(()) => {
                                     initter_interior.push(
@@ -701,27 +701,27 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                 }
                 Some(Type::Enum(e)) => {
                     let id = e.get_type_id();
-                    let theMod = scope_map[id].connect("::");
+                    let the_mod = scope_map[id].connect("::");
                     setter_interior.push(
                         Line(format!("self.builder.set_data_field::<u16>({}, value as u16)",
                                      offset)));
-                    (Some(format!("{}::Reader", theMod)), None)
+                    (Some(format!("{}::Reader", the_mod)), None)
                 }
                 Some(Type::Struct(st)) => {
-                    let theMod = scope_map[st.get_type_id()].connect("::");
+                    let the_mod = scope_map[st.get_type_id()].connect("::");
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_struct(&value.struct_reader())", offset)));
                     initter_interior.push(
                       Line(format!("FromStructBuilder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
-                                   offset, theMod)));
-                    (Some(format!("{}::Reader", theMod)), Some(format!("{}::Builder<'a>", theMod)))
+                                   offset, the_mod)));
+                    (Some(format!("{}::Reader", the_mod)), Some(format!("{}::Builder<'a>", the_mod)))
                 }
                 Some(Type::Interface(interface)) => {
-                    let theMod = scope_map[interface.get_type_id()].connect("::");
+                    let the_mod = scope_map[interface.get_type_id()].connect("::");
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_capability(value.client.hook);",
                                      offset)));
-                    (Some(format!("{}::Client",theMod)), None)
+                    (Some(format!("{}::Client",the_mod)), None)
                 }
                 Some(Type::AnyPointer(())) => {
                     initter_interior.push(Line(format!("let result = AnyPointer::Builder::new(self.builder.get_pointer_field({}));",
@@ -789,14 +789,14 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
 
         let dvalue = field.get_discriminant_value() as uint;
 
-        let fieldName = field.get_name();
-        let enumerantName = capitalize_first_letter(fieldName);
+        let field_name = field.get_name();
+        let enumerant_name = capitalize_first_letter(field_name);
 
         let (ty, get) = getter_text(node_map, scope_map, field, is_reader);
 
         getter_interior.push(Branch(vec!(
                     Line(format!("{} => {{", dvalue)),
-                    Indent(box Line(format!("return std::option::Some({}(", enumerantName.clone()))),
+                    Indent(box Line(format!("return std::option::Some({}(", enumerant_name.clone()))),
                     Indent(box Indent(box get)),
                     Indent(box Line("));".to_string())),
                     Line("}".to_string())
@@ -821,7 +821,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
             _ => ty
         };
 
-        enum_interior.push(Line(format!("{}({}),", enumerantName, ty1)));
+        enum_interior.push(Line(format!("{}({}),", enumerant_name, ty1)));
     }
 
     let enum_name = format!("Which{}",
@@ -926,10 +926,10 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
     match field.which() {
         None => fail!("unrecognized field type"),
         Some(Field::Group(group)) => {
-            let theMod = scope_map[group.get_type_id()].connect("::");
+            let the_mod = scope_map[group.get_type_id()].connect("::");
             return Branch(vec!(Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
                                             camel_to_snake_case(name),
-                                            theMod)),
+                                            the_mod)),
                                Indent(box Line("FromTypelessPipeline::new(self._typeless.noop())".to_string())),
                                Line("}".to_string())));
         }
@@ -937,22 +937,22 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
             match reg_field.get_type().which() {
                 None => fail!("unrecognized type"),
                 Some(Type::Struct(st)) => {
-                    let theMod = scope_map[st.get_type_id()].connect("::");
+                    let the_mod = scope_map[st.get_type_id()].connect("::");
                     return Branch(vec!(
                         Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
                                      camel_to_snake_case(name),
-                                     theMod)),
+                                     the_mod)),
                         Indent(box Line(
                             format!("FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
                                     reg_field.get_offset()))),
                         Line("}".to_string())));
                 }
                 Some(Type::Interface(interface)) => {
-                    let theMod = scope_map[interface.get_type_id()].connect("::");
+                    let the_mod = scope_map[interface.get_type_id()].connect("::");
                     return Branch(vec!(
                         Line(format!("pub fn get_{}(&self) -> {}::Client {{",
                                      camel_to_snake_case(name),
-                                     theMod)),
+                                     the_mod)),
                         Indent(box Line(
                             format!("FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
                                     reg_field.get_offset()))),
@@ -1001,28 +1001,28 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let mut which_enums = Vec::new();
             let mut pipeline_impl_interior = Vec::new();
 
-            let dataSize = struct_reader.get_data_word_count();
-            let pointerSize = struct_reader.get_pointer_count();
+            let data_size = struct_reader.get_data_word_count();
+            let pointer_size = struct_reader.get_pointer_count();
             let preferred_list_encoding =
                   match struct_reader.get_preferred_list_encoding() {
                                 Some(e) => e,
                                 None => fail!("unsupported list encoding")
                         };
-            let isGroup = struct_reader.get_is_group();
-            let discriminantCount = struct_reader.get_discriminant_count();
+            let is_group = struct_reader.get_is_group();
+            let discriminant_count = struct_reader.get_discriminant_count();
             let discriminant_offset = struct_reader.get_discriminant_offset();
 
             preamble.push(generate_import_statements());
             preamble.push(BlankLine);
 
 
-            if !isGroup {
+            if !is_group {
                 preamble.push(Line("pub static STRUCT_SIZE : layout::StructSize =".to_string()));
                 preamble.push(
                    Indent(
                       box Line(
                         format!("layout::StructSize {{ data : {}, pointers : {}, preferred_list_encoding : layout::{}}};",
-                             dataSize as uint, pointerSize as uint,
+                             data_size as uint, pointer_size as uint,
                              element_size_str(preferred_list_encoding)))));
                 preamble.push(BlankLine);
 
@@ -1035,10 +1035,10 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 let name = field.get_name();
                 let styled_name = camel_to_snake_case(name);
 
-                let discriminantValue = field.get_discriminant_value();
-                let isUnionField = discriminantValue != Field::NO_DISCRIMINANT;
+                let discriminant_value = field.get_discriminant_value();
+                let is_union_field = discriminant_value != Field::NO_DISCRIMINANT;
 
-                if !isUnionField {
+                if !is_union_field {
                     pipeline_impl_interior.push(generate_pipeline_getter(node_map, scope_map, field));
                     let (ty, get) = getter_text(node_map, scope_map, &field, true);
                     reader_members.push(
@@ -1048,13 +1048,13 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                             Indent(box get),
                             Line("}".to_string()))));
 
-                    let (tyB, getB) = getter_text(node_map, scope_map, &field, false);
+                    let (ty_b, get_b) = getter_text(node_map, scope_map, &field, false);
 
                     builder_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(&self) -> {} {{", styled_name, tyB)),
-                            Indent(box getB),
+                            Line(format!("pub fn get_{}(&self) -> {} {{", styled_name, ty_b)),
+                            Indent(box get_b),
                             Line("}".to_string()))));
 
                 } else {
@@ -1080,7 +1080,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
             }
 
-            if discriminantCount > 0 {
+            if discriminant_count > 0 {
                 let (which_enums1, union_getter, typedef) =
                     generate_union(node_map, scope_map,
                                    discriminant_offset, union_fields.as_slice(), true);
@@ -1095,8 +1095,8 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 builder_members.push(union_getter);
             }
 
-            let builderStructSize =
-                if isGroup { Branch(Vec::new()) }
+            let builder_struct_size =
+                if is_group { Branch(Vec::new()) }
                 else {
                     Branch(vec!(
                         Line("impl <'a> layout::HasStructSize for Builder<'a> {".to_string()),
@@ -1126,7 +1126,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 Line("}".to_string()),
                 BlankLine,
                 Line("pub struct Builder<'a> { builder : layout::StructBuilder<'a> }".to_string()),
-                builderStructSize,
+                builder_struct_size,
                 Line("impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
@@ -1164,7 +1164,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
         }
 
-        Some(Node::Enum(enumReader)) => {
+        Some(Node::Enum(enum_reader)) => {
             let names = &scope_map[node_id];
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} {{", *names.last().unwrap())));
@@ -1173,7 +1173,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             output.push(BlankLine);
 
             let mut members = Vec::new();
-            let enumerants = enumReader.get_enumerants();
+            let enumerants = enum_reader.get_enumerants();
             for ii in range(0, enumerants.size()) {
                 let enumerant = enumerants.get(ii);
                 members.push(
@@ -1401,16 +1401,16 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 Line(format!("pub static {} : {} = {};", styled_name, typ, txt)));
         }
 
-        Some(Node::Annotation( annotationReader )) => {
+        Some(Node::Annotation( annotation_reader )) => {
             println!("  annotation node:");
-            if annotationReader.get_targets_file() {
+            if annotation_reader.get_targets_file() {
                 println!("  targets file");
             }
-            if annotationReader.get_targets_const() {
+            if annotation_reader.get_targets_const() {
                 println!("  targets const");
             }
             // ...
-            if annotationReader.get_targets_annotation() {
+            if annotation_reader.get_targets_annotation() {
                 println!("  targets annotation");
             }
         }

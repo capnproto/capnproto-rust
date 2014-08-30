@@ -22,74 +22,74 @@ mod tests {
         // Make the first segment small to force allocation of a second segment.
         let mut message = MallocMessageBuilder::new(*BuilderOptions::new().first_segment_words(50));
 
-        let testPrimList = message.init_root::<TestPrimList::Builder>();
+        let test_prim_list = message.init_root::<TestPrimList::Builder>();
 
-        let uint8_list = testPrimList.init_uint8_list(100);
+        let uint8_list = test_prim_list.init_uint8_list(100);
 
         for i in range(0, uint8_list.size()) {
             uint8_list.set(i, i as u8);
         }
 
-        let uint64List = testPrimList.init_uint64_list(20);
+        let uint64_list = test_prim_list.init_uint64_list(20);
 
-        for i in range(0, uint64List.size()) {
-            uint64List.set(i, i as u64);
+        for i in range(0, uint64_list.size()) {
+            uint64_list.set(i, i as u64);
         }
 
-        assert_eq!(testPrimList.has_bool_list(), false);
-        let boolList = testPrimList.init_bool_list(65);
-        assert_eq!(testPrimList.has_bool_list(), true);
+        assert_eq!(test_prim_list.has_bool_list(), false);
+        let bool_list = test_prim_list.init_bool_list(65);
+        assert_eq!(test_prim_list.has_bool_list(), true);
 
-        boolList.set(0, true);
-        boolList.set(1, true);
-        boolList.set(2, true);
-        boolList.set(3, true);
-        boolList.set(5, true);
-        boolList.set(8, true);
-        boolList.set(13, true);
-        boolList.set(64, true);
+        bool_list.set(0, true);
+        bool_list.set(1, true);
+        bool_list.set(2, true);
+        bool_list.set(3, true);
+        bool_list.set(5, true);
+        bool_list.set(8, true);
+        bool_list.set(13, true);
+        bool_list.set(64, true);
 
-        assert!(boolList.get(0));
-        assert!(!boolList.get(4));
-        assert!(!boolList.get(63));
-        assert!(boolList.get(64));
+        assert!(bool_list.get(0));
+        assert!(!bool_list.get(4));
+        assert!(!bool_list.get(63));
+        assert!(bool_list.get(64));
 
-        assert_eq!(testPrimList.has_void_list(), false);
-        let voidList = testPrimList.init_void_list(1025);
-        assert_eq!(testPrimList.has_void_list(), true);
-        voidList.set(257, ());
+        assert_eq!(test_prim_list.has_void_list(), false);
+        let void_list = test_prim_list.init_void_list(1025);
+        assert_eq!(test_prim_list.has_void_list(), true);
+        void_list.set(257, ());
 
 
-        let testPrimListReader = testPrimList.as_reader();
-        let uint8List = testPrimListReader.get_uint8_list();
-        for i in range(0, uint8List.size()) {
-            assert_eq!(uint8List.get(i), i as u8);
+        let test_prim_list_reader = test_prim_list.as_reader();
+        let uint8_list = test_prim_list_reader.get_uint8_list();
+        for i in range(0, uint8_list.size()) {
+            assert_eq!(uint8_list.get(i), i as u8);
         }
-        let uint64List = testPrimListReader.get_uint64_list();
-        for i in range(0, uint64List.size()) {
-            assert_eq!(uint64List.get(i), i as u64);
+        let uint64_list = test_prim_list_reader.get_uint64_list();
+        for i in range(0, uint64_list.size()) {
+            assert_eq!(uint64_list.get(i), i as u64);
         }
 
-        assert_eq!(testPrimListReader.has_bool_list(), true);
-        let boolList = testPrimListReader.get_bool_list();
-        assert!(boolList.get(0));
-        assert!(boolList.get(1));
-        assert!(boolList.get(2));
-        assert!(boolList.get(3));
-        assert!(!boolList.get(4));
-        assert!(boolList.get(5));
-        assert!(!boolList.get(6));
-        assert!(!boolList.get(7));
-        assert!(boolList.get(8));
-        assert!(!boolList.get(9));
-        assert!(!boolList.get(10));
-        assert!(!boolList.get(11));
-        assert!(!boolList.get(12));
-        assert!(boolList.get(13));
-        assert!(!boolList.get(63));
-        assert!(boolList.get(64));
+        assert_eq!(test_prim_list_reader.has_bool_list(), true);
+        let bool_list = test_prim_list_reader.get_bool_list();
+        assert!(bool_list.get(0));
+        assert!(bool_list.get(1));
+        assert!(bool_list.get(2));
+        assert!(bool_list.get(3));
+        assert!(!bool_list.get(4));
+        assert!(bool_list.get(5));
+        assert!(!bool_list.get(6));
+        assert!(!bool_list.get(7));
+        assert!(bool_list.get(8));
+        assert!(!bool_list.get(9));
+        assert!(!bool_list.get(10));
+        assert!(!bool_list.get(11));
+        assert!(!bool_list.get(12));
+        assert!(bool_list.get(13));
+        assert!(!bool_list.get(63));
+        assert!(bool_list.get(64));
 
-        assert_eq!(testPrimListReader.get_void_list().size(), 1025);
+        assert_eq!(test_prim_list_reader.get_void_list().size(), 1025);
     }
 
     #[test]
@@ -168,32 +168,32 @@ mod tests {
         // Make the first segment small to force allocation of a second segment.
         let mut message = MallocMessageBuilder::new(*BuilderOptions::new().first_segment_words(5));
 
-        let bigStruct = message.init_root::<TestBigStruct::Builder>();
+        let big_struct = message.init_root::<TestBigStruct::Builder>();
 
-        bigStruct.set_bool_field(false);
-        bigStruct.set_int8_field(-128);
-        bigStruct.set_int16_field(0);
-        bigStruct.set_int32_field(1009);
+        big_struct.set_bool_field(false);
+        big_struct.set_int8_field(-128);
+        big_struct.set_int16_field(0);
+        big_struct.set_int32_field(1009);
 
-        assert_eq!(bigStruct.has_struct_field(), false);
-        let inner = bigStruct.init_struct_field();
-        assert_eq!(bigStruct.has_struct_field(), true);
+        assert_eq!(big_struct.has_struct_field(), false);
+        let inner = big_struct.init_struct_field();
+        assert_eq!(big_struct.has_struct_field(), true);
         inner.set_float64_field(0.1234567);
 
         inner.set_bool_field_b(true);
 
-        bigStruct.set_bool_field(true);
+        big_struct.set_bool_field(true);
 
 
-        let bigStructReader = bigStruct.as_reader();
-        assert_eq!(bigStructReader.has_struct_field(), true);
-        assert_eq!(bigStructReader.get_int8_field(), -128);
-        assert_eq!(bigStructReader.get_int32_field(), 1009);
+        let big_struct_reader = big_struct.as_reader();
+        assert_eq!(big_struct_reader.has_struct_field(), true);
+        assert_eq!(big_struct_reader.get_int8_field(), -128);
+        assert_eq!(big_struct_reader.get_int32_field(), 1009);
 
-        let innerReader = bigStructReader.get_struct_field();
-        assert!(!innerReader.get_bool_field_a());
-        assert!(innerReader.get_bool_field_b());
-        assert_eq!(innerReader.get_float64_field(), 0.1234567);
+        let inner_reader = big_struct_reader.get_struct_field();
+        assert!(!inner_reader.get_bool_field_a());
+        assert!(inner_reader.get_bool_field_b());
+        assert_eq!(inner_reader.get_float64_field(), 0.1234567);
     }
 
     #[test]
@@ -204,13 +204,13 @@ mod tests {
 
         let test_complex_list = message.init_root::<TestComplexList::Builder>();
 
-        let enumList = test_complex_list.init_enum_list(100);
+        let enum_list = test_complex_list.init_enum_list(100);
 
         for i in range::<uint>(0, 10) {
-            enumList.set(i, AnEnum::Qux);
+            enum_list.set(i, AnEnum::Qux);
         }
         for i in range::<uint>(10, 20) {
-            enumList.set(i, AnEnum::Bar);
+            enum_list.set(i, AnEnum::Bar);
         }
 
         let text_list = test_complex_list.init_text_list(2);
@@ -261,12 +261,12 @@ mod tests {
 
 
         let complex_list_reader = test_complex_list.as_reader();
-        let enumListReader = complex_list_reader.get_enum_list();
+        let enum_list_reader = complex_list_reader.get_enum_list();
         for i in range::<uint>(0,10) {
-            assert!(enumListReader.get(i) == Some(AnEnum::Qux));
+            assert!(enum_list_reader.get(i) == Some(AnEnum::Qux));
         }
         for i in range::<uint>(10,20) {
-            assert!(enumListReader.get(i) == Some(AnEnum::Bar));
+            assert!(enum_list_reader.get(i) == Some(AnEnum::Bar));
         }
 
         let text_list = complex_list_reader.get_text_list();

@@ -28,9 +28,9 @@ impl SegmentReader {
 
     #[inline]
     pub fn contains_interval(&self, from : *const Word, to : *const Word) -> bool {
-        let thisBegin : uint = self.ptr.to_uint();
-        let thisEnd : uint = unsafe { self.ptr.offset(self.size as int).to_uint() };
-        return from.to_uint() >= thisBegin && to.to_uint() <= thisEnd && from.to_uint() <= to.to_uint();
+        let this_begin : uint = self.ptr.to_uint();
+        let this_end : uint = unsafe { self.ptr.offset(self.size as int).to_uint() };
+        return from.to_uint() >= this_begin && to.to_uint() <= this_end && from.to_uint() <= to.to_uint();
         // TODO readLimiter
     }
 }
@@ -59,10 +59,10 @@ impl SegmentBuilder {
     }
 
     pub fn get_word_offset_to(&mut self, ptr : *mut Word) -> WordCount {
-        let thisAddr : uint = self.reader.ptr.to_uint();
-        let ptrAddr : uint = ptr.to_uint();
-        assert!(ptrAddr >= thisAddr);
-        let result = (ptrAddr - thisAddr) / BYTES_PER_WORD;
+        let this_addr : uint = self.reader.ptr.to_uint();
+        let ptr_addr : uint = ptr.to_uint();
+        assert!(ptr_addr >= this_addr);
+        let result = (ptr_addr - this_addr) / BYTES_PER_WORD;
         return result;
     }
 
@@ -133,16 +133,16 @@ impl ReaderArena {
         arena.segment0.arena = arena_ptr;
 
         if segments.len() > 1 {
-            let mut moreSegmentReaders = Vec::new();
+            let mut more_segment_readers = Vec::new();
             for segment in segments.slice_from(1).iter() {
-                let segmentReader = SegmentReader {
+                let segment_reader = SegmentReader {
                     arena : arena_ptr,
                     ptr : unsafe { segment.unsafe_get(0) },
                     size : segment.len()
                 };
-                moreSegmentReaders.push(segmentReader);
+                more_segment_readers.push(segment_reader);
             }
-            arena.more_segments = moreSegmentReaders;
+            arena.more_segments = more_segment_readers;
         }
 
         arena
@@ -168,7 +168,7 @@ pub struct BuilderArena {
     pub more_segments : Vec<Box<SegmentBuilder>>,
     pub allocation_strategy : message::AllocationStrategy,
     pub owned_memory : Vec<*mut Word>,
-    pub nextSize : uint,
+    pub next_size : uint,
     pub cap_table : Vec<Option<Box<ClientHook+Send>>>,
     pub fail_fast : bool,
 }
@@ -188,7 +188,7 @@ pub enum FirstSegment<'a> {
 
 impl BuilderArena {
 
-    pub fn new(allocationStrategy : message::AllocationStrategy,
+    pub fn new(allocation_strategy : message::AllocationStrategy,
                first_segment : FirstSegment,
                fail_fast : bool) -> Box<BuilderArena> {
 
@@ -213,9 +213,9 @@ impl BuilderArena {
                 pos : first_segment,
             },
             more_segments : Vec::new(),
-            allocation_strategy : allocationStrategy,
+            allocation_strategy : allocation_strategy,
             owned_memory : owned_memory,
-            nextSize : num_words,
+            next_size : num_words,
             cap_table : Vec::new(),
             fail_fast : fail_fast,
         };
@@ -226,8 +226,8 @@ impl BuilderArena {
         result
     }
 
-    pub fn allocate_owned_memory(&mut self, minimumSize : WordCount) -> (*mut Word, WordCount) {
-        let size = std::cmp::max(minimumSize, self.nextSize);
+    pub fn allocate_owned_memory(&mut self, minimum_size : WordCount) -> (*mut Word, WordCount) {
+        let size = std::cmp::max(minimum_size, self.next_size);
         let new_words : *mut Word = unsafe {
             std::mem::transmute(libc::calloc(size as libc::size_t,
                                                    BYTES_PER_WORD as libc::size_t)) };
@@ -235,7 +235,7 @@ impl BuilderArena {
         self.owned_memory.push(new_words);
 
         match self.allocation_strategy {
-            message::GrowHeuristically => { self.nextSize += size; }
+            message::GrowHeuristically => { self.next_size += size; }
             _ => { }
         }
         (new_words, size)

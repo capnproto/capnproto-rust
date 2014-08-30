@@ -16,35 +16,35 @@ pub struct PackedInputStream<'a, R:'a> {
 }
 
 macro_rules! refresh_buffer(
-    ($inner:expr, $size:ident, $inPtr:ident, $inEnd:ident, $out:ident,
-     $outBuf:ident, $bufferBegin:ident) => (
+    ($inner:expr, $size:ident, $in_ptr:ident, $in_end:ident, $out:ident,
+     $outBuf:ident, $buffer_begin:ident) => (
         {
             try!($inner.skip($size));
             let (b, e) = try!($inner.get_read_buffer());
-            $inPtr = b;
-            $inEnd = e;
-            $size = ptr_sub($inEnd, $inPtr);
-            $bufferBegin = b;
+            $in_ptr = b;
+            $in_end = e;
+            $size = ptr_sub($in_end, $in_ptr);
+            $buffer_begin = b;
             assert!($size > 0);
         }
         );
     )
 
 impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a, R> {
-    fn read(&mut self, outBuf: &mut [u8]) -> std::io::IoResult<uint> {
-        let len = outBuf.len();
+    fn read(&mut self, out_buf: &mut [u8]) -> std::io::IoResult<uint> {
+        let len = out_buf.len();
 
         if len == 0 { return Ok(0); }
 
         assert!(len % 8 == 0, "PackedInputStream reads must be word-aligned");
 
         unsafe {
-            let mut out = outBuf.as_mut_ptr();
-            let outEnd = outBuf.unsafe_mut_ref(len) as *mut u8;
+            let mut out = out_buf.as_mut_ptr();
+            let out_end = out_buf.unsafe_mut_ref(len) as *mut u8;
 
-            let (mut inPtr, mut inEnd) = try!(self.inner.get_read_buffer());
-            let mut bufferBegin = inPtr;
-            let mut size = ptr_sub(inEnd, inPtr);
+            let (mut in_ptr, mut in_end) = try!(self.inner.get_read_buffer());
+            let mut buffer_begin = in_ptr;
+            let mut size = ptr_sub(in_end, in_ptr);
             if size == 0 {
                 return Ok(0);
             }
@@ -53,112 +53,112 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
 
                 let mut tag : u8;
 
-                assert!(ptr_sub(out, outBuf.as_mut_ptr()) % 8 == 0,
+                assert!(ptr_sub(out, out_buf.as_mut_ptr()) % 8 == 0,
                         "Output pointer should always be aligned here.");
 
-                if ptr_sub(inEnd, inPtr) < 10 {
-                    if out >= outEnd {
-                        try!(self.inner.skip(ptr_sub(inPtr, bufferBegin)));
-                        return Ok(ptr_sub(out, outBuf.as_mut_ptr()));
+                if ptr_sub(in_end, in_ptr) < 10 {
+                    if out >= out_end {
+                        try!(self.inner.skip(ptr_sub(in_ptr, buffer_begin)));
+                        return Ok(ptr_sub(out, out_buf.as_mut_ptr()));
                     }
 
-                    if ptr_sub(inEnd, inPtr) == 0 {
-                        refresh_buffer!(self.inner, size, inPtr, inEnd, out, outBuf, bufferBegin);
+                    if ptr_sub(in_end, in_ptr) == 0 {
+                        refresh_buffer!(self.inner, size, in_ptr, in_end, out, out_buf, buffer_begin);
                         continue;
                     }
 
                     //# We have at least 1, but not 10, bytes available. We need to read
                     //# slowly, doing a bounds check on each byte.
 
-                    tag = *inPtr;
-                    inPtr = inPtr.offset(1);
+                    tag = *in_ptr;
+                    in_ptr = in_ptr.offset(1);
 
                     for i in range(0u, 8) {
                         if (tag & (1u8 << i)) != 0 {
-                            if ptr_sub(inEnd, inPtr) == 0 {
-                                refresh_buffer!(self.inner, size, inPtr, inEnd,
-                                                out, outBuf, bufferBegin);
+                            if ptr_sub(in_end, in_ptr) == 0 {
+                                refresh_buffer!(self.inner, size, in_ptr, in_end,
+                                                out, out_buf, buffer_begin);
                             }
-                            *out = *inPtr;
+                            *out = *in_ptr;
                             out = out.offset(1);
-                            inPtr = inPtr.offset(1);
+                            in_ptr = in_ptr.offset(1);
                         } else {
                             *out = 0;
                             out = out.offset(1);
                         }
                     }
 
-                    if ptr_sub(inEnd, inPtr) == 0 && (tag == 0 || tag == 0xff) {
-                        refresh_buffer!(self.inner, size, inPtr, inEnd,
-                                        out, outBuf, bufferBegin);
+                    if ptr_sub(in_end, in_ptr) == 0 && (tag == 0 || tag == 0xff) {
+                        refresh_buffer!(self.inner, size, in_ptr, in_end,
+                                        out, out_buf, buffer_begin);
                     }
                 } else {
-                    tag = *inPtr;
-                    inPtr = inPtr.offset(1);
+                    tag = *in_ptr;
+                    in_ptr = in_ptr.offset(1);
 
                     for n in range(0u, 8) {
-                        let isNonzero = (tag & (1 as u8 << n)) != 0;
-                        *out = (*inPtr) & ((-(isNonzero as i8)) as u8);
+                        let is_nonzero = (tag & (1 as u8 << n)) != 0;
+                        *out = (*in_ptr) & ((-(is_nonzero as i8)) as u8);
                         out = out.offset(1);
-                        inPtr = inPtr.offset(isNonzero as int);
+                        in_ptr = in_ptr.offset(is_nonzero as int);
                     }
                 }
                 if tag == 0 {
-                    assert!(ptr_sub(inEnd, inPtr) > 0,
+                    assert!(ptr_sub(in_end, in_ptr) > 0,
                             "Should always have non-empty buffer here");
 
-                    let runLength : uint = (*inPtr) as uint * 8;
-                    inPtr = inPtr.offset(1);
+                    let run_length : uint = (*in_ptr) as uint * 8;
+                    in_ptr = in_ptr.offset(1);
 
-                    assert!(runLength <= ptr_sub(outEnd, out),
+                    assert!(run_length <= ptr_sub(out_end, out),
                             "Packed input did not end cleanly on a segment boundary");
 
-                    std::ptr::set_memory(out, 0, runLength);
-                    out = out.offset(runLength as int);
+                    std::ptr::set_memory(out, 0, run_length);
+                    out = out.offset(run_length as int);
 
                 } else if tag == 0xff {
-                    assert!(ptr_sub(inEnd, inPtr) > 0,
+                    assert!(ptr_sub(in_end, in_ptr) > 0,
                             "Should always have non-empty buffer here");
 
-                    let mut runLength : uint = (*inPtr) as uint * 8;
-                    inPtr = inPtr.offset(1);
+                    let mut run_length : uint = (*in_ptr) as uint * 8;
+                    in_ptr = in_ptr.offset(1);
 
-                    assert!(runLength <= ptr_sub(outEnd, out),
+                    assert!(run_length <= ptr_sub(out_end, out),
                             "Packed input did not end cleanly on a segment boundary");
 
-                    let inRemaining = ptr_sub(inEnd, inPtr);
-                    if inRemaining >= runLength {
+                    let in_remaining = ptr_sub(in_end, in_ptr);
+                    if in_remaining >= run_length {
                         //# Fast path.
-                        std::ptr::copy_nonoverlapping_memory(out, inPtr, runLength);
-                        out = out.offset(runLength as int);
-                        inPtr = inPtr.offset(runLength as int);
+                        std::ptr::copy_nonoverlapping_memory(out, in_ptr, run_length);
+                        out = out.offset(run_length as int);
+                        in_ptr = in_ptr.offset(run_length as int);
                     } else {
                         //# Copy over the first buffer, then do one big read for the rest.
-                        std::ptr::copy_nonoverlapping_memory(out, inPtr, inRemaining);
-                        out = out.offset(inRemaining as int);
-                        runLength -= inRemaining;
+                        std::ptr::copy_nonoverlapping_memory(out, in_ptr, in_remaining);
+                        out = out.offset(in_remaining as int);
+                        run_length -= in_remaining;
 
                         try!(self.inner.skip(size));
-                        try!(std::slice::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(out, runLength, |buf| {
+                        try!(std::slice::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(out, run_length, |buf| {
                             self.inner.read(buf)
                         }));
-                        out = out.offset(runLength as int);
+                        out = out.offset(run_length as int);
 
-                        if out == outEnd {
+                        if out == out_end {
                             return Ok(len);
                         } else {
                             let (b, e) = try!(self.inner.get_read_buffer());
-                            inPtr = b;
-                            inEnd = e;
+                            in_ptr = b;
+                            in_end = e;
                             size = ptr_sub(e, b);
-                            bufferBegin = inPtr;
+                            buffer_begin = in_ptr;
                             continue;
                         }
                     }
                 }
 
-                if out == outEnd {
-                    try!(self.inner.skip(ptr_sub(inPtr, bufferBegin)));
+                if out == out_end {
+                    try!(self.inner.skip(ptr_sub(in_ptr, buffer_begin)));
                     return Ok(len);
                 }
             }
@@ -194,94 +194,94 @@ pub struct PackedOutputStream<'a, W:'a> {
 }
 
 impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'a, W> {
-    fn write(&mut self, inBuf : &[u8]) -> std::io::IoResult<()> {
+    fn write(&mut self, in_buf : &[u8]) -> std::io::IoResult<()> {
         unsafe {
-            let (mut out, mut bufferEnd) = self.inner.get_write_buffer();
-            let mut bufferBegin = out;
-            let mut slowBuffer : [u8,..20] = [0, ..20];
+            let (mut out, mut buffer_end) = self.inner.get_write_buffer();
+            let mut buffer_begin = out;
+            let mut slow_buffer : [u8,..20] = [0, ..20];
 
-            let mut inPtr : *const u8 = inBuf.unsafe_get(0);
-            let inEnd : *const u8 = inBuf.unsafe_get(inBuf.len());
+            let mut in_ptr : *const u8 = in_buf.unsafe_get(0);
+            let in_end : *const u8 = in_buf.unsafe_get(in_buf.len());
 
-            while inPtr < inEnd {
+            while in_ptr < in_end {
 
-                if ptr_sub(bufferEnd, out) < 10 {
+                if ptr_sub(buffer_end, out) < 10 {
                     //# Oops, we're out of space. We need at least 10
                     //# bytes for the fast path, since we don't
                     //# bounds-check on every byte.
-                    try!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
+                    try!(self.inner.write_ptr(buffer_begin, ptr_sub(out, buffer_begin)));
 
-                    out = slowBuffer.as_mut_ptr();
-                    bufferEnd = slowBuffer.unsafe_mut_ref(20) as *mut u8;
-                    bufferBegin = out;
+                    out = slow_buffer.as_mut_ptr();
+                    buffer_end = slow_buffer.unsafe_mut_ref(20) as *mut u8;
+                    buffer_begin = out;
                 }
 
-                let tagPos : *mut u8 = out;
+                let tag_pos : *mut u8 = out;
                 out = out.offset(1);
 
-                let bit0 = (*inPtr != 0) as u8;
-                *out = *inPtr;
+                let bit0 = (*in_ptr != 0) as u8;
+                *out = *in_ptr;
                 out = out.offset(bit0 as int);
-                inPtr = inPtr.offset(1);
+                in_ptr = in_ptr.offset(1);
 
-                let bit1 = (*inPtr != 0) as u8;
-                *out = *inPtr;
+                let bit1 = (*in_ptr != 0) as u8;
+                *out = *in_ptr;
                 out = out.offset(bit1 as int);
-                inPtr = inPtr.offset(1);
+                in_ptr = in_ptr.offset(1);
 
-                let bit2 = (*inPtr != 0) as u8;
-                *out = *inPtr;
+                let bit2 = (*in_ptr != 0) as u8;
+                *out = *in_ptr;
                 out = out.offset(bit2 as int);
-                inPtr = inPtr.offset(1);
+                in_ptr = in_ptr.offset(1);
 
-                let bit3 = (*inPtr != 0) as u8;
-                *out = *inPtr;
+                let bit3 = (*in_ptr != 0) as u8;
+                *out = *in_ptr;
                 out = out.offset(bit3 as int);
-                inPtr = inPtr.offset(1);
+                in_ptr = in_ptr.offset(1);
 
-                let bit4 = (*inPtr != 0) as u8;
-                *out = *inPtr;
+                let bit4 = (*in_ptr != 0) as u8;
+                *out = *in_ptr;
                 out = out.offset(bit4 as int);
-                inPtr = inPtr.offset(1);
+                in_ptr = in_ptr.offset(1);
 
-                let bit5 = (*inPtr != 0) as u8;
-                *out = *inPtr;
+                let bit5 = (*in_ptr != 0) as u8;
+                *out = *in_ptr;
                 out = out.offset(bit5 as int);
-                inPtr = inPtr.offset(1);
+                in_ptr = in_ptr.offset(1);
 
-                let bit6 = (*inPtr != 0) as u8;
-                *out = *inPtr;
+                let bit6 = (*in_ptr != 0) as u8;
+                *out = *in_ptr;
                 out = out.offset(bit6 as int);
-                inPtr = inPtr.offset(1);
+                in_ptr = in_ptr.offset(1);
 
-                let bit7 = (*inPtr != 0) as u8;
-                *out = *inPtr;
+                let bit7 = (*in_ptr != 0) as u8;
+                *out = *in_ptr;
                 out = out.offset(bit7 as int);
-                inPtr = inPtr.offset(1);
+                in_ptr = in_ptr.offset(1);
 
 
                 let tag : u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
                     | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
 
-                *tagPos = tag;
+                *tag_pos = tag;
 
                 if tag == 0 {
                     //# An all-zero word is followed by a count of
                     //# consecutive zero words (not including the first
                     //# one).
 
-                    let mut inWord : *const u64 = std::mem::transmute(inPtr);
-                    let mut limit : *const u64 = std::mem::transmute(inEnd);
-                    if ptr_sub(limit, inWord) > 255 {
-                        limit = inWord.offset(255);
+                    let mut in_word : *const u64 = std::mem::transmute(in_ptr);
+                    let mut limit : *const u64 = std::mem::transmute(in_end);
+                    if ptr_sub(limit, in_word) > 255 {
+                        limit = in_word.offset(255);
                     }
-                    while inWord < limit && *inWord == 0 {
-                        inWord = inWord.offset(1);
+                    while in_word < limit && *in_word == 0 {
+                        in_word = in_word.offset(1);
                     }
-                    *out = ptr_sub(inWord, std::mem::transmute::<*const u8, *const u64>(inPtr)) as u8;
+                    *out = ptr_sub(in_word, std::mem::transmute::<*const u8, *const u64>(in_ptr)) as u8;
 
                     out = out.offset(1);
-                    inPtr = std::mem::transmute::<*const u64, *const u8>(inWord);
+                    in_ptr = std::mem::transmute::<*const u64, *const u8>(in_word);
 
                 } else if tag == 0xff {
                     //# An all-nonzero word is followed by a count of
@@ -292,35 +292,35 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     //# which have no more than a single zero-byte. We look
                     //# for at least two zeros because that's the point
                     //# where our compression scheme becomes a net win.
-                    let runStart = inPtr;
-                    let mut limit = inEnd;
-                    if ptr_sub(limit, inPtr) > 255 * 8 {
-                        limit = inPtr.offset(255 * 8);
+                    let run_start = in_ptr;
+                    let mut limit = in_end;
+                    if ptr_sub(limit, in_ptr) > 255 * 8 {
+                        limit = in_ptr.offset(255 * 8);
                     }
 
-                    while inPtr < limit {
+                    while in_ptr < limit {
                         let mut c = 0;
 
                         for _ in range(0u, 8) {
-                            c += (*inPtr == 0) as u8;
-                            inPtr = inPtr.offset(1);
+                            c += (*in_ptr == 0) as u8;
+                            in_ptr = in_ptr.offset(1);
                         }
 
                         if c >= 2 {
                             //# Un-read the word with multiple zeros, since
                             //# we'll want to compress that one.
-                            inPtr = inPtr.offset(-8);
+                            in_ptr = in_ptr.offset(-8);
                             break;
                         }
                     }
-                    let count : uint = ptr_sub(inPtr, runStart);
+                    let count : uint = ptr_sub(in_ptr, run_start);
                     *out = (count / 8) as u8;
                     out = out.offset(1);
 
-                    if count <= ptr_sub(bufferEnd, out) {
+                    if count <= ptr_sub(buffer_end, out) {
                         //# There's enough space to memcpy.
 
-                        let src : *const u8 = runStart;
+                        let src : *const u8 = run_start;
                         std::ptr::copy_nonoverlapping_memory(out, src, count);
 
                         out = out.offset(count as int);
@@ -328,20 +328,20 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                         //# Input overruns the output buffer. We'll give it
                         //# to the output stream in one chunk and let it
                         //# decide what to do.
-                        try!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
+                        try!(self.inner.write_ptr(buffer_begin, ptr_sub(out, buffer_begin)));
 
-                        try!(std::slice::raw::buf_as_slice::<u8,std::io::IoResult<()>>(runStart, count, |buf| {
+                        try!(std::slice::raw::buf_as_slice::<u8,std::io::IoResult<()>>(run_start, count, |buf| {
                             self.inner.write(buf)
                         }));
 
-                        let (out1, bufferEnd1) = self.inner.get_write_buffer();
-                        out = out1; bufferEnd = bufferEnd1;
-                        bufferBegin = out;
+                        let (out1, buffer_end1) = self.inner.get_write_buffer();
+                        out = out1; buffer_end = buffer_end1;
+                        buffer_begin = out;
                     }
                 }
             }
 
-            try!(self.inner.write_ptr(bufferBegin, ptr_sub(out, bufferBegin)));
+            try!(self.inner.write_ptr(buffer_begin, ptr_sub(out, buffer_begin)));
             Ok(())
         }
     }
@@ -351,8 +351,8 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
 
 pub fn write_packed_message<T:io::BufferedOutputStream,U:MessageBuilder>(
     output : &mut T, message : &U) -> std::io::IoResult<()> {
-    let mut packedOutputStream = PackedOutputStream {inner : output};
-    serialize::write_message(&mut packedOutputStream, message)
+    let mut packed_output_stream = PackedOutputStream {inner : output};
+    serialize::write_message(&mut packed_output_stream, message)
 }
 
 

@@ -19,9 +19,9 @@ pub fn expect_packs_to(unpacked : &[u8],
     let mut bytes : std::vec::Vec<u8> = std::vec::Vec::from_elem(packed.len(), 0u8);
     {
         let mut writer = io::ArrayOutputStream::new(bytes.as_mut_slice());
-        let mut packedOutputStream = PackedOutputStream {inner : &mut writer};
-        packedOutputStream.write(unpacked).unwrap();
-        packedOutputStream.flush().unwrap();
+        let mut packed_output_stream = PackedOutputStream {inner : &mut writer};
+        packed_output_stream.write(unpacked).unwrap();
+        packed_output_stream.flush().unwrap();
     }
 
     assert!(bytes.as_slice().eq(&packed),
@@ -31,11 +31,11 @@ pub fn expect_packs_to(unpacked : &[u8],
     // read
 
     let mut reader = io::ArrayInputStream::new(packed);
-    let mut packedInputStream = PackedInputStream {inner : &mut reader};
+    let mut packed_input_stream = PackedInputStream {inner : &mut reader};
 
-    let bytes = packedInputStream.read_exact(unpacked.len()).unwrap();
+    let bytes = packed_input_stream.read_exact(unpacked.len()).unwrap();
 
-//    assert!(packedInputStream.eof());
+//    assert!(packed_input_stream.eof());
     assert!(bytes.slice(0, bytes.len()).eq(&unpacked),
             "expected: {:?}, got: {:?}", unpacked, bytes);
 

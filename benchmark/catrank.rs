@@ -24,7 +24,7 @@ static URL_PREFIX : &'static str = "http://example.com";
 
 pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -> int {
     let count = rng.next_less_than(1000) as uint;
-    let mut goodCount : int = 0;
+    let mut good_count : int = 0;
 
     let list = request.init_results(count);
 
@@ -43,10 +43,10 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
             bytes[j + url_prefix_length] = (97 + rng.next_less_than(26)) as u8;
         }
 
-        let isCat = rng.next_less_than(8) == 0;
-        let isDog = rng.next_less_than(8) == 0;
-        if isCat && !isDog {
-            goodCount += 1;
+        let is_cat = rng.next_less_than(8) == 0;
+        let is_dog = rng.next_less_than(8) == 0;
+        if is_cat && !is_dog {
+            good_count += 1;
         }
 
         let mut snippet = String::from_str(" ");
@@ -55,8 +55,8 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
         for _ in range(0, prefix) {
             snippet.push_str(WORDS[rng.next_less_than(WORDS.len() as u32) as uint]);
         }
-        if isCat { snippet.push_str("cat ") }
-        if isDog { snippet.push_str("dog ") }
+        if is_cat { snippet.push_str("cat ") }
+        if is_dog { snippet.push_str("dog ") }
 
         let suffix = rng.next_less_than(20) as uint;
         for _ in range(0, suffix) {
@@ -66,12 +66,12 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
         result.set_snippet(snippet.as_slice());
     }
 
-    goodCount
+    good_count
 }
 
 pub fn handle_request(request : SearchResultList::Reader,
-                     response : SearchResultList::Builder) {
-    let mut scoredResults : Vec<ScoredResult> = Vec::new();
+                      response : SearchResultList::Builder) {
+    let mut scored_results : Vec<ScoredResult> = Vec::new();
 
     let results = request.get_results();
     for i in range(0, results.size()) {
@@ -83,32 +83,32 @@ pub fn handle_request(request : SearchResultList::Reader,
         if result.get_snippet().contains(" dog ") {
             score /= 10000.0;
         }
-        scoredResults.push(ScoredResult {score : score, result : result});
+        scored_results.push(ScoredResult {score : score, result : result});
     }
 
     // sort in decreasing order
-    scoredResults.sort_by(|v1, v2| { if v1.score < v2.score { std::cmp::Greater } else { std::cmp::Less } });
+    scored_results.sort_by(|v1, v2| { if v1.score < v2.score { std::cmp::Greater } else { std::cmp::Less } });
 
-    let list = response.init_results(scoredResults.len());
+    let list = response.init_results(scored_results.len());
     for i in range(0, list.size()) {
         let item = list.get(i);
-        let result = scoredResults[i];
+        let result = scored_results[i];
         item.set_score(result.score);
         item.set_url(result.result.get_url());
         item.set_snippet(result.result.get_snippet());
     }
 }
 
-pub fn check_response(response : SearchResultList::Reader, expectedGoodCount : int) -> bool {
-    let mut goodCount : int = 0;
+pub fn check_response(response : SearchResultList::Reader, expected_good_count : int) -> bool {
+    let mut good_count : int = 0;
     let results = response.get_results();
     for i in range(0, results.size()) {
         let result = results.get(i);
         if result.get_score() > 1001.0 {
-            goodCount += 1;
+            good_count += 1;
         } else {
             break;
         }
     }
-    return goodCount == expectedGoodCount;
+    return good_count == expected_good_count;
 }
