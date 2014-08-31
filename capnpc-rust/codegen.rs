@@ -197,12 +197,12 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
 fn generate_import_statements() -> FormattedText {
     Branch(vec!(
         Line("use std;".to_string()),
-        Line("use capnp::AnyPointer;".to_string()),
+        Line("use capnp::any_pointer;".to_string()),
         Line("use capnp::capability::{FromClientHook, FromTypelessPipeline};".to_string()),
-        Line("use capnp::{Text, Data};".to_string()),
+        Line("use capnp::{text, data};".to_string()),
         Line("use capnp::layout;".to_string()),
         Line("use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};".to_string()),
-        Line("use capnp::{PrimitiveList, EnumList, StructList, TextList, DataList, ListList};".to_string()),
+        Line("use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};".to_string()),
         Line("use capnp::list::ToU16;".to_string()),
     ))
 }
@@ -221,25 +221,25 @@ fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<Stri
                 Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
                 Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
                 Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) => {
-                    format!("PrimitiveList::{}<{}, {}>", module, lifetime_name, prim_type_str(t))
+                    format!("primitive_list::{}<{}, {}>", module, lifetime_name, prim_type_str(t))
                 }
                 Type::Enum(en) => {
                     let the_mod = scope_map[en.get_type_id()].connect("::");
-                    format!("EnumList::{}<{},{}::Reader>", module, lifetime_name, the_mod)
+                    format!("enum_list::{}<{},{}::Reader>", module, lifetime_name, the_mod)
                 }
                 Type::Text(()) => {
-                    format!("TextList::{}<{}>", module, lifetime_name)
+                    format!("text_list::{}<{}>", module, lifetime_name)
                 }
                 Type::Data(()) => {
-                    format!("DataList::{}<{}>", module, lifetime_name)
+                    format!("data_list::{}<{}>", module, lifetime_name)
                 }
                 Type::Struct(st) => {
-                    format!("StructList::{}<{lifetime}, {}::{}<{lifetime}>>", module,
+                    format!("struct_list::{}<{lifetime}, {}::{}<{lifetime}>>", module,
                             scope_map.get(&st.get_type_id()).connect("::"), module, lifetime = lifetime_name)
                 }
                 Type::List(t) => {
                     let inner = list_list_type_param(scope_map, t.get_element_type(), is_reader, lifetime_name);
-                    format!("ListList::{}<{}, {}>", module, lifetime_name, inner)
+                    format!("list_list::{}<{}, {}>", module, lifetime_name, inner)
                 }
                 Type::AnyPointer(()) => {
                     fail!("List(AnyPointer) is unsupported");
@@ -325,12 +325,12 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 Some((Type::Float32(()), Value::Float32(f))) => return common_case("f32", member, offset, f),
                 Some((Type::Float64(()), Value::Float64(f))) => return common_case("f64", member, offset, f),
                 Some((Type::Text(()), _)) => {
-                    return (format!("Text::{}", module_with_var),
+                    return (format!("text::{}", module_with_var),
                             Line(format!("self.{}.get_pointer_field({}).get_text(std::ptr::null(), 0)",
                                       member, offset)));
                 }
                 Some((Type::Data(()), _)) => {
-                    return (format!("Data::{}", module_with_var),
+                    return (format!("data::{}", module_with_var),
                             Line(format!("self.{}.get_pointer_field({}).get_data(std::ptr::null(), 0)",
                                       member, offset)));
                 }
@@ -340,13 +340,13 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                         Some(Type::Struct(st)) => {
                             let the_mod = scope_map[st.get_type_id()].connect("::");
                             if is_reader {
-                                return (format!("StructList::{}<'a,{}::{}<'a>>", module, the_mod, module),
-                                        Line(format!("StructList::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
+                                return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
+                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
                                                      module, member, offset, the_mod))
                                         );
                             } else {
-                                return (format!("StructList::{}<'a,{}::{}<'a>>", module, the_mod, module),
-                                        Line(format!("StructList::{}::new(self.{}.get_pointer_field({}).get_struct_list({}::STRUCT_SIZE, std::ptr::null()))",
+                                return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
+                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_struct_list({}::STRUCT_SIZE, std::ptr::null()))",
                                                      module, member, offset, the_mod))
                                         );
                             }
@@ -354,24 +354,24 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                         Some(Type::Enum(e)) => {
                             let the_mod = scope_map[e.get_type_id()].connect("::");
                             let full_module_name = format!("{}::Reader", the_mod);
-                            return (format!("EnumList::{}<'a,{}>",module,full_module_name),
-                                    Line(format!("EnumList::{}::new(self.{}.get_pointer_field({}).get_list(layout::TwoBytes, std::ptr::null()))",
+                            return (format!("enum_list::{}<'a,{}>",module,full_module_name),
+                                    Line(format!("enum_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::TwoBytes, std::ptr::null()))",
                                          module, member, offset)));
                         }
                         Some(Type::List(t1)) => {
                             let type_param = list_list_type_param(scope_map, t1.get_element_type(), is_reader, "'a");
-                            return (format!("ListList::{}<'a,{}>", module, type_param),
-                                    Line(format!("ListList::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
+                            return (format!("list_list::{}<'a,{}>", module, type_param),
+                                    Line(format!("list_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
                                                  module, member, offset)))
                         }
                         Some(Type::Text(())) => {
-                            return (format!("TextList::{}<'a>", module),
-                                    Line(format!("TextList::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
+                            return (format!("text_list::{}<'a>", module),
+                                    Line(format!("text_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
                                                  module, member, offset)))
                         }
                         Some(Type::Data(())) => {
-                            return (format!("DataList::{}<'a>", module),
-                                    Line(format!("DataList::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
+                            return (format!("data_list::{}<'a>", module),
+                                    Line(format!("data_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
                                                  module, member, offset)))
                         }
                         Some(Type::Interface(_)) => {fail!("unimplemented") }
@@ -380,8 +380,8 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                             let type_str = prim_type_str(prim_type);
                             let size_str = element_size_str(element_size(prim_type));
                             return
-                                (format!("PrimitiveList::{}<'a,{}>", module, type_str),
-                                 Line(format!("PrimitiveList::{}::new(self.{}.get_pointer_field({}).get_list(layout::{}, std::ptr::null()))",
+                                (format!("primitive_list::{}<'a,{}>", module, type_str),
+                                 Line(format!("primitive_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::{}, std::ptr::null()))",
                                            module, member, offset, size_str)))
                         }
                     }
@@ -410,8 +410,8 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                                          member, offset)));
                 }
                 Some((Type::AnyPointer(()), _)) => {
-                    return (format!("AnyPointer::{}<'a>", module),
-                            Line(format!("AnyPointer::{}::new(self.{}.get_pointer_field({}))",
+                    return (format!("any_pointer::{}<'a>", module),
+                            Line(format!("any_pointer::{}::new(self.{}.get_pointer_field({}))",
                                          module, member, offset)))
                 }
                 None => {
@@ -597,7 +597,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
                                                        offset)));
                     initter_params.push("size : uint");
-                    (Some("Text::Reader".to_string()), Some("Text::Builder<'a>".to_string()))
+                    (Some("text::Reader".to_string()), Some("text::Builder<'a>".to_string()))
                 }
                 Some(Type::Data(())) => {
                     setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);",
@@ -605,7 +605,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
                                                        offset)));
                     initter_params.push("size : uint");
-                    (Some("Data::Reader".to_string()), Some("Data::Builder<'a>".to_string()))
+                    (Some("data::Reader".to_string()), Some("data::Builder<'a>".to_string()))
                 }
                 Some(Type::List(ot1)) => {
                     setter_interior.push(
@@ -625,22 +625,22 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                     let type_str = prim_type_str(t1);
                                     let size_str = element_size_str(element_size(t1));
 
-                                    initter_interior.push(Line(format!("PrimitiveList::Builder::<'a,{}>::new(",
+                                    initter_interior.push(Line(format!("primitive_list::Builder::<'a,{}>::new(",
                                                                type_str)));
                                     initter_interior.push(
                                         Indent(box Line(format!("self.builder.get_pointer_field({}).init_list(layout::{},size)",
                                                                 offset, size_str))));
                                     initter_interior.push(Line(")".to_string()));
 
-                                    (Some(format!("PrimitiveList::Reader<'a,{}>", type_str)),
-                                     Some(format!("PrimitiveList::Builder<'a,{}>", type_str)))
+                                    (Some(format!("primitive_list::Reader<'a,{}>", type_str)),
+                                     Some(format!("primitive_list::Builder<'a,{}>", type_str)))
                                 }
                                 Type::Enum(e) => {
                                     let id = e.get_type_id();
                                     let scope = &scope_map[id];
                                     let the_mod = scope.connect("::");
                                     let type_str = format!("{}::Reader", the_mod);
-                                    initter_interior.push(Line(format!("EnumList::Builder::<'a, {}>::new(",
+                                    initter_interior.push(Line(format!("enum_list::Builder::<'a, {}>::new(",
                                                             type_str)));
                                     initter_interior.push(
                                         Indent(
@@ -648,50 +648,50 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                                 format!("self.builder.get_pointer_field({}).init_list(layout::TwoBytes,size)",
                                                      offset))));
                                     initter_interior.push(Line(")".to_string()));
-                                    (Some(format!("EnumList::Reader<'a,{}>", type_str)),
-                                     Some(format!("EnumList::Builder<'a,{}>", type_str)))
+                                    (Some(format!("enum_list::Reader<'a,{}>", type_str)),
+                                     Some(format!("enum_list::Builder<'a,{}>", type_str)))
                                 }
                                 Type::Struct(st) => {
                                     let id = st.get_type_id();
                                     let scope = &scope_map[id];
                                     let the_mod = scope.connect("::");
 
-                                    initter_interior.push(Line(format!("StructList::Builder::<'a, {}::Builder<'a>>::new(", the_mod)));
+                                    initter_interior.push(Line(format!("struct_list::Builder::<'a, {}::Builder<'a>>::new(", the_mod)));
                                     initter_interior.push(
                                        Indent(
                                           box Line(
                                              format!("self.builder.get_pointer_field({}).init_struct_list(size, {}::STRUCT_SIZE))",
                                                   offset, the_mod))));
 
-                                    (Some(format!("StructList::Reader<'a,{}::Reader<'a>>", the_mod)),
-                                     Some(format!("StructList::Builder<'a,{}::Builder<'a>>", the_mod)))
+                                    (Some(format!("struct_list::Reader<'a,{}::Reader<'a>>", the_mod)),
+                                     Some(format!("struct_list::Builder<'a,{}::Builder<'a>>", the_mod)))
                                 }
                                 Type::Text(()) => {
                                     initter_interior.push(
-                                        Line(format!("TextList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer, size))", offset)));
+                                        Line(format!("text_list::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer, size))", offset)));
 
-                                    (Some(format!("TextList::Reader")),
-                                     Some(format!("TextList::Builder<'a>")))
+                                    (Some(format!("text_list::Reader")),
+                                     Some(format!("text_list::Builder<'a>")))
                                 }
                                 Type::Data(()) => {
                                     initter_interior.push(
-                                        Line(format!("DataList::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer, size))", offset)));
+                                        Line(format!("data_list::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer, size))", offset)));
 
-                                    (Some(format!("DataList::Reader")),
-                                     Some(format!("DataList::Builder<'a>")))
+                                    (Some(format!("data_list::Reader")),
+                                     Some(format!("data_list::Builder<'a>")))
                                 }
                                 Type::List(t1) => {
                                     let type_param = list_list_type_param(scope_map, t1.get_element_type(),
                                                                           false, "'a");
                                     initter_interior.push(
-                                        Line(format!("ListList::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer,size))",
+                                        Line(format!("list_list::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer,size))",
                                                      type_param, offset)));
 
                                     setter_lifetime_param = "<'b>";
 
-                                    (Some(format!("ListList::Reader<'b, {}>",
+                                    (Some(format!("list_list::Reader<'b, {}>",
                                              list_list_type_param(scope_map, t1.get_element_type(), true, "'b"))),
-                                     Some(format!("ListList::Builder<'a, {}>", type_param)))
+                                     Some(format!("list_list::Builder<'a, {}>", type_param)))
                                 }
                                 Type::AnyPointer(()) => {fail!("List(AnyPointer) not supported")}
                                 Type::Interface(_) => { fail!("unimplemented") }
@@ -724,11 +724,11 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                     (Some(format!("{}::Client",the_mod)), None)
                 }
                 Some(Type::AnyPointer(())) => {
-                    initter_interior.push(Line(format!("let result = AnyPointer::Builder::new(self.builder.get_pointer_field({}));",
+                    initter_interior.push(Line(format!("let result = any_pointer::Builder::new(self.builder.get_pointer_field({}));",
                                                offset)));
                     initter_interior.push(Line("result.clear();".to_string()));
                     initter_interior.push(Line("result".to_string()));
-                    (None, Some("AnyPointer::Builder<'a>".to_string()))
+                    (None, Some("any_pointer::Builder<'a>".to_string()))
                 }
                 None => { fail!("unrecognized type") }
             }
@@ -1144,11 +1144,11 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 Indent(box Branch(builder_members)),
                 Line("}".to_string()),
                 BlankLine,
-                Line("pub struct Pipeline { _typeless : AnyPointer::Pipeline }".to_string()),
+                Line("pub struct Pipeline { _typeless : any_pointer::Pipeline }".to_string()),
                 Line("impl FromTypelessPipeline for Pipeline {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("fn new(typeless : AnyPointer::Pipeline) -> Pipeline {".to_string()),
+                        Line("fn new(typeless : any_pointer::Pipeline) -> Pipeline {".to_string()),
                         Indent(box Line("Pipeline { _typeless : typeless }".to_string())),
                         Line("}".to_string())))),
                 Line("}".to_string()),
@@ -1209,7 +1209,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let mut dispatch_arms = Vec::new();
 
             mod_interior.push(Line ("#![allow(unused_variable)]".to_string()));
-            mod_interior.push(Line("use capnp::AnyPointer;".to_string()));
+            mod_interior.push(Line("use capnp::any_pointer;".to_string()));
             mod_interior.push(
                 Line("use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};".to_string()));
             mod_interior.push(Line("use capnp::capability;".to_string()));
@@ -1335,7 +1335,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             mod_interior.push(
                 Branch(vec!(
                     Line("impl <T : Server> capability::Server for ServerDispatch<T> {".to_string()),
-                    Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {".to_string())),
+                    Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<any_pointer::Reader, any_pointer::Builder>) {".to_string())),
                     Indent(box Indent(box Line("match interface_id {".to_string()))),
                     Indent(box Indent(box Indent(
                         box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),",
@@ -1349,7 +1349,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             mod_interior.push(
                 Branch(vec!(
                     Line("impl <T : Server> ServerDispatch<T> {".to_string()),
-                    Indent(box Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<AnyPointer::Reader, AnyPointer::Builder>) {".to_string())),
+                    Indent(box Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<any_pointer::Reader, any_pointer::Builder>) {".to_string())),
                     Indent(box Indent(box Line("match method_id {".to_string()))),
                     Indent(box Indent(box Indent(box Branch(dispatch_arms)))),
                     Indent(box Indent(box Indent(box Line("_ => {}".to_string())))),

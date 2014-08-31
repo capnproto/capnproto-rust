@@ -8,7 +8,7 @@
 
 use std;
 
-use capnp::AnyPointer;
+use capnp::any_pointer;
 use capnp::MessageSize;
 use capnp::capability::{CallContext, CallContextHook, Client,
                         ClientHook, PipelineHook, Request, ResultFuture, Server, ServerHook};
@@ -56,7 +56,7 @@ impl ClientHook for LocalClient {
                 _interface_id : u64,
                 _method_id : u16,
                 _size_hint : Option<MessageSize>)
-                -> Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline> {
+                -> Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
         fail!()
     }
     fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>) {

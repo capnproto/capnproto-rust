@@ -9,7 +9,7 @@ use rpc_capnp::{Message, Return};
 use std;
 use std::io::Acceptor;
 use std::collections::hashmap::HashMap;
-use capnp::{AnyPointer, MessageBuilder, MallocMessageBuilder};
+use capnp::{any_pointer, MessageBuilder, MallocMessageBuilder};
 use capnp::capability::{ClientHook, FromClientHook, Server};
 use rpc::{Outgoing, RpcConnectionState, RpcEvent, ShutdownEvent, SturdyRefRestorer};
 use capability::{LocalClient};
@@ -113,7 +113,7 @@ impl Restorer {
 }
 
 impl SturdyRefRestorer for Restorer {
-    fn restore(&self, obj_id : AnyPointer::Reader) -> Option<Box<ClientHook+Send>> {
+    fn restore(&self, obj_id : any_pointer::Reader) -> Option<Box<ClientHook+Send>> {
         let (tx, rx) = std::comm::channel();
         self.sender.send(ExportEventRestore(obj_id.get_as_text().to_string(), tx));
         return rx.recv();

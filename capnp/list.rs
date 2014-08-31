@@ -20,7 +20,7 @@ pub trait FromPointerBuilder<'a> {
     fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Self;
 }
 
-pub mod PrimitiveList {
+pub mod primitive_list {
     use super::{FromPointerReader, FromPointerBuilder};
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                  PrimitiveElement, element_size_for_type};
@@ -90,7 +90,7 @@ pub trait ToU16 {
 }
 
 
-pub mod EnumList {
+pub mod enum_list {
     use layout::*;
     use list::*;
     use common::Word;
@@ -158,7 +158,7 @@ pub mod EnumList {
     }
 }
 
-pub mod StructList {
+pub mod struct_list {
     use super::{FromPointerReader, FromPointerBuilder};
     use common::Word;
     use layout::*;
@@ -227,7 +227,7 @@ pub mod StructList {
     }
 }
 
-pub mod ListList {
+pub mod list_list {
     use super::{FromPointerReader, FromPointerBuilder};
     use std;
     use common::Word;
@@ -304,11 +304,11 @@ pub mod ListList {
 
 }
 
-pub mod TextList {
+pub mod text_list {
     use super::{FromPointerReader, FromPointerBuilder};
     use std;
     use common::Word;
-    use blob::Text;
+    use blob::text;
     use layout::*;
 
     pub struct Reader<'a> {
@@ -330,7 +330,7 @@ pub mod TextList {
     }
 
     impl <'a> Reader<'a> {
-        pub fn get(&self, index : uint) -> Text::Reader<'a> {
+        pub fn get(&self, index : uint) -> text::Reader<'a> {
             assert!(index <  self.size());
             self.reader.get_pointer_element(index).get_text(std::ptr::null(), 0)
         }
@@ -347,7 +347,7 @@ pub mod TextList {
 
         pub fn size(&self) -> uint { self.builder.size() }
 
-        pub fn set(&self, index : uint, value : Text::Reader) {
+        pub fn set(&self, index : uint, value : text::Reader) {
             assert!(index < self.size());
             self.builder.get_pointer_element(index).set_text(value);
         }
@@ -368,18 +368,18 @@ pub mod TextList {
     }
 
     impl <'a> Builder<'a> {
-        pub fn get(&self, index : uint) -> Text::Builder<'a> {
+        pub fn get(&self, index : uint) -> text::Builder<'a> {
             self.builder.get_pointer_element(index).get_text(std::ptr::null(), 0)
         }
     }
 
 }
 
-pub mod DataList {
+pub mod data_list {
     use super::{FromPointerReader, FromPointerBuilder};
     use std;
     use common::Word;
-    use blob::Data;
+    use blob::data;
     use layout::*;
 
     pub struct Reader<'a> {
@@ -401,7 +401,7 @@ pub mod DataList {
     }
 
     impl <'a> Reader<'a> {
-        pub fn get(&self, index : uint) -> Data::Reader<'a> {
+        pub fn get(&self, index : uint) -> data::Reader<'a> {
             assert!(index <  self.size());
             self.reader.get_pointer_element(index).get_data(std::ptr::null(), 0)
         }
@@ -418,7 +418,7 @@ pub mod DataList {
 
         pub fn size(&self) -> uint { self.builder.size() }
 
-        pub fn set(&self, index : uint, value : Data::Reader) {
+        pub fn set(&self, index : uint, value : data::Reader) {
             assert!(index < self.size());
             self.builder.get_pointer_element(index).set_data(value);
         }
@@ -439,7 +439,7 @@ pub mod DataList {
     }
 
     impl <'a> Builder<'a> {
-        pub fn get(&self, index : uint) -> Data::Builder<'a> {
+        pub fn get(&self, index : uint) -> data::Builder<'a> {
             assert!(index < self.size());
             self.builder.get_pointer_element(index).get_data(std::ptr::null(), 0)
         }

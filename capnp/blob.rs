@@ -4,7 +4,7 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-pub mod Text {
+pub mod text {
     use std;
 
     pub type Reader<'a> = &'a str;
@@ -42,7 +42,7 @@ pub mod Text {
 
 }
 
-pub mod Data {
+pub mod data {
     use std;
 
     pub type Reader<'a> = &'a [u8];

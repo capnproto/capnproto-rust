@@ -3,12 +3,12 @@
 
 pub mod Node {
   use std;
-  use capnp::any::AnyPointer;
+  use capnp::any::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
-  use capnp::blob::{Text, Data};
+  use capnp::blob::{text, data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-  use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+  use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
@@ -33,7 +33,7 @@ pub mod Node {
       self.reader.get_data_field::<u64>(0)
     }
     #[inline]
-    pub fn get_display_name(&self) -> Text::Reader<'a> {
+    pub fn get_display_name(&self) -> text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
     }
     pub fn has_display_name(&self) -> bool {
@@ -48,15 +48,15 @@ pub mod Node {
       self.reader.get_data_field::<u64>(2)
     }
     #[inline]
-    pub fn get_nested_nodes(&self) -> StructList::Reader<'a,schema_capnp::Node::NestedNode::Reader<'a>> {
-      StructList::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::Node::NestedNode::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+    pub fn get_nested_nodes(&self) -> struct_list::Reader<'a,schema_capnp::Node::NestedNode::Reader<'a>> {
+      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::Node::NestedNode::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
     }
     pub fn has_nested_nodes(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
     #[inline]
-    pub fn get_annotations(&self) -> StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>> {
-      StructList::Reader::new(self.reader.get_pointer_field(2).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+    pub fn get_annotations(&self) -> struct_list::Reader<'a,schema_capnp::Annotation::Reader<'a>> {
+      struct_list::Reader::new(self.reader.get_pointer_field(2).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
@@ -122,15 +122,15 @@ pub mod Node {
       self.builder.set_data_field::<u64>(0, value);
     }
     #[inline]
-    pub fn get_display_name(&self) -> Text::Builder<'a> {
+    pub fn get_display_name(&self) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).get_text(std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_display_name(&self, value : Text::Reader) {
+    pub fn set_display_name(&self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_display_name(&self, size : uint) -> Text::Builder<'a> {
+    pub fn init_display_name(&self, size : uint) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_display_name(&self) -> bool {
@@ -153,32 +153,32 @@ pub mod Node {
       self.builder.set_data_field::<u64>(2, value);
     }
     #[inline]
-    pub fn get_nested_nodes(&self) -> StructList::Builder<'a,schema_capnp::Node::NestedNode::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Node::NestedNode::STRUCT_SIZE, std::ptr::null()))
+    pub fn get_nested_nodes(&self) -> struct_list::Builder<'a,schema_capnp::Node::NestedNode::Builder<'a>> {
+      struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Node::NestedNode::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
-    pub fn set_nested_nodes(&self, value : StructList::Reader<'a,schema_capnp::Node::NestedNode::Reader<'a>>) {
+    pub fn set_nested_nodes(&self, value : struct_list::Reader<'a,schema_capnp::Node::NestedNode::Reader<'a>>) {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_nested_nodes(&self, size : uint) -> StructList::Builder<'a,schema_capnp::Node::NestedNode::Builder<'a>> {
-      StructList::Builder::<'a, schema_capnp::Node::NestedNode::Builder<'a>>::new(
+    pub fn init_nested_nodes(&self, size : uint) -> struct_list::Builder<'a,schema_capnp::Node::NestedNode::Builder<'a>> {
+      struct_list::Builder::<'a, schema_capnp::Node::NestedNode::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, schema_capnp::Node::NestedNode::STRUCT_SIZE))
     }
     pub fn has_nested_nodes(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
     }
     #[inline]
-    pub fn get_annotations(&self) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(2).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
+    pub fn get_annotations(&self) -> struct_list::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
+      struct_list::Builder::new(self.builder.get_pointer_field(2).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
-    pub fn set_annotations(&self, value : StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
+    pub fn set_annotations(&self, value : struct_list::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
       self.builder.get_pointer_field(2).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : uint) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::<'a, schema_capnp::Annotation::Builder<'a>>::new(
+    pub fn init_annotations(&self, size : uint) -> struct_list::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
+      struct_list::Builder::<'a, schema_capnp::Annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(2).init_struct_list(size, schema_capnp::Annotation::STRUCT_SIZE))
     }
     pub fn has_annotations(&self) -> bool {
@@ -276,9 +276,9 @@ pub mod Node {
     }
   }
 
-  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : any_pointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
-    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+    fn new(typeless : any_pointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
     }
   }
@@ -297,12 +297,12 @@ pub mod Node {
 
   pub mod NestedNode {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub static STRUCT_SIZE : layout::StructSize =
@@ -323,7 +323,7 @@ pub mod Node {
 
     impl <'a> Reader<'a> {
       #[inline]
-      pub fn get_name(&self) -> Text::Reader<'a> {
+      pub fn get_name(&self) -> text::Reader<'a> {
         self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
       }
       pub fn has_name(&self) -> bool {
@@ -350,15 +350,15 @@ pub mod Node {
         FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
-      pub fn get_name(&self) -> Text::Builder<'a> {
+      pub fn get_name(&self) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).get_text(std::ptr::null(), 0)
       }
       #[inline]
-      pub fn set_name(&self, value : Text::Reader) {
+      pub fn set_name(&self, value : text::Reader) {
         self.builder.get_pointer_field(0).set_text(value);
       }
       #[inline]
-      pub fn init_name(&self, size : uint) -> Text::Builder<'a> {
+      pub fn init_name(&self, size : uint) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_name(&self) -> bool {
@@ -374,9 +374,9 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -386,12 +386,12 @@ pub mod Node {
 
   pub mod Struct {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -432,8 +432,8 @@ pub mod Node {
         self.reader.get_data_field::<u32>(8)
       }
       #[inline]
-      pub fn get_fields(&self) -> StructList::Reader<'a,schema_capnp::Field::Reader<'a>> {
-        StructList::Reader::new(self.reader.get_pointer_field(3).get_list(schema_capnp::Field::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+      pub fn get_fields(&self) -> struct_list::Reader<'a,schema_capnp::Field::Reader<'a>> {
+        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(schema_capnp::Field::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
       }
       pub fn has_fields(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
@@ -499,16 +499,16 @@ pub mod Node {
         self.builder.set_data_field::<u32>(8, value);
       }
       #[inline]
-      pub fn get_fields(&self) -> StructList::Builder<'a,schema_capnp::Field::Builder<'a>> {
-        StructList::Builder::new(self.builder.get_pointer_field(3).get_struct_list(schema_capnp::Field::STRUCT_SIZE, std::ptr::null()))
+      pub fn get_fields(&self) -> struct_list::Builder<'a,schema_capnp::Field::Builder<'a>> {
+        struct_list::Builder::new(self.builder.get_pointer_field(3).get_struct_list(schema_capnp::Field::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
-      pub fn set_fields(&self, value : StructList::Reader<'a,schema_capnp::Field::Reader<'a>>) {
+      pub fn set_fields(&self, value : struct_list::Reader<'a,schema_capnp::Field::Reader<'a>>) {
         self.builder.get_pointer_field(3).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_fields(&self, size : uint) -> StructList::Builder<'a,schema_capnp::Field::Builder<'a>> {
-        StructList::Builder::<'a, schema_capnp::Field::Builder<'a>>::new(
+      pub fn init_fields(&self, size : uint) -> struct_list::Builder<'a,schema_capnp::Field::Builder<'a>> {
+        struct_list::Builder::<'a, schema_capnp::Field::Builder<'a>>::new(
           self.builder.get_pointer_field(3).init_struct_list(size, schema_capnp::Field::STRUCT_SIZE))
       }
       pub fn has_fields(&self) -> bool {
@@ -516,9 +516,9 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -528,12 +528,12 @@ pub mod Node {
 
   pub mod Enum {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -550,8 +550,8 @@ pub mod Node {
 
     impl <'a> Reader<'a> {
       #[inline]
-      pub fn get_enumerants(&self) -> StructList::Reader<'a,schema_capnp::Enumerant::Reader<'a>> {
-        StructList::Reader::new(self.reader.get_pointer_field(3).get_list(schema_capnp::Enumerant::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+      pub fn get_enumerants(&self) -> struct_list::Reader<'a,schema_capnp::Enumerant::Reader<'a>> {
+        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(schema_capnp::Enumerant::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
       }
       pub fn has_enumerants(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
@@ -569,16 +569,16 @@ pub mod Node {
         FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
-      pub fn get_enumerants(&self) -> StructList::Builder<'a,schema_capnp::Enumerant::Builder<'a>> {
-        StructList::Builder::new(self.builder.get_pointer_field(3).get_struct_list(schema_capnp::Enumerant::STRUCT_SIZE, std::ptr::null()))
+      pub fn get_enumerants(&self) -> struct_list::Builder<'a,schema_capnp::Enumerant::Builder<'a>> {
+        struct_list::Builder::new(self.builder.get_pointer_field(3).get_struct_list(schema_capnp::Enumerant::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
-      pub fn set_enumerants(&self, value : StructList::Reader<'a,schema_capnp::Enumerant::Reader<'a>>) {
+      pub fn set_enumerants(&self, value : struct_list::Reader<'a,schema_capnp::Enumerant::Reader<'a>>) {
         self.builder.get_pointer_field(3).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_enumerants(&self, size : uint) -> StructList::Builder<'a,schema_capnp::Enumerant::Builder<'a>> {
-        StructList::Builder::<'a, schema_capnp::Enumerant::Builder<'a>>::new(
+      pub fn init_enumerants(&self, size : uint) -> struct_list::Builder<'a,schema_capnp::Enumerant::Builder<'a>> {
+        struct_list::Builder::<'a, schema_capnp::Enumerant::Builder<'a>>::new(
           self.builder.get_pointer_field(3).init_struct_list(size, schema_capnp::Enumerant::STRUCT_SIZE))
       }
       pub fn has_enumerants(&self) -> bool {
@@ -586,9 +586,9 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -598,12 +598,12 @@ pub mod Node {
 
   pub mod Interface {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -620,15 +620,15 @@ pub mod Node {
 
     impl <'a> Reader<'a> {
       #[inline]
-      pub fn get_methods(&self) -> StructList::Reader<'a,schema_capnp::Method::Reader<'a>> {
-        StructList::Reader::new(self.reader.get_pointer_field(3).get_list(schema_capnp::Method::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+      pub fn get_methods(&self) -> struct_list::Reader<'a,schema_capnp::Method::Reader<'a>> {
+        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(schema_capnp::Method::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
       }
       pub fn has_methods(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_extends(&self) -> PrimitiveList::Reader<'a,u64> {
-        PrimitiveList::Reader::new(self.reader.get_pointer_field(4).get_list(layout::EightBytes, std::ptr::null()))
+      pub fn get_extends(&self) -> primitive_list::Reader<'a,u64> {
+        primitive_list::Reader::new(self.reader.get_pointer_field(4).get_list(layout::EightBytes, std::ptr::null()))
       }
       pub fn has_extends(&self) -> bool {
         !self.reader.get_pointer_field(4).is_null()
@@ -646,32 +646,32 @@ pub mod Node {
         FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
-      pub fn get_methods(&self) -> StructList::Builder<'a,schema_capnp::Method::Builder<'a>> {
-        StructList::Builder::new(self.builder.get_pointer_field(3).get_struct_list(schema_capnp::Method::STRUCT_SIZE, std::ptr::null()))
+      pub fn get_methods(&self) -> struct_list::Builder<'a,schema_capnp::Method::Builder<'a>> {
+        struct_list::Builder::new(self.builder.get_pointer_field(3).get_struct_list(schema_capnp::Method::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
-      pub fn set_methods(&self, value : StructList::Reader<'a,schema_capnp::Method::Reader<'a>>) {
+      pub fn set_methods(&self, value : struct_list::Reader<'a,schema_capnp::Method::Reader<'a>>) {
         self.builder.get_pointer_field(3).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_methods(&self, size : uint) -> StructList::Builder<'a,schema_capnp::Method::Builder<'a>> {
-        StructList::Builder::<'a, schema_capnp::Method::Builder<'a>>::new(
+      pub fn init_methods(&self, size : uint) -> struct_list::Builder<'a,schema_capnp::Method::Builder<'a>> {
+        struct_list::Builder::<'a, schema_capnp::Method::Builder<'a>>::new(
           self.builder.get_pointer_field(3).init_struct_list(size, schema_capnp::Method::STRUCT_SIZE))
       }
       pub fn has_methods(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_extends(&self) -> PrimitiveList::Builder<'a,u64> {
-        PrimitiveList::Builder::new(self.builder.get_pointer_field(4).get_list(layout::EightBytes, std::ptr::null()))
+      pub fn get_extends(&self) -> primitive_list::Builder<'a,u64> {
+        primitive_list::Builder::new(self.builder.get_pointer_field(4).get_list(layout::EightBytes, std::ptr::null()))
       }
       #[inline]
-      pub fn set_extends(&self, value : PrimitiveList::Reader<'a,u64>) {
+      pub fn set_extends(&self, value : primitive_list::Reader<'a,u64>) {
         self.builder.get_pointer_field(4).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_extends(&self, size : uint) -> PrimitiveList::Builder<'a,u64> {
-        PrimitiveList::Builder::<'a,u64>::new(
+      pub fn init_extends(&self, size : uint) -> primitive_list::Builder<'a,u64> {
+        primitive_list::Builder::<'a,u64>::new(
           self.builder.get_pointer_field(4).init_list(layout::EightBytes,size)
         )
       }
@@ -680,9 +680,9 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -692,12 +692,12 @@ pub mod Node {
 
   pub mod Const {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -771,9 +771,9 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -789,12 +789,12 @@ pub mod Node {
 
   pub mod Annotation {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -990,9 +990,9 @@ pub mod Node {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -1006,12 +1006,12 @@ pub mod Node {
 
 pub mod Field {
   use std;
-  use capnp::any::AnyPointer;
+  use capnp::any::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
-  use capnp::blob::{Text, Data};
+  use capnp::blob::{text, data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-  use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+  use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
@@ -1032,7 +1032,7 @@ pub mod Field {
 
   impl <'a> Reader<'a> {
     #[inline]
-    pub fn get_name(&self) -> Text::Reader<'a> {
+    pub fn get_name(&self) -> text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
     }
     pub fn has_name(&self) -> bool {
@@ -1043,8 +1043,8 @@ pub mod Field {
       self.reader.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn get_annotations(&self) -> StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>> {
-      StructList::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+    pub fn get_annotations(&self) -> struct_list::Reader<'a,schema_capnp::Annotation::Reader<'a>> {
+      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
@@ -1090,15 +1090,15 @@ pub mod Field {
       FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
-    pub fn get_name(&self) -> Text::Builder<'a> {
+    pub fn get_name(&self) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).get_text(std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_name(&self, value : Text::Reader) {
+    pub fn set_name(&self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : uint) -> Text::Builder<'a> {
+    pub fn init_name(&self, size : uint) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
@@ -1113,16 +1113,16 @@ pub mod Field {
       self.builder.set_data_field::<u16>(0, value);
     }
     #[inline]
-    pub fn get_annotations(&self) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
+    pub fn get_annotations(&self) -> struct_list::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
+      struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
-    pub fn set_annotations(&self, value : StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
+    pub fn set_annotations(&self, value : struct_list::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : uint) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::<'a, schema_capnp::Annotation::Builder<'a>>::new(
+    pub fn init_annotations(&self, size : uint) -> struct_list::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
+      struct_list::Builder::<'a, schema_capnp::Annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, schema_capnp::Annotation::STRUCT_SIZE))
     }
     pub fn has_annotations(&self) -> bool {
@@ -1179,9 +1179,9 @@ pub mod Field {
     }
   }
 
-  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : any_pointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
-    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+    fn new(typeless : any_pointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
     }
   }
@@ -1200,12 +1200,12 @@ pub mod Field {
 
   pub mod Slot {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1303,9 +1303,9 @@ pub mod Field {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -1321,12 +1321,12 @@ pub mod Field {
 
   pub mod Group {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1368,9 +1368,9 @@ pub mod Field {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -1380,12 +1380,12 @@ pub mod Field {
 
   pub mod Ordinal {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1456,9 +1456,9 @@ pub mod Field {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -1475,12 +1475,12 @@ pub mod Field {
 
 pub mod Enumerant {
   use std;
-  use capnp::any::AnyPointer;
+  use capnp::any::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
-  use capnp::blob::{Text, Data};
+  use capnp::blob::{text, data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-  use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+  use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
@@ -1501,7 +1501,7 @@ pub mod Enumerant {
 
   impl <'a> Reader<'a> {
     #[inline]
-    pub fn get_name(&self) -> Text::Reader<'a> {
+    pub fn get_name(&self) -> text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
     }
     pub fn has_name(&self) -> bool {
@@ -1512,8 +1512,8 @@ pub mod Enumerant {
       self.reader.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn get_annotations(&self) -> StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>> {
-      StructList::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+    pub fn get_annotations(&self) -> struct_list::Reader<'a,schema_capnp::Annotation::Reader<'a>> {
+      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
@@ -1535,15 +1535,15 @@ pub mod Enumerant {
       FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
-    pub fn get_name(&self) -> Text::Builder<'a> {
+    pub fn get_name(&self) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).get_text(std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_name(&self, value : Text::Reader) {
+    pub fn set_name(&self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : uint) -> Text::Builder<'a> {
+    pub fn init_name(&self, size : uint) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
@@ -1558,16 +1558,16 @@ pub mod Enumerant {
       self.builder.set_data_field::<u16>(0, value);
     }
     #[inline]
-    pub fn get_annotations(&self) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
+    pub fn get_annotations(&self) -> struct_list::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
+      struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
-    pub fn set_annotations(&self, value : StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
+    pub fn set_annotations(&self, value : struct_list::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : uint) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::<'a, schema_capnp::Annotation::Builder<'a>>::new(
+    pub fn init_annotations(&self, size : uint) -> struct_list::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
+      struct_list::Builder::<'a, schema_capnp::Annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, schema_capnp::Annotation::STRUCT_SIZE))
     }
     pub fn has_annotations(&self) -> bool {
@@ -1575,9 +1575,9 @@ pub mod Enumerant {
     }
   }
 
-  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : any_pointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
-    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+    fn new(typeless : any_pointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
     }
   }
@@ -1587,12 +1587,12 @@ pub mod Enumerant {
 
 pub mod Method {
   use std;
-  use capnp::any::AnyPointer;
+  use capnp::any::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
-  use capnp::blob::{Text, Data};
+  use capnp::blob::{text, data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-  use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+  use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
@@ -1613,7 +1613,7 @@ pub mod Method {
 
   impl <'a> Reader<'a> {
     #[inline]
-    pub fn get_name(&self) -> Text::Reader<'a> {
+    pub fn get_name(&self) -> text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
     }
     pub fn has_name(&self) -> bool {
@@ -1632,8 +1632,8 @@ pub mod Method {
       self.reader.get_data_field::<u64>(2)
     }
     #[inline]
-    pub fn get_annotations(&self) -> StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>> {
-      StructList::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+    pub fn get_annotations(&self) -> struct_list::Reader<'a,schema_capnp::Annotation::Reader<'a>> {
+      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::Annotation::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
@@ -1655,15 +1655,15 @@ pub mod Method {
       FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
-    pub fn get_name(&self) -> Text::Builder<'a> {
+    pub fn get_name(&self) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).get_text(std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_name(&self, value : Text::Reader) {
+    pub fn set_name(&self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : uint) -> Text::Builder<'a> {
+    pub fn init_name(&self, size : uint) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
@@ -1694,16 +1694,16 @@ pub mod Method {
       self.builder.set_data_field::<u64>(2, value);
     }
     #[inline]
-    pub fn get_annotations(&self) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
+    pub fn get_annotations(&self) -> struct_list::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
+      struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::Annotation::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
-    pub fn set_annotations(&self, value : StructList::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
+    pub fn set_annotations(&self, value : struct_list::Reader<'a,schema_capnp::Annotation::Reader<'a>>) {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : uint) -> StructList::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
-      StructList::Builder::<'a, schema_capnp::Annotation::Builder<'a>>::new(
+    pub fn init_annotations(&self, size : uint) -> struct_list::Builder<'a,schema_capnp::Annotation::Builder<'a>> {
+      struct_list::Builder::<'a, schema_capnp::Annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, schema_capnp::Annotation::STRUCT_SIZE))
     }
     pub fn has_annotations(&self) -> bool {
@@ -1711,9 +1711,9 @@ pub mod Method {
     }
   }
 
-  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : any_pointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
-    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+    fn new(typeless : any_pointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
     }
   }
@@ -1723,12 +1723,12 @@ pub mod Method {
 
 pub mod Type {
   use std;
-  use capnp::any::AnyPointer;
+  use capnp::any::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
-  use capnp::blob::{Text, Data};
+  use capnp::blob::{text, data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-  use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+  use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
@@ -2052,9 +2052,9 @@ pub mod Type {
     }
   }
 
-  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : any_pointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
-    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+    fn new(typeless : any_pointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
     }
   }
@@ -2086,12 +2086,12 @@ pub mod Type {
 
   pub mod List {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2143,9 +2143,9 @@ pub mod Type {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -2158,12 +2158,12 @@ pub mod Type {
 
   pub mod Enum {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2205,9 +2205,9 @@ pub mod Type {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -2217,12 +2217,12 @@ pub mod Type {
 
   pub mod Struct {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2264,9 +2264,9 @@ pub mod Type {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -2276,12 +2276,12 @@ pub mod Type {
 
   pub mod Interface {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2323,9 +2323,9 @@ pub mod Type {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -2336,12 +2336,12 @@ pub mod Type {
 
 pub mod Value {
   use std;
-  use capnp::any::AnyPointer;
+  use capnp::any::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
-  use capnp::blob::{Text, Data};
+  use capnp::blob::{text, data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-  use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+  use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
@@ -2456,7 +2456,7 @@ pub mod Value {
         }
         14 => {
           return std::option::Some(List(
-            AnyPointer::Reader::new(self.reader.get_pointer_field(0))
+            any_pointer::Reader::new(self.reader.get_pointer_field(0))
           ));
         }
         15 => {
@@ -2466,7 +2466,7 @@ pub mod Value {
         }
         16 => {
           return std::option::Some(Struct(
-            AnyPointer::Reader::new(self.reader.get_pointer_field(0))
+            any_pointer::Reader::new(self.reader.get_pointer_field(0))
           ));
         }
         17 => {
@@ -2476,7 +2476,7 @@ pub mod Value {
         }
         18 => {
           return std::option::Some(AnyPointer(
-            AnyPointer::Reader::new(self.reader.get_pointer_field(0))
+            any_pointer::Reader::new(self.reader.get_pointer_field(0))
           ));
         }
         _ => return std::option::None
@@ -2558,12 +2558,12 @@ pub mod Value {
       self.builder.set_data_field::<f64>(1, value);
     }
     #[inline]
-    pub fn set_text(&self, value : Text::Reader) {
+    pub fn set_text(&self, value : text::Reader) {
       self.builder.set_data_field::<u16>(0, 12);
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_text(&self, size : uint) -> Text::Builder<'a> {
+    pub fn init_text(&self, size : uint) -> text::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 12);
       self.builder.get_pointer_field(0).init_text(size)
     }
@@ -2572,12 +2572,12 @@ pub mod Value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn set_data(&self, value : Data::Reader) {
+    pub fn set_data(&self, value : data::Reader) {
       self.builder.set_data_field::<u16>(0, 13);
       self.builder.get_pointer_field(0).set_data(value);
     }
     #[inline]
-    pub fn init_data(&self, size : uint) -> Data::Builder<'a> {
+    pub fn init_data(&self, size : uint) -> data::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 13);
       self.builder.get_pointer_field(0).init_data(size)
     }
@@ -2586,9 +2586,9 @@ pub mod Value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn init_list(&self, ) -> AnyPointer::Builder<'a> {
+    pub fn init_list(&self, ) -> any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 14);
-      let result = AnyPointer::Builder::new(self.builder.get_pointer_field(0));
+      let result = any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
       result
     }
@@ -2602,9 +2602,9 @@ pub mod Value {
       self.builder.set_data_field::<u16>(1, value);
     }
     #[inline]
-    pub fn init_struct(&self, ) -> AnyPointer::Builder<'a> {
+    pub fn init_struct(&self, ) -> any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 16);
-      let result = AnyPointer::Builder::new(self.builder.get_pointer_field(0));
+      let result = any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
       result
     }
@@ -2617,9 +2617,9 @@ pub mod Value {
       self.builder.set_data_field::<u16>(0, 17);
     }
     #[inline]
-    pub fn init_any_pointer(&self, ) -> AnyPointer::Builder<'a> {
+    pub fn init_any_pointer(&self, ) -> any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 18);
-      let result = AnyPointer::Builder::new(self.builder.get_pointer_field(0));
+      let result = any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
       result
     }
@@ -2702,7 +2702,7 @@ pub mod Value {
         }
         14 => {
           return std::option::Some(List(
-            AnyPointer::Builder::new(self.builder.get_pointer_field(0))
+            any_pointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
         15 => {
@@ -2712,7 +2712,7 @@ pub mod Value {
         }
         16 => {
           return std::option::Some(Struct(
-            AnyPointer::Builder::new(self.builder.get_pointer_field(0))
+            any_pointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
         17 => {
@@ -2722,7 +2722,7 @@ pub mod Value {
         }
         18 => {
           return std::option::Some(AnyPointer(
-            AnyPointer::Builder::new(self.builder.get_pointer_field(0))
+            any_pointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
         _ => return std::option::None
@@ -2730,9 +2730,9 @@ pub mod Value {
     }
   }
 
-  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : any_pointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
-    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+    fn new(typeless : any_pointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
     }
   }
@@ -2759,18 +2759,18 @@ pub mod Value {
     Interface(()),
     AnyPointer(A4),
   }
-  pub type WhichReader<'a> = Which<'a,Text::Reader<'a>,Data::Reader<'a>,AnyPointer::Reader<'a>,AnyPointer::Reader<'a>,AnyPointer::Reader<'a>>;
-  pub type WhichBuilder<'a> = Which<'a,Text::Builder<'a>,Data::Builder<'a>,AnyPointer::Builder<'a>,AnyPointer::Builder<'a>,AnyPointer::Builder<'a>>;
+  pub type WhichReader<'a> = Which<'a,text::Reader<'a>,data::Reader<'a>,any_pointer::Reader<'a>,any_pointer::Reader<'a>,any_pointer::Reader<'a>>;
+  pub type WhichBuilder<'a> = Which<'a,text::Builder<'a>,data::Builder<'a>,any_pointer::Builder<'a>,any_pointer::Builder<'a>,any_pointer::Builder<'a>>;
 }
 
 pub mod Annotation {
   use std;
-  use capnp::any::AnyPointer;
+  use capnp::any::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
-  use capnp::blob::{Text, Data};
+  use capnp::blob::{text, data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-  use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+  use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
@@ -2842,9 +2842,9 @@ pub mod Annotation {
     }
   }
 
-  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : any_pointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
-    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+    fn new(typeless : any_pointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
     }
   }
@@ -2879,12 +2879,12 @@ pub mod ElementSize {
 
 pub mod CodeGeneratorRequest {
   use std;
-  use capnp::any::AnyPointer;
+  use capnp::any::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
-  use capnp::blob::{Text, Data};
+  use capnp::blob::{text, data};
   use capnp::layout;
   use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-  use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+  use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
   use schema_capnp;
 
   pub static STRUCT_SIZE : layout::StructSize =
@@ -2905,15 +2905,15 @@ pub mod CodeGeneratorRequest {
 
   impl <'a> Reader<'a> {
     #[inline]
-    pub fn get_nodes(&self) -> StructList::Reader<'a,schema_capnp::Node::Reader<'a>> {
-      StructList::Reader::new(self.reader.get_pointer_field(0).get_list(schema_capnp::Node::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+    pub fn get_nodes(&self) -> struct_list::Reader<'a,schema_capnp::Node::Reader<'a>> {
+      struct_list::Reader::new(self.reader.get_pointer_field(0).get_list(schema_capnp::Node::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
     }
     pub fn has_nodes(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_requested_files(&self) -> StructList::Reader<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Reader<'a>> {
-      StructList::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::CodeGeneratorRequest::RequestedFile::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+    pub fn get_requested_files(&self) -> struct_list::Reader<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Reader<'a>> {
+      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::CodeGeneratorRequest::RequestedFile::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
     }
     pub fn has_requested_files(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
@@ -2935,32 +2935,32 @@ pub mod CodeGeneratorRequest {
       FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
-    pub fn get_nodes(&self) -> StructList::Builder<'a,schema_capnp::Node::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(0).get_struct_list(schema_capnp::Node::STRUCT_SIZE, std::ptr::null()))
+    pub fn get_nodes(&self) -> struct_list::Builder<'a,schema_capnp::Node::Builder<'a>> {
+      struct_list::Builder::new(self.builder.get_pointer_field(0).get_struct_list(schema_capnp::Node::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
-    pub fn set_nodes(&self, value : StructList::Reader<'a,schema_capnp::Node::Reader<'a>>) {
+    pub fn set_nodes(&self, value : struct_list::Reader<'a,schema_capnp::Node::Reader<'a>>) {
       self.builder.get_pointer_field(0).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_nodes(&self, size : uint) -> StructList::Builder<'a,schema_capnp::Node::Builder<'a>> {
-      StructList::Builder::<'a, schema_capnp::Node::Builder<'a>>::new(
+    pub fn init_nodes(&self, size : uint) -> struct_list::Builder<'a,schema_capnp::Node::Builder<'a>> {
+      struct_list::Builder::<'a, schema_capnp::Node::Builder<'a>>::new(
         self.builder.get_pointer_field(0).init_struct_list(size, schema_capnp::Node::STRUCT_SIZE))
     }
     pub fn has_nodes(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_requested_files(&self) -> StructList::Builder<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Builder<'a>> {
-      StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::CodeGeneratorRequest::RequestedFile::STRUCT_SIZE, std::ptr::null()))
+    pub fn get_requested_files(&self) -> struct_list::Builder<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Builder<'a>> {
+      struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::CodeGeneratorRequest::RequestedFile::STRUCT_SIZE, std::ptr::null()))
     }
     #[inline]
-    pub fn set_requested_files(&self, value : StructList::Reader<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Reader<'a>>) {
+    pub fn set_requested_files(&self, value : struct_list::Reader<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Reader<'a>>) {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_requested_files(&self, size : uint) -> StructList::Builder<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Builder<'a>> {
-      StructList::Builder::<'a, schema_capnp::CodeGeneratorRequest::RequestedFile::Builder<'a>>::new(
+    pub fn init_requested_files(&self, size : uint) -> struct_list::Builder<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Builder<'a>> {
+      struct_list::Builder::<'a, schema_capnp::CodeGeneratorRequest::RequestedFile::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, schema_capnp::CodeGeneratorRequest::RequestedFile::STRUCT_SIZE))
     }
     pub fn has_requested_files(&self) -> bool {
@@ -2968,9 +2968,9 @@ pub mod CodeGeneratorRequest {
     }
   }
 
-  pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+  pub struct Pipeline { _typeless : any_pointer::Pipeline }
   impl FromTypelessPipeline for Pipeline {
-    fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+    fn new(typeless : any_pointer::Pipeline) -> Pipeline {
       Pipeline { _typeless : typeless }
     }
   }
@@ -2979,12 +2979,12 @@ pub mod CodeGeneratorRequest {
 
   pub mod RequestedFile {
     use std;
-    use capnp::any::AnyPointer;
+    use capnp::any::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::blob::{Text, Data};
+    use capnp::blob::{text, data};
     use capnp::layout;
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-    use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+    use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
     use schema_capnp;
 
     pub static STRUCT_SIZE : layout::StructSize =
@@ -3009,15 +3009,15 @@ pub mod CodeGeneratorRequest {
         self.reader.get_data_field::<u64>(0)
       }
       #[inline]
-      pub fn get_filename(&self) -> Text::Reader<'a> {
+      pub fn get_filename(&self) -> text::Reader<'a> {
         self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
       }
       pub fn has_filename(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn get_imports(&self) -> StructList::Reader<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Reader<'a>> {
-        StructList::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::CodeGeneratorRequest::RequestedFile::Import::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
+      pub fn get_imports(&self) -> struct_list::Reader<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Reader<'a>> {
+        struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(schema_capnp::CodeGeneratorRequest::RequestedFile::Import::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))
       }
       pub fn has_imports(&self) -> bool {
         !self.reader.get_pointer_field(1).is_null()
@@ -3047,31 +3047,31 @@ pub mod CodeGeneratorRequest {
         self.builder.set_data_field::<u64>(0, value);
       }
       #[inline]
-      pub fn get_filename(&self) -> Text::Builder<'a> {
+      pub fn get_filename(&self) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).get_text(std::ptr::null(), 0)
       }
       #[inline]
-      pub fn set_filename(&self, value : Text::Reader) {
+      pub fn set_filename(&self, value : text::Reader) {
         self.builder.get_pointer_field(0).set_text(value);
       }
       #[inline]
-      pub fn init_filename(&self, size : uint) -> Text::Builder<'a> {
+      pub fn init_filename(&self, size : uint) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_filename(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn get_imports(&self) -> StructList::Builder<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Builder<'a>> {
-        StructList::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::CodeGeneratorRequest::RequestedFile::Import::STRUCT_SIZE, std::ptr::null()))
+      pub fn get_imports(&self) -> struct_list::Builder<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Builder<'a>> {
+        struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(schema_capnp::CodeGeneratorRequest::RequestedFile::Import::STRUCT_SIZE, std::ptr::null()))
       }
       #[inline]
-      pub fn set_imports(&self, value : StructList::Reader<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Reader<'a>>) {
+      pub fn set_imports(&self, value : struct_list::Reader<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Reader<'a>>) {
         self.builder.get_pointer_field(1).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_imports(&self, size : uint) -> StructList::Builder<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Builder<'a>> {
-        StructList::Builder::<'a, schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Builder<'a>>::new(
+      pub fn init_imports(&self, size : uint) -> struct_list::Builder<'a,schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Builder<'a>> {
+        struct_list::Builder::<'a, schema_capnp::CodeGeneratorRequest::RequestedFile::Import::Builder<'a>>::new(
           self.builder.get_pointer_field(1).init_struct_list(size, schema_capnp::CodeGeneratorRequest::RequestedFile::Import::STRUCT_SIZE))
       }
       pub fn has_imports(&self) -> bool {
@@ -3079,9 +3079,9 @@ pub mod CodeGeneratorRequest {
       }
     }
 
-    pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+    pub struct Pipeline { _typeless : any_pointer::Pipeline }
     impl FromTypelessPipeline for Pipeline {
-      fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+      fn new(typeless : any_pointer::Pipeline) -> Pipeline {
         Pipeline { _typeless : typeless }
       }
     }
@@ -3090,12 +3090,12 @@ pub mod CodeGeneratorRequest {
 
     pub mod Import {
       use std;
-      use capnp::any::AnyPointer;
+      use capnp::any::any_pointer;
       use capnp::capability::{FromClientHook, FromTypelessPipeline};
-      use capnp::blob::{Text, Data};
+      use capnp::blob::{text, data};
       use capnp::layout;
       use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
-      use capnp::list::{PrimitiveList, ToU16, EnumList, StructList, TextList, DataList, ListList};
+      use capnp::list::{primitive_list, ToU16, enum_list, struct_list, text_list, data_list, list_list};
       use schema_capnp;
 
       pub static STRUCT_SIZE : layout::StructSize =
@@ -3120,7 +3120,7 @@ pub mod CodeGeneratorRequest {
           self.reader.get_data_field::<u64>(0)
         }
         #[inline]
-        pub fn get_name(&self) -> Text::Reader<'a> {
+        pub fn get_name(&self) -> text::Reader<'a> {
           self.reader.get_pointer_field(0).get_text(std::ptr::null(), 0)
         }
         pub fn has_name(&self) -> bool {
@@ -3151,15 +3151,15 @@ pub mod CodeGeneratorRequest {
           self.builder.set_data_field::<u64>(0, value);
         }
         #[inline]
-        pub fn get_name(&self) -> Text::Builder<'a> {
+        pub fn get_name(&self) -> text::Builder<'a> {
           self.builder.get_pointer_field(0).get_text(std::ptr::null(), 0)
         }
         #[inline]
-        pub fn set_name(&self, value : Text::Reader) {
+        pub fn set_name(&self, value : text::Reader) {
           self.builder.get_pointer_field(0).set_text(value);
         }
         #[inline]
-        pub fn init_name(&self, size : uint) -> Text::Builder<'a> {
+        pub fn init_name(&self, size : uint) -> text::Builder<'a> {
           self.builder.get_pointer_field(0).init_text(size)
         }
         pub fn has_name(&self) -> bool {
@@ -3167,9 +3167,9 @@ pub mod CodeGeneratorRequest {
         }
       }
 
-      pub struct Pipeline { _typeless : AnyPointer::Pipeline }
+      pub struct Pipeline { _typeless : any_pointer::Pipeline }
       impl FromTypelessPipeline for Pipeline {
-        fn new(typeless : AnyPointer::Pipeline) -> Pipeline {
+        fn new(typeless : any_pointer::Pipeline) -> Pipeline {
           Pipeline { _typeless : typeless }
         }
       }

@@ -8,7 +8,7 @@ use std;
 use std::vec::Vec;
 
 use capnp::capability::{FromServer, Server};
-use capnp::list::{PrimitiveList};
+use capnp::list::{primitive_list};
 use capnp::{MallocMessageBuilder, MessageBuilder};
 
 use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
@@ -37,7 +37,7 @@ impl Calculator::Value::Server for ValueImpl {
 
 fn evaluate_impl(
     expression : Calculator::Expression::Reader,
-    params : Option<PrimitiveList::Reader<f64>>) -> Result<f64, String> {
+    params : Option<primitive_list::Reader<f64>>) -> Result<f64, String> {
 
     match expression.which() {
         Some(Calculator::Expression::Literal(v)) => {

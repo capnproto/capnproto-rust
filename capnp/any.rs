@@ -4,14 +4,14 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-pub mod AnyPointer {
+pub mod any_pointer {
     use std;
     use std::vec::Vec;
 
-    use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
+    use capability::{ClientHook, FromClientHook, PipelineHook, pipeline_op};
     use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
                  HasStructSize, ToStructReader};
-    use blob::{Text, Data};
+    use blob::{text, data};
 
     pub struct Reader<'a> {
         reader : PointerReader<'a>
@@ -33,11 +33,11 @@ pub mod AnyPointer {
             FromStructReader::new(self.reader.get_struct(std::ptr::null()))
         }
 
-        pub fn get_as_text(&self) -> Text::Reader<'a> {
+        pub fn get_as_text(&self) -> text::Reader<'a> {
             self.reader.get_text(std::ptr::null(), 0)
         }
 
-        pub fn get_as_data(&self) -> Data::Reader<'a> {
+        pub fn get_as_data(&self) -> data::Reader<'a> {
             self.reader.get_data(std::ptr::null(), 0)
         }
 
@@ -48,13 +48,13 @@ pub mod AnyPointer {
 
         //# Used by RPC system to implement pipelining. Applications
         //# generally shouldn't use this directly.
-        pub fn get_pipelined_cap(&self, ops : &[PipelineOp::Type]) -> Box<ClientHook+Send> {
+        pub fn get_pipelined_cap(&self, ops : &[pipeline_op::Type]) -> Box<ClientHook+Send> {
             let mut pointer = self.reader;
 
             for op in ops.iter() {
                 match op {
-                    &PipelineOp::Noop =>  { }
-                    &PipelineOp::GetPointerField(idx) => {
+                    &pipeline_op::Noop =>  { }
+                    &pipeline_op::GetPointerField(idx) => {
                         pointer = pointer.get_struct(std::ptr::null()).get_pointer_field(idx as uint)
                     }
                 }
@@ -115,7 +115,7 @@ pub mod AnyPointer {
 
     pub struct Pipeline {
         hook : Box<PipelineHook+Send>,
-        ops : Vec<PipelineOp::Type>,
+        ops : Vec<pipeline_op::Type>,
     }
 
     impl Pipeline {
@@ -132,7 +132,7 @@ pub mod AnyPointer {
             for &op in self.ops.iter() {
                 new_ops.push(op)
             }
-            new_ops.push(PipelineOp::GetPointerField(pointer_index));
+            new_ops.push(pipeline_op::GetPointerField(pointer_index));
             Pipeline { hook : self.hook.copy(), ops : new_ops }
         }
 

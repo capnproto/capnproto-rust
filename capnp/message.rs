@@ -6,7 +6,7 @@
 
 use std;
 use std::vec::Vec;
-use any::AnyPointer;
+use any::any_pointer;
 use capability::ClientHook;
 use common::*;
 use arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};
@@ -54,14 +54,14 @@ pub trait MessageReader {
     fn mut_arena<'a>(&'a mut self) -> &'a mut ReaderArena;
     fn get_options<'a>(&'a self) -> &'a ReaderOptions;
 
-    fn get_root_internal<'a> (&'a self) -> AnyPointer::Reader<'a> {
+    fn get_root_internal<'a> (&'a self) -> any_pointer::Reader<'a> {
         unsafe {
             let segment : *const SegmentReader = &self.arena().segment0;
 
             let pointer_reader = layout::PointerReader::get_root(
                 segment, (*segment).get_start_ptr(), self.get_options().nesting_limit as int);
 
-            AnyPointer::Reader::new(pointer_reader)
+            any_pointer::Reader::new(pointer_reader)
         }
     }
 
@@ -153,7 +153,7 @@ pub trait MessageBuilder {
 
 
     // XXX is there a way to make this private?
-    fn get_root_internal<'a>(&mut self) -> AnyPointer::Builder<'a> {
+    fn get_root_internal<'a>(&mut self) -> any_pointer::Builder<'a> {
         let root_segment = &mut self.mut_arena().segment0 as *mut SegmentBuilder;
 
         if self.arena().segment0.current_size() == 0 {
@@ -163,12 +163,12 @@ pub trait MessageBuilder {
                     assert!(location == self.arena().segment0.get_ptr_unchecked(0),
                             "First allocated word of new segment was not at offset 0");
 
-                    AnyPointer::Builder::new(layout::PointerBuilder::get_root(root_segment, location))
+                    any_pointer::Builder::new(layout::PointerBuilder::get_root(root_segment, location))
 
                 }
             }
         } else {
-            AnyPointer::Builder::new(
+            any_pointer::Builder::new(
                 layout::PointerBuilder::get_root(root_segment,
                                                  self.arena().segment0.get_ptr_unchecked(0)))
         }

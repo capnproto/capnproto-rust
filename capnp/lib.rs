@@ -21,10 +21,10 @@ extern crate libc;
 extern crate debug;
 
 // reexports
-pub use any::AnyPointer;
-pub use blob::{Text, Data};
+pub use any::any_pointer;
+pub use blob::{text, data};
 pub use common::{MessageSize};
-pub use list::{PrimitiveList, EnumList, StructList, TextList, DataList, ListList};
+pub use list::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 pub use message::{MessageBuilder, BuilderOptions, MessageReader, ReaderOptions};
 pub use message::MallocMessageBuilder;
 pub use serialize::OwnedSpaceMessageReader;

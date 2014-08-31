@@ -4,7 +4,7 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-use any::{AnyPointer};
+use any::{any_pointer};
 use common::{MessageSize};
 use layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use message::{MallocMessageBuilder};
@@ -18,12 +18,12 @@ pub struct ResultFuture<Results, Pipeline> {
 }
 
 pub trait ResponseHook:Send {
-    fn get<'a>(&'a mut self) -> AnyPointer::Reader<'a>;
+    fn get<'a>(&'a mut self) -> any_pointer::Reader<'a>;
 }
 
 pub trait RequestHook {
     fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder;
-    fn send<'a>(self : Box<Self>) -> ResultFuture<AnyPointer::Reader<'a>, AnyPointer::Pipeline>;
+    fn send<'a>(self : Box<Self>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline>;
 }
 
 pub struct Request<Params, Results, Pipeline> {
@@ -53,7 +53,7 @@ pub trait ClientHook : Send {
                 interface_id : u64,
                 method_id : u16,
                 size_hint : Option<MessageSize>)
-                -> Request<AnyPointer::Builder, AnyPointer::Reader, AnyPointer::Pipeline>;
+                -> Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline>;
     fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>);
 
     // HACK
@@ -107,20 +107,20 @@ CallContext<Params, Results> {
 }
 
 pub trait CallContextHook {
-    fn get<'a>(&'a mut self) -> (AnyPointer::Reader<'a>, AnyPointer::Builder<'a>);
+    fn get<'a>(&'a mut self) -> (any_pointer::Reader<'a>, any_pointer::Builder<'a>);
     fn fail(self : Box<Self>);
     fn done(self : Box<Self>);
 }
 
 pub trait Server {
     fn dispatch_call(&mut self, interface_id : u64, method_id : u16,
-                     context : CallContext<AnyPointer::Reader, AnyPointer::Builder>);
+                     context : CallContext<any_pointer::Reader, any_pointer::Builder>);
 
 }
 
 // Where should this live?
 pub fn internal_get_typed_context<Params, Results>(
-    typeless : CallContext<AnyPointer::Reader, AnyPointer::Builder>)
+    typeless : CallContext<any_pointer::Reader, any_pointer::Builder>)
     -> CallContext<Params, Results> {
     CallContext { hook : typeless.hook }
 }
@@ -128,10 +128,10 @@ pub fn internal_get_typed_context<Params, Results>(
 
 pub trait PipelineHook {
     fn copy(&self) -> Box<PipelineHook+Send>;
-    fn get_pipelined_cap(&self, ops : Vec<PipelineOp::Type>) -> Box<ClientHook+Send>;
+    fn get_pipelined_cap(&self, ops : Vec<pipeline_op::Type>) -> Box<ClientHook+Send>;
 }
 
-pub mod PipelineOp {
+pub mod pipeline_op {
 
     #[deriving(Clone)]
     pub enum Type {
@@ -141,5 +141,5 @@ pub mod PipelineOp {
 }
 
 pub trait FromTypelessPipeline {
-    fn new (typeless : AnyPointer::Pipeline) -> Self;
+    fn new (typeless : any_pointer::Pipeline) -> Self;
 }
