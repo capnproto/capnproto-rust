@@ -8,10 +8,10 @@ use rand::*;
 use common::*;
 use carsales_capnp::*;
 
-pub type RequestBuilder<'a> = ParkingLot::Builder<'a>;
-pub type RequestReader<'a> = ParkingLot::Reader<'a>;
-pub type ResponseBuilder<'a> = TotalValue::Builder<'a>;
-pub type ResponseReader<'a> = TotalValue::Reader<'a>;
+pub type RequestBuilder<'a> = parking_lot::Builder<'a>;
+pub type RequestReader<'a> = parking_lot::Reader<'a>;
+pub type ResponseBuilder<'a> = total_value::Builder<'a>;
+pub type ResponseReader<'a> = total_value::Reader<'a>;
 pub type Expectation = u64;
 
 trait CarValue {
@@ -20,7 +20,7 @@ trait CarValue {
 
 macro_rules! car_value_impl(
     ($typ:ident) => (
-            impl <'a> CarValue for Car::$typ<'a> {
+            impl <'a> CarValue for car::$typ<'a> {
                 fn car_value (&self) -> u64 {
                     let mut result : u64 = 0;
                     result += self.get_seats() as u64 * 200;
@@ -67,13 +67,13 @@ car_value_impl!(Builder)
 static MAKES : [&'static str, .. 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
 static MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
 
-pub fn random_car(rng : &mut FastRand, car : Car::Builder) {
+pub fn random_car(rng : &mut FastRand, car : car::Builder) {
     use std::mem::transmute;
 
     car.set_make(MAKES[rng.next_less_than(MAKES.len() as u32) as uint]);
     car.set_model(MODELS[rng.next_less_than(MODELS.len() as u32) as uint]);
 
-    car.set_color(unsafe {transmute(rng.next_less_than(Color::Silver as u32 + 1) as u16) });
+    car.set_color(unsafe {transmute(rng.next_less_than(color::Silver as u32 + 1) as u16) });
     car.set_seats(2 + rng.next_less_than(6) as u8);
     car.set_doors(2 + rng.next_less_than(3) as u8);
 
@@ -107,7 +107,7 @@ pub fn random_car(rng : &mut FastRand, car : Car::Builder) {
     car.set_has_nav_system(rng.gen());
 }
 
-pub fn setup_request(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 {
+pub fn setup_request(rng : &mut FastRand, request : parking_lot::Builder) -> u64 {
     let mut result = 0;
     let cars = request.init_cars(rng.next_less_than(200) as uint);
     for i in range(0, cars.size()) {
@@ -119,7 +119,7 @@ pub fn setup_request(rng : &mut FastRand, request : ParkingLot::Builder) -> u64 
     result
 }
 
-pub fn handle_request(request : ParkingLot::Reader, response : TotalValue::Builder) {
+pub fn handle_request(request : parking_lot::Reader, response : total_value::Builder) {
     let mut result = 0;
     let cars = request.get_cars();
     for i in range(0, cars.size()) {
@@ -129,6 +129,6 @@ pub fn handle_request(request : ParkingLot::Reader, response : TotalValue::Build
 }
 
 #[inline]
-pub fn check_response(response : TotalValue::Reader, expected : u64) -> bool {
+pub fn check_response(response : total_value::Reader, expected : u64) -> bool {
     response.get_amount() == expected
 }

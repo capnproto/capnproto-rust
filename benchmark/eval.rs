@@ -8,15 +8,15 @@ use std;
 use common::*;
 use eval_capnp::*;
 
-pub type RequestBuilder<'a> = Expression::Builder<'a>;
-pub type ResponseBuilder<'a> = EvaluationResult::Builder<'a>;
+pub type RequestBuilder<'a> = expression::Builder<'a>;
+pub type ResponseBuilder<'a> = evaluation_result::Builder<'a>;
 pub type Expectation = i32;
-pub type RequestReader<'a> = Expression::Reader<'a>;
-pub type ResponseReader<'a> = EvaluationResult::Reader<'a>;
+pub type RequestReader<'a> = expression::Reader<'a>;
+pub type ResponseReader<'a> = evaluation_result::Reader<'a>;
 
-fn make_expression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) -> i32 {
+fn make_expression(rng : &mut FastRand, exp : expression::Builder, depth : u32) -> i32 {
     exp.set_op(unsafe {
-            std::mem::transmute(rng.next_less_than( Operation::Modulus as u32 + 1) as u16)});
+            std::mem::transmute(rng.next_less_than( operation::Modulus as u32 + 1) as u16)});
 
     let left : i32 =
     if rng.next_less_than(8) < depth {
@@ -37,48 +37,48 @@ fn make_expression(rng : &mut FastRand, exp : Expression::Builder, depth : u32) 
     };
 
     match exp.get_op() {
-        Some(Operation::Add) => { return left + right }
-        Some(Operation::Subtract) => { return left - right }
-        Some(Operation::Multiply) => { return left * right }
-        Some(Operation::Divide) => { return div(left, right) }
-        Some(Operation::Modulus) => { return modulus(left, right) }
+        Some(operation::Add) => { return left + right }
+        Some(operation::Subtract) => { return left - right }
+        Some(operation::Multiply) => { return left * right }
+        Some(operation::Divide) => { return div(left, right) }
+        Some(operation::Modulus) => { return modulus(left, right) }
         None => { fail!("impossible") }
     }
 }
 
-fn evaluate_expression(exp : Expression::Reader) -> i32 {
+fn evaluate_expression(exp : expression::Reader) -> i32 {
     let left = match exp.get_left().which() {
-        Some(Expression::Left::Value(v)) => v,
-        Some(Expression::Left::Expression(e)) => evaluate_expression(e),
+        Some(expression::left::Value(v)) => v,
+        Some(expression::left::Expression(e)) => evaluate_expression(e),
         None => fail!("impossible")
     };
     let right = match exp.get_right().which() {
-        Some(Expression::Right::Value(v)) => v,
-        Some(Expression::Right::Expression(e)) => evaluate_expression(e),
+        Some(expression::right::Value(v)) => v,
+        Some(expression::right::Expression(e)) => evaluate_expression(e),
         None => fail!("impossible")
     };
 
     match exp.get_op() {
-        Some(Operation::Add) => return left + right,
-        Some(Operation::Subtract) => return left - right,
-        Some(Operation::Multiply) => return left * right,
-        Some(Operation::Divide) => return div(left, right),
-        Some(Operation::Modulus) => return modulus(left, right),
+        Some(operation::Add) => return left + right,
+        Some(operation::Subtract) => return left - right,
+        Some(operation::Multiply) => return left * right,
+        Some(operation::Divide) => return div(left, right),
+        Some(operation::Modulus) => return modulus(left, right),
         None => fail!("impossible")
     }
 }
 
 #[inline]
-pub fn setup_request(rng : &mut FastRand, request : Expression::Builder) -> i32 {
+pub fn setup_request(rng : &mut FastRand, request : expression::Builder) -> i32 {
     make_expression(rng, request, 0)
 }
 
 #[inline]
-pub fn handle_request(request : Expression::Reader, response : EvaluationResult::Builder) {
+pub fn handle_request(request : expression::Reader, response : evaluation_result::Builder) {
     response.set_value(evaluate_expression(request));
 }
 
 #[inline]
-pub fn check_response(response : EvaluationResult::Reader, expected : i32) -> bool {
+pub fn check_response(response : evaluation_result::Reader, expected : i32) -> bool {
     response.get_value() == expected
 }

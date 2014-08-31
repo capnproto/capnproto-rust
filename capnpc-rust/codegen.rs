@@ -16,8 +16,8 @@ pub fn tuple_option<T,U>(t : Option<T>, u : Option<U>) -> Option<(T,U)> {
     }
 }
 
-fn element_size_str (element_size : schema_capnp::ElementSize::Reader) -> &'static str {
-    use schema_capnp::ElementSize::*;
+fn element_size_str (element_size : schema_capnp::element_size::Reader) -> &'static str {
+    use schema_capnp::element_size::*;
     match element_size {
         Empty => "Void",
         Bit => "Bit",
@@ -30,9 +30,9 @@ fn element_size_str (element_size : schema_capnp::ElementSize::Reader) -> &'stat
     }
 }
 
-fn element_size (typ : schema_capnp::Type::WhichReader) -> schema_capnp::ElementSize::Reader {
-    use schema_capnp::Type::*;
-    use schema_capnp::ElementSize::*;
+fn element_size (typ : schema_capnp::type_::WhichReader) -> schema_capnp::element_size::Reader {
+    use schema_capnp::type_::*;
+    use schema_capnp::element_size::*;
     match typ {
         Void(()) => Empty,
         Bool(()) => Bit,
@@ -50,8 +50,8 @@ fn element_size (typ : schema_capnp::Type::WhichReader) -> schema_capnp::Element
     }
 }
 
-fn prim_type_str (typ : schema_capnp::Type::WhichReader) -> &'static str {
-    use schema_capnp::Type::*;
+fn prim_type_str (typ : schema_capnp::type_::WhichReader) -> &'static str {
+    use schema_capnp::type_::*;
     match typ {
         Void(()) => "()",
         Bool(()) => "bool",
@@ -84,15 +84,32 @@ fn camel_to_upper_case(s : &str) -> String {
     return String::from_chars(result_chars.as_slice());
 }
 
-fn camel_to_snake_case(s : &str) -> String {
+fn snake_to_upper_case(s : &str) -> String {
     use std::ascii::*;
     let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() {
+        if c == '_' {
+            result_chars.push('_');
+        } else {
+            assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
+            result_chars.push((c as u8).to_ascii().to_uppercase().to_char());
+        }
+    }
+    return String::from_chars(result_chars.as_slice());
+}
+
+
+fn camel_to_snake_case(s : &str) -> String {
+    use std::ascii::*;
+    let mut result_chars : Vec<char> = Vec::new();
+    let mut first_char = true;
+    for c in s.chars() {
         assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}', i.e. {}", c, c as uint));
-        if std::char::is_uppercase(c) {
+        if std::char::is_uppercase(c) && !first_char {
             result_chars.push('_');
         }
         result_chars.push((c as u8).to_ascii().to_lowercase().to_char());
+        first_char = false;
     }
     return String::from_chars(result_chars.as_slice());
 }
@@ -115,8 +132,11 @@ fn test_camel_to_upper_case() {
 #[test]
 fn test_camel_to_snake_case() {
     assert_eq!(camel_to_snake_case("fooBar"), "foo_bar".to_string());
+    assert_eq!(camel_to_snake_case("FooBar"), "foo_bar".to_string());
     assert_eq!(camel_to_snake_case("fooBarBaz"), "foo_bar_baz".to_string());
+    assert_eq!(camel_to_snake_case("FooBarBaz"), "foo_bar_baz".to_string());
     assert_eq!(camel_to_snake_case("helloWorld"), "hello_world".to_string());
+    assert_eq!(camel_to_snake_case("HelloWorld"), "hello_world".to_string());
     assert_eq!(camel_to_snake_case("uint32Id"), "uint32_id".to_string());
 }
 
@@ -157,7 +177,16 @@ fn stringify(ft : & FormattedText) -> String {
     return result.into_string();
 }
 
-fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+fn module_name(camel_case : &str) -> String {
+    let rust_keywords = ["fn", "mod", "let", "match", "return", "use", "struct", "enum", "type", "const"]; // ...
+    let mut name = camel_to_snake_case(camel_case);
+    if rust_keywords.contains(&name.as_slice()) {
+        name.push_char('_');
+    }
+    return name;
+}
+
+fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
                       scope_map : &mut collections::hashmap::HashMap<u64, Vec<String>>,
                       scope_names : Vec<String>,
                       node_id : u64) {
@@ -170,18 +199,18 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
     let nested_nodes = node_reader.get_nested_nodes();
     for ii in range(0, nested_nodes.size()) {
         let mut scope_names = scope_names.clone();
-        scope_names.push(nested_nodes.get(ii).get_name().to_string());
+        scope_names.push(module_name(nested_nodes.get(ii).get_name()));
         populate_scope_map(node_map, scope_map, scope_names, nested_nodes.get(ii).get_id());
     }
 
     match node_reader.which() {
-        Some(schema_capnp::Node::Struct(struct_reader)) => {
+        Some(schema_capnp::node::Struct(struct_reader)) => {
             let fields = struct_reader.get_fields();
             for jj in range(0, fields.size()) {
                 let field = fields.get(jj);
                 match field.which() {
-                    Some(schema_capnp::Field::Group(group)) => {
-                        let name = capitalize_first_letter(field.get_name());
+                    Some(schema_capnp::field::Group(group)) => {
+                        let name = module_name(field.get_name());
                         let mut scope_names = scope_names.clone();
                         scope_names.push(name);
                         populate_scope_map(node_map, scope_map, scope_names, group.get_type_id());
@@ -208,43 +237,43 @@ fn generate_import_statements() -> FormattedText {
 }
 
 fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
-                        typ : schema_capnp::Type::Reader,
+                        typ : schema_capnp::type_::Reader,
                         is_reader: bool,
                         lifetime_name: &str) -> String {
-    use schema_capnp::Type;
+    use schema_capnp::type_;
     let module = if is_reader { "Reader" } else { "Builder" };
     match typ.which() {
         None => fail!("unsupported type"),
         Some(t) => {
             match t {
-                Type::Void(()) | Type::Bool(()) | Type::Int8(()) |
-                Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
-                Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
-                Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) => {
+                type_::Void(()) | type_::Bool(()) | type_::Int8(()) |
+                type_::Int16(()) | type_::Int32(()) | type_::Int64(()) |
+                type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) |
+                type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
                     format!("primitive_list::{}<{}, {}>", module, lifetime_name, prim_type_str(t))
                 }
-                Type::Enum(en) => {
+                type_::Enum(en) => {
                     let the_mod = scope_map[en.get_type_id()].connect("::");
                     format!("enum_list::{}<{},{}::Reader>", module, lifetime_name, the_mod)
                 }
-                Type::Text(()) => {
+                type_::Text(()) => {
                     format!("text_list::{}<{}>", module, lifetime_name)
                 }
-                Type::Data(()) => {
+                type_::Data(()) => {
                     format!("data_list::{}<{}>", module, lifetime_name)
                 }
-                Type::Struct(st) => {
+                type_::Struct(st) => {
                     format!("struct_list::{}<{lifetime}, {}::{}<{lifetime}>>", module,
                             scope_map.get(&st.get_type_id()).connect("::"), module, lifetime = lifetime_name)
                 }
-                Type::List(t) => {
+                type_::List(t) => {
                     let inner = list_list_type_param(scope_map, t.get_element_type(), is_reader, lifetime_name);
                     format!("list_list::{}<{}, {}>", module, lifetime_name, inner)
                 }
-                Type::AnyPointer(()) => {
+                type_::AnyPointer(()) => {
                     fail!("List(AnyPointer) is unsupported");
                 }
-                Type::Interface(_i) => {
+                type_::Interface(_i) => {
                     fail!("unimplemented");
                 }
             }
@@ -252,33 +281,33 @@ fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<Stri
     }
 }
 
-fn prim_default (value : &schema_capnp::Value::Reader) -> Option<String> {
-    use schema_capnp::Value;
+fn prim_default (value : &schema_capnp::value::Reader) -> Option<String> {
+    use schema_capnp::value;
     match value.which() {
-        Some(Value::Bool(false)) |
-        Some(Value::Int8(0)) | Some(Value::Int16(0)) | Some(Value::Int32(0)) |
-        Some(Value::Int64(0)) | Some(Value::Uint8(0)) | Some(Value::Uint16(0)) |
-        Some(Value::Uint32(0)) | Some(Value::Uint64(0)) | Some(Value::Float32(0.0)) |
-        Some(Value::Float64(0.0)) => None,
+        Some(value::Bool(false)) |
+        Some(value::Int8(0)) | Some(value::Int16(0)) | Some(value::Int32(0)) |
+        Some(value::Int64(0)) | Some(value::Uint8(0)) | Some(value::Uint16(0)) |
+        Some(value::Uint32(0)) | Some(value::Uint64(0)) | Some(value::Float32(0.0)) |
+        Some(value::Float64(0.0)) => None,
 
-        Some(Value::Bool(true)) => Some(format!("true")),
-        Some(Value::Int8(i)) => Some(i.to_string()),
-        Some(Value::Int16(i)) => Some(i.to_string()),
-        Some(Value::Int32(i)) => Some(i.to_string()),
-        Some(Value::Int64(i)) => Some(i.to_string()),
-        Some(Value::Uint8(i)) => Some(i.to_string()),
-        Some(Value::Uint16(i)) => Some(i.to_string()),
-        Some(Value::Uint32(i)) => Some(i.to_string()),
-        Some(Value::Uint64(i)) => Some(i.to_string()),
-        Some(Value::Float32(f)) => Some(format!("{}f32", f.to_string())),
-        Some(Value::Float64(f)) => Some(format!("{}f64", f.to_string())),
+        Some(value::Bool(true)) => Some(format!("true")),
+        Some(value::Int8(i)) => Some(i.to_string()),
+        Some(value::Int16(i)) => Some(i.to_string()),
+        Some(value::Int32(i)) => Some(i.to_string()),
+        Some(value::Int64(i)) => Some(i.to_string()),
+        Some(value::Uint8(i)) => Some(i.to_string()),
+        Some(value::Uint16(i)) => Some(i.to_string()),
+        Some(value::Uint32(i)) => Some(i.to_string()),
+        Some(value::Uint64(i)) => Some(i.to_string()),
+        Some(value::Float32(f)) => Some(format!("{}f32", f.to_string())),
+        Some(value::Float64(f)) => Some(format!("{}f64", f.to_string())),
         _ => {fail!()}
     }
 }
 
-fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
                scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
-               field : &schema_capnp::Field::Reader,
+               field : &schema_capnp::field::Reader,
                is_reader : bool)
     -> (String, FormattedText) {
 
@@ -286,7 +315,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
     match field.which() {
         None => fail!("unrecognized field type"),
-        Some(Field::Group(group)) => {
+        Some(field::Group(group)) => {
             let the_mod = scope_map[group.get_type_id()].connect("::");
             if is_reader {
                 return (format!("{}::Reader<'a>", the_mod),
@@ -296,7 +325,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                         Line("FromStructBuilder::new(self.builder)".to_string()));
             }
         }
-        Some(Field::Slot(reg_field)) => {
+        Some(field::Slot(reg_field)) => {
             let offset = reg_field.get_offset() as uint;
 
             let member = if is_reader { "reader" } else { "builder" };
@@ -304,8 +333,8 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             let module_with_var = if is_reader { "Reader<'a>" } else { "Builder<'a>" };
 
             match tuple_option(reg_field.get_type().which(), reg_field.get_default_value().which()) {
-                Some((Type::Void(()), Value::Void(()))) => { return ("()".to_string(), Line("()".to_string()))}
-                Some((Type::Bool(()), Value::Bool(b))) => {
+                Some((type_::Void(()), value::Void(()))) => { return ("()".to_string(), Line("()".to_string()))}
+                Some((type_::Bool(()), value::Bool(b))) => {
                     if b {
                         return ("bool".to_string(), Line(format!("self.{}.get_bool_field_mask({}, true)",
                                                                 member, offset)))
@@ -314,30 +343,30 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                                                                 member, offset)))
                     }
                 }
-                Some((Type::Int8(()), Value::Int8(i))) => return common_case("i8", member, offset, i),
-                Some((Type::Int16(()), Value::Int16(i))) => return common_case("i16", member, offset, i),
-                Some((Type::Int32(()), Value::Int32(i))) => return common_case("i32", member, offset, i),
-                Some((Type::Int64(()), Value::Int64(i))) => return common_case("i64", member, offset, i),
-                Some((Type::Uint8(()), Value::Uint8(i))) => return common_case("u8", member, offset, i),
-                Some((Type::Uint16(()), Value::Uint16(i))) => return common_case("u16", member, offset, i),
-                Some((Type::Uint32(()), Value::Uint32(i))) => return common_case("u32", member, offset, i),
-                Some((Type::Uint64(()), Value::Uint64(i))) => return common_case("u64", member, offset, i),
-                Some((Type::Float32(()), Value::Float32(f))) => return common_case("f32", member, offset, f),
-                Some((Type::Float64(()), Value::Float64(f))) => return common_case("f64", member, offset, f),
-                Some((Type::Text(()), _)) => {
+                Some((type_::Int8(()), value::Int8(i))) => return common_case("i8", member, offset, i),
+                Some((type_::Int16(()), value::Int16(i))) => return common_case("i16", member, offset, i),
+                Some((type_::Int32(()), value::Int32(i))) => return common_case("i32", member, offset, i),
+                Some((type_::Int64(()), value::Int64(i))) => return common_case("i64", member, offset, i),
+                Some((type_::Uint8(()), value::Uint8(i))) => return common_case("u8", member, offset, i),
+                Some((type_::Uint16(()), value::Uint16(i))) => return common_case("u16", member, offset, i),
+                Some((type_::Uint32(()), value::Uint32(i))) => return common_case("u32", member, offset, i),
+                Some((type_::Uint64(()), value::Uint64(i))) => return common_case("u64", member, offset, i),
+                Some((type_::Float32(()), value::Float32(f))) => return common_case("f32", member, offset, f),
+                Some((type_::Float64(()), value::Float64(f))) => return common_case("f64", member, offset, f),
+                Some((type_::Text(()), _)) => {
                     return (format!("text::{}", module_with_var),
                             Line(format!("self.{}.get_pointer_field({}).get_text(std::ptr::null(), 0)",
                                       member, offset)));
                 }
-                Some((Type::Data(()), _)) => {
+                Some((type_::Data(()), _)) => {
                     return (format!("data::{}", module_with_var),
                             Line(format!("self.{}.get_pointer_field({}).get_data(std::ptr::null(), 0)",
                                       member, offset)));
                 }
-                Some((Type::List(ot1), _)) => {
+                Some((type_::List(ot1), _)) => {
                     match ot1.get_element_type().which() {
                         None => { fail!("unsupported type") }
-                        Some(Type::Struct(st)) => {
+                        Some(type_::Struct(st)) => {
                             let the_mod = scope_map[st.get_type_id()].connect("::");
                             if is_reader {
                                 return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
@@ -351,31 +380,31 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                                         );
                             }
                         }
-                        Some(Type::Enum(e)) => {
+                        Some(type_::Enum(e)) => {
                             let the_mod = scope_map[e.get_type_id()].connect("::");
                             let full_module_name = format!("{}::Reader", the_mod);
                             return (format!("enum_list::{}<'a,{}>",module,full_module_name),
                                     Line(format!("enum_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::TwoBytes, std::ptr::null()))",
                                          module, member, offset)));
                         }
-                        Some(Type::List(t1)) => {
+                        Some(type_::List(t1)) => {
                             let type_param = list_list_type_param(scope_map, t1.get_element_type(), is_reader, "'a");
                             return (format!("list_list::{}<'a,{}>", module, type_param),
                                     Line(format!("list_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
                                                  module, member, offset)))
                         }
-                        Some(Type::Text(())) => {
+                        Some(type_::Text(())) => {
                             return (format!("text_list::{}<'a>", module),
                                     Line(format!("text_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
                                                  module, member, offset)))
                         }
-                        Some(Type::Data(())) => {
+                        Some(type_::Data(())) => {
                             return (format!("data_list::{}<'a>", module),
                                     Line(format!("data_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
                                                  module, member, offset)))
                         }
-                        Some(Type::Interface(_)) => {fail!("unimplemented") }
-                        Some(Type::AnyPointer(())) => {fail!("List(AnyPointer) is unsupported")}
+                        Some(type_::Interface(_)) => {fail!("unimplemented") }
+                        Some(type_::AnyPointer(())) => {fail!("List(AnyPointer) is unsupported")}
                         Some(prim_type) => {
                             let type_str = prim_type_str(prim_type);
                             let size_str = element_size_str(element_size(prim_type));
@@ -386,7 +415,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                         }
                     }
                 }
-                Some((Type::Enum(en), _)) => {
+                Some((type_::Enum(en), _)) => {
                     let scope = &scope_map[en.get_type_id()];
                     let the_mod = scope.connect("::");
                     return
@@ -396,20 +425,20 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                                         member, offset))
                               )));
                 }
-                Some((Type::Struct(st), _)) => {
+                Some((type_::Struct(st), _)) => {
                     let the_mod = scope_map[st.get_type_id()].connect("::");
                     let middle_arg = if is_reader {format!("")} else {format!("{}::STRUCT_SIZE,", the_mod)};
                     return (format!("{}::{}", the_mod, module_with_var),
                             Line(format!("FromStruct{}::new(self.{}.get_pointer_field({}).get_struct({} std::ptr::null()))",
                                       module, member, offset, middle_arg)))
                 }
-                Some((Type::Interface(interface), _)) => {
+                Some((type_::Interface(interface), _)) => {
                     let the_mod = scope_map[interface.get_type_id()].connect("::");
                     return (format!("{}::Client", the_mod),
                             Line(format!("FromClientHook::new(self.{}.get_pointer_field({}).get_capability())",
                                          member, offset)));
                 }
-                Some((Type::AnyPointer(()), _)) => {
+                Some((type_::AnyPointer(()), _)) => {
                     return (format!("any_pointer::{}<'a>", module),
                             Line(format!("any_pointer::{}::new(self.{}.get_pointer_field({}))",
                                          module, member, offset)))
@@ -442,12 +471,12 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
 }
 
-fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
                         node_id : u64
                         ) -> FormattedText {
-    use schema_capnp::{Node, Field, Type};
+    use schema_capnp::{node, field, type_};
     match node_map[node_id].which() {
-        Some(Node::Struct(st)) => {
+        Some(node::Struct(st)) => {
             let mut result = Vec::new();
             if st.get_discriminant_count() != 0 {
                 result.push(
@@ -458,34 +487,34 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
             for ii in range(0, fields.size()) {
                 match fields.get(ii).which() {
                     None => {fail!()}
-                    Some(Field::Group(group)) => {
+                    Some(field::Group(group)) => {
                         result.push(zero_fields_of_group(node_map, group.get_type_id()));
                     }
-                    Some(Field::Slot(slot)) => {
+                    Some(field::Slot(slot)) => {
                         match slot.get_type().which(){
                             Some(typ) => {
                                 match typ {
-                                    Type::Void(()) => {}
-                                    Type::Bool(()) => {
+                                    type_::Void(()) => {}
+                                    type_::Bool(()) => {
                                         let line = Line(format!("self.builder.set_bool_field({}, false);",
                                                          slot.get_offset()));
                                         // PERF could dedup more efficiently
                                         if !result.contains(&line) { result.push(line) }
                                     }
-                                    Type::Int8(()) |
-                                    Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
-                                    Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
-                                    Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) |
-                                    Type::Enum(_) => {
+                                    type_::Int8(()) |
+                                    type_::Int16(()) | type_::Int32(()) | type_::Int64(()) |
+                                    type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) |
+                                    type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) |
+                                    type_::Enum(_) => {
                                         let line = Line(format!("self.builder.set_data_field::<{}>({}, 0);",
                                                          prim_type_str(typ),
                                                          slot.get_offset()));
                                         // PERF could dedup more efficiently
                                         if !result.contains(&line) { result.push(line) }
                                     }
-                                    Type::Struct(_) | Type::List(_) | Type::Text(()) | Type::Data(()) |
-                                    Type::AnyPointer(()) |
-                                    Type::Interface(_) // Is this the right thing to do for interfaces?
+                                    type_::Struct(_) | type_::List(_) | type_::Text(()) | type_::Data(()) |
+                                    type_::AnyPointer(()) |
+                                    type_::Interface(_) // Is this the right thing to do for interfaces?
                                         => {
                                         let line = Line(format!("self.builder.get_pointer_field({}).clear();",
                                                                 slot.get_offset()));
@@ -505,11 +534,11 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
     }
 }
 
-fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
                   scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
                   discriminant_offset : u32,
                   styled_name : &str,
-                  field :&schema_capnp::Field::Reader) -> FormattedText {
+                  field :&schema_capnp::field::Reader) -> FormattedText {
 
     use schema_capnp::*;
 
@@ -519,7 +548,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
     let mut initter_params = Vec::new();
 
     let discriminant_value = field.get_discriminant_value();
-    if discriminant_value != Field::NO_DISCRIMINANT {
+    if discriminant_value != field::NO_DISCRIMINANT {
         setter_interior.push(
             Line(format!("self.builder.set_data_field::<u16>({}, {});",
                          discriminant_offset as uint,
@@ -534,7 +563,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 
     let (maybe_reader_type, maybe_builder_type) : (Option<String>, Option<String>) = match field.which() {
         None => fail!("unrecognized field type"),
-        Some(Field::Group(group)) => {
+        Some(field::Group(group)) => {
             let scope = &scope_map[group.get_type_id()];
             let the_mod = scope.connect("::");
 
@@ -544,8 +573,8 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 
             (None, Some(format!("{}::Builder<'a>", the_mod)))
         }
-        Some(Field::Slot(reg_field)) => {
-            fn common_case (typ: &str, offset : uint, reg_field : Field::Slot::Reader,
+        Some(field::Slot(reg_field)) => {
+            fn common_case (typ: &str, offset : uint, reg_field : field::slot::Reader,
                             setter_interior : &mut Vec<FormattedText> ) -> (Option<String>, Option<String>) {
                 match prim_default(&reg_field.get_default_value()) {
                     None => {
@@ -565,11 +594,11 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
             let offset = reg_field.get_offset() as uint;
 
             match reg_field.get_type().which() {
-                Some(Type::Void(())) => {
+                Some(type_::Void(())) => {
                     setter_param = "_value".to_string();
                     (Some("()".to_string()), None)
                 }
-                Some(Type::Bool(())) => {
+                Some(type_::Bool(())) => {
                     match prim_default(&reg_field.get_default_value()) {
                         None => {
                             setter_interior.push(Line(format!("self.builder.set_bool_field({}, value);", offset)));
@@ -581,17 +610,17 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                     }
                     (Some("bool".to_string()), None)
                 }
-                Some(Type::Int8(())) => common_case("i8", offset, reg_field, &mut setter_interior),
-                Some(Type::Int16(())) => common_case("i16", offset, reg_field, &mut setter_interior),
-                Some(Type::Int32(())) => common_case("i32", offset, reg_field, &mut setter_interior),
-                Some(Type::Int64(())) => common_case("i64", offset, reg_field, &mut setter_interior),
-                Some(Type::Uint8(())) => common_case("u8", offset, reg_field, &mut setter_interior),
-                Some(Type::Uint16(())) => common_case("u16", offset, reg_field, &mut setter_interior),
-                Some(Type::Uint32(())) => common_case("u32", offset, reg_field, &mut setter_interior),
-                Some(Type::Uint64(())) => common_case("u64", offset, reg_field, &mut setter_interior),
-                Some(Type::Float32(())) => common_case("f32", offset, reg_field, &mut setter_interior),
-                Some(Type::Float64(())) => common_case("f64", offset, reg_field, &mut setter_interior),
-                Some(Type::Text(())) => {
+                Some(type_::Int8(())) => common_case("i8", offset, reg_field, &mut setter_interior),
+                Some(type_::Int16(())) => common_case("i16", offset, reg_field, &mut setter_interior),
+                Some(type_::Int32(())) => common_case("i32", offset, reg_field, &mut setter_interior),
+                Some(type_::Int64(())) => common_case("i64", offset, reg_field, &mut setter_interior),
+                Some(type_::Uint8(())) => common_case("u8", offset, reg_field, &mut setter_interior),
+                Some(type_::Uint16(())) => common_case("u16", offset, reg_field, &mut setter_interior),
+                Some(type_::Uint32(())) => common_case("u32", offset, reg_field, &mut setter_interior),
+                Some(type_::Uint64(())) => common_case("u64", offset, reg_field, &mut setter_interior),
+                Some(type_::Float32(())) => common_case("f32", offset, reg_field, &mut setter_interior),
+                Some(type_::Float64(())) => common_case("f64", offset, reg_field, &mut setter_interior),
+                Some(type_::Text(())) => {
                     setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_text(value);",
                                                       offset)));
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
@@ -599,7 +628,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                     initter_params.push("size : uint");
                     (Some("text::Reader".to_string()), Some("text::Builder<'a>".to_string()))
                 }
-                Some(Type::Data(())) => {
+                Some(type_::Data(())) => {
                     setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);",
                                                       offset)));
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
@@ -607,7 +636,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                     initter_params.push("size : uint");
                     (Some("data::Reader".to_string()), Some("data::Builder<'a>".to_string()))
                 }
-                Some(Type::List(ot1)) => {
+                Some(type_::List(ot1)) => {
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_list(&value.reader)",
                                      offset)));
@@ -617,10 +646,10 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                         None => fail!("unsupported type"),
                         Some(t1) => {
                             match t1 {
-                                Type::Void(()) | Type::Bool(()) | Type::Int8(()) |
-                                Type::Int16(()) | Type::Int32(()) | Type::Int64(()) |
-                                Type::Uint8(()) | Type::Uint16(()) | Type::Uint32(()) |
-                                Type::Uint64(()) | Type::Float32(()) | Type::Float64(()) => {
+                                type_::Void(()) | type_::Bool(()) | type_::Int8(()) |
+                                type_::Int16(()) | type_::Int32(()) | type_::Int64(()) |
+                                type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) |
+                                type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
 
                                     let type_str = prim_type_str(t1);
                                     let size_str = element_size_str(element_size(t1));
@@ -635,7 +664,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                     (Some(format!("primitive_list::Reader<'a,{}>", type_str)),
                                      Some(format!("primitive_list::Builder<'a,{}>", type_str)))
                                 }
-                                Type::Enum(e) => {
+                                type_::Enum(e) => {
                                     let id = e.get_type_id();
                                     let scope = &scope_map[id];
                                     let the_mod = scope.connect("::");
@@ -651,7 +680,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                     (Some(format!("enum_list::Reader<'a,{}>", type_str)),
                                      Some(format!("enum_list::Builder<'a,{}>", type_str)))
                                 }
-                                Type::Struct(st) => {
+                                type_::Struct(st) => {
                                     let id = st.get_type_id();
                                     let scope = &scope_map[id];
                                     let the_mod = scope.connect("::");
@@ -666,21 +695,21 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                     (Some(format!("struct_list::Reader<'a,{}::Reader<'a>>", the_mod)),
                                      Some(format!("struct_list::Builder<'a,{}::Builder<'a>>", the_mod)))
                                 }
-                                Type::Text(()) => {
+                                type_::Text(()) => {
                                     initter_interior.push(
                                         Line(format!("text_list::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer, size))", offset)));
 
                                     (Some(format!("text_list::Reader")),
                                      Some(format!("text_list::Builder<'a>")))
                                 }
-                                Type::Data(()) => {
+                                type_::Data(()) => {
                                     initter_interior.push(
                                         Line(format!("data_list::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer, size))", offset)));
 
                                     (Some(format!("data_list::Reader")),
                                      Some(format!("data_list::Builder<'a>")))
                                 }
-                                Type::List(t1) => {
+                                type_::List(t1) => {
                                     let type_param = list_list_type_param(scope_map, t1.get_element_type(),
                                                                           false, "'a");
                                     initter_interior.push(
@@ -693,13 +722,13 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                              list_list_type_param(scope_map, t1.get_element_type(), true, "'b"))),
                                      Some(format!("list_list::Builder<'a, {}>", type_param)))
                                 }
-                                Type::AnyPointer(()) => {fail!("List(AnyPointer) not supported")}
-                                Type::Interface(_) => { fail!("unimplemented") }
+                                type_::AnyPointer(()) => {fail!("List(AnyPointer) not supported")}
+                                type_::Interface(_) => { fail!("unimplemented") }
                             }
                         }
                     }
                 }
-                Some(Type::Enum(e)) => {
+                Some(type_::Enum(e)) => {
                     let id = e.get_type_id();
                     let the_mod = scope_map[id].connect("::");
                     setter_interior.push(
@@ -707,7 +736,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                      offset)));
                     (Some(format!("{}::Reader", the_mod)), None)
                 }
-                Some(Type::Struct(st)) => {
+                Some(type_::Struct(st)) => {
                     let the_mod = scope_map[st.get_type_id()].connect("::");
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_struct(&value.struct_reader())", offset)));
@@ -716,14 +745,14 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                    offset, the_mod)));
                     (Some(format!("{}::Reader", the_mod)), Some(format!("{}::Builder<'a>", the_mod)))
                 }
-                Some(Type::Interface(interface)) => {
+                Some(type_::Interface(interface)) => {
                     let the_mod = scope_map[interface.get_type_id()].connect("::");
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_capability(value.client.hook);",
                                      offset)));
                     (Some(format!("{}::Client",the_mod)), None)
                 }
-                Some(Type::AnyPointer(())) => {
+                Some(type_::AnyPointer(())) => {
                     initter_interior.push(Line(format!("let result = any_pointer::Builder::new(self.builder.get_pointer_field({}));",
                                                offset)));
                     initter_interior.push(Line("result.clear();".to_string()));
@@ -761,10 +790,10 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 
 
 // return (the 'Which' enum, the 'which()' accessor, typedef)
-fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
                   scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
                   discriminant_offset : u32,
-                  fields : &[schema_capnp::Field::Reader],
+                  fields : &[schema_capnp::field::Reader],
                   is_reader : bool)
                   -> (FormattedText, FormattedText, FormattedText)
 {
@@ -803,15 +832,15 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
                 )));
 
         let ty1 = match field.which() {
-            Some(Field::Group(_)) => {
+            Some(field::Group(_)) => {
                 ty_args.push(ty);
                 new_ty_param(&mut ty_params)
             }
-            Some(Field::Slot(reg_field)) => {
+            Some(field::Slot(reg_field)) => {
                 match reg_field.get_type().which() {
-                    Some(Type::Text(())) | Some(Type::Data(())) |
-                    Some(Type::List(_)) | Some(Type::Struct(_)) |
-                    Some(Type::AnyPointer(())) => {
+                    Some(type_::Text(())) | Some(type_::Data(())) |
+                    Some(type_::List(_)) | Some(type_::Struct(_)) |
+                    Some(type_::AnyPointer(())) => {
                         ty_args.push(ty);
                         new_ty_param(&mut ty_params)
                     }
@@ -840,7 +869,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
     let result = if is_reader {
         Branch(interior)
     } else {
-        Branch(vec!(Line("pub mod Which {".to_string()),
+        Branch(vec!(Line("pub mod which {".to_string()),
                     Indent(box generate_import_statements()),
                     BlankLine,
                     Indent(box Branch(interior)),
@@ -875,7 +904,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::N
 
 fn generate_haser(discriminant_offset : u32,
                   styled_name : &str,
-                  field :&schema_capnp::Field::Reader,
+                  field :&schema_capnp::field::Reader,
                   is_reader : bool) -> FormattedText {
 
     use schema_capnp::*;
@@ -885,7 +914,7 @@ fn generate_haser(discriminant_offset : u32,
     let member = if is_reader { "reader" } else { "builder" };
 
     let discriminant_value = field.get_discriminant_value();
-    if discriminant_value != Field::NO_DISCRIMINANT {
+    if discriminant_value != field::NO_DISCRIMINANT {
        interior.push(
             Line(format!("if self.{}.get_data_field::<u16>({}) != {} {{ return false; }}",
                          member,
@@ -893,12 +922,12 @@ fn generate_haser(discriminant_offset : u32,
                          discriminant_value as uint)));
     }
     match field.which() {
-        None | Some(Field::Group(_)) => {},
-        Some(Field::Slot(reg_field)) => {
+        None | Some(field::Group(_)) => {},
+        Some(field::Slot(reg_field)) => {
             match reg_field.get_type().which() {
-                Some(Type::Text(())) | Some(Type::Data(())) |
-                    Some(Type::List(_)) | Some(Type::Struct(_)) |
-                    Some(Type::AnyPointer(())) => {
+                Some(type_::Text(())) | Some(type_::Data(())) |
+                    Some(type_::List(_)) | Some(type_::Struct(_)) |
+                    Some(type_::AnyPointer(())) => {
                     interior.push(
                         Line(format!("!self.{}.get_pointer_field({}).is_null()",
                                      member, reg_field.get_offset())));
@@ -916,16 +945,16 @@ fn generate_haser(discriminant_offset : u32,
     Branch(result)
 }
 
-fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
                             scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
-                            field : schema_capnp::Field::Reader) -> FormattedText {
-    use schema_capnp::{Field, Type};
+                            field : schema_capnp::field::Reader) -> FormattedText {
+    use schema_capnp::{field, type_};
 
     let name = field.get_name();
 
     match field.which() {
         None => fail!("unrecognized field type"),
-        Some(Field::Group(group)) => {
+        Some(field::Group(group)) => {
             let the_mod = scope_map[group.get_type_id()].connect("::");
             return Branch(vec!(Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
                                             camel_to_snake_case(name),
@@ -933,10 +962,10 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
                                Indent(box Line("FromTypelessPipeline::new(self._typeless.noop())".to_string())),
                                Line("}".to_string())));
         }
-        Some(Field::Slot(reg_field)) => {
+        Some(field::Slot(reg_field)) => {
             match reg_field.get_type().which() {
                 None => fail!("unrecognized type"),
-                Some(Type::Struct(st)) => {
+                Some(type_::Struct(st)) => {
                     let the_mod = scope_map[st.get_type_id()].connect("::");
                     return Branch(vec!(
                         Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
@@ -947,7 +976,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
                                     reg_field.get_offset()))),
                         Line("}".to_string())));
                 }
-                Some(Type::Interface(interface)) => {
+                Some(type_::Interface(interface)) => {
                     let the_mod = scope_map[interface.get_type_id()].connect("::");
                     return Branch(vec!(
                         Line(format!("pub fn get_{}(&self) -> {}::Client {{",
@@ -967,7 +996,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
 }
 
 
-fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::Node::Reader>,
+fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
                  scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
                  node_id : u64,
                  node_name: &str) -> FormattedText {
@@ -986,11 +1015,11 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
     match node_reader.which() {
 
-        Some(Node::File(())) => {
+        Some(node::File(())) => {
             output.push(Branch(nested_output));
         }
 
-        Some(Node::Struct(struct_reader)) => {
+        Some(node::Struct(struct_reader)) => {
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} {{", node_name)));
 
@@ -1036,7 +1065,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 let styled_name = camel_to_snake_case(name);
 
                 let discriminant_value = field.get_discriminant_value();
-                let is_union_field = discriminant_value != Field::NO_DISCRIMINANT;
+                let is_union_field = discriminant_value != field::NO_DISCRIMINANT;
 
                 if !is_union_field {
                     pipeline_impl_interior.push(generate_pipeline_getter(node_map, scope_map, field));
@@ -1069,7 +1098,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 builder_members.push(generate_haser(discriminant_offset, styled_name.as_slice(), &field, false));
 
                 match field.which() {
-                    Some(Field::Group(group)) => {
+                    Some(field::Group(group)) => {
                         let id = group.get_type_id();
                         let text = generate_node(node_map, scope_map,
                                                  id, scope_map[id].last().unwrap().as_slice());
@@ -1164,7 +1193,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
 
         }
 
-        Some(Node::Enum(enum_reader)) => {
+        Some(node::Enum(enum_reader)) => {
             let names = &scope_map[node_id];
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} {{", *names.last().unwrap())));
@@ -1201,7 +1230,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             output.push(Line("}".to_string()));
         }
 
-        Some(Node::Interface(interface)) => {
+        Some(node::Interface(interface)) => {
             let names = &scope_map[node_id];
             let mut client_impl_interior = Vec::new();
             let mut server_interior = Vec::new();
@@ -1224,7 +1253,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 let params_id = method.get_param_struct_type();
                 let params_node = &node_map[params_id];
                 let params_name = if params_node.get_scope_id() == 0 {
-                    let params_name = format!("{}Params", capitalize_first_letter(name));
+                    let params_name = module_name(format!("{}Params", name).as_slice());
 
                     nested_output.push(generate_node(node_map, scope_map,
                                                      params_id, params_name.as_slice()));
@@ -1236,7 +1265,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 let results_id = method.get_result_struct_type();
                 let results_node = node_map[results_id];
                 let results_name = if results_node.get_scope_id() == 0 {
-                    let results_name = format!("{}Results", capitalize_first_letter(name));
+                    let results_name = module_name(format!("{}Results", name).as_slice());
                     nested_output.push(generate_node(node_map, scope_map,
                                                      results_id, results_name.as_slice() ));
                     results_name
@@ -1367,32 +1396,32 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
             output.push(Line("}".to_string()));
         }
 
-        Some(Node::Const(c)) => {
+        Some(node::Const(c)) => {
             let names = &scope_map[node_id];
-            let styled_name = camel_to_upper_case(names.last().unwrap().as_slice());
+            let styled_name = snake_to_upper_case(names.last().unwrap().as_slice());
 
             let (typ, txt) = match tuple_option(c.get_type().which(), c.get_value().which()) {
-                Some((Type::Void(()), Value::Void(()))) => ("()".to_string(), "()".to_string()),
-                Some((Type::Bool(()), Value::Bool(b))) => ("bool".to_string(), b.to_string()),
-                Some((Type::Int8(()), Value::Int8(i))) => ("i8".to_string(), i.to_string()),
-                Some((Type::Int16(()), Value::Int16(i))) => ("i16".to_string(), i.to_string()),
-                Some((Type::Int32(()), Value::Int32(i))) => ("i32".to_string(), i.to_string()),
-                Some((Type::Int64(()), Value::Int64(i))) => ("i64".to_string(), i.to_string()),
-                Some((Type::Uint8(()), Value::Uint8(i))) => ("u8".to_string(), i.to_string()),
-                Some((Type::Uint16(()), Value::Uint16(i))) => ("u16".to_string(), i.to_string()),
-                Some((Type::Uint32(()), Value::Uint32(i))) => ("u32".to_string(), i.to_string()),
-                Some((Type::Uint64(()), Value::Uint64(i))) => ("u64".to_string(), i.to_string()),
+                Some((type_::Void(()), value::Void(()))) => ("()".to_string(), "()".to_string()),
+                Some((type_::Bool(()), value::Bool(b))) => ("bool".to_string(), b.to_string()),
+                Some((type_::Int8(()), value::Int8(i))) => ("i8".to_string(), i.to_string()),
+                Some((type_::Int16(()), value::Int16(i))) => ("i16".to_string(), i.to_string()),
+                Some((type_::Int32(()), value::Int32(i))) => ("i32".to_string(), i.to_string()),
+                Some((type_::Int64(()), value::Int64(i))) => ("i64".to_string(), i.to_string()),
+                Some((type_::Uint8(()), value::Uint8(i))) => ("u8".to_string(), i.to_string()),
+                Some((type_::Uint16(()), value::Uint16(i))) => ("u16".to_string(), i.to_string()),
+                Some((type_::Uint32(()), value::Uint32(i))) => ("u32".to_string(), i.to_string()),
+                Some((type_::Uint64(()), value::Uint64(i))) => ("u64".to_string(), i.to_string()),
 
                 // float string formatting appears to be a bit broken currently, in Rust.
-                Some((Type::Float32(()), Value::Float32(f))) => ("f32".to_string(), format!("{}f32", f.to_string())),
-                Some((Type::Float64(()), Value::Float64(f))) => ("f64".to_string(), format!("{}f64", f.to_string())),
+                Some((type_::Float32(()), value::Float32(f))) => ("f32".to_string(), format!("{}f32", f.to_string())),
+                Some((type_::Float64(()), value::Float64(f))) => ("f64".to_string(), format!("{}f64", f.to_string())),
 
-                Some((Type::Text(()), Value::Text(_t))) => { fail!() }
-                Some((Type::Data(()), Value::Data(_d))) => { fail!() }
-                Some((Type::List(_t), Value::List(_p))) => { fail!() }
-                Some((Type::Struct(_t), Value::Struct(_p))) => { fail!() }
-                Some((Type::Interface(_t), Value::Interface(()))) => { fail!() }
-                Some((Type::AnyPointer(()), Value::AnyPointer(_pr))) => { fail!() }
+                Some((type_::Text(()), value::Text(_t))) => { fail!() }
+                Some((type_::Data(()), value::Data(_d))) => { fail!() }
+                Some((type_::List(_t), value::List(_p))) => { fail!() }
+                Some((type_::Struct(_t), value::Struct(_p))) => { fail!() }
+                Some((type_::Interface(_t), value::Interface(()))) => { fail!() }
+                Some((type_::AnyPointer(()), value::AnyPointer(_pr))) => { fail!() }
                 None => { fail!("unrecognized type") }
                 _ => { fail!("type does not match value") }
             };
@@ -1401,7 +1430,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::No
                 Line(format!("pub static {} : {} = {};", styled_name, typ, txt)));
         }
 
-        Some(Node::Annotation( annotation_reader )) => {
+        Some(node::Annotation( annotation_reader )) => {
             println!("  annotation node:");
             if annotation_reader.get_targets_file() {
                 println!("  targets file");
@@ -1432,9 +1461,9 @@ pub fn main() -> std::io::IoResult<()> {
 
     let message = try!(serialize::new_reader(&mut inp, capnp::ReaderOptions::new()));
 
-    let request : schema_capnp::CodeGeneratorRequest::Reader = message.get_root();
+    let request : schema_capnp::code_generator_request::Reader = message.get_root();
 
-    let mut node_map = collections::hashmap::HashMap::<u64, schema_capnp::Node::Reader>::new();
+    let mut node_map = collections::hashmap::HashMap::<u64, schema_capnp::node::Reader>::new();
     let mut scope_map = collections::hashmap::HashMap::<u64, Vec<String>>::new();
 
     let nodes = request.get_nodes();

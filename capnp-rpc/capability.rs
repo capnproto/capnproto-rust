@@ -15,7 +15,7 @@ use capnp::capability::{CallContext, CallContextHook, Client,
 use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use capnp::{MessageReader, MessageBuilder};
 
-use rpc_capnp::{Message, Return};
+use rpc_capnp::{message, return_};
 
 pub struct LocalClient {
     object_channel : std::comm::Sender<(u64, u16, Box<CallContextHook+Send>)>,
@@ -88,9 +88,9 @@ for Request<Params, Results, Pipeline> {
     // We may have to wait for associated types or higher-kinded types.
     fn init(&'b mut self) -> Params {
         let tmp : &'a mut Box<::capnp::capability::RequestHook> = unsafe { ::std::mem::transmute(& mut self.hook)};
-        let message : Message::Builder = tmp.message::<'a>().get_root();
+        let message : message::Builder = tmp.message::<'a>().get_root();
         match message.which() {
-            Some(Message::Call(call)) => {
+            Some(message::Call(call)) => {
                 let params = call.init_params();
                 params.get_content().init_as_struct()
             }
@@ -111,14 +111,14 @@ for ResultFuture<Results, Pipeline> {
         match self.answer_result {
             Err(_) => Err("answer channel closed".to_string()),
             Ok(ref mut response_hook) => {
-                let root : Message::Reader = response_hook.get().get_as_struct();
+                let root : message::Reader = response_hook.get().get_as_struct();
                 match root.which() {
-                    Some(Message::Return(ret)) => {
+                    Some(message::Return(ret)) => {
                         match ret.which() {
-                            Some(Return::Results(res)) => {
+                            Some(return_::Results(res)) => {
                                 Ok(res.get_content().get_as_struct())
                             }
-                            Some(Return::Exception(e)) => {
+                            Some(return_::Exception(e)) => {
                                 Err(e.get_reason().to_string())
                             }
                             _ => fail!(),

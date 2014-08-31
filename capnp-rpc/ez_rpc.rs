@@ -4,7 +4,7 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-use rpc_capnp::{Message, Return};
+use rpc_capnp::{message, return_};
 
 use std;
 use std::io::Acceptor;
@@ -44,7 +44,7 @@ impl EzRpcClient {
     pub fn import_cap<T : FromClientHook>(&mut self, name : &str) -> T {
         let mut message = box MallocMessageBuilder::new_default();
         {
-            let restore = message.init_root::<Message::Builder>().init_restore();
+            let restore = message.init_root::<message::Builder>().init_restore();
             restore.init_object_id().set_as_text(name);
         }
 
@@ -52,11 +52,11 @@ impl EzRpcClient {
         self.rpc_chan.send(Outgoing(outgoing));
 
         let mut response_hook = answer_port.recv();
-        let message : Message::Reader = response_hook.get().get_as_struct();
+        let message : message::Reader = response_hook.get().get_as_struct();
         let client = match message.which() {
-            Some(Message::Return(ret)) => {
+            Some(message::Return(ret)) => {
                 match ret.which() {
-                    Some(Return::Results(payload)) => {
+                    Some(return_::Results(payload)) => {
                         payload.get_content().get_as_capability::<T>()
                     }
                     _ => { fail!() }

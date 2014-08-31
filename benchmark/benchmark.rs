@@ -27,7 +27,7 @@ pub mod eval;
 
 
 
-mod Uncompressed {
+mod uncompressed {
     use capnp;
     use std;
 
@@ -50,7 +50,7 @@ mod Uncompressed {
     }
 }
 
-mod Packed {
+mod packed {
     use capnp;
     use std;
     use capnp::serialize_packed::{write_packed_message, write_packed_message_unbuffered};
@@ -316,8 +316,8 @@ pub fn main() {
     };
 
     match args[4].as_slice() {
-        "none" => do_testcase2!(args[1], args[2],  args[3], Uncompressed, iters),
-        "packed" => do_testcase2!(args[1], args[2], args[3], Packed, iters),
+        "none" => do_testcase2!(args[1], args[2],  args[3], uncompressed, iters),
+        "packed" => do_testcase2!(args[1], args[2], args[3], packed, iters),
         s => fail!("unrecognized compression: {}", s)
     }
 }

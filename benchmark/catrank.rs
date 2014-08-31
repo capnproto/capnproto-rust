@@ -9,20 +9,20 @@ use std;
 use common::*;
 use catrank_capnp::*;
 
-pub type RequestBuilder<'a> = SearchResultList::Builder<'a>;
-pub type ResponseBuilder<'a> = SearchResultList::Builder<'a>;
+pub type RequestBuilder<'a> = search_result_list::Builder<'a>;
+pub type ResponseBuilder<'a> = search_result_list::Builder<'a>;
 pub type Expectation = int;
-pub type RequestReader<'a> = SearchResultList::Reader<'a>;
-pub type ResponseReader<'a> = SearchResultList::Reader<'a>;
+pub type RequestReader<'a> = search_result_list::Reader<'a>;
+pub type ResponseReader<'a> = search_result_list::Reader<'a>;
 
 pub struct ScoredResult<'a> {
     score : f64,
-    result : SearchResult::Reader<'a>
+    result : search_result::Reader<'a>
 }
 
 static URL_PREFIX : &'static str = "http://example.com";
 
-pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -> int {
+pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder) -> int {
     let count = rng.next_less_than(1000) as uint;
     let mut good_count : int = 0;
 
@@ -69,8 +69,8 @@ pub fn setup_request(rng : &mut FastRand, request : SearchResultList::Builder) -
     good_count
 }
 
-pub fn handle_request(request : SearchResultList::Reader,
-                      response : SearchResultList::Builder) {
+pub fn handle_request(request : search_result_list::Reader,
+                      response : search_result_list::Builder) {
     let mut scored_results : Vec<ScoredResult> = Vec::new();
 
     let results = request.get_results();
@@ -99,7 +99,7 @@ pub fn handle_request(request : SearchResultList::Reader,
     }
 }
 
-pub fn check_response(response : SearchResultList::Reader, expected_good_count : int) -> bool {
+pub fn check_response(response : search_result_list::Reader, expected_good_count : int) -> bool {
     let mut good_count : int = 0;
     let results = response.get_results();
     for i in range(0, results.size()) {

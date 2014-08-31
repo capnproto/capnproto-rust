@@ -14,7 +14,7 @@ use capnp::{MallocMessageBuilder, MessageBuilder};
 use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
 use capnp_rpc::ez_rpc::EzRpcServer;
 
-use calculator_capnp::Calculator;
+use calculator_capnp::calculator;
 
 
 struct ValueImpl {
@@ -27,8 +27,8 @@ impl ValueImpl {
     }
 }
 
-impl Calculator::Value::Server for ValueImpl {
-    fn read(&mut self, mut context : Calculator::Value::ReadContext) {
+impl calculator::value::Server for ValueImpl {
+    fn read(&mut self, mut context : calculator::value::ReadContext) {
         let (_, results) = context.get();
         results.set_value(self.value);
         context.done();
@@ -36,17 +36,17 @@ impl Calculator::Value::Server for ValueImpl {
 }
 
 fn evaluate_impl(
-    expression : Calculator::Expression::Reader,
+    expression : calculator::expression::Reader,
     params : Option<primitive_list::Reader<f64>>) -> Result<f64, String> {
 
     match expression.which() {
-        Some(Calculator::Expression::Literal(v)) => {
+        Some(calculator::expression::Literal(v)) => {
             Ok(v)
         },
-        Some(Calculator::Expression::PreviousResult(p)) => {
+        Some(calculator::expression::PreviousResult(p)) => {
             Ok(try!(p.read_request().send().wait()).get_value())
         }
-        Some(Calculator::Expression::Parameter(p)) => {
+        Some(calculator::expression::Parameter(p)) => {
             match params {
                 None => {Err("bad parameter".to_string())}
                 Some(params) => {
@@ -54,7 +54,7 @@ fn evaluate_impl(
                 }
             }
         }
-        Some(Calculator::Expression::Call(call)) => {
+        Some(calculator::expression::Call(call)) => {
             let func = call.get_function();
             let call_params = call.get_params();
             let mut param_values = Vec::new();
@@ -81,15 +81,15 @@ struct FunctionImpl {
 }
 
 impl FunctionImpl {
-    fn new(param_count : uint, body : Calculator::Expression::Reader) -> FunctionImpl {
+    fn new(param_count : uint, body : calculator::expression::Reader) -> FunctionImpl {
         let mut result = FunctionImpl { param_count : param_count, body : MallocMessageBuilder::new_default() };
         result.body.set_root(&body);
         result
     }
 }
 
-impl Calculator::Function::Server for FunctionImpl {
-    fn call(&mut self, mut context : Calculator::Function::CallContext) {
+impl calculator::function::Server for FunctionImpl {
+    fn call(&mut self, mut context : calculator::function::CallContext) {
         let (params, results) = context.get();
         if params.get_params().size() != self.param_count{
             //"Wrong number of parameters."
@@ -97,7 +97,7 @@ impl Calculator::Function::Server for FunctionImpl {
         };
 
         {
-            let expression = self.body.get_root::<Calculator::Expression::Builder>().as_reader();
+            let expression = self.body.get_root::<calculator::expression::Builder>().as_reader();
             match evaluate_impl(expression, Some(params.get_params())) {
                 Ok(r) => results.set_value(r),
                 Err(_) => return context.fail(),
@@ -109,11 +109,11 @@ impl Calculator::Function::Server for FunctionImpl {
 }
 
 pub struct OperatorImpl {
-    op : Calculator::Operator::Reader,
+    op : calculator::operator::Reader,
 }
 
-impl Calculator::Function::Server for OperatorImpl {
-    fn call(&mut self, mut context : Calculator::Function::CallContext) {
+impl calculator::function::Server for OperatorImpl {
+    fn call(&mut self, mut context : calculator::function::CallContext) {
         let (params, results) = context.get();
         let params = params.get_params();
         if params.size() != 2 {
@@ -122,10 +122,10 @@ impl Calculator::Function::Server for OperatorImpl {
         }
 
         let result = match self.op {
-            Calculator::Operator::Add => params.get(0) + params.get(1),
-            Calculator::Operator::Subtract => params.get(0) - params.get(1),
-            Calculator::Operator::Multiply => params.get(0) * params.get(1),
-            Calculator::Operator::Divide => params.get(0) / params.get(1),
+            calculator::operator::Add => params.get(0) + params.get(1),
+            calculator::operator::Subtract => params.get(0) - params.get(1),
+            calculator::operator::Multiply => params.get(0) * params.get(1),
+            calculator::operator::Divide => params.get(0) / params.get(1),
         };
 
         results.set_value(result);
@@ -136,8 +136,8 @@ impl Calculator::Function::Server for OperatorImpl {
 
 struct CalculatorImpl;
 
-impl Calculator::Server for CalculatorImpl {
-    fn evaluate(&mut self, mut context : Calculator::EvaluateContext) {
+impl calculator::Server for CalculatorImpl {
+    fn evaluate(&mut self, mut context : calculator::EvaluateContext) {
         let (params, results) = context.get();
         match evaluate_impl(params.get_expression(), None) {
             Ok(r) => {
@@ -150,7 +150,7 @@ impl Calculator::Server for CalculatorImpl {
         }
         context.done();
     }
-    fn def_function(&mut self, mut context : Calculator::DefFunctionContext) {
+    fn def_function(&mut self, mut context : calculator::DefFunctionContext) {
         let (params, results) = context.get();
         results.set_func(
             FromServer::new(
@@ -158,7 +158,7 @@ impl Calculator::Server for CalculatorImpl {
                 box FunctionImpl::new(params.get_param_count() as uint, params.get_body())));
         context.done();
     }
-    fn get_operator<'a>(& mut self, mut context : Calculator::GetOperatorContext<'a>) {
+    fn get_operator<'a>(& mut self, mut context : calculator::GetOperatorContext<'a>) {
         {
             let (params, results) = context.get();
             results.set_func(
@@ -185,7 +185,7 @@ pub fn main() {
     let rpc_server = EzRpcServer::new(args[2].as_slice()).unwrap();
 
     // There's got to be a better way to do this.
-    let calculator = (box Calculator::ServerDispatch { server : box CalculatorImpl}) as Box<Server+Send>;
+    let calculator = (box calculator::ServerDispatch { server : box CalculatorImpl}) as Box<Server+Send>;
     rpc_server.export_cap("calculator", calculator);
 
     rpc_server.serve();

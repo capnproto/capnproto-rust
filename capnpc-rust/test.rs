@@ -17,12 +17,12 @@ mod tests {
     #[test]
     fn test_prim_list () {
 
-        use test_capnp::TestPrimList;
+        use test_capnp::test_prim_list;
 
         // Make the first segment small to force allocation of a second segment.
         let mut message = MallocMessageBuilder::new(*BuilderOptions::new().first_segment_words(50));
 
-        let test_prim_list = message.init_root::<TestPrimList::Builder>();
+        let test_prim_list = message.init_root::<test_prim_list::Builder>();
 
         let uint8_list = test_prim_list.init_uint8_list(100);
 
@@ -95,11 +95,11 @@ mod tests {
     #[test]
     fn test_struct_list () {
 
-        use test_capnp::TestStructList;
+        use test_capnp::test_struct_list;
 
         let mut message = MallocMessageBuilder::new_default();
 
-        let test_struct_list = message.init_root::<TestStructList::Builder>();
+        let test_struct_list = message.init_root::<test_struct_list::Builder>();
 
         test_struct_list.init_struct_list(4);
         let struct_list = test_struct_list.get_struct_list();
@@ -113,10 +113,10 @@ mod tests {
 
     #[test]
     fn test_blob () {
-        use test_capnp::TestBlob;
+        use test_capnp::test_blob;
 
         let mut message = MallocMessageBuilder::new_default();
-        let test_blob = message.init_root::<TestBlob::Builder>();
+        let test_blob = message.init_root::<test_blob::Builder>();
 
         assert_eq!(test_blob.has_text_field(), false);
         test_blob.set_text_field("abcdefghi");
@@ -163,12 +163,12 @@ mod tests {
 
     #[test]
     fn test_big_struct() {
-        use test_capnp::TestBigStruct;
+        use test_capnp::test_big_struct;
 
         // Make the first segment small to force allocation of a second segment.
         let mut message = MallocMessageBuilder::new(*BuilderOptions::new().first_segment_words(5));
 
-        let big_struct = message.init_root::<TestBigStruct::Builder>();
+        let big_struct = message.init_root::<test_big_struct::Builder>();
 
         big_struct.set_bool_field(false);
         big_struct.set_int8_field(-128);
@@ -198,19 +198,19 @@ mod tests {
 
     #[test]
     fn test_complex_list () {
-        use test_capnp::{TestComplexList, AnEnum};
+        use test_capnp::{test_complex_list, an_enum};
 
         let mut message = MallocMessageBuilder::new_default();
 
-        let test_complex_list = message.init_root::<TestComplexList::Builder>();
+        let test_complex_list = message.init_root::<test_complex_list::Builder>();
 
         let enum_list = test_complex_list.init_enum_list(100);
 
         for i in range::<uint>(0, 10) {
-            enum_list.set(i, AnEnum::Qux);
+            enum_list.set(i, an_enum::Qux);
         }
         for i in range::<uint>(10, 20) {
-            enum_list.set(i, AnEnum::Bar);
+            enum_list.set(i, an_enum::Bar);
         }
 
         let text_list = test_complex_list.init_text_list(2);
@@ -245,10 +245,10 @@ mod tests {
 
         let enum_list_list = test_complex_list.init_enum_list_list(2);
         let enum_list = enum_list_list.init(0, 1);
-        enum_list.set(0, AnEnum::Bar);
+        enum_list.set(0, an_enum::Bar);
         let enum_list = enum_list_list.init(1, 2);
-        enum_list.set(0, AnEnum::Foo);
-        enum_list.set(1, AnEnum::Qux);
+        enum_list.set(0, an_enum::Foo);
+        enum_list.set(1, an_enum::Qux);
 
         let text_list_list = test_complex_list.init_text_list_list(1);
         text_list_list.init(0,1).set(0, "abc");
@@ -263,10 +263,10 @@ mod tests {
         let complex_list_reader = test_complex_list.as_reader();
         let enum_list_reader = complex_list_reader.get_enum_list();
         for i in range::<uint>(0,10) {
-            assert!(enum_list_reader.get(i) == Some(AnEnum::Qux));
+            assert!(enum_list_reader.get(i) == Some(an_enum::Qux));
         }
         for i in range::<uint>(10,20) {
-            assert!(enum_list_reader.get(i) == Some(AnEnum::Bar));
+            assert!(enum_list_reader.get(i) == Some(an_enum::Bar));
         }
 
         let text_list = complex_list_reader.get_text_list();
@@ -296,9 +296,9 @@ mod tests {
         assert!(prim_list_list_list.get(1).get(0).get(2) == 8);
 
         let enum_list_list = complex_list_reader.get_enum_list_list();
-        assert!(enum_list_list.get(0).get(0) == Some(AnEnum::Bar));
-        assert!(enum_list_list.get(1).get(0) == Some(AnEnum::Foo));
-        assert!(enum_list_list.get(1).get(1) == Some(AnEnum::Qux));
+        assert!(enum_list_list.get(0).get(0) == Some(an_enum::Bar));
+        assert!(enum_list_list.get(1).get(0) == Some(an_enum::Foo));
+        assert!(enum_list_list.get(1).get(1) == Some(an_enum::Qux));
 
         assert!(complex_list_reader.get_text_list_list().get(0).get(0) == "abc");
         assert!(complex_list_reader.get_data_list_list().get(0).get(0) == [255, 254, 253]);
@@ -308,10 +308,10 @@ mod tests {
 
     #[test]
     fn test_defaults() {
-        use test_capnp::TestDefaults;
+        use test_capnp::test_defaults;
 
         let mut message = MallocMessageBuilder::new_default();
-        let test_defaults = message.init_root::<TestDefaults::Builder>();
+        let test_defaults = message.init_root::<test_defaults::Builder>();
 
         assert_eq!(test_defaults.get_void_field(), ());
         assert_eq!(test_defaults.get_bool_field(), true);
@@ -334,10 +334,10 @@ mod tests {
 
     #[test]
     fn test_any_pointer() {
-        use test_capnp::{TestAnyPointer, TestEmptyStruct};
+        use test_capnp::{test_any_pointer, test_empty_struct};
 
         let mut message = MallocMessageBuilder::new_default();
-        let test_any_pointer = message.init_root::<TestAnyPointer::Builder>();
+        let test_any_pointer = message.init_root::<test_any_pointer::Builder>();
 
         let any_pointer = test_any_pointer.init_any_pointer_field();
         any_pointer.set_as_text("xyzzy");
@@ -347,22 +347,22 @@ mod tests {
             assert_eq!(reader.get_any_pointer_field().get_as_text(), "xyzzy");
         }
 
-        any_pointer.init_as_struct::<TestEmptyStruct::Builder>();
-        any_pointer.get_as_struct::<TestEmptyStruct::Builder>();
+        any_pointer.init_as_struct::<test_empty_struct::Builder>();
+        any_pointer.get_as_struct::<test_empty_struct::Builder>();
 
         {
             let reader = test_any_pointer.as_reader();
-            reader.get_any_pointer_field().get_as_struct::<TestEmptyStruct::Reader>();
+            reader.get_any_pointer_field().get_as_struct::<test_empty_struct::Reader>();
         }
 
     }
 
     #[test]
     fn test_writable_struct_pointer() {
-        use test_capnp::TestBigStruct;
+        use test_capnp::test_big_struct;
 
         let mut message = MallocMessageBuilder::new_default();
-        let big_struct = message.init_root::<TestBigStruct::Builder>();
+        let big_struct = message.init_root::<test_big_struct::Builder>();
 
         let struct_field = big_struct.init_struct_field();
         assert_eq!(struct_field.get_uint64_field(), 0);
@@ -391,24 +391,24 @@ mod tests {
 
     #[test]
     fn test_union() {
-        use test_capnp::TestUnion;
+        use test_capnp::test_union;
 
         let mut message = MallocMessageBuilder::new_default();
-        let union_struct = message.init_root::<TestUnion::Builder>();
+        let union_struct = message.init_root::<test_union::Builder>();
 
         union_struct.get_union0().set_u0f0s0(());
         match union_struct.get_union0().which() {
-            Some(TestUnion::Union0::U0f0s0(())) => {}
+            Some(test_union::union0::U0f0s0(())) => {}
             _ => fail!()
         }
         union_struct.init_union0().set_u0f0s1(true);
         match union_struct.get_union0().which() {
-            Some(TestUnion::Union0::U0f0s1(true)) => {}
+            Some(test_union::union0::U0f0s1(true)) => {}
             _ => fail!()
         }
         union_struct.init_union0().set_u0f0s8(127);
         match union_struct.get_union0().which() {
-            Some(TestUnion::Union0::U0f0s8(127)) => {}
+            Some(test_union::union0::U0f0s8(127)) => {}
             _ => fail!()
         }
 
@@ -419,31 +419,31 @@ mod tests {
 
     #[test]
     fn test_constants() {
-        use test_capnp::TestConstants;
-        assert_eq!(TestConstants::VOID_CONST, ());
-        assert_eq!(TestConstants::BOOL_CONST, true);
-        assert_eq!(TestConstants::INT8_CONST, -123);
-        assert_eq!(TestConstants::INT16_CONST, -12345);
-        assert_eq!(TestConstants::INT32_CONST, -12345678);
-        assert_eq!(TestConstants::INT64_CONST, -123456789012345);
-        assert_eq!(TestConstants::UINT8_CONST, 234);
-        assert_eq!(TestConstants::UINT16_CONST, 45678);
-        assert_eq!(TestConstants::UINT32_CONST, 3456789012);
-        assert_eq!(TestConstants::UINT64_CONST, 12345678901234567890);
-        assert_eq!(TestConstants::FLOAT32_CONST, 1234.5);
-        assert_eq!(TestConstants::FLOAT64_CONST, -123e45);
+        use test_capnp::test_constants;
+        assert_eq!(test_constants::VOID_CONST, ());
+        assert_eq!(test_constants::BOOL_CONST, true);
+        assert_eq!(test_constants::INT8_CONST, -123);
+        assert_eq!(test_constants::INT16_CONST, -12345);
+        assert_eq!(test_constants::INT32_CONST, -12345678);
+        assert_eq!(test_constants::INT64_CONST, -123456789012345);
+        assert_eq!(test_constants::UINT8_CONST, 234);
+        assert_eq!(test_constants::UINT16_CONST, 45678);
+        assert_eq!(test_constants::UINT32_CONST, 3456789012);
+        assert_eq!(test_constants::UINT64_CONST, 12345678901234567890);
+        assert_eq!(test_constants::FLOAT32_CONST, 1234.5);
+        assert_eq!(test_constants::FLOAT64_CONST, -123e45);
     }
 
     #[test]
     fn test_set_root() {
-        use test_capnp::TestBigStruct;
+        use test_capnp::test_big_struct;
 
         let mut message1 = MallocMessageBuilder::new_default();
         let mut message2 = MallocMessageBuilder::new_default();
-        let struct1 = message1.init_root::<TestBigStruct::Builder>();
+        let struct1 = message1.init_root::<test_big_struct::Builder>();
         struct1.set_uint8_field(3);
         message2.set_root(&struct1.as_reader());
-        let struct2 = message2.get_root::<TestBigStruct::Builder>();
+        let struct2 = message2.get_root::<test_big_struct::Builder>();
 
         assert_eq!(struct2.get_uint8_field(), 3u8);
     }

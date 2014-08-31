@@ -8,12 +8,12 @@ use std;
 use capnp::capability::{FromServer};
 use capnp_rpc::ez_rpc::EzRpcClient;
 use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
-use calculator_capnp::Calculator;
+use calculator_capnp::calculator;
 
 pub struct PowerFunction;
 
-impl Calculator::Function::Server for PowerFunction {
-    fn call(&mut self, mut context : Calculator::Function::CallContext) {
+impl calculator::function::Server for PowerFunction {
+    fn call(&mut self, mut context : calculator::function::CallContext) {
         let (params, results) = context.get();
         let params = params.get_params();
         if params.size() != 2 {
@@ -34,7 +34,7 @@ pub fn main() {
 
     let mut rpc_client = EzRpcClient::new(args[2].as_slice()).unwrap();
 
-    let calculator : Calculator::Client = rpc_client.import_cap("calculator");
+    let calculator : calculator::Client = rpc_client.import_cap("calculator");
 
     {
         //# Make a request that just evaluates the literal value 123.
@@ -75,13 +75,13 @@ pub fn main() {
 
         let add = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(Calculator::Operator::Add);
+            request.init().set_op(calculator::operator::Add);
             request.send().pipeline.get_func()
         };
 
         let subtract = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(Calculator::Operator::Subtract);
+            request.init().set_op(calculator::operator::Subtract);
             request.send().pipeline.get_func()
         };
 
@@ -119,13 +119,13 @@ pub fn main() {
 
         let add = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(Calculator::Operator::Add);
+            request.init().set_op(calculator::operator::Add);
             request.send().pipeline.get_func()
         };
 
         let multiply = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(Calculator::Operator::Multiply);
+            request.init().set_op(calculator::operator::Multiply);
             request.send().pipeline.get_func()
         };
 
@@ -179,13 +179,13 @@ pub fn main() {
 
         let add = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(Calculator::Operator::Add);
+            request.init().set_op(calculator::operator::Add);
             request.send().pipeline.get_func()
         };
 
         let multiply = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(Calculator::Operator::Multiply);
+            request.init().set_op(calculator::operator::Multiply);
             request.send().pipeline.get_func()
         };
 
@@ -271,7 +271,7 @@ pub fn main() {
 
         let add = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(Calculator::Operator::Add);
+            request.init().set_op(calculator::operator::Add);
             request.send().pipeline.get_func()
         };
 
