@@ -4,7 +4,7 @@ name = "capnp"
 version = "0.1.0"
 authors = [ "dwrenshaw@gmail.com" ]
 
-[[lib]]
+[lib]
 
 name = "capnp"
 path = "capnp/lib.rs"
