@@ -309,6 +309,7 @@ impl WirePointer {
 }
 
 struct SegmentAnd<T> {
+    #[allow(dead_code)]
     segment : *mut SegmentBuilder,
     value : T
 }
