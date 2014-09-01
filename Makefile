@@ -13,9 +13,12 @@ clean :
 
 capnp : $(CAPNP_COMPILATION_MARKER)
 
-examples/addressbook/addressbook : capnpc-rust/capnpc-rust examples/addressbook/addressbook.rs
-	capnpc -o ./capnpc-rust/capnpc-rust examples/addressbook/addressbook.capnp
-	$(RUSTC) -L. examples/addressbook/addressbook.rs --out-dir examples/addressbook
+target/capnpc-rust :
+	cargo build
+
+examples/addressbook/addressbook : target/capnpc-rust examples/addressbook/addressbook.rs
+	capnpc -o ./target/capnpc-rust examples/addressbook/addressbook.capnp
+	$(RUSTC) -Ltarget examples/addressbook/addressbook.rs --out-dir examples/addressbook
 
 
 capnpc-rust-test :
