@@ -2,7 +2,7 @@
 
 name = "capnp"
 version = "0.1.0"
-authors = [ "dwrenshaw@gmail.com" ]
+authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
 
 [lib]
 

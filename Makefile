@@ -18,23 +18,15 @@ CAPNP_SOURCES= \
     capnp/serialize.rs \
     capnp/serialize_packed.rs
 
-CAPNP_RPC_SOURCES= \
-    capnp-rpc/capability.rs \
-	capnp-rpc/ez_rpc.rs \
-    capnp-rpc/lib.rs \
-    capnp-rpc/rpc.rs
-
 CAPNP_COMPILATION_MARKER=capnp/compilation-marker
-CAPNP_RPC_COMPILATION_MARKER=capnp-rpc/compilation-marker
 
-.PHONY : capnp capnp-rpc clean all capnp-test capnpc-rust-test check benchmark install
+.PHONY : capnp clean all capnp-test capnpc-rust-test check benchmark install
 
 all : examples/addressbook/addressbook
 
 clean :
 	rm -rf capnp/libcapnp* $(CAPNP_COMPILATION_MARKER) capnpc-rust/capnpc-rust
 	rm -rf benchmark/*_capnp.rs benchmark/benchmark
-	rm -rf capnp-rpc/libcapnp* $(CAPNP_RPC_COMPILATION_MARKER)
 
 capnp : $(CAPNP_COMPILATION_MARKER)
 
@@ -66,20 +58,4 @@ install : capnpc-rust/capnpc-rust
 benchmark : capnpc-rust/capnpc-rust
 	capnpc -o ./capnpc-rust/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
 	$(RUSTC) -L. benchmark/benchmark.rs --out-dir benchmark
-
-
-capnp-rpc : $(CAPNP_RPC_COMPILATION_MARKER)
-
-$(CAPNP_RPC_COMPILATION_MARKER) : capnpc-rust/capnpc-rust $(CAPNP_RPC_SOURCES)
-	capnp compile -o./capnpc-rust/capnpc-rust:capnp-rpc --src-prefix=$(CAPNP_INCLUDE_DIR)/capnp \
-      $(CAPNP_INCLUDE_DIR)/capnp/rpc.capnp $(CAPNP_INCLUDE_DIR)/capnp/rpc-twoparty.capnp
-	$(RUSTC) -L. capnp-rpc/lib.rs
-	touch $(CAPNP_RPC_COMPILATION_MARKER)
-
-examples/calculator/calculator : capnpc-rust/capnpc-rust $(CAPNP_RPC_COMPILATION_MARKER) \
-                                 examples/calculator/main.rs \
-	                             examples/calculator/client.rs examples/calculator/server.rs \
-                                 examples/calculator/calculator.capnp
-	capnp compile -o./capnpc-rust/capnpc-rust examples/calculator/calculator.capnp
-	$(RUSTC) -L. examples/calculator/main.rs --out-dir examples/calculator
 
