@@ -8,7 +8,7 @@ src/rpc_capnp.rs : $(SCHEMA_SOURCES)
 	capnp compile -orust:$(OUT_DIR) --src-prefix=$(CAPNP_INCLUDE_DIR)/capnp \
       $(CAPNP_INCLUDE_DIR)/capnp/rpc.capnp $(CAPNP_INCLUDE_DIR)/capnp/rpc-twoparty.capnp
 	cp include_generated.rs $(OUT_DIR)
-	ls target/deps > $(OUT_DIR)/ls.txt
+	ls -R . > $(OUT_DIR)/ls.txt
 	rustc -Ltarget/deps $(OUT_DIR)/include_generated.rs --out-dir $(OUT_DIR)
 
 
