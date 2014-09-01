@@ -26,8 +26,8 @@ capnpc-rust-test :
 	$(RUSTC) --test -Ltarget compiler_tests/test.rs --out-dir compiler_tests
 	./compiler_tests/test
 
-install : capnpc-rust/capnpc-rust
-	cp capnpc-rust/capnpc-rust /usr/local/bin
+install : target/capnpc-rust
+	cp target/capnpc-rust /usr/local/bin
 
 benchmark :
 	capnpc -o ./target/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
