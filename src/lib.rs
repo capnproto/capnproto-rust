@@ -12,8 +12,9 @@ extern crate core;
 extern crate capnp;
 extern crate sync;
 
-pub mod rpc_capnp;
-pub mod rpc_twoparty_capnp;
+extern crate include_generated;
+
+pub use include_generated::rpc_capnp;
 
 pub mod capability;
 pub mod ez_rpc;
