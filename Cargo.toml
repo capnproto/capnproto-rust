@@ -3,7 +3,7 @@
 name = "capnp-rpc"
 version = "0.0.1"
 authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
-build = "make"
+build = "make src/rpc_capnp.rs"
 
 [lib]
 
