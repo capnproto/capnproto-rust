@@ -1,0 +1,16 @@
+[package]
+
+name = "capnp-rpc"
+version = "0.0.1"
+authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
+build = "make"
+
+[lib]
+
+name = "capnp-rpc"
+path = "src/lib.rs"
+
+
+[dependencies.capnp]
+
+git = "https://github.com/dwrensha/capnproto-rust.git"
