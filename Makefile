@@ -2,13 +2,17 @@ RUSTC = rustc -O
 
 CAPNP_INCLUDE_DIR=/usr/local/include
 
+.PHONY : generated
+
+generated : $(OUT_DIR)/rpc_capnp.rs
+
 SCHEMA_SOURCES= $(CAPNP_INCLUDE_DIR)/capnp/rpc.capnp $(CAPNP_INCLUDE_DIR)/capnp/rpc-twoparty.capnp
 
-src/rpc_capnp.rs : $(SCHEMA_SOURCES)
+$(OUT_DIR)/rpc_capnp.rs : $(SCHEMA_SOURCES)
 	capnp compile -orust:$(OUT_DIR) --src-prefix=$(CAPNP_INCLUDE_DIR)/capnp \
       $(CAPNP_INCLUDE_DIR)/capnp/rpc.capnp $(CAPNP_INCLUDE_DIR)/capnp/rpc-twoparty.capnp
-	cp include_generated.rs $(OUT_DIR)
-	rustc -L$(OUT_DIR)/../../deps $(OUT_DIR)/include_generated.rs --out-dir $(OUT_DIR)
+	cp capnp_rpc_include_generated.rs $(OUT_DIR)
+	rustc -L$(OUT_DIR)/../../deps $(OUT_DIR)/capnp_rpc_include_generated.rs --out-dir $(OUT_DIR)
 
 
 examples/calculator/calculator :  examples/calculator/main.rs \

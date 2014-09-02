@@ -1,9 +1,9 @@
 [package]
 
 name = "capnp-rpc"
-version = "0.0.1"
+version = "0.1.0"
 authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
-build = "make src/rpc_capnp.rs"
+build = "make generated"
 
 [lib]
 

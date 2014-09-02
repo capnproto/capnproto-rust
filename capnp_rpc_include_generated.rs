@@ -3,7 +3,7 @@
  */
 
 
-#![crate_name="include_generated"]
+#![crate_name="capnp_rpc_include_generated"]
 #![crate_type = "lib"]
 
 extern crate capnp;
