@@ -9,6 +9,11 @@ for sharing data and capabilities.
 capnproto-rust is a (work-in-progress) implementation of Cap'n Proto
 for [Rust](http://www.rust-lang.org).
 
+See [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust)
+for an implementation of
+remote procedure calls built on top of this.
+
+
 ## Getting Started
 
 You will need Cap'n Proto and
@@ -22,6 +27,12 @@ sample program like this:
 ```
 $ ./examples/addressbook/addressbook write | ./examples/addressbook/addressbook read
 ```
+
+To install the `capnpc-rust` compiler plugin:
+```
+sudo make install
+```
+
 
 ## Implementation Notes
 

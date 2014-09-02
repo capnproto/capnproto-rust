@@ -1,17 +1,14 @@
 RUSTC = rustc -O
 
-CAPNP_INCLUDE_DIR=/usr/local/include
+CAPNPC_DIR=$(shell dirname $(shell which capnpc-c++))
 
-
-.PHONY : capnp clean all capnp-test capnpc-rust-test check benchmark install
+.PHONY : capnp clean all capnpc-rust-test check benchmark install
 
 all : examples/addressbook/addressbook
 
 clean :
-	rm -rf capnp/libcapnp* $(CAPNP_COMPILATION_MARKER) capnpc-rust/capnpc-rust
+	cargo clean
 	rm -rf benchmark/*_capnp.rs benchmark/benchmark
-
-capnp : $(CAPNP_COMPILATION_MARKER)
 
 target/capnpc-rust :
 	cargo build
@@ -27,7 +24,7 @@ capnpc-rust-test :
 	./compiler_tests/test
 
 install : target/capnpc-rust
-	cp target/capnpc-rust /usr/local/bin
+	cp target/capnpc-rust $(CAPNPC_DIR)
 
 benchmark :
 	capnpc -o ./target/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
