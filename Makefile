@@ -1,6 +1,7 @@
 RUSTC = rustc -O
 
-CAPNP_INCLUDE_DIR=/usr/local/include
+CAPNP_PATH=$(shell which capnp)
+CAPNP_INCLUDE_DIR=$(shell dirname $(CAPNP_PATH))/../include
 
 .PHONY : generated
 
