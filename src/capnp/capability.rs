@@ -4,7 +4,7 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-use any::{any_pointer};
+use any_pointer;
 use common::{MessageSize};
 use layout::{FromStructReader, FromStructBuilder, HasStructSize};
 use message::{MallocMessageBuilder};

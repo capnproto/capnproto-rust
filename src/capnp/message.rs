@@ -6,7 +6,7 @@
 
 use std;
 use std::vec::Vec;
-use any::any_pointer;
+use any_pointer;
 use capability::ClientHook;
 use common::*;
 use arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};

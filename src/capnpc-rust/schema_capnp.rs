@@ -3,7 +3,7 @@
 
 pub mod node {
   use std;
-  use capnp::any::any_pointer;
+  use capnp::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{text, data};
   use capnp::layout;
@@ -297,7 +297,7 @@ pub mod node {
 
   pub mod nested_node {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -386,7 +386,7 @@ pub mod node {
 
   pub mod struct_ {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -528,7 +528,7 @@ pub mod node {
 
   pub mod enum_ {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -598,7 +598,7 @@ pub mod node {
 
   pub mod interface {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -692,7 +692,7 @@ pub mod node {
 
   pub mod const_ {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -789,7 +789,7 @@ pub mod node {
 
   pub mod annotation {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -1006,7 +1006,7 @@ pub mod node {
 
 pub mod field {
   use std;
-  use capnp::any::any_pointer;
+  use capnp::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{text, data};
   use capnp::layout;
@@ -1200,7 +1200,7 @@ pub mod field {
 
   pub mod slot {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -1321,7 +1321,7 @@ pub mod field {
 
   pub mod group {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -1380,7 +1380,7 @@ pub mod field {
 
   pub mod ordinal {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -1475,7 +1475,7 @@ pub mod field {
 
 pub mod enumerant {
   use std;
-  use capnp::any::any_pointer;
+  use capnp::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{text, data};
   use capnp::layout;
@@ -1587,7 +1587,7 @@ pub mod enumerant {
 
 pub mod method {
   use std;
-  use capnp::any::any_pointer;
+  use capnp::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{text, data};
   use capnp::layout;
@@ -1723,7 +1723,7 @@ pub mod method {
 
 pub mod type_ {
   use std;
-  use capnp::any::any_pointer;
+  use capnp::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{text, data};
   use capnp::layout;
@@ -2086,7 +2086,7 @@ pub mod type_ {
 
   pub mod list {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -2158,7 +2158,7 @@ pub mod type_ {
 
   pub mod enum_ {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -2217,7 +2217,7 @@ pub mod type_ {
 
   pub mod struct_ {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -2276,7 +2276,7 @@ pub mod type_ {
 
   pub mod interface {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -2336,7 +2336,7 @@ pub mod type_ {
 
 pub mod value {
   use std;
-  use capnp::any::any_pointer;
+  use capnp::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{text, data};
   use capnp::layout;
@@ -2765,7 +2765,7 @@ pub mod value {
 
 pub mod annotation {
   use std;
-  use capnp::any::any_pointer;
+  use capnp::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{text, data};
   use capnp::layout;
@@ -2879,7 +2879,7 @@ pub mod element_size {
 
 pub mod code_generator_request {
   use std;
-  use capnp::any::any_pointer;
+  use capnp::any_pointer;
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::blob::{text, data};
   use capnp::layout;
@@ -2979,7 +2979,7 @@ pub mod code_generator_request {
 
   pub mod requested_file {
     use std;
-    use capnp::any::any_pointer;
+    use capnp::any_pointer;
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::blob::{text, data};
     use capnp::layout;
@@ -3090,7 +3090,7 @@ pub mod code_generator_request {
 
     pub mod import {
       use std;
-      use capnp::any::any_pointer;
+      use capnp::any_pointer;
       use capnp::capability::{FromClientHook, FromTypelessPipeline};
       use capnp::blob::{text, data};
       use capnp::layout;
