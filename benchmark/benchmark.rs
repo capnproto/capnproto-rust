@@ -25,19 +25,16 @@ pub mod catrank;
 pub mod eval_capnp;
 pub mod eval;
 
-
-
 mod uncompressed {
     use capnp;
-    use std;
 
-    pub fn write<T : std::io::Writer, U : capnp::message::MessageBuilder>(
+    pub fn write<T : ::std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
         capnp::serialize::write_message(writer, message).unwrap();
     }
 
-    pub fn write_buffered<T : std::io::Writer, U : capnp::message::MessageBuilder>(
+    pub fn write_buffered<T : ::std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
         capnp::serialize::write_message(writer, message).unwrap();
@@ -52,10 +49,9 @@ mod uncompressed {
 
 mod packed {
     use capnp;
-    use std;
     use capnp::serialize_packed::{write_packed_message, write_packed_message_unbuffered};
 
-    pub fn write<T : std::io::Writer, U : capnp::message::MessageBuilder>(
+    pub fn write<T : ::std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
         write_packed_message_unbuffered(writer, message).unwrap();
@@ -86,7 +82,7 @@ impl NoScratch {
 }
 
 pub struct UseScratch {
-    scratch_space : std::vec::Vec<capnp::common::Word>
+    scratch_space : ::std::vec::Vec<capnp::common::Word>
 }
 
 impl UseScratch {
@@ -100,8 +96,8 @@ impl UseScratch {
         assert!(idx < 6);
         unsafe {
             capnp::message::ScratchSpaceMallocMessageBuilder::new_default(
-                std::mem::transmute(
-                    std::raw::Slice { data : self.scratch_space.as_slice().unsafe_get(idx * SCRATCH_SIZE),
+                ::std::mem::transmute(
+                    ::std::raw::Slice { data : self.scratch_space.as_slice().unsafe_get(idx * SCRATCH_SIZE),
                                       len : SCRATCH_SIZE }))
         }
     }
@@ -133,8 +129,8 @@ macro_rules! pass_by_object(
 
 macro_rules! pass_by_bytes(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr ) => ({
-            let mut request_bytes = std::vec::Vec::from_elem(SCRATCH_SIZE * 8, 0u8);
-            let mut response_bytes = std::vec::Vec::from_elem(SCRATCH_SIZE * 8, 0u8);
+            let mut request_bytes = ::std::vec::Vec::from_elem(SCRATCH_SIZE * 8, 0u8);
+            let mut response_bytes = ::std::vec::Vec::from_elem(SCRATCH_SIZE * 8, 0u8);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
                 let mut message_req = $reuse.new_builder(0);
@@ -202,8 +198,8 @@ macro_rules! server(
 
 macro_rules! sync_client(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
-            let mut out_stream = std::io::stdio::stdout_raw();
-            let mut in_stream = std::io::stdio::stdin_raw();
+            let mut out_stream = ::std::io::stdio::stdout_raw();
+            let mut in_stream = ::std::io::stdio::stdin_raw();
             let mut in_buffered = capnp::io::BufferedInputStreamWrapper::new(&mut in_stream);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
@@ -230,7 +226,7 @@ macro_rules! pass_by_pipe(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
         use std::io::process;
 
-        let mut args = std::os::args();
+        let mut args = ::std::os::args();
         *args.get_mut(2) = "client".to_string();
 
         let mut command = process::Command::new(args[0].as_slice());
@@ -260,8 +256,8 @@ macro_rules! do_testcase(
                 "bytes" => pass_by_bytes!($testcase, $reuse, $compression, $iters),
                 "client" => sync_client!($testcase, $reuse, $compression, $iters),
                 "server" => {
-                    let mut input = std::io::stdio::stdin_raw();
-                    let mut output = std::io::stdio::stdout_raw();
+                    let mut input = ::std::io::stdio::stdin_raw();
+                    let mut output = ::std::io::stdio::stdout_raw();
                     server!($testcase, $reuse, $compression, $iters, input, output)
                 }
                 "pipe" => pass_by_pipe!($testcase, $reuse, $compression, $iters),
@@ -298,11 +294,11 @@ macro_rules! do_testcase2(
     )
 
 pub fn main() {
-    let args = std::os::args();
+    let args = ::std::os::args();
 
     if args.len() != 6 {
         println!("USAGE: {} CASE MODE REUSE COMPRESSION ITERATION_COUNT", args[0]);
-        std::os::set_exit_status(1);
+        ::std::os::set_exit_status(1);
         return;
     }
 
@@ -310,7 +306,7 @@ pub fn main() {
         Some (n) => n,
         None => {
             println!("Could not parse a u64 from: {}", args[5]);
-            std::os::set_exit_status(1);
+            ::std::os::set_exit_status(1);
             return;
         }
     };
