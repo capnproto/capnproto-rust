@@ -225,7 +225,6 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
 
 fn generate_import_statements() -> FormattedText {
     Branch(vec!(
-        Line("use std;".to_string()),
         Line("use capnp::any_pointer;".to_string()),
         Line("use capnp::capability::{FromClientHook, FromTypelessPipeline};".to_string()),
         Line("use capnp::{text, data};".to_string()),
@@ -355,12 +354,12 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
                 Some((type_::Float64(()), value::Float64(f))) => return common_case("f64", member, offset, f),
                 Some((type_::Text(()), _)) => {
                     return (format!("text::{}", module_with_var),
-                            Line(format!("self.{}.get_pointer_field({}).get_text(std::ptr::null(), 0)",
+                            Line(format!("self.{}.get_pointer_field({}).get_text(::std::ptr::null(), 0)",
                                       member, offset)));
                 }
                 Some((type_::Data(()), _)) => {
                     return (format!("data::{}", module_with_var),
-                            Line(format!("self.{}.get_pointer_field({}).get_data(std::ptr::null(), 0)",
+                            Line(format!("self.{}.get_pointer_field({}).get_data(::std::ptr::null(), 0)",
                                       member, offset)));
                 }
                 Some((type_::List(ot1), _)) => {
@@ -370,12 +369,12 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
                             let the_mod = scope_map[st.get_type_id()].connect("::");
                             if is_reader {
                                 return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
-                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, std::ptr::null()))",
+                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))",
                                                      module, member, offset, the_mod))
                                         );
                             } else {
                                 return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
-                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_struct_list({}::STRUCT_SIZE, std::ptr::null()))",
+                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_struct_list({}::STRUCT_SIZE, ::std::ptr::null()))",
                                                      module, member, offset, the_mod))
                                         );
                             }
@@ -384,23 +383,23 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
                             let the_mod = scope_map[e.get_type_id()].connect("::");
                             let full_module_name = format!("{}::Reader", the_mod);
                             return (format!("enum_list::{}<'a,{}>",module,full_module_name),
-                                    Line(format!("enum_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::TwoBytes, std::ptr::null()))",
+                                    Line(format!("enum_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::TwoBytes, ::std::ptr::null()))",
                                          module, member, offset)));
                         }
                         Some(type_::List(t1)) => {
                             let type_param = list_list_type_param(scope_map, t1.get_element_type(), is_reader, "'a");
                             return (format!("list_list::{}<'a,{}>", module, type_param),
-                                    Line(format!("list_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
+                                    Line(format!("list_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, ::std::ptr::null()))",
                                                  module, member, offset)))
                         }
                         Some(type_::Text(())) => {
                             return (format!("text_list::{}<'a>", module),
-                                    Line(format!("text_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
+                                    Line(format!("text_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, ::std::ptr::null()))",
                                                  module, member, offset)))
                         }
                         Some(type_::Data(())) => {
                             return (format!("data_list::{}<'a>", module),
-                                    Line(format!("data_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, std::ptr::null()))",
+                                    Line(format!("data_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, ::std::ptr::null()))",
                                                  module, member, offset)))
                         }
                         Some(type_::Interface(_)) => {fail!("unimplemented") }
@@ -410,7 +409,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
                             let size_str = element_size_str(element_size(prim_type));
                             return
                                 (format!("primitive_list::{}<'a,{}>", module, type_str),
-                                 Line(format!("primitive_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::{}, std::ptr::null()))",
+                                 Line(format!("primitive_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::{}, ::std::ptr::null()))",
                                            module, member, offset, size_str)))
                         }
                     }
@@ -429,7 +428,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
                     let the_mod = scope_map[st.get_type_id()].connect("::");
                     let middle_arg = if is_reader {format!("")} else {format!("{}::STRUCT_SIZE,", the_mod)};
                     return (format!("{}::{}", the_mod, module_with_var),
-                            Line(format!("FromStruct{}::new(self.{}.get_pointer_field({}).get_struct({} std::ptr::null()))",
+                            Line(format!("FromStruct{}::new(self.{}.get_pointer_field({}).get_struct({} ::std::ptr::null()))",
                                       module, member, offset, middle_arg)))
                 }
                 Some((type_::Interface(interface), _)) => {
@@ -825,7 +824,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::n
 
         getter_interior.push(Branch(vec!(
                     Line(format!("{} => {{", dvalue)),
-                    Indent(box Line(format!("return std::option::Some({}(", enumerant_name.clone()))),
+                    Indent(box Line(format!("return ::std::option::Some({}(", enumerant_name.clone()))),
                     Indent(box Indent(box get)),
                     Indent(box Line("));".to_string())),
                     Line("}".to_string())
@@ -858,7 +857,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::n
                             else {"".to_string()} );
 
 
-    getter_interior.push(Line("_ => return std::option::None".to_string()));
+    getter_interior.push(Line("_ => return ::std::option::None".to_string()));
 
     interior.push(
         Branch(vec!(Line(format!("pub enum {} {{", enum_name)),
@@ -889,7 +888,7 @@ fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::n
 
     let getter_result =
         Branch(vec!(Line("#[inline]".to_string()),
-                    Line(format!("pub fn which(&self) -> std::option::Option<{}> {{",
+                    Line(format!("pub fn which(&self) -> ::std::option::Option<{}> {{",
                                  concrete_type)),
                     Indent(box Branch(vec!(
                         Line(format!("match self.{}.get_data_field::<u16>({}) {{", field_name, doffset)),
@@ -1452,7 +1451,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
 
 
 
-pub fn main() -> std::io::IoResult<()> {
+pub fn main() -> ::std::io::IoResult<()> {
     use std::io::{Writer, File, Truncate, Write};
     use capnp::serialize;
     use capnp::MessageReader;
