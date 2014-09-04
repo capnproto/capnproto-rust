@@ -448,4 +448,20 @@ mod tests {
         assert_eq!(struct2.get_uint8_field(), 3u8);
     }
 
+    #[test]
+    fn upgrade_struct() {
+        use test_capnp::{test_old_version, test_new_version};
+
+        let mut message = MallocMessageBuilder::new_default();
+        {
+            let old_version = message.init_root::<test_old_version::Builder>();
+            old_version.set_old1(123);
+        }
+        {
+            let new_version = message.get_root::<test_new_version::Builder>();
+            new_version.get_new2();
+            assert_eq!(new_version.get_new3().get_int8_field(), -123);
+        }
+    }
+
 }
