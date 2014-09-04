@@ -27,6 +27,6 @@ install : target/capnpc-rust
 	cp target/capnpc-rust $(CAPNPC_DIR)
 
 benchmark :
-	capnpc -o ./target/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
-	$(RUSTC) -Ltarget benchmark/benchmark.rs --out-dir benchmark
+	capnpc -o ./target/release/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
+	$(RUSTC) -Ltarget/release benchmark/benchmark.rs --out-dir benchmark
 
