@@ -11,7 +11,7 @@ extern crate capnp;
 pub mod test_capnp;
 
 mod tests {
-    use std;
+    use capnp::list::IndexMove;
     use capnp::message::{MessageBuilder, MallocMessageBuilder, BuilderOptions};
 
     #[test]
@@ -137,7 +137,7 @@ mod tests {
         let text_builder = test_blob.init_text_field(10);
         assert_eq!(test_blob.as_reader().get_text_field(),
                    "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
-        let mut writer = std::io::BufWriter::new(text_builder.as_mut_bytes());
+        let mut writer = ::std::io::BufWriter::new(text_builder.as_mut_bytes());
         writer.write("aabbccddee".as_bytes()).unwrap();
 
         let data_builder = test_blob.init_data_field(7);

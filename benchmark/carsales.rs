@@ -26,10 +26,7 @@ macro_rules! car_value_impl(
                     result += self.get_seats() as u64 * 200;
                     result += self.get_doors() as u64 * 350;
 
-                    // TODO Lists should have iterators.
-                    let wheels = self.get_wheels();
-                    for i in range(0, wheels.size()) {
-                        let wheel = wheels.get(i);
+                    for wheel in self.get_wheels().iter() {
                         result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
                         result += if wheel.get_snow_tires() { 100 } else { 0 };
                     }
@@ -77,9 +74,7 @@ pub fn random_car(rng : &mut FastRand, car : car::Builder) {
     car.set_seats(2 + rng.next_less_than(6) as u8);
     car.set_doors(2 + rng.next_less_than(3) as u8);
 
-    let wheels = car.init_wheels(4);
-    for i in range(0, wheels.size()) {
-        let wheel = wheels.get(i);
+    for wheel in car.init_wheels(4).iter() {
         wheel.set_diameter(25 + rng.next_less_than(15) as u16);
         wheel.set_air_pressure((30.0 + rng.next_double(20.0)) as f32);
         wheel.set_snow_tires(rng.next_less_than(16) == 0);
@@ -109,9 +104,7 @@ pub fn random_car(rng : &mut FastRand, car : car::Builder) {
 
 pub fn setup_request(rng : &mut FastRand, request : parking_lot::Builder) -> u64 {
     let mut result = 0;
-    let cars = request.init_cars(rng.next_less_than(200) as uint);
-    for i in range(0, cars.size()) {
-        let car = cars.get(i);
+    for car in request.init_cars(rng.next_less_than(200) as uint).iter() {
         random_car(rng, car);
         result += car.car_value();
     }
@@ -121,9 +114,8 @@ pub fn setup_request(rng : &mut FastRand, request : parking_lot::Builder) -> u64
 
 pub fn handle_request(request : parking_lot::Reader, response : total_value::Builder) {
     let mut result = 0;
-    let cars = request.get_cars();
-    for i in range(0, cars.size()) {
-        result += cars.get(i).car_value();
+    for car in request.get_cars().iter() {
+        result += car.car_value();
     }
     response.set_amount(result);
 }

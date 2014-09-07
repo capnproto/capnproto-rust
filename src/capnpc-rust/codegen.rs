@@ -5,6 +5,7 @@
  */
 
 use capnp;
+use capnp::list::IndexMove;
 use std::collections;
 use schema_capnp;
 
@@ -210,17 +211,16 @@ fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capn
     let node_reader = match node_map.find(&node_id) { Some(node) => node, None => return (), };
 
     let nested_nodes = node_reader.get_nested_nodes();
-    for ii in range(0, nested_nodes.size()) {
+    for nested_node in nested_nodes.iter(){
         let mut scope_names = scope_names.clone();
-        scope_names.push(module_name(nested_nodes.get(ii).get_name()));
-        populate_scope_map(node_map, scope_map, scope_names, nested_nodes.get(ii).get_id());
+        scope_names.push(module_name(nested_node.get_name()));
+        populate_scope_map(node_map, scope_map, scope_names, nested_node.get_id());
     }
 
     match node_reader.which() {
         Some(schema_capnp::node::Struct(struct_reader)) => {
             let fields = struct_reader.get_fields();
-            for jj in range(0, fields.size()) {
-                let field = fields.get(jj);
+            for field in fields.iter() {
                 match field.which() {
                     Some(schema_capnp::field::Group(group)) => {
                         let name = module_name(field.get_name());
@@ -496,8 +496,8 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
                                  st.get_discriminant_offset())));
             }
             let fields = st.get_fields();
-            for ii in range(0, fields.size()) {
-                match fields.get(ii).which() {
+            for field in fields.iter() {
+                match field.which() {
                     None => {fail!()}
                     Some(field::Group(group)) => {
                         result.push(zero_fields_of_group(node_map, group.get_type_id()));
@@ -1019,8 +1019,8 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
 
     let node_reader = &node_map[node_id];
     let nested_nodes = node_reader.get_nested_nodes();
-    for ii in range(0, nested_nodes.size()) {
-        let id = nested_nodes.get(ii).get_id();
+    for nested_node in nested_nodes.iter() {
+        let id = nested_node.get_id();
         nested_output.push(generate_node(node_map, scope_map,
                                          id, scope_map[id].last().unwrap().as_slice()));
     }
@@ -1071,8 +1071,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
             }
 
             let fields = struct_reader.get_fields();
-            for ii in range(0, fields.size()) {
-                let field = fields.get(ii);
+            for field in fields.iter() {
                 let name = field.get_name();
                 let styled_name = camel_to_snake_case(name);
 

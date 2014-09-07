@@ -20,6 +20,35 @@ pub trait FromPointerBuilder<'a> {
     fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Self;
 }
 
+pub trait IndexMove<I,T> {
+    fn get(&self, index : I) -> T;
+}
+
+pub struct ListIter<T> {
+    list : T,
+    index : uint,
+    size : uint,
+}
+
+impl <T> ListIter<T> {
+    pub fn new(list : T, size : uint) -> ListIter<T> {
+        ListIter { list : list, index : 0, size : size }
+    }
+}
+
+
+impl <U, T : IndexMove<uint, U>> ::std::iter::Iterator<U> for ListIter<T> {
+    fn next(&mut self) -> ::std::option::Option<U> {
+        if self.index < self.size {
+            let result = self.list.get(self.index);
+            self.index += 1;
+            return Some(result);
+        } else {
+            return None;
+        }
+    }
+}
+
 pub mod primitive_list {
     use super::{FromPointerReader, FromPointerBuilder};
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
@@ -149,7 +178,6 @@ pub mod enum_list {
         }
     }
 
-
     impl <'a, T : ToU16 + FromPrimitive>  Builder<'a, T> {
         pub fn get(&self, index : uint) -> Option<T> {
             assert!(index < self.size());
@@ -159,12 +187,14 @@ pub mod enum_list {
     }
 }
 
+
 pub mod struct_list {
     use super::{FromPointerReader, FromPointerBuilder};
     use common::Word;
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                  InlineComposite, FromStructBuilder, FromStructReader,
                  HasStructSize};
+
 
     pub struct Reader<'a, T> {
         pub reader : ListReader<'a>
@@ -176,6 +206,10 @@ pub mod struct_list {
         }
 
         pub fn size(&self) -> uint { self.reader.size() }
+
+        pub fn iter(self) -> super::ListIter<Reader<'a, T>> {
+            return super::ListIter::new(self, self.size());
+        }
     }
 
     impl <'a, T : FromStructReader<'a>> FromPointerReader<'a> for Reader<'a, T> {
@@ -184,8 +218,8 @@ pub mod struct_list {
         }
     }
 
-    impl <'a, T : FromStructReader<'a>> Reader<'a, T> {
-        pub fn get(&self, index : uint) -> T {
+    impl <'a, T : FromStructReader<'a>>  super::IndexMove<uint, T> for  Reader<'a, T> {
+        fn get(&self, index : uint) -> T {
             assert!(index < self.size());
             let result : T = FromStructReader::new(self.reader.get_struct_element(index));
             result
@@ -205,6 +239,11 @@ pub mod struct_list {
 
 //        pub fn set(&self, index : uint, value : T) {
 //        }
+
+        pub fn iter(self) -> super::ListIter<Builder<'a, T>> {
+            return super::ListIter::new(self, self.size());
+        }
+
     }
 
     impl <'a, T : FromStructBuilder<'a> + HasStructSize> FromPointerBuilder<'a> for Builder<'a, T> {
@@ -220,8 +259,8 @@ pub mod struct_list {
         }
     }
 
-    impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
-        pub fn get(&self, index : uint) -> T {
+    impl <'a, T : FromStructBuilder<'a>> super::IndexMove<uint, T> for Builder<'a, T> {
+        fn get(&self, index : uint) -> T {
             assert!(index < self.size());
             let result : T =
                 FromStructBuilder::new(self.builder.get_struct_element(index));

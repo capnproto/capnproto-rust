@@ -5,6 +5,7 @@
  */
 
 use std;
+use capnp::list::IndexMove;
 
 use common::*;
 use catrank_capnp::*;

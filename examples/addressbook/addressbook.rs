@@ -54,12 +54,9 @@ pub mod addressbook {
         let address_book = message_reader.get_root::<address_book::Reader>();
         let people = address_book.get_people();
 
-        for i in range(0, people.size()) {
-            let person = people.get(i);
+        for person in people.iter() {
             println!("{}: {}", person.get_name(), person.get_email());
-            let phones = person.get_phones();
-            for j in range(0, phones.size()) {
-                let phone = phones.get(j);
+            for phone in person.get_phones().iter() {
                 let type_name = match phone.get_type() {
                     Some(person::phone_number::type_::Mobile) => {"mobile"}
                     Some(person::phone_number::type_::Home) => {"home"}
