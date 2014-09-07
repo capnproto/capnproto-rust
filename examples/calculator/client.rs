@@ -4,8 +4,8 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-use std;
 use capnp::capability::{FromServer};
+use capnp::list::IndexMove;
 use capnp_rpc::ez_rpc::EzRpcClient;
 use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
 use calculator_capnp::calculator;
@@ -26,7 +26,7 @@ impl calculator::function::Server for PowerFunction {
 }
 
 pub fn main() {
-    let args = std::os::args();
+    let args = ::std::os::args();
     if args.len() != 3 {
         println!("usage: {} client HOST:PORT", args[0]);
         return;

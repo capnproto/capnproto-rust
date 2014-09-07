@@ -12,6 +12,7 @@ use capnp::common;
 use capnp::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use capnp::OwnedSpaceMessageReader;
+use capnp::list::IndexMove;
 
 use std;
 use std::any::AnyRefExt;
@@ -253,9 +254,8 @@ fn client_hooks_of_payload(payload : payload::Reader,
                            rpc_chan : &std::comm::Sender<RpcEvent>,
                            answers : &ImportTable<Answer>) -> Vec<Option<Box<ClientHook+Send>>> {
     let mut result = Vec::new();
-    let cap_table = payload.get_cap_table();
-    for ii in range(0, cap_table.size()) {
-        match cap_table.get(ii).which() {
+    for cap in payload.get_cap_table().iter() {
+        match cap.which() {
             Some(cap_descriptor::None(())) => {
                 result.push(None)
             }
@@ -328,9 +328,8 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
 
 fn get_pipeline_ops(promised_answer : promised_answer::Reader) -> Vec<pipeline_op::Type> {
     let mut result = Vec::new();
-    let transform = promised_answer.get_transform();
-    for ii in range(0, transform.size()) {
-        match transform.get(ii).which() {
+    for op in promised_answer.get_transform().iter() {
+        match op.which() {
             Some(promised_answer::op::Noop(())) => result.push(pipeline_op::Noop),
             Some(promised_answer::op::GetPointerField(idx)) => result.push(pipeline_op::GetPointerField(idx)),
             None => {}

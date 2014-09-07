@@ -9,7 +9,7 @@
 #![crate_type="bin"]
 
 extern crate capnp;
-extern crate capnp_rpc = "capnp-rpc";
+extern crate "capnp-rpc" as capnp_rpc;
 
 pub mod calculator_capnp;
 

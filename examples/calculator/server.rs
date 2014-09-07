@@ -58,8 +58,8 @@ fn evaluate_impl(
             let func = call.get_function();
             let call_params = call.get_params();
             let mut param_values = Vec::new();
-            for ii in range(0, call_params.size()) {
-                let x = try!(evaluate_impl(call_params.get(ii), params));
+            for call_param in call_params.iter() {
+                let x = try!(evaluate_impl(call_param, params));
                 param_values.push(x);
             }
             let mut request = func.call_request();
