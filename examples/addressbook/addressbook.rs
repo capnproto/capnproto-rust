@@ -17,7 +17,6 @@ pub mod addressbook {
 
     pub fn write_address_book() -> IoResult<()> {
         let mut message = MallocMessageBuilder::new_default();
-
         {
             let address_book = message.init_root::<address_book::Builder>();
 
@@ -52,9 +51,8 @@ pub mod addressbook {
 
         let message_reader = try!(serialize_packed::new_reader_unbuffered(&mut stdin(), ReaderOptions::new()));
         let address_book = message_reader.get_root::<address_book::Reader>();
-        let people = address_book.get_people();
 
-        for person in people.iter() {
+        for person in address_book.get_people().iter() {
             println!("{}: {}", person.get_name(), person.get_email());
             for phone in person.get_phones().iter() {
                 let type_name = match phone.get_type() {

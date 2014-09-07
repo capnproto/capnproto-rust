@@ -20,7 +20,7 @@ pub trait FromPointerBuilder<'a> {
     fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Self;
 }
 
-pub trait IndexMove<I,T> {
+trait IndexMove<I,T> {
     fn index_move(&self, index : I) -> T;
 }
 
