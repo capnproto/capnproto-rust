@@ -166,7 +166,6 @@ struct TestConstants {
 
 const globalInt :UInt32 = 12345;
 
-
 interface TestInterface {
    foo @0 (i :UInt32, j :Bool) -> (x : Text);
    bar @1 () -> ();
@@ -179,4 +178,24 @@ interface TestExtends extends(TestInterface) {
    qux @0 ();
    corge @1 TestBigStruct -> ();
    grault @2 () -> TestBigStruct;
+}
+
+struct TestKeywords {
+  struct As {}
+  struct Box {}
+  struct Break {}
+  struct Continue {}
+  struct Crate {}
+  struct Else {}
+  struct Enum {}
+  struct Extern {}
+  # ...
+  struct Struct{}
+  struct Super{}
+  struct True{}
+  struct Trait{}
+  struct Type{}
+  struct Unsafe{}
+  struct Use{}
+  struct While{}
 }
