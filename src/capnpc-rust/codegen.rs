@@ -6,7 +6,6 @@
 
 use capnp;
 use std::collections;
-use std;
 use schema_capnp;
 
 pub fn tuple_option<T,U>(t : Option<T>, u : Option<U>) -> Option<(T,U)> {
@@ -75,8 +74,8 @@ fn camel_to_upper_case(s : &str) -> String {
     use std::ascii::*;
     let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() {
-        assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
-        if std::char::is_uppercase(c) {
+        assert!(::std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
+        if ::std::char::is_uppercase(c) {
             result_chars.push('_');
         }
         result_chars.push((c as u8).to_ascii().to_uppercase().to_char());
@@ -91,7 +90,7 @@ fn snake_to_upper_case(s : &str) -> String {
         if c == '_' {
             result_chars.push('_');
         } else {
-            assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
+            assert!(::std::char::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
             result_chars.push((c as u8).to_ascii().to_uppercase().to_char());
         }
     }
@@ -104,8 +103,8 @@ fn camel_to_snake_case(s : &str) -> String {
     let mut result_chars : Vec<char> = Vec::new();
     let mut first_char = true;
     for c in s.chars() {
-        assert!(std::char::is_alphanumeric(c), format!("not alphanumeric '{}', i.e. {}", c, c as uint));
-        if std::char::is_uppercase(c) && !first_char {
+        assert!(::std::char::is_alphanumeric(c), format!("not alphanumeric '{}', i.e. {}", c, c as uint));
+        if ::std::char::is_uppercase(c) && !first_char {
             result_chars.push('_');
         }
         result_chars.push((c as u8).to_ascii().to_lowercase().to_char());
@@ -118,7 +117,7 @@ fn capitalize_first_letter(s : &str) -> String {
     use std::ascii::*;
     let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() { result_chars.push(c) }
-    result_chars.as_mut_slice()[0] = (result_chars.as_slice()[0] as u8).to_ascii().to_uppercase().to_char();
+    result_chars.as_mut_slice()[0] = (result_chars[0] as u8).to_ascii().to_uppercase().to_char();
     return String::from_chars(result_chars.as_slice());
 }
 
@@ -468,7 +467,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
         }
     }
 
-    fn common_case<T:std::num::Zero + std::fmt::Show>(
+    fn common_case<T: ::std::num::Zero + ::std::fmt::Show>(
         typ: &str, member : &str,
         offset: uint, default : T) -> (String, FormattedText) {
         let interior = if default.is_zero() {
@@ -1470,7 +1469,7 @@ pub fn main() -> ::std::io::IoResult<()> {
     use capnp::serialize;
     use capnp::MessageReader;
 
-    let mut inp = std::io::stdin();
+    let mut inp = ::std::io::stdin();
 
     let message = try!(serialize::new_reader(&mut inp, capnp::ReaderOptions::new()));
 
@@ -1489,13 +1488,13 @@ pub fn main() -> ::std::io::IoResult<()> {
     for ii in range(0, files.size()) {
         let requested_file = files.get(ii);
         let id = requested_file.get_id();
-        let mut filepath = std::path::Path::new(requested_file.get_filename());
+        let mut filepath = ::std::path::Path::new(requested_file.get_filename());
 
 
         let imports = requested_file.get_imports();
         for jj in range(0, imports.size()) {
             let import = imports.get(jj);
-            let importpath = std::path::Path::new(import.get_name());
+            let importpath = ::std::path::Path::new(import.get_name());
             let root_name : String = format!("::{}_capnp",
                                                importpath.filestem_str().unwrap().replace("-", "_"));
             populate_scope_map(&node_map, &mut scope_map, vec!(root_name), import.get_id());
