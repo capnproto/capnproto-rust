@@ -5,7 +5,6 @@
  */
 
 use capnp::capability::{FromServer};
-use capnp::list::IndexMove;
 use capnp_rpc::ez_rpc::EzRpcClient;
 use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
 use calculator_capnp::calculator;

@@ -12,9 +12,7 @@ use capnp::common;
 use capnp::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use capnp::OwnedSpaceMessageReader;
-use capnp::list::IndexMove;
 
-use std;
 use std::any::AnyRefExt;
 use std::vec::Vec;
 use std::collections::hashmap::HashMap;
@@ -29,14 +27,14 @@ pub type ExportId = u32;
 pub type ImportId = ExportId;
 
 pub struct Question {
-    chan : std::comm::Sender<Box<ResponseHook+Send>>,
+    chan : ::std::comm::Sender<Box<ResponseHook+Send>>,
     is_awaiting_return : bool,
     ref_counter : ::std::comm::Receiver<()>,
 }
 
 impl Question {
-    pub fn new(sender : std::comm::Sender<Box<ResponseHook+Send>>) -> (Question, std::comm::Sender<()>) {
-        let (tx, rx) = std::comm::channel::<()>();
+    pub fn new(sender : ::std::comm::Sender<Box<ResponseHook+Send>>) -> (Question, ::std::comm::Sender<()>) {
+        let (tx, rx) = ::std::comm::channel::<()>();
         (Question {
             chan : sender,
             is_awaiting_return : true,
@@ -56,7 +54,7 @@ pub struct QuestionRef {
 }
 
 impl QuestionRef {
-    pub fn new(id : u32, ref_count : std::comm::Sender<()>,
+    pub fn new(id : u32, ref_count : ::std::comm::Sender<()>,
                rpc_chan : ::std::comm::Sender<RpcEvent>) -> QuestionRef {
         QuestionRef { id : id,
                       ref_count : ref_count,
@@ -251,7 +249,7 @@ pub struct RpcConnectionState {
 }
 
 fn client_hooks_of_payload(payload : payload::Reader,
-                           rpc_chan : &std::comm::Sender<RpcEvent>,
+                           rpc_chan : &::std::comm::Sender<RpcEvent>,
                            answers : &ImportTable<Answer>) -> Vec<Option<Box<ClientHook+Send>>> {
     let mut result = Vec::new();
     for cap in payload.get_cap_table().iter() {
@@ -292,7 +290,7 @@ fn client_hooks_of_payload(payload : payload::Reader,
 }
 
 fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
-                      rpc_chan : &std::comm::Sender<RpcEvent>,
+                      rpc_chan : &::std::comm::Sender<RpcEvent>,
                       answers : &ImportTable<Answer>) {
     let mut the_cap_table : Vec<Option<Box<ClientHook+Send>>> = Vec::new();
     {
@@ -338,7 +336,7 @@ fn get_pipeline_ops(promised_answer : promised_answer::Reader) -> Vec<pipeline_o
     return result;
 }
 
-fn finish_question<W : std::io::Writer>(questions : &mut ExportTable<Question>,
+fn finish_question<W : ::std::io::Writer>(questions : &mut ExportTable<Question>,
                                         outpipe : &mut W,
                                         id : u32) {
     questions.erase(id);
@@ -364,11 +362,11 @@ impl RpcConnectionState {
         }
     }
 
-    pub fn run<T : std::io::Reader + Send, U : std::io::Writer + Send, V : SturdyRefRestorer + Send>(
+    pub fn run<T : ::std::io::Reader + Send, U : ::std::io::Writer + Send, V : SturdyRefRestorer + Send>(
         self, inpipe: T, outpipe: U, restorer : V)
-         -> std::comm::Sender<RpcEvent> {
+         -> ::std::comm::Sender<RpcEvent> {
 
-        let (result_rpc_chan, port) = std::comm::channel::<RpcEvent>();
+        let (result_rpc_chan, port) = ::std::comm::channel::<RpcEvent>();
 
         let listener_chan = result_rpc_chan.clone();
 
@@ -515,7 +513,7 @@ impl RpcConnectionState {
                                             box RpcResponse::new(message) as Box<ResponseHook+Send>).is_ok();
                                         q.is_awaiting_return = false;
                                         match q.ref_counter.try_recv() {
-                                            Err(std::comm::Disconnected) => {
+                                            Err(::std::comm::Disconnected) => {
                                                 true
                                             }
                                             _ => {false}
@@ -644,7 +642,7 @@ pub enum OwnedCapDescriptor {
 }
 
 pub struct ImportClient {
-    channel : std::comm::Sender<RpcEvent>,
+    channel : ::std::comm::Sender<RpcEvent>,
     pub import_id : ImportId,
 }
 
@@ -676,13 +674,13 @@ impl ClientHook for ImportClient {
         fail!()
     }
 
-    fn get_descriptor(&self) -> Box<std::any::Any+'static> {
-        (box ReceiverHosted(self.import_id)) as Box<std::any::Any+'static>
+    fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
+        (box ReceiverHosted(self.import_id)) as Box<::std::any::Any+'static>
     }
 }
 
 pub struct PipelineClient {
-    channel : std::comm::Sender<RpcEvent>,
+    channel : ::std::comm::Sender<RpcEvent>,
     pub ops : Vec<pipeline_op::Type>,
     pub question_ref : QuestionRef,
 }
@@ -725,13 +723,13 @@ impl ClientHook for PipelineClient {
         fail!()
     }
 
-    fn get_descriptor(&self) -> Box<std::any::Any+'static> {
-        (box ReceiverAnswer(self.question_ref.id, self.ops.clone())) as Box<std::any::Any+'static>
+    fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
+        (box ReceiverAnswer(self.question_ref.id, self.ops.clone())) as Box<::std::any::Any+'static>
     }
 }
 
 pub struct PromisedAnswerClient {
-    rpc_chan : std::comm::Sender<RpcEvent>,
+    rpc_chan : ::std::comm::Sender<RpcEvent>,
     ops : Vec<pipeline_op::Type>,
     answer_ref : AnswerRef,
 }
@@ -766,14 +764,14 @@ impl ClientHook for PromisedAnswerClient {
         fail!()
     }
 
-    fn get_descriptor(&self) -> Box<std::any::Any+'static> {
+    fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
         fail!()
     }
 }
 
 
-fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &mut MallocMessageBuilder) {
-    fn write_payload(rpc_chan : &std::comm::Sender<RpcEvent>, cap_table : & [Box<std::any::Any>],
+fn write_outgoing_cap_table(rpc_chan : &::std::comm::Sender<RpcEvent>, message : &mut MallocMessageBuilder) {
+    fn write_payload(rpc_chan : &::std::comm::Sender<RpcEvent>, cap_table : & [Box<::std::any::Any>],
                      payload : payload::Builder) {
         let new_cap_table = payload.init_cap_table(cap_table.len());
         for ii in range(0, cap_table.len()) {
@@ -799,7 +797,7 @@ fn write_outgoing_cap_table(rpc_chan : &std::comm::Sender<RpcEvent>, message : &
                 None => {
                     match cap_table[ii].downcast_ref::<Box<ClientHook+Send>>() {
                         Some(clienthook) => {
-                            let (chan, port) = std::comm::channel::<ExportId>();
+                            let (chan, port) = ::std::comm::channel::<ExportId>();
                             rpc_chan.send(NewLocalServer(clienthook.copy(), chan));
                             let idx = port.recv();
                             new_cap_table.get(ii).set_sender_hosted(idx);
@@ -857,7 +855,7 @@ impl ResponseHook for RpcResponse {
 }
 
 pub struct RpcRequest {
-    channel : std::comm::Sender<RpcEvent>,
+    channel : ::std::comm::Sender<RpcEvent>,
     message : Box<MallocMessageBuilder>,
     question_ref : Option<QuestionRef>,
 }
@@ -885,7 +883,7 @@ impl RequestHook for RpcRequest {
 }
 
 pub struct PromisedAnswerRpcRequest {
-    rpc_chan : std::comm::Sender<RpcEvent>,
+    rpc_chan : ::std::comm::Sender<RpcEvent>,
     message : Box<MallocMessageBuilder>,
     answer_ref : AnswerRef,
     ops : Vec<pipeline_op::Type>,
@@ -898,7 +896,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
     fn send<'a>(self : Box<PromisedAnswerRpcRequest>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline> {
         let tmp = *self;
         let PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = tmp;
-        let (answer_tx, answer_rx) = std::comm::channel();
+        let (answer_tx, answer_rx) = ::std::comm::channel();
 
         let (interface_id, method_id) = match message.get_root::<message::Builder>().which() {
             Some(message::Call(call)) => {
@@ -925,7 +923,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
 
 
 pub struct RpcPipeline {
-    channel : std::comm::Sender<RpcEvent>,
+    channel : ::std::comm::Sender<RpcEvent>,
     question_ref : QuestionRef,
 }
 
@@ -956,7 +954,7 @@ impl PipelineHook for PromisedAnswerRpcPipeline {
 pub struct Aborter {
     succeeded : bool,
     answer_id : AnswerId,
-    rpc_chan : std::comm::Sender<RpcEvent>,
+    rpc_chan : ::std::comm::Sender<RpcEvent>,
 }
 
 impl Drop for Aborter {
@@ -978,13 +976,13 @@ impl Drop for Aborter {
 pub struct RpcCallContext {
     params_message : Box<OwnedSpaceMessageReader>,
     results_message : Box<MallocMessageBuilder>,
-    rpc_chan : std::comm::Sender<RpcEvent>,
+    rpc_chan : ::std::comm::Sender<RpcEvent>,
     aborter : Aborter,
 }
 
 impl RpcCallContext {
     pub fn new(params_message : Box<OwnedSpaceMessageReader>,
-               rpc_chan : std::comm::Sender<RpcEvent>) -> RpcCallContext {
+               rpc_chan : ::std::comm::Sender<RpcEvent>) -> RpcCallContext {
         let answer_id = {
             let root : message::Reader = params_message.get_root();
             match root.which() {
@@ -1074,14 +1072,14 @@ impl ResponseHook for LocalResponse {
 pub struct PromisedAnswerRpcCallContext {
     params_message : Box<MallocMessageBuilder>,
     results_message : Box<MallocMessageBuilder>,
-    rpc_chan : std::comm::Sender<RpcEvent>,
-    answer_chan : std::comm::Sender<Box<ResponseHook+Send>>,
+    rpc_chan : ::std::comm::Sender<RpcEvent>,
+    answer_chan : ::std::comm::Sender<Box<ResponseHook+Send>>,
 }
 
 impl PromisedAnswerRpcCallContext {
     pub fn new(params_message : Box <MallocMessageBuilder>,
-               rpc_chan : std::comm::Sender<RpcEvent>,
-               answer_chan : std::comm::Sender<Box<ResponseHook+Send>>)
+               rpc_chan : ::std::comm::Sender<RpcEvent>,
+               answer_chan : ::std::comm::Sender<Box<ResponseHook+Send>>)
                -> PromisedAnswerRpcCallContext {
 
 
@@ -1160,15 +1158,15 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 
 pub struct OutgoingMessage {
     message : Box<MallocMessageBuilder>,
-    answer_chan : std::comm::Sender<Box<ResponseHook+Send>>,
-    question_chan : std::comm::Sender<QuestionRef>,
+    answer_chan : ::std::comm::Sender<Box<ResponseHook+Send>>,
+    question_chan : ::std::comm::Sender<QuestionRef>,
 }
 
 
 pub enum RpcEvent {
     IncomingMessage(Box<serialize::OwnedSpaceMessageReader>),
     Outgoing(OutgoingMessage),
-    NewLocalServer(Box<ClientHook+Send>, std::comm::Sender<ExportId>),
+    NewLocalServer(Box<ClientHook+Send>, ::std::comm::Sender<ExportId>),
     ReturnEvent(Box<MallocMessageBuilder>),
     DoneWithQuestion(QuestionId),
     ShutdownEvent,
@@ -1177,11 +1175,11 @@ pub enum RpcEvent {
 
 impl RpcEvent {
     pub fn new_outgoing(message : Box<MallocMessageBuilder>)
-                        -> (OutgoingMessage, std::comm::Receiver<Box<ResponseHook+Send>>,
-                            std::comm::Receiver<QuestionRef>) {
-        let (answer_chan, answer_port) = std::comm::channel::<Box<ResponseHook+Send>>();
+                        -> (OutgoingMessage, ::std::comm::Receiver<Box<ResponseHook+Send>>,
+                            ::std::comm::Receiver<QuestionRef>) {
+        let (answer_chan, answer_port) = ::std::comm::channel::<Box<ResponseHook+Send>>();
 
-        let (question_chan, question_port) = std::comm::channel::<QuestionRef>();
+        let (question_chan, question_port) = ::std::comm::channel::<QuestionRef>();
 
         (OutgoingMessage{ message : message,
                           answer_chan : answer_chan,
