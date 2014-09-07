@@ -18,7 +18,7 @@ examples/addressbook/addressbook : target/capnpc-rust examples/addressbook/addre
 	$(RUSTC) -Ltarget examples/addressbook/addressbook.rs --out-dir examples/addressbook
 
 
-capnpc-rust-test :
+capnpc-rust-test : target/capnpc-rust
 	capnpc -o./target/capnpc-rust compiler_tests/test.capnp
 	$(RUSTC) --test -Ltarget compiler_tests/test.rs --out-dir compiler_tests
 	./compiler_tests/test
@@ -26,7 +26,10 @@ capnpc-rust-test :
 install : target/capnpc-rust
 	cp target/capnpc-rust $(CAPNPC_DIR)
 
-benchmark :
+target/release/capnpc-rust:
+	cargo build --release
+
+benchmark : target/release/capnpc-rust
 	capnpc -o ./target/release/capnpc-rust benchmark/carsales.capnp benchmark/catrank.capnp benchmark/eval.capnp
 	$(RUSTC) -Ltarget/release benchmark/benchmark.rs --out-dir benchmark
 

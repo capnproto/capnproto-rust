@@ -177,10 +177,24 @@ fn stringify(ft : & FormattedText) -> String {
     return result.into_string();
 }
 
+static RUST_KEYWORDS : [&'static str, ..34] =
+    ["as", "box", "break",
+     "continue", "crate",
+     "else", "enum", "extern",
+     "false", "fn", "for",
+     "if", "impl", "in",
+     "let", "loop",
+     "match", "mod", "mut",
+     "priv", "proc", "pub",
+     "ref", "return",
+     "self", "static", "struct", "super",
+     "true", "trait", "type",
+     "unsafe", "use",
+     "while"];
+
 fn module_name(camel_case : &str) -> String {
-    let rust_keywords = ["fn", "mod", "let", "match", "return", "use", "struct", "enum", "type", "const"]; // ...
     let mut name = camel_to_snake_case(camel_case);
-    if rust_keywords.contains(&name.as_slice()) {
+    if RUST_KEYWORDS.contains(&name.as_slice()) {
         name.push_char('_');
     }
     return name;
