@@ -8,6 +8,8 @@ use rand::*;
 use common::*;
 use carsales_capnp::*;
 
+use capnp::list::IndexMove;
+
 pub type RequestBuilder<'a> = parking_lot::Builder<'a>;
 pub type RequestReader<'a> = parking_lot::Reader<'a>;
 pub type ResponseBuilder<'a> = total_value::Builder<'a>;
@@ -26,7 +28,11 @@ macro_rules! car_value_impl(
                     result += self.get_seats() as u64 * 200;
                     result += self.get_doors() as u64 * 350;
 
-                    for wheel in self.get_wheels().iter() {
+                    // Using an iterator here slows things down considerably.
+                    // TODO: investigate why.
+                    let wheels = self.get_wheels();
+                    for ii in range(0, wheels.size()) {
+                        let wheel = wheels.get(ii);
                         result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
                         result += if wheel.get_snow_tires() { 100 } else { 0 };
                     }
