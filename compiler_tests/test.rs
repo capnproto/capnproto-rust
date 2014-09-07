@@ -11,7 +11,6 @@ extern crate capnp;
 pub mod test_capnp;
 
 mod tests {
-    use capnp::list::IndexMove;
     use capnp::message::{MessageBuilder, MallocMessageBuilder, BuilderOptions};
 
     #[test]

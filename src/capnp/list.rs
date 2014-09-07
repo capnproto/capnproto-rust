@@ -21,7 +21,7 @@ pub trait FromPointerBuilder<'a> {
 }
 
 pub trait IndexMove<I,T> {
-    fn get(&self, index : I) -> T;
+    fn index_move(&self, index : I) -> T;
 }
 
 pub struct ListIter<T> {
@@ -40,7 +40,7 @@ impl <T> ListIter<T> {
 impl <U, T : IndexMove<uint, U>> ::std::iter::Iterator<U> for ListIter<T> {
     fn next(&mut self) -> ::std::option::Option<U> {
         if self.index < self.size {
-            let result = self.list.get(self.index);
+            let result = self.list.index_move(self.index);
             self.index += 1;
             return Some(result);
         } else {
@@ -218,8 +218,14 @@ pub mod struct_list {
         }
     }
 
-    impl <'a, T : FromStructReader<'a>>  super::IndexMove<uint, T> for  Reader<'a, T> {
-        fn get(&self, index : uint) -> T {
+    impl <'a, T : FromStructReader<'a>>  super::IndexMove<uint, T> for Reader<'a, T> {
+        fn index_move(&self, index : uint) -> T {
+            self.get(index)
+        }
+    }
+
+    impl <'a, T : FromStructReader<'a>> Reader<'a, T> {
+        pub fn get(&self, index : uint) -> T {
             assert!(index < self.size());
             let result : T = FromStructReader::new(self.reader.get_struct_element(index));
             result
@@ -260,13 +266,21 @@ pub mod struct_list {
     }
 
     impl <'a, T : FromStructBuilder<'a>> super::IndexMove<uint, T> for Builder<'a, T> {
-        fn get(&self, index : uint) -> T {
+        fn index_move(&self, index : uint) -> T {
+            self.get(index)
+        }
+    }
+
+    impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
+        pub fn get(&self, index : uint) -> T {
             assert!(index < self.size());
             let result : T =
                 FromStructBuilder::new(self.builder.get_struct_element(index));
             result
+
         }
     }
+
 }
 
 pub mod list_list {

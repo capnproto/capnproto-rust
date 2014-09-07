@@ -8,8 +8,6 @@ use rand::*;
 use common::*;
 use carsales_capnp::*;
 
-use capnp::list::IndexMove;
-
 pub type RequestBuilder<'a> = parking_lot::Builder<'a>;
 pub type RequestReader<'a> = parking_lot::Reader<'a>;
 pub type ResponseBuilder<'a> = total_value::Builder<'a>;

@@ -5,7 +5,6 @@
  */
 
 use capnp;
-use capnp::list::IndexMove;
 use std::collections;
 use schema_capnp;
 

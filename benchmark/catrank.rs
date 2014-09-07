@@ -4,9 +4,6 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-use std;
-use capnp::list::IndexMove;
-
 use common::*;
 use catrank_capnp::*;
 
@@ -38,7 +35,7 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
         let url = result.init_url(url_size + url_prefix_length);
 
         let bytes = url.as_mut_bytes();
-        std::io::BufWriter::new(bytes).write(URL_PREFIX.as_bytes()).unwrap();
+        ::std::io::BufWriter::new(bytes).write(URL_PREFIX.as_bytes()).unwrap();
 
         for j in range(0, url_size) {
             bytes[j + url_prefix_length] = (97 + rng.next_less_than(26)) as u8;
@@ -88,7 +85,7 @@ pub fn handle_request(request : search_result_list::Reader,
     }
 
     // sort in decreasing order
-    scored_results.sort_by(|v1, v2| { if v1.score < v2.score { std::cmp::Greater } else { std::cmp::Less } });
+    scored_results.sort_by(|v1, v2| { if v1.score < v2.score { ::std::cmp::Greater } else { ::std::cmp::Less } });
 
     let list = response.init_results(scored_results.len());
     for i in range(0, list.size()) {
