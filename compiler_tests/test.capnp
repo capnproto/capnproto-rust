@@ -128,6 +128,7 @@ struct TestGroups {
       corge @1 :Int32;
       grault @6 :Text;
       garply @7 :Text;
+      quz @9 : Float64;
     }
   }
 }

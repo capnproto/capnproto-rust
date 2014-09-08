@@ -517,7 +517,7 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
                                     type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) |
                                     type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) |
                                     type_::Enum(_) => {
-                                        let line = Line(format!("self.builder.set_data_field::<{0}>({1}, 0 as {0});",
+                                        let line = Line(format!("self.builder.set_data_field::<{0}>({1}, 0u8 as {0});",
                                                          prim_type_str(typ),
                                                          slot.get_offset()));
                                         // PERF could dedup more efficiently
