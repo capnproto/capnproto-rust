@@ -14,7 +14,7 @@ pub fn read_at_least<R : Reader>(reader : &mut R,
     let mut pos = 0;
     let buf_len = buf.len();
     while pos < min_bytes {
-        let buf1 = buf.mut_slice(pos, buf_len);
+        let buf1 = buf.slice_mut(pos, buf_len);
         let n = try!(reader.read(buf1));
         pos += n;
     }
@@ -96,7 +96,7 @@ impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
                                            self.buf.slice(self.pos, self.cap));
             let from_first_buffer = self.cap - self.pos;
 
-            let dst1 = dst.mut_slice(from_first_buffer, num_bytes);
+            let dst1 = dst.slice_mut(from_first_buffer, num_bytes);
             num_bytes -= from_first_buffer;
             if num_bytes <= self.buf.len() {
                 //# Read the next buffer-full.
@@ -178,13 +178,13 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
     #[inline]
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.buf.len();
-        (self.buf.as_mut_slice().unsafe_mut_ref(self.pos) as *mut u8,
-         self.buf.as_mut_slice().unsafe_mut_ref(len) as *mut u8)
+        (self.buf.as_mut_slice().unsafe_mut(self.pos) as *mut u8,
+         self.buf.as_mut_slice().unsafe_mut(len) as *mut u8)
     }
 
     #[inline]
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
-        let easy_case = ptr == self.buf.as_mut_slice().unsafe_mut_ref(self.pos) as *mut u8;
+        let easy_case = ptr == self.buf.as_mut_slice().unsafe_mut(self.pos) as *mut u8;
         if easy_case {
             self.pos += size;
             Ok(())
@@ -203,21 +203,21 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
         let available = self.buf.len() - self.pos;
         let mut size = buf.len();
         if size <= available {
-            let dst = self.buf.as_mut_slice().mut_slice_from(self.pos);
+            let dst = self.buf.as_mut_slice().slice_from_mut(self.pos);
             std::slice::bytes::copy_memory(dst, buf);
             self.pos += size;
         } else if size <= self.buf.len() {
             //# Too much for this buffer, but not a full buffer's
             //# worth, so we'll go ahead and copy.
             {
-                let dst = self.buf.as_mut_slice().mut_slice_from(self.pos);
+                let dst = self.buf.as_mut_slice().slice_from_mut(self.pos);
                 std::slice::bytes::copy_memory(dst, buf.slice(0, available));
             }
             try!(self.inner.write(self.buf.as_mut_slice()));
 
             size -= available;
             let src = buf.slice_from(available);
-            let dst = self.buf.as_mut_slice().mut_slice_from(0);
+            let dst = self.buf.as_mut_slice().slice_from_mut(0);
             std::slice::bytes::copy_memory(dst, src);
             self.pos = size;
         } else {
@@ -257,7 +257,7 @@ impl <'a> Writer for ArrayOutputStream<'a> {
     fn write(&mut self, buf: &[u8]) -> IoResult<()> {
         assert!(buf.len() <= self.array.len() - self.fill_pos,
                 "ArrayOutputStream's backing array was not large enough for the data written.");
-        unsafe { self.array.mut_slice_from(self.fill_pos).copy_memory(buf); }
+        unsafe { self.array.slice_from_mut(self.fill_pos).copy_memory(buf); }
         self.fill_pos += buf.len();
         Ok(())
     }
@@ -266,11 +266,11 @@ impl <'a> Writer for ArrayOutputStream<'a> {
 impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.array.len();
-        (self.array.unsafe_mut_ref(self.fill_pos) as *mut u8,
-         self.array.unsafe_mut_ref(len) as *mut u8)
+        (self.array.unsafe_mut(self.fill_pos) as *mut u8,
+         self.array.unsafe_mut(len) as *mut u8)
     }
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
-        let easy_case = ptr == self.array.unsafe_mut_ref(self.fill_pos) as *mut u8;
+        let easy_case = ptr == self.array.unsafe_mut(self.fill_pos) as *mut u8;
         if easy_case {
             self.fill_pos += size;
             Ok(())

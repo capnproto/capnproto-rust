@@ -1195,7 +1195,7 @@ mod wire_helpers {
                                   segment : *mut SegmentBuilder,
                                   default_value : *const Word, default_size : ByteCount) -> text::Builder<'a> {
             if default_size == 0 {
-                return text::Builder::new(::std::ptr::mut_null(), 0);
+                return text::Builder::new(::std::ptr::null_mut(), 0);
             } else {
                 let builder = init_text_pointer(reff, segment, default_size).value;
                 ::std::ptr::copy_nonoverlapping_memory::<u8>(builder.as_ptr(),
@@ -1256,7 +1256,7 @@ mod wire_helpers {
                                   default_value : *const Word,
                                   default_size : ByteCount) -> data::Builder<'a> {
             if default_size == 0 {
-                return data::new_builder(::std::ptr::mut_null(), 0);
+                return data::new_builder(::std::ptr::null_mut(), 0);
             } else {
                 let builder = init_data_pointer(reff, segment, default_size).value;
                 ::std::ptr::copy_nonoverlapping_memory::<u8>(builder.as_mut_ptr(),
@@ -1386,7 +1386,7 @@ mod wire_helpers {
         unsafe fn use_default(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer)
             -> super::SegmentAnd<*mut Word> {
                 ::std::ptr::zero_memory(dst, 1);
-                return super::SegmentAnd { segment : dst_segment, value : ::std::ptr::mut_null() };
+                return super::SegmentAnd { segment : dst_segment, value : ::std::ptr::null_mut() };
             }
 
         let src_target = (*src).target();
@@ -1499,7 +1499,7 @@ mod wire_helpers {
                 match (*src_segment).arena.extract_cap((*src).cap_ref().index.get() as uint) {
                     Some(cap) => {
                         set_capability_pointer(dst_segment, dst, cap);
-                        return super::SegmentAnd { segment : dst_segment, value : ::std::ptr::mut_null() };
+                        return super::SegmentAnd { segment : dst_segment, value : ::std::ptr::null_mut() };
                     }
                     None => {
                         require_fail!(*src_segment,
@@ -2380,7 +2380,7 @@ impl <'a> ListBuilder<'a> {
     pub fn new_default<'a>() -> ListBuilder<'a> {
         ListBuilder {
             marker : ::std::kinds::marker::ContravariantLifetime::<'a>,
-            segment : ::std::ptr::mut_null(), ptr : ::std::ptr::mut_null(), element_count : 0,
+            segment : ::std::ptr::null_mut(), ptr : ::std::ptr::null_mut(), element_count : 0,
             step : 0, struct_data_size : 0, struct_pointer_count : 0
         }
     }
