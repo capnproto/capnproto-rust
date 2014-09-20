@@ -142,7 +142,7 @@ mod tests {
         let data_builder = test_blob.init_data_field(7);
         assert!(test_blob.as_reader().get_data_field() ==
                 [0u8,0u8,0u8,0u8,0u8,0u8,0u8]);
-        for c in data_builder.mut_iter() {
+        for c in data_builder.iter_mut() {
             *c = 5;
         }
         data_builder[0] = 4u8;
