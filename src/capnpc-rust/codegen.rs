@@ -194,7 +194,7 @@ static RUST_KEYWORDS : [&'static str, ..34] =
 fn module_name(camel_case : &str) -> String {
     let mut name = camel_to_snake_case(camel_case);
     if RUST_KEYWORDS.contains(&name.as_slice()) {
-        name.push_char('_');
+        name.push('_');
     }
     return name;
 }
