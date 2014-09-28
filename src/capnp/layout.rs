@@ -1181,8 +1181,8 @@ mod wire_helpers {
                                        value : &str) -> super::SegmentAnd<text::Builder<'a>> {
         let value_bytes = value.as_bytes();
         let allocation = init_text_pointer(reff, segment, value_bytes.len());
-        let builder = allocation.value;
-        builder.as_mut_bytes().copy_memory(value_bytes);
+        let slice = allocation.value.as_mut_bytes();
+        ::std::ptr::copy_nonoverlapping_memory(slice.as_mut_ptr(), value_bytes.as_ptr(), value_bytes.len());
         allocation
     }
 
@@ -1242,7 +1242,8 @@ mod wire_helpers {
                                        segment : *mut SegmentBuilder,
                                        value : &[u8]) -> super::SegmentAnd<data::Builder<'a>> {
         let allocation = init_data_pointer(reff, segment, value.len());
-        allocation.value.copy_memory(value);
+        ::std::ptr::copy_nonoverlapping_memory(allocation.value.as_mut_ptr(), value.as_ptr(),
+                                               value.len());
         return allocation;
     }
 
