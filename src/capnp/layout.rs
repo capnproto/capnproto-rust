@@ -1810,7 +1810,7 @@ mod wire_helpers {
         let size : uint = list_ref.element_count();
 
         require!((*reff).kind() == wire_pointer_kind::List, *segment,
-                 "Message contains non-list pointer where text was expected",
+                 "Message contains non-list pointer where data was expected",
                  return use_default(default_value, default_size));
 
         require!(list_ref.element_size() == Byte, *segment,
