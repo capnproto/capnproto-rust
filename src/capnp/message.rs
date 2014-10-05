@@ -22,12 +22,12 @@ pub struct ReaderOptions {
     pub fail_fast : bool,
 }
 
-pub static DefaultReaderOptions : ReaderOptions =
+pub static DEFAULT_READER_OPTIONS : ReaderOptions =
     ReaderOptions { traversal_limit_in_words : 8 * 1024 * 1024, nesting_limit : 64,
                     fail_fast : true };
 
 impl ReaderOptions {
-    pub fn new() -> ReaderOptions { DefaultReaderOptions }
+    pub fn new() -> ReaderOptions { DEFAULT_READER_OPTIONS }
 
     pub fn nesting_limit<'a>(&'a mut self, value : int) -> &'a mut ReaderOptions {
         self.nesting_limit = value;

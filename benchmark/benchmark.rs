@@ -151,7 +151,7 @@ macro_rules! pass_by_bytes(
 
                     let message_reader = $compression::new_buffered_reader(
                         &mut capnp::io::ArrayInputStream::new(request_bytes.as_slice()),
-                        capnp::message::DefaultReaderOptions);
+                        capnp::message::DEFAULT_READER_OPTIONS);
 
                     let request_reader : $testcase::RequestReader = message_reader.get_root();
                     $testcase::handle_request(request_reader, response);
@@ -164,7 +164,7 @@ macro_rules! pass_by_bytes(
 
                 let message_reader = $compression::new_buffered_reader(
                     &mut capnp::io::ArrayInputStream::new(response_bytes.as_slice()),
-                    capnp::message::DefaultReaderOptions);
+                    capnp::message::DEFAULT_READER_OPTIONS);
 
                 let response_reader : $testcase::ResponseReader = message_reader.get_root();
                 if !$testcase::check_response(response_reader, expected) {
@@ -185,7 +185,7 @@ macro_rules! server(
                     let response = message_res.init_root::<$testcase::ResponseBuilder>();
                     let message_reader = $compression::new_buffered_reader(
                         &mut in_buffered,
-                        capnp::message::DefaultReaderOptions);
+                        capnp::message::DEFAULT_READER_OPTIONS);
                     let request_reader : $testcase::RequestReader = message_reader.get_root();
                     $testcase::handle_request(request_reader, response);
                 }
@@ -213,7 +213,7 @@ macro_rules! sync_client(
 
                 let message_reader = $compression::new_buffered_reader(
                     &mut in_buffered,
-                    capnp::message::DefaultReaderOptions);
+                    capnp::message::DEFAULT_READER_OPTIONS);
                 let response_reader : $testcase::ResponseReader = message_reader.get_root();
                 assert!($testcase::check_response(response_reader, expected));
 

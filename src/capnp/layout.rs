@@ -1829,8 +1829,8 @@ mod wire_helpers {
 
 }
 
-static zero : u64 = 0;
-fn zero_pointer() -> *const WirePointer { unsafe {::std::mem::transmute(&zero)}}
+static ZERO : u64 = 0;
+fn zero_pointer() -> *const WirePointer { unsafe {::std::mem::transmute(&ZERO)}}
 
 pub struct PointerReader<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
