@@ -24,7 +24,7 @@ pub enum ElementSize {
     InlineComposite = 7
 }
 
-pub fn data_bits_per_element(size : ElementSize) -> BitCount0 {
+pub fn data_bits_per_element(size : ElementSize) -> BitCount32 {
     match size {
         Void => 0,
         Bit => 1,
@@ -37,7 +37,7 @@ pub fn data_bits_per_element(size : ElementSize) -> BitCount0 {
     }
 }
 
-pub fn pointers_per_element(size : ElementSize) -> WirePointerCount {
+pub fn pointers_per_element(size : ElementSize) -> WirePointerCount32 {
     match size {
         Pointer => 1,
         _ => 0
@@ -73,8 +73,8 @@ pub struct StructSize {
 }
 
 impl StructSize {
-    pub fn total(&self) -> WordCount {
-        (self.data as WordCount) + (self.pointers as WordCount) * WORDS_PER_POINTER
+    pub fn total(&self) -> WordCount32 {
+        (self.data as WordCount32) + (self.pointers as WordCount32) * WORDS_PER_POINTER as WordCount32
     }
 }
 
@@ -112,9 +112,9 @@ pub struct CapRef {
 }
 
 impl StructRef {
-    pub fn word_size(&self) -> WordCount {
-        self.data_size.get() as WordCount +
-            self.ptr_count.get() as WordCount * WORDS_PER_POINTER
+    pub fn word_size(&self) -> WordCount32 {
+        self.data_size.get() as WordCount32 +
+            self.ptr_count.get() as WordCount32 * WORDS_PER_POINTER as u32
     }
 
     #[inline]
@@ -139,25 +139,25 @@ impl ListRef {
     }
 
     #[inline]
-    pub fn element_count(&self) -> ElementCount {
-        (self.element_size_and_count.get() >> 3) as uint
+    pub fn element_count(&self) -> ElementCount32 {
+        (self.element_size_and_count.get() >> 3)
     }
 
     #[inline]
-    pub fn inline_composite_word_count(&self) -> WordCount {
+    pub fn inline_composite_word_count(&self) -> WordCount32 {
         self.element_count()
     }
 
     #[inline]
-    pub fn set(&mut self, es : ElementSize, ec : ElementCount) {
+    pub fn set(&mut self, es : ElementSize, ec : ElementCount32) {
         assert!(ec < (1 << 29), "Lists are limited to 2**29 elements");
         self.element_size_and_count.set(((ec as u32) << 3 ) | (es as u32));
     }
 
     #[inline]
-    pub fn set_inline_composite(& mut self, wc : WordCount) {
+    pub fn set_inline_composite(& mut self, wc : WordCount32) {
         assert!(wc < (1 << 29), "Inline composite lists are limited to 2**29 words");
-        self.element_size_and_count.set((( wc as u32) << 3) | (InlineComposite as u32));
+        self.element_size_and_count.set(((wc as u32) << 3) | (InlineComposite as u32));
     }
 }
 
@@ -228,19 +228,19 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn inline_composite_list_element_count(&self) -> ElementCount {
-        (self.offset_and_kind.get() >> 2) as ElementCount
+    pub fn inline_composite_list_element_count(&self) -> ElementCount32 {
+        (self.offset_and_kind.get() >> 2)
     }
 
     #[inline]
     pub fn set_kind_and_inline_composite_list_element_count(
-        &mut self, kind : wire_pointer_kind::Type, element_count : ElementCount) {
-        self.offset_and_kind.set((( element_count as u32 << 2) | (kind as u32)))
+        &mut self, kind : wire_pointer_kind::Type, element_count : ElementCount32) {
+        self.offset_and_kind.set((( element_count << 2) | (kind as u32)))
     }
 
     #[inline]
-    pub fn far_position_in_segment(&self) -> WordCount {
-        (self.offset_and_kind.get() >> 3) as WordCount
+    pub fn far_position_in_segment(&self) -> WordCount32 {
+        (self.offset_and_kind.get() >> 3)
     }
 
     #[inline]
@@ -249,9 +249,9 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn set_far(&mut self, is_double_far : bool, pos : WordCount) {
+    pub fn set_far(&mut self, is_double_far : bool, pos : WordCount32) {
         self.offset_and_kind.set
-            (( pos << 3) as u32 | (is_double_far as u32 << 2) | wire_pointer_kind::Far as u32);
+            (( pos << 3) | (is_double_far as u32 << 2) | wire_pointer_kind::Far as u32);
     }
 
     #[inline]
@@ -346,9 +346,9 @@ mod wire_helpers {
     use blob::*;
 
     #[inline]
-    pub fn round_bytes_up_to_words(bytes : ByteCount) -> WordCount {
+    pub fn round_bytes_up_to_words(bytes : ByteCount32) -> WordCount32 {
         //# This code assumes 64-bit words.
-        (bytes + 7) / BYTES_PER_WORD
+        (bytes + 7) / BYTES_PER_WORD as u32
     }
 
     //# The maximum object size is 4GB - 1 byte. If measured in bits,
@@ -356,15 +356,15 @@ mod wire_helpers {
     //# BitCount64. However, 32 bits is enough for the returned
     //# ByteCounts and WordCounts.
     #[inline]
-    pub fn round_bits_up_to_words(bits : BitCount64) -> WordCount {
+    pub fn round_bits_up_to_words(bits : BitCount64) -> WordCount32 {
         //# This code assumes 64-bit words.
-        ((bits + 63) / (BITS_PER_WORD as u64)) as WordCount
+        ((bits + 63) / (BITS_PER_WORD as u64)) as WordCount32
     }
 
     #[allow(dead_code)]
     #[inline]
-    pub fn round_bits_up_to_bytes(bits : BitCount64) -> ByteCount {
-        ((bits + 7) / (BITS_PER_BYTE as u64)) as ByteCount
+    pub fn round_bits_up_to_bytes(bits : BitCount64) -> ByteCount32 {
+        ((bits + 7) / (BITS_PER_BYTE as u64)) as ByteCount32
     }
 
     #[inline]
@@ -377,7 +377,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn allocate(reff : &mut *mut WirePointer,
                            segment : &mut *mut SegmentBuilder,
-                           amount : WordCount, kind : wire_pointer_kind::Type) -> *mut Word {
+                           amount : WordCount32, kind : wire_pointer_kind::Type) -> *mut Word {
         let is_null = (**reff).is_null();
         if !is_null {
             zero_object(*segment, *reff)
@@ -395,7 +395,7 @@ mod wire_helpers {
                 //# allocate an extra pointer worth of space to act as
                 //# the landing pad for a far pointer.
 
-                let amount_plus_ref = amount + POINTER_SIZE_IN_WORDS;
+                let amount_plus_ref = amount + POINTER_SIZE_IN_WORDS as u32;
                 let allocation = (*(**segment).get_arena()).allocate(amount_plus_ref);
                 *segment = allocation.val0();
                 let ptr = allocation.val1();
@@ -544,7 +544,7 @@ mod wire_helpers {
                 for i in range::<int>(0, count) {
                     zero_object(segment, pointer_section.offset(i));
                 }
-                ::std::ptr::set_memory(ptr, 0u8, (*tag).struct_ref().word_size());
+                ::std::ptr::set_memory(ptr, 0u8, (*tag).struct_ref().word_size() as uint);
             }
             wire_pointer_kind::List => {
                 match (*tag).list_ref().element_size() {
@@ -555,7 +555,7 @@ mod wire_helpers {
                             round_bits_up_to_words((
                                     (*tag).list_ref().element_count() *
                                         data_bits_per_element(
-                                        (*tag).list_ref().element_size())) as u64))
+                                        (*tag).list_ref().element_size())) as u64) as uint)
                     }
                     Pointer => {
                         let count = (*tag).list_ref().element_count() as uint;
@@ -585,7 +585,7 @@ mod wire_helpers {
                             }
                         }
                         ::std::ptr::set_memory(ptr, 0u8,
-                                             (*element_tag).struct_ref().word_size() * count + 1);
+                                               ((*element_tag).struct_ref().word_size() * count + 1) as uint);
                     }
                 }
             }
@@ -610,7 +610,7 @@ mod wire_helpers {
 
     pub unsafe fn total_size(mut segment : *const SegmentReader,
                              mut reff : *const WirePointer,
-                             mut nesting_limit : int) -> MessageSize {
+                             mut nesting_limit : i32) -> MessageSize {
         let mut result = MessageSize { word_count : 0, cap_count : 0};
 
         if (*reff).is_null() { return result };
@@ -651,7 +651,7 @@ mod wire_helpers {
                     }
                     Pointer => {
                         let count = (*reff).list_ref().element_count();
-                        require!(bounds_check(segment, ptr, ptr.offset((count * WORDS_PER_POINTER) as int)),
+                        require!(bounds_check(segment, ptr, ptr.offset((count * WORDS_PER_POINTER as u32) as int)),
                                  *segment,
                                  "Message contains out-of-bounds list pointer.",
                                  return result);
@@ -842,7 +842,7 @@ mod wire_helpers {
 
                 let new_data_size = ::std::cmp::max(old_data_size, size.data);
                 let new_pointer_count = ::std::cmp::max(old_pointer_count, size.pointers);
-                let total_size = new_data_size as WordCount + new_pointer_count as WordCount * WORDS_PER_POINTER;
+                let total_size = new_data_size as u32 + new_pointer_count as u32 * WORDS_PER_POINTER as u32;
 
                 //# Don't let allocate() zero out the object just yet.
                 zero_pointer_and_fars(segment, reff);
@@ -892,14 +892,14 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn init_list_pointer<'a>(mut reff : *mut WirePointer,
                                         mut segment_builder : *mut SegmentBuilder,
-                                        element_count : ElementCount,
+                                        element_count : ElementCount32,
                                         element_size : ElementSize) -> ListBuilder<'a> {
         assert!(element_size != InlineComposite,
                 "Should have called initStructListPointer() instead");
 
-        let data_size : BitCount0 = data_bits_per_element(element_size);
+        let data_size = data_bits_per_element(element_size);
         let pointer_count = pointers_per_element(element_size);
-        let step = data_size + pointer_count * BITS_PER_POINTER;
+        let step = data_size + pointer_count * BITS_PER_POINTER as u32;
         let word_count = round_bits_up_to_words(element_count as ElementCount64 * (step as u64));
         let ptr = allocate(&mut reff, &mut segment_builder, word_count, wire_pointer_kind::List);
 
@@ -919,7 +919,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn init_struct_list_pointer<'a>(mut reff : *mut WirePointer,
                                                mut segment_builder : *mut SegmentBuilder,
-                                               element_count : ElementCount,
+                                               element_count : ElementCount32,
                                                element_size : StructSize) -> ListBuilder<'a> {
         if element_size.preferred_list_encoding != InlineComposite {
             //# Small data-only struct. Allocate a list of primitives instead.
@@ -930,10 +930,10 @@ mod wire_helpers {
         let words_per_element = element_size.total();
 
         //# Allocate the list, prefixed by a single WirePointer.
-        let word_count : WordCount = element_count * words_per_element;
+        let word_count : WordCount32 = element_count * words_per_element;
         let ptr : *mut WirePointer =
             ::std::mem::transmute(allocate(&mut reff, &mut segment_builder,
-                                          POINTER_SIZE_IN_WORDS + word_count, wire_pointer_kind::List));
+                                          POINTER_SIZE_IN_WORDS as u32 + word_count, wire_pointer_kind::List));
 
         //# Initialize the pointer.
         (*reff).mut_list_ref().set_inline_composite(word_count);
@@ -946,7 +946,7 @@ mod wire_helpers {
             marker : ::std::kinds::marker::ContravariantLifetime::<'a>,
             segment : segment_builder,
             ptr : ::std::mem::transmute(ptr1),
-            step : words_per_element * BITS_PER_WORD,
+            step : words_per_element * BITS_PER_WORD as u32,
             element_count : element_count,
             struct_data_size : element_size.data as u32 * (BITS_PER_WORD as u32),
             struct_pointer_count : element_size.pointers
@@ -1040,7 +1040,7 @@ mod wire_helpers {
                     segment : segment,
                     ptr : ::std::mem::transmute(ptr),
                     element_count : (*tag).inline_composite_list_element_count(),
-                    step : (*tag).struct_ref().word_size() * BITS_PER_WORD,
+                    step : (*tag).struct_ref().word_size() * BITS_PER_WORD as u32,
                     struct_data_size : data_size as u32 * BITS_PER_WORD as u32,
                     struct_pointer_count : pointer_count
                 };
@@ -1057,7 +1057,7 @@ mod wire_helpers {
                          "Existing list value is incompatible with expected type.",
                          continue 'use_default);
 
-                let step = data_size + pointer_count * BITS_PER_POINTER;
+                let step = data_size + pointer_count * BITS_PER_POINTER as u32;
 
                 return ListBuilder {
                     marker : ::std::kinds::marker::ContravariantLifetime::<'a>,
@@ -1115,7 +1115,7 @@ mod wire_helpers {
 
                 let old_data_size = (*old_tag).struct_ref().data_size.get();
                 let old_pointer_count = (*old_tag).struct_ref().ptr_count.get();
-                let old_step = old_data_size as uint + old_pointer_count as uint * WORDS_PER_POINTER;
+                let old_step = old_data_size as u32 + old_pointer_count as u32 * WORDS_PER_POINTER as u32;
                 let element_count = (*old_tag).inline_composite_list_element_count();
 
                 if old_data_size >= element_size.data && old_pointer_count >= element_size.pointers {
@@ -1125,7 +1125,7 @@ mod wire_helpers {
                         segment : old_segment,
                         ptr : ::std::mem::transmute(old_ptr),
                         element_count : element_count,
-                        step : old_step * BITS_PER_WORD,
+                        step : old_step * BITS_PER_WORD as u32,
                         struct_data_size : old_data_size as u32 * BITS_PER_WORD as u32,
                         struct_pointer_count : old_pointer_count
                     };
@@ -1141,7 +1141,7 @@ mod wire_helpers {
 
                 let data_size = data_bits_per_element(old_size);
                 let pointer_count = pointers_per_element(old_size);
-                let step = data_size + pointer_count * BITS_PER_POINTER;
+                let step = data_size + pointer_count * BITS_PER_POINTER as u32;
                 return ListBuilder {
                     marker : ::std::kinds::marker::ContravariantLifetime::<'a>,
                     segment : old_segment,
@@ -1160,7 +1160,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn init_text_pointer<'a>(mut reff : *mut WirePointer,
                                         mut segment : *mut SegmentBuilder,
-                                        size : ByteCount) -> super::SegmentAnd<text::Builder<'a>> {
+                                        size : ByteCount32) -> super::SegmentAnd<text::Builder<'a>> {
         //# The byte list must include a NUL terminator.
         let byte_size = size + 1;
 
@@ -1180,7 +1180,8 @@ mod wire_helpers {
                                        segment : *mut SegmentBuilder,
                                        value : &str) -> super::SegmentAnd<text::Builder<'a>> {
         let value_bytes = value.as_bytes();
-        let allocation = init_text_pointer(reff, segment, value_bytes.len());
+        // TODO make sure the string is not longer than 2 ** 29.
+        let allocation = init_text_pointer(reff, segment, value_bytes.len() as u32);
         let slice = allocation.value.as_mut_bytes();
         ::std::ptr::copy_nonoverlapping_memory(slice.as_mut_ptr(), value_bytes.as_ptr(), value_bytes.len());
         allocation
@@ -1190,17 +1191,17 @@ mod wire_helpers {
     pub unsafe fn get_writable_text_pointer<'a>(mut reff : *mut WirePointer,
                                                 mut segment : *mut SegmentBuilder,
                                                 default_value : *const Word,
-                                                default_size : ByteCount) -> text::Builder<'a> {
+                                                default_size : ByteCount32) -> text::Builder<'a> {
         unsafe fn use_default<'a>(reff : *mut WirePointer,
                                   segment : *mut SegmentBuilder,
-                                  default_value : *const Word, default_size : ByteCount) -> text::Builder<'a> {
+                                  default_value : *const Word, default_size : ByteCount32) -> text::Builder<'a> {
             if default_size == 0 {
                 return text::Builder::new(::std::ptr::null_mut(), 0);
             } else {
                 let builder = init_text_pointer(reff, segment, default_size).value;
                 ::std::ptr::copy_nonoverlapping_memory::<u8>(builder.as_ptr(),
                                                            ::std::mem::transmute(default_value),
-                                                           default_size);
+                                                           default_size as uint);
                 return builder;
             }
         }
@@ -1225,7 +1226,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn init_data_pointer<'a>(mut reff : *mut WirePointer,
                                         mut segment : *mut SegmentBuilder,
-                                        size : ByteCount) -> super::SegmentAnd<data::Builder<'a>> {
+                                        size : ByteCount32) -> super::SegmentAnd<data::Builder<'a>> {
         //# Allocate the space.
         let ptr =
             allocate(&mut reff, &mut segment, round_bytes_up_to_words(size), wire_pointer_kind::List);
@@ -1241,7 +1242,7 @@ mod wire_helpers {
     pub unsafe fn set_data_pointer<'a>(reff : *mut WirePointer,
                                        segment : *mut SegmentBuilder,
                                        value : &[u8]) -> super::SegmentAnd<data::Builder<'a>> {
-        let allocation = init_data_pointer(reff, segment, value.len());
+        let allocation = init_data_pointer(reff, segment, value.len() as u32);
         ::std::ptr::copy_nonoverlapping_memory(allocation.value.as_mut_ptr(), value.as_ptr(),
                                                value.len());
         return allocation;
@@ -1251,18 +1252,18 @@ mod wire_helpers {
     pub unsafe fn get_writable_data_pointer<'a>(mut reff : *mut WirePointer,
                                                 mut segment : *mut SegmentBuilder,
                                                 default_value : *const Word,
-                                                default_size : ByteCount) -> data::Builder<'a> {
+                                                default_size : ByteCount32) -> data::Builder<'a> {
         unsafe fn use_default<'a>(reff : *mut WirePointer,
                                   segment : *mut SegmentBuilder,
                                   default_value : *const Word,
-                                  default_size : ByteCount) -> data::Builder<'a> {
+                                  default_size : ByteCount32) -> data::Builder<'a> {
             if default_size == 0 {
                 return data::new_builder(::std::ptr::null_mut(), 0);
             } else {
                 let builder = init_data_pointer(reff, segment, default_size).value;
                 ::std::ptr::copy_nonoverlapping_memory::<u8>(builder.as_mut_ptr(),
                                                            ::std::mem::transmute(default_value),
-                                                           default_size);
+                                                           default_size as uint);
                 return builder;
             }
         }
@@ -1286,8 +1287,8 @@ mod wire_helpers {
     pub unsafe fn set_struct_pointer<'a>(mut segment : *mut SegmentBuilder,
                                          mut reff : *mut WirePointer,
                                          value : StructReader) -> super::SegmentAnd<*mut Word> {
-        let data_size : WordCount = round_bits_up_to_words(value.data_size as u64);
-        let total_size : WordCount = data_size + value.pointer_count as uint * WORDS_PER_POINTER;
+        let data_size : WordCount32 = round_bits_up_to_words(value.data_size as u64);
+        let total_size : WordCount32 = data_size + value.pointer_count as u32 * WORDS_PER_POINTER as u32;
 
         let ptr = allocate(&mut reff, &mut segment, total_size, wire_pointer_kind::Struct);
         (*reff).mut_struct_ref().set(data_size as u16, value.pointer_count);
@@ -1319,7 +1320,7 @@ mod wire_helpers {
                                        value : ListReader) -> super::SegmentAnd<*mut Word> {
         let total_size = round_bits_up_to_words((value.element_count * value.step) as u64);
 
-        if value.step <= BITS_PER_WORD {
+        if value.step <= BITS_PER_WORD as u32 {
             //# List of non-structs.
             let ptr = allocate(&mut reff, &mut segment, total_size, wire_pointer_kind::List);
 
@@ -1345,13 +1346,13 @@ mod wire_helpers {
                 };
 
                 (*reff).mut_list_ref().set(element_size, value.element_count);
-                ::std::ptr::copy_memory(ptr, ::std::mem::transmute::<*const u8,*const Word>(value.ptr), total_size);
+                ::std::ptr::copy_memory(ptr, ::std::mem::transmute::<*const u8,*const Word>(value.ptr), total_size as uint);
             }
 
             super::SegmentAnd { segment : segment, value : ptr }
         } else {
             //# List of structs.
-            let ptr = allocate(&mut reff, &mut segment, total_size + POINTER_SIZE_IN_WORDS, wire_pointer_kind::List);
+            let ptr = allocate(&mut reff, &mut segment, total_size + POINTER_SIZE_IN_WORDS as u32, wire_pointer_kind::List);
             (*reff).mut_list_ref().set_inline_composite(total_size);
 
             let data_size = round_bits_up_to_words(value.struct_data_size as u64);
@@ -1382,7 +1383,7 @@ mod wire_helpers {
 
     pub unsafe fn copy_pointer(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer,
                                mut src_segment : *const SegmentReader, mut src : *const WirePointer,
-                               nesting_limit : int) -> super::SegmentAnd<*mut Word> {
+                               nesting_limit : i32) -> super::SegmentAnd<*mut Word> {
 
         unsafe fn use_default(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer)
             -> super::SegmentAnd<*mut Word> {
@@ -1460,7 +1461,7 @@ mod wire_helpers {
                             segment : src_segment,
                             ptr : ::std::mem::transmute(ptr),
                             element_count : element_count,
-                            step : words_per_element * BITS_PER_WORD,
+                            step : words_per_element * BITS_PER_WORD as u32,
                             struct_data_size : (*tag).struct_ref().data_size.get() as u32 * BITS_PER_WORD as u32,
                             struct_pointer_count : (*tag).struct_ref().ptr_count.get(),
                             nesting_limit : nesting_limit - 1
@@ -1468,7 +1469,7 @@ mod wire_helpers {
                 } else {
                     let data_size = data_bits_per_element(element_size);
                     let pointer_count = pointers_per_element(element_size);
-                    let step = data_size + pointer_count * BITS_PER_POINTER;
+                    let step = data_size + pointer_count * BITS_PER_POINTER as u32;
                     let element_count = (*src).list_ref().element_count();
                     let word_count = round_bits_up_to_words(element_count as u64 * step as u64);
 
@@ -1516,7 +1517,7 @@ mod wire_helpers {
     pub unsafe fn read_struct_pointer<'a>(mut segment: *const SegmentReader,
                                           mut reff : *const WirePointer,
                                           default_value : *const Word,
-                                          nesting_limit : int) -> StructReader<'a> {
+                                          nesting_limit : i32) -> StructReader<'a> {
         let ref_target : *const Word = (*reff).target();
         let mut first_time = true;
 
@@ -1564,7 +1565,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn read_capability_pointer(segment : *const SegmentReader,
                                           reff : *const WirePointer,
-                                          _nesting_limit : int) -> Box<ClientHook+Send> {
+                                          _nesting_limit : i32) -> Box<ClientHook+Send> {
         if (*reff).is_null() {
             fail!("broken cap factory is unimplemented");
         } else if !(*reff).is_capability() {
@@ -1585,7 +1586,7 @@ mod wire_helpers {
                                       mut reff : *const WirePointer,
                                       default_value : *const Word,
                                       expected_element_size : ElementSize,
-                                      nesting_limit : int ) -> ListReader<'a> {
+                                      nesting_limit : i32) -> ListReader<'a> {
         let ref_target : *const Word = (*reff).target();
         let mut first_time = true;
 
@@ -1670,7 +1671,7 @@ mod wire_helpers {
                         segment : segment,
                         ptr : ::std::mem::transmute(ptr),
                         element_count : size,
-                        step : words_per_element * BITS_PER_WORD,
+                        step : words_per_element * BITS_PER_WORD as u32,
                         struct_data_size : struct_ref.data_size.get() as u32 * (BITS_PER_WORD as u32),
                         struct_pointer_count : struct_ref.ptr_count.get() as u16,
                         nesting_limit : nesting_limit - 1
@@ -1684,7 +1685,7 @@ mod wire_helpers {
                     //# such structs.
                     let data_size = data_bits_per_element(list_ref.element_size());
                     let pointer_count = pointers_per_element(list_ref.element_size());
-                    let step = data_size + pointer_count * BITS_PER_POINTER;
+                    let step = data_size + pointer_count * BITS_PER_POINTER as u32;
 
                     require!(
                         bounds_check(
@@ -1735,9 +1736,9 @@ mod wire_helpers {
     pub unsafe fn read_text_pointer<'a>(mut segment : *const SegmentReader,
                                         mut reff : *const WirePointer,
                                         default_value : *const Word,
-                                        default_size : ByteCount
+                                        default_size : ByteCount32
                                         ) -> text::Reader<'a> {
-        unsafe fn use_default<'a>(default_value : *const Word, default_size : ByteCount) -> text::Reader<'a> {
+        unsafe fn use_default<'a>(default_value : *const Word, default_size : ByteCount32) -> text::Reader<'a> {
             //   TODO?       if default_value.is_null() { default_value = &"" }
 
             // assume that the default value is valid utf-8.
@@ -1754,7 +1755,7 @@ mod wire_helpers {
 
         let list_ref = (*reff).list_ref();
 
-        let size : uint = list_ref.element_count();
+        let size = list_ref.element_count();
 
         require!((*reff).kind() == wire_pointer_kind::List, *segment,
                  "Message contains non-list pointer where text was expected",
@@ -1791,9 +1792,9 @@ mod wire_helpers {
     pub unsafe fn read_data_pointer<'a>(mut segment : *const SegmentReader,
                                         mut reff : *const WirePointer,
                                         default_value : *const Word,
-                                        default_size : ByteCount
+                                        default_size : ByteCount32
                                         ) -> data::Reader<'a> {
-        unsafe fn use_default<'a>(default_value : *const Word, default_size : ByteCount) -> data::Reader<'a> {
+        unsafe fn use_default<'a>(default_value : *const Word, default_size : ByteCount32) -> data::Reader<'a> {
             return data::new_reader(::std::mem::transmute(default_value), default_size);
         }
 
@@ -1807,7 +1808,7 @@ mod wire_helpers {
 
         let list_ref = (*reff).list_ref();
 
-        let size : uint = list_ref.element_count();
+        let size : u32 = list_ref.element_count();
 
         require!((*reff).kind() == wire_pointer_kind::List, *segment,
                  "Message contains non-list pointer where data was expected",
@@ -1825,8 +1826,6 @@ mod wire_helpers {
 
         data::new_reader(::std::mem::transmute(ptr), size)
     }
-
-
 }
 
 static ZERO : u64 = 0;
@@ -1836,7 +1835,7 @@ pub struct PointerReader<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
     segment : *const SegmentReader,
     pointer : *const WirePointer,
-    nesting_limit : int
+    nesting_limit : i32
 }
 
 impl <'a> PointerReader<'a> {
@@ -1849,7 +1848,7 @@ impl <'a> PointerReader<'a> {
     }
 
     pub fn get_root<'b>(segment : *const SegmentReader, mut location : *const Word,
-                        nesting_limit : int) -> PointerReader<'b> {
+                        nesting_limit : i32) -> PointerReader<'b> {
         unsafe {
             require!(wire_helpers::bounds_check(segment, location,
                                                location.offset(POINTER_SIZE_IN_WORDS as int)),
@@ -1895,13 +1894,13 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_text(&self, default_value : *const Word, default_size : ByteCount) -> text::Reader<'a> {
+    pub fn get_text(&self, default_value : *const Word, default_size : ByteCount32) -> text::Reader<'a> {
         unsafe {
             wire_helpers::read_text_pointer(self.segment, self.pointer, default_value, default_size)
         }
     }
 
-    pub fn get_data(&self, default_value : *const Word, default_size : ByteCount) -> data::Reader<'a> {
+    pub fn get_data(&self, default_value : *const Word, default_size : ByteCount32) -> data::Reader<'a> {
         unsafe {
             wire_helpers::read_data_pointer(self.segment, self.pointer, default_value, default_size)
         }
@@ -1964,14 +1963,14 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn get_text(&self, default_value : *const Word, default_size : ByteCount) -> text::Builder<'a> {
+    pub fn get_text(&self, default_value : *const Word, default_size : ByteCount32) -> text::Builder<'a> {
         unsafe {
             wire_helpers::get_writable_text_pointer(
                 self.pointer, self.segment, default_value, default_size)
         }
     }
 
-    pub fn get_data(&self, default_value : *const Word, default_size : ByteCount) -> data::Builder<'a> {
+    pub fn get_data(&self, default_value : *const Word, default_size : ByteCount32) -> data::Builder<'a> {
         unsafe {
             wire_helpers::get_writable_data_pointer(
                 self.pointer, self.segment, default_value, default_size)
@@ -1981,7 +1980,7 @@ impl <'a> PointerBuilder<'a> {
     pub fn get_capability(&self) -> Box<ClientHook+Send> {
         unsafe {
             wire_helpers::read_capability_pointer(
-                &(*self.segment).reader, self.pointer as *const WirePointer, ::std::int::MAX)
+                &(*self.segment).reader, self.pointer as *const WirePointer, ::std::i32::MAX)
         }
     }
 
@@ -1991,14 +1990,14 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn init_list(&self, element_size : ElementSize, element_count : ElementCount) -> ListBuilder<'a> {
+    pub fn init_list(&self, element_size : ElementSize, element_count : ElementCount32) -> ListBuilder<'a> {
         unsafe {
             wire_helpers::init_list_pointer(
                 self.pointer, self.segment, element_count, element_size)
         }
     }
 
-    pub fn init_struct_list(&self, element_count : ElementCount, element_size : StructSize)
+    pub fn init_struct_list(&self, element_count : ElementCount32, element_size : StructSize)
                             -> ListBuilder<'a> {
         unsafe {
             wire_helpers::init_struct_list_pointer(
@@ -2006,13 +2005,13 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn init_text(&self, size : ByteCount) -> text::Builder<'a> {
+    pub fn init_text(&self, size : ByteCount32) -> text::Builder<'a> {
         unsafe {
             wire_helpers::init_text_pointer(self.pointer, self.segment, size).value
         }
     }
 
-    pub fn init_data(&self, size : ByteCount) -> data::Builder<'a> {
+    pub fn init_data(&self, size : ByteCount32) -> data::Builder<'a> {
         unsafe {
             wire_helpers::init_data_pointer(self.pointer, self.segment, size).value
         }
@@ -2083,7 +2082,7 @@ pub struct StructReader<'a> {
     data_size : BitCount32,
     pointer_count : WirePointerCount16,
     bit0offset : BitCount8,
-    nesting_limit : int
+    nesting_limit : i32
 }
 
 impl <'a> StructReader<'a>  {
@@ -2298,11 +2297,11 @@ pub struct ListReader<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
     segment : *const SegmentReader,
     ptr : *const u8,
-    element_count : ElementCount,
-    step : BitCount0,
+    element_count : ElementCount32,
+    step : BitCount32,
     struct_data_size : BitCount32,
     struct_pointer_count : WirePointerCount16,
-    nesting_limit : int
+    nesting_limit : i32
 }
 
 impl <'a> ListReader<'a> {
@@ -2316,9 +2315,9 @@ impl <'a> ListReader<'a> {
     }
 
     #[inline]
-    pub fn size(&self) -> ElementCount { self.element_count }
+    pub fn size(&self) -> ElementCount32 { self.element_count }
 
-    pub fn get_struct_element(&self, index : ElementCount) -> StructReader<'a> {
+    pub fn get_struct_element(&self, index : ElementCount32) -> StructReader<'a> {
         require!(self.nesting_limit > 0, unsafe {*self.segment},
                  "Message is too deeply-nested or contains cycles",
                  return StructReader::new_default());
@@ -2352,12 +2351,12 @@ impl <'a> ListReader<'a> {
     }
 
     #[inline]
-    pub fn get_pointer_element(&self, index : ElementCount) -> PointerReader<'a> {
+    pub fn get_pointer_element(&self, index : ElementCount32) -> PointerReader<'a> {
         PointerReader {
             marker : ::std::kinds::marker::ContravariantLifetime::<'a>,
             segment : self.segment,
             pointer : unsafe {
-                ::std::mem::transmute(self.ptr.offset((index * self.step / BITS_PER_BYTE) as int))
+                ::std::mem::transmute(self.ptr.offset((index * self.step / BITS_PER_BYTE as u32) as int))
             },
             nesting_limit : self.nesting_limit
         }
@@ -2369,8 +2368,8 @@ pub struct ListBuilder<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
     segment : *mut SegmentBuilder,
     ptr : *mut u8,
-    element_count : ElementCount,
-    step : BitCount0,
+    element_count : ElementCount32,
+    step : BitCount32,
     struct_data_size : BitCount32,
     struct_pointer_count : WirePointerCount16
 }
@@ -2387,11 +2386,11 @@ impl <'a> ListBuilder<'a> {
     }
 
     #[inline]
-    pub fn size(&self) -> ElementCount { self.element_count }
+    pub fn size(&self) -> ElementCount32 { self.element_count }
 
-    pub fn get_struct_element(&self, index : ElementCount) -> StructBuilder<'a> {
+    pub fn get_struct_element(&self, index : ElementCount32) -> StructBuilder<'a> {
         let index_bit = index * self.step;
-        let struct_data = unsafe{ self.ptr.offset((index_bit / BITS_PER_BYTE) as int)};
+        let struct_data = unsafe{ self.ptr.offset((index_bit / BITS_PER_BYTE as u32) as int)};
         let struct_pointers = unsafe {
             ::std::mem::transmute(
                 struct_data.offset(((self.struct_data_size as uint) / BITS_PER_BYTE) as int))
@@ -2403,17 +2402,17 @@ impl <'a> ListBuilder<'a> {
             pointers : struct_pointers,
             data_size : self.struct_data_size,
             pointer_count : self.struct_pointer_count,
-            bit0offset : (index_bit % BITS_PER_BYTE) as u8
+            bit0offset : (index_bit % BITS_PER_BYTE as u32) as u8
         }
     }
 
     #[inline]
-    pub fn get_pointer_element(&self, index : ElementCount) -> PointerBuilder<'a> {
+    pub fn get_pointer_element(&self, index : ElementCount32) -> PointerBuilder<'a> {
         PointerBuilder {
             marker : ::std::kinds::marker::ContravariantLifetime::<'a>,
             segment : self.segment,
             pointer : unsafe {
-                ::std::mem::transmute(self.ptr.offset((index * self.step / BITS_PER_BYTE) as int))
+                ::std::mem::transmute(self.ptr.offset((index * self.step / BITS_PER_BYTE as u32) as int))
             }
         }
     }
@@ -2422,33 +2421,33 @@ impl <'a> ListBuilder<'a> {
 
 pub trait PrimitiveElement : Endian {
     #[inline]
-    fn get(list_reader : &ListReader, index : ElementCount) -> Self {
+    fn get(list_reader : &ListReader, index : ElementCount32) -> Self {
         unsafe {
             let ptr : *const u8 =
                 list_reader.ptr.offset(
-                    (index * list_reader.step / BITS_PER_BYTE) as int);
+                    (index as ElementCount * list_reader.step as uint / BITS_PER_BYTE) as int);
             (*::std::mem::transmute::<*const u8,*const WireValue<Self>>(ptr)).get()
         }
     }
 
     #[inline]
-    fn get_from_builder(list_builder : &ListBuilder, index : ElementCount) -> Self {
+    fn get_from_builder(list_builder : &ListBuilder, index : ElementCount32) -> Self {
         unsafe {
             let ptr : *mut WireValue<Self> =
                 ::std::mem::transmute(
                 list_builder.ptr.offset(
-                    (index * list_builder.step / BITS_PER_BYTE) as int));
+                    (index as ElementCount * list_builder.step as uint / BITS_PER_BYTE) as int));
             (*ptr).get()
         }
     }
 
     #[inline]
-    fn set(list_builder : &ListBuilder, index : ElementCount, value: Self) {
+    fn set(list_builder : &ListBuilder, index : ElementCount32, value: Self) {
         unsafe {
             let ptr : *mut WireValue<Self> =
                 ::std::mem::transmute(
                 list_builder.ptr.offset(
-                    (index * list_builder.step / BITS_PER_BYTE) as int));
+                    (index as ElementCount * list_builder.step as uint / BITS_PER_BYTE) as int));
             (*ptr).set(value);
         }
     }
@@ -2467,28 +2466,22 @@ impl PrimitiveElement for f64 { }
 
 impl PrimitiveElement for bool {
     #[inline]
-    fn get(list : &ListReader, index : ElementCount) -> bool {
-        //# Ignore stepBytes for bit lists because bit lists cannot be
-        //# upgraded to struct lists.
-        let bindex : BitCount0 = index * list.step;
+    fn get(list : &ListReader, index : ElementCount32) -> bool {
+        let bindex : BitCount0 = index as ElementCount * list.step as uint;
         unsafe {
             let b : *const u8 = list.ptr.offset((bindex / BITS_PER_BYTE) as int);
             ((*b) & (1 << (bindex % BITS_PER_BYTE))) != 0
         }
     }
     #[inline]
-    fn get_from_builder(list : &ListBuilder, index : ElementCount) -> bool {
-        //# Ignore stepBytes for bit lists because bit lists cannot be
-        //# upgraded to struct lists.
-        let bindex : BitCount0 = index * list.step;
+    fn get_from_builder(list : &ListBuilder, index : ElementCount32) -> bool {
+        let bindex : BitCount0 = index as ElementCount * list.step as uint;
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE) as int) };
         unsafe { ((*b) & (1 << (bindex % BITS_PER_BYTE ))) != 0 }
     }
     #[inline]
-    fn set(list : &ListBuilder, index : ElementCount, value : bool) {
-        //# Ignore stepBytes for bit lists because bit lists cannot be
-        //# upgraded to struct lists.
-        let bindex : BitCount0 = index;
+    fn set(list : &ListBuilder, index : ElementCount32, value : bool) {
+        let bindex : BitCount0 = index as ElementCount * list.step as uint;
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE) as int) };
 
         let bitnum = bindex % BITS_PER_BYTE;
@@ -2498,12 +2491,12 @@ impl PrimitiveElement for bool {
 
 impl PrimitiveElement for () {
     #[inline]
-    fn get(_list : &ListReader, _index : ElementCount) -> () { () }
+    fn get(_list : &ListReader, _index : ElementCount32) -> () { () }
 
     #[inline]
-    fn get_from_builder(_list : &ListBuilder, _index : ElementCount) -> () { () }
+    fn get_from_builder(_list : &ListBuilder, _index : ElementCount32) -> () { () }
 
     #[inline]
-    fn set(_list : &ListBuilder, _index : ElementCount, _value : ()) { }
+    fn set(_list : &ListBuilder, _index : ElementCount32, _value : ()) { }
 }
 

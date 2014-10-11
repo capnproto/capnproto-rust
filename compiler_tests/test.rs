@@ -205,10 +205,10 @@ mod tests {
 
         let enum_list = test_complex_list.init_enum_list(100);
 
-        for i in range::<uint>(0, 10) {
+        for i in range::<u32>(0, 10) {
             enum_list.set(i, an_enum::Qux);
         }
-        for i in range::<uint>(10, 20) {
+        for i in range::<u32>(10, 20) {
             enum_list.set(i, an_enum::Bar);
         }
 
@@ -261,10 +261,10 @@ mod tests {
 
         let complex_list_reader = test_complex_list.as_reader();
         let enum_list_reader = complex_list_reader.get_enum_list();
-        for i in range::<uint>(0,10) {
+        for i in range::<u32>(0,10) {
             assert!(enum_list_reader.get(i) == Some(an_enum::Qux));
         }
-        for i in range::<uint>(10,20) {
+        for i in range::<u32>(10,20) {
             assert!(enum_list_reader.get(i) == Some(an_enum::Bar));
         }
 

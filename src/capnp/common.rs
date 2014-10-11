@@ -72,7 +72,7 @@ pub fn allocate_zeroed_words(size : WordCount) -> ::std::vec::Vec<Word> {
 pub struct MessageSize {
     //# Size of a message. Every struct type has a method `.total_size()` that returns this.
     pub word_count : u64,
-    pub cap_count : uint
+    pub cap_count : u32
 }
 
 impl MessageSize {

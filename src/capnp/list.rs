@@ -16,7 +16,7 @@ pub trait FromPointerReader<'a> {
 }
 
 pub trait FromPointerBuilder<'a> {
-    fn init_pointer(PointerBuilder<'a>, uint) -> Self;
+    fn init_pointer(PointerBuilder<'a>, u32) -> Self;
     fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Self;
 }
 
@@ -26,18 +26,18 @@ trait IndexMove<I,T> {
 
 pub struct ListIter<T> {
     list : T,
-    index : uint,
-    size : uint,
+    index : u32,
+    size : u32,
 }
 
 impl <T> ListIter<T> {
-    pub fn new(list : T, size : uint) -> ListIter<T> {
+    pub fn new(list : T, size : u32) -> ListIter<T> {
         ListIter { list : list, index : 0, size : size }
     }
 }
 
 
-impl <U, T : IndexMove<uint, U>> ::std::iter::Iterator<U> for ListIter<T> {
+impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator<U> for ListIter<T> {
     fn next(&mut self) -> ::std::option::Option<U> {
         if self.index < self.size {
             let result = self.list.index_move(self.index);
@@ -65,7 +65,7 @@ pub mod primitive_list {
             Reader::<'b, T> { reader : reader }
         }
 
-        pub fn size(&self) -> uint { self.reader.size() }
+        pub fn size(&self) -> u32 { self.reader.size() }
     }
 
     impl <'a, T : PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
@@ -75,7 +75,7 @@ pub mod primitive_list {
     }
 
     impl <'a, T : PrimitiveElement> Reader<'a, T> {
-        pub fn get(&self, index : uint) -> T {
+        pub fn get(&self, index : u32) -> T {
             assert!(index < self.size());
             PrimitiveElement::get(&self.reader, index)
         }
@@ -90,15 +90,15 @@ pub mod primitive_list {
             Builder { builder : builder }
         }
 
-        pub fn size(&self) -> uint { self.builder.size() }
+        pub fn size(&self) -> u32 { self.builder.size() }
 
-        pub fn set(&self, index : uint, value : T) {
+        pub fn set(&self, index : u32, value : T) {
             PrimitiveElement::set(&self.builder, index, value);
         }
     }
 
     impl <'a, T : PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
-        fn init_pointer(builder : PointerBuilder<'a>, size : uint) -> Builder<'a, T> {
+        fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
             Builder { builder : builder.init_list(element_size_for_type::<T>(), size) }
         }
         fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Builder<'a, T> {
@@ -107,7 +107,7 @@ pub mod primitive_list {
     }
 
     impl <'a, T : PrimitiveElement> Builder<'a, T> {
-        pub fn get(&self, index : uint) -> T {
+        pub fn get(&self, index : u32) -> T {
             assert!(index < self.size());
             PrimitiveElement::get_from_builder(&self.builder, index)
         }
@@ -134,7 +134,7 @@ pub mod enum_list {
             Reader::<'b, T> { reader : reader }
         }
 
-        pub fn size(&self) -> uint { self.reader.size() }
+        pub fn size(&self) -> u32 { self.reader.size() }
 
     }
 
@@ -145,7 +145,7 @@ pub mod enum_list {
     }
 
     impl <'a, T : FromPrimitive> Reader<'a, T> {
-        pub fn get(&self, index : uint) -> Option<T> {
+        pub fn get(&self, index : u32) -> Option<T> {
             assert!(index < self.size());
             let result : u16 = PrimitiveElement::get(&self.reader, index);
             FromPrimitive::from_u16(result)
@@ -161,16 +161,16 @@ pub mod enum_list {
             Builder { builder : builder }
         }
 
-        pub fn size(&self) -> uint { self.builder.size() }
+        pub fn size(&self) -> u32 { self.builder.size() }
 
-        pub fn set(&self, index : uint, value : T) {
+        pub fn set(&self, index : u32, value : T) {
             assert!(index < self.size());
             PrimitiveElement::set(&self.builder, index, value.to_u16());
         }
     }
 
     impl <'a, T : FromPrimitive> FromPointerBuilder<'a> for Builder<'a, T> {
-        fn init_pointer(builder : PointerBuilder<'a>, size : uint) -> Builder<'a, T> {
+        fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
             Builder { builder : builder.init_list(TwoBytes, size) }
         }
         fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Builder<'a, T> {
@@ -179,7 +179,7 @@ pub mod enum_list {
     }
 
     impl <'a, T : ToU16 + FromPrimitive>  Builder<'a, T> {
-        pub fn get(&self, index : uint) -> Option<T> {
+        pub fn get(&self, index : u32) -> Option<T> {
             assert!(index < self.size());
             let result : u16 = PrimitiveElement::get_from_builder(&self.builder, index);
             FromPrimitive::from_u16(result)
@@ -205,7 +205,7 @@ pub mod struct_list {
             Reader::<'b, T> { reader : reader }
         }
 
-        pub fn size(&self) -> uint { self.reader.size() }
+        pub fn size(&self) -> u32 { self.reader.size() }
 
         pub fn iter(self) -> super::ListIter<Reader<'a, T>> {
             return super::ListIter::new(self, self.size());
@@ -218,14 +218,14 @@ pub mod struct_list {
         }
     }
 
-    impl <'a, T : FromStructReader<'a>>  super::IndexMove<uint, T> for Reader<'a, T> {
-        fn index_move(&self, index : uint) -> T {
+    impl <'a, T : FromStructReader<'a>>  super::IndexMove<u32, T> for Reader<'a, T> {
+        fn index_move(&self, index : u32) -> T {
             self.get(index)
         }
     }
 
     impl <'a, T : FromStructReader<'a>> Reader<'a, T> {
-        pub fn get(&self, index : uint) -> T {
+        pub fn get(&self, index : u32) -> T {
             assert!(index < self.size());
             let result : T = FromStructReader::new(self.reader.get_struct_element(index));
             result
@@ -241,7 +241,7 @@ pub mod struct_list {
             Builder { builder : builder }
         }
 
-        pub fn size(&self) -> uint { self.builder.size() }
+        pub fn size(&self) -> u32 { self.builder.size() }
 
 //        pub fn set(&self, index : uint, value : T) {
 //        }
@@ -253,7 +253,7 @@ pub mod struct_list {
     }
 
     impl <'a, T : FromStructBuilder<'a> + HasStructSize> FromPointerBuilder<'a> for Builder<'a, T> {
-        fn init_pointer(builder : PointerBuilder<'a>, size : uint) -> Builder<'a, T> {
+        fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
             Builder {
                 builder : builder.init_struct_list(size, HasStructSize::struct_size(None::<T>))
             }
@@ -265,14 +265,14 @@ pub mod struct_list {
         }
     }
 
-    impl <'a, T : FromStructBuilder<'a>> super::IndexMove<uint, T> for Builder<'a, T> {
-        fn index_move(&self, index : uint) -> T {
+    impl <'a, T : FromStructBuilder<'a>> super::IndexMove<u32, T> for Builder<'a, T> {
+        fn index_move(&self, index : u32) -> T {
             self.get(index)
         }
     }
 
     impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
-        pub fn get(&self, index : uint) -> T {
+        pub fn get(&self, index : u32) -> T {
             assert!(index < self.size());
             let result : T =
                 FromStructBuilder::new(self.builder.get_struct_element(index));
@@ -297,7 +297,7 @@ pub mod list_list {
             Reader::<'b, T> { reader : reader }
         }
 
-        pub fn size(&self) -> uint { self.reader.size() }
+        pub fn size(&self) -> u32 { self.reader.size() }
     }
 
     impl <'a, T : FromPointerReader<'a>> FromPointerReader<'a> for Reader<'a, T> {
@@ -307,7 +307,7 @@ pub mod list_list {
     }
 
     impl <'a, T : FromPointerReader<'a>> Reader<'a, T> {
-        pub fn get(&self, index : uint) -> T {
+        pub fn get(&self, index : u32) -> T {
             assert!(index <  self.size());
             FromPointerReader::get_from_pointer(
                 &self.reader.get_pointer_element(index), ::std::ptr::null())
@@ -323,9 +323,9 @@ pub mod list_list {
             Builder { builder : builder }
         }
 
-        pub fn size(&self) -> uint { self.builder.size() }
+        pub fn size(&self) -> u32 { self.builder.size() }
 
-        pub fn init(&self, index : uint, size : uint) -> T {
+        pub fn init(&self, index : u32, size : u32) -> T {
             let result : T =
                 FromPointerBuilder::init_pointer(self.builder.get_pointer_element(index), size);
             result
@@ -334,7 +334,7 @@ pub mod list_list {
 
 
     impl <'a, T : FromPointerBuilder<'a>> FromPointerBuilder<'a> for Builder<'a, T> {
-        fn init_pointer(builder : PointerBuilder<'a>, size : uint) -> Builder<'a, T> {
+        fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
             Builder {
                 builder : builder.init_list(Pointer, size)
             }
@@ -347,7 +347,7 @@ pub mod list_list {
     }
 
     impl <'a, T : FromPointerBuilder<'a>> Builder<'a, T> {
-        pub fn get(&self, index : uint) -> T {
+        pub fn get(&self, index : u32) -> T {
             assert!(index < self.size());
             let result : T =
                 FromPointerBuilder::get_from_pointer(
@@ -374,7 +374,7 @@ pub mod text_list {
             Reader::<'b> { reader : reader }
         }
 
-        pub fn size(&self) -> uint { self.reader.size() }
+        pub fn size(&self) -> u32 { self.reader.size() }
     }
 
     impl <'a> FromPointerReader<'a> for Reader<'a> {
@@ -384,7 +384,7 @@ pub mod text_list {
     }
 
     impl <'a> Reader<'a> {
-        pub fn get(&self, index : uint) -> text::Reader<'a> {
+        pub fn get(&self, index : u32) -> text::Reader<'a> {
             assert!(index <  self.size());
             self.reader.get_pointer_element(index).get_text(::std::ptr::null(), 0)
         }
@@ -399,9 +399,9 @@ pub mod text_list {
             Builder { builder : builder }
         }
 
-        pub fn size(&self) -> uint { self.builder.size() }
+        pub fn size(&self) -> u32 { self.builder.size() }
 
-        pub fn set(&self, index : uint, value : text::Reader) {
+        pub fn set(&self, index : u32, value : text::Reader) {
             assert!(index < self.size());
             self.builder.get_pointer_element(index).set_text(value);
         }
@@ -409,7 +409,7 @@ pub mod text_list {
 
 
     impl <'a> FromPointerBuilder<'a> for Builder<'a> {
-        fn init_pointer(builder : PointerBuilder<'a>, size : uint) -> Builder<'a> {
+        fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a> {
             Builder {
                 builder : builder.init_list(Pointer, size)
             }
@@ -422,7 +422,7 @@ pub mod text_list {
     }
 
     impl <'a> Builder<'a> {
-        pub fn get(&self, index : uint) -> text::Builder<'a> {
+        pub fn get(&self, index : u32) -> text::Builder<'a> {
             self.builder.get_pointer_element(index).get_text(::std::ptr::null(), 0)
         }
     }
@@ -444,7 +444,7 @@ pub mod data_list {
             Reader::<'b> { reader : reader }
         }
 
-        pub fn size(&self) -> uint { self.reader.size() }
+        pub fn size(&self) -> u32 { self.reader.size() }
     }
 
     impl <'a> FromPointerReader<'a> for Reader<'a> {
@@ -454,7 +454,7 @@ pub mod data_list {
     }
 
     impl <'a> Reader<'a> {
-        pub fn get(&self, index : uint) -> data::Reader<'a> {
+        pub fn get(&self, index : u32) -> data::Reader<'a> {
             assert!(index <  self.size());
             self.reader.get_pointer_element(index).get_data(::std::ptr::null(), 0)
         }
@@ -469,9 +469,9 @@ pub mod data_list {
             Builder { builder : builder }
         }
 
-        pub fn size(&self) -> uint { self.builder.size() }
+        pub fn size(&self) -> u32 { self.builder.size() }
 
-        pub fn set(&self, index : uint, value : data::Reader) {
+        pub fn set(&self, index : u32, value : data::Reader) {
             assert!(index < self.size());
             self.builder.get_pointer_element(index).set_data(value);
         }
@@ -479,7 +479,7 @@ pub mod data_list {
 
 
     impl <'a> FromPointerBuilder<'a> for Builder<'a> {
-        fn init_pointer(builder : PointerBuilder<'a>, size : uint) -> Builder<'a> {
+        fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a> {
             Builder {
                 builder : builder.init_list(Pointer, size)
             }
@@ -492,7 +492,7 @@ pub mod data_list {
     }
 
     impl <'a> Builder<'a> {
-        pub fn get(&self, index : uint) -> data::Builder<'a> {
+        pub fn get(&self, index : u32) -> data::Builder<'a> {
             assert!(index < self.size());
             self.builder.get_pointer_element(index).get_data(::std::ptr::null(), 0)
         }

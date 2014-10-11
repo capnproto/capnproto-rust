@@ -129,7 +129,7 @@ pub mod node {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_display_name(&self, size : uint) -> text::Builder<'a> {
+    pub fn init_display_name(&self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_display_name(&self) -> bool {
@@ -160,7 +160,7 @@ pub mod node {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_nested_nodes(&self, size : uint) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
+    pub fn init_nested_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::node::nested_node::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::node::nested_node::STRUCT_SIZE))
     }
@@ -176,7 +176,7 @@ pub mod node {
       self.builder.get_pointer_field(2).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : uint) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(2).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
     }
@@ -356,7 +356,7 @@ pub mod node {
         self.builder.get_pointer_field(0).set_text(value);
       }
       #[inline]
-      pub fn init_name(&self, size : uint) -> text::Builder<'a> {
+      pub fn init_name(&self, size : u32) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_name(&self) -> bool {
@@ -504,7 +504,7 @@ pub mod node {
         self.builder.get_pointer_field(3).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_fields(&self, size : uint) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
+      pub fn init_fields(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
         struct_list::Builder::<'a, ::schema_capnp::field::Builder<'a>>::new(
           self.builder.get_pointer_field(3).init_struct_list(size, ::schema_capnp::field::STRUCT_SIZE))
       }
@@ -573,7 +573,7 @@ pub mod node {
         self.builder.get_pointer_field(3).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_enumerants(&self, size : uint) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
+      pub fn init_enumerants(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
         struct_list::Builder::<'a, ::schema_capnp::enumerant::Builder<'a>>::new(
           self.builder.get_pointer_field(3).init_struct_list(size, ::schema_capnp::enumerant::STRUCT_SIZE))
       }
@@ -649,7 +649,7 @@ pub mod node {
         self.builder.get_pointer_field(3).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_methods(&self, size : uint) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
+      pub fn init_methods(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
         struct_list::Builder::<'a, ::schema_capnp::method::Builder<'a>>::new(
           self.builder.get_pointer_field(3).init_struct_list(size, ::schema_capnp::method::STRUCT_SIZE))
       }
@@ -665,7 +665,7 @@ pub mod node {
         self.builder.get_pointer_field(4).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_extends(&self, size : uint) -> primitive_list::Builder<'a,u64> {
+      pub fn init_extends(&self, size : u32) -> primitive_list::Builder<'a,u64> {
         primitive_list::Builder::<'a,u64>::new(
           self.builder.get_pointer_field(4).init_list(layout::EightBytes,size)
         )
@@ -1090,7 +1090,7 @@ pub mod field {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : uint) -> text::Builder<'a> {
+    pub fn init_name(&self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
@@ -1113,7 +1113,7 @@ pub mod field {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : uint) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
     }
@@ -1531,7 +1531,7 @@ pub mod enumerant {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : uint) -> text::Builder<'a> {
+    pub fn init_name(&self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
@@ -1554,7 +1554,7 @@ pub mod enumerant {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : uint) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
     }
@@ -1650,7 +1650,7 @@ pub mod method {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : uint) -> text::Builder<'a> {
+    pub fn init_name(&self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
@@ -1689,7 +1689,7 @@ pub mod method {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : uint) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
     }
@@ -2544,7 +2544,7 @@ pub mod value {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_text(&self, size : uint) -> text::Builder<'a> {
+    pub fn init_text(&self, size : u32) -> text::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 12);
       self.builder.get_pointer_field(0).init_text(size)
     }
@@ -2558,7 +2558,7 @@ pub mod value {
       self.builder.get_pointer_field(0).set_data(value);
     }
     #[inline]
-    pub fn init_data(&self, size : uint) -> data::Builder<'a> {
+    pub fn init_data(&self, size : u32) -> data::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 13);
       self.builder.get_pointer_field(0).init_data(size)
     }
@@ -2922,7 +2922,7 @@ pub mod code_generator_request {
       self.builder.get_pointer_field(0).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_nodes(&self, size : uint) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
+    pub fn init_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::node::Builder<'a>>::new(
         self.builder.get_pointer_field(0).init_struct_list(size, ::schema_capnp::node::STRUCT_SIZE))
     }
@@ -2938,7 +2938,7 @@ pub mod code_generator_request {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_requested_files(&self, size : uint) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
+    pub fn init_requested_files(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::code_generator_request::requested_file::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::code_generator_request::requested_file::STRUCT_SIZE))
     }
@@ -3033,7 +3033,7 @@ pub mod code_generator_request {
         self.builder.get_pointer_field(0).set_text(value);
       }
       #[inline]
-      pub fn init_filename(&self, size : uint) -> text::Builder<'a> {
+      pub fn init_filename(&self, size : u32) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_filename(&self) -> bool {
@@ -3048,7 +3048,7 @@ pub mod code_generator_request {
         self.builder.get_pointer_field(1).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_imports(&self, size : uint) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {
+      pub fn init_imports(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {
         struct_list::Builder::<'a, ::schema_capnp::code_generator_request::requested_file::import::Builder<'a>>::new(
           self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::code_generator_request::requested_file::import::STRUCT_SIZE))
       }
@@ -3136,7 +3136,7 @@ pub mod code_generator_request {
           self.builder.get_pointer_field(0).set_text(value);
         }
         #[inline]
-        pub fn init_name(&self, size : uint) -> text::Builder<'a> {
+        pub fn init_name(&self, size : u32) -> text::Builder<'a> {
           self.builder.get_pointer_field(0).init_text(size)
         }
         pub fn has_name(&self) -> bool {

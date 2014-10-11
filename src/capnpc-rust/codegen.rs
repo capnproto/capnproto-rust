@@ -636,7 +636,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                                       offset)));
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
                                                        offset)));
-                    initter_params.push("size : uint");
+                    initter_params.push("size : u32");
                     (Some("text::Reader".to_string()), Some("text::Builder<'a>".to_string()))
                 }
                 Some(type_::Data(())) => {
@@ -644,7 +644,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                                       offset)));
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
                                                        offset)));
-                    initter_params.push("size : uint");
+                    initter_params.push("size : u32");
                     (Some("data::Reader".to_string()), Some("data::Builder<'a>".to_string()))
                 }
                 Some(type_::List(ot1)) => {
@@ -652,7 +652,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                         Line(format!("self.builder.get_pointer_field({}).set_list(&value.reader)",
                                      offset)));
 
-                    initter_params.push("size : uint");
+                    initter_params.push("size : u32");
                     match ot1.get_element_type().which() {
                         None => fail!("unsupported type"),
                         Some(t1) => {

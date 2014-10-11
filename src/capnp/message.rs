@@ -15,7 +15,7 @@ use layout::{FromStructBuilder, HasStructSize};
 
 pub struct ReaderOptions {
     pub traversal_limit_in_words : u64,
-    pub nesting_limit : int,
+    pub nesting_limit : i32,
 
     // If true, malformed messages trigger task failure.
     // If false, malformed messages fall back to default values.
@@ -29,7 +29,7 @@ pub const DEFAULT_READER_OPTIONS : ReaderOptions =
 impl ReaderOptions {
     pub fn new() -> ReaderOptions { DEFAULT_READER_OPTIONS }
 
-    pub fn nesting_limit<'a>(&'a mut self, value : int) -> &'a mut ReaderOptions {
+    pub fn nesting_limit<'a>(&'a mut self, value : i32) -> &'a mut ReaderOptions {
         self.nesting_limit = value;
         return self;
     }
@@ -59,7 +59,7 @@ pub trait MessageReader {
             let segment : *const SegmentReader = &self.arena().segment0;
 
             let pointer_reader = layout::PointerReader::get_root(
-                segment, (*segment).get_start_ptr(), self.get_options().nesting_limit as int);
+                segment, (*segment).get_start_ptr(), self.get_options().nesting_limit);
 
             any_pointer::Reader::new(pointer_reader)
         }
@@ -111,11 +111,11 @@ pub enum AllocationStrategy {
     GrowHeuristically
 }
 
-pub const SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
+pub const SUGGESTED_FIRST_SEGMENT_WORDS : u32 = 1024;
 pub const SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GrowHeuristically;
 
 pub struct BuilderOptions {
-    pub first_segment_words : uint,
+    pub first_segment_words : u32,
     pub allocation_strategy : AllocationStrategy,
 
     // If true, malformed messages trigger task failure.
@@ -130,7 +130,7 @@ impl BuilderOptions {
                         fail_fast : true }
     }
 
-    pub fn first_segment_words<'a>(&'a mut self, value : uint) -> &'a mut BuilderOptions {
+    pub fn first_segment_words<'a>(&'a mut self, value : u32) -> &'a mut BuilderOptions {
         self.first_segment_words = value;
         return self;
     }
@@ -157,7 +157,7 @@ pub trait MessageBuilder {
         let root_segment = &mut self.mut_arena().segment0 as *mut SegmentBuilder;
 
         if self.arena().segment0.current_size() == 0 {
-            match self.mut_arena().segment0.allocate(WORDS_PER_POINTER) {
+            match self.mut_arena().segment0.allocate(WORDS_PER_POINTER as u32) {
                 None => {fail!("could not allocate root pointer") }
                 Some(location) => {
                     assert!(location == self.arena().segment0.get_ptr_unchecked(0),

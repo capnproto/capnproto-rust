@@ -12,11 +12,11 @@ pub mod text {
     static EMPTY : &'static str = "";
 
     // len does not include the required null terminator at the end
-    pub fn new_reader<'a>(p : *const u8, len : uint) -> Option<Reader<'a>> {
+    pub fn new_reader<'a>(p : *const u8, len : u32) -> Option<Reader<'a>> {
         // XXX The empty case is special and I don't know why.
         if len == 0 { return Some(EMPTY); }
         let v : &'a [u8] =
-            unsafe { std::mem::transmute(std::raw::Slice { data: p, len: len }) };
+            unsafe { std::mem::transmute(std::raw::Slice { data: p, len: len as uint}) };
         std::str::from_utf8(v)
     }
 
@@ -27,8 +27,8 @@ pub mod text {
 
     impl <'a> Builder <'a> {
 
-        pub fn new<'b>(p : *mut u8, len : uint) -> Builder<'b> {
-            Builder { ptr : p, len : len}
+        pub fn new<'b>(p : *mut u8, len : u32) -> Builder<'b> {
+            Builder { ptr : p, len : len as uint}
         }
 
         pub fn as_mut_bytes(&self) -> &'a mut [u8] {
@@ -47,18 +47,18 @@ pub mod data {
 
     pub type Reader<'a> = &'a [u8];
 
-    pub fn new_reader<'a>(p : *const u8, len : uint) -> Reader<'a> {
+    pub fn new_reader<'a>(p : *const u8, len : u32) -> Reader<'a> {
         unsafe {
-            let v = std::raw::Slice { data: p, len: len };
+            let v = std::raw::Slice { data: p, len: len as uint};
             std::mem::transmute(v)
         }
     }
 
     pub type Builder<'a> = &'a mut [u8];
 
-    pub fn new_builder<'a>(p : *mut u8, len : uint) -> Builder<'a> {
+    pub fn new_builder<'a>(p : *mut u8, len : u32) -> Builder<'a> {
         unsafe {
-            let v = std::raw::Slice { data: p as *const u8, len: len };
+            let v = std::raw::Slice { data: p as *const u8, len: len as uint};
             std::mem::transmute(v)
         }
     }
