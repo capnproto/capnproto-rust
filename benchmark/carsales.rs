@@ -65,8 +65,8 @@ macro_rules! car_value_impl(
 car_value_impl!(Reader)
 car_value_impl!(Builder)
 
-static MAKES : [&'static str, .. 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
-static MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
+const MAKES : [&'static str, .. 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
+const MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
 
 pub fn random_car(rng : &mut FastRand, car : car::Builder) {
     use std::mem::transmute;

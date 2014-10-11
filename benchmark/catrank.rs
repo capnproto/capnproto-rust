@@ -18,7 +18,7 @@ pub struct ScoredResult<'a> {
     result : search_result::Reader<'a>
 }
 
-static URL_PREFIX : &'static str = "http://example.com";
+const URL_PREFIX : &'static str = "http://example.com";
 
 pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder) -> int {
     let count = rng.next_less_than(1000) as uint;

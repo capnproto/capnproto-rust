@@ -36,15 +36,15 @@ pub type WirePointerCount64 = u64;
 
 pub struct Word {_x : u64}
 
-pub static BITS_PER_BYTE : BitCount0 = 8;
-pub static BITS_PER_WORD : BitCount0 = 64;
-pub static BYTES_PER_WORD : ByteCount = 8;
+pub const BITS_PER_BYTE : BitCount0 = 8;
+pub const BITS_PER_WORD : BitCount0 = 64;
+pub const BYTES_PER_WORD : ByteCount = 8;
 
-pub static BITS_PER_POINTER : BitCount0 = 64;
-pub static BYTES_PER_POINTER : ByteCount = 8;
-pub static WORDS_PER_POINTER : WordCount = 1;
+pub const BITS_PER_POINTER : BitCount0 = 64;
+pub const BYTES_PER_POINTER : ByteCount = 8;
+pub const WORDS_PER_POINTER : WordCount = 1;
 
-pub static POINTER_SIZE_IN_WORDS : WordCount = 1;
+pub const POINTER_SIZE_IN_WORDS : WordCount = 1;
 
 pub fn bytes_per_element<T>() -> ByteCount {
     ::std::mem::size_of::<T>()

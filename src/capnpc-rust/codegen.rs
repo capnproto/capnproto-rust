@@ -176,9 +176,9 @@ fn stringify(ft : & FormattedText) -> String {
     return result.into_string();
 }
 
-static RUST_KEYWORDS : [&'static str, ..34] =
+const RUST_KEYWORDS : [&'static str, ..35] =
     ["as", "box", "break",
-     "continue", "crate",
+     "const", "continue", "crate",
      "else", "enum", "extern",
      "false", "fn", "for",
      "if", "impl", "in",
@@ -1057,7 +1057,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
 
 
             if !is_group {
-                preamble.push(Line("pub static STRUCT_SIZE : layout::StructSize =".to_string()));
+                preamble.push(Line("pub const STRUCT_SIZE : layout::StructSize =".to_string()));
                 preamble.push(
                    Indent(
                       box Line(
@@ -1437,7 +1437,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
             };
 
             output.push(
-                Line(format!("pub static {} : {} = {};", styled_name, typ, txt)));
+                Line(format!("pub const {} : {} = {};", styled_name, typ, txt)));
         }
 
         Some(node::Annotation( annotation_reader )) => {

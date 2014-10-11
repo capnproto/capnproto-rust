@@ -71,7 +71,7 @@ mod packed {
 
 }
 
-static SCRATCH_SIZE : uint = 128 * 1024;
+const SCRATCH_SIZE : uint = 128 * 1024;
 
 pub struct NoScratch;
 

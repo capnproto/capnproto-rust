@@ -10,7 +10,7 @@ pub mod node {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
 
-  pub static STRUCT_SIZE : layout::StructSize =
+  pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 5, pointers : 5, preferred_list_encoding : layout::InlineComposite};
 
 
@@ -303,7 +303,7 @@ pub mod node {
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     use capnp::list::ToU16;
 
-    pub static STRUCT_SIZE : layout::StructSize =
+    pub const STRUCT_SIZE : layout::StructSize =
       layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::InlineComposite};
 
 
@@ -1006,7 +1006,7 @@ pub mod field {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
 
-  pub static STRUCT_SIZE : layout::StructSize =
+  pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 3, pointers : 4, preferred_list_encoding : layout::InlineComposite};
 
 
@@ -1188,7 +1188,7 @@ pub mod field {
   }
   pub type WhichReader<'a> = Which<'a,::schema_capnp::field::slot::Reader<'a>,::schema_capnp::field::group::Reader<'a>>;
   pub type WhichBuilder<'a> = Which<'a,::schema_capnp::field::slot::Builder<'a>,::schema_capnp::field::group::Builder<'a>>;
-  pub static NO_DISCRIMINANT : u16 = 65535;
+  pub const NO_DISCRIMINANT : u16 = 65535;
 
   pub mod slot {
     use capnp::any_pointer;
@@ -1471,7 +1471,7 @@ pub mod enumerant {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
 
-  pub static STRUCT_SIZE : layout::StructSize =
+  pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 1, pointers : 2, preferred_list_encoding : layout::InlineComposite};
 
 
@@ -1582,7 +1582,7 @@ pub mod method {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
 
-  pub static STRUCT_SIZE : layout::StructSize =
+  pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 3, pointers : 2, preferred_list_encoding : layout::InlineComposite};
 
 
@@ -1717,7 +1717,7 @@ pub mod type_ {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
 
-  pub static STRUCT_SIZE : layout::StructSize =
+  pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 2, pointers : 1, preferred_list_encoding : layout::InlineComposite};
 
 
@@ -2325,7 +2325,7 @@ pub mod value {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
 
-  pub static STRUCT_SIZE : layout::StructSize =
+  pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 2, pointers : 1, preferred_list_encoding : layout::InlineComposite};
 
 
@@ -2753,7 +2753,7 @@ pub mod annotation {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
 
-  pub static STRUCT_SIZE : layout::StructSize =
+  pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::InlineComposite};
 
 
@@ -2866,7 +2866,7 @@ pub mod code_generator_request {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
 
-  pub static STRUCT_SIZE : layout::StructSize =
+  pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 0, pointers : 2, preferred_list_encoding : layout::InlineComposite};
 
 
@@ -2965,7 +2965,7 @@ pub mod code_generator_request {
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     use capnp::list::ToU16;
 
-    pub static STRUCT_SIZE : layout::StructSize =
+    pub const STRUCT_SIZE : layout::StructSize =
       layout::StructSize { data : 1, pointers : 2, preferred_list_encoding : layout::InlineComposite};
 
 
@@ -3075,7 +3075,7 @@ pub mod code_generator_request {
       use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
       use capnp::list::ToU16;
 
-      pub static STRUCT_SIZE : layout::StructSize =
+      pub const STRUCT_SIZE : layout::StructSize =
         layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::InlineComposite};
 
 

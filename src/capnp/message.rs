@@ -22,7 +22,7 @@ pub struct ReaderOptions {
     pub fail_fast : bool,
 }
 
-pub static DEFAULT_READER_OPTIONS : ReaderOptions =
+pub const DEFAULT_READER_OPTIONS : ReaderOptions =
     ReaderOptions { traversal_limit_in_words : 8 * 1024 * 1024, nesting_limit : 64,
                     fail_fast : true };
 
@@ -111,8 +111,8 @@ pub enum AllocationStrategy {
     GrowHeuristically
 }
 
-pub static SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
-pub static SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GrowHeuristically;
+pub const SUGGESTED_FIRST_SEGMENT_WORDS : uint = 1024;
+pub const SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GrowHeuristically;
 
 pub struct BuilderOptions {
     pub first_segment_words : uint,
