@@ -13,7 +13,7 @@ use blob::*;
 
 #[repr(u8)]
 #[deriving(PartialEq)]
-pub enum FieldSize {
+pub enum ElementSize {
     Void = 0,
     Bit = 1,
     Byte = 2,
@@ -24,7 +24,7 @@ pub enum FieldSize {
     InlineComposite = 7
 }
 
-pub fn data_bits_per_element(size : FieldSize) -> BitCount0 {
+pub fn data_bits_per_element(size : ElementSize) -> BitCount0 {
     match size {
         Void => 0,
         Bit => 1,
@@ -37,7 +37,7 @@ pub fn data_bits_per_element(size : FieldSize) -> BitCount0 {
     }
 }
 
-pub fn pointers_per_element(size : FieldSize) -> WirePointerCount {
+pub fn pointers_per_element(size : ElementSize) -> WirePointerCount {
     match size {
         Pointer => 1,
         _ => 0
@@ -47,7 +47,7 @@ pub fn pointers_per_element(size : FieldSize) -> WirePointerCount {
 // Port note: here, this is only valid for T a primitive type. In
 // capnproto-c++, it dispatches on the 'kind' of T and can handle
 // structs and pointers.
-pub fn element_size_for_type<T>() -> FieldSize {
+pub fn element_size_for_type<T>() -> ElementSize {
     match bits_per_element::<T>() {
         0 => Void,
         1 => Bit,
@@ -69,7 +69,7 @@ pub struct AlignedData<T> {
 pub struct StructSize {
     pub data : WordCount16,
     pub pointers : WirePointerCount16,
-    pub preferred_list_encoding : FieldSize
+    pub preferred_list_encoding : ElementSize
 }
 
 impl StructSize {
@@ -132,7 +132,7 @@ impl StructRef {
 
 impl ListRef {
     #[inline]
-    pub fn element_size(&self) -> FieldSize {
+    pub fn element_size(&self) -> ElementSize {
         unsafe {
             ::std::mem::transmute( (self.element_size_and_count.get() & 7) as u8)
         }
@@ -149,7 +149,7 @@ impl ListRef {
     }
 
     #[inline]
-    pub fn set(&mut self, es : FieldSize, ec : ElementCount) {
+    pub fn set(&mut self, es : ElementSize, ec : ElementCount) {
         assert!(ec < (1 << 29), "Lists are limited to 2**29 elements");
         self.element_size_and_count.set(((ec as u32) << 3 ) | (es as u32));
     }
@@ -893,7 +893,7 @@ mod wire_helpers {
     pub unsafe fn init_list_pointer<'a>(mut reff : *mut WirePointer,
                                         mut segment_builder : *mut SegmentBuilder,
                                         element_count : ElementCount,
-                                        element_size : FieldSize) -> ListBuilder<'a> {
+                                        element_size : ElementSize) -> ListBuilder<'a> {
         assert!(element_size != InlineComposite,
                 "Should have called initStructListPointer() instead");
 
@@ -956,7 +956,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn get_writable_list_pointer<'a>(orig_ref : *mut WirePointer,
                                                 orig_segment : *mut SegmentBuilder,
-                                                element_size : FieldSize,
+                                                element_size : ElementSize,
                                                 default_value : *const Word) -> ListBuilder<'a> {
         assert!(element_size != InlineComposite,
                 "Use get_struct_list_{element,field}() for structs");
@@ -1584,7 +1584,7 @@ mod wire_helpers {
     pub unsafe fn read_list_pointer<'a>(mut segment: *const SegmentReader,
                                       mut reff : *const WirePointer,
                                       default_value : *const Word,
-                                      expected_element_size : FieldSize,
+                                      expected_element_size : ElementSize,
                                       nesting_limit : int ) -> ListReader<'a> {
         let ref_target : *const Word = (*reff).target();
         let mut first_time = true;
@@ -1885,7 +1885,7 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_list(&self, expected_element_size : FieldSize, default_value : *const Word) -> ListReader<'a> {
+    pub fn get_list(&self, expected_element_size : ElementSize, default_value : *const Word) -> ListReader<'a> {
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_list_pointer(self.segment,
@@ -1950,7 +1950,7 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn get_list(&self, element_size : FieldSize, default_value : *const Word) -> ListBuilder<'a> {
+    pub fn get_list(&self, element_size : ElementSize, default_value : *const Word) -> ListBuilder<'a> {
         unsafe {
             wire_helpers::get_writable_list_pointer(
                 self.pointer, self.segment, element_size, default_value)
@@ -1991,7 +1991,7 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn init_list(&self, element_size : FieldSize, element_count : ElementCount) -> ListBuilder<'a> {
+    pub fn init_list(&self, element_size : ElementSize, element_count : ElementCount) -> ListBuilder<'a> {
         unsafe {
             wire_helpers::init_list_pointer(
                 self.pointer, self.segment, element_count, element_size)
