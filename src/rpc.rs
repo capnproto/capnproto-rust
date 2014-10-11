@@ -705,11 +705,11 @@ impl ClientHook for PipelineClient {
             let target = call.init_target();
             let promised_answer = target.init_promised_answer();
             promised_answer.set_question_id(self.question_ref.id);
-            let transform = promised_answer.init_transform(self.ops.len());
+            let transform = promised_answer.init_transform(self.ops.len() as u32);
             for ii in range(0, self.ops.len()) {
                 match self.ops.as_slice()[ii] {
-                    pipeline_op::Noop => transform.get(ii).set_noop(()),
-                    pipeline_op::GetPointerField(idx) => transform.get(ii).set_get_pointer_field(idx),
+                    pipeline_op::Noop => transform.get(ii as u32).set_noop(()),
+                    pipeline_op::GetPointerField(idx) => transform.get(ii as u32).set_get_pointer_field(idx),
                 }
             }
         }
@@ -773,9 +773,9 @@ impl ClientHook for PromisedAnswerClient {
 fn write_outgoing_cap_table(rpc_chan : &::std::comm::Sender<RpcEvent>, message : &mut MallocMessageBuilder) {
     fn write_payload(rpc_chan : &::std::comm::Sender<RpcEvent>, cap_table : & [Box<::std::any::Any>],
                      payload : payload::Builder) {
-        let new_cap_table = payload.init_cap_table(cap_table.len());
-        for ii in range(0, cap_table.len()) {
-            match cap_table[ii].downcast_ref::<OwnedCapDescriptor>() {
+        let new_cap_table = payload.init_cap_table(cap_table.len() as u32);
+        for ii in range::<u32>(0, cap_table.len() as u32) {
+            match cap_table[ii as uint].downcast_ref::<OwnedCapDescriptor>() {
                 Some(&NoDescriptor) => {}
                 Some(&ReceiverHosted(import_id)) => {
                     new_cap_table.get(ii).set_receiver_hosted(import_id);
@@ -783,11 +783,11 @@ fn write_outgoing_cap_table(rpc_chan : &::std::comm::Sender<RpcEvent>, message :
                 Some(&ReceiverAnswer(question_id,ref ops)) => {
                     let promised_answer = new_cap_table.get(ii).init_receiver_answer();
                     promised_answer.set_question_id(question_id);
-                    let transform = promised_answer.init_transform(ops.len());
-                    for ii in range(0, ops.len()) {
-                        match ops.as_slice()[ii] {
-                            pipeline_op::Noop => transform.get(ii).set_noop(()),
-                            pipeline_op::GetPointerField(idx) => transform.get(ii).set_get_pointer_field(idx),
+                    let transform = promised_answer.init_transform(ops.len() as u32);
+                    for jj in range(0, ops.len()) {
+                        match ops.as_slice()[jj] {
+                            pipeline_op::Noop => transform.get(jj as u32).set_noop(()),
+                            pipeline_op::GetPointerField(idx) => transform.get(jj as u32).set_get_pointer_field(idx),
                         }
                     }
                 }
@@ -795,7 +795,7 @@ fn write_outgoing_cap_table(rpc_chan : &::std::comm::Sender<RpcEvent>, message :
                     new_cap_table.get(ii).set_sender_hosted(export_id);
                 }
                 None => {
-                    match cap_table[ii].downcast_ref::<Box<ClientHook+Send>>() {
+                    match cap_table[ii as uint].downcast_ref::<Box<ClientHook+Send>>() {
                         Some(clienthook) => {
                             let (chan, port) = ::std::comm::channel::<ExportId>();
                             rpc_chan.send(NewLocalServer(clienthook.copy(), chan));

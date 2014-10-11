@@ -50,7 +50,7 @@ fn evaluate_impl(
             match params {
                 None => {Err("bad parameter".to_string())}
                 Some(params) => {
-                    Ok(params.get(p as uint))
+                    Ok(params.get(p))
                 }
             }
         }
@@ -64,9 +64,9 @@ fn evaluate_impl(
             }
             let mut request = func.call_request();
             {
-                let request_params = request.init().init_params(param_values.len());
+                let request_params = request.init().init_params(param_values.len() as u32);
                 for ii in range(0, param_values.len()) {
-                    request_params.set(ii, param_values[ii]);
+                    request_params.set(ii as u32, param_values[ii]);
                 }
             }
             Ok(try!(request.send().wait()).get_value())
@@ -76,12 +76,12 @@ fn evaluate_impl(
 }
 
 struct FunctionImpl {
-    param_count : uint,
+    param_count : u32,
     body : MallocMessageBuilder,
 }
 
 impl FunctionImpl {
-    fn new(param_count : uint, body : calculator::expression::Reader) -> FunctionImpl {
+    fn new(param_count : u32, body : calculator::expression::Reader) -> FunctionImpl {
         let mut result = FunctionImpl { param_count : param_count, body : MallocMessageBuilder::new_default() };
         result.body.set_root(&body);
         result
@@ -91,7 +91,7 @@ impl FunctionImpl {
 impl calculator::function::Server for FunctionImpl {
     fn call(&mut self, mut context : calculator::function::CallContext) {
         let (params, results) = context.get();
-        if params.get_params().size() != self.param_count{
+        if params.get_params().size() != self.param_count {
             //"Wrong number of parameters."
             return context.fail();
         };
@@ -155,7 +155,7 @@ impl calculator::Server for CalculatorImpl {
         results.set_func(
             FromServer::new(
                 None::<LocalClient>,
-                box FunctionImpl::new(params.get_param_count() as uint, params.get_body())));
+                box FunctionImpl::new(params.get_param_count() as u32, params.get_body())));
         context.done();
     }
     fn get_operator<'a>(& mut self, mut context : calculator::GetOperatorContext<'a>) {
