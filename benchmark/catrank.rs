@@ -21,7 +21,7 @@ pub struct ScoredResult<'a> {
 const URL_PREFIX : &'static str = "http://example.com";
 
 pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder) -> int {
-    let count = rng.next_less_than(1000) as uint;
+    let count = rng.next_less_than(1000);
     let mut good_count : int = 0;
 
     let list = request.init_results(count);
@@ -29,16 +29,16 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
     for i in range(0, count) {
         let result = list.get(i);
         result.set_score(1000.0 - i as f64);
-        let url_size = rng.next_less_than(100) as uint;
+        let url_size = rng.next_less_than(100);
 
         let url_prefix_length = URL_PREFIX.as_bytes().len();
-        let url = result.init_url(url_size + url_prefix_length);
+        let url = result.init_url(url_size + url_prefix_length as u32);
 
         let bytes = url.as_mut_bytes();
         ::std::io::BufWriter::new(bytes).write(URL_PREFIX.as_bytes()).unwrap();
 
         for j in range(0, url_size) {
-            bytes[j + url_prefix_length] = (97 + rng.next_less_than(26)) as u8;
+            bytes[j as uint + url_prefix_length] = (97 + rng.next_less_than(26)) as u8;
         }
 
         let is_cat = rng.next_less_than(8) == 0;
@@ -87,10 +87,10 @@ pub fn handle_request(request : search_result_list::Reader,
     // sort in decreasing order
     scored_results.sort_by(|v1, v2| { if v1.score < v2.score { ::std::cmp::Greater } else { ::std::cmp::Less } });
 
-    let list = response.init_results(scored_results.len());
+    let list = response.init_results(scored_results.len() as u32);
     for i in range(0, list.size()) {
         let item = list.get(i);
-        let result = scored_results[i];
+        let result = scored_results[i as uint];
         item.set_score(result.score);
         item.set_url(result.result.get_url());
         item.set_snippet(result.result.get_snippet());

@@ -108,7 +108,7 @@ pub fn random_car(rng : &mut FastRand, car : car::Builder) {
 
 pub fn setup_request(rng : &mut FastRand, request : parking_lot::Builder) -> u64 {
     let mut result = 0;
-    for car in request.init_cars(rng.next_less_than(200) as uint).iter() {
+    for car in request.init_cars(rng.next_less_than(200)).iter() {
         random_car(rng, car);
         result += car.car_value();
     }
