@@ -142,7 +142,7 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
             let mut table : Vec<WireValue<u32>> = Vec::with_capacity(table_size);
             unsafe { table.set_len(table_size) }
 
-            table.as_mut_slice()[0].set((segments.len() - 1) as u32);
+            table.as_mut_slice()[0u].set((segments.len() - 1) as u32);
 
             for i in range(0, segments.len()) {
                 table.as_mut_slice()[i + 1].set(segments[i].len() as u32);
