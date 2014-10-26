@@ -54,7 +54,7 @@ pub trait MessageReader {
     fn mut_arena<'a>(&'a mut self) -> &'a mut ReaderArena;
     fn get_options<'a>(&'a self) -> &'a ReaderOptions;
 
-    fn get_root_internal<'a> (&'a self) -> any_pointer::Reader<'a> {
+    fn get_root_internal(&self) -> any_pointer::Reader<'static> {
         unsafe {
             let segment : *const SegmentReader = &self.arena().segment0;
 
@@ -65,7 +65,7 @@ pub trait MessageReader {
         }
     }
 
-    fn get_root<'a, T : layout::FromStructReader<'a>>(&'a self) -> T {
+    fn get_root<T : layout::FromStructReader<'static>>(&self) -> T {
         self.get_root_internal().get_as_struct()
     }
 
@@ -153,7 +153,7 @@ pub trait MessageBuilder {
 
 
     // XXX is there a way to make this private?
-    fn get_root_internal<'a>(&mut self) -> any_pointer::Builder<'a> {
+    fn get_root_internal(&mut self) -> any_pointer::Builder<'static> {
         let root_segment = &mut self.mut_arena().segment0 as *mut SegmentBuilder;
 
         if self.arena().segment0.current_size() == 0 {
@@ -175,15 +175,15 @@ pub trait MessageBuilder {
 
     }
 
-    fn init_root<'a, T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
+    fn init_root<T : FromStructBuilder<'static> + HasStructSize>(&mut self) -> T {
         self.get_root_internal().init_as_struct()
     }
 
-    fn get_root<'a, T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
+    fn get_root<T : FromStructBuilder<'static> + HasStructSize>(&mut self) -> T {
         self.get_root_internal().get_as_struct()
     }
 
-    fn set_root<'a, T : layout::ToStructReader<'a>>(&'a mut self, value : &T) {
+    fn set_root<T : layout::ToStructReader<'static>>(&mut self, value : &T) {
         self.get_root_internal().set_as_struct(value);
     }
 

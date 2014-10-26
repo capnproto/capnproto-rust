@@ -462,5 +462,4 @@ mod tests {
             assert_eq!(new_version.get_new3().get_int8_field(), -123);
         }
     }
-
 }
