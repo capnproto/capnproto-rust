@@ -17,9 +17,6 @@
 #[phase(plugin, link)] extern crate log;
 extern crate libc;
 
-#[cfg(test)]
-extern crate debug;
-
 // reexports
 pub use blob::{text, data};
 pub use common::{MessageSize};

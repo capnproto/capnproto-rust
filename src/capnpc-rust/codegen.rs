@@ -275,7 +275,7 @@ fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<Stri
                 }
                 type_::Struct(st) => {
                     format!("struct_list::{}<{lifetime}, {}::{}<{lifetime}>>", module,
-                            scope_map.get(&st.get_type_id()).connect("::"), module, lifetime = lifetime_name)
+                            scope_map[st.get_type_id()].connect("::"), module, lifetime = lifetime_name)
                 }
                 type_::List(t) => {
                     let inner = list_list_type_param(scope_map, t.get_element_type(), is_reader, lifetime_name);
@@ -321,7 +321,6 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
                field : &schema_capnp::field::Reader,
                is_reader : bool)
     -> (String, FormattedText) {
-
     use schema_capnp::*;
 
     match field.which() {
@@ -478,8 +477,6 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
         };
         return (typ.to_string(), interior);
     }
-
-
 }
 
 fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,

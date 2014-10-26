@@ -25,7 +25,7 @@ pub fn expect_packs_to(unpacked : &[u8],
     }
 
     assert!(bytes.as_slice().eq(&packed),
-            "expected: {:?}, got: {:?}", packed, bytes);
+            "expected: {}, got: {}", packed, bytes);
 
     // --------
     // read
@@ -37,7 +37,7 @@ pub fn expect_packs_to(unpacked : &[u8],
 
 //    assert!(packed_input_stream.eof());
     assert!(bytes.slice(0, bytes.len()).eq(&unpacked),
-            "expected: {:?}, got: {:?}", unpacked, bytes);
+            "expected: {}, got: {}", unpacked, bytes);
 
 }
 
