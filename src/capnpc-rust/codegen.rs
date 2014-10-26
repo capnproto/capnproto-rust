@@ -380,8 +380,8 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
                             let the_mod = scope_map[st.get_type_id()].connect("::");
                             if is_reader {
                                 return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
-                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_list({}::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))",
-                                                     module, member, offset, the_mod))
+                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::InlineComposite, ::std::ptr::null()))",
+                                                     module, member, offset))
                                         );
                             } else {
                                 return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
@@ -1040,11 +1040,6 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
 
             let data_size = struct_reader.get_data_word_count();
             let pointer_size = struct_reader.get_pointer_count();
-            let preferred_list_encoding =
-                  match struct_reader.get_preferred_list_encoding() {
-                                Some(e) => e,
-                                None => fail!("unsupported list encoding")
-                        };
             let is_group = struct_reader.get_is_group();
             let discriminant_count = struct_reader.get_discriminant_count();
             let discriminant_offset = struct_reader.get_discriminant_offset();
@@ -1054,15 +1049,10 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
 
 
             if !is_group {
-                preamble.push(Line("pub const STRUCT_SIZE : layout::StructSize =".to_string()));
                 preamble.push(
-                   Indent(
-                      box Line(
-                        format!("layout::StructSize {{ data : {}, pointers : {}, preferred_list_encoding : layout::{}}};",
-                             data_size as uint, pointer_size as uint,
-                             element_size_str(preferred_list_encoding)))));
-                preamble.push(BlankLine);
-
+                      Line(
+                        format!("pub const STRUCT_SIZE : layout::StructSize = layout::StructSize {{ data : {}, pointers : {} }};",
+                             data_size as uint, pointer_size as uint)));
                 preamble.push(BlankLine);
             }
 

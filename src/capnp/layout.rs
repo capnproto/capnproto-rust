@@ -69,7 +69,6 @@ pub struct AlignedData<T> {
 pub struct StructSize {
     pub data : WordCount16,
     pub pointers : WirePointerCount16,
-    pub preferred_list_encoding : ElementSize
 }
 
 impl StructSize {
@@ -798,8 +797,7 @@ mod wire_helpers {
             pointers : ::std::mem::transmute(
                     ptr.offset((size.data as uint) as int)),
             data_size : size.data as WordCount32 * (BITS_PER_WORD as BitCount32),
-            pointer_count : size.pointers,
-            bit0offset : 0
+            pointer_count : size.pointers
         }
     }
 
@@ -872,8 +870,7 @@ mod wire_helpers {
                     data : ::std::mem::transmute(ptr),
                     pointers : new_pointer_section,
                     data_size : new_data_size as u32 * BITS_PER_WORD as u32,
-                    pointer_count : new_pointer_count,
-                    bit0offset : 0
+                    pointer_count : new_pointer_count
                 };
             } else {
                 return StructBuilder {
@@ -882,8 +879,7 @@ mod wire_helpers {
                     data : ::std::mem::transmute(old_ptr),
                     pointers : old_pointer_section,
                     data_size : old_data_size as u32 * BITS_PER_WORD as u32,
-                    pointer_count : old_pointer_count,
-                    bit0offset : 0
+                    pointer_count : old_pointer_count
                 };
             }
         }
@@ -921,12 +917,6 @@ mod wire_helpers {
                                                mut segment_builder : *mut SegmentBuilder,
                                                element_count : ElementCount32,
                                                element_size : StructSize) -> ListBuilder<'a> {
-        if element_size.preferred_list_encoding != InlineComposite {
-            //# Small data-only struct. Allocate a list of primitives instead.
-            return init_list_pointer(reff, segment_builder, element_count,
-                                     element_size.preferred_list_encoding);
-        }
-
         let words_per_element = element_size.total();
 
         //# Allocate the list, prefixed by a single WirePointer.
@@ -1136,21 +1126,6 @@ mod wire_helpers {
                 //# protocol. We need to make a copy and expand them.
 
                 unimplemented!();
-            } else if old_size == element_size.preferred_list_encoding {
-                //# Old size matches exactly.
-
-                let data_size = data_bits_per_element(old_size);
-                let pointer_count = pointers_per_element(old_size);
-                let step = data_size + pointer_count * BITS_PER_POINTER as u32;
-                return ListBuilder {
-                    marker : ::std::kinds::marker::ContravariantLifetime::<'a>,
-                    segment : old_segment,
-                    ptr : ::std::mem::transmute(old_ptr),
-                    step : step,
-                    element_count : (*old_ref).list_ref().element_count(),
-                    struct_data_size : data_size as u32,
-                    struct_pointer_count : pointer_count as u16
-                };
             } else {
                 unimplemented!()
             }
@@ -1422,7 +1397,6 @@ mod wire_helpers {
                         pointers : ::std::mem::transmute(ptr.offset((*src).struct_ref().data_size.get() as int)),
                         data_size : (*src).struct_ref().data_size.get() as u32 * BITS_PER_WORD as u32,
                         pointer_count : (*src).struct_ref().ptr_count.get(),
-                        bit0offset : 0,
                         nesting_limit : nesting_limit - 1 });
 
             }
@@ -1557,7 +1531,6 @@ mod wire_helpers {
                 pointers : ::std::mem::transmute(ptr.offset(data_size_words as int)),
                 data_size : data_size_words as u32 * BITS_PER_WORD as BitCount32,
                 pointer_count : (*reff).struct_ref().ptr_count.get(),
-                bit0offset : 0,
                 nesting_limit : nesting_limit - 1 };
         }
      }
@@ -2081,7 +2054,6 @@ pub struct StructReader<'a> {
     pointers : *const WirePointer,
     data_size : BitCount32,
     pointer_count : WirePointerCount16,
-    bit0offset : BitCount8,
     nesting_limit : i32
 }
 
@@ -2093,7 +2065,7 @@ impl <'a> StructReader<'a>  {
             segment : ::std::ptr::null(),
             data : ::std::ptr::null(),
             pointers : ::std::ptr::null(), data_size : 0, pointer_count : 0,
-            bit0offset : 0, nesting_limit : 0x7fffffff}
+            nesting_limit : 0x7fffffff}
     }
 
     pub fn get_data_section_size(&self) -> BitCount32 { self.data_size }
@@ -2120,11 +2092,8 @@ impl <'a> StructReader<'a>  {
 
     #[inline]
     pub fn get_bool_field(&self, offset : ElementCount) -> bool {
-        let mut boffset : BitCount32 = offset as BitCount32;
+        let boffset : BitCount32 = offset as BitCount32;
         if boffset < self.data_size {
-            if offset == 0 {
-                boffset = self.bit0offset as BitCount32;
-            }
             unsafe {
                 let b : *const u8 = self.data.offset((boffset as uint / BITS_PER_BYTE) as int);
                 ((*b) & (1u8 << (boffset as u32 % BITS_PER_BYTE as u32) as uint)) != 0
@@ -2195,8 +2164,7 @@ pub struct StructBuilder<'a> {
     data : *mut u8,
     pointers : *mut WirePointer,
     data_size : BitCount32,
-    pointer_count : WirePointerCount16,
-    bit0offset : BitCount8
+    pointer_count : WirePointerCount16
 }
 
 impl <'a> StructBuilder<'a> {
@@ -2210,7 +2178,6 @@ impl <'a> StructBuilder<'a> {
                 pointers : ::std::mem::transmute(self.pointers),
                 data_size : self.data_size,
                 pointer_count : self.pointer_count,
-                bit0offset : self.bit0offset,
                 nesting_limit : 0x7fffffff
             }
         }
@@ -2252,7 +2219,7 @@ impl <'a> StructBuilder<'a> {
     pub fn set_bool_field(&self, offset : ElementCount, value : bool) {
         //# This branch should be compiled out whenever this is
         //# inlined with a constant offset.
-        let boffset : BitCount0 = if offset == 0 { self.bit0offset as uint } else { offset };
+        let boffset : BitCount0 = offset;
         let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as int)};
         let bitnum = boffset % BITS_PER_BYTE;
         unsafe { (*b) = ( (*b) & !(1 << bitnum)) | (value as u8 << bitnum) }
@@ -2268,8 +2235,7 @@ impl <'a> StructBuilder<'a> {
 
     #[inline]
     pub fn get_bool_field(&self, offset : ElementCount) -> bool {
-        let boffset : BitCount0 =
-            if offset == 0 {self.bit0offset as BitCount0} else {offset};
+        let boffset : BitCount0 = offset;
         let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as int) };
         unsafe { ((*b) & (1 << (boffset % BITS_PER_BYTE ))) != 0 }
     }
@@ -2345,7 +2311,6 @@ impl <'a> ListReader<'a> {
             pointers : struct_pointers,
             data_size : self.struct_data_size as BitCount32,
             pointer_count : self.struct_pointer_count,
-            bit0offset : (index_bit % (BITS_PER_BYTE as u64)) as u8,
             nesting_limit : self.nesting_limit - 1
         }
     }
@@ -2402,7 +2367,6 @@ impl <'a> ListBuilder<'a> {
             pointers : struct_pointers,
             data_size : self.struct_data_size,
             pointer_count : self.struct_pointer_count,
-            bit0offset : (index_bit % BITS_PER_BYTE as u32) as u8
         }
     }
 

@@ -11,7 +11,7 @@ pub mod node {
   use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 5, pointers : 5, preferred_list_encoding : layout::InlineComposite};
+    layout::StructSize { data : 5, pointers : 5};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -48,14 +48,14 @@ pub mod node {
     }
     #[inline]
     pub fn get_nested_nodes(&self) -> struct_list::Reader<'a,::schema_capnp::node::nested_node::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(::schema_capnp::node::nested_node::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))
+      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
     }
     pub fn has_nested_nodes(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(2).get_list(::schema_capnp::annotation::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))
+      struct_list::Reader::new(self.reader.get_pointer_field(2).get_list(layout::InlineComposite, ::std::ptr::null()))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
@@ -304,7 +304,7 @@ pub mod node {
     use capnp::list::ToU16;
 
     pub const STRUCT_SIZE : layout::StructSize =
-      layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::InlineComposite};
+      layout::StructSize { data : 1, pointers : 1};
 
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -430,7 +430,7 @@ pub mod node {
       }
       #[inline]
       pub fn get_fields(&self) -> struct_list::Reader<'a,::schema_capnp::field::Reader<'a>> {
-        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(::schema_capnp::field::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))
+        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(layout::InlineComposite, ::std::ptr::null()))
       }
       pub fn has_fields(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
@@ -547,7 +547,7 @@ pub mod node {
     impl <'a> Reader<'a> {
       #[inline]
       pub fn get_enumerants(&self) -> struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>> {
-        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(::schema_capnp::enumerant::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))
+        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(layout::InlineComposite, ::std::ptr::null()))
       }
       pub fn has_enumerants(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
@@ -616,7 +616,7 @@ pub mod node {
     impl <'a> Reader<'a> {
       #[inline]
       pub fn get_methods(&self) -> struct_list::Reader<'a,::schema_capnp::method::Reader<'a>> {
-        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(::schema_capnp::method::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))
+        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(layout::InlineComposite, ::std::ptr::null()))
       }
       pub fn has_methods(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
@@ -1007,8 +1007,7 @@ pub mod field {
   use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 3, pointers : 4, preferred_list_encoding : layout::InlineComposite};
-
+    layout::StructSize { data : 3, pointers : 4};
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
@@ -1036,7 +1035,7 @@ pub mod field {
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(::schema_capnp::annotation::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))
+      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
@@ -1472,7 +1471,7 @@ pub mod enumerant {
   use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 1, pointers : 2, preferred_list_encoding : layout::InlineComposite};
+    layout::StructSize { data : 1, pointers : 2};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1501,7 +1500,7 @@ pub mod enumerant {
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(::schema_capnp::annotation::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))
+      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
@@ -1583,7 +1582,7 @@ pub mod method {
   use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 3, pointers : 2, preferred_list_encoding : layout::InlineComposite};
+    layout::StructSize { data : 3, pointers : 2};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1620,7 +1619,7 @@ pub mod method {
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(::schema_capnp::annotation::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))
+      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
@@ -1718,7 +1717,7 @@ pub mod type_ {
   use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 2, pointers : 1, preferred_list_encoding : layout::InlineComposite};
+    layout::StructSize { data : 2, pointers : 1};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2326,7 +2325,7 @@ pub mod value {
   use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 2, pointers : 1, preferred_list_encoding : layout::InlineComposite};
+    layout::StructSize { data : 2, pointers : 1};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2754,7 +2753,7 @@ pub mod annotation {
   use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::InlineComposite};
+    layout::StructSize { data : 1, pointers : 1};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2867,7 +2866,7 @@ pub mod code_generator_request {
   use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
-    layout::StructSize { data : 0, pointers : 2, preferred_list_encoding : layout::InlineComposite};
+    layout::StructSize { data : 0, pointers : 2};
 
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2885,14 +2884,14 @@ pub mod code_generator_request {
   impl <'a> Reader<'a> {
     #[inline]
     pub fn get_nodes(&self) -> struct_list::Reader<'a,::schema_capnp::node::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(0).get_list(::schema_capnp::node::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))
+      struct_list::Reader::new(self.reader.get_pointer_field(0).get_list(layout::InlineComposite, ::std::ptr::null()))
     }
     pub fn has_nodes(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn get_requested_files(&self) -> struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(::schema_capnp::code_generator_request::requested_file::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))
+      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
     }
     pub fn has_requested_files(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
@@ -2966,7 +2965,7 @@ pub mod code_generator_request {
     use capnp::list::ToU16;
 
     pub const STRUCT_SIZE : layout::StructSize =
-      layout::StructSize { data : 1, pointers : 2, preferred_list_encoding : layout::InlineComposite};
+      layout::StructSize { data : 1, pointers : 2};
 
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2995,7 +2994,7 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn get_imports(&self) -> struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::import::Reader<'a>> {
-        struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(::schema_capnp::code_generator_request::requested_file::import::STRUCT_SIZE.preferred_list_encoding, ::std::ptr::null()))
+        struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
       }
       pub fn has_imports(&self) -> bool {
         !self.reader.get_pointer_field(1).is_null()
@@ -3076,7 +3075,7 @@ pub mod code_generator_request {
       use capnp::list::ToU16;
 
       pub const STRUCT_SIZE : layout::StructSize =
-        layout::StructSize { data : 1, pointers : 1, preferred_list_encoding : layout::InlineComposite};
+        layout::StructSize { data : 1, pointers : 1};
 
 
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
