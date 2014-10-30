@@ -158,7 +158,7 @@ pub trait MessageBuilder {
 
         if self.arena().segment0.current_size() == 0 {
             match self.mut_arena().segment0.allocate(WORDS_PER_POINTER as u32) {
-                None => {fail!("could not allocate root pointer") }
+                None => {panic!("could not allocate root pointer") }
                 Some(location) => {
                     assert!(location == self.arena().segment0.get_ptr_unchecked(0),
                             "First allocated word of new segment was not at offset 0");

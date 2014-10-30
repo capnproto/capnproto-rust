@@ -45,7 +45,7 @@ fn element_size (typ : schema_capnp::type_::WhichReader) -> schema_capnp::elemen
         Uint64(()) => EightBytes,
         Float32(()) => FourBytes,
         Float64(()) => EightBytes,
-        _ => fail!("not primitive")
+        _ => panic!("not primitive")
     }
 }
 
@@ -65,7 +65,7 @@ fn prim_type_str (typ : schema_capnp::type_::WhichReader) -> &'static str {
         Float32(()) => "f32",
         Float64(()) => "f64",
         Enum(_) => "u16",
-        _ => fail!("not primitive")
+        _ => panic!("not primitive")
     }
 }
 
@@ -252,7 +252,7 @@ fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<Stri
     use schema_capnp::type_;
     let module = if is_reader { "Reader" } else { "Builder" };
     match typ.which() {
-        None => fail!("unsupported type"),
+        None => panic!("unsupported type"),
         Some(t) => {
             match t {
                 type_::Void(()) | type_::Bool(()) | type_::Int8(()) |
@@ -280,10 +280,10 @@ fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<Stri
                     format!("list_list::{}<{}, {}>", module, lifetime_name, inner)
                 }
                 type_::AnyPointer(()) => {
-                    fail!("List(AnyPointer) is unsupported");
+                    panic!("List(AnyPointer) is unsupported");
                 }
                 type_::Interface(_i) => {
-                    fail!("unimplemented");
+                    panic!("unimplemented");
                 }
             }
         }
@@ -310,7 +310,7 @@ fn prim_default (value : &schema_capnp::value::Reader) -> Option<String> {
         Some(value::Uint64(i)) => Some(i.to_string()),
         Some(value::Float32(f)) => Some(format!("{}f32", f.to_string())),
         Some(value::Float64(f)) => Some(format!("{}f64", f.to_string())),
-        _ => {fail!()}
+        _ => {panic!()}
     }
 }
 
@@ -322,7 +322,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
     use schema_capnp::*;
 
     match field.which() {
-        None => fail!("unrecognized field type"),
+        None => panic!("unrecognized field type"),
         Some(field::Group(group)) => {
             let the_mod = scope_map[group.get_type_id()].connect("::");
             if is_reader {
@@ -373,7 +373,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
                 }
                 Some((type_::List(ot1), _)) => {
                     match ot1.get_element_type().which() {
-                        None => { fail!("unsupported type") }
+                        None => { panic!("unsupported type") }
                         Some(type_::Struct(st)) => {
                             let the_mod = scope_map[st.get_type_id()].connect("::");
                             if is_reader {
@@ -411,8 +411,8 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
                                     Line(format!("data_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, ::std::ptr::null()))",
                                                  module, member, offset)))
                         }
-                        Some(type_::Interface(_)) => {fail!("unimplemented") }
-                        Some(type_::AnyPointer(())) => {fail!("List(AnyPointer) is unsupported")}
+                        Some(type_::Interface(_)) => {panic!("unimplemented") }
+                        Some(type_::AnyPointer(())) => {panic!("List(AnyPointer) is unsupported")}
                         Some(prim_type) => {
                             let type_str = prim_type_str(prim_type);
                             let size_str = element_size_str(element_size(prim_type));
@@ -453,10 +453,10 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
                 }
                 None => {
                     // XXX should probably silently ignore, instead.
-                    fail!("unrecognized type")
+                    panic!("unrecognized type")
                 }
                 _ => {
-                    fail!("default value was of wrong type");
+                    panic!("default value was of wrong type");
                 }
 
             }
@@ -492,7 +492,7 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
             let fields = st.get_fields();
             for field in fields.iter() {
                 match field.which() {
-                    None => {fail!()}
+                    None => {panic!()}
                     Some(field::Group(group)) => {
                         result.push(zero_fields_of_group(node_map, group.get_type_id()));
                     }
@@ -529,14 +529,14 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
                                     }
                                 }
                             }
-                            None => {fail!()}
+                            None => {panic!()}
                         }
                     }
                 }
             }
             return Branch(result);
         }
-        _ => { fail!("expected a struct") }
+        _ => { panic!("expected a struct") }
     }
 }
 
@@ -568,7 +568,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
     let mut setter_lifetime_param = "";
 
     let (maybe_reader_type, maybe_builder_type) : (Option<String>, Option<String>) = match field.which() {
-        None => fail!("unrecognized field type"),
+        None => panic!("unrecognized field type"),
         Some(field::Group(group)) => {
             let scope = &scope_map[group.get_type_id()];
             let the_mod = scope.connect("::");
@@ -649,7 +649,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 
                     initter_params.push("size : u32");
                     match ot1.get_element_type().which() {
-                        None => fail!("unsupported type"),
+                        None => panic!("unsupported type"),
                         Some(t1) => {
                             match t1 {
                                 type_::Void(()) | type_::Bool(()) | type_::Int8(()) |
@@ -728,8 +728,8 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                                              list_list_type_param(scope_map, t1.get_element_type(), true, "'b"))),
                                      Some(format!("list_list::Builder<'a, {}>", type_param)))
                                 }
-                                type_::AnyPointer(()) => {fail!("List(AnyPointer) not supported")}
-                                type_::Interface(_) => { fail!("unimplemented") }
+                                type_::AnyPointer(()) => {panic!("List(AnyPointer) not supported")}
+                                type_::Interface(_) => { panic!("unimplemented") }
                             }
                         }
                     }
@@ -765,7 +765,7 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
                     initter_interior.push(Line("result".to_string()));
                     (None, Some("any_pointer::Builder<'a>".to_string()))
                 }
-                None => { fail!("unrecognized type") }
+                None => { panic!("unrecognized type") }
             }
         }
     };
@@ -959,7 +959,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
     let name = field.get_name();
 
     match field.which() {
-        None => fail!("unrecognized field type"),
+        None => panic!("unrecognized field type"),
         Some(field::Group(group)) => {
             let the_mod = scope_map[group.get_type_id()].connect("::");
             return Branch(vec!(Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
@@ -970,7 +970,7 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
         }
         Some(field::Slot(reg_field)) => {
             match reg_field.get_type().which() {
-                None => fail!("unrecognized type"),
+                None => panic!("unrecognized type"),
                 Some(type_::Struct(st)) => {
                     let the_mod = scope_map[st.get_type_id()].connect("::");
                     return Branch(vec!(
@@ -1411,14 +1411,14 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
                 Some((type_::Float32(()), value::Float32(f))) => ("f32".to_string(), format!("{}f32", f.to_string())),
                 Some((type_::Float64(()), value::Float64(f))) => ("f64".to_string(), format!("{}f64", f.to_string())),
 
-                Some((type_::Text(()), value::Text(_t))) => { fail!() }
-                Some((type_::Data(()), value::Data(_d))) => { fail!() }
-                Some((type_::List(_t), value::List(_p))) => { fail!() }
-                Some((type_::Struct(_t), value::Struct(_p))) => { fail!() }
-                Some((type_::Interface(_t), value::Interface(()))) => { fail!() }
-                Some((type_::AnyPointer(()), value::AnyPointer(_pr))) => { fail!() }
-                None => { fail!("unrecognized type") }
-                _ => { fail!("type does not match value") }
+                Some((type_::Text(()), value::Text(_t))) => { panic!() }
+                Some((type_::Data(()), value::Data(_d))) => { panic!() }
+                Some((type_::List(_t), value::List(_p))) => { panic!() }
+                Some((type_::Struct(_t), value::Struct(_p))) => { panic!() }
+                Some((type_::Interface(_t), value::Interface(()))) => { panic!() }
+                Some((type_::AnyPointer(()), value::AnyPointer(_pr))) => { panic!() }
+                None => { panic!("unrecognized type") }
+                _ => { panic!("type does not match value") }
             };
 
             output.push(
@@ -1509,7 +1509,7 @@ pub fn main() -> ::std::io::IoResult<()> {
             Ok(ref mut writer) => {
                 try!(writer.write(text.as_bytes()));
             }
-            Err(e) => {fail!("could not open file for writing: {}", e)}
+            Err(e) => {panic!("could not open file for writing: {}", e)}
         }
     }
     Ok(())

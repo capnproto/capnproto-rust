@@ -398,17 +398,17 @@ mod tests {
         union_struct.get_union0().set_u0f0s0(());
         match union_struct.get_union0().which() {
             Some(test_union::union0::U0f0s0(())) => {}
-            _ => fail!()
+            _ => panic!()
         }
         union_struct.init_union0().set_u0f0s1(true);
         match union_struct.get_union0().which() {
             Some(test_union::union0::U0f0s1(true)) => {}
-            _ => fail!()
+            _ => panic!()
         }
         union_struct.init_union0().set_u0f0s8(127);
         match union_struct.get_union0().which() {
             Some(test_union::union0::U0f0s8(127)) => {}
-            _ => fail!()
+            _ => panic!()
         }
 
         assert_eq!(union_struct.get_union0().has_u0f0sp(), false);

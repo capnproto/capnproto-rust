@@ -120,7 +120,7 @@ macro_rules! pass_by_object(
 
                 let response_reader = response.as_reader();
                 if !$testcase::check_response(response_reader, expected) {
-                    fail!("Incorrect response.");
+                    panic!("Incorrect response.");
                 }
             }
         });
@@ -168,7 +168,7 @@ macro_rules! pass_by_bytes(
 
                 let response_reader : $testcase::ResponseReader = message_reader.get_root();
                 if !$testcase::check_response(response_reader, expected) {
-                    fail!("Incorrect response.");
+                    panic!("Incorrect response.");
                 }
             }
         });
@@ -261,7 +261,7 @@ macro_rules! do_testcase(
                     server!($testcase, $reuse, $compression, $iters, input, output)
                 }
                 "pipe" => pass_by_pipe!($testcase, $reuse, $compression, $iters),
-                s => fail!("unrecognized mode: {}", s)
+                s => panic!("unrecognized mode: {}", s)
             }
         });
     )
@@ -272,7 +272,7 @@ macro_rules! do_testcase1(
                 "carsales" => do_testcase!(carsales, $mode, $reuse, $compression, $iters),
                 "catrank" => do_testcase!(catrank, $mode, $reuse, $compression, $iters),
                 "eval" => do_testcase!(eval, $mode, $reuse, $compression, $iters),
-                s => fail!("unrecognized test case: {}", s)
+                s => panic!("unrecognized test case: {}", s)
             }
         });
     )
@@ -288,7 +288,7 @@ macro_rules! do_testcase2(
                     let mut scratch = UseScratch::new();
                     do_testcase1!($testcase, $mode, scratch, $compression, $iters)
                 }
-                s => fail!("unrecognized reuse option: {}", s)
+                s => panic!("unrecognized reuse option: {}", s)
             }
         });
     )
@@ -314,6 +314,6 @@ pub fn main() {
     match args[4].as_slice() {
         "none" => do_testcase2!(args[1], args[2],  args[3], uncompressed, iters),
         "packed" => do_testcase2!(args[1], args[2], args[3], packed, iters),
-        s => fail!("unrecognized compression: {}", s)
+        s => panic!("unrecognized compression: {}", s)
     }
 }

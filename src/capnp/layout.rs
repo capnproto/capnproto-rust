@@ -55,7 +55,7 @@ pub fn element_size_for_type<T>() -> ElementSize {
         16 => TwoBytes,
         32 => FourBytes,
         64 => EightBytes,
-        b => fail!("don't know how to get field size with {} bits", b)
+        b => panic!("don't know how to get field size with {} bits", b)
     }
 }
 
@@ -317,19 +317,19 @@ macro_rules! require(
         if !($condition) {
             error!($message);
             if ($segment).arena.fail_fast() {
-                fail!();
+                panic!();
             }
             $fail
         }
         );
     )
 
-macro_rules! require_fail(
+macro_rules! require_panic(
     ($segment:expr, $message:expr, $fail:stmt) => (
         {
             error!($message);
             if ($segment).arena.fail_fast() {
-                fail!();
+                panic!();
             }
             $fail;
         }
@@ -533,7 +533,7 @@ mod wire_helpers {
                                      tag : *mut WirePointer,
                                      ptr: *mut Word) {
         match (*tag).kind() {
-            wire_pointer_kind::Other => { fail!("Don't know how to handle OTHER") }
+            wire_pointer_kind::Other => { panic!("Don't know how to handle OTHER") }
             wire_pointer_kind::Struct => {
                 let pointer_section : *mut WirePointer =
                     ::std::mem::transmute(
@@ -588,7 +588,7 @@ mod wire_helpers {
                     }
                 }
             }
-            wire_pointer_kind::Far => { fail!("Unexpected FAR pointer") }
+            wire_pointer_kind::Far => { panic!("Unexpected FAR pointer") }
         }
     }
 
@@ -705,13 +705,13 @@ mod wire_helpers {
                 }
             }
             wire_pointer_kind::Far => {
-                fail!("Unexpected FAR pointer.");
+                panic!("Unexpected FAR pointer.");
             }
             wire_pointer_kind::Other => {
                 if (*reff).is_capability() {
                     result.cap_count += 1;
                 } else {
-                    require_fail!(*segment, "Unknown pointer type.", return result);
+                    require_panic!(*segment, "Unknown pointer type.", return result);
                 }
             }
         }
@@ -766,7 +766,7 @@ mod wire_helpers {
             match (*src_segment).allocate(1) {
                 None => {
                     //# Darn, need a double-far.
-                    fail!("unimplemented");
+                    panic!("unimplemented");
                 }
                 Some(landing_pad_word) => {
                     //# Simple landing pad is just a pointer.
@@ -1317,7 +1317,7 @@ mod wire_helpers {
                     16 => TwoBytes,
                     32 => FourBytes,
                     64 => EightBytes,
-                    _ => { fail!("invalid list step size: {}", value.step) }
+                    _ => { panic!("invalid list step size: {}", value.step) }
                 };
 
                 (*reff).mut_list_ref().set(element_size, value.element_count);
@@ -1467,7 +1467,7 @@ mod wire_helpers {
                 }
             }
             wire_pointer_kind::Far => {
-                fail!("Far pointer should have been handled above");
+                panic!("Far pointer should have been handled above");
             }
             wire_pointer_kind::Other => {
                 require!((*src).is_capability(), *src_segment, "Unknown pointer type.",
@@ -1478,7 +1478,7 @@ mod wire_helpers {
                         return super::SegmentAnd { segment : dst_segment, value : ::std::ptr::null_mut() };
                     }
                     None => {
-                        require_fail!(*src_segment,
+                        require_panic!(*src_segment,
                                       "Message contained invalid capability pointer.",
                                       return use_default(dst_segment, dst));
                     }
@@ -1540,15 +1540,15 @@ mod wire_helpers {
                                           reff : *const WirePointer,
                                           _nesting_limit : i32) -> Box<ClientHook+Send> {
         if (*reff).is_null() {
-            fail!("broken cap factory is unimplemented");
+            panic!("broken cap factory is unimplemented");
         } else if !(*reff).is_capability() {
-            fail!("Message contains non-capability pointer where capability pointer was expected.");
+            panic!("Message contains non-capability pointer where capability pointer was expected.");
         } else {
             let n = (*reff).cap_ref().index.get() as uint;
             match (*segment).arena.extract_cap(n) {
                 Some(client_hook) => { client_hook }
                 None => {
-                    fail!("Message contains invalid capability pointer: {}", n)
+                    panic!("Message contains invalid capability pointer: {}", n)
                 }
             }
         }
@@ -1569,7 +1569,7 @@ mod wire_helpers {
                     (*::std::mem::transmute::<*const Word,*const WirePointer>(default_value)).is_null() {
                         return ListReader::new_default();
                     }
-                fail!("list default values unimplemented");
+                panic!("list default values unimplemented");
             }
             first_time = false;
 
@@ -1755,7 +1755,7 @@ mod wire_helpers {
 
         match text::new_reader(str_ptr, size-1) {
             Some(t) => return t,
-            None => require_fail!(*segment,
+            None => require_panic!(*segment,
                                   "Text contains non-utf8 data.",
                                   return use_default(default_value, default_size)),
         }
@@ -2072,7 +2072,7 @@ impl <'a> StructReader<'a>  {
 
     pub fn get_pointer_section_size(&self) -> WirePointerCount16 { self.pointer_count }
 
-    pub fn get_data_section_as_blob(&self) -> uint { fail!("unimplemented") }
+    pub fn get_data_section_as_blob(&self) -> uint { panic!("unimplemented") }
 
     #[inline]
     pub fn get_data_field<T:Endian + ::std::num::Zero>(&self, offset : ElementCount) -> T {

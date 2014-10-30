@@ -42,7 +42,7 @@ fn make_expression(rng : &mut FastRand, exp : expression::Builder, depth : u32) 
         Some(operation::Multiply) => { return left * right }
         Some(operation::Divide) => { return div(left, right) }
         Some(operation::Modulus) => { return modulus(left, right) }
-        None => { fail!("impossible") }
+        None => { panic!("impossible") }
     }
 }
 
@@ -50,12 +50,12 @@ fn evaluate_expression(exp : expression::Reader) -> i32 {
     let left = match exp.get_left().which() {
         Some(expression::left::Value(v)) => v,
         Some(expression::left::Expression(e)) => evaluate_expression(e),
-        None => fail!("impossible")
+        None => panic!("impossible")
     };
     let right = match exp.get_right().which() {
         Some(expression::right::Value(v)) => v,
         Some(expression::right::Expression(e)) => evaluate_expression(e),
-        None => fail!("impossible")
+        None => panic!("impossible")
     };
 
     match exp.get_op() {
@@ -64,7 +64,7 @@ fn evaluate_expression(exp : expression::Reader) -> i32 {
         Some(operation::Multiply) => return left * right,
         Some(operation::Divide) => return div(left, right),
         Some(operation::Modulus) => return modulus(left, right),
-        None => fail!("impossible")
+        None => panic!("impossible")
     }
 }
 

@@ -63,7 +63,7 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
                 self.cap = n;
             } else {
                 //# Forward large skip to the underlying stream.
-                fail!("TODO")
+                panic!("TODO")
             }
         }
         Ok(())

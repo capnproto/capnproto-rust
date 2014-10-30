@@ -334,7 +334,7 @@ impl ArenaPtr {
                     }
                 }
                 &Null => {
-                    fail!()
+                    panic!()
                 }
             }
         }
@@ -368,7 +368,7 @@ impl ArenaPtr {
                     }
                 }
                 &Null => {
-                    fail!();
+                    panic!();
                 }
             }
         }
@@ -384,7 +384,7 @@ impl ArenaPtr {
                     (*builder).fail_fast
                 }
                 &Null => {
-                    fail!()
+                    panic!()
                 }
             }
         }
