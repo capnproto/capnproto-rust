@@ -83,7 +83,7 @@ impl <'a> Builder<'a> {
                 HasStructSize::struct_size(None::<T>)))
     }
 
-    pub fn set_as_struct<'b, T : ToStructReader<'b>>(&self, value : &T) {
+    pub fn set_as_struct<'b, 'c, 'd, T : ToStructReader<'b>>(&'c self, value : &'d T) {
         self.builder.set_struct(&value.struct_reader());
     }
 
