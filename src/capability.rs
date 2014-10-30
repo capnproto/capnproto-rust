@@ -57,7 +57,7 @@ impl ClientHook for LocalClient {
                 _method_id : u16,
                 _size_hint : Option<MessageSize>)
                 -> Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
-        fail!()
+        panic!()
     }
     fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>) {
         self.object_channel.send((interface_id, method_id, context));
@@ -94,7 +94,7 @@ for Request<Params, Results, Pipeline> {
                 let params = call.init_params();
                 params.get_content().init_as_struct()
             }
-            _ => fail!(),
+            _ => panic!(),
         }
     }
 }
@@ -121,10 +121,10 @@ for ResultFuture<Results, Pipeline> {
                             Some(return_::Exception(e)) => {
                                 Err(e.get_reason().to_string())
                             }
-                            _ => fail!(),
+                            _ => panic!(),
                         }
                     }
-                    _ => {fail!()}
+                    _ => {panic!()}
                 }
             }
         }

@@ -108,10 +108,10 @@ impl AnswerRef {
                     Some(return_::Exception(_exc)) => {
                         // TODO
                     }
-                    _ => fail!(),
+                    _ => panic!(),
                 }
             }
-            _ => fail!(),
+            _ => panic!(),
         }
     }
 
@@ -129,13 +129,13 @@ impl AnswerRef {
 
     pub fn sent(&mut self, mut message : Box<MallocMessageBuilder>) {
         match self.status.lock().deref_mut() {
-            &AnswerStatusSent(_) => {fail!()}
+            &AnswerStatusSent(_) => {panic!()}
             &AnswerStatusPending(ref mut waiters) => {
                 waiters.reverse();
                 while waiters.len() > 0 {
                     let (interface_id, method_id, ops, context) = match waiters.pop() {
                         Some(r) => r,
-                        None => fail!(),
+                        None => panic!(),
                     };
                     AnswerRef::do_call(&mut message, interface_id, method_id, ops, context);
                 }
@@ -269,7 +269,7 @@ fn client_hooks_of_payload(payload : payload::Reader,
                 result.push(None);
             }
             Some(cap_descriptor::ReceiverHosted(_id)) => {
-                fail!()
+                panic!()
             }
             Some(cap_descriptor::ReceiverAnswer(promised_answer)) => {
                 result.push(Some(
@@ -281,9 +281,9 @@ fn client_hooks_of_payload(payload : payload::Reader,
                                 } as Box<ClientHook+Send>)));
             }
             Some(cap_descriptor::ThirdPartyHosted(_)) => {
-                fail!()
+                panic!()
             }
-            None => { fail!("unknown cap descriptor")}
+            None => { panic!("unknown cap descriptor")}
         }
     }
     result
@@ -420,7 +420,7 @@ impl RpcConnectionState {
                                             get_pipeline_ops(promised_answer))
                                     }
                                     None => {
-                                        fail!("call targets something else");
+                                        panic!("call targets something else");
                                     }
                                 }
                             }
@@ -500,7 +500,7 @@ impl RpcConnectionState {
                             match root.which() {
                                 Some(message::Call(call)) =>
                                     (call.get_question_id(), call.get_interface_id(), call.get_method_id()),
-                                _ => fail!(),
+                                _ => panic!(),
                             }
                         }
 
@@ -521,7 +521,7 @@ impl RpcConnectionState {
                                     }
                                     &None => {
                                         // XXX Todo
-                                        fail!()
+                                        panic!()
                                     }
                                 };
                                 if erase_it {
@@ -540,7 +540,7 @@ impl RpcConnectionState {
                                     }
                                     None => {
                                         // XXX todo
-                                        fail!()
+                                        panic!()
                                     }
                                 }
                             }
@@ -569,17 +569,17 @@ impl RpcConnectionState {
                                     let id = questions.push(question);
                                     call.set_question_id(id);
                                     let qref = QuestionRef::new(id, ref_count, rpc_chan.clone());
-                                    if !question_chan.send_opt(qref).is_ok() { fail!() }
+                                    if !question_chan.send_opt(qref).is_ok() { panic!() }
                                 }
                                 Some(message::Restore(res)) => {
                                     let (question, ref_count) = Question::new(answer_chan);
                                     let id = questions.push(question);
                                     res.set_question_id(id);
                                     let qref = QuestionRef::new(id, ref_count, rpc_chan.clone());
-                                    if !question_chan.send_opt(qref).is_ok() { fail!() }
+                                    if !question_chan.send_opt(qref).is_ok() { panic!() }
                                 }
                                 _ => {
-                                    fail!("NONE OF THOSE");
+                                    panic!("NONE OF THOSE");
                                 }
                             }
                         }
@@ -671,7 +671,7 @@ impl ClientHook for ImportClient {
     }
 
     fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
-        fail!()
+        panic!()
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
@@ -720,7 +720,7 @@ impl ClientHook for PipelineClient {
     }
 
     fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
-        fail!()
+        panic!()
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
@@ -761,11 +761,11 @@ impl ClientHook for PromisedAnswerClient {
     }
 
     fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
-        fail!()
+        panic!()
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
-        fail!()
+        panic!()
     }
 }
 
@@ -802,7 +802,7 @@ fn write_outgoing_cap_table(rpc_chan : &::std::comm::Sender<RpcEvent>, message :
                             let idx = port.recv();
                             new_cap_table.get(ii).set_sender_hosted(idx);
                         }
-                        None => fail!("noncompliant client hook"),
+                        None => panic!("noncompliant client hook"),
                     }
                 }
                 _ => {}
@@ -903,7 +903,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
                 (call.get_interface_id(), call.get_method_id())
             }
             _ => {
-                fail!("bad call");
+                panic!("bad call");
             }
         };
 
@@ -947,7 +947,7 @@ impl PipelineHook for PromisedAnswerRpcPipeline {
         (box PromisedAnswerRpcPipeline) as Box<PipelineHook+Send>
     }
     fn get_pipelined_cap(&self, _ops : Vec<pipeline_op::Type>) -> Box<ClientHook+Send> {
-        fail!()
+        panic!()
     }
 }
 
@@ -989,7 +989,7 @@ impl RpcCallContext {
                 Some(message::Call(call)) => {
                     call.get_question_id()
                 }
-                _ => fail!(),
+                _ => panic!(),
             }
         };
         let mut results_message = box MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
@@ -1017,7 +1017,7 @@ impl CallContextHook for RpcCallContext {
                 Some(message::Call(call)) => {
                     call.get_params().get_content()
                 }
-                _ => fail!(),
+                _ => panic!(),
             }
         };
 
@@ -1029,10 +1029,10 @@ impl CallContextHook for RpcCallContext {
                         Some(return_::Results(results)) => {
                             results.get_content()
                         }
-                        _ => fail!(),
+                        _ => panic!(),
                     }
                 }
-                _ => fail!(),
+                _ => panic!(),
             }
         };
 
@@ -1107,7 +1107,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
                 Some(message::Call(call)) => {
                     call.get_params().get_content().as_reader()
                 }
-                _ => fail!(),
+                _ => panic!(),
             }
         };
 
@@ -1119,10 +1119,10 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
                         Some(return_::Results(results)) => {
                             results.get_content()
                         }
-                        _ => fail!(),
+                        _ => panic!(),
                     }
                 }
-                _ => fail!(),
+                _ => panic!(),
             }
         };
 
@@ -1138,7 +1138,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
                 let exc = ret.init_exception();
                 exc.set_reason("aborted");
             }
-            _ => fail!(),
+            _ => panic!(),
         }
 
         answer_chan.send(box LocalResponse::new(results_message) as Box<ResponseHook+Send>);

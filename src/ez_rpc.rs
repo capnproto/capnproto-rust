@@ -59,10 +59,10 @@ impl EzRpcClient {
                     Some(return_::Results(payload)) => {
                         payload.get_content().get_as_capability::<T>()
                     }
-                    _ => { fail!() }
+                    _ => { panic!() }
                 }
             }
-            _ => {fail!()}
+            _ => {panic!()}
         };
 
         return client;

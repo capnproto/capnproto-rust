@@ -71,7 +71,7 @@ fn evaluate_impl(
             }
             Ok(try!(request.send().wait()).get_value())
         }
-        None => fail!("unsupported expression"),
+        None => panic!("unsupported expression"),
     }
 }
 
@@ -168,7 +168,7 @@ impl calculator::Server for CalculatorImpl {
                             None::<LocalClient>,
                             box OperatorImpl {op : op})
                     }
-                    None => fail!("Unknown operator."),
+                    None => panic!("Unknown operator."),
                 });
         }
         context.done();
