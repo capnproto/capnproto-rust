@@ -333,7 +333,7 @@ mod tests {
 
     #[test]
     fn test_any_pointer() {
-        use test_capnp::{test_any_pointer, test_empty_struct};
+        use test_capnp::{test_any_pointer, test_empty_struct, test_big_struct};
 
         let mut message = MallocMessageBuilder::new_default();
         let test_any_pointer = message.init_root::<test_any_pointer::Builder>();
@@ -352,6 +352,18 @@ mod tests {
         {
             let reader = test_any_pointer.as_reader();
             reader.get_any_pointer_field().get_as_struct::<test_empty_struct::Reader>();
+        }
+
+        {
+            let mut message = MallocMessageBuilder::new_default();
+            let test_big_struct = message.init_root::<test_big_struct::Builder>();
+            test_big_struct.set_int32_field(-12345);
+            any_pointer.set_as_struct(&test_big_struct.as_reader());
+        }
+
+        fn _test_lifetimes(body : test_big_struct::Reader) {
+            let mut message = MallocMessageBuilder::new_default();
+            message.set_root(&body);
         }
 
     }

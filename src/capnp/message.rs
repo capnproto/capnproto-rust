@@ -183,7 +183,7 @@ pub trait MessageBuilder {
         self.get_root_internal().get_as_struct()
     }
 
-    fn set_root<T : layout::ToStructReader<'static>>(&mut self, value : &T) {
+    fn set_root<'a, T : layout::ToStructReader<'a>>(&mut self, value : &T) {
         self.get_root_internal().set_as_struct(value);
     }
 
