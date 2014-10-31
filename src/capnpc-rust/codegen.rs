@@ -1232,7 +1232,7 @@ fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
             let mut mod_interior = Vec::new();
             let mut dispatch_arms = Vec::new();
 
-            mod_interior.push(Line ("#![allow(unused_variable)]".to_string()));
+            mod_interior.push(Line ("#![allow(unused_variables)]".to_string()));
             mod_interior.push(Line("use capnp::any_pointer;".to_string()));
             mod_interior.push(
                 Line("use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};".to_string()));
