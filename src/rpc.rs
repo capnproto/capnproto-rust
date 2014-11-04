@@ -15,8 +15,8 @@ use capnp::OwnedSpaceMessageReader;
 
 use std::any::AnyRefExt;
 use std::vec::Vec;
-use std::collections::hashmap::HashMap;
-use std::collections::priority_queue::PriorityQueue;
+use std::collections::hash_map::HashMap;
+use std::collections::binary_heap::BinaryHeap;
 use sync::{Arc, Mutex};
 
 use rpc_capnp::{message, return_, cap_descriptor, message_target, payload, promised_answer};
@@ -206,24 +206,24 @@ pub struct ExportTable<T> {
     slots : Vec<Option<T>>,
 
     // prioritize lower values
-    free_ids : PriorityQueue<ReverseU32>,
+    free_ids : BinaryHeap<ReverseU32>,
 }
 
 impl <T> ExportTable<T> {
     pub fn new() -> ExportTable<T> {
         ExportTable { slots : Vec::new(),
-                      free_ids : PriorityQueue::new() }
+                      free_ids : BinaryHeap::new() }
     }
 
     pub fn erase(&mut self, id : u32) {
-        *self.slots.get_mut(id as uint) = None;
+        self.slots[id as uint] = None;
         self.free_ids.push(ReverseU32 { val : id } );
     }
 
     pub fn push(&mut self, val : T) -> u32 {
         match self.free_ids.pop() {
             Some(ReverseU32 { val : id }) => {
-                *self.slots.get_mut(id as uint) = Some(val);
+                self.slots[id as uint] = Some(val);
                 id
             }
             None => {
@@ -473,7 +473,7 @@ impl RpcConnectionState {
                                 answers.slots.insert(answer_id, Answer::new());
 
                                 serialize::write_message(&mut outpipe, &*message).is_ok();
-                                answers.slots.get_mut(&answer_id).answer_ref.sent(message);
+                                answers.slots[answer_id].answer_ref.sent(message);
 
                                 Nobody
                             }
@@ -550,7 +550,7 @@ impl RpcConnectionState {
                                     box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
 
                                 answers.slots.insert(answer_id, Answer::new());
-                                answers.slots.get_mut(&id).answer_ref
+                                answers.slots[id].answer_ref
                                     .receive(interface_id, method_id, ops, context);
                             }
                         }
@@ -619,7 +619,7 @@ impl RpcConnectionState {
 
                         match answer_id_opt {
                             Some(answer_id) => {
-                                answers.slots.get_mut(&answer_id).answer_ref.sent(message)
+                                answers.slots[answer_id].answer_ref.sent(message)
                             }
                             _ => {}
                         }

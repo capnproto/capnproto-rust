@@ -8,7 +8,7 @@ use rpc_capnp::{message, return_};
 
 use std;
 use std::io::Acceptor;
-use std::collections::hashmap::HashMap;
+use std::collections::hash_map::HashMap;
 use capnp::{any_pointer, MessageBuilder, MallocMessageBuilder};
 use capnp::capability::{ClientHook, FromClientHook, Server};
 use rpc::{Outgoing, RpcConnectionState, RpcEvent, ShutdownEvent, SturdyRefRestorer};
