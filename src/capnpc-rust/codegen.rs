@@ -197,8 +197,8 @@ fn module_name(camel_case : &str) -> String {
     return name;
 }
 
-fn populate_scope_map(node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
-                      scope_map : &mut collections::hashmap::HashMap<u64, Vec<String>>,
+fn populate_scope_map(node_map : &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
+                      scope_map : &mut collections::hash_map::HashMap<u64, Vec<String>>,
                       scope_names : Vec<String>,
                       node_id : u64) {
 
@@ -245,7 +245,7 @@ fn generate_import_statements() -> FormattedText {
     ))
 }
 
-fn list_list_type_param(scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
+fn list_list_type_param(scope_map : &collections::hash_map::HashMap<u64, Vec<String>>,
                         typ : schema_capnp::type_::Reader,
                         is_reader: bool,
                         lifetime_name: &str) -> String {
@@ -314,8 +314,8 @@ fn prim_default (value : &schema_capnp::value::Reader) -> Option<String> {
     }
 }
 
-fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
-               scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
+fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
+               scope_map : &collections::hash_map::HashMap<u64, Vec<String>>,
                field : &schema_capnp::field::Reader,
                is_reader : bool)
     -> (String, FormattedText) {
@@ -477,7 +477,7 @@ fn getter_text (_node_map : &collections::hashmap::HashMap<u64, schema_capnp::no
     }
 }
 
-fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
+fn zero_fields_of_group(node_map : &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
                         node_id : u64
                         ) -> FormattedText {
     use schema_capnp::{node, field, type_};
@@ -540,8 +540,8 @@ fn zero_fields_of_group(node_map : &collections::hashmap::HashMap<u64, schema_ca
     }
 }
 
-fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
-                  scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
+fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
+                  scope_map : &collections::hash_map::HashMap<u64, Vec<String>>,
                   discriminant_offset : u32,
                   styled_name : &str,
                   field :&schema_capnp::field::Reader) -> FormattedText {
@@ -796,8 +796,8 @@ fn generate_setter(node_map : &collections::hashmap::HashMap<u64, schema_capnp::
 
 
 // return (the 'Which' enum, the 'which()' accessor, typedef)
-fn generate_union(node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
-                  scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
+fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
+                  scope_map : &collections::hash_map::HashMap<u64, Vec<String>>,
                   discriminant_offset : u32,
                   fields : &[schema_capnp::field::Reader],
                   is_reader : bool)
@@ -951,8 +951,8 @@ fn generate_haser(discriminant_offset : u32,
     Branch(result)
 }
 
-fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
-                            scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
+fn generate_pipeline_getter(_node_map : &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
+                            scope_map : &collections::hash_map::HashMap<u64, Vec<String>>,
                             field : schema_capnp::field::Reader) -> FormattedText {
     use schema_capnp::{field, type_};
 
@@ -1002,8 +1002,8 @@ fn generate_pipeline_getter(_node_map : &collections::hashmap::HashMap<u64, sche
 }
 
 
-fn generate_node(node_map : &collections::hashmap::HashMap<u64, schema_capnp::node::Reader>,
-                 scope_map : &collections::hashmap::HashMap<u64, Vec<String>>,
+fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
+                 scope_map : &collections::hash_map::HashMap<u64, Vec<String>>,
                  node_id : u64,
                  node_name: &str) -> FormattedText {
     use schema_capnp::*;
@@ -1458,8 +1458,8 @@ pub fn main() -> ::std::io::IoResult<()> {
 
     let request : schema_capnp::code_generator_request::Reader = message.get_root();
 
-    let mut node_map = collections::hashmap::HashMap::<u64, schema_capnp::node::Reader>::new();
-    let mut scope_map = collections::hashmap::HashMap::<u64, Vec<String>>::new();
+    let mut node_map = collections::hash_map::HashMap::<u64, schema_capnp::node::Reader>::new();
+    let mut scope_map = collections::hash_map::HashMap::<u64, Vec<String>>::new();
 
     let nodes = request.get_nodes();
     for ii in range(0, nodes.size()) {
