@@ -454,8 +454,8 @@ impl RpcConnectionState {
                             Some(message::Save(_save)) => {
                                 Nobody
                             }
-                            Some(message::Restore(restore)) => {
-                                let clienthook = restorer.restore(restore.get_object_id()).unwrap();
+                            Some(message::Bootstrap(restore)) => {
+                                let clienthook = restorer.restore(restore.get_deprecated_object_id()).unwrap();
                                 let idx = exports.push(Export::new(clienthook.copy()));
 
                                 let answer_id = restore.get_question_id();
@@ -477,7 +477,7 @@ impl RpcConnectionState {
 
                                 Nobody
                             }
-                            Some(message::Delete(_delete)) => {
+                            Some(message::DeprecatedDelete(_delete)) => {
                                 Nobody
                             }
                             Some(message::Provide(_provide)) => {
@@ -571,7 +571,7 @@ impl RpcConnectionState {
                                     let qref = QuestionRef::new(id, ref_count, rpc_chan.clone());
                                     if !question_chan.send_opt(qref).is_ok() { panic!() }
                                 }
-                                Some(message::Restore(res)) => {
+                                Some(message::Bootstrap(res)) => {
                                     let (question, ref_count) = Question::new(answer_chan);
                                     let id = questions.push(question);
                                     res.set_question_id(id);
