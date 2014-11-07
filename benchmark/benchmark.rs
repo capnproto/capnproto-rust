@@ -227,7 +227,7 @@ macro_rules! pass_by_pipe(
         use std::io::process;
 
         let mut args = ::std::os::args();
-        *args.get_mut(2) = "client".to_string();
+        args[2] = "client".to_string();
 
         let mut command = process::Command::new(args[0].as_slice());
         command.args(args.slice(1, args.len()));

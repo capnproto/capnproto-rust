@@ -205,7 +205,7 @@ fn populate_scope_map(node_map : &collections::hash_map::HashMap<u64, schema_cap
     scope_map.insert(node_id, scope_names.clone());
 
     // unused nodes in imported files might be omitted from the node map
-    let node_reader = match node_map.find(&node_id) { Some(node) => node, None => return (), };
+    let node_reader = match node_map.get(&node_id) { Some(node) => node, None => return (), };
 
     let nested_nodes = node_reader.get_nested_nodes();
     for nested_node in nested_nodes.iter(){
