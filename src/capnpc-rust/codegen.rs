@@ -235,6 +235,7 @@ fn populate_scope_map(node_map : &collections::hash_map::HashMap<u64, schema_cap
 
 fn generate_import_statements() -> FormattedText {
     Branch(vec!(
+        Line("#![allow(unused_imports)]".to_string()),
         Line("use capnp::any_pointer;".to_string()),
         Line("use capnp::capability::{FromClientHook, FromTypelessPipeline};".to_string()),
         Line("use capnp::{text, data};".to_string()),
@@ -1497,8 +1498,6 @@ pub fn main() -> ::std::io::IoResult<()> {
             Line("// DO NOT EDIT.".to_string()),
             Line(format!("// source: {}", requested_file.get_filename())),
             BlankLine,
-            Line("#![allow(unused_imports)]".to_string()),
-            Line("#![allow(dead_code)]".to_string()),
             generate_node(&node_map, &scope_map,
                           id, root_name.as_slice())));
 
