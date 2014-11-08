@@ -17,6 +17,8 @@ use std::any::AnyRefExt;
 use std::vec::Vec;
 use std::collections::hash_map::HashMap;
 use std::collections::binary_heap::BinaryHeap;
+use std::ops::IndexMut;
+
 use sync::{Arc, Mutex};
 
 use rpc_capnp::{message, return_, cap_descriptor, message_target, payload, promised_answer};
@@ -507,7 +509,7 @@ impl RpcConnectionState {
                         match receiver {
                             Nobody => {}
                             QuestionReceiver(id) => {
-                                let erase_it = match questions.slots.get_mut(id as uint) {
+                                let erase_it = match questions.slots.index_mut(&(id as uint)) {
                                     &Some(ref mut q) => {
                                         q.chan.send_opt(
                                             box RpcResponse::new(message) as Box<ResponseHook+Send>).is_ok();

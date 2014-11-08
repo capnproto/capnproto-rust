@@ -12,9 +12,9 @@ extern crate core;
 extern crate capnp;
 extern crate sync;
 
-extern crate capnp_rpc_include_generated;
-
-pub use capnp_rpc_include_generated::rpc_capnp;
+pub mod rpc_capnp {
+  include!(concat!(env!("OUT_DIR"), "/rpc_capnp.rs"))
+}
 
 pub mod capability;
 pub mod ez_rpc;
