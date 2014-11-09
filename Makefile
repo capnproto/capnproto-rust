@@ -23,8 +23,8 @@ capnpc-rust-test : target/capnpc-rust
 	$(RUSTC) --test -Ltarget compiler_tests/test.rs --out-dir compiler_tests
 	./compiler_tests/test
 
-install : target/capnpc-rust
-	cp target/capnpc-rust $(CAPNPC_DIR)
+install : target/release/capnpc-rust
+	cp target/release/capnpc-rust $(CAPNPC_DIR)
 
 target/release/capnpc-rust:
 	cargo build --release
