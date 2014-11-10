@@ -1957,20 +1957,20 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn init_struct(&self, size : StructSize) -> StructBuilder<'a> {
+    pub fn init_struct(&mut self, size : StructSize) -> StructBuilder<'a> {
         unsafe {
             wire_helpers::init_struct_pointer(self.pointer, self.segment, size)
         }
     }
 
-    pub fn init_list(&self, element_size : ElementSize, element_count : ElementCount32) -> ListBuilder<'a> {
+    pub fn init_list(&mut self, element_size : ElementSize, element_count : ElementCount32) -> ListBuilder<'a> {
         unsafe {
             wire_helpers::init_list_pointer(
                 self.pointer, self.segment, element_count, element_size)
         }
     }
 
-    pub fn init_struct_list(&self, element_count : ElementCount32, element_size : StructSize)
+    pub fn init_struct_list(&mut self, element_count : ElementCount32, element_size : StructSize)
                             -> ListBuilder<'a> {
         unsafe {
             wire_helpers::init_struct_list_pointer(
@@ -1978,49 +1978,49 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn init_text(&self, size : ByteCount32) -> text::Builder<'a> {
+    pub fn init_text(&mut self, size : ByteCount32) -> text::Builder<'a> {
         unsafe {
             wire_helpers::init_text_pointer(self.pointer, self.segment, size).value
         }
     }
 
-    pub fn init_data(&self, size : ByteCount32) -> data::Builder<'a> {
+    pub fn init_data(&mut self, size : ByteCount32) -> data::Builder<'a> {
         unsafe {
             wire_helpers::init_data_pointer(self.pointer, self.segment, size).value
         }
     }
 
-    pub fn set_struct(&self, value : &StructReader) {
+    pub fn set_struct(&mut self, value : &StructReader) {
         unsafe {
             wire_helpers::set_struct_pointer(self.segment, self.pointer, *value);
         }
     }
 
-    pub fn set_list(&self, value : &ListReader) {
+    pub fn set_list(&mut self, value : &ListReader) {
         unsafe {
             wire_helpers::set_list_pointer(self.segment, self.pointer, *value);
         }
     }
 
-    pub fn set_text(&self, value : &str) {
+    pub fn set_text(&mut self, value : &str) {
         unsafe {
             wire_helpers::set_text_pointer(self.pointer, self.segment, value);
         }
     }
 
-    pub fn set_data(&self, value : &[u8]) {
+    pub fn set_data(&mut self, value : &[u8]) {
         unsafe {
             wire_helpers::set_data_pointer(self.pointer, self.segment, value);
         }
     }
 
-    pub fn set_capability(&self, cap : Box<ClientHook+Send>) {
+    pub fn set_capability(&mut self, cap : Box<ClientHook+Send>) {
         unsafe {
             wire_helpers::set_capability_pointer(self.segment, self.pointer, cap);
         }
     }
 
-    pub fn clear(&self) {
+    pub fn clear(&mut self) {
         unsafe {
             wire_helpers::zero_object(self.segment, self.pointer);
             ::std::ptr::zero_memory(self.pointer, 1);
@@ -2184,7 +2184,7 @@ impl <'a> StructBuilder<'a> {
     }
 
     #[inline]
-    pub fn set_data_field<T:Endian>(&self, offset : ElementCount, value : T) {
+    pub fn set_data_field<T:Endian>(&mut self, offset : ElementCount, value : T) {
         unsafe {
             let ptr : *mut WireValue<T> = ::std::mem::transmute(self.data);
             (*ptr.offset(offset as int)).set(value)
@@ -2192,7 +2192,7 @@ impl <'a> StructBuilder<'a> {
     }
 
     #[inline]
-    pub fn set_data_field_mask<T:Endian + ::std::num::Zero + Mask>(&self,
+    pub fn set_data_field_mask<T:Endian + ::std::num::Zero + Mask>(&mut self,
                                                                  offset : ElementCount,
                                                                  value : T,
                                                                  mask : T) {
@@ -2216,7 +2216,7 @@ impl <'a> StructBuilder<'a> {
 
 
     #[inline]
-    pub fn set_bool_field(&self, offset : ElementCount, value : bool) {
+    pub fn set_bool_field(&mut self, offset : ElementCount, value : bool) {
         //# This branch should be compiled out whenever this is
         //# inlined with a constant offset.
         let boffset : BitCount0 = offset;
@@ -2226,7 +2226,7 @@ impl <'a> StructBuilder<'a> {
     }
 
     #[inline]
-    pub fn set_bool_field_mask(&self,
+    pub fn set_bool_field_mask(&mut self,
                                offset : ElementCount,
                                value : bool,
                                mask : bool) {

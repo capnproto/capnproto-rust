@@ -760,7 +760,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                     (Some(format!("{}::Client",the_mod)), None)
                 }
                 Some(type_::AnyPointer(())) => {
-                    initter_interior.push(Line(format!("let result = any_pointer::Builder::new(self.builder.get_pointer_field({}));",
+                    initter_interior.push(Line(format!("let mut result = any_pointer::Builder::new(self.builder.get_pointer_field({}));",
                                                offset)));
                     initter_interior.push(Line("result.clear();".to_string()));
                     initter_interior.push(Line("result".to_string()));
@@ -774,7 +774,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
     match maybe_reader_type {
         Some(reader_type) => {
             result.push(Line("#[inline]".to_string()));
-            result.push(Line(format!("pub fn set_{}{}(&self, {} : {}) {{",
+            result.push(Line(format!("pub fn set_{}{}(&mut self, {} : {}) {{",
                                      styled_name, setter_lifetime_param, setter_param, reader_type)));
             result.push(Indent(box Branch(setter_interior)));
             result.push(Line("}".to_string()));
@@ -785,7 +785,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
         Some(builder_type) => {
             result.push(Line("#[inline]".to_string()));
             let args = initter_params.connect(", ");
-            result.push(Line(format!("pub fn init_{}(&self, {}) -> {} {{",
+            result.push(Line(format!("pub fn init_{}(&mut self, {}) -> {} {{",
                                      styled_name, args, builder_type)));
             result.push(Indent(box Branch(initter_interior)));
             result.push(Line("}".to_string()));

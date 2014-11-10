@@ -117,7 +117,7 @@ pub mod node {
       self.builder.get_data_field::<u64>(0)
     }
     #[inline]
-    pub fn set_id(&self, value : u64) {
+    pub fn set_id(&mut self, value : u64) {
       self.builder.set_data_field::<u64>(0, value);
     }
     #[inline]
@@ -125,11 +125,11 @@ pub mod node {
       self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_display_name(&self, value : text::Reader) {
+    pub fn set_display_name(&mut self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_display_name(&self, size : u32) -> text::Builder<'a> {
+    pub fn init_display_name(&mut self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_display_name(&self) -> bool {
@@ -140,7 +140,7 @@ pub mod node {
       self.builder.get_data_field::<u32>(2)
     }
     #[inline]
-    pub fn set_display_name_prefix_length(&self, value : u32) {
+    pub fn set_display_name_prefix_length(&mut self, value : u32) {
       self.builder.set_data_field::<u32>(2, value);
     }
     #[inline]
@@ -148,7 +148,7 @@ pub mod node {
       self.builder.get_data_field::<u64>(2)
     }
     #[inline]
-    pub fn set_scope_id(&self, value : u64) {
+    pub fn set_scope_id(&mut self, value : u64) {
       self.builder.set_data_field::<u64>(2, value);
     }
     #[inline]
@@ -156,11 +156,11 @@ pub mod node {
       struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::schema_capnp::node::nested_node::STRUCT_SIZE, ::std::ptr::null()))
     }
     #[inline]
-    pub fn set_nested_nodes(&self, value : struct_list::Reader<'a,::schema_capnp::node::nested_node::Reader<'a>>) {
+    pub fn set_nested_nodes(&mut self, value : struct_list::Reader<'a,::schema_capnp::node::nested_node::Reader<'a>>) {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_nested_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
+    pub fn init_nested_nodes(&mut self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::node::nested_node::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::node::nested_node::STRUCT_SIZE))
     }
@@ -172,11 +172,11 @@ pub mod node {
       struct_list::Builder::new(self.builder.get_pointer_field(2).get_struct_list(::schema_capnp::annotation::STRUCT_SIZE, ::std::ptr::null()))
     }
     #[inline]
-    pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
+    pub fn set_annotations(&mut self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
       self.builder.get_pointer_field(2).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(&mut self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(2).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
     }
@@ -184,11 +184,11 @@ pub mod node {
       !self.builder.get_pointer_field(2).is_null()
     }
     #[inline]
-    pub fn set_file(&self, _value : ()) {
+    pub fn set_file(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(6, 0);
     }
     #[inline]
-    pub fn init_struct(&self, ) -> ::schema_capnp::node::struct_::Builder<'a> {
+    pub fn init_struct(&mut self) -> ::schema_capnp::node::struct_::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 1);
       self.builder.set_data_field::<u16>(7, 0);
       self.builder.set_data_field::<u16>(12, 0);
@@ -200,27 +200,27 @@ pub mod node {
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_enum(&self, ) -> ::schema_capnp::node::enum_::Builder<'a> {
+    pub fn init_enum(&mut self) -> ::schema_capnp::node::enum_::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 2);
       self.builder.get_pointer_field(3).clear();
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_interface(&self, ) -> ::schema_capnp::node::interface::Builder<'a> {
+    pub fn init_interface(&mut self) -> ::schema_capnp::node::interface::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 3);
       self.builder.get_pointer_field(3).clear();
       self.builder.get_pointer_field(4).clear();
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_const(&self, ) -> ::schema_capnp::node::const_::Builder<'a> {
+    pub fn init_const(&mut self) -> ::schema_capnp::node::const_::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 4);
       self.builder.get_pointer_field(3).clear();
       self.builder.get_pointer_field(4).clear();
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_annotation(&self, ) -> ::schema_capnp::node::annotation::Builder<'a> {
+    pub fn init_annotation(&mut self) -> ::schema_capnp::node::annotation::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 5);
       self.builder.get_pointer_field(3).clear();
       self.builder.set_bool_field(112, false);
@@ -352,11 +352,11 @@ pub mod node {
         self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
       }
       #[inline]
-      pub fn set_name(&self, value : text::Reader) {
+      pub fn set_name(&mut self, value : text::Reader) {
         self.builder.get_pointer_field(0).set_text(value);
       }
       #[inline]
-      pub fn init_name(&self, size : u32) -> text::Builder<'a> {
+      pub fn init_name(&mut self, size : u32) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_name(&self) -> bool {
@@ -367,7 +367,7 @@ pub mod node {
         self.builder.get_data_field::<u64>(0)
       }
       #[inline]
-      pub fn set_id(&self, value : u64) {
+      pub fn set_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(0, value);
       }
     }
@@ -452,7 +452,7 @@ pub mod node {
         self.builder.get_data_field::<u16>(7)
       }
       #[inline]
-      pub fn set_data_word_count(&self, value : u16) {
+      pub fn set_data_word_count(&mut self, value : u16) {
         self.builder.set_data_field::<u16>(7, value);
       }
       #[inline]
@@ -460,7 +460,7 @@ pub mod node {
         self.builder.get_data_field::<u16>(12)
       }
       #[inline]
-      pub fn set_pointer_count(&self, value : u16) {
+      pub fn set_pointer_count(&mut self, value : u16) {
         self.builder.set_data_field::<u16>(12, value);
       }
       #[inline]
@@ -468,7 +468,7 @@ pub mod node {
         FromPrimitive::from_u16(self.builder.get_data_field::<u16>(13))
       }
       #[inline]
-      pub fn set_preferred_list_encoding(&self, value : ::schema_capnp::element_size::Reader) {
+      pub fn set_preferred_list_encoding(&mut self, value : ::schema_capnp::element_size::Reader) {
         self.builder.set_data_field::<u16>(13, value as u16)
       }
       #[inline]
@@ -476,7 +476,7 @@ pub mod node {
         self.builder.get_bool_field(224)
       }
       #[inline]
-      pub fn set_is_group(&self, value : bool) {
+      pub fn set_is_group(&mut self, value : bool) {
         self.builder.set_bool_field(224, value);
       }
       #[inline]
@@ -484,7 +484,7 @@ pub mod node {
         self.builder.get_data_field::<u16>(15)
       }
       #[inline]
-      pub fn set_discriminant_count(&self, value : u16) {
+      pub fn set_discriminant_count(&mut self, value : u16) {
         self.builder.set_data_field::<u16>(15, value);
       }
       #[inline]
@@ -492,7 +492,7 @@ pub mod node {
         self.builder.get_data_field::<u32>(8)
       }
       #[inline]
-      pub fn set_discriminant_offset(&self, value : u32) {
+      pub fn set_discriminant_offset(&mut self, value : u32) {
         self.builder.set_data_field::<u32>(8, value);
       }
       #[inline]
@@ -500,11 +500,11 @@ pub mod node {
         struct_list::Builder::new(self.builder.get_pointer_field(3).get_struct_list(::schema_capnp::field::STRUCT_SIZE, ::std::ptr::null()))
       }
       #[inline]
-      pub fn set_fields(&self, value : struct_list::Reader<'a,::schema_capnp::field::Reader<'a>>) {
+      pub fn set_fields(&mut self, value : struct_list::Reader<'a,::schema_capnp::field::Reader<'a>>) {
         self.builder.get_pointer_field(3).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_fields(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
+      pub fn init_fields(&mut self, size : u32) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
         struct_list::Builder::<'a, ::schema_capnp::field::Builder<'a>>::new(
           self.builder.get_pointer_field(3).init_struct_list(size, ::schema_capnp::field::STRUCT_SIZE))
       }
@@ -569,11 +569,11 @@ pub mod node {
         struct_list::Builder::new(self.builder.get_pointer_field(3).get_struct_list(::schema_capnp::enumerant::STRUCT_SIZE, ::std::ptr::null()))
       }
       #[inline]
-      pub fn set_enumerants(&self, value : struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>>) {
+      pub fn set_enumerants(&mut self, value : struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>>) {
         self.builder.get_pointer_field(3).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_enumerants(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
+      pub fn init_enumerants(&mut self, size : u32) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
         struct_list::Builder::<'a, ::schema_capnp::enumerant::Builder<'a>>::new(
           self.builder.get_pointer_field(3).init_struct_list(size, ::schema_capnp::enumerant::STRUCT_SIZE))
       }
@@ -645,11 +645,11 @@ pub mod node {
         struct_list::Builder::new(self.builder.get_pointer_field(3).get_struct_list(::schema_capnp::method::STRUCT_SIZE, ::std::ptr::null()))
       }
       #[inline]
-      pub fn set_methods(&self, value : struct_list::Reader<'a,::schema_capnp::method::Reader<'a>>) {
+      pub fn set_methods(&mut self, value : struct_list::Reader<'a,::schema_capnp::method::Reader<'a>>) {
         self.builder.get_pointer_field(3).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_methods(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
+      pub fn init_methods(&mut self, size : u32) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
         struct_list::Builder::<'a, ::schema_capnp::method::Builder<'a>>::new(
           self.builder.get_pointer_field(3).init_struct_list(size, ::schema_capnp::method::STRUCT_SIZE))
       }
@@ -661,11 +661,11 @@ pub mod node {
         primitive_list::Builder::new(self.builder.get_pointer_field(4).get_list(layout::EightBytes, ::std::ptr::null()))
       }
       #[inline]
-      pub fn set_extends(&self, value : primitive_list::Reader<'a,u64>) {
+      pub fn set_extends(&mut self, value : primitive_list::Reader<'a,u64>) {
         self.builder.get_pointer_field(4).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_extends(&self, size : u32) -> primitive_list::Builder<'a,u64> {
+      pub fn init_extends(&mut self, size : u32) -> primitive_list::Builder<'a,u64> {
         primitive_list::Builder::<'a,u64>::new(
           self.builder.get_pointer_field(4).init_list(layout::EightBytes,size)
         )
@@ -738,11 +738,11 @@ pub mod node {
         FromStructBuilder::new(self.builder.get_pointer_field(3).get_struct(::schema_capnp::type_::STRUCT_SIZE, ::std::ptr::null()))
       }
       #[inline]
-      pub fn set_type(&self, value : ::schema_capnp::type_::Reader) {
+      pub fn set_type(&mut self, value : ::schema_capnp::type_::Reader) {
         self.builder.get_pointer_field(3).set_struct(&value.struct_reader())
       }
       #[inline]
-      pub fn init_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn init_type(&mut self) -> ::schema_capnp::type_::Builder<'a> {
         FromStructBuilder::new(self.builder.get_pointer_field(3).init_struct(::schema_capnp::type_::STRUCT_SIZE))
       }
       pub fn has_type(&self) -> bool {
@@ -753,11 +753,11 @@ pub mod node {
         FromStructBuilder::new(self.builder.get_pointer_field(4).get_struct(::schema_capnp::value::STRUCT_SIZE, ::std::ptr::null()))
       }
       #[inline]
-      pub fn set_value(&self, value : ::schema_capnp::value::Reader) {
+      pub fn set_value(&mut self, value : ::schema_capnp::value::Reader) {
         self.builder.get_pointer_field(4).set_struct(&value.struct_reader())
       }
       #[inline]
-      pub fn init_value(&self, ) -> ::schema_capnp::value::Builder<'a> {
+      pub fn init_value(&mut self) -> ::schema_capnp::value::Builder<'a> {
         FromStructBuilder::new(self.builder.get_pointer_field(4).init_struct(::schema_capnp::value::STRUCT_SIZE))
       }
       pub fn has_value(&self) -> bool {
@@ -875,11 +875,11 @@ pub mod node {
         FromStructBuilder::new(self.builder.get_pointer_field(3).get_struct(::schema_capnp::type_::STRUCT_SIZE, ::std::ptr::null()))
       }
       #[inline]
-      pub fn set_type(&self, value : ::schema_capnp::type_::Reader) {
+      pub fn set_type(&mut self, value : ::schema_capnp::type_::Reader) {
         self.builder.get_pointer_field(3).set_struct(&value.struct_reader())
       }
       #[inline]
-      pub fn init_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn init_type(&mut self) -> ::schema_capnp::type_::Builder<'a> {
         FromStructBuilder::new(self.builder.get_pointer_field(3).init_struct(::schema_capnp::type_::STRUCT_SIZE))
       }
       pub fn has_type(&self) -> bool {
@@ -890,7 +890,7 @@ pub mod node {
         self.builder.get_bool_field(112)
       }
       #[inline]
-      pub fn set_targets_file(&self, value : bool) {
+      pub fn set_targets_file(&mut self, value : bool) {
         self.builder.set_bool_field(112, value);
       }
       #[inline]
@@ -898,7 +898,7 @@ pub mod node {
         self.builder.get_bool_field(113)
       }
       #[inline]
-      pub fn set_targets_const(&self, value : bool) {
+      pub fn set_targets_const(&mut self, value : bool) {
         self.builder.set_bool_field(113, value);
       }
       #[inline]
@@ -906,7 +906,7 @@ pub mod node {
         self.builder.get_bool_field(114)
       }
       #[inline]
-      pub fn set_targets_enum(&self, value : bool) {
+      pub fn set_targets_enum(&mut self, value : bool) {
         self.builder.set_bool_field(114, value);
       }
       #[inline]
@@ -914,7 +914,7 @@ pub mod node {
         self.builder.get_bool_field(115)
       }
       #[inline]
-      pub fn set_targets_enumerant(&self, value : bool) {
+      pub fn set_targets_enumerant(&mut self, value : bool) {
         self.builder.set_bool_field(115, value);
       }
       #[inline]
@@ -922,7 +922,7 @@ pub mod node {
         self.builder.get_bool_field(116)
       }
       #[inline]
-      pub fn set_targets_struct(&self, value : bool) {
+      pub fn set_targets_struct(&mut self, value : bool) {
         self.builder.set_bool_field(116, value);
       }
       #[inline]
@@ -930,7 +930,7 @@ pub mod node {
         self.builder.get_bool_field(117)
       }
       #[inline]
-      pub fn set_targets_field(&self, value : bool) {
+      pub fn set_targets_field(&mut self, value : bool) {
         self.builder.set_bool_field(117, value);
       }
       #[inline]
@@ -938,7 +938,7 @@ pub mod node {
         self.builder.get_bool_field(118)
       }
       #[inline]
-      pub fn set_targets_union(&self, value : bool) {
+      pub fn set_targets_union(&mut self, value : bool) {
         self.builder.set_bool_field(118, value);
       }
       #[inline]
@@ -946,7 +946,7 @@ pub mod node {
         self.builder.get_bool_field(119)
       }
       #[inline]
-      pub fn set_targets_group(&self, value : bool) {
+      pub fn set_targets_group(&mut self, value : bool) {
         self.builder.set_bool_field(119, value);
       }
       #[inline]
@@ -954,7 +954,7 @@ pub mod node {
         self.builder.get_bool_field(120)
       }
       #[inline]
-      pub fn set_targets_interface(&self, value : bool) {
+      pub fn set_targets_interface(&mut self, value : bool) {
         self.builder.set_bool_field(120, value);
       }
       #[inline]
@@ -962,7 +962,7 @@ pub mod node {
         self.builder.get_bool_field(121)
       }
       #[inline]
-      pub fn set_targets_method(&self, value : bool) {
+      pub fn set_targets_method(&mut self, value : bool) {
         self.builder.set_bool_field(121, value);
       }
       #[inline]
@@ -970,7 +970,7 @@ pub mod node {
         self.builder.get_bool_field(122)
       }
       #[inline]
-      pub fn set_targets_param(&self, value : bool) {
+      pub fn set_targets_param(&mut self, value : bool) {
         self.builder.set_bool_field(122, value);
       }
       #[inline]
@@ -978,7 +978,7 @@ pub mod node {
         self.builder.get_bool_field(123)
       }
       #[inline]
-      pub fn set_targets_annotation(&self, value : bool) {
+      pub fn set_targets_annotation(&mut self, value : bool) {
         self.builder.set_bool_field(123, value);
       }
     }
@@ -1085,11 +1085,11 @@ pub mod field {
       self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_name(&self, value : text::Reader) {
+    pub fn set_name(&mut self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : u32) -> text::Builder<'a> {
+    pub fn init_name(&mut self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
@@ -1100,7 +1100,7 @@ pub mod field {
       self.builder.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn set_code_order(&self, value : u16) {
+    pub fn set_code_order(&mut self, value : u16) {
       self.builder.set_data_field::<u16>(0, value);
     }
     #[inline]
@@ -1108,11 +1108,11 @@ pub mod field {
       struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::schema_capnp::annotation::STRUCT_SIZE, ::std::ptr::null()))
     }
     #[inline]
-    pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
+    pub fn set_annotations(&mut self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(&mut self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
     }
@@ -1124,11 +1124,11 @@ pub mod field {
       self.builder.get_data_field_mask::<u16>(1, 65535u16)
     }
     #[inline]
-    pub fn set_discriminant_value(&self, value : u16) {
+    pub fn set_discriminant_value(&mut self, value : u16) {
       self.builder.set_data_field_mask::<u16>(1, value, 65535);
     }
     #[inline]
-    pub fn init_slot(&self, ) -> ::schema_capnp::field::slot::Builder<'a> {
+    pub fn init_slot(&mut self) -> ::schema_capnp::field::slot::Builder<'a> {
       self.builder.set_data_field::<u16>(4, 0);
       self.builder.set_data_field::<u32>(1, 0);
       self.builder.get_pointer_field(2).clear();
@@ -1137,7 +1137,7 @@ pub mod field {
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_group(&self, ) -> ::schema_capnp::field::group::Builder<'a> {
+    pub fn init_group(&mut self) -> ::schema_capnp::field::group::Builder<'a> {
       self.builder.set_data_field::<u16>(4, 1);
       self.builder.set_data_field::<u64>(2, 0);
       FromStructBuilder::new(self.builder)
@@ -1147,7 +1147,7 @@ pub mod field {
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_ordinal(&self, ) -> ::schema_capnp::field::ordinal::Builder<'a> {
+    pub fn init_ordinal(&mut self) -> ::schema_capnp::field::ordinal::Builder<'a> {
       self.builder.set_data_field::<u16>(5, 0);
       self.builder.set_data_field::<u16>(6, 0);
       FromStructBuilder::new(self.builder)
@@ -1250,7 +1250,7 @@ pub mod field {
         self.builder.get_data_field::<u32>(1)
       }
       #[inline]
-      pub fn set_offset(&self, value : u32) {
+      pub fn set_offset(&mut self, value : u32) {
         self.builder.set_data_field::<u32>(1, value);
       }
       #[inline]
@@ -1258,11 +1258,11 @@ pub mod field {
         FromStructBuilder::new(self.builder.get_pointer_field(2).get_struct(::schema_capnp::type_::STRUCT_SIZE, ::std::ptr::null()))
       }
       #[inline]
-      pub fn set_type(&self, value : ::schema_capnp::type_::Reader) {
+      pub fn set_type(&mut self, value : ::schema_capnp::type_::Reader) {
         self.builder.get_pointer_field(2).set_struct(&value.struct_reader())
       }
       #[inline]
-      pub fn init_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn init_type(&mut self) -> ::schema_capnp::type_::Builder<'a> {
         FromStructBuilder::new(self.builder.get_pointer_field(2).init_struct(::schema_capnp::type_::STRUCT_SIZE))
       }
       pub fn has_type(&self) -> bool {
@@ -1273,11 +1273,11 @@ pub mod field {
         FromStructBuilder::new(self.builder.get_pointer_field(3).get_struct(::schema_capnp::value::STRUCT_SIZE, ::std::ptr::null()))
       }
       #[inline]
-      pub fn set_default_value(&self, value : ::schema_capnp::value::Reader) {
+      pub fn set_default_value(&mut self, value : ::schema_capnp::value::Reader) {
         self.builder.get_pointer_field(3).set_struct(&value.struct_reader())
       }
       #[inline]
-      pub fn init_default_value(&self, ) -> ::schema_capnp::value::Builder<'a> {
+      pub fn init_default_value(&mut self) -> ::schema_capnp::value::Builder<'a> {
         FromStructBuilder::new(self.builder.get_pointer_field(3).init_struct(::schema_capnp::value::STRUCT_SIZE))
       }
       pub fn has_default_value(&self) -> bool {
@@ -1288,7 +1288,7 @@ pub mod field {
         self.builder.get_bool_field(128)
       }
       #[inline]
-      pub fn set_had_explicit_default(&self, value : bool) {
+      pub fn set_had_explicit_default(&mut self, value : bool) {
         self.builder.set_bool_field(128, value);
       }
     }
@@ -1352,7 +1352,7 @@ pub mod field {
         self.builder.get_data_field::<u64>(2)
       }
       #[inline]
-      pub fn set_type_id(&self, value : u64) {
+      pub fn set_type_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(2, value);
       }
     }
@@ -1418,11 +1418,11 @@ pub mod field {
         FromStructReader::new(self.builder.as_reader())
       }
       #[inline]
-      pub fn set_implicit(&self, _value : ()) {
+      pub fn set_implicit(&mut self, _value : ()) {
         self.builder.set_data_field::<u16>(5, 0);
       }
       #[inline]
-      pub fn set_explicit(&self, value : u16) {
+      pub fn set_explicit(&mut self, value : u16) {
         self.builder.set_data_field::<u16>(5, 1);
         self.builder.set_data_field::<u16>(6, value);
       }
@@ -1526,11 +1526,11 @@ pub mod enumerant {
       self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_name(&self, value : text::Reader) {
+    pub fn set_name(&mut self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : u32) -> text::Builder<'a> {
+    pub fn init_name(&mut self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
@@ -1541,7 +1541,7 @@ pub mod enumerant {
       self.builder.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn set_code_order(&self, value : u16) {
+    pub fn set_code_order(&mut self, value : u16) {
       self.builder.set_data_field::<u16>(0, value);
     }
     #[inline]
@@ -1549,11 +1549,11 @@ pub mod enumerant {
       struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::schema_capnp::annotation::STRUCT_SIZE, ::std::ptr::null()))
     }
     #[inline]
-    pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
+    pub fn set_annotations(&mut self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(&mut self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
     }
@@ -1645,11 +1645,11 @@ pub mod method {
       self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_name(&self, value : text::Reader) {
+    pub fn set_name(&mut self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : u32) -> text::Builder<'a> {
+    pub fn init_name(&mut self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
@@ -1660,7 +1660,7 @@ pub mod method {
       self.builder.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn set_code_order(&self, value : u16) {
+    pub fn set_code_order(&mut self, value : u16) {
       self.builder.set_data_field::<u16>(0, value);
     }
     #[inline]
@@ -1668,7 +1668,7 @@ pub mod method {
       self.builder.get_data_field::<u64>(1)
     }
     #[inline]
-    pub fn set_param_struct_type(&self, value : u64) {
+    pub fn set_param_struct_type(&mut self, value : u64) {
       self.builder.set_data_field::<u64>(1, value);
     }
     #[inline]
@@ -1676,7 +1676,7 @@ pub mod method {
       self.builder.get_data_field::<u64>(2)
     }
     #[inline]
-    pub fn set_result_struct_type(&self, value : u64) {
+    pub fn set_result_struct_type(&mut self, value : u64) {
       self.builder.set_data_field::<u64>(2, value);
     }
     #[inline]
@@ -1684,11 +1684,11 @@ pub mod method {
       struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::schema_capnp::annotation::STRUCT_SIZE, ::std::ptr::null()))
     }
     #[inline]
-    pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
+    pub fn set_annotations(&mut self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(&mut self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
     }
@@ -1851,87 +1851,87 @@ pub mod type_ {
       FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
-    pub fn set_void(&self, _value : ()) {
+    pub fn set_void(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 0);
     }
     #[inline]
-    pub fn set_bool(&self, _value : ()) {
+    pub fn set_bool(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 1);
     }
     #[inline]
-    pub fn set_int8(&self, _value : ()) {
+    pub fn set_int8(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 2);
     }
     #[inline]
-    pub fn set_int16(&self, _value : ()) {
+    pub fn set_int16(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 3);
     }
     #[inline]
-    pub fn set_int32(&self, _value : ()) {
+    pub fn set_int32(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 4);
     }
     #[inline]
-    pub fn set_int64(&self, _value : ()) {
+    pub fn set_int64(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 5);
     }
     #[inline]
-    pub fn set_uint8(&self, _value : ()) {
+    pub fn set_uint8(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 6);
     }
     #[inline]
-    pub fn set_uint16(&self, _value : ()) {
+    pub fn set_uint16(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 7);
     }
     #[inline]
-    pub fn set_uint32(&self, _value : ()) {
+    pub fn set_uint32(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 8);
     }
     #[inline]
-    pub fn set_uint64(&self, _value : ()) {
+    pub fn set_uint64(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 9);
     }
     #[inline]
-    pub fn set_float32(&self, _value : ()) {
+    pub fn set_float32(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 10);
     }
     #[inline]
-    pub fn set_float64(&self, _value : ()) {
+    pub fn set_float64(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 11);
     }
     #[inline]
-    pub fn set_text(&self, _value : ()) {
+    pub fn set_text(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 12);
     }
     #[inline]
-    pub fn set_data(&self, _value : ()) {
+    pub fn set_data(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 13);
     }
     #[inline]
-    pub fn init_list(&self, ) -> ::schema_capnp::type_::list::Builder<'a> {
+    pub fn init_list(&mut self) -> ::schema_capnp::type_::list::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 14);
       self.builder.get_pointer_field(0).clear();
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_enum(&self, ) -> ::schema_capnp::type_::enum_::Builder<'a> {
+    pub fn init_enum(&mut self) -> ::schema_capnp::type_::enum_::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 15);
       self.builder.set_data_field::<u64>(1, 0);
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_struct(&self, ) -> ::schema_capnp::type_::struct_::Builder<'a> {
+    pub fn init_struct(&mut self) -> ::schema_capnp::type_::struct_::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 16);
       self.builder.set_data_field::<u64>(1, 0);
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_interface(&self, ) -> ::schema_capnp::type_::interface::Builder<'a> {
+    pub fn init_interface(&mut self) -> ::schema_capnp::type_::interface::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 17);
       self.builder.set_data_field::<u64>(1, 0);
       FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn set_any_pointer(&self, _value : ()) {
+    pub fn set_any_pointer(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 18);
     }
     #[inline]
@@ -2115,11 +2115,11 @@ pub mod type_ {
         FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(::schema_capnp::type_::STRUCT_SIZE, ::std::ptr::null()))
       }
       #[inline]
-      pub fn set_element_type(&self, value : ::schema_capnp::type_::Reader) {
+      pub fn set_element_type(&mut self, value : ::schema_capnp::type_::Reader) {
         self.builder.get_pointer_field(0).set_struct(&value.struct_reader())
       }
       #[inline]
-      pub fn init_element_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn init_element_type(&mut self) -> ::schema_capnp::type_::Builder<'a> {
         FromStructBuilder::new(self.builder.get_pointer_field(0).init_struct(::schema_capnp::type_::STRUCT_SIZE))
       }
       pub fn has_element_type(&self) -> bool {
@@ -2183,7 +2183,7 @@ pub mod type_ {
         self.builder.get_data_field::<u64>(1)
       }
       #[inline]
-      pub fn set_type_id(&self, value : u64) {
+      pub fn set_type_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(1, value);
       }
     }
@@ -2241,7 +2241,7 @@ pub mod type_ {
         self.builder.get_data_field::<u64>(1)
       }
       #[inline]
-      pub fn set_type_id(&self, value : u64) {
+      pub fn set_type_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(1, value);
       }
     }
@@ -2299,7 +2299,7 @@ pub mod type_ {
         self.builder.get_data_field::<u64>(1)
       }
       #[inline]
-      pub fn set_type_id(&self, value : u64) {
+      pub fn set_type_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(1, value);
       }
     }
@@ -2479,71 +2479,71 @@ pub mod value {
       FromStructReader::new(self.builder.as_reader())
     }
     #[inline]
-    pub fn set_void(&self, _value : ()) {
+    pub fn set_void(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 0);
     }
     #[inline]
-    pub fn set_bool(&self, value : bool) {
+    pub fn set_bool(&mut self, value : bool) {
       self.builder.set_data_field::<u16>(0, 1);
       self.builder.set_bool_field(16, value);
     }
     #[inline]
-    pub fn set_int8(&self, value : i8) {
+    pub fn set_int8(&mut self, value : i8) {
       self.builder.set_data_field::<u16>(0, 2);
       self.builder.set_data_field::<i8>(2, value);
     }
     #[inline]
-    pub fn set_int16(&self, value : i16) {
+    pub fn set_int16(&mut self, value : i16) {
       self.builder.set_data_field::<u16>(0, 3);
       self.builder.set_data_field::<i16>(1, value);
     }
     #[inline]
-    pub fn set_int32(&self, value : i32) {
+    pub fn set_int32(&mut self, value : i32) {
       self.builder.set_data_field::<u16>(0, 4);
       self.builder.set_data_field::<i32>(1, value);
     }
     #[inline]
-    pub fn set_int64(&self, value : i64) {
+    pub fn set_int64(&mut self, value : i64) {
       self.builder.set_data_field::<u16>(0, 5);
       self.builder.set_data_field::<i64>(1, value);
     }
     #[inline]
-    pub fn set_uint8(&self, value : u8) {
+    pub fn set_uint8(&mut self, value : u8) {
       self.builder.set_data_field::<u16>(0, 6);
       self.builder.set_data_field::<u8>(2, value);
     }
     #[inline]
-    pub fn set_uint16(&self, value : u16) {
+    pub fn set_uint16(&mut self, value : u16) {
       self.builder.set_data_field::<u16>(0, 7);
       self.builder.set_data_field::<u16>(1, value);
     }
     #[inline]
-    pub fn set_uint32(&self, value : u32) {
+    pub fn set_uint32(&mut self, value : u32) {
       self.builder.set_data_field::<u16>(0, 8);
       self.builder.set_data_field::<u32>(1, value);
     }
     #[inline]
-    pub fn set_uint64(&self, value : u64) {
+    pub fn set_uint64(&mut self, value : u64) {
       self.builder.set_data_field::<u16>(0, 9);
       self.builder.set_data_field::<u64>(1, value);
     }
     #[inline]
-    pub fn set_float32(&self, value : f32) {
+    pub fn set_float32(&mut self, value : f32) {
       self.builder.set_data_field::<u16>(0, 10);
       self.builder.set_data_field::<f32>(1, value);
     }
     #[inline]
-    pub fn set_float64(&self, value : f64) {
+    pub fn set_float64(&mut self, value : f64) {
       self.builder.set_data_field::<u16>(0, 11);
       self.builder.set_data_field::<f64>(1, value);
     }
     #[inline]
-    pub fn set_text(&self, value : text::Reader) {
+    pub fn set_text(&mut self, value : text::Reader) {
       self.builder.set_data_field::<u16>(0, 12);
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_text(&self, size : u32) -> text::Builder<'a> {
+    pub fn init_text(&mut self, size : u32) -> text::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 12);
       self.builder.get_pointer_field(0).init_text(size)
     }
@@ -2552,12 +2552,12 @@ pub mod value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn set_data(&self, value : data::Reader) {
+    pub fn set_data(&mut self, value : data::Reader) {
       self.builder.set_data_field::<u16>(0, 13);
       self.builder.get_pointer_field(0).set_data(value);
     }
     #[inline]
-    pub fn init_data(&self, size : u32) -> data::Builder<'a> {
+    pub fn init_data(&mut self, size : u32) -> data::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 13);
       self.builder.get_pointer_field(0).init_data(size)
     }
@@ -2566,9 +2566,9 @@ pub mod value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn init_list(&self, ) -> any_pointer::Builder<'a> {
+    pub fn init_list(&mut self) -> any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 14);
-      let result = any_pointer::Builder::new(self.builder.get_pointer_field(0));
+      let mut result = any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
       result
     }
@@ -2577,14 +2577,14 @@ pub mod value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn set_enum(&self, value : u16) {
+    pub fn set_enum(&mut self, value : u16) {
       self.builder.set_data_field::<u16>(0, 15);
       self.builder.set_data_field::<u16>(1, value);
     }
     #[inline]
-    pub fn init_struct(&self, ) -> any_pointer::Builder<'a> {
+    pub fn init_struct(&mut self) -> any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 16);
-      let result = any_pointer::Builder::new(self.builder.get_pointer_field(0));
+      let mut result = any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
       result
     }
@@ -2593,13 +2593,13 @@ pub mod value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn set_interface(&self, _value : ()) {
+    pub fn set_interface(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 17);
     }
     #[inline]
-    pub fn init_any_pointer(&self, ) -> any_pointer::Builder<'a> {
+    pub fn init_any_pointer(&mut self) -> any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 18);
-      let result = any_pointer::Builder::new(self.builder.get_pointer_field(0));
+      let mut result = any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
       result
     }
@@ -2801,7 +2801,7 @@ pub mod annotation {
       self.builder.get_data_field::<u64>(0)
     }
     #[inline]
-    pub fn set_id(&self, value : u64) {
+    pub fn set_id(&mut self, value : u64) {
       self.builder.set_data_field::<u64>(0, value);
     }
     #[inline]
@@ -2809,11 +2809,11 @@ pub mod annotation {
       FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(::schema_capnp::value::STRUCT_SIZE, ::std::ptr::null()))
     }
     #[inline]
-    pub fn set_value(&self, value : ::schema_capnp::value::Reader) {
+    pub fn set_value(&mut self, value : ::schema_capnp::value::Reader) {
       self.builder.get_pointer_field(0).set_struct(&value.struct_reader())
     }
     #[inline]
-    pub fn init_value(&self, ) -> ::schema_capnp::value::Builder<'a> {
+    pub fn init_value(&mut self) -> ::schema_capnp::value::Builder<'a> {
       FromStructBuilder::new(self.builder.get_pointer_field(0).init_struct(::schema_capnp::value::STRUCT_SIZE))
     }
     pub fn has_value(&self) -> bool {
@@ -2917,11 +2917,11 @@ pub mod code_generator_request {
       struct_list::Builder::new(self.builder.get_pointer_field(0).get_struct_list(::schema_capnp::node::STRUCT_SIZE, ::std::ptr::null()))
     }
     #[inline]
-    pub fn set_nodes(&self, value : struct_list::Reader<'a,::schema_capnp::node::Reader<'a>>) {
+    pub fn set_nodes(&mut self, value : struct_list::Reader<'a,::schema_capnp::node::Reader<'a>>) {
       self.builder.get_pointer_field(0).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
+    pub fn init_nodes(&mut self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::node::Builder<'a>>::new(
         self.builder.get_pointer_field(0).init_struct_list(size, ::schema_capnp::node::STRUCT_SIZE))
     }
@@ -2933,11 +2933,11 @@ pub mod code_generator_request {
       struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::schema_capnp::code_generator_request::requested_file::STRUCT_SIZE, ::std::ptr::null()))
     }
     #[inline]
-    pub fn set_requested_files(&self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::Reader<'a>>) {
+    pub fn set_requested_files(&mut self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::Reader<'a>>) {
       self.builder.get_pointer_field(1).set_list(&value.reader)
     }
     #[inline]
-    pub fn init_requested_files(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
+    pub fn init_requested_files(&mut self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
       struct_list::Builder::<'a, ::schema_capnp::code_generator_request::requested_file::Builder<'a>>::new(
         self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::code_generator_request::requested_file::STRUCT_SIZE))
     }
@@ -3020,7 +3020,7 @@ pub mod code_generator_request {
         self.builder.get_data_field::<u64>(0)
       }
       #[inline]
-      pub fn set_id(&self, value : u64) {
+      pub fn set_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(0, value);
       }
       #[inline]
@@ -3028,11 +3028,11 @@ pub mod code_generator_request {
         self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
       }
       #[inline]
-      pub fn set_filename(&self, value : text::Reader) {
+      pub fn set_filename(&mut self, value : text::Reader) {
         self.builder.get_pointer_field(0).set_text(value);
       }
       #[inline]
-      pub fn init_filename(&self, size : u32) -> text::Builder<'a> {
+      pub fn init_filename(&mut self, size : u32) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_filename(&self) -> bool {
@@ -3043,11 +3043,11 @@ pub mod code_generator_request {
         struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::schema_capnp::code_generator_request::requested_file::import::STRUCT_SIZE, ::std::ptr::null()))
       }
       #[inline]
-      pub fn set_imports(&self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::import::Reader<'a>>) {
+      pub fn set_imports(&mut self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::import::Reader<'a>>) {
         self.builder.get_pointer_field(1).set_list(&value.reader)
       }
       #[inline]
-      pub fn init_imports(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {
+      pub fn init_imports(&mut self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {
         struct_list::Builder::<'a, ::schema_capnp::code_generator_request::requested_file::import::Builder<'a>>::new(
           self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::code_generator_request::requested_file::import::STRUCT_SIZE))
       }
@@ -3123,7 +3123,7 @@ pub mod code_generator_request {
           self.builder.get_data_field::<u64>(0)
         }
         #[inline]
-        pub fn set_id(&self, value : u64) {
+        pub fn set_id(&mut self, value : u64) {
           self.builder.set_data_field::<u64>(0, value);
         }
         #[inline]
@@ -3131,11 +3131,11 @@ pub mod code_generator_request {
           self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
         }
         #[inline]
-        pub fn set_name(&self, value : text::Reader) {
+        pub fn set_name(&mut self, value : text::Reader) {
           self.builder.get_pointer_field(0).set_text(value);
         }
         #[inline]
-        pub fn init_name(&self, size : u32) -> text::Builder<'a> {
+        pub fn init_name(&mut self, size : u32) -> text::Builder<'a> {
           self.builder.get_pointer_field(0).init_text(size)
         }
         pub fn has_name(&self) -> bool {
