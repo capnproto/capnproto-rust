@@ -452,7 +452,7 @@ impl RpcConnectionState {
                                 println!("disembargo");
                                 Nobody
                             }
-                            Some(message::Save(_save)) => {
+                            Some(message::ObsoleteSave(_save)) => {
                                 Nobody
                             }
                             Some(message::Bootstrap(restore)) => {
@@ -478,7 +478,7 @@ impl RpcConnectionState {
 
                                 Nobody
                             }
-                            Some(message::DeprecatedDelete(_delete)) => {
+                            Some(message::ObsoleteDelete(_delete)) => {
                                 Nobody
                             }
                             Some(message::Provide(_provide)) => {
