@@ -48,13 +48,13 @@ impl ReaderOptions {
 
 type SegmentId = u32;
 
-pub trait MessageReader {
-    fn get_segment<'a>(&'a self, id : uint) -> &'a [Word];
-    fn arena<'a>(&'a self) -> &'a ReaderArena;
-    fn mut_arena<'a>(&'a mut self) -> &'a mut ReaderArena;
-    fn get_options<'a>(&'a self) -> &'a ReaderOptions;
+pub trait MessageReader<'a> {
+    fn get_segment(&self, id : uint) -> &[Word];
+    fn arena(&self) -> &ReaderArena;
+    fn mut_arena(&mut self) -> &mut ReaderArena;
+    fn get_options(&self) -> &ReaderOptions;
 
-    fn get_root_internal(&self) -> any_pointer::Reader<'static> {
+    fn get_root_internal(&self) -> any_pointer::Reader {
         unsafe {
             let segment : *const SegmentReader = &self.arena().segment0;
 
@@ -65,7 +65,7 @@ pub trait MessageReader {
         }
     }
 
-    fn get_root<T : layout::FromStructReader<'static>>(&self) -> T {
+    fn get_root<T : layout::FromStructReader<'a>>(&'a self) -> T {
         self.get_root_internal().get_as_struct()
     }
 
@@ -81,7 +81,7 @@ pub struct SegmentArrayMessageReader<'a> {
 }
 
 
-impl <'a> MessageReader for SegmentArrayMessageReader<'a> {
+impl <'a> MessageReader<'a> for SegmentArrayMessageReader<'a> {
     fn get_segment<'b>(&'b self, id : uint) -> &'b [Word] {
         self.segments[id]
     }

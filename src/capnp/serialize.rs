@@ -20,16 +20,16 @@ pub struct OwnedSpaceMessageReader {
     owned_space : Vec<Word>,
 }
 
-impl MessageReader for OwnedSpaceMessageReader {
-    fn get_segment<'b>(&'b self, id : uint) -> &'b [Word] {
+impl <'a> MessageReader<'a> for OwnedSpaceMessageReader {
+    fn get_segment(&self, id : uint) -> &[Word] {
         let (a,b) = self.segment_slices.as_slice()[id];
         self.owned_space.slice(a, b)
     }
 
-    fn arena<'b>(&'b self) -> &'b arena::ReaderArena { &*self.arena }
-    fn mut_arena<'b>(&'b mut self) -> &'b mut arena::ReaderArena { &mut *self.arena }
+    fn arena(&self) -> &arena::ReaderArena { &*self.arena }
+    fn mut_arena(&mut self) -> &mut arena::ReaderArena { &mut *self.arena }
 
-    fn get_options<'b>(&'b self) -> &'b ReaderOptions {
+    fn get_options(&self) -> &ReaderOptions {
         return &self.options;
     }
 }
