@@ -130,7 +130,7 @@ pub fn new_reader<U : std::io::Reader>(input_stream : &mut U,
 }
 
 
-pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
+pub fn write_message<'a, T : std::io::Writer, U : MessageBuilder<'a>>(
     output_stream : &mut T,
     message : &U) -> std::io::IoResult<()> {
 

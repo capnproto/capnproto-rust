@@ -349,14 +349,14 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
    fn flush(&mut self) -> std::io::IoResult<()> { self.inner.flush() }
 }
 
-pub fn write_packed_message<T:io::BufferedOutputStream,U:MessageBuilder>(
+pub fn write_packed_message<'a, T: io::BufferedOutputStream, U: MessageBuilder<'a>>(
     output : &mut T, message : &U) -> std::io::IoResult<()> {
     let mut packed_output_stream = PackedOutputStream {inner : output};
     serialize::write_message(&mut packed_output_stream, message)
 }
 
 
-pub fn write_packed_message_unbuffered<T:std::io::Writer,U:MessageBuilder>(
+pub fn write_packed_message_unbuffered<'a, T: std::io::Writer, U: MessageBuilder<'a>>(
     output : &mut T, message : &U) -> std::io::IoResult<()> {
     let mut buffered = io::BufferedOutputStreamWrapper::new(output);
     try!(write_packed_message(&mut buffered, message));
