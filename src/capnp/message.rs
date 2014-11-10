@@ -175,15 +175,15 @@ pub trait MessageBuilder<'a> {
 
     }
 
-    fn init_root<T : FromStructBuilder<'a> + HasStructSize>(&mut self) -> T {
+    fn init_root<T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
         self.get_root_internal().init_as_struct()
     }
 
-    fn get_root<T : FromStructBuilder<'a> + HasStructSize>(&mut self) -> T {
+    fn get_root<T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
         self.get_root_internal().get_as_struct()
     }
 
-    fn set_root<T : layout::ToStructReader<'a>>(&mut self, value : &T) {
+    fn set_root<T : layout::ToStructReader<'a>>(&'a mut self, value : &T) {
         self.get_root_internal().set_as_struct(value);
     }
 
