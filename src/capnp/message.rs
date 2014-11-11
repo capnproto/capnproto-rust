@@ -266,7 +266,7 @@ impl <'a> ScratchSpaceMallocMessageBuilder<'a> {
 
 }
 
-impl <'a> MessageBuilder<'a> for ScratchSpaceMallocMessageBuilder<'a> {
+impl <'a, 'b> MessageBuilder<'a> for ScratchSpaceMallocMessageBuilder<'b> {
     fn mut_arena(&mut self) -> &mut BuilderArena {
         &mut *self.arena
     }
