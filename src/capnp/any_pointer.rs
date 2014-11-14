@@ -77,31 +77,31 @@ impl <'a> Builder<'a> {
             self.builder.get_struct(HasStructSize::struct_size(None::<T>), ::std::ptr::null()))
     }
 
-    pub fn init_as_struct<T : FromStructBuilder<'a> + HasStructSize>(&self) -> T {
+    pub fn init_as_struct<T : FromStructBuilder<'a> + HasStructSize>(&mut self) -> T {
         FromStructBuilder::new(
             self.builder.init_struct(
                 HasStructSize::struct_size(None::<T>)))
     }
 
-    pub fn set_as_struct<'b, T : ToStructReader<'b>>(&self, value : &T) {
+    pub fn set_as_struct<'b, T : ToStructReader<'b>>(&mut self, value : &T) {
         self.builder.set_struct(&value.struct_reader());
     }
 
     // XXX value should be a user client.
-    pub fn set_as_capability(&self, value : Box<ClientHook+Send>) {
+    pub fn set_as_capability(&mut self, value : Box<ClientHook+Send>) {
         self.builder.set_capability(value);
     }
 
-    pub fn set_as_text(&self, value : &str) {
+    pub fn set_as_text(&mut self, value : &str) {
         self.builder.set_text(value);
     }
 
-    pub fn set_as_data(&self, value : &[u8]) {
+    pub fn set_as_data(&mut self, value : &[u8]) {
         self.builder.set_data(value);
     }
 
     #[inline]
-    pub fn clear(&self) {
+    pub fn clear(&mut self) {
         self.builder.clear()
     }
 

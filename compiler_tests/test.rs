@@ -21,22 +21,22 @@ mod tests {
         // Make the first segment small to force allocation of a second segment.
         let mut message = MallocMessageBuilder::new(*BuilderOptions::new().first_segment_words(50));
 
-        let test_prim_list = message.init_root::<test_prim_list::Builder>();
+        let mut test_prim_list = message.init_root::<test_prim_list::Builder>();
 
-        let uint8_list = test_prim_list.init_uint8_list(100);
+        let mut uint8_list = test_prim_list.init_uint8_list(100);
 
         for i in range(0, uint8_list.size()) {
             uint8_list.set(i, i as u8);
         }
 
-        let uint64_list = test_prim_list.init_uint64_list(20);
+        let mut uint64_list = test_prim_list.init_uint64_list(20);
 
         for i in range(0, uint64_list.size()) {
             uint64_list.set(i, i as u64);
         }
 
         assert_eq!(test_prim_list.has_bool_list(), false);
-        let bool_list = test_prim_list.init_bool_list(65);
+        let mut bool_list = test_prim_list.init_bool_list(65);
         assert_eq!(test_prim_list.has_bool_list(), true);
 
         bool_list.set(0, true);
@@ -54,7 +54,7 @@ mod tests {
         assert!(bool_list.get(64));
 
         assert_eq!(test_prim_list.has_void_list(), false);
-        let void_list = test_prim_list.init_void_list(1025);
+        let mut void_list = test_prim_list.init_void_list(1025);
         assert_eq!(test_prim_list.has_void_list(), true);
         void_list.set(257, ());
 
@@ -98,7 +98,7 @@ mod tests {
 
         let mut message = MallocMessageBuilder::new_default();
 
-        let test_struct_list = message.init_root::<test_struct_list::Builder>();
+        let mut test_struct_list = message.init_root::<test_struct_list::Builder>();
 
         test_struct_list.init_struct_list(4);
         let struct_list = test_struct_list.get_struct_list();
@@ -115,7 +115,7 @@ mod tests {
         use test_capnp::test_blob;
 
         let mut message = MallocMessageBuilder::new_default();
-        let test_blob = message.init_root::<test_blob::Builder>();
+        let mut test_blob = message.init_root::<test_blob::Builder>();
 
         assert_eq!(test_blob.has_text_field(), false);
         test_blob.set_text_field("abcdefghi");
@@ -167,7 +167,7 @@ mod tests {
         // Make the first segment small to force allocation of a second segment.
         let mut message = MallocMessageBuilder::new(*BuilderOptions::new().first_segment_words(5));
 
-        let big_struct = message.init_root::<test_big_struct::Builder>();
+        let mut big_struct = message.init_root::<test_big_struct::Builder>();
 
         big_struct.set_bool_field(false);
         big_struct.set_int8_field(-128);
@@ -175,7 +175,7 @@ mod tests {
         big_struct.set_int32_field(1009);
 
         assert_eq!(big_struct.has_struct_field(), false);
-        let inner = big_struct.init_struct_field();
+        let mut inner = big_struct.init_struct_field();
         assert_eq!(big_struct.has_struct_field(), true);
         inner.set_float64_field(0.1234567);
 
@@ -201,9 +201,9 @@ mod tests {
 
         let mut message = MallocMessageBuilder::new_default();
 
-        let test_complex_list = message.init_root::<test_complex_list::Builder>();
+        let mut test_complex_list = message.init_root::<test_complex_list::Builder>();
 
-        let enum_list = test_complex_list.init_enum_list(100);
+        let mut enum_list = test_complex_list.init_enum_list(100);
 
         for i in range::<u32>(0, 10) {
             enum_list.set(i, an_enum::Qux);
@@ -212,50 +212,50 @@ mod tests {
             enum_list.set(i, an_enum::Bar);
         }
 
-        let text_list = test_complex_list.init_text_list(2);
+        let mut text_list = test_complex_list.init_text_list(2);
         text_list.set(0, "garply");
         text_list.set(1, "foo");
 
-        let data_list = test_complex_list.init_data_list(2);
+        let mut data_list = test_complex_list.init_data_list(2);
         data_list.set(0, [0u8, 1u8, 2u8]);
         data_list.set(1, [255u8, 254u8, 253u8]);
 
-        let prim_list_list = test_complex_list.init_prim_list_list(2);
-        let prim_list = prim_list_list.init(0, 3);
+        let mut prim_list_list = test_complex_list.init_prim_list_list(2);
+        let mut prim_list = prim_list_list.init(0, 3);
         prim_list.set(0, 5);
         prim_list.set(1, 6);
         prim_list.set(2, 7);
         assert_eq!(prim_list.size(), 3);
-        let prim_list = prim_list_list.init(1, 1);
+        let mut prim_list = prim_list_list.init(1, 1);
         prim_list.set(0,-1);
 
-        let prim_list_list_list = test_complex_list.init_prim_list_list_list(2);
-        let prim_list_list = prim_list_list_list.init(0, 2);
-        let prim_list = prim_list_list.init(0, 2);
+        let mut prim_list_list_list = test_complex_list.init_prim_list_list_list(2);
+        let mut prim_list_list = prim_list_list_list.init(0, 2);
+        let mut prim_list = prim_list_list.init(0, 2);
         prim_list.set(0, 0);
         prim_list.set(1, 1);
-        let prim_list = prim_list_list.init(1, 1);
+        let mut prim_list = prim_list_list.init(1, 1);
         prim_list.set(0, 255);
-        let prim_list_list = prim_list_list_list.init(1, 1);
-        let prim_list = prim_list_list.init(0, 3);
+        let mut prim_list_list = prim_list_list_list.init(1, 1);
+        let mut prim_list = prim_list_list.init(0, 3);
         prim_list.set(0, 10);
         prim_list.set(1, 9);
         prim_list.set(2, 8);
 
-        let enum_list_list = test_complex_list.init_enum_list_list(2);
-        let enum_list = enum_list_list.init(0, 1);
+        let mut enum_list_list = test_complex_list.init_enum_list_list(2);
+        let mut enum_list = enum_list_list.init(0, 1);
         enum_list.set(0, an_enum::Bar);
-        let enum_list = enum_list_list.init(1, 2);
+        let mut enum_list = enum_list_list.init(1, 2);
         enum_list.set(0, an_enum::Foo);
         enum_list.set(1, an_enum::Qux);
 
-        let text_list_list = test_complex_list.init_text_list_list(1);
+        let mut text_list_list = test_complex_list.init_text_list_list(1);
         text_list_list.init(0,1).set(0, "abc");
 
-        let data_list_list = test_complex_list.init_data_list_list(1);
+        let mut data_list_list = test_complex_list.init_data_list_list(1);
         data_list_list.init(0,1).set(0, [255, 254, 253]);
 
-        let struct_list_list = test_complex_list.init_struct_list_list(1);
+        let mut struct_list_list = test_complex_list.init_struct_list_list(1);
         struct_list_list.init(0,1).get(0).set_int8_field(-1);
 
 
@@ -310,7 +310,7 @@ mod tests {
         use test_capnp::test_defaults;
 
         let mut message = MallocMessageBuilder::new_default();
-        let test_defaults = message.init_root::<test_defaults::Builder>();
+        let mut test_defaults = message.init_root::<test_defaults::Builder>();
 
         assert_eq!(test_defaults.get_void_field(), ());
         assert_eq!(test_defaults.get_bool_field(), true);
@@ -336,9 +336,9 @@ mod tests {
         use test_capnp::{test_any_pointer, test_empty_struct, test_big_struct};
 
         let mut message = MallocMessageBuilder::new_default();
-        let test_any_pointer = message.init_root::<test_any_pointer::Builder>();
+        let mut test_any_pointer = message.init_root::<test_any_pointer::Builder>();
 
-        let any_pointer = test_any_pointer.init_any_pointer_field();
+        let mut any_pointer = test_any_pointer.init_any_pointer_field();
         any_pointer.set_as_text("xyzzy");
 
         {
@@ -356,7 +356,7 @@ mod tests {
 
         {
             let mut message = MallocMessageBuilder::new_default();
-            let test_big_struct = message.init_root::<test_big_struct::Builder>();
+            let mut test_big_struct = message.init_root::<test_big_struct::Builder>();
             test_big_struct.set_int32_field(-12345);
             any_pointer.set_as_struct(&test_big_struct.as_reader());
         }
@@ -373,9 +373,9 @@ mod tests {
         use test_capnp::test_big_struct;
 
         let mut message = MallocMessageBuilder::new_default();
-        let big_struct = message.init_root::<test_big_struct::Builder>();
+        let mut big_struct = message.init_root::<test_big_struct::Builder>();
 
-        let struct_field = big_struct.init_struct_field();
+        let mut struct_field = big_struct.init_struct_field();
         assert_eq!(struct_field.get_uint64_field(), 0);
 
         struct_field.set_uint64_field(-7);
@@ -386,7 +386,7 @@ mod tests {
         assert_eq!(struct_field.get_uint32_field(), 0);
 
         // getting before init is the same as init
-        let other_struct_field = big_struct.get_another_struct_field();
+        let mut other_struct_field = big_struct.get_another_struct_field();
         assert_eq!(other_struct_field.get_uint64_field(), 0);
         other_struct_field.set_uint32_field(-31);
 
@@ -405,7 +405,7 @@ mod tests {
         use test_capnp::test_union;
 
         let mut message = MallocMessageBuilder::new_default();
-        let union_struct = message.init_root::<test_union::Builder>();
+        let mut union_struct = message.init_root::<test_union::Builder>();
 
         union_struct.get_union0().set_u0f0s0(());
         match union_struct.get_union0().which() {
@@ -451,7 +451,7 @@ mod tests {
 
         let mut message1 = MallocMessageBuilder::new_default();
         let mut message2 = MallocMessageBuilder::new_default();
-        let struct1 = message1.init_root::<test_big_struct::Builder>();
+        let mut struct1 = message1.init_root::<test_big_struct::Builder>();
         struct1.set_uint8_field(3);
         message2.set_root(&struct1.as_reader());
         let struct2 = message2.get_root::<test_big_struct::Builder>();
@@ -465,7 +465,7 @@ mod tests {
 
         let mut message = MallocMessageBuilder::new_default();
         {
-            let old_version = message.init_root::<test_old_version::Builder>();
+            let mut old_version = message.init_root::<test_old_version::Builder>();
             old_version.set_old1(123);
         }
         {
