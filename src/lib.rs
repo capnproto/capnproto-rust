@@ -23,7 +23,7 @@ pub fn compile(prefix : Path, files : &[Path]) {
     command
         .arg("compile")
         .arg("-o/bin/cat")
-        .arg(format!("--src-prefix={}", prefix.display()));
+        .arg(format!("--src-prefix={}", cwd.join(prefix).display()));
 
     for file in files.iter() {
         command.arg(format!("{}", cwd.join(file).display()));
