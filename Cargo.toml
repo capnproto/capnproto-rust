@@ -1,0 +1,22 @@
+[package]
+
+name = "capnpc"
+version = "0.0.0"
+authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
+
+[lib]
+
+name = "capnpc"
+path = "src/lib.rs"
+
+
+[[bin]]
+
+name = "capnpc-rust"
+path = "src/main.rs"
+
+
+
+[dependencies.capnp]
+git = "https://github.com/dwrensha/capnproto-rust.git"
+
