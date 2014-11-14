@@ -1,0 +1,19 @@
+[package]
+
+name = "addressbook"
+version = "0.0.0"
+authors = [ "David Renshaw <dwrenshaw@sandstorm.io>"  ]
+build = "build.rs"
+
+[[bin]]
+
+name = "addressbook"
+path = "addressbook.rs"
+
+
+[build-dependencies.capnpc]
+path = "../../"
+
+[dependencies.capnp]
+
+git = "https://github.com/dwrensha/capnproto-rust.git"
