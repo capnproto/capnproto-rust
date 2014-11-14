@@ -8,8 +8,3 @@ authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
 
 name = "capnp"
 path = "src/capnp/lib.rs"
-
-[[bin]]
-
-name = "capnpc-rust"
-path = "src/capnpc-rust/main.rs"
