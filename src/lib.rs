@@ -16,6 +16,7 @@ pub mod codegen;
 
 pub fn compile(prefix : Path, files : &[Path]) {
     let out_dir = Path::new(::std::os::getenv("OUT_DIR").unwrap());
+    let cwd = ::std::os::getcwd();
     ::std::os::change_dir(&out_dir);
 
     let mut command = ::std::io::Command::new("capnp");
@@ -25,7 +26,7 @@ pub fn compile(prefix : Path, files : &[Path]) {
         .arg(format!("--src-prefix={}", prefix.display()));
 
     for file in files.iter() {
-        command.arg(format!("{}", file.display()));
+        command.arg(format!("{}", cwd.join(file).display()));
     }
 
     command.stdout(::std::io::process::CreatePipe(false, true));

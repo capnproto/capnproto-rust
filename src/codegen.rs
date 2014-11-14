@@ -1473,7 +1473,6 @@ pub fn main<T : ::std::io::Reader>(inp : &mut T) -> ::std::io::IoResult<()> {
         let id = requested_file.get_id();
         let mut filepath = ::std::path::Path::new(requested_file.get_filename());
 
-
         let imports = requested_file.get_imports();
         for jj in range(0, imports.size()) {
             let import = imports.get(jj);
