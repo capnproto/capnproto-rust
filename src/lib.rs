@@ -25,7 +25,7 @@ pub fn compile(prefix : Path, files : &[Path]) {
         .arg(format!("--src-prefix={}", prefix.display()));
 
     for file in files.iter() {
-        command.arg(format!("{}", prefix.join(file).display()));
+        command.arg(format!("{}", file.display()));
     }
 
     command.stdout(::std::io::process::CreatePipe(false, true));
