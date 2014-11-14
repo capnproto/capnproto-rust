@@ -11,6 +11,10 @@ name = "capnp-rpc"
 path = "src/lib.rs"
 
 
+[build-dependencies.capnpc]
+
+git = "https://github.com/dwrensha/capnpc-rust.git"
+
 [dependencies.capnp]
 
 git = "https://github.com/dwrensha/capnproto-rust.git"
