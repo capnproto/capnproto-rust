@@ -30,7 +30,8 @@ $ ./examples/addressbook/addressbook write | ./examples/addressbook/addressbook 
 
 To install the `capnpc-rust` compiler plugin:
 ```
-sudo make install
+$ cargo build --release
+$ sudo make install
 ```
 
 
