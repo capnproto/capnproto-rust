@@ -1,3 +1,6 @@
+env:
+  global:
+    - secure: B27t8wBfFUeDUfPpE/CMBUjdJkR62UoIGZ/OZuvHX+P3A4lBdFXVBpCyIfZ2LsPlNJZKnmehY/FfgONdWP9yyWRbZ6HgwQwjmbUiEviKIEx2P4uqO7ao9/stZ/8rbdz1dw3EojZMLU7RFdgZOpeuWq3/3Ta8UmKVOylayKDk+2A=
 before_install:
   - yes | sudo add-apt-repository ppa:ubuntu-toolchain-r/test
   - sudo apt-get update
@@ -14,3 +17,6 @@ install:
 script:
   - cargo build
   - cargo doc
+  - ln -s target/doc doc
+after_script:
+  - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
