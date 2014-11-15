@@ -4,6 +4,19 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
+//! # Cap'n Proto Runtime Library
+//!
+//! [Cap'n Proto](http://kentonv.github.io/capnproto/) is an extremely
+//! efficient protocol for sharing data and capabilities.
+//!
+//! Hosted on Github [here](https://github.com/dwrensha/capnproto-rust).
+//!
+//! [capnpc-rust](https://github.com/dwrensha/capnpc-rust)
+//!
+//! [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust)
+//!
+
+
 #![feature(globs)]
 #![feature(macro_rules)]
 #![feature(phase)]
