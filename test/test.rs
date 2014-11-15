@@ -10,7 +10,9 @@ extern crate capnp;
 
 #[allow(overflowing_literals)]
 pub mod test_capnp {
-  include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"))
+// See https://github.com/rust-lang/cargo/issues/879
+//  include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"))
+  include!("test_capnp.rs")
 }
 
 #[cfg(test)]
