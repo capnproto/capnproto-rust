@@ -4,6 +4,30 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
+//! # Cap'n Proto Schema Compiler Plugin Library
+//!
+//! This library allows you to do Cap'n Proto code generation within a Cargo build.
+//!
+//! In your Cargo.toml:
+//! ```
+//!  [build-dependencies.capnpc]
+//!  git = "https://github.com/dwrensha/capnpc-rust.git"
+//! ```
+//!
+//! In your build.rs, call
+//!
+//! ```
+//! ::capnpc::compile(Path::new("schema"),
+//!                   [Path::new("schema/foo.capnp"),
+//!                    Path::new("schema/bar.capnp")]);
+//! ```
+//!
+//! This will be equivalent to executing the shell command
+//! ```
+//!  capnp compile -orust:$OUT_DIR --src-prefix=schema schema/foo.capnp schema/bar.capnp
+//!  ```
+
+
 #![feature(globs)]
 
 #![crate_name="capnpc"]

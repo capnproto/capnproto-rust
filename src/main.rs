@@ -4,6 +4,14 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
+//! # Cap'n Proto Schema Compiler Plugin Executable
+//!
+//! [See this.](http://kentonv.github.io/capnproto/otherlang.html#how-to-write-compiler-plugins)
+//!
+//!
+
+
+
 #![feature(globs)]
 
 #![crate_name="capnpc-rust"]
