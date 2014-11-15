@@ -9,7 +9,7 @@
 //! This library allows you to do Cap'n Proto code generation within a Cargo build.
 //!
 //! In your Cargo.toml:
-//! ```sh
+//! ```ignore
 //!  [build-dependencies.capnpc]
 //!  git = "https://github.com/dwrensha/capnpc-rust.git"
 //! ```
@@ -23,7 +23,7 @@
 //! ```
 //!
 //! This will be equivalent to executing the shell command
-//! ```sh
+//! ```ignore
 //!  capnp compile -orust:$OUT_DIR --src-prefix=schema schema/foo.capnp schema/bar.capnp
 //!  ```
 

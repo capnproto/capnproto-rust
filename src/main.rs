@@ -21,6 +21,8 @@ extern crate capnp;
 extern crate capnpc;
 
 pub fn main() {
+    //! Generate Rust code according to a `schema_capnp::code_generator_request` read from stdin.
+
     match ::capnpc::codegen::main(&mut ::std::io::stdin()) {
         Ok(()) => {}
         Err(e) => {

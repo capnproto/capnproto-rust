@@ -8,7 +8,7 @@ use capnp;
 use std::collections;
 use schema_capnp;
 
-pub fn tuple_option<T,U>(t : Option<T>, u : Option<U>) -> Option<(T,U)> {
+fn tuple_option<T,U>(t : Option<T>, u : Option<U>) -> Option<(T,U)> {
     match (t, u) {
         (Some(t1), Some(u1)) => Some((t1,u1)),
         _ => None
@@ -1450,6 +1450,8 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
 
 pub fn main<T : ::std::io::Reader>(inp : &mut T) -> ::std::io::IoResult<()> {
+    //! Generate Rust code according to a `schema_capnp::code_generator_request` read from `inp`.
+
     use std::io::{Writer, File, Truncate, Write};
     use capnp::serialize;
     use capnp::MessageReader;
