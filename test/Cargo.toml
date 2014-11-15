@@ -1,0 +1,19 @@
+[package]
+
+name = "capnpc-rust-test"
+version = "0.0.0"
+authors = [ "David Renshaw <dwrenshaw@sandstorm.io>"  ]
+build = "build.rs"
+
+[lib]
+
+name = "test"
+path = "test.rs"
+
+
+[build-dependencies.capnpc]
+path = "../"
+
+[dependencies.capnp]
+
+git = "https://github.com/dwrensha/capnproto-rust.git"
