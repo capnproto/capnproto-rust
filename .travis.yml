@@ -13,6 +13,4 @@ install:
   - ./configure && make -j5 && sudo make install && cd ../..
 script:
   - cargo build
-  - cargo test
   - cargo doc
-
