@@ -114,8 +114,13 @@ pub mod primitive_list {
     }
 }
 
+pub trait ToU16 {
+    fn to_u16(self) -> u16;
+}
+
+
 pub mod enum_list {
-    use super::{FromPointerReader, FromPointerBuilder};
+    use super::{FromPointerReader, FromPointerBuilder, ToU16};
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                  TwoBytes, PrimitiveElement};
     use common::Word;
@@ -151,7 +156,7 @@ pub mod enum_list {
         pub builder : ListBuilder<'a>
     }
 
-    impl <'a, T : ToPrimitive + FromPrimitive> Builder<'a, T> {
+    impl <'a, T : ToU16 + FromPrimitive> Builder<'a, T> {
         pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
             Builder { builder : builder }
         }
@@ -160,7 +165,7 @@ pub mod enum_list {
 
         pub fn set(&self, index : u32, value : T) {
             assert!(index < self.size());
-            PrimitiveElement::set(&self.builder, index, value.to_u16().unwrap());
+            PrimitiveElement::set(&self.builder, index, value.to_u16());
         }
     }
 
@@ -173,7 +178,7 @@ pub mod enum_list {
         }
     }
 
-    impl <'a, T : ToPrimitive + FromPrimitive> Builder<'a, T> {
+    impl <'a, T : ToU16 + FromPrimitive>  Builder<'a, T> {
         pub fn get(&self, index : u32) -> Option<T> {
             assert!(index < self.size());
             let result : u16 = PrimitiveElement::get_from_builder(&self.builder, index);
