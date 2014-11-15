@@ -1,0 +1,20 @@
+install:
+  - curl https://static.rust-lang.org/rustup.sh | sudo sh
+  - sudo apt-get install g++-4.8 gcc-4.8 git
+  - git clone https://github.com/kentonv/capnproto.git
+  - export CC=gcc-4.8
+  - export CXX=g++-4.8
+  - cd capnproto/c++
+  - ./setup-autotools.sh
+  - autoreconf -i
+  - ./configure && make -j5 && sudo make install && cd ../..
+script:
+  - cargo build
+  - cargo test
+  - cargo doc
+  - cd test
+  - cargo test
+  - cd ..
+  - cd example/addressbook
+  - cargo build
+  - ./target/addressbook write | ./target/addressbook read
