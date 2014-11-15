@@ -114,10 +114,11 @@ pub mod primitive_list {
     }
 }
 
+/// Because `#[deriving(ToPrimitive)]` is not supported, using our own custom trait is more
+/// convenient than using `ToPrimitive`.
 pub trait ToU16 {
     fn to_u16(self) -> u16;
 }
-
 
 pub mod enum_list {
     use super::{FromPointerReader, FromPointerBuilder, ToU16};

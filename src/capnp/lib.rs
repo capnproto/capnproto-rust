@@ -6,15 +6,18 @@
 
 //! # Cap'n Proto Runtime Library
 //!
-//! [Cap'n Proto](http://kentonv.github.io/capnproto/) is an extremely
-//! efficient protocol for sharing data and capabilities.
+//! [Cap'n Proto](http://kentonv.github.io/capnproto/) is an extremely efficient protocol for
+//! sharing data and capabilities.
 //!
-//! Hosted on Github [here](https://github.com/dwrensha/capnproto-rust).
+//! The Rust implementation is split into three separate crates.
 //!
-//! [capnpc-rust](https://github.com/dwrensha/capnpc-rust)
+//! Code generation is handled by [capnpc-rust](https://github.com/dwrensha/capnpc-rust).
 //!
-//! [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust)
+//! The present crate is the runtime library required by that generated code. It is hosted on Github
+//! [here](https://github.com/dwrensha/capnproto-rust).
 //!
+//! [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust) is an implementation of a
+//! distributed object-capability layer.
 
 
 #![feature(globs)]
