@@ -13,6 +13,8 @@ pub struct PowerFunction;
 
 impl calculator::function::Server for PowerFunction {
     fn call(&mut self, mut context : calculator::function::CallContext) {
+        use std::num::Float;
+
         let (params, results) = context.get();
         let params = params.get_params();
         if params.size() != 2 {
