@@ -18,3 +18,7 @@ script:
   - cd example/addressbook
   - cargo build
   - ./target/addressbook write | ./target/addressbook read
+  - cd ../..
+  - cd benchmark
+  - cargo build --release
+  - ./run_all.bash
