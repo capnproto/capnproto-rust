@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_complex_list () {
-        use test_capnp::{test_complex_list, an_enum};
+        use test_capnp::{test_complex_list, AnEnum};
 
         let mut message = MallocMessageBuilder::new_default();
 
@@ -227,10 +227,10 @@ mod tests {
         let enum_list = test_complex_list.init_enum_list(100);
 
         for i in range::<u32>(0, 10) {
-            enum_list.set(i, an_enum::Qux);
+            enum_list.set(i, AnEnum::Qux);
         }
         for i in range::<u32>(10, 20) {
-            enum_list.set(i, an_enum::Bar);
+            enum_list.set(i, AnEnum::Bar);
         }
 
         let text_list = test_complex_list.init_text_list(2);
@@ -265,10 +265,10 @@ mod tests {
 
         let enum_list_list = test_complex_list.init_enum_list_list(2);
         let enum_list = enum_list_list.init(0, 1);
-        enum_list.set(0, an_enum::Bar);
+        enum_list.set(0, AnEnum::Bar);
         let enum_list = enum_list_list.init(1, 2);
-        enum_list.set(0, an_enum::Foo);
-        enum_list.set(1, an_enum::Qux);
+        enum_list.set(0, AnEnum::Foo);
+        enum_list.set(1, AnEnum::Qux);
 
         let text_list_list = test_complex_list.init_text_list_list(1);
         text_list_list.init(0,1).set(0, "abc");
@@ -283,10 +283,10 @@ mod tests {
         let complex_list_reader = test_complex_list.as_reader();
         let enum_list_reader = complex_list_reader.get_enum_list();
         for i in range::<u32>(0,10) {
-            assert!(enum_list_reader.get(i) == Some(an_enum::Qux));
+            assert!(enum_list_reader.get(i) == Some(AnEnum::Qux));
         }
         for i in range::<u32>(10,20) {
-            assert!(enum_list_reader.get(i) == Some(an_enum::Bar));
+            assert!(enum_list_reader.get(i) == Some(AnEnum::Bar));
         }
 
         let text_list = complex_list_reader.get_text_list();
@@ -316,9 +316,9 @@ mod tests {
         assert!(prim_list_list_list.get(1).get(0).get(2) == 8);
 
         let enum_list_list = complex_list_reader.get_enum_list_list();
-        assert!(enum_list_list.get(0).get(0) == Some(an_enum::Bar));
-        assert!(enum_list_list.get(1).get(0) == Some(an_enum::Foo));
-        assert!(enum_list_list.get(1).get(1) == Some(an_enum::Qux));
+        assert!(enum_list_list.get(0).get(0) == Some(AnEnum::Bar));
+        assert!(enum_list_list.get(1).get(0) == Some(AnEnum::Foo));
+        assert!(enum_list_list.get(1).get(1) == Some(AnEnum::Qux));
 
         assert!(complex_list_reader.get_text_list_list().get(0).get(0) == "abc");
         assert!(complex_list_reader.get_data_list_list().get(0).get(0) == [255, 254, 253]);

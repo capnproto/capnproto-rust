@@ -31,7 +31,7 @@ pub type ResponseReader<'a> = evaluation_result::Reader<'a>;
 
 fn make_expression(rng : &mut FastRand, exp : expression::Builder, depth : u32) -> i32 {
     exp.set_op(unsafe {
-            std::mem::transmute(rng.next_less_than( operation::Modulus as u32 + 1) as u16)});
+            std::mem::transmute(rng.next_less_than( Operation::Modulus as u32 + 1) as u16)});
 
     let left : i32 =
     if rng.next_less_than(8) < depth {
@@ -52,11 +52,11 @@ fn make_expression(rng : &mut FastRand, exp : expression::Builder, depth : u32) 
     };
 
     match exp.get_op() {
-        Some(operation::Add) => { return left + right }
-        Some(operation::Subtract) => { return left - right }
-        Some(operation::Multiply) => { return left * right }
-        Some(operation::Divide) => { return div(left, right) }
-        Some(operation::Modulus) => { return modulus(left, right) }
+        Some(Operation::Add) => { return left + right }
+        Some(Operation::Subtract) => { return left - right }
+        Some(Operation::Multiply) => { return left * right }
+        Some(Operation::Divide) => { return div(left, right) }
+        Some(Operation::Modulus) => { return modulus(left, right) }
         None => { panic!("impossible") }
     }
 }
@@ -74,11 +74,11 @@ fn evaluate_expression(exp : expression::Reader) -> i32 {
     };
 
     match exp.get_op() {
-        Some(operation::Add) => return left + right,
-        Some(operation::Subtract) => return left - right,
-        Some(operation::Multiply) => return left * right,
-        Some(operation::Divide) => return div(left, right),
-        Some(operation::Modulus) => return modulus(left, right),
+        Some(Operation::Add) => return left + right,
+        Some(Operation::Subtract) => return left - right,
+        Some(Operation::Multiply) => return left * right,
+        Some(Operation::Divide) => return div(left, right),
+        Some(Operation::Modulus) => return modulus(left, right),
         None => panic!("impossible")
     }
 }

@@ -23,6 +23,8 @@ use capnp;
 use std::collections;
 use schema_capnp;
 
+use self::FormattedText::{Indent, Line, Branch, BlankLine};
+
 fn tuple_option<T,U>(t : Option<T>, u : Option<U>) -> Option<(T,U)> {
     match (t, u) {
         (Some(t1), Some(u1)) => Some((t1,u1)),
@@ -30,8 +32,8 @@ fn tuple_option<T,U>(t : Option<T>, u : Option<U>) -> Option<(T,U)> {
     }
 }
 
-fn element_size_str (element_size : schema_capnp::element_size::Reader) -> &'static str {
-    use schema_capnp::element_size::*;
+fn element_size_str (element_size : schema_capnp::ElementSize) -> &'static str {
+    use schema_capnp::ElementSize::*;
     match element_size {
         Empty => "Void",
         Bit => "Bit",
@@ -44,9 +46,9 @@ fn element_size_str (element_size : schema_capnp::element_size::Reader) -> &'sta
     }
 }
 
-fn element_size (typ : schema_capnp::type_::WhichReader) -> schema_capnp::element_size::Reader {
+fn element_size (typ : schema_capnp::type_::WhichReader) -> schema_capnp::ElementSize {
     use schema_capnp::type_::*;
-    use schema_capnp::element_size::*;
+    use schema_capnp::ElementSize::*;
     match typ {
         Void(()) => Empty,
         Bool(()) => Bit,
@@ -225,8 +227,23 @@ fn populate_scope_map(node_map : &collections::hash_map::HashMap<u64, schema_cap
     let nested_nodes = node_reader.get_nested_nodes();
     for nested_node in nested_nodes.iter(){
         let mut scope_names = scope_names.clone();
-        scope_names.push(module_name(nested_node.get_name()));
-        populate_scope_map(node_map, scope_map, scope_names, nested_node.get_id());
+        let nested_node_id = nested_node.get_id();
+        match node_map.get(&nested_node_id) {
+            None => {}
+            Some(node_reader) => {
+                match node_reader.which() {
+                    Some(schema_capnp::node::Enum(_enum_reader)) => {
+                        scope_names.push(nested_node.get_name().to_string());
+                        populate_scope_map(node_map, scope_map, scope_names, nested_node_id);
+                    }
+                    _ => {
+                        scope_names.push(module_name(nested_node.get_name()));
+                        populate_scope_map(node_map, scope_map, scope_names, nested_node_id);
+
+                    }
+                }
+            }
+        }
     }
 
     match node_reader.which() {
@@ -279,7 +296,7 @@ fn list_list_type_param(scope_map : &collections::hash_map::HashMap<u64, Vec<Str
                 }
                 type_::Enum(en) => {
                     let the_mod = scope_map[en.get_type_id()].connect("::");
-                    format!("enum_list::{}<{},{}::Reader>", module, lifetime_name, the_mod)
+                    format!("enum_list::{}<{},{}>", module, lifetime_name, the_mod)
                 }
                 type_::Text(()) => {
                     format!("text_list::{}<{}>", module, lifetime_name)
@@ -406,8 +423,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         }
                         Some(type_::Enum(e)) => {
                             let the_mod = scope_map[e.get_type_id()].connect("::");
-                            let full_module_name = format!("{}::Reader", the_mod);
-                            return (format!("enum_list::{}<'a,{}>",module,full_module_name),
+                            return (format!("enum_list::{}<'a,{}>",module, the_mod),
                                     Line(format!("enum_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::TwoBytes, ::std::ptr::null()))",
                                          module, member, offset)));
                         }
@@ -443,7 +459,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     let scope = &scope_map[en.get_type_id()];
                     let the_mod = scope.connect("::");
                     return
-                        (format!("Option<{}::Reader>", the_mod), // Enums don't have builders.
+                        (format!("Option<{}>", the_mod), // Enums don't have builders.
                          Branch(vec!(
                             Line(format!("FromPrimitive::from_u16(self.{}.get_data_field::<u16>({}))",
                                         member, offset))
@@ -690,7 +706,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                     let id = e.get_type_id();
                                     let scope = &scope_map[id];
                                     let the_mod = scope.connect("::");
-                                    let type_str = format!("{}::Reader", the_mod);
+                                    let type_str = format!("{}", the_mod);
                                     initter_interior.push(Line(format!("enum_list::Builder::<'a, {}>::new(",
                                                             type_str)));
                                     initter_interior.push(
@@ -756,7 +772,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                     setter_interior.push(
                         Line(format!("self.builder.set_data_field::<u16>({}, value as u16)",
                                      offset)));
-                    (Some(format!("{}::Reader", the_mod)), None)
+                    (Some(format!("{}", the_mod)), None)
                 }
                 Some(type_::Struct(st)) => {
                     let the_mod = scope_map[st.get_type_id()].connect("::");
@@ -1061,15 +1077,6 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             preamble.push(generate_import_statements());
             preamble.push(BlankLine);
 
-
-            if !is_group {
-                preamble.push(
-                      Line(
-                        format!("pub const STRUCT_SIZE : layout::StructSize = layout::StructSize {{ data : {}, pointers : {} }};",
-                             data_size as uint, pointer_size as uint)));
-                preamble.push(BlankLine);
-            }
-
             let fields = struct_reader.get_fields();
             for field in fields.iter() {
                 let name = field.get_name();
@@ -1133,6 +1140,15 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                    discriminant_offset, union_fields.as_slice(), false);
                 which_enums.push(typedef);
                 builder_members.push(union_getter);
+
+                let mut reexports = String::new();
+                reexports.push_str("pub use self::Which::{");
+                let whichs : Vec<String> =
+                    union_fields.iter().map(|f| {capitalize_first_letter(f.get_name())}).collect();
+                reexports.push_str(whichs.connect(",").as_slice());
+                reexports.push_str("};");
+                preamble.push(Line(reexports));
+                preamble.push(BlankLine);
             }
 
             let builder_struct_size =
@@ -1144,6 +1160,15 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                             Line("fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }".to_string())))),
                        Line("}".to_string())))
             };
+
+
+            if !is_group {
+                preamble.push(
+                    Line(
+                        format!("pub const STRUCT_SIZE : layout::StructSize = layout::StructSize {{ data : {}, pointers : {} }};",
+                                data_size as uint, pointer_size as uint)));
+                preamble.push(BlankLine);
+            }
 
             let accessors = vec!(
                 Branch(preamble),
@@ -1207,10 +1232,6 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
         Some(node::Enum(enum_reader)) => {
             let names = &scope_map[node_id];
             output.push(BlankLine);
-            output.push(Line(format!("pub mod {} {{", *names.last().unwrap())));
-
-            output.push(Indent(box Line("use capnp::list::{ToU16};".to_string())));
-            output.push(BlankLine);
 
             let mut members = Vec::new();
             let enumerants = enum_reader.get_enumerants();
@@ -1221,24 +1242,21 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                               ii)));
             }
 
-            output.push(Indent(box Branch(vec!(
+            output.push(Branch(vec!(
                 Line("#[repr(u16)]".to_string()),
                 Line("#[deriving(FromPrimitive)]".to_string()),
                 Line("#[deriving(PartialEq)]".to_string()),
-                Line("pub enum Reader {".to_string()),
+                Line(format!("pub enum {} {{", *names.last().unwrap())),
                 Indent(box Branch(members)),
-                Line("}".to_string())))));
+                Line("}".to_string()))));
 
             output.push(
-                Indent(
-                    box Branch(vec!(
-                        Line("impl ToU16 for Reader {".to_string()),
-                        Indent(box Line("#[inline]".to_string())),
-                        Indent(
-                            box Line("fn to_u16(self) -> u16 { self as u16 }".to_string())),
-                        Line("}".to_string())))));
-
-            output.push(Line("}".to_string()));
+                Branch(vec!(
+                    Line(format!("impl ::capnp::list::ToU16 for {} {{", *names.last().unwrap())),
+                    Indent(box Line("#[inline]".to_string())),
+                    Indent(
+                        box Line("fn to_u16(self) -> u16 { self as u16 }".to_string())),
+                    Line("}".to_string()))));
         }
 
         Some(node::Interface(interface)) => {

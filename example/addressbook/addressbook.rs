@@ -46,7 +46,7 @@ pub mod addressbook {
 
             let alice_phones = alice.init_phones(1);
             alice_phones.get(0).set_number("555-1212");
-            alice_phones.get(0).set_type(person::phone_number::type_::Mobile);
+            alice_phones.get(0).set_type(person::phone_number::Type::Mobile);
             alice.get_employment().set_school("MIT");
 
             let bob = people.get(1);
@@ -55,9 +55,9 @@ pub mod addressbook {
             bob.set_email("bob@example.com");
             let bob_phones = bob.init_phones(2);
             bob_phones.get(0).set_number("555-4567");
-            bob_phones.get(0).set_type(person::phone_number::type_::Home);
+            bob_phones.get(0).set_type(person::phone_number::Type::Home);
             bob_phones.get(1).set_number("555-7654");
-            bob_phones.get(1).set_type(person::phone_number::type_::Work);
+            bob_phones.get(1).set_type(person::phone_number::Type::Work);
             bob.get_employment().set_unemployed(());
         }
 
@@ -73,9 +73,9 @@ pub mod addressbook {
             println!("{}: {}", person.get_name(), person.get_email());
             for phone in person.get_phones().iter() {
                 let type_name = match phone.get_type() {
-                    Some(person::phone_number::type_::Mobile) => {"mobile"}
-                    Some(person::phone_number::type_::Home) => {"home"}
-                    Some(person::phone_number::type_::Work) => {"work"}
+                    Some(person::phone_number::Type::Mobile) => {"mobile"}
+                    Some(person::phone_number::Type::Home) => {"home"}
+                    Some(person::phone_number::Type::Work) => {"work"}
                     None => {"UNKNOWN"}
                 };
                 println!("  {} phone: {}", type_name, phone.get_number());

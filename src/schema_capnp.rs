@@ -10,6 +10,8 @@ pub mod node {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
 
+  pub use self::Which::{File, Struct, Enum, Interface, Const, Annotation};
+
   pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 5, pointers : 5};
 
@@ -413,7 +415,7 @@ pub mod node {
         self.reader.get_data_field::<u16>(12)
       }
       #[inline]
-      pub fn get_preferred_list_encoding(&self) -> Option<::schema_capnp::element_size::Reader> {
+      pub fn get_preferred_list_encoding(&self) -> Option<::schema_capnp::ElementSize> {
         FromPrimitive::from_u16(self.reader.get_data_field::<u16>(13))
       }
       #[inline]
@@ -464,11 +466,11 @@ pub mod node {
         self.builder.set_data_field::<u16>(12, value);
       }
       #[inline]
-      pub fn get_preferred_list_encoding(&self) -> Option<::schema_capnp::element_size::Reader> {
+      pub fn get_preferred_list_encoding(&self) -> Option<::schema_capnp::ElementSize> {
         FromPrimitive::from_u16(self.builder.get_data_field::<u16>(13))
       }
       #[inline]
-      pub fn set_preferred_list_encoding(&self, value : ::schema_capnp::element_size::Reader) {
+      pub fn set_preferred_list_encoding(&self, value : ::schema_capnp::ElementSize) {
         self.builder.set_data_field::<u16>(13, value as u16)
       }
       #[inline]
@@ -1005,6 +1007,7 @@ pub mod field {
   use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
+  pub use self::Which::{Slot, Group};
 
   pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 3, pointers : 4};
@@ -1375,6 +1378,7 @@ pub mod field {
     use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     use capnp::list::ToU16;
+    pub use self::Which::{Implicit, Explicit};
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
@@ -1715,6 +1719,7 @@ pub mod type_ {
   use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
+  pub use self::Which::{Void, Bool, Int8, Int16, Int32, Int64, Uint8, Uint16, Uint32, Uint64, Float32, Float64, Text, Data, List, Enum, Struct, Interface, AnyPointer};
 
   pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 2, pointers : 1};
@@ -2323,6 +2328,7 @@ pub mod value {
   use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
   use capnp::list::ToU16;
+  pub use self::Which::{Void, Bool, Int8, Int16, Int32, Int64, Uint8, Uint16, Uint32, Uint64, Float32, Float64, Text, Data, List, Enum, Struct, Interface, AnyPointer};
 
   pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 2, pointers : 1};
@@ -2834,13 +2840,10 @@ pub mod annotation {
   }
 }
 
-pub mod element_size {
-  use capnp::list::{ToU16};
-
-  #[repr(u16)]
-  #[deriving(FromPrimitive)]
-  #[deriving(PartialEq)]
-  pub enum Reader {
+#[repr(u16)]
+#[deriving(FromPrimitive)]
+#[deriving(PartialEq)]
+pub enum ElementSize {
     Empty = 0,
     Bit = 1,
     Byte = 2,
@@ -2849,11 +2852,10 @@ pub mod element_size {
     EightBytes = 5,
     Pointer = 6,
     InlineComposite = 7,
-  }
-  impl ToU16 for Reader {
+}
+impl ::capnp::list::ToU16 for ElementSize {
     #[inline]
     fn to_u16(self) -> u16 { self as u16 }
-  }
 }
 
 pub mod code_generator_request {
