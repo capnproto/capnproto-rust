@@ -128,16 +128,13 @@ pub fn internal_get_typed_context<Params, Results>(
 
 pub trait PipelineHook {
     fn copy(&self) -> Box<PipelineHook+Send>;
-    fn get_pipelined_cap(&self, ops : Vec<pipeline_op::Type>) -> Box<ClientHook+Send>;
+    fn get_pipelined_cap(&self, ops : Vec<PipelineOp>) -> Box<ClientHook+Send>;
 }
 
-pub mod pipeline_op {
-
-    #[deriving(Clone)]
-    pub enum Type {
-        Noop,
-        GetPointerField(u16),
-    }
+#[deriving(Clone)]
+pub enum PipelineOp {
+    Noop,
+    GetPointerField(u16),
 }
 
 pub trait FromTypelessPipeline {

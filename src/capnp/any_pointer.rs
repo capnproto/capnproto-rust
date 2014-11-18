@@ -7,7 +7,7 @@
 
 use std::vec::Vec;
 
-use capability::{ClientHook, FromClientHook, PipelineHook, pipeline_op};
+use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
 use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
              HasStructSize, ToStructReader};
 use blob::{text, data};
@@ -46,13 +46,13 @@ impl <'a> Reader<'a> {
 
     //# Used by RPC system to implement pipelining. Applications
     //# generally shouldn't use this directly.
-    pub fn get_pipelined_cap(&self, ops : &[pipeline_op::Type]) -> Box<ClientHook+Send> {
+    pub fn get_pipelined_cap(&self, ops : &[PipelineOp]) -> Box<ClientHook+Send> {
         let mut pointer = self.reader;
 
         for op in ops.iter() {
             match op {
-                &pipeline_op::Noop =>  { }
-                &pipeline_op::GetPointerField(idx) => {
+                &PipelineOp::Noop =>  { }
+                &PipelineOp::GetPointerField(idx) => {
                     pointer = pointer.get_struct(::std::ptr::null()).get_pointer_field(idx as uint)
                 }
             }
@@ -113,7 +113,7 @@ impl <'a> Builder<'a> {
 
 pub struct Pipeline {
     hook : Box<PipelineHook+Send>,
-    ops : Vec<pipeline_op::Type>,
+    ops : Vec<PipelineOp>,
 }
 
 impl Pipeline {
@@ -130,7 +130,7 @@ impl Pipeline {
         for &op in self.ops.iter() {
             new_ops.push(op)
         }
-        new_ops.push(pipeline_op::GetPointerField(pointer_index));
+        new_ops.push(PipelineOp::GetPointerField(pointer_index));
         Pipeline { hook : self.hook.copy(), ops : new_ops }
     }
 

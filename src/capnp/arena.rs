@@ -10,6 +10,8 @@ use capability::ClientHook;
 use common::*;
 use message;
 
+pub use self::FirstSegment::{NumWords, ZeroedWords};
+
 pub type SegmentId = u32;
 
 pub struct SegmentReader {
@@ -48,7 +50,7 @@ impl SegmentBuilder {
                size : WordCount32) -> SegmentBuilder {
         SegmentBuilder {
             reader : SegmentReader {
-                arena : BuilderArenaPtr(arena),
+                arena : ArenaPtr::Builder(arena),
                 ptr : unsafe {::std::mem::transmute(ptr)},
                 size : size
             },
@@ -94,7 +96,7 @@ impl SegmentBuilder {
     #[inline]
     pub fn get_arena(&self) -> *mut BuilderArena {
         match self.reader.arena {
-            BuilderArenaPtr(b) => b,
+            ArenaPtr::Builder(b) => b,
             _ => unreachable!()
         }
     }
@@ -117,7 +119,7 @@ impl ReaderArena {
         assert!(segments.len() > 0);
         let mut arena = box ReaderArena {
             segment0 : SegmentReader {
-                arena : Null,
+                arena : ArenaPtr::Null,
                 ptr : unsafe { segments[0].unsafe_get(0) },
                 size : segments[0].len() as u32
             },
@@ -127,7 +129,7 @@ impl ReaderArena {
         };
 
 
-        let arena_ptr = ReaderArenaPtr (&*arena);
+        let arena_ptr = ArenaPtr::Reader (&*arena);
 
         arena.segment0.arena = arena_ptr;
 
@@ -207,7 +209,7 @@ impl BuilderArena {
                 reader : SegmentReader {
                     ptr : first_segment as *const Word,
                     size : num_words,
-                    arena : Null },
+                    arena : ArenaPtr::Null },
                 id : 0,
                 pos : first_segment,
             },
@@ -220,7 +222,7 @@ impl BuilderArena {
         };
 
         let arena_ptr = { let ref mut ptr = *result; ptr as *mut BuilderArena};
-        result.segment0.reader.arena = BuilderArenaPtr(arena_ptr);
+        result.segment0.reader.arena = ArenaPtr::Builder(arena_ptr);
 
         result
     }
@@ -234,7 +236,7 @@ impl BuilderArena {
         self.owned_memory.push(new_words);
 
         match self.allocation_strategy {
-            message::GrowHeuristically => { self.next_size += size; }
+            message::AllocationStrategy::GrowHeuristically => { self.next_size += size; }
             _ => { }
         }
         (new_words, size)
@@ -314,8 +316,8 @@ impl BuilderArena {
 }
 
 pub enum ArenaPtr {
-    ReaderArenaPtr(*const ReaderArena),
-    BuilderArenaPtr(*mut BuilderArena),
+    Reader(*const ReaderArena),
+    Builder(*mut BuilderArena),
     Null
 }
 
@@ -323,17 +325,17 @@ impl ArenaPtr {
     pub fn try_get_segment(&self, id : SegmentId) -> *const SegmentReader {
         unsafe {
             match self {
-                &ReaderArenaPtr(reader) => {
+                &ArenaPtr::Reader(reader) => {
                     (&*reader).try_get_segment(id)
                 }
-                &BuilderArenaPtr(builder) => {
+                &ArenaPtr::Builder(builder) => {
                     if id == 0 {
                         &(*builder).segment0.reader as *const SegmentReader
                     } else {
                         &(*builder).more_segments.as_slice()[id as uint - 1].reader as *const SegmentReader
                     }
                 }
-                &Null => {
+                &ArenaPtr::Null => {
                     panic!()
                 }
             }
@@ -343,7 +345,7 @@ impl ArenaPtr {
     pub fn extract_cap(&self, index : uint) -> Option<Box<ClientHook+Send>> {
         unsafe {
             match self {
-                &ReaderArenaPtr(reader) => {
+                &ArenaPtr::Reader(reader) => {
                     if index < (*reader).cap_table.len() {
                         match (*reader).cap_table.as_slice()[index] {
                             Some( ref hook ) => { Some(hook.copy()) }
@@ -355,7 +357,7 @@ impl ArenaPtr {
                         None
                     }
                 }
-                &BuilderArenaPtr(builder) => {
+                &ArenaPtr::Builder(builder) => {
                     if index < (*builder).cap_table.len() {
                         match (*builder).cap_table.as_slice()[index] {
                             Some( ref hook ) => { Some(hook.copy()) }
@@ -367,7 +369,7 @@ impl ArenaPtr {
                         None
                     }
                 }
-                &Null => {
+                &ArenaPtr::Null => {
                     panic!();
                 }
             }
@@ -377,13 +379,13 @@ impl ArenaPtr {
     pub fn fail_fast(&self) -> bool {
         unsafe {
             match self {
-                &ReaderArenaPtr(reader) => {
+                &ArenaPtr::Reader(reader) => {
                     (*reader).fail_fast
                 }
-                &BuilderArenaPtr(builder) => {
+                &ArenaPtr::Builder(builder) => {
                     (*builder).fail_fast
                 }
-                &Null => {
+                &ArenaPtr::Null => {
                     panic!()
                 }
             }

@@ -112,7 +112,7 @@ pub enum AllocationStrategy {
 }
 
 pub const SUGGESTED_FIRST_SEGMENT_WORDS : u32 = 1024;
-pub const SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = GrowHeuristically;
+pub const SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = AllocationStrategy::GrowHeuristically;
 
 pub struct BuilderOptions {
     pub first_segment_words : u32,
@@ -126,7 +126,7 @@ pub struct BuilderOptions {
 impl BuilderOptions {
     pub fn new() -> BuilderOptions {
         BuilderOptions {first_segment_words : SUGGESTED_FIRST_SEGMENT_WORDS,
-                        allocation_strategy : GrowHeuristically,
+                        allocation_strategy : AllocationStrategy::GrowHeuristically,
                         fail_fast : true }
     }
 
