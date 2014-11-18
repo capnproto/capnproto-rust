@@ -395,9 +395,9 @@ impl RpcConnectionState {
                     RpcEvent::IncomingMessage(mut message) => {
                         enum MessageReceiver {
                             Nobody,
-                            QuestionReceiver(QuestionId),
-                            ExportReceiver(ExportId),
-                            PromisedAnswerReceiver(AnswerId, Vec<PipelineOp>),
+                            Question(QuestionId),
+                            Export(ExportId),
+                            PromisedAnswer(AnswerId, Vec<PipelineOp>),
                         }
 
 
@@ -414,10 +414,10 @@ impl RpcConnectionState {
                             Some(message::Call(call)) => {
                                 match call.get_target().which() {
                                     Some(message_target::ImportedCap(import_id)) => {
-                                        MessageReceiver::ExportReceiver(import_id)
+                                        MessageReceiver::Export(import_id)
                                     }
                                     Some(message_target::PromisedAnswer(promised_answer)) => {
-                                        MessageReceiver::PromisedAnswerReceiver(
+                                        MessageReceiver::PromisedAnswer(
                                             promised_answer.get_question_id(),
                                             get_pipeline_ops(promised_answer))
                                     }
@@ -428,7 +428,7 @@ impl RpcConnectionState {
                             }
 
                             Some(message::Return(ret)) => {
-                                MessageReceiver::QuestionReceiver(ret.get_answer_id())
+                                MessageReceiver::Question(ret.get_answer_id())
                             }
                             Some(message::Finish(finish)) => {
                                 println!("finish");
@@ -508,7 +508,7 @@ impl RpcConnectionState {
 
                         match receiver {
                             MessageReceiver::Nobody => {}
-                            MessageReceiver::QuestionReceiver(id) => {
+                            MessageReceiver::Question(id) => {
                                 let erase_it = match &mut questions.slots[id as uint] {
                                     &Some(ref mut q) => {
                                         q.chan.send_opt(
@@ -530,7 +530,7 @@ impl RpcConnectionState {
                                     finish_question(&mut questions, &mut outpipe, id);
                                 }
                             }
-                            MessageReceiver::ExportReceiver(id) => {
+                            MessageReceiver::Export(id) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(&*message);
                                 let context =
                                     box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
@@ -546,7 +546,7 @@ impl RpcConnectionState {
                                     }
                                 }
                             }
-                            MessageReceiver::PromisedAnswerReceiver(id, ops) => {
+                            MessageReceiver::PromisedAnswer(id, ops) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(&*message);
                                 let context =
                                     box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
