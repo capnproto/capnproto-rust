@@ -76,13 +76,13 @@ pub fn main() {
 
         let add = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(calculator::operator::Add);
+            request.init().set_op(calculator::Operator::Add);
             request.send().pipeline.get_func()
         };
 
         let subtract = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(calculator::operator::Subtract);
+            request.init().set_op(calculator::Operator::Subtract);
             request.send().pipeline.get_func()
         };
 
@@ -120,13 +120,13 @@ pub fn main() {
 
         let add = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(calculator::operator::Add);
+            request.init().set_op(calculator::Operator::Add);
             request.send().pipeline.get_func()
         };
 
         let multiply = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(calculator::operator::Multiply);
+            request.init().set_op(calculator::Operator::Multiply);
             request.send().pipeline.get_func()
         };
 
@@ -180,13 +180,13 @@ pub fn main() {
 
         let add = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(calculator::operator::Add);
+            request.init().set_op(calculator::Operator::Add);
             request.send().pipeline.get_func()
         };
 
         let multiply = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(calculator::operator::Multiply);
+            request.init().set_op(calculator::Operator::Multiply);
             request.send().pipeline.get_func()
         };
 
@@ -272,7 +272,7 @@ pub fn main() {
 
         let add = {
             let mut request = calculator.get_operator_request();
-            request.init().set_op(calculator::operator::Add);
+            request.init().set_op(calculator::Operator::Add);
             request.send().pipeline.get_func()
         };
 

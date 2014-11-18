@@ -109,7 +109,7 @@ impl calculator::function::Server for FunctionImpl {
 }
 
 pub struct OperatorImpl {
-    op : calculator::operator,
+    op : calculator::Operator,
 }
 
 impl calculator::function::Server for OperatorImpl {
@@ -122,10 +122,10 @@ impl calculator::function::Server for OperatorImpl {
         }
 
         let result = match self.op {
-            calculator::operator::Add => params.get(0) + params.get(1),
-            calculator::operator::Subtract => params.get(0) - params.get(1),
-            calculator::operator::Multiply => params.get(0) * params.get(1),
-            calculator::operator::Divide => params.get(0) / params.get(1),
+            calculator::Operator::Add => params.get(0) + params.get(1),
+            calculator::Operator::Subtract => params.get(0) - params.get(1),
+            calculator::Operator::Multiply => params.get(0) * params.get(1),
+            calculator::Operator::Divide => params.get(0) / params.get(1),
         };
 
         results.set_value(result);
