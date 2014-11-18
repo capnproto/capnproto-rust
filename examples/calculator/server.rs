@@ -109,7 +109,7 @@ impl calculator::function::Server for FunctionImpl {
 }
 
 pub struct OperatorImpl {
-    op : calculator::operator::Reader,
+    op : calculator::operator,
 }
 
 impl calculator::function::Server for OperatorImpl {

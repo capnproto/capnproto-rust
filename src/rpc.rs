@@ -6,7 +6,7 @@
 
 use capnp::{any_pointer};
 use capnp::capability;
-use capnp::capability::{CallContextHook, ClientHook, PipelineHook, pipeline_op, ResultFuture,
+use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, ResultFuture,
                         RequestHook, Request, ResponseHook};
 use capnp::common;
 use capnp::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, MallocMessageBuilder};
@@ -72,8 +72,8 @@ impl Clone for QuestionRef {
 }
 
 pub enum AnswerStatus {
-    AnswerStatusSent(Box<MallocMessageBuilder>),
-    AnswerStatusPending(Vec<(u64, u16, Vec<pipeline_op::Type>, Box<CallContextHook+Send>)>),
+    Sent(Box<MallocMessageBuilder>),
+    Pending(Vec<(u64, u16, Vec<PipelineOp>, Box<CallContextHook+Send>)>),
 }
 
 pub struct AnswerRef {
@@ -91,12 +91,12 @@ impl Clone for AnswerRef {
 impl AnswerRef {
     pub fn new() -> AnswerRef {
         AnswerRef {
-            status : Arc::new(Mutex::new(AnswerStatusPending(Vec::new()))),
+            status : Arc::new(Mutex::new(AnswerStatus::Pending(Vec::new()))),
         }
     }
 
     fn do_call(answer_message : &mut Box<MallocMessageBuilder>, interface_id : u64, method_id : u16,
-               ops : Vec<pipeline_op::Type>, context : Box<CallContextHook+Send>) {
+               ops : Vec<PipelineOp>, context : Box<CallContextHook+Send>) {
         let root : message::Builder = answer_message.get_root();
         match root.which() {
             Some(message::Return(ret)) => {
@@ -117,12 +117,12 @@ impl AnswerRef {
     }
 
     pub fn receive(&mut self, interface_id : u64, method_id : u16,
-                   ops : Vec<pipeline_op::Type>, context : Box<CallContextHook+Send>) {
+                   ops : Vec<PipelineOp>, context : Box<CallContextHook+Send>) {
         match self.status.lock().deref_mut() {
-            &AnswerStatusSent(ref mut answer_message) => {
+            &AnswerStatus::Sent(ref mut answer_message) => {
                 AnswerRef::do_call(answer_message, interface_id, method_id, ops, context);
             }
-            &AnswerStatusPending(ref mut waiters) => {
+            &AnswerStatus::Pending(ref mut waiters) => {
                 waiters.push((interface_id, method_id, ops, context));
             }
         }
@@ -130,8 +130,8 @@ impl AnswerRef {
 
     pub fn sent(&mut self, mut message : Box<MallocMessageBuilder>) {
         match self.status.lock().deref_mut() {
-            &AnswerStatusSent(_) => {panic!()}
-            &AnswerStatusPending(ref mut waiters) => {
+            &AnswerStatus::Sent(_) => {panic!()}
+            &AnswerStatus::Pending(ref mut waiters) => {
                 waiters.reverse();
                 while waiters.len() > 0 {
                     let (interface_id, method_id, ops, context) = match waiters.pop() {
@@ -142,7 +142,7 @@ impl AnswerRef {
                 }
             }
         }
-        *self.status.lock() = AnswerStatusSent(message);
+        *self.status.lock() = AnswerStatus::Sent(message);
     }
 
 
@@ -325,12 +325,12 @@ fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
     message.init_cap_table(the_cap_table);
 }
 
-fn get_pipeline_ops(promised_answer : promised_answer::Reader) -> Vec<pipeline_op::Type> {
+fn get_pipeline_ops(promised_answer : promised_answer::Reader) -> Vec<PipelineOp> {
     let mut result = Vec::new();
     for op in promised_answer.get_transform().iter() {
         match op.which() {
-            Some(promised_answer::op::Noop(())) => result.push(pipeline_op::Noop),
-            Some(promised_answer::op::GetPointerField(idx)) => result.push(pipeline_op::GetPointerField(idx)),
+            Some(promised_answer::op::Noop(())) => result.push(PipelineOp::Noop),
+            Some(promised_answer::op::GetPointerField(idx)) => result.push(PipelineOp::GetPointerField(idx)),
             None => {}
         }
     }
@@ -377,9 +377,9 @@ impl RpcConnectionState {
                     match serialize::new_reader(
                         &mut r,
                         *ReaderOptions::new().fail_fast(false)) {
-                        Err(_e) => { listener_chan.send_opt(ShutdownEvent).is_ok(); break; }
+                        Err(_e) => { listener_chan.send_opt(RpcEvent::Shutdown).is_ok(); break; }
                         Ok(message) => {
-                            listener_chan.send_opt(IncomingMessage(box message)).is_ok();
+                            listener_chan.send_opt(RpcEvent::IncomingMessage(box message)).is_ok();
                         }
                     }
                 }
@@ -392,31 +392,32 @@ impl RpcConnectionState {
             let mut outpipe = outpipe;
             loop {
                 match port.recv() {
-                    IncomingMessage(mut message) => {
+                    RpcEvent::IncomingMessage(mut message) => {
                         enum MessageReceiver {
                             Nobody,
                             QuestionReceiver(QuestionId),
                             ExportReceiver(ExportId),
-                            PromisedAnswerReceiver(AnswerId, Vec<pipeline_op::Type>),
+                            PromisedAnswerReceiver(AnswerId, Vec<PipelineOp>),
                         }
+
 
                         populate_cap_table(&mut *message, &rpc_chan, &answers);
                         let receiver = match message.get_root::<message::Reader>().which() {
                             Some(message::Unimplemented(_)) => {
                                 println!("unimplemented");
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             Some(message::Abort(exc)) => {
                                 println!("abort: {}", exc.get_reason());
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             Some(message::Call(call)) => {
                                 match call.get_target().which() {
                                     Some(message_target::ImportedCap(import_id)) => {
-                                        ExportReceiver(import_id)
+                                        MessageReceiver::ExportReceiver(import_id)
                                     }
                                     Some(message_target::PromisedAnswer(promised_answer)) => {
-                                        PromisedAnswerReceiver(
+                                        MessageReceiver::PromisedAnswerReceiver(
                                             promised_answer.get_question_id(),
                                             get_pipeline_ops(promised_answer))
                                     }
@@ -427,18 +428,18 @@ impl RpcConnectionState {
                             }
 
                             Some(message::Return(ret)) => {
-                                QuestionReceiver(ret.get_answer_id())
+                                MessageReceiver::QuestionReceiver(ret.get_answer_id())
                             }
                             Some(message::Finish(finish)) => {
                                 println!("finish");
                                 answers.slots.remove(&finish.get_question_id());
                                 finish.get_release_result_caps();
 
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             Some(message::Resolve(_resolve)) => {
                                 println!("resolve");
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             Some(message::Release(rel)) => {
                                 if rel.get_reference_count() == 1 {
@@ -446,14 +447,14 @@ impl RpcConnectionState {
                                 } else {
                                     println!("warning: release count = {}", rel.get_reference_count());
                                 }
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             Some(message::Disembargo(_dis)) => {
                                 println!("disembargo");
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             Some(message::ObsoleteSave(_save)) => {
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             Some(message::Bootstrap(restore)) => {
                                 let clienthook = restorer.restore(restore.get_deprecated_object_id()).unwrap();
@@ -476,23 +477,23 @@ impl RpcConnectionState {
                                 serialize::write_message(&mut outpipe, &*message).is_ok();
                                 answers.slots[answer_id].answer_ref.sent(message);
 
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             Some(message::ObsoleteDelete(_delete)) => {
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             Some(message::Provide(_provide)) => {
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             Some(message::Accept(_accept)) => {
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             Some(message::Join(_join)) => {
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                             None => {
                                 println!("unknown message");
-                                Nobody
+                                MessageReceiver::Nobody
                             }
                         };
 
@@ -506,8 +507,8 @@ impl RpcConnectionState {
                         }
 
                         match receiver {
-                            Nobody => {}
-                            QuestionReceiver(id) => {
+                            MessageReceiver::Nobody => {}
+                            MessageReceiver::QuestionReceiver(id) => {
                                 let erase_it = match &mut questions.slots[id as uint] {
                                     &Some(ref mut q) => {
                                         q.chan.send_opt(
@@ -529,7 +530,7 @@ impl RpcConnectionState {
                                     finish_question(&mut questions, &mut outpipe, id);
                                 }
                             }
-                            ExportReceiver(id) => {
+                            MessageReceiver::ExportReceiver(id) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(&*message);
                                 let context =
                                     box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
@@ -545,7 +546,7 @@ impl RpcConnectionState {
                                     }
                                 }
                             }
-                            PromisedAnswerReceiver(id, ops) => {
+                            MessageReceiver::PromisedAnswerReceiver(id, ops) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(&*message);
                                 let context =
                                     box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
@@ -557,7 +558,7 @@ impl RpcConnectionState {
                         }
 
                     }
-                    Outgoing(OutgoingMessage { message : mut m,
+                    RpcEvent::Outgoing(OutgoingMessage { message : mut m,
                                                answer_chan,
                                                question_chan} ) => {
                         {
@@ -587,11 +588,11 @@ impl RpcConnectionState {
 
                         serialize::write_message(&mut outpipe, &*m).is_ok();
                     }
-                    NewLocalServer(clienthook, export_chan) => {
+                    RpcEvent::NewLocalServer(clienthook, export_chan) => {
                         let export_id = exports.push(Export::new(clienthook));
                         export_chan.send(export_id);
                     }
-                    DoneWithQuestion(id) => {
+                    RpcEvent::DoneWithQuestion(id) => {
 
                         // This isn't used anywhere yet.
                         // The idea is that when the last reference to a question
@@ -607,7 +608,7 @@ impl RpcConnectionState {
                             finish_question(&mut questions, &mut outpipe, id);
                         }
                     }
-                    ReturnEvent(mut message) => {
+                    RpcEvent::Return(mut message) => {
                         serialize::write_message(&mut outpipe, &*message).is_ok();
 
                         let answer_id_opt =
@@ -625,7 +626,7 @@ impl RpcConnectionState {
                             _ => {}
                         }
                     }
-                    ShutdownEvent => {
+                    RpcEvent::Shutdown => {
                         break;
                     }
                 }}});
@@ -639,7 +640,7 @@ pub enum OwnedCapDescriptor {
     SenderHosted(ExportId),
     SenderPromise(ExportId),
     ReceiverHosted(ImportId),
-    ReceiverAnswer(QuestionId, Vec<pipeline_op::Type>),
+    ReceiverAnswer(QuestionId, Vec<PipelineOp>),
 }
 
 pub struct ImportClient {
@@ -676,13 +677,13 @@ impl ClientHook for ImportClient {
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
-        (box ReceiverHosted(self.import_id)) as Box<::std::any::Any+'static>
+        (box OwnedCapDescriptor::ReceiverHosted(self.import_id)) as Box<::std::any::Any+'static>
     }
 }
 
 pub struct PipelineClient {
     channel : ::std::comm::Sender<RpcEvent>,
-    pub ops : Vec<pipeline_op::Type>,
+    pub ops : Vec<PipelineOp>,
     pub question_ref : QuestionRef,
 }
 
@@ -709,8 +710,8 @@ impl ClientHook for PipelineClient {
             let transform = promised_answer.init_transform(self.ops.len() as u32);
             for ii in range(0, self.ops.len()) {
                 match self.ops.as_slice()[ii] {
-                    pipeline_op::Noop => transform.get(ii as u32).set_noop(()),
-                    pipeline_op::GetPointerField(idx) => transform.get(ii as u32).set_get_pointer_field(idx),
+                    PipelineOp::Noop => transform.get(ii as u32).set_noop(()),
+                    PipelineOp::GetPointerField(idx) => transform.get(ii as u32).set_get_pointer_field(idx),
                 }
             }
         }
@@ -725,13 +726,13 @@ impl ClientHook for PipelineClient {
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
-        (box ReceiverAnswer(self.question_ref.id, self.ops.clone())) as Box<::std::any::Any+'static>
+        (box OwnedCapDescriptor::ReceiverAnswer(self.question_ref.id, self.ops.clone())) as Box<::std::any::Any+'static>
     }
 }
 
 pub struct PromisedAnswerClient {
     rpc_chan : ::std::comm::Sender<RpcEvent>,
-    ops : Vec<pipeline_op::Type>,
+    ops : Vec<PipelineOp>,
     answer_ref : AnswerRef,
 }
 
@@ -777,29 +778,29 @@ fn write_outgoing_cap_table(rpc_chan : &::std::comm::Sender<RpcEvent>, message :
         let new_cap_table = payload.init_cap_table(cap_table.len() as u32);
         for ii in range::<u32>(0, cap_table.len() as u32) {
             match cap_table[ii as uint].downcast_ref::<OwnedCapDescriptor>() {
-                Some(&NoDescriptor) => {}
-                Some(&ReceiverHosted(import_id)) => {
+                Some(&OwnedCapDescriptor::NoDescriptor) => {}
+                Some(&OwnedCapDescriptor::ReceiverHosted(import_id)) => {
                     new_cap_table.get(ii).set_receiver_hosted(import_id);
                 }
-                Some(&ReceiverAnswer(question_id,ref ops)) => {
+                Some(&OwnedCapDescriptor::ReceiverAnswer(question_id,ref ops)) => {
                     let promised_answer = new_cap_table.get(ii).init_receiver_answer();
                     promised_answer.set_question_id(question_id);
                     let transform = promised_answer.init_transform(ops.len() as u32);
                     for jj in range(0, ops.len()) {
                         match ops.as_slice()[jj] {
-                            pipeline_op::Noop => transform.get(jj as u32).set_noop(()),
-                            pipeline_op::GetPointerField(idx) => transform.get(jj as u32).set_get_pointer_field(idx),
+                            PipelineOp::Noop => transform.get(jj as u32).set_noop(()),
+                            PipelineOp::GetPointerField(idx) => transform.get(jj as u32).set_get_pointer_field(idx),
                         }
                     }
                 }
-                Some(&SenderHosted(export_id)) => {
+                Some(&OwnedCapDescriptor::SenderHosted(export_id)) => {
                     new_cap_table.get(ii).set_sender_hosted(export_id);
                 }
                 None => {
                     match cap_table[ii as uint].downcast_ref::<Box<ClientHook+Send>>() {
                         Some(clienthook) => {
                             let (chan, port) = ::std::comm::channel::<ExportId>();
-                            rpc_chan.send(NewLocalServer(clienthook.copy(), chan));
+                            rpc_chan.send(RpcEvent::NewLocalServer(clienthook.copy(), chan));
                             let idx = port.recv();
                             new_cap_table.get(ii).set_sender_hosted(idx);
                         }
@@ -871,7 +872,7 @@ impl RequestHook for RpcRequest {
         write_outgoing_cap_table(&channel, &mut *message);
 
         let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
-        channel.send(Outgoing(outgoing));
+        channel.send(RpcEvent::Outgoing(outgoing));
 
         let question_ref = question_port.recv();
 
@@ -887,7 +888,7 @@ pub struct PromisedAnswerRpcRequest {
     rpc_chan : ::std::comm::Sender<RpcEvent>,
     message : Box<MallocMessageBuilder>,
     answer_ref : AnswerRef,
-    ops : Vec<pipeline_op::Type>,
+    ops : Vec<PipelineOp>,
 }
 
 impl RequestHook for PromisedAnswerRpcRequest {
@@ -933,7 +934,7 @@ impl PipelineHook for RpcPipeline {
         (box RpcPipeline { channel : self.channel.clone(),
                         question_ref : self.question_ref.clone() }) as Box<PipelineHook+Send>
     }
-    fn get_pipelined_cap(&self, ops : Vec<pipeline_op::Type>) -> Box<ClientHook+Send> {
+    fn get_pipelined_cap(&self, ops : Vec<PipelineOp>) -> Box<ClientHook+Send> {
         (box PipelineClient { channel : self.channel.clone(),
                            ops : ops,
                            question_ref : self.question_ref.clone(),
@@ -947,7 +948,7 @@ impl PipelineHook for PromisedAnswerRpcPipeline {
     fn copy(&self) -> Box<PipelineHook+Send> {
         (box PromisedAnswerRpcPipeline) as Box<PipelineHook+Send>
     }
-    fn get_pipelined_cap(&self, _ops : Vec<pipeline_op::Type>) -> Box<ClientHook+Send> {
+    fn get_pipelined_cap(&self, _ops : Vec<PipelineOp>) -> Box<ClientHook+Send> {
         panic!()
     }
 }
@@ -969,7 +970,7 @@ impl Drop for Aborter {
                 let exc = ret.init_exception();
                 exc.set_reason("aborted");
             }
-            self.rpc_chan.send_opt(ReturnEvent(results_message)).is_ok();
+            self.rpc_chan.send_opt(RpcEvent::Return(results_message)).is_ok();
         }
     }
 }
@@ -1049,7 +1050,7 @@ impl CallContextHook for RpcCallContext {
         aborter.succeeded = true;
         write_outgoing_cap_table(&rpc_chan, &mut *results_message);
 
-        rpc_chan.send(ReturnEvent(results_message));
+        rpc_chan.send(RpcEvent::Return(results_message));
     }
 }
 
@@ -1168,9 +1169,9 @@ pub enum RpcEvent {
     IncomingMessage(Box<serialize::OwnedSpaceMessageReader>),
     Outgoing(OutgoingMessage),
     NewLocalServer(Box<ClientHook+Send>, ::std::comm::Sender<ExportId>),
-    ReturnEvent(Box<MallocMessageBuilder>),
+    Return(Box<MallocMessageBuilder>),
     DoneWithQuestion(QuestionId),
-    ShutdownEvent,
+    Shutdown,
 }
 
 

@@ -11,7 +11,7 @@ use std::io::Acceptor;
 use std::collections::hash_map::HashMap;
 use capnp::{any_pointer, MessageBuilder, MallocMessageBuilder};
 use capnp::capability::{ClientHook, FromClientHook, Server};
-use rpc::{Outgoing, RpcConnectionState, RpcEvent, ShutdownEvent, SturdyRefRestorer};
+use rpc::{RpcConnectionState, RpcEvent, SturdyRefRestorer};
 use capability::{LocalClient};
 
 pub struct EzRpcClient {
@@ -21,7 +21,7 @@ pub struct EzRpcClient {
 
 impl Drop for EzRpcClient {
     fn drop(&mut self) {
-        self.rpc_chan.send_opt(ShutdownEvent).is_ok();
+        self.rpc_chan.send_opt(RpcEvent::Shutdown).is_ok();
         self.tcp.close_read().is_ok();
     }
 }
@@ -30,7 +30,7 @@ impl EzRpcClient {
     pub fn new(server_address : &str) -> std::io::IoResult<EzRpcClient> {
         use std::io::net::{ip, tcp};
 
-        let addr : ip::SocketAddr = std::from_str::FromStr::from_str(server_address).expect("bad server address");
+        let addr : ip::SocketAddr = std::str::FromStr::from_str(server_address).expect("bad server address");
 
         let tcp = try!(tcp::TcpStream::connect(addr));
 
@@ -49,7 +49,7 @@ impl EzRpcClient {
         }
 
         let (outgoing, answer_port, _question_port) = RpcEvent::new_outgoing(message);
-        self.rpc_chan.send(Outgoing(outgoing));
+        self.rpc_chan.send(RpcEvent::Outgoing(outgoing));
 
         let mut response_hook = answer_port.recv();
         let message : message::Reader = response_hook.get().get_as_struct();
@@ -70,8 +70,8 @@ impl EzRpcClient {
 }
 
 enum ExportEvent {
-    ExportEventRestore(String, std::comm::Sender<Option<Box<ClientHook+Send>>>),
-    ExportEventRegister(String, Box<Server+Send>),
+    Restore(String, std::comm::Sender<Option<Box<ClientHook+Send>>>),
+    Register(String, Box<Server+Send>),
 }
 
 struct ExportedCaps {
@@ -87,10 +87,10 @@ impl ExportedCaps {
 
                 loop {
                     match port.recv_opt() {
-                        Ok(ExportEventRegister(name, server)) => {
+                        Ok(ExportEvent::Register(name, server)) => {
                             vat.objects.insert(name, box LocalClient::new(server) as Box<ClientHook+Send>);
                         }
-                        Ok(ExportEventRestore(name, return_chan)) => {
+                        Ok(ExportEvent::Restore(name, return_chan)) => {
                             return_chan.send(Some(vat.objects[name].copy()));
                         }
                         Err(_) => break,
@@ -115,7 +115,7 @@ impl Restorer {
 impl SturdyRefRestorer for Restorer {
     fn restore(&self, obj_id : any_pointer::Reader) -> Option<Box<ClientHook+Send>> {
         let (tx, rx) = std::comm::channel();
-        self.sender.send(ExportEventRestore(obj_id.get_as_text().to_string(), tx));
+        self.sender.send(ExportEvent::Restore(obj_id.get_as_text().to_string(), tx));
         return rx.recv();
     }
 }
@@ -130,7 +130,7 @@ impl EzRpcServer {
         use std::io::net::{ip, tcp};
         use std::io::Listener;
 
-        let addr : ip::SocketAddr = std::from_str::FromStr::from_str(bind_address).expect("bad bind address");
+        let addr : ip::SocketAddr = std::str::FromStr::from_str(bind_address).expect("bad bind address");
 
         let tcp_listener = try!(tcp::TcpListener::bind(addr));
 
@@ -142,7 +142,7 @@ impl EzRpcServer {
     }
 
     pub fn export_cap(&self, name : &str, server : Box<Server+Send>) {
-        self.sender.send(ExportEventRegister(name.to_string(), server))
+        self.sender.send(ExportEvent::Register(name.to_string(), server))
     }
 
     pub fn serve(self) {
