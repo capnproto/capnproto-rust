@@ -58,8 +58,8 @@ pub mod codegen;
 
 pub fn compile(prefix : Path, files : &[Path]) {
     let out_dir = Path::new(::std::os::getenv("OUT_DIR").unwrap());
-    let cwd = ::std::os::getcwd();
-    ::std::os::change_dir(&out_dir);
+    let cwd = ::std::os::getcwd().unwrap();
+    ::std::os::change_dir(&out_dir).unwrap();
 
     let mut command = ::std::io::Command::new("capnp");
     command
