@@ -50,13 +50,13 @@ pub mod eval;
 mod uncompressed {
     use capnp;
 
-    pub fn write<'a, T : ::std::io::Writer, U : capnp::message::MessageBuilder<'a>>(
+    pub fn write<T : ::std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
         capnp::serialize::write_message(writer, message).unwrap();
     }
 
-    pub fn write_buffered<'a, T : ::std::io::Writer, U : capnp::message::MessageBuilder<'a>>(
+    pub fn write_buffered<T : ::std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
         capnp::serialize::write_message(writer, message).unwrap();
@@ -73,13 +73,13 @@ mod packed {
     use capnp;
     use capnp::serialize_packed::{write_packed_message, write_packed_message_unbuffered};
 
-    pub fn write<'a, T : ::std::io::Writer, U : capnp::message::MessageBuilder<'a>>(
+    pub fn write<T : ::std::io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
         write_packed_message_unbuffered(writer, message).unwrap();
     }
 
-    pub fn write_buffered<'a, T : capnp::io::BufferedOutputStream, U : capnp::message::MessageBuilder<'a>>(
+    pub fn write_buffered<T : capnp::io::BufferedOutputStream, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
         write_packed_message(writer, message).unwrap();
