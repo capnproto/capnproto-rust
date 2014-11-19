@@ -20,7 +20,7 @@ pub struct OwnedSpaceMessageReader {
     owned_space : Vec<Word>,
 }
 
-impl <'a> MessageReader<'a> for OwnedSpaceMessageReader {
+impl MessageReader for OwnedSpaceMessageReader {
     fn get_segment(&self, id : uint) -> &[Word] {
         let (a,b) = self.segment_slices.as_slice()[id];
         self.owned_space.slice(a, b)
@@ -130,7 +130,7 @@ pub fn new_reader<U : std::io::Reader>(input_stream : &mut U,
 }
 
 
-pub fn write_message<'a, T : std::io::Writer, U : MessageBuilder<'a>>(
+pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
     output_stream : &mut T,
     message : &U) -> std::io::IoResult<()> {
 

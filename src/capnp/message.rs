@@ -48,7 +48,7 @@ impl ReaderOptions {
 
 type SegmentId = u32;
 
-pub trait MessageReader<'a> {
+pub trait MessageReader {
     fn get_segment(&self, id : uint) -> &[Word];
     fn arena(&self) -> &ReaderArena;
     fn mut_arena(&mut self) -> &mut ReaderArena;
@@ -65,7 +65,7 @@ pub trait MessageReader<'a> {
         }
     }
 
-    fn get_root<T : layout::FromStructReader<'a>>(&'a self) -> T {
+    fn get_root<'a, T : layout::FromStructReader<'a>>(&'a self) -> T {
         self.get_root_internal().get_as_struct()
     }
 
@@ -81,7 +81,7 @@ pub struct SegmentArrayMessageReader<'a> {
 }
 
 
-impl <'a> MessageReader<'a> for SegmentArrayMessageReader<'a> {
+impl <'a> MessageReader for SegmentArrayMessageReader<'a> {
     fn get_segment<'b>(&'b self, id : uint) -> &'b [Word] {
         self.segments[id]
     }
@@ -147,13 +147,13 @@ impl BuilderOptions {
 }
 
 
-pub trait MessageBuilder<'a> {
+pub trait MessageBuilder {
     fn mut_arena(&mut self) -> &mut BuilderArena;
     fn arena(&self) -> &BuilderArena;
 
 
     // XXX is there a way to make this private?
-    fn get_root_internal(&mut self) -> any_pointer::Builder<'a> {
+    fn get_root_internal<'a>(&mut self) -> any_pointer::Builder<'a> {
         let root_segment = &mut self.mut_arena().segment0 as *mut SegmentBuilder;
 
         if self.arena().segment0.current_size() == 0 {
@@ -175,15 +175,15 @@ pub trait MessageBuilder<'a> {
 
     }
 
-    fn init_root<T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
+    fn init_root<'a, T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
         self.get_root_internal().init_as_struct()
     }
 
-    fn get_root<T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
+    fn get_root<'a, T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
         self.get_root_internal().get_as_struct()
     }
 
-    fn set_root<T : layout::ToStructReader<'a>>(&'a mut self, value : &T) {
+    fn set_root<'a, T : layout::ToStructReader<'a>>(&'a mut self, value : &T) {
         self.get_root_internal().set_as_struct(value);
     }
 
@@ -220,7 +220,7 @@ impl MallocMessageBuilder {
 
 }
 
-impl <'a> MessageBuilder<'a> for MallocMessageBuilder {
+impl MessageBuilder for MallocMessageBuilder {
     fn mut_arena(&mut self) -> &mut BuilderArena {
         &mut *self.arena
     }
@@ -266,7 +266,7 @@ impl <'a> ScratchSpaceMallocMessageBuilder<'a> {
 
 }
 
-impl <'a, 'b> MessageBuilder<'a> for ScratchSpaceMallocMessageBuilder<'b> {
+impl <'b> MessageBuilder for ScratchSpaceMallocMessageBuilder<'b> {
     fn mut_arena(&mut self) -> &mut BuilderArena {
         &mut *self.arena
     }
