@@ -288,7 +288,7 @@ impl BuilderArena {
                 ::std::slice::raw::buf_as_slice::<Word, T>(
                     self.segment0.reader.ptr,
                     self.segment0.current_size() as uint,
-                    |v| cont([v]) )
+                    |v| cont(&[v]) )
             } else {
                 let mut result = Vec::new();
                 result.push(::std::mem::transmute(
