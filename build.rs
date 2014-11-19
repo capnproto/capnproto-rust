@@ -14,6 +14,6 @@ fn main() {
     };
 
     ::capnpc::compile(prefix.clone(),
-                      vec!(prefix.join(Path::new("rpc.capnp")),
-                           prefix.join(Path::new("rpc-twoparty.capnp"))).as_slice());
+                      &[prefix.join(Path::new("rpc.capnp")),
+                        prefix.join(Path::new("rpc-twoparty.capnp"))]);
 }
