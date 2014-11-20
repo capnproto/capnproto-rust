@@ -1,8 +1,10 @@
 [package]
 
 name = "capnp"
-version = "0.1.0"
-authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
+version = "0.0.1"
+authors = [ "David Renshaw <david@sandstorm.io>" ]
+license = "MIT"
+description = "Runtime library for Cap'n Proto serialization"
 
 [lib]
 
