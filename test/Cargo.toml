@@ -14,6 +14,5 @@ path = "test.rs"
 [build-dependencies.capnpc]
 path = "../"
 
-[dependencies.capnp]
-
-git = "https://github.com/dwrensha/capnproto-rust.git"
+[dependencies]
+capnp = "~0.0.2"
