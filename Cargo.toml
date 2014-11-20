@@ -1,10 +1,15 @@
 [package]
 
 name = "capnp"
-version = "0.0.1"
+version = "0.0.2"
 authors = [ "David Renshaw <david@sandstorm.io>" ]
 license = "MIT"
 description = "Runtime library for Cap'n Proto serialization"
+repository = "https://github.com/dwrensha/capnproto-rust"
+
+readme = "README.md"
+
+keywords = ["protocol", "serialization"]
 
 [lib]
 
