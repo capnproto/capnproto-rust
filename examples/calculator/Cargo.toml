@@ -10,14 +10,12 @@ build = "build.rs"
 name = "calculator"
 path = "main.rs"
 
-[build-dependencies.capnpc]
-git = "https://github.com/dwrensha/capnpc-rust.git"
+[build-dependencies]
+capnpc = "0.0.1"
 
 
-[dependencies.capnp]
-
-git = "https://github.com/dwrensha/capnproto-rust.git"
-
+[dependencies]
+capnp = "0.0.1"
 
 [dependencies.capnp-rpc]
 path = "../.."

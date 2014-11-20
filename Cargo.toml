@@ -1,20 +1,19 @@
 [package]
 
 name = "capnp-rpc"
-version = "0.1.0"
-authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
+version = "0.0.1"
+authors = [ "David Renshaw <dwrenshaw@sandstorm.io>" ]
 build = "build.rs"
+license = "MIT"
+description = "Experimental Cap'n Proto RPC layer"
 
 [lib]
 
 name = "capnp-rpc"
 path = "src/lib.rs"
 
+[build-dependencies]
+capnpc = "0.0.1"
 
-[build-dependencies.capnpc]
-
-git = "https://github.com/dwrensha/capnpc-rust.git"
-
-[dependencies.capnp]
-
-git = "https://github.com/dwrensha/capnproto-rust.git"
+[dependencies]
+capnp = "0.0.1"
