@@ -8,8 +8,8 @@
 use std::vec::Vec;
 
 use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
-use layout::{PointerReader, PointerBuilder, FromStructReader, FromStructBuilder,
-             HasStructSize, ToStructReader};
+use layout::{PointerReader, PointerBuilder};
+use traits::{FromStructReader, FromStructBuilder, HasStructSize, ToStructReader};
 use blob::{text, data};
 
 pub struct Reader<'a> {

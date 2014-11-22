@@ -11,7 +11,7 @@ use capability::ClientHook;
 use common::*;
 use arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};
 use layout;
-use layout::{FromStructBuilder, HasStructSize};
+use traits::{FromStructReader, ToStructReader, FromStructBuilder, HasStructSize};
 
 pub struct ReaderOptions {
     pub traversal_limit_in_words : u64,
@@ -65,7 +65,7 @@ pub trait MessageReader {
         }
     }
 
-    fn get_root<'a, T : layout::FromStructReader<'a>>(&'a self) -> T {
+    fn get_root<'a, T : FromStructReader<'a>>(&'a self) -> T {
         self.get_root_internal().get_as_struct()
     }
 
@@ -183,7 +183,7 @@ pub trait MessageBuilder {
         self.get_root_internal().get_as_struct()
     }
 
-    fn set_root<'a, T : layout::ToStructReader<'a>>(&'a mut self, value : &T) {
+    fn set_root<'a, T : ToStructReader<'a>>(&'a mut self, value : &T) {
         self.get_root_internal().set_as_struct(value);
     }
 

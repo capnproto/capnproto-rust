@@ -54,6 +54,7 @@ pub mod mask;
 pub mod message;
 pub mod serialize;
 pub mod serialize_packed;
+pub mod traits;
 
 
 #[cfg(test)]

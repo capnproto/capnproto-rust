@@ -6,7 +6,7 @@
 
 use any_pointer;
 use common::{MessageSize};
-use layout::{FromStructReader, FromStructBuilder, HasStructSize};
+use traits::{FromStructReader, FromStructBuilder, HasStructSize};
 use message::{MallocMessageBuilder};
 use std;
 use std::vec::Vec;

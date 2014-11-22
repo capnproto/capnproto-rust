@@ -2039,14 +2039,6 @@ impl <'a> PointerBuilder<'a> {
     }
 }
 
-pub trait FromStructReader<'a> {
-    fn new(reader : StructReader<'a>) -> Self;
-}
-
-pub trait ToStructReader<'a> {
-    fn struct_reader(&self) -> StructReader<'a>;
-}
-
 pub struct StructReader<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
     segment : *const SegmentReader,
@@ -2147,14 +2139,6 @@ impl <'a> StructReader<'a>  {
 
         result
     }
-}
-
-pub trait HasStructSize {
-    fn struct_size(unused_self : Option<Self>) -> StructSize;
-}
-
-pub trait FromStructBuilder<'a> {
-    fn new(structBuilder : StructBuilder<'a>) -> Self;
 }
 
 pub struct StructBuilder<'a> {

@@ -4,22 +4,6 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-use layout::{PointerBuilder, PointerReader};
-use common::Word;
-
-
-// TODO maybe we can simplify these traits. It seems that the only
-// difference in the implementations is the FieldSize.
-
-pub trait FromPointerReader<'a> {
-    fn get_from_pointer(reader : &PointerReader<'a>, default_value : *const Word) -> Self;
-}
-
-pub trait FromPointerBuilder<'a> {
-    fn init_pointer(PointerBuilder<'a>, u32) -> Self;
-    fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Self;
-}
-
 trait IndexMove<I,T> {
     fn index_move(&self, index : I) -> T;
 }
@@ -36,7 +20,6 @@ impl <T> ListIter<T> {
     }
 }
 
-
 impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator<U> for ListIter<T> {
     fn next(&mut self) -> ::std::option::Option<U> {
         if self.index < self.size {
@@ -50,7 +33,7 @@ impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator<U> for ListIter<T> {
 }
 
 pub mod primitive_list {
-    use super::{FromPointerReader, FromPointerBuilder};
+    use traits::{FromPointerReader, FromPointerBuilder};
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                  PrimitiveElement, element_size_for_type};
     use common::Word;
@@ -114,14 +97,8 @@ pub mod primitive_list {
     }
 }
 
-/// Because `#[deriving(ToPrimitive)]` is not supported, using our own custom trait is more
-/// convenient than using `ToPrimitive`.
-pub trait ToU16 {
-    fn to_u16(self) -> u16;
-}
-
 pub mod enum_list {
-    use super::{FromPointerReader, FromPointerBuilder, ToU16};
+    use traits::{FromPointerReader, FromPointerBuilder, ToU16};
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                  TwoBytes, PrimitiveElement};
     use common::Word;
@@ -190,12 +167,10 @@ pub mod enum_list {
 
 
 pub mod struct_list {
-    use super::{FromPointerReader, FromPointerBuilder};
     use common::Word;
-    use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
-                 InlineComposite, FromStructBuilder, FromStructReader,
-                 HasStructSize};
-
+    use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, InlineComposite};
+    use traits::{FromPointerReader, FromPointerBuilder,
+                 FromStructBuilder, FromStructReader, HasStructSize};
 
     pub struct Reader<'a, T> {
         pub reader : ListReader<'a>
@@ -285,7 +260,7 @@ pub mod struct_list {
 }
 
 pub mod list_list {
-    use super::{FromPointerReader, FromPointerBuilder};
+    use traits::{FromPointerReader, FromPointerBuilder};
     use common::Word;
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
 
@@ -361,7 +336,7 @@ pub mod list_list {
 }
 
 pub mod text_list {
-    use super::{FromPointerReader, FromPointerBuilder};
+    use traits::{FromPointerReader, FromPointerBuilder};
     use common::Word;
     use blob::text;
     use layout::*;
@@ -431,7 +406,7 @@ pub mod text_list {
 }
 
 pub mod data_list {
-    use super::{FromPointerReader, FromPointerBuilder};
+    use traits::{FromPointerReader, FromPointerBuilder};
     use common::Word;
     use blob::data;
     use layout::*;
