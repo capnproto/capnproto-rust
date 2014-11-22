@@ -6,9 +6,8 @@ pub mod node {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::{text, data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+  use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-  use capnp::list::ToU16;
 
   pub use self::Which::{File, Struct, Enum, Interface, Const, Annotation};
 
@@ -18,13 +17,13 @@ pub mod node {
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-  impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+  impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
 
-  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+  impl <'a> ToStructReader<'a> for Reader<'a> {
     fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
@@ -101,11 +100,11 @@ pub mod node {
   }
 
   pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-  impl <'a> layout::HasStructSize for Builder<'a> {
+  impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
-  impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+  impl <'a> FromStructBuilder<'a> for Builder<'a> {
     fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
@@ -301,9 +300,8 @@ pub mod node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub const STRUCT_SIZE : layout::StructSize =
       layout::StructSize { data : 1, pointers : 1};
@@ -311,13 +309,13 @@ pub mod node {
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -336,11 +334,11 @@ pub mod node {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::HasStructSize for Builder<'a> {
+    impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
       fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
     }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -389,19 +387,18 @@ pub mod node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -440,7 +437,7 @@ pub mod node {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -530,19 +527,18 @@ pub mod node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -557,7 +553,7 @@ pub mod node {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -599,19 +595,18 @@ pub mod node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -633,7 +628,7 @@ pub mod node {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -692,19 +687,18 @@ pub mod node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -726,7 +720,7 @@ pub mod node {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -788,19 +782,18 @@ pub mod node {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -863,7 +856,7 @@ pub mod node {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -1004,9 +997,8 @@ pub mod field {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::{text, data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+  use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-  use capnp::list::ToU16;
   pub use self::Which::{Slot, Group};
 
   pub const STRUCT_SIZE : layout::StructSize =
@@ -1014,13 +1006,13 @@ pub mod field {
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-  impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+  impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
 
-  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+  impl <'a> ToStructReader<'a> for Reader<'a> {
     fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
@@ -1070,11 +1062,11 @@ pub mod field {
   }
 
   pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-  impl <'a> layout::HasStructSize for Builder<'a> {
+  impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
-  impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+  impl <'a> FromStructBuilder<'a> for Builder<'a> {
     fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
@@ -1197,19 +1189,18 @@ pub mod field {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -1239,7 +1230,7 @@ pub mod field {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -1317,19 +1308,18 @@ pub mod field {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -1341,7 +1331,7 @@ pub mod field {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -1375,20 +1365,19 @@ pub mod field {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
     pub use self::Which::{Implicit, Explicit};
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -1412,7 +1401,7 @@ pub mod field {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -1470,9 +1459,8 @@ pub mod enumerant {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::{text, data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+  use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-  use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 1, pointers : 2};
@@ -1480,13 +1468,13 @@ pub mod enumerant {
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-  impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+  impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
 
-  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+  impl <'a> ToStructReader<'a> for Reader<'a> {
     fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
@@ -1512,11 +1500,11 @@ pub mod enumerant {
   }
 
   pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-  impl <'a> layout::HasStructSize for Builder<'a> {
+  impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
-  impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+  impl <'a> FromStructBuilder<'a> for Builder<'a> {
     fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
@@ -1581,9 +1569,8 @@ pub mod method {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::{text, data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+  use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-  use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 3, pointers : 2};
@@ -1591,13 +1578,13 @@ pub mod method {
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-  impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+  impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
 
-  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+  impl <'a> ToStructReader<'a> for Reader<'a> {
     fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
@@ -1631,11 +1618,11 @@ pub mod method {
   }
 
   pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-  impl <'a> layout::HasStructSize for Builder<'a> {
+  impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
-  impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+  impl <'a> FromStructBuilder<'a> for Builder<'a> {
     fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
@@ -1716,9 +1703,8 @@ pub mod type_ {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::{text, data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+  use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-  use capnp::list::ToU16;
   pub use self::Which::{Void, Bool, Int8, Int16, Int32, Int64, Uint8, Uint16, Uint32, Uint64, Float32, Float64, Text, Data, List, Enum, Struct, Interface, AnyPointer};
 
   pub const STRUCT_SIZE : layout::StructSize =
@@ -1727,13 +1713,13 @@ pub mod type_ {
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-  impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+  impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
 
-  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+  impl <'a> ToStructReader<'a> for Reader<'a> {
     fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
@@ -1842,11 +1828,11 @@ pub mod type_ {
   }
 
   pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-  impl <'a> layout::HasStructSize for Builder<'a> {
+  impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
-  impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+  impl <'a> FromStructBuilder<'a> for Builder<'a> {
     fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
@@ -2079,19 +2065,18 @@ pub mod type_ {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -2106,7 +2091,7 @@ pub mod type_ {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -2150,19 +2135,18 @@ pub mod type_ {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -2174,7 +2158,7 @@ pub mod type_ {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -2208,19 +2192,18 @@ pub mod type_ {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -2232,7 +2215,7 @@ pub mod type_ {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -2266,19 +2249,18 @@ pub mod type_ {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -2290,7 +2272,7 @@ pub mod type_ {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -2325,9 +2307,8 @@ pub mod value {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::{text, data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+  use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-  use capnp::list::ToU16;
   pub use self::Which::{Void, Bool, Int8, Int16, Int32, Int64, Uint8, Uint16, Uint32, Uint64, Float32, Float64, Text, Data, List, Enum, Struct, Interface, AnyPointer};
 
   pub const STRUCT_SIZE : layout::StructSize =
@@ -2336,13 +2317,13 @@ pub mod value {
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-  impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+  impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
 
-  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+  impl <'a> ToStructReader<'a> for Reader<'a> {
     fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
@@ -2471,11 +2452,11 @@ pub mod value {
   }
 
   pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-  impl <'a> layout::HasStructSize for Builder<'a> {
+  impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
-  impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+  impl <'a> FromStructBuilder<'a> for Builder<'a> {
     fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
@@ -2754,9 +2735,8 @@ pub mod annotation {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::{text, data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+  use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-  use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 1, pointers : 1};
@@ -2764,13 +2744,13 @@ pub mod annotation {
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-  impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+  impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
 
-  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+  impl <'a> ToStructReader<'a> for Reader<'a> {
     fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
@@ -2789,11 +2769,11 @@ pub mod annotation {
   }
 
   pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-  impl <'a> layout::HasStructSize for Builder<'a> {
+  impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
-  impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+  impl <'a> FromStructBuilder<'a> for Builder<'a> {
     fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
@@ -2853,7 +2833,7 @@ pub enum ElementSize {
     Pointer = 6,
     InlineComposite = 7,
 }
-impl ::capnp::list::ToU16 for ElementSize {
+impl ::capnp::traits::ToU16 for ElementSize {
     #[inline]
     fn to_u16(self) -> u16 { self as u16 }
 }
@@ -2863,9 +2843,8 @@ pub mod code_generator_request {
   use capnp::capability::{FromClientHook, FromTypelessPipeline};
   use capnp::{text, data};
   use capnp::layout;
-  use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+  use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-  use capnp::list::ToU16;
 
   pub const STRUCT_SIZE : layout::StructSize =
     layout::StructSize { data : 0, pointers : 2};
@@ -2873,13 +2852,13 @@ pub mod code_generator_request {
 
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-  impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+  impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
     fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
       Reader { reader : reader }
     }
   }
 
-  impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+  impl <'a> ToStructReader<'a> for Reader<'a> {
     fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
   }
 
@@ -2901,11 +2880,11 @@ pub mod code_generator_request {
   }
 
   pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-  impl <'a> layout::HasStructSize for Builder<'a> {
+  impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
     fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
   }
-  impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+  impl <'a> FromStructBuilder<'a> for Builder<'a> {
     fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
       Builder { builder : builder }
     }
@@ -2962,9 +2941,8 @@ pub mod code_generator_request {
     use capnp::capability::{FromClientHook, FromTypelessPipeline};
     use capnp::{text, data};
     use capnp::layout;
-    use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+    use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-    use capnp::list::ToU16;
 
     pub const STRUCT_SIZE : layout::StructSize =
       layout::StructSize { data : 1, pointers : 2};
@@ -2972,13 +2950,13 @@ pub mod code_generator_request {
 
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-    impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+    impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
       }
     }
 
-    impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+    impl <'a> ToStructReader<'a> for Reader<'a> {
       fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
     }
 
@@ -3004,11 +2982,11 @@ pub mod code_generator_request {
     }
 
     pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-    impl <'a> layout::HasStructSize for Builder<'a> {
+    impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
       fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
     }
-    impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+    impl <'a> FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
       }
@@ -3072,9 +3050,8 @@ pub mod code_generator_request {
       use capnp::capability::{FromClientHook, FromTypelessPipeline};
       use capnp::{text, data};
       use capnp::layout;
-      use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};
+      use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader, ToU16};
       use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
-      use capnp::list::ToU16;
 
       pub const STRUCT_SIZE : layout::StructSize =
         layout::StructSize { data : 1, pointers : 1};
@@ -3082,13 +3059,13 @@ pub mod code_generator_request {
 
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
-      impl <'a> layout::FromStructReader<'a> for Reader<'a> {
+      impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
         fn new(reader: layout::StructReader<'a>) -> Reader<'a> {
           Reader { reader : reader }
         }
       }
 
-      impl <'a> layout::ToStructReader<'a> for Reader<'a> {
+      impl <'a> ToStructReader<'a> for Reader<'a> {
         fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }
       }
 
@@ -3107,11 +3084,11 @@ pub mod code_generator_request {
       }
 
       pub struct Builder<'a> { builder : layout::StructBuilder<'a> }
-      impl <'a> layout::HasStructSize for Builder<'a> {
+      impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
         #[inline]
         fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }
       }
-      impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {
+      impl <'a> FromStructBuilder<'a> for Builder<'a> {
         fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {
           Builder { builder : builder }
         }

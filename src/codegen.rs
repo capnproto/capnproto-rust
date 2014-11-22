@@ -273,9 +273,8 @@ fn generate_import_statements() -> FormattedText {
         Line("use capnp::capability::{FromClientHook, FromTypelessPipeline};".to_string()),
         Line("use capnp::{text, data};".to_string()),
         Line("use capnp::layout;".to_string()),
-        Line("use capnp::layout::{FromStructBuilder, FromStructReader, ToStructReader};".to_string()),
+        Line("use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader};".to_string()),
         Line("use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};".to_string()),
-        Line("use capnp::list::ToU16;".to_string()),
     ))
 }
 
@@ -361,10 +360,10 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             let the_mod = scope_map[group.get_type_id()].connect("::");
             if is_reader {
                 return (format!("{}::Reader<'a>", the_mod),
-                        Line("FromStructReader::new(self.reader)".to_string()));
+                        Line("::capnp::traits::FromStructReader::new(self.reader)".to_string()));
             } else {
                 return (format!("{}::Builder<'a>", the_mod),
-                        Line("FromStructBuilder::new(self.builder)".to_string()));
+                        Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string()));
             }
         }
         Some(field::Slot(reg_field)) => {
@@ -470,7 +469,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     let the_mod = scope_map[st.get_type_id()].connect("::");
                     let middle_arg = if is_reader {format!("")} else {format!("{}::STRUCT_SIZE,", the_mod)};
                     return (format!("{}::{}", the_mod, module_with_var),
-                            Line(format!("FromStruct{}::new(self.{}.get_pointer_field({}).get_struct({} ::std::ptr::null()))",
+                            Line(format!("::capnp::traits::FromStruct{}::new(self.{}.get_pointer_field({}).get_struct({} ::std::ptr::null()))",
                                       module, member, offset, middle_arg)))
                 }
                 Some((type_::Interface(interface), _)) => {
@@ -608,7 +607,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
 
             initter_interior.push(zero_fields_of_group(node_map, group.get_type_id()));
 
-            initter_interior.push(Line(format!("FromStructBuilder::new(self.builder)")));
+            initter_interior.push(Line(format!("::capnp::traits::FromStructBuilder::new(self.builder)")));
 
             (None, Some(format!("{}::Builder<'a>", the_mod)))
         }
@@ -780,7 +779,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_struct(&value.struct_reader())", offset)));
                     initter_interior.push(
-                      Line(format!("FromStructBuilder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
+                      Line(format!("::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
                                    offset, the_mod)));
                     (Some(format!("{}::Reader", the_mod)), Some(format!("{}::Builder<'a>", the_mod)))
                 }
@@ -1156,7 +1155,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 if is_group { Branch(Vec::new()) }
                 else {
                     Branch(vec!(
-                        Line("impl <'a> layout::HasStructSize for Builder<'a> {".to_string()),
+                        Line("impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {".to_string()),
                         Indent(box Branch(vec!(Line("#[inline]".to_string()),
                                             Line("fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }".to_string())))),
                        Line("}".to_string())))
@@ -1175,15 +1174,15 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Branch(preamble),
                 Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_string()),
                 BlankLine,
-                Line("impl <'a> layout::FromStructReader<'a> for Reader<'a> {".to_string()),
+                Line("impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("fn new(reader: layout::StructReader<'a>) -> Reader<'a> {".to_string()),
+                        Line("fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {".to_string()),
                         Indent(box Line("Reader { reader : reader }".to_string())),
                         Line("}".to_string())))),
                 Line("}".to_string()),
                 BlankLine,
-                Line("impl <'a> layout::ToStructReader<'a> for Reader<'a> {".to_string()),
+                Line("impl <'a> ::capnp::traits::ToStructReader<'a> for Reader<'a> {".to_string()),
                 Indent(box Line("fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }".to_string())),
                 Line("}".to_string()),
                 BlankLine,
@@ -1191,12 +1190,12 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Indent(box Branch(reader_members)),
                 Line("}".to_string()),
                 BlankLine,
-                Line("pub struct Builder<'a> { builder : layout::StructBuilder<'a> }".to_string()),
+                Line("pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }".to_string()),
                 builder_struct_size,
-                Line("impl <'a> layout::FromStructBuilder<'a> for Builder<'a> {".to_string()),
+                Line("impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("fn new(builder : layout::StructBuilder<'a>) -> Builder<'a> {".to_string()),
+                        Line("fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {".to_string()),
                         Indent(box Line("Builder { builder : builder }".to_string())),
                         Line("}".to_string())))),
                 Line("}".to_string()),
@@ -1205,7 +1204,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Indent(
                     box Branch(vec!(
                         Line("pub fn as_reader(&self) -> Reader<'a> {".to_string()),
-                        Indent(box Line("FromStructReader::new(self.builder.as_reader())".to_string())),
+                        Indent(box Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string())),
                         Line("}".to_string())))),
                 Indent(box Branch(builder_members)),
                 Line("}".to_string()),
@@ -1253,7 +1252,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             output.push(
                 Branch(vec!(
-                    Line(format!("impl ::capnp::list::ToU16 for {} {{", *names.last().unwrap())),
+                    Line(format!("impl ::capnp::traits::ToU16 for {} {{", *names.last().unwrap())),
                     Indent(box Line("#[inline]".to_string())),
                     Indent(
                         box Line("fn to_u16(self) -> u16 { self as u16 }".to_string())),
