@@ -11,10 +11,6 @@ pub trait FromStructReader<'a> {
     fn new(reader : StructReader<'a>) -> Self;
 }
 
-pub trait ToStructReader<'a> {
-    fn struct_reader(&self) -> StructReader<'a>;
-}
-
 pub trait HasStructSize {
     fn struct_size(unused_self : Option<Self>) -> StructSize;
 }
@@ -38,6 +34,10 @@ pub trait FromPointerBuilder<'a> {
 
 pub trait FromPointerBuilderRefDefault<'a> {
     fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Self;
+}
+
+pub trait SetPointerBuilder<To> {
+    fn set_pointer_builder<'a>(PointerBuilder<'a>, Self);
 }
 
 /// Because `#[deriving(ToPrimitive)]` is not supported, using our own custom trait is more

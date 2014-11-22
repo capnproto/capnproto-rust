@@ -11,7 +11,7 @@ use capability::ClientHook;
 use common::*;
 use arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};
 use layout;
-use traits::{FromPointerReader, ToStructReader, FromPointerBuilder};
+use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 
 pub struct ReaderOptions {
     pub traversal_limit_in_words : u64,
@@ -183,8 +183,8 @@ pub trait MessageBuilder {
         self.get_root_internal().get_as()
     }
 
-    fn set_root<'a, T : ToStructReader<'a>>(&'a mut self, value : &T) {
-        self.get_root_internal().set_as_struct(value);
+    fn set_root<To, From : SetPointerBuilder<To>>(&mut self, value : From) {
+        self.get_root_internal().set_as(value);
     }
 
     fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {

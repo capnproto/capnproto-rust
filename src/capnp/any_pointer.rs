@@ -9,7 +9,7 @@ use std::vec::Vec;
 
 use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
 use layout::{PointerReader, PointerBuilder};
-use traits::{FromPointerReader, FromPointerBuilder, ToStructReader};
+use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 
 pub struct Reader<'a> {
     reader : PointerReader<'a>
@@ -75,8 +75,8 @@ impl <'a> Builder<'a> {
         FromPointerBuilder::init_pointer(self.builder, size)
     }
 
-    pub fn set_as_struct<'b, T : ToStructReader<'b>>(&self, value : &T) {
-        self.builder.set_struct(&value.struct_reader());
+    pub fn set_as<To, From : SetPointerBuilder<To>>(&self, value : From) {
+        SetPointerBuilder::<To>::set_pointer_builder(self.builder, value);
     }
 
     // XXX value should be a user client.
