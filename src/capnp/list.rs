@@ -36,7 +36,6 @@ pub mod primitive_list {
     use traits::{FromPointerReader, FromPointerBuilder};
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                  PrimitiveElement, element_size_for_type};
-    use common::Word;
 
     pub struct Reader<'a, T> {
         // I want this field to be private, but then I can't access it in set_list()
@@ -52,8 +51,8 @@ pub mod primitive_list {
     }
 
     impl <'a, T : PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
-        fn get_from_pointer(reader : &PointerReader<'a>, default_value : *const Word) -> Reader<'a, T> {
-            Reader { reader : reader.get_list(element_size_for_type::<T>(), default_value) }
+        fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a, T> {
+            Reader { reader : reader.get_list(element_size_for_type::<T>(), ::std::ptr::null()) }
         }
     }
 
@@ -84,8 +83,8 @@ pub mod primitive_list {
         fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
             Builder { builder : builder.init_list(element_size_for_type::<T>(), size) }
         }
-        fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Builder<'a, T> {
-            Builder { builder : builder.get_list(element_size_for_type::<T>(), default_value) }
+        fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a, T> {
+            Builder { builder : builder.get_list(element_size_for_type::<T>(), ::std::ptr::null())}
         }
     }
 
@@ -101,7 +100,6 @@ pub mod enum_list {
     use traits::{FromPointerReader, FromPointerBuilder, ToU16};
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                  TwoBytes, PrimitiveElement};
-    use common::Word;
 
     pub struct Reader<'a, T> {
         pub reader : ListReader<'a>
@@ -117,8 +115,8 @@ pub mod enum_list {
     }
 
     impl <'a, T : FromPrimitive> FromPointerReader<'a> for Reader<'a, T> {
-        fn get_from_pointer(reader : &PointerReader<'a>, default_value : *const Word) -> Reader<'a, T> {
-            Reader { reader : reader.get_list(TwoBytes, default_value) }
+        fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a, T> {
+            Reader { reader : reader.get_list(TwoBytes, ::std::ptr::null()) }
         }
     }
 
@@ -151,8 +149,8 @@ pub mod enum_list {
         fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
             Builder { builder : builder.init_list(TwoBytes, size) }
         }
-        fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Builder<'a, T> {
-            Builder { builder : builder.get_list(TwoBytes, default_value) }
+        fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a, T> {
+            Builder { builder : builder.get_list(TwoBytes, ::std::ptr::null()) }
         }
     }
 
@@ -167,7 +165,6 @@ pub mod enum_list {
 
 
 pub mod struct_list {
-    use common::Word;
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, InlineComposite};
     use traits::{FromPointerReader, FromPointerBuilder,
                  FromStructBuilder, FromStructReader, HasStructSize};
@@ -189,8 +186,8 @@ pub mod struct_list {
     }
 
     impl <'a, T : FromStructReader<'a>> FromPointerReader<'a> for Reader<'a, T> {
-        fn get_from_pointer(reader : &PointerReader<'a>, default_value : *const Word) -> Reader<'a, T> {
-            Reader { reader : reader.get_list(InlineComposite, default_value) }
+        fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a, T> {
+            Reader { reader : reader.get_list(InlineComposite, ::std::ptr::null()) }
         }
     }
 
@@ -234,9 +231,9 @@ pub mod struct_list {
                 builder : builder.init_struct_list(size, HasStructSize::struct_size(None::<T>))
             }
         }
-        fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Builder<'a, T> {
+        fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a, T> {
             Builder {
-                builder : builder.get_struct_list(HasStructSize::struct_size(None::<T>), default_value)
+                builder : builder.get_struct_list(HasStructSize::struct_size(None::<T>), ::std::ptr::null())
             }
         }
     }
@@ -261,7 +258,6 @@ pub mod struct_list {
 
 pub mod list_list {
     use traits::{FromPointerReader, FromPointerBuilder};
-    use common::Word;
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
 
     pub struct Reader<'a, T> {
@@ -277,16 +273,15 @@ pub mod list_list {
     }
 
     impl <'a, T : FromPointerReader<'a>> FromPointerReader<'a> for Reader<'a, T> {
-        fn get_from_pointer(reader : &PointerReader<'a>, default_value : *const Word) -> Reader<'a, T> {
-            Reader { reader : reader.get_list(Pointer, default_value) }
+        fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a, T> {
+            Reader { reader : reader.get_list(Pointer, ::std::ptr::null()) }
         }
     }
 
     impl <'a, T : FromPointerReader<'a>> Reader<'a, T> {
         pub fn get(&self, index : u32) -> T {
             assert!(index <  self.size());
-            FromPointerReader::get_from_pointer(
-                &self.reader.get_pointer_element(index), ::std::ptr::null())
+            FromPointerReader::get_from_pointer(&self.reader.get_pointer_element(index))
         }
     }
 
@@ -315,9 +310,9 @@ pub mod list_list {
                 builder : builder.init_list(Pointer, size)
             }
         }
-        fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Builder<'a, T> {
+        fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a, T> {
             Builder {
-                builder : builder.get_list(Pointer, default_value)
+                builder : builder.get_list(Pointer, ::std::ptr::null())
             }
         }
     }
@@ -325,11 +320,7 @@ pub mod list_list {
     impl <'a, T : FromPointerBuilder<'a>> Builder<'a, T> {
         pub fn get(&self, index : u32) -> T {
             assert!(index < self.size());
-            let result : T =
-                FromPointerBuilder::get_from_pointer(
-                self.builder.get_pointer_element(index),
-                ::std::ptr::null());
-            result
+            FromPointerBuilder::get_from_pointer(self.builder.get_pointer_element(index))
         }
     }
 
@@ -337,7 +328,6 @@ pub mod list_list {
 
 pub mod text_list {
     use traits::{FromPointerReader, FromPointerBuilder};
-    use common::Word;
     use blob::text;
     use layout::*;
 
@@ -354,8 +344,8 @@ pub mod text_list {
     }
 
     impl <'a> FromPointerReader<'a> for Reader<'a> {
-        fn get_from_pointer(reader : &PointerReader<'a>, default_value : *const Word) -> Reader<'a> {
-            Reader { reader : reader.get_list(Pointer, default_value) }
+        fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a> {
+            Reader { reader : reader.get_list(Pointer, ::std::ptr::null()) }
         }
     }
 
@@ -390,9 +380,9 @@ pub mod text_list {
                 builder : builder.init_list(Pointer, size)
             }
         }
-        fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Builder<'a> {
+        fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a> {
             Builder {
-                builder : builder.get_list(Pointer, default_value)
+                builder : builder.get_list(Pointer, ::std::ptr::null())
             }
         }
     }
@@ -407,7 +397,6 @@ pub mod text_list {
 
 pub mod data_list {
     use traits::{FromPointerReader, FromPointerBuilder};
-    use common::Word;
     use blob::data;
     use layout::*;
 
@@ -424,8 +413,8 @@ pub mod data_list {
     }
 
     impl <'a> FromPointerReader<'a> for Reader<'a> {
-        fn get_from_pointer(reader : &PointerReader<'a>, default_value : *const Word) -> Reader<'a> {
-            Reader { reader : reader.get_list(Pointer, default_value) }
+        fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a> {
+            Reader { reader : reader.get_list(Pointer, ::std::ptr::null()) }
         }
     }
 
@@ -460,9 +449,9 @@ pub mod data_list {
                 builder : builder.init_list(Pointer, size)
             }
         }
-        fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Builder<'a> {
+        fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a> {
             Builder {
-                builder : builder.get_list(Pointer, default_value)
+                builder : builder.get_list(Pointer, ::std::ptr::null())
             }
         }
     }

@@ -24,11 +24,19 @@ pub trait FromStructBuilder<'a> {
 }
 
 pub trait FromPointerReader<'a> {
+    fn get_from_pointer(reader : &PointerReader<'a>) -> Self;
+}
+
+pub trait FromPointerReaderRefDefault<'a> {
     fn get_from_pointer(reader : &PointerReader<'a>, default_value : *const Word) -> Self;
 }
 
 pub trait FromPointerBuilder<'a> {
     fn init_pointer(PointerBuilder<'a>, u32) -> Self;
+    fn get_from_pointer(builder : PointerBuilder<'a>) -> Self;
+}
+
+pub trait FromPointerBuilderRefDefault<'a> {
     fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Self;
 }
 
