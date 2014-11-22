@@ -675,7 +675,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                 }
                 Some(type_::List(ot1)) => {
                     setter_interior.push(
-                        Line(format!("self.builder.get_pointer_field({}).set_list(&value.reader)",
+                        Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)",
                                      offset)));
 
                     initter_params.push("size : u32");

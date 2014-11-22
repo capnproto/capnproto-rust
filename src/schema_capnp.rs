@@ -185,7 +185,7 @@ pub mod node {
     }
     #[inline]
     pub fn set_nested_nodes(&self, value : struct_list::Reader<'a,::schema_capnp::node::nested_node::Reader<'a>>) {
-      self.builder.get_pointer_field(1).set_list(&value.reader)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
     }
     #[inline]
     pub fn init_nested_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
@@ -201,7 +201,7 @@ pub mod node {
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
-      self.builder.get_pointer_field(2).set_list(&value.reader)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value);
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
@@ -271,7 +271,7 @@ pub mod node {
     }
     #[inline]
     pub fn set_parameters(&self, value : struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>>) {
-      self.builder.get_pointer_field(5).set_list(&value.reader)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(5), value);
     }
     #[inline]
     pub fn init_parameters(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
@@ -661,7 +661,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_fields(&self, value : struct_list::Reader<'a,::schema_capnp::field::Reader<'a>>) {
-        self.builder.get_pointer_field(3).set_list(&value.reader)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value);
       }
       #[inline]
       pub fn init_fields(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
@@ -736,7 +736,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_enumerants(&self, value : struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>>) {
-        self.builder.get_pointer_field(3).set_list(&value.reader)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value);
       }
       #[inline]
       pub fn init_enumerants(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
@@ -818,7 +818,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_methods(&self, value : struct_list::Reader<'a,::schema_capnp::method::Reader<'a>>) {
-        self.builder.get_pointer_field(3).set_list(&value.reader)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value);
       }
       #[inline]
       pub fn init_methods(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
@@ -834,7 +834,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_superclasses(&self, value : struct_list::Reader<'a,::schema_capnp::superclass::Reader<'a>>) {
-        self.builder.get_pointer_field(4).set_list(&value.reader)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value);
       }
       #[inline]
       pub fn init_superclasses(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::superclass::Builder<'a>> {
@@ -1308,7 +1308,7 @@ pub mod field {
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
-      self.builder.get_pointer_field(1).set_list(&value.reader)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
@@ -1782,7 +1782,7 @@ pub mod enumerant {
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
-      self.builder.get_pointer_field(1).set_list(&value.reader)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
@@ -2055,7 +2055,7 @@ pub mod method {
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
-      self.builder.get_pointer_field(1).set_list(&value.reader)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
@@ -2101,7 +2101,7 @@ pub mod method {
     }
     #[inline]
     pub fn set_implicit_parameters(&self, value : struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>>) {
-      self.builder.get_pointer_field(4).set_list(&value.reader)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value);
     }
     #[inline]
     pub fn init_implicit_parameters(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
@@ -3187,7 +3187,7 @@ pub mod brand {
     }
     #[inline]
     pub fn set_scopes(&self, value : struct_list::Reader<'a,::schema_capnp::brand::scope::Reader<'a>>) {
-      self.builder.get_pointer_field(0).set_list(&value.reader)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value);
     }
     #[inline]
     pub fn init_scopes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::brand::scope::Builder<'a>> {
@@ -3300,7 +3300,7 @@ pub mod brand {
       #[inline]
       pub fn set_bind(&self, value : struct_list::Reader<'a,::schema_capnp::brand::binding::Reader<'a>>) {
         self.builder.set_data_field::<u16>(4, 0);
-        self.builder.get_pointer_field(0).set_list(&value.reader)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value);
       }
       #[inline]
       pub fn init_bind(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::brand::binding::Builder<'a>> {
@@ -4145,7 +4145,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_nodes(&self, value : struct_list::Reader<'a,::schema_capnp::node::Reader<'a>>) {
-      self.builder.get_pointer_field(0).set_list(&value.reader)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value);
     }
     #[inline]
     pub fn init_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
@@ -4161,7 +4161,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_requested_files(&self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::Reader<'a>>) {
-      self.builder.get_pointer_field(1).set_list(&value.reader)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
     }
     #[inline]
     pub fn init_requested_files(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
@@ -4284,7 +4284,7 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn set_imports(&self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::import::Reader<'a>>) {
-        self.builder.get_pointer_field(1).set_list(&value.reader)
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
       }
       #[inline]
       pub fn init_imports(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {

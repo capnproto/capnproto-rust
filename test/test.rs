@@ -358,7 +358,7 @@ mod tests {
         let test_any_pointer = message.init_root::<test_any_pointer::Builder>();
 
         let any_pointer = test_any_pointer.init_any_pointer_field();
-        any_pointer.set_as_text("xyzzy");
+        any_pointer.set_as("xyzzy");
 
         {
             let reader = test_any_pointer.as_reader();
