@@ -5,7 +5,6 @@
  */
 
 pub mod text {
-    use std;
 
     pub type Reader<'a> = &'a str;
 
@@ -16,8 +15,14 @@ pub mod text {
         // XXX The empty case is special and I don't know why.
         if len == 0 { return Some(EMPTY); }
         let v : &'a [u8] =
-            unsafe { std::mem::transmute(std::raw::Slice { data: p, len: len as uint}) };
-        std::str::from_utf8(v)
+            unsafe { ::std::mem::transmute(::std::raw::Slice { data: p, len: len as uint}) };
+        ::std::str::from_utf8(v)
+    }
+
+    impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
+        fn get_from_pointer(reader : &::layout::PointerReader<'a>) -> Reader<'a> {
+            reader.get_text(::std::ptr::null(), 0)
+        }
     }
 
     pub struct Builder<'a> {
@@ -32,7 +37,7 @@ pub mod text {
         }
 
         pub fn as_mut_bytes(&self) -> &'a mut [u8] {
-             unsafe { std::mem::transmute(std::raw::Slice { data:self.ptr as *const u8, len: self.len }) }
+             unsafe { ::std::mem::transmute(::std::raw::Slice { data:self.ptr as *const u8, len: self.len }) }
         }
 
         pub fn as_ptr(&self) -> *mut u8 {
@@ -40,17 +45,30 @@ pub mod text {
         }
     }
 
+    impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
+        fn init_pointer(builder : ::layout::PointerBuilder<'a>, size : u32) -> Builder<'a> {
+            builder.init_text(size)
+        }
+        fn get_from_pointer(builder : ::layout::PointerBuilder<'a>) -> Builder<'a> {
+            builder.get_text(::std::ptr::null(), 0)
+        }
+    }
 }
 
 pub mod data {
-    use std;
 
     pub type Reader<'a> = &'a [u8];
 
     pub fn new_reader<'a>(p : *const u8, len : u32) -> Reader<'a> {
         unsafe {
-            let v = std::raw::Slice { data: p, len: len as uint};
-            std::mem::transmute(v)
+            let v = ::std::raw::Slice { data: p, len: len as uint};
+            ::std::mem::transmute(v)
+        }
+    }
+
+    impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
+        fn get_from_pointer(reader : &::layout::PointerReader<'a>) -> Reader<'a> {
+            reader.get_data(::std::ptr::null(), 0)
         }
     }
 
@@ -58,9 +76,17 @@ pub mod data {
 
     pub fn new_builder<'a>(p : *mut u8, len : u32) -> Builder<'a> {
         unsafe {
-            let v = std::raw::Slice { data: p as *const u8, len: len as uint};
-            std::mem::transmute(v)
+            let v = ::std::raw::Slice { data: p as *const u8, len: len as uint};
+            ::std::mem::transmute(v)
         }
     }
 
+    impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
+        fn init_pointer(builder : ::layout::PointerBuilder<'a>, size : u32) -> Builder<'a> {
+            builder.init_data(size)
+        }
+        fn get_from_pointer(builder : ::layout::PointerBuilder<'a>) -> Builder<'a> {
+            builder.get_data(::std::ptr::null(), 0)
+        }
+    }
 }

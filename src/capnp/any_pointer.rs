@@ -9,8 +9,7 @@ use std::vec::Vec;
 
 use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
 use layout::{PointerReader, PointerBuilder};
-use traits::{FromStructReader, FromStructBuilder, HasStructSize, ToStructReader};
-use blob::{text, data};
+use traits::{FromPointerReader, FromPointerBuilder, ToStructReader};
 
 pub struct Reader<'a> {
     reader : PointerReader<'a>
@@ -28,16 +27,8 @@ impl <'a> Reader<'a> {
     }
 
     #[inline]
-    pub fn get_as_struct<T : FromStructReader<'a>>(&self) -> T {
-        FromStructReader::new(self.reader.get_struct(::std::ptr::null()))
-    }
-
-    pub fn get_as_text(&self) -> text::Reader<'a> {
-        self.reader.get_text(::std::ptr::null(), 0)
-    }
-
-    pub fn get_as_data(&self) -> data::Reader<'a> {
-        self.reader.get_data(::std::ptr::null(), 0)
+    pub fn get_as<T : FromPointerReader<'a>>(&self) -> T {
+        FromPointerReader::get_from_pointer(&self.reader)
     }
 
     pub fn get_as_capability<T : FromClientHook>(&self) -> T {
@@ -72,15 +63,16 @@ impl <'a> Builder<'a> {
         Builder { builder : builder }
     }
 
-    pub fn get_as_struct<T : FromStructBuilder<'a> + HasStructSize>(&self) -> T {
-        FromStructBuilder::new(
-            self.builder.get_struct(HasStructSize::struct_size(None::<T>), ::std::ptr::null()))
+    pub fn get_as<T : FromPointerBuilder<'a>>(&self) -> T {
+        FromPointerBuilder::get_from_pointer(self.builder)
     }
 
-    pub fn init_as_struct<T : FromStructBuilder<'a> + HasStructSize>(&self) -> T {
-        FromStructBuilder::new(
-            self.builder.init_struct(
-                HasStructSize::struct_size(None::<T>)))
+    pub fn init_as<T : FromPointerBuilder<'a>>(&self) -> T {
+        FromPointerBuilder::init_pointer(self.builder, 0)
+    }
+
+    pub fn init_as_sized<T : FromPointerBuilder<'a>>(&self, size : u32) -> T {
+        FromPointerBuilder::init_pointer(self.builder, size)
     }
 
     pub fn set_as_struct<'b, T : ToStructReader<'b>>(&self, value : &T) {

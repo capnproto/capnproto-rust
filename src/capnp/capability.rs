@@ -6,7 +6,7 @@
 
 use any_pointer;
 use common::{MessageSize};
-use traits::{FromStructReader, FromStructBuilder, HasStructSize};
+use traits::{FromPointerReader, FromPointerBuilder};
 use message::{MallocMessageBuilder};
 use std;
 use std::vec::Vec;
@@ -96,13 +96,13 @@ impl <Params, Results> CallContext<Params, Results> {
     pub fn done(self) {self.hook.done();}
 }
 
-impl <'a, Params : FromStructReader<'a>, Results : FromStructBuilder<'a> + HasStructSize>
+impl <'a, Params : FromPointerReader<'a>, Results : FromPointerBuilder<'a>>
 CallContext<Params, Results> {
     // XXX this 'b lifetime should be 'a.
     pub fn get<'b>(&'b mut self) -> (Params, Results) {
         let tmp : &'a mut Box<CallContextHook+Send> = unsafe { ::std::mem::transmute(& mut self.hook)};
         let (any_params, any_results) = tmp.get();
-        (any_params.get_as_struct(), any_results.get_as_struct())
+        (any_params.get_as(), any_results.get_as())
     }
 }
 

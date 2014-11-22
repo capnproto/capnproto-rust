@@ -11,7 +11,7 @@ use capability::ClientHook;
 use common::*;
 use arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};
 use layout;
-use traits::{FromStructReader, ToStructReader, FromStructBuilder, HasStructSize};
+use traits::{FromPointerReader, ToStructReader, FromPointerBuilder};
 
 pub struct ReaderOptions {
     pub traversal_limit_in_words : u64,
@@ -65,8 +65,8 @@ pub trait MessageReader {
         }
     }
 
-    fn get_root<'a, T : FromStructReader<'a>>(&'a self) -> T {
-        self.get_root_internal().get_as_struct()
+    fn get_root<'a, T : FromPointerReader<'a>>(&'a self) -> T {
+        self.get_root_internal().get_as()
     }
 
     fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook+Send>>>) {
@@ -175,12 +175,12 @@ pub trait MessageBuilder {
 
     }
 
-    fn init_root<'a, T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
-        self.get_root_internal().init_as_struct()
+    fn init_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> T {
+        self.get_root_internal().init_as()
     }
 
-    fn get_root<'a, T : FromStructBuilder<'a> + HasStructSize>(&'a mut self) -> T {
-        self.get_root_internal().get_as_struct()
+    fn get_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> T {
+        self.get_root_internal().get_as()
     }
 
     fn set_root<'a, T : ToStructReader<'a>>(&'a mut self, value : &T) {
