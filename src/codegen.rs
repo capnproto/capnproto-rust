@@ -269,11 +269,10 @@ fn populate_scope_map(node_map : &collections::hash_map::HashMap<u64, schema_cap
 fn generate_import_statements() -> FormattedText {
     Branch(vec!(
         Line("#![allow(unused_imports)]".to_string()),
-        Line("use capnp::any_pointer;".to_string()),
         Line("use capnp::capability::{FromClientHook, FromTypelessPipeline};".to_string()),
         Line("use capnp::{text, data};".to_string()),
         Line("use capnp::layout;".to_string()),
-        Line("use capnp::traits::{FromStructBuilder, FromStructReader, ToStructReader};".to_string()),
+        Line("use capnp::traits::{FromStructBuilder, FromStructReader};".to_string()),
         Line("use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};".to_string()),
     ))
 }
@@ -312,7 +311,7 @@ fn list_list_type_param(scope_map : &collections::hash_map::HashMap<u64, Vec<Str
                     let inner = list_list_type_param(scope_map, t.get_element_type(), is_reader, lifetime_name);
                     format!("list_list::{}<{}, {}>", module, lifetime_name, inner)
                 }
-                type_::AnyPointer(()) => {
+                type_::AnyPointer(_) => {
                     panic!("List(AnyPointer) is unsupported");
                 }
                 type_::Interface(_i) => {
@@ -444,7 +443,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                                  module, member, offset)))
                         }
                         Some(type_::Interface(_)) => {panic!("unimplemented") }
-                        Some(type_::AnyPointer(())) => {panic!("List(AnyPointer) is unsupported")}
+                        Some(type_::AnyPointer(_)) => {panic!("List(AnyPointer) is unsupported")}
                         Some(prim_type) => {
                             let type_str = prim_type_str(prim_type);
                             let size_str = element_size_str(element_size(prim_type));
@@ -478,9 +477,9 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                             Line(format!("FromClientHook::new(self.{}.get_pointer_field({}).get_capability())",
                                          member, offset)));
                 }
-                Some((type_::AnyPointer(()), _)) => {
-                    return (format!("any_pointer::{}<'a>", module),
-                            Line(format!("any_pointer::{}::new(self.{}.get_pointer_field({}))",
+                Some((type_::AnyPointer(_), _)) => {
+                    return (format!("::capnp::any_pointer::{}<'a>", module),
+                            Line(format!("::capnp::any_pointer::{}::new(self.{}.get_pointer_field({}))",
                                          module, member, offset)))
                 }
                 None => {
@@ -551,7 +550,7 @@ fn zero_fields_of_group(node_map : &collections::hash_map::HashMap<u64, schema_c
                                         if !result.contains(&line) { result.push(line) }
                                     }
                                     type_::Struct(_) | type_::List(_) | type_::Text(()) | type_::Data(()) |
-                                    type_::AnyPointer(()) |
+                                    type_::AnyPointer(_) |
                                     type_::Interface(_) // Is this the right thing to do for interfaces?
                                         => {
                                         let line = Line(format!("self.builder.get_pointer_field({}).clear();",
@@ -760,7 +759,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                              list_list_type_param(scope_map, t1.get_element_type(), true, "'b"))),
                                      Some(format!("list_list::Builder<'a, {}>", type_param)))
                                 }
-                                type_::AnyPointer(()) => {panic!("List(AnyPointer) not supported")}
+                                type_::AnyPointer(_) => {panic!("List(AnyPointer) not supported")}
                                 type_::Interface(_) => { panic!("unimplemented") }
                             }
                         }
@@ -777,7 +776,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                 Some(type_::Struct(st)) => {
                     let the_mod = scope_map[st.get_type_id()].connect("::");
                     setter_interior.push(
-                        Line(format!("self.builder.get_pointer_field({}).set_struct(&value.struct_reader())", offset)));
+                        Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)", offset)));
                     initter_interior.push(
                       Line(format!("::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
                                    offset, the_mod)));
@@ -790,12 +789,12 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                      offset)));
                     (Some(format!("{}::Client",the_mod)), None)
                 }
-                Some(type_::AnyPointer(())) => {
-                    initter_interior.push(Line(format!("let result = any_pointer::Builder::new(self.builder.get_pointer_field({}));",
+                Some(type_::AnyPointer(_)) => {
+                    initter_interior.push(Line(format!("let result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({}));",
                                                offset)));
                     initter_interior.push(Line("result.clear();".to_string()));
                     initter_interior.push(Line("result".to_string()));
-                    (None, Some("any_pointer::Builder<'a>".to_string()))
+                    (None, Some("::capnp::any_pointer::Builder<'a>".to_string()))
                 }
                 None => { panic!("unrecognized type") }
             }
@@ -878,7 +877,7 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
                 match reg_field.get_type().which() {
                     Some(type_::Text(())) | Some(type_::Data(())) |
                     Some(type_::List(_)) | Some(type_::Struct(_)) |
-                    Some(type_::AnyPointer(())) => {
+                    Some(type_::AnyPointer(_)) => {
                         ty_args.push(ty);
                         new_ty_param(&mut ty_params)
                     }
@@ -965,7 +964,7 @@ fn generate_haser(discriminant_offset : u32,
             match reg_field.get_type().which() {
                 Some(type_::Text(())) | Some(type_::Data(())) |
                     Some(type_::List(_)) | Some(type_::Struct(_)) |
-                    Some(type_::AnyPointer(())) => {
+                    Some(type_::AnyPointer(_)) => {
                     interior.push(
                         Line(format!("!self.{}.get_pointer_field({}).is_null()",
                                      member, reg_field.get_offset())));
@@ -1170,6 +1169,23 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 preamble.push(BlankLine);
             }
 
+            let from_pointer_builder_impl =
+                if is_group { Branch(Vec::new()) }
+                else {
+                    Branch(vec![
+                        Line("impl <'a> ::capnp::traits::FromPointerBuilder<'a> for Builder<'a> {".to_string()),
+                        Indent(
+                            box Branch(vec!(
+                                Line("fn init_pointer(builder: ::capnp::layout::PointerBuilder<'a>, _size : u32) -> Builder<'a> {".to_string()),
+                                Indent(box Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(STRUCT_SIZE))".to_string())),
+                                Line("}".to_string()),
+                                Line("fn get_from_pointer(builder: ::capnp::layout::PointerBuilder<'a>) -> Builder<'a> {".to_string()),
+                                Indent(box Line("::capnp::traits::FromStructBuilder::new(builder.get_struct(STRUCT_SIZE, ::std::ptr::null()))".to_string())),
+                                Line("}".to_string())))),
+                        Line("}".to_string()),
+                        BlankLine])
+                };
+
             let accessors = vec!(
                 Branch(preamble),
                 Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_string()),
@@ -1182,8 +1198,12 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         Line("}".to_string())))),
                 Line("}".to_string()),
                 BlankLine,
-                Line("impl <'a> ::capnp::traits::ToStructReader<'a> for Reader<'a> {".to_string()),
-                Indent(box Line("fn struct_reader(&self) -> layout::StructReader<'a> { self.reader }".to_string())),
+                Line("impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {".to_string()),
+                Indent(
+                    box Branch(vec!(
+                        Line("fn get_from_pointer(reader: &::capnp::layout::PointerReader<'a>) -> Reader<'a> {".to_string()),
+                        Indent(box Line("::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null()))".to_string())),
+                        Line("}".to_string())))),
                 Line("}".to_string()),
                 BlankLine,
                 Line("impl <'a> Reader<'a> {".to_string()),
@@ -1199,6 +1219,12 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         Indent(box Line("Builder { builder : builder }".to_string())),
                         Line("}".to_string())))),
                 Line("}".to_string()),
+                BlankLine,
+                from_pointer_builder_impl,
+                Line("impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {".to_string()),
+                Indent(box Line("fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }".to_string())),
+                Line("}".to_string()),
+                BlankLine,
 
                 Line("impl <'a> Builder<'a> {".to_string()),
                 Indent(
@@ -1209,11 +1235,11 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Indent(box Branch(builder_members)),
                 Line("}".to_string()),
                 BlankLine,
-                Line("pub struct Pipeline { _typeless : any_pointer::Pipeline }".to_string()),
+                Line("pub struct Pipeline { _typeless : ::capnp::any_pointer::Pipeline }".to_string()),
                 Line("impl FromTypelessPipeline for Pipeline {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("fn new(typeless : any_pointer::Pipeline) -> Pipeline {".to_string()),
+                        Line("fn new(typeless : ::capnp::any_pointer::Pipeline) -> Pipeline {".to_string()),
                         Indent(box Line("Pipeline { _typeless : typeless }".to_string())),
                         Line("}".to_string())))),
                 Line("}".to_string()),
@@ -1268,7 +1294,6 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             mod_interior.push(Line ("#![allow(unused_variables)]".to_string()));
             mod_interior.push(Line("#![allow(unused_imports)]".to_string()));
-            mod_interior.push(Line("use capnp::any_pointer;".to_string()));
             mod_interior.push(
                 Line("use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};".to_string()));
             mod_interior.push(Line("use capnp::capability;".to_string()));
@@ -1332,9 +1357,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             let mut base_dispatch_arms = Vec::new();
             let server_base = {
                 let mut base_traits = Vec::new();
-                let extends = interface.get_extends();
+                let extends = interface.get_superclasses();
                 for ii in range(0, extends.size()) {
-                    let base_id = extends.get(ii);
+                    let base_id = extends.get(ii).get_id();
                     let the_mod = scope_map[base_id].connect("::");
                     base_dispatch_arms.push(
                         Line(format!(
@@ -1394,7 +1419,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             mod_interior.push(
                 Branch(vec!(
                     Line("impl <T : Server> capability::Server for ServerDispatch<T> {".to_string()),
-                    Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<any_pointer::Reader, any_pointer::Builder>) {".to_string())),
+                    Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string())),
                     Indent(box Indent(box Line("match interface_id {".to_string()))),
                     Indent(box Indent(box Indent(
                         box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),",
@@ -1408,7 +1433,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             mod_interior.push(
                 Branch(vec!(
                     Line("impl <T : Server> ServerDispatch<T> {".to_string()),
-                    Indent(box Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<any_pointer::Reader, any_pointer::Builder>) {".to_string())),
+                    Indent(box Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string())),
                     Indent(box Indent(box Line("match method_id {".to_string()))),
                     Indent(box Indent(box Indent(box Branch(dispatch_arms)))),
                     Indent(box Indent(box Indent(box Line("_ => {}".to_string())))),
@@ -1451,7 +1476,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Some((type_::List(_t), value::List(_p))) => { panic!() }
                 Some((type_::Struct(_t), value::Struct(_p))) => { panic!() }
                 Some((type_::Interface(_t), value::Interface(()))) => { panic!() }
-                Some((type_::AnyPointer(()), value::AnyPointer(_pr))) => { panic!() }
+                Some((type_::AnyPointer(_), value::AnyPointer(_pr))) => { panic!() }
                 None => { panic!("unrecognized type") }
                 _ => { panic!("type does not match value") }
             };

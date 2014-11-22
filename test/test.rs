@@ -362,27 +362,27 @@ mod tests {
 
         {
             let reader = test_any_pointer.as_reader();
-            assert_eq!(reader.get_any_pointer_field().get_as_text(), "xyzzy");
+            assert_eq!(reader.get_any_pointer_field().get_as::<::capnp::text::Reader>(), "xyzzy");
         }
 
-        any_pointer.init_as_struct::<test_empty_struct::Builder>();
-        any_pointer.get_as_struct::<test_empty_struct::Builder>();
+        any_pointer.init_as::<test_empty_struct::Builder>();
+        any_pointer.get_as::<test_empty_struct::Builder>();
 
         {
             let reader = test_any_pointer.as_reader();
-            reader.get_any_pointer_field().get_as_struct::<test_empty_struct::Reader>();
+            reader.get_any_pointer_field().get_as::<test_empty_struct::Reader>();
         }
 
         {
             let mut message = MallocMessageBuilder::new_default();
             let test_big_struct = message.init_root::<test_big_struct::Builder>();
             test_big_struct.set_int32_field(-12345);
-            any_pointer.set_as_struct(&test_big_struct.as_reader());
+            any_pointer.set_as(test_big_struct.as_reader());
         }
 
         fn _test_lifetimes(body : test_big_struct::Reader) {
             let mut message = MallocMessageBuilder::new_default();
-            message.set_root(&body);
+            message.set_root(body);
         }
 
     }
@@ -472,7 +472,7 @@ mod tests {
         let mut message2 = MallocMessageBuilder::new_default();
         let struct1 = message1.init_root::<test_big_struct::Builder>();
         struct1.set_uint8_field(3);
-        message2.set_root(&struct1.as_reader());
+        message2.set_root(struct1.as_reader());
         let struct2 = message2.get_root::<test_big_struct::Builder>();
 
         assert_eq!(struct2.get_uint8_field(), 3u8);
