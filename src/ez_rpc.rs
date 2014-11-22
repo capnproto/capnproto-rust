@@ -52,7 +52,7 @@ impl EzRpcClient {
         self.rpc_chan.send(RpcEvent::Outgoing(outgoing));
 
         let mut response_hook = answer_port.recv();
-        let message : message::Reader = response_hook.get().get_as_struct();
+        let message : message::Reader = response_hook.get().get_as();
         let client = match message.which() {
             Some(message::Return(ret)) => {
                 match ret.which() {
@@ -115,7 +115,7 @@ impl Restorer {
 impl SturdyRefRestorer for Restorer {
     fn restore(&self, obj_id : any_pointer::Reader) -> Option<Box<ClientHook+Send>> {
         let (tx, rx) = std::comm::channel();
-        self.sender.send(ExportEvent::Restore(obj_id.get_as_text().to_string(), tx));
+        self.sender.send(ExportEvent::Restore(obj_id.get_as::<::capnp::text::Reader>().to_string(), tx));
         return rx.recv();
     }
 }

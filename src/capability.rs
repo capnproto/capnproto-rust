@@ -12,7 +12,7 @@ use capnp::any_pointer;
 use capnp::MessageSize;
 use capnp::capability::{CallContext, CallContextHook, Client,
                         ClientHook, PipelineHook, Request, ResultFuture, Server, ServerHook};
-use capnp::layout::{FromStructReader, FromStructBuilder, HasStructSize};
+use capnp::traits::{FromPointerReader, FromPointerBuilder};
 use capnp::{MessageReader, MessageBuilder};
 
 use rpc_capnp::{message, return_};
@@ -80,7 +80,7 @@ pub trait InitRequest<'a, 'b, T> {
     fn init(&'b mut self) -> T;
 }
 
-impl <'a, 'b, Params : FromStructBuilder<'a> + HasStructSize, Results, Pipeline> InitRequest<'a, 'b, Params>
+impl <'a, 'b, Params : FromPointerBuilder<'a>, Results, Pipeline> InitRequest<'a, 'b, Params>
 for Request<Params, Results, Pipeline> {
 
     // XXX we are bypassing lifetime tracking here.
@@ -92,7 +92,7 @@ for Request<Params, Results, Pipeline> {
         match message.which() {
             Some(message::Call(call)) => {
                 let params = call.init_params();
-                params.get_content().init_as_struct()
+                params.get_content().init_as()
             }
             _ => panic!(),
         }
@@ -103,7 +103,7 @@ pub trait WaitForContent<'a, T> {
     fn wait(&'a mut self) -> Result<T, String>;
 }
 
-impl <'a, Results : FromStructReader<'a>, Pipeline> WaitForContent<'a, Results>
+impl <'a, Results : FromPointerReader<'a>, Pipeline> WaitForContent<'a, Results>
 for ResultFuture<Results, Pipeline> {
     fn wait(&'a mut self) -> Result<Results, String> {
         // XXX should check that it's not already been received.
@@ -111,12 +111,12 @@ for ResultFuture<Results, Pipeline> {
         match self.answer_result {
             Err(_) => Err("answer channel closed".to_string()),
             Ok(ref mut response_hook) => {
-                let root : message::Reader = response_hook.get().get_as_struct();
+                let root : message::Reader = response_hook.get().get_as();
                 match root.which() {
                     Some(message::Return(ret)) => {
                         match ret.which() {
                             Some(return_::Results(res)) => {
-                                Ok(res.get_content().get_as_struct())
+                                Ok(res.get_content().get_as())
                             }
                             Some(return_::Exception(e)) => {
                                 Err(e.get_reason().to_string())
