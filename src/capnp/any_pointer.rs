@@ -84,14 +84,6 @@ impl <'a> Builder<'a> {
         self.builder.set_capability(value);
     }
 
-    pub fn set_as_text(&self, value : &str) {
-        self.builder.set_text(value);
-    }
-
-    pub fn set_as_data(&self, value : &[u8]) {
-        self.builder.set_data(value);
-    }
-
     #[inline]
     pub fn clear(&self) {
         self.builder.clear()

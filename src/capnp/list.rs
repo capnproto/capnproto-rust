@@ -38,8 +38,7 @@ pub mod primitive_list {
                  PrimitiveElement, element_size_for_type};
 
     pub struct Reader<'a, T> {
-        // I want this field to be private, but then I can't access it in set_list()
-        pub reader : ListReader<'a>
+        reader : ListReader<'a>
     }
 
     impl <'a, T : PrimitiveElement> Reader<'a, T> {
@@ -64,7 +63,7 @@ pub mod primitive_list {
     }
 
     pub struct Builder<'a, T> {
-        pub builder : ListBuilder<'a>
+        builder : ListBuilder<'a>
     }
 
     impl <'a, T : PrimitiveElement> Builder<'a, T> {
@@ -94,6 +93,12 @@ pub mod primitive_list {
             PrimitiveElement::get_from_builder(&self.builder, index)
         }
     }
+
+    impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
+        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
+            pointer.set_list(&value.reader);
+        }
+    }
 }
 
 pub mod enum_list {
@@ -102,7 +107,7 @@ pub mod enum_list {
                  TwoBytes, PrimitiveElement};
 
     pub struct Reader<'a, T> {
-        pub reader : ListReader<'a>
+        reader : ListReader<'a>
     }
 
     impl <'a, T : FromPrimitive> Reader<'a, T> {
@@ -129,7 +134,7 @@ pub mod enum_list {
     }
 
     pub struct Builder<'a, T> {
-        pub builder : ListBuilder<'a>
+        builder : ListBuilder<'a>
     }
 
     impl <'a, T : ToU16 + FromPrimitive> Builder<'a, T> {
@@ -161,6 +166,12 @@ pub mod enum_list {
             FromPrimitive::from_u16(result)
         }
     }
+
+    impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
+        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
+            pointer.set_list(&value.reader);
+        }
+    }
 }
 
 
@@ -170,7 +181,7 @@ pub mod struct_list {
                  FromStructBuilder, FromStructReader, HasStructSize};
 
     pub struct Reader<'a, T> {
-        pub reader : ListReader<'a>
+        reader : ListReader<'a>
     }
 
     impl <'a, T : FromStructReader<'a>> Reader<'a, T> {
@@ -206,7 +217,7 @@ pub mod struct_list {
     }
 
     pub struct Builder<'a, T> {
-        pub builder : ListBuilder<'a>
+        builder : ListBuilder<'a>
     }
 
     impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
@@ -254,6 +265,11 @@ pub mod struct_list {
         }
     }
 
+    impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
+        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
+            pointer.set_list(&value.reader);
+        }
+    }
 }
 
 pub mod list_list {
@@ -261,7 +277,7 @@ pub mod list_list {
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
 
     pub struct Reader<'a, T> {
-        pub reader : ListReader<'a>
+        reader : ListReader<'a>
     }
 
     impl <'a, T> Reader<'a, T> {
@@ -286,7 +302,7 @@ pub mod list_list {
     }
 
     pub struct Builder<'a, T> {
-        pub builder : ListBuilder<'a>
+        builder : ListBuilder<'a>
     }
 
     impl <'a, T : FromPointerBuilder<'a>> Builder<'a, T> {
@@ -324,6 +340,11 @@ pub mod list_list {
         }
     }
 
+    impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
+        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
+            pointer.set_list(&value.reader);
+        }
+    }
 }
 
 pub mod text_list {
@@ -332,7 +353,7 @@ pub mod text_list {
     use layout::*;
 
     pub struct Reader<'a> {
-        pub reader : ListReader<'a>
+        reader : ListReader<'a>
     }
 
     impl <'a> Reader<'a> {
@@ -357,7 +378,7 @@ pub mod text_list {
     }
 
     pub struct Builder<'a> {
-        pub builder : ListBuilder<'a>
+        builder : ListBuilder<'a>
     }
 
     impl <'a> Builder<'a> {
@@ -393,6 +414,11 @@ pub mod text_list {
         }
     }
 
+    impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a>) {
+            pointer.set_list(&value.reader);
+        }
+    }
 }
 
 pub mod data_list {
@@ -426,7 +452,7 @@ pub mod data_list {
     }
 
     pub struct Builder<'a> {
-        pub builder : ListBuilder<'a>
+        builder : ListBuilder<'a>
     }
 
     impl <'a> Builder<'a> {
@@ -463,4 +489,10 @@ pub mod data_list {
         }
     }
 
+
+    impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a>) {
+            pointer.set_list(&value.reader);
+        }
+    }
 }

@@ -53,6 +53,12 @@ pub mod text {
             builder.get_text(::std::ptr::null(), 0)
         }
     }
+
+    impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a>) {
+            pointer.set_text(value);
+        }
+    }
 }
 
 pub mod data {
@@ -87,6 +93,12 @@ pub mod data {
         }
         fn get_from_pointer(builder : ::layout::PointerBuilder<'a>) -> Builder<'a> {
             builder.get_data(::std::ptr::null(), 0)
+        }
+    }
+
+    impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a>) {
+            pointer.set_data(value);
         }
     }
 }
