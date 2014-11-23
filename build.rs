@@ -15,5 +15,5 @@ fn main() {
 
     ::capnpc::compile(prefix.clone(),
                       &[prefix.join(Path::new("rpc.capnp")),
-                        prefix.join(Path::new("rpc-twoparty.capnp"))]);
+                        prefix.join(Path::new("rpc-twoparty.capnp"))]).unwrap();
 }

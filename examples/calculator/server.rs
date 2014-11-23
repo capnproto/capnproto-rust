@@ -91,7 +91,7 @@ impl FunctionImpl {
 impl calculator::function::Server for FunctionImpl {
     fn call(&mut self, mut context : calculator::function::CallContext) {
         let (params, results) = context.get();
-        if params.get_params().size() != self.param_count {
+        if params.get_params().len() != self.param_count {
             //"Wrong number of parameters."
             return context.fail();
         };
@@ -116,8 +116,8 @@ impl calculator::function::Server for OperatorImpl {
     fn call(&mut self, mut context : calculator::function::CallContext) {
         let (params, results) = context.get();
         let params = params.get_params();
-        if params.size() != 2 {
-            //"Wrong number of parameters: {}", params.size()
+        if params.len() != 2 {
+            //"Wrong number of parameters: {}", params.len()
             return context.fail();
         }
 

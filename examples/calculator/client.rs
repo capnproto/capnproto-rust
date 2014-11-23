@@ -17,7 +17,7 @@ impl calculator::function::Server for PowerFunction {
 
         let (params, results) = context.get();
         let params = params.get_params();
-        if params.size() != 2 {
+        if params.len() != 2 {
             //"Wrong number of parameters"
             return context.fail();
         };
