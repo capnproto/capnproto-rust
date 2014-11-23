@@ -56,10 +56,10 @@ extern crate capnp;
 pub mod schema_capnp;
 pub mod codegen;
 
-pub fn compile(prefix : Path, files : &[Path]) {
+pub fn compile(prefix : Path, files : &[Path]) -> ::std::io::IoResult<()> {
     let out_dir = Path::new(::std::os::getenv("OUT_DIR").unwrap());
-    let cwd = ::std::os::getcwd().unwrap();
-    ::std::os::change_dir(&out_dir).unwrap();
+    let cwd = try!(::std::os::getcwd());
+    try!(::std::os::change_dir(&out_dir));
 
     let mut command = ::std::io::Command::new("capnp");
     command
@@ -72,17 +72,12 @@ pub fn compile(prefix : Path, files : &[Path]) {
     }
 
     command.stdout(::std::io::process::CreatePipe(false, true));
+    command.stderr(::std::io::process::InheritFd(2));
 
-    match command.spawn() {
-        Ok(ref mut p) =>  {
-            let mut child_stdout = p.stdout.take().unwrap();
-            ::codegen::main(&mut child_stdout).unwrap();
-            p.wait().unwrap();
-        }
-        Err(e) => {
-            panic!("could not start process: {}", e);
-        }
-    }
-
+    let mut p =  try!(command.spawn());
+    let mut child_stdout = p.stdout.take().unwrap();
+    try!(::codegen::main(&mut child_stdout));
+    try!(p.wait());
+    return Ok(());
 }
 

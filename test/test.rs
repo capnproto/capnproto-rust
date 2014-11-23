@@ -21,12 +21,17 @@
 
 #![crate_type = "lib"]
 
+#![feature(macro_rules)]
+
 extern crate capnp;
 
 #[allow(overflowing_literals)]
 pub mod test_capnp {
   include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"))
 }
+
+#[cfg(test)]
+mod test_util;
 
 #[cfg(test)]
 mod tests {
@@ -492,5 +497,15 @@ mod tests {
             new_version.get_new2();
             assert_eq!(new_version.get_new3().get_int8_field(), -123);
         }
+    }
+
+    #[test]
+    fn all_types() {
+        use test_capnp::{test_all_types};
+
+        let mut message = MallocMessageBuilder::new_default();
+        ::test_util::init_test_message(message.init_root());
+        ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>());
+        ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().as_reader());
     }
 }
