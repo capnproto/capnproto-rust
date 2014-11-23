@@ -521,4 +521,48 @@ mod tests {
         ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>());
         ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().as_reader());
     }
+
+    #[test]
+    fn setters() {
+        use test_capnp::{test_all_types};
+
+        {
+            let mut message = MallocMessageBuilder::new_default();
+            let all_types = message.init_root::<test_all_types::Builder>();
+
+            ::test_util::init_test_message(all_types);
+
+            let mut message2 = MallocMessageBuilder::new_default();
+            let all_types2 = message2.init_root::<test_all_types::Builder>();
+
+            all_types2.set_struct_field(all_types.as_reader());
+            ::test_util::CheckTestMessage::check_test_message(all_types2.get_struct_field());
+
+            let reader = all_types2.as_reader().get_struct_field();
+            ::test_util::CheckTestMessage::check_test_message(reader);
+        }
+
+        {
+            let mut builder_options = BuilderOptions::new();
+            builder_options.first_segment_words(1)
+                .allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
+            let mut message = MallocMessageBuilder::new(builder_options);
+            let all_types = message.init_root::<test_all_types::Builder>();
+
+            ::test_util::init_test_message(all_types);
+
+            let mut builder_options = BuilderOptions::new();
+            builder_options.first_segment_words(1)
+                .allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
+            let mut message2 = MallocMessageBuilder::new(builder_options);
+            let all_types2 = message2.init_root::<test_all_types::Builder>();
+
+            all_types2.set_struct_field(all_types.as_reader());
+            ::test_util::CheckTestMessage::check_test_message(all_types2.get_struct_field());
+
+            let reader = all_types2.as_reader().get_struct_field();
+            ::test_util::CheckTestMessage::check_test_message(reader);
+        }
+
+    }
 }
