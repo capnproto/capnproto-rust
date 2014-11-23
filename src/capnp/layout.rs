@@ -2269,7 +2269,7 @@ impl <'a> ListReader<'a> {
     }
 
     #[inline]
-    pub fn size(&self) -> ElementCount32 { self.element_count }
+    pub fn len(&self) -> ElementCount32 { self.element_count }
 
     pub fn get_struct_element(&self, index : ElementCount32) -> StructReader<'a> {
         require!(self.nesting_limit > 0, unsafe {*self.segment},
@@ -2339,7 +2339,7 @@ impl <'a> ListBuilder<'a> {
     }
 
     #[inline]
-    pub fn size(&self) -> ElementCount32 { self.element_count }
+    pub fn len(&self) -> ElementCount32 { self.element_count }
 
     pub fn get_struct_element(&self, index : ElementCount32) -> StructBuilder<'a> {
         let index_bit = index * self.step;
