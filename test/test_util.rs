@@ -155,10 +155,10 @@ check_test_message_impl(($typ:ident) => (
                     assert_eq!("really nested", sub_sub_reader.get_struct_field().get_text_field().as_slice());
                 }
                 assert!(Some(TestEnum::Baz) == sub_reader.get_enum_field());
-                assert_eq!(3, sub_reader.get_void_list().size());
+                assert_eq!(3, sub_reader.get_void_list().len());
 
                 let bool_list = sub_reader.get_bool_list();
-                assert_eq!(5, bool_list.size());
+                assert_eq!(5, bool_list.len());
                 assert_eq!(false, bool_list.get(0));
                 assert_eq!(true, bool_list.get(1));
                 assert_eq!(false, bool_list.get(2));
@@ -166,21 +166,21 @@ check_test_message_impl(($typ:ident) => (
                 assert_eq!(true, bool_list.get(4));
 
                 let int8_list = sub_reader.get_int8_list();
-                assert_eq!(4, int8_list.size());
+                assert_eq!(4, int8_list.len());
                 assert_eq!(12, int8_list.get(0));
                 assert_eq!(-34, int8_list.get(1));
                 assert_eq!(-0x80, int8_list.get(2));
                 assert_eq!(0x7f, int8_list.get(3));
 
                 let int16_list = sub_reader.get_int16_list();
-                assert_eq!(4, int16_list.size());
+                assert_eq!(4, int16_list.len());
                 assert_eq!(1234, int16_list.get(0));
                 assert_eq!(-5678, int16_list.get(1));
                 assert_eq!(-0x8000, int16_list.get(2));
                 assert_eq!(0x7fff, int16_list.get(3));
 
                 let int32_list = sub_reader.get_int32_list();
-                assert_eq!(4, int32_list.size());
+                assert_eq!(4, int32_list.len());
                 assert_eq!(12345678, int32_list.get(0));
                 assert_eq!(-90123456, int32_list.get(1));
                 assert_eq!(-0x80000000, int32_list.get(2));
@@ -189,12 +189,13 @@ check_test_message_impl(($typ:ident) => (
                 // ...
 
                 let struct_list = sub_reader.get_struct_list();
-                assert_eq!(3, struct_list.size());
+                assert_eq!(3, struct_list.len());
                 assert_eq!("x structlist 1", struct_list.get(0).get_text_field().as_slice());
                 assert_eq!("x structlist 2", struct_list.get(1).get_text_field().as_slice());
                 assert_eq!("x structlist 3", struct_list.get(2).get_text_field().as_slice());
 
                 let enum_list = sub_reader.get_enum_list();
+                assert_eq!(3, enum_list.len());
                 assert!(Some(TestEnum::Qux) == enum_list.get(0));
                 assert!(Some(TestEnum::Bar) == enum_list.get(1));
                 assert!(Some(TestEnum::Grault) == enum_list.get(2));

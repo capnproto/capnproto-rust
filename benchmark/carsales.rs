@@ -44,7 +44,7 @@ macro_rules! car_value_impl(
                     // Using an iterator here slows things down considerably.
                     // TODO: investigate why.
                     let wheels = self.get_wheels();
-                    for ii in range(0, wheels.size()) {
+                    for ii in range(0, wheels.len()) {
                         let wheel = wheels.get(ii);
                         result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
                         result += if wheel.get_snow_tires() { 100 } else { 0 };

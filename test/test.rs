@@ -49,13 +49,13 @@ mod tests {
 
         let uint8_list = test_prim_list.init_uint8_list(100);
 
-        for i in range(0, uint8_list.size()) {
+        for i in range(0, uint8_list.len()) {
             uint8_list.set(i, i as u8);
         }
 
         let uint64_list = test_prim_list.init_uint64_list(20);
 
-        for i in range(0, uint64_list.size()) {
+        for i in range(0, uint64_list.len()) {
             uint64_list.set(i, i as u64);
         }
 
@@ -85,11 +85,11 @@ mod tests {
 
         let test_prim_list_reader = test_prim_list.as_reader();
         let uint8_list = test_prim_list_reader.get_uint8_list();
-        for i in range(0, uint8_list.size()) {
+        for i in range(0, uint8_list.len()) {
             assert_eq!(uint8_list.get(i), i as u8);
         }
         let uint64_list = test_prim_list_reader.get_uint64_list();
-        for i in range(0, uint64_list.size()) {
+        for i in range(0, uint64_list.len()) {
             assert_eq!(uint64_list.get(i), i as u64);
         }
 
@@ -112,7 +112,7 @@ mod tests {
         assert!(!bool_list.get(63));
         assert!(bool_list.get(64));
 
-        assert_eq!(test_prim_list_reader.get_void_list().size(), 1025);
+        assert_eq!(test_prim_list_reader.get_void_list().len(), 1025);
     }
 
     #[test]
@@ -249,7 +249,7 @@ mod tests {
         prim_list.set(0, 5);
         prim_list.set(1, 6);
         prim_list.set(2, 7);
-        assert_eq!(prim_list.size(), 3);
+        assert_eq!(prim_list.len(), 3);
         let prim_list = prim_list_list.init(1, 1);
         prim_list.set(0,-1);
 
@@ -293,18 +293,18 @@ mod tests {
         }
 
         let text_list = complex_list_reader.get_text_list();
-        assert_eq!(text_list.size(), 2);
+        assert_eq!(text_list.len(), 2);
         assert_eq!(text_list.get(0), "garply");
         assert_eq!(text_list.get(1), "foo");
 
         let data_list = complex_list_reader.get_data_list();
-        assert_eq!(data_list.size(), 2);
+        assert_eq!(data_list.len(), 2);
         assert!(data_list.get(0) == &[0u8, 1u8, 2u8]);
         assert!(data_list.get(1) == &[255u8, 254u8, 253u8]);
 
         let prim_list_list = complex_list_reader.get_prim_list_list();
-        assert_eq!(prim_list_list.size(), 2);
-        assert_eq!(prim_list_list.get(0).size(), 3);
+        assert_eq!(prim_list_list.len(), 2);
+        assert_eq!(prim_list_list.get(0).len(), 3);
         assert!(prim_list_list.get(0).get(0) == 5);
         assert!(prim_list_list.get(0).get(1) == 6);
         assert!(prim_list_list.get(0).get(2) == 7);

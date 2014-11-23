@@ -1261,7 +1261,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             let mut members = Vec::new();
             let enumerants = enum_reader.get_enumerants();
-            for ii in range(0, enumerants.size()) {
+            for ii in range(0, enumerants.len()) {
                 let enumerant = enumerants.get(ii);
                 members.push(
                     Line(format!("{} = {},", capitalize_first_letter(enumerant.get_name()),
@@ -1300,7 +1300,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             mod_interior.push(BlankLine);
 
             let methods = interface.get_methods();
-            for ordinal in range(0, methods.size()) {
+            for ordinal in range(0, methods.len()) {
                 let method = methods.get(ordinal);
                 let name = method.get_name();
 
@@ -1358,7 +1358,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             let server_base = {
                 let mut base_traits = Vec::new();
                 let extends = interface.get_superclasses();
-                for ii in range(0, extends.size()) {
+                for ii in range(0, extends.len()) {
                     let base_id = extends.get(ii).get_id();
                     let the_mod = scope_map[base_id].connect("::");
                     base_dispatch_arms.push(
@@ -1367,7 +1367,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                 base_id, the_mod)));
                     base_traits.push(format!("{}::Server", the_mod));
                 }
-                if extends.size() > 0 { format!(": {}", base_traits.as_slice().connect(" + ")) }
+                if extends.len() > 0 { format!(": {}", base_traits.as_slice().connect(" + ")) }
                 else { "".to_string() }
             };
 
@@ -1521,21 +1521,16 @@ pub fn main<T : ::std::io::Reader>(inp : &mut T) -> ::std::io::IoResult<()> {
     let mut node_map = collections::hash_map::HashMap::<u64, schema_capnp::node::Reader>::new();
     let mut scope_map = collections::hash_map::HashMap::<u64, Vec<String>>::new();
 
-    let nodes = request.get_nodes();
-    for ii in range(0, nodes.size()) {
-        node_map.insert(nodes.get(ii).get_id(), nodes.get(ii));
+    for node in request.get_nodes().iter() {
+        node_map.insert(node.get_id(), node);
     }
 
-    let files = request.get_requested_files();
-
-    for ii in range(0, files.size()) {
-        let requested_file = files.get(ii);
+    for requested_file in request.get_requested_files().iter() {
         let id = requested_file.get_id();
         let mut filepath = ::std::path::Path::new(requested_file.get_filename());
 
         let imports = requested_file.get_imports();
-        for jj in range(0, imports.size()) {
-            let import = imports.get(jj);
+        for import in imports.iter() {
             let importpath = ::std::path::Path::new(import.get_name());
             let root_name : String = format!("::{}_capnp",
                                                importpath.filestem_str().unwrap().replace("-", "_"));

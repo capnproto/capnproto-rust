@@ -87,7 +87,7 @@ pub fn handle_request(request : search_result_list::Reader,
     let mut scored_results : Vec<ScoredResult> = Vec::new();
 
     let results = request.get_results();
-    for i in range(0, results.size()) {
+    for i in range(0, results.len()) {
         let result = results.get(i);
         let mut score = result.get_score();
         if result.get_snippet().contains(" cat ") {
@@ -103,7 +103,7 @@ pub fn handle_request(request : search_result_list::Reader,
     scored_results.sort_by(|v1, v2| { if v1.score < v2.score { ::std::cmp::Greater } else { ::std::cmp::Less } });
 
     let list = response.init_results(scored_results.len() as u32);
-    for i in range(0, list.size()) {
+    for i in range(0, list.len()) {
         let item = list.get(i);
         let result = scored_results[i as uint];
         item.set_score(result.score);
@@ -115,7 +115,7 @@ pub fn handle_request(request : search_result_list::Reader,
 pub fn check_response(response : search_result_list::Reader, expected_good_count : int) -> bool {
     let mut good_count : int = 0;
     let results = response.get_results();
-    for i in range(0, results.size()) {
+    for i in range(0, results.len()) {
         let result = results.get(i);
         if result.get_score() > 1001.0 {
             good_count += 1;
