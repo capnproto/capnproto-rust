@@ -88,24 +88,29 @@ pub enum WirePointerKind {
     Other = 3
 }
 
+#[repr(C)]
 pub struct WirePointer {
     offset_and_kind : WireValue<u32>,
     upper32bits : u32,
 }
 
+#[repr(C)]
 pub struct StructRef {
     data_size : WireValue<WordCount16>,
     ptr_count : WireValue<WirePointerCount16>
 }
 
+#[repr(C)]
 pub struct ListRef {
     element_size_and_count : WireValue<u32>
 }
 
+#[repr(C)]
 pub struct FarRef {
     segment_id : WireValue<u32>
 }
 
+#[repr(C)]
 pub struct CapRef {
     index : WireValue<u32>
 }
