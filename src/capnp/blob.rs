@@ -45,6 +45,15 @@ pub mod text {
         }
     }
 
+    impl <'a> ::std::str::Str for Builder<'a> {
+        fn as_slice<'b>(&'b self) -> &'b str {
+            let v : &'b [u8] =
+                unsafe { ::std::mem::transmute(::std::raw::Slice { data: self.ptr as *const u8,
+                                                                   len: self.len as uint}) };
+            ::std::str::from_utf8(v).unwrap()
+        }
+    }
+
     impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
         fn init_pointer(builder : ::layout::PointerBuilder<'a>, size : u32) -> Builder<'a> {
             builder.init_text(size)
