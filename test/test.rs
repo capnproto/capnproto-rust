@@ -507,5 +507,18 @@ mod tests {
         ::test_util::init_test_message(message.init_root());
         ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>());
         ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().as_reader());
+
+    }
+
+    #[test]
+    fn all_types_multi_segment() {
+        use test_capnp::{test_all_types};
+
+        let mut builder_options = BuilderOptions::new();
+        builder_options.first_segment_words(1).allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
+        let mut message = MallocMessageBuilder::new(builder_options);
+        ::test_util::init_test_message(message.init_root());
+        ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>());
+        ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().as_reader());
     }
 }

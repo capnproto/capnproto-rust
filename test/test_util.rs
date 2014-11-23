@@ -67,7 +67,32 @@ pub fn init_test_message(builder : test_all_types::Builder) {
         bool_list.set(2, false);
         bool_list.set(3, true);
         bool_list.set(4, true);
+
+        let int8_list = sub_builder.init_int8_list(4);
+        int8_list.set(0, 12);
+        int8_list.set(1, -34);
+        int8_list.set(2, -0x80);
+        int8_list.set(3, 0x7f);
+
+        let int16_list = sub_builder.init_int16_list(4);
+        int16_list.set(0, 1234);
+        int16_list.set(1, -5678);
+        int16_list.set(2, -0x8000);
+        int16_list.set(3, 0x7fff);
+
+        let int32_list = sub_builder.init_int32_list(4);
+        int32_list.set(0, 12345678);
+        int32_list.set(1, -90123456);
+        int32_list.set(2, -0x80000000);
+        int32_list.set(3, 0x7fffffff);
+
+        // ...
     }
+    builder.set_enum_field(TestEnum::Corge);
+
+    builder.init_void_list(6);
+
+    // ...
 }
 
 pub trait CheckTestMessage {
@@ -90,7 +115,60 @@ check_test_message_impl(($typ:ident) => (
             assert_eq!(12345678901234567890, reader.get_u_int64_field());
             assert_eq!(1234.5, reader.get_float32_field());
             assert_eq!(-123e45, reader.get_float64_field());
-            //assert_eq!("foo", reader.get_text_field());
+            //assert_eq!("foo", &*reader.get_text_field());
+            assert_eq!(b"bar", &*reader.get_data_field());
+            {
+                let sub_reader = reader.get_struct_field();
+                assert_eq!((), sub_reader.get_void_field());
+                assert_eq!(true, sub_reader.get_bool_field());
+                assert_eq!(-12, sub_reader.get_int8_field());
+                assert_eq!(3456, sub_reader.get_int16_field());
+                assert_eq!(-78901234, sub_reader.get_int32_field());
+                assert_eq!(56789012345678, sub_reader.get_int64_field());
+                assert_eq!(90, sub_reader.get_u_int8_field());
+                assert_eq!(1234, sub_reader.get_u_int16_field());
+                assert_eq!(56789012, sub_reader.get_u_int32_field());
+                assert_eq!(345678901234567890, sub_reader.get_u_int64_field());
+                assert_eq!(-1.25e-10, sub_reader.get_float32_field());
+                assert_eq!(345f64, sub_reader.get_float64_field());
+                //assert_eq!("baz", &*sub_reader.get_text_field());
+                assert_eq!(b"qux", &*sub_reader.get_data_field());
+                {
+                    let _sub_sub_reader = sub_reader.get_struct_field();
+                    // ...
+                }
+                assert!(Some(TestEnum::Baz) == sub_reader.get_enum_field());
+                assert_eq!(3, sub_reader.get_void_list().size());
+
+                let bool_list = sub_reader.get_bool_list();
+                assert_eq!(5, bool_list.size());
+                assert_eq!(false, bool_list.get(0));
+                assert_eq!(true, bool_list.get(1));
+                assert_eq!(false, bool_list.get(2));
+                assert_eq!(true, bool_list.get(3));
+                assert_eq!(true, bool_list.get(4));
+
+                let int8_list = sub_reader.get_int8_list();
+                assert_eq!(4, int8_list.size());
+                assert_eq!(12, int8_list.get(0));
+                assert_eq!(-34, int8_list.get(1));
+                assert_eq!(-0x80, int8_list.get(2));
+                assert_eq!(0x7f, int8_list.get(3));
+
+                let int16_list = sub_reader.get_int16_list();
+                assert_eq!(4, int16_list.size());
+                assert_eq!(1234, int16_list.get(0));
+                assert_eq!(-5678, int16_list.get(1));
+                assert_eq!(-0x8000, int16_list.get(2));
+                assert_eq!(0x7fff, int16_list.get(3));
+
+                let int32_list = sub_reader.get_int32_list();
+                assert_eq!(4, int32_list.size());
+                assert_eq!(12345678, int32_list.get(0));
+                assert_eq!(-90123456, int32_list.get(1));
+                assert_eq!(-0x80000000, int32_list.get(2));
+                assert_eq!(0x7fffffff, int32_list.get(3));
+            }
         }
     }
 ))
