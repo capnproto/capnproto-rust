@@ -563,6 +563,16 @@ mod tests {
             let reader = all_types2.as_reader().get_struct_field();
             ::test_util::CheckTestMessage::check_test_message(reader);
         }
+    }
 
+    #[test]
+    fn double_far_pointers() {
+        let _bytes : ::capnp::layout::AlignedData<[u8, ..48]> = ::capnp::layout::AlignedData {
+            _dummy : 0,
+            words : [2,0,0,0, 1,0,0,0, 2,0,0,0, 1,0,0,0,
+                     6,0,0,0, 1,0,0,0, 2,0,0,0, 2,0,0,0,
+                     0,0,0,0, 1,0,0,0, 1,7,-1,127, 0,0,0,0],
+        };
+        // ...
     }
 }
