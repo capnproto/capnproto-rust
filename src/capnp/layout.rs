@@ -63,6 +63,7 @@ pub fn element_size_for_type<T>() -> ElementSize {
 
 // In the future, Rust will have an alignment attribute
 // and we won't need the dummy field.
+#[repr(C)]
 pub struct AlignedData<T> {
     pub _dummy : u64,
     pub words : T
