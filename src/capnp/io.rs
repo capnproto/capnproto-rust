@@ -189,9 +189,8 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
             self.pos += size;
             Ok(())
         } else {
-            std::slice::raw::mut_buf_as_slice::<u8,IoResult<()>>(ptr, size, |buf| {
-                self.write(buf)
-            })
+            let buf = std::slice::from_raw_mut_buf::<u8>(&ptr, size);
+            self.write(buf)
         }
     }
 
@@ -276,9 +275,8 @@ impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
             self.fill_pos += size;
             Ok(())
         } else {
-            std::slice::raw::mut_buf_as_slice::<u8,IoResult<()>>(ptr, size, |buf| {
-                self.write(buf)
-            })
+            let buf = std::slice::from_raw_mut_buf::<u8>(&ptr, size);
+            self.write(buf)
         }
     }
 }

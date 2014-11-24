@@ -94,9 +94,8 @@ pub fn new_reader<U : std::io::Reader>(input_stream : &mut U,
 
     unsafe {
         let ptr : *mut u8 = std::mem::transmute(owned_space.as_mut_slice().as_mut_ptr());
-        try!(std::slice::raw::mut_buf_as_slice::<u8,std::io::IoResult<uint>>(ptr, buf_len, |buf| {
-                    io::read_at_least(input_stream, buf, buf_len)
-                }));
+        let buf = std::slice::from_raw_mut_buf::<u8>(&ptr, buf_len);
+        try!(io::read_at_least(input_stream, buf, buf_len));
     }
 
     // TODO(maybe someday) lazy reading like in capnp-c++?
@@ -154,18 +153,15 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
 
             unsafe {
                 let ptr : *const u8 = std::mem::transmute(table.as_ptr());
-                try!(std::slice::raw::buf_as_slice::<u8,std::io::IoResult<()>>(ptr, table.len() * 4, |buf| {
-                        output_stream.write(buf)
-                    }));
+                let buf = std::slice::from_raw_buf::<u8>(&ptr, table.len() * 4);
+                try!(output_stream.write(buf));
             }
 
             for i in range(0, segments.len()) {
                 unsafe {
                     let ptr : *const u8 = std::mem::transmute(segments[i].as_ptr());
-                    try!(std::slice::raw::buf_as_slice::<u8,std::io::IoResult<()>>(
-                        ptr,
-                        segments[i].len() * BYTES_PER_WORD,
-                        |buf| { output_stream.write(buf) }));
+                    let buf = std::slice::from_raw_buf::<u8>(&ptr, segments[i].len() * BYTES_PER_WORD);
+                    try!(output_stream.write(buf));
                 }
             }
             Ok(())

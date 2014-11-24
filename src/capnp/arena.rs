@@ -285,10 +285,10 @@ impl BuilderArena {
     pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
         unsafe {
             if self.more_segments.len() == 0 {
-                ::std::slice::raw::buf_as_slice::<Word, T>(
-                    self.segment0.reader.ptr,
-                    self.segment0.current_size() as uint,
-                    |v| cont(&[v]) )
+                let v = ::std::slice::from_raw_buf::<Word>(
+                    &self.segment0.reader.ptr,
+                    self.segment0.current_size() as uint);
+                cont(&[v])
             } else {
                 let mut result = Vec::new();
                 result.push(::std::mem::transmute(
