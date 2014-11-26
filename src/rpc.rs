@@ -18,7 +18,7 @@ use std::vec::Vec;
 use std::collections::hash_map::HashMap;
 use std::collections::binary_heap::BinaryHeap;
 
-use sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex};
 
 use rpc_capnp::{message, return_, cap_descriptor, message_target, payload, promised_answer};
 

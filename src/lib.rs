@@ -10,7 +10,6 @@
 
 extern crate core;
 extern crate capnp;
-extern crate sync;
 
 pub mod rpc_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_capnp.rs"))
