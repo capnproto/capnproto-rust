@@ -849,6 +849,8 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
     let mut ty_params = Vec::new();
     let mut ty_args = Vec::new();
 
+    let mut copyable = true;
+
     let doffset = discriminant_offset as uint;
 
     for field in fields.iter() {
@@ -862,7 +864,7 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
 
         getter_interior.push(Branch(vec!(
                     Line(format!("{} => {{", dvalue)),
-                    Indent(box Line(format!("return ::std::option::Some({}(", enumerant_name.clone()))),
+                    Indent(box Line(format!("return ::std::option::Option::Some({}(", enumerant_name.clone()))),
                     Indent(box Indent(box get)),
                     Indent(box Line("));".to_string())),
                     Line("}".to_string())
@@ -881,6 +883,10 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
                         ty_args.push(ty);
                         new_ty_param(&mut ty_params)
                     }
+                    Some(type_::Interface(_)) => {
+                        copyable = false;
+                        ty
+                    }
                     _ => ty
                 }
             }
@@ -895,7 +901,7 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
                             else {"".to_string()} );
 
 
-    getter_interior.push(Line("_ => return ::std::option::None".to_string()));
+    getter_interior.push(Line("_ => return ::std::option::Option::None".to_string()));
 
     interior.push(
         Branch(vec!(Line(format!("pub enum {} {{", enum_name)),
@@ -920,9 +926,17 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
                     if is_reader {"Reader"} else {"Builder"},
                     if ty_params.len() > 0 {"<'a>"} else {""});
 
-    let typedef = Line(format!("pub type {} = Which{};",
-                               concrete_type,
-                               if ty_args.len() > 0 {format!("<'a,{}>",ty_args.connect(","))} else {"".to_string()}));
+    let typedef = Branch(
+        vec![Line(format!("pub type {} = Which{};",
+                          concrete_type,
+                          if ty_args.len() > 0 {format!("<'a,{}>",ty_args.connect(","))} else {"".to_string()})),
+             if is_reader && copyable {
+                 Line(format!("impl {} Copy for {} {{}}",
+                              if ty_params.len() > 0 {"<'a>"} else {""},
+                              concrete_type))
+             } else {
+                 Branch(vec![])
+             }]);
 
     let getter_result =
         Branch(vec!(Line("#[inline]".to_string()),
@@ -1188,6 +1202,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             let accessors = vec!(
                 Branch(preamble),
+                Line("#[deriving(Copy)]".to_string()),
                 Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_string()),
                 BlankLine,
                 Line("impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {".to_string()),
@@ -1210,6 +1225,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Indent(box Branch(reader_members)),
                 Line("}".to_string()),
                 BlankLine,
+                Line("#[deriving(Copy)]".to_string()),
                 Line("pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }".to_string()),
                 builder_struct_size,
                 Line("impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {".to_string()),
@@ -1270,8 +1286,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             output.push(Branch(vec!(
                 Line("#[repr(u16)]".to_string()),
-                Line("#[deriving(FromPrimitive)]".to_string()),
-                Line("#[deriving(PartialEq)]".to_string()),
+                Line("#[deriving(PartialEq, FromPrimitive, Copy)]".to_string()),
                 Line(format!("pub enum {} {{", *names.last().unwrap())),
                 Indent(box Branch(members)),
                 Line("}".to_string()))));

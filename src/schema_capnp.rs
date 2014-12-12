@@ -15,6 +15,7 @@ pub mod node {
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 5, pointers : 6 };
 
+  #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -78,40 +79,41 @@ pub mod node {
     pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(6) {
         0 => {
-          return ::std::option::Some(File(
+          return ::std::option::Option::Some(File(
             ()
           ));
         }
         1 => {
-          return ::std::option::Some(Struct(
+          return ::std::option::Option::Some(Struct(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         2 => {
-          return ::std::option::Some(Enum(
+          return ::std::option::Option::Some(Enum(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         3 => {
-          return ::std::option::Some(Interface(
+          return ::std::option::Option::Some(Interface(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         4 => {
-          return ::std::option::Some(Const(
+          return ::std::option::Option::Some(Const(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         5 => {
-          return ::std::option::Some(Annotation(
+          return ::std::option::Option::Some(Annotation(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
-        _ => return ::std::option::None
+        _ => return ::std::option::Option::None
       }
     }
   }
 
+  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -185,7 +187,7 @@ pub mod node {
     }
     #[inline]
     pub fn set_nested_nodes(&self, value : struct_list::Reader<'a,::schema_capnp::node::nested_node::Reader<'a>>) {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
     }
     #[inline]
     pub fn init_nested_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
@@ -201,7 +203,7 @@ pub mod node {
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value);
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value)
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
@@ -271,7 +273,7 @@ pub mod node {
     }
     #[inline]
     pub fn set_parameters(&self, value : struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>>) {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(5), value);
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(5), value)
     }
     #[inline]
     pub fn init_parameters(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
@@ -293,36 +295,36 @@ pub mod node {
     pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(6) {
         0 => {
-          return ::std::option::Some(File(
+          return ::std::option::Option::Some(File(
             ()
           ));
         }
         1 => {
-          return ::std::option::Some(Struct(
+          return ::std::option::Option::Some(Struct(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         2 => {
-          return ::std::option::Some(Enum(
+          return ::std::option::Option::Some(Enum(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         3 => {
-          return ::std::option::Some(Interface(
+          return ::std::option::Option::Some(Interface(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         4 => {
-          return ::std::option::Some(Const(
+          return ::std::option::Option::Some(Const(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         5 => {
-          return ::std::option::Some(Annotation(
+          return ::std::option::Option::Some(Annotation(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
-        _ => return ::std::option::None
+        _ => return ::std::option::Option::None
       }
     }
   }
@@ -344,6 +346,7 @@ pub mod node {
     Annotation(A4),
   }
   pub type WhichReader<'a> = Which<'a,::schema_capnp::node::struct_::Reader<'a>,::schema_capnp::node::enum_::Reader<'a>,::schema_capnp::node::interface::Reader<'a>,::schema_capnp::node::const_::Reader<'a>,::schema_capnp::node::annotation::Reader<'a>>;
+  impl <'a> Copy for WhichReader<'a> {}
   pub type WhichBuilder<'a> = Which<'a,::schema_capnp::node::struct_::Builder<'a>,::schema_capnp::node::enum_::Builder<'a>,::schema_capnp::node::interface::Builder<'a>,::schema_capnp::node::const_::Builder<'a>,::schema_capnp::node::annotation::Builder<'a>>;
 
   pub mod parameter {
@@ -356,6 +359,7 @@ pub mod node {
 
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 0, pointers : 1 };
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -380,6 +384,7 @@ pub mod node {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
@@ -445,6 +450,7 @@ pub mod node {
 
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -473,6 +479,7 @@ pub mod node {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
@@ -544,6 +551,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -592,6 +600,7 @@ pub mod node {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -661,7 +670,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_fields(&self, value : struct_list::Reader<'a,::schema_capnp::field::Reader<'a>>) {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value);
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value)
       }
       #[inline]
       pub fn init_fields(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
@@ -691,6 +700,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -715,6 +725,7 @@ pub mod node {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -736,7 +747,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_enumerants(&self, value : struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>>) {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value);
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value)
       }
       #[inline]
       pub fn init_enumerants(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
@@ -766,6 +777,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -797,6 +809,7 @@ pub mod node {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -818,7 +831,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_methods(&self, value : struct_list::Reader<'a,::schema_capnp::method::Reader<'a>>) {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value);
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value)
       }
       #[inline]
       pub fn init_methods(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
@@ -834,7 +847,7 @@ pub mod node {
       }
       #[inline]
       pub fn set_superclasses(&self, value : struct_list::Reader<'a,::schema_capnp::superclass::Reader<'a>>) {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value);
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value)
       }
       #[inline]
       pub fn init_superclasses(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::superclass::Builder<'a>> {
@@ -864,6 +877,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -895,6 +909,7 @@ pub mod node {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -966,6 +981,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -1038,6 +1054,7 @@ pub mod node {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -1192,6 +1209,7 @@ pub mod field {
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 4 };
 
+  #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -1237,20 +1255,21 @@ pub mod field {
     pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(4) {
         0 => {
-          return ::std::option::Some(Slot(
+          return ::std::option::Option::Some(Slot(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         1 => {
-          return ::std::option::Some(Group(
+          return ::std::option::Option::Some(Group(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
-        _ => return ::std::option::None
+        _ => return ::std::option::Option::None
       }
     }
   }
 
+  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -1308,7 +1327,7 @@ pub mod field {
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
@@ -1355,16 +1374,16 @@ pub mod field {
     pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(4) {
         0 => {
-          return ::std::option::Some(Slot(
+          return ::std::option::Option::Some(Slot(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         1 => {
-          return ::std::option::Some(Group(
+          return ::std::option::Option::Some(Group(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
-        _ => return ::std::option::None
+        _ => return ::std::option::Option::None
       }
     }
   }
@@ -1385,6 +1404,7 @@ pub mod field {
     Group(A1),
   }
   pub type WhichReader<'a> = Which<'a,::schema_capnp::field::slot::Reader<'a>,::schema_capnp::field::group::Reader<'a>>;
+  impl <'a> Copy for WhichReader<'a> {}
   pub type WhichBuilder<'a> = Which<'a,::schema_capnp::field::slot::Builder<'a>,::schema_capnp::field::group::Builder<'a>>;
   pub const NO_DISCRIMINANT : u16 = 65535;
 
@@ -1396,6 +1416,7 @@ pub mod field {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -1435,6 +1456,7 @@ pub mod field {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -1522,6 +1544,7 @@ pub mod field {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -1543,6 +1566,7 @@ pub mod field {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -1588,6 +1612,7 @@ pub mod field {
 
     pub use self::Which::{Implicit,Explicit};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -1607,20 +1632,21 @@ pub mod field {
       pub fn which(&self) -> ::std::option::Option<WhichReader> {
         match self.reader.get_data_field::<u16>(5) {
           0 => {
-            return ::std::option::Some(Implicit(
+            return ::std::option::Option::Some(Implicit(
               ()
             ));
           }
           1 => {
-            return ::std::option::Some(Explicit(
+            return ::std::option::Option::Some(Explicit(
               self.reader.get_data_field::<u16>(6)
             ));
           }
-          _ => return ::std::option::None
+          _ => return ::std::option::Option::None
         }
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -1649,16 +1675,16 @@ pub mod field {
       pub fn which(&self) -> ::std::option::Option<WhichBuilder> {
         match self.builder.get_data_field::<u16>(5) {
           0 => {
-            return ::std::option::Some(Implicit(
+            return ::std::option::Option::Some(Implicit(
               ()
             ));
           }
           1 => {
-            return ::std::option::Some(Explicit(
+            return ::std::option::Option::Some(Explicit(
               self.builder.get_data_field::<u16>(6)
             ));
           }
-          _ => return ::std::option::None
+          _ => return ::std::option::Option::None
         }
       }
     }
@@ -1676,6 +1702,7 @@ pub mod field {
       Explicit(u16),
     }
     pub type WhichReader = Which;
+    impl  Copy for WhichReader {}
     pub type WhichBuilder = Which;
   }
 }
@@ -1690,6 +1717,7 @@ pub mod enumerant {
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 2 };
 
+  #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -1725,6 +1753,7 @@ pub mod enumerant {
     }
   }
 
+  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -1782,7 +1811,7 @@ pub mod enumerant {
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
@@ -1814,6 +1843,7 @@ pub mod superclass {
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
 
+  #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -1842,6 +1872,7 @@ pub mod superclass {
     }
   }
 
+  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -1918,6 +1949,7 @@ pub mod method {
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 5 };
 
+  #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -1982,6 +2014,7 @@ pub mod method {
     }
   }
 
+  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -2055,7 +2088,7 @@ pub mod method {
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
@@ -2101,7 +2134,7 @@ pub mod method {
     }
     #[inline]
     pub fn set_implicit_parameters(&self, value : struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>>) {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value);
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value)
     }
     #[inline]
     pub fn init_implicit_parameters(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
@@ -2141,6 +2174,7 @@ pub mod type_ {
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 1 };
 
+  #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -2160,105 +2194,106 @@ pub mod type_ {
     pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(0) {
         0 => {
-          return ::std::option::Some(Void(
+          return ::std::option::Option::Some(Void(
             ()
           ));
         }
         1 => {
-          return ::std::option::Some(Bool(
+          return ::std::option::Option::Some(Bool(
             ()
           ));
         }
         2 => {
-          return ::std::option::Some(Int8(
+          return ::std::option::Option::Some(Int8(
             ()
           ));
         }
         3 => {
-          return ::std::option::Some(Int16(
+          return ::std::option::Option::Some(Int16(
             ()
           ));
         }
         4 => {
-          return ::std::option::Some(Int32(
+          return ::std::option::Option::Some(Int32(
             ()
           ));
         }
         5 => {
-          return ::std::option::Some(Int64(
+          return ::std::option::Option::Some(Int64(
             ()
           ));
         }
         6 => {
-          return ::std::option::Some(Uint8(
+          return ::std::option::Option::Some(Uint8(
             ()
           ));
         }
         7 => {
-          return ::std::option::Some(Uint16(
+          return ::std::option::Option::Some(Uint16(
             ()
           ));
         }
         8 => {
-          return ::std::option::Some(Uint32(
+          return ::std::option::Option::Some(Uint32(
             ()
           ));
         }
         9 => {
-          return ::std::option::Some(Uint64(
+          return ::std::option::Option::Some(Uint64(
             ()
           ));
         }
         10 => {
-          return ::std::option::Some(Float32(
+          return ::std::option::Option::Some(Float32(
             ()
           ));
         }
         11 => {
-          return ::std::option::Some(Float64(
+          return ::std::option::Option::Some(Float64(
             ()
           ));
         }
         12 => {
-          return ::std::option::Some(Text(
+          return ::std::option::Option::Some(Text(
             ()
           ));
         }
         13 => {
-          return ::std::option::Some(Data(
+          return ::std::option::Option::Some(Data(
             ()
           ));
         }
         14 => {
-          return ::std::option::Some(List(
+          return ::std::option::Option::Some(List(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         15 => {
-          return ::std::option::Some(Enum(
+          return ::std::option::Option::Some(Enum(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         16 => {
-          return ::std::option::Some(Struct(
+          return ::std::option::Option::Some(Struct(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         17 => {
-          return ::std::option::Some(Interface(
+          return ::std::option::Option::Some(Interface(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         18 => {
-          return ::std::option::Some(AnyPointer(
+          return ::std::option::Option::Some(AnyPointer(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
-        _ => return ::std::option::None
+        _ => return ::std::option::Option::None
       }
     }
   }
 
+  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -2383,101 +2418,101 @@ pub mod type_ {
     pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(0) {
         0 => {
-          return ::std::option::Some(Void(
+          return ::std::option::Option::Some(Void(
             ()
           ));
         }
         1 => {
-          return ::std::option::Some(Bool(
+          return ::std::option::Option::Some(Bool(
             ()
           ));
         }
         2 => {
-          return ::std::option::Some(Int8(
+          return ::std::option::Option::Some(Int8(
             ()
           ));
         }
         3 => {
-          return ::std::option::Some(Int16(
+          return ::std::option::Option::Some(Int16(
             ()
           ));
         }
         4 => {
-          return ::std::option::Some(Int32(
+          return ::std::option::Option::Some(Int32(
             ()
           ));
         }
         5 => {
-          return ::std::option::Some(Int64(
+          return ::std::option::Option::Some(Int64(
             ()
           ));
         }
         6 => {
-          return ::std::option::Some(Uint8(
+          return ::std::option::Option::Some(Uint8(
             ()
           ));
         }
         7 => {
-          return ::std::option::Some(Uint16(
+          return ::std::option::Option::Some(Uint16(
             ()
           ));
         }
         8 => {
-          return ::std::option::Some(Uint32(
+          return ::std::option::Option::Some(Uint32(
             ()
           ));
         }
         9 => {
-          return ::std::option::Some(Uint64(
+          return ::std::option::Option::Some(Uint64(
             ()
           ));
         }
         10 => {
-          return ::std::option::Some(Float32(
+          return ::std::option::Option::Some(Float32(
             ()
           ));
         }
         11 => {
-          return ::std::option::Some(Float64(
+          return ::std::option::Option::Some(Float64(
             ()
           ));
         }
         12 => {
-          return ::std::option::Some(Text(
+          return ::std::option::Option::Some(Text(
             ()
           ));
         }
         13 => {
-          return ::std::option::Some(Data(
+          return ::std::option::Option::Some(Data(
             ()
           ));
         }
         14 => {
-          return ::std::option::Some(List(
+          return ::std::option::Option::Some(List(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         15 => {
-          return ::std::option::Some(Enum(
+          return ::std::option::Option::Some(Enum(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         16 => {
-          return ::std::option::Some(Struct(
+          return ::std::option::Option::Some(Struct(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         17 => {
-          return ::std::option::Some(Interface(
+          return ::std::option::Option::Some(Interface(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         18 => {
-          return ::std::option::Some(AnyPointer(
+          return ::std::option::Option::Some(AnyPointer(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
-        _ => return ::std::option::None
+        _ => return ::std::option::Option::None
       }
     }
   }
@@ -2512,6 +2547,7 @@ pub mod type_ {
     AnyPointer(A4),
   }
   pub type WhichReader<'a> = Which<'a,::schema_capnp::type_::list::Reader<'a>,::schema_capnp::type_::enum_::Reader<'a>,::schema_capnp::type_::struct_::Reader<'a>,::schema_capnp::type_::interface::Reader<'a>,::schema_capnp::type_::any_pointer::Reader<'a>>;
+  impl <'a> Copy for WhichReader<'a> {}
   pub type WhichBuilder<'a> = Which<'a,::schema_capnp::type_::list::Builder<'a>,::schema_capnp::type_::enum_::Builder<'a>,::schema_capnp::type_::struct_::Builder<'a>,::schema_capnp::type_::interface::Builder<'a>,::schema_capnp::type_::any_pointer::Builder<'a>>;
 
   pub mod list {
@@ -2522,6 +2558,7 @@ pub mod type_ {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -2546,6 +2583,7 @@ pub mod type_ {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -2599,6 +2637,7 @@ pub mod type_ {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -2627,6 +2666,7 @@ pub mod type_ {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -2688,6 +2728,7 @@ pub mod type_ {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -2716,6 +2757,7 @@ pub mod type_ {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -2777,6 +2819,7 @@ pub mod type_ {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -2805,6 +2848,7 @@ pub mod type_ {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -2868,6 +2912,7 @@ pub mod type_ {
 
     pub use self::Which::{Unconstrained,Parameter,ImplicitMethodParameter};
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -2887,25 +2932,26 @@ pub mod type_ {
       pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
         match self.reader.get_data_field::<u16>(4) {
           0 => {
-            return ::std::option::Some(Unconstrained(
+            return ::std::option::Option::Some(Unconstrained(
               ()
             ));
           }
           1 => {
-            return ::std::option::Some(Parameter(
+            return ::std::option::Option::Some(Parameter(
               ::capnp::traits::FromStructReader::new(self.reader)
             ));
           }
           2 => {
-            return ::std::option::Some(ImplicitMethodParameter(
+            return ::std::option::Option::Some(ImplicitMethodParameter(
               ::capnp::traits::FromStructReader::new(self.reader)
             ));
           }
-          _ => return ::std::option::None
+          _ => return ::std::option::Option::None
         }
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -2942,21 +2988,21 @@ pub mod type_ {
       pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
         match self.builder.get_data_field::<u16>(4) {
           0 => {
-            return ::std::option::Some(Unconstrained(
+            return ::std::option::Option::Some(Unconstrained(
               ()
             ));
           }
           1 => {
-            return ::std::option::Some(Parameter(
+            return ::std::option::Option::Some(Parameter(
               ::capnp::traits::FromStructBuilder::new(self.builder)
             ));
           }
           2 => {
-            return ::std::option::Some(ImplicitMethodParameter(
+            return ::std::option::Option::Some(ImplicitMethodParameter(
               ::capnp::traits::FromStructBuilder::new(self.builder)
             ));
           }
-          _ => return ::std::option::None
+          _ => return ::std::option::Option::None
         }
       }
     }
@@ -2975,6 +3021,7 @@ pub mod type_ {
       ImplicitMethodParameter(A1),
     }
     pub type WhichReader<'a> = Which<'a,::schema_capnp::type_::any_pointer::parameter::Reader<'a>,::schema_capnp::type_::any_pointer::implicit_method_parameter::Reader<'a>>;
+    impl <'a> Copy for WhichReader<'a> {}
     pub type WhichBuilder<'a> = Which<'a,::schema_capnp::type_::any_pointer::parameter::Builder<'a>,::schema_capnp::type_::any_pointer::implicit_method_parameter::Builder<'a>>;
 
     pub mod parameter {
@@ -2985,6 +3032,7 @@ pub mod type_ {
       use capnp::traits::{FromStructBuilder, FromStructReader};
       use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+      #[deriving(Copy)]
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
       impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -3010,6 +3058,7 @@ pub mod type_ {
         }
       }
 
+      #[deriving(Copy)]
       pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
       impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
         fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -3061,6 +3110,7 @@ pub mod type_ {
       use capnp::traits::{FromStructBuilder, FromStructReader};
       use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
+      #[deriving(Copy)]
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
       impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -3082,6 +3132,7 @@ pub mod type_ {
         }
       }
 
+      #[deriving(Copy)]
       pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
       impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
         fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
@@ -3129,6 +3180,7 @@ pub mod brand {
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 0, pointers : 1 };
 
+  #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -3153,6 +3205,7 @@ pub mod brand {
     }
   }
 
+  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -3187,7 +3240,7 @@ pub mod brand {
     }
     #[inline]
     pub fn set_scopes(&self, value : struct_list::Reader<'a,::schema_capnp::brand::scope::Reader<'a>>) {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value);
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
     }
     #[inline]
     pub fn init_scopes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::brand::scope::Builder<'a>> {
@@ -3220,6 +3273,7 @@ pub mod brand {
 
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 2, pointers : 1 };
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -3247,20 +3301,21 @@ pub mod brand {
       pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
         match self.reader.get_data_field::<u16>(4) {
           0 => {
-            return ::std::option::Some(Bind(
+            return ::std::option::Option::Some(Bind(
               struct_list::Reader::new(self.reader.get_pointer_field(0).get_list(layout::InlineComposite, ::std::ptr::null()))
             ));
           }
           1 => {
-            return ::std::option::Some(Inherit(
+            return ::std::option::Option::Some(Inherit(
               ()
             ));
           }
-          _ => return ::std::option::None
+          _ => return ::std::option::Option::None
         }
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
@@ -3300,7 +3355,7 @@ pub mod brand {
       #[inline]
       pub fn set_bind(&self, value : struct_list::Reader<'a,::schema_capnp::brand::binding::Reader<'a>>) {
         self.builder.set_data_field::<u16>(4, 0);
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value);
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
       }
       #[inline]
       pub fn init_bind(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::brand::binding::Builder<'a>> {
@@ -3320,16 +3375,16 @@ pub mod brand {
       pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
         match self.builder.get_data_field::<u16>(4) {
           0 => {
-            return ::std::option::Some(Bind(
+            return ::std::option::Option::Some(Bind(
               struct_list::Builder::new(self.builder.get_pointer_field(0).get_struct_list(::schema_capnp::brand::binding::STRUCT_SIZE, ::std::ptr::null()))
             ));
           }
           1 => {
-            return ::std::option::Some(Inherit(
+            return ::std::option::Option::Some(Inherit(
               ()
             ));
           }
-          _ => return ::std::option::None
+          _ => return ::std::option::Option::None
         }
       }
     }
@@ -3347,6 +3402,7 @@ pub mod brand {
       Inherit(()),
     }
     pub type WhichReader<'a> = Which<'a,struct_list::Reader<'a,::schema_capnp::brand::binding::Reader<'a>>>;
+    impl <'a> Copy for WhichReader<'a> {}
     pub type WhichBuilder<'a> = Which<'a,struct_list::Builder<'a,::schema_capnp::brand::binding::Builder<'a>>>;
   }
 
@@ -3362,6 +3418,7 @@ pub mod brand {
 
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -3385,20 +3442,21 @@ pub mod brand {
       pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
         match self.reader.get_data_field::<u16>(0) {
           0 => {
-            return ::std::option::Some(Unbound(
+            return ::std::option::Option::Some(Unbound(
               ()
             ));
           }
           1 => {
-            return ::std::option::Some(Type(
+            return ::std::option::Option::Some(Type(
               ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(0).get_struct( ::std::ptr::null()))
             ));
           }
-          _ => return ::std::option::None
+          _ => return ::std::option::Option::None
         }
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
@@ -3449,16 +3507,16 @@ pub mod brand {
       pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
         match self.builder.get_data_field::<u16>(0) {
           0 => {
-            return ::std::option::Some(Unbound(
+            return ::std::option::Option::Some(Unbound(
               ()
             ));
           }
           1 => {
-            return ::std::option::Some(Type(
+            return ::std::option::Option::Some(Type(
               ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(::schema_capnp::type_::STRUCT_SIZE, ::std::ptr::null()))
             ));
           }
-          _ => return ::std::option::None
+          _ => return ::std::option::Option::None
         }
       }
     }
@@ -3476,6 +3534,7 @@ pub mod brand {
       Type(A0),
     }
     pub type WhichReader<'a> = Which<'a,::schema_capnp::type_::Reader<'a>>;
+    impl <'a> Copy for WhichReader<'a> {}
     pub type WhichBuilder<'a> = Which<'a,::schema_capnp::type_::Builder<'a>>;
   }
 }
@@ -3492,6 +3551,7 @@ pub mod value {
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 2, pointers : 1 };
 
+  #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -3531,105 +3591,106 @@ pub mod value {
     pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(0) {
         0 => {
-          return ::std::option::Some(Void(
+          return ::std::option::Option::Some(Void(
             ()
           ));
         }
         1 => {
-          return ::std::option::Some(Bool(
+          return ::std::option::Option::Some(Bool(
             self.reader.get_bool_field(16)
           ));
         }
         2 => {
-          return ::std::option::Some(Int8(
+          return ::std::option::Option::Some(Int8(
             self.reader.get_data_field::<i8>(2)
           ));
         }
         3 => {
-          return ::std::option::Some(Int16(
+          return ::std::option::Option::Some(Int16(
             self.reader.get_data_field::<i16>(1)
           ));
         }
         4 => {
-          return ::std::option::Some(Int32(
+          return ::std::option::Option::Some(Int32(
             self.reader.get_data_field::<i32>(1)
           ));
         }
         5 => {
-          return ::std::option::Some(Int64(
+          return ::std::option::Option::Some(Int64(
             self.reader.get_data_field::<i64>(1)
           ));
         }
         6 => {
-          return ::std::option::Some(Uint8(
+          return ::std::option::Option::Some(Uint8(
             self.reader.get_data_field::<u8>(2)
           ));
         }
         7 => {
-          return ::std::option::Some(Uint16(
+          return ::std::option::Option::Some(Uint16(
             self.reader.get_data_field::<u16>(1)
           ));
         }
         8 => {
-          return ::std::option::Some(Uint32(
+          return ::std::option::Option::Some(Uint32(
             self.reader.get_data_field::<u32>(1)
           ));
         }
         9 => {
-          return ::std::option::Some(Uint64(
+          return ::std::option::Option::Some(Uint64(
             self.reader.get_data_field::<u64>(1)
           ));
         }
         10 => {
-          return ::std::option::Some(Float32(
+          return ::std::option::Option::Some(Float32(
             self.reader.get_data_field::<f32>(1)
           ));
         }
         11 => {
-          return ::std::option::Some(Float64(
+          return ::std::option::Option::Some(Float64(
             self.reader.get_data_field::<f64>(1)
           ));
         }
         12 => {
-          return ::std::option::Some(Text(
+          return ::std::option::Option::Some(Text(
             self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
           ));
         }
         13 => {
-          return ::std::option::Some(Data(
+          return ::std::option::Option::Some(Data(
             self.reader.get_pointer_field(0).get_data(::std::ptr::null(), 0)
           ));
         }
         14 => {
-          return ::std::option::Some(List(
+          return ::std::option::Option::Some(List(
             ::capnp::any_pointer::Reader::new(self.reader.get_pointer_field(0))
           ));
         }
         15 => {
-          return ::std::option::Some(Enum(
+          return ::std::option::Option::Some(Enum(
             self.reader.get_data_field::<u16>(1)
           ));
         }
         16 => {
-          return ::std::option::Some(Struct(
+          return ::std::option::Option::Some(Struct(
             ::capnp::any_pointer::Reader::new(self.reader.get_pointer_field(0))
           ));
         }
         17 => {
-          return ::std::option::Some(Interface(
+          return ::std::option::Option::Some(Interface(
             ()
           ));
         }
         18 => {
-          return ::std::option::Some(AnyPointer(
+          return ::std::option::Option::Some(AnyPointer(
             ::capnp::any_pointer::Reader::new(self.reader.get_pointer_field(0))
           ));
         }
-        _ => return ::std::option::None
+        _ => return ::std::option::Option::None
       }
     }
   }
 
+  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -3791,101 +3852,101 @@ pub mod value {
     pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(0) {
         0 => {
-          return ::std::option::Some(Void(
+          return ::std::option::Option::Some(Void(
             ()
           ));
         }
         1 => {
-          return ::std::option::Some(Bool(
+          return ::std::option::Option::Some(Bool(
             self.builder.get_bool_field(16)
           ));
         }
         2 => {
-          return ::std::option::Some(Int8(
+          return ::std::option::Option::Some(Int8(
             self.builder.get_data_field::<i8>(2)
           ));
         }
         3 => {
-          return ::std::option::Some(Int16(
+          return ::std::option::Option::Some(Int16(
             self.builder.get_data_field::<i16>(1)
           ));
         }
         4 => {
-          return ::std::option::Some(Int32(
+          return ::std::option::Option::Some(Int32(
             self.builder.get_data_field::<i32>(1)
           ));
         }
         5 => {
-          return ::std::option::Some(Int64(
+          return ::std::option::Option::Some(Int64(
             self.builder.get_data_field::<i64>(1)
           ));
         }
         6 => {
-          return ::std::option::Some(Uint8(
+          return ::std::option::Option::Some(Uint8(
             self.builder.get_data_field::<u8>(2)
           ));
         }
         7 => {
-          return ::std::option::Some(Uint16(
+          return ::std::option::Option::Some(Uint16(
             self.builder.get_data_field::<u16>(1)
           ));
         }
         8 => {
-          return ::std::option::Some(Uint32(
+          return ::std::option::Option::Some(Uint32(
             self.builder.get_data_field::<u32>(1)
           ));
         }
         9 => {
-          return ::std::option::Some(Uint64(
+          return ::std::option::Option::Some(Uint64(
             self.builder.get_data_field::<u64>(1)
           ));
         }
         10 => {
-          return ::std::option::Some(Float32(
+          return ::std::option::Option::Some(Float32(
             self.builder.get_data_field::<f32>(1)
           ));
         }
         11 => {
-          return ::std::option::Some(Float64(
+          return ::std::option::Option::Some(Float64(
             self.builder.get_data_field::<f64>(1)
           ));
         }
         12 => {
-          return ::std::option::Some(Text(
+          return ::std::option::Option::Some(Text(
             self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
           ));
         }
         13 => {
-          return ::std::option::Some(Data(
+          return ::std::option::Option::Some(Data(
             self.builder.get_pointer_field(0).get_data(::std::ptr::null(), 0)
           ));
         }
         14 => {
-          return ::std::option::Some(List(
+          return ::std::option::Option::Some(List(
             ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
         15 => {
-          return ::std::option::Some(Enum(
+          return ::std::option::Option::Some(Enum(
             self.builder.get_data_field::<u16>(1)
           ));
         }
         16 => {
-          return ::std::option::Some(Struct(
+          return ::std::option::Option::Some(Struct(
             ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
         17 => {
-          return ::std::option::Some(Interface(
+          return ::std::option::Option::Some(Interface(
             ()
           ));
         }
         18 => {
-          return ::std::option::Some(AnyPointer(
+          return ::std::option::Option::Some(AnyPointer(
             ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
-        _ => return ::std::option::None
+        _ => return ::std::option::Option::None
       }
     }
   }
@@ -3920,6 +3981,7 @@ pub mod value {
     AnyPointer(A4),
   }
   pub type WhichReader<'a> = Which<'a,text::Reader<'a>,data::Reader<'a>,::capnp::any_pointer::Reader<'a>,::capnp::any_pointer::Reader<'a>,::capnp::any_pointer::Reader<'a>>;
+  impl <'a> Copy for WhichReader<'a> {}
   pub type WhichBuilder<'a> = Which<'a,text::Builder<'a>,data::Builder<'a>,::capnp::any_pointer::Builder<'a>,::capnp::any_pointer::Builder<'a>,::capnp::any_pointer::Builder<'a>>;
 }
 
@@ -3933,6 +3995,7 @@ pub mod annotation {
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 2 };
 
+  #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -3968,6 +4031,7 @@ pub mod annotation {
     }
   }
 
+  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -4053,8 +4117,7 @@ pub mod annotation {
 }
 
 #[repr(u16)]
-#[deriving(FromPrimitive)]
-#[deriving(PartialEq)]
+#[deriving(PartialEq, FromPrimitive, Copy)]
 pub enum ElementSize {
   Empty = 0,
   Bit = 1,
@@ -4080,6 +4143,7 @@ pub mod code_generator_request {
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 0, pointers : 2 };
 
+  #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -4111,6 +4175,7 @@ pub mod code_generator_request {
     }
   }
 
+  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -4145,7 +4210,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_nodes(&self, value : struct_list::Reader<'a,::schema_capnp::node::Reader<'a>>) {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value);
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
     }
     #[inline]
     pub fn init_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
@@ -4161,7 +4226,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn set_requested_files(&self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::Reader<'a>>) {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
     }
     #[inline]
     pub fn init_requested_files(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
@@ -4192,6 +4257,7 @@ pub mod code_generator_request {
 
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 2 };
 
+    #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -4227,6 +4293,7 @@ pub mod code_generator_request {
       }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
@@ -4284,7 +4351,7 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn set_imports(&self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::import::Reader<'a>>) {
-        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value);
+        ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
       }
       #[inline]
       pub fn init_imports(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {
@@ -4315,6 +4382,7 @@ pub mod code_generator_request {
 
       pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
 
+      #[deriving(Copy)]
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
       impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
@@ -4343,6 +4411,7 @@ pub mod code_generator_request {
         }
       }
 
+      #[deriving(Copy)]
       pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
       impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
         #[inline]
