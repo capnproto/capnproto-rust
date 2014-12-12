@@ -13,6 +13,7 @@ use arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, 
 use layout;
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 
+#[deriving(Copy)]
 pub struct ReaderOptions {
     pub traversal_limit_in_words : u64,
     pub nesting_limit : i32,
@@ -106,6 +107,7 @@ impl <'a> SegmentArrayMessageReader<'a> {
     }
 }
 
+#[deriving(Copy)]
 pub enum AllocationStrategy {
     FixedSize,
     GrowHeuristically
@@ -114,6 +116,7 @@ pub enum AllocationStrategy {
 pub const SUGGESTED_FIRST_SEGMENT_WORDS : u32 = 1024;
 pub const SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = AllocationStrategy::GrowHeuristically;
 
+#[deriving(Copy)]
 pub struct BuilderOptions {
     pub first_segment_words : u32,
     pub allocation_strategy : AllocationStrategy,

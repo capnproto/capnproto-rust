@@ -25,6 +25,7 @@
 #![feature(phase)]
 #![allow(experimental)]
 #![feature(unsafe_destructor)]
+#![allow(raw_pointer_deriving)]
 
 #![crate_name="capnp"]
 #![crate_type = "lib"]

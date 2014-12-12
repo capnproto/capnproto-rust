@@ -25,6 +25,7 @@ pub mod text {
         }
     }
 
+    #[deriving(Copy)]
     pub struct Builder<'a> {
         ptr : *mut u8,
         len : uint,

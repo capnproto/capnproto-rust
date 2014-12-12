@@ -14,6 +14,7 @@ pub use self::FirstSegment::{NumWords, ZeroedWords};
 
 pub type SegmentId = u32;
 
+#[deriving(Copy)]
 pub struct SegmentReader {
     pub arena : ArenaPtr,
     pub ptr : *const Word,
@@ -36,6 +37,7 @@ impl SegmentReader {
     }
 }
 
+#[deriving(Copy)]
 pub struct SegmentBuilder {
     pub reader : SegmentReader,
     pub id : SegmentId,
@@ -315,6 +317,7 @@ impl BuilderArena {
     }
 }
 
+#[deriving(Copy)]
 pub enum ArenaPtr {
     Reader(*const ReaderArena),
     Builder(*mut BuilderArena),
