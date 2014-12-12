@@ -63,7 +63,6 @@ pub mod primitive_list {
         }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a, T> {
         builder : ListBuilder<'a>
     }
