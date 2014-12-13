@@ -679,6 +679,9 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                      offset)));
 
                     initter_params.push("size : u32");
+                    initter_interior.push(
+                        Line(format!("::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({}), size)", offset)));
+
                     match ot1.get_element_type().which() {
                         None => panic!("unsupported type"),
                         Some(t1) => {
@@ -689,14 +692,6 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                 type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
 
                                     let type_str = prim_type_str(t1);
-                                    let size_str = element_size_str(element_size(t1));
-
-                                    initter_interior.push(Line(format!("primitive_list::Builder::<'a,{}>::new(",
-                                                               type_str)));
-                                    initter_interior.push(
-                                        Indent(box Line(format!("self.builder.get_pointer_field({}).init_list(layout::{},size)",
-                                                                offset, size_str))));
-                                    initter_interior.push(Line(")".to_string()));
 
                                     (Some(format!("primitive_list::Reader<'a,{}>", type_str)),
                                      Some(format!("primitive_list::Builder<'a,{}>", type_str)))
@@ -706,14 +701,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                     let scope = &scope_map[id];
                                     let the_mod = scope.connect("::");
                                     let type_str = format!("{}", the_mod);
-                                    initter_interior.push(Line(format!("enum_list::Builder::<'a, {}>::new(",
-                                                            type_str)));
-                                    initter_interior.push(
-                                        Indent(
-                                            box Line(
-                                                format!("self.builder.get_pointer_field({}).init_list(layout::TwoBytes,size)",
-                                                     offset))));
-                                    initter_interior.push(Line(")".to_string()));
+
                                     (Some(format!("enum_list::Reader<'a,{}>", type_str)),
                                      Some(format!("enum_list::Builder<'a,{}>", type_str)))
                                 }
@@ -722,26 +710,15 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                     let scope = &scope_map[id];
                                     let the_mod = scope.connect("::");
 
-                                    initter_interior.push(Line(format!("struct_list::Builder::<'a, {}::Builder<'a>>::new(", the_mod)));
-                                    initter_interior.push(
-                                       Indent(
-                                          box Line(
-                                             format!("self.builder.get_pointer_field({}).init_struct_list(size, {}::STRUCT_SIZE))",
-                                                  offset, the_mod))));
-
                                     (Some(format!("struct_list::Reader<'a,{}::Reader<'a>>", the_mod)),
                                      Some(format!("struct_list::Builder<'a,{}::Builder<'a>>", the_mod)))
                                 }
                                 type_::Text(()) => {
-                                    initter_interior.push(
-                                        Line(format!("text_list::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer, size))", offset)));
 
                                     (Some(format!("text_list::Reader")),
                                      Some(format!("text_list::Builder<'a>")))
                                 }
                                 type_::Data(()) => {
-                                    initter_interior.push(
-                                        Line(format!("data_list::Builder::<'a>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer, size))", offset)));
 
                                     (Some(format!("data_list::Reader")),
                                      Some(format!("data_list::Builder<'a>")))
@@ -749,10 +726,6 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                 type_::List(t1) => {
                                     let type_param = list_list_type_param(scope_map, t1.get_element_type(),
                                                                           false, "'a");
-                                    initter_interior.push(
-                                        Line(format!("list_list::Builder::<'a,{}>::new(self.builder.get_pointer_field({}).init_list(layout::Pointer,size))",
-                                                     type_param, offset)));
-
                                     setter_lifetime_param = "<'b>";
 
                                     (Some(format!("list_list::Reader<'b, {}>",
