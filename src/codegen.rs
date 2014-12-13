@@ -1153,6 +1153,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Line(
                         format!("pub const STRUCT_SIZE : layout::StructSize = layout::StructSize {{ data : {}, pointers : {} }};",
                                 data_size as uint, pointer_size as uint)));
+                preamble.push(
+                    Line(
+                        format!("pub const TYPE_ID: u64 = {:#x};", node_id)));
                 preamble.push(BlankLine);
             }
 
@@ -1271,6 +1274,14 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Indent(
                         box Line("fn to_u16(self) -> u16 { self as u16 }".to_string())),
                     Line("}".to_string()))));
+
+            output.push(
+                Branch(vec!(
+                    Line(format!("impl ::capnp::traits::HasTypeId for {} {{", *names.last().unwrap())),
+                    Indent(box Line("#[inline]".to_string())),
+                    Indent(
+                        box Line(format!("fn type_id(_unused_self : Option<{}>) -> u64 {{ {:#x}u64 }}", *names.last().unwrap(), node_id).to_string())),
+                    Line("}".to_string()))));
         }
 
         Some(node::Interface(interface)) => {
@@ -1286,6 +1297,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};".to_string()));
             mod_interior.push(Line("use capnp::capability;".to_string()));
             mod_interior.push(BlankLine);
+            mod_interior.push(Line(format!("pub const INTERFACE_ID: u64 = {:#x};", node_id)));
 
             let methods = interface.get_methods();
             for ordinal in range(0, methods.len()) {

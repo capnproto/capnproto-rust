@@ -14,6 +14,7 @@ pub mod node {
   pub use self::Which::{File,Struct,Enum,Interface,Const,Annotation};
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 5, pointers : 6 };
+  pub const TYPE_ID: u64 = 0xe682ab4cf923a417;
 
   #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -355,6 +356,7 @@ pub mod node {
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 0, pointers : 1 };
+    pub const TYPE_ID: u64 = 0xb9521bccf10fa3b1;
 
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -446,6 +448,7 @@ pub mod node {
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
+    pub const TYPE_ID: u64 = 0xdebf55bbfa0fc242;
 
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1201,6 +1204,7 @@ pub mod field {
   pub use self::Which::{Slot,Group};
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 4 };
+  pub const TYPE_ID: u64 = 0x9aad50a41f4af45f;
 
   #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1708,6 +1712,7 @@ pub mod enumerant {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 2 };
+  pub const TYPE_ID: u64 = 0x978a7cebdc549a4d;
 
   #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1833,6 +1838,7 @@ pub mod superclass {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
+  pub const TYPE_ID: u64 = 0xa9962a9ed0a4d7f8;
 
   #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -1939,6 +1945,7 @@ pub mod method {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 5 };
+  pub const TYPE_ID: u64 = 0x9500cce23b334d80;
 
   #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -2162,6 +2169,7 @@ pub mod type_ {
   pub use self::Which::{Void,Bool,Int8,Int16,Int32,Int64,Uint8,Uint16,Uint32,Uint64,Float32,Float64,Text,Data,List,Enum,Struct,Interface,AnyPointer};
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 1 };
+  pub const TYPE_ID: u64 = 0xd07378ede1f9cc60;
 
   #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -3168,6 +3176,7 @@ pub mod brand {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 0, pointers : 1 };
+  pub const TYPE_ID: u64 = 0x903455f06065422b;
 
   #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -3260,6 +3269,7 @@ pub mod brand {
     pub use self::Which::{Bind,Inherit};
 
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 2, pointers : 1 };
+    pub const TYPE_ID: u64 = 0xabd73485a9636bc9;
 
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -3404,6 +3414,7 @@ pub mod brand {
     pub use self::Which::{Unbound,Type};
 
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
+    pub const TYPE_ID: u64 = 0xc863cd16969ee7fc;
 
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -3537,6 +3548,7 @@ pub mod value {
   pub use self::Which::{Void,Bool,Int8,Int16,Int32,Int64,Uint8,Uint16,Uint32,Uint64,Float32,Float64,Text,Data,List,Enum,Struct,Interface,AnyPointer};
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 2, pointers : 1 };
+  pub const TYPE_ID: u64 = 0xce23dcd2d7b00c9b;
 
   #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -3981,6 +3993,7 @@ pub mod annotation {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 2 };
+  pub const TYPE_ID: u64 = 0xf1c8950dab257542;
 
   #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -4119,6 +4132,10 @@ impl ::capnp::traits::ToU16 for ElementSize {
   #[inline]
   fn to_u16(self) -> u16 { self as u16 }
 }
+impl ::capnp::traits::HasTypeId for ElementSize {
+  #[inline]
+  fn type_id(_unused_self : Option<ElementSize>) -> u64 { 0xd1958f7dba521926u64 }
+}
 
 pub mod code_generator_request {
   #![allow(unused_imports)]
@@ -4129,6 +4146,7 @@ pub mod code_generator_request {
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
   pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 0, pointers : 2 };
+  pub const TYPE_ID: u64 = 0xbfc546f6210ad7ce;
 
   #[deriving(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -4241,6 +4259,7 @@ pub mod code_generator_request {
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 2 };
+    pub const TYPE_ID: u64 = 0xcfea0eb02e810062;
 
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
@@ -4365,6 +4384,7 @@ pub mod code_generator_request {
       use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
       pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
+      pub const TYPE_ID: u64 = 0xae504193122357e5;
 
       #[deriving(Copy)]
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
