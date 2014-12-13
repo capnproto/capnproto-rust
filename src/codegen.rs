@@ -1320,7 +1320,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};".to_string()));
             mod_interior.push(Line("use capnp::capability;".to_string()));
             mod_interior.push(BlankLine);
-            mod_interior.push(Line(format!("pub const INTERFACE_ID: u64 = {:#x};", node_id)));
+            mod_interior.push(Line(format!("pub const TYPE_ID: u64 = {:#x};", node_id)));
 
             let methods = interface.get_methods();
             for ordinal in range(0, methods.len()) {
@@ -1371,7 +1371,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                  camel_to_snake_case(name), params_name, results_name, results_name)));
 
                 client_impl_interior.push(Indent(
-                        box Line(format!("self.client.new_call(INTERFACE_ID, {}, None)", ordinal))));
+                        box Line(format!("self.client.new_call(TYPE_ID, {}, None)", ordinal))));
                 client_impl_interior.push(Line("}".to_string()));
 
                 method.get_annotations();
@@ -1421,7 +1421,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Branch(vec!(
                         Line("impl ::capnp::traits::HasTypeId for Client {".to_string()),
                         Indent(box Line("#[inline]".to_string())),
-                        Indent(box Line("fn type_id(_unused_self : Option<Client>) -> u64 { INTERFACE_ID }".to_string())),
+                        Indent(box Line("fn type_id(_unused_self : Option<Client>) -> u64 { TYPE_ID }".to_string())),
                         Line("}".to_string()))));
 
 
@@ -1453,7 +1453,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string())),
                     Indent(box Indent(box Line("match interface_id {".to_string()))),
                     Indent(box Indent(box Indent(
-                        box Line("INTERFACE_ID => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),".to_string())))),
+                        box Line("TYPE_ID => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),".to_string())))),
                     Indent(box Indent(box Indent(box Branch(base_dispatch_arms)))),
                     Indent(box Indent(box Indent(box Line("_ => {}".to_string())))),
                     Indent(box Indent(box Line("}".to_string()))),
