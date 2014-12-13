@@ -1419,6 +1419,14 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             mod_interior.push(
                     Branch(vec!(
+                        Line("impl ::capnp::traits::HasTypeId for Client {".to_string()),
+                        Indent(box Line("#[inline]".to_string())),
+                        Indent(box Line("fn type_id(_unused_self : Option<Client>) -> u64 { INTERFACE_ID }".to_string())),
+                        Line("}".to_string()))));
+
+
+            mod_interior.push(
+                    Branch(vec!(
                         Line("impl Clone for Client {".to_string()),
                         Indent(box Line("fn clone(&self) -> Client {".to_string())),
                         Indent(box Indent(box Line("Client { client : capability::Client::new(self.client.hook.copy()) }".to_string()))),
