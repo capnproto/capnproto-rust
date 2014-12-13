@@ -1371,7 +1371,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                  camel_to_snake_case(name), params_name, results_name, results_name)));
 
                 client_impl_interior.push(Indent(
-                        box Line(format!("self.client.new_call(0x{:x}, {}, None)", node_id, ordinal))));
+                        box Line(format!("self.client.new_call(INTERFACE_ID, {}, None)", ordinal))));
                 client_impl_interior.push(Line("}".to_string()));
 
                 method.get_annotations();
@@ -1445,8 +1445,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string())),
                     Indent(box Indent(box Line("match interface_id {".to_string()))),
                     Indent(box Indent(box Indent(
-                        box Line(format!("0x{:x} => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),",
-                                                     node_id))))),
+                        box Line("INTERFACE_ID => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),".to_string())))),
                     Indent(box Indent(box Indent(box Branch(base_dispatch_arms)))),
                     Indent(box Indent(box Indent(box Line("_ => {}".to_string())))),
                     Indent(box Indent(box Line("}".to_string()))),
