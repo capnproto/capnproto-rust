@@ -191,8 +191,7 @@ pub mod node {
     }
     #[inline]
     pub fn init_nested_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
-      struct_list::Builder::<'a, ::schema_capnp::node::nested_node::Builder<'a>>::new(
-        self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::node::nested_node::STRUCT_SIZE))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_nested_nodes(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
@@ -207,8 +206,7 @@ pub mod node {
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
-      struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
-        self.builder.get_pointer_field(2).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), size)
     }
     pub fn has_annotations(&self) -> bool {
       !self.builder.get_pointer_field(2).is_null()
@@ -277,8 +275,7 @@ pub mod node {
     }
     #[inline]
     pub fn init_parameters(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
-      struct_list::Builder::<'a, ::schema_capnp::node::parameter::Builder<'a>>::new(
-        self.builder.get_pointer_field(5).init_struct_list(size, ::schema_capnp::node::parameter::STRUCT_SIZE))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(5), size)
     }
     pub fn has_parameters(&self) -> bool {
       !self.builder.get_pointer_field(5).is_null()
@@ -674,8 +671,7 @@ pub mod node {
       }
       #[inline]
       pub fn init_fields(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
-        struct_list::Builder::<'a, ::schema_capnp::field::Builder<'a>>::new(
-          self.builder.get_pointer_field(3).init_struct_list(size, ::schema_capnp::field::STRUCT_SIZE))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_fields(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
@@ -751,8 +747,7 @@ pub mod node {
       }
       #[inline]
       pub fn init_enumerants(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
-        struct_list::Builder::<'a, ::schema_capnp::enumerant::Builder<'a>>::new(
-          self.builder.get_pointer_field(3).init_struct_list(size, ::schema_capnp::enumerant::STRUCT_SIZE))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_enumerants(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
@@ -835,8 +830,7 @@ pub mod node {
       }
       #[inline]
       pub fn init_methods(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
-        struct_list::Builder::<'a, ::schema_capnp::method::Builder<'a>>::new(
-          self.builder.get_pointer_field(3).init_struct_list(size, ::schema_capnp::method::STRUCT_SIZE))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_methods(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
@@ -851,8 +845,7 @@ pub mod node {
       }
       #[inline]
       pub fn init_superclasses(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::superclass::Builder<'a>> {
-        struct_list::Builder::<'a, ::schema_capnp::superclass::Builder<'a>>::new(
-          self.builder.get_pointer_field(4).init_struct_list(size, ::schema_capnp::superclass::STRUCT_SIZE))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), size)
       }
       pub fn has_superclasses(&self) -> bool {
         !self.builder.get_pointer_field(4).is_null()
@@ -1331,8 +1324,7 @@ pub mod field {
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
-      struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
-        self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
@@ -1815,8 +1807,7 @@ pub mod enumerant {
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
-      struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
-        self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
@@ -2092,8 +2083,7 @@ pub mod method {
     }
     #[inline]
     pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
-      struct_list::Builder::<'a, ::schema_capnp::annotation::Builder<'a>>::new(
-        self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::annotation::STRUCT_SIZE))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
@@ -2138,8 +2128,7 @@ pub mod method {
     }
     #[inline]
     pub fn init_implicit_parameters(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
-      struct_list::Builder::<'a, ::schema_capnp::node::parameter::Builder<'a>>::new(
-        self.builder.get_pointer_field(4).init_struct_list(size, ::schema_capnp::node::parameter::STRUCT_SIZE))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), size)
     }
     pub fn has_implicit_parameters(&self) -> bool {
       !self.builder.get_pointer_field(4).is_null()
@@ -3244,8 +3233,7 @@ pub mod brand {
     }
     #[inline]
     pub fn init_scopes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::brand::scope::Builder<'a>> {
-      struct_list::Builder::<'a, ::schema_capnp::brand::scope::Builder<'a>>::new(
-        self.builder.get_pointer_field(0).init_struct_list(size, ::schema_capnp::brand::scope::STRUCT_SIZE))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
     }
     pub fn has_scopes(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
@@ -3360,8 +3348,7 @@ pub mod brand {
       #[inline]
       pub fn init_bind(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::brand::binding::Builder<'a>> {
         self.builder.set_data_field::<u16>(4, 0);
-        struct_list::Builder::<'a, ::schema_capnp::brand::binding::Builder<'a>>::new(
-          self.builder.get_pointer_field(0).init_struct_list(size, ::schema_capnp::brand::binding::STRUCT_SIZE))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
       }
       pub fn has_bind(&self) -> bool {
         if self.builder.get_data_field::<u16>(4) != 0 { return false; }
@@ -4214,8 +4201,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn init_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
-      struct_list::Builder::<'a, ::schema_capnp::node::Builder<'a>>::new(
-        self.builder.get_pointer_field(0).init_struct_list(size, ::schema_capnp::node::STRUCT_SIZE))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
     }
     pub fn has_nodes(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
@@ -4230,8 +4216,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn init_requested_files(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
-      struct_list::Builder::<'a, ::schema_capnp::code_generator_request::requested_file::Builder<'a>>::new(
-        self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::code_generator_request::requested_file::STRUCT_SIZE))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_requested_files(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
@@ -4355,8 +4340,7 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn init_imports(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {
-        struct_list::Builder::<'a, ::schema_capnp::code_generator_request::requested_file::import::Builder<'a>>::new(
-          self.builder.get_pointer_field(1).init_struct_list(size, ::schema_capnp::code_generator_request::requested_file::import::STRUCT_SIZE))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
       }
       pub fn has_imports(&self) -> bool {
         !self.builder.get_pointer_field(1).is_null()
