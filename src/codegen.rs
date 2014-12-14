@@ -415,7 +415,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                         );
                             } else {
                                 return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
-                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_struct_list({}::STRUCT_SIZE, ::std::ptr::null()))",
+                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_struct_list({}::_private::STRUCT_SIZE, ::std::ptr::null()))",
                                                      module, member, offset, the_mod))
                                         );
                             }
@@ -466,7 +466,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 }
                 Some((type_::Struct(st), _)) => {
                     let the_mod = scope_map[st.get_type_id()].connect("::");
-                    let middle_arg = if is_reader {format!("")} else {format!("{}::STRUCT_SIZE,", the_mod)};
+                    let middle_arg = if is_reader {format!("")} else {format!("{}::_private::STRUCT_SIZE,", the_mod)};
                     return (format!("{}::{}", the_mod, module_with_var),
                             Line(format!("::capnp::traits::FromStruct{}::new(self.{}.get_pointer_field({}).get_struct({} ::std::ptr::null()))",
                                       module, member, offset, middle_arg)))
@@ -751,7 +751,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                     setter_interior.push(
                         Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)", offset)));
                     initter_interior.push(
-                      Line(format!("::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field({}).init_struct({}::STRUCT_SIZE))",
+                      Line(format!("::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field({}).init_struct({}::_private::STRUCT_SIZE))",
                                    offset, the_mod)));
                     (Some(format!("{}::Reader", the_mod)), Some(format!("{}::Builder<'a>", the_mod)))
                 }
@@ -1053,6 +1053,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             let mut union_fields = Vec::new();
             let mut which_enums = Vec::new();
             let mut pipeline_impl_interior = Vec::new();
+            let mut private_mod_interior = Vec::new();
 
             let data_size = struct_reader.get_data_word_count();
             let pointer_size = struct_reader.get_pointer_count();
@@ -1143,7 +1144,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Branch(vec!(
                         Line("impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {".to_string()),
                         Indent(box Branch(vec!(Line("#[inline]".to_string()),
-                                            Line("fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { STRUCT_SIZE }".to_string())))),
+                                            Line("fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }".to_string())))),
                        Line("}".to_string())))
             };
 
@@ -1153,7 +1154,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Branch(vec!(
                         Line("impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {".to_string()),
                         Indent(box Branch(vec!(Line("#[inline]".to_string()),
-                                            Line("fn type_id(_unused_self : Option<Reader>) -> u64 { TYPE_ID }".to_string())))),
+                                            Line("fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }".to_string())))),
                        Line("}".to_string())))
             };
 
@@ -1163,21 +1164,20 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Branch(vec!(
                         Line("impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {".to_string()),
                         Indent(box Branch(vec!(Line("#[inline]".to_string()),
-                                            Line("fn type_id(_unused_self : Option<Builder>) -> u64 { TYPE_ID }".to_string())))),
+                                            Line("fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }".to_string())))),
                        Line("}".to_string())))
             };
 
 
-
             if !is_group {
-                preamble.push(
+                private_mod_interior.push(generate_import_statements());
+                private_mod_interior.push(
                     Line(
                         format!("pub const STRUCT_SIZE : layout::StructSize = layout::StructSize {{ data : {}, pointers : {} }};",
                                 data_size as uint, pointer_size as uint)));
-                preamble.push(
+                private_mod_interior.push(
                     Line(
                         format!("pub const TYPE_ID: u64 = {:#x};", node_id)));
-                preamble.push(BlankLine);
             }
 
             let from_pointer_builder_impl =
@@ -1188,10 +1188,10 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         Indent(
                             box Branch(vec!(
                                 Line("fn init_pointer(builder: ::capnp::layout::PointerBuilder<'a>, _size : u32) -> Builder<'a> {".to_string()),
-                                Indent(box Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(STRUCT_SIZE))".to_string())),
+                                Indent(box Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))".to_string())),
                                 Line("}".to_string()),
                                 Line("fn get_from_pointer(builder: ::capnp::layout::PointerBuilder<'a>) -> Builder<'a> {".to_string()),
-                                Indent(box Line("::capnp::traits::FromStructBuilder::new(builder.get_struct(STRUCT_SIZE, ::std::ptr::null()))".to_string())),
+                                Indent(box Line("::capnp::traits::FromStructBuilder::new(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))".to_string())),
                                 Line("}".to_string())))),
                         Line("}".to_string()),
                         BlankLine])
@@ -1261,6 +1261,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("impl Pipeline {".to_string()),
                 Indent(box Branch(pipeline_impl_interior)),
                 Line("}".to_string()),
+                Line("pub mod _private {".to_string()),
+                Indent(box Branch(private_mod_interior)),
+                Line("}".to_string()),
                 );
 
             output.push(Indent(box Branch(vec!(Branch(accessors),
@@ -1313,6 +1316,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             let mut server_interior = Vec::new();
             let mut mod_interior = Vec::new();
             let mut dispatch_arms = Vec::new();
+            let mut private_mod_interior = Vec::new();
+
+            private_mod_interior.push(Line(format!("pub const TYPE_ID: u64 = {:#x};", node_id)));
 
             mod_interior.push(Line ("#![allow(unused_variables)]".to_string()));
             mod_interior.push(Line("#![allow(unused_imports)]".to_string()));
@@ -1320,7 +1326,6 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};".to_string()));
             mod_interior.push(Line("use capnp::capability;".to_string()));
             mod_interior.push(BlankLine);
-            mod_interior.push(Line(format!("pub const TYPE_ID: u64 = {:#x};", node_id)));
 
             let methods = interface.get_methods();
             for ordinal in range(0, methods.len()) {
@@ -1371,7 +1376,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                  camel_to_snake_case(name), params_name, results_name, results_name)));
 
                 client_impl_interior.push(Indent(
-                        box Line(format!("self.client.new_call(TYPE_ID, {}, None)", ordinal))));
+                        box Line(format!("self.client.new_call(_private::TYPE_ID, {}, None)", ordinal))));
                 client_impl_interior.push(Line("}".to_string()));
 
                 method.get_annotations();
@@ -1421,7 +1426,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Branch(vec!(
                         Line("impl ::capnp::traits::HasTypeId for Client {".to_string()),
                         Indent(box Line("#[inline]".to_string())),
-                        Indent(box Line("fn type_id(_unused_self : Option<Client>) -> u64 { TYPE_ID }".to_string())),
+                        Indent(box Line("fn type_id(_unused_self : Option<Client>) -> u64 { _private::TYPE_ID }".to_string())),
                         Line("}".to_string()))));
 
 
@@ -1453,7 +1458,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string())),
                     Indent(box Indent(box Line("match interface_id {".to_string()))),
                     Indent(box Indent(box Indent(
-                        box Line("TYPE_ID => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),".to_string())))),
+                        box Line("_private::TYPE_ID => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),".to_string())))),
                     Indent(box Indent(box Indent(box Branch(base_dispatch_arms)))),
                     Indent(box Indent(box Indent(box Line("_ => {}".to_string())))),
                     Indent(box Indent(box Line("}".to_string()))),
@@ -1470,6 +1475,13 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Indent(box Indent(box Line("}".to_string()))),
                     Indent(box Line("}".to_string())),
                     Line("}".to_string()))));
+
+            mod_interior.push(
+                Branch(vec!(
+                    Line("pub mod _private {".to_string()),
+                    Indent(box Branch(private_mod_interior)),
+                    Line("}".to_string()),
+                    )));
 
 
             mod_interior.push(Branch(vec!(Branch(nested_output))));
