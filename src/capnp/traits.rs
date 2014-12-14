@@ -40,6 +40,10 @@ pub trait SetPointerBuilder<To> {
     fn set_pointer_builder<'a>(PointerBuilder<'a>, Self);
 }
 
+pub trait HasTypeId {
+    fn type_id(unused_self : Option<Self>) -> u64;
+}
+
 /// Because `#[deriving(ToPrimitive)]` is not supported, using our own custom trait is more
 /// convenient than using `ToPrimitive`.
 pub trait ToU16 {
