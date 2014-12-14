@@ -1148,37 +1148,20 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                        Line("}".to_string())))
             };
 
-            let reader_type_id =
-                if is_group { Branch(Vec::new()) }
-                else {
-                    Branch(vec!(
-                        Line("impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {".to_string()),
-                        Indent(box Branch(vec!(Line("#[inline]".to_string()),
-                                            Line("fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }".to_string())))),
-                       Line("}".to_string())))
-            };
-
-            let builder_type_id =
-                if is_group { Branch(Vec::new()) }
-                else {
-                    Branch(vec!(
-                        Line("impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {".to_string()),
-                        Indent(box Branch(vec!(Line("#[inline]".to_string()),
-                                            Line("fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }".to_string())))),
-                       Line("}".to_string())))
-            };
-
 
             if !is_group {
-                private_mod_interior.push(generate_import_statements());
+                private_mod_interior.push(
+                    Line(
+                        "use capnp::layout;".to_string()));
                 private_mod_interior.push(
                     Line(
                         format!("pub const STRUCT_SIZE : layout::StructSize = layout::StructSize {{ data : {}, pointers : {} }};",
                                 data_size as uint, pointer_size as uint)));
-                private_mod_interior.push(
-                    Line(
-                        format!("pub const TYPE_ID: u64 = {:#x};", node_id)));
             }
+            private_mod_interior.push(
+                Line(
+                    format!("pub const TYPE_ID: u64 = {:#x};", node_id)));
+
 
             let from_pointer_builder_impl =
                 if is_group { Branch(Vec::new()) }
@@ -1202,7 +1185,11 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("#[deriving(Copy)]".to_string()),
                 Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_string()),
                 BlankLine,
-                reader_type_id,
+                Branch(vec!(
+                        Line("impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {".to_string()),
+                        Indent(box Branch(vec!(Line("#[inline]".to_string()),
+                        Line("fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }".to_string())))),
+                        Line("}".to_string()))),
                 Line("impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
@@ -1226,7 +1213,11 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("#[deriving(Copy)]".to_string()),
                 Line("pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }".to_string()),
                 builder_struct_size,
-                builder_type_id,
+                Branch(vec!(
+                        Line("impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {".to_string()),
+                        Indent(box Branch(vec!(Line("#[inline]".to_string()),
+                        Line("fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }".to_string())))),
+                        Line("}".to_string()))),
                 Line("impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(

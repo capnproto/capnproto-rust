@@ -341,12 +341,7 @@ pub mod node {
   impl Pipeline {
   }
   mod _private {
-    #![allow(unused_imports)]
-    use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::{text, data};
     use capnp::layout;
-    use capnp::traits::{FromStructBuilder, FromStructReader};
-    use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 5, pointers : 6 };
     pub const TYPE_ID: u64 = 0xe682ab4cf923a417;
   }
@@ -458,12 +453,7 @@ pub mod node {
     impl Pipeline {
     }
     mod _private {
-      #![allow(unused_imports)]
-      use capnp::capability::{FromClientHook, FromTypelessPipeline};
-      use capnp::{text, data};
       use capnp::layout;
-      use capnp::traits::{FromStructBuilder, FromStructReader};
-      use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
       pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 0, pointers : 1 };
       pub const TYPE_ID: u64 = 0xb9521bccf10fa3b1;
     }
@@ -577,12 +567,7 @@ pub mod node {
     impl Pipeline {
     }
     mod _private {
-      #![allow(unused_imports)]
-      use capnp::capability::{FromClientHook, FromTypelessPipeline};
-      use capnp::{text, data};
       use capnp::layout;
-      use capnp::traits::{FromStructBuilder, FromStructReader};
-      use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
       pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
       pub const TYPE_ID: u64 = 0xdebf55bbfa0fc242;
     }
@@ -599,6 +584,10 @@ pub mod node {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -647,6 +636,10 @@ pub mod node {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -735,6 +728,7 @@ pub mod node {
     impl Pipeline {
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0x9ea0b19b37fb4435;
     }
   }
 
@@ -749,6 +743,10 @@ pub mod node {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -773,6 +771,10 @@ pub mod node {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -813,6 +815,7 @@ pub mod node {
     impl Pipeline {
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0xb54ab3364333f598;
     }
   }
 
@@ -827,6 +830,10 @@ pub mod node {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -858,6 +865,10 @@ pub mod node {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -913,6 +924,7 @@ pub mod node {
     impl Pipeline {
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0xe82753cff0c2218f;
     }
   }
 
@@ -927,6 +939,10 @@ pub mod node {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -958,6 +974,10 @@ pub mod node {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -1019,6 +1039,7 @@ pub mod node {
       }
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0xb18aa5ac7a0d9420;
     }
   }
 
@@ -1033,6 +1054,10 @@ pub mod node {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -1105,6 +1130,10 @@ pub mod node {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -1244,6 +1273,7 @@ pub mod node {
       }
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0xec1619d4400a0290;
     }
   }
 }
@@ -1456,12 +1486,7 @@ pub mod field {
     }
   }
   mod _private {
-    #![allow(unused_imports)]
-    use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::{text, data};
     use capnp::layout;
-    use capnp::traits::{FromStructBuilder, FromStructReader};
-    use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 4 };
     pub const TYPE_ID: u64 = 0x9aad50a41f4af45f;
   }
@@ -1485,6 +1510,10 @@ pub mod field {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -1524,6 +1553,10 @@ pub mod field {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -1601,6 +1634,7 @@ pub mod field {
       }
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0xc42305476bb4746f;
     }
   }
 
@@ -1615,6 +1649,10 @@ pub mod field {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -1636,6 +1674,10 @@ pub mod field {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -1669,6 +1711,7 @@ pub mod field {
     impl Pipeline {
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0xcafccddb68db1d11;
     }
   }
 
@@ -1685,6 +1728,10 @@ pub mod field {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -1718,6 +1765,10 @@ pub mod field {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -1768,6 +1819,7 @@ pub mod field {
     impl Pipeline {
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0xbb90d5c287870be6;
     }
     pub enum Which {
       Implicit(()),
@@ -1909,12 +1961,7 @@ pub mod enumerant {
   impl Pipeline {
   }
   mod _private {
-    #![allow(unused_imports)]
-    use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::{text, data};
     use capnp::layout;
-    use capnp::traits::{FromStructBuilder, FromStructReader};
-    use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 2 };
     pub const TYPE_ID: u64 = 0x978a7cebdc549a4d;
   }
@@ -2031,12 +2078,7 @@ pub mod superclass {
     }
   }
   mod _private {
-    #![allow(unused_imports)]
-    use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::{text, data};
     use capnp::layout;
-    use capnp::traits::{FromStructBuilder, FromStructReader};
-    use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
     pub const TYPE_ID: u64 = 0xa9962a9ed0a4d7f8;
   }
@@ -2268,12 +2310,7 @@ pub mod method {
     }
   }
   mod _private {
-    #![allow(unused_imports)]
-    use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::{text, data};
     use capnp::layout;
-    use capnp::traits::{FromStructBuilder, FromStructReader};
-    use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 5 };
     pub const TYPE_ID: u64 = 0x9500cce23b334d80;
   }
@@ -2649,12 +2686,7 @@ pub mod type_ {
   impl Pipeline {
   }
   mod _private {
-    #![allow(unused_imports)]
-    use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::{text, data};
     use capnp::layout;
-    use capnp::traits::{FromStructBuilder, FromStructReader};
-    use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 1 };
     pub const TYPE_ID: u64 = 0xd07378ede1f9cc60;
   }
@@ -2694,6 +2726,10 @@ pub mod type_ {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -2718,6 +2754,10 @@ pub mod type_ {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -2761,6 +2801,7 @@ pub mod type_ {
       }
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0x87e739250a60ea97;
     }
   }
 
@@ -2775,6 +2816,10 @@ pub mod type_ {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -2803,6 +2848,10 @@ pub mod type_ {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -2854,6 +2903,7 @@ pub mod type_ {
       }
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0x9e0e78711a7f87a9;
     }
   }
 
@@ -2868,6 +2918,10 @@ pub mod type_ {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -2896,6 +2950,10 @@ pub mod type_ {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -2947,6 +3005,7 @@ pub mod type_ {
       }
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0xac3a6f60ef4cc6d3;
     }
   }
 
@@ -2961,6 +3020,10 @@ pub mod type_ {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -2989,6 +3052,10 @@ pub mod type_ {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -3040,6 +3107,7 @@ pub mod type_ {
       }
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0xed8bca69f7fb0cbf;
     }
   }
 
@@ -3056,6 +3124,10 @@ pub mod type_ {
     #[deriving(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+    impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
       fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
         Reader { reader : reader }
@@ -3094,6 +3166,10 @@ pub mod type_ {
 
     #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+    impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+      #[inline]
+      fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+    }
     impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
       fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
@@ -3157,6 +3233,7 @@ pub mod type_ {
     impl Pipeline {
     }
     mod _private {
+      pub const TYPE_ID: u64 = 0xc2573fe8a23e49f1;
     }
     pub enum Which<'a,A0,A1> {
       Unconstrained(()),
@@ -3178,6 +3255,10 @@ pub mod type_ {
       #[deriving(Copy)]
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+      impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+        #[inline]
+        fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+      }
       impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
         fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
           Reader { reader : reader }
@@ -3203,6 +3284,10 @@ pub mod type_ {
 
       #[deriving(Copy)]
       pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+      impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+        #[inline]
+        fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+      }
       impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
         fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
           Builder { builder : builder }
@@ -3244,6 +3329,7 @@ pub mod type_ {
       impl Pipeline {
       }
       mod _private {
+        pub const TYPE_ID: u64 = 0x9dd1f724f4614a85;
       }
     }
 
@@ -3258,6 +3344,10 @@ pub mod type_ {
       #[deriving(Copy)]
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
+      impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+        #[inline]
+        fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+      }
       impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
         fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
           Reader { reader : reader }
@@ -3279,6 +3369,10 @@ pub mod type_ {
 
       #[deriving(Copy)]
       pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+      impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+        #[inline]
+        fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+      }
       impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
         fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
           Builder { builder : builder }
@@ -3312,6 +3406,7 @@ pub mod type_ {
       impl Pipeline {
       }
       mod _private {
+        pub const TYPE_ID: u64 = 0xbaefc9120c56e274;
       }
     }
   }
@@ -3413,12 +3508,7 @@ pub mod brand {
   impl Pipeline {
   }
   mod _private {
-    #![allow(unused_imports)]
-    use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::{text, data};
     use capnp::layout;
-    use capnp::traits::{FromStructBuilder, FromStructReader};
-    use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 0, pointers : 1 };
     pub const TYPE_ID: u64 = 0x903455f06065422b;
   }
@@ -3565,12 +3655,7 @@ pub mod brand {
     impl Pipeline {
     }
     mod _private {
-      #![allow(unused_imports)]
-      use capnp::capability::{FromClientHook, FromTypelessPipeline};
-      use capnp::{text, data};
       use capnp::layout;
-      use capnp::traits::{FromStructBuilder, FromStructReader};
-      use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
       pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 2, pointers : 1 };
       pub const TYPE_ID: u64 = 0xabd73485a9636bc9;
     }
@@ -3713,12 +3798,7 @@ pub mod brand {
     impl Pipeline {
     }
     mod _private {
-      #![allow(unused_imports)]
-      use capnp::capability::{FromClientHook, FromTypelessPipeline};
-      use capnp::{text, data};
       use capnp::layout;
-      use capnp::traits::{FromStructBuilder, FromStructReader};
-      use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
       pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
       pub const TYPE_ID: u64 = 0xc863cd16969ee7fc;
     }
@@ -4159,12 +4239,7 @@ pub mod value {
   impl Pipeline {
   }
   mod _private {
-    #![allow(unused_imports)]
-    use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::{text, data};
     use capnp::layout;
-    use capnp::traits::{FromStructBuilder, FromStructReader};
-    use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 2, pointers : 1 };
     pub const TYPE_ID: u64 = 0xce23dcd2d7b00c9b;
   }
@@ -4330,12 +4405,7 @@ pub mod annotation {
     }
   }
   mod _private {
-    #![allow(unused_imports)]
-    use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::{text, data};
     use capnp::layout;
-    use capnp::traits::{FromStructBuilder, FromStructReader};
-    use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 2 };
     pub const TYPE_ID: u64 = 0xf1c8950dab257542;
   }
@@ -4480,12 +4550,7 @@ pub mod code_generator_request {
   impl Pipeline {
   }
   mod _private {
-    #![allow(unused_imports)]
-    use capnp::capability::{FromClientHook, FromTypelessPipeline};
-    use capnp::{text, data};
     use capnp::layout;
-    use capnp::traits::{FromStructBuilder, FromStructReader};
-    use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 0, pointers : 2 };
     pub const TYPE_ID: u64 = 0xbfc546f6210ad7ce;
   }
@@ -4620,12 +4685,7 @@ pub mod code_generator_request {
     impl Pipeline {
     }
     mod _private {
-      #![allow(unused_imports)]
-      use capnp::capability::{FromClientHook, FromTypelessPipeline};
-      use capnp::{text, data};
       use capnp::layout;
-      use capnp::traits::{FromStructBuilder, FromStructReader};
-      use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
       pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 2 };
       pub const TYPE_ID: u64 = 0xcfea0eb02e810062;
     }
@@ -4738,12 +4798,7 @@ pub mod code_generator_request {
       impl Pipeline {
       }
       mod _private {
-        #![allow(unused_imports)]
-        use capnp::capability::{FromClientHook, FromTypelessPipeline};
-        use capnp::{text, data};
         use capnp::layout;
-        use capnp::traits::{FromStructBuilder, FromStructReader};
-        use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
         pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
         pub const TYPE_ID: u64 = 0xae504193122357e5;
       }
