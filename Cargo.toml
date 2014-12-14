@@ -23,6 +23,6 @@ path = "src/main.rs"
 
 
 [dependencies]
-capnp = "0.0.6"
+capnp = "0.0.7"
 
 
