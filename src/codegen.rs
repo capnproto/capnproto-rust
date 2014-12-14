@@ -415,7 +415,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                         );
                             } else {
                                 return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
-                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_struct_list({}::_private::STRUCT_SIZE, ::std::ptr::null()))",
+                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<{}::Builder>), ::std::ptr::null()))",
                                                      module, member, offset, the_mod))
                                         );
                             }
@@ -466,7 +466,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 }
                 Some((type_::Struct(st), _)) => {
                     let the_mod = scope_map[st.get_type_id()].connect("::");
-                    let middle_arg = if is_reader {format!("")} else {format!("{}::_private::STRUCT_SIZE,", the_mod)};
+                    let middle_arg = if is_reader {format!("")} else {format!("::capnp::traits::HasStructSize::struct_size(None::<{}::Builder>),", the_mod)};
                     return (format!("{}::{}", the_mod, module_with_var),
                             Line(format!("::capnp::traits::FromStruct{}::new(self.{}.get_pointer_field({}).get_struct({} ::std::ptr::null()))",
                                       module, member, offset, middle_arg)))
@@ -751,7 +751,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                     setter_interior.push(
                         Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)", offset)));
                     initter_interior.push(
-                      Line(format!("::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field({}).init_struct({}::_private::STRUCT_SIZE))",
+                      Line(format!("::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field({}).init_struct(::capnp::traits::HasStructSize::struct_size(None::<{}::Builder>)))",
                                    offset, the_mod)));
                     (Some(format!("{}::Reader", the_mod)), Some(format!("{}::Builder<'a>", the_mod)))
                 }
@@ -1261,7 +1261,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("impl Pipeline {".to_string()),
                 Indent(box Branch(pipeline_impl_interior)),
                 Line("}".to_string()),
-                Line("pub mod _private {".to_string()),
+                Line("mod _private {".to_string()),
                 Indent(box Branch(private_mod_interior)),
                 Line("}".to_string()),
                 );
