@@ -32,40 +32,6 @@ fn tuple_option<T,U>(t : Option<T>, u : Option<U>) -> Option<(T,U)> {
     }
 }
 
-fn element_size_str (element_size : schema_capnp::ElementSize) -> &'static str {
-    use schema_capnp::ElementSize::*;
-    match element_size {
-        Empty => "Void",
-        Bit => "Bit",
-        Byte => "Byte",
-        TwoBytes => "TwoBytes",
-        FourBytes => "FourBytes",
-        EightBytes => "EightBytes",
-        Pointer => "Pointer",
-        InlineComposite => "InlineComposite"
-    }
-}
-
-fn element_size (typ : schema_capnp::type_::WhichReader) -> schema_capnp::ElementSize {
-    use schema_capnp::type_::*;
-    use schema_capnp::ElementSize::*;
-    match typ {
-        Void(()) => Empty,
-        Bool(()) => Bit,
-        Int8(()) => Byte,
-        Int16(()) => TwoBytes,
-        Int32(()) => FourBytes,
-        Int64(()) => EightBytes,
-        Uint8(()) => Byte,
-        Uint16(()) => TwoBytes,
-        Uint32(()) => FourBytes,
-        Uint64(()) => EightBytes,
-        Float32(()) => FourBytes,
-        Float64(()) => EightBytes,
-        _ => panic!("not primitive")
-    }
-}
-
 fn prim_type_str (typ : schema_capnp::type_::WhichReader) -> &'static str {
     use schema_capnp::type_::*;
     match typ {
@@ -404,53 +370,48 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                       member, offset)));
                 }
                 Some((type_::List(ot1), _)) => {
+                    let get_it =
+                        if is_reader {
+                            Line(format!(
+                                "::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}))",
+                                member, offset))
+                            } else {
+                            Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}))",
+                                         member, offset))
+
+                            };
+
                     match ot1.get_element_type().which() {
                         None => { panic!("unsupported type") }
                         Some(type_::Struct(st)) => {
                             let the_mod = scope_map[st.get_type_id()].connect("::");
-                            if is_reader {
-                                return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
-                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::InlineComposite, ::std::ptr::null()))",
-                                                     module, member, offset))
-                                        );
-                            } else {
-                                return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
-                                        Line(format!("struct_list::{}::new(self.{}.get_pointer_field({}).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<{}::Builder>), ::std::ptr::null()))",
-                                                     module, member, offset, the_mod))
-                                        );
-                            }
+                            return (format!("struct_list::{}<'a,{}::{}<'a>>", module, the_mod, module),
+                                    get_it);
                         }
                         Some(type_::Enum(e)) => {
                             let the_mod = scope_map[e.get_type_id()].connect("::");
                             return (format!("enum_list::{}<'a,{}>",module, the_mod),
-                                    Line(format!("enum_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::TwoBytes, ::std::ptr::null()))",
-                                         module, member, offset)));
+                                    get_it);
                         }
                         Some(type_::List(t1)) => {
                             let type_param = list_list_type_param(scope_map, t1.get_element_type(), is_reader, "'a");
                             return (format!("list_list::{}<'a,{}>", module, type_param),
-                                    Line(format!("list_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, ::std::ptr::null()))",
-                                                 module, member, offset)))
+                                    get_it);
                         }
                         Some(type_::Text(())) => {
                             return (format!("text_list::{}<'a>", module),
-                                    Line(format!("text_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, ::std::ptr::null()))",
-                                                 module, member, offset)))
+                                    get_it);
                         }
                         Some(type_::Data(())) => {
                             return (format!("data_list::{}<'a>", module),
-                                    Line(format!("data_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::Pointer, ::std::ptr::null()))",
-                                                 module, member, offset)))
+                                    get_it);
                         }
                         Some(type_::Interface(_)) => {panic!("unimplemented") }
                         Some(type_::AnyPointer(_)) => {panic!("List(AnyPointer) is unsupported")}
                         Some(prim_type) => {
-                            let type_str = prim_type_str(prim_type);
-                            let size_str = element_size_str(element_size(prim_type));
                             return
-                                (format!("primitive_list::{}<'a,{}>", module, type_str),
-                                 Line(format!("primitive_list::{}::new(self.{}.get_pointer_field({}).get_list(layout::{}, ::std::ptr::null()))",
-                                           module, member, offset, size_str)))
+                                (format!("primitive_list::{}<'a,{}>", module, prim_type_str(prim_type)),
+                                 get_it);
                         }
                     }
                 }
@@ -751,8 +712,8 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                     setter_interior.push(
                         Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)", offset)));
                     initter_interior.push(
-                      Line(format!("::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field({}).init_struct(::capnp::traits::HasStructSize::struct_size(None::<{}::Builder>)))",
-                                   offset, the_mod)));
+                      Line(format!("::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({}), 0)",
+                                   offset)));
                     (Some(format!("{}::Reader", the_mod)), Some(format!("{}::Builder<'a>", the_mod)))
                 }
                 Some(type_::Interface(interface)) => {
