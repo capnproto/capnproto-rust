@@ -427,10 +427,16 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 }
                 Some((type_::Struct(st), _)) => {
                     let the_mod = scope_map[st.get_type_id()].connect("::");
-                    let middle_arg = if is_reader {format!("")} else {format!("::capnp::traits::HasStructSize::struct_size(None::<{}::Builder>),", the_mod)};
-                    return (format!("{}::{}", the_mod, module_with_var),
-                            Line(format!("::capnp::traits::FromStruct{}::new(self.{}.get_pointer_field({}).get_struct({} ::std::ptr::null()))",
-                                      module, member, offset, middle_arg)))
+                    let construct =
+                        if is_reader {
+                            Line(format!("::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}))",
+                                         member, offset))
+                        } else {
+                            Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}))",
+                                         member, offset))
+                        };
+                    return (format!("{}::{}", the_mod, module_with_var), construct);
+
                 }
                 Some((type_::Interface(interface), _)) => {
                     let the_mod = scope_map[interface.get_type_id()].connect("::");
