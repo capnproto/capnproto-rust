@@ -30,7 +30,7 @@ impl Clone for LocalClient {
 impl LocalClient {
     pub fn new(server : Box<Server+Send>) -> LocalClient {
         let (chan, port) = std::comm::channel::<(u64, u16, Box<CallContextHook+Send>)>();
-        std::task::spawn(proc () {
+        std::task::spawn(move || {
                 let mut server = server;
                 loop {
                     let (interface_id, method_id, context_hook) = match port.recv_opt() {

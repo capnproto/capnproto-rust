@@ -82,7 +82,7 @@ impl ExportedCaps {
     pub fn new() -> std::comm::Sender<ExportEvent> {
         let (chan, port) = std::comm::channel::<ExportEvent>();
 
-        std::task::spawn(proc() {
+        std::task::spawn(move || {
                 let mut vat = ExportedCaps { objects : HashMap::new() };
 
                 loop {
@@ -146,7 +146,7 @@ impl EzRpcServer {
     }
 
     pub fn serve(self) {
-        std::task::spawn(proc() {
+        std::task::spawn(move || {
             let mut server = self;
             for res in server.incoming() {
                 match res {
@@ -166,7 +166,7 @@ impl std::io::Acceptor<()> for EzRpcServer {
 
         let sender2 = self.sender.clone();
         let tcp = try!(self.tcp_acceptor.accept());
-        std::task::spawn(proc() {
+        std::task::spawn(move || {
             let connection_state = RpcConnectionState::new();
             let _rpc_chan = connection_state.run(tcp.clone(), tcp, Restorer::new(sender2));
         });

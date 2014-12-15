@@ -372,7 +372,7 @@ impl RpcConnectionState {
 
         let listener_chan = result_rpc_chan.clone();
 
-        spawn(proc() {
+        spawn(move || {
                 let mut r = inpipe;
                 loop {
                     match serialize::new_reader(
@@ -388,7 +388,7 @@ impl RpcConnectionState {
 
         let rpc_chan = result_rpc_chan.clone();
 
-        spawn(proc() {
+        spawn(move || {
             let RpcConnectionState {mut questions, mut exports, mut answers, imports : _imports} = self;
             let mut outpipe = outpipe;
             loop {
