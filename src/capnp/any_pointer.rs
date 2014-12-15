@@ -54,7 +54,6 @@ impl <'a> Reader<'a> {
     }
 }
 
-#[deriving(Copy)]
 pub struct Builder<'a> {
     builder : PointerBuilder<'a>
 }
@@ -65,19 +64,19 @@ impl <'a> Builder<'a> {
         Builder { builder : builder }
     }
 
-    pub fn get_as<T : FromPointerBuilder<'a>>(&self) -> T {
+    pub fn get_as<T : FromPointerBuilder<'a>>(self) -> T {
         FromPointerBuilder::get_from_pointer(self.builder)
     }
 
-    pub fn init_as<T : FromPointerBuilder<'a>>(&self) -> T {
+    pub fn init_as<T : FromPointerBuilder<'a>>(self) -> T {
         FromPointerBuilder::init_pointer(self.builder, 0)
     }
 
-    pub fn init_as_sized<T : FromPointerBuilder<'a>>(&self, size : u32) -> T {
+    pub fn init_as_sized<T : FromPointerBuilder<'a>>(self, size : u32) -> T {
         FromPointerBuilder::init_pointer(self.builder, size)
     }
 
-    pub fn set_as<To, From : SetPointerBuilder<To>>(&self, value : From) {
+    pub fn set_as<To, From : SetPointerBuilder<To>>(self, value : From) {
         SetPointerBuilder::<To>::set_pointer_builder(self.builder, value);
     }
 

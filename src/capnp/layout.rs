@@ -1901,7 +1901,6 @@ impl <'a> PointerReader<'a> {
     }
 }
 
-#[deriving(Copy)]
 pub struct PointerBuilder<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
     segment : *mut SegmentBuilder,
