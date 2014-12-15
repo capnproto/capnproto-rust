@@ -403,8 +403,8 @@ mod wire_helpers {
 
                 let amount_plus_ref = amount + POINTER_SIZE_IN_WORDS as u32;
                 let allocation = (*(**segment).get_arena()).allocate(amount_plus_ref);
-                *segment = allocation.val0();
-                let ptr = allocation.val1();
+                *segment = allocation.0;
+                let ptr = allocation.1;
 
                 //# Set up the original pointer to be a far pointer to
                 //# the new segment.
