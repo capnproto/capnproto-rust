@@ -95,6 +95,7 @@ mod packed {
 
 const SCRATCH_SIZE : uint = 128 * 1024;
 
+#[deriving(Copy)]
 pub struct NoScratch;
 
 impl NoScratch {
@@ -133,15 +134,14 @@ macro_rules! pass_by_object(
                 let mut message_req = $reuse.new_builder(0);
                 let mut message_res = $reuse.new_builder(1);
 
-                let request = message_req.init_root::<$testcase::RequestBuilder>();
-                let response = message_res.init_root::<$testcase::ResponseBuilder>();
-                let expected = $testcase::setup_request(&mut rng, request);
+                let expected = $testcase::setup_request(&mut rng,
+                                                        message_req.init_root::<$testcase::RequestBuilder>());
 
-                let request_reader = request.as_reader();
-                $testcase::handle_request(request_reader, response);
+                $testcase::handle_request(message_req.get_root::<$testcase::RequestBuilder>().as_reader(),
+                                          message_res.init_root::<$testcase::ResponseBuilder>());
 
-                let response_reader = response.as_reader();
-                if !$testcase::check_response(response_reader, expected) {
+                if !$testcase::check_response(message_res.get_root::<$testcase::ResponseBuilder>().as_reader(),
+                                              expected) {
                     panic!("Incorrect response.");
                 }
             }

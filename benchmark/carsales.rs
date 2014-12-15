@@ -123,9 +123,11 @@ pub fn random_car(rng : &mut FastRand, car : car::Builder) {
 
 pub fn setup_request(rng : &mut FastRand, request : parking_lot::Builder) -> u64 {
     let mut result = 0;
-    for car in request.init_cars(rng.next_less_than(200)).iter() {
+    let cars = request.init_cars(rng.next_less_than(200));
+    for ii in range(0, cars.len()) {
+        let car = cars.get(ii);
         random_car(rng, car);
-        result += car.car_value();
+        result += cars.get(ii).car_value();
     }
 
     result

@@ -54,21 +54,21 @@ pub mod node {
     }
     #[inline]
     pub fn get_nested_nodes(&self) -> struct_list::Reader<'a,::schema_capnp::node::nested_node::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_nested_nodes(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(2).get_list(layout::InlineComposite, ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
     }
     #[inline]
     pub fn get_parameters(&self) -> struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(5).get_list(layout::InlineComposite, ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(5))
     }
     pub fn has_parameters(&self) -> bool {
       !self.reader.get_pointer_field(5).is_null()
@@ -115,7 +115,6 @@ pub mod node {
     }
   }
 
-  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -189,7 +188,7 @@ pub mod node {
     }
     #[inline]
     pub fn get_nested_nodes(&self) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
-      struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::node::nested_node::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
     pub fn set_nested_nodes(&self, value : struct_list::Reader<'a,::schema_capnp::node::nested_node::Reader<'a>>) {
@@ -204,7 +203,7 @@ pub mod node {
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
-      struct_list::Builder::new(self.builder.get_pointer_field(2).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::annotation::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(2))
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
@@ -273,7 +272,7 @@ pub mod node {
     }
     #[inline]
     pub fn get_parameters(&self) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
-      struct_list::Builder::new(self.builder.get_pointer_field(5).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::node::parameter::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(5))
     }
     #[inline]
     pub fn set_parameters(&self, value : struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>>) {
@@ -394,7 +393,6 @@ pub mod node {
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
@@ -500,7 +498,6 @@ pub mod node {
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
@@ -627,14 +624,13 @@ pub mod node {
       }
       #[inline]
       pub fn get_fields(&self) -> struct_list::Reader<'a,::schema_capnp::field::Reader<'a>> {
-        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(layout::InlineComposite, ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_fields(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -704,7 +700,7 @@ pub mod node {
       }
       #[inline]
       pub fn get_fields(&self) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
-        struct_list::Builder::new(self.builder.get_pointer_field(3).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::field::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
       pub fn set_fields(&self, value : struct_list::Reader<'a,::schema_capnp::field::Reader<'a>>) {
@@ -762,14 +758,13 @@ pub mod node {
     impl <'a> Reader<'a> {
       #[inline]
       pub fn get_enumerants(&self) -> struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>> {
-        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(layout::InlineComposite, ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_enumerants(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -791,7 +786,7 @@ pub mod node {
       }
       #[inline]
       pub fn get_enumerants(&self) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
-        struct_list::Builder::new(self.builder.get_pointer_field(3).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::enumerant::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
       pub fn set_enumerants(&self, value : struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>>) {
@@ -849,21 +844,20 @@ pub mod node {
     impl <'a> Reader<'a> {
       #[inline]
       pub fn get_methods(&self) -> struct_list::Reader<'a,::schema_capnp::method::Reader<'a>> {
-        struct_list::Reader::new(self.reader.get_pointer_field(3).get_list(layout::InlineComposite, ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_methods(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
       #[inline]
       pub fn get_superclasses(&self) -> struct_list::Reader<'a,::schema_capnp::superclass::Reader<'a>> {
-        struct_list::Reader::new(self.reader.get_pointer_field(4).get_list(layout::InlineComposite, ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(4))
       }
       pub fn has_superclasses(&self) -> bool {
         !self.reader.get_pointer_field(4).is_null()
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -885,7 +879,7 @@ pub mod node {
       }
       #[inline]
       pub fn get_methods(&self) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
-        struct_list::Builder::new(self.builder.get_pointer_field(3).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::method::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
       pub fn set_methods(&self, value : struct_list::Reader<'a,::schema_capnp::method::Reader<'a>>) {
@@ -900,7 +894,7 @@ pub mod node {
       }
       #[inline]
       pub fn get_superclasses(&self) -> struct_list::Builder<'a,::schema_capnp::superclass::Builder<'a>> {
-        struct_list::Builder::new(self.builder.get_pointer_field(4).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::superclass::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(4))
       }
       #[inline]
       pub fn set_superclasses(&self, value : struct_list::Reader<'a,::schema_capnp::superclass::Reader<'a>>) {
@@ -958,21 +952,20 @@ pub mod node {
     impl <'a> Reader<'a> {
       #[inline]
       pub fn get_type(&self) -> ::schema_capnp::type_::Reader<'a> {
-        ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(3).get_struct( ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
       #[inline]
       pub fn get_value(&self) -> ::schema_capnp::value::Reader<'a> {
-        ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(4).get_struct( ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(4))
       }
       pub fn has_value(&self) -> bool {
         !self.reader.get_pointer_field(4).is_null()
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -994,7 +987,7 @@ pub mod node {
       }
       #[inline]
       pub fn get_type(&self) -> ::schema_capnp::type_::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(3).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::type_::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
       pub fn set_type(&self, value : ::schema_capnp::type_::Reader) {
@@ -1002,14 +995,14 @@ pub mod node {
       }
       #[inline]
       pub fn init_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(3).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::type_::Builder>)))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
       #[inline]
       pub fn get_value(&self) -> ::schema_capnp::value::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(4).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::value::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(4))
       }
       #[inline]
       pub fn set_value(&self, value : ::schema_capnp::value::Reader) {
@@ -1017,7 +1010,7 @@ pub mod node {
       }
       #[inline]
       pub fn init_value(&self, ) -> ::schema_capnp::value::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(4).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::value::Builder>)))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), 0)
       }
       pub fn has_value(&self) -> bool {
         !self.builder.get_pointer_field(4).is_null()
@@ -1073,7 +1066,7 @@ pub mod node {
     impl <'a> Reader<'a> {
       #[inline]
       pub fn get_type(&self) -> ::schema_capnp::type_::Reader<'a> {
-        ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(3).get_struct( ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
@@ -1128,7 +1121,6 @@ pub mod node {
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -1150,7 +1142,7 @@ pub mod node {
       }
       #[inline]
       pub fn get_type(&self) -> ::schema_capnp::type_::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(3).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::type_::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
       pub fn set_type(&self, value : ::schema_capnp::type_::Reader) {
@@ -1158,7 +1150,7 @@ pub mod node {
       }
       #[inline]
       pub fn init_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(3).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::type_::Builder>)))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
@@ -1321,7 +1313,7 @@ pub mod field {
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
@@ -1352,7 +1344,6 @@ pub mod field {
     }
   }
 
-  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -1410,7 +1401,7 @@ pub mod field {
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
-      struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::annotation::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
@@ -1533,14 +1524,14 @@ pub mod field {
       }
       #[inline]
       pub fn get_type(&self) -> ::schema_capnp::type_::Reader<'a> {
-        ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(2).get_struct( ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2))
       }
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(2).is_null()
       }
       #[inline]
       pub fn get_default_value(&self) -> ::schema_capnp::value::Reader<'a> {
-        ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(3).get_struct( ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_default_value(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
@@ -1551,7 +1542,6 @@ pub mod field {
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -1581,7 +1571,7 @@ pub mod field {
       }
       #[inline]
       pub fn get_type(&self) -> ::schema_capnp::type_::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(2).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::type_::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(2))
       }
       #[inline]
       pub fn set_type(&self, value : ::schema_capnp::type_::Reader) {
@@ -1589,14 +1579,14 @@ pub mod field {
       }
       #[inline]
       pub fn init_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(2).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::type_::Builder>)))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), 0)
       }
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(2).is_null()
       }
       #[inline]
       pub fn get_default_value(&self) -> ::schema_capnp::value::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(3).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::value::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
       pub fn set_default_value(&self, value : ::schema_capnp::value::Reader) {
@@ -1604,7 +1594,7 @@ pub mod field {
       }
       #[inline]
       pub fn init_default_value(&self, ) -> ::schema_capnp::value::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(3).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::value::Builder>)))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
       pub fn has_default_value(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
@@ -1672,7 +1662,6 @@ pub mod field {
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -1763,7 +1752,6 @@ pub mod field {
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -1872,14 +1860,13 @@ pub mod enumerant {
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
   }
 
-  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -1937,7 +1924,7 @@ pub mod enumerant {
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
-      struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::annotation::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
@@ -2001,14 +1988,13 @@ pub mod superclass {
     }
     #[inline]
     pub fn get_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
-      ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(0).get_struct( ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
     }
     pub fn has_brand(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
   }
 
-  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -2051,7 +2037,7 @@ pub mod superclass {
     }
     #[inline]
     pub fn get_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
-      ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
     }
     #[inline]
     pub fn set_brand(&self, value : ::schema_capnp::brand::Reader) {
@@ -2059,7 +2045,7 @@ pub mod superclass {
     }
     #[inline]
     pub fn init_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
-      ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>)))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
     }
     pub fn has_brand(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
@@ -2133,35 +2119,34 @@ pub mod method {
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
     #[inline]
     pub fn get_param_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
-      ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(2).get_struct( ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2))
     }
     pub fn has_param_brand(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
     }
     #[inline]
     pub fn get_result_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
-      ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(3).get_struct( ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
     }
     pub fn has_result_brand(&self) -> bool {
       !self.reader.get_pointer_field(3).is_null()
     }
     #[inline]
     pub fn get_implicit_parameters(&self) -> struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(4).get_list(layout::InlineComposite, ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(4))
     }
     pub fn has_implicit_parameters(&self) -> bool {
       !self.reader.get_pointer_field(4).is_null()
     }
   }
 
-  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -2235,7 +2220,7 @@ pub mod method {
     }
     #[inline]
     pub fn get_annotations(&self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
-      struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::annotation::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
     pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
@@ -2250,7 +2235,7 @@ pub mod method {
     }
     #[inline]
     pub fn get_param_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
-      ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(2).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(2))
     }
     #[inline]
     pub fn set_param_brand(&self, value : ::schema_capnp::brand::Reader) {
@@ -2258,14 +2243,14 @@ pub mod method {
     }
     #[inline]
     pub fn init_param_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
-      ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(2).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>)))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), 0)
     }
     pub fn has_param_brand(&self) -> bool {
       !self.builder.get_pointer_field(2).is_null()
     }
     #[inline]
     pub fn get_result_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
-      ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(3).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
     }
     #[inline]
     pub fn set_result_brand(&self, value : ::schema_capnp::brand::Reader) {
@@ -2273,14 +2258,14 @@ pub mod method {
     }
     #[inline]
     pub fn init_result_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
-      ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(3).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>)))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
     }
     pub fn has_result_brand(&self) -> bool {
       !self.builder.get_pointer_field(3).is_null()
     }
     #[inline]
     pub fn get_implicit_parameters(&self) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
-      struct_list::Builder::new(self.builder.get_pointer_field(4).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::node::parameter::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(4))
     }
     #[inline]
     pub fn set_implicit_parameters(&self, value : struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>>) {
@@ -2449,7 +2434,6 @@ pub mod type_ {
     }
   }
 
-  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -2745,14 +2729,13 @@ pub mod type_ {
     impl <'a> Reader<'a> {
       #[inline]
       pub fn get_element_type(&self) -> ::schema_capnp::type_::Reader<'a> {
-        ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(0).get_struct( ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
       }
       pub fn has_element_type(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -2774,7 +2757,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn get_element_type(&self) -> ::schema_capnp::type_::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::type_::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
       }
       #[inline]
       pub fn set_element_type(&self, value : ::schema_capnp::type_::Reader) {
@@ -2782,7 +2765,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn init_element_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::type_::Builder>)))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_element_type(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
@@ -2839,14 +2822,13 @@ pub mod type_ {
       }
       #[inline]
       pub fn get_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
-        ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(0).get_struct( ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
       }
       pub fn has_brand(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -2876,7 +2858,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn get_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
       }
       #[inline]
       pub fn set_brand(&self, value : ::schema_capnp::brand::Reader) {
@@ -2884,7 +2866,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn init_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>)))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_brand(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
@@ -2941,14 +2923,13 @@ pub mod type_ {
       }
       #[inline]
       pub fn get_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
-        ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(0).get_struct( ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
       }
       pub fn has_brand(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -2978,7 +2959,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn get_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
       }
       #[inline]
       pub fn set_brand(&self, value : ::schema_capnp::brand::Reader) {
@@ -2986,7 +2967,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn init_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>)))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_brand(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
@@ -3043,14 +3024,13 @@ pub mod type_ {
       }
       #[inline]
       pub fn get_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
-        ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(0).get_struct( ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
       }
       pub fn has_brand(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -3080,7 +3060,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn get_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
       }
       #[inline]
       pub fn set_brand(&self, value : ::schema_capnp::brand::Reader) {
@@ -3088,7 +3068,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn init_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>)))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_brand(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
@@ -3164,7 +3144,6 @@ pub mod type_ {
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -3282,7 +3261,6 @@ pub mod type_ {
         }
       }
 
-      #[deriving(Copy)]
       pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
       impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
         #[inline]
@@ -3367,7 +3345,6 @@ pub mod type_ {
         }
       }
 
-      #[deriving(Copy)]
       pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
       impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
         #[inline]
@@ -3442,14 +3419,13 @@ pub mod brand {
   impl <'a> Reader<'a> {
     #[inline]
     pub fn get_scopes(&self) -> struct_list::Reader<'a,::schema_capnp::brand::scope::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(0).get_list(layout::InlineComposite, ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
     }
     pub fn has_scopes(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
   }
 
-  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -3484,7 +3460,7 @@ pub mod brand {
     }
     #[inline]
     pub fn get_scopes(&self) -> struct_list::Builder<'a,::schema_capnp::brand::scope::Builder<'a>> {
-      struct_list::Builder::new(self.builder.get_pointer_field(0).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::scope::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
     }
     #[inline]
     pub fn set_scopes(&self, value : struct_list::Reader<'a,::schema_capnp::brand::scope::Reader<'a>>) {
@@ -3556,7 +3532,7 @@ pub mod brand {
         match self.reader.get_data_field::<u16>(4) {
           0 => {
             return ::std::option::Option::Some(Bind(
-              struct_list::Reader::new(self.reader.get_pointer_field(0).get_list(layout::InlineComposite, ::std::ptr::null()))
+              ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
             ));
           }
           1 => {
@@ -3569,7 +3545,6 @@ pub mod brand {
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
@@ -3633,7 +3608,7 @@ pub mod brand {
         match self.builder.get_data_field::<u16>(4) {
           0 => {
             return ::std::option::Option::Some(Bind(
-              struct_list::Builder::new(self.builder.get_pointer_field(0).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::binding::Builder>), ::std::ptr::null()))
+              ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
             ));
           }
           1 => {
@@ -3712,7 +3687,7 @@ pub mod brand {
           }
           1 => {
             return ::std::option::Option::Some(Type(
-              ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(0).get_struct( ::std::ptr::null()))
+              ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
             ));
           }
           _ => return ::std::option::Option::None
@@ -3720,7 +3695,6 @@ pub mod brand {
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
@@ -3765,7 +3739,7 @@ pub mod brand {
       #[inline]
       pub fn init_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
         self.builder.set_data_field::<u16>(0, 1);
-        ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::type_::Builder>)))
+        ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_type(&self) -> bool {
         if self.builder.get_data_field::<u16>(0) != 1 { return false; }
@@ -3781,7 +3755,7 @@ pub mod brand {
           }
           1 => {
             return ::std::option::Option::Some(Type(
-              ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::type_::Builder>), ::std::ptr::null()))
+              ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
             ));
           }
           _ => return ::std::option::Option::None
@@ -3965,7 +3939,6 @@ pub mod value {
     }
   }
 
-  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -4303,21 +4276,20 @@ pub mod annotation {
     }
     #[inline]
     pub fn get_value(&self) -> ::schema_capnp::value::Reader<'a> {
-      ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(0).get_struct( ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
     }
     pub fn has_value(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn get_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
-      ::capnp::traits::FromStructReader::new(self.reader.get_pointer_field(1).get_struct( ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_brand(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
   }
 
-  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -4360,7 +4332,7 @@ pub mod annotation {
     }
     #[inline]
     pub fn get_value(&self) -> ::schema_capnp::value::Builder<'a> {
-      ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::value::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
     }
     #[inline]
     pub fn set_value(&self, value : ::schema_capnp::value::Reader) {
@@ -4368,14 +4340,14 @@ pub mod annotation {
     }
     #[inline]
     pub fn init_value(&self, ) -> ::schema_capnp::value::Builder<'a> {
-      ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(0).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::value::Builder>)))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
     }
     pub fn has_value(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn get_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
-      ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(1).get_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
     pub fn set_brand(&self, value : ::schema_capnp::brand::Reader) {
@@ -4383,7 +4355,7 @@ pub mod annotation {
     }
     #[inline]
     pub fn init_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
-      ::capnp::traits::FromStructBuilder::new(self.builder.get_pointer_field(1).init_struct(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::brand::Builder>)))
+      ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), 0)
     }
     pub fn has_brand(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
@@ -4462,21 +4434,20 @@ pub mod code_generator_request {
   impl <'a> Reader<'a> {
     #[inline]
     pub fn get_nodes(&self) -> struct_list::Reader<'a,::schema_capnp::node::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(0).get_list(layout::InlineComposite, ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
     }
     pub fn has_nodes(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn get_requested_files(&self) -> struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::Reader<'a>> {
-      struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_requested_files(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
   }
 
-  #[deriving(Copy)]
   pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
@@ -4511,7 +4482,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn get_nodes(&self) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
-      struct_list::Builder::new(self.builder.get_pointer_field(0).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::node::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
     }
     #[inline]
     pub fn set_nodes(&self, value : struct_list::Reader<'a,::schema_capnp::node::Reader<'a>>) {
@@ -4526,7 +4497,7 @@ pub mod code_generator_request {
     }
     #[inline]
     pub fn get_requested_files(&self) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
-      struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::code_generator_request::requested_file::Builder>), ::std::ptr::null()))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
     pub fn set_requested_files(&self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::Reader<'a>>) {
@@ -4596,14 +4567,13 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn get_imports(&self) -> struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::import::Reader<'a>> {
-        struct_list::Reader::new(self.reader.get_pointer_field(1).get_list(layout::InlineComposite, ::std::ptr::null()))
+        ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
       }
       pub fn has_imports(&self) -> bool {
         !self.reader.get_pointer_field(1).is_null()
       }
     }
 
-    #[deriving(Copy)]
     pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
@@ -4661,7 +4631,7 @@ pub mod code_generator_request {
       }
       #[inline]
       pub fn get_imports(&self) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {
-        struct_list::Builder::new(self.builder.get_pointer_field(1).get_struct_list(::capnp::traits::HasStructSize::struct_size(None::<::schema_capnp::code_generator_request::requested_file::import::Builder>), ::std::ptr::null()))
+        ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
       }
       #[inline]
       pub fn set_imports(&self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::import::Reader<'a>>) {
@@ -4731,7 +4701,6 @@ pub mod code_generator_request {
         }
       }
 
-      #[deriving(Copy)]
       pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
       impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
         #[inline]

@@ -22,6 +22,7 @@
 use rand::*;
 use std::i32;
 
+#[deriving(Copy)]
 pub struct FastRand {
     x : u32,
     y : u32,

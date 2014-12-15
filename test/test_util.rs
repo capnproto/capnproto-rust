@@ -205,4 +205,5 @@ check_test_message_impl(($typ:ident) => (
 ))
 
 check_test_message_impl!(Reader)
+
 check_test_message_impl!(Builder)

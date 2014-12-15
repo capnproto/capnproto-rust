@@ -1177,7 +1177,6 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Indent(box Branch(reader_members)),
                 Line("}".to_string()),
                 BlankLine,
-                Line("#[deriving(Copy)]".to_string()),
                 Line("pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }".to_string()),
                 builder_struct_size,
                 Branch(vec!(

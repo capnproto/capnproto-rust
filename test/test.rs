@@ -362,16 +362,15 @@ mod tests {
         let mut message = MallocMessageBuilder::new_default();
         let test_any_pointer = message.init_root::<test_any_pointer::Builder>();
 
-        let any_pointer = test_any_pointer.init_any_pointer_field();
-        any_pointer.set_as("xyzzy");
+        test_any_pointer.init_any_pointer_field().set_as("xyzzy");
 
         {
             let reader = test_any_pointer.as_reader();
             assert_eq!(reader.get_any_pointer_field().get_as::<::capnp::text::Reader>(), "xyzzy");
         }
 
-        any_pointer.init_as::<test_empty_struct::Builder>();
-        any_pointer.get_as::<test_empty_struct::Builder>();
+        test_any_pointer.get_any_pointer_field().init_as::<test_empty_struct::Builder>();
+        test_any_pointer.get_any_pointer_field().get_as::<test_empty_struct::Builder>();
 
         {
             let reader = test_any_pointer.as_reader();
@@ -382,7 +381,7 @@ mod tests {
             let mut message = MallocMessageBuilder::new_default();
             let test_big_struct = message.init_root::<test_big_struct::Builder>();
             test_big_struct.set_int32_field(-12345);
-            any_pointer.set_as(test_big_struct.as_reader());
+            test_any_pointer.get_any_pointer_field().set_as(test_big_struct.as_reader());
         }
 
         fn _test_lifetimes(body : test_big_struct::Reader) {
@@ -528,14 +527,13 @@ mod tests {
 
         {
             let mut message = MallocMessageBuilder::new_default();
-            let all_types = message.init_root::<test_all_types::Builder>();
 
-            ::test_util::init_test_message(all_types);
+            ::test_util::init_test_message(message.init_root::<test_all_types::Builder>());
 
             let mut message2 = MallocMessageBuilder::new_default();
             let all_types2 = message2.init_root::<test_all_types::Builder>();
 
-            all_types2.set_struct_field(all_types.as_reader());
+            all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().as_reader());
             ::test_util::CheckTestMessage::check_test_message(all_types2.get_struct_field());
 
             let reader = all_types2.as_reader().get_struct_field();
@@ -547,9 +545,8 @@ mod tests {
             builder_options.first_segment_words(1)
                 .allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
             let mut message = MallocMessageBuilder::new(builder_options);
-            let all_types = message.init_root::<test_all_types::Builder>();
 
-            ::test_util::init_test_message(all_types);
+            ::test_util::init_test_message(message.init_root::<test_all_types::Builder>());
 
             let mut builder_options = BuilderOptions::new();
             builder_options.first_segment_words(1)
@@ -557,7 +554,7 @@ mod tests {
             let mut message2 = MallocMessageBuilder::new(builder_options);
             let all_types2 = message2.init_root::<test_all_types::Builder>();
 
-            all_types2.set_struct_field(all_types.as_reader());
+            all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().as_reader());
             ::test_util::CheckTestMessage::check_test_message(all_types2.get_struct_field());
 
             let reader = all_types2.as_reader().get_struct_field();
