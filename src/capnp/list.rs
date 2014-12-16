@@ -224,8 +224,6 @@ pub mod struct_list {
         builder : ListBuilder<'a>
     }
 
-    impl <'a, T> Copy for Builder<'a, T> {}
-
     impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
         pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
             Builder { builder : builder }
@@ -237,7 +235,8 @@ pub mod struct_list {
 //        }
 
         pub fn iter(self) -> super::ListIter<Builder<'a, T>> {
-            return super::ListIter::new(self, self.len());
+            let len = self.len();
+            return super::ListIter::new(self, len);
         }
 
     }
