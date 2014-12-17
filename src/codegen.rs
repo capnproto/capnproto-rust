@@ -744,7 +744,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
     match maybe_reader_type {
         Some(reader_type) => {
             result.push(Line("#[inline]".to_string()));
-            result.push(Line(format!("pub fn set_{}{}(&self, {} : {}) {{",
+            result.push(Line(format!("pub fn set_{}{}(&mut self, {} : {}) {{",
                                      styled_name, setter_lifetime_param, setter_param, reader_type)));
             result.push(Indent(box Branch(setter_interior)));
             result.push(Line("}".to_string()));
@@ -755,7 +755,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
         Some(builder_type) => {
             result.push(Line("#[inline]".to_string()));
             let args = initter_params.connect(", ");
-            result.push(Line(format!("pub fn init_{}(&self, {}) -> {} {{",
+            result.push(Line(format!("pub fn init_{}(&mut self, {}) -> {} {{",
                                      styled_name, args, builder_type)));
             result.push(Indent(box Branch(initter_interior)));
             result.push(Line("}".to_string()));
@@ -878,10 +878,12 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
                  Branch(vec![])
              }]);
 
+    let self_arg = if is_reader { "&self" } else { "&mut self" };
+
     let getter_result =
         Branch(vec!(Line("#[inline]".to_string()),
-                    Line(format!("pub fn which(&self) -> ::std::option::Option<{}> {{",
-                                 concrete_type)),
+                    Line(format!("pub fn which({}) -> ::std::option::Option<{}> {{",
+                                 self_arg, concrete_type)),
                     Indent(box Branch(vec!(
                         Line(format!("match self.{}.get_data_field::<u16>({}) {{", field_name, doffset)),
                         Indent(box Branch(getter_interior)),
@@ -1054,7 +1056,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     builder_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(&self) -> {} {{", styled_name, ty_b)),
+                            Line(format!("pub fn get_{}(&mut self) -> {} {{", styled_name, ty_b)),
                             Indent(box get_b),
                             Line("}".to_string()))));
 

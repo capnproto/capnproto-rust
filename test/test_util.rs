@@ -22,7 +22,7 @@
 
 use test_capnp::{test_all_types, TestEnum};
 
-pub fn init_test_message(builder : test_all_types::Builder) {
+pub fn init_test_message(mut builder : test_all_types::Builder) {
     builder.set_void_field(());
     builder.set_bool_field(true);
     builder.set_int8_field(-123);
@@ -38,7 +38,7 @@ pub fn init_test_message(builder : test_all_types::Builder) {
     builder.set_text_field("foo");
     builder.set_data_field(b"bar");
     {
-        let sub_builder = builder.init_struct_field();
+        let mut sub_builder = builder.init_struct_field();
         sub_builder.set_void_field(());
         sub_builder.set_bool_field(true);
         sub_builder.set_int8_field(-12);
@@ -54,7 +54,7 @@ pub fn init_test_message(builder : test_all_types::Builder) {
         sub_builder.set_text_field("baz");
         sub_builder.set_data_field(b"qux");
         {
-            let sub_sub_builder = sub_builder.init_struct_field();
+            let mut sub_sub_builder = sub_builder.init_struct_field();
             sub_sub_builder.set_text_field("nested");
             sub_sub_builder.init_struct_field().set_text_field("really nested");
         }
@@ -118,7 +118,8 @@ pub trait CheckTestMessage {
 macro_rules!
 check_test_message_impl(($typ:ident) => (
     impl <'a> CheckTestMessage for test_all_types::$typ<'a> {
-        fn check_test_message(reader : test_all_types::$typ<'a>) {
+        fn check_test_message(mut reader : test_all_types::$typ<'a>) {
+            #![allow(unused_mut)]
             reader.get_void_field();
             assert_eq!(true, reader.get_bool_field());
             assert_eq!(-123, reader.get_int8_field());
@@ -134,7 +135,7 @@ check_test_message_impl(($typ:ident) => (
             assert_eq!("foo", reader.get_text_field().as_slice());
             assert_eq!(b"bar", &*reader.get_data_field());
             {
-                let sub_reader = reader.get_struct_field();
+                let mut sub_reader = reader.get_struct_field();
                 assert_eq!((), sub_reader.get_void_field());
                 assert_eq!(true, sub_reader.get_bool_field());
                 assert_eq!(-12, sub_reader.get_int8_field());
@@ -150,7 +151,7 @@ check_test_message_impl(($typ:ident) => (
                 assert_eq!("baz", sub_reader.get_text_field().as_slice());
                 assert_eq!(b"qux", &*sub_reader.get_data_field());
                 {
-                    let sub_sub_reader = sub_reader.get_struct_field();
+                    let mut sub_sub_reader = sub_reader.get_struct_field();
                     assert_eq!("nested", sub_sub_reader.get_text_field().as_slice());
                     assert_eq!("really nested", sub_sub_reader.get_struct_field().get_text_field().as_slice());
                 }

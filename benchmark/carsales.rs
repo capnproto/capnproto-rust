@@ -30,13 +30,14 @@ pub type ResponseReader<'a> = total_value::Reader<'a>;
 pub type Expectation = u64;
 
 trait CarValue {
-    fn car_value(&self) -> u64;
+    fn car_value(self) -> u64;
 }
 
 macro_rules! car_value_impl(
     ($typ:ident) => (
             impl <'a> CarValue for car::$typ<'a> {
-                fn car_value (&self) -> u64 {
+                fn car_value (mut self) -> u64 {
+                    #![allow(unused_mut)]
                     let mut result : u64 = 0;
                     result += self.get_seats() as u64 * 200;
                     result += self.get_doors() as u64 * 350;
@@ -45,14 +46,14 @@ macro_rules! car_value_impl(
                     // TODO: investigate why.
                     let wheels = self.get_wheels();
                     for ii in range(0, wheels.len()) {
-                        let wheel = wheels.get(ii);
+                        let mut wheel = wheels.get(ii);
                         result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
                         result += if wheel.get_snow_tires() { 100 } else { 0 };
                     }
 
                     result += self.get_length() as u64 * self.get_width() as u64 * self.get_height() as u64 / 50;
 
-                    let engine = self.get_engine();
+                    let mut engine = self.get_engine();
                     result += engine.get_horsepower() as u64 * 40;
                     if engine.get_uses_electric() {
                         if engine.get_uses_gas() {
@@ -83,7 +84,7 @@ car_value_impl!(Builder)
 const MAKES : [&'static str, .. 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
 const MODELS : [&'static str, .. 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
 
-pub fn random_car(rng : &mut FastRand, car : car::Builder) {
+pub fn random_car(rng : &mut FastRand, mut car : car::Builder) {
     use std::mem::transmute;
 
     car.set_make(MAKES[rng.next_less_than(MAKES.len() as u32) as uint]);
@@ -93,27 +94,30 @@ pub fn random_car(rng : &mut FastRand, car : car::Builder) {
     car.set_seats(2 + rng.next_less_than(6) as u8);
     car.set_doors(2 + rng.next_less_than(3) as u8);
 
-    for wheel in car.init_wheels(4).iter() {
+    for mut wheel in car.init_wheels(4).iter() {
         wheel.set_diameter(25 + rng.next_less_than(15) as u16);
         wheel.set_air_pressure((30.0 + rng.next_double(20.0)) as f32);
         wheel.set_snow_tires(rng.next_less_than(16) == 0);
     }
 
-    car.set_length(170 + rng.next_less_than(150) as u16);
-    car.set_width(48 + rng.next_less_than(36) as u16);
-    car.set_height(54 + rng.next_less_than(48) as u16);
-    car.set_weight(car.get_length() as u32 * car.get_width() as u32 *
-                   car.get_height() as u32 / 200);
+    let length = 170 + rng.next_less_than(150) as u16;
+    let width = 48 + rng.next_less_than(36) as u16;
+    let height = 54 + rng.next_less_than(48) as u16;
+    car.set_length(length);
+    car.set_width(width);
+    car.set_height(height);
+    car.set_weight(length as u32 * width as u32 * height as u32 / 200);
 
-    let engine = car.init_engine();
+    let mut engine = car.init_engine();
     engine.set_horsepower(100 * rng.next_less_than(400) as u16);
     engine.set_cylinders(4 + 2 * rng.next_less_than(3) as u8);
     engine.set_cc(800 + rng.next_less_than(10000));
     engine.set_uses_gas(true);
     engine.set_uses_electric(rng.gen());
 
-    car.set_fuel_capacity((10.0 + rng.next_double(30.0)) as f32);
-    car.set_fuel_level(rng.next_double(car.get_fuel_capacity() as f64) as f32);
+    let fuel_capacity = (10.0 + rng.next_double(30.0)) as f32;
+    car.set_fuel_capacity(fuel_capacity);
+    car.set_fuel_level(rng.next_double(fuel_capacity as f64) as f32);
     car.set_has_power_windows(rng.gen());
     car.set_has_power_steering(rng.gen());
     car.set_has_cruise_control(rng.gen());
@@ -121,7 +125,7 @@ pub fn random_car(rng : &mut FastRand, car : car::Builder) {
     car.set_has_nav_system(rng.gen());
 }
 
-pub fn setup_request(rng : &mut FastRand, request : parking_lot::Builder) -> u64 {
+pub fn setup_request(rng : &mut FastRand, mut request : parking_lot::Builder) -> u64 {
     let mut result = 0;
     let cars = request.init_cars(rng.next_less_than(200));
     for ii in range(0, cars.len()) {
@@ -133,7 +137,7 @@ pub fn setup_request(rng : &mut FastRand, request : parking_lot::Builder) -> u64
     result
 }
 
-pub fn handle_request(request : parking_lot::Reader, response : total_value::Builder) {
+pub fn handle_request(request : parking_lot::Reader, mut response : total_value::Builder) {
     let mut result = 0;
     for car in request.get_cars().iter() {
         result += car.car_value();

@@ -36,14 +36,14 @@ pub struct ScoredResult<'a> {
 
 const URL_PREFIX : &'static str = "http://example.com";
 
-pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder) -> int {
+pub fn setup_request(rng : &mut FastRand, mut request : search_result_list::Builder) -> int {
     let count = rng.next_less_than(1000);
     let mut good_count : int = 0;
 
     let list = request.init_results(count);
 
     for i in range(0, count) {
-        let result = list.get(i);
+        let mut result = list.get(i);
         result.set_score(1000.0 - i as f64);
         let url_size = rng.next_less_than(100);
 
@@ -84,7 +84,7 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
 }
 
 pub fn handle_request(request : search_result_list::Reader,
-                      response : search_result_list::Builder) {
+                      mut response : search_result_list::Builder) {
     let mut scored_results : Vec<ScoredResult> = Vec::new();
 
     let results = request.get_results();
@@ -105,7 +105,7 @@ pub fn handle_request(request : search_result_list::Reader,
 
     let list = response.init_results(scored_results.len() as u32);
     for i in range(0, list.len()) {
-        let item = list.get(i);
+        let mut item = list.get(i);
         let result = scored_results[i as uint];
         item.set_score(result.score);
         item.set_url(result.result.get_url());

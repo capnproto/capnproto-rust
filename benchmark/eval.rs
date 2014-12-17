@@ -29,7 +29,7 @@ pub type Expectation = i32;
 pub type RequestReader<'a> = expression::Reader<'a>;
 pub type ResponseReader<'a> = evaluation_result::Reader<'a>;
 
-fn make_expression(rng : &mut FastRand, exp : expression::Builder, depth : u32) -> i32 {
+fn make_expression(rng : &mut FastRand, mut exp : expression::Builder, depth : u32) -> i32 {
     exp.set_op(unsafe {
             std::mem::transmute(rng.next_less_than( Operation::Modulus as u32 + 1) as u16)});
 
@@ -89,7 +89,7 @@ pub fn setup_request(rng : &mut FastRand, request : expression::Builder) -> i32 
 }
 
 #[inline]
-pub fn handle_request(request : expression::Reader, response : evaluation_result::Builder) {
+pub fn handle_request(request : expression::Reader, mut response : evaluation_result::Builder) {
     response.set_value(evaluate_expression(request));
 }
 
