@@ -74,7 +74,7 @@ pub mod primitive_list {
 
         pub fn len(&self) -> u32 { self.builder.len() }
 
-        pub fn set(&self, index : u32, value : T) {
+        pub fn set(&mut self, index : u32, value : T) {
             PrimitiveElement::set(&self.builder, index, value);
         }
     }
@@ -146,7 +146,7 @@ pub mod enum_list {
 
         pub fn len(&self) -> u32 { self.builder.len() }
 
-        pub fn set(&self, index : u32, value : T) {
+        pub fn set(&mut self, index : u32, value : T) {
             assert!(index < self.len());
             PrimitiveElement::set(&self.builder, index, value.to_u16());
         }
@@ -234,11 +234,6 @@ pub mod struct_list {
 //        pub fn set(&self, index : uint, value : T) {
 //        }
 
-        pub fn iter(self) -> super::ListIter<Builder<'a, T>> {
-            let len = self.len();
-            return super::ListIter::new(self, len);
-        }
-
     }
 
     impl <'a, T : FromStructBuilder<'a> + HasStructSize> FromPointerBuilder<'a> for Builder<'a, T> {
@@ -254,14 +249,8 @@ pub mod struct_list {
         }
     }
 
-    impl <'a, T : FromStructBuilder<'a>> super::IndexMove<u32, T> for Builder<'a, T> {
-        fn index_move(&self, index : u32) -> T {
-            self.get(index)
-        }
-    }
-
     impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
-        pub fn get(&self, index : u32) -> T {
+        pub fn get(&mut self, index : u32) -> T {
             assert!(index < self.len());
             let result : T =
                 FromStructBuilder::new(self.builder.get_struct_element(index));
@@ -340,7 +329,7 @@ pub mod list_list {
     }
 
     impl <'a, T : FromPointerBuilder<'a>> Builder<'a, T> {
-        pub fn get(&self, index : u32) -> T {
+        pub fn get(&mut self, index : u32) -> T {
             assert!(index < self.len());
             FromPointerBuilder::get_from_pointer(self.builder.get_pointer_element(index))
         }
@@ -395,7 +384,7 @@ pub mod text_list {
 
         pub fn len(&self) -> u32 { self.builder.len() }
 
-        pub fn set(&self, index : u32, value : text::Reader) {
+        pub fn set(&mut self, index : u32, value : text::Reader) {
             assert!(index < self.len());
             self.builder.get_pointer_element(index).set_text(value);
         }
@@ -416,7 +405,7 @@ pub mod text_list {
     }
 
     impl <'a> Builder<'a> {
-        pub fn get(&self, index : u32) -> text::Builder<'a> {
+        pub fn get(&mut self, index : u32) -> text::Builder<'a> {
             self.builder.get_pointer_element(index).get_text(::std::ptr::null(), 0)
         }
     }
@@ -470,7 +459,7 @@ pub mod data_list {
 
         pub fn len(&self) -> u32 { self.builder.len() }
 
-        pub fn set(&self, index : u32, value : data::Reader) {
+        pub fn set(&mut self, index : u32, value : data::Reader) {
             assert!(index < self.len());
             self.builder.get_pointer_element(index).set_data(value);
         }
@@ -491,7 +480,7 @@ pub mod data_list {
     }
 
     impl <'a> Builder<'a> {
-        pub fn get(&self, index : u32) -> data::Builder<'a> {
+        pub fn get(&mut self, index : u32) -> data::Builder<'a> {
             assert!(index < self.len());
             self.builder.get_pointer_element(index).get_data(::std::ptr::null(), 0)
         }

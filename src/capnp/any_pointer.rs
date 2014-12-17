@@ -86,12 +86,12 @@ impl <'a> Builder<'a> {
     }
 
     #[inline]
-    pub fn clear(&self) {
+    pub fn clear(&mut self) {
         self.builder.clear()
     }
 
     #[inline]
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.builder.as_reader() }
     }
 }
