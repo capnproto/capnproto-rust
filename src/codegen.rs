@@ -327,7 +327,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 return (format!("{}::Reader<'a>", the_mod),
                         Line("::capnp::traits::FromStructReader::new(self.reader)".to_string()));
             } else {
-                return (format!("{}::Builder<'c>", the_mod),
+                return (format!("{}::Builder<'a>", the_mod),
                         Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string()));
             }
         }
@@ -336,8 +336,8 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             let member = if is_reader { "reader" } else { "builder" };
             let module = if is_reader { "Reader" } else { "Builder" };
-            let lifetime = if is_reader { "'a" } else {"'c"};
-            let module_with_var = if is_reader { "Reader<'a>" } else { "Builder<'c>" };
+            let lifetime = if is_reader { "'a" } else {"'a"};
+            let module_with_var = if is_reader { "Reader<'a>" } else { "Builder<'a>" };
 
             match tuple_option(reg_field.get_type().which(), reg_field.get_default_value().which()) {
                 Some((type_::Void(()), value::Void(()))) => { return ("()".to_string(), Line("()".to_string()))}
@@ -577,7 +577,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
 
             initter_interior.push(Line(format!("::capnp::traits::FromStructBuilder::new(self.builder)")));
 
-            (None, Some(format!("{}::Builder<'c>", the_mod)))
+            (None, Some(format!("{}::Builder<'a>", the_mod)))
         }
         Some(field::Slot(reg_field)) => {
             fn common_case (typ: &str, offset : uint, reg_field : field::slot::Reader,
@@ -632,7 +632,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
                                                        offset)));
                     initter_params.push("size : u32");
-                    (Some("text::Reader".to_string()), Some("text::Builder<'c>".to_string()))
+                    (Some("text::Reader".to_string()), Some("text::Builder<'a>".to_string()))
                 }
                 Some(type_::Data(())) => {
                     setter_interior.push(Line(format!("self.builder.get_pointer_field({}).set_data(value);",
@@ -640,7 +640,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
                                                        offset)));
                     initter_params.push("size : u32");
-                    (Some("data::Reader".to_string()), Some("data::Builder<'c>".to_string()))
+                    (Some("data::Reader".to_string()), Some("data::Builder<'a>".to_string()))
                 }
                 Some(type_::List(ot1)) => {
                     setter_interior.push(
@@ -663,7 +663,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                     let type_str = prim_type_str(t1);
 
                                     (Some(format!("primitive_list::Reader<'a,{}>", type_str)),
-                                     Some(format!("primitive_list::Builder<'c,{}>", type_str)))
+                                     Some(format!("primitive_list::Builder<'a,{}>", type_str)))
                                 }
                                 type_::Enum(e) => {
                                     let id = e.get_type_id();
@@ -672,7 +672,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                     let type_str = format!("{}", the_mod);
 
                                     (Some(format!("enum_list::Reader<'a,{}>", type_str)),
-                                     Some(format!("enum_list::Builder<'c,{}>", type_str)))
+                                     Some(format!("enum_list::Builder<'a,{}>", type_str)))
                                 }
                                 type_::Struct(st) => {
                                     let id = st.get_type_id();
@@ -680,26 +680,26 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                     let the_mod = scope.connect("::");
 
                                     (Some(format!("struct_list::Reader<'a,{}::Reader<'a>>", the_mod)),
-                                     Some(format!("struct_list::Builder<'c,{}::Builder<'c>>", the_mod)))
+                                     Some(format!("struct_list::Builder<'a,{}::Builder<'a>>", the_mod)))
                                 }
                                 type_::Text(()) => {
 
                                     (Some(format!("text_list::Reader")),
-                                     Some(format!("text_list::Builder<'c>")))
+                                     Some(format!("text_list::Builder<'a>")))
                                 }
                                 type_::Data(()) => {
 
                                     (Some(format!("data_list::Reader")),
-                                     Some(format!("data_list::Builder<'c>")))
+                                     Some(format!("data_list::Builder<'a>")))
                                 }
                                 type_::List(t1) => {
                                     let type_param = list_list_type_param(scope_map, t1.get_element_type(),
-                                                                          false, "'c");
+                                                                          false, "'a");
                                     setter_lifetime_param = "<'b>";
 
                                     (Some(format!("list_list::Reader<'b, {}>",
                                              list_list_type_param(scope_map, t1.get_element_type(), true, "'b"))),
-                                     Some(format!("list_list::Builder<'c, {}>", type_param)))
+                                     Some(format!("list_list::Builder<'a, {}>", type_param)))
                                 }
                                 type_::AnyPointer(_) => {panic!("List(AnyPointer) not supported")}
                                 type_::Interface(_) => { panic!("unimplemented") }
@@ -757,7 +757,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
         Some(builder_type) => {
             result.push(Line("#[inline]".to_string()));
             let args = initter_params.connect(", ");
-            result.push(Line(format!("pub fn init_{}<'c>(&'c mut self, {}) -> {} {{",
+            result.push(Line(format!("pub fn init_{}(&mut self, {}) -> {} {{",
                                      styled_name, args, builder_type)));
             result.push(Indent(box Branch(initter_interior)));
             result.push(Line("}".to_string()));
@@ -838,8 +838,8 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
         enum_interior.push(Line(format!("{}({}),", enumerant_name, ty1)));
     }
 
-    let lifetime = if is_reader { "'a" } else { "'c" };
-    let bracketed_lifetime = if is_reader { "<'a>" } else { "<'c>" };
+    let lifetime = if is_reader { "'a" } else { "'a" };
+    let bracketed_lifetime = if is_reader { "<'a>" } else { "<'a>" };
     let enum_name = format!("Which{}",
                             if ty_params.len() > 0 { format!("<{},{}>", lifetime, ty_params.connect(",")) }
                             else {"".to_string()} );
@@ -883,7 +883,7 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
                  Branch(vec![])
              }]);
 
-    let name_and_arg = if is_reader { "which(&self)" } else { "which<'c>(&'c mut self)" };
+    let name_and_arg = if is_reader { "which(&self)" } else { "which(&mut self)" };
 
     let getter_result =
         Branch(vec!(Line("#[inline]".to_string()),
@@ -1061,7 +1061,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     builder_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}<'c>(&'c mut self) -> {} {{", styled_name, ty_b)),
+                            Line(format!("pub fn get_{}(&mut self) -> {} {{", styled_name, ty_b)),
                             Indent(box get_b),
                             Line("}".to_string()))));
 
@@ -1208,7 +1208,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("impl <'a> Builder<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("pub fn as_reader<'c>(&'c self) -> Reader<'c> {".to_string()),
+                        Line("pub fn as_reader(&self) -> Reader<'a> {".to_string()),
                         Indent(box Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string())),
                         Line("}".to_string())))),
                 Indent(box Branch(builder_members)),
