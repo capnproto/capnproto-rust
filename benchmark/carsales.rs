@@ -45,7 +45,7 @@ macro_rules! car_value_impl(
                     // Using an iterator here slows things down considerably.
                     // TODO: investigate why.
                     {
-                        let wheels = self.get_wheels();
+                        let mut wheels = self.get_wheels();
                         for ii in range(0, wheels.len()) {
                             let mut wheel = wheels.get(ii);
                             result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
@@ -97,10 +97,14 @@ pub fn random_car(rng : &mut FastRand, mut car : car::Builder) {
     car.set_seats(2 + rng.next_less_than(6) as u8);
     car.set_doors(2 + rng.next_less_than(3) as u8);
 
-    for mut wheel in car.init_wheels(4).iter() {
-        wheel.set_diameter(25 + rng.next_less_than(15) as u16);
-        wheel.set_air_pressure((30.0 + rng.next_double(20.0)) as f32);
-        wheel.set_snow_tires(rng.next_less_than(16) == 0);
+    {
+        let mut wheels = car.init_wheels(4);
+        for ii in range(0, wheels.len()) {
+            let mut wheel = wheels.get(ii);
+            wheel.set_diameter(25 + rng.next_less_than(15) as u16);
+            wheel.set_air_pressure((30.0 + rng.next_double(20.0)) as f32);
+            wheel.set_snow_tires(rng.next_less_than(16) == 0);
+        }
     }
 
     let length = 170 + rng.next_less_than(150) as u16;
@@ -130,7 +134,7 @@ pub fn random_car(rng : &mut FastRand, mut car : car::Builder) {
 
 pub fn setup_request(rng : &mut FastRand, mut request : parking_lot::Builder) -> u64 {
     let mut result = 0;
-    let cars = request.init_cars(rng.next_less_than(200));
+    let mut cars = request.init_cars(rng.next_less_than(200));
     for ii in range(0, cars.len()) {
         let car = cars.get(ii);
         random_car(rng, car);

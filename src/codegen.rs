@@ -732,7 +732,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                     (Some(format!("{}::Client",the_mod)), None)
                 }
                 Some(type_::AnyPointer(_)) => {
-                    initter_interior.push(Line(format!("let result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({}));",
+                    initter_interior.push(Line(format!("let mut result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({}));",
                                                offset)));
                     initter_interior.push(Line("result.clear();".to_string()));
                     initter_interior.push(Line("result".to_string()));

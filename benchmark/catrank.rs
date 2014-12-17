@@ -40,7 +40,7 @@ pub fn setup_request(rng : &mut FastRand, mut request : search_result_list::Buil
     let count = rng.next_less_than(1000);
     let mut good_count : int = 0;
 
-    let list = request.init_results(count);
+    let mut list = request.init_results(count);
 
     for i in range(0, count) {
         let mut result = list.get(i);
@@ -103,7 +103,7 @@ pub fn handle_request(request : search_result_list::Reader,
     // sort in decreasing order
     scored_results.sort_by(|v1, v2| { if v1.score < v2.score { ::std::cmp::Greater } else { ::std::cmp::Less } });
 
-    let list = response.init_results(scored_results.len() as u32);
+    let mut list = response.init_results(scored_results.len() as u32);
     for i in range(0, list.len()) {
         let mut item = list.get(i);
         let result = scored_results[i as uint];

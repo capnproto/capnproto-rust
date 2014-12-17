@@ -4061,7 +4061,7 @@ pub mod value {
     #[inline]
     pub fn init_list(&self, ) -> ::capnp::any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 14);
-      let result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0));
+      let mut result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
       result
     }
@@ -4077,7 +4077,7 @@ pub mod value {
     #[inline]
     pub fn init_struct(&self, ) -> ::capnp::any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 16);
-      let result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0));
+      let mut result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
       result
     }
@@ -4092,7 +4092,7 @@ pub mod value {
     #[inline]
     pub fn init_any_pointer(&self, ) -> ::capnp::any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 18);
-      let result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0));
+      let mut result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
       result
     }

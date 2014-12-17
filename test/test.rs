@@ -50,21 +50,21 @@ mod tests {
         assert_eq!(test_prim_list.has_void_list(), false);
         {
             {
-                let uint8_list = test_prim_list.init_uint8_list(100);
+                let mut uint8_list = test_prim_list.init_uint8_list(100);
                 for i in range(0, uint8_list.len()) {
                     uint8_list.set(i, i as u8);
                 }
             }
 
             {
-                let uint64_list = test_prim_list.init_uint64_list(20);
+                let mut uint64_list = test_prim_list.init_uint64_list(20);
                 for i in range(0, uint64_list.len()) {
                     uint64_list.set(i, i as u64);
                 }
             }
 
             {
-                let bool_list = test_prim_list.init_bool_list(65);
+                let mut bool_list = test_prim_list.init_bool_list(65);
 
                 bool_list.set(0, true);
                 bool_list.set(1, true);
@@ -81,7 +81,7 @@ mod tests {
                 assert!(bool_list.get(64));
             }
 
-            let void_list = test_prim_list.init_void_list(1025);
+            let mut void_list = test_prim_list.init_void_list(1025);
             void_list.set(257, ());
         }
         assert_eq!(test_prim_list.has_bool_list(), true);
@@ -130,7 +130,7 @@ mod tests {
 
         test_struct_list.init_struct_list(4);
         {
-            let struct_list = test_struct_list.get_struct_list();
+            let mut struct_list = test_struct_list.get_struct_list();
             struct_list.get(0).init_uint8_list(1).set(0, 5u8);
         }
 
@@ -245,7 +245,7 @@ mod tests {
 
         {
             {
-                let enum_list = test_complex_list.init_enum_list(100);
+                let mut enum_list = test_complex_list.init_enum_list(100);
                 for i in range::<u32>(0, 10) {
                     enum_list.set(i, AnEnum::Qux);
                 }
@@ -255,38 +255,38 @@ mod tests {
             }
 
             {
-                let text_list = test_complex_list.init_text_list(2);
+                let mut text_list = test_complex_list.init_text_list(2);
                 text_list.set(0, "garply");
                 text_list.set(1, "foo");
             }
 
             {
-                let data_list = test_complex_list.init_data_list(2);
+                let mut data_list = test_complex_list.init_data_list(2);
                 data_list.set(0, &[0u8, 1u8, 2u8]);
                 data_list.set(1, &[255u8, 254u8, 253u8]);
             }
 
             {
                 let prim_list_list = test_complex_list.init_prim_list_list(2);
-                let prim_list = prim_list_list.init(0, 3);
+                let mut prim_list = prim_list_list.init(0, 3);
                 prim_list.set(0, 5);
                 prim_list.set(1, 6);
                 prim_list.set(2, 7);
                 assert_eq!(prim_list.len(), 3);
-                let prim_list = prim_list_list.init(1, 1);
+                let mut prim_list = prim_list_list.init(1, 1);
                 prim_list.set(0,-1);
             }
 
             {
                 let prim_list_list_list = test_complex_list.init_prim_list_list_list(2);
                 let prim_list_list = prim_list_list_list.init(0, 2);
-                let prim_list = prim_list_list.init(0, 2);
+                let mut prim_list = prim_list_list.init(0, 2);
                 prim_list.set(0, 0);
                 prim_list.set(1, 1);
-                let prim_list = prim_list_list.init(1, 1);
+                let mut prim_list = prim_list_list.init(1, 1);
                 prim_list.set(0, 255);
                 let prim_list_list = prim_list_list_list.init(1, 1);
-                let prim_list = prim_list_list.init(0, 3);
+                let mut prim_list = prim_list_list.init(0, 3);
                 prim_list.set(0, 10);
                 prim_list.set(1, 9);
                 prim_list.set(2, 8);
@@ -294,9 +294,9 @@ mod tests {
 
             {
                 let enum_list_list = test_complex_list.init_enum_list_list(2);
-                let enum_list = enum_list_list.init(0, 1);
+                let mut enum_list = enum_list_list.init(0, 1);
                 enum_list.set(0, AnEnum::Bar);
-                let enum_list = enum_list_list.init(1, 2);
+                let mut enum_list = enum_list_list.init(1, 2);
                 enum_list.set(0, AnEnum::Foo);
                 enum_list.set(1, AnEnum::Qux);
             }
