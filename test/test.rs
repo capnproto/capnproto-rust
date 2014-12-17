@@ -46,42 +46,46 @@ mod tests {
         let mut message = MallocMessageBuilder::new(*BuilderOptions::new().first_segment_words(50));
 
         let mut test_prim_list = message.init_root::<test_prim_list::Builder>();
-
-        let uint8_list = test_prim_list.init_uint8_list(100);
-
-        for i in range(0, uint8_list.len()) {
-            uint8_list.set(i, i as u8);
-        }
-
-        let uint64_list = test_prim_list.init_uint64_list(20);
-
-        for i in range(0, uint64_list.len()) {
-            uint64_list.set(i, i as u64);
-        }
-
         assert_eq!(test_prim_list.has_bool_list(), false);
-        let bool_list = test_prim_list.init_bool_list(65);
-        assert_eq!(test_prim_list.has_bool_list(), true);
-
-        bool_list.set(0, true);
-        bool_list.set(1, true);
-        bool_list.set(2, true);
-        bool_list.set(3, true);
-        bool_list.set(5, true);
-        bool_list.set(8, true);
-        bool_list.set(13, true);
-        bool_list.set(64, true);
-
-        assert!(bool_list.get(0));
-        assert!(!bool_list.get(4));
-        assert!(!bool_list.get(63));
-        assert!(bool_list.get(64));
-
         assert_eq!(test_prim_list.has_void_list(), false);
-        let void_list = test_prim_list.init_void_list(1025);
-        assert_eq!(test_prim_list.has_void_list(), true);
-        void_list.set(257, ());
+        {
+            {
+                let uint8_list = test_prim_list.init_uint8_list(100);
+                for i in range(0, uint8_list.len()) {
+                    uint8_list.set(i, i as u8);
+                }
+            }
 
+            {
+                let uint64_list = test_prim_list.init_uint64_list(20);
+                for i in range(0, uint64_list.len()) {
+                    uint64_list.set(i, i as u64);
+                }
+            }
+
+            {
+                let bool_list = test_prim_list.init_bool_list(65);
+
+                bool_list.set(0, true);
+                bool_list.set(1, true);
+                bool_list.set(2, true);
+                bool_list.set(3, true);
+                bool_list.set(5, true);
+                bool_list.set(8, true);
+                bool_list.set(13, true);
+                bool_list.set(64, true);
+
+                assert!(bool_list.get(0));
+                assert!(!bool_list.get(4));
+                assert!(!bool_list.get(63));
+                assert!(bool_list.get(64));
+            }
+
+            let void_list = test_prim_list.init_void_list(1025);
+            void_list.set(257, ());
+        }
+        assert_eq!(test_prim_list.has_bool_list(), true);
+        assert_eq!(test_prim_list.has_void_list(), true);
 
         let test_prim_list_reader = test_prim_list.as_reader();
         let uint8_list = test_prim_list_reader.get_uint8_list();
@@ -125,8 +129,10 @@ mod tests {
         let mut test_struct_list = message.init_root::<test_struct_list::Builder>();
 
         test_struct_list.init_struct_list(4);
-        let struct_list = test_struct_list.get_struct_list();
-        struct_list.get(0).init_uint8_list(1).set(0, 5u8);
+        {
+            let struct_list = test_struct_list.get_struct_list();
+            struct_list.get(0).init_uint8_list(1).set(0, 5u8);
+        }
 
         {
             let reader = test_struct_list.as_reader();
@@ -159,29 +165,37 @@ mod tests {
             assert!(test_blob_reader.get_data_field() == [0u8, 1u8, 2u8, 3u8, 4u8]);
         }
 
-        let text_builder = test_blob.init_text_field(10);
+        test_blob.init_text_field(10);
         assert_eq!(test_blob.as_reader().get_text_field(),
-                   "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
-        let mut writer = ::std::io::BufWriter::new(text_builder.as_mut_bytes());
-        writer.write("aabbccddee".as_bytes()).unwrap();
+                       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
+        {
+            let text_builder = test_blob.get_text_field();
+            let mut writer = ::std::io::BufWriter::new(text_builder.as_mut_bytes());
+            writer.write("aabbccddee".as_bytes()).unwrap();
+        }
 
-        let data_builder = test_blob.init_data_field(7);
+        test_blob.init_data_field(7);
         assert!(test_blob.as_reader().get_data_field() ==
                 [0u8,0u8,0u8,0u8,0u8,0u8,0u8]);
-        for c in data_builder.iter_mut() {
-            *c = 5;
+        {
+            let data_builder = test_blob.get_data_field();
+            for c in data_builder.iter_mut() {
+                *c = 5;
+            }
+            data_builder[0] = 4u8;
         }
-        data_builder[0] = 4u8;
 
         assert_eq!(test_blob.as_reader().get_text_field(), "aabbccddee");
         assert!(test_blob.as_reader().get_data_field() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
 
-        let bytes = test_blob.get_text_field().as_mut_bytes();
-        bytes[4] = 'z' as u8;
-        bytes[5] = 'z' as u8;
-        assert_eq!(test_blob.as_reader().get_text_field(), "aabbzzddee");
+        {
+            let bytes = test_blob.get_text_field().as_mut_bytes();
+            bytes[4] = 'z' as u8;
+            bytes[5] = 'z' as u8;
+            assert_eq!(test_blob.as_reader().get_text_field(), "aabbzzddee");
 
-        test_blob.get_data_field()[2] = 10;
+            test_blob.get_data_field()[2] = 10;
+        }
         assert!(test_blob.as_reader().get_data_field() == [4u8,5u8,10u8,5u8,5u8,5u8,5u8]);
     }
 
@@ -229,61 +243,79 @@ mod tests {
 
         let mut test_complex_list = message.init_root::<test_complex_list::Builder>();
 
-        let enum_list = test_complex_list.init_enum_list(100);
+        {
+            {
+                let enum_list = test_complex_list.init_enum_list(100);
+                for i in range::<u32>(0, 10) {
+                    enum_list.set(i, AnEnum::Qux);
+                }
+                for i in range::<u32>(10, 20) {
+                    enum_list.set(i, AnEnum::Bar);
+                }
+            }
 
-        for i in range::<u32>(0, 10) {
-            enum_list.set(i, AnEnum::Qux);
+            {
+                let text_list = test_complex_list.init_text_list(2);
+                text_list.set(0, "garply");
+                text_list.set(1, "foo");
+            }
+
+            {
+                let data_list = test_complex_list.init_data_list(2);
+                data_list.set(0, &[0u8, 1u8, 2u8]);
+                data_list.set(1, &[255u8, 254u8, 253u8]);
+            }
+
+            {
+                let prim_list_list = test_complex_list.init_prim_list_list(2);
+                let prim_list = prim_list_list.init(0, 3);
+                prim_list.set(0, 5);
+                prim_list.set(1, 6);
+                prim_list.set(2, 7);
+                assert_eq!(prim_list.len(), 3);
+                let prim_list = prim_list_list.init(1, 1);
+                prim_list.set(0,-1);
+            }
+
+            {
+                let prim_list_list_list = test_complex_list.init_prim_list_list_list(2);
+                let prim_list_list = prim_list_list_list.init(0, 2);
+                let prim_list = prim_list_list.init(0, 2);
+                prim_list.set(0, 0);
+                prim_list.set(1, 1);
+                let prim_list = prim_list_list.init(1, 1);
+                prim_list.set(0, 255);
+                let prim_list_list = prim_list_list_list.init(1, 1);
+                let prim_list = prim_list_list.init(0, 3);
+                prim_list.set(0, 10);
+                prim_list.set(1, 9);
+                prim_list.set(2, 8);
+            }
+
+            {
+                let enum_list_list = test_complex_list.init_enum_list_list(2);
+                let enum_list = enum_list_list.init(0, 1);
+                enum_list.set(0, AnEnum::Bar);
+                let enum_list = enum_list_list.init(1, 2);
+                enum_list.set(0, AnEnum::Foo);
+                enum_list.set(1, AnEnum::Qux);
+            }
+
+            {
+                let text_list_list = test_complex_list.init_text_list_list(1);
+                text_list_list.init(0,1).set(0, "abc");
+            }
+
+            {
+                let data_list_list = test_complex_list.init_data_list_list(1);
+                data_list_list.init(0,1).set(0, &[255, 254, 253]);
+            }
+
+            {
+                let struct_list_list = test_complex_list.init_struct_list_list(1);
+                struct_list_list.init(0,1).get(0).set_int8_field(-1);
+            }
         }
-        for i in range::<u32>(10, 20) {
-            enum_list.set(i, AnEnum::Bar);
-        }
-
-        let text_list = test_complex_list.init_text_list(2);
-        text_list.set(0, "garply");
-        text_list.set(1, "foo");
-
-        let data_list = test_complex_list.init_data_list(2);
-        data_list.set(0, &[0u8, 1u8, 2u8]);
-        data_list.set(1, &[255u8, 254u8, 253u8]);
-
-        let prim_list_list = test_complex_list.init_prim_list_list(2);
-        let prim_list = prim_list_list.init(0, 3);
-        prim_list.set(0, 5);
-        prim_list.set(1, 6);
-        prim_list.set(2, 7);
-        assert_eq!(prim_list.len(), 3);
-        let prim_list = prim_list_list.init(1, 1);
-        prim_list.set(0,-1);
-
-        let prim_list_list_list = test_complex_list.init_prim_list_list_list(2);
-        let prim_list_list = prim_list_list_list.init(0, 2);
-        let prim_list = prim_list_list.init(0, 2);
-        prim_list.set(0, 0);
-        prim_list.set(1, 1);
-        let prim_list = prim_list_list.init(1, 1);
-        prim_list.set(0, 255);
-        let prim_list_list = prim_list_list_list.init(1, 1);
-        let prim_list = prim_list_list.init(0, 3);
-        prim_list.set(0, 10);
-        prim_list.set(1, 9);
-        prim_list.set(2, 8);
-
-        let enum_list_list = test_complex_list.init_enum_list_list(2);
-        let enum_list = enum_list_list.init(0, 1);
-        enum_list.set(0, AnEnum::Bar);
-        let enum_list = enum_list_list.init(1, 2);
-        enum_list.set(0, AnEnum::Foo);
-        enum_list.set(1, AnEnum::Qux);
-
-        let text_list_list = test_complex_list.init_text_list_list(1);
-        text_list_list.init(0,1).set(0, "abc");
-
-        let data_list_list = test_complex_list.init_data_list_list(1);
-        data_list_list.init(0,1).set(0, &[255, 254, 253]);
-
-        let struct_list_list = test_complex_list.init_struct_list_list(1);
-        struct_list_list.init(0,1).get(0).set_int8_field(-1);
-
 
         let complex_list_reader = test_complex_list.as_reader();
         let enum_list_reader = complex_list_reader.get_enum_list();
@@ -406,24 +438,31 @@ mod tests {
         struct_field.set_uint64_field(-7);
         assert_eq!(struct_field.get_uint64_field(), -7);
         assert_eq!(big_struct.get_struct_field().get_uint64_field(), -7);
-        let mut struct_field = big_struct.init_struct_field();
-        assert_eq!(struct_field.get_uint64_field(), 0);
-        assert_eq!(struct_field.get_uint32_field(), 0);
-
-        // getting before init is the same as init
-        let mut other_struct_field = big_struct.get_another_struct_field();
-        assert_eq!(other_struct_field.get_uint64_field(), 0);
-        other_struct_field.set_uint32_field(-31);
+        {
+            let mut struct_field = big_struct.init_struct_field();
+            assert_eq!(struct_field.get_uint64_field(), 0);
+            assert_eq!(struct_field.get_uint32_field(), 0);
+        }
 
         {
-            let reader = other_struct_field.as_reader();
-            big_struct.set_struct_field(reader);
+            // getting before init is the same as init
+            assert_eq!(big_struct.get_another_struct_field().get_uint64_field(), 0);
+            big_struct.get_another_struct_field().set_uint32_field(-31);
+
+            // Alas, we need to make a copy to appease the borrow checker.
+            let mut other_message = MallocMessageBuilder::new_default();
+            other_message.set_root(big_struct.get_another_struct_field().as_reader());
+            big_struct.set_struct_field(other_message.get_root::<test_big_struct::inner::Builder>().as_reader());
+        }
+
+        assert_eq!(big_struct.get_struct_field().get_uint32_field(), -31);
+        {
+            let mut other_struct_field = big_struct.get_another_struct_field();
+            assert_eq!(other_struct_field.get_uint32_field(), -31);
+            other_struct_field.set_uint32_field(42);
+            assert_eq!(other_struct_field.get_uint32_field(), 42);
         }
         assert_eq!(big_struct.get_struct_field().get_uint32_field(), -31);
-        assert_eq!(other_struct_field.get_uint32_field(), -31);
-        other_struct_field.set_uint32_field(42);
-        assert_eq!(big_struct.get_struct_field().get_uint32_field(), -31);
-        assert_eq!(other_struct_field.get_uint32_field(), 42);
         assert_eq!(big_struct.get_another_struct_field().get_uint32_field(), 42);
     }
 

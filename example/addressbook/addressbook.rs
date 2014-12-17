@@ -44,20 +44,24 @@ pub mod addressbook {
             alice.set_name("Alice");
             alice.set_email("alice@example.com");
 
-            let alice_phones = alice.init_phones(1);
-            alice_phones.get(0).set_number("555-1212");
-            alice_phones.get(0).set_type(person::phone_number::Type::Mobile);
+            {
+                let alice_phones = alice.init_phones(1);
+                alice_phones.get(0).set_number("555-1212");
+                alice_phones.get(0).set_type(person::phone_number::Type::Mobile);
+            }
             alice.get_employment().set_school("MIT");
 
             let mut bob = people.get(1);
             bob.set_id(456);
             bob.set_name("Bob");
             bob.set_email("bob@example.com");
-            let bob_phones = bob.init_phones(2);
-            bob_phones.get(0).set_number("555-4567");
-            bob_phones.get(0).set_type(person::phone_number::Type::Home);
-            bob_phones.get(1).set_number("555-7654");
-            bob_phones.get(1).set_type(person::phone_number::Type::Work);
+            {
+                let bob_phones = bob.init_phones(2);
+                bob_phones.get(0).set_number("555-4567");
+                bob_phones.get(0).set_type(person::phone_number::Type::Home);
+                bob_phones.get(1).set_number("555-7654");
+                bob_phones.get(1).set_type(person::phone_number::Type::Work);
+            }
             bob.get_employment().set_unemployed(());
         }
 

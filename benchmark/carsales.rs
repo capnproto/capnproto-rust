@@ -44,23 +44,27 @@ macro_rules! car_value_impl(
 
                     // Using an iterator here slows things down considerably.
                     // TODO: investigate why.
-                    let wheels = self.get_wheels();
-                    for ii in range(0, wheels.len()) {
-                        let mut wheel = wheels.get(ii);
-                        result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
-                        result += if wheel.get_snow_tires() { 100 } else { 0 };
+                    {
+                        let wheels = self.get_wheels();
+                        for ii in range(0, wheels.len()) {
+                            let mut wheel = wheels.get(ii);
+                            result += wheel.get_diameter() as u64 * wheel.get_diameter() as u64;
+                            result += if wheel.get_snow_tires() { 100 } else { 0 };
+                        }
                     }
 
                     result += self.get_length() as u64 * self.get_width() as u64 * self.get_height() as u64 / 50;
 
-                    let mut engine = self.get_engine();
-                    result += engine.get_horsepower() as u64 * 40;
-                    if engine.get_uses_electric() {
-                        if engine.get_uses_gas() {
-                            //# hybrid
-                            result += 5000;
-                        } else {
-                            result += 3000;
+                    {
+                        let mut engine = self.get_engine();
+                        result += engine.get_horsepower() as u64 * 40;
+                        if engine.get_uses_electric() {
+                            if engine.get_uses_gas() {
+                                //# hybrid
+                                result += 5000;
+                            } else {
+                                result += 3000;
+                            }
                         }
                     }
 
@@ -73,7 +77,6 @@ macro_rules! car_value_impl(
 
                     return result;
                 }
-
             }
         )
    )

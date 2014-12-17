@@ -61,43 +61,50 @@ pub fn init_test_message(mut builder : test_all_types::Builder) {
         sub_builder.set_enum_field(TestEnum::Baz);
 
         sub_builder.init_void_list(3);
-        let bool_list = sub_builder.init_bool_list(5);
-        bool_list.set(0, false);
-        bool_list.set(1, true);
-        bool_list.set(2, false);
-        bool_list.set(3, true);
-        bool_list.set(4, true);
-
-        let int8_list = sub_builder.init_int8_list(4);
-        int8_list.set(0, 12);
-        int8_list.set(1, -34);
-        int8_list.set(2, -0x80);
-        int8_list.set(3, 0x7f);
-
-        let int16_list = sub_builder.init_int16_list(4);
-        int16_list.set(0, 1234);
-        int16_list.set(1, -5678);
-        int16_list.set(2, -0x8000);
-        int16_list.set(3, 0x7fff);
-
-        let int32_list = sub_builder.init_int32_list(4);
-        int32_list.set(0, 12345678);
-        int32_list.set(1, -90123456);
-        int32_list.set(2, -0x80000000);
-        int32_list.set(3, 0x7fffffff);
-
-        let int64_list = sub_builder.init_int64_list(4);
-        int64_list.set(0, 123456789012345);
-        int64_list.set(1, -678901234567890);
-        int64_list.set(2, -0x8000000000000000);
-        int64_list.set(3, 0x7fffffffffffffff);
+        {
+            let bool_list = sub_builder.init_bool_list(5);
+            bool_list.set(0, false);
+            bool_list.set(1, true);
+            bool_list.set(2, false);
+            bool_list.set(3, true);
+            bool_list.set(4, true);
+        }
+        {
+            let int8_list = sub_builder.init_int8_list(4);
+            int8_list.set(0, 12);
+            int8_list.set(1, -34);
+            int8_list.set(2, -0x80);
+            int8_list.set(3, 0x7f);
+        }
+        {
+            let int16_list = sub_builder.init_int16_list(4);
+            int16_list.set(0, 1234);
+            int16_list.set(1, -5678);
+            int16_list.set(2, -0x8000);
+            int16_list.set(3, 0x7fff);
+        }
+        {
+            let int32_list = sub_builder.init_int32_list(4);
+            int32_list.set(0, 12345678);
+            int32_list.set(1, -90123456);
+            int32_list.set(2, -0x80000000);
+            int32_list.set(3, 0x7fffffff);
+        }
+        {
+            let int64_list = sub_builder.init_int64_list(4);
+            int64_list.set(0, 123456789012345);
+            int64_list.set(1, -678901234567890);
+            int64_list.set(2, -0x8000000000000000);
+            int64_list.set(3, 0x7fffffffffffffff);
+        }
 
         // ...
-
-        let struct_list = sub_builder.init_struct_list(3);
-        struct_list.get(0).set_text_field("x structlist 1");
-        struct_list.get(1).set_text_field("x structlist 2");
-        struct_list.get(2).set_text_field("x structlist 3");
+        {
+            let struct_list = sub_builder.init_struct_list(3);
+            struct_list.get(0).set_text_field("x structlist 1");
+            struct_list.get(1).set_text_field("x structlist 2");
+            struct_list.get(2).set_text_field("x structlist 3");
+        }
 
         let enum_list = sub_builder.init_enum_list(3);
         enum_list.set(0, TestEnum::Qux);
@@ -158,48 +165,60 @@ check_test_message_impl(($typ:ident) => (
                 assert!(Some(TestEnum::Baz) == sub_reader.get_enum_field());
                 assert_eq!(3, sub_reader.get_void_list().len());
 
-                let bool_list = sub_reader.get_bool_list();
-                assert_eq!(5, bool_list.len());
-                assert_eq!(false, bool_list.get(0));
-                assert_eq!(true, bool_list.get(1));
-                assert_eq!(false, bool_list.get(2));
-                assert_eq!(true, bool_list.get(3));
-                assert_eq!(true, bool_list.get(4));
+                {
+                    let bool_list = sub_reader.get_bool_list();
+                    assert_eq!(5, bool_list.len());
+                    assert_eq!(false, bool_list.get(0));
+                    assert_eq!(true, bool_list.get(1));
+                    assert_eq!(false, bool_list.get(2));
+                    assert_eq!(true, bool_list.get(3));
+                    assert_eq!(true, bool_list.get(4));
+                }
 
-                let int8_list = sub_reader.get_int8_list();
-                assert_eq!(4, int8_list.len());
-                assert_eq!(12, int8_list.get(0));
-                assert_eq!(-34, int8_list.get(1));
-                assert_eq!(-0x80, int8_list.get(2));
-                assert_eq!(0x7f, int8_list.get(3));
+                {
+                    let int8_list = sub_reader.get_int8_list();
+                    assert_eq!(4, int8_list.len());
+                    assert_eq!(12, int8_list.get(0));
+                    assert_eq!(-34, int8_list.get(1));
+                    assert_eq!(-0x80, int8_list.get(2));
+                    assert_eq!(0x7f, int8_list.get(3));
+                }
 
-                let int16_list = sub_reader.get_int16_list();
-                assert_eq!(4, int16_list.len());
-                assert_eq!(1234, int16_list.get(0));
-                assert_eq!(-5678, int16_list.get(1));
-                assert_eq!(-0x8000, int16_list.get(2));
-                assert_eq!(0x7fff, int16_list.get(3));
+                {
+                    let int16_list = sub_reader.get_int16_list();
+                    assert_eq!(4, int16_list.len());
+                    assert_eq!(1234, int16_list.get(0));
+                    assert_eq!(-5678, int16_list.get(1));
+                    assert_eq!(-0x8000, int16_list.get(2));
+                    assert_eq!(0x7fff, int16_list.get(3));
+                }
 
-                let int32_list = sub_reader.get_int32_list();
-                assert_eq!(4, int32_list.len());
-                assert_eq!(12345678, int32_list.get(0));
-                assert_eq!(-90123456, int32_list.get(1));
-                assert_eq!(-0x80000000, int32_list.get(2));
-                assert_eq!(0x7fffffff, int32_list.get(3));
+                {
+                    let int32_list = sub_reader.get_int32_list();
+                    assert_eq!(4, int32_list.len());
+                    assert_eq!(12345678, int32_list.get(0));
+                    assert_eq!(-90123456, int32_list.get(1));
+                    assert_eq!(-0x80000000, int32_list.get(2));
+                    assert_eq!(0x7fffffff, int32_list.get(3));
+                }
 
                 // ...
 
-                let struct_list = sub_reader.get_struct_list();
-                assert_eq!(3, struct_list.len());
-                assert_eq!("x structlist 1", struct_list.get(0).get_text_field().as_slice());
-                assert_eq!("x structlist 2", struct_list.get(1).get_text_field().as_slice());
-                assert_eq!("x structlist 3", struct_list.get(2).get_text_field().as_slice());
+                {
+                    let struct_list = sub_reader.get_struct_list();
+                    assert_eq!(3, struct_list.len());
+                    assert_eq!("x structlist 1", struct_list.get(0).get_text_field().as_slice());
+                    assert_eq!("x structlist 2", struct_list.get(1).get_text_field().as_slice());
+                    assert_eq!("x structlist 3", struct_list.get(2).get_text_field().as_slice());
+                }
 
-                let enum_list = sub_reader.get_enum_list();
-                assert_eq!(3, enum_list.len());
-                assert!(Some(TestEnum::Qux) == enum_list.get(0));
-                assert!(Some(TestEnum::Bar) == enum_list.get(1));
-                assert!(Some(TestEnum::Grault) == enum_list.get(2));
+                {
+                    let enum_list = sub_reader.get_enum_list();
+                    assert_eq!(3, enum_list.len());
+                    assert!(Some(TestEnum::Qux) == enum_list.get(0));
+                    assert!(Some(TestEnum::Bar) == enum_list.get(1));
+                    assert!(Some(TestEnum::Grault) == enum_list.get(2));
+                }
             }
         }
     }
