@@ -34,7 +34,7 @@ pub struct BufferedInputStreamWrapper<'a, R: 'a> {
 }
 
 impl <'a, R> BufferedInputStreamWrapper<'a, R> {
-    pub fn new<'a> (r : &'a mut R) -> BufferedInputStreamWrapper<'a, R> {
+    pub fn new<'b> (r : &'b mut R) -> BufferedInputStreamWrapper<'b, R> {
         let mut result = BufferedInputStreamWrapper {
             inner : r,
             buf : Vec::with_capacity(8192),
