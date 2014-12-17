@@ -44,7 +44,7 @@ impl EzRpcClient {
     pub fn import_cap<T : FromClientHook>(&mut self, name : &str) -> T {
         let mut message = box MallocMessageBuilder::new_default();
         {
-            let restore = message.init_root::<message::Builder>().init_bootstrap();
+            let mut restore = message.init_root::<message::Builder>().init_bootstrap();
             restore.init_deprecated_object_id().set_as(name);
         }
 

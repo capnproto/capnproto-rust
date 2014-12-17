@@ -88,10 +88,10 @@ for Request<Params, Results, Pipeline> {
     // We may have to wait for associated types or higher-kinded types.
     fn init(&'b mut self) -> Params {
         let tmp : &'a mut Box<::capnp::capability::RequestHook> = unsafe { ::std::mem::transmute(& mut self.hook)};
-        let message : message::Builder = tmp.message::<'a>().get_root();
+        let mut message : message::Builder = tmp.message::<'a>().get_root();
         match message.which() {
-            Some(message::Call(call)) => {
-                let params = call.init_params();
+            Some(message::Call(mut call)) => {
+                let mut params = call.init_params();
                 params.get_content().init_as()
             }
             _ => panic!(),

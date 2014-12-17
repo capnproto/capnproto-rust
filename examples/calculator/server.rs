@@ -29,7 +29,7 @@ impl ValueImpl {
 
 impl calculator::value::Server for ValueImpl {
     fn read(&mut self, mut context : calculator::value::ReadContext) {
-        let (_, results) = context.get();
+        let (_, mut results) = context.get();
         results.set_value(self.value);
         context.done();
     }
@@ -64,7 +64,7 @@ fn evaluate_impl(
             }
             let mut request = func.call_request();
             {
-                let request_params = request.init().init_params(param_values.len() as u32);
+                let mut request_params = request.init().init_params(param_values.len() as u32);
                 for ii in range(0, param_values.len()) {
                     request_params.set(ii as u32, param_values[ii]);
                 }
@@ -90,7 +90,7 @@ impl FunctionImpl {
 
 impl calculator::function::Server for FunctionImpl {
     fn call(&mut self, mut context : calculator::function::CallContext) {
-        let (params, results) = context.get();
+        let (params, mut results) = context.get();
         if params.get_params().len() != self.param_count {
             //"Wrong number of parameters."
             return context.fail();
@@ -114,7 +114,7 @@ pub struct OperatorImpl {
 
 impl calculator::function::Server for OperatorImpl {
     fn call(&mut self, mut context : calculator::function::CallContext) {
-        let (params, results) = context.get();
+        let (params, mut results) = context.get();
         let params = params.get_params();
         if params.len() != 2 {
             //"Wrong number of parameters: {}", params.len()
@@ -138,7 +138,7 @@ struct CalculatorImpl;
 
 impl calculator::Server for CalculatorImpl {
     fn evaluate(&mut self, mut context : calculator::EvaluateContext) {
-        let (params, results) = context.get();
+        let (params, mut results) = context.get();
         match evaluate_impl(params.get_expression(), None) {
             Ok(r) => {
                 results.set_value(
@@ -151,7 +151,7 @@ impl calculator::Server for CalculatorImpl {
         context.done();
     }
     fn def_function(&mut self, mut context : calculator::DefFunctionContext) {
-        let (params, results) = context.get();
+        let (params, mut results) = context.get();
         results.set_func(
             FromServer::new(
                 None::<LocalClient>,
@@ -160,7 +160,7 @@ impl calculator::Server for CalculatorImpl {
     }
     fn get_operator<'a>(& mut self, mut context : calculator::GetOperatorContext<'a>) {
         {
-            let (params, results) = context.get();
+            let (params, mut results) = context.get();
             results.set_func(
                 match params.get_op() {
                     Some(op) => {
