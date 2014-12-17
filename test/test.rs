@@ -149,13 +149,15 @@ mod tests {
         test_blob.set_data_field(&[0u8, 1u8, 2u8, 3u8, 4u8]);
         assert_eq!(test_blob.has_data_field(), true);
 
-        let test_blob_reader = test_blob.as_reader();
+        {
+            let test_blob_reader = test_blob.as_reader();
 
-        assert_eq!(test_blob_reader.has_text_field(), true);
-        assert_eq!(test_blob_reader.has_data_field(), true);
+            assert_eq!(test_blob_reader.has_text_field(), true);
+            assert_eq!(test_blob_reader.has_data_field(), true);
 
-        assert_eq!(test_blob_reader.get_text_field(), "abcdefghi");
-        assert!(test_blob_reader.get_data_field() == [0u8, 1u8, 2u8, 3u8, 4u8]);
+            assert_eq!(test_blob_reader.get_text_field(), "abcdefghi");
+            assert!(test_blob_reader.get_data_field() == [0u8, 1u8, 2u8, 3u8, 4u8]);
+        }
 
         let text_builder = test_blob.init_text_field(10);
         assert_eq!(test_blob.as_reader().get_text_field(),
@@ -413,8 +415,10 @@ mod tests {
         assert_eq!(other_struct_field.get_uint64_field(), 0);
         other_struct_field.set_uint32_field(-31);
 
-        let reader = other_struct_field.as_reader();
-        big_struct.set_struct_field(reader);
+        {
+            let reader = other_struct_field.as_reader();
+            big_struct.set_struct_field(reader);
+        }
         assert_eq!(big_struct.get_struct_field().get_uint32_field(), -31);
         assert_eq!(other_struct_field.get_uint32_field(), -31);
         other_struct_field.set_uint32_field(42);
