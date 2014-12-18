@@ -35,7 +35,7 @@ pub mod addressbook {
     pub fn write_address_book() -> IoResult<()> {
         let mut message = MallocMessageBuilder::new_default();
         {
-            let mut address_book = message.init_root::<address_book::Builder>();
+            let address_book = message.init_root::<address_book::Builder>();
 
             let mut people = address_book.init_people(2);
 
@@ -45,7 +45,7 @@ pub mod addressbook {
             alice.set_email("alice@example.com");
 
             {
-                let mut alice_phones = alice.init_phones(1);
+                let mut alice_phones = alice.borrow().init_phones(1);
                 alice_phones.get(0).set_number("555-1212");
                 alice_phones.get(0).set_type(person::phone_number::Type::Mobile);
             }
@@ -56,7 +56,7 @@ pub mod addressbook {
             bob.set_name("Bob");
             bob.set_email("bob@example.com");
             {
-                let mut bob_phones = bob.init_phones(2);
+                let mut bob_phones = bob.borrow().init_phones(2);
                 bob_phones.get(0).set_number("555-4567");
                 bob_phones.get(0).set_type(person::phone_number::Type::Home);
                 bob_phones.get(1).set_number("555-7654");

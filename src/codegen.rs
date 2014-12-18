@@ -757,7 +757,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
         Some(builder_type) => {
             result.push(Line("#[inline]".to_string()));
             let args = initter_params.connect(", ");
-            result.push(Line(format!("pub fn init_{}(&mut self, {}) -> {} {{",
+            result.push(Line(format!("pub fn init_{}(self, {}) -> {} {{",
                                      styled_name, args, builder_type)));
             result.push(Indent(box Branch(initter_interior)));
             result.push(Line("}".to_string()));
@@ -883,7 +883,7 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
                  Branch(vec![])
              }]);
 
-    let name_and_arg = if is_reader { "which(&self)" } else { "which(&mut self)" };
+    let name_and_arg = if is_reader { "which(&self)" } else { "which(self)" };
 
     let getter_result =
         Branch(vec!(Line("#[inline]".to_string()),
@@ -1052,7 +1052,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     reader_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(&self) -> {} {{", styled_name, ty)),
+                            Line(format!("pub fn get_{}(self) -> {} {{", styled_name, ty)),
                             Indent(box get),
                             Line("}".to_string()))));
 
@@ -1061,7 +1061,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     builder_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(&mut self) -> {} {{", styled_name, ty_b)),
+                            Line(format!("pub fn get_{}(self) -> {} {{", styled_name, ty_b)),
                             Indent(box get_b),
                             Line("}".to_string()))));
 
@@ -1181,6 +1181,11 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("}".to_string()),
                 BlankLine,
                 Line("impl <'a> Reader<'a> {".to_string()),
+                Indent(
+                    box Branch(vec![
+                        Line("pub fn borrow<'b>(&'b self) -> Reader<'b> {".to_string()),
+                        Indent(box Line("Reader { reader : self.reader}".to_string())),
+                        Line("}".to_string())])),
                 Indent(box Branch(reader_members)),
                 Line("}".to_string()),
                 BlankLine,
@@ -1208,9 +1213,13 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("impl <'a> Builder<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("pub fn as_reader(&self) -> Reader<'a> {".to_string()),
+                        Line("pub fn as_reader<'b>(&'b self) -> Reader<'b> {".to_string()),
                         Indent(box Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string())),
-                        Line("}".to_string())))),
+                        Line("}".to_string()),
+                        Line("pub fn borrow<'b>(&'b mut self) -> Builder<'b> {".to_string()),
+                        Indent(box Line("Builder { builder : self.builder}".to_string())),
+                        Line("}".to_string()),
+                        ))),
                 Indent(box Branch(builder_members)),
                 Line("}".to_string()),
                 BlankLine,

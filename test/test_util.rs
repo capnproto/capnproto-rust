@@ -38,7 +38,7 @@ pub fn init_test_message(mut builder : test_all_types::Builder) {
     builder.set_text_field("foo");
     builder.set_data_field(b"bar");
     {
-        let mut sub_builder = builder.init_struct_field();
+        let mut sub_builder = builder.borrow().init_struct_field();
         sub_builder.set_void_field(());
         sub_builder.set_bool_field(true);
         sub_builder.set_int8_field(-12);
@@ -54,15 +54,15 @@ pub fn init_test_message(mut builder : test_all_types::Builder) {
         sub_builder.set_text_field("baz");
         sub_builder.set_data_field(b"qux");
         {
-            let mut sub_sub_builder = sub_builder.init_struct_field();
+            let mut sub_sub_builder = sub_builder.borrow().init_struct_field();
             sub_sub_builder.set_text_field("nested");
             sub_sub_builder.init_struct_field().set_text_field("really nested");
         }
         sub_builder.set_enum_field(TestEnum::Baz);
 
-        sub_builder.init_void_list(3);
+        sub_builder.borrow().init_void_list(3);
         {
-            let mut bool_list = sub_builder.init_bool_list(5);
+            let mut bool_list = sub_builder.borrow().init_bool_list(5);
             bool_list.set(0, false);
             bool_list.set(1, true);
             bool_list.set(2, false);
@@ -70,28 +70,28 @@ pub fn init_test_message(mut builder : test_all_types::Builder) {
             bool_list.set(4, true);
         }
         {
-            let mut int8_list = sub_builder.init_int8_list(4);
+            let mut int8_list = sub_builder.borrow().init_int8_list(4);
             int8_list.set(0, 12);
             int8_list.set(1, -34);
             int8_list.set(2, -0x80);
             int8_list.set(3, 0x7f);
         }
         {
-            let mut int16_list = sub_builder.init_int16_list(4);
+            let mut int16_list = sub_builder.borrow().init_int16_list(4);
             int16_list.set(0, 1234);
             int16_list.set(1, -5678);
             int16_list.set(2, -0x8000);
             int16_list.set(3, 0x7fff);
         }
         {
-            let mut int32_list = sub_builder.init_int32_list(4);
+            let mut int32_list = sub_builder.borrow().init_int32_list(4);
             int32_list.set(0, 12345678);
             int32_list.set(1, -90123456);
             int32_list.set(2, -0x80000000);
             int32_list.set(3, 0x7fffffff);
         }
         {
-            let mut int64_list = sub_builder.init_int64_list(4);
+            let mut int64_list = sub_builder.borrow().init_int64_list(4);
             int64_list.set(0, 123456789012345);
             int64_list.set(1, -678901234567890);
             int64_list.set(2, -0x8000000000000000);
@@ -100,13 +100,13 @@ pub fn init_test_message(mut builder : test_all_types::Builder) {
 
         // ...
         {
-            let mut struct_list = sub_builder.init_struct_list(3);
+            let mut struct_list = sub_builder.borrow().init_struct_list(3);
             struct_list.get(0).set_text_field("x structlist 1");
             struct_list.get(1).set_text_field("x structlist 2");
             struct_list.get(2).set_text_field("x structlist 3");
         }
 
-        let mut enum_list = sub_builder.init_enum_list(3);
+        let mut enum_list = sub_builder.borrow().init_enum_list(3);
         enum_list.set(0, TestEnum::Qux);
         enum_list.set(1, TestEnum::Bar);
         enum_list.set(2, TestEnum::Grault);
@@ -127,46 +127,46 @@ check_test_message_impl(($typ:ident) => (
     impl <'a> CheckTestMessage for test_all_types::$typ<'a> {
         fn check_test_message(mut reader : test_all_types::$typ<'a>) {
             #![allow(unused_mut)]
-            reader.get_void_field();
-            assert_eq!(true, reader.get_bool_field());
-            assert_eq!(-123, reader.get_int8_field());
-            assert_eq!(-12345, reader.get_int16_field());
-            assert_eq!(-12345678, reader.get_int32_field());
-            assert_eq!(-123456789012345, reader.get_int64_field());
-            assert_eq!(234, reader.get_u_int8_field());
-            assert_eq!(45678, reader.get_u_int16_field());
-            assert_eq!(3456789012, reader.get_u_int32_field());
-            assert_eq!(12345678901234567890, reader.get_u_int64_field());
-            assert_eq!(1234.5, reader.get_float32_field());
-            assert_eq!(-123e45, reader.get_float64_field());
-            assert_eq!("foo", reader.get_text_field().as_slice());
-            assert_eq!(b"bar", &*reader.get_data_field());
+            reader.borrow().get_void_field();
+            assert_eq!(true, reader.borrow().get_bool_field());
+            assert_eq!(-123, reader.borrow().get_int8_field());
+            assert_eq!(-12345, reader.borrow().get_int16_field());
+            assert_eq!(-12345678, reader.borrow().get_int32_field());
+            assert_eq!(-123456789012345, reader.borrow().get_int64_field());
+            assert_eq!(234, reader.borrow().get_u_int8_field());
+            assert_eq!(45678, reader.borrow().get_u_int16_field());
+            assert_eq!(3456789012, reader.borrow().get_u_int32_field());
+            assert_eq!(12345678901234567890, reader.borrow().get_u_int64_field());
+            assert_eq!(1234.5, reader.borrow().get_float32_field());
+            assert_eq!(-123e45, reader.borrow().get_float64_field());
+            assert_eq!("foo", reader.borrow().get_text_field().as_slice());
+            assert_eq!(b"bar", &*reader.borrow().get_data_field());
             {
                 let mut sub_reader = reader.get_struct_field();
-                assert_eq!((), sub_reader.get_void_field());
-                assert_eq!(true, sub_reader.get_bool_field());
-                assert_eq!(-12, sub_reader.get_int8_field());
-                assert_eq!(3456, sub_reader.get_int16_field());
-                assert_eq!(-78901234, sub_reader.get_int32_field());
-                assert_eq!(56789012345678, sub_reader.get_int64_field());
-                assert_eq!(90, sub_reader.get_u_int8_field());
-                assert_eq!(1234, sub_reader.get_u_int16_field());
-                assert_eq!(56789012, sub_reader.get_u_int32_field());
-                assert_eq!(345678901234567890, sub_reader.get_u_int64_field());
-                assert_eq!(-1.25e-10, sub_reader.get_float32_field());
-                assert_eq!(345f64, sub_reader.get_float64_field());
-                assert_eq!("baz", sub_reader.get_text_field().as_slice());
-                assert_eq!(b"qux", &*sub_reader.get_data_field());
+                assert_eq!((), sub_reader.borrow().get_void_field());
+                assert_eq!(true, sub_reader.borrow().get_bool_field());
+                assert_eq!(-12, sub_reader.borrow().get_int8_field());
+                assert_eq!(3456, sub_reader.borrow().get_int16_field());
+                assert_eq!(-78901234, sub_reader.borrow().get_int32_field());
+                assert_eq!(56789012345678, sub_reader.borrow().get_int64_field());
+                assert_eq!(90, sub_reader.borrow().get_u_int8_field());
+                assert_eq!(1234, sub_reader.borrow().get_u_int16_field());
+                assert_eq!(56789012, sub_reader.borrow().get_u_int32_field());
+                assert_eq!(345678901234567890, sub_reader.borrow().get_u_int64_field());
+                assert_eq!(-1.25e-10, sub_reader.borrow().get_float32_field());
+                assert_eq!(345f64, sub_reader.borrow().get_float64_field());
+                assert_eq!("baz", sub_reader.borrow().get_text_field().as_slice());
+                assert_eq!(b"qux", &*sub_reader.borrow().get_data_field());
                 {
-                    let mut sub_sub_reader = sub_reader.get_struct_field();
-                    assert_eq!("nested", sub_sub_reader.get_text_field().as_slice());
+                    let mut sub_sub_reader = sub_reader.borrow().get_struct_field();
+                    assert_eq!("nested", sub_sub_reader.borrow().get_text_field().as_slice());
                     assert_eq!("really nested", sub_sub_reader.get_struct_field().get_text_field().as_slice());
                 }
-                assert!(Some(TestEnum::Baz) == sub_reader.get_enum_field());
-                assert_eq!(3, sub_reader.get_void_list().len());
+                assert!(Some(TestEnum::Baz) == sub_reader.borrow().get_enum_field());
+                assert_eq!(3, sub_reader.borrow().get_void_list().len());
 
                 {
-                    let bool_list = sub_reader.get_bool_list();
+                    let bool_list = sub_reader.borrow().get_bool_list();
                     assert_eq!(5, bool_list.len());
                     assert_eq!(false, bool_list.get(0));
                     assert_eq!(true, bool_list.get(1));
@@ -176,7 +176,7 @@ check_test_message_impl(($typ:ident) => (
                 }
 
                 {
-                    let int8_list = sub_reader.get_int8_list();
+                    let int8_list = sub_reader.borrow().get_int8_list();
                     assert_eq!(4, int8_list.len());
                     assert_eq!(12, int8_list.get(0));
                     assert_eq!(-34, int8_list.get(1));
@@ -185,7 +185,7 @@ check_test_message_impl(($typ:ident) => (
                 }
 
                 {
-                    let int16_list = sub_reader.get_int16_list();
+                    let int16_list = sub_reader.borrow().get_int16_list();
                     assert_eq!(4, int16_list.len());
                     assert_eq!(1234, int16_list.get(0));
                     assert_eq!(-5678, int16_list.get(1));
@@ -194,7 +194,7 @@ check_test_message_impl(($typ:ident) => (
                 }
 
                 {
-                    let int32_list = sub_reader.get_int32_list();
+                    let int32_list = sub_reader.borrow().get_int32_list();
                     assert_eq!(4, int32_list.len());
                     assert_eq!(12345678, int32_list.get(0));
                     assert_eq!(-90123456, int32_list.get(1));
@@ -205,7 +205,7 @@ check_test_message_impl(($typ:ident) => (
                 // ...
 
                 {
-                    let mut struct_list = sub_reader.get_struct_list();
+                    let mut struct_list = sub_reader.borrow().get_struct_list();
                     assert_eq!(3, struct_list.len());
                     assert_eq!("x structlist 1", struct_list.get(0).get_text_field().as_slice());
                     assert_eq!("x structlist 2", struct_list.get(1).get_text_field().as_slice());

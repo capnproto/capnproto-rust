@@ -36,7 +36,7 @@ pub struct ScoredResult<'a> {
 
 const URL_PREFIX : &'static str = "http://example.com";
 
-pub fn setup_request(rng : &mut FastRand, mut request : search_result_list::Builder) -> int {
+pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder) -> int {
     let count = rng.next_less_than(1000);
     let mut good_count : int = 0;
 
@@ -48,7 +48,7 @@ pub fn setup_request(rng : &mut FastRand, mut request : search_result_list::Buil
         let url_size = rng.next_less_than(100);
 
         let url_prefix_length = URL_PREFIX.as_bytes().len();
-        let url = result.init_url(url_size + url_prefix_length as u32);
+        let url = result.borrow().init_url(url_size + url_prefix_length as u32);
 
         let bytes = url.as_mut_bytes();
         ::std::io::BufWriter::new(bytes).write(URL_PREFIX.as_bytes()).unwrap();
@@ -84,7 +84,7 @@ pub fn setup_request(rng : &mut FastRand, mut request : search_result_list::Buil
 }
 
 pub fn handle_request(request : search_result_list::Reader,
-                      mut response : search_result_list::Builder) {
+                      response : search_result_list::Builder) {
     let mut scored_results : Vec<ScoredResult> = Vec::new();
 
     let results = request.get_results();
