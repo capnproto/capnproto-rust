@@ -97,8 +97,8 @@ impl calculator::function::Server for FunctionImpl {
         };
 
         {
-            let expression = self.body.get_root::<calculator::expression::Builder>().as_reader();
-            match evaluate_impl(expression, Some(params.get_params())) {
+            match evaluate_impl(self.body.get_root::<calculator::expression::Builder>().as_reader(),
+                                Some(params.get_params())) {
                 Ok(r) => results.set_value(r),
                 Err(_) => return context.fail(),
             }
@@ -108,6 +108,7 @@ impl calculator::function::Server for FunctionImpl {
     }
 }
 
+#[deriving(Copy)]
 pub struct OperatorImpl {
     op : calculator::Operator,
 }
