@@ -91,7 +91,7 @@ impl <'a> Builder<'a> {
     }
 
     #[inline]
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.builder.as_reader() }
     }
 }
