@@ -838,10 +838,8 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
         enum_interior.push(Line(format!("{}({}),", enumerant_name, ty1)));
     }
 
-    let lifetime = if is_reader { "'a" } else { "'a" };
-    let bracketed_lifetime = if is_reader { "<'a>" } else { "<'a>" };
     let enum_name = format!("Which{}",
-                            if ty_params.len() > 0 { format!("<{},{}>", lifetime, ty_params.connect(",")) }
+                            if ty_params.len() > 0 { format!("<'a,{}>", ty_params.connect(",")) }
                             else {"".to_string()} );
 
 
@@ -868,27 +866,25 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
     let concrete_type =
             format!("Which{}{}",
                     if is_reader {"Reader"} else {"Builder"},
-                    if ty_params.len() > 0 { bracketed_lifetime } else {""});
+                    if ty_params.len() > 0 { "<'a>" } else {""});
 
     let typedef = Branch(
         vec![Line(format!("pub type {} = Which{};",
                           concrete_type,
-                          if ty_args.len() > 0 {format!("<{},{}>", lifetime,
+                          if ty_args.len() > 0 {format!("<'a,{}>",
                                                         ty_args.connect(","))} else {"".to_string()})),
              if is_reader && copyable {
                  Line(format!("impl {} Copy for {} {{}}",
-                              if ty_params.len() > 0 {bracketed_lifetime} else {""},
+                              if ty_params.len() > 0 { "<'a>" } else {""},
                               concrete_type))
              } else {
                  Branch(vec![])
              }]);
 
-    let name_and_arg = if is_reader { "which(&self)" } else { "which(self)" };
-
     let getter_result =
         Branch(vec!(Line("#[inline]".to_string()),
-                    Line(format!("pub fn {} -> ::std::option::Option<{}> {{",
-                                 name_and_arg, concrete_type)),
+                    Line(format!("pub fn which(self) -> ::std::option::Option<{}> {{",
+                                 concrete_type)),
                     Indent(box Branch(vec!(
                         Line(format!("match self.{}.get_data_field::<u16>({}) {{", field_name, doffset)),
                         Indent(box Branch(getter_interior)),

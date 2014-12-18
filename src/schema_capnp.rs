@@ -33,52 +33,55 @@ pub mod node {
   }
 
   impl <'a> Reader<'a> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b> {
+      Reader { reader : self.reader}
+    }
     #[inline]
-    pub fn get_id(&self) -> u64 {
+    pub fn get_id(self) -> u64 {
       self.reader.get_data_field::<u64>(0)
     }
     #[inline]
-    pub fn get_display_name(&self) -> text::Reader<'a> {
+    pub fn get_display_name(self) -> text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     pub fn has_display_name(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_display_name_prefix_length(&self) -> u32 {
+    pub fn get_display_name_prefix_length(self) -> u32 {
       self.reader.get_data_field::<u32>(2)
     }
     #[inline]
-    pub fn get_scope_id(&self) -> u64 {
+    pub fn get_scope_id(self) -> u64 {
       self.reader.get_data_field::<u64>(2)
     }
     #[inline]
-    pub fn get_nested_nodes(&self) -> struct_list::Reader<'a,::schema_capnp::node::nested_node::Reader<'a>> {
+    pub fn get_nested_nodes(self) -> struct_list::Reader<'a,::schema_capnp::node::nested_node::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_nested_nodes(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
     #[inline]
-    pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
+    pub fn get_annotations(self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
     }
     #[inline]
-    pub fn get_parameters(&self) -> struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>> {
+    pub fn get_parameters(self) -> struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(5))
     }
     pub fn has_parameters(&self) -> bool {
       !self.reader.get_pointer_field(5).is_null()
     }
     #[inline]
-    pub fn get_is_generic(&self) -> bool {
+    pub fn get_is_generic(self) -> bool {
       self.reader.get_bool_field(288)
     }
     #[inline]
-    pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
+    pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(6) {
         0 => {
           return ::std::option::Option::Some(File(
@@ -144,84 +147,87 @@ pub mod node {
   }
 
   impl <'a> Builder<'a> {
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader(self) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+      Builder { builder : self.builder}
+    }
     #[inline]
-    pub fn get_id(&self) -> u64 {
+    pub fn get_id(self) -> u64 {
       self.builder.get_data_field::<u64>(0)
     }
     #[inline]
-    pub fn set_id(&self, value : u64) {
+    pub fn set_id(&mut self, value : u64) {
       self.builder.set_data_field::<u64>(0, value);
     }
     #[inline]
-    pub fn get_display_name(&self) -> text::Builder<'a> {
+    pub fn get_display_name(self) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_display_name(&self, value : text::Reader) {
+    pub fn set_display_name(&mut self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_display_name(&self, size : u32) -> text::Builder<'a> {
+    pub fn init_display_name(self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_display_name(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_display_name_prefix_length(&self) -> u32 {
+    pub fn get_display_name_prefix_length(self) -> u32 {
       self.builder.get_data_field::<u32>(2)
     }
     #[inline]
-    pub fn set_display_name_prefix_length(&self, value : u32) {
+    pub fn set_display_name_prefix_length(&mut self, value : u32) {
       self.builder.set_data_field::<u32>(2, value);
     }
     #[inline]
-    pub fn get_scope_id(&self) -> u64 {
+    pub fn get_scope_id(self) -> u64 {
       self.builder.get_data_field::<u64>(2)
     }
     #[inline]
-    pub fn set_scope_id(&self, value : u64) {
+    pub fn set_scope_id(&mut self, value : u64) {
       self.builder.set_data_field::<u64>(2, value);
     }
     #[inline]
-    pub fn get_nested_nodes(&self) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
+    pub fn get_nested_nodes(self) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
-    pub fn set_nested_nodes(&self, value : struct_list::Reader<'a,::schema_capnp::node::nested_node::Reader<'a>>) {
+    pub fn set_nested_nodes(&mut self, value : struct_list::Reader<'a,::schema_capnp::node::nested_node::Reader<'a>>) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
     }
     #[inline]
-    pub fn init_nested_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
+    pub fn init_nested_nodes(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::nested_node::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_nested_nodes(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
     }
     #[inline]
-    pub fn get_annotations(&self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn get_annotations(self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(2))
     }
     #[inline]
-    pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
+    pub fn set_annotations(&mut self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value)
     }
     #[inline]
-    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), size)
     }
     pub fn has_annotations(&self) -> bool {
       !self.builder.get_pointer_field(2).is_null()
     }
     #[inline]
-    pub fn set_file(&self, _value : ()) {
+    pub fn set_file(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(6, 0);
     }
     #[inline]
-    pub fn init_struct(&self, ) -> ::schema_capnp::node::struct_::Builder<'a> {
+    pub fn init_struct(self, ) -> ::schema_capnp::node::struct_::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 1);
       self.builder.set_data_field::<u16>(7, 0u8 as u16);
       self.builder.set_data_field::<u16>(12, 0u8 as u16);
@@ -233,27 +239,27 @@ pub mod node {
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_enum(&self, ) -> ::schema_capnp::node::enum_::Builder<'a> {
+    pub fn init_enum(self, ) -> ::schema_capnp::node::enum_::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 2);
       self.builder.get_pointer_field(3).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_interface(&self, ) -> ::schema_capnp::node::interface::Builder<'a> {
+    pub fn init_interface(self, ) -> ::schema_capnp::node::interface::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 3);
       self.builder.get_pointer_field(3).clear();
       self.builder.get_pointer_field(4).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_const(&self, ) -> ::schema_capnp::node::const_::Builder<'a> {
+    pub fn init_const(self, ) -> ::schema_capnp::node::const_::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 4);
       self.builder.get_pointer_field(3).clear();
       self.builder.get_pointer_field(4).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_annotation(&self, ) -> ::schema_capnp::node::annotation::Builder<'a> {
+    pub fn init_annotation(self, ) -> ::schema_capnp::node::annotation::Builder<'a> {
       self.builder.set_data_field::<u16>(6, 5);
       self.builder.get_pointer_field(3).clear();
       self.builder.set_bool_field(112, false);
@@ -271,30 +277,30 @@ pub mod node {
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn get_parameters(&self) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
+    pub fn get_parameters(self) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(5))
     }
     #[inline]
-    pub fn set_parameters(&self, value : struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>>) {
+    pub fn set_parameters(&mut self, value : struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>>) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(5), value)
     }
     #[inline]
-    pub fn init_parameters(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
+    pub fn init_parameters(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(5), size)
     }
     pub fn has_parameters(&self) -> bool {
       !self.builder.get_pointer_field(5).is_null()
     }
     #[inline]
-    pub fn get_is_generic(&self) -> bool {
+    pub fn get_is_generic(self) -> bool {
       self.builder.get_bool_field(288)
     }
     #[inline]
-    pub fn set_is_generic(&self, value : bool) {
+    pub fn set_is_generic(&mut self, value : bool) {
       self.builder.set_bool_field(288, value);
     }
     #[inline]
-    pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
+    pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(6) {
         0 => {
           return ::std::option::Option::Some(File(
@@ -384,8 +390,11 @@ pub mod node {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_name(&self) -> text::Reader<'a> {
+      pub fn get_name(self) -> text::Reader<'a> {
         self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
       }
       pub fn has_name(&self) -> bool {
@@ -422,19 +431,22 @@ pub mod node {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_name(&self) -> text::Builder<'a> {
+      pub fn get_name(self) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
       }
       #[inline]
-      pub fn set_name(&self, value : text::Reader) {
+      pub fn set_name(&mut self, value : text::Reader) {
         self.builder.get_pointer_field(0).set_text(value);
       }
       #[inline]
-      pub fn init_name(&self, size : u32) -> text::Builder<'a> {
+      pub fn init_name(self, size : u32) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_name(&self) -> bool {
@@ -485,15 +497,18 @@ pub mod node {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_name(&self) -> text::Reader<'a> {
+      pub fn get_name(self) -> text::Reader<'a> {
         self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
       }
       pub fn has_name(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn get_id(&self) -> u64 {
+      pub fn get_id(self) -> u64 {
         self.reader.get_data_field::<u64>(0)
       }
     }
@@ -527,30 +542,33 @@ pub mod node {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_name(&self) -> text::Builder<'a> {
+      pub fn get_name(self) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
       }
       #[inline]
-      pub fn set_name(&self, value : text::Reader) {
+      pub fn set_name(&mut self, value : text::Reader) {
         self.builder.get_pointer_field(0).set_text(value);
       }
       #[inline]
-      pub fn init_name(&self, size : u32) -> text::Builder<'a> {
+      pub fn init_name(self, size : u32) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_name(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn get_id(&self) -> u64 {
+      pub fn get_id(self) -> u64 {
         self.builder.get_data_field::<u64>(0)
       }
       #[inline]
-      pub fn set_id(&self, value : u64) {
+      pub fn set_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(0, value);
       }
     }
@@ -598,32 +616,35 @@ pub mod node {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_data_word_count(&self) -> u16 {
+      pub fn get_data_word_count(self) -> u16 {
         self.reader.get_data_field::<u16>(7)
       }
       #[inline]
-      pub fn get_pointer_count(&self) -> u16 {
+      pub fn get_pointer_count(self) -> u16 {
         self.reader.get_data_field::<u16>(12)
       }
       #[inline]
-      pub fn get_preferred_list_encoding(&self) -> Option<::schema_capnp::ElementSize> {
+      pub fn get_preferred_list_encoding(self) -> Option<::schema_capnp::ElementSize> {
         FromPrimitive::from_u16(self.reader.get_data_field::<u16>(13))
       }
       #[inline]
-      pub fn get_is_group(&self) -> bool {
+      pub fn get_is_group(self) -> bool {
         self.reader.get_bool_field(224)
       }
       #[inline]
-      pub fn get_discriminant_count(&self) -> u16 {
+      pub fn get_discriminant_count(self) -> u16 {
         self.reader.get_data_field::<u16>(15)
       }
       #[inline]
-      pub fn get_discriminant_offset(&self) -> u32 {
+      pub fn get_discriminant_offset(self) -> u32 {
         self.reader.get_data_field::<u32>(8)
       }
       #[inline]
-      pub fn get_fields(&self) -> struct_list::Reader<'a,::schema_capnp::field::Reader<'a>> {
+      pub fn get_fields(self) -> struct_list::Reader<'a,::schema_capnp::field::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_fields(&self) -> bool {
@@ -647,67 +668,70 @@ pub mod node {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_data_word_count(&self) -> u16 {
+      pub fn get_data_word_count(self) -> u16 {
         self.builder.get_data_field::<u16>(7)
       }
       #[inline]
-      pub fn set_data_word_count(&self, value : u16) {
+      pub fn set_data_word_count(&mut self, value : u16) {
         self.builder.set_data_field::<u16>(7, value);
       }
       #[inline]
-      pub fn get_pointer_count(&self) -> u16 {
+      pub fn get_pointer_count(self) -> u16 {
         self.builder.get_data_field::<u16>(12)
       }
       #[inline]
-      pub fn set_pointer_count(&self, value : u16) {
+      pub fn set_pointer_count(&mut self, value : u16) {
         self.builder.set_data_field::<u16>(12, value);
       }
       #[inline]
-      pub fn get_preferred_list_encoding(&self) -> Option<::schema_capnp::ElementSize> {
+      pub fn get_preferred_list_encoding(self) -> Option<::schema_capnp::ElementSize> {
         FromPrimitive::from_u16(self.builder.get_data_field::<u16>(13))
       }
       #[inline]
-      pub fn set_preferred_list_encoding(&self, value : ::schema_capnp::ElementSize) {
+      pub fn set_preferred_list_encoding(&mut self, value : ::schema_capnp::ElementSize) {
         self.builder.set_data_field::<u16>(13, value as u16)
       }
       #[inline]
-      pub fn get_is_group(&self) -> bool {
+      pub fn get_is_group(self) -> bool {
         self.builder.get_bool_field(224)
       }
       #[inline]
-      pub fn set_is_group(&self, value : bool) {
+      pub fn set_is_group(&mut self, value : bool) {
         self.builder.set_bool_field(224, value);
       }
       #[inline]
-      pub fn get_discriminant_count(&self) -> u16 {
+      pub fn get_discriminant_count(self) -> u16 {
         self.builder.get_data_field::<u16>(15)
       }
       #[inline]
-      pub fn set_discriminant_count(&self, value : u16) {
+      pub fn set_discriminant_count(&mut self, value : u16) {
         self.builder.set_data_field::<u16>(15, value);
       }
       #[inline]
-      pub fn get_discriminant_offset(&self) -> u32 {
+      pub fn get_discriminant_offset(self) -> u32 {
         self.builder.get_data_field::<u32>(8)
       }
       #[inline]
-      pub fn set_discriminant_offset(&self, value : u32) {
+      pub fn set_discriminant_offset(&mut self, value : u32) {
         self.builder.set_data_field::<u32>(8, value);
       }
       #[inline]
-      pub fn get_fields(&self) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
+      pub fn get_fields(self) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
-      pub fn set_fields(&self, value : struct_list::Reader<'a,::schema_capnp::field::Reader<'a>>) {
+      pub fn set_fields(&mut self, value : struct_list::Reader<'a,::schema_capnp::field::Reader<'a>>) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value)
       }
       #[inline]
-      pub fn init_fields(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
+      pub fn init_fields(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::field::Builder<'a>> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_fields(&self) -> bool {
@@ -756,8 +780,11 @@ pub mod node {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_enumerants(&self) -> struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>> {
+      pub fn get_enumerants(self) -> struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_enumerants(&self) -> bool {
@@ -781,19 +808,22 @@ pub mod node {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_enumerants(&self) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
+      pub fn get_enumerants(self) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
-      pub fn set_enumerants(&self, value : struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>>) {
+      pub fn set_enumerants(&mut self, value : struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>>) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value)
       }
       #[inline]
-      pub fn init_enumerants(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
+      pub fn init_enumerants(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_enumerants(&self) -> bool {
@@ -842,15 +872,18 @@ pub mod node {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_methods(&self) -> struct_list::Reader<'a,::schema_capnp::method::Reader<'a>> {
+      pub fn get_methods(self) -> struct_list::Reader<'a,::schema_capnp::method::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_methods(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_superclasses(&self) -> struct_list::Reader<'a,::schema_capnp::superclass::Reader<'a>> {
+      pub fn get_superclasses(self) -> struct_list::Reader<'a,::schema_capnp::superclass::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(4))
       }
       pub fn has_superclasses(&self) -> bool {
@@ -874,34 +907,37 @@ pub mod node {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_methods(&self) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
+      pub fn get_methods(self) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
-      pub fn set_methods(&self, value : struct_list::Reader<'a,::schema_capnp::method::Reader<'a>>) {
+      pub fn set_methods(&mut self, value : struct_list::Reader<'a,::schema_capnp::method::Reader<'a>>) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value)
       }
       #[inline]
-      pub fn init_methods(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
+      pub fn init_methods(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), size)
       }
       pub fn has_methods(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_superclasses(&self) -> struct_list::Builder<'a,::schema_capnp::superclass::Builder<'a>> {
+      pub fn get_superclasses(self) -> struct_list::Builder<'a,::schema_capnp::superclass::Builder<'a>> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(4))
       }
       #[inline]
-      pub fn set_superclasses(&self, value : struct_list::Reader<'a,::schema_capnp::superclass::Reader<'a>>) {
+      pub fn set_superclasses(&mut self, value : struct_list::Reader<'a,::schema_capnp::superclass::Reader<'a>>) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value)
       }
       #[inline]
-      pub fn init_superclasses(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::superclass::Builder<'a>> {
+      pub fn init_superclasses(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::superclass::Builder<'a>> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), size)
       }
       pub fn has_superclasses(&self) -> bool {
@@ -950,15 +986,18 @@ pub mod node {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_type(&self) -> ::schema_capnp::type_::Reader<'a> {
+      pub fn get_type(self) -> ::schema_capnp::type_::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_value(&self) -> ::schema_capnp::value::Reader<'a> {
+      pub fn get_value(self) -> ::schema_capnp::value::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(4))
       }
       pub fn has_value(&self) -> bool {
@@ -982,34 +1021,37 @@ pub mod node {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_type(&self) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn get_type(self) -> ::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
-      pub fn set_type(&self, value : ::schema_capnp::type_::Reader) {
+      pub fn set_type(&mut self, value : ::schema_capnp::type_::Reader) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value)
       }
       #[inline]
-      pub fn init_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn init_type(self, ) -> ::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_value(&self) -> ::schema_capnp::value::Builder<'a> {
+      pub fn get_value(self) -> ::schema_capnp::value::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(4))
       }
       #[inline]
-      pub fn set_value(&self, value : ::schema_capnp::value::Reader) {
+      pub fn set_value(&mut self, value : ::schema_capnp::value::Reader) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value)
       }
       #[inline]
-      pub fn init_value(&self, ) -> ::schema_capnp::value::Builder<'a> {
+      pub fn init_value(self, ) -> ::schema_capnp::value::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), 0)
       }
       pub fn has_value(&self) -> bool {
@@ -1064,59 +1106,62 @@ pub mod node {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_type(&self) -> ::schema_capnp::type_::Reader<'a> {
+      pub fn get_type(self) -> ::schema_capnp::type_::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_targets_file(&self) -> bool {
+      pub fn get_targets_file(self) -> bool {
         self.reader.get_bool_field(112)
       }
       #[inline]
-      pub fn get_targets_const(&self) -> bool {
+      pub fn get_targets_const(self) -> bool {
         self.reader.get_bool_field(113)
       }
       #[inline]
-      pub fn get_targets_enum(&self) -> bool {
+      pub fn get_targets_enum(self) -> bool {
         self.reader.get_bool_field(114)
       }
       #[inline]
-      pub fn get_targets_enumerant(&self) -> bool {
+      pub fn get_targets_enumerant(self) -> bool {
         self.reader.get_bool_field(115)
       }
       #[inline]
-      pub fn get_targets_struct(&self) -> bool {
+      pub fn get_targets_struct(self) -> bool {
         self.reader.get_bool_field(116)
       }
       #[inline]
-      pub fn get_targets_field(&self) -> bool {
+      pub fn get_targets_field(self) -> bool {
         self.reader.get_bool_field(117)
       }
       #[inline]
-      pub fn get_targets_union(&self) -> bool {
+      pub fn get_targets_union(self) -> bool {
         self.reader.get_bool_field(118)
       }
       #[inline]
-      pub fn get_targets_group(&self) -> bool {
+      pub fn get_targets_group(self) -> bool {
         self.reader.get_bool_field(119)
       }
       #[inline]
-      pub fn get_targets_interface(&self) -> bool {
+      pub fn get_targets_interface(self) -> bool {
         self.reader.get_bool_field(120)
       }
       #[inline]
-      pub fn get_targets_method(&self) -> bool {
+      pub fn get_targets_method(self) -> bool {
         self.reader.get_bool_field(121)
       }
       #[inline]
-      pub fn get_targets_param(&self) -> bool {
+      pub fn get_targets_param(self) -> bool {
         self.reader.get_bool_field(122)
       }
       #[inline]
-      pub fn get_targets_annotation(&self) -> bool {
+      pub fn get_targets_annotation(self) -> bool {
         self.reader.get_bool_field(123)
       }
     }
@@ -1137,118 +1182,121 @@ pub mod node {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_type(&self) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn get_type(self) -> ::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
-      pub fn set_type(&self, value : ::schema_capnp::type_::Reader) {
+      pub fn set_type(&mut self, value : ::schema_capnp::type_::Reader) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value)
       }
       #[inline]
-      pub fn init_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn init_type(self, ) -> ::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_targets_file(&self) -> bool {
+      pub fn get_targets_file(self) -> bool {
         self.builder.get_bool_field(112)
       }
       #[inline]
-      pub fn set_targets_file(&self, value : bool) {
+      pub fn set_targets_file(&mut self, value : bool) {
         self.builder.set_bool_field(112, value);
       }
       #[inline]
-      pub fn get_targets_const(&self) -> bool {
+      pub fn get_targets_const(self) -> bool {
         self.builder.get_bool_field(113)
       }
       #[inline]
-      pub fn set_targets_const(&self, value : bool) {
+      pub fn set_targets_const(&mut self, value : bool) {
         self.builder.set_bool_field(113, value);
       }
       #[inline]
-      pub fn get_targets_enum(&self) -> bool {
+      pub fn get_targets_enum(self) -> bool {
         self.builder.get_bool_field(114)
       }
       #[inline]
-      pub fn set_targets_enum(&self, value : bool) {
+      pub fn set_targets_enum(&mut self, value : bool) {
         self.builder.set_bool_field(114, value);
       }
       #[inline]
-      pub fn get_targets_enumerant(&self) -> bool {
+      pub fn get_targets_enumerant(self) -> bool {
         self.builder.get_bool_field(115)
       }
       #[inline]
-      pub fn set_targets_enumerant(&self, value : bool) {
+      pub fn set_targets_enumerant(&mut self, value : bool) {
         self.builder.set_bool_field(115, value);
       }
       #[inline]
-      pub fn get_targets_struct(&self) -> bool {
+      pub fn get_targets_struct(self) -> bool {
         self.builder.get_bool_field(116)
       }
       #[inline]
-      pub fn set_targets_struct(&self, value : bool) {
+      pub fn set_targets_struct(&mut self, value : bool) {
         self.builder.set_bool_field(116, value);
       }
       #[inline]
-      pub fn get_targets_field(&self) -> bool {
+      pub fn get_targets_field(self) -> bool {
         self.builder.get_bool_field(117)
       }
       #[inline]
-      pub fn set_targets_field(&self, value : bool) {
+      pub fn set_targets_field(&mut self, value : bool) {
         self.builder.set_bool_field(117, value);
       }
       #[inline]
-      pub fn get_targets_union(&self) -> bool {
+      pub fn get_targets_union(self) -> bool {
         self.builder.get_bool_field(118)
       }
       #[inline]
-      pub fn set_targets_union(&self, value : bool) {
+      pub fn set_targets_union(&mut self, value : bool) {
         self.builder.set_bool_field(118, value);
       }
       #[inline]
-      pub fn get_targets_group(&self) -> bool {
+      pub fn get_targets_group(self) -> bool {
         self.builder.get_bool_field(119)
       }
       #[inline]
-      pub fn set_targets_group(&self, value : bool) {
+      pub fn set_targets_group(&mut self, value : bool) {
         self.builder.set_bool_field(119, value);
       }
       #[inline]
-      pub fn get_targets_interface(&self) -> bool {
+      pub fn get_targets_interface(self) -> bool {
         self.builder.get_bool_field(120)
       }
       #[inline]
-      pub fn set_targets_interface(&self, value : bool) {
+      pub fn set_targets_interface(&mut self, value : bool) {
         self.builder.set_bool_field(120, value);
       }
       #[inline]
-      pub fn get_targets_method(&self) -> bool {
+      pub fn get_targets_method(self) -> bool {
         self.builder.get_bool_field(121)
       }
       #[inline]
-      pub fn set_targets_method(&self, value : bool) {
+      pub fn set_targets_method(&mut self, value : bool) {
         self.builder.set_bool_field(121, value);
       }
       #[inline]
-      pub fn get_targets_param(&self) -> bool {
+      pub fn get_targets_param(self) -> bool {
         self.builder.get_bool_field(122)
       }
       #[inline]
-      pub fn set_targets_param(&self, value : bool) {
+      pub fn set_targets_param(&mut self, value : bool) {
         self.builder.set_bool_field(122, value);
       }
       #[inline]
-      pub fn get_targets_annotation(&self) -> bool {
+      pub fn get_targets_annotation(self) -> bool {
         self.builder.get_bool_field(123)
       }
       #[inline]
-      pub fn set_targets_annotation(&self, value : bool) {
+      pub fn set_targets_annotation(&mut self, value : bool) {
         self.builder.set_bool_field(123, value);
       }
     }
@@ -1300,34 +1348,37 @@ pub mod field {
   }
 
   impl <'a> Reader<'a> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b> {
+      Reader { reader : self.reader}
+    }
     #[inline]
-    pub fn get_name(&self) -> text::Reader<'a> {
+    pub fn get_name(self) -> text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     pub fn has_name(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_code_order(&self) -> u16 {
+    pub fn get_code_order(self) -> u16 {
       self.reader.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
+    pub fn get_annotations(self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
     #[inline]
-    pub fn get_discriminant_value(&self) -> u16 {
+    pub fn get_discriminant_value(self) -> u16 {
       self.reader.get_data_field_mask::<u16>(1, 65535u16)
     }
     #[inline]
-    pub fn get_ordinal(&self) -> ::schema_capnp::field::ordinal::Reader<'a> {
+    pub fn get_ordinal(self) -> ::schema_capnp::field::ordinal::Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.reader)
     }
     #[inline]
-    pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
+    pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(4) {
         0 => {
           return ::std::option::Option::Some(Slot(
@@ -1373,57 +1424,60 @@ pub mod field {
   }
 
   impl <'a> Builder<'a> {
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader(self) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+      Builder { builder : self.builder}
+    }
     #[inline]
-    pub fn get_name(&self) -> text::Builder<'a> {
+    pub fn get_name(self) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_name(&self, value : text::Reader) {
+    pub fn set_name(&mut self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : u32) -> text::Builder<'a> {
+    pub fn init_name(self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_code_order(&self) -> u16 {
+    pub fn get_code_order(self) -> u16 {
       self.builder.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn set_code_order(&self, value : u16) {
+    pub fn set_code_order(&mut self, value : u16) {
       self.builder.set_data_field::<u16>(0, value);
     }
     #[inline]
-    pub fn get_annotations(&self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn get_annotations(self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
-    pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
+    pub fn set_annotations(&mut self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
     }
     #[inline]
-    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
     }
     #[inline]
-    pub fn get_discriminant_value(&self) -> u16 {
+    pub fn get_discriminant_value(self) -> u16 {
       self.builder.get_data_field_mask::<u16>(1, 65535u16)
     }
     #[inline]
-    pub fn set_discriminant_value(&self, value : u16) {
+    pub fn set_discriminant_value(&mut self, value : u16) {
       self.builder.set_data_field_mask::<u16>(1, value, 65535);
     }
     #[inline]
-    pub fn init_slot(&self, ) -> ::schema_capnp::field::slot::Builder<'a> {
+    pub fn init_slot(self, ) -> ::schema_capnp::field::slot::Builder<'a> {
       self.builder.set_data_field::<u16>(4, 0);
       self.builder.set_data_field::<u32>(1, 0u8 as u32);
       self.builder.get_pointer_field(2).clear();
@@ -1432,23 +1486,23 @@ pub mod field {
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_group(&self, ) -> ::schema_capnp::field::group::Builder<'a> {
+    pub fn init_group(self, ) -> ::schema_capnp::field::group::Builder<'a> {
       self.builder.set_data_field::<u16>(4, 1);
       self.builder.set_data_field::<u64>(2, 0u8 as u64);
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn get_ordinal(&self) -> ::schema_capnp::field::ordinal::Builder<'a> {
+    pub fn get_ordinal(self) -> ::schema_capnp::field::ordinal::Builder<'a> {
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_ordinal(&self, ) -> ::schema_capnp::field::ordinal::Builder<'a> {
+    pub fn init_ordinal(self, ) -> ::schema_capnp::field::ordinal::Builder<'a> {
       self.builder.set_data_field::<u16>(5, 0);
       self.builder.set_data_field::<u16>(6, 0u8 as u16);
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
+    pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(4) {
         0 => {
           return ::std::option::Option::Some(Slot(
@@ -1518,26 +1572,29 @@ pub mod field {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_offset(&self) -> u32 {
+      pub fn get_offset(self) -> u32 {
         self.reader.get_data_field::<u32>(1)
       }
       #[inline]
-      pub fn get_type(&self) -> ::schema_capnp::type_::Reader<'a> {
+      pub fn get_type(self) -> ::schema_capnp::type_::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2))
       }
       pub fn has_type(&self) -> bool {
         !self.reader.get_pointer_field(2).is_null()
       }
       #[inline]
-      pub fn get_default_value(&self) -> ::schema_capnp::value::Reader<'a> {
+      pub fn get_default_value(self) -> ::schema_capnp::value::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
       }
       pub fn has_default_value(&self) -> bool {
         !self.reader.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_had_explicit_default(&self) -> bool {
+      pub fn get_had_explicit_default(self) -> bool {
         self.reader.get_bool_field(128)
       }
     }
@@ -1558,53 +1615,56 @@ pub mod field {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_offset(&self) -> u32 {
+      pub fn get_offset(self) -> u32 {
         self.builder.get_data_field::<u32>(1)
       }
       #[inline]
-      pub fn set_offset(&self, value : u32) {
+      pub fn set_offset(&mut self, value : u32) {
         self.builder.set_data_field::<u32>(1, value);
       }
       #[inline]
-      pub fn get_type(&self) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn get_type(self) -> ::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(2))
       }
       #[inline]
-      pub fn set_type(&self, value : ::schema_capnp::type_::Reader) {
+      pub fn set_type(&mut self, value : ::schema_capnp::type_::Reader) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value)
       }
       #[inline]
-      pub fn init_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn init_type(self, ) -> ::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), 0)
       }
       pub fn has_type(&self) -> bool {
         !self.builder.get_pointer_field(2).is_null()
       }
       #[inline]
-      pub fn get_default_value(&self) -> ::schema_capnp::value::Builder<'a> {
+      pub fn get_default_value(self) -> ::schema_capnp::value::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
       }
       #[inline]
-      pub fn set_default_value(&self, value : ::schema_capnp::value::Reader) {
+      pub fn set_default_value(&mut self, value : ::schema_capnp::value::Reader) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value)
       }
       #[inline]
-      pub fn init_default_value(&self, ) -> ::schema_capnp::value::Builder<'a> {
+      pub fn init_default_value(self, ) -> ::schema_capnp::value::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
       }
       pub fn has_default_value(&self) -> bool {
         !self.builder.get_pointer_field(3).is_null()
       }
       #[inline]
-      pub fn get_had_explicit_default(&self) -> bool {
+      pub fn get_had_explicit_default(self) -> bool {
         self.builder.get_bool_field(128)
       }
       #[inline]
-      pub fn set_had_explicit_default(&self, value : bool) {
+      pub fn set_had_explicit_default(&mut self, value : bool) {
         self.builder.set_bool_field(128, value);
       }
     }
@@ -1656,8 +1716,11 @@ pub mod field {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_type_id(&self) -> u64 {
+      pub fn get_type_id(self) -> u64 {
         self.reader.get_data_field::<u64>(2)
       }
     }
@@ -1678,15 +1741,18 @@ pub mod field {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_type_id(&self) -> u64 {
+      pub fn get_type_id(self) -> u64 {
         self.builder.get_data_field::<u64>(2)
       }
       #[inline]
-      pub fn set_type_id(&self, value : u64) {
+      pub fn set_type_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(2, value);
       }
     }
@@ -1734,8 +1800,11 @@ pub mod field {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn which(&self) -> ::std::option::Option<WhichReader> {
+      pub fn which(self) -> ::std::option::Option<WhichReader> {
         match self.reader.get_data_field::<u16>(5) {
           0 => {
             return ::std::option::Option::Some(Implicit(
@@ -1768,20 +1837,23 @@ pub mod field {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn set_implicit(&self, _value : ()) {
+      pub fn set_implicit(&mut self, _value : ()) {
         self.builder.set_data_field::<u16>(5, 0);
       }
       #[inline]
-      pub fn set_explicit(&self, value : u16) {
+      pub fn set_explicit(&mut self, value : u16) {
         self.builder.set_data_field::<u16>(5, 1);
         self.builder.set_data_field::<u16>(6, value);
       }
       #[inline]
-      pub fn which(&self) -> ::std::option::Option<WhichBuilder> {
+      pub fn which(self) -> ::std::option::Option<WhichBuilder> {
         match self.builder.get_data_field::<u16>(5) {
           0 => {
             return ::std::option::Option::Some(Implicit(
@@ -1847,19 +1919,22 @@ pub mod enumerant {
   }
 
   impl <'a> Reader<'a> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b> {
+      Reader { reader : self.reader}
+    }
     #[inline]
-    pub fn get_name(&self) -> text::Reader<'a> {
+    pub fn get_name(self) -> text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     pub fn has_name(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_code_order(&self) -> u16 {
+    pub fn get_code_order(self) -> u16 {
       self.reader.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
+    pub fn get_annotations(self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_annotations(&self) -> bool {
@@ -1896,42 +1971,45 @@ pub mod enumerant {
   }
 
   impl <'a> Builder<'a> {
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader(self) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+      Builder { builder : self.builder}
+    }
     #[inline]
-    pub fn get_name(&self) -> text::Builder<'a> {
+    pub fn get_name(self) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_name(&self, value : text::Reader) {
+    pub fn set_name(&mut self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : u32) -> text::Builder<'a> {
+    pub fn init_name(self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_code_order(&self) -> u16 {
+    pub fn get_code_order(self) -> u16 {
       self.builder.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn set_code_order(&self, value : u16) {
+    pub fn set_code_order(&mut self, value : u16) {
       self.builder.set_data_field::<u16>(0, value);
     }
     #[inline]
-    pub fn get_annotations(&self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn get_annotations(self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
-    pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
+    pub fn set_annotations(&mut self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
     }
     #[inline]
-    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
@@ -1982,12 +2060,15 @@ pub mod superclass {
   }
 
   impl <'a> Reader<'a> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b> {
+      Reader { reader : self.reader}
+    }
     #[inline]
-    pub fn get_id(&self) -> u64 {
+    pub fn get_id(self) -> u64 {
       self.reader.get_data_field::<u64>(0)
     }
     #[inline]
-    pub fn get_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
+    pub fn get_brand(self) -> ::schema_capnp::brand::Reader<'a> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
     }
     pub fn has_brand(&self) -> bool {
@@ -2024,27 +2105,30 @@ pub mod superclass {
   }
 
   impl <'a> Builder<'a> {
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader(self) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+      Builder { builder : self.builder}
+    }
     #[inline]
-    pub fn get_id(&self) -> u64 {
+    pub fn get_id(self) -> u64 {
       self.builder.get_data_field::<u64>(0)
     }
     #[inline]
-    pub fn set_id(&self, value : u64) {
+    pub fn set_id(&mut self, value : u64) {
       self.builder.set_data_field::<u64>(0, value);
     }
     #[inline]
-    pub fn get_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
+    pub fn get_brand(self) -> ::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
     }
     #[inline]
-    pub fn set_brand(&self, value : ::schema_capnp::brand::Reader) {
+    pub fn set_brand(&mut self, value : ::schema_capnp::brand::Reader) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
     }
     #[inline]
-    pub fn init_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
+    pub fn init_brand(self, ) -> ::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
     }
     pub fn has_brand(&self) -> bool {
@@ -2098,48 +2182,51 @@ pub mod method {
   }
 
   impl <'a> Reader<'a> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b> {
+      Reader { reader : self.reader}
+    }
     #[inline]
-    pub fn get_name(&self) -> text::Reader<'a> {
+    pub fn get_name(self) -> text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     pub fn has_name(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_code_order(&self) -> u16 {
+    pub fn get_code_order(self) -> u16 {
       self.reader.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn get_param_struct_type(&self) -> u64 {
+    pub fn get_param_struct_type(self) -> u64 {
       self.reader.get_data_field::<u64>(1)
     }
     #[inline]
-    pub fn get_result_struct_type(&self) -> u64 {
+    pub fn get_result_struct_type(self) -> u64 {
       self.reader.get_data_field::<u64>(2)
     }
     #[inline]
-    pub fn get_annotations(&self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
+    pub fn get_annotations(self) -> struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_annotations(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
     #[inline]
-    pub fn get_param_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
+    pub fn get_param_brand(self) -> ::schema_capnp::brand::Reader<'a> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2))
     }
     pub fn has_param_brand(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
     }
     #[inline]
-    pub fn get_result_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
+    pub fn get_result_brand(self) -> ::schema_capnp::brand::Reader<'a> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
     }
     pub fn has_result_brand(&self) -> bool {
       !self.reader.get_pointer_field(3).is_null()
     }
     #[inline]
-    pub fn get_implicit_parameters(&self) -> struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>> {
+    pub fn get_implicit_parameters(self) -> struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(4))
     }
     pub fn has_implicit_parameters(&self) -> bool {
@@ -2176,103 +2263,106 @@ pub mod method {
   }
 
   impl <'a> Builder<'a> {
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader(self) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+      Builder { builder : self.builder}
+    }
     #[inline]
-    pub fn get_name(&self) -> text::Builder<'a> {
+    pub fn get_name(self) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
     }
     #[inline]
-    pub fn set_name(&self, value : text::Reader) {
+    pub fn set_name(&mut self, value : text::Reader) {
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_name(&self, size : u32) -> text::Builder<'a> {
+    pub fn init_name(self, size : u32) -> text::Builder<'a> {
       self.builder.get_pointer_field(0).init_text(size)
     }
     pub fn has_name(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_code_order(&self) -> u16 {
+    pub fn get_code_order(self) -> u16 {
       self.builder.get_data_field::<u16>(0)
     }
     #[inline]
-    pub fn set_code_order(&self, value : u16) {
+    pub fn set_code_order(&mut self, value : u16) {
       self.builder.set_data_field::<u16>(0, value);
     }
     #[inline]
-    pub fn get_param_struct_type(&self) -> u64 {
+    pub fn get_param_struct_type(self) -> u64 {
       self.builder.get_data_field::<u64>(1)
     }
     #[inline]
-    pub fn set_param_struct_type(&self, value : u64) {
+    pub fn set_param_struct_type(&mut self, value : u64) {
       self.builder.set_data_field::<u64>(1, value);
     }
     #[inline]
-    pub fn get_result_struct_type(&self) -> u64 {
+    pub fn get_result_struct_type(self) -> u64 {
       self.builder.get_data_field::<u64>(2)
     }
     #[inline]
-    pub fn set_result_struct_type(&self, value : u64) {
+    pub fn set_result_struct_type(&mut self, value : u64) {
       self.builder.set_data_field::<u64>(2, value);
     }
     #[inline]
-    pub fn get_annotations(&self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn get_annotations(self) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
-    pub fn set_annotations(&self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
+    pub fn set_annotations(&mut self, value : struct_list::Reader<'a,::schema_capnp::annotation::Reader<'a>>) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
     }
     #[inline]
-    pub fn init_annotations(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
+    pub fn init_annotations(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::annotation::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_annotations(&self) -> bool {
       !self.builder.get_pointer_field(1).is_null()
     }
     #[inline]
-    pub fn get_param_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
+    pub fn get_param_brand(self) -> ::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(2))
     }
     #[inline]
-    pub fn set_param_brand(&self, value : ::schema_capnp::brand::Reader) {
+    pub fn set_param_brand(&mut self, value : ::schema_capnp::brand::Reader) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value)
     }
     #[inline]
-    pub fn init_param_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
+    pub fn init_param_brand(self, ) -> ::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(2), 0)
     }
     pub fn has_param_brand(&self) -> bool {
       !self.builder.get_pointer_field(2).is_null()
     }
     #[inline]
-    pub fn get_result_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
+    pub fn get_result_brand(self) -> ::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
     }
     #[inline]
-    pub fn set_result_brand(&self, value : ::schema_capnp::brand::Reader) {
+    pub fn set_result_brand(&mut self, value : ::schema_capnp::brand::Reader) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value)
     }
     #[inline]
-    pub fn init_result_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
+    pub fn init_result_brand(self, ) -> ::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(3), 0)
     }
     pub fn has_result_brand(&self) -> bool {
       !self.builder.get_pointer_field(3).is_null()
     }
     #[inline]
-    pub fn get_implicit_parameters(&self) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
+    pub fn get_implicit_parameters(self) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(4))
     }
     #[inline]
-    pub fn set_implicit_parameters(&self, value : struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>>) {
+    pub fn set_implicit_parameters(&mut self, value : struct_list::Reader<'a,::schema_capnp::node::parameter::Reader<'a>>) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value)
     }
     #[inline]
-    pub fn init_implicit_parameters(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
+    pub fn init_implicit_parameters(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::parameter::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(4), size)
     }
     pub fn has_implicit_parameters(&self) -> bool {
@@ -2331,8 +2421,11 @@ pub mod type_ {
   }
 
   impl <'a> Reader<'a> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b> {
+      Reader { reader : self.reader}
+    }
     #[inline]
-    pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
+    pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(0) {
         0 => {
           return ::std::option::Option::Some(Void(
@@ -2463,94 +2556,97 @@ pub mod type_ {
   }
 
   impl <'a> Builder<'a> {
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader(self) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+      Builder { builder : self.builder}
+    }
     #[inline]
-    pub fn set_void(&self, _value : ()) {
+    pub fn set_void(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 0);
     }
     #[inline]
-    pub fn set_bool(&self, _value : ()) {
+    pub fn set_bool(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 1);
     }
     #[inline]
-    pub fn set_int8(&self, _value : ()) {
+    pub fn set_int8(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 2);
     }
     #[inline]
-    pub fn set_int16(&self, _value : ()) {
+    pub fn set_int16(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 3);
     }
     #[inline]
-    pub fn set_int32(&self, _value : ()) {
+    pub fn set_int32(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 4);
     }
     #[inline]
-    pub fn set_int64(&self, _value : ()) {
+    pub fn set_int64(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 5);
     }
     #[inline]
-    pub fn set_uint8(&self, _value : ()) {
+    pub fn set_uint8(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 6);
     }
     #[inline]
-    pub fn set_uint16(&self, _value : ()) {
+    pub fn set_uint16(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 7);
     }
     #[inline]
-    pub fn set_uint32(&self, _value : ()) {
+    pub fn set_uint32(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 8);
     }
     #[inline]
-    pub fn set_uint64(&self, _value : ()) {
+    pub fn set_uint64(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 9);
     }
     #[inline]
-    pub fn set_float32(&self, _value : ()) {
+    pub fn set_float32(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 10);
     }
     #[inline]
-    pub fn set_float64(&self, _value : ()) {
+    pub fn set_float64(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 11);
     }
     #[inline]
-    pub fn set_text(&self, _value : ()) {
+    pub fn set_text(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 12);
     }
     #[inline]
-    pub fn set_data(&self, _value : ()) {
+    pub fn set_data(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 13);
     }
     #[inline]
-    pub fn init_list(&self, ) -> ::schema_capnp::type_::list::Builder<'a> {
+    pub fn init_list(self, ) -> ::schema_capnp::type_::list::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 14);
       self.builder.get_pointer_field(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_enum(&self, ) -> ::schema_capnp::type_::enum_::Builder<'a> {
+    pub fn init_enum(self, ) -> ::schema_capnp::type_::enum_::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 15);
       self.builder.set_data_field::<u64>(1, 0u8 as u64);
       self.builder.get_pointer_field(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_struct(&self, ) -> ::schema_capnp::type_::struct_::Builder<'a> {
+    pub fn init_struct(self, ) -> ::schema_capnp::type_::struct_::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 16);
       self.builder.set_data_field::<u64>(1, 0u8 as u64);
       self.builder.get_pointer_field(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_interface(&self, ) -> ::schema_capnp::type_::interface::Builder<'a> {
+    pub fn init_interface(self, ) -> ::schema_capnp::type_::interface::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 17);
       self.builder.set_data_field::<u64>(1, 0u8 as u64);
       self.builder.get_pointer_field(0).clear();
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn init_any_pointer(&self, ) -> ::schema_capnp::type_::any_pointer::Builder<'a> {
+    pub fn init_any_pointer(self, ) -> ::schema_capnp::type_::any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 18);
       self.builder.set_data_field::<u16>(4, 0);
       self.builder.set_data_field::<u64>(2, 0u8 as u64);
@@ -2559,7 +2655,7 @@ pub mod type_ {
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
+    pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(0) {
         0 => {
           return ::std::option::Option::Some(Void(
@@ -2727,8 +2823,11 @@ pub mod type_ {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_element_type(&self) -> ::schema_capnp::type_::Reader<'a> {
+      pub fn get_element_type(self) -> ::schema_capnp::type_::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
       }
       pub fn has_element_type(&self) -> bool {
@@ -2752,19 +2851,22 @@ pub mod type_ {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_element_type(&self) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn get_element_type(self) -> ::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
       }
       #[inline]
-      pub fn set_element_type(&self, value : ::schema_capnp::type_::Reader) {
+      pub fn set_element_type(&mut self, value : ::schema_capnp::type_::Reader) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
       }
       #[inline]
-      pub fn init_element_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn init_element_type(self, ) -> ::schema_capnp::type_::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_element_type(&self) -> bool {
@@ -2816,12 +2918,15 @@ pub mod type_ {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_type_id(&self) -> u64 {
+      pub fn get_type_id(self) -> u64 {
         self.reader.get_data_field::<u64>(1)
       }
       #[inline]
-      pub fn get_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
+      pub fn get_brand(self) -> ::schema_capnp::brand::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
       }
       pub fn has_brand(&self) -> bool {
@@ -2845,27 +2950,30 @@ pub mod type_ {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_type_id(&self) -> u64 {
+      pub fn get_type_id(self) -> u64 {
         self.builder.get_data_field::<u64>(1)
       }
       #[inline]
-      pub fn set_type_id(&self, value : u64) {
+      pub fn set_type_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(1, value);
       }
       #[inline]
-      pub fn get_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
+      pub fn get_brand(self) -> ::schema_capnp::brand::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
       }
       #[inline]
-      pub fn set_brand(&self, value : ::schema_capnp::brand::Reader) {
+      pub fn set_brand(&mut self, value : ::schema_capnp::brand::Reader) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
       }
       #[inline]
-      pub fn init_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
+      pub fn init_brand(self, ) -> ::schema_capnp::brand::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_brand(&self) -> bool {
@@ -2917,12 +3025,15 @@ pub mod type_ {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_type_id(&self) -> u64 {
+      pub fn get_type_id(self) -> u64 {
         self.reader.get_data_field::<u64>(1)
       }
       #[inline]
-      pub fn get_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
+      pub fn get_brand(self) -> ::schema_capnp::brand::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
       }
       pub fn has_brand(&self) -> bool {
@@ -2946,27 +3057,30 @@ pub mod type_ {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_type_id(&self) -> u64 {
+      pub fn get_type_id(self) -> u64 {
         self.builder.get_data_field::<u64>(1)
       }
       #[inline]
-      pub fn set_type_id(&self, value : u64) {
+      pub fn set_type_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(1, value);
       }
       #[inline]
-      pub fn get_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
+      pub fn get_brand(self) -> ::schema_capnp::brand::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
       }
       #[inline]
-      pub fn set_brand(&self, value : ::schema_capnp::brand::Reader) {
+      pub fn set_brand(&mut self, value : ::schema_capnp::brand::Reader) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
       }
       #[inline]
-      pub fn init_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
+      pub fn init_brand(self, ) -> ::schema_capnp::brand::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_brand(&self) -> bool {
@@ -3018,12 +3132,15 @@ pub mod type_ {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_type_id(&self) -> u64 {
+      pub fn get_type_id(self) -> u64 {
         self.reader.get_data_field::<u64>(1)
       }
       #[inline]
-      pub fn get_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
+      pub fn get_brand(self) -> ::schema_capnp::brand::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
       }
       pub fn has_brand(&self) -> bool {
@@ -3047,27 +3164,30 @@ pub mod type_ {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_type_id(&self) -> u64 {
+      pub fn get_type_id(self) -> u64 {
         self.builder.get_data_field::<u64>(1)
       }
       #[inline]
-      pub fn set_type_id(&self, value : u64) {
+      pub fn set_type_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(1, value);
       }
       #[inline]
-      pub fn get_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
+      pub fn get_brand(self) -> ::schema_capnp::brand::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
       }
       #[inline]
-      pub fn set_brand(&self, value : ::schema_capnp::brand::Reader) {
+      pub fn set_brand(&mut self, value : ::schema_capnp::brand::Reader) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
       }
       #[inline]
-      pub fn init_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
+      pub fn init_brand(self, ) -> ::schema_capnp::brand::Builder<'a> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
       pub fn has_brand(&self) -> bool {
@@ -3121,8 +3241,11 @@ pub mod type_ {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
+      pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
         match self.reader.get_data_field::<u16>(4) {
           0 => {
             return ::std::option::Option::Some(Unconstrained(
@@ -3160,28 +3283,31 @@ pub mod type_ {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn set_unconstrained(&self, _value : ()) {
+      pub fn set_unconstrained(&mut self, _value : ()) {
         self.builder.set_data_field::<u16>(4, 0);
       }
       #[inline]
-      pub fn init_parameter(&self, ) -> ::schema_capnp::type_::any_pointer::parameter::Builder<'a> {
+      pub fn init_parameter(self, ) -> ::schema_capnp::type_::any_pointer::parameter::Builder<'a> {
         self.builder.set_data_field::<u16>(4, 1);
         self.builder.set_data_field::<u64>(2, 0u8 as u64);
         self.builder.set_data_field::<u16>(5, 0u8 as u16);
         ::capnp::traits::FromStructBuilder::new(self.builder)
       }
       #[inline]
-      pub fn init_implicit_method_parameter(&self, ) -> ::schema_capnp::type_::any_pointer::implicit_method_parameter::Builder<'a> {
+      pub fn init_implicit_method_parameter(self, ) -> ::schema_capnp::type_::any_pointer::implicit_method_parameter::Builder<'a> {
         self.builder.set_data_field::<u16>(4, 2);
         self.builder.set_data_field::<u16>(5, 0u8 as u16);
         ::capnp::traits::FromStructBuilder::new(self.builder)
       }
       #[inline]
-      pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
+      pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
         match self.builder.get_data_field::<u16>(4) {
           0 => {
             return ::std::option::Option::Some(Unconstrained(
@@ -3251,12 +3377,15 @@ pub mod type_ {
       }
 
       impl <'a> Reader<'a> {
+        pub fn borrow<'b>(&'b self) -> Reader<'b> {
+          Reader { reader : self.reader}
+        }
         #[inline]
-        pub fn get_scope_id(&self) -> u64 {
+        pub fn get_scope_id(self) -> u64 {
           self.reader.get_data_field::<u64>(2)
         }
         #[inline]
-        pub fn get_parameter_index(&self) -> u16 {
+        pub fn get_parameter_index(self) -> u16 {
           self.reader.get_data_field::<u16>(5)
         }
       }
@@ -3277,23 +3406,26 @@ pub mod type_ {
       }
 
       impl <'a> Builder<'a> {
-        pub fn as_reader(&self) -> Reader<'a> {
+        pub fn as_reader(self) -> Reader<'a> {
           ::capnp::traits::FromStructReader::new(self.builder.as_reader())
         }
+        pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+          Builder { builder : self.builder}
+        }
         #[inline]
-        pub fn get_scope_id(&self) -> u64 {
+        pub fn get_scope_id(self) -> u64 {
           self.builder.get_data_field::<u64>(2)
         }
         #[inline]
-        pub fn set_scope_id(&self, value : u64) {
+        pub fn set_scope_id(&mut self, value : u64) {
           self.builder.set_data_field::<u64>(2, value);
         }
         #[inline]
-        pub fn get_parameter_index(&self) -> u16 {
+        pub fn get_parameter_index(self) -> u16 {
           self.builder.get_data_field::<u16>(5)
         }
         #[inline]
-        pub fn set_parameter_index(&self, value : u16) {
+        pub fn set_parameter_index(&mut self, value : u16) {
           self.builder.set_data_field::<u16>(5, value);
         }
       }
@@ -3339,8 +3471,11 @@ pub mod type_ {
       }
 
       impl <'a> Reader<'a> {
+        pub fn borrow<'b>(&'b self) -> Reader<'b> {
+          Reader { reader : self.reader}
+        }
         #[inline]
-        pub fn get_parameter_index(&self) -> u16 {
+        pub fn get_parameter_index(self) -> u16 {
           self.reader.get_data_field::<u16>(5)
         }
       }
@@ -3361,15 +3496,18 @@ pub mod type_ {
       }
 
       impl <'a> Builder<'a> {
-        pub fn as_reader(&self) -> Reader<'a> {
+        pub fn as_reader(self) -> Reader<'a> {
           ::capnp::traits::FromStructReader::new(self.builder.as_reader())
         }
+        pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+          Builder { builder : self.builder}
+        }
         #[inline]
-        pub fn get_parameter_index(&self) -> u16 {
+        pub fn get_parameter_index(self) -> u16 {
           self.builder.get_data_field::<u16>(5)
         }
         #[inline]
-        pub fn set_parameter_index(&self, value : u16) {
+        pub fn set_parameter_index(&mut self, value : u16) {
           self.builder.set_data_field::<u16>(5, value);
         }
       }
@@ -3417,8 +3555,11 @@ pub mod brand {
   }
 
   impl <'a> Reader<'a> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b> {
+      Reader { reader : self.reader}
+    }
     #[inline]
-    pub fn get_scopes(&self) -> struct_list::Reader<'a,::schema_capnp::brand::scope::Reader<'a>> {
+    pub fn get_scopes(self) -> struct_list::Reader<'a,::schema_capnp::brand::scope::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
     }
     pub fn has_scopes(&self) -> bool {
@@ -3455,19 +3596,22 @@ pub mod brand {
   }
 
   impl <'a> Builder<'a> {
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader(self) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+      Builder { builder : self.builder}
+    }
     #[inline]
-    pub fn get_scopes(&self) -> struct_list::Builder<'a,::schema_capnp::brand::scope::Builder<'a>> {
+    pub fn get_scopes(self) -> struct_list::Builder<'a,::schema_capnp::brand::scope::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
     }
     #[inline]
-    pub fn set_scopes(&self, value : struct_list::Reader<'a,::schema_capnp::brand::scope::Reader<'a>>) {
+    pub fn set_scopes(&mut self, value : struct_list::Reader<'a,::schema_capnp::brand::scope::Reader<'a>>) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
     }
     #[inline]
-    pub fn init_scopes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::brand::scope::Builder<'a>> {
+    pub fn init_scopes(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::brand::scope::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
     }
     pub fn has_scopes(&self) -> bool {
@@ -3519,8 +3663,11 @@ pub mod brand {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_scope_id(&self) -> u64 {
+      pub fn get_scope_id(self) -> u64 {
         self.reader.get_data_field::<u64>(0)
       }
       pub fn has_bind(&self) -> bool {
@@ -3528,7 +3675,7 @@ pub mod brand {
         !self.reader.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
+      pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
         match self.reader.get_data_field::<u16>(4) {
           0 => {
             return ::std::option::Option::Some(Bind(
@@ -3574,24 +3721,27 @@ pub mod brand {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_scope_id(&self) -> u64 {
+      pub fn get_scope_id(self) -> u64 {
         self.builder.get_data_field::<u64>(0)
       }
       #[inline]
-      pub fn set_scope_id(&self, value : u64) {
+      pub fn set_scope_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(0, value);
       }
       #[inline]
-      pub fn set_bind(&self, value : struct_list::Reader<'a,::schema_capnp::brand::binding::Reader<'a>>) {
+      pub fn set_bind(&mut self, value : struct_list::Reader<'a,::schema_capnp::brand::binding::Reader<'a>>) {
         self.builder.set_data_field::<u16>(4, 0);
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
       }
       #[inline]
-      pub fn init_bind(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::brand::binding::Builder<'a>> {
+      pub fn init_bind(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::brand::binding::Builder<'a>> {
         self.builder.set_data_field::<u16>(4, 0);
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
       }
@@ -3600,11 +3750,11 @@ pub mod brand {
         !self.builder.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn set_inherit(&self, _value : ()) {
+      pub fn set_inherit(&mut self, _value : ()) {
         self.builder.set_data_field::<u16>(4, 1);
       }
       #[inline]
-      pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
+      pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
         match self.builder.get_data_field::<u16>(4) {
           0 => {
             return ::std::option::Option::Some(Bind(
@@ -3673,12 +3823,15 @@ pub mod brand {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       pub fn has_type(&self) -> bool {
         if self.reader.get_data_field::<u16>(0) != 1 { return false; }
         !self.reader.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
+      pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
         match self.reader.get_data_field::<u16>(0) {
           0 => {
             return ::std::option::Option::Some(Unbound(
@@ -3724,20 +3877,23 @@ pub mod brand {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn set_unbound(&self, _value : ()) {
+      pub fn set_unbound(&mut self, _value : ()) {
         self.builder.set_data_field::<u16>(0, 0);
       }
       #[inline]
-      pub fn set_type(&self, value : ::schema_capnp::type_::Reader) {
+      pub fn set_type(&mut self, value : ::schema_capnp::type_::Reader) {
         self.builder.set_data_field::<u16>(0, 1);
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
       }
       #[inline]
-      pub fn init_type(&self, ) -> ::schema_capnp::type_::Builder<'a> {
+      pub fn init_type(self, ) -> ::schema_capnp::type_::Builder<'a> {
         self.builder.set_data_field::<u16>(0, 1);
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
       }
@@ -3746,7 +3902,7 @@ pub mod brand {
         !self.builder.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
+      pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
         match self.builder.get_data_field::<u16>(0) {
           0 => {
             return ::std::option::Option::Some(Unbound(
@@ -3816,6 +3972,9 @@ pub mod value {
   }
 
   impl <'a> Reader<'a> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b> {
+      Reader { reader : self.reader}
+    }
     pub fn has_text(&self) -> bool {
       if self.reader.get_data_field::<u16>(0) != 12 { return false; }
       !self.reader.get_pointer_field(0).is_null()
@@ -3837,7 +3996,7 @@ pub mod value {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn which(&self) -> ::std::option::Option<WhichReader<'a>> {
+    pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(0) {
         0 => {
           return ::std::option::Option::Some(Void(
@@ -3968,75 +4127,78 @@ pub mod value {
   }
 
   impl <'a> Builder<'a> {
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader(self) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+      Builder { builder : self.builder}
+    }
     #[inline]
-    pub fn set_void(&self, _value : ()) {
+    pub fn set_void(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 0);
     }
     #[inline]
-    pub fn set_bool(&self, value : bool) {
+    pub fn set_bool(&mut self, value : bool) {
       self.builder.set_data_field::<u16>(0, 1);
       self.builder.set_bool_field(16, value);
     }
     #[inline]
-    pub fn set_int8(&self, value : i8) {
+    pub fn set_int8(&mut self, value : i8) {
       self.builder.set_data_field::<u16>(0, 2);
       self.builder.set_data_field::<i8>(2, value);
     }
     #[inline]
-    pub fn set_int16(&self, value : i16) {
+    pub fn set_int16(&mut self, value : i16) {
       self.builder.set_data_field::<u16>(0, 3);
       self.builder.set_data_field::<i16>(1, value);
     }
     #[inline]
-    pub fn set_int32(&self, value : i32) {
+    pub fn set_int32(&mut self, value : i32) {
       self.builder.set_data_field::<u16>(0, 4);
       self.builder.set_data_field::<i32>(1, value);
     }
     #[inline]
-    pub fn set_int64(&self, value : i64) {
+    pub fn set_int64(&mut self, value : i64) {
       self.builder.set_data_field::<u16>(0, 5);
       self.builder.set_data_field::<i64>(1, value);
     }
     #[inline]
-    pub fn set_uint8(&self, value : u8) {
+    pub fn set_uint8(&mut self, value : u8) {
       self.builder.set_data_field::<u16>(0, 6);
       self.builder.set_data_field::<u8>(2, value);
     }
     #[inline]
-    pub fn set_uint16(&self, value : u16) {
+    pub fn set_uint16(&mut self, value : u16) {
       self.builder.set_data_field::<u16>(0, 7);
       self.builder.set_data_field::<u16>(1, value);
     }
     #[inline]
-    pub fn set_uint32(&self, value : u32) {
+    pub fn set_uint32(&mut self, value : u32) {
       self.builder.set_data_field::<u16>(0, 8);
       self.builder.set_data_field::<u32>(1, value);
     }
     #[inline]
-    pub fn set_uint64(&self, value : u64) {
+    pub fn set_uint64(&mut self, value : u64) {
       self.builder.set_data_field::<u16>(0, 9);
       self.builder.set_data_field::<u64>(1, value);
     }
     #[inline]
-    pub fn set_float32(&self, value : f32) {
+    pub fn set_float32(&mut self, value : f32) {
       self.builder.set_data_field::<u16>(0, 10);
       self.builder.set_data_field::<f32>(1, value);
     }
     #[inline]
-    pub fn set_float64(&self, value : f64) {
+    pub fn set_float64(&mut self, value : f64) {
       self.builder.set_data_field::<u16>(0, 11);
       self.builder.set_data_field::<f64>(1, value);
     }
     #[inline]
-    pub fn set_text(&self, value : text::Reader) {
+    pub fn set_text(&mut self, value : text::Reader) {
       self.builder.set_data_field::<u16>(0, 12);
       self.builder.get_pointer_field(0).set_text(value);
     }
     #[inline]
-    pub fn init_text(&self, size : u32) -> text::Builder<'a> {
+    pub fn init_text(self, size : u32) -> text::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 12);
       self.builder.get_pointer_field(0).init_text(size)
     }
@@ -4045,12 +4207,12 @@ pub mod value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn set_data(&self, value : data::Reader) {
+    pub fn set_data(&mut self, value : data::Reader) {
       self.builder.set_data_field::<u16>(0, 13);
       self.builder.get_pointer_field(0).set_data(value);
     }
     #[inline]
-    pub fn init_data(&self, size : u32) -> data::Builder<'a> {
+    pub fn init_data(self, size : u32) -> data::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 13);
       self.builder.get_pointer_field(0).init_data(size)
     }
@@ -4059,7 +4221,7 @@ pub mod value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn init_list(&self, ) -> ::capnp::any_pointer::Builder<'a> {
+    pub fn init_list(self, ) -> ::capnp::any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 14);
       let mut result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
@@ -4070,12 +4232,12 @@ pub mod value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn set_enum(&self, value : u16) {
+    pub fn set_enum(&mut self, value : u16) {
       self.builder.set_data_field::<u16>(0, 15);
       self.builder.set_data_field::<u16>(1, value);
     }
     #[inline]
-    pub fn init_struct(&self, ) -> ::capnp::any_pointer::Builder<'a> {
+    pub fn init_struct(self, ) -> ::capnp::any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 16);
       let mut result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
@@ -4086,11 +4248,11 @@ pub mod value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn set_interface(&self, _value : ()) {
+    pub fn set_interface(&mut self, _value : ()) {
       self.builder.set_data_field::<u16>(0, 17);
     }
     #[inline]
-    pub fn init_any_pointer(&self, ) -> ::capnp::any_pointer::Builder<'a> {
+    pub fn init_any_pointer(self, ) -> ::capnp::any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 18);
       let mut result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0));
       result.clear();
@@ -4101,7 +4263,7 @@ pub mod value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn which(&self) -> ::std::option::Option<WhichBuilder<'a>> {
+    pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
       match self.builder.get_data_field::<u16>(0) {
         0 => {
           return ::std::option::Option::Some(Void(
@@ -4270,19 +4432,22 @@ pub mod annotation {
   }
 
   impl <'a> Reader<'a> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b> {
+      Reader { reader : self.reader}
+    }
     #[inline]
-    pub fn get_id(&self) -> u64 {
+    pub fn get_id(self) -> u64 {
       self.reader.get_data_field::<u64>(0)
     }
     #[inline]
-    pub fn get_value(&self) -> ::schema_capnp::value::Reader<'a> {
+    pub fn get_value(self) -> ::schema_capnp::value::Reader<'a> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
     }
     pub fn has_value(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_brand(&self) -> ::schema_capnp::brand::Reader<'a> {
+    pub fn get_brand(self) -> ::schema_capnp::brand::Reader<'a> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_brand(&self) -> bool {
@@ -4319,42 +4484,45 @@ pub mod annotation {
   }
 
   impl <'a> Builder<'a> {
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader(self) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+      Builder { builder : self.builder}
+    }
     #[inline]
-    pub fn get_id(&self) -> u64 {
+    pub fn get_id(self) -> u64 {
       self.builder.get_data_field::<u64>(0)
     }
     #[inline]
-    pub fn set_id(&self, value : u64) {
+    pub fn set_id(&mut self, value : u64) {
       self.builder.set_data_field::<u64>(0, value);
     }
     #[inline]
-    pub fn get_value(&self) -> ::schema_capnp::value::Builder<'a> {
+    pub fn get_value(self) -> ::schema_capnp::value::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
     }
     #[inline]
-    pub fn set_value(&self, value : ::schema_capnp::value::Reader) {
+    pub fn set_value(&mut self, value : ::schema_capnp::value::Reader) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
     }
     #[inline]
-    pub fn init_value(&self, ) -> ::schema_capnp::value::Builder<'a> {
+    pub fn init_value(self, ) -> ::schema_capnp::value::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), 0)
     }
     pub fn has_value(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_brand(&self) -> ::schema_capnp::brand::Builder<'a> {
+    pub fn get_brand(self) -> ::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
-    pub fn set_brand(&self, value : ::schema_capnp::brand::Reader) {
+    pub fn set_brand(&mut self, value : ::schema_capnp::brand::Reader) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
     }
     #[inline]
-    pub fn init_brand(&self, ) -> ::schema_capnp::brand::Builder<'a> {
+    pub fn init_brand(self, ) -> ::schema_capnp::brand::Builder<'a> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), 0)
     }
     pub fn has_brand(&self) -> bool {
@@ -4432,15 +4600,18 @@ pub mod code_generator_request {
   }
 
   impl <'a> Reader<'a> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b> {
+      Reader { reader : self.reader}
+    }
     #[inline]
-    pub fn get_nodes(&self) -> struct_list::Reader<'a,::schema_capnp::node::Reader<'a>> {
+    pub fn get_nodes(self) -> struct_list::Reader<'a,::schema_capnp::node::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
     }
     pub fn has_nodes(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_requested_files(&self) -> struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::Reader<'a>> {
+    pub fn get_requested_files(self) -> struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
     }
     pub fn has_requested_files(&self) -> bool {
@@ -4477,34 +4648,37 @@ pub mod code_generator_request {
   }
 
   impl <'a> Builder<'a> {
-    pub fn as_reader(&self) -> Reader<'a> {
+    pub fn as_reader(self) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.builder.as_reader())
     }
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+      Builder { builder : self.builder}
+    }
     #[inline]
-    pub fn get_nodes(&self) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
+    pub fn get_nodes(self) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
     }
     #[inline]
-    pub fn set_nodes(&self, value : struct_list::Reader<'a,::schema_capnp::node::Reader<'a>>) {
+    pub fn set_nodes(&mut self, value : struct_list::Reader<'a,::schema_capnp::node::Reader<'a>>) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(0), value)
     }
     #[inline]
-    pub fn init_nodes(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
+    pub fn init_nodes(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(0), size)
     }
     pub fn has_nodes(&self) -> bool {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn get_requested_files(&self) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
+    pub fn get_requested_files(self) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
     }
     #[inline]
-    pub fn set_requested_files(&self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::Reader<'a>>) {
+    pub fn set_requested_files(&mut self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::Reader<'a>>) {
       ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
     }
     #[inline]
-    pub fn init_requested_files(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
+    pub fn init_requested_files(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::Builder<'a>> {
       ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
     }
     pub fn has_requested_files(&self) -> bool {
@@ -4554,19 +4728,22 @@ pub mod code_generator_request {
     }
 
     impl <'a> Reader<'a> {
+      pub fn borrow<'b>(&'b self) -> Reader<'b> {
+        Reader { reader : self.reader}
+      }
       #[inline]
-      pub fn get_id(&self) -> u64 {
+      pub fn get_id(self) -> u64 {
         self.reader.get_data_field::<u64>(0)
       }
       #[inline]
-      pub fn get_filename(&self) -> text::Reader<'a> {
+      pub fn get_filename(self) -> text::Reader<'a> {
         self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
       }
       pub fn has_filename(&self) -> bool {
         !self.reader.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn get_imports(&self) -> struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::import::Reader<'a>> {
+      pub fn get_imports(self) -> struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::import::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(1))
       }
       pub fn has_imports(&self) -> bool {
@@ -4603,42 +4780,45 @@ pub mod code_generator_request {
     }
 
     impl <'a> Builder<'a> {
-      pub fn as_reader(&self) -> Reader<'a> {
+      pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
       }
+      pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder : self.builder}
+      }
       #[inline]
-      pub fn get_id(&self) -> u64 {
+      pub fn get_id(self) -> u64 {
         self.builder.get_data_field::<u64>(0)
       }
       #[inline]
-      pub fn set_id(&self, value : u64) {
+      pub fn set_id(&mut self, value : u64) {
         self.builder.set_data_field::<u64>(0, value);
       }
       #[inline]
-      pub fn get_filename(&self) -> text::Builder<'a> {
+      pub fn get_filename(self) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
       }
       #[inline]
-      pub fn set_filename(&self, value : text::Reader) {
+      pub fn set_filename(&mut self, value : text::Reader) {
         self.builder.get_pointer_field(0).set_text(value);
       }
       #[inline]
-      pub fn init_filename(&self, size : u32) -> text::Builder<'a> {
+      pub fn init_filename(self, size : u32) -> text::Builder<'a> {
         self.builder.get_pointer_field(0).init_text(size)
       }
       pub fn has_filename(&self) -> bool {
         !self.builder.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn get_imports(&self) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {
+      pub fn get_imports(self) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {
         ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(1))
       }
       #[inline]
-      pub fn set_imports(&self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::import::Reader<'a>>) {
+      pub fn set_imports(&mut self, value : struct_list::Reader<'a,::schema_capnp::code_generator_request::requested_file::import::Reader<'a>>) {
         ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(1), value)
       }
       #[inline]
-      pub fn init_imports(&self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {
+      pub fn init_imports(self, size : u32) -> struct_list::Builder<'a,::schema_capnp::code_generator_request::requested_file::import::Builder<'a>> {
         ::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field(1), size)
       }
       pub fn has_imports(&self) -> bool {
@@ -4688,12 +4868,15 @@ pub mod code_generator_request {
       }
 
       impl <'a> Reader<'a> {
+        pub fn borrow<'b>(&'b self) -> Reader<'b> {
+          Reader { reader : self.reader}
+        }
         #[inline]
-        pub fn get_id(&self) -> u64 {
+        pub fn get_id(self) -> u64 {
           self.reader.get_data_field::<u64>(0)
         }
         #[inline]
-        pub fn get_name(&self) -> text::Reader<'a> {
+        pub fn get_name(self) -> text::Reader<'a> {
           self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
         }
         pub fn has_name(&self) -> bool {
@@ -4730,27 +4913,30 @@ pub mod code_generator_request {
       }
 
       impl <'a> Builder<'a> {
-        pub fn as_reader(&self) -> Reader<'a> {
+        pub fn as_reader(self) -> Reader<'a> {
           ::capnp::traits::FromStructReader::new(self.builder.as_reader())
         }
+        pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+          Builder { builder : self.builder}
+        }
         #[inline]
-        pub fn get_id(&self) -> u64 {
+        pub fn get_id(self) -> u64 {
           self.builder.get_data_field::<u64>(0)
         }
         #[inline]
-        pub fn set_id(&self, value : u64) {
+        pub fn set_id(&mut self, value : u64) {
           self.builder.set_data_field::<u64>(0, value);
         }
         #[inline]
-        pub fn get_name(&self) -> text::Builder<'a> {
+        pub fn get_name(self) -> text::Builder<'a> {
           self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
         }
         #[inline]
-        pub fn set_name(&self, value : text::Reader) {
+        pub fn set_name(&mut self, value : text::Reader) {
           self.builder.get_pointer_field(0).set_text(value);
         }
         #[inline]
-        pub fn init_name(&self, size : u32) -> text::Builder<'a> {
+        pub fn init_name(self, size : u32) -> text::Builder<'a> {
           self.builder.get_pointer_field(0).init_text(size)
         }
         pub fn has_name(&self) -> bool {
