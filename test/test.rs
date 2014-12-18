@@ -156,7 +156,7 @@ mod tests {
         assert_eq!(test_blob.has_data_field(), true);
 
         {
-            let test_blob_reader = test_blob.as_reader();
+            let test_blob_reader = test_blob.borrow().as_reader();
 
             assert_eq!(test_blob_reader.has_text_field(), true);
             assert_eq!(test_blob_reader.has_data_field(), true);
@@ -166,7 +166,7 @@ mod tests {
         }
 
         test_blob.borrow().init_text_field(10);
-        assert_eq!(test_blob.as_reader().get_text_field(),
+        assert_eq!(test_blob.borrow().as_reader().get_text_field(),
                        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
         {
             let text_builder = test_blob.borrow().get_text_field();
@@ -175,7 +175,7 @@ mod tests {
         }
 
         test_blob.borrow().init_data_field(7);
-        assert!(test_blob.as_reader().get_data_field() ==
+        assert!(test_blob.borrow().as_reader().get_data_field() ==
                 [0u8,0u8,0u8,0u8,0u8,0u8,0u8]);
         {
             let data_builder = test_blob.borrow().get_data_field();
@@ -185,14 +185,14 @@ mod tests {
             data_builder[0] = 4u8;
         }
 
-        assert_eq!(test_blob.as_reader().get_text_field(), "aabbccddee");
-        assert!(test_blob.as_reader().get_data_field() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
+        assert_eq!(test_blob.borrow().as_reader().get_text_field(), "aabbccddee");
+        assert!(test_blob.borrow().as_reader().get_data_field() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
 
         {
             let bytes = test_blob.borrow().get_text_field().as_mut_bytes();
             bytes[4] = 'z' as u8;
             bytes[5] = 'z' as u8;
-            assert_eq!(test_blob.as_reader().get_text_field(), "aabbzzddee");
+            assert_eq!(test_blob.borrow().as_reader().get_text_field(), "aabbzzddee");
 
             test_blob.borrow().get_data_field()[2] = 10;
         }
@@ -401,7 +401,7 @@ mod tests {
         test_any_pointer.borrow().init_any_pointer_field().set_as("xyzzy");
 
         {
-            let reader = test_any_pointer.as_reader();
+            let reader = test_any_pointer.borrow().as_reader();
             assert_eq!(reader.get_any_pointer_field().get_as::<::capnp::text::Reader>(), "xyzzy");
         }
 
@@ -409,7 +409,7 @@ mod tests {
         test_any_pointer.borrow().get_any_pointer_field().get_as::<test_empty_struct::Builder>();
 
         {
-            let reader = test_any_pointer.as_reader();
+            let reader = test_any_pointer.borrow().as_reader();
             reader.get_any_pointer_field().get_as::<test_empty_struct::Reader>();
         }
 
@@ -417,7 +417,7 @@ mod tests {
             let mut message = MallocMessageBuilder::new_default();
             let mut test_big_struct = message.init_root::<test_big_struct::Builder>();
             test_big_struct.set_int32_field(-12345);
-            test_any_pointer.get_any_pointer_field().set_as(test_big_struct.as_reader());
+            test_any_pointer.get_any_pointer_field().set_as(test_big_struct.borrow().as_reader());
         }
 
         fn _test_lifetimes(body : test_big_struct::Reader) {
