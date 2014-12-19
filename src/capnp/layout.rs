@@ -329,7 +329,7 @@ macro_rules! require(
             $fail
         }
         );
-    )
+    );
 
 macro_rules! require_panic(
     ($segment:expr, $message:expr, $fail:stmt) => (
@@ -341,7 +341,7 @@ macro_rules! require_panic(
             $fail;
         }
         );
-    )
+    );
 
 
 mod wire_helpers {

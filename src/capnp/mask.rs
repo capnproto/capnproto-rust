@@ -20,16 +20,16 @@ macro_rules! int_mask(
             }
         }
     )
-)
+);
 
-int_mask!(i8)
-int_mask!(i16)
-int_mask!(i32)
-int_mask!(i64)
-int_mask!(u8)
-int_mask!(u16)
-int_mask!(u32)
-int_mask!(u64)
+int_mask!(i8);
+int_mask!(i16);
+int_mask!(i32);
+int_mask!(i64);
+int_mask!(u8);
+int_mask!(u16);
+int_mask!(u32);
+int_mask!(u64);
 
 impl Mask for f32 {
     #[inline]

@@ -28,7 +28,7 @@ macro_rules! refresh_buffer(
             assert!($size > 0);
         }
         );
-    )
+    );
 
 impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a, R> {
     fn read(&mut self, out_buf: &mut [u8]) -> std::io::IoResult<uint> {

@@ -45,48 +45,48 @@ macro_rules! endian_impl(
             }
         }
         );
-    )
+    );
 
-endian_impl!(())
-endian_impl!(bool)
-endian_impl!(u8)
-endian_impl!(i8)
-
-#[cfg(target_endian = "little")]
-endian_impl!(u16)
-#[cfg(target_endian = "little")]
-endian_impl!(i16)
+endian_impl!(());
+endian_impl!(bool);
+endian_impl!(u8);
+endian_impl!(i8);
 
 #[cfg(target_endian = "little")]
-endian_impl!(u32)
+endian_impl!(u16);
 #[cfg(target_endian = "little")]
-endian_impl!(i32)
+endian_impl!(i16);
 
 #[cfg(target_endian = "little")]
-endian_impl!(u64)
+endian_impl!(u32);
 #[cfg(target_endian = "little")]
-endian_impl!(i64)
+endian_impl!(i32);
+
 #[cfg(target_endian = "little")]
-endian_impl!(f32)
+endian_impl!(u64);
 #[cfg(target_endian = "little")]
-endian_impl!(f64)
+endian_impl!(i64);
+#[cfg(target_endian = "little")]
+endian_impl!(f32);
+#[cfg(target_endian = "little")]
+endian_impl!(f64);
 
 #[cfg(target_endian = "big")]
-endian_impl!(u16, i16, bswap16)
+endian_impl!(u16, i16, bswap16);
 #[cfg(target_endian = "big")]
-endian_impl!(i16, i16, bswap16)
+endian_impl!(i16, i16, bswap16);
 
 #[cfg(target_endian = "big")]
-endian_impl!(u32, i32, bswap32)
+endian_impl!(u32, i32, bswap32);
 #[cfg(target_endian = "big")]
-endian_impl!(i32, i32, bswap32)
+endian_impl!(i32, i32, bswap32);
 
 #[cfg(target_endian = "big")]
-endian_impl!(u64, i64, bswap64)
+endian_impl!(u64, i64, bswap64);
 #[cfg(target_endian = "big")]
-endian_impl!(i64, i64, bswap64)
+endian_impl!(i64, i64, bswap64);
 #[cfg(target_endian = "big")]
-endian_impl!(f32, i32, bswap32)
+endian_impl!(f32, i32, bswap32);
 #[cfg(target_endian = "big")]
-endian_impl!(f64, i64, bswap64)
+endian_impl!(f64, i64, bswap64);
 
