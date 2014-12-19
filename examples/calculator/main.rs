@@ -12,7 +12,7 @@ extern crate capnp;
 extern crate "capnp-rpc" as capnp_rpc;
 
 pub mod calculator_capnp {
-  include!(concat!(env!("OUT_DIR"), "/calculator_capnp.rs"))
+  include!(concat!(env!("OUT_DIR"), "/calculator_capnp.rs"));
 }
 
 pub mod client;
