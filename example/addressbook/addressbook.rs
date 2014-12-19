@@ -23,7 +23,7 @@
 
 extern crate capnp;
 pub mod addressbook_capnp {
-  include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"))
+  include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
 }
 
 pub mod addressbook {

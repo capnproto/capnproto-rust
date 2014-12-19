@@ -27,7 +27,7 @@ extern crate capnp;
 
 #[allow(overflowing_literals)]
 pub mod test_capnp {
-  include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"))
+  include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
 }
 
 #[cfg(test)]

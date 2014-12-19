@@ -32,17 +32,17 @@ use capnp::{MessageReader, MessageBuilder};
 pub mod common;
 
 pub mod carsales_capnp {
-  include!(concat!(env!("OUT_DIR"), "/carsales_capnp.rs"))
+  include!(concat!(env!("OUT_DIR"), "/carsales_capnp.rs"));
 }
 pub mod carsales;
 
 pub mod catrank_capnp {
-  include!(concat!(env!("OUT_DIR"), "/catrank_capnp.rs"))
+  include!(concat!(env!("OUT_DIR"), "/catrank_capnp.rs"));
 }
 pub mod catrank;
 
 pub mod eval_capnp {
-  include!(concat!(env!("OUT_DIR"), "/eval_capnp.rs"))
+  include!(concat!(env!("OUT_DIR"), "/eval_capnp.rs"));
 }
 
 pub mod eval;
@@ -146,7 +146,7 @@ macro_rules! pass_by_object(
                 }
             }
         });
-    )
+    );
 
 
 macro_rules! pass_by_bytes(
@@ -194,7 +194,7 @@ macro_rules! pass_by_bytes(
                 }
             }
         });
-    )
+    );
 
 macro_rules! server(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
@@ -216,7 +216,7 @@ macro_rules! server(
                 out_buffered.flush().unwrap();
             }
         });
-    )
+    );
 
 macro_rules! sync_client(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
@@ -241,7 +241,7 @@ macro_rules! sync_client(
 
             }
         });
-    )
+    );
 
 
 macro_rules! pass_by_pipe(
@@ -269,7 +269,7 @@ macro_rules! pass_by_pipe(
             }
         }
     });
-    )
+    );
 
 macro_rules! do_testcase(
     ( $testcase:ident, $mode:expr, $reuse:ident, $compression:ident, $iters:expr ) => ({
@@ -286,7 +286,7 @@ macro_rules! do_testcase(
                 s => panic!("unrecognized mode: {}", s)
             }
         });
-    )
+    );
 
 macro_rules! do_testcase1(
     ( $testcase:expr, $mode:expr, $reuse:ident, $compression:ident, $iters:expr) => ({
@@ -297,7 +297,7 @@ macro_rules! do_testcase1(
                 s => panic!("unrecognized test case: {}", s)
             }
         });
-    )
+    );
 
 macro_rules! do_testcase2(
     ( $testcase:expr, $mode:expr, $reuse:expr, $compression:ident, $iters:expr) => ({
@@ -313,7 +313,7 @@ macro_rules! do_testcase2(
                 s => panic!("unrecognized reuse option: {}", s)
             }
         });
-    )
+    );
 
 pub fn main() {
     let args = ::std::os::args();
