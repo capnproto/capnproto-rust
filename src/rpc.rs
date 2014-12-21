@@ -372,7 +372,7 @@ impl RpcConnectionState {
 
         let listener_chan = result_rpc_chan.clone();
 
-        spawn(move || {
+        ::std::thread::Thread::spawn(move || {
                 let mut r = inpipe;
                 loop {
                     match serialize::new_reader(
@@ -384,11 +384,11 @@ impl RpcConnectionState {
                         }
                     }
                 }
-            });
+            }).detach();
 
         let rpc_chan = result_rpc_chan.clone();
 
-        spawn(move || {
+        ::std::thread::Thread::spawn(move || {
             let RpcConnectionState {mut questions, mut exports, mut answers, imports : _imports} = self;
             let mut outpipe = outpipe;
             loop {
@@ -630,7 +630,7 @@ impl RpcConnectionState {
                     RpcEvent::Shutdown => {
                         break;
                     }
-                }}});
+                }}}).detach();
              return result_rpc_chan;
          }
 }

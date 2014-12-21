@@ -82,7 +82,7 @@ impl ExportedCaps {
     pub fn new() -> std::comm::Sender<ExportEvent> {
         let (chan, port) = std::comm::channel::<ExportEvent>();
 
-        std::task::spawn(move || {
+        std::thread::Thread::spawn(move || {
                 let mut vat = ExportedCaps { objects : HashMap::new() };
 
                 loop {
@@ -96,7 +96,7 @@ impl ExportedCaps {
                         Err(_) => break,
                     }
                 }
-            });
+            }).detach();
 
         chan
     }
@@ -145,8 +145,8 @@ impl EzRpcServer {
         self.sender.send(ExportEvent::Register(name.to_string(), server))
     }
 
-    pub fn serve(self) {
-        std::task::spawn(move || {
+    pub fn serve(self) -> ::std::thread::JoinGuard<()> {
+        std::thread::Thread::spawn(move || {
             let mut server = self;
             for res in server.incoming() {
                 match res {
@@ -156,8 +156,7 @@ impl EzRpcServer {
                     }
                 }
             }
-
-        });
+        })
     }
 }
 
@@ -166,10 +165,10 @@ impl std::io::Acceptor<()> for EzRpcServer {
 
         let sender2 = self.sender.clone();
         let tcp = try!(self.tcp_acceptor.accept());
-        std::task::spawn(move || {
+        std::thread::Thread::spawn(move || {
             let connection_state = RpcConnectionState::new();
             let _rpc_chan = connection_state.run(tcp.clone(), tcp, Restorer::new(sender2));
-        });
+        }).detach();
         Ok(())
     }
 }

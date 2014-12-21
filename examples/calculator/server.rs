@@ -189,5 +189,5 @@ pub fn main() {
     let calculator = (box calculator::ServerDispatch { server : box CalculatorImpl}) as Box<Server+Send>;
     rpc_server.export_cap("calculator", calculator);
 
-    rpc_server.serve();
+    let _ = rpc_server.serve().join();
 }
