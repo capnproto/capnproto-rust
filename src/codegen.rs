@@ -148,7 +148,7 @@ fn to_lines(ft : &FormattedText, indent : uint) -> Vec<String> {
         Line(ref s) => {
             let mut s1 = String::from_char(indent * 2, ' ');
             s1.push_str(s.as_slice());
-            return vec!(s1.into_string());
+            return vec!(s1.to_string());
         }
         BlankLine => return vec!("".to_string())
     }
@@ -157,7 +157,7 @@ fn to_lines(ft : &FormattedText, indent : uint) -> Vec<String> {
 fn stringify(ft : & FormattedText) -> String {
     let mut result = to_lines(ft, 0).connect("\n");
     result.push_str("\n");
-    return result.into_string();
+    return result.to_string();
 }
 
 const RUST_KEYWORDS : [&'static str, ..51] =

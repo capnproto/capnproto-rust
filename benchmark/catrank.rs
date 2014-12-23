@@ -101,7 +101,8 @@ pub fn handle_request(request : search_result_list::Reader,
     }
 
     // sort in decreasing order
-    scored_results.sort_by(|v1, v2| { if v1.score < v2.score { ::std::cmp::Greater } else { ::std::cmp::Less } });
+    scored_results.sort_by(|v1, v2| { if v1.score < v2.score { ::std::cmp::Ordering::Greater }
+                                      else { ::std::cmp::Ordering::Less } });
 
     let mut list = response.init_results(scored_results.len() as u32);
     for i in range(0, list.len()) {

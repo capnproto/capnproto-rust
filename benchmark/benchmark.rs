@@ -324,7 +324,7 @@ pub fn main() {
         return;
     }
 
-    let iters = match from_str::<u64>(args[5].as_slice()) {
+    let iters = match args[5].parse::<u64>() {
         Some (n) => n,
         None => {
             println!("Could not parse a u64 from: {}", args[5]);
