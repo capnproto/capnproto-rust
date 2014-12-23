@@ -1176,6 +1176,11 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         Line("}".to_string())))),
                 Line("}".to_string()),
                 BlankLine,
+                Line("impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {".to_string()),
+                Indent(box Line("fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }".to_string())),
+                Line("}".to_string()),
+                BlankLine,
+
                 Line("impl <'a> Reader<'a> {".to_string()),
                 Indent(
                     box Branch(vec![
@@ -1205,6 +1210,12 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Indent(box Line("fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }".to_string())),
                 Line("}".to_string()),
                 BlankLine,
+
+                Line("impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {".to_string()),
+                Indent(box Line("fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }".to_string())),
+                Line("}".to_string()),
+                BlankLine,
+
 
                 Line("impl <'a> Builder<'a> {".to_string()),
                 Indent(

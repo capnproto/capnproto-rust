@@ -130,7 +130,7 @@ mod tests {
 
         test_struct_list.borrow().init_struct_list(4);
         {
-            let mut struct_list = test_struct_list.borrow().get_struct_list();
+            let struct_list = test_struct_list.borrow().get_struct_list();
             struct_list.get(0).init_uint8_list(1).set(0, 5u8);
         }
 

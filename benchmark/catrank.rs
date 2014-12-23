@@ -43,7 +43,7 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
     let mut list = request.init_results(count);
 
     for i in range(0, count) {
-        let mut result = list.get(i);
+        let mut result = list.borrow().get(i);
         result.set_score(1000.0 - i as f64);
         let url_size = rng.next_less_than(100);
 
@@ -106,7 +106,7 @@ pub fn handle_request(request : search_result_list::Reader,
 
     let mut list = response.init_results(scored_results.len() as u32);
     for i in range(0, list.len()) {
-        let mut item = list.get(i);
+        let mut item = list.borrow().get(i);
         let result = scored_results[i as uint];
         item.set_score(result.score);
         item.set_url(result.result.get_url());

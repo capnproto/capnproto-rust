@@ -39,30 +39,33 @@ pub mod addressbook {
 
             let mut people = address_book.init_people(2);
 
-            let mut alice = people.get(0);
-            alice.set_id(123);
-            alice.set_name("Alice");
-            alice.set_email("alice@example.com");
+            {
+                let mut alice = people.borrow().get(0);
+                alice.set_id(123);
+                alice.set_name("Alice");
+                alice.set_email("alice@example.com");
+                {
+                    let mut alice_phones = alice.borrow().init_phones(1);
+                    alice_phones.borrow().get(0).set_number("555-1212");
+                    alice_phones.borrow().get(0).set_type(person::phone_number::Type::Mobile);
+                }
+                alice.get_employment().set_school("MIT");
+            }
 
             {
-                let mut alice_phones = alice.borrow().init_phones(1);
-                alice_phones.get(0).set_number("555-1212");
-                alice_phones.get(0).set_type(person::phone_number::Type::Mobile);
+                let mut bob = people.get(1);
+                bob.set_id(456);
+                bob.set_name("Bob");
+                bob.set_email("bob@example.com");
+                {
+                    let mut bob_phones = bob.borrow().init_phones(2);
+                    bob_phones.borrow().get(0).set_number("555-4567");
+                    bob_phones.borrow().get(0).set_type(person::phone_number::Type::Home);
+                    bob_phones.borrow().get(1).set_number("555-7654");
+                    bob_phones.borrow().get(1).set_type(person::phone_number::Type::Work);
+                }
+                bob.get_employment().set_unemployed(());
             }
-            alice.get_employment().set_school("MIT");
-
-            let mut bob = people.get(1);
-            bob.set_id(456);
-            bob.set_name("Bob");
-            bob.set_email("bob@example.com");
-            {
-                let mut bob_phones = bob.borrow().init_phones(2);
-                bob_phones.get(0).set_number("555-4567");
-                bob_phones.get(0).set_type(person::phone_number::Type::Home);
-                bob_phones.get(1).set_number("555-7654");
-                bob_phones.get(1).set_type(person::phone_number::Type::Work);
-            }
-            bob.get_employment().set_unemployed(());
         }
 
         serialize_packed::write_packed_message_unbuffered(&mut stdout(), &message)

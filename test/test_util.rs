@@ -101,9 +101,9 @@ pub fn init_test_message(mut builder : test_all_types::Builder) {
         // ...
         {
             let mut struct_list = sub_builder.borrow().init_struct_list(3);
-            struct_list.get(0).set_text_field("x structlist 1");
-            struct_list.get(1).set_text_field("x structlist 2");
-            struct_list.get(2).set_text_field("x structlist 3");
+            struct_list.borrow().get(0).set_text_field("x structlist 1");
+            struct_list.borrow().get(1).set_text_field("x structlist 2");
+            struct_list.borrow().get(2).set_text_field("x structlist 3");
         }
 
         let mut enum_list = sub_builder.borrow().init_enum_list(3);
@@ -207,9 +207,9 @@ check_test_message_impl(($typ:ident) => (
                 {
                     let mut struct_list = sub_reader.borrow().get_struct_list();
                     assert_eq!(3, struct_list.len());
-                    assert_eq!("x structlist 1", struct_list.get(0).get_text_field().as_slice());
-                    assert_eq!("x structlist 2", struct_list.get(1).get_text_field().as_slice());
-                    assert_eq!("x structlist 3", struct_list.get(2).get_text_field().as_slice());
+                    assert_eq!("x structlist 1", struct_list.borrow().get(0).get_text_field().as_slice());
+                    assert_eq!("x structlist 2", struct_list.borrow().get(1).get_text_field().as_slice());
+                    assert_eq!("x structlist 3", struct_list.borrow().get(2).get_text_field().as_slice());
                 }
 
                 {
