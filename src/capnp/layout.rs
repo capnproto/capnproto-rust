@@ -1163,9 +1163,11 @@ mod wire_helpers {
                                        value : &str) -> super::SegmentAnd<text::Builder<'a>> {
         let value_bytes = value.as_bytes();
         // TODO make sure the string is not longer than 2 ** 29.
-        let allocation = init_text_pointer(reff, segment, value_bytes.len() as u32);
-        let slice = allocation.value.as_mut_bytes();
-        ::std::ptr::copy_nonoverlapping_memory(slice.as_mut_ptr(), value_bytes.as_ptr(), value_bytes.len());
+        let mut allocation = init_text_pointer(reff, segment, value_bytes.len() as u32);
+        {
+            let slice = allocation.value.borrow().as_mut_bytes();
+            ::std::ptr::copy_nonoverlapping_memory(slice.as_mut_ptr(), value_bytes.as_ptr(), value_bytes.len());
+        }
         allocation
     }
 

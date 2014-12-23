@@ -36,12 +36,16 @@ pub mod text {
             Builder { ptr : p, len : len as uint}
         }
 
-        pub fn as_mut_bytes(&self) -> &'a mut [u8] {
+        pub fn as_mut_bytes(self) -> &'a mut [u8] {
              unsafe { ::std::mem::transmute(::std::raw::Slice { data:self.ptr as *const u8, len: self.len }) }
         }
 
-        pub fn as_ptr(&self) -> *mut u8 {
+        pub unsafe fn as_ptr(&self) -> *mut u8 {
             self.ptr
+        }
+
+        pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+            Builder { ptr : self.ptr, len : self.len }
         }
     }
 

@@ -358,7 +358,7 @@ pub mod list_list {
 pub mod text_list {
     use traits::{FromPointerReader, FromPointerBuilder};
     use blob::text;
-    use layout::*;
+    use layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 
     #[deriving(Copy)]
     pub struct Reader<'a> {
@@ -380,7 +380,7 @@ pub mod text_list {
     }
 
     impl <'a> Reader<'a> {
-        pub fn get(&self, index : u32) -> text::Reader<'a> {
+        pub fn get(self, index : u32) -> text::Reader<'a> {
             assert!(index <  self.len());
             self.reader.get_pointer_element(index).get_text(::std::ptr::null(), 0)
         }
@@ -397,9 +397,13 @@ pub mod text_list {
 
         pub fn len(&self) -> u32 { self.builder.len() }
 
-        pub fn set(&mut self, index : u32, value : text::Reader) {
+        pub fn set(&self, index : u32, value : text::Reader) {
             assert!(index < self.len());
             self.builder.get_pointer_element(index).set_text(value);
+        }
+
+        pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+            Builder {builder : self.builder}
         }
     }
 
@@ -418,7 +422,7 @@ pub mod text_list {
     }
 
     impl <'a> Builder<'a> {
-        pub fn get(&mut self, index : u32) -> text::Builder<'a> {
+        pub fn get(self, index : u32) -> text::Builder<'a> {
             self.builder.get_pointer_element(index).get_text(::std::ptr::null(), 0)
         }
     }
@@ -455,7 +459,7 @@ pub mod data_list {
     }
 
     impl <'a> Reader<'a> {
-        pub fn get(&self, index : u32) -> data::Reader<'a> {
+        pub fn get(self, index : u32) -> data::Reader<'a> {
             assert!(index <  self.len());
             self.reader.get_pointer_element(index).get_data(::std::ptr::null(), 0)
         }
@@ -472,9 +476,13 @@ pub mod data_list {
 
         pub fn len(&self) -> u32 { self.builder.len() }
 
-        pub fn set(&mut self, index : u32, value : data::Reader) {
+        pub fn set(&self, index : u32, value : data::Reader) {
             assert!(index < self.len());
             self.builder.get_pointer_element(index).set_data(value);
+        }
+
+        pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+            Builder {builder : self.builder}
         }
     }
 
@@ -493,7 +501,7 @@ pub mod data_list {
     }
 
     impl <'a> Builder<'a> {
-        pub fn get(&mut self, index : u32) -> data::Builder<'a> {
+        pub fn get(self, index : u32) -> data::Builder<'a> {
             assert!(index < self.len());
             self.builder.get_pointer_element(index).get_data(::std::ptr::null(), 0)
         }
