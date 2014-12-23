@@ -11,9 +11,9 @@ pub mod text {
     static EMPTY : &'static str = "";
 
     // len does not include the required null terminator at the end
-    pub fn new_reader<'a>(p : *const u8, len : u32) -> Option<Reader<'a>> {
+    pub fn new_reader<'a>(p : *const u8, len : u32) -> Result<Reader<'a>, ::std::str::Utf8Error> {
         // XXX The empty case is special and I don't know why.
-        if len == 0 { return Some(EMPTY); }
+        if len == 0 { return Ok(EMPTY); }
         let v : &'a [u8] =
             unsafe { ::std::mem::transmute(::std::raw::Slice { data: p, len: len as uint}) };
         ::std::str::from_utf8(v)

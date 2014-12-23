@@ -1761,10 +1761,10 @@ mod wire_helpers {
                  return use_default(default_value, default_size));
 
         match text::new_reader(str_ptr, size-1) {
-            Some(t) => return t,
-            None => require_panic!(*segment,
-                                  "Text contains non-utf8 data.",
-                                  return use_default(default_value, default_size)),
+            Ok(t) => return t,
+            Err(_) => require_panic!(*segment,
+                                     "Text contains non-utf8 data",
+                                     return use_default(default_value, default_size)),
         }
     }
 
