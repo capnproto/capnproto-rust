@@ -2322,6 +2322,7 @@ impl <'a> ListReader<'a> {
     }
 }
 
+#[deriving(Copy)]
 pub struct ListBuilder<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
     segment : *mut SegmentBuilder,

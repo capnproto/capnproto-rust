@@ -200,6 +200,13 @@ pub mod struct_list {
         }
     }
 
+    impl <'a, T, U> Reader<'a, T> where T : ::traits::CastableTo<U> {
+        pub fn borrow<'b>(&'b self) -> Reader<'b, U> {
+            Reader {reader : self.reader}
+        }
+    }
+
+
     impl <'a, T : FromStructReader<'a>> FromPointerReader<'a> for Reader<'a, T> {
         fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a, T> {
             Reader { reader : reader.get_list(InlineComposite, ::std::ptr::null()) }
@@ -213,7 +220,7 @@ pub mod struct_list {
     }
 
     impl <'a, T : FromStructReader<'a>> Reader<'a, T> {
-        pub fn get(&self, index : u32) -> T {
+        pub fn get(self, index : u32) -> T {
             assert!(index < self.len());
             let result : T = FromStructReader::new(self.reader.get_struct_element(index));
             result
@@ -236,6 +243,12 @@ pub mod struct_list {
 
     }
 
+    impl <'a, T, U> Builder<'a, T> where T : ::traits::CastableTo<U> {
+        pub fn borrow<'b>(&'b mut self) -> Builder<'b, U> {
+            Builder {builder : self.builder}
+        }
+    }
+
     impl <'a, T : FromStructBuilder<'a> + HasStructSize> FromPointerBuilder<'a> for Builder<'a, T> {
         fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
             Builder {
@@ -250,7 +263,7 @@ pub mod struct_list {
     }
 
     impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
-        pub fn get(&mut self, index : u32) -> T {
+        pub fn get(self, index : u32) -> T {
             assert!(index < self.len());
             let result : T =
                 FromStructBuilder::new(self.builder.get_struct_element(index));
