@@ -711,8 +711,8 @@ impl ClientHook for PipelineClient {
             let mut transform = promised_answer.init_transform(self.ops.len() as u32);
             for ii in range(0, self.ops.len()) {
                 match self.ops.as_slice()[ii] {
-                    PipelineOp::Noop => transform.get(ii as u32).set_noop(()),
-                    PipelineOp::GetPointerField(idx) => transform.get(ii as u32).set_get_pointer_field(idx),
+                    PipelineOp::Noop => transform.borrow().get(ii as u32).set_noop(()),
+                    PipelineOp::GetPointerField(idx) => transform.borrow().get(ii as u32).set_get_pointer_field(idx),
                 }
             }
         }
@@ -781,21 +781,21 @@ fn write_outgoing_cap_table(rpc_chan : &::std::comm::Sender<RpcEvent>, message :
             match cap_table[ii as uint].downcast_ref::<OwnedCapDescriptor>() {
                 Some(&OwnedCapDescriptor::NoDescriptor) => {}
                 Some(&OwnedCapDescriptor::ReceiverHosted(import_id)) => {
-                    new_cap_table.get(ii).set_receiver_hosted(import_id);
+                    new_cap_table.borrow().get(ii).set_receiver_hosted(import_id);
                 }
                 Some(&OwnedCapDescriptor::ReceiverAnswer(question_id,ref ops)) => {
-                    let mut promised_answer = new_cap_table.get(ii).init_receiver_answer();
+                    let mut promised_answer = new_cap_table.borrow().get(ii).init_receiver_answer();
                     promised_answer.set_question_id(question_id);
                     let mut transform = promised_answer.init_transform(ops.len() as u32);
                     for jj in range(0, ops.len()) {
                         match ops.as_slice()[jj] {
-                            PipelineOp::Noop => transform.get(jj as u32).set_noop(()),
-                            PipelineOp::GetPointerField(idx) => transform.get(jj as u32).set_get_pointer_field(idx),
+                            PipelineOp::Noop => transform.borrow().get(jj as u32).set_noop(()),
+                            PipelineOp::GetPointerField(idx) => transform.borrow().get(jj as u32).set_get_pointer_field(idx),
                         }
                     }
                 }
                 Some(&OwnedCapDescriptor::SenderHosted(export_id)) => {
-                    new_cap_table.get(ii).set_sender_hosted(export_id);
+                    new_cap_table.borrow().get(ii).set_sender_hosted(export_id);
                 }
                 None => {
                     match cap_table[ii as uint].downcast_ref::<Box<ClientHook+Send>>() {
@@ -803,7 +803,7 @@ fn write_outgoing_cap_table(rpc_chan : &::std::comm::Sender<RpcEvent>, message :
                             let (chan, port) = ::std::comm::channel::<ExportId>();
                             rpc_chan.send(RpcEvent::NewLocalServer(clienthook.copy(), chan));
                             let idx = port.recv();
-                            new_cap_table.get(ii).set_sender_hosted(idx);
+                            new_cap_table.borrow().get(ii).set_sender_hosted(idx);
                         }
                         None => panic!("noncompliant client hook"),
                     }
