@@ -257,36 +257,42 @@ mod tests {
             }
 
             {
-                let mut text_list = test_complex_list.borrow().init_text_list(2);
+                let text_list = test_complex_list.borrow().init_text_list(2);
                 text_list.set(0, "garply");
                 text_list.set(1, "foo");
             }
 
             {
-                let mut data_list = test_complex_list.borrow().init_data_list(2);
+                let data_list = test_complex_list.borrow().init_data_list(2);
                 data_list.set(0, &[0u8, 1u8, 2u8]);
                 data_list.set(1, &[255u8, 254u8, 253u8]);
             }
 
             {
-                let prim_list_list = test_complex_list.borrow().init_prim_list_list(2);
-                let mut prim_list = prim_list_list.init(0, 3);
-                prim_list.set(0, 5);
-                prim_list.set(1, 6);
-                prim_list.set(2, 7);
-                assert_eq!(prim_list.len(), 3);
+                let mut prim_list_list = test_complex_list.borrow().init_prim_list_list(2);
+                {
+                    let mut prim_list = prim_list_list.borrow().init(0, 3);
+                    prim_list.set(0, 5);
+                    prim_list.set(1, 6);
+                    prim_list.set(2, 7);
+                    assert_eq!(prim_list.len(), 3);
+                }
                 let mut prim_list = prim_list_list.init(1, 1);
                 prim_list.set(0,-1);
             }
 
             {
-                let prim_list_list_list = test_complex_list.borrow().init_prim_list_list_list(2);
-                let prim_list_list = prim_list_list_list.init(0, 2);
-                let mut prim_list = prim_list_list.init(0, 2);
-                prim_list.set(0, 0);
-                prim_list.set(1, 1);
-                let mut prim_list = prim_list_list.init(1, 1);
-                prim_list.set(0, 255);
+                let mut prim_list_list_list = test_complex_list.borrow().init_prim_list_list_list(2);
+                {
+                    let mut prim_list_list = prim_list_list_list.borrow().init(0, 2);
+                    {
+                        let mut prim_list = prim_list_list.borrow().init(0, 2);
+                        prim_list.set(0, 0);
+                        prim_list.set(1, 1);
+                    }
+                    let mut prim_list = prim_list_list.init(1, 1);
+                    prim_list.set(0, 255);
+                }
                 let prim_list_list = prim_list_list_list.init(1, 1);
                 let mut prim_list = prim_list_list.init(0, 3);
                 prim_list.set(0, 10);
@@ -295,9 +301,11 @@ mod tests {
             }
 
             {
-                let enum_list_list = test_complex_list.borrow().init_enum_list_list(2);
-                let mut enum_list = enum_list_list.init(0, 1);
-                enum_list.set(0, AnEnum::Bar);
+                let mut enum_list_list = test_complex_list.borrow().init_enum_list_list(2);
+                {
+                    let mut enum_list = enum_list_list.borrow().init(0, 1);
+                    enum_list.set(0, AnEnum::Bar);
+                }
                 let mut enum_list = enum_list_list.init(1, 2);
                 enum_list.set(0, AnEnum::Foo);
                 enum_list.set(1, AnEnum::Qux);
