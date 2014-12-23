@@ -100,6 +100,12 @@ pub mod primitive_list {
             pointer.set_list(&value.reader);
         }
     }
+
+    impl <'a, 'b : 'a, T> ::traits::CastableTo<Builder<'a, T> > for Builder<'b, T> {
+        fn cast(self) -> Builder<'a, T> {
+            Builder { builder : self.builder }
+        }
+    }
 }
 
 pub mod enum_list {
@@ -172,6 +178,12 @@ pub mod enum_list {
     impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
         fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
             pointer.set_list(&value.reader);
+        }
+    }
+
+    impl <'a, 'b : 'a, T> ::traits::CastableTo<Builder<'a, T> > for Builder<'b, T> {
+        fn cast(self) -> Builder<'a, T> {
+            Builder { builder : self.builder }
         }
     }
 }
@@ -277,6 +289,12 @@ pub mod struct_list {
             pointer.set_list(&value.reader);
         }
     }
+
+    impl <'a, 'b : 'a, T, U : ::traits::CastableTo<T>> ::traits::CastableTo<Builder<'a, T> > for Builder<'b, U> {
+        fn cast(self) -> Builder<'a, T> {
+            Builder { builder : self.builder }
+        }
+    }
 }
 
 pub mod list_list {
@@ -303,7 +321,7 @@ pub mod list_list {
     }
 
     impl <'a, T : FromPointerReader<'a>> Reader<'a, T> {
-        pub fn get(&self, index : u32) -> T {
+        pub fn get(self, index : u32) -> T {
             assert!(index <  self.len());
             FromPointerReader::get_from_pointer(&self.reader.get_pointer_element(index))
         }
@@ -320,13 +338,18 @@ pub mod list_list {
 
         pub fn len(&self) -> u32 { self.builder.len() }
 
-        pub fn init(&self, index : u32, size : u32) -> T {
+        pub fn init(self, index : u32, size : u32) -> T {
             let result : T =
                 FromPointerBuilder::init_pointer(self.builder.get_pointer_element(index), size);
             result
         }
     }
 
+    impl <'a, T, U> Builder<'a, T> where T : ::traits::CastableTo<U> {
+        pub fn borrow<'b>(&'b mut self) -> Builder<'b, U> {
+            Builder {builder : self.builder}
+        }
+    }
 
     impl <'a, T : FromPointerBuilder<'a>> FromPointerBuilder<'a> for Builder<'a, T> {
         fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
@@ -342,7 +365,7 @@ pub mod list_list {
     }
 
     impl <'a, T : FromPointerBuilder<'a>> Builder<'a, T> {
-        pub fn get(&mut self, index : u32) -> T {
+        pub fn get(self, index : u32) -> T {
             assert!(index < self.len());
             FromPointerBuilder::get_from_pointer(self.builder.get_pointer_element(index))
         }
@@ -351,6 +374,12 @@ pub mod list_list {
     impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
         fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
             pointer.set_list(&value.reader);
+        }
+    }
+
+    impl <'a, 'b : 'a, T, U : ::traits::CastableTo<T>> ::traits::CastableTo<Builder<'a, T> > for Builder<'b, U> {
+        fn cast(self) -> Builder<'a, T> {
+            Builder { builder : self.builder }
         }
     }
 }
