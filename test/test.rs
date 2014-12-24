@@ -257,13 +257,13 @@ mod tests {
             }
 
             {
-                let text_list = test_complex_list.borrow().init_text_list(2);
+                let mut text_list = test_complex_list.borrow().init_text_list(2);
                 text_list.set(0, "garply");
                 text_list.set(1, "foo");
             }
 
             {
-                let data_list = test_complex_list.borrow().init_data_list(2);
+                let mut data_list = test_complex_list.borrow().init_data_list(2);
                 data_list.set(0, &[0u8, 1u8, 2u8]);
                 data_list.set(1, &[255u8, 254u8, 253u8]);
             }
