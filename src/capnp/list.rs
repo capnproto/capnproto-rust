@@ -426,7 +426,7 @@ pub mod text_list {
 
         pub fn len(&self) -> u32 { self.builder.len() }
 
-        pub fn set(&self, index : u32, value : text::Reader) {
+        pub fn set(&mut self, index : u32, value : text::Reader) {
             assert!(index < self.len());
             self.builder.get_pointer_element(index).set_text(value);
         }
@@ -505,7 +505,7 @@ pub mod data_list {
 
         pub fn len(&self) -> u32 { self.builder.len() }
 
-        pub fn set(&self, index : u32, value : data::Reader) {
+        pub fn set(&mut self, index : u32, value : data::Reader) {
             assert!(index < self.len());
             self.builder.get_pointer_element(index).set_data(value);
         }
