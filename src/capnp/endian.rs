@@ -9,6 +9,7 @@ use std::intrinsics::{bswap16, bswap32, bswap64};
 #[cfg(target_endian = "big")]
 use std::cast::transmute;
 
+#[repr(C)]
 pub struct WireValue<T> {
     value : T
 }
