@@ -207,6 +207,8 @@ impl Drop for MallocMessageBuilder {
     fn drop(&mut self) { }
 }
 
+unsafe impl Send for MallocMessageBuilder {}
+
 impl MallocMessageBuilder {
 
     pub fn new(options : BuilderOptions) -> MallocMessageBuilder {

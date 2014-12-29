@@ -21,6 +21,8 @@ pub struct SegmentReader {
     pub size : WordCount32
 }
 
+unsafe impl Send for SegmentReader {}
+
 impl SegmentReader {
 
     #[inline]
@@ -43,6 +45,8 @@ pub struct SegmentBuilder {
     pub id : SegmentId,
     pos : *mut Word,
 }
+
+unsafe impl Send for SegmentBuilder {}
 
 impl SegmentBuilder {
 
