@@ -61,7 +61,7 @@ fn camel_to_upper_case(s : &str) -> String {
         if ::std::char::UnicodeChar::is_uppercase(c) {
             result_chars.push('_');
         }
-        result_chars.push((c as u8).to_ascii().to_uppercase().as_char());
+        result_chars.push((c as u8).to_ascii_uppercase() as char);
     }
     return String::from_chars(result_chars.as_slice());
 }
@@ -74,7 +74,7 @@ fn snake_to_upper_case(s : &str) -> String {
             result_chars.push('_');
         } else {
             assert!(::std::char::UnicodeChar::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
-            result_chars.push((c as u8).to_ascii().to_uppercase().as_char());
+            result_chars.push((c as u8).to_ascii_uppercase() as char);
         }
     }
     return String::from_chars(result_chars.as_slice());
@@ -91,7 +91,7 @@ fn camel_to_snake_case(s : &str) -> String {
         if ::std::char::UnicodeChar::is_uppercase(c) && !first_char {
             result_chars.push('_');
         }
-        result_chars.push((c as u8).to_ascii().to_lowercase().as_char());
+        result_chars.push((c as u8).to_ascii_lowercase() as char);
         first_char = false;
     }
     return String::from_chars(result_chars.as_slice());
@@ -101,7 +101,7 @@ fn capitalize_first_letter(s : &str) -> String {
     use std::ascii::*;
     let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() { result_chars.push(c) }
-    result_chars.as_mut_slice()[0] = (result_chars[0] as u8).to_ascii().to_uppercase().as_char();
+    result_chars.as_mut_slice()[0] = (result_chars[0] as u8).to_ascii_uppercase() as char;
     return String::from_chars(result_chars.as_slice());
 }
 
