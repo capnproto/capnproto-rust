@@ -32,9 +32,9 @@ impl SegmentReader {
 
     #[inline]
     pub fn contains_interval(&self, from : *const Word, to : *const Word) -> bool {
-        let this_begin : uint = self.ptr.to_uint();
-        let this_end : uint = unsafe { self.ptr.offset(self.size as int).to_uint() };
-        return from.to_uint() >= this_begin && to.to_uint() <= this_end && from.to_uint() <= to.to_uint();
+        let this_begin : uint = self.ptr as uint;
+        let this_end : uint = unsafe { self.ptr.offset(self.size as int) as uint };
+        return from as uint >= this_begin && to as uint <= this_end && from as uint <= to as uint;
         // TODO readLimiter
     }
 }
@@ -66,8 +66,8 @@ impl SegmentBuilder {
     }
 
     pub fn get_word_offset_to(&mut self, ptr : *mut Word) -> WordCount32 {
-        let this_addr : uint = self.reader.ptr.to_uint();
-        let ptr_addr : uint = ptr.to_uint();
+        let this_addr : uint = self.reader.ptr as uint;
+        let ptr_addr : uint = ptr as uint;
         assert!(ptr_addr >= this_addr);
         let result = (ptr_addr - this_addr) / BYTES_PER_WORD;
         return result as u32;
