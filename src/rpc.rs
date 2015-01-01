@@ -118,7 +118,7 @@ impl AnswerRef {
 
     pub fn receive(&mut self, interface_id : u64, method_id : u16,
                    ops : Vec<PipelineOp>, context : Box<CallContextHook+Send>) {
-        match self.status.lock().deref_mut() {
+        match self.status.lock().unwrap().deref_mut() {
             &AnswerStatus::Sent(ref mut answer_message) => {
                 AnswerRef::do_call(answer_message, interface_id, method_id, ops, context);
             }
@@ -129,7 +129,7 @@ impl AnswerRef {
     }
 
     pub fn sent(&mut self, mut message : Box<MallocMessageBuilder>) {
-        match self.status.lock().deref_mut() {
+        match self.status.lock().unwrap().deref_mut() {
             &AnswerStatus::Sent(_) => {panic!()}
             &AnswerStatus::Pending(ref mut waiters) => {
                 waiters.reverse();
@@ -142,7 +142,7 @@ impl AnswerRef {
                 }
             }
         }
-        *self.status.lock() = AnswerStatus::Sent(message);
+        *self.status.lock().unwrap() = AnswerStatus::Sent(message);
     }
 
 
