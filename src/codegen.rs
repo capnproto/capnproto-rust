@@ -63,7 +63,7 @@ fn camel_to_upper_case(s : &str) -> String {
         }
         result_chars.push((c as u8).to_ascii_uppercase() as char);
     }
-    return String::from_chars(result_chars.as_slice());
+    return result_chars.into_iter().collect();
 }
 
 fn snake_to_upper_case(s : &str) -> String {
@@ -77,7 +77,7 @@ fn snake_to_upper_case(s : &str) -> String {
             result_chars.push((c as u8).to_ascii_uppercase() as char);
         }
     }
-    return String::from_chars(result_chars.as_slice());
+    return result_chars.into_iter().collect();
 }
 
 
@@ -94,7 +94,7 @@ fn camel_to_snake_case(s : &str) -> String {
         result_chars.push((c as u8).to_ascii_lowercase() as char);
         first_char = false;
     }
-    return String::from_chars(result_chars.as_slice());
+    return result_chars.into_iter().collect();
 }
 
 fn capitalize_first_letter(s : &str) -> String {
@@ -102,7 +102,7 @@ fn capitalize_first_letter(s : &str) -> String {
     let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() { result_chars.push(c) }
     result_chars.as_mut_slice()[0] = (result_chars[0] as u8).to_ascii_uppercase() as char;
-    return String::from_chars(result_chars.as_slice());
+    return result_chars.into_iter().collect();
 }
 
 #[test]
@@ -146,7 +146,7 @@ fn to_lines(ft : &FormattedText, indent : uint) -> Vec<String> {
             return result;
         }
         Line(ref s) => {
-            let mut s1 = String::from_char(indent * 2, ' ');
+            let mut s1 : String = ::std::iter::repeat(' ').take(indent * 2).collect();
             s1.push_str(s.as_slice());
             return vec!(s1.to_string());
         }

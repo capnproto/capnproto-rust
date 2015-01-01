@@ -120,7 +120,7 @@ impl UseScratch {
         unsafe {
             capnp::message::ScratchSpaceMallocMessageBuilder::new_default(
                 ::std::mem::transmute(
-                    ::std::raw::Slice { data : self.scratch_space.as_slice().unsafe_get(idx * SCRATCH_SIZE),
+                    ::std::raw::Slice { data : self.scratch_space.get_unchecked(idx * SCRATCH_SIZE),
                                       len : SCRATCH_SIZE }))
         }
     }
