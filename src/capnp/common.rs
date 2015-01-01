@@ -84,7 +84,23 @@ impl MessageSize {
     }
 }
 
+pub trait PtrUint<T> {
+    fn as_uint(self) -> uint;
+}
+
+impl <T> PtrUint<T> for *const T {
+    fn as_uint(self) -> uint {
+        self as uint
+    }
+}
+
+impl <T> PtrUint<T> for *mut T {
+    fn as_uint(self) -> uint {
+        self as uint
+    }
+}
+
 #[inline]
-pub fn ptr_sub<T, U: ::std::ptr::PtrExt<T>, V: ::std::ptr::PtrExt<T>>(p1 : U, p2 : V) -> uint {
-    return (p1.to_uint() - p2.to_uint()) / ::std::mem::size_of::<T>();
+pub fn ptr_sub<T, U: PtrUint<T>, V: PtrUint<T>>(p1 : U, p2 : V) -> uint {
+    return (p1.as_uint() - p2.as_uint()) / ::std::mem::size_of::<T>();
 }
