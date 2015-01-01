@@ -126,7 +126,7 @@ impl ReaderArena {
         let mut arena = box ReaderArena {
             segment0 : SegmentReader {
                 arena : ArenaPtr::Null,
-                ptr : unsafe { segments[0].unsafe_get(0) },
+                ptr : unsafe { segments[0].get_unchecked(0) },
                 size : segments[0].len() as u32
             },
             more_segments : Vec::new(),
@@ -144,7 +144,7 @@ impl ReaderArena {
             for segment in segments.slice_from(1).iter() {
                 let segment_reader = SegmentReader {
                     arena : arena_ptr,
-                    ptr : unsafe { segment.unsafe_get(0) },
+                    ptr : unsafe { segment.get_unchecked(0) },
                     size : segment.len() as u32
                 };
                 more_segment_readers.push(segment_reader);
@@ -159,7 +159,7 @@ impl ReaderArena {
         if id == 0 {
             return &self.segment0 as *const SegmentReader;
         } else {
-            unsafe { self.more_segments.as_slice().unsafe_get(id as uint - 1) as *const SegmentReader }
+            unsafe { self.more_segments.get_unchecked(id as uint - 1) as *const SegmentReader }
         }
     }
 

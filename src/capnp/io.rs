@@ -75,8 +75,8 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
             self.cap = n;
             self.pos = 0;
         }
-        Ok((self.buf.as_slice().unsafe_get(self.pos) as *const u8,
-            self.buf.as_slice().unsafe_get(self.cap) as *const u8))
+        Ok((self.buf.get_unchecked(self.pos) as *const u8,
+            self.buf.get_unchecked(self.cap) as *const u8))
     }
 }
 
@@ -145,7 +145,7 @@ impl <'a> BufferedInputStream for ArrayInputStream<'a> {
     unsafe fn get_read_buffer(&mut self) -> IoResult<(*const u8, *const u8)> {
         let len = self.array.len();
         Ok((self.array.as_ptr() as *const u8,
-           self.array.unsafe_get(len) as *const u8))
+           self.array.get_unchecked(len) as *const u8))
     }
 }
 
@@ -178,13 +178,13 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
     #[inline]
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.buf.len();
-        (self.buf.as_mut_slice().unsafe_mut(self.pos) as *mut u8,
-         self.buf.as_mut_slice().unsafe_mut(len) as *mut u8)
+        (self.buf.get_unchecked_mut(self.pos) as *mut u8,
+         self.buf.get_unchecked_mut(len) as *mut u8)
     }
 
     #[inline]
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
-        let easy_case = ptr == self.buf.as_mut_slice().unsafe_mut(self.pos) as *mut u8;
+        let easy_case = ptr == self.buf.get_unchecked_mut(self.pos) as *mut u8;
         if easy_case {
             self.pos += size;
             Ok(())
@@ -256,8 +256,10 @@ impl <'a> Writer for ArrayOutputStream<'a> {
     fn write(&mut self, buf: &[u8]) -> IoResult<()> {
         assert!(buf.len() <= self.array.len() - self.fill_pos,
                 "ArrayOutputStream's backing array was not large enough for the data written.");
-        unsafe { ::std::ptr::copy_nonoverlapping_memory(self.array.unsafe_mut(self.fill_pos), buf.as_ptr(),
-                                                        buf.len());  }
+        unsafe { ::std::ptr::copy_nonoverlapping_memory(
+            self.array.get_unchecked_mut(self.fill_pos),
+            buf.as_ptr(),
+            buf.len());  }
         self.fill_pos += buf.len();
         Ok(())
     }
@@ -266,11 +268,11 @@ impl <'a> Writer for ArrayOutputStream<'a> {
 impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.array.len();
-        (self.array.unsafe_mut(self.fill_pos) as *mut u8,
-         self.array.unsafe_mut(len) as *mut u8)
+        (self.array.get_unchecked_mut(self.fill_pos) as *mut u8,
+         self.array.get_unchecked_mut(len) as *mut u8)
     }
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
-        let easy_case = ptr == self.array.unsafe_mut(self.fill_pos) as *mut u8;
+        let easy_case = ptr == self.array.get_unchecked_mut(self.fill_pos) as *mut u8;
         if easy_case {
             self.fill_pos += size;
             Ok(())

@@ -40,7 +40,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
 
         unsafe {
             let mut out = out_buf.as_mut_ptr();
-            let out_end = out_buf.unsafe_mut(len) as *mut u8;
+            let out_end = out_buf.get_unchecked_mut(len) as *mut u8;
 
             let (mut in_ptr, mut in_end) = try!(self.inner.get_read_buffer());
             let mut buffer_begin = in_ptr;
@@ -202,8 +202,8 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
             let mut buffer_begin = out;
             let mut slow_buffer : [u8,..20] = [0, ..20];
 
-            let mut in_ptr : *const u8 = in_buf.unsafe_get(0);
-            let in_end : *const u8 = in_buf.unsafe_get(in_buf.len());
+            let mut in_ptr : *const u8 = in_buf.get_unchecked(0);
+            let in_end : *const u8 = in_buf.get_unchecked(in_buf.len());
 
             while in_ptr < in_end {
 
@@ -214,7 +214,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     try!(self.inner.write_ptr(buffer_begin, ptr_sub(out, buffer_begin)));
 
                     out = slow_buffer.as_mut_ptr();
-                    buffer_end = slow_buffer.unsafe_mut(20) as *mut u8;
+                    buffer_end = slow_buffer.get_unchecked_mut(20) as *mut u8;
                     buffer_begin = out;
                 }
 
