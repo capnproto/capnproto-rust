@@ -16,7 +16,7 @@ pub fn expect_packs_to(unpacked : &[u8],
     // --------
     // write
 
-    let mut bytes : std::vec::Vec<u8> = std::vec::Vec::from_elem(packed.len(), 0u8);
+    let mut bytes : std::vec::Vec<u8> = ::std::iter::repeat(0u8).take(packed.len()).collect();
     {
         let mut writer = io::ArrayOutputStream::new(bytes.as_mut_slice());
         let mut packed_output_stream = PackedOutputStream {inner : &mut writer};
