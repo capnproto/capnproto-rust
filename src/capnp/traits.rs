@@ -48,7 +48,7 @@ pub trait CastableTo<T> {
     fn cast(self) -> T;
 }
 
-/// Because `#[deriving(ToPrimitive)]` is not supported, using our own custom trait is more
+/// Because `#[derive(ToPrimitive)]` is not supported, using our own custom trait is more
 /// convenient than using `ToPrimitive`.
 pub trait ToU16 {
     fn to_u16(self) -> u16;
