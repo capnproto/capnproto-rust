@@ -4,23 +4,23 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-trait IndexMove<I,T> {
+trait IndexMove<I, T> {
     fn index_move(&self, index : I) -> T;
 }
 
-pub struct ListIter<T> {
+pub struct ListIter<T, U> {
     list : T,
     index : u32,
     size : u32,
 }
 
-impl <T> ListIter<T> {
-    pub fn new(list : T, size : u32) -> ListIter<T> {
+impl <T, U> ListIter<T, U> {
+    pub fn new(list : T, size : u32) -> ListIter<T, U> {
         ListIter { list : list, index : 0, size : size }
     }
 }
 
-impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator<U> for ListIter<T> {
+impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator<U> for ListIter<T, U> {
     fn next(&mut self) -> ::std::option::Option<U> {
         if self.index < self.size {
             let result = self.list.index_move(self.index);
@@ -207,7 +207,7 @@ pub mod struct_list {
 
         pub fn len(&self) -> u32 { self.reader.len() }
 
-        pub fn iter(self) -> super::ListIter<Reader<'a, T>> {
+        pub fn iter(self) -> super::ListIter<Reader<'a, T>, T> {
             return super::ListIter::new(self, self.len());
         }
     }
