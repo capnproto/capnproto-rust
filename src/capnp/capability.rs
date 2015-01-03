@@ -12,7 +12,7 @@ use std;
 use std::vec::Vec;
 
 pub struct ResultFuture<Results, Pipeline> {
-    pub answer_port : std::comm::Receiver<Box<ResponseHook+Send>>,
+    pub answer_port : std::sync::mpsc::Receiver<Box<ResponseHook+Send>>,
     pub answer_result : Result<Box<ResponseHook+Send>, ()>,
     pub pipeline : Pipeline,
 }
