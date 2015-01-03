@@ -118,7 +118,7 @@ pub mod enum_list {
         reader : ListReader<'a>
     }
 
-    impl <'a, T : FromPrimitive> Reader<'a, T> {
+    impl <'a, T : ::std::num::FromPrimitive> Reader<'a, T> {
         pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
             Reader::<'b, T> { reader : reader }
         }
@@ -127,17 +127,17 @@ pub mod enum_list {
 
     }
 
-    impl <'a, T : FromPrimitive> FromPointerReader<'a> for Reader<'a, T> {
+    impl <'a, T : ::std::num::FromPrimitive> FromPointerReader<'a> for Reader<'a, T> {
         fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a, T> {
             Reader { reader : reader.get_list(TwoBytes, ::std::ptr::null()) }
         }
     }
 
-    impl <'a, T : FromPrimitive> Reader<'a, T> {
+    impl <'a, T : ::std::num::FromPrimitive> Reader<'a, T> {
         pub fn get(&self, index : u32) -> Option<T> {
             assert!(index < self.len());
             let result : u16 = PrimitiveElement::get(&self.reader, index);
-            FromPrimitive::from_u16(result)
+            ::std::num::FromPrimitive::from_u16(result)
         }
     }
 
@@ -145,7 +145,7 @@ pub mod enum_list {
         builder : ListBuilder<'a>
     }
 
-    impl <'a, T : ToU16 + FromPrimitive> Builder<'a, T> {
+    impl <'a, T : ToU16 + ::std::num::FromPrimitive> Builder<'a, T> {
         pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
             Builder { builder : builder }
         }
@@ -158,7 +158,7 @@ pub mod enum_list {
         }
     }
 
-    impl <'a, T : FromPrimitive> FromPointerBuilder<'a> for Builder<'a, T> {
+    impl <'a, T : ::std::num::FromPrimitive> FromPointerBuilder<'a> for Builder<'a, T> {
         fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
             Builder { builder : builder.init_list(TwoBytes, size) }
         }
@@ -167,11 +167,11 @@ pub mod enum_list {
         }
     }
 
-    impl <'a, T : ToU16 + FromPrimitive>  Builder<'a, T> {
+    impl <'a, T : ToU16 + ::std::num::FromPrimitive>  Builder<'a, T> {
         pub fn get(&self, index : u32) -> Option<T> {
             assert!(index < self.len());
             let result : u16 = PrimitiveElement::get_from_builder(&self.builder, index);
-            FromPrimitive::from_u16(result)
+            ::std::num::FromPrimitive::from_u16(result)
         }
     }
 
