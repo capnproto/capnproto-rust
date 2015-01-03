@@ -49,7 +49,7 @@ impl EzRpcClient {
         }
 
         let (outgoing, answer_port, _question_port) = RpcEvent::new_outgoing(message);
-        self.rpc_chan.send(RpcEvent::Outgoing(outgoing));
+        self.rpc_chan.send(RpcEvent::Outgoing(outgoing)).unwrap();
 
         let mut response_hook = answer_port.recv().unwrap();
         let message : message::Reader = response_hook.get().get_as();
@@ -91,7 +91,7 @@ impl ExportedCaps {
                             vat.objects.insert(name, box LocalClient::new(server) as Box<ClientHook+Send>);
                         }
                         Ok(ExportEvent::Restore(name, return_chan)) => {
-                            return_chan.send(Some(vat.objects[name].copy()));
+                            return_chan.send(Some(vat.objects[name].copy())).unwrap();
                         }
                         Err(_) => break,
                     }
@@ -115,7 +115,7 @@ impl Restorer {
 impl SturdyRefRestorer for Restorer {
     fn restore(&self, obj_id : any_pointer::Reader) -> Option<Box<ClientHook+Send>> {
         let (tx, rx) = std::sync::mpsc::channel();
-        self.sender.send(ExportEvent::Restore(obj_id.get_as::<::capnp::text::Reader>().to_string(), tx));
+        self.sender.send(ExportEvent::Restore(obj_id.get_as::<::capnp::text::Reader>().to_string(), tx)).unwrap();
         return rx.recv().unwrap();
     }
 }

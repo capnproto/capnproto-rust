@@ -593,7 +593,7 @@ impl RpcConnectionState {
                     }
                     RpcEvent::NewLocalServer(clienthook, export_chan) => {
                         let export_id = exports.push(Export::new(clienthook));
-                        export_chan.send(export_id);
+                        export_chan.send(export_id).unwrap();
                     }
                     RpcEvent::DoneWithQuestion(id) => {
 
@@ -803,7 +803,7 @@ fn write_outgoing_cap_table(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, mes
                     match cap_table[ii as uint].downcast_ref::<Box<ClientHook+Send>>() {
                         Some(clienthook) => {
                             let (chan, port) = ::std::sync::mpsc::channel::<ExportId>();
-                            rpc_chan.send(RpcEvent::NewLocalServer(clienthook.copy(), chan));
+                            rpc_chan.send(RpcEvent::NewLocalServer(clienthook.copy(), chan)).unwrap();
                             let idx = port.recv().unwrap();
                             new_cap_table.borrow().get(ii).set_sender_hosted(idx);
                         }
@@ -875,7 +875,7 @@ impl RequestHook for RpcRequest {
         write_outgoing_cap_table(&channel, &mut *message);
 
         let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
-        channel.send(RpcEvent::Outgoing(outgoing));
+        channel.send(RpcEvent::Outgoing(outgoing)).unwrap();
 
         let question_ref = question_port.recv().unwrap();
 
@@ -1054,7 +1054,7 @@ impl CallContextHook for RpcCallContext {
         aborter.succeeded = true;
         write_outgoing_cap_table(&rpc_chan, &mut *results_message);
 
-        rpc_chan.send(RpcEvent::Return(results_message));
+        rpc_chan.send(RpcEvent::Return(results_message)).unwrap();
     }
 }
 
@@ -1147,7 +1147,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
             _ => panic!(),
         }
 
-        answer_chan.send(box LocalResponse::new(results_message) as Box<ResponseHook+Send>);
+        answer_chan.send(box LocalResponse::new(results_message) as Box<ResponseHook+Send>).unwrap();
 
     }
 
@@ -1157,7 +1157,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         let PromisedAnswerRpcCallContext {
             params_message : _, results_message, rpc_chan : _, answer_chan} = tmp;
 
-        answer_chan.send(box LocalResponse::new(results_message) as Box<ResponseHook+Send>);
+        answer_chan.send(box LocalResponse::new(results_message) as Box<ResponseHook+Send>).unwrap();
     }
 }
 
