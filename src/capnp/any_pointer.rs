@@ -11,7 +11,7 @@ use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
 use layout::{PointerReader, PointerBuilder};
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct Reader<'a> {
     reader : PointerReader<'a>
 }

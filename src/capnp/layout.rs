@@ -14,7 +14,7 @@ use blob::*;
 pub use self::ElementSize::{Void, Bit, Byte, TwoBytes, FourBytes, EightBytes, Pointer, InlineComposite};
 
 #[repr(u8)]
-#[deriving(PartialEq, Copy)]
+#[derive(PartialEq, Copy)]
 pub enum ElementSize {
     Void = 0,
     Bit = 1,
@@ -69,7 +69,7 @@ pub struct AlignedData<T> {
     pub words : T
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct StructSize {
     pub data : WordCount16,
     pub pointers : WirePointerCount16,
@@ -82,7 +82,7 @@ impl StructSize {
 }
 
 #[repr(u8)]
-#[deriving(PartialEq, Copy)]
+#[derive(PartialEq, Copy)]
 pub enum WirePointerKind {
     Struct = 0,
     List = 1,
@@ -1813,7 +1813,7 @@ mod wire_helpers {
 static ZERO : u64 = 0;
 fn zero_pointer() -> *const WirePointer { unsafe {::std::mem::transmute(&ZERO)}}
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct PointerReader<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
     segment : *const SegmentReader,
@@ -2049,7 +2049,7 @@ impl <'a> PointerBuilder<'a> {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct StructReader<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
     segment : *const SegmentReader,
@@ -2152,7 +2152,7 @@ impl <'a> StructReader<'a>  {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct StructBuilder<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
     segment : *mut SegmentBuilder,
@@ -2254,7 +2254,7 @@ impl <'a> StructBuilder<'a> {
 
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct ListReader<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
     segment : *const SegmentReader,
@@ -2324,7 +2324,7 @@ impl <'a> ListReader<'a> {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct ListBuilder<'a> {
     marker : ::std::kinds::marker::ContravariantLifetime<'a>,
     segment : *mut SegmentBuilder,

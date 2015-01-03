@@ -26,6 +26,7 @@
 #![allow(experimental)]
 #![feature(unsafe_destructor)]
 #![allow(raw_pointer_deriving)]
+#![feature(old_orphan_check)]
 
 #![crate_name="capnp"]
 #![crate_type = "lib"]

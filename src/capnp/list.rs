@@ -37,7 +37,7 @@ pub mod primitive_list {
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                  PrimitiveElement, element_size_for_type};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a, T> {
         reader : ListReader<'a>
     }
@@ -113,7 +113,7 @@ pub mod enum_list {
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                  TwoBytes, PrimitiveElement};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a, T> {
         reader : ListReader<'a>
     }
@@ -301,7 +301,7 @@ pub mod list_list {
     use traits::{FromPointerReader, FromPointerBuilder};
     use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a, T> {
         reader : ListReader<'a>
     }
@@ -389,7 +389,7 @@ pub mod text_list {
     use blob::text;
     use layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> {
         reader : ListReader<'a>
     }
@@ -468,7 +468,7 @@ pub mod data_list {
     use blob::data;
     use layout::*;
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> {
         pub reader : ListReader<'a>
     }

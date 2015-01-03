@@ -131,7 +131,7 @@ pub trait PipelineHook {
     fn get_pipelined_cap(&self, ops : Vec<PipelineOp>) -> Box<ClientHook+Send>;
 }
 
-#[deriving(Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum PipelineOp {
     Noop,
     GetPointerField(u16),

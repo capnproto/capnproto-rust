@@ -34,7 +34,7 @@ pub type WirePointerCount16 = u16;
 pub type WirePointerCount32 = u32;
 pub type WirePointerCount64 = u64;
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct Word {_x : u64}
 
 pub const BITS_PER_BYTE : BitCount0 = 8;
@@ -70,7 +70,7 @@ pub fn allocate_zeroed_words(size : WordCount) -> ::std::vec::Vec<Word> {
     return result;
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct MessageSize {
     //# Size of a message. Every struct type has a method `.total_size()` that returns this.
     pub word_count : u64,

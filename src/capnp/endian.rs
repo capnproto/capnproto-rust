@@ -22,7 +22,7 @@ impl<T:Endian> WireValue<T> {
     pub fn set(&mut self, value : T) { self.value.set(value) }
 }
 
-pub trait Endian {
+pub trait Endian : Sized {
     fn get(&self) -> Self;
     fn set(&mut self, value : Self);
 }
