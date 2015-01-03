@@ -15,13 +15,13 @@ use rpc::{RpcConnectionState, RpcEvent, SturdyRefRestorer};
 use capability::{LocalClient};
 
 pub struct EzRpcClient {
-    rpc_chan : std::comm::Sender<RpcEvent>,
+    rpc_chan : std::sync::mpsc::Sender<RpcEvent>,
     tcp : std::io::net::tcp::TcpStream,
 }
 
 impl Drop for EzRpcClient {
     fn drop(&mut self) {
-        self.rpc_chan.send_opt(RpcEvent::Shutdown).is_ok();
+        self.rpc_chan.send(RpcEvent::Shutdown).is_ok();
         self.tcp.close_read().is_ok();
     }
 }
@@ -51,7 +51,7 @@ impl EzRpcClient {
         let (outgoing, answer_port, _question_port) = RpcEvent::new_outgoing(message);
         self.rpc_chan.send(RpcEvent::Outgoing(outgoing));
 
-        let mut response_hook = answer_port.recv();
+        let mut response_hook = answer_port.recv().unwrap();
         let message : message::Reader = response_hook.get().get_as();
         let client = match message.which() {
             Some(message::Return(ret)) => {
@@ -70,7 +70,7 @@ impl EzRpcClient {
 }
 
 enum ExportEvent {
-    Restore(String, std::comm::Sender<Option<Box<ClientHook+Send>>>),
+    Restore(String, std::sync::mpsc::Sender<Option<Box<ClientHook+Send>>>),
     Register(String, Box<Server+Send>),
 }
 
@@ -79,14 +79,14 @@ struct ExportedCaps {
 }
 
 impl ExportedCaps {
-    pub fn new() -> std::comm::Sender<ExportEvent> {
-        let (chan, port) = std::comm::channel::<ExportEvent>();
+    pub fn new() -> std::sync::mpsc::Sender<ExportEvent> {
+        let (chan, port) = std::sync::mpsc::channel::<ExportEvent>();
 
         std::thread::Thread::spawn(move || {
                 let mut vat = ExportedCaps { objects : HashMap::new() };
 
                 loop {
-                    match port.recv_opt() {
+                    match port.try_recv() {
                         Ok(ExportEvent::Register(name, server)) => {
                             vat.objects.insert(name, box LocalClient::new(server) as Box<ClientHook+Send>);
                         }
@@ -103,25 +103,25 @@ impl ExportedCaps {
 }
 
 pub struct Restorer {
-    sender : std::comm::Sender<ExportEvent>,
+    sender : std::sync::mpsc::Sender<ExportEvent>,
 }
 
 impl Restorer {
-    fn new(sender : std::comm::Sender<ExportEvent>) -> Restorer {
+    fn new(sender : std::sync::mpsc::Sender<ExportEvent>) -> Restorer {
         Restorer { sender : sender }
     }
 }
 
 impl SturdyRefRestorer for Restorer {
     fn restore(&self, obj_id : any_pointer::Reader) -> Option<Box<ClientHook+Send>> {
-        let (tx, rx) = std::comm::channel();
+        let (tx, rx) = std::sync::mpsc::channel();
         self.sender.send(ExportEvent::Restore(obj_id.get_as::<::capnp::text::Reader>().to_string(), tx));
-        return rx.recv();
+        return rx.recv().unwrap();
     }
 }
 
 pub struct EzRpcServer {
-    sender : std::comm::Sender<ExportEvent>,
+    sender : std::sync::mpsc::Sender<ExportEvent>,
     tcp_acceptor : std::io::net::tcp::TcpAcceptor,
 }
 
@@ -142,7 +142,7 @@ impl EzRpcServer {
     }
 
     pub fn export_cap(&self, name : &str, server : Box<Server+Send>) {
-        self.sender.send(ExportEvent::Register(name.to_string(), server))
+        self.sender.send(ExportEvent::Register(name.to_string(), server)).unwrap()
     }
 
     pub fn serve(self) -> ::std::thread::JoinGuard<()> {

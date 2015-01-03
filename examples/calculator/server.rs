@@ -108,7 +108,7 @@ impl calculator::function::Server for FunctionImpl {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct OperatorImpl {
     op : calculator::Operator,
 }

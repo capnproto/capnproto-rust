@@ -18,7 +18,7 @@ use capnp::{MessageReader, MessageBuilder};
 use rpc_capnp::{message, return_};
 
 pub struct LocalClient {
-    object_channel : std::comm::Sender<(u64, u16, Box<CallContextHook+Send>)>,
+    object_channel : std::sync::mpsc::Sender<(u64, u16, Box<CallContextHook+Send>)>,
 }
 
 impl Clone for LocalClient {
@@ -29,11 +29,11 @@ impl Clone for LocalClient {
 
 impl LocalClient {
     pub fn new(server : Box<Server+Send>) -> LocalClient {
-        let (chan, port) = std::comm::channel::<(u64, u16, Box<CallContextHook+Send>)>();
+        let (chan, port) = std::sync::mpsc::channel::<(u64, u16, Box<CallContextHook+Send>)>();
         std::thread::Thread::spawn(move || {
                 let mut server = server;
                 loop {
-                    let (interface_id, method_id, context_hook) = match port.recv_opt() {
+                    let (interface_id, method_id, context_hook) = match port.recv() {
                         Err(_) => break,
                         Ok(x) => x,
                     };
@@ -60,7 +60,7 @@ impl ClientHook for LocalClient {
         panic!()
     }
     fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>) {
-        self.object_channel.send((interface_id, method_id, context));
+        self.object_channel.send((interface_id, method_id, context)).unwrap();
     }
 
     // HACK
@@ -107,7 +107,7 @@ impl <'a, Results : FromPointerReader<'a>, Pipeline> WaitForContent<'a, Results>
 for ResultFuture<Results, Pipeline> {
     fn wait(&'a mut self) -> Result<Results, String> {
         // XXX should check that it's not already been received.
-        self.answer_result = self.answer_port.recv_opt();
+        self.answer_result = match self.answer_port.recv() {Ok(x) => Ok(x), Err(_) => Err(()) };
         match self.answer_result {
             Err(_) => Err("answer channel closed".to_string()),
             Ok(ref mut response_hook) => {

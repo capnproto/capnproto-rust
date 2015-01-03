@@ -28,14 +28,14 @@ pub type ExportId = u32;
 pub type ImportId = ExportId;
 
 pub struct Question {
-    chan : ::std::comm::Sender<Box<ResponseHook+Send>>,
+    chan : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>,
     is_awaiting_return : bool,
-    ref_counter : ::std::comm::Receiver<()>,
+    ref_counter : ::std::sync::mpsc::Receiver<()>,
 }
 
 impl Question {
-    pub fn new(sender : ::std::comm::Sender<Box<ResponseHook+Send>>) -> (Question, ::std::comm::Sender<()>) {
-        let (tx, rx) = ::std::comm::channel::<()>();
+    pub fn new(sender : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>) -> (Question, ::std::sync::mpsc::Sender<()>) {
+        let (tx, rx) = ::std::sync::mpsc::channel::<()>();
         (Question {
             chan : sender,
             is_awaiting_return : true,
@@ -49,14 +49,14 @@ pub struct QuestionRef {
     pub id : u32,
 
     // piggy back to get ref counting. we never actually send on this channel.
-    ref_count : ::std::comm::Sender<()>,
+    ref_count : ::std::sync::mpsc::Sender<()>,
 
-    rpc_chan : ::std::comm::Sender<RpcEvent>,
+    rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
 }
 
 impl QuestionRef {
-    pub fn new(id : u32, ref_count : ::std::comm::Sender<()>,
-               rpc_chan : ::std::comm::Sender<RpcEvent>) -> QuestionRef {
+    pub fn new(id : u32, ref_count : ::std::sync::mpsc::Sender<()>,
+               rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>) -> QuestionRef {
         QuestionRef { id : id,
                       ref_count : ref_count,
                       rpc_chan : rpc_chan }
@@ -118,6 +118,7 @@ impl AnswerRef {
 
     pub fn receive(&mut self, interface_id : u64, method_id : u16,
                    ops : Vec<PipelineOp>, context : Box<CallContextHook+Send>) {
+        use std::ops::DerefMut;
         match self.status.lock().unwrap().deref_mut() {
             &AnswerStatus::Sent(ref mut answer_message) => {
                 AnswerRef::do_call(answer_message, interface_id, method_id, ops, context);
@@ -129,6 +130,7 @@ impl AnswerRef {
     }
 
     pub fn sent(&mut self, mut message : Box<MallocMessageBuilder>) {
+        use std::ops::DerefMut;
         match self.status.lock().unwrap().deref_mut() {
             &AnswerStatus::Sent(_) => {panic!()}
             &AnswerStatus::Pending(ref mut waiters) => {
@@ -173,7 +175,7 @@ impl Export {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct Import;
 
 pub struct ImportTable<T> {
@@ -186,19 +188,19 @@ impl <T> ImportTable<T> {
     }
 }
 
-#[deriving(PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 struct ReverseU32 { val : u32 }
 
 impl ::core::cmp::Ord for ReverseU32 {
-    fn cmp(&self, other : &ReverseU32) -> Ordering {
-        if self.val > other.val { Less }
-        else if self.val < other.val { Greater }
-        else { Equal }
+    fn cmp(&self, other : &ReverseU32) -> ::std::cmp::Ordering {
+        if self.val > other.val { ::std::cmp::Ordering::Less }
+        else if self.val < other.val { ::std::cmp::Ordering::Greater }
+        else { ::std::cmp::Ordering::Equal }
     }
 }
 
 impl ::core::cmp::PartialOrd for ReverseU32 {
-    fn partial_cmp(&self, other : &ReverseU32) -> Option<Ordering> {
+    fn partial_cmp(&self, other : &ReverseU32) -> Option<::std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -251,7 +253,7 @@ pub struct RpcConnectionState {
 }
 
 fn client_hooks_of_payload(payload : payload::Reader,
-                           rpc_chan : &::std::comm::Sender<RpcEvent>,
+                           rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>,
                            answers : &ImportTable<Answer>) -> Vec<Option<Box<ClientHook+Send>>> {
     let mut result = Vec::new();
     for cap in payload.get_cap_table().iter() {
@@ -292,7 +294,7 @@ fn client_hooks_of_payload(payload : payload::Reader,
 }
 
 fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
-                      rpc_chan : &::std::comm::Sender<RpcEvent>,
+                      rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>,
                       answers : &ImportTable<Answer>) {
     let mut the_cap_table : Vec<Option<Box<ClientHook+Send>>> = Vec::new();
     {
@@ -366,9 +368,9 @@ impl RpcConnectionState {
 
     pub fn run<T : ::std::io::Reader + Send, U : ::std::io::Writer + Send, V : SturdyRefRestorer + Send>(
         self, inpipe: T, outpipe: U, restorer : V)
-         -> ::std::comm::Sender<RpcEvent> {
+         -> ::std::sync::mpsc::Sender<RpcEvent> {
 
-        let (result_rpc_chan, port) = ::std::comm::channel::<RpcEvent>();
+        let (result_rpc_chan, port) = ::std::sync::mpsc::channel::<RpcEvent>();
 
         let listener_chan = result_rpc_chan.clone();
 
@@ -378,9 +380,9 @@ impl RpcConnectionState {
                     match serialize::new_reader(
                         &mut r,
                         *ReaderOptions::new().fail_fast(false)) {
-                        Err(_e) => { listener_chan.send_opt(RpcEvent::Shutdown).is_ok(); break; }
+                        Err(_e) => { listener_chan.send(RpcEvent::Shutdown).is_ok(); break; }
                         Ok(message) => {
-                            listener_chan.send_opt(RpcEvent::IncomingMessage(box message)).is_ok();
+                            listener_chan.send(RpcEvent::IncomingMessage(box message)).is_ok();
                         }
                     }
                 }
@@ -392,7 +394,7 @@ impl RpcConnectionState {
             let RpcConnectionState {mut questions, mut exports, mut answers, imports : _imports} = self;
             let mut outpipe = outpipe;
             loop {
-                match port.recv() {
+                match port.recv().unwrap() {
                     RpcEvent::IncomingMessage(mut message) => {
                         enum MessageReceiver {
                             Nobody,
@@ -512,11 +514,11 @@ impl RpcConnectionState {
                             MessageReceiver::Question(id) => {
                                 let erase_it = match &mut questions.slots[id as uint] {
                                     &Some(ref mut q) => {
-                                        q.chan.send_opt(
+                                        q.chan.send(
                                             box RpcResponse::new(message) as Box<ResponseHook+Send>).is_ok();
                                         q.is_awaiting_return = false;
-                                        match q.ref_counter.try_recv() {
-                                            Err(::std::comm::Disconnected) => {
+                                        match q.ref_counter.recv() {
+                                            Err(_) => {
                                                 true
                                             }
                                             _ => {false}
@@ -572,14 +574,14 @@ impl RpcConnectionState {
                                     let id = questions.push(question);
                                     call.set_question_id(id);
                                     let qref = QuestionRef::new(id, ref_count, rpc_chan.clone());
-                                    if !question_chan.send_opt(qref).is_ok() { panic!() }
+                                    if !question_chan.send(qref).is_ok() { panic!() }
                                 }
                                 Some(message::Bootstrap(mut res)) => {
                                     let (question, ref_count) = Question::new(answer_chan);
                                     let id = questions.push(question);
                                     res.set_question_id(id);
                                     let qref = QuestionRef::new(id, ref_count, rpc_chan.clone());
-                                    if !question_chan.send_opt(qref).is_ok() { panic!() }
+                                    if !question_chan.send(qref).is_ok() { panic!() }
                                 }
                                 _ => {
                                     panic!("NONE OF THOSE");
@@ -645,7 +647,7 @@ pub enum OwnedCapDescriptor {
 }
 
 pub struct ImportClient {
-    channel : ::std::comm::Sender<RpcEvent>,
+    channel : ::std::sync::mpsc::Sender<RpcEvent>,
     pub import_id : ImportId,
 }
 
@@ -683,7 +685,7 @@ impl ClientHook for ImportClient {
 }
 
 pub struct PipelineClient {
-    channel : ::std::comm::Sender<RpcEvent>,
+    channel : ::std::sync::mpsc::Sender<RpcEvent>,
     pub ops : Vec<PipelineOp>,
     pub question_ref : QuestionRef,
 }
@@ -732,7 +734,7 @@ impl ClientHook for PipelineClient {
 }
 
 pub struct PromisedAnswerClient {
-    rpc_chan : ::std::comm::Sender<RpcEvent>,
+    rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
     ops : Vec<PipelineOp>,
     answer_ref : AnswerRef,
 }
@@ -773,8 +775,8 @@ impl ClientHook for PromisedAnswerClient {
 }
 
 
-fn write_outgoing_cap_table(rpc_chan : &::std::comm::Sender<RpcEvent>, message : &mut MallocMessageBuilder) {
-    fn write_payload(rpc_chan : &::std::comm::Sender<RpcEvent>, cap_table : & [Box<::std::any::Any>],
+fn write_outgoing_cap_table(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, message : &mut MallocMessageBuilder) {
+    fn write_payload(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, cap_table : & [Box<::std::any::Any>],
                      payload : payload::Builder) {
         let mut new_cap_table = payload.init_cap_table(cap_table.len() as u32);
         for ii in range::<u32>(0, cap_table.len() as u32) {
@@ -800,9 +802,9 @@ fn write_outgoing_cap_table(rpc_chan : &::std::comm::Sender<RpcEvent>, message :
                 None => {
                     match cap_table[ii as uint].downcast_ref::<Box<ClientHook+Send>>() {
                         Some(clienthook) => {
-                            let (chan, port) = ::std::comm::channel::<ExportId>();
+                            let (chan, port) = ::std::sync::mpsc::channel::<ExportId>();
                             rpc_chan.send(RpcEvent::NewLocalServer(clienthook.copy(), chan));
-                            let idx = port.recv();
+                            let idx = port.recv().unwrap();
                             new_cap_table.borrow().get(ii).set_sender_hosted(idx);
                         }
                         None => panic!("noncompliant client hook"),
@@ -858,7 +860,7 @@ impl ResponseHook for RpcResponse {
 }
 
 pub struct RpcRequest {
-    channel : ::std::comm::Sender<RpcEvent>,
+    channel : ::std::sync::mpsc::Sender<RpcEvent>,
     message : Box<MallocMessageBuilder>,
     question_ref : Option<QuestionRef>,
 }
@@ -875,7 +877,7 @@ impl RequestHook for RpcRequest {
         let (outgoing, answer_port, question_port) = RpcEvent::new_outgoing(message);
         channel.send(RpcEvent::Outgoing(outgoing));
 
-        let question_ref = question_port.recv();
+        let question_ref = question_port.recv().unwrap();
 
         let pipeline = box RpcPipeline {channel : channel, question_ref : question_ref};
         let typeless = any_pointer::Pipeline::new(pipeline as Box<PipelineHook+Send>);
@@ -886,7 +888,7 @@ impl RequestHook for RpcRequest {
 }
 
 pub struct PromisedAnswerRpcRequest {
-    rpc_chan : ::std::comm::Sender<RpcEvent>,
+    rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
     message : Box<MallocMessageBuilder>,
     answer_ref : AnswerRef,
     ops : Vec<PipelineOp>,
@@ -899,7 +901,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
     fn send<'a>(self : Box<PromisedAnswerRpcRequest>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline> {
         let tmp = *self;
         let PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = tmp;
-        let (answer_tx, answer_rx) = ::std::comm::channel();
+        let (answer_tx, answer_rx) = ::std::sync::mpsc::channel();
 
         let (interface_id, method_id) = match message.get_root::<message::Builder>().which() {
             Some(message::Call(mut call)) => {
@@ -926,7 +928,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
 
 
 pub struct RpcPipeline {
-    channel : ::std::comm::Sender<RpcEvent>,
+    channel : ::std::sync::mpsc::Sender<RpcEvent>,
     question_ref : QuestionRef,
 }
 
@@ -943,7 +945,7 @@ impl PipelineHook for RpcPipeline {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct PromisedAnswerRpcPipeline;
 
 impl PipelineHook for PromisedAnswerRpcPipeline {
@@ -958,7 +960,7 @@ impl PipelineHook for PromisedAnswerRpcPipeline {
 pub struct Aborter {
     succeeded : bool,
     answer_id : AnswerId,
-    rpc_chan : ::std::comm::Sender<RpcEvent>,
+    rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
 }
 
 impl Drop for Aborter {
@@ -972,7 +974,7 @@ impl Drop for Aborter {
                 let mut exc = ret.init_exception();
                 exc.set_reason("aborted");
             }
-            self.rpc_chan.send_opt(RpcEvent::Return(results_message)).is_ok();
+            self.rpc_chan.send(RpcEvent::Return(results_message)).is_ok();
         }
     }
 }
@@ -980,13 +982,13 @@ impl Drop for Aborter {
 pub struct RpcCallContext {
     params_message : Box<OwnedSpaceMessageReader>,
     results_message : Box<MallocMessageBuilder>,
-    rpc_chan : ::std::comm::Sender<RpcEvent>,
+    rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
     aborter : Aborter,
 }
 
 impl RpcCallContext {
     pub fn new(params_message : Box<OwnedSpaceMessageReader>,
-               rpc_chan : ::std::comm::Sender<RpcEvent>) -> RpcCallContext {
+               rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>) -> RpcCallContext {
         let answer_id = {
             let root : message::Reader = params_message.get_root();
             match root.which() {
@@ -1076,14 +1078,14 @@ impl ResponseHook for LocalResponse {
 pub struct PromisedAnswerRpcCallContext {
     params_message : Box<MallocMessageBuilder>,
     results_message : Box<MallocMessageBuilder>,
-    rpc_chan : ::std::comm::Sender<RpcEvent>,
-    answer_chan : ::std::comm::Sender<Box<ResponseHook+Send>>,
+    rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
+    answer_chan : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>,
 }
 
 impl PromisedAnswerRpcCallContext {
     pub fn new(params_message : Box <MallocMessageBuilder>,
-               rpc_chan : ::std::comm::Sender<RpcEvent>,
-               answer_chan : ::std::comm::Sender<Box<ResponseHook+Send>>)
+               rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
+               answer_chan : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>)
                -> PromisedAnswerRpcCallContext {
 
 
@@ -1162,15 +1164,15 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 
 pub struct OutgoingMessage {
     message : Box<MallocMessageBuilder>,
-    answer_chan : ::std::comm::Sender<Box<ResponseHook+Send>>,
-    question_chan : ::std::comm::Sender<QuestionRef>,
+    answer_chan : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>,
+    question_chan : ::std::sync::mpsc::Sender<QuestionRef>,
 }
 
 
 pub enum RpcEvent {
     IncomingMessage(Box<serialize::OwnedSpaceMessageReader>),
     Outgoing(OutgoingMessage),
-    NewLocalServer(Box<ClientHook+Send>, ::std::comm::Sender<ExportId>),
+    NewLocalServer(Box<ClientHook+Send>, ::std::sync::mpsc::Sender<ExportId>),
     Return(Box<MallocMessageBuilder>),
     DoneWithQuestion(QuestionId),
     Shutdown,
@@ -1179,11 +1181,11 @@ pub enum RpcEvent {
 
 impl RpcEvent {
     pub fn new_outgoing(message : Box<MallocMessageBuilder>)
-                        -> (OutgoingMessage, ::std::comm::Receiver<Box<ResponseHook+Send>>,
-                            ::std::comm::Receiver<QuestionRef>) {
-        let (answer_chan, answer_port) = ::std::comm::channel::<Box<ResponseHook+Send>>();
+                        -> (OutgoingMessage, ::std::sync::mpsc::Receiver<Box<ResponseHook+Send>>,
+                            ::std::sync::mpsc::Receiver<QuestionRef>) {
+        let (answer_chan, answer_port) = ::std::sync::mpsc::channel::<Box<ResponseHook+Send>>();
 
-        let (question_chan, question_port) = ::std::comm::channel::<QuestionRef>();
+        let (question_chan, question_port) = ::std::sync::mpsc::channel::<QuestionRef>();
 
         (OutgoingMessage{ message : message,
                           answer_chan : answer_chan,
