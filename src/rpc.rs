@@ -517,8 +517,8 @@ impl RpcConnectionState {
                                         q.chan.send(
                                             box RpcResponse::new(message) as Box<ResponseHook+Send>).is_ok();
                                         q.is_awaiting_return = false;
-                                        match q.ref_counter.recv() {
-                                            Err(_) => {
+                                        match q.ref_counter.try_recv() {
+                                            Err(::std::sync::mpsc::TryRecvError::Disconnected) => {
                                                 true
                                             }
                                             _ => {false}
