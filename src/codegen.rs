@@ -123,7 +123,7 @@ fn test_camel_to_snake_case() {
     assert_eq!(camel_to_snake_case("uint32Id"), "uint32_id".to_string());
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 enum FormattedText {
     Indent(Box<FormattedText>),
     Branch(Vec<FormattedText>),
@@ -160,7 +160,7 @@ fn stringify(ft : & FormattedText) -> String {
     return result.to_string();
 }
 
-const RUST_KEYWORDS : [&'static str, ..51] =
+const RUST_KEYWORDS : [&'static str; 51] =
     ["abstract", "alignof", "as", "be", "box",
      "break", "const", "continue", "crate", "do",
      "else", "enum", "extern", "false", "final",
@@ -423,7 +423,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     return
                         (format!("Option<{}>", the_mod), // Enums don't have builders.
                          Branch(vec!(
-                            Line(format!("FromPrimitive::from_u16(self.{}.get_data_field::<u16>({}))",
+                            Line(format!("::std::num::FromPrimitive::from_u16(self.{}.get_data_field::<u16>({}))",
                                         member, offset))
                               )));
                 }
@@ -1152,7 +1152,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             let accessors = vec!(
                 Branch(preamble),
-                Line("#[deriving(Copy)]".to_string()),
+                Line("#[derive(Copy)]".to_string()),
                 Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_string()),
                 BlankLine,
                 Branch(vec!(
@@ -1268,7 +1268,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             output.push(Branch(vec!(
                 Line("#[repr(u16)]".to_string()),
-                Line("#[deriving(PartialEq, FromPrimitive, Copy)]".to_string()),
+                Line("#[derive(PartialEq, FromPrimitive, Copy)]".to_string()),
                 Line(format!("pub enum {} {{", *names.last().unwrap())),
                 Indent(box Branch(members)),
                 Line("}".to_string()))));

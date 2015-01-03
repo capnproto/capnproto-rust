@@ -22,6 +22,7 @@
 #![crate_type = "lib"]
 
 #![feature(macro_rules)]
+#![feature(old_orphan_check)]
 
 extern crate capnp;
 
@@ -619,7 +620,7 @@ mod tests {
 
     #[test]
     fn double_far_pointers() {
-        let _bytes : ::capnp::layout::AlignedData<[u8, ..48]> = ::capnp::layout::AlignedData {
+        let _bytes : ::capnp::layout::AlignedData<[u8; 48]> = ::capnp::layout::AlignedData {
             _dummy : 0,
             words : [2,0,0,0, 1,0,0,0, 2,0,0,0, 1,0,0,0,
                      6,0,0,0, 1,0,0,0, 2,0,0,0, 2,0,0,0,

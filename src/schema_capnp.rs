@@ -13,7 +13,7 @@ pub mod node {
 
   pub use self::Which::{File,Struct,Enum,Interface,Const,Annotation};
 
-  #[deriving(Copy)]
+  #[derive(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -370,7 +370,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -477,7 +477,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -596,7 +596,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -629,7 +629,7 @@ pub mod node {
       }
       #[inline]
       pub fn get_preferred_list_encoding(self) -> Option<::schema_capnp::ElementSize> {
-        FromPrimitive::from_u16(self.reader.get_data_field::<u16>(13))
+        ::std::num::FromPrimitive::from_u16(self.reader.get_data_field::<u16>(13))
       }
       #[inline]
       pub fn get_is_group(self) -> bool {
@@ -692,7 +692,7 @@ pub mod node {
       }
       #[inline]
       pub fn get_preferred_list_encoding(self) -> Option<::schema_capnp::ElementSize> {
-        FromPrimitive::from_u16(self.builder.get_data_field::<u16>(13))
+        ::std::num::FromPrimitive::from_u16(self.builder.get_data_field::<u16>(13))
       }
       #[inline]
       pub fn set_preferred_list_encoding(&mut self, value : ::schema_capnp::ElementSize) {
@@ -760,7 +760,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -852,7 +852,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -966,7 +966,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -1086,7 +1086,7 @@ pub mod node {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -1328,7 +1328,7 @@ pub mod field {
 
   pub use self::Which::{Slot,Group};
 
-  #[deriving(Copy)]
+  #[derive(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -1552,7 +1552,7 @@ pub mod field {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -1696,7 +1696,7 @@ pub mod field {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -1780,7 +1780,7 @@ pub mod field {
 
     pub use self::Which::{Implicit,Explicit};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -1899,7 +1899,7 @@ pub mod enumerant {
   use capnp::traits::{FromStructBuilder, FromStructReader};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-  #[deriving(Copy)]
+  #[derive(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -2040,7 +2040,7 @@ pub mod superclass {
   use capnp::traits::{FromStructBuilder, FromStructReader};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-  #[deriving(Copy)]
+  #[derive(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -2162,7 +2162,7 @@ pub mod method {
   use capnp::traits::{FromStructBuilder, FromStructReader};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-  #[deriving(Copy)]
+  #[derive(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -2401,7 +2401,7 @@ pub mod type_ {
 
   pub use self::Which::{Void,Bool,Int8,Int16,Int32,Int64,Uint8,Uint16,Uint32,Uint64,Float32,Float64,Text,Data,List,Enum,Struct,Interface,AnyPointer};
 
-  #[deriving(Copy)]
+  #[derive(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -2803,7 +2803,7 @@ pub mod type_ {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -2898,7 +2898,7 @@ pub mod type_ {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -3005,7 +3005,7 @@ pub mod type_ {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -3112,7 +3112,7 @@ pub mod type_ {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -3221,7 +3221,7 @@ pub mod type_ {
 
     pub use self::Which::{Unconstrained,Parameter,ImplicitMethodParameter};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -3357,7 +3357,7 @@ pub mod type_ {
       use capnp::traits::{FromStructBuilder, FromStructReader};
       use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-      #[deriving(Copy)]
+      #[derive(Copy)]
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
       impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -3451,7 +3451,7 @@ pub mod type_ {
       use capnp::traits::{FromStructBuilder, FromStructReader};
       use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-      #[deriving(Copy)]
+      #[derive(Copy)]
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
       impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -3535,7 +3535,7 @@ pub mod brand {
   use capnp::traits::{FromStructBuilder, FromStructReader};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-  #[deriving(Copy)]
+  #[derive(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -3643,7 +3643,7 @@ pub mod brand {
 
     pub use self::Which::{Bind,Inherit};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -3803,7 +3803,7 @@ pub mod brand {
 
     pub use self::Which::{Unbound,Type};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -3952,7 +3952,7 @@ pub mod value {
 
   pub use self::Which::{Void,Bool,Int8,Int16,Int32,Int64,Uint8,Uint16,Uint32,Uint64,Float32,Float64,Text,Data,List,Enum,Struct,Interface,AnyPointer};
 
-  #[deriving(Copy)]
+  #[derive(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -4412,7 +4412,7 @@ pub mod annotation {
   use capnp::traits::{FromStructBuilder, FromStructReader};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-  #[deriving(Copy)]
+  #[derive(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -4552,7 +4552,7 @@ pub mod annotation {
 }
 
 #[repr(u16)]
-#[deriving(PartialEq, FromPrimitive, Copy)]
+#[derive(PartialEq, FromPrimitive, Copy)]
 pub enum ElementSize {
   Empty = 0,
   Bit = 1,
@@ -4580,7 +4580,7 @@ pub mod code_generator_request {
   use capnp::traits::{FromStructBuilder, FromStructReader};
   use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-  #[deriving(Copy)]
+  #[derive(Copy)]
   pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
   impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -4708,7 +4708,7 @@ pub mod code_generator_request {
     use capnp::traits::{FromStructBuilder, FromStructReader};
     use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-    #[deriving(Copy)]
+    #[derive(Copy)]
     pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
     impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
@@ -4848,7 +4848,7 @@ pub mod code_generator_request {
       use capnp::traits::{FromStructBuilder, FromStructReader};
       use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 
-      #[deriving(Copy)]
+      #[derive(Copy)]
       pub struct Reader<'a> { reader : layout::StructReader<'a> }
 
       impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
