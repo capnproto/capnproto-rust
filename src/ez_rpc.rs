@@ -86,7 +86,7 @@ impl ExportedCaps {
                 let mut vat = ExportedCaps { objects : HashMap::new() };
 
                 loop {
-                    match port.try_recv() {
+                    match port.recv() {
                         Ok(ExportEvent::Register(name, server)) => {
                             vat.objects.insert(name, box LocalClient::new(server) as Box<ClientHook+Send>);
                         }
