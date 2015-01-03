@@ -200,7 +200,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
         unsafe {
             let (mut out, mut buffer_end) = self.inner.get_write_buffer();
             let mut buffer_begin = out;
-            let mut slow_buffer : [u8,..20] = [0, ..20];
+            let mut slow_buffer : [u8; 20] = [0; 20];
 
             let mut in_ptr : *const u8 = in_buf.get_unchecked(0);
             let in_end : *const u8 = in_buf.get_unchecked(in_buf.len());

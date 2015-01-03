@@ -9,7 +9,7 @@ use layout;
 
 #[test]
 fn simple_raw_data_struct() {
-    let data : layout::AlignedData<[u8, .. 16]> = layout::AlignedData {
+    let data : layout::AlignedData<[u8; 16]> = layout::AlignedData {
         _dummy: 0,
         words : [0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
                  0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef]
