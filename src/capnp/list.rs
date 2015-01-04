@@ -20,7 +20,8 @@ impl <T, U> ListIter<T, U> {
     }
 }
 
-impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator<U> for ListIter<T, U> {
+impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator for ListIter<T, U> {
+    type Item = U;
     fn next(&mut self) -> ::std::option::Option<U> {
         if self.index < self.size {
             let result = self.list.index_move(self.index);

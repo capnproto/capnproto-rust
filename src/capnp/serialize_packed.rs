@@ -97,7 +97,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                     in_ptr = in_ptr.offset(1);
 
                     for n in range(0u, 8) {
-                        let is_nonzero = (tag & (1 as u8 << n)) != 0;
+                        let is_nonzero = (tag & ((1 as u8) << n)) != 0;
                         *out = (*in_ptr) & ((-(is_nonzero as i8)) as u8);
                         out = out.offset(1);
                         in_ptr = in_ptr.offset(is_nonzero as int);

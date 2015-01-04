@@ -257,7 +257,7 @@ impl WirePointer {
     #[inline]
     pub fn set_far(&mut self, is_double_far : bool, pos : WordCount32) {
         self.offset_and_kind.set
-            (( pos << 3) | (is_double_far as u32 << 2) | WirePointerKind::Far as u32);
+            (( pos << 3) | ((is_double_far as u32) << 2) | WirePointerKind::Far as u32);
     }
 
     #[inline]
@@ -2217,7 +2217,7 @@ impl <'a> StructBuilder<'a> {
         let boffset : BitCount0 = offset;
         let b = unsafe { self.data.offset((boffset / BITS_PER_BYTE) as int)};
         let bitnum = boffset % BITS_PER_BYTE;
-        unsafe { (*b) = ( (*b) & !(1 << bitnum)) | (value as u8 << bitnum) }
+        unsafe { (*b) = ( (*b) & !(1 << bitnum)) | ((value as u8) << bitnum) }
     }
 
     #[inline]
@@ -2445,7 +2445,7 @@ impl PrimitiveElement for bool {
         let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE) as int) };
 
         let bitnum = bindex % BITS_PER_BYTE;
-        unsafe { (*b) = ((*b) & !(1 << bitnum)) | (value as u8 << bitnum) }
+        unsafe { (*b) = ((*b) & !(1 << bitnum)) | ((value as u8) << bitnum) }
     }
 }
 
