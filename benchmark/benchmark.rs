@@ -151,49 +151,51 @@ macro_rules! pass_by_object(
 
 macro_rules! pass_by_bytes(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr ) => ({
-            let mut request_bytes = ::std::vec::Vec::from_elem(SCRATCH_SIZE * 8, 0u8);
-            let mut response_bytes = ::std::vec::Vec::from_elem(SCRATCH_SIZE * 8, 0u8);
-            let mut rng = common::FastRand::new();
-            for _ in range(0, $iters) {
-                let mut message_req = $reuse.new_builder(0);
-                let mut message_res = $reuse.new_builder(1);
+        let mut request_bytes : ::std::vec::Vec<u8> =
+            ::std::iter::repeat(0u8).take(SCRATCH_SIZE * 8).collect();
+        let mut response_bytes : ::std::vec::Vec<u8> =
+            ::std::iter::repeat(0u8).take(SCRATCH_SIZE * 8).collect();
+        let mut rng = common::FastRand::new();
+        for _ in range(0, $iters) {
+            let mut message_req = $reuse.new_builder(0);
+            let mut message_res = $reuse.new_builder(1);
 
-                let expected = {
-                    let request = message_req.init_root::<$testcase::RequestBuilder>();
-                    $testcase::setup_request(&mut rng, request)
-                };
+            let expected = {
+                let request = message_req.init_root::<$testcase::RequestBuilder>();
+                $testcase::setup_request(&mut rng, request)
+            };
 
-                {
-                    let response = message_res.init_root::<$testcase::ResponseBuilder>();
-
-                    {
-                        let mut writer = capnp::io::ArrayOutputStream::new(request_bytes.as_mut_slice());
-                        $compression::write_buffered(&mut writer, &message_req)
-                    }
-
-                    let message_reader = $compression::new_buffered_reader(
-                        &mut capnp::io::ArrayInputStream::new(request_bytes.as_slice()),
-                        capnp::message::DEFAULT_READER_OPTIONS);
-
-                    let request_reader : $testcase::RequestReader = message_reader.get_root();
-                    $testcase::handle_request(request_reader, response);
-                }
+            {
+                let response = message_res.init_root::<$testcase::ResponseBuilder>();
 
                 {
-                    let mut writer = capnp::io::ArrayOutputStream::new(response_bytes.as_mut_slice());
-                    $compression::write_buffered(&mut writer, &message_res)
+                    let mut writer = capnp::io::ArrayOutputStream::new(request_bytes.as_mut_slice());
+                    $compression::write_buffered(&mut writer, &message_req)
                 }
 
                 let message_reader = $compression::new_buffered_reader(
-                    &mut capnp::io::ArrayInputStream::new(response_bytes.as_slice()),
+                    &mut capnp::io::ArrayInputStream::new(request_bytes.as_slice()),
                     capnp::message::DEFAULT_READER_OPTIONS);
 
-                let response_reader : $testcase::ResponseReader = message_reader.get_root();
-                if !$testcase::check_response(response_reader, expected) {
-                    panic!("Incorrect response.");
-                }
+                let request_reader : $testcase::RequestReader = message_reader.get_root();
+                $testcase::handle_request(request_reader, response);
             }
-        });
+
+            {
+                let mut writer = capnp::io::ArrayOutputStream::new(response_bytes.as_mut_slice());
+                $compression::write_buffered(&mut writer, &message_res)
+            }
+
+            let message_reader = $compression::new_buffered_reader(
+                &mut capnp::io::ArrayInputStream::new(response_bytes.as_slice()),
+                capnp::message::DEFAULT_READER_OPTIONS);
+
+            let response_reader : $testcase::ResponseReader = message_reader.get_root();
+            if !$testcase::check_response(response_reader, expected) {
+                panic!("Incorrect response.");
+            }
+        }
+    });
     );
 
 macro_rules! server(
