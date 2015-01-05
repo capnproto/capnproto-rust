@@ -13,7 +13,6 @@ use capnp::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, Malloc
 use capnp::serialize;
 use capnp::OwnedSpaceMessageReader;
 
-use std::any::AnyRefExt;
 use std::vec::Vec;
 use std::collections::hash_map::HashMap;
 use std::collections::binary_heap::BinaryHeap;
