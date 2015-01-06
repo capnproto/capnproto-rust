@@ -190,7 +190,7 @@ pub trait MessageBuilder {
         self.get_root_internal().set_as(value);
     }
 
-    fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
+    fn get_segments_for_output<T, U : FnMut(&[&[Word]]) -> T>(&self, cont : U) -> T {
         self.arena().get_segments_for_output(cont)
     }
 

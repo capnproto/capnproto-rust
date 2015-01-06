@@ -288,7 +288,7 @@ impl BuilderArena {
         }
     }
 
-    pub fn get_segments_for_output<T>(&self, cont : |&[&[Word]]| -> T) -> T {
+    pub fn get_segments_for_output<T, U : FnMut(&[&[Word]]) -> T>(&self, mut cont : U) -> T {
         unsafe {
             if self.more_segments.len() == 0 {
                 let v = ::std::slice::from_raw_buf::<Word>(
