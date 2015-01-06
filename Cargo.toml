@@ -14,7 +14,7 @@ name = "capnp-rpc"
 path = "src/lib.rs"
 
 [build-dependencies]
-capnpc = "0.0.19"
+capnpc = "0.0.20"
 
 [dependencies]
-capnp = "0.0.18"
+capnp = "0.0.19"
