@@ -65,7 +65,7 @@ pub trait ServerHook {
 }
 
 pub trait FromServer<T, U> {
-    fn new(hook : Option<T>, server : Box<U>) -> Self;
+    fn from_server(self, hook : Option<T>) -> U;
 }
 
 pub struct Client {
