@@ -45,9 +45,6 @@
 //! ```
 //!
 
-
-#![feature(globs)]
-
 #![crate_name="capnpc"]
 #![crate_type = "lib"]
 

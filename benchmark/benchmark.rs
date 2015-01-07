@@ -19,9 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#![feature(macro_rules)]
-#![feature(globs)]
-
 #![crate_type = "bin"]
 
 extern crate capnp;

@@ -21,8 +21,6 @@
 
 #![crate_type = "lib"]
 
-#![feature(macro_rules)]
-
 extern crate capnp;
 
 #[allow(overflowing_literals)]
