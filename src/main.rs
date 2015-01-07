@@ -25,8 +25,6 @@
 //!
 //!
 
-#![feature(globs)]
-
 #![crate_name="capnpc-rust"]
 #![crate_type = "bin"]
 
