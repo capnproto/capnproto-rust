@@ -1393,11 +1393,12 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             mod_interior.push(
                 Branch(vec!(
-                    Line("impl <T:ServerHook, U : Server + Send> FromServer<T,U> for Client {".to_string()),
+                    Line("pub struct ToClient<T, U>(pub U);".to_string()),
+                    Line("impl <T:ServerHook, U : Server + Send> FromServer<T, Client> for ToClient<T, U> {".to_string()),
                     Indent(box Branch( vec!(
-                        Line("fn new(_hook : Option<T>, server : Box<U>) -> Client {".to_string()),
+                        Line("fn from_server(self, _hook : Option<T>) -> Client {".to_string()),
                         Indent(
-                            box Line("Client { client : ServerHook::new_client(None::<T>, box ServerDispatch { server : server})}".to_string())),
+                            box Line("Client { client : ServerHook::new_client(None::<T>, box ServerDispatch { server : box self.0})}".to_string())),
                         Line("}".to_string())))),
                     Line("}".to_string()))));
 

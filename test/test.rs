@@ -22,7 +22,6 @@
 #![crate_type = "lib"]
 
 #![feature(macro_rules)]
-#![feature(old_orphan_check)]
 
 extern crate capnp;
 
