@@ -27,8 +27,6 @@
 #![crate_name="capnp"]
 #![crate_type = "lib"]
 
-// import logging macros
-#[macro_use] extern crate log;
 extern crate libc;
 
 // reexports
