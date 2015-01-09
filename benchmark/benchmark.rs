@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "bin"]
+#![allow(unstable)]
 
 extern crate capnp;
 extern crate rand;
@@ -90,13 +91,13 @@ mod packed {
 
 }
 
-const SCRATCH_SIZE : uint = 128 * 1024;
+const SCRATCH_SIZE : usize = 128 * 1024;
 
 #[derive(Copy)]
 pub struct NoScratch;
 
 impl NoScratch {
-    fn new_builder(&mut self, _idx : uint) -> capnp::message::MallocMessageBuilder {
+    fn new_builder(&mut self, _idx : usize) -> capnp::message::MallocMessageBuilder {
         capnp::message::MallocMessageBuilder::new_default()
     }
 }
@@ -112,7 +113,7 @@ impl UseScratch {
         }
     }
 
-    fn new_builder<'a>(&mut self, idx : uint) -> capnp::message::ScratchSpaceMallocMessageBuilder<'a> {
+    fn new_builder<'a>(&mut self, idx : usize) -> capnp::message::ScratchSpaceMallocMessageBuilder<'a> {
         assert!(idx < 6);
         unsafe {
             capnp::message::ScratchSpaceMallocMessageBuilder::new_default(
@@ -261,7 +262,7 @@ macro_rules! pass_by_pipe(
                 let mut child_std_in = p.stdin.take().unwrap();
 
                 server!($testcase, $reuse, $compression, $iters, child_std_out, child_std_in);
-                println!("{}", p.wait());
+                println!("{}", p.wait().unwrap());
             }
             Err(e) => {
                 println!("could not start process: {}", e);

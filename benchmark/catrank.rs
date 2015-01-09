@@ -24,7 +24,7 @@ use catrank_capnp::*;
 
 pub type RequestBuilder<'a> = search_result_list::Builder<'a>;
 pub type ResponseBuilder<'a> = search_result_list::Builder<'a>;
-pub type Expectation = int;
+pub type Expectation = i32;
 pub type RequestReader<'a> = search_result_list::Reader<'a>;
 pub type ResponseReader<'a> = search_result_list::Reader<'a>;
 
@@ -36,9 +36,9 @@ pub struct ScoredResult<'a> {
 
 const URL_PREFIX : &'static str = "http://example.com";
 
-pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder) -> int {
+pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder) -> i32 {
     let count = rng.next_less_than(1000);
-    let mut good_count : int = 0;
+    let mut good_count : i32 = 0;
 
     let mut list = request.init_results(count);
 
@@ -54,7 +54,7 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
         ::std::io::BufWriter::new(bytes).write(URL_PREFIX.as_bytes()).unwrap();
 
         for j in range(0, url_size) {
-            bytes[j as uint + url_prefix_length] = (97 + rng.next_less_than(26)) as u8;
+            bytes[j as usize + url_prefix_length] = (97 + rng.next_less_than(26)) as u8;
         }
 
         let is_cat = rng.next_less_than(8) == 0;
@@ -65,16 +65,16 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
 
         let mut snippet = String::from_str(" ");
 
-        let prefix = rng.next_less_than(20) as uint;
+        let prefix = rng.next_less_than(20) as usize;
         for _ in range(0, prefix) {
-            snippet.push_str(WORDS[rng.next_less_than(WORDS.len() as u32) as uint]);
+            snippet.push_str(WORDS[rng.next_less_than(WORDS.len() as u32) as usize]);
         }
         if is_cat { snippet.push_str("cat ") }
         if is_dog { snippet.push_str("dog ") }
 
-        let suffix = rng.next_less_than(20) as uint;
+        let suffix = rng.next_less_than(20) as usize;
         for _ in range(0, suffix) {
-            snippet.push_str(WORDS[rng.next_less_than(WORDS.len() as u32) as uint]);
+            snippet.push_str(WORDS[rng.next_less_than(WORDS.len() as u32) as usize]);
         }
 
         result.set_snippet(snippet.as_slice());
@@ -107,15 +107,15 @@ pub fn handle_request(request : search_result_list::Reader,
     let mut list = response.init_results(scored_results.len() as u32);
     for i in range(0, list.len()) {
         let mut item = list.borrow().get(i);
-        let result = scored_results[i as uint];
+        let result = scored_results[i as usize];
         item.set_score(result.score);
         item.set_url(result.result.get_url());
         item.set_snippet(result.result.get_snippet());
     }
 }
 
-pub fn check_response(response : search_result_list::Reader, expected_good_count : int) -> bool {
-    let mut good_count : int = 0;
+pub fn check_response(response : search_result_list::Reader, expected_good_count : i32) -> bool {
+    let mut good_count : i32 = 0;
     let results = response.get_results();
     for i in range(0, results.len()) {
         let result = results.get(i);

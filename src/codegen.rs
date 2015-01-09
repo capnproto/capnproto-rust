@@ -87,7 +87,7 @@ fn camel_to_snake_case(s : &str) -> String {
     let mut first_char = true;
     for c in s.chars() {
         assert!(::std::char::CharExt::is_alphanumeric(c),
-                format!("not alphanumeric '{}', i.e. {}", c, c as uint));
+                format!("not alphanumeric '{}', i.e. {}", c, c as usize));
         if ::std::char::CharExt::is_uppercase(c) && !first_char {
             result_chars.push('_');
         }
@@ -131,7 +131,7 @@ enum FormattedText {
     BlankLine
 }
 
-fn to_lines(ft : &FormattedText, indent : uint) -> Vec<String> {
+fn to_lines(ft : &FormattedText, indent : usize) -> Vec<String> {
     match *ft {
         Indent (ref ft) => {
             return to_lines(&**ft, indent + 1);
@@ -332,7 +332,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             }
         }
         Some(field::Slot(reg_field)) => {
-            let offset = reg_field.get_offset() as uint;
+            let offset = reg_field.get_offset() as usize;
 
             let member = if is_reader { "reader" } else { "builder" };
             let module = if is_reader { "Reader" } else { "Builder" };
@@ -463,9 +463,9 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
         }
     }
 
-    fn common_case<T: ::std::num::FromPrimitive + PartialEq + ::std::fmt::Show>(
+    fn common_case<T: ::std::num::FromPrimitive + PartialEq + ::std::fmt::String>(
         typ: &str, member : &str,
-        offset: uint, default : T) -> (String, FormattedText) {
+        offset: usize, default : T) -> (String, FormattedText) {
         let interior = if default == ::std::num::FromPrimitive::from_uint(0).unwrap() {
             Line(format!("self.{}.get_data_field::<{}>({})",
                          member, typ, offset))
@@ -557,12 +557,12 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
     if discriminant_value != field::NO_DISCRIMINANT {
         setter_interior.push(
             Line(format!("self.builder.set_data_field::<u16>({}, {});",
-                         discriminant_offset as uint,
-                         discriminant_value as uint)));
+                         discriminant_offset as usize,
+                         discriminant_value as usize)));
         initter_interior.push(
             Line(format!("self.builder.set_data_field::<u16>({}, {});",
-                         discriminant_offset as uint,
-                         discriminant_value as uint)));
+                         discriminant_offset as usize,
+                         discriminant_value as usize)));
     }
 
     let mut setter_lifetime_param = "";
@@ -580,7 +580,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
             (None, Some(format!("{}::Builder<'a>", the_mod)))
         }
         Some(field::Slot(reg_field)) => {
-            fn common_case (typ: &str, offset : uint, reg_field : field::slot::Reader,
+            fn common_case (typ: &str, offset : usize, reg_field : field::slot::Reader,
                             setter_interior : &mut Vec<FormattedText> ) -> (Option<String>, Option<String>) {
                 match prim_default(&reg_field.get_default_value()) {
                     None => {
@@ -597,7 +597,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
             };
 
 
-            let offset = reg_field.get_offset() as uint;
+            let offset = reg_field.get_offset() as usize;
 
             match reg_field.get_type().which() {
                 Some(type_::Void(())) => {
@@ -793,11 +793,11 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
 
     let mut copyable = true;
 
-    let doffset = discriminant_offset as uint;
+    let doffset = discriminant_offset as usize;
 
     for field in fields.iter() {
 
-        let dvalue = field.get_discriminant_value() as uint;
+        let dvalue = field.get_discriminant_value() as usize;
 
         let field_name = field.get_name();
         let enumerant_name = capitalize_first_letter(field_name);
@@ -912,8 +912,8 @@ fn generate_haser(discriminant_offset : u32,
        interior.push(
             Line(format!("if self.{}.get_data_field::<u16>({}) != {} {{ return false; }}",
                          member,
-                         discriminant_offset as uint,
-                         discriminant_value as uint)));
+                         discriminant_offset as usize,
+                         discriminant_value as usize)));
     }
     match field.which() {
         None | Some(field::Group(_)) => {},
@@ -1126,7 +1126,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 private_mod_interior.push(
                     Line(
                         format!("pub const STRUCT_SIZE : layout::StructSize = layout::StructSize {{ data : {}, pointers : {} }};",
-                                data_size as uint, pointer_size as uint)));
+                                data_size as usize, pointer_size as usize)));
             }
             private_mod_interior.push(
                 Line(

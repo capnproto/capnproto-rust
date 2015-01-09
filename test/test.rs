@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "lib"]
+#![allow(unstable)]
 
 extern crate capnp;
 
