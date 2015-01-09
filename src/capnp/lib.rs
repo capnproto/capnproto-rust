@@ -21,7 +21,6 @@
 
 #![allow(unstable)]
 #![feature(unsafe_destructor)]
-#![feature(old_impl_check)]
 #![allow(raw_pointer_derive)]
 
 #![crate_name="capnp"]
