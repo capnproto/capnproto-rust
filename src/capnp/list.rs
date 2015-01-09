@@ -213,6 +213,7 @@ pub mod struct_list {
         }
     }
 
+    #[old_impl_check]
     impl <'a, T, U> Reader<'a, T> where T : ::traits::CastableTo<U> {
         pub fn borrow<'b>(&'b self) -> Reader<'b, U> {
             Reader {reader : self.reader}
@@ -256,6 +257,7 @@ pub mod struct_list {
 
     }
 
+    #[old_impl_check]
     impl <'a, T, U> Builder<'a, T> where T : ::traits::CastableTo<U> {
         pub fn borrow<'b>(&'b mut self) -> Builder<'b, U> {
             Builder {builder : self.builder}
@@ -346,6 +348,7 @@ pub mod list_list {
         }
     }
 
+    #[old_impl_check]
     impl <'a, T, U> Builder<'a, T> where T : ::traits::CastableTo<U> {
         pub fn borrow<'b>(&'b mut self) -> Builder<'b, U> {
             Builder {builder : self.builder}

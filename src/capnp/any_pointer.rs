@@ -45,7 +45,7 @@ impl <'a> Reader<'a> {
             match op {
                 &PipelineOp::Noop =>  { }
                 &PipelineOp::GetPointerField(idx) => {
-                    pointer = pointer.get_struct(::std::ptr::null()).get_pointer_field(idx as uint)
+                    pointer = pointer.get_struct(::std::ptr::null()).get_pointer_field(idx as usize)
                 }
             }
         }

@@ -33,7 +33,7 @@ impl SegmentReader {
     #[inline]
     pub fn contains_interval(&self, from : *const Word, to : *const Word) -> bool {
         let this_begin : usize = self.ptr as usize;
-        let this_end : usize = unsafe { self.ptr.offset(self.size as int) as usize };
+        let this_end : usize = unsafe { self.ptr.offset(self.size as isize) as usize };
         return from as usize >= this_begin && to as usize <= this_end && from as usize <= to as usize;
         // TODO readLimiter
     }
@@ -84,7 +84,7 @@ impl SegmentBuilder {
             return None;
         } else {
             let result = self.pos;
-            self.pos = unsafe { self.pos.offset(amount as int) };
+            self.pos = unsafe { self.pos.offset(amount as isize) };
             return Some(result);
         }
     }
@@ -92,7 +92,7 @@ impl SegmentBuilder {
     #[inline]
     pub fn get_ptr_unchecked(&self, offset : WordCount32) -> *mut Word {
         unsafe {
-            ::std::mem::transmute(self.reader.ptr.offset(offset as int))
+            ::std::mem::transmute(self.reader.ptr.offset(offset as isize))
         }
     }
 
