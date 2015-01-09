@@ -32,9 +32,9 @@ impl SegmentReader {
 
     #[inline]
     pub fn contains_interval(&self, from : *const Word, to : *const Word) -> bool {
-        let this_begin : uint = self.ptr as uint;
-        let this_end : uint = unsafe { self.ptr.offset(self.size as int) as uint };
-        return from as uint >= this_begin && to as uint <= this_end && from as uint <= to as uint;
+        let this_begin : usize = self.ptr as usize;
+        let this_end : usize = unsafe { self.ptr.offset(self.size as int) as usize };
+        return from as usize >= this_begin && to as usize <= this_end && from as usize <= to as usize;
         // TODO readLimiter
     }
 }
@@ -66,8 +66,8 @@ impl SegmentBuilder {
     }
 
     pub fn get_word_offset_to(&mut self, ptr : *mut Word) -> WordCount32 {
-        let this_addr : uint = self.reader.ptr as uint;
-        let ptr_addr : uint = ptr as uint;
+        let this_addr : usize = self.reader.ptr as usize;
+        let ptr_addr : usize = ptr as usize;
         assert!(ptr_addr >= this_addr);
         let result = (ptr_addr - this_addr) / BYTES_PER_WORD;
         return result as u32;
@@ -123,7 +123,7 @@ pub struct ReaderArena {
 impl ReaderArena {
     pub fn new(segments : &[&[Word]], options : message::ReaderOptions) -> Box<ReaderArena> {
         assert!(segments.len() > 0);
-        let mut arena = box ReaderArena {
+        let mut arena = Box::new(ReaderArena {
             segment0 : SegmentReader {
                 arena : ArenaPtr::Null,
                 ptr : unsafe { segments[0].get_unchecked(0) },
@@ -132,7 +132,7 @@ impl ReaderArena {
             more_segments : Vec::new(),
             cap_table : Vec::new(),
             fail_fast : options.fail_fast,
-        };
+        });
 
 
         let arena_ptr = ArenaPtr::Reader (&*arena);
@@ -159,7 +159,7 @@ impl ReaderArena {
         if id == 0 {
             return &self.segment0 as *const SegmentReader;
         } else {
-            unsafe { self.more_segments.get_unchecked(id as uint - 1) as *const SegmentReader }
+            unsafe { self.more_segments.get_unchecked(id as usize - 1) as *const SegmentReader }
         }
     }
 
@@ -210,7 +210,7 @@ impl BuilderArena {
                 ZeroedWords(w) => (w.as_mut_ptr(), w.len() as u32, Vec::new())
             }};
 
-        let mut result = box BuilderArena {
+        let mut result = Box::new(BuilderArena {
             segment0 : SegmentBuilder {
                 reader : SegmentReader {
                     ptr : first_segment as *const Word,
@@ -225,7 +225,7 @@ impl BuilderArena {
             next_size : num_words,
             cap_table : Vec::new(),
             fail_fast : fail_fast,
-        };
+        });
 
         let arena_ptr = { let ref mut ptr = *result; ptr as *mut BuilderArena};
         result.segment0.reader.arena = ArenaPtr::Builder(arena_ptr);
@@ -271,7 +271,7 @@ impl BuilderArena {
                 }};
 
             let (words, size) = self.allocate_owned_memory(amount);
-            let mut new_builder = box SegmentBuilder::new(self, id as u32, words, size);
+            let mut new_builder = Box::new(SegmentBuilder::new(self, id as u32, words, size));
             let builder_ptr = &mut *new_builder as *mut SegmentBuilder;
 
             self.more_segments.push(new_builder);
@@ -284,7 +284,7 @@ impl BuilderArena {
         if id == 0 {
             &mut self.segment0 as *mut SegmentBuilder
         } else {
-            &mut *self.more_segments.as_mut_slice()[(id - 1) as uint] as *mut SegmentBuilder
+            &mut *self.more_segments.as_mut_slice()[(id - 1) as usize] as *mut SegmentBuilder
         }
     }
 
@@ -293,18 +293,18 @@ impl BuilderArena {
             if self.more_segments.len() == 0 {
                 let v = ::std::slice::from_raw_buf::<Word>(
                     &self.segment0.reader.ptr,
-                    self.segment0.current_size() as uint);
+                    self.segment0.current_size() as usize);
                 cont(&[v])
             } else {
                 let mut result = Vec::new();
                 result.push(::std::mem::transmute(
                     ::std::raw::Slice { data : self.segment0.reader.ptr,
-                                      len : self.segment0.current_size() as uint}));
+                                      len : self.segment0.current_size() as usize}));
 
                 for seg in self.more_segments.iter() {
                     result.push(::std::mem::transmute(
                         ::std::raw::Slice { data : seg.reader.ptr,
-                                            len : seg.current_size() as uint}));
+                                            len : seg.current_size() as usize}));
                 }
                 cont(result.as_slice())
             }
@@ -339,7 +339,7 @@ impl ArenaPtr {
                     if id == 0 {
                         &(*builder).segment0.reader as *const SegmentReader
                     } else {
-                        &(*builder).more_segments.as_slice()[id as uint - 1].reader as *const SegmentReader
+                        &(*builder).more_segments.as_slice()[id as usize - 1].reader as *const SegmentReader
                     }
                 }
                 &ArenaPtr::Null => {
@@ -349,7 +349,7 @@ impl ArenaPtr {
         }
     }
 
-    pub fn extract_cap(&self, index : uint) -> Option<Box<ClientHook+Send>> {
+    pub fn extract_cap(&self, index : usize) -> Option<Box<ClientHook+Send>> {
         unsafe {
             match self {
                 &ArenaPtr::Reader(reader) => {

@@ -10,7 +10,7 @@ use std::io::{Reader, Writer, IoResult};
 
 pub fn read_at_least<R : Reader>(reader : &mut R,
                                  buf: &mut [u8],
-                                 min_bytes : uint) -> IoResult<uint> {
+                                 min_bytes : usize) -> IoResult<usize> {
     let mut pos = 0;
     let buf_len = buf.len();
     while pos < min_bytes {
@@ -22,15 +22,15 @@ pub fn read_at_least<R : Reader>(reader : &mut R,
 }
 
 pub trait BufferedInputStream : Reader {
-    fn skip(&mut self, bytes : uint) -> IoResult<()>;
+    fn skip(&mut self, bytes : usize) -> IoResult<()>;
     unsafe fn get_read_buffer(&mut self) -> IoResult<(*const u8, *const u8)>;
 }
 
 pub struct BufferedInputStreamWrapper<'a, R: 'a> {
     inner : &'a mut R,
     buf : Vec<u8>,
-    pos : uint,
-    cap : uint
+    pos : usize,
+    cap : usize
 }
 
 impl <'a, R> BufferedInputStreamWrapper<'a, R> {
@@ -50,7 +50,7 @@ impl <'a, R> BufferedInputStreamWrapper<'a, R> {
 
 impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
 
-   fn skip(&mut self, mut bytes : uint) -> IoResult<()> {
+   fn skip(&mut self, mut bytes : usize) -> IoResult<()> {
         let available = self.cap - self.pos;
         if bytes <= available {
             self.pos += bytes;
@@ -81,7 +81,7 @@ impl<'a, R: Reader> BufferedInputStream for BufferedInputStreamWrapper<'a, R> {
 }
 
 impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
-    fn read(&mut self, dst: &mut [u8]) -> IoResult<uint> {
+    fn read(&mut self, dst: &mut [u8]) -> IoResult<usize> {
         let mut num_bytes = dst.len();
         if num_bytes <= self.cap - self.pos {
             //# Serve from the current buffer.
@@ -127,7 +127,7 @@ impl <'a> ArrayInputStream<'a> {
 }
 
 impl <'a> Reader for ArrayInputStream<'a> {
-    fn read(&mut self, dst: &mut [u8]) -> Result<uint, std::io::IoError> {
+    fn read(&mut self, dst: &mut [u8]) -> Result<usize, std::io::IoError> {
         let n = std::cmp::min(dst.len(), self.array.len());
         unsafe { ::std::ptr::copy_nonoverlapping_memory(dst.as_mut_ptr(), self.array.as_ptr(), n) }
         self.array = self.array.slice_from(n);
@@ -136,7 +136,7 @@ impl <'a> Reader for ArrayInputStream<'a> {
 }
 
 impl <'a> BufferedInputStream for ArrayInputStream<'a> {
-    fn skip(&mut self, bytes : uint) -> IoResult<()> {
+    fn skip(&mut self, bytes : usize) -> IoResult<()> {
         assert!(self.array.len() >= bytes,
                 "ArrayInputStream ended prematurely.");
         self.array = self.array.slice_from(bytes);
@@ -151,13 +151,13 @@ impl <'a> BufferedInputStream for ArrayInputStream<'a> {
 
 pub trait BufferedOutputStream : Writer {
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8);
-    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()>;
+    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: usize) -> IoResult<()>;
 }
 
 pub struct BufferedOutputStreamWrapper<'a, W:'a> {
     inner: &'a mut W,
     buf: Vec<u8>,
-    pos: uint
+    pos: usize
 }
 
 impl <'a, W> BufferedOutputStreamWrapper<'a, W> {
@@ -183,7 +183,7 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
     }
 
     #[inline]
-    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
+    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: usize) -> IoResult<()> {
         let easy_case = ptr == self.buf.get_unchecked_mut(self.pos) as *mut u8;
         if easy_case {
             self.pos += size;
@@ -240,7 +240,7 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
 
 pub struct ArrayOutputStream<'a> {
     array : &'a mut [u8],
-    fill_pos : uint,
+    fill_pos : usize,
 }
 
 impl <'a> ArrayOutputStream<'a> {
@@ -271,7 +271,7 @@ impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
         (self.array.get_unchecked_mut(self.fill_pos) as *mut u8,
          self.array.get_unchecked_mut(len) as *mut u8)
     }
-    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: uint) -> IoResult<()> {
+    unsafe fn write_ptr(&mut self, ptr: *mut u8, size: usize) -> IoResult<()> {
         let easy_case = ptr == self.array.get_unchecked_mut(self.fill_pos) as *mut u8;
         if easy_case {
             self.fill_pos += size;

@@ -15,7 +15,7 @@ pub mod text {
         // XXX The empty case is special and I don't know why.
         if len == 0 { return Ok(EMPTY); }
         let v : &'a [u8] =
-            unsafe { ::std::mem::transmute(::std::raw::Slice { data: p, len: len as uint}) };
+            unsafe { ::std::mem::transmute(::std::raw::Slice { data: p, len: len as usize}) };
         ::std::str::from_utf8(v)
     }
 
@@ -27,13 +27,13 @@ pub mod text {
 
     pub struct Builder<'a> {
         ptr : *mut u8,
-        len : uint,
+        len : usize,
     }
 
     impl <'a> Builder <'a> {
 
         pub fn new<'b>(p : *mut u8, len : u32) -> Builder<'b> {
-            Builder { ptr : p, len : len as uint}
+            Builder { ptr : p, len : len as usize}
         }
 
         pub fn as_mut_bytes(self) -> &'a mut [u8] {
@@ -53,7 +53,7 @@ pub mod text {
         fn as_slice<'b>(&'b self) -> &'b str {
             let v : &'b [u8] =
                 unsafe { ::std::mem::transmute(::std::raw::Slice { data: self.ptr as *const u8,
-                                                                   len: self.len as uint}) };
+                                                                   len: self.len as usize}) };
             ::std::str::from_utf8(v).unwrap()
         }
     }
@@ -80,7 +80,7 @@ pub mod data {
 
     pub fn new_reader<'a>(p : *const u8, len : u32) -> Reader<'a> {
         unsafe {
-            let v = ::std::raw::Slice { data: p, len: len as uint};
+            let v = ::std::raw::Slice { data: p, len: len as usize};
             ::std::mem::transmute(v)
         }
     }
@@ -95,7 +95,7 @@ pub mod data {
 
     pub fn new_builder<'a>(p : *mut u8, len : u32) -> Builder<'a> {
         unsafe {
-            let v = ::std::raw::Slice { data: p as *const u8, len: len as uint};
+            let v = ::std::raw::Slice { data: p as *const u8, len: len as usize};
             ::std::mem::transmute(v)
         }
     }

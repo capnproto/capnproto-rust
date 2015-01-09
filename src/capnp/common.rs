@@ -4,31 +4,31 @@
  * See the LICENSE file in the capnproto-rust root directory.
  */
 
-pub type BitCount0 = uint; // `BitCount` clashes with a standard trait
+pub type BitCount0 = usize; // `BitCount` clashes with a standard trait
 pub type BitCount8 = u8;
 pub type BitCount16 = u16;
 pub type BitCount32 = u32;
 pub type BitCount64 = u64;
 
-pub type ByteCount = uint;
+pub type ByteCount = usize;
 pub type ByteCount8 = u8;
 pub type ByteCount16 = u16;
 pub type ByteCount32 = u32;
 pub type ByteCount64 = u64;
 
-pub type WordCount = uint;
+pub type WordCount = usize;
 pub type WordCount8 = u8;
 pub type WordCount16 = u16;
 pub type WordCount32 = u32;
 pub type WordCount64 = u64;
 
-pub type ElementCount = uint;
+pub type ElementCount = usize;
 pub type ElementCount8 = u8;
 pub type ElementCount16 = u16;
 pub type ElementCount32 = u32;
 pub type ElementCount64 = u64;
 
-pub type WirePointerCount = uint;
+pub type WirePointerCount = usize;
 pub type WirePointerCount8 = u8;
 pub type WirePointerCount16 = u16;
 pub type WirePointerCount32 = u32;
@@ -85,22 +85,22 @@ impl MessageSize {
 }
 
 pub trait PtrUint<T> {
-    fn as_uint(self) -> uint;
+    fn as_uint(self) -> usize;
 }
 
 impl <T> PtrUint<T> for *const T {
-    fn as_uint(self) -> uint {
-        self as uint
+    fn as_uint(self) -> usize {
+        self as usize
     }
 }
 
 impl <T> PtrUint<T> for *mut T {
-    fn as_uint(self) -> uint {
-        self as uint
+    fn as_uint(self) -> usize {
+        self as usize
     }
 }
 
 #[inline]
-pub fn ptr_sub<T, U: PtrUint<T>, V: PtrUint<T>>(p1 : U, p2 : V) -> uint {
+pub fn ptr_sub<T, U: PtrUint<T>, V: PtrUint<T>>(p1 : U, p2 : V) -> usize {
     return (p1.as_uint() - p2.as_uint()) / ::std::mem::size_of::<T>();
 }

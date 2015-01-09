@@ -50,7 +50,7 @@ impl ReaderOptions {
 type SegmentId = u32;
 
 pub trait MessageReader {
-    fn get_segment(&self, id : uint) -> &[Word];
+    fn get_segment(&self, id : usize) -> &[Word];
     fn arena(&self) -> &ReaderArena;
     fn mut_arena(&mut self) -> &mut ReaderArena;
     fn get_options(&self) -> &ReaderOptions;
@@ -83,7 +83,7 @@ pub struct SegmentArrayMessageReader<'a> {
 
 
 impl <'a> MessageReader for SegmentArrayMessageReader<'a> {
-    fn get_segment<'b>(&'b self, id : uint) -> &'b [Word] {
+    fn get_segment<'b>(&'b self, id : usize) -> &'b [Word] {
         self.segments[id]
     }
 

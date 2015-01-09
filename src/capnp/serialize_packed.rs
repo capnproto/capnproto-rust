@@ -31,7 +31,7 @@ macro_rules! refresh_buffer(
     );
 
 impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a, R> {
-    fn read(&mut self, out_buf: &mut [u8]) -> std::io::IoResult<uint> {
+    fn read(&mut self, out_buf: &mut [u8]) -> std::io::IoResult<usize> {
         let len = out_buf.len();
 
         if len == 0 { return Ok(0); }
@@ -73,7 +73,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                     tag = *in_ptr;
                     in_ptr = in_ptr.offset(1);
 
-                    for i in range(0u, 8) {
+                    for i in range(0, 8) {
                         if (tag & (1u8 << i)) != 0 {
                             if ptr_sub(in_end, in_ptr) == 0 {
                                 refresh_buffer!(self.inner, size, in_ptr, in_end,
@@ -96,31 +96,31 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                     tag = *in_ptr;
                     in_ptr = in_ptr.offset(1);
 
-                    for n in range(0u, 8) {
+                    for n in range(0, 8) {
                         let is_nonzero = (tag & ((1 as u8) << n)) != 0;
                         *out = (*in_ptr) & ((-(is_nonzero as i8)) as u8);
                         out = out.offset(1);
-                        in_ptr = in_ptr.offset(is_nonzero as int);
+                        in_ptr = in_ptr.offset(is_nonzero as isize);
                     }
                 }
                 if tag == 0 {
                     assert!(ptr_sub(in_end, in_ptr) > 0,
                             "Should always have non-empty buffer here");
 
-                    let run_length : uint = (*in_ptr) as uint * 8;
+                    let run_length : usize = (*in_ptr) as usize * 8;
                     in_ptr = in_ptr.offset(1);
 
                     assert!(run_length <= ptr_sub(out_end, out),
                             "Packed input did not end cleanly on a segment boundary");
 
                     std::ptr::set_memory(out, 0, run_length);
-                    out = out.offset(run_length as int);
+                    out = out.offset(run_length as isize);
 
                 } else if tag == 0xff {
                     assert!(ptr_sub(in_end, in_ptr) > 0,
                             "Should always have non-empty buffer here");
 
-                    let mut run_length : uint = (*in_ptr) as uint * 8;
+                    let mut run_length : usize = (*in_ptr) as usize * 8;
                     in_ptr = in_ptr.offset(1);
 
                     assert!(run_length <= ptr_sub(out_end, out),
@@ -130,12 +130,12 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                     if in_remaining >= run_length {
                         //# Fast path.
                         std::ptr::copy_nonoverlapping_memory(out, in_ptr, run_length);
-                        out = out.offset(run_length as int);
-                        in_ptr = in_ptr.offset(run_length as int);
+                        out = out.offset(run_length as isize);
+                        in_ptr = in_ptr.offset(run_length as isize);
                     } else {
                         //# Copy over the first buffer, then do one big read for the rest.
                         std::ptr::copy_nonoverlapping_memory(out, in_ptr, in_remaining);
-                        out = out.offset(in_remaining as int);
+                        out = out.offset(in_remaining as isize);
                         run_length -= in_remaining;
 
                         try!(self.inner.skip(size));
@@ -144,7 +144,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
                             try!(self.inner.read(buf));
                         }
 
-                        out = out.offset(run_length as int);
+                        out = out.offset(run_length as isize);
 
                         if out == out_end {
                             return Ok(len);
@@ -223,42 +223,42 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
 
                 let bit0 = (*in_ptr != 0) as u8;
                 *out = *in_ptr;
-                out = out.offset(bit0 as int);
+                out = out.offset(bit0 as isize);
                 in_ptr = in_ptr.offset(1);
 
                 let bit1 = (*in_ptr != 0) as u8;
                 *out = *in_ptr;
-                out = out.offset(bit1 as int);
+                out = out.offset(bit1 as isize);
                 in_ptr = in_ptr.offset(1);
 
                 let bit2 = (*in_ptr != 0) as u8;
                 *out = *in_ptr;
-                out = out.offset(bit2 as int);
+                out = out.offset(bit2 as isize);
                 in_ptr = in_ptr.offset(1);
 
                 let bit3 = (*in_ptr != 0) as u8;
                 *out = *in_ptr;
-                out = out.offset(bit3 as int);
+                out = out.offset(bit3 as isize);
                 in_ptr = in_ptr.offset(1);
 
                 let bit4 = (*in_ptr != 0) as u8;
                 *out = *in_ptr;
-                out = out.offset(bit4 as int);
+                out = out.offset(bit4 as isize);
                 in_ptr = in_ptr.offset(1);
 
                 let bit5 = (*in_ptr != 0) as u8;
                 *out = *in_ptr;
-                out = out.offset(bit5 as int);
+                out = out.offset(bit5 as isize);
                 in_ptr = in_ptr.offset(1);
 
                 let bit6 = (*in_ptr != 0) as u8;
                 *out = *in_ptr;
-                out = out.offset(bit6 as int);
+                out = out.offset(bit6 as isize);
                 in_ptr = in_ptr.offset(1);
 
                 let bit7 = (*in_ptr != 0) as u8;
                 *out = *in_ptr;
-                out = out.offset(bit7 as int);
+                out = out.offset(bit7 as isize);
                 in_ptr = in_ptr.offset(1);
 
 
@@ -303,7 +303,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                     while in_ptr < limit {
                         let mut c = 0;
 
-                        for _ in range(0u, 8) {
+                        for _ in range(0, 8) {
                             c += (*in_ptr == 0) as u8;
                             in_ptr = in_ptr.offset(1);
                         }
@@ -315,7 +315,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                             break;
                         }
                     }
-                    let count : uint = ptr_sub(in_ptr, run_start);
+                    let count : usize = ptr_sub(in_ptr, run_start);
                     *out = (count / 8) as u8;
                     out = out.offset(1);
 
@@ -325,7 +325,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
                         let src : *const u8 = run_start;
                         std::ptr::copy_nonoverlapping_memory(out, src, count);
 
-                        out = out.offset(count as int);
+                        out = out.offset(count as isize);
                     } else {
                         //# Input overruns the output buffer. We'll give it
                         //# to the output stream in one chunk and let it
