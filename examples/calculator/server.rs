@@ -182,7 +182,7 @@ pub fn main() {
     let rpc_server = EzRpcServer::new(args[2].as_slice()).unwrap();
 
     // There's got to be a better way to do this.
-    let calculator = (box calculator::ServerDispatch { server : box CalculatorImpl}) as Box<Server+Send>;
+    let calculator = Box::new(calculator::ServerDispatch { server : Box::new(CalculatorImpl)}) as Box<Server+Send>;
     rpc_server.export_cap("calculator", calculator);
 
     let _ = rpc_server.serve().join();

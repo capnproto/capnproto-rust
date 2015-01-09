@@ -119,10 +119,10 @@ impl AnswerRef {
                    ops : Vec<PipelineOp>, context : Box<CallContextHook+Send>) {
         use std::ops::DerefMut;
         match self.status.lock().unwrap().deref_mut() {
-            &AnswerStatus::Sent(ref mut answer_message) => {
+            &mut AnswerStatus::Sent(ref mut answer_message) => {
                 AnswerRef::do_call(answer_message, interface_id, method_id, ops, context);
             }
-            &AnswerStatus::Pending(ref mut waiters) => {
+            &mut AnswerStatus::Pending(ref mut waiters) => {
                 waiters.push((interface_id, method_id, ops, context));
             }
         }
@@ -131,8 +131,8 @@ impl AnswerRef {
     pub fn sent(&mut self, mut message : Box<MallocMessageBuilder>) {
         use std::ops::DerefMut;
         match self.status.lock().unwrap().deref_mut() {
-            &AnswerStatus::Sent(_) => {panic!()}
-            &AnswerStatus::Pending(ref mut waiters) => {
+            &mut AnswerStatus::Sent(_) => {panic!()}
+            &mut AnswerStatus::Pending(ref mut waiters) => {
                 waiters.reverse();
                 while waiters.len() > 0 {
                     let (interface_id, method_id, ops, context) = match waiters.pop() {
@@ -219,14 +219,14 @@ impl <T> ExportTable<T> {
     }
 
     pub fn erase(&mut self, id : u32) {
-        self.slots[id as uint] = None;
+        self.slots[id as usize] = None;
         self.free_ids.push(ReverseU32 { val : id } );
     }
 
     pub fn push(&mut self, val : T) -> u32 {
         match self.free_ids.pop() {
             Some(ReverseU32 { val : id }) => {
-                self.slots[id as uint] = Some(val);
+                self.slots[id as usize] = Some(val);
                 id
             }
             None => {
@@ -385,7 +385,7 @@ impl RpcConnectionState {
                         }
                     }
                 }
-            }).detach();
+            });
 
         let rpc_chan = result_rpc_chan.clone();
 
@@ -511,8 +511,8 @@ impl RpcConnectionState {
                         match receiver {
                             MessageReceiver::Nobody => {}
                             MessageReceiver::Question(id) => {
-                                let erase_it = match &mut questions.slots[id as uint] {
-                                    &Some(ref mut q) => {
+                                let erase_it = match &mut questions.slots[id as usize] {
+                                    &mut Some(ref mut q) => {
                                         q.chan.send(
                                             box RpcResponse::new(message) as Box<ResponseHook+Send>).is_ok();
                                         q.is_awaiting_return = false;
@@ -523,7 +523,7 @@ impl RpcConnectionState {
                                             _ => {false}
                                         }
                                     }
-                                    &None => {
+                                    &mut None => {
                                         // XXX Todo
                                         panic!()
                                     }
@@ -538,7 +538,7 @@ impl RpcConnectionState {
                                     box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
 
                                 answers.slots.insert(answer_id, Answer::new());
-                                match exports.slots[id as uint] {
+                                match exports.slots[id as usize] {
                                     Some(ref ex) => {
                                         ex.hook.call(interface_id, method_id, context);
                                     }
@@ -600,7 +600,7 @@ impl RpcConnectionState {
                         // The idea is that when the last reference to a question
                         // is erased, this event will be triggered.
 
-                        let erase_it = match questions.slots[id as uint] {
+                        let erase_it = match questions.slots[id as usize] {
                             Some(ref q) if q.is_awaiting_return => {
                                 true
                             }
@@ -631,7 +631,7 @@ impl RpcConnectionState {
                     RpcEvent::Shutdown => {
                         break;
                     }
-                }}}).detach();
+                }}});
              return result_rpc_chan;
          }
 }
@@ -779,7 +779,7 @@ fn write_outgoing_cap_table(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, mes
                      payload : payload::Builder) {
         let mut new_cap_table = payload.init_cap_table(cap_table.len() as u32);
         for ii in range::<u32>(0, cap_table.len() as u32) {
-            match cap_table[ii as uint].downcast_ref::<OwnedCapDescriptor>() {
+            match cap_table[ii as usize].downcast_ref::<OwnedCapDescriptor>() {
                 Some(&OwnedCapDescriptor::NoDescriptor) => {}
                 Some(&OwnedCapDescriptor::ReceiverHosted(import_id)) => {
                     new_cap_table.borrow().get(ii).set_receiver_hosted(import_id);
@@ -799,7 +799,7 @@ fn write_outgoing_cap_table(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, mes
                     new_cap_table.borrow().get(ii).set_sender_hosted(export_id);
                 }
                 None => {
-                    match cap_table[ii as uint].downcast_ref::<Box<ClientHook+Send>>() {
+                    match cap_table[ii as usize].downcast_ref::<Box<ClientHook+Send>>() {
                         Some(clienthook) => {
                             let (chan, port) = ::std::sync::mpsc::channel::<ExportId>();
                             rpc_chan.send(RpcEvent::NewLocalServer(clienthook.copy(), chan)).unwrap();

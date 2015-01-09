@@ -41,7 +41,7 @@ impl LocalClient {
                     let context = CallContext { hook : context_hook };
                     server.dispatch_call(interface_id, method_id, context)
                 }
-            }).detach();
+            });
 
         LocalClient { object_channel : chan }
     }

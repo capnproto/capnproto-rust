@@ -8,6 +8,9 @@
 #![crate_name="capnp-rpc"]
 #![crate_type="lib"]
 
+#![allow(unstable)]
+#![feature(box_syntax)]
+
 extern crate core;
 extern crate capnp;
 

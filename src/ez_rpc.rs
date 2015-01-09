@@ -96,7 +96,7 @@ impl ExportedCaps {
                         Err(_) => break,
                     }
                 }
-            }).detach();
+            });
 
         chan
     }
@@ -145,8 +145,8 @@ impl EzRpcServer {
         self.sender.send(ExportEvent::Register(name.to_string(), server)).unwrap()
     }
 
-    pub fn serve(self) -> ::std::thread::JoinGuard<()> {
-        std::thread::Thread::spawn(move || {
+    pub fn serve<'a>(self) -> ::std::thread::JoinGuard<'a, ()> {
+        std::thread::Thread::scoped(move || {
             let mut server = self;
             for res in server.incoming() {
                 match res {
@@ -168,7 +168,7 @@ impl std::io::Acceptor<()> for EzRpcServer {
         std::thread::Thread::spawn(move || {
             let connection_state = RpcConnectionState::new();
             let _rpc_chan = connection_state.run(tcp.clone(), tcp, Restorer::new(sender2));
-        }).detach();
+        });
         Ok(())
     }
 }
