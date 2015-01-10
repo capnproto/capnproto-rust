@@ -1,3 +1,5 @@
+#![allow(unstable)]
+
 extern crate capnpc;
 
 fn main() {
