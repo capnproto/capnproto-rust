@@ -15,4 +15,4 @@ path = "addressbook.rs"
 path = "../../"
 
 [dependencies]
-capnp = "0.0.21"
+capnp = "0.1.0"

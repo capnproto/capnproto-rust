@@ -28,6 +28,8 @@
 #![crate_name="capnpc-rust"]
 #![crate_type = "bin"]
 
+#![allow(unstable)]
+
 extern crate capnp;
 extern crate capnpc;
 
