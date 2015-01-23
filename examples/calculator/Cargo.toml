@@ -11,10 +11,10 @@ name = "calculator"
 path = "main.rs"
 
 [build-dependencies]
-capnpc = "0.1.0"
+capnpc = "0.1.1"
 
 [dependencies]
-capnp = "0.1.0"
+capnp = "0.1.1"
 
 [dependencies.capnp-rpc]
 path = "../.."
