@@ -23,7 +23,7 @@ pub struct OwnedSpaceMessageReader {
 impl MessageReader for OwnedSpaceMessageReader {
     fn get_segment(&self, id : usize) -> &[Word] {
         let (a,b) = self.segment_slices.as_slice()[id];
-        self.owned_space.slice(a, b)
+        &self.owned_space[a .. b]
     }
 
     fn arena(&self) -> &arena::ReaderArena { &*self.arena }
@@ -103,15 +103,15 @@ pub fn new_reader<U : std::io::Reader>(input_stream : &mut U,
     let mut segment_slices : Vec<(usize, usize)> = vec!((0, segment0_size as usize));
 
     let arena = {
-        let segment0 : &[Word] = owned_space.slice(0, segment0_size as usize);
+        let segment0 : &[Word] = &owned_space[0 .. segment0_size as usize];
         let mut segments : Vec<&[Word]> = vec!(segment0);
 
         if segment_count > 1 {
             let mut offset = segment0_size;
 
             for ii in range(0, segment_count as usize - 1) {
-                segments.push(owned_space.slice(offset as usize,
-                                               (offset + more_sizes.as_slice()[ii]) as usize));
+                segments.push(&owned_space[offset as usize ..
+                                           (offset + more_sizes.as_slice()[ii]) as usize]);
                 segment_slices.push((offset as usize,
                                      (offset + more_sizes.as_slice()[ii]) as usize));
                 offset += more_sizes.as_slice()[ii];

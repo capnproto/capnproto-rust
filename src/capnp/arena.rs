@@ -141,7 +141,7 @@ impl ReaderArena {
 
         if segments.len() > 1 {
             let mut more_segment_readers = Vec::new();
-            for segment in segments.slice_from(1).iter() {
+            for segment in segments[1 ..].iter() {
                 let segment_reader = SegmentReader {
                     arena : arena_ptr,
                     ptr : unsafe { segment.get_unchecked(0) },

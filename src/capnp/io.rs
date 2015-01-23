@@ -14,7 +14,7 @@ pub fn read_at_least<R : Reader>(reader : &mut R,
     let mut pos = 0;
     let buf_len = buf.len();
     while pos < min_bytes {
-        let buf1 = buf.slice_mut(pos, buf_len);
+        let buf1 = &mut buf[pos .. buf_len];
         let n = try!(reader.read(buf1));
         pos += n;
     }
@@ -86,23 +86,23 @@ impl<'a, R: Reader> Reader for BufferedInputStreamWrapper<'a, R> {
         if num_bytes <= self.cap - self.pos {
             //# Serve from the current buffer.
             std::slice::bytes::copy_memory(dst,
-                                           self.buf.slice(self.pos, self.pos + num_bytes));
+                                           &self.buf[self.pos .. self.pos + num_bytes]);
             self.pos += num_bytes;
             return Ok(num_bytes);
         } else {
             //# Copy current available into destination.
 
             std::slice::bytes::copy_memory(dst,
-                                           self.buf.slice(self.pos, self.cap));
+                                           &self.buf[self.pos .. self.cap]);
             let from_first_buffer = self.cap - self.pos;
 
-            let dst1 = dst.slice_mut(from_first_buffer, num_bytes);
+            let dst1 = &mut dst[from_first_buffer .. num_bytes];
             num_bytes -= from_first_buffer;
             if num_bytes <= self.buf.len() {
                 //# Read the next buffer-full.
                 let n = try!(read_at_least(self.inner, self.buf.as_mut_slice(), num_bytes));
                 std::slice::bytes::copy_memory(dst1,
-                                               self.buf.slice(0, num_bytes));
+                                               &self.buf[0 .. num_bytes]);
                 self.cap = n;
                 self.pos = num_bytes;
                 return Ok(from_first_buffer + num_bytes);
@@ -130,7 +130,7 @@ impl <'a> Reader for ArrayInputStream<'a> {
     fn read(&mut self, dst: &mut [u8]) -> Result<usize, std::io::IoError> {
         let n = std::cmp::min(dst.len(), self.array.len());
         unsafe { ::std::ptr::copy_nonoverlapping_memory(dst.as_mut_ptr(), self.array.as_ptr(), n) }
-        self.array = self.array.slice_from(n);
+        self.array = &self.array[n ..];
         Ok(n)
     }
 }
@@ -139,7 +139,7 @@ impl <'a> BufferedInputStream for ArrayInputStream<'a> {
     fn skip(&mut self, bytes : usize) -> IoResult<()> {
         assert!(self.array.len() >= bytes,
                 "ArrayInputStream ended prematurely.");
-        self.array = self.array.slice_from(bytes);
+        self.array = &self.array[bytes ..];
         Ok(())
     }
     unsafe fn get_read_buffer(&mut self) -> IoResult<(*const u8, *const u8)> {
@@ -202,27 +202,27 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
         let available = self.buf.len() - self.pos;
         let mut size = buf.len();
         if size <= available {
-            let dst = self.buf.as_mut_slice().slice_from_mut(self.pos);
+            let dst = &mut self.buf.as_mut_slice()[self.pos ..];
             std::slice::bytes::copy_memory(dst, buf);
             self.pos += size;
         } else if size <= self.buf.len() {
             //# Too much for this buffer, but not a full buffer's
             //# worth, so we'll go ahead and copy.
             {
-                let dst = self.buf.as_mut_slice().slice_from_mut(self.pos);
-                std::slice::bytes::copy_memory(dst, buf.slice(0, available));
+                let dst = &mut self.buf.as_mut_slice()[self.pos ..];
+                std::slice::bytes::copy_memory(dst, &buf[0 .. available]);
             }
             try!(self.inner.write(self.buf.as_mut_slice()));
 
             size -= available;
-            let src = buf.slice_from(available);
-            let dst = self.buf.as_mut_slice().slice_from_mut(0);
+            let src = &buf[available ..];
+            let dst = &mut self.buf.as_mut_slice()[0 ..];
             std::slice::bytes::copy_memory(dst, src);
             self.pos = size;
         } else {
             //# Writing so much data that we might as well write
             //# directly to avoid a copy.
-            try!(self.inner.write(self.buf.slice(0, self.pos)));
+            try!(self.inner.write(&self.buf[0 .. self.pos]));
             self.pos = 0;
             try!(self.inner.write(buf));
         }
@@ -231,7 +231,7 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
 
     fn flush(&mut self) -> IoResult<()> {
         if self.pos > 0 {
-            try!(self.inner.write(self.buf.slice(0, self.pos)));
+            try!(self.inner.write(&self.buf[0 .. self.pos]));
             self.pos = 0;
         }
         self.inner.flush()
