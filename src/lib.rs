@@ -55,12 +55,12 @@ extern crate capnp;
 pub mod schema_capnp;
 pub mod codegen;
 
-pub fn compile(prefix : Path, files : &[Path]) -> ::std::io::IoResult<()> {
+pub fn compile(prefix : Path, files : &[Path]) -> ::std::old_io::IoResult<()> {
     let out_dir = Path::new(::std::os::getenv("OUT_DIR").unwrap());
     let cwd = try!(::std::os::getcwd());
     try!(::std::os::change_dir(&out_dir));
 
-    let mut command = ::std::io::Command::new("capnp");
+    let mut command = ::std::old_io::Command::new("capnp");
     command
         .arg("compile")
         .arg("-o/bin/cat")
@@ -70,8 +70,8 @@ pub fn compile(prefix : Path, files : &[Path]) -> ::std::io::IoResult<()> {
         command.arg(format!("{}", cwd.join(file).display()));
     }
 
-    command.stdout(::std::io::process::CreatePipe(false, true));
-    command.stderr(::std::io::process::InheritFd(2));
+    command.stdout(::std::old_io::process::CreatePipe(false, true));
+    command.stderr(::std::old_io::process::InheritFd(2));
 
     let mut p =  try!(command.spawn());
     let mut child_stdout = p.stdout.take().unwrap();

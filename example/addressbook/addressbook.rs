@@ -28,7 +28,7 @@ pub mod addressbook_capnp {
 }
 
 pub mod addressbook {
-    use std::io::{stdin, stdout, IoResult};
+    use std::old_io::{stdin, stdout, IoResult};
     use addressbook_capnp::{address_book, person};
     use capnp::serialize_packed;
     use capnp::{MessageBuilder, MessageReader, ReaderOptions, MallocMessageBuilder};

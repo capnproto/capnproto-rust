@@ -1530,10 +1530,10 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
 
 
-pub fn main<T : ::std::io::Reader>(inp : &mut T) -> ::std::io::IoResult<()> {
+pub fn main<T : ::std::old_io::Reader>(inp : &mut T) -> ::std::old_io::IoResult<()> {
     //! Generate Rust code according to a `schema_capnp::code_generator_request` read from `inp`.
 
-    use std::io::{Writer, File, Truncate, Write};
+    use std::old_io::{Writer, File, Truncate, Write};
     use capnp::serialize;
     use capnp::MessageReader;
 
@@ -1582,7 +1582,7 @@ pub fn main<T : ::std::io::Reader>(inp : &mut T) -> ::std::io::IoResult<()> {
 
         match File::open_mode(&filepath, Truncate, Write) {
             Ok(ref mut writer) => {
-                try!(writer.write(text.as_bytes()));
+                try!(writer.write_all(text.as_bytes()));
             }
             Err(e) => {panic!("could not open file for writing: {}", e)}
         }

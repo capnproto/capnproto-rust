@@ -169,8 +169,8 @@ mod tests {
                        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
         {
             let text_builder = test_blob.borrow().get_text_field();
-            let mut writer = ::std::io::BufWriter::new(text_builder.as_mut_bytes());
-            writer.write("aabbccddee".as_bytes()).unwrap();
+            let mut writer = ::std::old_io::BufWriter::new(text_builder.as_mut_bytes());
+            writer.write_all("aabbccddee".as_bytes()).unwrap();
         }
 
         test_blob.borrow().init_data_field(7);

@@ -48,13 +48,13 @@ pub mod eval;
 mod uncompressed {
     use capnp;
 
-    pub fn write<T : ::std::io::Writer, U : capnp::message::MessageBuilder>(
+    pub fn write<T : ::std::old_io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
         capnp::serialize::write_message(writer, message).unwrap();
     }
 
-    pub fn write_buffered<T : ::std::io::Writer, U : capnp::message::MessageBuilder>(
+    pub fn write_buffered<T : ::std::old_io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
         capnp::serialize::write_message(writer, message).unwrap();
@@ -71,7 +71,7 @@ mod packed {
     use capnp;
     use capnp::serialize_packed::{write_packed_message, write_packed_message_unbuffered};
 
-    pub fn write<T : ::std::io::Writer, U : capnp::message::MessageBuilder>(
+    pub fn write<T : ::std::old_io::Writer, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &U) {
         write_packed_message_unbuffered(writer, message).unwrap();
@@ -220,8 +220,8 @@ macro_rules! server(
 
 macro_rules! sync_client(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
-            let mut out_stream = ::std::io::stdio::stdout_raw();
-            let mut in_stream = ::std::io::stdio::stdin_raw();
+            let mut out_stream = ::std::old_io::stdio::stdout_raw();
+            let mut in_stream = ::std::old_io::stdio::stdin_raw();
             let mut in_buffered = capnp::io::BufferedInputStreamWrapper::new(&mut in_stream);
             let mut rng = common::FastRand::new();
             for _ in range(0, $iters) {
@@ -246,7 +246,7 @@ macro_rules! sync_client(
 
 macro_rules! pass_by_pipe(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
-        use std::io::process;
+        use std::old_io::process;
 
         let mut args = ::std::os::args();
         args[2] = "client".to_string();
@@ -278,8 +278,8 @@ macro_rules! do_testcase(
                 "bytes" => pass_by_bytes!($testcase, $reuse, $compression, $iters),
                 "client" => sync_client!($testcase, $reuse, $compression, $iters),
                 "server" => {
-                    let mut input = ::std::io::stdio::stdin_raw();
-                    let mut output = ::std::io::stdio::stdout_raw();
+                    let mut input = ::std::old_io::stdio::stdin_raw();
+                    let mut output = ::std::old_io::stdio::stdout_raw();
                     server!($testcase, $reuse, $compression, $iters, input, output)
                 }
                 "pipe" => pass_by_pipe!($testcase, $reuse, $compression, $iters),
