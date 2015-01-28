@@ -337,7 +337,7 @@ struct SegmentAnd<T> {
 macro_rules! require(
     ($condition:expr, $segment:expr, $message:expr, $fail:stmt) => (
         if !($condition) {
-            let _ = ::std::io::stdio::stderr().write_line($message);
+            let _ = ::std::old_io::stdio::stderr().write_line($message);
             if ($segment).arena.fail_fast() {
                 panic!();
             }
@@ -349,7 +349,7 @@ macro_rules! require(
 macro_rules! require_panic(
     ($segment:expr, $message:expr, $fail:stmt) => (
         {
-            let _ = ::std::io::stdio::stderr().write_line($message);
+            let _ = ::std::old_io::stdio::stderr().write_line($message);
             if ($segment).arena.fail_fast() {
                 panic!();
             }

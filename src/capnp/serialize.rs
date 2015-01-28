@@ -49,15 +49,15 @@ impl MessageReader for OwnedSpaceMessageReader {
     }
 }
 
-fn invalid_input<T>(desc : &'static str) -> std::io::IoResult<T> {
-    return Err(std::io::IoError{ kind : std::io::InvalidInput,
+fn invalid_input<T>(desc : &'static str) -> std::old_io::IoResult<T> {
+    return Err(std::old_io::IoError{ kind : std::old_io::InvalidInput,
                                  desc : desc,
                                  detail : None});
 }
 
-pub fn new_reader<U : std::io::Reader>(input_stream : &mut U,
+pub fn new_reader<U : std::old_io::Reader>(input_stream : &mut U,
                                        options : ReaderOptions)
-                                       -> std::io::IoResult<OwnedSpaceMessageReader> {
+                                       -> std::old_io::IoResult<OwnedSpaceMessageReader> {
 
     let first_word = try!(input_stream.read_exact(8));
 
@@ -144,9 +144,9 @@ pub fn new_reader<U : std::io::Reader>(input_stream : &mut U,
 }
 
 
-pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
+pub fn write_message<T : std::old_io::Writer, U : MessageBuilder>(
     output_stream : &mut T,
-    message : &U) -> std::io::IoResult<()> {
+    message : &U) -> std::old_io::IoResult<()> {
 
     try!(message.get_segments_for_output(
         |segments| {
@@ -169,14 +169,14 @@ pub fn write_message<T : std::io::Writer, U : MessageBuilder>(
             unsafe {
                 let ptr : *const u8 = std::mem::transmute(table.as_ptr());
                 let buf = std::slice::from_raw_buf::<u8>(&ptr, table.len() * 4);
-                try!(output_stream.write(buf));
+                try!(output_stream.write_all(buf));
             }
 
             for i in range(0, segments.len()) {
                 unsafe {
                     let ptr : *const u8 = std::mem::transmute(segments[i].as_ptr());
                     let buf = std::slice::from_raw_buf::<u8>(&ptr, segments[i].len() * BYTES_PER_WORD);
-                    try!(output_stream.write(buf));
+                    try!(output_stream.write_all(buf));
                 }
             }
             Ok(())

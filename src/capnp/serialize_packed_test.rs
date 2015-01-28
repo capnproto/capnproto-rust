@@ -26,7 +26,7 @@ use io;
 pub fn expect_packs_to(unpacked : &[u8],
                        packed : &[u8]) {
 
-    use std::io::{Reader, Writer};
+    use std::old_io::{Reader, Writer};
 
     // --------
     // write
@@ -35,7 +35,7 @@ pub fn expect_packs_to(unpacked : &[u8],
     {
         let mut writer = io::ArrayOutputStream::new(bytes.as_mut_slice());
         let mut packed_output_stream = PackedOutputStream {inner : &mut writer};
-        packed_output_stream.write(unpacked).unwrap();
+        packed_output_stream.write_all(unpacked).unwrap();
         packed_output_stream.flush().unwrap();
     }
 

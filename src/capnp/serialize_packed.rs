@@ -45,8 +45,8 @@ macro_rules! refresh_buffer(
         );
     );
 
-impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a, R> {
-    fn read(&mut self, out_buf: &mut [u8]) -> std::io::IoResult<usize> {
+impl <'a, R : io::BufferedInputStream> std::old_io::Reader for PackedInputStream<'a, R> {
+    fn read(&mut self, out_buf: &mut [u8]) -> std::old_io::IoResult<usize> {
         let len = out_buf.len();
 
         if len == 0 { return Ok(0); }
@@ -187,7 +187,7 @@ impl <'a, R : io::BufferedInputStream> std::io::Reader for PackedInputStream<'a,
 
 pub fn new_reader<U : io::BufferedInputStream>(input : &mut U,
                                                options : ReaderOptions)
-                                               -> std::io::IoResult<serialize::OwnedSpaceMessageReader> {
+                                               -> std::old_io::IoResult<serialize::OwnedSpaceMessageReader> {
     let mut packed_input = PackedInputStream {
         inner : input
     };
@@ -195,9 +195,9 @@ pub fn new_reader<U : io::BufferedInputStream>(input : &mut U,
     serialize::new_reader(&mut packed_input, options)
 }
 
-pub fn new_reader_unbuffered<U : std::io::Reader>(input : &mut U,
+pub fn new_reader_unbuffered<U : std::old_io::Reader>(input : &mut U,
                                                   options : ReaderOptions)
-                                                  -> std::io::IoResult<serialize::OwnedSpaceMessageReader> {
+                                                  -> std::old_io::IoResult<serialize::OwnedSpaceMessageReader> {
     let mut packed_input = PackedInputStream {
         inner : &mut io::BufferedInputStreamWrapper::new(input)
     };
@@ -210,8 +210,8 @@ pub struct PackedOutputStream<'a, W:'a> {
     pub inner : &'a mut W
 }
 
-impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'a, W> {
-    fn write(&mut self, in_buf : &[u8]) -> std::io::IoResult<()> {
+impl <'a, W : io::BufferedOutputStream> std::old_io::Writer for PackedOutputStream<'a, W> {
+    fn write_all(&mut self, in_buf : &[u8]) -> std::old_io::IoResult<()> {
         unsafe {
             let (mut out, mut buffer_end) = self.inner.get_write_buffer();
             let mut buffer_begin = out;
@@ -349,7 +349,7 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
 
                         {
                             let buf = std::slice::from_raw_buf::<u8>(&run_start, count);
-                            try!(self.inner.write(buf));
+                            try!(self.inner.write_all(buf));
                         }
 
                         let (out1, buffer_end1) = self.inner.get_write_buffer();
@@ -364,18 +364,18 @@ impl <'a, W : io::BufferedOutputStream> std::io::Writer for PackedOutputStream<'
         }
     }
 
-   fn flush(&mut self) -> std::io::IoResult<()> { self.inner.flush() }
+   fn flush(&mut self) -> std::old_io::IoResult<()> { self.inner.flush() }
 }
 
 pub fn write_packed_message<T: io::BufferedOutputStream, U: MessageBuilder>(
-    output : &mut T, message : &U) -> std::io::IoResult<()> {
+    output : &mut T, message : &U) -> std::old_io::IoResult<()> {
     let mut packed_output_stream = PackedOutputStream {inner : output};
     serialize::write_message(&mut packed_output_stream, message)
 }
 
 
-pub fn write_packed_message_unbuffered<T: std::io::Writer, U: MessageBuilder>(
-    output : &mut T, message : &U) -> std::io::IoResult<()> {
+pub fn write_packed_message_unbuffered<T: std::old_io::Writer, U: MessageBuilder>(
+    output : &mut T, message : &U) -> std::old_io::IoResult<()> {
     let mut buffered = io::BufferedOutputStreamWrapper::new(output);
     try!(write_packed_message(&mut buffered, message));
     buffered.flush()

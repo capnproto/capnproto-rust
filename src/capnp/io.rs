@@ -21,7 +21,7 @@
 
 use std;
 use std::vec::Vec;
-use std::io::{Reader, Writer, IoResult};
+use std::old_io::{Reader, Writer, IoResult};
 
 pub fn read_at_least<R : Reader>(reader : &mut R,
                                  buf: &mut [u8],
@@ -142,7 +142,7 @@ impl <'a> ArrayInputStream<'a> {
 }
 
 impl <'a> Reader for ArrayInputStream<'a> {
-    fn read(&mut self, dst: &mut [u8]) -> Result<usize, std::io::IoError> {
+    fn read(&mut self, dst: &mut [u8]) -> Result<usize, std::old_io::IoError> {
         let n = std::cmp::min(dst.len(), self.array.len());
         unsafe { ::std::ptr::copy_nonoverlapping_memory(dst.as_mut_ptr(), self.array.as_ptr(), n) }
         self.array = &self.array[n ..];
@@ -205,7 +205,7 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
             Ok(())
         } else {
             let buf = std::slice::from_raw_mut_buf::<u8>(&ptr, size);
-            self.write(buf)
+            self.write_all(buf)
         }
     }
 
@@ -213,7 +213,7 @@ impl<'a, W: Writer> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> 
 
 
 impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
-    fn write(&mut self, buf: &[u8]) -> IoResult<()> {
+    fn write_all(&mut self, buf: &[u8]) -> IoResult<()> {
         let available = self.buf.len() - self.pos;
         let mut size = buf.len();
         if size <= available {
@@ -227,7 +227,7 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
                 let dst = &mut self.buf.as_mut_slice()[self.pos ..];
                 std::slice::bytes::copy_memory(dst, &buf[0 .. available]);
             }
-            try!(self.inner.write(self.buf.as_mut_slice()));
+            try!(self.inner.write_all(self.buf.as_mut_slice()));
 
             size -= available;
             let src = &buf[available ..];
@@ -237,16 +237,16 @@ impl<'a, W: Writer> Writer for BufferedOutputStreamWrapper<'a, W> {
         } else {
             //# Writing so much data that we might as well write
             //# directly to avoid a copy.
-            try!(self.inner.write(&self.buf[0 .. self.pos]));
+            try!(self.inner.write_all(&self.buf[0 .. self.pos]));
             self.pos = 0;
-            try!(self.inner.write(buf));
+            try!(self.inner.write_all(buf));
         }
         return Ok(());
     }
 
     fn flush(&mut self) -> IoResult<()> {
         if self.pos > 0 {
-            try!(self.inner.write(&self.buf[0 .. self.pos]));
+            try!(self.inner.write_all(&self.buf[0 .. self.pos]));
             self.pos = 0;
         }
         self.inner.flush()
@@ -268,7 +268,7 @@ impl <'a> ArrayOutputStream<'a> {
 }
 
 impl <'a> Writer for ArrayOutputStream<'a> {
-    fn write(&mut self, buf: &[u8]) -> IoResult<()> {
+    fn write_all(&mut self, buf: &[u8]) -> IoResult<()> {
         assert!(buf.len() <= self.array.len() - self.fill_pos,
                 "ArrayOutputStream's backing array was not large enough for the data written.");
         unsafe { ::std::ptr::copy_nonoverlapping_memory(
@@ -293,7 +293,7 @@ impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
             Ok(())
         } else {
             let buf = std::slice::from_raw_mut_buf::<u8>(&ptr, size);
-            self.write(buf)
+            self.write_all(buf)
         }
     }
 }
