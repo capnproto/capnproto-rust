@@ -7,7 +7,7 @@ fn main() {
     // CAPNP_INCLUDE_DIR=$(shell dirname $(shell which capnp))/../include
 
     let prefix = {
-        let output = ::std::io::Command::new("which").arg("capnp")
+        let output = ::std::old_io::Command::new("which").arg("capnp")
             .output().unwrap().output;
         let path = Path::new(output.as_slice());
         let mut path1 = Path::new(path.dirname());

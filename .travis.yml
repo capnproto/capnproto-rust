@@ -1,3 +1,4 @@
+language: rust
 env:
   global:
     - secure: B27t8wBfFUeDUfPpE/CMBUjdJkR62UoIGZ/OZuvHX+P3A4lBdFXVBpCyIfZ2LsPlNJZKnmehY/FfgONdWP9yyWRbZ6HgwQwjmbUiEviKIEx2P4uqO7ao9/stZ/8rbdz1dw3EojZMLU7RFdgZOpeuWq3/3Ta8UmKVOylayKDk+2A=
@@ -5,7 +6,6 @@ before_install:
   - yes | sudo add-apt-repository ppa:ubuntu-toolchain-r/test
   - sudo apt-get update
 install:
-  - curl https://static.rust-lang.org/rustup.sh | sudo sh
   - sudo apt-get install g++-4.8 gcc-4.8 git
   - git clone https://github.com/kentonv/capnproto.git
   - export CC=gcc-4.8

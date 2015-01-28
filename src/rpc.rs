@@ -354,7 +354,7 @@ fn get_pipeline_ops(promised_answer : promised_answer::Reader) -> Vec<PipelineOp
     return result;
 }
 
-fn finish_question<W : ::std::io::Writer>(questions : &mut ExportTable<Question>,
+fn finish_question<W : ::std::old_io::Writer>(questions : &mut ExportTable<Question>,
                                         outpipe : &mut W,
                                         id : u32) {
     questions.erase(id);
@@ -380,7 +380,7 @@ impl RpcConnectionState {
         }
     }
 
-    pub fn run<T : ::std::io::Reader + Send, U : ::std::io::Writer + Send, V : SturdyRefRestorer + Send>(
+    pub fn run<T : ::std::old_io::Reader + Send, U : ::std::old_io::Writer + Send, V : SturdyRefRestorer + Send>(
         self, inpipe: T, outpipe: U, restorer : V)
          -> ::std::sync::mpsc::Sender<RpcEvent> {
 

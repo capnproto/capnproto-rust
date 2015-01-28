@@ -22,7 +22,7 @@
 use rpc_capnp::{message, return_};
 
 use std;
-use std::io::Acceptor;
+use std::old_io::Acceptor;
 use std::collections::hash_map::HashMap;
 use capnp::{any_pointer, MessageBuilder, MallocMessageBuilder};
 use capnp::capability::{ClientHook, FromClientHook, Server};
@@ -31,7 +31,7 @@ use capability::{LocalClient};
 
 pub struct EzRpcClient {
     rpc_chan : std::sync::mpsc::Sender<RpcEvent>,
-    tcp : std::io::net::tcp::TcpStream,
+    tcp : std::old_io::net::tcp::TcpStream,
 }
 
 impl Drop for EzRpcClient {
@@ -42,8 +42,8 @@ impl Drop for EzRpcClient {
 }
 
 impl EzRpcClient {
-    pub fn new(server_address : &str) -> std::io::IoResult<EzRpcClient> {
-        use std::io::net::{ip, tcp};
+    pub fn new(server_address : &str) -> std::old_io::IoResult<EzRpcClient> {
+        use std::old_io::net::{ip, tcp};
 
         let addr : ip::SocketAddr = std::str::FromStr::from_str(server_address).expect("bad server address");
 
@@ -137,13 +137,13 @@ impl SturdyRefRestorer for Restorer {
 
 pub struct EzRpcServer {
     sender : std::sync::mpsc::Sender<ExportEvent>,
-    tcp_acceptor : std::io::net::tcp::TcpAcceptor,
+    tcp_acceptor : std::old_io::net::tcp::TcpAcceptor,
 }
 
 impl EzRpcServer {
-    pub fn new(bind_address : &str) -> std::io::IoResult<EzRpcServer> {
-        use std::io::net::{ip, tcp};
-        use std::io::Listener;
+    pub fn new(bind_address : &str) -> std::old_io::IoResult<EzRpcServer> {
+        use std::old_io::net::{ip, tcp};
+        use std::old_io::Listener;
 
         let addr : ip::SocketAddr = std::str::FromStr::from_str(bind_address).expect("bad bind address");
 
@@ -175,8 +175,8 @@ impl EzRpcServer {
     }
 }
 
-impl std::io::Acceptor<()> for EzRpcServer {
-    fn accept(&mut self) -> std::io::IoResult<()> {
+impl std::old_io::Acceptor<()> for EzRpcServer {
+    fn accept(&mut self) -> std::old_io::IoResult<()> {
 
         let sender2 = self.sender.clone();
         let tcp = try!(self.tcp_acceptor.accept());
