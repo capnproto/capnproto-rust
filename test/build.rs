@@ -1,4 +1,4 @@
-#![allow(unstable)]
+#![feature(path)]
 
 extern crate capnpc;
 
