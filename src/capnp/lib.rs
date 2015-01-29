@@ -34,8 +34,7 @@
 //! [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust) is an implementation of a
 //! distributed object-capability layer.
 
-#![allow(unstable)]
-#![feature(unsafe_destructor)]
+#![feature(io, core, libc, unsafe_destructor)]
 #![allow(raw_pointer_derive)]
 
 #![crate_name="capnp"]
