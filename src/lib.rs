@@ -22,8 +22,7 @@
 #![crate_name="capnp-rpc"]
 #![crate_type="lib"]
 
-#![allow(unstable)]
-#![feature(box_syntax)]
+#![feature(box_syntax, collections, core, io, std_misc)]
 
 extern crate core;
 extern crate capnp;
