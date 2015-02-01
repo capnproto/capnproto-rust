@@ -32,6 +32,10 @@ pub mod node {
     }
   }
 
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+    fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+  }
+
   impl <'a> Reader<'a> {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
@@ -144,6 +148,10 @@ pub mod node {
 
   impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+  }
+
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+    fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
   }
 
   impl <'a> Builder<'a> {
@@ -389,6 +397,10 @@ pub mod node {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -428,6 +440,10 @@ pub mod node {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -496,6 +512,10 @@ pub mod node {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -539,6 +559,10 @@ pub mod node {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -615,6 +639,10 @@ pub mod node {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -665,6 +693,10 @@ pub mod node {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -779,6 +811,10 @@ pub mod node {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -805,6 +841,10 @@ pub mod node {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -871,6 +911,10 @@ pub mod node {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -904,6 +948,10 @@ pub mod node {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -985,6 +1033,10 @@ pub mod node {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -1018,6 +1070,10 @@ pub mod node {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -1105,6 +1161,10 @@ pub mod node {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -1179,6 +1239,10 @@ pub mod node {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -1347,6 +1411,10 @@ pub mod field {
     }
   }
 
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+    fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+  }
+
   impl <'a> Reader<'a> {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
@@ -1421,6 +1489,10 @@ pub mod field {
 
   impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+  }
+
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+    fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
   }
 
   impl <'a> Builder<'a> {
@@ -1571,6 +1643,10 @@ pub mod field {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -1612,6 +1688,10 @@ pub mod field {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -1715,6 +1795,10 @@ pub mod field {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -1738,6 +1822,10 @@ pub mod field {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -1799,6 +1887,10 @@ pub mod field {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -1834,6 +1926,10 @@ pub mod field {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -1918,6 +2014,10 @@ pub mod enumerant {
     }
   }
 
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+    fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+  }
+
   impl <'a> Reader<'a> {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
@@ -1968,6 +2068,10 @@ pub mod enumerant {
 
   impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+  }
+
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+    fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
   }
 
   impl <'a> Builder<'a> {
@@ -2059,6 +2163,10 @@ pub mod superclass {
     }
   }
 
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+    fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+  }
+
   impl <'a> Reader<'a> {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
@@ -2102,6 +2210,10 @@ pub mod superclass {
 
   impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+  }
+
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+    fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
   }
 
   impl <'a> Builder<'a> {
@@ -2179,6 +2291,10 @@ pub mod method {
     fn get_from_pointer(reader: &::capnp::layout::PointerReader<'a>) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null()))
     }
+  }
+
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+    fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
   }
 
   impl <'a> Reader<'a> {
@@ -2260,6 +2376,10 @@ pub mod method {
 
   impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+  }
+
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+    fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
   }
 
   impl <'a> Builder<'a> {
@@ -2420,6 +2540,10 @@ pub mod type_ {
     }
   }
 
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+    fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+  }
+
   impl <'a> Reader<'a> {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
@@ -2555,6 +2679,10 @@ pub mod type_ {
     fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
   }
 
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+    fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
+  }
+
   impl <'a> Builder<'a> {
     pub fn as_reader(self) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.builder.as_reader())
@@ -2648,10 +2776,11 @@ pub mod type_ {
     #[inline]
     pub fn init_any_pointer(self, ) -> ::schema_capnp::type_::any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 18);
-      self.builder.set_data_field::<u16>(4, 0);
-      self.builder.set_data_field::<u64>(2, 0u8 as u64);
-      self.builder.set_data_field::<u16>(5, 0u8 as u16);
-      self.builder.set_data_field::<u16>(5, 0u8 as u16);
+      self.builder.set_data_field::<u16>(2, 0);
+      self.builder.set_data_field::<u16>(1, 0);
+      self.builder.set_data_field::<u64>(1, 0u8 as u64);
+      self.builder.set_data_field::<u16>(1, 0u8 as u16);
+      self.builder.set_data_field::<u16>(1, 0u8 as u16);
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
@@ -2767,7 +2896,7 @@ pub mod type_ {
   }
   mod _private {
     use capnp::layout;
-    pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 1 };
+    pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 2, pointers : 1 };
     pub const TYPE_ID: u64 = 0xd07378ede1f9cc60;
   }
   pub enum Which<'a,A0,A1,A2,A3,A4> {
@@ -2822,6 +2951,10 @@ pub mod type_ {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -2848,6 +2981,10 @@ pub mod type_ {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -2917,6 +3054,10 @@ pub mod type_ {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -2947,6 +3088,10 @@ pub mod type_ {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -3024,6 +3169,10 @@ pub mod type_ {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -3054,6 +3203,10 @@ pub mod type_ {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -3131,6 +3284,10 @@ pub mod type_ {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -3161,6 +3318,10 @@ pub mod type_ {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -3240,16 +3401,20 @@ pub mod type_ {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
       #[inline]
       pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
-        match self.reader.get_data_field::<u16>(4) {
+        match self.reader.get_data_field::<u16>(2) {
           0 => {
             return ::std::option::Option::Some(Unconstrained(
-              ()
+              ::capnp::traits::FromStructReader::new(self.reader)
             ));
           }
           1 => {
@@ -3282,6 +3447,10 @@ pub mod type_ {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
+    }
+
     impl <'a> Builder<'a> {
       pub fn as_reader(self) -> Reader<'a> {
         ::capnp::traits::FromStructReader::new(self.builder.as_reader())
@@ -3290,28 +3459,30 @@ pub mod type_ {
         Builder { builder : self.builder}
       }
       #[inline]
-      pub fn set_unconstrained(&mut self, _value : ()) {
-        self.builder.set_data_field::<u16>(4, 0);
+      pub fn init_unconstrained(self, ) -> ::schema_capnp::type_::any_pointer::unconstrained::Builder<'a> {
+        self.builder.set_data_field::<u16>(2, 0);
+        self.builder.set_data_field::<u16>(1, 0);
+        ::capnp::traits::FromStructBuilder::new(self.builder)
       }
       #[inline]
       pub fn init_parameter(self, ) -> ::schema_capnp::type_::any_pointer::parameter::Builder<'a> {
-        self.builder.set_data_field::<u16>(4, 1);
-        self.builder.set_data_field::<u64>(2, 0u8 as u64);
-        self.builder.set_data_field::<u16>(5, 0u8 as u16);
+        self.builder.set_data_field::<u16>(2, 1);
+        self.builder.set_data_field::<u64>(1, 0u8 as u64);
+        self.builder.set_data_field::<u16>(1, 0u8 as u16);
         ::capnp::traits::FromStructBuilder::new(self.builder)
       }
       #[inline]
       pub fn init_implicit_method_parameter(self, ) -> ::schema_capnp::type_::any_pointer::implicit_method_parameter::Builder<'a> {
-        self.builder.set_data_field::<u16>(4, 2);
-        self.builder.set_data_field::<u16>(5, 0u8 as u16);
+        self.builder.set_data_field::<u16>(2, 2);
+        self.builder.set_data_field::<u16>(1, 0u8 as u16);
         ::capnp::traits::FromStructBuilder::new(self.builder)
       }
       #[inline]
       pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
-        match self.builder.get_data_field::<u16>(4) {
+        match self.builder.get_data_field::<u16>(2) {
           0 => {
             return ::std::option::Option::Some(Unconstrained(
-              ()
+              ::capnp::traits::FromStructBuilder::new(self.builder)
             ));
           }
           1 => {
@@ -3340,14 +3511,171 @@ pub mod type_ {
     mod _private {
       pub const TYPE_ID: u64 = 0xc2573fe8a23e49f1;
     }
-    pub enum Which<'a,A0,A1> {
-      Unconstrained(()),
-      Parameter(A0),
-      ImplicitMethodParameter(A1),
+    pub enum Which<'a,A0,A1,A2> {
+      Unconstrained(A0),
+      Parameter(A1),
+      ImplicitMethodParameter(A2),
     }
-    pub type WhichReader<'a> = Which<'a,::schema_capnp::type_::any_pointer::parameter::Reader<'a>,::schema_capnp::type_::any_pointer::implicit_method_parameter::Reader<'a>>;
+    pub type WhichReader<'a> = Which<'a,::schema_capnp::type_::any_pointer::unconstrained::Reader<'a>,::schema_capnp::type_::any_pointer::parameter::Reader<'a>,::schema_capnp::type_::any_pointer::implicit_method_parameter::Reader<'a>>;
     impl <'a> Copy for WhichReader<'a> {}
-    pub type WhichBuilder<'a> = Which<'a,::schema_capnp::type_::any_pointer::parameter::Builder<'a>,::schema_capnp::type_::any_pointer::implicit_method_parameter::Builder<'a>>;
+    pub type WhichBuilder<'a> = Which<'a,::schema_capnp::type_::any_pointer::unconstrained::Builder<'a>,::schema_capnp::type_::any_pointer::parameter::Builder<'a>,::schema_capnp::type_::any_pointer::implicit_method_parameter::Builder<'a>>;
+
+    pub mod unconstrained {
+      #![allow(unused_imports)]
+      use capnp::capability::{FromClientHook, FromTypelessPipeline};
+      use capnp::{text, data};
+      use capnp::layout;
+      use capnp::traits::{FromStructBuilder, FromStructReader};
+      use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
+
+      pub use self::Which::{AnyKind,Struct,List,Capability};
+
+      #[derive(Copy)]
+      pub struct Reader<'a> { reader : layout::StructReader<'a> }
+
+      impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {
+        #[inline]
+        fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }
+      }
+      impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {
+        fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {
+          Reader { reader : reader }
+        }
+      }
+
+      impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
+        fn get_from_pointer(reader: &::capnp::layout::PointerReader<'a>) -> Reader<'a> {
+          ::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null()))
+        }
+      }
+
+      impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+        fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+      }
+
+      impl <'a> Reader<'a> {
+        pub fn borrow<'b>(&'b self) -> Reader<'b> {
+          Reader { reader : self.reader}
+        }
+        #[inline]
+        pub fn which(self) -> ::std::option::Option<WhichReader> {
+          match self.reader.get_data_field::<u16>(1) {
+            0 => {
+              return ::std::option::Option::Some(AnyKind(
+                ()
+              ));
+            }
+            1 => {
+              return ::std::option::Option::Some(Struct(
+                ()
+              ));
+            }
+            2 => {
+              return ::std::option::Option::Some(List(
+                ()
+              ));
+            }
+            3 => {
+              return ::std::option::Option::Some(Capability(
+                ()
+              ));
+            }
+            _ => return ::std::option::Option::None
+          }
+        }
+      }
+
+      pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }
+      impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
+        #[inline]
+        fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }
+      }
+      impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {
+        fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {
+          Builder { builder : builder }
+        }
+      }
+
+      impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+        fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+      }
+
+      impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+        fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
+      }
+
+      impl <'a> Builder<'a> {
+        pub fn as_reader(self) -> Reader<'a> {
+          ::capnp::traits::FromStructReader::new(self.builder.as_reader())
+        }
+        pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+          Builder { builder : self.builder}
+        }
+        #[inline]
+        pub fn set_any_kind(&mut self, _value : ()) {
+          self.builder.set_data_field::<u16>(1, 0);
+        }
+        #[inline]
+        pub fn set_struct(&mut self, _value : ()) {
+          self.builder.set_data_field::<u16>(1, 1);
+        }
+        #[inline]
+        pub fn set_list(&mut self, _value : ()) {
+          self.builder.set_data_field::<u16>(1, 2);
+        }
+        #[inline]
+        pub fn set_capability(&mut self, _value : ()) {
+          self.builder.set_data_field::<u16>(1, 3);
+        }
+        #[inline]
+        pub fn which(self) -> ::std::option::Option<WhichBuilder> {
+          match self.builder.get_data_field::<u16>(1) {
+            0 => {
+              return ::std::option::Option::Some(AnyKind(
+                ()
+              ));
+            }
+            1 => {
+              return ::std::option::Option::Some(Struct(
+                ()
+              ));
+            }
+            2 => {
+              return ::std::option::Option::Some(List(
+                ()
+              ));
+            }
+            3 => {
+              return ::std::option::Option::Some(Capability(
+                ()
+              ));
+            }
+            _ => return ::std::option::Option::None
+          }
+        }
+      }
+
+      pub struct Pipeline { _typeless : ::capnp::any_pointer::Pipeline }
+      impl FromTypelessPipeline for Pipeline {
+        fn new(typeless : ::capnp::any_pointer::Pipeline) -> Pipeline {
+          Pipeline { _typeless : typeless }
+        }
+      }
+      impl Pipeline {
+      }
+      mod _private {
+        pub const TYPE_ID: u64 = 0x8e3b5f79fe593656;
+      }
+      pub enum Which {
+        AnyKind(()),
+        Struct(()),
+        List(()),
+        Capability(()),
+      }
+      pub type WhichReader = Which;
+      impl  Copy for WhichReader {}
+      pub type WhichBuilder = Which;
+    }
 
     pub mod parameter {
       #![allow(unused_imports)]
@@ -3376,17 +3704,21 @@ pub mod type_ {
         }
       }
 
+      impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+        fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+      }
+
       impl <'a> Reader<'a> {
         pub fn borrow<'b>(&'b self) -> Reader<'b> {
           Reader { reader : self.reader}
         }
         #[inline]
         pub fn get_scope_id(self) -> u64 {
-          self.reader.get_data_field::<u64>(2)
+          self.reader.get_data_field::<u64>(1)
         }
         #[inline]
         pub fn get_parameter_index(self) -> u16 {
-          self.reader.get_data_field::<u16>(5)
+          self.reader.get_data_field::<u16>(1)
         }
       }
 
@@ -3405,6 +3737,10 @@ pub mod type_ {
         fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
       }
 
+      impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+        fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
+      }
+
       impl <'a> Builder<'a> {
         pub fn as_reader(self) -> Reader<'a> {
           ::capnp::traits::FromStructReader::new(self.builder.as_reader())
@@ -3414,19 +3750,19 @@ pub mod type_ {
         }
         #[inline]
         pub fn get_scope_id(self) -> u64 {
-          self.builder.get_data_field::<u64>(2)
+          self.builder.get_data_field::<u64>(1)
         }
         #[inline]
         pub fn set_scope_id(&mut self, value : u64) {
-          self.builder.set_data_field::<u64>(2, value);
+          self.builder.set_data_field::<u64>(1, value);
         }
         #[inline]
         pub fn get_parameter_index(self) -> u16 {
-          self.builder.get_data_field::<u16>(5)
+          self.builder.get_data_field::<u16>(1)
         }
         #[inline]
         pub fn set_parameter_index(&mut self, value : u16) {
-          self.builder.set_data_field::<u16>(5, value);
+          self.builder.set_data_field::<u16>(1, value);
         }
       }
 
@@ -3470,13 +3806,17 @@ pub mod type_ {
         }
       }
 
+      impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+        fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+      }
+
       impl <'a> Reader<'a> {
         pub fn borrow<'b>(&'b self) -> Reader<'b> {
           Reader { reader : self.reader}
         }
         #[inline]
         pub fn get_parameter_index(self) -> u16 {
-          self.reader.get_data_field::<u16>(5)
+          self.reader.get_data_field::<u16>(1)
         }
       }
 
@@ -3495,6 +3835,10 @@ pub mod type_ {
         fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
       }
 
+      impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+        fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
+      }
+
       impl <'a> Builder<'a> {
         pub fn as_reader(self) -> Reader<'a> {
           ::capnp::traits::FromStructReader::new(self.builder.as_reader())
@@ -3504,11 +3848,11 @@ pub mod type_ {
         }
         #[inline]
         pub fn get_parameter_index(self) -> u16 {
-          self.builder.get_data_field::<u16>(5)
+          self.builder.get_data_field::<u16>(1)
         }
         #[inline]
         pub fn set_parameter_index(&mut self, value : u16) {
-          self.builder.set_data_field::<u16>(5, value);
+          self.builder.set_data_field::<u16>(1, value);
         }
       }
 
@@ -3554,6 +3898,10 @@ pub mod brand {
     }
   }
 
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+    fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+  }
+
   impl <'a> Reader<'a> {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
@@ -3593,6 +3941,10 @@ pub mod brand {
 
   impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+  }
+
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+    fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
   }
 
   impl <'a> Builder<'a> {
@@ -3662,6 +4014,10 @@ pub mod brand {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -3718,6 +4074,10 @@ pub mod brand {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -3822,6 +4182,10 @@ pub mod brand {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -3874,6 +4238,10 @@ pub mod brand {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -3969,6 +4337,10 @@ pub mod value {
     fn get_from_pointer(reader: &::capnp::layout::PointerReader<'a>) -> Reader<'a> {
       ::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null()))
     }
+  }
+
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+    fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
   }
 
   impl <'a> Reader<'a> {
@@ -4124,6 +4496,10 @@ pub mod value {
 
   impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+  }
+
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+    fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
   }
 
   impl <'a> Builder<'a> {
@@ -4431,6 +4807,10 @@ pub mod annotation {
     }
   }
 
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+    fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+  }
+
   impl <'a> Reader<'a> {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
@@ -4481,6 +4861,10 @@ pub mod annotation {
 
   impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+  }
+
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+    fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
   }
 
   impl <'a> Builder<'a> {
@@ -4599,6 +4983,10 @@ pub mod code_generator_request {
     }
   }
 
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+    fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+  }
+
   impl <'a> Reader<'a> {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
@@ -4645,6 +5033,10 @@ pub mod code_generator_request {
 
   impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+  }
+
+  impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+    fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
   }
 
   impl <'a> Builder<'a> {
@@ -4727,6 +5119,10 @@ pub mod code_generator_request {
       }
     }
 
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+      fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+    }
+
     impl <'a> Reader<'a> {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
@@ -4777,6 +5173,10 @@ pub mod code_generator_request {
 
     impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
       fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+    }
+
+    impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+      fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
     }
 
     impl <'a> Builder<'a> {
@@ -4867,6 +5267,10 @@ pub mod code_generator_request {
         }
       }
 
+      impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {
+        fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }
+      }
+
       impl <'a> Reader<'a> {
         pub fn borrow<'b>(&'b self) -> Reader<'b> {
           Reader { reader : self.reader}
@@ -4910,6 +5314,10 @@ pub mod code_generator_request {
 
       impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
         fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }
+      }
+
+      impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {
+        fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }
       }
 
       impl <'a> Builder<'a> {
