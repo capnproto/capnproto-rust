@@ -107,7 +107,7 @@ pub struct CallContext<Params, Results> {
 }
 
 impl <Params, Results> CallContext<Params, Results> {
-    pub fn fail(self) {self.hook.fail();}
+    pub fn fail(self, message : String) {self.hook.fail(message);}
     pub fn done(self) {self.hook.done();}
 }
 
@@ -123,7 +123,7 @@ CallContext<Params, Results> {
 
 pub trait CallContextHook {
     fn get<'a>(&'a mut self) -> (any_pointer::Reader<'a>, any_pointer::Builder<'a>);
-    fn fail(self : Box<Self>);
+    fn fail(self : Box<Self>, message : String);
     fn done(self : Box<Self>);
 }
 
