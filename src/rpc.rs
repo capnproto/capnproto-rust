@@ -973,6 +973,7 @@ impl PipelineHook for PromisedAnswerRpcPipeline {
 
 pub struct Aborter {
     succeeded : bool,
+    message : String,
     answer_id : AnswerId,
     rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
 }
@@ -986,7 +987,7 @@ impl Drop for Aborter {
                 let mut ret = root.init_return();
                 ret.set_answer_id(self.answer_id);
                 let mut exc = ret.init_exception();
-                exc.set_reason("aborted");
+                exc.set_reason(&self.message[]);
             }
             self.rpc_chan.send(RpcEvent::Return(results_message)).is_ok();
         }
@@ -1023,7 +1024,8 @@ impl RpcCallContext {
             params_message : params_message,
             results_message : results_message,
             rpc_chan : rpc_chan.clone(),
-            aborter : Aborter { succeeded : false, answer_id : answer_id, rpc_chan : rpc_chan},
+            aborter : Aborter { succeeded : false, message : "aborted".to_string(),
+                                answer_id : answer_id, rpc_chan : rpc_chan},
         }
     }
 }
@@ -1058,8 +1060,9 @@ impl CallContextHook for RpcCallContext {
 
         (params, results)
     }
-    fn fail(mut self : Box<RpcCallContext>) {
+    fn fail(mut self : Box<RpcCallContext>, message: String) {
         self.aborter.succeeded = false;
+        self.aborter.message = message;
     }
 
     fn done(self : Box<RpcCallContext>) {
@@ -1148,7 +1151,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 
         (params, results)
     }
-    fn fail(self : Box<PromisedAnswerRpcCallContext>) {
+    fn fail(self : Box<PromisedAnswerRpcCallContext>, message : String) {
         let tmp = *self;
         let PromisedAnswerRpcCallContext {
             params_message : _, mut results_message, rpc_chan : _, answer_chan} = tmp;
@@ -1156,7 +1159,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         match results_message.get_root::<message::Builder>().which() {
             Some(message::Return(ret)) => {
                 let mut exc = ret.init_exception();
-                exc.set_reason("aborted");
+                exc.set_reason(&message[]);
             }
             _ => panic!(),
         }

@@ -107,15 +107,14 @@ impl calculator::function::Server for FunctionImpl {
     fn call(&mut self, mut context : calculator::function::CallContext) {
         let (params, mut results) = context.get();
         if params.get_params().len() != self.param_count {
-            //"Wrong number of parameters."
-            return context.fail();
+            return context.fail("Wrong number of parameters.".to_string());
         };
 
         {
             match evaluate_impl(self.body.get_root::<calculator::expression::Builder>().as_reader(),
                                 Some(params.get_params())) {
                 Ok(r) => results.set_value(r),
-                Err(_) => return context.fail(),
+                Err(_) => return context.fail("Evaluation failed.".to_string()),
             }
 
         }
@@ -133,8 +132,7 @@ impl calculator::function::Server for OperatorImpl {
         let (params, mut results) = context.get();
         let params = params.get_params();
         if params.len() != 2 {
-            //"Wrong number of parameters: {}", params.len()
-            return context.fail();
+            return context.fail(format!("Wrong number of parameters: {}", params.len()));
         }
 
         let result = match self.op {
@@ -160,7 +158,7 @@ impl calculator::Server for CalculatorImpl {
                 results.set_value(
                     calculator::value::ToClient(ValueImpl::new(r)).from_server(None::<LocalClient>));
             }
-            Err(_) => return context.fail(),
+            Err(_) => return context.fail("Evaluation failed.".to_string()),
         }
         context.done();
     }

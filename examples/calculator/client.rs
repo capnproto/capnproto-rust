@@ -34,8 +34,7 @@ impl calculator::function::Server for PowerFunction {
         let (params, mut results) = context.get();
         let params = params.get_params();
         if params.len() != 2 {
-            //"Wrong number of parameters"
-            return context.fail();
+            return context.fail("Wrong number of parameters".to_string());
         };
         results.set_value(params.get(0).powf(params.get(1)));
         context.done();
