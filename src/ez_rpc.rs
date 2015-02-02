@@ -45,7 +45,7 @@ impl EzRpcClient {
     pub fn new(server_address : &str) -> std::old_io::IoResult<EzRpcClient> {
         use std::old_io::net::{ip, tcp};
 
-        let addr : ip::SocketAddr = std::str::FromStr::from_str(server_address).expect("bad server address");
+        let addr : ip::SocketAddr = std::str::FromStr::from_str(server_address).ok().expect("bad server address");
 
         let tcp = try!(tcp::TcpStream::connect(addr));
 
@@ -145,7 +145,7 @@ impl EzRpcServer {
         use std::old_io::net::{ip, tcp};
         use std::old_io::Listener;
 
-        let addr : ip::SocketAddr = std::str::FromStr::from_str(bind_address).expect("bad bind address");
+        let addr : ip::SocketAddr = std::str::FromStr::from_str(bind_address).ok().expect("bad bind address");
 
         let tcp_listener = try!(tcp::TcpListener::bind(addr));
 
