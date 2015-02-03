@@ -325,8 +325,8 @@ pub fn main() {
     }
 
     let iters = match args[5].parse::<u64>() {
-        Some (n) => n,
-        None => {
+        Ok(n) => n,
+        Err(_) => {
             println!("Could not parse a u64 from: {}", args[5]);
             ::std::os::set_exit_status(1);
             return;
