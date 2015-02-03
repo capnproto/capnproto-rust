@@ -24,7 +24,7 @@ use rpc_capnp::{message, return_};
 use std;
 use std::old_io::Acceptor;
 use std::collections::hash_map::HashMap;
-use capnp::{any_pointer, MessageBuilder, MallocMessageBuilder};
+use capnp::{any_pointer, MessageBuilder, MallocMessageBuilder, ReaderOptions};
 use capnp::capability::{ClientHook, FromClientHook, Server};
 use rpc::{RpcConnectionState, RpcEvent, SturdyRefRestorer};
 use capability::{LocalClient};
@@ -51,7 +51,7 @@ impl EzRpcClient {
 
         let connection_state = RpcConnectionState::new();
 
-        let chan = connection_state.run(tcp.clone(), tcp.clone(), ());
+        let chan = connection_state.run(tcp.clone(), tcp.clone(), (), *ReaderOptions::new().fail_fast(false));
 
         return Ok(EzRpcClient { rpc_chan : chan, tcp : tcp });
     }
@@ -182,7 +182,7 @@ impl std::old_io::Acceptor<()> for EzRpcServer {
         let tcp = try!(self.tcp_acceptor.accept());
         std::thread::Thread::spawn(move || {
             let connection_state = RpcConnectionState::new();
-            let _rpc_chan = connection_state.run(tcp.clone(), tcp, Restorer::new(sender2));
+            let _rpc_chan = connection_state.run(tcp.clone(), tcp, Restorer::new(sender2), *ReaderOptions::new().fail_fast(false));
         });
         Ok(())
     }
