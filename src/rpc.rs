@@ -381,7 +381,7 @@ impl RpcConnectionState {
     }
 
     pub fn run<T : ::std::old_io::Reader + Send, U : ::std::old_io::Writer + Send, V : SturdyRefRestorer + Send>(
-        self, inpipe: T, outpipe: U, restorer : V)
+        self, inpipe: T, outpipe: U, restorer : V, opts : ReaderOptions)
          -> ::std::sync::mpsc::Sender<RpcEvent> {
 
         let (result_rpc_chan, port) = ::std::sync::mpsc::channel::<RpcEvent>();
@@ -393,7 +393,7 @@ impl RpcConnectionState {
                 loop {
                     match serialize::new_reader(
                         &mut r,
-                        *ReaderOptions::new().fail_fast(false)) {
+                        opts) {
                         Err(_e) => { listener_chan.send(RpcEvent::Shutdown).is_ok(); break; }
                         Ok(message) => {
                             listener_chan.send(RpcEvent::IncomingMessage(box message)).is_ok();
