@@ -1550,11 +1550,11 @@ pub fn main<T : ::std::old_io::Reader>(inp : &mut T) -> ::std::old_io::IoResult<
 
     for requested_file in request.get_requested_files().iter() {
         let id = requested_file.get_id();
-        let mut filepath = ::std::path::Path::new(requested_file.get_filename());
+        let mut filepath = ::std::old_path::Path::new(requested_file.get_filename());
 
         let imports = requested_file.get_imports();
         for import in imports.iter() {
-            let importpath = ::std::path::Path::new(import.get_name());
+            let importpath = ::std::old_path::Path::new(import.get_name());
             let root_name : String = format!("::{}_capnp",
                                                importpath.filestem_str().unwrap().replace("-", "_"));
             populate_scope_map(&node_map, &mut scope_map, vec!(root_name), import.get_id());
