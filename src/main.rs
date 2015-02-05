@@ -27,7 +27,7 @@
 
 #![crate_name="capnpc-rust"]
 #![crate_type = "bin"]
-#![feature(io, os)]
+#![feature(io, env)]
 
 extern crate capnp;
 extern crate capnpc;
@@ -38,7 +38,7 @@ pub fn main() {
     match ::capnpc::codegen::main(&mut ::std::old_io::stdin()) {
         Ok(()) => {}
         Err(e) => {
-            std::os::set_exit_status(1);
+            std::env::set_exit_status(1);
             println!("error: {}", e)
         }
     }
