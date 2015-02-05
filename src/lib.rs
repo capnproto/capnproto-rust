@@ -47,7 +47,7 @@
 
 #![crate_name="capnpc"]
 #![crate_type = "lib"]
-#![feature(box_syntax, core, io, os, path, std_misc)]
+#![feature(box_syntax, core, env, io, path, std_misc)]
 
 extern crate capnp;
 
@@ -55,9 +55,9 @@ pub mod schema_capnp;
 pub mod codegen;
 
 pub fn compile(prefix : Path, files : &[Path]) -> ::std::old_io::IoResult<()> {
-    let out_dir = Path::new(::std::os::getenv("OUT_DIR").unwrap());
-    let cwd = try!(::std::os::getcwd());
-    try!(::std::os::change_dir(&out_dir));
+    let out_dir = Path::new(::std::env::var_string("OUT_DIR").unwrap());
+    let cwd = try!(::std::env::current_dir());
+    try!(::std::env::set_current_dir(&out_dir));
 
     let mut command = ::std::old_io::Command::new("capnp");
     command
