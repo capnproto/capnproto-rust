@@ -19,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std;
 use std::vec::Vec;
 
 use capnp::capability::{FromServer, Server};
@@ -186,13 +185,13 @@ impl calculator::Server for CalculatorImpl {
 }
 
 pub fn main() {
-    let args = std::os::args();
+    let args : Vec<String> = ::std::env::args().map(|arg| {arg.into_string().unwrap()}).collect();
     if args.len() != 3 {
         println!("usage: {} server ADDRESS[:PORT]", args[0]);
         return;
     }
 
-    let rpc_server = EzRpcServer::new(&args[2][]).unwrap();
+    let rpc_server = EzRpcServer::new(&args[2]).unwrap();
 
     // There's got to be a better way to do this.
     let calculator = Box::new(calculator::ServerDispatch { server : Box::new(CalculatorImpl)}) as Box<Server+Send>;

@@ -42,7 +42,7 @@ impl calculator::function::Server for PowerFunction {
 }
 
 pub fn main() {
-    let args = ::std::os::args();
+    let args : Vec<String> = ::std::env::args().map(|arg| {arg.into_string().unwrap()}).collect();
     if args.len() != 3 {
         println!("usage: {} client HOST:PORT", args[0]);
         return;
