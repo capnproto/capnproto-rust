@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "bin"]
-#![feature(collections, core, io, rand, os)]
+#![feature(collections, core, env, io, os)]
 
 extern crate capnp;
 extern crate rand;
@@ -248,7 +248,7 @@ macro_rules! pass_by_pipe(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
         use std::old_io::process;
 
-        let mut args = ::std::os::args();
+        let mut args : Vec<String> = ::std::env::args().map(|arg| {arg.into_string().unwrap()}).collect();
         args[2] = "client".to_string();
 
         let mut command = process::Command::new(args[0].as_slice());
@@ -316,11 +316,11 @@ macro_rules! do_testcase2(
     );
 
 pub fn main() {
-    let args = ::std::os::args();
+    let args : Vec<String> = ::std::env::args().map(|arg| {arg.into_string().unwrap()}).collect();
 
     if args.len() != 6 {
         println!("USAGE: {} CASE MODE REUSE COMPRESSION ITERATION_COUNT", args[0]);
-        ::std::os::set_exit_status(1);
+        ::std::env::set_exit_status(1);
         return;
     }
 
@@ -328,7 +328,7 @@ pub fn main() {
         Ok(n) => n,
         Err(_) => {
             println!("Could not parse a u64 from: {}", args[5]);
-            ::std::os::set_exit_status(1);
+            ::std::env::set_exit_status(1);
             return;
         }
     };
