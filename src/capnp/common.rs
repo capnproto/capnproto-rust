@@ -50,7 +50,8 @@ pub type WirePointerCount32 = u32;
 pub type WirePointerCount64 = u64;
 
 #[derive(Copy)]
-pub struct Word {_x : u64}
+#[repr(C)]
+pub struct Word {_unused_member : u64}
 
 pub const BITS_PER_BYTE : BitCount0 = 8;
 pub const BITS_PER_WORD : BitCount0 = 64;
