@@ -103,7 +103,7 @@ impl NoScratch {
 }
 
 pub struct UseScratch {
-    scratch_space : ::std::vec::Vec<capnp::common::Word>
+    scratch_space : ::std::vec::Vec<capnp::Word>
 }
 
 impl UseScratch {

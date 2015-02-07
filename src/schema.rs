@@ -19,15 +19,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#![allow(dead_code)]
+// This is experimental for now...
 
+struct RawSchema<'a> {
+    id : u64,
+    encoded_node : &'a [::capnp::Word],
+}
 
 pub struct SchemaLoader {
- _x : (),
+    schemas : ::std::collections::hash_map::HashMap<u64,()>,
 }
 
 
 impl SchemaLoader {
-    pub fn load(reader : ::schema_capnp::node::Reader) {
-        reader.total_size();
+    pub fn new() -> SchemaLoader {
+        SchemaLoader {
+            schemas : ::std::collections::hash_map::HashMap::new(),
+        }
+    }
+
+    pub fn load(&mut self, reader : ::schema_capnp::node::Reader) {
+        let id = reader.get_id();
+        let _num_words = reader.total_size().word_count;
+        self.schemas.get(&id);
     }
 }
