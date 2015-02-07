@@ -44,7 +44,7 @@ extern crate libc;
 
 // reexports
 pub use blob::{text, data};
-pub use common::{MessageSize};
+pub use common::{MessageSize, Word};
 pub use list::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 pub use message::{MessageBuilder, BuilderOptions, MessageReader, ReaderOptions};
 pub use message::MallocMessageBuilder;
@@ -55,11 +55,11 @@ pub mod arena;
 pub mod blob;
 pub mod capability;
 pub mod common;
-pub mod endian;
+mod endian;
 pub mod io;
 pub mod layout;
 pub mod list;
-pub mod mask;
+mod mask;
 pub mod message;
 pub mod serialize;
 pub mod serialize_packed;
