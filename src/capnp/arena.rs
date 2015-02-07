@@ -312,14 +312,11 @@ impl BuilderArena {
                 cont(&[v])
             } else {
                 let mut result = Vec::new();
-                result.push(::std::mem::transmute(
-                    ::std::raw::Slice { data : self.segment0.reader.ptr,
-                                      len : self.segment0.current_size() as usize}));
-
+                result.push(::std::slice::from_raw_parts(self.segment0.reader.ptr,
+                                                         self.segment0.current_size() as usize));
                 for seg in self.more_segments.iter() {
-                    result.push(::std::mem::transmute(
-                        ::std::raw::Slice { data : seg.reader.ptr,
-                                            len : seg.current_size() as usize}));
+                    result.push(::std::slice::from_raw_parts(seg.reader.ptr,
+                                                             seg.current_size() as usize))
                 }
                 cont(result.as_slice())
             }

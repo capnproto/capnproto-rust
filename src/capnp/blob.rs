@@ -29,8 +29,7 @@ pub mod text {
     pub fn new_reader<'a>(p : *const u8, len : u32) -> Result<Reader<'a>, ::std::str::Utf8Error> {
         // XXX The empty case is special and I don't know why.
         if len == 0 { return Ok(EMPTY); }
-        let v : &'a [u8] =
-            unsafe { ::std::mem::transmute(::std::raw::Slice { data: p, len: len as usize}) };
+        let v : &'a [u8] = unsafe { ::std::slice::from_raw_parts(p, len as usize) };
         ::std::str::from_utf8(v)
     }
 
@@ -52,7 +51,7 @@ pub mod text {
         }
 
         pub fn as_mut_bytes(self) -> &'a mut [u8] {
-             unsafe { ::std::mem::transmute(::std::raw::Slice { data:self.ptr as *const u8, len: self.len }) }
+             unsafe { ::std::slice::from_raw_parts_mut(self.ptr, self.len) }
         }
 
         pub unsafe fn as_ptr(&self) -> *mut u8 {
@@ -67,8 +66,7 @@ pub mod text {
     impl <'a> ::std::str::Str for Builder<'a> {
         fn as_slice<'b>(&'b self) -> &'b str {
             let v : &'b [u8] =
-                unsafe { ::std::mem::transmute(::std::raw::Slice { data: self.ptr as *const u8,
-                                                                   len: self.len as usize}) };
+                unsafe { ::std::slice::from_raw_parts(self.ptr as *const u8, self.len) };
             ::std::str::from_utf8(v).unwrap()
         }
     }
@@ -94,10 +92,7 @@ pub mod data {
     pub type Reader<'a> = &'a [u8];
 
     pub fn new_reader<'a>(p : *const u8, len : u32) -> Reader<'a> {
-        unsafe {
-            let v = ::std::raw::Slice { data: p, len: len as usize};
-            ::std::mem::transmute(v)
-        }
+        unsafe { ::std::slice::from_raw_parts(p, len as usize) }
     }
 
     impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
@@ -109,10 +104,7 @@ pub mod data {
     pub type Builder<'a> = &'a mut [u8];
 
     pub fn new_builder<'a>(p : *mut u8, len : u32) -> Builder<'a> {
-        unsafe {
-            let v = ::std::raw::Slice { data: p as *const u8, len: len as usize};
-            ::std::mem::transmute(v)
-        }
+        unsafe { ::std::slice::from_raw_parts_mut(p, len as usize) }
     }
 
     impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
