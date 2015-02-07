@@ -254,6 +254,8 @@ impl BuilderArena {
             ::std::mem::transmute(libc::calloc(size as libc::size_t,
                                                    BYTES_PER_WORD as libc::size_t)) };
 
+        if new_words.is_null() { panic!("could not allocate a new segment.") }
+
         self.owned_memory.push(new_words);
 
         match self.allocation_strategy {
