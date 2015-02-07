@@ -26,16 +26,16 @@
 //! In your Cargo.toml:
 //!
 //! ```ignore
-//!   [build-dependencies.capnpc]
-//!   git = "https://github.com/dwrensha/capnpc-rust.git"
+//!   [build-dependencies]
+//!   capnpc = "0.1.5"
 //! ```
 //!
 //! In your build.rs, call
 //!
 //! ```ignore
 //! ::capnpc::compile(Path::new("schema"),
-//!                   [Path::new("schema/foo.capnp"),
-//!                    Path::new("schema/bar.capnp")]);
+//!                   &[Path::new("schema/foo.capnp"),
+//!                     Path::new("schema/bar.capnp")]);
 //! ```
 //!
 //! This will be equivalent to executing the shell command
