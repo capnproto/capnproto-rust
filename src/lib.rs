@@ -53,6 +53,7 @@ extern crate capnp;
 
 pub mod schema_capnp;
 pub mod codegen;
+pub mod schema;
 
 pub fn compile(prefix : Path, files : &[Path]) -> ::std::old_io::IoResult<()> {
     let out_dir = Path::new(::std::env::var_string("OUT_DIR").unwrap());
