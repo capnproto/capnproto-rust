@@ -155,7 +155,7 @@ impl <'a, R : io::BufferedInputStream> std::old_io::Reader for PackedInputStream
 
                         try!(self.inner.skip(size));
                         {
-                            let buf = std::slice::from_raw_mut_buf::<u8>(&out, run_length);
+                            let buf = std::slice::from_raw_parts_mut::<u8>(out, run_length);
                             try!(self.inner.read(buf));
                         }
 
@@ -348,7 +348,7 @@ impl <'a, W : io::BufferedOutputStream> std::old_io::Writer for PackedOutputStre
                         try!(self.inner.write_ptr(buffer_begin, ptr_sub(out, buffer_begin)));
 
                         {
-                            let buf = std::slice::from_raw_buf::<u8>(&run_start, count);
+                            let buf = std::slice::from_raw_parts::<u8>(run_start, count);
                             try!(self.inner.write_all(buf));
                         }
 

@@ -109,7 +109,7 @@ pub fn new_reader<U : std::old_io::Reader>(input_stream : &mut U,
 
     unsafe {
         let ptr : *mut u8 = std::mem::transmute(owned_space.as_mut_slice().as_mut_ptr());
-        let buf = std::slice::from_raw_mut_buf::<u8>(&ptr, buf_len);
+        let buf = std::slice::from_raw_parts_mut::<u8>(ptr, buf_len);
         try!(io::read_at_least(input_stream, buf, buf_len));
     }
 
@@ -168,14 +168,14 @@ pub fn write_message<T : std::old_io::Writer, U : MessageBuilder>(
 
             unsafe {
                 let ptr : *const u8 = std::mem::transmute(table.as_ptr());
-                let buf = std::slice::from_raw_buf::<u8>(&ptr, table.len() * 4);
+                let buf = std::slice::from_raw_parts::<u8>(ptr, table.len() * 4);
                 try!(output_stream.write_all(buf));
             }
 
             for i in range(0, segments.len()) {
                 unsafe {
                     let ptr : *const u8 = std::mem::transmute(segments[i].as_ptr());
-                    let buf = std::slice::from_raw_buf::<u8>(&ptr, segments[i].len() * BYTES_PER_WORD);
+                    let buf = std::slice::from_raw_parts::<u8>(ptr, segments[i].len() * BYTES_PER_WORD);
                     try!(output_stream.write_all(buf));
                 }
             }
