@@ -40,6 +40,10 @@ pub mod node {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
     }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.reader.total_size()
+    }
     #[inline]
     pub fn get_id(self) -> u64 {
       self.reader.get_data_field::<u64>(0)
@@ -160,6 +164,10 @@ pub mod node {
     }
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
       Builder { builder : self.builder}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_id(self) -> u64 {
@@ -405,6 +413,10 @@ pub mod node {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_name(self) -> text::Reader<'a> {
         self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
@@ -452,6 +464,10 @@ pub mod node {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_name(self) -> text::Builder<'a> {
@@ -520,6 +536,10 @@ pub mod node {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_name(self) -> text::Reader<'a> {
         self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
@@ -571,6 +591,10 @@ pub mod node {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_name(self) -> text::Builder<'a> {
@@ -647,6 +671,10 @@ pub mod node {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_data_word_count(self) -> u16 {
         self.reader.get_data_field::<u16>(7)
@@ -705,6 +733,10 @@ pub mod node {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_data_word_count(self) -> u16 {
@@ -819,6 +851,10 @@ pub mod node {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_enumerants(self) -> struct_list::Reader<'a,::schema_capnp::enumerant::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
@@ -853,6 +889,10 @@ pub mod node {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_enumerants(self) -> struct_list::Builder<'a,::schema_capnp::enumerant::Builder<'a>> {
@@ -919,6 +959,10 @@ pub mod node {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_methods(self) -> struct_list::Reader<'a,::schema_capnp::method::Reader<'a>> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
@@ -960,6 +1004,10 @@ pub mod node {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_methods(self) -> struct_list::Builder<'a,::schema_capnp::method::Builder<'a>> {
@@ -1041,6 +1089,10 @@ pub mod node {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_type(self) -> ::schema_capnp::type_::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
@@ -1082,6 +1134,10 @@ pub mod node {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type(self) -> ::schema_capnp::type_::Builder<'a> {
@@ -1169,6 +1225,10 @@ pub mod node {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_type(self) -> ::schema_capnp::type_::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
@@ -1251,6 +1311,10 @@ pub mod node {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type(self) -> ::schema_capnp::type_::Builder<'a> {
@@ -1419,6 +1483,10 @@ pub mod field {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
     }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.reader.total_size()
+    }
     #[inline]
     pub fn get_name(self) -> text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
@@ -1501,6 +1569,10 @@ pub mod field {
     }
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
       Builder { builder : self.builder}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_name(self) -> text::Builder<'a> {
@@ -1651,6 +1723,10 @@ pub mod field {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_offset(self) -> u32 {
         self.reader.get_data_field::<u32>(1)
@@ -1700,6 +1776,10 @@ pub mod field {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_offset(self) -> u32 {
@@ -1803,6 +1883,10 @@ pub mod field {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_type_id(self) -> u64 {
         self.reader.get_data_field::<u64>(2)
@@ -1834,6 +1918,10 @@ pub mod field {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type_id(self) -> u64 {
@@ -1895,6 +1983,10 @@ pub mod field {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn which(self) -> ::std::option::Option<WhichReader> {
         match self.reader.get_data_field::<u16>(5) {
@@ -1938,6 +2030,10 @@ pub mod field {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn set_implicit(&mut self, _value : ()) {
@@ -2022,6 +2118,10 @@ pub mod enumerant {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
     }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.reader.total_size()
+    }
     #[inline]
     pub fn get_name(self) -> text::Reader<'a> {
       self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
@@ -2080,6 +2180,10 @@ pub mod enumerant {
     }
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
       Builder { builder : self.builder}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_name(self) -> text::Builder<'a> {
@@ -2171,6 +2275,10 @@ pub mod superclass {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
     }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.reader.total_size()
+    }
     #[inline]
     pub fn get_id(self) -> u64 {
       self.reader.get_data_field::<u64>(0)
@@ -2222,6 +2330,10 @@ pub mod superclass {
     }
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
       Builder { builder : self.builder}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_id(self) -> u64 {
@@ -2300,6 +2412,10 @@ pub mod method {
   impl <'a> Reader<'a> {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.reader.total_size()
     }
     #[inline]
     pub fn get_name(self) -> text::Reader<'a> {
@@ -2388,6 +2504,10 @@ pub mod method {
     }
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
       Builder { builder : self.builder}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_name(self) -> text::Builder<'a> {
@@ -2548,6 +2668,10 @@ pub mod type_ {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
     }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.reader.total_size()
+    }
     #[inline]
     pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
       match self.reader.get_data_field::<u16>(0) {
@@ -2689,6 +2813,10 @@ pub mod type_ {
     }
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
       Builder { builder : self.builder}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn set_void(&mut self, _value : ()) {
@@ -2959,6 +3087,10 @@ pub mod type_ {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_element_type(self) -> ::schema_capnp::type_::Reader<'a> {
         ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
@@ -2993,6 +3125,10 @@ pub mod type_ {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_element_type(self) -> ::schema_capnp::type_::Builder<'a> {
@@ -3062,6 +3198,10 @@ pub mod type_ {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_type_id(self) -> u64 {
         self.reader.get_data_field::<u64>(1)
@@ -3100,6 +3240,10 @@ pub mod type_ {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type_id(self) -> u64 {
@@ -3177,6 +3321,10 @@ pub mod type_ {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_type_id(self) -> u64 {
         self.reader.get_data_field::<u64>(1)
@@ -3215,6 +3363,10 @@ pub mod type_ {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type_id(self) -> u64 {
@@ -3292,6 +3444,10 @@ pub mod type_ {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_type_id(self) -> u64 {
         self.reader.get_data_field::<u64>(1)
@@ -3330,6 +3486,10 @@ pub mod type_ {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_type_id(self) -> u64 {
@@ -3409,6 +3569,10 @@ pub mod type_ {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
         match self.reader.get_data_field::<u16>(2) {
@@ -3457,6 +3621,10 @@ pub mod type_ {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn init_unconstrained(self, ) -> ::schema_capnp::type_::any_pointer::unconstrained::Builder<'a> {
@@ -3557,6 +3725,10 @@ pub mod type_ {
         pub fn borrow<'b>(&'b self) -> Reader<'b> {
           Reader { reader : self.reader}
         }
+
+        pub fn total_size(&self) -> ::capnp::MessageSize {
+          self.reader.total_size()
+        }
         #[inline]
         pub fn which(self) -> ::std::option::Option<WhichReader> {
           match self.reader.get_data_field::<u16>(1) {
@@ -3610,6 +3782,10 @@ pub mod type_ {
         }
         pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
           Builder { builder : self.builder}
+        }
+
+        pub fn total_size(&self) -> ::capnp::MessageSize {
+          self.builder.as_reader().total_size()
         }
         #[inline]
         pub fn set_any_kind(&mut self, _value : ()) {
@@ -3712,6 +3888,10 @@ pub mod type_ {
         pub fn borrow<'b>(&'b self) -> Reader<'b> {
           Reader { reader : self.reader}
         }
+
+        pub fn total_size(&self) -> ::capnp::MessageSize {
+          self.reader.total_size()
+        }
         #[inline]
         pub fn get_scope_id(self) -> u64 {
           self.reader.get_data_field::<u64>(1)
@@ -3747,6 +3927,10 @@ pub mod type_ {
         }
         pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
           Builder { builder : self.builder}
+        }
+
+        pub fn total_size(&self) -> ::capnp::MessageSize {
+          self.builder.as_reader().total_size()
         }
         #[inline]
         pub fn get_scope_id(self) -> u64 {
@@ -3814,6 +3998,10 @@ pub mod type_ {
         pub fn borrow<'b>(&'b self) -> Reader<'b> {
           Reader { reader : self.reader}
         }
+
+        pub fn total_size(&self) -> ::capnp::MessageSize {
+          self.reader.total_size()
+        }
         #[inline]
         pub fn get_parameter_index(self) -> u16 {
           self.reader.get_data_field::<u16>(1)
@@ -3845,6 +4033,10 @@ pub mod type_ {
         }
         pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
           Builder { builder : self.builder}
+        }
+
+        pub fn total_size(&self) -> ::capnp::MessageSize {
+          self.builder.as_reader().total_size()
         }
         #[inline]
         pub fn get_parameter_index(self) -> u16 {
@@ -3906,6 +4098,10 @@ pub mod brand {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
     }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.reader.total_size()
+    }
     #[inline]
     pub fn get_scopes(self) -> struct_list::Reader<'a,::schema_capnp::brand::scope::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
@@ -3953,6 +4149,10 @@ pub mod brand {
     }
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
       Builder { builder : self.builder}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_scopes(self) -> struct_list::Builder<'a,::schema_capnp::brand::scope::Builder<'a>> {
@@ -4022,6 +4222,10 @@ pub mod brand {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_scope_id(self) -> u64 {
         self.reader.get_data_field::<u64>(0)
@@ -4086,6 +4290,10 @@ pub mod brand {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_scope_id(self) -> u64 {
@@ -4190,6 +4398,10 @@ pub mod brand {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       pub fn has_type(&self) -> bool {
         if self.reader.get_data_field::<u16>(0) != 1 { return false; }
         !self.reader.get_pointer_field(0).is_null()
@@ -4250,6 +4462,10 @@ pub mod brand {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn set_unbound(&mut self, _value : ()) {
@@ -4346,6 +4562,10 @@ pub mod value {
   impl <'a> Reader<'a> {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.reader.total_size()
     }
     pub fn has_text(&self) -> bool {
       if self.reader.get_data_field::<u16>(0) != 12 { return false; }
@@ -4508,6 +4728,10 @@ pub mod value {
     }
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
       Builder { builder : self.builder}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn set_void(&mut self, _value : ()) {
@@ -4815,6 +5039,10 @@ pub mod annotation {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
     }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.reader.total_size()
+    }
     #[inline]
     pub fn get_id(self) -> u64 {
       self.reader.get_data_field::<u64>(0)
@@ -4873,6 +5101,10 @@ pub mod annotation {
     }
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
       Builder { builder : self.builder}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_id(self) -> u64 {
@@ -4991,6 +5223,10 @@ pub mod code_generator_request {
     pub fn borrow<'b>(&'b self) -> Reader<'b> {
       Reader { reader : self.reader}
     }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.reader.total_size()
+    }
     #[inline]
     pub fn get_nodes(self) -> struct_list::Reader<'a,::schema_capnp::node::Reader<'a>> {
       ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
@@ -5045,6 +5281,10 @@ pub mod code_generator_request {
     }
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
       Builder { builder : self.builder}
+    }
+
+    pub fn total_size(&self) -> ::capnp::MessageSize {
+      self.builder.as_reader().total_size()
     }
     #[inline]
     pub fn get_nodes(self) -> struct_list::Builder<'a,::schema_capnp::node::Builder<'a>> {
@@ -5127,6 +5367,10 @@ pub mod code_generator_request {
       pub fn borrow<'b>(&'b self) -> Reader<'b> {
         Reader { reader : self.reader}
       }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.reader.total_size()
+      }
       #[inline]
       pub fn get_id(self) -> u64 {
         self.reader.get_data_field::<u64>(0)
@@ -5185,6 +5429,10 @@ pub mod code_generator_request {
       }
       pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder { builder : self.builder}
+      }
+
+      pub fn total_size(&self) -> ::capnp::MessageSize {
+        self.builder.as_reader().total_size()
       }
       #[inline]
       pub fn get_id(self) -> u64 {
@@ -5275,6 +5523,10 @@ pub mod code_generator_request {
         pub fn borrow<'b>(&'b self) -> Reader<'b> {
           Reader { reader : self.reader}
         }
+
+        pub fn total_size(&self) -> ::capnp::MessageSize {
+          self.reader.total_size()
+        }
         #[inline]
         pub fn get_id(self) -> u64 {
           self.reader.get_data_field::<u64>(0)
@@ -5326,6 +5578,10 @@ pub mod code_generator_request {
         }
         pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
           Builder { builder : self.builder}
+        }
+
+        pub fn total_size(&self) -> ::capnp::MessageSize {
+          self.builder.as_reader().total_size()
         }
         #[inline]
         pub fn get_id(self) -> u64 {

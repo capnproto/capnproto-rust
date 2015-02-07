@@ -1186,6 +1186,10 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     box Branch(vec![
                         Line("pub fn borrow<'b>(&'b self) -> Reader<'b> {".to_string()),
                         Indent(box Line("Reader { reader : self.reader}".to_string())),
+                        Line("}".to_string()),
+                        BlankLine,
+                        Line("pub fn total_size(&self) -> ::capnp::MessageSize {".to_string()),
+                        Indent(box Line("self.reader.total_size()".to_string())),
                         Line("}".to_string())])),
                 Indent(box Branch(reader_members)),
                 Line("}".to_string()),
@@ -1219,14 +1223,19 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
                 Line("impl <'a> Builder<'a> {".to_string()),
                 Indent(
-                    box Branch(vec!(
+                    box Branch(vec![
                         Line("pub fn as_reader(self) -> Reader<'a> {".to_string()),
                         Indent(box Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string())),
                         Line("}".to_string()),
                         Line("pub fn borrow<'b>(&'b mut self) -> Builder<'b> {".to_string()),
                         Indent(box Line("Builder { builder : self.builder}".to_string())),
                         Line("}".to_string()),
-                        ))),
+
+                        BlankLine,
+                        Line("pub fn total_size(&self) -> ::capnp::MessageSize {".to_string()),
+                        Indent(box Line("self.builder.as_reader().total_size()".to_string())),
+                        Line("}".to_string())
+                        ])),
                 Indent(box Branch(builder_members)),
                 Line("}".to_string()),
                 BlankLine,

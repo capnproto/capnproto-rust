@@ -19,3 +19,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+
+
+pub struct SchemaLoader {
+ _x : (),
+}
+
+
+impl SchemaLoader {
+    pub fn load(reader : ::schema_capnp::node::Reader) {
+        reader.total_size();
+    }
+}
