@@ -23,7 +23,6 @@ use capnp::{any_pointer};
 use capnp::capability;
 use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, ResultFuture,
                         RequestHook, Request, ResponseHook};
-use capnp::common;
 use capnp::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use capnp::OwnedSpaceMessageReader;
@@ -672,7 +671,7 @@ impl ClientHook for ImportClient {
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
-                _size_hint : Option<common::MessageSize>)
+                _size_hint : Option<::capnp::MessageSize>)
                 -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
         let mut message = box MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
         {
@@ -713,7 +712,7 @@ impl ClientHook for PipelineClient {
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
-                _size_hint : Option<common::MessageSize>)
+                _size_hint : Option<::capnp::MessageSize>)
                 -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
         let mut message = box MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
         {
@@ -762,7 +761,7 @@ impl ClientHook for PromisedAnswerClient {
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
-                _size_hint : Option<common::MessageSize>)
+                _size_hint : Option<::capnp::MessageSize>)
                 -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
         let mut message = box MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
         {
