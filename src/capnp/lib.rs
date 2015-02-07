@@ -54,7 +54,7 @@ pub mod any_pointer;
 pub mod arena;
 pub mod blob;
 pub mod capability;
-pub mod common;
+mod common;
 mod endian;
 pub mod io;
 pub mod layout;

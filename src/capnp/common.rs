@@ -53,37 +53,39 @@ pub type WirePointerCount64 = u64;
 #[repr(C)]
 pub struct Word {_unused_member : u64}
 
+#[inline]
+impl Word {
+    pub fn allocate_zeroed_vec(size : WordCount) -> ::std::vec::Vec<Word> {
+
+        //    Do this, but faster:
+        //    return ::std::vec::Vec::from_elem(size, 0);
+
+        let mut result : ::std::vec::Vec<Word> = ::std::vec::Vec::with_capacity(size);
+        unsafe {
+            result.set_len(size);
+            let p : *mut u8 = ::std::mem::transmute(result.as_mut_slice().as_mut_ptr());
+            ::std::ptr::set_memory(p, 0, size * BYTES_PER_WORD);
+        }
+        return result;
+    }
+}
+
 pub const BITS_PER_BYTE : BitCount0 = 8;
 pub const BITS_PER_WORD : BitCount0 = 64;
 pub const BYTES_PER_WORD : ByteCount = 8;
 
 pub const BITS_PER_POINTER : BitCount0 = 64;
-pub const BYTES_PER_POINTER : ByteCount = 8;
+pub const _BYTES_PER_POINTER : ByteCount = 8;
 pub const WORDS_PER_POINTER : WordCount = 1;
 
 pub const POINTER_SIZE_IN_WORDS : WordCount = 1;
 
-pub fn bytes_per_element<T>() -> ByteCount {
+pub fn _bytes_per_element<T>() -> ByteCount {
     ::std::mem::size_of::<T>()
 }
 
 pub fn bits_per_element<T>() -> BitCount0 {
     8 * ::std::mem::size_of::<T>()
-}
-
-#[inline]
-pub fn allocate_zeroed_words(size : WordCount) -> ::std::vec::Vec<Word> {
-
-//    Do this, but faster:
-//    return ::std::vec::Vec::from_elem(size, 0);
-
-    let mut result : ::std::vec::Vec<Word> = ::std::vec::Vec::with_capacity(size);
-    unsafe {
-        result.set_len(size);
-        let p : *mut u8 = ::std::mem::transmute(result.as_mut_slice().as_mut_ptr());
-        ::std::ptr::set_memory(p, 0, size * BYTES_PER_WORD);
-    }
-    return result;
 }
 
 #[derive(Copy)]

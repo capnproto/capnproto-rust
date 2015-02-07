@@ -104,7 +104,7 @@ pub fn new_reader<U : std::old_io::Reader>(input_stream : &mut U,
                               receiving end, see capnp::ReaderOptions.");
     }
 
-    let mut owned_space : Vec<Word> = allocate_zeroed_words(total_words as usize);
+    let mut owned_space : Vec<Word> = Word::allocate_zeroed_vec(total_words as usize);
     let buf_len = total_words as usize * BYTES_PER_WORD;
 
     unsafe {
