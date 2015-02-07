@@ -109,7 +109,7 @@ pub struct UseScratch {
 impl UseScratch {
     pub fn new() -> UseScratch {
         UseScratch {
-            scratch_space : capnp::common::allocate_zeroed_words(SCRATCH_SIZE * 6)
+            scratch_space : ::capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE * 6)
         }
     }
 
