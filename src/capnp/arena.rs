@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 
 use std::vec::Vec;
-use libc;
 use capability::ClientHook;
 use common::*;
 use message;
@@ -197,8 +196,17 @@ pub struct BuilderArena {
 
 impl Drop for BuilderArena {
     fn drop(&mut self) {
-        for &segment_ptr in self.owned_memory.iter() {
-            unsafe { libc::free(::std::mem::transmute(segment_ptr)); }
+        unsafe {
+            ::std::rt::heap::deallocate(::std::mem::transmute(self.segment0.reader.ptr),
+                                        BYTES_PER_WORD * self.segment0.reader.size as usize,
+                                        BYTES_PER_WORD);
+        }
+        for ref segment_builder in self.more_segments.iter() {
+            unsafe {
+                ::std::rt::heap::deallocate(::std::mem::transmute(segment_builder.reader.ptr),
+                                            BYTES_PER_WORD * segment_builder.reader.size as usize,
+                                            BYTES_PER_WORD);
+            }
         }
     }
 }
@@ -213,13 +221,14 @@ impl BuilderArena {
     pub fn new(allocation_strategy : message::AllocationStrategy,
                first_segment : FirstSegment,
                fail_fast : bool) -> Box<BuilderArena> {
-
         let (first_segment, num_words, owned_memory) : (*mut Word, u32, Vec<*mut Word>) = unsafe {
             match first_segment {
                 NumWords(n) => {
-                    let ptr = ::std::mem::transmute(
-                        libc::calloc(n as libc::size_t,
-                                          BYTES_PER_WORD as libc::size_t));
+                    let ptr : *mut Word = ::std::mem::transmute(
+                        ::std::rt::heap::allocate(BYTES_PER_WORD * n as usize,
+                                                  ::std::mem::min_align_of::<Word>()));
+                    ::std::ptr::zero_memory(ptr, n as usize);
+                    if ptr.is_null() {panic!("could not allocate segment")}
                     (ptr, n, vec!(ptr))
                 }
                 ZeroedWords(w) => (w.as_mut_ptr(), w.len() as u32, Vec::new())
@@ -251,8 +260,9 @@ impl BuilderArena {
     pub fn allocate_owned_memory(&mut self, minimum_size : WordCount32) -> (*mut Word, WordCount32) {
         let size = ::std::cmp::max(minimum_size, self.next_size);
         let new_words : *mut Word = unsafe {
-            ::std::mem::transmute(libc::calloc(size as libc::size_t,
-                                                   BYTES_PER_WORD as libc::size_t)) };
+            ::std::mem::transmute(::std::rt::heap::allocate(BYTES_PER_WORD * size as usize,
+                                                            ::std::mem::min_align_of::<Word>())) };
+        unsafe { ::std::ptr::zero_memory(new_words, size as usize) };
 
         if new_words.is_null() { panic!("could not allocate a new segment.") }
 

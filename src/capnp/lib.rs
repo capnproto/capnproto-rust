@@ -34,13 +34,11 @@
 //! [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust) is an implementation of a
 //! distributed object-capability layer.
 
-#![feature(io, core, unsafe_destructor)]
+#![feature(alloc, io, core, unsafe_destructor)]
 #![allow(raw_pointer_derive)]
 
 #![crate_name="capnp"]
 #![crate_type = "lib"]
-
-extern crate libc;
 
 // reexports
 pub use blob::{text, data};

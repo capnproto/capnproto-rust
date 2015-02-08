@@ -16,6 +16,3 @@ keywords = ["protocol", "serialization"]
 name = "capnp"
 path = "src/capnp/lib.rs"
 
-
-[dependencies]
-libc = "0.1.1"

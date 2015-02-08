@@ -64,7 +64,7 @@ impl Word {
         unsafe {
             result.set_len(size);
             let p : *mut u8 = ::std::mem::transmute(result.as_mut_slice().as_mut_ptr());
-            ::std::ptr::set_memory(p, 0, size * BYTES_PER_WORD);
+            ::std::ptr::zero_memory(p, size * BYTES_PER_WORD);
         }
         return result;
     }
