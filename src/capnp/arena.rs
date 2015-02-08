@@ -227,8 +227,8 @@ impl BuilderArena {
                     let ptr : *mut Word = ::std::mem::transmute(
                         ::std::rt::heap::allocate(BYTES_PER_WORD * n as usize,
                                                   ::std::mem::min_align_of::<Word>()));
-                    ::std::ptr::zero_memory(ptr, n as usize);
                     if ptr.is_null() {panic!("could not allocate segment")}
+                    ::std::ptr::zero_memory(ptr, n as usize);
                     (ptr, n, vec!(ptr))
                 }
                 ZeroedWords(w) => (w.as_mut_ptr(), w.len() as u32, Vec::new())
@@ -262,9 +262,8 @@ impl BuilderArena {
         let new_words : *mut Word = unsafe {
             ::std::mem::transmute(::std::rt::heap::allocate(BYTES_PER_WORD * size as usize,
                                                             ::std::mem::min_align_of::<Word>())) };
-        unsafe { ::std::ptr::zero_memory(new_words, size as usize) };
-
         if new_words.is_null() { panic!("could not allocate a new segment.") }
+        unsafe { ::std::ptr::zero_memory(new_words, size as usize) };
 
         self.owned_memory.push(new_words);
 
