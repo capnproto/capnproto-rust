@@ -50,10 +50,11 @@ pub use serialize::OwnedSpaceMessageReader;
 
 pub mod any_pointer;
 pub mod arena;
-pub mod blob;
+mod blob;
 pub mod capability;
 mod common;
 mod endian;
+pub mod private;
 pub mod io;
 pub mod layout;
 pub mod list;

@@ -19,19 +19,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std;
-use layout;
 
 #[test]
 fn simple_raw_data_struct() {
-    let data : layout::AlignedData<[u8; 16]> = layout::AlignedData {
+    let data : ::private::AlignedData<[u8; 16]> = ::private::AlignedData {
         _dummy: 0,
-        words : [0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef]
+        data : [0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+                0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef]
     };
 
-    let reader = unsafe { layout::PointerReader::get_root_unchecked(
-        std::mem::transmute(data.words.as_ptr())).get_struct(std::ptr::null()) };
+    let reader = unsafe { ::layout::PointerReader::get_root_unchecked(
+        ::std::mem::transmute(data.data.as_ptr())).get_struct(::std::ptr::null()) };
 
     assert_eq!(0xefcdab8967452301u64, reader.get_data_field::<u64>(0));
     assert_eq!(0, reader.get_data_field::<u64>(1));
