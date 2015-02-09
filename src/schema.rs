@@ -22,18 +22,13 @@
 #![allow(dead_code)]
 // This is experimental for now...
 
-struct RawSchema<'a> {
-    id : u64,
-    encoded_node : &'a [::capnp::Word],
-}
-
-pub struct SchemaLoader {
-    schemas : ::std::collections::hash_map::HashMap<u64,()>,
+pub struct SchemaLoader<'a> {
+    schemas : ::std::collections::hash_map::HashMap<u64, ::capnp::private::RawSchema<'a>>,
 }
 
 
-impl SchemaLoader {
-    pub fn new() -> SchemaLoader {
+impl <'a> SchemaLoader<'a> {
+    pub fn new() -> SchemaLoader<'a> {
         SchemaLoader {
             schemas : ::std::collections::hash_map::HashMap::new(),
         }

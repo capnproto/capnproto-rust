@@ -237,7 +237,7 @@ fn generate_import_statements() -> FormattedText {
         Line("#![allow(unused_imports)]".to_string()),
         Line("use capnp::capability::{FromClientHook, FromTypelessPipeline};".to_string()),
         Line("use capnp::{text, data};".to_string()),
-        Line("use capnp::layout;".to_string()),
+        Line("use capnp::private::layout;".to_string()),
         Line("use capnp::traits::{FromStructBuilder, FromStructReader};".to_string()),
         Line("use capnp::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};".to_string()),
     ))
@@ -1122,7 +1122,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             if !is_group {
                 private_mod_interior.push(
                     Line(
-                        "use capnp::layout;".to_string()));
+                        "use capnp::private::layout;".to_string()));
                 private_mod_interior.push(
                     Line(
                         format!("pub const STRUCT_SIZE : layout::StructSize = layout::StructSize {{ data : {}, pointers : {} }};",
@@ -1140,10 +1140,10 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         Line("impl <'a> ::capnp::traits::FromPointerBuilder<'a> for Builder<'a> {".to_string()),
                         Indent(
                             box Branch(vec!(
-                                Line("fn init_pointer(builder: ::capnp::layout::PointerBuilder<'a>, _size : u32) -> Builder<'a> {".to_string()),
+                                Line("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size : u32) -> Builder<'a> {".to_string()),
                                 Indent(box Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))".to_string())),
                                 Line("}".to_string()),
-                                Line("fn get_from_pointer(builder: ::capnp::layout::PointerBuilder<'a>) -> Builder<'a> {".to_string()),
+                                Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Builder<'a> {".to_string()),
                                 Indent(box Line("::capnp::traits::FromStructBuilder::new(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))".to_string())),
                                 Line("}".to_string())))),
                         Line("}".to_string()),
@@ -1163,7 +1163,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("fn new(reader: ::capnp::layout::StructReader<'a>) -> Reader<'a> {".to_string()),
+                        Line("fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a> {".to_string()),
                         Indent(box Line("Reader { reader : reader }".to_string())),
                         Line("}".to_string())))),
                 Line("}".to_string()),
@@ -1171,7 +1171,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("fn get_from_pointer(reader: &::capnp::layout::PointerReader<'a>) -> Reader<'a> {".to_string()),
+                        Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Reader<'a> {".to_string()),
                         Indent(box Line("::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null()))".to_string())),
                         Line("}".to_string())))),
                 Line("}".to_string()),
@@ -1194,7 +1194,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Indent(box Branch(reader_members)),
                 Line("}".to_string()),
                 BlankLine,
-                Line("pub struct Builder<'a> { builder : ::capnp::layout::StructBuilder<'a> }".to_string()),
+                Line("pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }".to_string()),
                 builder_struct_size,
                 Branch(vec!(
                         Line("impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {".to_string()),
@@ -1204,14 +1204,14 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {".to_string()),
                 Indent(
                     box Branch(vec!(
-                        Line("fn new(builder : ::capnp::layout::StructBuilder<'a>) -> Builder<'a> {".to_string()),
+                        Line("fn new(builder : ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a> {".to_string()),
                         Indent(box Line("Builder { builder : builder }".to_string())),
                         Line("}".to_string())))),
                 Line("}".to_string()),
                 BlankLine,
                 from_pointer_builder_impl,
                 Line("impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {".to_string()),
-                Indent(box Line("fn set_pointer_builder<'b>(pointer : ::capnp::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }".to_string())),
+                Indent(box Line("fn set_pointer_builder<'b>(pointer : ::capnp::private::layout::PointerBuilder<'b>, value : Reader<'a>) { pointer.set_struct(&value.reader); }".to_string())),
                 Line("}".to_string()),
                 BlankLine,
 
