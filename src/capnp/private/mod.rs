@@ -21,6 +21,12 @@
 
 use ::common::Word;
 
+pub mod arena;
+pub mod layout;
+
+#[cfg(test)]
+mod layout_test;
+
 /// Some data that's guaranteed to be aligned on a word boundary. Typically
 /// the type parameter `T` will be instantiated as `[u8; n]` where `n` is
 /// a multiple of eight.

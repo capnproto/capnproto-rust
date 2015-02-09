@@ -25,7 +25,6 @@ use message::*;
 use serialize;
 use common::ptr_sub;
 
-
 pub struct PackedInputStream<'a, R:'a> {
     pub inner : &'a mut R
 }

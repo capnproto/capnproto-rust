@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use private::layout::{PointerBuilder, PointerReader};
 
 pub type Reader<'a> = &'a [u8];
 
@@ -27,7 +28,7 @@ pub fn new_reader<'a>(p : *const u8, len : u32) -> Reader<'a> {
 }
 
 impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader : &::layout::PointerReader<'a>) -> Reader<'a> {
+    fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a> {
         reader.get_data(::std::ptr::null(), 0)
     }
 }
@@ -39,16 +40,16 @@ pub fn new_builder<'a>(p : *mut u8, len : u32) -> Builder<'a> {
 }
 
 impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
-    fn init_pointer(builder : ::layout::PointerBuilder<'a>, size : u32) -> Builder<'a> {
+    fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a> {
         builder.init_data(size)
     }
-    fn get_from_pointer(builder : ::layout::PointerBuilder<'a>) -> Builder<'a> {
+    fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a> {
         builder.get_data(::std::ptr::null(), 0)
     }
 }
 
 impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a>) {
+    fn set_pointer_builder<'b>(pointer : PointerBuilder<'b>, value : Reader<'a>) {
         pointer.set_data(value);
     }
 }

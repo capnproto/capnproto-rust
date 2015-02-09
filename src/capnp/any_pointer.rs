@@ -22,7 +22,7 @@
 use std::vec::Vec;
 
 use capability::{ClientHook, FromClientHook, PipelineHook, PipelineOp};
-use layout::{PointerReader, PointerBuilder};
+use private::layout::{PointerReader, PointerBuilder};
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 
 #[derive(Copy)]

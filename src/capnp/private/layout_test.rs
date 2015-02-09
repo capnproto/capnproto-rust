@@ -28,7 +28,7 @@ fn simple_raw_data_struct() {
                 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef]
     };
 
-    let reader = unsafe { ::layout::PointerReader::get_root_unchecked(
+    let reader = unsafe { ::private::layout::PointerReader::get_root_unchecked(
         ::std::mem::transmute(data.data.as_ptr())).get_struct(::std::ptr::null()) };
 
     assert_eq!(0xefcdab8967452301u64, reader.get_data_field::<u64>(0));

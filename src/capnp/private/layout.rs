@@ -23,7 +23,7 @@ use capability::{ClientHook};
 use common::*;
 use endian::{WireValue, Endian};
 use mask::*;
-use arena::*;
+use private::arena::*;
 use data;
 use text;
 
@@ -355,8 +355,8 @@ macro_rules! require_panic(
 mod wire_helpers {
     use capability::ClientHook;
     use common::*;
-    use layout::*;
-    use arena::*;
+    use private::layout::*;
+    use private::arena::*;
     use data;
     use text;
 

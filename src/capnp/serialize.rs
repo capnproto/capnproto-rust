@@ -24,7 +24,7 @@ use std::vec::Vec;
 use common::*;
 use endian::*;
 use message::*;
-use arena;
+use private::arena;
 use io;
 
 

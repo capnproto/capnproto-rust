@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use common::Word;
-use layout::{StructReader, StructBuilder, StructSize, PointerBuilder, PointerReader};
+use private::layout::{StructReader, StructBuilder, StructSize, PointerBuilder, PointerReader};
 
 pub trait FromStructReader<'a> {
     fn new(reader : StructReader<'a>) -> Self;

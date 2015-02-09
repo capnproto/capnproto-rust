@@ -48,14 +48,12 @@ pub use message::MallocMessageBuilder;
 pub use serialize::OwnedSpaceMessageReader;
 
 pub mod any_pointer;
-pub mod arena;
 pub mod capability;
 mod common;
 pub mod data;
 mod endian;
 pub mod private;
 pub mod io;
-pub mod layout;
 pub mod list;
 mod mask;
 pub mod message;
@@ -66,9 +64,7 @@ pub mod traits;
 
 
 #[cfg(test)]
-pub mod layout_test;
-#[cfg(test)]
-pub mod serialize_packed_test;
+mod serialize_packed_test;
 
 
 

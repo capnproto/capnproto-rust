@@ -50,8 +50,8 @@ impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator for ListIter<T, U> {
 
 pub mod primitive_list {
     use traits::{FromPointerReader, FromPointerBuilder};
-    use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
-                 PrimitiveElement, element_size_for_type};
+    use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
+                          PrimitiveElement, element_size_for_type};
 
     #[derive(Copy)]
     pub struct Reader<'a, T> {
@@ -112,7 +112,7 @@ pub mod primitive_list {
     }
 
     impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
-        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
+        fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
             pointer.set_list(&value.reader);
         }
     }
@@ -126,8 +126,8 @@ pub mod primitive_list {
 
 pub mod enum_list {
     use traits::{FromPointerReader, FromPointerBuilder, ToU16};
-    use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
-                 TwoBytes, PrimitiveElement};
+    use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
+                          TwoBytes, PrimitiveElement};
 
     #[derive(Copy)]
     pub struct Reader<'a, T> {
@@ -192,7 +192,7 @@ pub mod enum_list {
     }
 
     impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
-        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
+        fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
             pointer.set_list(&value.reader);
         }
     }
@@ -206,7 +206,7 @@ pub mod enum_list {
 
 
 pub mod struct_list {
-    use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, InlineComposite};
+    use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, InlineComposite};
     use traits::{FromPointerReader, FromPointerBuilder,
                  FromStructBuilder, FromStructReader, HasStructSize};
 
@@ -301,7 +301,7 @@ pub mod struct_list {
     }
 
     impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
-        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
+        fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
             pointer.set_list(&value.reader);
         }
     }
@@ -315,7 +315,7 @@ pub mod struct_list {
 
 pub mod list_list {
     use traits::{FromPointerReader, FromPointerBuilder};
-    use layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
+    use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
 
     #[derive(Copy)]
     pub struct Reader<'a, T> {
@@ -388,7 +388,7 @@ pub mod list_list {
     }
 
     impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
-        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
+        fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
             pointer.set_list(&value.reader);
         }
     }
@@ -402,7 +402,7 @@ pub mod list_list {
 
 pub mod text_list {
     use traits::{FromPointerReader, FromPointerBuilder};
-    use layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
+    use private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 
     #[derive(Copy)]
     pub struct Reader<'a> {
@@ -472,7 +472,7 @@ pub mod text_list {
     }
 
     impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a>) {
+        fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a>) {
             pointer.set_list(&value.reader);
         }
     }
@@ -480,7 +480,7 @@ pub mod text_list {
 
 pub mod data_list {
     use traits::{FromPointerReader, FromPointerBuilder};
-    use layout::*;
+    use private::layout::*;
 
     #[derive(Copy)]
     pub struct Reader<'a> {
@@ -552,7 +552,7 @@ pub mod data_list {
 
 
     impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-        fn set_pointer_builder<'b>(pointer : ::layout::PointerBuilder<'b>, value : Reader<'a>) {
+        fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a>) {
             pointer.set_list(&value.reader);
         }
     }
