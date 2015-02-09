@@ -22,7 +22,7 @@
 //! This `private` module contains implementation details that should never be used by clients. We
 //! still need to make it public so that generated code can use it.
 
-use ::common::Word;
+use Word;
 
 pub mod arena;
 pub mod endian;

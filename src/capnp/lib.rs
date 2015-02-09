@@ -41,7 +41,6 @@
 #![crate_type = "lib"]
 
 // reexports
-pub use common::{MessageSize, Word};
 pub use message::{MessageBuilder, BuilderOptions, MessageReader, ReaderOptions};
 pub use message::MallocMessageBuilder;
 pub use serialize::OwnedSpaceMessageReader;
@@ -63,3 +62,40 @@ pub mod struct_list;
 pub mod text;
 pub mod text_list;
 pub mod traits;
+
+/// Eight bytes of memory with opaque interior. This type is used to ensure that the data of a
+/// message is properly aligned.
+#[derive(Copy)]
+#[repr(C)]
+pub struct Word {_unused_member : u64}
+
+#[inline]
+impl Word {
+    /// Do this, but faster:
+    /// `::std::iter::repeat(Word{ _unused_member : 0}).take(length).collect()`
+    pub fn allocate_zeroed_vec(length : usize) -> ::std::vec::Vec<Word> {
+        let mut result : ::std::vec::Vec<Word> = ::std::vec::Vec::with_capacity(length);
+        unsafe {
+            result.set_len(length);
+            let p : *mut u8 = ::std::mem::transmute(result.as_mut_slice().as_mut_ptr());
+            ::std::ptr::zero_memory(p, length * ::std::mem::size_of::<Word>());
+        }
+        return result;
+    }
+}
+
+/// Size of a message. Every generated struct has a method `.total_size()` that returns this.
+#[derive(Copy)]
+pub struct MessageSize {
+    pub word_count : u64,
+
+    /// Size of the capability table.
+    pub cap_count : u32
+}
+
+impl MessageSize {
+    pub fn plus_eq(&mut self, other : MessageSize) {
+        self.word_count += other.word_count;
+        self.cap_count += other.cap_count;
+    }
+}

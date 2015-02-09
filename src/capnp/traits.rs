@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use common::Word;
+use Word;
 use private::layout::{StructReader, StructBuilder, StructSize, PointerBuilder, PointerReader};
 
 pub trait FromStructReader<'a> {

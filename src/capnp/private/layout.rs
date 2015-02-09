@@ -26,6 +26,7 @@ use common::*;
 use private::arena::*;
 use private::endian::{WireValue, Endian};
 use private::mask::*;
+use {MessageSize, Word};
 
 pub use self::ElementSize::{Void, Bit, Byte, TwoBytes, FourBytes, EightBytes, Pointer, InlineComposite};
 
@@ -359,6 +360,7 @@ mod wire_helpers {
     use private::arena::*;
     use data;
     use text;
+    use {MessageSize, Word};
 
     #[inline]
     pub fn round_bytes_up_to_words(bytes : ByteCount32) -> WordCount32 {

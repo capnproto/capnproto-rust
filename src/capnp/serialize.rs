@@ -26,7 +26,7 @@ use private::endian::WireValue;
 use message::*;
 use private::arena;
 use io;
-
+use Word;
 
 pub struct OwnedSpaceMessageReader {
     options : ReaderOptions,

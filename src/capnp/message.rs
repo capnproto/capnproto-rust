@@ -27,6 +27,7 @@ use common::*;
 use private::arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};
 use private::layout;
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
+use Word;
 
 #[derive(Copy)]
 pub struct ReaderOptions {

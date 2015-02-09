@@ -23,6 +23,7 @@ use std::vec::Vec;
 use capability::ClientHook;
 use common::*;
 use message;
+use Word;
 
 pub use self::FirstSegment::{NumWords, ZeroedWords};
 

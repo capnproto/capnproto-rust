@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use any_pointer;
-use common::{MessageSize};
+use MessageSize;
 use traits::{FromPointerReader, FromPointerBuilder};
 use message::{MallocMessageBuilder};
 use std;

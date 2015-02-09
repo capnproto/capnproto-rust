@@ -49,27 +49,6 @@ pub type WirePointerCount16 = u16;
 pub type WirePointerCount32 = u32;
 pub type WirePointerCount64 = u64;
 
-#[derive(Copy)]
-#[repr(C)]
-pub struct Word {_unused_member : u64}
-
-#[inline]
-impl Word {
-    pub fn allocate_zeroed_vec(size : WordCount) -> ::std::vec::Vec<Word> {
-
-        //    Do this, but faster:
-        //    return ::std::vec::Vec::from_elem(size, 0);
-
-        let mut result : ::std::vec::Vec<Word> = ::std::vec::Vec::with_capacity(size);
-        unsafe {
-            result.set_len(size);
-            let p : *mut u8 = ::std::mem::transmute(result.as_mut_slice().as_mut_ptr());
-            ::std::ptr::zero_memory(p, size * BYTES_PER_WORD);
-        }
-        return result;
-    }
-}
-
 pub const BITS_PER_BYTE : BitCount0 = 8;
 pub const BITS_PER_WORD : BitCount0 = 64;
 pub const BYTES_PER_WORD : ByteCount = 8;
@@ -88,19 +67,6 @@ pub fn bits_per_element<T>() -> BitCount0 {
     8 * ::std::mem::size_of::<T>()
 }
 
-#[derive(Copy)]
-pub struct MessageSize {
-    //# Size of a message. Every struct type has a method `.total_size()` that returns this.
-    pub word_count : u64,
-    pub cap_count : u32
-}
-
-impl MessageSize {
-    pub fn plus_eq(&mut self, other : MessageSize) {
-        self.word_count += other.word_count;
-        self.cap_count += other.cap_count;
-    }
-}
 
 pub trait PtrUsize<T> {
     fn as_usize(self) -> usize;
