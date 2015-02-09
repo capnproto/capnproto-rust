@@ -28,6 +28,7 @@ pub mod arena;
 pub mod endian;
 pub mod layout;
 mod mask;
+pub mod units;
 
 #[cfg(test)]
 mod layout_test;

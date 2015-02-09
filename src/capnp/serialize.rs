@@ -21,7 +21,7 @@
 
 use std;
 use std::vec::Vec;
-use common::*;
+use private::units::*;
 use private::endian::WireValue;
 use message::*;
 use private::arena;

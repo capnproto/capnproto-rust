@@ -23,7 +23,29 @@ use std;
 use io;
 use message::*;
 use serialize;
-use common::ptr_sub;
+
+trait PtrUsize<T> {
+    fn as_usize(self) -> usize;
+}
+
+impl <T> PtrUsize<T> for *const T {
+    fn as_usize(self) -> usize {
+        self as usize
+    }
+}
+
+impl <T> PtrUsize<T> for *mut T {
+    fn as_usize(self) -> usize {
+        self as usize
+    }
+}
+
+#[inline]
+fn ptr_sub<T, U: PtrUsize<T>, V: PtrUsize<T>>(p1 : U, p2 : V) -> usize {
+    return (p1.as_usize() - p2.as_usize()) / ::std::mem::size_of::<T>();
+}
+
+
 
 pub struct PackedInputStream<'a, R:'a> {
     pub inner : &'a mut R

@@ -22,10 +22,10 @@
 use data;
 use text;
 use capability::{ClientHook};
-use common::*;
 use private::arena::*;
 use private::endian::{WireValue, Endian};
 use private::mask::*;
+use private::units::*;
 use {MessageSize, Word};
 
 pub use self::ElementSize::{Void, Bit, Byte, TwoBytes, FourBytes, EightBytes, Pointer, InlineComposite};
@@ -355,9 +355,9 @@ macro_rules! require_panic(
 
 mod wire_helpers {
     use capability::ClientHook;
-    use common::*;
-    use private::layout::*;
     use private::arena::*;
+    use private::layout::*;
+    use private::units::*;
     use data;
     use text;
     use {MessageSize, Word};

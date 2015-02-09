@@ -47,7 +47,6 @@ pub use serialize::OwnedSpaceMessageReader;
 
 pub mod any_pointer;
 pub mod capability;
-mod common;
 pub mod data;
 pub mod data_list;
 pub mod enum_list;

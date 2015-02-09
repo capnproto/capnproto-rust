@@ -21,7 +21,7 @@
 
 use std::vec::Vec;
 use capability::ClientHook;
-use common::*;
+use private::units::*;
 use message;
 use Word;
 
@@ -90,7 +90,7 @@ impl SegmentBuilder {
 
     #[inline]
     pub fn current_size(&self) -> WordCount32 {
-        ptr_sub(self.pos, self.reader.ptr) as u32
+        ((self.pos as usize - self.reader.ptr as usize) / BYTES_PER_WORD) as u32
     }
 
     #[inline]

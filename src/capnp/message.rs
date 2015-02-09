@@ -23,7 +23,7 @@ use std;
 use std::vec::Vec;
 use any_pointer;
 use capability::ClientHook;
-use common::*;
+use private::units::*;
 use private::arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};
 use private::layout;
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
