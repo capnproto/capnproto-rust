@@ -19,10 +19,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+//! This `private` module contains implementation details that should never be used by clients. We
+//! still need to make it public so that generated code can use it.
+
 use ::common::Word;
 
 pub mod arena;
+pub mod endian;
 pub mod layout;
+mod mask;
 
 #[cfg(test)]
 mod layout_test;

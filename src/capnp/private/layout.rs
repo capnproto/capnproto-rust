@@ -19,13 +19,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capability::{ClientHook};
-use common::*;
-use endian::{WireValue, Endian};
-use mask::*;
-use private::arena::*;
 use data;
 use text;
+use capability::{ClientHook};
+use common::*;
+use private::arena::*;
+use private::endian::{WireValue, Endian};
+use private::mask::*;
 
 pub use self::ElementSize::{Void, Bit, Byte, TwoBytes, FourBytes, EightBytes, Pointer, InlineComposite};
 

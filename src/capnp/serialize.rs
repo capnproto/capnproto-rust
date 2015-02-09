@@ -22,7 +22,7 @@
 use std;
 use std::vec::Vec;
 use common::*;
-use endian::*;
+use private::endian::WireValue;
 use message::*;
 use private::arena;
 use io;
