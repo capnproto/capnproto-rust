@@ -41,7 +41,6 @@
 #![crate_type = "lib"]
 
 // reexports
-pub use blob::{text, data};
 pub use common::{MessageSize, Word};
 pub use list::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 pub use message::{MessageBuilder, BuilderOptions, MessageReader, ReaderOptions};
@@ -50,9 +49,9 @@ pub use serialize::OwnedSpaceMessageReader;
 
 pub mod any_pointer;
 pub mod arena;
-mod blob;
 pub mod capability;
 mod common;
+pub mod data;
 mod endian;
 pub mod private;
 pub mod io;
@@ -62,6 +61,7 @@ mod mask;
 pub mod message;
 pub mod serialize;
 pub mod serialize_packed;
+pub mod text;
 pub mod traits;
 
 

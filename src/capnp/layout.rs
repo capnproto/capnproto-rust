@@ -24,7 +24,8 @@ use common::*;
 use endian::{WireValue, Endian};
 use mask::*;
 use arena::*;
-use blob::*;
+use data;
+use text;
 
 pub use self::ElementSize::{Void, Bit, Byte, TwoBytes, FourBytes, EightBytes, Pointer, InlineComposite};
 
@@ -356,7 +357,8 @@ mod wire_helpers {
     use common::*;
     use layout::*;
     use arena::*;
-    use blob::*;
+    use data;
+    use text;
 
     #[inline]
     pub fn round_bytes_up_to_words(bytes : ByteCount32) -> WordCount32 {
