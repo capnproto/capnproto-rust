@@ -54,7 +54,6 @@ pub mod data_list;
 pub mod enum_list;
 pub mod private;
 pub mod io;
-pub mod list;
 pub mod list_list;
 pub mod message;
 pub mod primitive_list;
