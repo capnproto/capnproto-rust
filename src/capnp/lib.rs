@@ -42,7 +42,6 @@
 
 // reexports
 pub use common::{MessageSize, Word};
-pub use list::{primitive_list, enum_list, struct_list, text_list, data_list, list_list};
 pub use message::{MessageBuilder, BuilderOptions, MessageReader, ReaderOptions};
 pub use message::MallocMessageBuilder;
 pub use serialize::OwnedSpaceMessageReader;
@@ -51,11 +50,17 @@ pub mod any_pointer;
 pub mod capability;
 mod common;
 pub mod data;
+pub mod data_list;
+pub mod enum_list;
 pub mod private;
 pub mod io;
 pub mod list;
+pub mod list_list;
 pub mod message;
+pub mod primitive_list;
 pub mod serialize;
 pub mod serialize_packed;
+pub mod struct_list;
 pub mod text;
+pub mod text_list;
 pub mod traits;

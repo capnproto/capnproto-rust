@@ -69,3 +69,32 @@ pub trait ToU16 {
     fn to_u16(self) -> u16;
 }
 
+
+pub trait IndexMove<I, T> {
+    fn index_move(&self, index : I) -> T;
+}
+
+pub struct ListIter<T, U> {
+    list : T,
+    index : u32,
+    size : u32,
+}
+
+impl <T, U> ListIter<T, U> {
+    pub fn new(list : T, size : u32) -> ListIter<T, U> {
+        ListIter { list : list, index : 0, size : size }
+    }
+}
+
+impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator for ListIter<T, U> {
+    type Item = U;
+    fn next(&mut self) -> ::std::option::Option<U> {
+        if self.index < self.size {
+            let result = self.list.index_move(self.index);
+            self.index += 1;
+            return Some(result);
+        } else {
+            return None;
+        }
+    }
+}
