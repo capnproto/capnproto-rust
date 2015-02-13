@@ -21,7 +21,7 @@
 
 #![crate_name="calculator"]
 #![crate_type="bin"]
-#![feature(core, env, os)]
+#![feature(core, env)]
 
 extern crate capnp;
 extern crate "capnp-rpc" as capnp_rpc;
@@ -34,7 +34,7 @@ pub mod client;
 pub mod server;
 
 pub fn main() {
-    let args : Vec<String> = ::std::env::args().map(|arg| {arg.into_string().unwrap()}).collect();
+    let args : Vec<String> = ::std::env::args().collect();
     if args.len() >= 2 {
         match &args[1][] {
             "client" => return client::main(),

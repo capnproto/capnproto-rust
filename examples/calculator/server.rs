@@ -22,7 +22,7 @@
 use std::vec::Vec;
 
 use capnp::capability::{FromServer, Server};
-use capnp::list::{primitive_list};
+use capnp::primitive_list;
 use capnp::{MallocMessageBuilder, MessageBuilder};
 
 use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
@@ -185,7 +185,7 @@ impl calculator::Server for CalculatorImpl {
 }
 
 pub fn main() {
-    let args : Vec<String> = ::std::env::args().map(|arg| {arg.into_string().unwrap()}).collect();
+    let args : Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} server ADDRESS[:PORT]", args[0]);
         return;
