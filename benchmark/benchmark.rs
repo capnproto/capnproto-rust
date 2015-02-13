@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "bin"]
-#![feature(collections, core, env, io, os)]
+#![feature(collections, core, env, io)]
 
 extern crate capnp;
 extern crate rand;
@@ -247,7 +247,7 @@ macro_rules! pass_by_pipe(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
         use std::old_io::process;
 
-        let mut args : Vec<String> = ::std::env::args().map(|arg| {arg.into_string().unwrap()}).collect();
+        let mut args : Vec<String> = ::std::env::args().collect();
         args[2] = "client".to_string();
 
         let mut command = process::Command::new(args[0].as_slice());
@@ -315,7 +315,7 @@ macro_rules! do_testcase2(
     );
 
 pub fn main() {
-    let args : Vec<String> = ::std::env::args().map(|arg| {arg.into_string().unwrap()}).collect();
+    let args : Vec<String> = ::std::env::args().collect();
 
     if args.len() != 6 {
         println!("USAGE: {} CASE MODE REUSE COMPRESSION ITERATION_COUNT", args[0]);

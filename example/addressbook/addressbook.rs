@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "bin"]
-#![feature(core, io, env, os)]
+#![feature(core, io, env)]
 
 extern crate capnp;
 pub mod addressbook_capnp {
@@ -110,7 +110,7 @@ pub mod addressbook {
 
 pub fn main() {
 
-    let args : Vec<String> = ::std::env::args().map(|arg| {arg.into_string().unwrap()}).collect();
+    let args : Vec<String> = ::std::env::args().collect();
     if args.len() < 2 {
         println!("usage: $ {} [write | read]", args[0]);
     } else {
