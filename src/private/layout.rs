@@ -558,7 +558,7 @@ mod wire_helpers {
                     ptr.offset((*tag).struct_ref().data_size.get() as isize));
 
                 let count = (*tag).struct_ref().ptr_count.get() as isize;
-                for i in range::<isize>(0, count) {
+                for i in 0..count {
                     zero_object(segment, pointer_section.offset(i));
                 }
                 ::std::ptr::set_memory(ptr, 0u8, (*tag).struct_ref().word_size() as usize);
@@ -576,7 +576,7 @@ mod wire_helpers {
                     }
                     Pointer => {
                         let count = (*tag).list_ref().element_count() as usize;
-                        for i in range::<isize>(0, count as isize) {
+                        for i in 0..count as isize {
                             zero_object(segment,
                                        ::std::mem::transmute(ptr.offset(i)))
                         }
@@ -592,9 +592,9 @@ mod wire_helpers {
                         let pointer_count = (*element_tag).struct_ref().ptr_count.get();
                         let mut pos : *mut Word = ptr.offset(1);
                         let count = (*element_tag).inline_composite_list_element_count();
-                        for _ in range(0, count) {
+                        for _ in 0..count {
                             pos = pos.offset(data_size as isize);
-                            for _ in range(0, pointer_count as usize) {
+                            for _ in 0..pointer_count {
                                 zero_object(
                                     segment,
                                     ::std::mem::transmute::<*mut Word, *mut WirePointer>(pos));
@@ -649,7 +649,7 @@ mod wire_helpers {
                 let pointer_section : *const WirePointer =
                     ::std::mem::transmute(ptr.offset((*reff).struct_ref().data_size.get() as isize));
                 let count : isize = (*reff).struct_ref().ptr_count.get() as isize;
-                for i in range(0, count) {
+                for i in 0..count {
                     result.plus_eq(total_size(segment, pointer_section.offset(i), nesting_limit));
                 }
             }
@@ -675,7 +675,7 @@ mod wire_helpers {
 
                         result.word_count += count as u64 * WORDS_PER_POINTER as u64;
 
-                        for i in range(0, count as isize) {
+                        for i in 0..count as isize {
                             result.plus_eq(
                                 total_size(segment,
                                            ::std::mem::transmute::<*const Word,*const WirePointer>(ptr).offset(i),
@@ -709,10 +709,10 @@ mod wire_helpers {
                         let pointer_count = (*element_tag).struct_ref().ptr_count.get();
 
                         let mut pos : *const Word = ptr.offset(POINTER_SIZE_IN_WORDS as isize);
-                        for _ in range(0, count) {
+                        for _ in 0..count {
                             pos = pos.offset(data_size as isize);
 
-                            for _ in range(0, pointer_count) {
+                            for _ in 0..pointer_count {
                                 result.plus_eq(
                                     total_size(segment, ::std::mem::transmute::<*const Word,*const WirePointer>(pos),
                                                nesting_limit));
@@ -875,7 +875,7 @@ mod wire_helpers {
                 //# Copy pointer section.
                 let new_pointer_section : *mut WirePointer =
                     ::std::mem::transmute(ptr.offset(new_data_size as isize));
-                for i in range::<isize>(0, old_pointer_count as isize) {
+                for i in 0..old_pointer_count as isize {
                     transfer_pointer(segment, new_pointer_section.offset(i),
                                      old_segment, old_pointer_section.offset(i));
                 }
@@ -1296,7 +1296,7 @@ mod wire_helpers {
         }
 
         let pointer_section : *mut WirePointer = ::std::mem::transmute(ptr.offset(data_size as isize));
-        for i in range(0, value.pointer_count as isize) {
+        for i in 0..value.pointer_count as isize {
             copy_pointer(segment, pointer_section.offset(i), value.segment, value.pointers.offset(i),
                          value.nesting_limit);
         }
@@ -1322,7 +1322,7 @@ mod wire_helpers {
             if value.struct_pointer_count == 1 {
                 //# List of pointers.
                 (*reff).mut_list_ref().set(Pointer, value.element_count);
-                for i in range(0, value.element_count as isize) {
+                for i in 0.. value.element_count as isize {
                     copy_pointer(segment, ::std::mem::transmute::<*mut Word,*mut WirePointer>(ptr).offset(i),
                                  value.segment,
                                  ::std::mem::transmute::<*const u8,*const WirePointer>(value.ptr).offset(i),
@@ -1359,13 +1359,13 @@ mod wire_helpers {
             let mut dst = ptr.offset(POINTER_SIZE_IN_WORDS as isize);
 
             let mut src : *const Word = ::std::mem::transmute(value.ptr);
-            for _ in range(0, value.element_count) {
+            for _ in 0.. value.element_count {
                 ::std::ptr::copy_nonoverlapping_memory(dst, src,
                                                      value.struct_data_size as usize / BITS_PER_WORD);
                 dst = dst.offset(data_size as isize);
                 src = src.offset(data_size as isize);
 
-                for _ in range(0, pointer_count) {
+                for _ in 0..pointer_count {
                     copy_pointer(segment, ::std::mem::transmute(dst),
                                  value.segment, ::std::mem::transmute(src), value.nesting_limit);
                     dst = dst.offset(POINTER_SIZE_IN_WORDS as isize);
@@ -2150,7 +2150,7 @@ impl <'a> StructReader<'a>  {
                 self.pointer_count as u64 * WORDS_PER_POINTER as u64,
             cap_count : 0 };
 
-        for i in range(0, self.pointer_count as isize) {
+        for i in 0.. self.pointer_count as isize {
             unsafe {
                 result.plus_eq(wire_helpers::total_size(self.segment, self.pointers.offset(i),
                                                        self.nesting_limit));

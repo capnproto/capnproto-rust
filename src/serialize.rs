@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std;
-use std::vec::Vec;
 use private::units::*;
 use private::endian::WireValue;
 use message::*;
@@ -49,26 +47,26 @@ impl MessageReader for OwnedSpaceMessageReader {
     }
 }
 
-fn invalid_input<T>(desc : &'static str) -> std::old_io::IoResult<T> {
-    return Err(std::old_io::IoError{ kind : std::old_io::InvalidInput,
-                                 desc : desc,
-                                 detail : None});
+fn invalid_input<T>(desc : &'static str) -> ::std::old_io::IoResult<T> {
+    return Err(::std::old_io::IoError{ kind : ::std::old_io::InvalidInput,
+                                       desc : desc,
+                                       detail : None});
 }
 
-pub fn new_reader<U : std::old_io::Reader>(input_stream : &mut U,
-                                       options : ReaderOptions)
-                                       -> std::old_io::IoResult<OwnedSpaceMessageReader> {
+pub fn new_reader<U : ::std::old_io::Reader>(input_stream : &mut U,
+                                             options : ReaderOptions)
+                                             -> ::std::old_io::IoResult<OwnedSpaceMessageReader> {
 
     let first_word = try!(input_stream.read_exact(8));
 
     let segment_count : u32 =
-        unsafe {let p : *const WireValue<u32> = std::mem::transmute(first_word.as_ptr());
+        unsafe {let p : *const WireValue<u32> = ::std::mem::transmute(first_word.as_ptr());
                 (*p).get() + 1
     };
 
     let segment0_size =
         if segment_count == 0 { 0 } else {
-        unsafe {let p : *const WireValue<u32> = std::mem::transmute(first_word.get_unchecked(4));
+        unsafe {let p : *const WireValue<u32> = ::std::mem::transmute(first_word.get_unchecked(4));
                 (*p).get()
         }
     };
@@ -83,10 +81,10 @@ pub fn new_reader<U : std::old_io::Reader>(input_stream : &mut U,
 
     if segment_count > 1 {
         let more_sizes_raw = try!(input_stream.read_exact((4 * (segment_count & !1)) as usize));
-        for ii in range(0, segment_count as usize - 1) {
+        for ii in 0..(segment_count as usize - 1) {
             let size = unsafe {
                 let p : *const WireValue<u32> =
-                    std::mem::transmute(more_sizes_raw.get_unchecked(ii * 4));
+                    ::std::mem::transmute(more_sizes_raw.get_unchecked(ii * 4));
                 (*p).get()
             };
             more_sizes.push(size);
@@ -124,7 +122,7 @@ pub fn new_reader<U : std::old_io::Reader>(input_stream : &mut U,
         if segment_count > 1 {
             let mut offset = segment0_size;
 
-            for ii in range(0, segment_count as usize - 1) {
+            for ii in 0..(segment_count as usize - 1) {
                 segments.push(&owned_space[offset as usize ..
                                            (offset + more_sizes.as_slice()[ii]) as usize]);
                 segment_slices.push((offset as usize,
@@ -144,9 +142,9 @@ pub fn new_reader<U : std::old_io::Reader>(input_stream : &mut U,
 }
 
 
-pub fn write_message<T : std::old_io::Writer, U : MessageBuilder>(
+pub fn write_message<T : ::std::old_io::Writer, U : MessageBuilder>(
     output_stream : &mut T,
-    message : &U) -> std::old_io::IoResult<()> {
+    message : &U) -> ::std::old_io::IoResult<()> {
 
     try!(message.get_segments_for_output(
         |segments| {
@@ -158,7 +156,7 @@ pub fn write_message<T : std::old_io::Writer, U : MessageBuilder>(
 
             table.as_mut_slice()[0].set((segments.len() - 1) as u32);
 
-            for i in range(0, segments.len()) {
+            for i in 0..segments.len() {
                 table.as_mut_slice()[i + 1].set(segments[i].len() as u32);
             }
             if segments.len() % 2 == 0 {
@@ -167,15 +165,15 @@ pub fn write_message<T : std::old_io::Writer, U : MessageBuilder>(
             }
 
             unsafe {
-                let ptr : *const u8 = std::mem::transmute(table.as_ptr());
-                let buf = std::slice::from_raw_parts::<u8>(ptr, table.len() * 4);
+                let ptr : *const u8 = ::std::mem::transmute(table.as_ptr());
+                let buf = ::std::slice::from_raw_parts::<u8>(ptr, table.len() * 4);
                 try!(output_stream.write_all(buf));
             }
 
-            for i in range(0, segments.len()) {
+            for i in 0..segments.len() {
                 unsafe {
-                    let ptr : *const u8 = std::mem::transmute(segments[i].as_ptr());
-                    let buf = std::slice::from_raw_parts::<u8>(ptr, segments[i].len() * BYTES_PER_WORD);
+                    let ptr : *const u8 = ::std::mem::transmute(segments[i].as_ptr());
+                    let buf = ::std::slice::from_raw_parts::<u8>(ptr, segments[i].len() * BYTES_PER_WORD);
                     try!(output_stream.write_all(buf));
                 }
             }

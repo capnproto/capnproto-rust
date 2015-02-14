@@ -19,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std;
 use io;
 use message::*;
 use serialize;
@@ -45,8 +44,6 @@ fn ptr_sub<T, U: PtrUsize<T>, V: PtrUsize<T>>(p1 : U, p2 : V) -> usize {
     return (p1.as_usize() - p2.as_usize()) / ::std::mem::size_of::<T>();
 }
 
-
-
 pub struct PackedInputStream<'a, R:'a> {
     pub inner : &'a mut R
 }
@@ -66,8 +63,8 @@ macro_rules! refresh_buffer(
         );
     );
 
-impl <'a, R : io::BufferedInputStream> std::old_io::Reader for PackedInputStream<'a, R> {
-    fn read(&mut self, out_buf: &mut [u8]) -> std::old_io::IoResult<usize> {
+impl <'a, R : io::BufferedInputStream> ::std::old_io::Reader for PackedInputStream<'a, R> {
+    fn read(&mut self, out_buf: &mut [u8]) -> ::std::old_io::IoResult<usize> {
         let len = out_buf.len();
 
         if len == 0 { return Ok(0); }
@@ -109,7 +106,7 @@ impl <'a, R : io::BufferedInputStream> std::old_io::Reader for PackedInputStream
                     tag = *in_ptr;
                     in_ptr = in_ptr.offset(1);
 
-                    for i in range(0, 8) {
+                    for i in 0..8 {
                         if (tag & (1u8 << i)) != 0 {
                             if ptr_sub(in_end, in_ptr) == 0 {
                                 refresh_buffer!(self.inner, size, in_ptr, in_end,
@@ -132,7 +129,7 @@ impl <'a, R : io::BufferedInputStream> std::old_io::Reader for PackedInputStream
                     tag = *in_ptr;
                     in_ptr = in_ptr.offset(1);
 
-                    for n in range(0, 8) {
+                    for n in 0..8 {
                         let is_nonzero = (tag & ((1 as u8) << n)) != 0;
                         *out = (*in_ptr) & ((-(is_nonzero as i8)) as u8);
                         out = out.offset(1);
@@ -149,7 +146,7 @@ impl <'a, R : io::BufferedInputStream> std::old_io::Reader for PackedInputStream
                     assert!(run_length <= ptr_sub(out_end, out),
                             "Packed input did not end cleanly on a segment boundary");
 
-                    std::ptr::set_memory(out, 0, run_length);
+                    ::std::ptr::set_memory(out, 0, run_length);
                     out = out.offset(run_length as isize);
 
                 } else if tag == 0xff {
@@ -165,18 +162,18 @@ impl <'a, R : io::BufferedInputStream> std::old_io::Reader for PackedInputStream
                     let in_remaining = ptr_sub(in_end, in_ptr);
                     if in_remaining >= run_length {
                         //# Fast path.
-                        std::ptr::copy_nonoverlapping_memory(out, in_ptr, run_length);
+                        ::std::ptr::copy_nonoverlapping_memory(out, in_ptr, run_length);
                         out = out.offset(run_length as isize);
                         in_ptr = in_ptr.offset(run_length as isize);
                     } else {
                         //# Copy over the first buffer, then do one big read for the rest.
-                        std::ptr::copy_nonoverlapping_memory(out, in_ptr, in_remaining);
+                        ::std::ptr::copy_nonoverlapping_memory(out, in_ptr, in_remaining);
                         out = out.offset(in_remaining as isize);
                         run_length -= in_remaining;
 
                         try!(self.inner.skip(size));
                         {
-                            let buf = std::slice::from_raw_parts_mut::<u8>(out, run_length);
+                            let buf = ::std::slice::from_raw_parts_mut::<u8>(out, run_length);
                             try!(self.inner.read(buf));
                         }
 
@@ -208,7 +205,7 @@ impl <'a, R : io::BufferedInputStream> std::old_io::Reader for PackedInputStream
 
 pub fn new_reader<U : io::BufferedInputStream>(input : &mut U,
                                                options : ReaderOptions)
-                                               -> std::old_io::IoResult<serialize::OwnedSpaceMessageReader> {
+                                               -> ::std::old_io::IoResult<serialize::OwnedSpaceMessageReader> {
     let mut packed_input = PackedInputStream {
         inner : input
     };
@@ -216,9 +213,9 @@ pub fn new_reader<U : io::BufferedInputStream>(input : &mut U,
     serialize::new_reader(&mut packed_input, options)
 }
 
-pub fn new_reader_unbuffered<U : std::old_io::Reader>(input : &mut U,
-                                                  options : ReaderOptions)
-                                                  -> std::old_io::IoResult<serialize::OwnedSpaceMessageReader> {
+pub fn new_reader_unbuffered<U : ::std::old_io::Reader>(input : &mut U,
+                                                        options : ReaderOptions)
+                                                  -> ::std::old_io::IoResult<serialize::OwnedSpaceMessageReader> {
     let mut packed_input = PackedInputStream {
         inner : &mut io::BufferedInputStreamWrapper::new(input)
     };
@@ -231,8 +228,8 @@ pub struct PackedOutputStream<'a, W:'a> {
     pub inner : &'a mut W
 }
 
-impl <'a, W : io::BufferedOutputStream> std::old_io::Writer for PackedOutputStream<'a, W> {
-    fn write_all(&mut self, in_buf : &[u8]) -> std::old_io::IoResult<()> {
+impl <'a, W : io::BufferedOutputStream> ::std::old_io::Writer for PackedOutputStream<'a, W> {
+    fn write_all(&mut self, in_buf : &[u8]) -> ::std::old_io::IoResult<()> {
         unsafe {
             let (mut out, mut buffer_end) = self.inner.get_write_buffer();
             let mut buffer_begin = out;
@@ -308,18 +305,18 @@ impl <'a, W : io::BufferedOutputStream> std::old_io::Writer for PackedOutputStre
                     //# consecutive zero words (not including the first
                     //# one).
 
-                    let mut in_word : *const u64 = std::mem::transmute(in_ptr);
-                    let mut limit : *const u64 = std::mem::transmute(in_end);
+                    let mut in_word : *const u64 = ::std::mem::transmute(in_ptr);
+                    let mut limit : *const u64 = ::std::mem::transmute(in_end);
                     if ptr_sub(limit, in_word) > 255 {
                         limit = in_word.offset(255);
                     }
                     while in_word < limit && *in_word == 0 {
                         in_word = in_word.offset(1);
                     }
-                    *out = ptr_sub(in_word, std::mem::transmute::<*const u8, *const u64>(in_ptr)) as u8;
+                    *out = ptr_sub(in_word, ::std::mem::transmute::<*const u8, *const u64>(in_ptr)) as u8;
 
                     out = out.offset(1);
-                    in_ptr = std::mem::transmute::<*const u64, *const u8>(in_word);
+                    in_ptr = ::std::mem::transmute::<*const u64, *const u8>(in_word);
 
                 } else if tag == 0xff {
                     //# An all-nonzero word is followed by a count of
@@ -339,7 +336,7 @@ impl <'a, W : io::BufferedOutputStream> std::old_io::Writer for PackedOutputStre
                     while in_ptr < limit {
                         let mut c = 0;
 
-                        for _ in range(0, 8) {
+                        for _ in 0..8 {
                             c += (*in_ptr == 0) as u8;
                             in_ptr = in_ptr.offset(1);
                         }
@@ -359,7 +356,7 @@ impl <'a, W : io::BufferedOutputStream> std::old_io::Writer for PackedOutputStre
                         //# There's enough space to memcpy.
 
                         let src : *const u8 = run_start;
-                        std::ptr::copy_nonoverlapping_memory(out, src, count);
+                        ::std::ptr::copy_nonoverlapping_memory(out, src, count);
 
                         out = out.offset(count as isize);
                     } else {
@@ -369,7 +366,7 @@ impl <'a, W : io::BufferedOutputStream> std::old_io::Writer for PackedOutputStre
                         try!(self.inner.write_ptr(buffer_begin, ptr_sub(out, buffer_begin)));
 
                         {
-                            let buf = std::slice::from_raw_parts::<u8>(run_start, count);
+                            let buf = ::std::slice::from_raw_parts::<u8>(run_start, count);
                             try!(self.inner.write_all(buf));
                         }
 
@@ -385,18 +382,18 @@ impl <'a, W : io::BufferedOutputStream> std::old_io::Writer for PackedOutputStre
         }
     }
 
-   fn flush(&mut self) -> std::old_io::IoResult<()> { self.inner.flush() }
+   fn flush(&mut self) -> ::std::old_io::IoResult<()> { self.inner.flush() }
 }
 
 pub fn write_packed_message<T: io::BufferedOutputStream, U: MessageBuilder>(
-    output : &mut T, message : &U) -> std::old_io::IoResult<()> {
+    output : &mut T, message : &U) -> ::std::old_io::IoResult<()> {
     let mut packed_output_stream = PackedOutputStream {inner : output};
     serialize::write_message(&mut packed_output_stream, message)
 }
 
 
-pub fn write_packed_message_unbuffered<T: std::old_io::Writer, U: MessageBuilder>(
-    output : &mut T, message : &U) -> std::old_io::IoResult<()> {
+pub fn write_packed_message_unbuffered<T: ::std::old_io::Writer, U: MessageBuilder>(
+    output : &mut T, message : &U) -> ::std::old_io::IoResult<()> {
     let mut buffered = io::BufferedOutputStreamWrapper::new(output);
     try!(write_packed_message(&mut buffered, message));
     buffered.flush()
