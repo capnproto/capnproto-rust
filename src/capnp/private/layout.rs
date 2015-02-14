@@ -21,7 +21,7 @@
 
 use data;
 use text;
-use capability::{ClientHook};
+use private::capability::{ClientHook};
 use private::arena::*;
 use private::endian::{WireValue, Endian};
 use private::mask::*;
@@ -354,7 +354,7 @@ macro_rules! require_panic(
 
 
 mod wire_helpers {
-    use capability::ClientHook;
+    use private::capability::ClientHook;
     use private::arena::*;
     use private::layout::*;
     use private::units::*;

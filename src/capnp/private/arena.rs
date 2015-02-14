@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use std::vec::Vec;
-use capability::ClientHook;
+use private::capability::ClientHook;
 use private::units::*;
 use message;
 use Word;

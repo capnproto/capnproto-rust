@@ -22,7 +22,7 @@
 use std;
 use std::vec::Vec;
 use any_pointer;
-use capability::ClientHook;
+use private::capability::ClientHook;
 use private::units::*;
 use private::arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};
 use private::layout;

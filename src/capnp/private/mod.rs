@@ -25,6 +25,7 @@
 use Word;
 
 pub mod arena;
+pub mod capability;
 pub mod endian;
 pub mod layout;
 mod mask;
