@@ -1312,7 +1312,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             mod_interior.push(Line ("#![allow(unused_variables)]".to_string()));
             mod_interior.push(Line("#![allow(unused_imports)]".to_string()));
             mod_interior.push(
-                Line("use capnp::capability::{ClientHook, FromClientHook, FromServer, Request, ServerHook};".to_string()));
+                Line("use capnp::capability::{FromClientHook, Request, FromServer};".to_string()));
+            mod_interior.push(
+                Line("use capnp::private::capability::{ClientHook, ServerHook};".to_string()));
             mod_interior.push(Line("use capnp::capability;".to_string()));
             mod_interior.push(BlankLine);
 
@@ -1347,7 +1349,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
                 dispatch_arms.push(
                     Line(format!(
-                            "{} => server.{}(capability::internal_get_typed_context(context)),",
+                            "{} => server.{}(::capnp::private::capability::internal_get_typed_context(context)),",
                             ordinal, camel_to_snake_case(name))));
 
                 mod_interior.push(
@@ -1390,12 +1392,12 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
 
             mod_interior.push(BlankLine);
-            mod_interior.push(Line("pub struct Client{ pub client : capability::Client }".to_string()));
+            mod_interior.push(Line("pub struct Client{ pub client : ::capnp::private::capability::Client }".to_string()));
             mod_interior.push(
                 Branch(vec!(
                     Line("impl FromClientHook for Client {".to_string()),
                     Indent(box Line("fn new(hook : Box<ClientHook+Send>) -> Client {".to_string())),
-                    Indent(box Indent(box Line("Client { client : capability::Client::new(hook) }".to_string()))),
+                    Indent(box Indent(box Line("Client { client : ::capnp::private::capability::Client::new(hook) }".to_string()))),
                     Indent(box Line("}".to_string())),
                     Line("}".to_string()))));
 
@@ -1424,7 +1426,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Branch(vec!(
                         Line("impl Clone for Client {".to_string()),
                         Indent(box Line("fn clone(&self) -> Client {".to_string())),
-                        Indent(box Indent(box Line("Client { client : capability::Client::new(self.client.hook.copy()) }".to_string()))),
+                        Indent(box Indent(box Line("Client { client : ::capnp::private::capability::Client::new(self.client.hook.copy()) }".to_string()))),
                         Indent(box Line("}".to_string())),
                         Line("}".to_string()))));
 
@@ -1444,7 +1446,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             mod_interior.push(
                 Branch(vec!(
-                    Line("impl <T : Server> capability::Server for ServerDispatch<T> {".to_string()),
+                    Line("impl <T : Server> ::capnp::capability::Server for ServerDispatch<T> {".to_string()),
                     Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string())),
                     Indent(box Indent(box Line("match interface_id {".to_string()))),
                     Indent(box Indent(box Indent(
