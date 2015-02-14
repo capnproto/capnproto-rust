@@ -14,5 +14,5 @@ keywords = ["protocol", "serialization"]
 [lib]
 
 name = "capnp"
-path = "src/capnp/lib.rs"
+path = "src/lib.rs"
 
