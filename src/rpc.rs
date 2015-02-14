@@ -21,8 +21,9 @@
 
 use capnp::{any_pointer};
 use capnp::capability;
-use capnp::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp, ResultFuture,
-                        RequestHook, Request, ResponseHook};
+use capnp::capability::{ResultFuture, Request};
+use capnp::private::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp,
+                                 RequestHook, ResponseHook};
 use capnp::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
 use capnp::OwnedSpaceMessageReader;

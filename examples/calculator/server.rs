@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::vec::Vec;
-
 use capnp::capability::{FromServer, Server};
 use capnp::primitive_list;
 use capnp::{MallocMessageBuilder, MessageBuilder};

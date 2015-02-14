@@ -21,19 +21,17 @@
 
 // Things from capability.c++
 
-use std;
-
 use capnp::any_pointer;
 use capnp::MessageSize;
-use capnp::capability::{CallContext, CallContextHook, Client,
-                        ClientHook, PipelineHook, Request, ResultFuture, Server, ServerHook};
+use capnp::private::capability::{CallContextHook, Client, ClientHook, PipelineHook, ServerHook};
+use capnp::capability::{CallContext, Request, ResultFuture, Server};
 use capnp::traits::{FromPointerReader, FromPointerBuilder};
 use capnp::{MessageReader, MessageBuilder};
 
 use rpc_capnp::{message, return_};
 
 pub struct LocalClient {
-    object_channel : std::sync::mpsc::Sender<(u64, u16, Box<CallContextHook+Send>)>,
+    object_channel : ::std::sync::mpsc::Sender<(u64, u16, Box<CallContextHook+Send>)>,
 }
 
 impl Clone for LocalClient {
@@ -44,8 +42,8 @@ impl Clone for LocalClient {
 
 impl LocalClient {
     pub fn new(server : Box<Server+Send>) -> LocalClient {
-        let (chan, port) = std::sync::mpsc::channel::<(u64, u16, Box<CallContextHook+Send>)>();
-        std::thread::Thread::spawn(move || {
+        let (chan, port) = ::std::sync::mpsc::channel::<(u64, u16, Box<CallContextHook+Send>)>();
+        ::std::thread::Thread::spawn(move || {
                 let mut server = server;
                 loop {
                     let (interface_id, method_id, context_hook) = match port.recv() {
@@ -79,8 +77,8 @@ impl ClientHook for LocalClient {
     }
 
     // HACK
-    fn get_descriptor(&self) -> Box<std::any::Any + 'static> {
-        (box self.copy()) as Box<std::any::Any + 'static>
+    fn get_descriptor(&self) -> Box<::std::any::Any + 'static> {
+        (box self.copy()) as Box<::std::any::Any + 'static>
     }
 
 }
@@ -102,7 +100,7 @@ for Request<Params, Results, Pipeline> {
     // TODO: maybe there's something clever we can do to get this to work.
     // We may have to wait for associated types or higher-kinded types.
     fn init(&'b mut self) -> Params {
-        let tmp : &'a mut Box<::capnp::capability::RequestHook> = unsafe { ::std::mem::transmute(& mut self.hook)};
+        let tmp : &'a mut Box<::capnp::private::capability::RequestHook> = unsafe { ::std::mem::transmute(& mut self.hook)};
         let message : message::Builder = tmp.message::<'a>().get_root();
         match message.which() {
             Some(message::Call(call)) => {

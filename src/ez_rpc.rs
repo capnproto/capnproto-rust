@@ -25,7 +25,8 @@ use std;
 use std::old_io::Acceptor;
 use std::collections::hash_map::HashMap;
 use capnp::{any_pointer, MessageBuilder, MallocMessageBuilder, ReaderOptions};
-use capnp::capability::{ClientHook, FromClientHook, Server};
+use capnp::private::capability::{ClientHook};
+use capnp::capability::{FromClientHook, Server};
 use rpc::{RpcConnectionState, RpcEvent, SturdyRefRestorer};
 use capability::{LocalClient};
 
