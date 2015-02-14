@@ -62,13 +62,13 @@ pub mod text;
 pub mod text_list;
 pub mod traits;
 
-/// Eight bytes of memory with opaque interior. This type is used to ensure that the data of a
-/// message is properly aligned.
+/// Eight bytes of memory with opaque interior.
+///
+/// This type is used to ensure that the data of a message is properly aligned.
 #[derive(Copy)]
 #[repr(C)]
 pub struct Word {_unused_member : u64}
 
-#[inline]
 impl Word {
     /// Do this, but faster:
     /// `::std::iter::repeat(Word{ _unused_member : 0}).take(length).collect()`
@@ -80,6 +80,18 @@ impl Word {
             ::std::ptr::zero_memory(p, length * ::std::mem::size_of::<Word>());
         }
         return result;
+    }
+
+    pub fn bytes_to_words<'a>(bytes : &'a [u8]) -> &'a [Word] {
+        unsafe {
+            ::std::slice::from_raw_parts(::std::mem::transmute(bytes.as_ptr()), bytes.len() / 8)
+        }
+    }
+
+    pub fn words_to_bytes<'a>(words : &'a [Word]) -> &'a [u8] {
+        unsafe {
+            ::std::slice::from_raw_parts(::std::mem::transmute(words.as_ptr()), words.len() * 8)
+        }
     }
 }
 

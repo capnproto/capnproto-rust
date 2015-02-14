@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+//! List of strings containing UTF-8 encoded text.
+
 use traits::{FromPointerReader, FromPointerBuilder};
 use private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 

@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+//! List of structs.
 
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, InlineComposite};
 use traits::{FromPointerReader, FromPointerBuilder,

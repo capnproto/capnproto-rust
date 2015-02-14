@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+//! Sequence of bytes.
+
 use private::layout::{PointerBuilder, PointerReader};
 
 pub type Reader<'a> = &'a [u8];

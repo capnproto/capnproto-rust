@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+//! List of sequences of bytes.
 
 use traits::{FromPointerReader, FromPointerBuilder};
 use private::layout::*;

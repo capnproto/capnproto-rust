@@ -108,8 +108,8 @@ pub fn new_reader<U : std::old_io::Reader>(input_stream : &mut U,
     let buf_len = total_words as usize * BYTES_PER_WORD;
 
     unsafe {
-        let ptr : *mut u8 = std::mem::transmute(owned_space.as_mut_slice().as_mut_ptr());
-        let buf = std::slice::from_raw_parts_mut::<u8>(ptr, buf_len);
+        let ptr : *mut u8 = ::std::mem::transmute(owned_space.as_mut_slice().as_mut_ptr());
+        let buf = ::std::slice::from_raw_parts_mut::<u8>(ptr, buf_len);
         try!(io::read_at_least(input_stream, buf, buf_len));
     }
 

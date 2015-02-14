@@ -19,6 +19,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+//! Hooks for for the RPC system.
+//!
+//! Roughly corresponds to capability.h in the C++ implementation.
+
 use any_pointer;
 use traits::{FromPointerReader, FromPointerBuilder};
 use private::capability::{CallContextHook, ClientHook, RequestHook, ResponseHook};

@@ -19,8 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-//! This `private` module contains implementation details that should never be used by clients. We
-//! still need to make it public so that generated code can use it.
+//! Implementation details that should never be used by clients.
+//!
+//! We still need to make this module visible so that generated code can use it.
 
 use Word;
 
@@ -34,9 +35,10 @@ pub mod units;
 #[cfg(test)]
 mod layout_test;
 
-/// Some data that's guaranteed to be aligned on a word boundary. Typically
-/// the type parameter `T` will be instantiated as `[u8; n]` where `n` is
-/// a multiple of eight.
+/// Some data that's guaranteed to be aligned on a word boundary.
+///
+/// Typically the type parameter `T` will be instantiated as `[u8; n]` where `n` is a multiple of
+/// eight.
 ///
 /// Perhaps in the future Rust will provide a nicer way to guarantee alignment.
 #[repr(C)]
