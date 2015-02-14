@@ -1268,7 +1268,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             let mut members = Vec::new();
             let enumerants = enum_reader.get_enumerants();
-            for ii in range(0, enumerants.len()) {
+            for ii in 0..enumerants.len() {
                 let enumerant = enumerants.get(ii);
                 members.push(
                     Line(format!("{} = {},", capitalize_first_letter(enumerant.get_name()),
@@ -1319,7 +1319,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             mod_interior.push(BlankLine);
 
             let methods = interface.get_methods();
-            for ordinal in range(0, methods.len()) {
+            for ordinal in 0..methods.len() {
                 let method = methods.get(ordinal);
                 let name = method.get_name();
 
@@ -1377,7 +1377,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             let server_base = {
                 let mut base_traits = Vec::new();
                 let extends = interface.get_superclasses();
-                for ii in range(0, extends.len()) {
+                for ii in 0..extends.len() {
                     let base_id = extends.get(ii).get_id();
                     let the_mod = scope_map[base_id].connect("::");
                     base_dispatch_arms.push(
