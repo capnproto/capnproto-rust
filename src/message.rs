@@ -34,8 +34,8 @@ pub struct ReaderOptions {
     pub traversal_limit_in_words : u64,
     pub nesting_limit : i32,
 
-    // If true, malformed messages trigger task failure.
-    // If false, malformed messages fall back to default values.
+    /// If true, malformed messages trigger task failure.
+    /// If false, malformed messages fall back to default values.
     pub fail_fast : bool,
 }
 
@@ -137,8 +137,8 @@ pub struct BuilderOptions {
     pub first_segment_words : u32,
     pub allocation_strategy : AllocationStrategy,
 
-    // If true, malformed messages trigger task failure.
-    // If false, malformed messages fall back to default values.
+    /// If true, malformed messages trigger task failure.
+    /// If false, malformed messages fall back to default values.
     pub fail_fast : bool,
 }
 
