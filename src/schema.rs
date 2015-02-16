@@ -22,21 +22,46 @@
 #![allow(dead_code)]
 // This is experimental for now...
 
+use ::capnp::Word;
+use ::capnp::private::RawSchema;
+use ::std::cell::RefCell;
+
+pub struct Arena {
+    allocations : RefCell<Vec<Vec<Word>>>,
+}
+
+impl Arena {
+    pub fn new() -> Arena {
+        Arena { allocations : RefCell::new(Vec::new()) }
+    }
+
+    pub fn alloc<'a>(&'a self, length : usize) -> &'a mut [Word] {
+        let mut v = ::capnp::Word::allocate_zeroed_vec(length);
+        let result = unsafe {::std::slice::from_raw_parts_mut(v.as_mut_ptr(), v.len())};
+        self.allocations.borrow_mut().push(v);
+        result
+    }
+}
+
 pub struct SchemaLoader<'a> {
-    schemas : ::std::collections::hash_map::HashMap<u64, ::capnp::private::RawSchema<'a>>,
+    arena : &'a Arena,
+    schemas : ::std::collections::hash_map::HashMap<u64, RawSchema<'a>>,
 }
 
 
 impl <'a> SchemaLoader<'a> {
-    pub fn new() -> SchemaLoader<'a> {
+    pub fn new(arena : &'a Arena) -> SchemaLoader<'a> {
         SchemaLoader {
+            arena : arena,
             schemas : ::std::collections::hash_map::HashMap::new(),
         }
     }
 
     pub fn load(&mut self, reader : ::schema_capnp::node::Reader) {
         let id = reader.get_id();
-        let _num_words = reader.total_size().word_count;
+        let num_words = reader.total_size().word_count;
         self.schemas.get(&id);
+        let _words = self.arena.alloc(num_words as usize);
+        //ScratchSpaceMallocMessageBuilder::new
     }
 }
