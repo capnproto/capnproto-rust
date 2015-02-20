@@ -33,7 +33,7 @@ pub trait RequestHook {
     fn send<'a>(self : Box<Self>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline>;
 }
 
-pub trait ClientHook : Send {
+pub trait ClientHook : Send + 'static {
     fn copy(&self) -> Box<ClientHook+Send>;
     fn new_call(&self,
                 interface_id : u64,
@@ -46,7 +46,7 @@ pub trait ClientHook : Send {
     fn get_descriptor(&self) -> Box<::std::any::Any + 'static>;
 }
 
-pub trait ServerHook {
+pub trait ServerHook : 'static {
     fn new_client(unused : Option<Self>, server : Box<Server+Send>) -> Client;
 }
 
