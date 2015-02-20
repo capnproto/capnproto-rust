@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "bin"]
-#![feature(collections, core, env, io)]
+#![feature(collections, core, env, old_io)]
 
 extern crate capnp;
 extern crate rand;

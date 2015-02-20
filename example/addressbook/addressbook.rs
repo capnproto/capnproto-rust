@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "bin"]
-#![feature(core, io, env)]
+#![feature(core, env, old_io)]
 
 extern crate capnp;
 pub mod addressbook_capnp {

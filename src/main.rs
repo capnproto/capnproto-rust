@@ -27,7 +27,7 @@
 
 #![crate_name="capnpc-rust"]
 #![crate_type = "bin"]
-#![feature(io, env)]
+#![feature(env, old_io)]
 
 extern crate capnp;
 extern crate capnpc;

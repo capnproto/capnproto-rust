@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "lib"]
-#![feature(core, io)]
+#![feature(core, old_io)]
 
 extern crate capnp;
 

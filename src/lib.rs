@@ -47,7 +47,7 @@
 
 #![crate_name="capnpc"]
 #![crate_type = "lib"]
-#![feature(box_syntax, core, env, io, path, std_misc)]
+#![feature(box_syntax, core, env, old_io, old_path)]
 
 extern crate capnp;
 
