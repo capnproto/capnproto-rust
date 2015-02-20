@@ -43,7 +43,7 @@ impl Clone for LocalClient {
 impl LocalClient {
     pub fn new(server : Box<Server+Send>) -> LocalClient {
         let (chan, port) = ::std::sync::mpsc::channel::<(u64, u16, Box<CallContextHook+Send>)>();
-        ::std::thread::Thread::spawn(move || {
+        ::std::thread::spawn(move || {
                 let mut server = server;
                 loop {
                     let (interface_id, method_id, context_hook) = match port.recv() {

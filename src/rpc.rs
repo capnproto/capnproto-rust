@@ -166,26 +166,26 @@ impl AnswerRef {
 
 pub struct Answer {
     answer_ref : AnswerRef,
-    result_exports : Vec<ExportId>,
+    _result_exports : Vec<ExportId>,
 }
 
 impl Answer {
     pub fn new() -> Answer {
         Answer {
             answer_ref : AnswerRef::new(),
-            result_exports : Vec::new(),
+            _result_exports : Vec::new(),
         }
     }
 }
 
 pub struct Export {
     hook : Box<ClientHook+Send>,
-    reference_count : i32,
+    _reference_count : i32,
 }
 
 impl Export {
     pub fn new(hook : Box<ClientHook+Send>) -> Export {
-        Export { hook : hook, reference_count : 0 }
+        Export { hook : hook, _reference_count : 0 }
     }
 }
 
@@ -380,7 +380,9 @@ impl RpcConnectionState {
         }
     }
 
-    pub fn run<T : ::std::old_io::Reader + Send, U : ::std::old_io::Writer + Send, V : SturdyRefRestorer + Send>(
+    pub fn run<T : ::std::old_io::Reader + Send + 'static,
+               U : ::std::old_io::Writer + Send + 'static,
+               V : SturdyRefRestorer + Send + 'static>(
         self, inpipe: T, outpipe: U, restorer : V, opts : ReaderOptions)
          -> ::std::sync::mpsc::Sender<RpcEvent> {
 
@@ -388,7 +390,7 @@ impl RpcConnectionState {
 
         let listener_chan = result_rpc_chan.clone();
 
-        ::std::thread::Thread::spawn(move || {
+        ::std::thread::spawn(move || {
                 let mut r = inpipe;
                 loop {
                     match serialize::new_reader(
@@ -404,7 +406,7 @@ impl RpcConnectionState {
 
         let rpc_chan = result_rpc_chan.clone();
 
-        ::std::thread::Thread::spawn(move || {
+        ::std::thread::spawn(move || {
             let RpcConnectionState {mut questions, mut exports, mut answers, imports : _imports} = self;
             let mut outpipe = outpipe;
             loop {
