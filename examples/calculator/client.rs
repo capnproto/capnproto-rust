@@ -48,7 +48,7 @@ pub fn main() {
         return;
     }
 
-    let mut rpc_client = EzRpcClient::new(&args[2][]).unwrap();
+    let mut rpc_client = EzRpcClient::new(&args[2][..]).unwrap();
 
     let calculator : calculator::Client = rpc_client.import_cap("calculator");
 
@@ -295,7 +295,8 @@ pub fn main() {
         {
             let mut pow_call = request.init().get_expression().init_call();
             pow_call.set_function(
-                calculator::function::ToClient(PowerFunction).from_server(None::<LocalClient>));
+                calculator::function::ToClient(PowerFunction, ::std::marker::PhantomData)
+                    .from_server(None::<LocalClient>));
             let mut pow_params = pow_call.init_params(2);
             pow_params.borrow().get(0).set_literal(2.0);
 

@@ -51,7 +51,7 @@ impl LocalClient {
                         Ok(x) => x,
                     };
 
-                    let context = CallContext { hook : context_hook };
+                    let context = CallContext { hook : context_hook, marker : ::std::marker::PhantomData };
                     server.dispatch_call(interface_id, method_id, context)
                 }
             });
@@ -89,7 +89,7 @@ impl ServerHook for LocalClient {
     }
 }
 
-pub trait InitRequest<'a, 'b, T> {
+pub trait InitRequest<'a, 'b, T> : ::std::marker::PhantomFn<&'a ()> {
     fn init(&'b mut self) -> T;
 }
 

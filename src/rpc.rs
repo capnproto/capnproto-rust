@@ -899,7 +899,7 @@ impl RequestHook for RpcRequest {
         let typeless = any_pointer::Pipeline::new(pipeline as Box<PipelineHook+Send>);
 
         ResultFuture {answer_port : answer_port, answer_result : Err(()) /* XXX */,
-                       pipeline : typeless  }
+                       pipeline : typeless, marker : ::std::marker::PhantomData  }
     }
 }
 
@@ -938,7 +938,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
         let typeless = any_pointer::Pipeline::new(pipeline as Box<PipelineHook+Send>);
 
         ResultFuture {answer_port : answer_rx, answer_result : Err(()) /* XXX */,
-                       pipeline : typeless  }
+                       pipeline : typeless, marker : ::std::marker::PhantomData  }
     }
 }
 
@@ -989,7 +989,7 @@ impl Drop for Aborter {
                 let mut ret = root.init_return();
                 ret.set_answer_id(self.answer_id);
                 let mut exc = ret.init_exception();
-                exc.set_reason(&self.message[]);
+                exc.set_reason(&self.message[..]);
             }
             self.rpc_chan.send(RpcEvent::Return(results_message)).is_ok();
         }
@@ -1161,7 +1161,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         match results_message.get_root::<message::Builder>().which() {
             Some(message::Return(ret)) => {
                 let mut exc = ret.init_exception();
-                exc.set_reason(&message[]);
+                exc.set_reason(&message[..]);
             }
             _ => panic!(),
         }
