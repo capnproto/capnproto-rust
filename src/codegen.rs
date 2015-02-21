@@ -839,7 +839,7 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
     }
 
     let enum_name = format!("Which{}",
-                            if ty_params.len() > 0 { format!("<'a,{}>", ty_params.connect(",")) }
+                            if ty_params.len() > 0 { format!("<{}>", ty_params.connect(",")) }
                             else {"".to_string()} );
 
 
@@ -850,16 +850,7 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
                     Indent(box Branch(enum_interior)),
                     Line("}".to_string()))));
 
-
-    let result = if is_reader {
-        Branch(interior)
-    } else {
-        Branch(vec!(Line("pub mod which {".to_string()),
-                    Indent(box generate_import_statements()),
-                    BlankLine,
-                    Indent(box Branch(interior)),
-                    Line("}".to_string())))
-    };
+    let result = Branch(interior);
 
     let field_name = if is_reader { "reader" } else { "builder" };
 
@@ -871,7 +862,7 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
     let typedef = Branch(
         vec![Line(format!("pub type {} = Which{};",
                           concrete_type,
-                          if ty_args.len() > 0 {format!("<'a,{}>",
+                          if ty_args.len() > 0 {format!("<{}>",
                                                         ty_args.connect(","))} else {"".to_string()})),
              if is_reader && copyable {
                  Line(format!("impl {} Copy for {} {{}}",
@@ -1404,7 +1395,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             mod_interior.push(
                 Branch(vec!(
-                    Line("pub struct ToClient<T, U>(pub U);".to_string()),
+                    Line("pub struct ToClient<T, U>(pub U, pub ::std::marker::PhantomData<T>);".to_string()),
                     Line("impl <T:ServerHook, U : Server + Send + 'static> FromServer<T, Client> for ToClient<T, U> {".to_string()),
                     Indent(box Branch( vec!(
                         Line("fn from_server(self, _hook : Option<T>) -> Client {".to_string()),

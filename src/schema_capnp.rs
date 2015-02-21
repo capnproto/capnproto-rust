@@ -366,7 +366,7 @@ pub mod node {
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 5, pointers : 6 };
     pub const TYPE_ID: u64 = 0xe682ab4cf923a417;
   }
-  pub enum Which<'a,A0,A1,A2,A3,A4> {
+  pub enum Which<A0,A1,A2,A3,A4> {
     File(()),
     Struct(A0),
     Enum(A1),
@@ -374,9 +374,9 @@ pub mod node {
     Const(A3),
     Annotation(A4),
   }
-  pub type WhichReader<'a> = Which<'a,::schema_capnp::node::struct_::Reader<'a>,::schema_capnp::node::enum_::Reader<'a>,::schema_capnp::node::interface::Reader<'a>,::schema_capnp::node::const_::Reader<'a>,::schema_capnp::node::annotation::Reader<'a>>;
+  pub type WhichReader<'a> = Which<::schema_capnp::node::struct_::Reader<'a>,::schema_capnp::node::enum_::Reader<'a>,::schema_capnp::node::interface::Reader<'a>,::schema_capnp::node::const_::Reader<'a>,::schema_capnp::node::annotation::Reader<'a>>;
   impl <'a> Copy for WhichReader<'a> {}
-  pub type WhichBuilder<'a> = Which<'a,::schema_capnp::node::struct_::Builder<'a>,::schema_capnp::node::enum_::Builder<'a>,::schema_capnp::node::interface::Builder<'a>,::schema_capnp::node::const_::Builder<'a>,::schema_capnp::node::annotation::Builder<'a>>;
+  pub type WhichBuilder<'a> = Which<::schema_capnp::node::struct_::Builder<'a>,::schema_capnp::node::enum_::Builder<'a>,::schema_capnp::node::interface::Builder<'a>,::schema_capnp::node::const_::Builder<'a>,::schema_capnp::node::annotation::Builder<'a>>;
 
   pub mod parameter {
     #![allow(unused_imports)]
@@ -1679,13 +1679,13 @@ pub mod field {
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 4 };
     pub const TYPE_ID: u64 = 0x9aad50a41f4af45f;
   }
-  pub enum Which<'a,A0,A1> {
+  pub enum Which<A0,A1> {
     Slot(A0),
     Group(A1),
   }
-  pub type WhichReader<'a> = Which<'a,::schema_capnp::field::slot::Reader<'a>,::schema_capnp::field::group::Reader<'a>>;
+  pub type WhichReader<'a> = Which<::schema_capnp::field::slot::Reader<'a>,::schema_capnp::field::group::Reader<'a>>;
   impl <'a> Copy for WhichReader<'a> {}
-  pub type WhichBuilder<'a> = Which<'a,::schema_capnp::field::slot::Builder<'a>,::schema_capnp::field::group::Builder<'a>>;
+  pub type WhichBuilder<'a> = Which<::schema_capnp::field::slot::Builder<'a>,::schema_capnp::field::group::Builder<'a>>;
   pub const NO_DISCRIMINANT : u16 = 65535;
 
   pub mod slot {
@@ -3027,7 +3027,7 @@ pub mod type_ {
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 2, pointers : 1 };
     pub const TYPE_ID: u64 = 0xd07378ede1f9cc60;
   }
-  pub enum Which<'a,A0,A1,A2,A3,A4> {
+  pub enum Which<A0,A1,A2,A3,A4> {
     Void(()),
     Bool(()),
     Int8(()),
@@ -3048,9 +3048,9 @@ pub mod type_ {
     Interface(A3),
     AnyPointer(A4),
   }
-  pub type WhichReader<'a> = Which<'a,::schema_capnp::type_::list::Reader<'a>,::schema_capnp::type_::enum_::Reader<'a>,::schema_capnp::type_::struct_::Reader<'a>,::schema_capnp::type_::interface::Reader<'a>,::schema_capnp::type_::any_pointer::Reader<'a>>;
+  pub type WhichReader<'a> = Which<::schema_capnp::type_::list::Reader<'a>,::schema_capnp::type_::enum_::Reader<'a>,::schema_capnp::type_::struct_::Reader<'a>,::schema_capnp::type_::interface::Reader<'a>,::schema_capnp::type_::any_pointer::Reader<'a>>;
   impl <'a> Copy for WhichReader<'a> {}
-  pub type WhichBuilder<'a> = Which<'a,::schema_capnp::type_::list::Builder<'a>,::schema_capnp::type_::enum_::Builder<'a>,::schema_capnp::type_::struct_::Builder<'a>,::schema_capnp::type_::interface::Builder<'a>,::schema_capnp::type_::any_pointer::Builder<'a>>;
+  pub type WhichBuilder<'a> = Which<::schema_capnp::type_::list::Builder<'a>,::schema_capnp::type_::enum_::Builder<'a>,::schema_capnp::type_::struct_::Builder<'a>,::schema_capnp::type_::interface::Builder<'a>,::schema_capnp::type_::any_pointer::Builder<'a>>;
 
   pub mod list {
     #![allow(unused_imports)]
@@ -3679,14 +3679,14 @@ pub mod type_ {
     mod _private {
       pub const TYPE_ID: u64 = 0xc2573fe8a23e49f1;
     }
-    pub enum Which<'a,A0,A1,A2> {
+    pub enum Which<A0,A1,A2> {
       Unconstrained(A0),
       Parameter(A1),
       ImplicitMethodParameter(A2),
     }
-    pub type WhichReader<'a> = Which<'a,::schema_capnp::type_::any_pointer::unconstrained::Reader<'a>,::schema_capnp::type_::any_pointer::parameter::Reader<'a>,::schema_capnp::type_::any_pointer::implicit_method_parameter::Reader<'a>>;
+    pub type WhichReader<'a> = Which<::schema_capnp::type_::any_pointer::unconstrained::Reader<'a>,::schema_capnp::type_::any_pointer::parameter::Reader<'a>,::schema_capnp::type_::any_pointer::implicit_method_parameter::Reader<'a>>;
     impl <'a> Copy for WhichReader<'a> {}
-    pub type WhichBuilder<'a> = Which<'a,::schema_capnp::type_::any_pointer::unconstrained::Builder<'a>,::schema_capnp::type_::any_pointer::parameter::Builder<'a>,::schema_capnp::type_::any_pointer::implicit_method_parameter::Builder<'a>>;
+    pub type WhichBuilder<'a> = Which<::schema_capnp::type_::any_pointer::unconstrained::Builder<'a>,::schema_capnp::type_::any_pointer::parameter::Builder<'a>,::schema_capnp::type_::any_pointer::implicit_method_parameter::Builder<'a>>;
 
     pub mod unconstrained {
       #![allow(unused_imports)]
@@ -4352,13 +4352,13 @@ pub mod brand {
       pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 2, pointers : 1 };
       pub const TYPE_ID: u64 = 0xabd73485a9636bc9;
     }
-    pub enum Which<'a,A0> {
+    pub enum Which<A0> {
       Bind(A0),
       Inherit(()),
     }
-    pub type WhichReader<'a> = Which<'a,struct_list::Reader<'a,::schema_capnp::brand::binding::Reader<'a>>>;
+    pub type WhichReader<'a> = Which<struct_list::Reader<'a,::schema_capnp::brand::binding::Reader<'a>>>;
     impl <'a> Copy for WhichReader<'a> {}
-    pub type WhichBuilder<'a> = Which<'a,struct_list::Builder<'a,::schema_capnp::brand::binding::Builder<'a>>>;
+    pub type WhichBuilder<'a> = Which<struct_list::Builder<'a,::schema_capnp::brand::binding::Builder<'a>>>;
   }
 
   pub mod binding {
@@ -4516,13 +4516,13 @@ pub mod brand {
       pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 1, pointers : 1 };
       pub const TYPE_ID: u64 = 0xc863cd16969ee7fc;
     }
-    pub enum Which<'a,A0> {
+    pub enum Which<A0> {
       Unbound(()),
       Type(A0),
     }
-    pub type WhichReader<'a> = Which<'a,::schema_capnp::type_::Reader<'a>>;
+    pub type WhichReader<'a> = Which<::schema_capnp::type_::Reader<'a>>;
     impl <'a> Copy for WhichReader<'a> {}
-    pub type WhichBuilder<'a> = Which<'a,::schema_capnp::type_::Builder<'a>>;
+    pub type WhichBuilder<'a> = Which<::schema_capnp::type_::Builder<'a>>;
   }
 }
 
@@ -4978,7 +4978,7 @@ pub mod value {
     pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 2, pointers : 1 };
     pub const TYPE_ID: u64 = 0xce23dcd2d7b00c9b;
   }
-  pub enum Which<'a,A0,A1,A2,A3,A4> {
+  pub enum Which<A0,A1,A2,A3,A4> {
     Void(()),
     Bool(bool),
     Int8(i8),
@@ -4999,9 +4999,9 @@ pub mod value {
     Interface(()),
     AnyPointer(A4),
   }
-  pub type WhichReader<'a> = Which<'a,text::Reader<'a>,data::Reader<'a>,::capnp::any_pointer::Reader<'a>,::capnp::any_pointer::Reader<'a>,::capnp::any_pointer::Reader<'a>>;
+  pub type WhichReader<'a> = Which<text::Reader<'a>,data::Reader<'a>,::capnp::any_pointer::Reader<'a>,::capnp::any_pointer::Reader<'a>,::capnp::any_pointer::Reader<'a>>;
   impl <'a> Copy for WhichReader<'a> {}
-  pub type WhichBuilder<'a> = Which<'a,text::Builder<'a>,data::Builder<'a>,::capnp::any_pointer::Builder<'a>,::capnp::any_pointer::Builder<'a>,::capnp::any_pointer::Builder<'a>>;
+  pub type WhichBuilder<'a> = Which<text::Builder<'a>,data::Builder<'a>,::capnp::any_pointer::Builder<'a>,::capnp::any_pointer::Builder<'a>,::capnp::any_pointer::Builder<'a>>;
 }
 
 pub mod annotation {

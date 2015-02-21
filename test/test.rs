@@ -188,10 +188,12 @@ mod tests {
         assert!(test_blob.borrow().as_reader().get_data_field() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
 
         {
-            let bytes = test_blob.borrow().get_text_field().as_mut_bytes();
-            bytes[4] = 'z' as u8;
-            bytes[5] = 'z' as u8;
-            assert_eq!(test_blob.borrow().as_reader().get_text_field(), "aabbzzddee");
+            {
+                let bytes = test_blob.borrow().get_text_field().as_mut_bytes();
+                bytes[4] = 'z' as u8;
+                bytes[5] = 'z' as u8;
+            }
+            assert!(test_blob.borrow().as_reader().get_text_field() == "aabbzzddee");
 
             test_blob.borrow().get_data_field()[2] = 10;
         }
