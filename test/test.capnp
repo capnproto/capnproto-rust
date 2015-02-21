@@ -197,6 +197,8 @@ interface TestExtends extends(TestInterface) {
    grault @2 () -> TestBigStruct;
 }
 
+interface EmptyInterface {}
+
 struct TestKeywords {
   struct As {}
   struct Box {}
