@@ -1395,8 +1395,8 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             mod_interior.push(
                 Branch(vec!(
-                    Line("pub struct ToClient<T, U>(pub U, pub ::std::marker::PhantomData<T>);".to_string()),
-                    Line("impl <T:ServerHook, U : Server + Send + 'static> FromServer<T, Client> for ToClient<T, U> {".to_string()),
+                    Line("pub struct ToClient<U>(pub U);".to_string()),
+                    Line("impl <T:ServerHook, U : Server + Send + 'static> FromServer<T, Client> for ToClient<U> {".to_string()),
                     Indent(box Branch( vec!(
                         Line("fn from_server(self, _hook : Option<T>) -> Client {".to_string()),
                         Indent(
