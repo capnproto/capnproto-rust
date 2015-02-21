@@ -23,7 +23,7 @@ use io;
 use message::*;
 use serialize;
 
-trait PtrUsize<T> {
+trait PtrUsize<T>: ::std::marker::PhantomFn<T> {
     fn as_usize(self) -> usize;
 }
 

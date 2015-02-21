@@ -147,7 +147,7 @@ pub fn write_message<T : ::std::old_io::Writer, U : MessageBuilder>(
     message : &U) -> ::std::old_io::IoResult<()> {
 
     try!(message.get_segments_for_output(
-        |segments| {
+        |segments| -> ::std::old_io::IoResult<()> {
 
             let table_size : usize = (segments.len() + 2) & (!1);
 

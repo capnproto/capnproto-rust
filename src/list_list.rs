@@ -26,12 +26,13 @@ use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Po
 
 #[derive(Copy)]
 pub struct Reader<'a, T> {
+    marker : ::std::marker::PhantomData<T>,
     reader : ListReader<'a>
 }
 
 impl <'a, T> Reader<'a, T> {
     pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader : reader }
+        Reader::<'b, T> { reader : reader, marker : ::std::marker::PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
@@ -39,7 +40,8 @@ impl <'a, T> Reader<'a, T> {
 
 impl <'a, T : FromPointerReader<'a>> FromPointerReader<'a> for Reader<'a, T> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a, T> {
-        Reader { reader : reader.get_list(Pointer, ::std::ptr::null()) }
+        Reader { reader : reader.get_list(Pointer, ::std::ptr::null()),
+                 marker : ::std::marker::PhantomData }
     }
 }
 
@@ -51,12 +53,13 @@ impl <'a, T : FromPointerReader<'a>> Reader<'a, T> {
 }
 
 pub struct Builder<'a, T> {
+    marker : ::std::marker::PhantomData<T>,
     builder : ListBuilder<'a>
 }
 
 impl <'a, T : FromPointerBuilder<'a>> Builder<'a, T> {
     pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder : builder }
+        Builder { builder : builder, marker : ::std::marker::PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.builder.len() }
@@ -70,18 +73,20 @@ impl <'a, T : FromPointerBuilder<'a>> Builder<'a, T> {
 
 impl <'a, T> Builder<'a, T> {
     pub fn borrow<'b, U>(&'b mut self) -> Builder<'b, U> where T : ::traits::CastableTo<U> {
-        Builder {builder : self.builder}
+        Builder {builder : self.builder, marker : ::std::marker::PhantomData}
     }
 }
 
 impl <'a, T : FromPointerBuilder<'a>> FromPointerBuilder<'a> for Builder<'a, T> {
     fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
         Builder {
+            marker : ::std::marker::PhantomData,
             builder : builder.init_list(Pointer, size)
         }
     }
     fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a, T> {
         Builder {
+            marker : ::std::marker::PhantomData,
             builder : builder.get_list(Pointer, ::std::ptr::null())
         }
     }
@@ -102,6 +107,6 @@ impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
 
 impl <'a, 'b : 'a, T, U : ::traits::CastableTo<T>> ::traits::CastableTo<Builder<'a, T> > for Builder<'b, U> {
     fn cast(self) -> Builder<'a, T> {
-        Builder { builder : self.builder }
+        Builder { builder : self.builder, marker : ::std::marker::PhantomData }
     }
 }

@@ -51,7 +51,7 @@ pub trait FromPointerBuilderRefDefault<'a> {
     fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Self;
 }
 
-pub trait SetPointerBuilder<To> {
+pub trait SetPointerBuilder<To>: ::std::marker::PhantomFn<To> {
     fn set_pointer_builder<'a>(PointerBuilder<'a>, Self);
 }
 
@@ -75,6 +75,7 @@ pub trait IndexMove<I, T> {
 }
 
 pub struct ListIter<T, U> {
+    marker : ::std::marker::PhantomData<U>,
     list : T,
     index : u32,
     size : u32,
@@ -82,7 +83,7 @@ pub struct ListIter<T, U> {
 
 impl <T, U> ListIter<T, U> {
     pub fn new(list : T, size : u32) -> ListIter<T, U> {
-        ListIter { list : list, index : 0, size : size }
+        ListIter { list : list, index : 0, size : size, marker : ::std::marker::PhantomData }
     }
 }
 

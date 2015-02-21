@@ -66,7 +66,7 @@ impl Client {
                                                size_hint : Option<MessageSize>)
                                                -> Request<Params, Results, Pipeline> {
         let typeless = self.hook.new_call(interface_id, method_id, size_hint);
-        Request { hook : typeless.hook }
+        Request { hook : typeless.hook, marker : ::std::marker::PhantomData }
     }
 }
 
@@ -80,7 +80,7 @@ pub trait CallContextHook {
 pub fn internal_get_typed_context<Params, Results>(
     typeless : CallContext<any_pointer::Reader, any_pointer::Builder>)
     -> CallContext<Params, Results> {
-    CallContext { hook : typeless.hook }
+    CallContext { hook : typeless.hook, marker : ::std::marker::PhantomData }
 }
 
 

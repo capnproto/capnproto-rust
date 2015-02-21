@@ -28,29 +28,33 @@ use traits::{FromPointerReader, FromPointerBuilder};
 use private::capability::{CallContextHook, ClientHook, RequestHook, ResponseHook};
 
 pub struct ResultFuture<Results, Pipeline> {
+    pub marker : ::std::marker::PhantomData<Results>,
     pub answer_port : ::std::sync::mpsc::Receiver<Box<ResponseHook+Send>>,
     pub answer_result : Result<Box<ResponseHook+Send>, ()>,
     pub pipeline : Pipeline,
 }
 
 pub struct Request<Params, Results, Pipeline> {
+    pub marker : ::std::marker::PhantomData<(Params, Results, Pipeline)>,
     pub hook : Box<RequestHook+Send>
 }
 
 impl <Params, Results, Pipeline > Request <Params, Results, Pipeline> {
     pub fn new(hook : Box<RequestHook+Send>) -> Request <Params, Results, Pipeline> {
-        Request { hook : hook }
+        Request { hook : hook, marker: ::std::marker::PhantomData }
     }
 }
 impl <Params, Results, Pipeline : FromTypelessPipeline> Request <Params, Results, Pipeline> {
     pub fn send(self) -> ResultFuture<Results, Pipeline> {
-        let ResultFuture {answer_port, answer_result, pipeline} = self.hook.send();
+        let ResultFuture {answer_port, answer_result, pipeline, ..} = self.hook.send();
         ResultFuture { answer_port : answer_port, answer_result : answer_result,
-                        pipeline : FromTypelessPipeline::new(pipeline) }
+                        pipeline : FromTypelessPipeline::new(pipeline),
+                        marker : ::std::marker::PhantomData }
     }
 }
 
 pub struct CallContext<Params, Results> {
+    pub marker : ::std::marker::PhantomData<(Params, Results)>,
     pub hook : Box<CallContextHook+Send>,
 }
 

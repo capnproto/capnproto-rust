@@ -27,12 +27,13 @@ use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
 
 #[derive(Copy)]
 pub struct Reader<'a, T> {
+    marker : ::std::marker::PhantomData<T>,
     reader : ListReader<'a>
 }
 
 impl <'a, T : ::std::num::FromPrimitive> Reader<'a, T> {
     pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader : reader }
+        Reader::<'b, T> { reader : reader, marker : ::std::marker::PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
@@ -41,7 +42,8 @@ impl <'a, T : ::std::num::FromPrimitive> Reader<'a, T> {
 
 impl <'a, T : ::std::num::FromPrimitive> FromPointerReader<'a> for Reader<'a, T> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a, T> {
-        Reader { reader : reader.get_list(TwoBytes, ::std::ptr::null()) }
+        Reader { reader : reader.get_list(TwoBytes, ::std::ptr::null()),
+                 marker : ::std::marker::PhantomData }
     }
 }
 
@@ -54,12 +56,13 @@ impl <'a, T : ::std::num::FromPrimitive> Reader<'a, T> {
 }
 
 pub struct Builder<'a, T> {
+    marker : ::std::marker::PhantomData<T>,
     builder : ListBuilder<'a>
 }
 
 impl <'a, T : ToU16 + ::std::num::FromPrimitive> Builder<'a, T> {
     pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder : builder }
+        Builder { builder : builder, marker : ::std::marker::PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.builder.len() }
@@ -72,10 +75,12 @@ impl <'a, T : ToU16 + ::std::num::FromPrimitive> Builder<'a, T> {
 
 impl <'a, T : ::std::num::FromPrimitive> FromPointerBuilder<'a> for Builder<'a, T> {
     fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
-        Builder { builder : builder.init_list(TwoBytes, size) }
+        Builder { builder : builder.init_list(TwoBytes, size),
+                  marker : ::std::marker::PhantomData }
     }
     fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder : builder.get_list(TwoBytes, ::std::ptr::null()) }
+        Builder { builder : builder.get_list(TwoBytes, ::std::ptr::null()),
+                  marker : ::std::marker::PhantomData }
     }
 }
 
@@ -95,7 +100,7 @@ impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
 
 impl <'a, 'b : 'a, T> ::traits::CastableTo<Builder<'a, T> > for Builder<'b, T> {
     fn cast(self) -> Builder<'a, T> {
-        Builder { builder : self.builder }
+        Builder { builder : self.builder, marker : ::std::marker::PhantomData }
     }
 }
 

@@ -40,6 +40,7 @@ impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
 }
 
 pub struct Builder<'a> {
+    marker : ::std::marker::PhantomData<&'a ()>,
     ptr : *mut u8,
     len : usize,
 }
@@ -47,7 +48,7 @@ pub struct Builder<'a> {
 impl <'a> Builder <'a> {
 
     pub fn new<'b>(p : *mut u8, len : u32) -> Builder<'b> {
-        Builder { ptr : p, len : len as usize}
+        Builder { ptr : p, len : len as usize, marker : ::std::marker::PhantomData::<&'b ()> }
     }
 
     pub fn as_mut_bytes(self) -> &'a mut [u8] {
@@ -59,7 +60,7 @@ impl <'a> Builder <'a> {
     }
 
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder { ptr : self.ptr, len : self.len }
+        Builder { ptr : self.ptr, len : self.len, marker : ::std::marker::PhantomData::<&'b ()> }
     }
 }
 
