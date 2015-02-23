@@ -433,7 +433,7 @@ mod tests {
         let bytes = packed_input_stream.read_exact(unpacked.len()).unwrap();
 
         //    assert!(packed_input_stream.eof());
-        assert!(bytes[].eq(unpacked),
+        assert!(bytes[..].eq(unpacked),
                 "expected: {:?}, got: {:?}", unpacked, bytes);
 
     }
