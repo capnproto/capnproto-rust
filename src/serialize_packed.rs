@@ -386,14 +386,14 @@ impl <'a, W : io::BufferedOutputStream> ::std::old_io::Writer for PackedOutputSt
 }
 
 pub fn write_packed_message<T: io::BufferedOutputStream, U: MessageBuilder>(
-    output : &mut T, message : &U) -> ::std::old_io::IoResult<()> {
+    output : &mut T, message : &mut U) -> ::std::old_io::IoResult<()> {
     let mut packed_output_stream = PackedOutputStream {inner : output};
     serialize::write_message(&mut packed_output_stream, message)
 }
 
 
 pub fn write_packed_message_unbuffered<T: ::std::old_io::Writer, U: MessageBuilder>(
-    output : &mut T, message : &U) -> ::std::old_io::IoResult<()> {
+    output : &mut T, message : &mut U) -> ::std::old_io::IoResult<()> {
     let mut buffered = io::BufferedOutputStreamWrapper::new(output);
     try!(write_packed_message(&mut buffered, message));
     buffered.flush()

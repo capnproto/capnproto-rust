@@ -144,41 +144,37 @@ pub fn new_reader<U : ::std::old_io::Reader>(input_stream : &mut U,
 
 pub fn write_message<T : ::std::old_io::Writer, U : MessageBuilder>(
     output_stream : &mut T,
-    message : &U) -> ::std::old_io::IoResult<()> {
+    message : &mut U) -> ::std::old_io::IoResult<()> {
 
-    try!(message.get_segments_for_output(
-        |segments| -> ::std::old_io::IoResult<()> {
+    let segments = message.get_segments_for_output();
+    let table_size : usize = (segments.len() + 2) & (!1);
 
-            let table_size : usize = (segments.len() + 2) & (!1);
+    let mut table : Vec<WireValue<u32>> = Vec::with_capacity(table_size);
+    unsafe { table.set_len(table_size) }
 
-            let mut table : Vec<WireValue<u32>> = Vec::with_capacity(table_size);
-            unsafe { table.set_len(table_size) }
+    table.as_mut_slice()[0].set((segments.len() - 1) as u32);
 
-            table.as_mut_slice()[0].set((segments.len() - 1) as u32);
+    for i in 0..segments.len() {
+        table.as_mut_slice()[i + 1].set(segments[i].len() as u32);
+    }
+    if segments.len() % 2 == 0 {
+        // Set padding.
+        table.as_mut_slice()[segments.len() + 1].set( 0 );
+    }
 
-            for i in 0..segments.len() {
-                table.as_mut_slice()[i + 1].set(segments[i].len() as u32);
-            }
-            if segments.len() % 2 == 0 {
-                // Set padding.
-                table.as_mut_slice()[segments.len() + 1].set( 0 );
-            }
+    unsafe {
+        let ptr : *const u8 = ::std::mem::transmute(table.as_ptr());
+        let buf = ::std::slice::from_raw_parts::<u8>(ptr, table.len() * 4);
+        try!(output_stream.write_all(buf));
+    }
 
-            unsafe {
-                let ptr : *const u8 = ::std::mem::transmute(table.as_ptr());
-                let buf = ::std::slice::from_raw_parts::<u8>(ptr, table.len() * 4);
-                try!(output_stream.write_all(buf));
-            }
-
-            for i in 0..segments.len() {
-                unsafe {
-                    let ptr : *const u8 = ::std::mem::transmute(segments[i].as_ptr());
-                    let buf = ::std::slice::from_raw_parts::<u8>(ptr, segments[i].len() * BYTES_PER_WORD);
-                    try!(output_stream.write_all(buf));
-                }
-            }
-            Ok(())
-        }));
+    for i in 0..segments.len() {
+        unsafe {
+            let ptr : *const u8 = ::std::mem::transmute(segments[i].as_ptr());
+            let buf = ::std::slice::from_raw_parts::<u8>(ptr, segments[i].len() * BYTES_PER_WORD);
+            try!(output_stream.write_all(buf));
+        }
+    }
 
     output_stream.flush()
 }

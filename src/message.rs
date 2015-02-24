@@ -204,8 +204,8 @@ pub trait MessageBuilder {
         self.get_root_internal().set_as(value);
     }
 
-    fn get_segments_for_output<T, U : FnMut(&[&[Word]]) -> T>(&self, cont : U) -> T {
-        self.arena().get_segments_for_output(cont)
+    fn get_segments_for_output<'a>(&'a mut self) -> &'a[&'a[Word]] {
+        self.mut_arena().get_segments_for_output()
     }
 
     fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
@@ -260,11 +260,10 @@ pub struct ScratchSpaceMallocMessageBuilder<'a> {
 impl <'a> Drop for ScratchSpaceMallocMessageBuilder<'a> {
     fn drop(&mut self) {
         let ptr = self.scratch_space.as_mut_ptr();
-        self.get_segments_for_output(|segments| {
-                unsafe {
-                    ::std::ptr::zero_memory(ptr, segments[0].len());
-                }
-            });
+        let segments = self.get_segments_for_output();
+        unsafe {
+            ::std::ptr::zero_memory(ptr, segments[0].len());
+        }
     }
 }
 

@@ -120,6 +120,10 @@ impl SegmentBuilder {
             _ => unreachable!()
         }
     }
+
+    pub fn currently_allocated<'a>(&'a self) -> &'a [Word] {
+        unsafe { ::std::slice::from_raw_parts(self.get_ptr_unchecked(0), self.current_size() as usize) }
+    }
 }
 
 pub struct ReaderArena {
@@ -186,7 +190,9 @@ impl ReaderArena {
 
 pub struct BuilderArena {
     pub segment0 : SegmentBuilder,
+    pub segment0_for_output : &'static [Word],
     pub more_segments : Vec<Box<SegmentBuilder>>,
+    pub for_output : Vec<&'static[Word]>,
     pub allocation_strategy : message::AllocationStrategy,
     pub owned_memory : Vec<*mut Word>,
     pub next_size : u32,
@@ -243,7 +249,9 @@ impl BuilderArena {
                 id : 0,
                 pos : first_segment,
             },
+            segment0_for_output : &[],
             more_segments : Vec::new(),
+            for_output : Vec::new(),
             allocation_strategy : allocation_strategy,
             owned_memory : owned_memory,
             next_size : num_words,
@@ -314,22 +322,22 @@ impl BuilderArena {
         }
     }
 
-    pub fn get_segments_for_output<T, U : FnMut(&[&[Word]]) -> T>(&self, mut cont : U) -> T {
+    pub fn get_segments_for_output<'a>(&'a mut self) -> &'a [&'a [Word]] {
         unsafe {
             if self.more_segments.len() == 0 {
-                let v = ::std::slice::from_raw_parts::<Word>(
-                    self.segment0.reader.ptr,
-                    self.segment0.current_size() as usize);
-                cont(&[v])
+                self.segment0_for_output = ::std::mem::transmute(self.segment0.currently_allocated());
+                ::std::slice::ref_slice(&self.segment0_for_output)
             } else {
-                let mut result = Vec::new();
-                result.push(::std::slice::from_raw_parts(self.segment0.reader.ptr,
-                                                         self.segment0.current_size() as usize));
+                self.for_output = Vec::new();
+                self.for_output.push(::std::slice::from_raw_parts(self.segment0.reader.ptr,
+                                                                  self.segment0.reader.size as usize));
+
                 for seg in self.more_segments.iter() {
-                    result.push(::std::slice::from_raw_parts(seg.reader.ptr,
-                                                             seg.current_size() as usize))
+                    self.for_output.push(::std::slice::from_raw_parts(seg.reader.ptr,
+                                                                      seg.current_size() as usize))
                 }
-                cont(result.as_slice())
+
+                self.for_output.as_slice()
             }
         }
     }
