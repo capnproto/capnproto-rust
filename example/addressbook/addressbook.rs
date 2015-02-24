@@ -69,7 +69,7 @@ pub mod addressbook {
             }
         }
 
-        serialize_packed::write_packed_message_unbuffered(&mut stdout(), &message)
+        serialize_packed::write_packed_message_unbuffered(&mut stdout(), &mut message)
     }
 
     pub fn print_address_book() -> IoResult<()> {
