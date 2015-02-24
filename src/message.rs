@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std;
-use std::vec::Vec;
 use any_pointer;
 use private::capability::ClientHook;
 use private::units::*;
@@ -264,7 +262,7 @@ impl <'a> Drop for ScratchSpaceMallocMessageBuilder<'a> {
         let ptr = self.scratch_space.as_mut_ptr();
         self.get_segments_for_output(|segments| {
                 unsafe {
-                    std::ptr::zero_memory(ptr, segments[0].len());
+                    ::std::ptr::zero_memory(ptr, segments[0].len());
                 }
             });
     }
