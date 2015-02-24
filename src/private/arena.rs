@@ -194,7 +194,7 @@ pub struct BuilderArena {
     pub more_segments : Vec<Box<SegmentBuilder>>,
     pub for_output : Vec<&'static[Word]>,
     pub allocation_strategy : message::AllocationStrategy,
-    pub owned_memory : Vec<*mut Word>,
+    pub owned_memory : Vec<(*mut Word, usize)>,
     pub next_size : u32,
     pub cap_table : Vec<Option<Box<ClientHook+Send>>>,
     pub fail_fast : bool,
@@ -202,15 +202,10 @@ pub struct BuilderArena {
 
 impl Drop for BuilderArena {
     fn drop(&mut self) {
-        unsafe {
-            ::std::rt::heap::deallocate(::std::mem::transmute(self.segment0.reader.ptr),
-                                        BYTES_PER_WORD * self.segment0.reader.size as usize,
-                                        BYTES_PER_WORD);
-        }
-        for ref segment_builder in self.more_segments.iter() {
+        for &(ptr, size) in self.owned_memory.iter() {
             unsafe {
-                ::std::rt::heap::deallocate(::std::mem::transmute(segment_builder.reader.ptr),
-                                            BYTES_PER_WORD * segment_builder.reader.size as usize,
+                ::std::rt::heap::deallocate(::std::mem::transmute(ptr),
+                                            BYTES_PER_WORD * size,
                                             BYTES_PER_WORD);
             }
         }
@@ -227,7 +222,7 @@ impl BuilderArena {
     pub fn new(allocation_strategy : message::AllocationStrategy,
                first_segment : FirstSegment,
                fail_fast : bool) -> Box<BuilderArena> {
-        let (first_segment, num_words, owned_memory) : (*mut Word, u32, Vec<*mut Word>) = unsafe {
+        let (first_segment, num_words, owned_memory) : (*mut Word, u32, Vec<(*mut Word, usize)>) = unsafe {
             match first_segment {
                 NumWords(n) => {
                     let ptr : *mut Word = ::std::mem::transmute(
@@ -235,7 +230,7 @@ impl BuilderArena {
                                                   ::std::mem::min_align_of::<Word>()));
                     if ptr.is_null() {panic!("could not allocate segment")}
                     ::std::ptr::zero_memory(ptr, n as usize);
-                    (ptr, n, vec!(ptr))
+                    (ptr, n, vec![(ptr, n as usize)])
                 }
                 ZeroedWords(w) => (w.as_mut_ptr(), w.len() as u32, Vec::new())
             }};
@@ -273,7 +268,7 @@ impl BuilderArena {
         if new_words.is_null() { panic!("could not allocate a new segment.") }
         unsafe { ::std::ptr::zero_memory(new_words, size as usize) };
 
-        self.owned_memory.push(new_words);
+        self.owned_memory.push((new_words, size as usize));
 
         match self.allocation_strategy {
             message::AllocationStrategy::GrowHeuristically => { self.next_size += size; }
