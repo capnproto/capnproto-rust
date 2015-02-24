@@ -628,4 +628,23 @@ mod tests {
         };
         // ...
     }
+
+
+    #[test]
+    fn threads() {
+        use test_capnp::{test_all_types};
+
+        {
+            let mut message = MallocMessageBuilder::new_default();
+            let mut root = message.init_root::<test_all_types::Builder>();
+            ::test_util::init_test_message(root.borrow());
+            {
+                let _root_reader = root.as_reader();
+                // TODO
+                //::std::thread::scoped(|| {
+                //    let root_reader1 = root_reader;
+                //});
+            }
+        }
+    }
 }

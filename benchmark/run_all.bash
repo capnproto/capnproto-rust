@@ -1,18 +1,19 @@
 #! /bin/bash
 
 set -x
+set -e
 
 CARSALES_ITERS=${1-10000}
 
-#time ./target/release/benchmark carsales object reuse none $CARSALES_ITERS
+time ./target/release/benchmark carsales object reuse none $CARSALES_ITERS
 time ./target/release/benchmark carsales object no-reuse none $CARSALES_ITERS
-#time ./target/release/benchmark carsales bytes reuse none $CARSALES_ITERS
+time ./target/release/benchmark carsales bytes reuse none $CARSALES_ITERS
 time ./target/release/benchmark carsales bytes no-reuse none $CARSALES_ITERS
-#time ./target/release/benchmark carsales bytes reuse packed $CARSALES_ITERS
+time ./target/release/benchmark carsales bytes reuse packed $CARSALES_ITERS
 time ./target/release/benchmark carsales bytes no-reuse packed $CARSALES_ITERS
-#time ./target/release/benchmark carsales pipe reuse none $CARSALES_ITERS
+time ./target/release/benchmark carsales pipe reuse none $CARSALES_ITERS
 time ./target/release/benchmark carsales pipe no-reuse none $CARSALES_ITERS
-#time ./target/release/benchmark carsales pipe reuse packed $CARSALES_ITERS
+time ./target/release/benchmark carsales pipe reuse packed $CARSALES_ITERS
 time ./target/release/benchmark carsales pipe no-reuse packed $CARSALES_ITERS
 
 CATRANK_ITERS=${2-1000}
