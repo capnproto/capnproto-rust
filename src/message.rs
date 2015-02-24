@@ -66,7 +66,7 @@ type SegmentId = u32;
 pub trait MessageReader {
     fn get_segment(&self, id : usize) -> &[Word];
     fn arena(&self) -> &ReaderArena;
-    fn mut_arena(&mut self) -> &mut ReaderArena;
+    fn arena_mut(&mut self) -> &mut ReaderArena;
     fn get_options(&self) -> &ReaderOptions;
 
     fn get_root_internal(&self) -> any_pointer::Reader {
@@ -85,7 +85,7 @@ pub trait MessageReader {
     }
 
     fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook+Send>>>) {
-        self.mut_arena().init_cap_table(cap_table);
+        self.arena_mut().init_cap_table(cap_table);
     }
 }
 
@@ -102,7 +102,7 @@ impl <'a> MessageReader for SegmentArrayMessageReader<'a> {
     }
 
     fn arena<'b>(&'b self) -> &'b ReaderArena { &*self.arena }
-    fn mut_arena<'b>(&'b mut self) -> &'b mut ReaderArena { &mut *self.arena }
+    fn arena_mut<'b>(&'b mut self) -> &'b mut ReaderArena { &mut *self.arena }
 
     fn get_options<'b>(&'b self) -> &'b ReaderOptions {
         return &self.options;
@@ -165,16 +165,16 @@ impl BuilderOptions {
 
 
 pub trait MessageBuilder {
-    fn mut_arena(&mut self) -> &mut BuilderArena;
+    fn arena_mut(&mut self) -> &mut BuilderArena;
     fn arena(&self) -> &BuilderArena;
 
 
     // XXX is there a way to make this private?
     fn get_root_internal<'a>(&mut self) -> any_pointer::Builder<'a> {
-        let root_segment = &mut self.mut_arena().segment0 as *mut SegmentBuilder;
+        let root_segment = &mut self.arena_mut().segment0 as *mut SegmentBuilder;
 
         if self.arena().segment0.current_size() == 0 {
-            match self.mut_arena().segment0.allocate(WORDS_PER_POINTER as u32) {
+            match self.arena_mut().segment0.allocate(WORDS_PER_POINTER as u32) {
                 None => {panic!("could not allocate root pointer") }
                 Some(location) => {
                     assert!(location == self.arena().segment0.get_ptr_unchecked(0),
@@ -208,7 +208,7 @@ pub trait MessageBuilder {
     /// construct these slices and stash them in some interior field before returning them. It
     /// therefore needs to take a mutable `self` parameter.
     fn get_segments_for_output<'a>(&'a mut self) -> &'a[&'a[Word]] {
-        self.mut_arena().get_segments_for_output()
+        self.arena_mut().get_segments_for_output()
     }
 
     fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
@@ -243,7 +243,7 @@ impl MallocMessageBuilder {
 }
 
 impl MessageBuilder for MallocMessageBuilder {
-    fn mut_arena(&mut self) -> &mut BuilderArena {
+    fn arena_mut(&mut self) -> &mut BuilderArena {
         &mut *self.arena
     }
     fn arena(&self) -> &BuilderArena {
@@ -288,7 +288,7 @@ impl <'a> ScratchSpaceMallocMessageBuilder<'a> {
 }
 
 impl <'b> MessageBuilder for ScratchSpaceMallocMessageBuilder<'b> {
-    fn mut_arena(&mut self) -> &mut BuilderArena {
+    fn arena_mut(&mut self) -> &mut BuilderArena {
         &mut *self.arena
     }
     fn arena(&self) -> &BuilderArena {

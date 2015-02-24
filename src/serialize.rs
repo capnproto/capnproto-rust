@@ -40,7 +40,7 @@ impl MessageReader for OwnedSpaceMessageReader {
     }
 
     fn arena(&self) -> &arena::ReaderArena { &*self.arena }
-    fn mut_arena(&mut self) -> &mut arena::ReaderArena { &mut *self.arena }
+    fn arena_mut(&mut self) -> &mut arena::ReaderArena { &mut *self.arena }
 
     fn get_options(&self) -> &ReaderOptions {
         return &self.options;
