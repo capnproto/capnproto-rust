@@ -204,6 +204,9 @@ pub trait MessageBuilder {
         self.get_root_internal().set_as(value);
     }
 
+    /// Get the slices of memory that comprise this message. Typically, this method needs to
+    /// construct these slices and stash them in some interior field before returning them. It
+    /// therefore needs to take a mutable `self` parameter.
     fn get_segments_for_output<'a>(&'a mut self) -> &'a[&'a[Word]] {
         self.mut_arena().get_segments_for_output()
     }
