@@ -367,7 +367,7 @@ fn finish_question<W : ::std::old_io::Writer>(questions : &mut ExportTable<Quest
         finish.set_release_result_caps(false);
     }
 
-    serialize::write_message(outpipe, &*finish_message).is_ok();
+    serialize::write_message(outpipe, &mut *finish_message).is_ok();
 }
 
 impl RpcConnectionState {
@@ -493,7 +493,7 @@ impl RpcConnectionState {
                                 }
                                 answers.slots.insert(answer_id, Answer::new());
 
-                                serialize::write_message(&mut outpipe, &*message).is_ok();
+                                serialize::write_message(&mut outpipe, &mut *message).is_ok();
                                 answers.slots[answer_id].answer_ref.sent(message);
 
                                 MessageReceiver::Nobody
@@ -605,7 +605,7 @@ impl RpcConnectionState {
                             }
                         }
 
-                        serialize::write_message(&mut outpipe, &*m).is_ok();
+                        serialize::write_message(&mut outpipe, &mut *m).is_ok();
                     }
                     RpcEvent::NewLocalServer(clienthook, export_chan) => {
                         let export_id = exports.push(Export::new(clienthook));
@@ -628,7 +628,7 @@ impl RpcConnectionState {
                         }
                     }
                     RpcEvent::Return(mut message) => {
-                        serialize::write_message(&mut outpipe, &*message).is_ok();
+                        serialize::write_message(&mut outpipe, &mut *message).is_ok();
 
                         let answer_id_opt =
                             match message.get_root::<message::Builder>().which() {
