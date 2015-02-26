@@ -47,7 +47,7 @@
 
 #![crate_name="capnpc"]
 #![crate_type = "lib"]
-#![feature(box_syntax, core, env, old_io, old_path)]
+#![feature(box_syntax, core, env, old_io, old_path, path)]
 
 extern crate capnp;
 
@@ -56,15 +56,24 @@ pub mod codegen;
 pub mod schema;
 
 pub fn compile(prefix : Path, files : &[Path]) -> ::std::old_io::IoResult<()> {
+
     let out_dir = Path::new(::std::env::var("OUT_DIR").unwrap());
-    let cwd = try!(::std::env::current_dir());
-    try!(::std::env::set_current_dir(&out_dir));
+    let cwd = ::std::env::current_dir().unwrap();
+    ::std::env::set_current_dir(&out_dir).unwrap();
+
+    // ::std::Path does not normalize "foo/." to "foo/", and the schema compiler does not recognize
+    // "foo/." as a prefix of "foo/bar.capnp". So we handle this case specially.
+    let src_prefix = if prefix == Path::new(".") {
+        cwd.clone()
+    } else {
+        cwd.clone().join(&prefix)
+    };
 
     let mut command = ::std::old_io::Command::new("capnp");
     command
         .arg("compile")
         .arg("-o/bin/cat")
-        .arg(format!("--src-prefix={}", cwd.join(prefix).display()));
+        .arg(format!("--src-prefix={}", src_prefix.display()));
 
     for file in files.iter() {
         command.arg(format!("{}", cwd.join(file).display()));
