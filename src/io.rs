@@ -144,7 +144,7 @@ impl <'a> ArrayInputStream<'a> {
 impl <'a> Reader for ArrayInputStream<'a> {
     fn read(&mut self, dst: &mut [u8]) -> Result<usize, ::std::old_io::IoError> {
         let n = ::std::cmp::min(dst.len(), self.array.len());
-        unsafe { ::std::ptr::copy_nonoverlapping_memory(dst.as_mut_ptr(), self.array.as_ptr(), n) }
+        unsafe { ::std::ptr::copy_nonoverlapping(dst.as_mut_ptr(), self.array.as_ptr(), n) }
         self.array = &self.array[n ..];
         Ok(n)
     }
@@ -271,7 +271,7 @@ impl <'a> Writer for ArrayOutputStream<'a> {
     fn write_all(&mut self, buf: &[u8]) -> IoResult<()> {
         assert!(buf.len() <= self.array.len() - self.fill_pos,
                 "ArrayOutputStream's backing array was not large enough for the data written.");
-        unsafe { ::std::ptr::copy_nonoverlapping_memory(
+        unsafe { ::std::ptr::copy_nonoverlapping(
             self.array.get_unchecked_mut(self.fill_pos),
             buf.as_ptr(),
             buf.len());  }

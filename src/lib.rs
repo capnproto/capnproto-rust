@@ -77,7 +77,7 @@ impl Word {
         unsafe {
             result.set_len(length);
             let p : *mut u8 = ::std::mem::transmute(result.as_mut_slice().as_mut_ptr());
-            ::std::ptr::zero_memory(p, length * ::std::mem::size_of::<Word>());
+            ::std::ptr::write_bytes(p, 0u8, length * ::std::mem::size_of::<Word>());
         }
         return result;
     }

@@ -537,11 +537,11 @@ mod wire_helpers {
                                      pad.offset(1),
                                      (*segment).get_ptr_unchecked((*pad).far_position_in_segment()));
 
-                    ::std::ptr::set_memory(pad, 0u8, 2);
+                    ::std::ptr::write_bytes(pad, 0u8, 2);
 
                 } else {
                     zero_object(segment, pad);
-                    ::std::ptr::set_memory(pad, 0u8, 1);
+                    ::std::ptr::write_bytes(pad, 0u8, 1);
                 }
             }
         }
@@ -561,13 +561,13 @@ mod wire_helpers {
                 for i in 0..count {
                     zero_object(segment, pointer_section.offset(i));
                 }
-                ::std::ptr::set_memory(ptr, 0u8, (*tag).struct_ref().word_size() as usize);
+                ::std::ptr::write_bytes(ptr, 0u8, (*tag).struct_ref().word_size() as usize);
             }
             WirePointerKind::List => {
                 match (*tag).list_ref().element_size() {
                     Void =>  { }
                     Bit | Byte | TwoBytes | FourBytes | EightBytes => {
-                        ::std::ptr::set_memory(
+                        ::std::ptr::write_bytes(
                             ptr, 0u8,
                             round_bits_up_to_words((
                                     (*tag).list_ref().element_count() *
@@ -580,7 +580,7 @@ mod wire_helpers {
                             zero_object(segment,
                                        ::std::mem::transmute(ptr.offset(i)))
                         }
-                        ::std::ptr::set_memory(ptr, 0u8, count);
+                        ::std::ptr::write_bytes(ptr, 0u8, count);
                     }
                     InlineComposite => {
                         let element_tag : *mut WirePointer = ::std::mem::transmute(ptr);
@@ -601,8 +601,8 @@ mod wire_helpers {
                                 pos = pos.offset(1);
                             }
                         }
-                        ::std::ptr::set_memory(ptr, 0u8,
-                                               ((*element_tag).struct_ref().word_size() * count + 1) as usize);
+                        ::std::ptr::write_bytes(ptr, 0u8,
+                                                ((*element_tag).struct_ref().word_size() * count + 1) as usize);
                     }
                 }
             }
@@ -620,9 +620,9 @@ mod wire_helpers {
             let pad = (*(*(*segment).get_arena()).get_segment((*reff).far_ref().segment_id.get()))
                 .get_ptr_unchecked((*reff).far_position_in_segment());
             let num_elements = if (*reff).is_double_far() { 2 } else { 1 };
-            ::std::ptr::zero_memory(pad, num_elements);
+            ::std::ptr::write_bytes(pad, 0, num_elements);
         }
-        ::std::ptr::zero_memory(reff, 1);
+        ::std::ptr::write_bytes(reff, 0, 1);
     }
 
     pub unsafe fn total_size(mut segment : *const SegmentReader,
@@ -753,9 +753,9 @@ mod wire_helpers {
         // We expect the caller to ensure the target is already null so won't leak.
 
         if (*src).is_null() {
-            ::std::ptr::zero_memory(dst, 1);
+            ::std::ptr::write_bytes(dst, 0, 1);
         } else if (*src).kind() == WirePointerKind::Far {
-            ::std::ptr::copy_nonoverlapping_memory(dst, src as *const WirePointer, 1);
+            ::std::ptr::copy_nonoverlapping(dst, src as *const WirePointer, 1);
         } else {
             transfer_pointer_split(dst_segment, dst, src_segment, src, (*src).mut_target());
         }
@@ -771,11 +771,9 @@ mod wire_helpers {
             //# Same segment, so create a direct pointer.
             (*dst).set_kind_and_target((*src_tag).kind(), src_ptr, dst_segment);
 
-            //# We can just copy the upper 32 bits. (Use memcpy() to complt with aliasing rules.)
-            // (?)
-            ::std::ptr::copy_nonoverlapping_memory(&mut (*dst).upper32bits,
-                                                 &(*src_tag).upper32bits,
-                                                 1);
+            //# We can just copy the upper 32 bits. (Use memcpy() to comply with aliasing rules.)
+            ::std::ptr::copy_nonoverlapping(&mut (*dst).upper32bits,
+                                            &(*src_tag).upper32bits, 1);
         } else {
             //# Need to create a far pointer. Try to allocate it in the
             //# same segment as the source, so that it doesn't need to
@@ -790,9 +788,8 @@ mod wire_helpers {
                     //# Simple landing pad is just a pointer.
                     let landing_pad : *mut WirePointer = ::std::mem::transmute(landing_pad_word);
                     (*landing_pad).set_kind_and_target((*src_tag).kind(), src_ptr, src_segment);
-                    ::std::ptr::copy_nonoverlapping_memory(
-                        &mut (*landing_pad).upper32bits,
-                        & (*src_tag).upper32bits, 1);
+                    ::std::ptr::copy_nonoverlapping(&mut (*landing_pad).upper32bits,
+                                                    &(*src_tag).upper32bits, 1);
 
                     (*dst).set_far(false, (*src_segment).get_word_offset_to(landing_pad_word));
                     (*dst).mut_far_ref().set((*src_segment).get_segment_id());
@@ -867,9 +864,9 @@ mod wire_helpers {
                 (*reff).mut_struct_ref().set(new_data_size, new_pointer_count);
 
                 //# Copy data section.
-                // Note: copy_nonoverlapping memory's third argument is an element count, not a byte count.
-                ::std::ptr::copy_nonoverlapping_memory(ptr, old_ptr as *const Word,
-                                                     old_data_size as usize);
+                // Note: copy_nonoverlapping's third argument is an element count, not a byte count.
+                ::std::ptr::copy_nonoverlapping(ptr, old_ptr as *const Word,
+                                                old_data_size as usize);
 
 
                 //# Copy pointer section.
@@ -880,7 +877,7 @@ mod wire_helpers {
                                      old_segment, old_pointer_section.offset(i));
                 }
 
-                ::std::ptr::zero_memory(old_ptr, old_data_size as usize + old_pointer_count as usize);
+                ::std::ptr::write_bytes(old_ptr, 0, old_data_size as usize + old_pointer_count as usize);
 
                 return StructBuilder {
                     marker : ::std::marker::PhantomData::<&'a ()>,
@@ -1177,7 +1174,7 @@ mod wire_helpers {
         let mut allocation = init_text_pointer(reff, segment, value_bytes.len() as u32);
         {
             let slice = allocation.value.borrow().as_mut_bytes();
-            ::std::ptr::copy_nonoverlapping_memory(slice.as_mut_ptr(), value_bytes.as_ptr(), value_bytes.len());
+            ::std::ptr::copy_nonoverlapping(slice.as_mut_ptr(), value_bytes.as_ptr(), value_bytes.len());
         }
         allocation
     }
@@ -1194,9 +1191,9 @@ mod wire_helpers {
                 return text::Builder::new(::std::ptr::null_mut(), 0);
             } else {
                 let builder = init_text_pointer(reff, segment, default_size).value;
-                ::std::ptr::copy_nonoverlapping_memory::<u8>(builder.as_ptr(),
-                                                           ::std::mem::transmute(default_value),
-                                                           default_size as usize);
+                ::std::ptr::copy_nonoverlapping::<u8>(builder.as_ptr(),
+                                                      ::std::mem::transmute(default_value),
+                                                      default_size as usize);
                 return builder;
             }
         }
@@ -1238,8 +1235,8 @@ mod wire_helpers {
                                        segment : *mut SegmentBuilder,
                                        value : &[u8]) -> super::SegmentAnd<data::Builder<'a>> {
         let allocation = init_data_pointer(reff, segment, value.len() as u32);
-        ::std::ptr::copy_nonoverlapping_memory(allocation.value.as_mut_ptr(), value.as_ptr(),
-                                               value.len());
+        ::std::ptr::copy_nonoverlapping(allocation.value.as_mut_ptr(), value.as_ptr(),
+                                        value.len());
         return allocation;
     }
 
@@ -1256,9 +1253,9 @@ mod wire_helpers {
                 return data::new_builder(::std::ptr::null_mut(), 0);
             } else {
                 let builder = init_data_pointer(reff, segment, default_size).value;
-                ::std::ptr::copy_nonoverlapping_memory::<u8>(builder.as_mut_ptr(),
-                                                           ::std::mem::transmute(default_value),
-                                                           default_size as usize);
+                ::std::ptr::copy_nonoverlapping::<u8>(builder.as_mut_ptr(),
+                                                      ::std::mem::transmute(default_value),
+                                                      default_size as usize);
                 return builder;
             }
         }
@@ -1291,8 +1288,8 @@ mod wire_helpers {
         if value.data_size == 1 {
             *::std::mem::transmute::<*mut Word, *mut u8>(ptr) = value.get_bool_field(0) as u8
         } else {
-            ::std::ptr::copy_nonoverlapping_memory::<Word>(ptr, ::std::mem::transmute(value.data),
-                                                         value.data_size as usize / BITS_PER_WORD);
+            ::std::ptr::copy_nonoverlapping::<Word>(ptr, ::std::mem::transmute(value.data),
+                                                    value.data_size as usize / BITS_PER_WORD);
         }
 
         let pointer_section : *mut WirePointer = ::std::mem::transmute(ptr.offset(data_size as isize));
@@ -1341,7 +1338,7 @@ mod wire_helpers {
                 };
 
                 (*reff).mut_list_ref().set(element_size, value.element_count);
-                ::std::ptr::copy_memory(ptr, ::std::mem::transmute::<*const u8,*const Word>(value.ptr), total_size as usize);
+                ::std::ptr::copy_nonoverlapping(ptr, ::std::mem::transmute::<*const u8,*const Word>(value.ptr), total_size as usize);
             }
 
             super::SegmentAnd { segment : segment, value : ptr }
@@ -1360,8 +1357,8 @@ mod wire_helpers {
 
             let mut src : *const Word = ::std::mem::transmute(value.ptr);
             for _ in 0.. value.element_count {
-                ::std::ptr::copy_nonoverlapping_memory(dst, src,
-                                                     value.struct_data_size as usize / BITS_PER_WORD);
+                ::std::ptr::copy_nonoverlapping(dst, src,
+                                                value.struct_data_size as usize / BITS_PER_WORD);
                 dst = dst.offset(data_size as isize);
                 src = src.offset(data_size as isize);
 
@@ -1382,7 +1379,7 @@ mod wire_helpers {
 
         unsafe fn use_default(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer)
             -> super::SegmentAnd<*mut Word> {
-                ::std::ptr::zero_memory(dst, 1);
+                ::std::ptr::write_bytes(dst, 0, 1);
                 return super::SegmentAnd { segment : dst_segment, value : ::std::ptr::null_mut() };
             }
 
@@ -2044,7 +2041,7 @@ impl <'a> PointerBuilder<'a> {
     pub fn clear(&self) {
         unsafe {
             wire_helpers::zero_object(self.segment, self.pointer);
-            ::std::ptr::zero_memory(self.pointer, 1);
+            ::std::ptr::write_bytes(self.pointer, 0, 1);
         }
     }
 

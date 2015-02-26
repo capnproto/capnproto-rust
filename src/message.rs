@@ -265,7 +265,7 @@ impl <'a> Drop for ScratchSpaceMallocMessageBuilder<'a> {
         let ptr = self.scratch_space.as_mut_ptr();
         let segments = self.get_segments_for_output();
         unsafe {
-            ::std::ptr::zero_memory(ptr, segments[0].len());
+            ::std::ptr::write_bytes(ptr, 0u8, segments[0].len());
         }
     }
 }

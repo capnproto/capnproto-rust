@@ -146,7 +146,7 @@ impl <'a, R : io::BufferedInputStream> ::std::old_io::Reader for PackedInputStre
                     assert!(run_length <= ptr_sub(out_end, out),
                             "Packed input did not end cleanly on a segment boundary");
 
-                    ::std::ptr::set_memory(out, 0, run_length);
+                    ::std::ptr::write_bytes(out, 0, run_length);
                     out = out.offset(run_length as isize);
 
                 } else if tag == 0xff {
@@ -162,12 +162,12 @@ impl <'a, R : io::BufferedInputStream> ::std::old_io::Reader for PackedInputStre
                     let in_remaining = ptr_sub(in_end, in_ptr);
                     if in_remaining >= run_length {
                         //# Fast path.
-                        ::std::ptr::copy_nonoverlapping_memory(out, in_ptr, run_length);
+                        ::std::ptr::copy_nonoverlapping(out, in_ptr, run_length);
                         out = out.offset(run_length as isize);
                         in_ptr = in_ptr.offset(run_length as isize);
                     } else {
                         //# Copy over the first buffer, then do one big read for the rest.
-                        ::std::ptr::copy_nonoverlapping_memory(out, in_ptr, in_remaining);
+                        ::std::ptr::copy_nonoverlapping(out, in_ptr, in_remaining);
                         out = out.offset(in_remaining as isize);
                         run_length -= in_remaining;
 
@@ -356,7 +356,7 @@ impl <'a, W : io::BufferedOutputStream> ::std::old_io::Writer for PackedOutputSt
                         //# There's enough space to memcpy.
 
                         let src : *const u8 = run_start;
-                        ::std::ptr::copy_nonoverlapping_memory(out, src, count);
+                        ::std::ptr::copy_nonoverlapping(out, src, count);
 
                         out = out.offset(count as isize);
                     } else {
