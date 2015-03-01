@@ -20,52 +20,49 @@
 // THE SOFTWARE.
 
 pub trait Mask {
-    fn mask(value : Self, mask : Self) -> Self;
+    type T;
+    fn mask(value : Self, mask : Self::T) -> Self;
 }
 
-// There's got to be a way to use a standard trait like Bitwise here,
-// but I keep getting "conflicting implementation" errors.
-
 macro_rules! int_mask(
-    ($t:ident) => (
-        impl Mask for $t {
+    ($s:ident, $t:ident) => (
+        impl Mask for $s {
+            type T = $t;
             #[inline]
-            fn mask(value : $t, mask : $t) -> $t {
-                value ^ mask
+            fn mask(value : $s, mask : $t) -> $s {
+                value ^ (mask as $s)
             }
         }
     )
 );
 
-int_mask!(i8);
-int_mask!(i16);
-int_mask!(i32);
-int_mask!(i64);
-int_mask!(u8);
-int_mask!(u16);
-int_mask!(u32);
-int_mask!(u64);
+int_mask!(i8, i8);
+int_mask!(i16, i16);
+int_mask!(i32, i32);
+int_mask!(i64, i64);
+int_mask!(u8, u8);
+int_mask!(u16, u16);
+int_mask!(u32, u32);
+int_mask!(u64, u64);
 
 impl Mask for f32 {
+    type T = u32;
     #[inline]
-    fn mask(value : f32, mask : f32) -> f32 {
-        use std;
+    fn mask(value : f32, mask : u32) -> f32 {
         unsafe {
-            let v : u32 = std::mem::transmute(value);
-            let m : u32 = std::mem::transmute(mask);
-            std::mem::transmute(v ^ m)
+            let v : u32 = ::std::mem::transmute(value);
+            ::std::mem::transmute(v ^ mask)
         }
     }
 }
 
 impl Mask for f64 {
+    type T = u64;
     #[inline]
-    fn mask(value : f64, mask : f64) -> f64 {
-        use std;
+    fn mask(value : f64, mask : u64) -> f64 {
         unsafe {
-            let v : u64 = std::mem::transmute(value);
-            let m : u64 = std::mem::transmute(mask);
-            std::mem::transmute(v ^ m)
+            let v : u64 = ::std::mem::transmute(value);
+            ::std::mem::transmute(v ^ mask)
         }
     }
 }

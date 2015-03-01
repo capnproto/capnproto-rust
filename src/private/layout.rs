@@ -2116,7 +2116,7 @@ impl <'a> StructReader<'a>  {
     #[inline]
     pub fn get_data_field_mask<T:Endian + ::std::num::FromPrimitive + Mask>(&self,
                                                                             offset : ElementCount,
-                                                                            mask : T) -> T {
+                                                                            mask : <T as Mask>::T) -> T {
         Mask::mask(self.get_data_field(offset), mask)
     }
 
@@ -2198,7 +2198,7 @@ impl <'a> StructBuilder<'a> {
     pub fn set_data_field_mask<T:Endian + Mask>(&self,
                                                 offset : ElementCount,
                                                 value : T,
-                                                mask : T) {
+                                                mask : <T as Mask>::T) {
         self.set_data_field(offset, Mask::mask(value, mask));
     }
 
@@ -2213,7 +2213,7 @@ impl <'a> StructBuilder<'a> {
     #[inline]
     pub fn get_data_field_mask<T:Endian + Mask>(&self,
                                                 offset : ElementCount,
-                                                mask : T) -> T {
+                                                mask : <T as Mask>::T) -> T {
         Mask::mask(self.get_data_field(offset), mask)
     }
 
