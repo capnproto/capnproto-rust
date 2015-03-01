@@ -395,9 +395,28 @@ mod tests {
         assert_eq!(test_defaults.borrow().get_float64_field(), -123e45);
 
         test_defaults.set_bool_field(false);
-        assert_eq!(test_defaults.borrow().get_bool_field(), false);
         test_defaults.set_int8_field(63);
-        assert_eq!(test_defaults.get_int8_field(), 63);
+        test_defaults.set_int16_field(-1123);
+        test_defaults.set_int32_field(445678);
+        test_defaults.set_int64_field(-990123456789);
+        test_defaults.set_uint8_field(234);
+        test_defaults.set_uint16_field(56789);
+        test_defaults.set_uint32_field(123456789);
+        test_defaults.set_uint64_field(123456789012345);
+        test_defaults.set_float32_field(7890.123);
+        test_defaults.set_float64_field(5e55);
+
+        assert_eq!(test_defaults.borrow().get_bool_field(), false);
+        assert_eq!(test_defaults.borrow().get_int8_field(), 63);
+        assert_eq!(test_defaults.borrow().get_int16_field(), -1123);
+        assert_eq!(test_defaults.borrow().get_int32_field(),  445678);
+        assert_eq!(test_defaults.borrow().get_int64_field(), -990123456789);
+        assert_eq!(test_defaults.borrow().get_uint8_field(), 234);
+        assert_eq!(test_defaults.borrow().get_uint16_field(), 56789);
+        assert_eq!(test_defaults.borrow().get_uint32_field(),  123456789);
+        assert_eq!(test_defaults.borrow().get_uint64_field(),  123456789012345);
+        assert_eq!(test_defaults.borrow().get_float32_field(), 7890.123);
+        assert_eq!(test_defaults.borrow().get_float64_field(), 5e55);
     }
 
     #[test]
