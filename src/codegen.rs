@@ -306,8 +306,10 @@ fn prim_default (value : &schema_capnp::value::Reader) -> Option<String> {
         Some(value::Uint16(i)) => Some(i.to_string()),
         Some(value::Uint32(i)) => Some(i.to_string()),
         Some(value::Uint64(i)) => Some(i.to_string()),
-        Some(value::Float32(f)) => Some(format!("{}f32", f.to_string())),
-        Some(value::Float64(f)) => Some(format!("{}f64", f.to_string())),
+        Some(value::Float32(f)) =>
+            Some(format!("{}u32", unsafe {::std::mem::transmute::<f32, u32>(f)}.to_string())),
+        Some(value::Float64(f)) =>
+            Some(format!("{}u64", unsafe {::std::mem::transmute::<f64, u64>(f)}.to_string())),
         _ => {panic!()}
     }
 }
@@ -358,8 +360,12 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Some((type_::Uint16(()), value::Uint16(i))) => return common_case("u16", member, offset, i),
                 Some((type_::Uint32(()), value::Uint32(i))) => return common_case("u32", member, offset, i),
                 Some((type_::Uint64(()), value::Uint64(i))) => return common_case("u64", member, offset, i),
-                Some((type_::Float32(()), value::Float32(f))) => return common_case("f32", member, offset, f),
-                Some((type_::Float64(()), value::Float64(f))) => return common_case("f64", member, offset, f),
+                Some((type_::Float32(()), value::Float32(f))) =>
+                    return common_case("f32", member, offset,
+                                       unsafe { ::std::mem::transmute::<f32, u32>(f) }),
+                Some((type_::Float64(()), value::Float64(f))) =>
+                    return common_case("f64", member, offset,
+                                       unsafe { ::std::mem::transmute::<f64, u64>(f) }),
                 Some((type_::Text(()), _)) => {
                     return (format!("text::{}", module_with_var),
                             Line(format!("self.{}.get_pointer_field({}).get_text(::std::ptr::null(), 0)",
@@ -470,7 +476,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             Line(format!("self.{}.get_data_field::<{}>({})",
                          member, typ, offset))
         } else {
-            Line(format!("self.{}.get_data_field_mask::<{typ}>({}, {}{typ})",
+            Line(format!("self.{}.get_data_field_mask::<{typ}>({}, {})",
                          member, offset, default, typ=typ))
         };
         return (typ.to_string(), interior);
