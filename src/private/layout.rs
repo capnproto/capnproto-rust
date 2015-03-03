@@ -392,6 +392,12 @@ mod wire_helpers {
     }
 
     #[inline]
+    pub unsafe fn amplified_read(segment : *const SegmentReader,
+                                 virtual_amount : u64) -> bool {
+        return segment.is_null() || (*segment).amplified_read(virtual_amount);
+    }
+
+    #[inline]
     pub unsafe fn allocate(reff : &mut *mut WirePointer,
                            segment : &mut *mut SegmentBuilder,
                            amount : WordCount32, kind : WirePointerKind) -> *mut Word {
@@ -1627,6 +1633,15 @@ mod wire_helpers {
                              *segment,
                              "InlineComposite list's elements overrun its word count",
                              continue 'use_default);
+
+                    if words_per_element == 0 {
+                        // Watch out for lists of zero-sized structs, which can claim to be
+                        // arbitrarily large without having sent actual data.
+                        require!(amplified_read(segment, size as u64),
+                                 *segment,
+                                 "Message contains amplified list pointer.",
+                                 continue 'use_default);
+                    }
 
                     //# If a struct list was not expected, then presumably
                     //# a non-struct list was upgraded to a struct list.

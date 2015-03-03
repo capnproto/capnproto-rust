@@ -51,6 +51,11 @@ impl SegmentReader {
         return from as usize >= this_begin && to as usize <= this_end && from as usize <= to as usize &&
             self.read_limiter.can_read((to as usize - from as usize) as u64 / BYTES_PER_WORD as u64);
     }
+
+    #[inline]
+    pub fn amplified_read(&self, virtual_amount : u64) -> bool {
+        return self.read_limiter.can_read(virtual_amount);
+    }
 }
 
 pub struct SegmentBuilder {
