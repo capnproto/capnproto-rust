@@ -698,6 +698,10 @@ mod wire_helpers {
 
                         result.word_count += word_count as u64 + POINTER_SIZE_IN_WORDS as u64;
 
+                        if word_count == 0 {
+                            return result;
+                        }
+
                         let element_tag : *const WirePointer = ::std::mem::transmute(ptr);
                         let count = (*element_tag).inline_composite_list_element_count();
 
@@ -1451,6 +1455,16 @@ mod wire_helpers {
                              *src_segment,
                              "InlineComposite list's elements overrun its word count.",
                              return use_default(dst_segment, dst));
+
+                    if words_per_element == 0 {
+                        // Watch out for lists of zero-sized structs, which can claim to be
+                        // arbitrarily large without having sent actual data.
+                        require!(amplified_read(src_segment, element_count as u64),
+                                 *src_segment,
+                                 "Message contains amplified list pointer.",
+                                 return use_default(dst_segment, dst));
+                    }
+
                     return set_list_pointer(
                         dst_segment, dst,
                         ListReader {
@@ -1474,6 +1488,15 @@ mod wire_helpers {
                              *src_segment,
                              "Message contains out-of-bounds list pointer.",
                              return use_default(dst_segment, dst));
+
+                    if element_size == Void {
+                        // Watch out for lists of void, which can claim to be arbitrarily large
+                        // without having sent actual data.
+                        require!(amplified_read(src_segment, element_count as u64),
+                                 *src_segment,
+                                 "Message contains amplified list pointer.",
+                                 return use_default(dst_segment, dst));
+                    }
 
                     return set_list_pointer(
                         dst_segment, dst,
