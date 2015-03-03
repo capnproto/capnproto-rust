@@ -1606,7 +1606,8 @@ mod wire_helpers {
 
             let list_ref = (*reff).list_ref();
 
-            match list_ref.element_size() {
+            let element_size = list_ref.element_size();
+            match element_size {
                 InlineComposite => {
                     let word_count = list_ref.inline_composite_word_count();
 
@@ -1690,17 +1691,24 @@ mod wire_helpers {
                     //# such structs.
                     let data_size = data_bits_per_element(list_ref.element_size());
                     let pointer_count = pointers_per_element(list_ref.element_size());
+                    let element_count = list_ref.element_count();
                     let step = data_size + pointer_count * BITS_PER_POINTER as u32;
 
+                    let word_count = round_bits_up_to_words(list_ref.element_count() as u64 * step as u64);
                     require!(
-                        bounds_check(
-                            segment, ptr,
-                            ptr.offset(
-                                round_bits_up_to_words(
-                                    (list_ref.element_count() * step) as u64) as isize)),
+                        bounds_check(segment, ptr, ptr.offset(word_count as isize)),
                         *segment,
                         "Message contains out-of-bounds list pointer.",
                         continue 'use_default);
+
+                    if element_size == Void {
+                        // Watch out for lists of void, which can claim to be arbitrarily large
+                        // without having sent actual data.
+                        require!(amplified_read(segment, element_count as u64),
+                                 *segment,
+                                 "Message contains amplified list pointer.",
+                                 continue 'use_default);
+                    }
 
                     //# Verify that the elements are at least as large as
                     //# the expected type. Note that if we expected
