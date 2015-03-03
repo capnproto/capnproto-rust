@@ -650,6 +650,31 @@ mod tests {
 
     #[test]
     #[should_fail]  // TODO failure message
+    fn void_list_amplification() {
+        use test_capnp::{test_any_pointer, test_empty_struct, test_all_types};
+        use capnp::MessageReader;
+
+        let mut message = MallocMessageBuilder::new_default();
+        {
+            let root = message.init_root::<test_any_pointer::Builder>();
+            let _ : ::capnp::primitive_list::Builder<()> =
+                root.get_any_pointer_field().init_as_sized((1 << 29) - 1);
+        }
+        let segments = message.get_segments_for_output();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].len(), 2);
+
+        let reader =
+            ::capnp::message::SegmentArrayMessageReader::new(
+                &segments,
+                ::capnp::ReaderOptions::new());
+        let root = reader.get_root::<test_any_pointer::Reader>();
+        root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Reader>>();
+    }
+
+
+    #[test]
+    #[should_fail]  // TODO failure message
     fn empty_struct_list_amplification() {
         use test_capnp::{test_any_pointer, test_empty_struct, test_all_types};
         use capnp::MessageReader;
