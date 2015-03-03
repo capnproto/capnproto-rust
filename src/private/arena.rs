@@ -163,6 +163,8 @@ pub struct ReaderArena {
     pub fail_fast : bool,
 }
 
+unsafe impl Send for ReaderArena {}
+
 impl ReaderArena {
     pub fn new(segments : &[&[Word]], options : message::ReaderOptions) -> Box<ReaderArena> {
         assert!(segments.len() > 0);
