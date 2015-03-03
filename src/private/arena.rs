@@ -28,11 +28,11 @@ pub use self::FirstSegment::{NumWords, ZeroedWords};
 
 pub type SegmentId = u32;
 
-#[derive(Copy)]
 pub struct SegmentReader {
     pub arena : ArenaPtr,
     pub ptr : *const Word,
-    pub size : WordCount32
+    pub size : WordCount32,
+    pub read_limiter : ::std::rc::Rc<ReadLimiter>,
 }
 
 unsafe impl Send for SegmentReader {}
@@ -48,12 +48,11 @@ impl SegmentReader {
     pub fn contains_interval(&self, from : *const Word, to : *const Word) -> bool {
         let this_begin : usize = self.ptr as usize;
         let this_end : usize = unsafe { self.ptr.offset(self.size as isize) as usize };
-        return from as usize >= this_begin && to as usize <= this_end && from as usize <= to as usize;
-        // TODO readLimiter
+        return from as usize >= this_begin && to as usize <= this_end && from as usize <= to as usize &&
+            self.read_limiter.can_read((to as usize - from as usize) as u64 / BYTES_PER_WORD as u64);
     }
 }
 
-#[derive(Copy)]
 pub struct SegmentBuilder {
     pub reader : SegmentReader,
     pub id : SegmentId,
@@ -65,6 +64,7 @@ unsafe impl Send for SegmentBuilder {}
 impl SegmentBuilder {
 
     pub fn new(arena : *mut BuilderArena,
+               limiter : ::std::rc::Rc<ReadLimiter>,
                id : SegmentId,
                ptr : *mut Word,
                size : WordCount32) -> SegmentBuilder {
@@ -72,7 +72,8 @@ impl SegmentBuilder {
             reader : SegmentReader {
                 arena : ArenaPtr::Builder(arena),
                 ptr : unsafe {::std::mem::transmute(ptr)},
-                size : size
+                size : size,
+                read_limiter: limiter,
             },
             id : id,
             pos : ptr,
@@ -126,6 +127,28 @@ impl SegmentBuilder {
     }
 }
 
+pub struct ReadLimiter {
+    pub limit : ::std::cell::RefCell<u64>,
+}
+
+impl ReadLimiter {
+    pub fn new(limit : u64) -> ReadLimiter {
+        ReadLimiter { limit : ::std::cell::RefCell::new(limit) }
+    }
+
+    #[inline]
+    pub fn can_read(&self, amount : u64) -> bool {
+        let current = *self.limit.borrow();
+        if amount > current {
+            // TODO arena->reportReadLimitReached()
+            return false;
+        } else {
+            *self.limit.borrow_mut() = current - amount;
+            return true;
+        }
+    }
+}
+
 pub struct ReaderArena {
     //    message : *message::MessageReader<'a>,
     pub segment0 : SegmentReader,
@@ -135,20 +158,25 @@ pub struct ReaderArena {
 
     pub cap_table : Vec<Option<Box<ClientHook+Send>>>,
 
+    pub read_limiter : ::std::rc::Rc<ReadLimiter>,
+
     pub fail_fast : bool,
 }
 
 impl ReaderArena {
     pub fn new(segments : &[&[Word]], options : message::ReaderOptions) -> Box<ReaderArena> {
         assert!(segments.len() > 0);
+        let limiter = ::std::rc::Rc::new(ReadLimiter::new(options.traversal_limit_in_words));
         let mut arena = Box::new(ReaderArena {
             segment0 : SegmentReader {
                 arena : ArenaPtr::Null,
                 ptr : unsafe { segments[0].get_unchecked(0) },
-                size : segments[0].len() as u32
+                size : segments[0].len() as u32,
+                read_limiter : limiter.clone(),
             },
             more_segments : Vec::new(),
             cap_table : Vec::new(),
+            read_limiter : limiter.clone(),
             fail_fast : options.fail_fast,
         });
 
@@ -163,7 +191,8 @@ impl ReaderArena {
                 let segment_reader = SegmentReader {
                     arena : arena_ptr,
                     ptr : unsafe { segment.get_unchecked(0) },
-                    size : segment.len() as u32
+                    size : segment.len() as u32,
+                    read_limiter : limiter.clone(),
                 };
                 more_segment_readers.push(segment_reader);
             }
@@ -197,6 +226,7 @@ pub struct BuilderArena {
     pub owned_memory : Vec<(*mut Word, usize)>,
     pub next_size : u32,
     pub cap_table : Vec<Option<Box<ClientHook+Send>>>,
+    pub dummy_limiter : ::std::rc::Rc<ReadLimiter>,
     pub fail_fast : bool,
 }
 
@@ -222,6 +252,8 @@ impl BuilderArena {
     pub fn new(allocation_strategy : message::AllocationStrategy,
                first_segment : FirstSegment,
                fail_fast : bool) -> Box<BuilderArena> {
+        let limiter = ::std::rc::Rc::new(ReadLimiter::new(<u64 as ::std::num::Int>::max_value()));
+
         let (first_segment, num_words, owned_memory) : (*mut Word, u32, Vec<(*mut Word, usize)>) = unsafe {
             match first_segment {
                 NumWords(n) => {
@@ -235,12 +267,14 @@ impl BuilderArena {
                 ZeroedWords(w) => (w.as_mut_ptr(), w.len() as u32, Vec::new())
             }};
 
+
         let mut result = Box::new(BuilderArena {
             segment0 : SegmentBuilder {
                 reader : SegmentReader {
                     ptr : first_segment as *const Word,
                     size : num_words,
-                    arena : ArenaPtr::Null },
+                    arena : ArenaPtr::Null,
+                    read_limiter : limiter.clone()},
                 id : 0,
                 pos : first_segment,
             },
@@ -251,6 +285,7 @@ impl BuilderArena {
             owned_memory : owned_memory,
             next_size : num_words,
             cap_table : Vec::new(),
+            dummy_limiter : limiter,
             fail_fast : fail_fast,
         });
 
@@ -300,7 +335,8 @@ impl BuilderArena {
                 }};
 
             let (words, size) = self.allocate_owned_memory(amount);
-            let mut new_builder = Box::new(SegmentBuilder::new(self, id as u32, words, size));
+            let mut new_builder = Box::new(SegmentBuilder::new(self, self.dummy_limiter.clone(),
+                                                               id as u32, words, size));
             let builder_ptr = &mut *new_builder as *mut SegmentBuilder;
 
             self.more_segments.push(new_builder);

@@ -2288,9 +2288,11 @@ impl <'a> ListReader<'a> {
     pub fn len(&self) -> ElementCount32 { self.element_count }
 
     pub fn get_struct_element(&self, index : ElementCount32) -> StructReader<'a> {
-        require!(self.nesting_limit > 0, unsafe {*self.segment},
-                 "Message is too deeply-nested or contains cycles",
-                 return StructReader::new_default());
+        unsafe {
+            require!(self.nesting_limit > 0, *self.segment,
+                     "Message is too deeply-nested or contains cycles",
+                     return StructReader::new_default());
+        }
 
         let index_bit : BitCount64 = index as ElementCount64 * (self.step as BitCount64);
 
