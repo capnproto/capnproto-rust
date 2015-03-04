@@ -472,7 +472,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
     fn common_case<T: ::std::num::FromPrimitive + PartialEq + ::std::fmt::Display>(
         typ: &str, member : &str,
         offset: usize, default : T) -> (String, FormattedText) {
-        let interior = if default == ::std::num::FromPrimitive::from_uint(0).unwrap() {
+        let interior = if default == ::std::num::FromPrimitive::from_u8(0).unwrap() {
             Line(format!("self.{}.get_data_field::<{}>({})",
                          member, typ, offset))
         } else {

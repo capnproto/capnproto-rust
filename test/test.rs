@@ -651,7 +651,7 @@ mod tests {
     #[test]
     #[should_fail]  // TODO failure message
     fn void_list_amplification() {
-        use test_capnp::{test_any_pointer, test_empty_struct, test_all_types};
+        use test_capnp::{test_any_pointer, test_all_types};
         use capnp::MessageReader;
 
         let mut message = MallocMessageBuilder::new_default();
