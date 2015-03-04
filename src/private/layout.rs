@@ -2142,7 +2142,7 @@ impl <'a> StructReader<'a>  {
                 (*dwv.offset(offset as isize)).get()
             }
         } else {
-            return ::std::num::FromPrimitive::from_uint(0).unwrap();
+            return ::std::num::FromPrimitive::from_u8(0).unwrap();
         }
     }
 
