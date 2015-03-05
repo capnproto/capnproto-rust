@@ -23,7 +23,7 @@ use private::units::*;
 use private::endian::WireValue;
 use message::*;
 use private::arena;
-use io;
+use io::{InputStream, OutputStream};
 use Word;
 
 pub struct OwnedSpaceMessageReader {
@@ -47,29 +47,24 @@ impl MessageReader for OwnedSpaceMessageReader {
     }
 }
 
-fn invalid_input<T>(desc : &'static str) -> ::std::old_io::IoResult<T> {
-    return Err(::std::old_io::IoError{ kind : ::std::old_io::InvalidInput,
-                                       desc : desc,
-                                       detail : None});
+fn invalid_input<T>(desc : &'static str) -> ::std::io::Result<T> {
+    return Err(::std::io::Error::new(::std::io::ErrorKind::InvalidInput, desc, None));
 }
 
-pub fn new_reader<U : ::std::old_io::Reader>(input_stream : &mut U,
-                                             options : ReaderOptions)
-                                             -> ::std::old_io::IoResult<OwnedSpaceMessageReader> {
+pub fn new_reader<U : InputStream>(
+    input_stream : &mut U,
+    options : ReaderOptions) -> ::std::io::Result<OwnedSpaceMessageReader> {
 
-    let first_word = try!(input_stream.read_exact(8));
+    let mut first_word : [WireValue<u32>; 2] = unsafe {::std::mem::uninitialized()};
+    unsafe {
+        let ptr : *mut u8 = ::std::mem::transmute(first_word.as_mut_ptr());
+        let buf = ::std::slice::from_raw_parts_mut::<u8>(ptr, 8);
+        try!(input_stream.read_exact(buf));
+    }
 
-    let segment_count : u32 =
-        unsafe {let p : *const WireValue<u32> = ::std::mem::transmute(first_word.as_ptr());
-                (*p).get() + 1
-    };
+    let segment_count : u32 = first_word[0].get() + 1;
 
-    let segment0_size =
-        if segment_count == 0 { 0 } else {
-        unsafe {let p : *const WireValue<u32> = ::std::mem::transmute(first_word.get_unchecked(4));
-                (*p).get()
-        }
-    };
+    let segment0_size = if segment_count == 0 { 0 } else { first_word[1].get() };
 
     let mut total_words = segment0_size;
 
@@ -77,18 +72,18 @@ pub fn new_reader<U : ::std::old_io::Reader>(input_stream : &mut U,
         return invalid_input("too many segments");
     }
 
-    let mut more_sizes : Vec<u32> = Vec::with_capacity((segment_count & !1) as usize);
+    let more_sizes_len = (segment_count & !1) as usize;
+    let mut more_sizes : Vec<WireValue<u32>> = Vec::with_capacity(more_sizes_len);
+    unsafe { more_sizes.set_len(more_sizes_len); }
 
     if segment_count > 1 {
-        let more_sizes_raw = try!(input_stream.read_exact((4 * (segment_count & !1)) as usize));
+        unsafe {
+            let ptr : *mut u8 = ::std::mem::transmute(more_sizes.as_mut_ptr());
+            let buf = ::std::slice::from_raw_parts_mut::<u8>(ptr, more_sizes_len * 4);
+            try!(input_stream.read_exact(buf));
+        }
         for ii in 0..(segment_count as usize - 1) {
-            let size = unsafe {
-                let p : *const WireValue<u32> =
-                    ::std::mem::transmute(more_sizes_raw.get_unchecked(ii * 4));
-                (*p).get()
-            };
-            more_sizes.push(size);
-            total_words += size;
+            total_words += more_sizes[ii].get();
         }
     }
 
@@ -108,10 +103,10 @@ pub fn new_reader<U : ::std::old_io::Reader>(input_stream : &mut U,
     unsafe {
         let ptr : *mut u8 = ::std::mem::transmute(owned_space.as_mut_slice().as_mut_ptr());
         let buf = ::std::slice::from_raw_parts_mut::<u8>(ptr, buf_len);
-        try!(io::read_at_least(input_stream, buf, buf_len));
+        try!(input_stream.read_exact(buf));
     }
 
-    // TODO(maybe someday) lazy reading like in capnp-c++?
+    // TODO(maybe someday) lazy reading like in capnproto-c++?
 
     let mut segment_slices : Vec<(usize, usize)> = vec!((0, segment0_size as usize));
 
@@ -124,10 +119,10 @@ pub fn new_reader<U : ::std::old_io::Reader>(input_stream : &mut U,
 
             for ii in 0..(segment_count as usize - 1) {
                 segments.push(&owned_space[offset as usize ..
-                                           (offset + more_sizes.as_slice()[ii]) as usize]);
+                                           (offset + more_sizes[ii].get()) as usize]);
                 segment_slices.push((offset as usize,
-                                     (offset + more_sizes.as_slice()[ii]) as usize));
-                offset += more_sizes.as_slice()[ii];
+                                     (offset + more_sizes[ii].get()) as usize));
+                offset += more_sizes[ii].get();
             }
         }
         arena::ReaderArena::new(segments.as_slice(), options)
@@ -142,9 +137,9 @@ pub fn new_reader<U : ::std::old_io::Reader>(input_stream : &mut U,
 }
 
 
-pub fn write_message<T : ::std::old_io::Writer, U : MessageBuilder>(
+pub fn write_message<T : OutputStream, U : MessageBuilder>(
     output_stream : &mut T,
-    message : &mut U) -> ::std::old_io::IoResult<()> {
+    message : &mut U) -> ::std::io::Result<()> {
 
     let segments = message.get_segments_for_output();
     let table_size : usize = (segments.len() + 2) & (!1);
@@ -165,16 +160,15 @@ pub fn write_message<T : ::std::old_io::Writer, U : MessageBuilder>(
     unsafe {
         let ptr : *const u8 = ::std::mem::transmute(table.as_ptr());
         let buf = ::std::slice::from_raw_parts::<u8>(ptr, table.len() * 4);
-        try!(output_stream.write_all(buf));
+        try!(output_stream.write(buf));
     }
 
     for i in 0..segments.len() {
         unsafe {
             let ptr : *const u8 = ::std::mem::transmute(segments[i].as_ptr());
             let buf = ::std::slice::from_raw_parts::<u8>(ptr, segments[i].len() * BYTES_PER_WORD);
-            try!(output_stream.write_all(buf));
+            try!(output_stream.write(buf));
         }
     }
-
     output_stream.flush()
 }

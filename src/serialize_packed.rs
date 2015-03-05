@@ -19,7 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use io;
+use io::{BufferedInputStream, BufferedOutputStream,
+         BufferedInputStreamWrapper, BufferedOutputStreamWrapper,
+         InputStream, OutputStream};
 use message::*;
 use serialize;
 
@@ -44,7 +46,7 @@ fn ptr_sub<T, U: PtrUsize<T>, V: PtrUsize<T>>(p1 : U, p2 : V) -> usize {
     return (p1.as_usize() - p2.as_usize()) / ::std::mem::size_of::<T>();
 }
 
-pub struct PackedInputStream<'a, R:'a> {
+pub struct PackedInputStream<'a, R : 'a> {
     pub inner : &'a mut R
 }
 
@@ -63,8 +65,8 @@ macro_rules! refresh_buffer(
         );
     );
 
-impl <'a, R : io::BufferedInputStream> ::std::old_io::Reader for PackedInputStream<'a, R> {
-    fn read(&mut self, out_buf: &mut [u8]) -> ::std::old_io::IoResult<usize> {
+impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
+    fn try_read(&mut self, out_buf: &mut [u8], _min_bytes : usize) -> ::std::io::Result<usize> {
         let len = out_buf.len();
 
         if len == 0 { return Ok(0); }
@@ -174,7 +176,7 @@ impl <'a, R : io::BufferedInputStream> ::std::old_io::Reader for PackedInputStre
                         try!(self.inner.skip(size));
                         {
                             let buf = ::std::slice::from_raw_parts_mut::<u8>(out, run_length);
-                            try!(self.inner.read(buf));
+                            try!(self.inner.read_exact(buf));
                         }
 
                         out = out.offset(run_length as isize);
@@ -203,9 +205,9 @@ impl <'a, R : io::BufferedInputStream> ::std::old_io::Reader for PackedInputStre
 
 
 
-pub fn new_reader<U : io::BufferedInputStream>(input : &mut U,
-                                               options : ReaderOptions)
-                                               -> ::std::old_io::IoResult<serialize::OwnedSpaceMessageReader> {
+pub fn new_reader<U : BufferedInputStream>(input : &mut U,
+                                           options : ReaderOptions)
+                                           -> ::std::io::Result<serialize::OwnedSpaceMessageReader> {
     let mut packed_input = PackedInputStream {
         inner : input
     };
@@ -213,11 +215,11 @@ pub fn new_reader<U : io::BufferedInputStream>(input : &mut U,
     serialize::new_reader(&mut packed_input, options)
 }
 
-pub fn new_reader_unbuffered<U : ::std::old_io::Reader>(input : &mut U,
-                                                        options : ReaderOptions)
-                                                  -> ::std::old_io::IoResult<serialize::OwnedSpaceMessageReader> {
+pub fn new_reader_unbuffered<U : InputStream>(input : U,
+                                              options : ReaderOptions)
+                                              -> ::std::io::Result<serialize::OwnedSpaceMessageReader> {
     let mut packed_input = PackedInputStream {
-        inner : &mut io::BufferedInputStreamWrapper::new(input)
+        inner : &mut BufferedInputStreamWrapper::new(input)
     };
 
     serialize::new_reader(&mut packed_input, options)
@@ -228,8 +230,8 @@ pub struct PackedOutputStream<'a, W:'a> {
     pub inner : &'a mut W
 }
 
-impl <'a, W : io::BufferedOutputStream> ::std::old_io::Writer for PackedOutputStream<'a, W> {
-    fn write_all(&mut self, in_buf : &[u8]) -> ::std::old_io::IoResult<()> {
+impl <'a, W : BufferedOutputStream> OutputStream for PackedOutputStream<'a, W> {
+    fn write(&mut self, in_buf : &[u8]) -> ::std::io::Result<()> {
         unsafe {
             let (mut out, mut buffer_end) = self.inner.get_write_buffer();
             let mut buffer_begin = out;
@@ -367,7 +369,7 @@ impl <'a, W : io::BufferedOutputStream> ::std::old_io::Writer for PackedOutputSt
 
                         {
                             let buf = ::std::slice::from_raw_parts::<u8>(run_start, count);
-                            try!(self.inner.write_all(buf));
+                            try!(self.inner.write(buf));
                         }
 
                         let (out1, buffer_end1) = self.inner.get_write_buffer();
@@ -382,19 +384,19 @@ impl <'a, W : io::BufferedOutputStream> ::std::old_io::Writer for PackedOutputSt
         }
     }
 
-   fn flush(&mut self) -> ::std::old_io::IoResult<()> { self.inner.flush() }
+   fn flush(&mut self) -> ::std::io::Result<()> { self.inner.flush() }
 }
 
-pub fn write_packed_message<T: io::BufferedOutputStream, U: MessageBuilder>(
-    output : &mut T, message : &mut U) -> ::std::old_io::IoResult<()> {
+pub fn write_packed_message<T: BufferedOutputStream, U: MessageBuilder>(
+    output : &mut T, message : &mut U) -> ::std::io::Result<()> {
     let mut packed_output_stream = PackedOutputStream {inner : output};
     serialize::write_message(&mut packed_output_stream, message)
 }
 
 
-pub fn write_packed_message_unbuffered<T: ::std::old_io::Writer, U: MessageBuilder>(
-    output : &mut T, message : &mut U) -> ::std::old_io::IoResult<()> {
-    let mut buffered = io::BufferedOutputStreamWrapper::new(output);
+pub fn write_packed_message_unbuffered<T: OutputStream, U: MessageBuilder>(
+    output : &mut T, message : &mut U) -> ::std::io::Result<()> {
+    let mut buffered = BufferedOutputStreamWrapper::new(output);
     try!(write_packed_message(&mut buffered, message));
     buffered.flush()
 }
@@ -403,22 +405,19 @@ pub fn write_packed_message_unbuffered<T: ::std::old_io::Writer, U: MessageBuild
 mod tests {
     use std;
     use serialize_packed::{PackedOutputStream, PackedInputStream};
-    use io;
+    use io::{ArrayInputStream, ArrayOutputStream, InputStream, OutputStream};
 
     pub fn expect_packs_to(unpacked : &[u8],
                            packed : &[u8]) {
-
-        use std::old_io::{Reader, Writer};
 
         // --------
         // write
 
         let mut bytes : std::vec::Vec<u8> = ::std::iter::repeat(0u8).take(packed.len()).collect();
         {
-            let mut writer = io::ArrayOutputStream::new(bytes.as_mut_slice());
+            let mut writer = ArrayOutputStream::new(bytes.as_mut_slice());
             let mut packed_output_stream = PackedOutputStream {inner : &mut writer};
-            packed_output_stream.write_all(unpacked).unwrap();
-            packed_output_stream.flush().unwrap();
+            packed_output_stream.write(unpacked).unwrap();
         }
 
         assert!(bytes.as_slice().eq(packed),
@@ -427,10 +426,12 @@ mod tests {
         // --------
         // read
 
-        let mut reader = io::ArrayInputStream::new(packed);
+        let mut reader = ArrayInputStream::new(packed);
         let mut packed_input_stream = PackedInputStream {inner : &mut reader};
 
-        let bytes = packed_input_stream.read_exact(unpacked.len()).unwrap();
+
+        let mut bytes : std::vec::Vec<u8> = ::std::iter::repeat(0u8).take(unpacked.len()).collect();
+        packed_input_stream.read_exact(bytes.as_mut_slice()).unwrap();
 
         //    assert!(packed_input_stream.eof());
         assert!(bytes[..].eq(unpacked),
