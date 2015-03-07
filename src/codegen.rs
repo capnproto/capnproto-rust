@@ -1407,7 +1407,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Indent(box Branch( vec!(
                         Line("fn from_server(self, _hook : Option<T>) -> Client {".to_string()),
                         Indent(
-                            box Line("Client { client : ServerHook::new_client(None::<T>, box ServerDispatch { server : box self.0})}".to_string())),
+                            box Line("Client { client : ServerHook::new_client(None::<T>, ::std::boxed::Box::new(ServerDispatch { server : ::std::boxed::Box::new(self.0)}))}".to_string())),
                         Line("}".to_string())))),
                     Line("}".to_string()))));
 

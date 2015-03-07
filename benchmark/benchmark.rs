@@ -253,7 +253,7 @@ macro_rules! pass_by_pipe(
         args[2] = "client".to_string();
 
         let mut command = process::Command::new(args[0].as_slice());
-        command.args(args.slice(1, args.len()));
+        command.args(&args[1..args.len()]);
         command.stdin(process::Stdio::piped());
         command.stdout(process::Stdio::piped());
         command.stderr(process::Stdio::null());
