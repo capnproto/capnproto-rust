@@ -27,7 +27,7 @@
 
 #![crate_name="capnpc-rust"]
 #![crate_type = "bin"]
-#![feature(exit_status, old_io)]
+#![feature(exit_status, io)]
 
 extern crate capnp;
 extern crate capnpc;
@@ -35,7 +35,9 @@ extern crate capnpc;
 pub fn main() {
     //! Generate Rust code according to a `schema_capnp::code_generator_request` read from stdin.
 
-    match ::capnpc::codegen::main(&mut ::std::old_io::stdin()) {
+    let inp = ::capnp::io::ReadInputStream::new(::std::io::stdin());
+
+    match ::capnpc::codegen::main(inp) {
         Ok(()) => {}
         Err(e) => {
             std::env::set_exit_status(1);

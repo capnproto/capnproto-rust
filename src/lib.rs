@@ -47,7 +47,7 @@
 
 #![crate_name="capnpc"]
 #![crate_type = "lib"]
-#![feature(box_syntax, core, old_io, old_path, path)]
+#![feature(box_syntax, core, fs, io, path)]
 
 extern crate capnp;
 
@@ -55,36 +55,36 @@ pub mod schema_capnp;
 pub mod codegen;
 pub mod schema;
 
-pub fn compile(prefix : Path, files : &[Path]) -> ::std::old_io::IoResult<()> {
+pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::std::io::Result<()> {
 
-    let out_dir = Path::new(::std::env::var("OUT_DIR").unwrap());
+    let out_dir = ::std::path::PathBuf::new(::std::env::var("OUT_DIR").unwrap().as_slice());
     let cwd = ::std::env::current_dir().unwrap();
     ::std::env::set_current_dir(&out_dir).unwrap();
 
     // ::std::Path does not normalize "foo/." to "foo/", and the schema compiler does not recognize
     // "foo/." as a prefix of "foo/bar.capnp". So we handle this case specially.
-    let src_prefix = if prefix == Path::new(".") {
+    let src_prefix = if prefix == ::std::path::Path::new(".") {
         cwd.clone()
     } else {
         cwd.clone().join(&prefix)
     };
 
-    let mut command = ::std::old_io::Command::new("capnp");
+    let mut command = ::std::process::Command::new("capnp");
     command
         .arg("compile")
         .arg("-o/bin/cat")
-        .arg(format!("--src-prefix={}", src_prefix.display()));
+        .arg(format!("--src-prefix={}", src_prefix.display()).as_slice());
 
     for file in files.iter() {
-        command.arg(format!("{}", cwd.join(file).display()));
+        command.arg(format!("{}", cwd.join(file).display()).as_slice());
     }
 
-    command.stdout(::std::old_io::process::CreatePipe(false, true));
-    command.stderr(::std::old_io::process::InheritFd(2));
+    command.stdout(::std::process::Stdio::piped());
+    command.stderr(::std::process::Stdio::inherit());
 
     let mut p =  try!(command.spawn());
-    let mut child_stdout = p.stdout.take().unwrap();
-    try!(::codegen::main(&mut child_stdout));
+    let child_stdout = ::capnp::io::ReadInputStream::new(p.stdout.take().unwrap());
+    try!(::codegen::main(child_stdout));
     try!(p.wait());
     return Ok(());
 }

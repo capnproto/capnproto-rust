@@ -1,7 +1,8 @@
-#![feature(old_path)]
+#![feature(path)]
 
 extern crate capnpc;
 
 fn main() {
-    ::capnpc::compile(Path::new("."), &[Path::new("test.capnp")]).unwrap();
+    ::capnpc::compile(&::std::path::Path::new("."),
+                      &[&::std::path::Path::new("test.capnp")]).unwrap();
 }

@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "bin"]
-#![feature(core, old_io)]
+#![feature(core, io)]
 
 extern crate capnp;
 pub mod addressbook_capnp {
@@ -28,12 +28,11 @@ pub mod addressbook_capnp {
 }
 
 pub mod addressbook {
-    use std::old_io::{stdin, stdout, IoResult};
     use addressbook_capnp::{address_book, person};
     use capnp::serialize_packed;
     use capnp::{MessageBuilder, MessageReader, ReaderOptions, MallocMessageBuilder};
 
-    pub fn write_address_book() -> IoResult<()> {
+    pub fn write_address_book() -> ::std::io::Result<()> {
         let mut message = MallocMessageBuilder::new_default();
         {
             let address_book = message.init_root::<address_book::Builder>();
@@ -69,12 +68,14 @@ pub mod addressbook {
             }
         }
 
-        serialize_packed::write_packed_message_unbuffered(&mut stdout(), &mut message)
+        serialize_packed::write_packed_message_unbuffered(
+            &mut ::capnp::io::WriteOutputStream::new(::std::io::stdout()), &mut message)
     }
 
-    pub fn print_address_book() -> IoResult<()> {
+    pub fn print_address_book() -> ::std::io::Result<()> {
 
-        let message_reader = try!(serialize_packed::new_reader_unbuffered(&mut stdin(), ReaderOptions::new()));
+        let message_reader = try!(serialize_packed::new_reader_unbuffered(
+            ::capnp::io::ReadInputStream::new(::std::io::stdin()), ReaderOptions::new()));
         let address_book = message_reader.get_root::<address_book::Reader>();
 
         for person in address_book.get_people().iter() {

@@ -1539,14 +1539,14 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
 
 
-pub fn main<T : ::std::old_io::Reader>(inp : &mut T) -> ::std::old_io::IoResult<()> {
+pub fn main<T : ::capnp::io::InputStream>(mut inp : T) -> ::std::io::Result<()> {
     //! Generate Rust code according to a `schema_capnp::code_generator_request` read from `inp`.
 
-    use std::old_io::{Writer, File, Truncate, Write};
     use capnp::serialize;
     use capnp::MessageReader;
+    use std::borrow::ToOwned;
 
-    let message = try!(serialize::new_reader(inp, capnp::ReaderOptions::new()));
+    let message = try!(serialize::new_reader(&mut inp, capnp::ReaderOptions::new()));
 
     let request : schema_capnp::code_generator_request::Reader = message.get_root();
 
@@ -1559,20 +1559,22 @@ pub fn main<T : ::std::old_io::Reader>(inp : &mut T) -> ::std::old_io::IoResult<
 
     for requested_file in request.get_requested_files().iter() {
         let id = requested_file.get_id();
-        let mut filepath = ::std::old_path::Path::new(requested_file.get_filename());
+        let mut filepath = ::std::path::PathBuf::new(requested_file.get_filename());
 
         let imports = requested_file.get_imports();
         for import in imports.iter() {
-            let importpath = ::std::old_path::Path::new(import.get_name());
+            let importpath = ::std::path::Path::new(import.get_name());
             let root_name : String = format!("::{}_capnp",
-                                               importpath.filestem_str().unwrap().replace("-", "_"));
+                                             importpath.file_stem().unwrap().to_owned()
+                                             .into_string().unwrap().replace("-", "_"));
             populate_scope_map(&node_map, &mut scope_map, vec!(root_name), import.get_id());
         }
 
         let root_name : String = format!("{}_capnp",
-                                       filepath.filestem_str().unwrap().replace("-", "_"));
+                                         filepath.file_stem().unwrap().to_owned().
+                                         into_string().unwrap().replace("-", "_"));
 
-        filepath.set_filename(format!("{}.rs", root_name));
+        filepath.set_file_name(format!("{}.rs", root_name).as_slice());
 
         let root_mod = format!("::{}", root_name);
 
@@ -1589,8 +1591,9 @@ pub fn main<T : ::std::old_io::Reader>(inp : &mut T) -> ::std::old_io::IoResult<
 
         let text = stringify(&lines);
 
-        match File::open_mode(&filepath, Truncate, Write) {
+        match ::std::fs::File::create(&filepath) {
             Ok(ref mut writer) => {
+                use std::io::Write;
                 try!(writer.write_all(text.as_bytes()));
             }
             Err(e) => {panic!("could not open file for writing: {}", e)}
