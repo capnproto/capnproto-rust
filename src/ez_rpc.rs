@@ -22,7 +22,6 @@
 use rpc_capnp::{message, return_};
 
 use std;
-use std::old_io::Acceptor;
 use std::collections::hash_map::HashMap;
 use capnp::{any_pointer, MessageBuilder, MallocMessageBuilder, ReaderOptions};
 use capnp::private::capability::{ClientHook};
@@ -32,27 +31,25 @@ use capability::{LocalClient};
 
 pub struct EzRpcClient {
     rpc_chan : std::sync::mpsc::Sender<RpcEvent>,
-    tcp : std::old_io::net::tcp::TcpStream,
+    tcp : ::std::net::TcpStream,
 }
 
 impl Drop for EzRpcClient {
     fn drop(&mut self) {
         self.rpc_chan.send(RpcEvent::Shutdown).is_ok();
-        self.tcp.close_read().is_ok();
+        //self.tcp.close_read().is_ok();
     }
 }
 
 impl EzRpcClient {
-    pub fn new(server_address : &str) -> std::old_io::IoResult<EzRpcClient> {
-        use std::old_io::net::{ip, tcp};
-
-        let addr : ip::SocketAddr = std::str::FromStr::from_str(server_address).ok().expect("bad server address");
-
-        let tcp = try!(tcp::TcpStream::connect(addr));
+    pub fn new(server_address : &str) -> std::io::Result<EzRpcClient> {
+        let tcp = try!(::std::net::TcpStream::connect(server_address));
 
         let connection_state = RpcConnectionState::new();
 
-        let chan = connection_state.run(tcp.clone(), tcp.clone(), (), *ReaderOptions::new().fail_fast(false));
+        let chan = connection_state.run(::capnp::io::ReadInputStream::new(try!(tcp.try_clone())),
+                                        ::capnp::io::WriteOutputStream::new(try!(tcp.try_clone())),
+                                        (), *ReaderOptions::new().fail_fast(false));
 
         return Ok(EzRpcClient { rpc_chan : chan, tcp : tcp });
     }
@@ -137,24 +134,18 @@ impl SturdyRefRestorer for Restorer {
 }
 
 pub struct EzRpcServer {
-    sender : std::sync::mpsc::Sender<ExportEvent>,
-    tcp_acceptor : std::old_io::net::tcp::TcpAcceptor,
+    sender : ::std::sync::mpsc::Sender<ExportEvent>,
+    tcp_listener : ::std::net::TcpListener,
 }
 
 impl EzRpcServer {
-    pub fn new(bind_address : &str) -> std::old_io::IoResult<EzRpcServer> {
-        use std::old_io::net::{ip, tcp};
-        use std::old_io::Listener;
+    pub fn new(bind_address : &str) -> std::io::Result<EzRpcServer> {
 
-        let addr : ip::SocketAddr = std::str::FromStr::from_str(bind_address).ok().expect("bad bind address");
-
-        let tcp_listener = try!(tcp::TcpListener::bind(addr));
-
-        let tcp_acceptor = try!(tcp_listener.listen());
+        let tcp_listener = try!(::std::net::TcpListener::bind(bind_address));
 
         let sender = ExportedCaps::new();
 
-        Ok(EzRpcServer { sender : sender, tcp_acceptor : tcp_acceptor  })
+        Ok(EzRpcServer { sender : sender, tcp_listener : tcp_listener  })
     }
 
     pub fn export_cap(&self, name : &str, server : Box<Server+Send>) {
@@ -163,28 +154,20 @@ impl EzRpcServer {
 
     pub fn serve<'a>(self) -> ::std::thread::JoinGuard<'a, ()> {
         std::thread::scoped(move || {
-            let mut server = self;
-            for res in server.incoming() {
-                match res {
-                    Ok(()) => {}
-                    Err(e) => {
-                        println!("error: {}", e)
-                    }
-                }
+            let server = self;
+            for stream_result in server.tcp_listener.incoming() {
+                let tcp = stream_result.unwrap();
+                let sender2 = server.sender.clone();
+                std::thread::spawn(move || {
+                    let connection_state = RpcConnectionState::new();
+                    let _rpc_chan = connection_state.run(
+                        ::capnp::io::ReadInputStream::new(tcp.try_clone().unwrap()),
+                        ::capnp::io::WriteOutputStream::new(tcp),
+                        Restorer::new(sender2),
+                        *ReaderOptions::new().fail_fast(false));
+                });
             }
         })
     }
 }
 
-impl std::old_io::Acceptor<()> for EzRpcServer {
-    fn accept(&mut self) -> std::old_io::IoResult<()> {
-
-        let sender2 = self.sender.clone();
-        let tcp = try!(self.tcp_acceptor.accept());
-        std::thread::spawn(move || {
-            let connection_state = RpcConnectionState::new();
-            let _rpc_chan = connection_state.run(tcp.clone(), tcp, Restorer::new(sender2), *ReaderOptions::new().fail_fast(false));
-        });
-        Ok(())
-    }
-}

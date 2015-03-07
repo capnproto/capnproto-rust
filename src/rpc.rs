@@ -354,9 +354,9 @@ fn get_pipeline_ops(promised_answer : promised_answer::Reader) -> Vec<PipelineOp
     return result;
 }
 
-fn finish_question<W : ::std::old_io::Writer>(questions : &mut ExportTable<Question>,
-                                        outpipe : &mut W,
-                                        id : u32) {
+fn finish_question<W : ::capnp::io::OutputStream>(questions : &mut ExportTable<Question>,
+                                                  outpipe : &mut W,
+                                                  id : u32) {
     questions.erase(id);
 
     let mut finish_message = box MallocMessageBuilder::new_default();
@@ -380,8 +380,8 @@ impl RpcConnectionState {
         }
     }
 
-    pub fn run<T : ::std::old_io::Reader + Send + 'static,
-               U : ::std::old_io::Writer + Send + 'static,
+    pub fn run<T : ::capnp::io::InputStream + Send + 'static,
+               U : ::capnp::io::OutputStream + Send + 'static,
                V : SturdyRefRestorer + Send + 'static>(
         self, inpipe: T, outpipe: U, restorer : V, opts : ReaderOptions)
          -> ::std::sync::mpsc::Sender<RpcEvent> {

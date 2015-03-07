@@ -1,4 +1,4 @@
-#![feature(core, old_io, old_path)]
+#![feature(core, path)]
 
 extern crate capnpc;
 
@@ -7,15 +7,15 @@ fn main() {
     // CAPNP_INCLUDE_DIR=$(shell dirname $(shell which capnp))/../include
 
     let prefix = {
-        let output = ::std::old_io::Command::new("which").arg("capnp")
-            .output().unwrap().output;
-        let path = Path::new(output.as_slice());
-        let mut path1 = Path::new(path.dirname());
-        path1.push("../include/capnp");
+        let output = ::std::process::Command::new("which").arg("capnp")
+            .output().unwrap().stdout;
+        let path = ::std::path::Path::new(::std::str::from_utf8(output.as_slice()).unwrap());
+        let mut path1 = path.parent().unwrap().parent().unwrap().to_path_buf();
+        path1.push("include/capnp");
         path1
     };
 
-    ::capnpc::compile(prefix.clone(),
-                      &[prefix.join(Path::new("rpc.capnp")),
-                        prefix.join(Path::new("rpc-twoparty.capnp"))]).unwrap();
+    ::capnpc::compile(&*prefix,
+                      &[&*prefix.clone().join(::std::path::Path::new("rpc.capnp")),
+                        &*prefix.join(::std::path::Path::new("rpc-twoparty.capnp"))]).unwrap();
 }
