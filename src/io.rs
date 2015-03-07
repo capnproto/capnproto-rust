@@ -340,10 +340,7 @@ impl <'a> OutputStream for ArrayOutputStream<'a> {
     fn write(&mut self, buf: &[u8]) -> ::std::io::Result<()> {
         assert!(buf.len() <= self.array.len() - self.fill_pos,
                 "ArrayOutputStream's backing array was not large enough for the data written.");
-        unsafe { ::std::ptr::copy_nonoverlapping(
-            self.array.get_unchecked_mut(self.fill_pos),
-            buf.as_ptr(),
-            buf.len());  }
+        ::std::slice::bytes::copy_memory(&mut self.array[self.fill_pos ..], buf);
         self.fill_pos += buf.len();
         Ok(())
     }
