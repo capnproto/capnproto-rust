@@ -650,6 +650,21 @@ mod tests {
     }
 
     #[test]
+    fn text_builder_int_underflow() {
+        use test_capnp::{test_any_pointer};
+
+        let mut message = MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
+        {
+            let mut root = message.init_root::<test_any_pointer::Builder>();
+            let _ : ::capnp::data::Builder = root.borrow().get_any_pointer_field().init_as_sized(0);
+            let text : ::capnp::text::Builder = root.get_any_pointer_field().get_as();
+
+            assert_eq!(text.as_mut_bytes().len(), 0);
+        }
+    }
+
+
+    #[test]
     #[should_fail]  // TODO failure message
     fn void_list_amplification() {
         use test_capnp::{test_any_pointer, test_all_types};
