@@ -8,9 +8,6 @@ license = "MIT"
 description = "Experimental Cap'n Proto RPC layer"
 repository = "https://github.com/dwrensha/capnp-rpc-rust"
 
-[profile.dev]
-debug = false
-
 [lib]
 
 name = "capnp-rpc"
