@@ -671,9 +671,10 @@ mod tests {
     fn inline_composite_list_int_overflow() {
         use capnp::MessageReader;
 
-        let bytes : ::capnp::private::AlignedData<[u8; 32]> = ::capnp::private::AlignedData {
+        let bytes : ::capnp::private::AlignedData<[u8; 40]> = ::capnp::private::AlignedData {
             _dummy : 0,
-            data : [1,0,0,0, 0x17,0,0,0, 0,0,0,128, 16,0,0,0,
+            data : [0,0,0,0, 0,0,1,0,
+                    1,0,0,0, 0x17,0,0,0, 0,0,0,128, 16,0,0,0,
                     0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
         };
 
@@ -682,15 +683,27 @@ mod tests {
             ::capnp::message::SegmentArrayMessageReader::new(&words,
                                                              * ::capnp::ReaderOptions::new().fail_fast(false));
 
-        let list = message.get_root::<::capnp::struct_list::Reader<::test_capnp::test_all_types::Reader>>();
-
+        let root : ::test_capnp::test_any_pointer::Reader = message.get_root();
+        root.total_size();
         // TODO check that error was detected: "list's elements overrun its word count"
 
-        if list.len() > 0 {
-            let element = list.get(list.len() - 1);
-            assert_eq!(element.get_text_field(), "");
-            // At one point this caused a segfault.
+        {
+            let list = root.get_any_pointer_field()
+                .get_as::<::capnp::struct_list::Reader<::test_capnp::test_all_types::Reader>>();
+
+            // TODO check that error was detected: "list's elements overrun its word count"
+
+            if list.len() > 0 {
+                let element = list.get(list.len() - 1);
+                assert_eq!(element.get_text_field(), "");
+                // At one point this caused a segfault.
+            }
         }
+
+        let mut message_builder = MallocMessageBuilder::new_default();
+        let builder_root = message_builder.init_root::<::test_capnp::test_any_pointer::Builder>();
+        builder_root.get_any_pointer_field().set_as(root);
+        // TODO check that error was detected: "list's elements overrun its word count"
     }
 
 
