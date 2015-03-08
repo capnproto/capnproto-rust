@@ -1215,6 +1215,7 @@ mod wire_helpers {
         }
         let ref_target = (*reff).mut_target();
         let ptr = follow_builder_fars(&mut reff, ref_target, &mut segment);
+        let cptr : *mut u8 = ::std::mem::transmute(ptr);
 
         require!((*reff).kind() == WirePointerKind::List, (*segment).reader,
                 "Called getText{{Field,Element}}() but existing pointer is not a list.",
@@ -1223,8 +1224,14 @@ mod wire_helpers {
                 "Called getText{{Field,Element}}() but existing list pointer is not byte-sized.",
                  return use_default(reff, segment, default_value, default_size));
 
+        let count = (*reff).list_ref().element_count();
+        require!(count > 0 && *cptr.offset((count - 1) as isize) == 0,
+                 (*segment).reader,
+                 "Text blob missing NUL terminator.",
+                 return use_default(reff, segment, default_value, default_size));
+
         //# Subtract 1 from the size for the NUL terminator.
-        return text::Builder::new(::std::mem::transmute(ptr), (*reff).list_ref().element_count() - 1);
+        return text::Builder::new(cptr, count - 1);
     }
 
     #[inline]
