@@ -657,9 +657,39 @@ mod tests {
         {
             let mut root = message.init_root::<test_any_pointer::Builder>();
             let _ : ::capnp::data::Builder = root.borrow().get_any_pointer_field().init_as_sized(0);
+
+            // No NUL terminator!
             let text : ::capnp::text::Builder = root.get_any_pointer_field().get_as();
 
+            // TODO check that the error was detected.
+
             assert_eq!(text.as_mut_bytes().len(), 0);
+        }
+    }
+
+    #[test]
+    fn inline_composite_list_int_overflow() {
+        use capnp::MessageReader;
+
+        let bytes : ::capnp::private::AlignedData<[u8; 32]> = ::capnp::private::AlignedData {
+            _dummy : 0,
+            data : [1,0,0,0, 0x17,0,0,0, 0,0,0,128, 16,0,0,0,
+                    0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+        };
+
+        let words = [::capnp::Word::bytes_to_words(&bytes.data[..])];
+        let message =
+            ::capnp::message::SegmentArrayMessageReader::new(&words,
+                                                             * ::capnp::ReaderOptions::new().fail_fast(false));
+
+        let list = message.get_root::<::capnp::struct_list::Reader<::test_capnp::test_all_types::Reader>>();
+
+        // TODO check that error was detected: "list's elements overrun its word count"
+
+        if list.len() > 0 {
+            let element = list.get(list.len() - 1);
+            assert_eq!(element.get_text_field(), "");
+            // At one point this caused a segfault.
         }
     }
 
