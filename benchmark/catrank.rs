@@ -52,7 +52,7 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
             let url = result.borrow().init_url(url_size + url_prefix_length as u32);
 
             let bytes = url.as_mut_bytes();
-            ::std::old_io::BufWriter::new(bytes).write_all(URL_PREFIX.as_bytes()).unwrap();
+            ::std::slice::bytes::copy_memory(bytes, URL_PREFIX.as_bytes());
 
             for j in range(0, url_size) {
                 bytes[j as usize + url_prefix_length] = (97 + rng.next_less_than(26)) as u8;
