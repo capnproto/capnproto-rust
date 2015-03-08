@@ -1662,7 +1662,7 @@ mod wire_helpers {
                     let struct_ref = (*tag).struct_ref();
                     let words_per_element = struct_ref.word_size();
 
-                    require!(size * words_per_element <= word_count,
+                    require!(size as u64 * words_per_element as u64 <= word_count as u64,
                              *segment,
                              "InlineComposite list's elements overrun its word count",
                              continue 'use_default);

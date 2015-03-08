@@ -68,8 +68,7 @@ impl <'a, T : FromStructReader<'a>>  IndexMove<u32, T> for Reader<'a, T> {
 impl <'a, T : FromStructReader<'a>> Reader<'a, T> {
     pub fn get(self, index : u32) -> T {
         assert!(index < self.len());
-        let result : T = FromStructReader::new(self.reader.get_struct_element(index));
-        result
+        FromStructReader::new(self.reader.get_struct_element(index))
     }
 }
 
