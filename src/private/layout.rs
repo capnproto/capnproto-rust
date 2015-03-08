@@ -712,7 +712,8 @@ mod wire_helpers {
                                  "Don't know how to handle non-STRUCT inline composite.",
                                  return result);
 
-                        require!((*element_tag).struct_ref().word_size() * count <= word_count,
+                        require!((*element_tag).struct_ref().word_size() as u64 * count as u64
+                                 <= word_count as u64,
                                  *segment,
                                  "InlineComposite list's elements overrun its word count",
                                  return result);
@@ -1460,7 +1461,7 @@ mod wire_helpers {
                     let element_count = (*tag).inline_composite_list_element_count();
                     let words_per_element = (*tag).struct_ref().word_size();
 
-                    require!(words_per_element * element_count <= word_count,
+                    require!(words_per_element as u64 * element_count as u64 <= word_count as u64,
                              *src_segment,
                              "InlineComposite list's elements overrun its word count.",
                              return use_default(dst_segment, dst));
