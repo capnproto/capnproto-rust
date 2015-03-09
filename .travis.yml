@@ -20,7 +20,7 @@ script:
   - cd ..
   - cd example/addressbook
   - cargo build
-  - ./target/addressbook write | ./target/addressbook read
+  - ./target/debug/addressbook write | ./target/debug/addressbook read
   - cd ../..
   - cd benchmark
   - cargo build --release
