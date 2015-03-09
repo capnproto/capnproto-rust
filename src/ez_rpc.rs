@@ -21,16 +21,14 @@
 
 use rpc_capnp::{message, return_};
 
-use std;
-use std::collections::hash_map::HashMap;
-use capnp::{any_pointer, MessageBuilder, MallocMessageBuilder, ReaderOptions};
+use capnp::{MessageBuilder, MallocMessageBuilder, ReaderOptions};
 use capnp::private::capability::{ClientHook};
 use capnp::capability::{FromClientHook, Server};
-use rpc::{RpcConnectionState, RpcEvent, SturdyRefRestorer};
+use rpc::{RpcConnectionState, RpcEvent};
 use capability::{LocalClient};
 
 pub struct EzRpcClient {
-    rpc_chan : std::sync::mpsc::Sender<RpcEvent>,
+    rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
     tcp : ::std::net::TcpStream,
 }
 
@@ -41,24 +39,37 @@ impl Drop for EzRpcClient {
     }
 }
 
+struct EmptyCap;
+
+impl Server for EmptyCap {
+    fn dispatch_call(&mut self, _interface_id : u64, _method_id : u16,
+                     context : ::capnp::capability::CallContext<::capnp::any_pointer::Reader,
+                                                                ::capnp::any_pointer::Builder>) {
+        context.fail("Attempted to call a method on an empty capability.".to_string());
+    }
+}
+
 impl EzRpcClient {
-    pub fn new(server_address : &str) -> std::io::Result<EzRpcClient> {
+    pub fn new(server_address : &str) -> ::std::io::Result<EzRpcClient> {
         let tcp = try!(::std::net::TcpStream::connect(server_address));
 
         let connection_state = RpcConnectionState::new();
 
+        let empty_cap = Box::new(EmptyCap) as Box<Server+Send>;
+        let bootstrap = box LocalClient::new(empty_cap) as Box<ClientHook+Send>;
+
         let chan = connection_state.run(::capnp::io::ReadInputStream::new(try!(tcp.try_clone())),
                                         ::capnp::io::WriteOutputStream::new(try!(tcp.try_clone())),
-                                        (), *ReaderOptions::new().fail_fast(false));
+                                        bootstrap,
+                                        *ReaderOptions::new().fail_fast(false));
 
         return Ok(EzRpcClient { rpc_chan : chan, tcp : tcp });
     }
 
-    pub fn import_cap<T : FromClientHook>(&mut self, name : &str) -> T {
+    pub fn get_main<T : FromClientHook>(&mut self) -> T {
         let mut message = box MallocMessageBuilder::new_default();
         {
-            let restore = message.init_root::<message::Builder>().init_bootstrap();
-            restore.init_deprecated_object_id().set_as(name);
+            message.init_root::<message::Builder>().init_bootstrap();
         }
 
         let (outgoing, answer_port, _question_port) = RpcEvent::new_outgoing(message);
@@ -82,88 +93,29 @@ impl EzRpcClient {
     }
 }
 
-enum ExportEvent {
-    Restore(String, std::sync::mpsc::Sender<Option<Box<ClientHook+Send>>>),
-    Register(String, Box<Server+Send>),
-}
-
-struct ExportedCaps {
-    objects : HashMap<String, Box<ClientHook+Send>>,
-}
-
-impl ExportedCaps {
-    pub fn new() -> std::sync::mpsc::Sender<ExportEvent> {
-        let (chan, port) = std::sync::mpsc::channel::<ExportEvent>();
-
-        std::thread::spawn(move || {
-                let mut vat = ExportedCaps { objects : HashMap::new() };
-
-                loop {
-                    match port.recv() {
-                        Ok(ExportEvent::Register(name, server)) => {
-                            vat.objects.insert(name, box LocalClient::new(server) as Box<ClientHook+Send>);
-                        }
-                        Ok(ExportEvent::Restore(name, return_chan)) => {
-                            return_chan.send(Some(vat.objects[name].copy())).unwrap();
-                        }
-                        Err(_) => break,
-                    }
-                }
-            });
-
-        chan
-    }
-}
-
-pub struct Restorer {
-    sender : std::sync::mpsc::Sender<ExportEvent>,
-}
-
-impl Restorer {
-    fn new(sender : std::sync::mpsc::Sender<ExportEvent>) -> Restorer {
-        Restorer { sender : sender }
-    }
-}
-
-impl SturdyRefRestorer for Restorer {
-    fn restore(&self, obj_id : any_pointer::Reader) -> Option<Box<ClientHook+Send>> {
-        let (tx, rx) = std::sync::mpsc::channel();
-        self.sender.send(ExportEvent::Restore(obj_id.get_as::<::capnp::text::Reader>().to_string(), tx)).unwrap();
-        return rx.recv().unwrap();
-    }
-}
-
 pub struct EzRpcServer {
-    sender : ::std::sync::mpsc::Sender<ExportEvent>,
-    tcp_listener : ::std::net::TcpListener,
+     tcp_listener : ::std::net::TcpListener,
 }
 
 impl EzRpcServer {
-    pub fn new(bind_address : &str) -> std::io::Result<EzRpcServer> {
-
+    pub fn new(bind_address : &str) -> ::std::io::Result<EzRpcServer> {
         let tcp_listener = try!(::std::net::TcpListener::bind(bind_address));
-
-        let sender = ExportedCaps::new();
-
-        Ok(EzRpcServer { sender : sender, tcp_listener : tcp_listener  })
+        Ok(EzRpcServer { tcp_listener : tcp_listener  })
     }
 
-    pub fn export_cap(&self, name : &str, server : Box<Server+Send>) {
-        self.sender.send(ExportEvent::Register(name.to_string(), server)).unwrap()
-    }
-
-    pub fn serve<'a>(self) -> ::std::thread::JoinGuard<'a, ()> {
-        std::thread::scoped(move || {
+    pub fn serve<'a>(self, bootstrap_interface : Box<Server + Send>) -> ::std::thread::JoinGuard<'a, ()> {
+        ::std::thread::scoped(move || {
             let server = self;
+            let bootstrap_interface = box LocalClient::new(bootstrap_interface) as Box<ClientHook+Send>;
             for stream_result in server.tcp_listener.incoming() {
+                let bootstrap_interface = bootstrap_interface.copy();
                 let tcp = stream_result.unwrap();
-                let sender2 = server.sender.clone();
-                std::thread::spawn(move || {
+                ::std::thread::spawn(move || {
                     let connection_state = RpcConnectionState::new();
                     let _rpc_chan = connection_state.run(
                         ::capnp::io::ReadInputStream::new(tcp.try_clone().unwrap()),
                         ::capnp::io::WriteOutputStream::new(tcp),
-                        Restorer::new(sender2),
+                        bootstrap_interface,
                         *ReaderOptions::new().fail_fast(false));
                 });
             }

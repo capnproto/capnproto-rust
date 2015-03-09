@@ -252,13 +252,6 @@ impl <T> ExportTable<T> {
     }
 }
 
-pub trait SturdyRefRestorer {
-    fn restore(&self, _obj_id : any_pointer::Reader) -> Option<Box<ClientHook+Send>> { None }
-}
-
-impl SturdyRefRestorer for () { }
-
-
 pub struct RpcConnectionState {
     exports : ExportTable<Export>,
     questions : ExportTable<Question>,
@@ -381,10 +374,11 @@ impl RpcConnectionState {
     }
 
     pub fn run<T : ::capnp::io::InputStream + Send + 'static,
-               U : ::capnp::io::OutputStream + Send + 'static,
-               V : SturdyRefRestorer + Send + 'static>(
-        self, inpipe: T, outpipe: U, restorer : V, opts : ReaderOptions)
-         -> ::std::sync::mpsc::Sender<RpcEvent> {
+               U : ::capnp::io::OutputStream + Send + 'static>(
+                   self, inpipe: T, outpipe: U,
+                   bootstrap_interface : Box<ClientHook + Send>,
+                   opts : ReaderOptions)
+        -> ::std::sync::mpsc::Sender<RpcEvent> {
 
         let (result_rpc_chan, port) = ::std::sync::mpsc::channel::<RpcEvent>();
 
@@ -476,8 +470,7 @@ impl RpcConnectionState {
                                 MessageReceiver::Nobody
                             }
                             Some(message::Bootstrap(restore)) => {
-                                let clienthook = restorer.restore(restore.get_deprecated_object_id()).unwrap();
-                                let idx = exports.push(Export::new(clienthook.copy()));
+                                let idx = exports.push(Export::new(bootstrap_interface.copy()));
 
                                 let answer_id = restore.get_question_id();
                                 let mut message = box MallocMessageBuilder::new_default();
@@ -488,7 +481,7 @@ impl RpcConnectionState {
                                     let mut payload = ret.init_results();
                                     payload.borrow().init_cap_table(1);
                                     payload.borrow().get_cap_table().get(0).set_sender_hosted(idx as u32);
-                                    payload.get_content().set_as_capability(clienthook);
+                                    payload.get_content().set_as_capability(bootstrap_interface.copy());
 
                                 }
                                 answers.slots.insert(answer_id, Answer::new());
