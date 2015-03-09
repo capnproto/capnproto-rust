@@ -6,6 +6,7 @@ authors = [ "David Renshaw <david@sandstorm.io>" ]
 license = "MIT"
 description = "Runtime library for Cap'n Proto serialization"
 repository = "https://github.com/dwrensha/capnproto-rust"
+documentation = "http://docs.capnproto-rust.org"
 
 readme = "README.md"
 
