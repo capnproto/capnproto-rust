@@ -16,6 +16,9 @@ See [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust)
 for an implementation of
 remote procedure calls built on top of this.
 
+## Documentation
+
+Hosted [here](http://docs.capnproto-rust.org).
 
 ## Status
 
