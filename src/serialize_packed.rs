@@ -46,7 +46,7 @@ fn ptr_sub<T, U: PtrUsize<T>, V: PtrUsize<T>>(p1 : U, p2 : V) -> usize {
     return (p1.as_usize() - p2.as_usize()) / ::std::mem::size_of::<T>();
 }
 
-pub struct PackedInputStream<'a, R : 'a> {
+struct PackedInputStream<'a, R : 'a> {
     pub inner : &'a mut R
 }
 
@@ -226,7 +226,7 @@ pub fn new_reader_unbuffered<U : InputStream>(input : U,
 }
 
 
-pub struct PackedOutputStream<'a, W:'a> {
+struct PackedOutputStream<'a, W:'a> {
     pub inner : &'a mut W
 }
 
