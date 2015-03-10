@@ -708,7 +708,7 @@ mod tests {
 
 
     #[test]
-    #[should_fail]  // TODO failure message
+    #[should_panic]  // TODO failure message
     fn void_list_amplification() {
         use test_capnp::{test_any_pointer, test_all_types};
         use capnp::MessageReader;
@@ -733,7 +733,7 @@ mod tests {
 
 
     #[test]
-    #[should_fail]  // TODO failure message
+    #[should_panic]  // TODO failure message
     fn empty_struct_list_amplification() {
         use test_capnp::{test_any_pointer, test_empty_struct, test_all_types};
         use capnp::MessageReader;
