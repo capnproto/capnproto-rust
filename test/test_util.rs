@@ -139,7 +139,7 @@ check_test_message_impl(($typ:ident) => (
             assert_eq!(12345678901234567890, reader.borrow().get_u_int64_field());
             assert_eq!(1234.5, reader.borrow().get_float32_field());
             assert_eq!(-123e45, reader.borrow().get_float64_field());
-            assert_eq!("foo", reader.borrow().get_text_field().as_slice());
+            assert_eq!("foo", &*reader.borrow().get_text_field());
             assert_eq!(b"bar", &*reader.borrow().get_data_field());
             {
                 let mut sub_reader = reader.get_struct_field();
