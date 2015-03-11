@@ -65,6 +65,7 @@ impl <R : ::std::io::Read> InputStream for ReadInputStream<R> {
             let buf1 = &mut buf[pos .. buf_len];
             let n = try!(self.reader.read(buf1));
             pos += n;
+            if n == 0 { return Ok(pos); }
         }
         return Ok(pos);
     }
