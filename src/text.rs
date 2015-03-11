@@ -46,8 +46,14 @@ pub struct Builder<'a> {
 
 impl <'a> Builder <'a> {
 
-    pub fn new<'b>(bytes : &'b mut [u8], pos : u32) -> Builder<'b> {
-        Builder { bytes : bytes, pos : pos as usize }
+    pub fn new<'b>(bytes : &'b mut [u8], pos : u32) -> Result<Builder<'b>, ::std::str::Utf8Error> {
+        if pos != 0 {
+            match ::std::str::from_utf8(bytes) {
+                Err(e) => return Err(e),
+                _ => {}
+            }
+        }
+        Ok(Builder { bytes : bytes, pos : pos as usize })
     }
 
     pub fn push_ascii(&mut self, ascii : u8) {
@@ -63,9 +69,16 @@ impl <'a> Builder <'a> {
     }
 }
 
+impl <'a> ::std::ops::Deref for Builder <'a> {
+    type Target = str;
+    fn deref<'b>(&'b self) -> &'b str {
+        unsafe { ::std::str::from_utf8_unchecked(self.bytes) }
+    }
+}
+
 impl <'a> ::std::str::Str for Builder<'a> {
     fn as_slice<'b>(&'b self) -> &'b str {
-        ::std::str::from_utf8(self.bytes).unwrap()
+        unsafe { ::std::str::from_utf8_unchecked(self.bytes) }
     }
 }
 
