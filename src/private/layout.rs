@@ -1175,7 +1175,10 @@ mod wire_helpers {
         (*reff).mut_list_ref().set(Byte, byte_size);
 
         return super::SegmentAnd {segment : segment,
-                                  value : text::Builder::new(::std::mem::transmute(ptr), size) }
+                                  value : text::Builder::new(
+                                      ::std::slice::from_raw_parts_mut(::std::mem::transmute(ptr),
+                                                                       size as usize),
+                                      0) }
     }
 
     #[inline]
@@ -1185,10 +1188,7 @@ mod wire_helpers {
         let value_bytes = value.as_bytes();
         // TODO make sure the string is not longer than 2 ** 29.
         let mut allocation = init_text_pointer(reff, segment, value_bytes.len() as u32);
-        {
-            let slice = allocation.value.borrow().as_mut_bytes();
-            ::std::ptr::copy_nonoverlapping(slice.as_mut_ptr(), value_bytes.as_ptr(), value_bytes.len());
-        }
+        allocation.value.push_str(value);
         allocation
     }
 
@@ -1199,15 +1199,12 @@ mod wire_helpers {
                                                 default_size : ByteCount32) -> text::Builder<'a> {
         unsafe fn use_default<'a>(reff : *mut WirePointer,
                                   segment : *mut SegmentBuilder,
-                                  default_value : *const Word, default_size : ByteCount32) -> text::Builder<'a> {
+                                  _default_value : *const Word, default_size : ByteCount32) -> text::Builder<'a> {
             if default_size == 0 {
-                return text::Builder::new(::std::ptr::null_mut(), 0);
+                return text::Builder::new(::std::slice::from_raw_parts_mut(::std::ptr::null_mut(), 0), 0);
             } else {
-                let builder = init_text_pointer(reff, segment, default_size).value;
-                ::std::ptr::copy_nonoverlapping::<u8>(builder.as_ptr(),
-                                                      ::std::mem::transmute(default_value),
-                                                      default_size as usize);
-                return builder;
+                let _builder = init_text_pointer(reff, segment, default_size).value;
+                unimplemented!()
             }
         }
 
@@ -1232,7 +1229,7 @@ mod wire_helpers {
                  return use_default(reff, segment, default_value, default_size));
 
         //# Subtract 1 from the size for the NUL terminator.
-        return text::Builder::new(cptr, count - 1);
+        return text::Builder::new(::std::slice::from_raw_parts_mut(cptr, (count - 1) as usize), count - 1);
     }
 
     #[inline]

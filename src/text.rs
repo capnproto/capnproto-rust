@@ -40,35 +40,32 @@ impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
 }
 
 pub struct Builder<'a> {
-    marker : ::std::marker::PhantomData<&'a ()>,
-    ptr : *mut u8,
-    len : usize,
+    bytes : &'a mut [u8],
+    pos : usize,
 }
 
 impl <'a> Builder <'a> {
 
-    pub fn new<'b>(p : *mut u8, len : u32) -> Builder<'b> {
-        Builder { ptr : p, len : len as usize, marker : ::std::marker::PhantomData::<&'b ()> }
+    pub fn new<'b>(bytes : &'b mut [u8], pos : u32) -> Builder<'b> {
+        Builder { bytes : bytes, pos : pos as usize }
     }
 
-    pub fn as_mut_bytes(self) -> &'a mut [u8] {
-        unsafe { ::std::slice::from_raw_parts_mut(self.ptr, self.len) }
+    pub fn push_ascii(&mut self, ascii : u8) {
+        assert!(ascii < 128);
+        self.bytes[self.pos] = ascii;
+        self.pos += 1;
     }
 
-    pub unsafe fn as_ptr(&self) -> *mut u8 {
-        self.ptr
-    }
-
-    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder { ptr : self.ptr, len : self.len, marker : ::std::marker::PhantomData::<&'b ()> }
+    pub fn push_str(&mut self, string : &str) {
+        let bytes = string.as_bytes();
+        ::std::slice::bytes::copy_memory(&mut self.bytes[self.pos ..], bytes);
+        self.pos += bytes.len();
     }
 }
 
 impl <'a> ::std::str::Str for Builder<'a> {
     fn as_slice<'b>(&'b self) -> &'b str {
-        let v : &'b [u8] =
-            unsafe { ::std::slice::from_raw_parts(self.ptr as *const u8, self.len) };
-        ::std::str::from_utf8(v).unwrap()
+        ::std::str::from_utf8(self.bytes).unwrap()
     }
 }
 
