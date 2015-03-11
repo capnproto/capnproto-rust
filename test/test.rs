@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "lib"]
-#![feature(core, io)]
+#![feature(core)]
 
 extern crate capnp;
 
@@ -164,14 +164,11 @@ mod tests {
             assert!(test_blob_reader.get_data_field() == [0u8, 1u8, 2u8, 3u8, 4u8]);
         }
 
-        test_blob.borrow().init_text_field(10);
-        assert_eq!(test_blob.borrow().as_reader().get_text_field(),
-                       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
         {
-            use std::io::Write;
-            let text_builder = test_blob.borrow().get_text_field();
-            let mut writer = ::std::io::BufWriter::new(text_builder.as_mut_bytes());
-            writer.write_all("aabbccddee".as_bytes()).unwrap();
+            let mut text = test_blob.borrow().init_text_field(10);
+            assert_eq!(text.as_slice(),
+                       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
+            text.push_str("aabbccddee");
         }
 
         test_blob.borrow().init_data_field(7);
@@ -189,13 +186,6 @@ mod tests {
         assert!(test_blob.borrow().as_reader().get_data_field() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
 
         {
-            {
-                let bytes = test_blob.borrow().get_text_field().as_mut_bytes();
-                bytes[4] = 'z' as u8;
-                bytes[5] = 'z' as u8;
-            }
-            assert!(test_blob.borrow().as_reader().get_text_field() == "aabbzzddee");
-
             test_blob.borrow().get_data_field()[2] = 10;
         }
         assert!(test_blob.as_reader().get_data_field() == [4u8,5u8,10u8,5u8,5u8,5u8,5u8]);
@@ -663,7 +653,7 @@ mod tests {
 
             // TODO check that the error was detected.
 
-            assert_eq!(text.as_mut_bytes().len(), 0);
+            assert_eq!(text.as_slice().as_bytes().len(), 0);
         }
     }
 

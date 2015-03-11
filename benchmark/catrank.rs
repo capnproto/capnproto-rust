@@ -49,13 +49,11 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
 
         let url_prefix_length = URL_PREFIX.as_bytes().len();
         {
-            let url = result.borrow().init_url(url_size + url_prefix_length as u32);
+            let mut url = result.borrow().init_url(url_size + url_prefix_length as u32);
 
-            let bytes = url.as_mut_bytes();
-            ::std::slice::bytes::copy_memory(bytes, URL_PREFIX.as_bytes());
-
-            for j in range(0, url_size) {
-                bytes[j as usize + url_prefix_length] = (97 + rng.next_less_than(26)) as u8;
+            url.push_str(URL_PREFIX);
+            for _ in range(0, url_size) {
+                url.push_ascii((97 + rng.next_less_than(26)) as u8);
             }
         }
 
