@@ -1545,6 +1545,7 @@ pub fn main<T : ::capnp::io::InputStream>(mut inp : T) -> ::std::io::Result<()> 
     use capnp::serialize;
     use capnp::MessageReader;
     use std::borrow::ToOwned;
+    use std::io::Write;
 
     let message = try!(serialize::new_reader(&mut inp, capnp::ReaderOptions::new()));
 
@@ -1591,12 +1592,17 @@ pub fn main<T : ::capnp::io::InputStream>(mut inp : T) -> ::std::io::Result<()> 
 
         let text = stringify(&lines);
 
+        // It would be simpler to use try! instead of a pattern match, but then the error message
+        // would not include `filepath`.
         match ::std::fs::File::create(&filepath) {
             Ok(ref mut writer) => {
-                use std::io::Write;
                 try!(writer.write_all(text.as_bytes()));
             }
-            Err(e) => {panic!("could not open file for writing: {}", e)}
+            Err(e) => {
+                let _ = writeln!(&mut ::std::io::stderr(),
+                                 "could not open file {:?} for writing: {}", filepath, e);
+                return Err(e);
+            }
         }
     }
     Ok(())
