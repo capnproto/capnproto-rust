@@ -110,3 +110,7 @@ impl MessageSize {
         self.cap_count += other.cap_count;
     }
 }
+
+/// An enum or union discriminant that was not among the expected values in a schema.
+#[derive(PartialEq, Copy, Debug)]
+pub struct NotInSchema(pub u16);

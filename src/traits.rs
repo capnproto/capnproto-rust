@@ -69,6 +69,15 @@ pub trait ToU16 {
     fn to_u16(self) -> u16;
 }
 
+pub trait FromU16 : ::std::num::FromPrimitive {
+    #[inline]
+    fn from_u16(value : u16) -> Result<Self, ::NotInSchema> {
+        match ::std::num::FromPrimitive::from_u16(value) {
+            Some(x) => Ok(x),
+            None => Err(::NotInSchema(value)),
+        }
+    }
+}
 
 pub trait IndexMove<I, T> {
     fn index_move(&self, index : I) -> T;
