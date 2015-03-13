@@ -52,13 +52,13 @@ fn evaluate_impl(
     params : Option<primitive_list::Reader<f64>>) -> Result<f64, String> {
 
     match expression.which() {
-        Some(calculator::expression::Literal(v)) => {
+        Ok(calculator::expression::Literal(v)) => {
             Ok(v)
         },
-        Some(calculator::expression::PreviousResult(p)) => {
+        Ok(calculator::expression::PreviousResult(p)) => {
             Ok(try!(p.read_request().send().wait()).get_value())
         }
-        Some(calculator::expression::Parameter(p)) => {
+        Ok(calculator::expression::Parameter(p)) => {
             match params {
                 None => {Err("bad parameter".to_string())}
                 Some(params) => {
@@ -66,7 +66,7 @@ fn evaluate_impl(
                 }
             }
         }
-        Some(calculator::expression::Call(call)) => {
+        Ok(calculator::expression::Call(call)) => {
             let func = call.get_function();
             let call_params = call.get_params();
             let mut param_values = Vec::new();
@@ -83,7 +83,7 @@ fn evaluate_impl(
             }
             Ok(try!(request.send().wait()).get_value())
         }
-        None => panic!("unsupported expression"),
+        Err(_) => panic!("unsupported expression"),
     }
 }
 
@@ -172,10 +172,10 @@ impl calculator::Server for CalculatorImpl {
             let (params, mut results) = context.get();
             results.set_func(
                 match params.get_op() {
-                    Some(op) => {
+                    Ok(op) => {
                         calculator::function::ToClient(OperatorImpl {op : op}).from_server(None::<LocalClient>)
                     }
-                    None => panic!("Unknown operator."),
+                    Err(_) => return context.fail("Unknown operator.".to_string()),
                 });
         }
         context.done();

@@ -103,7 +103,7 @@ for Request<Params, Results, Pipeline> {
         let tmp : &'a mut Box<::capnp::private::capability::RequestHook> = unsafe { ::std::mem::transmute(& mut self.hook)};
         let message : message::Builder = tmp.message::<'a>().get_root();
         match message.which() {
-            Some(message::Call(call)) => {
+            Ok(message::Call(call)) => {
                 let params = call.init_params();
                 params.get_content().init_as()
             }
@@ -126,12 +126,12 @@ for ResultFuture<Results, Pipeline> {
             Ok(ref mut response_hook) => {
                 let root : message::Reader = response_hook.get().get_as();
                 match root.which() {
-                    Some(message::Return(ret)) => {
+                    Ok(message::Return(ret)) => {
                         match ret.which() {
-                            Some(return_::Results(res)) => {
+                            Ok(return_::Results(res)) => {
                                 Ok(res.get_content().get_as())
                             }
-                            Some(return_::Exception(e)) => {
+                            Ok(return_::Exception(e)) => {
                                 Err(e.get_reason().to_string())
                             }
                             _ => panic!(),

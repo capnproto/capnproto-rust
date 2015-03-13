@@ -78,9 +78,9 @@ impl EzRpcClient {
         let mut response_hook = answer_port.recv().unwrap();
         let message : message::Reader = response_hook.get().get_as();
         let client = match message.which() {
-            Some(message::Return(ret)) => {
+            Ok(message::Return(ret)) => {
                 match ret.which() {
-                    Some(return_::Results(payload)) => {
+                    Ok(return_::Results(payload)) => {
                         payload.get_content().get_as_capability::<T>()
                     }
                     _ => { panic!() }

@@ -1,7 +1,7 @@
 [package]
 
 name = "capnp-rpc"
-version = "0.1.15"
+version = "0.1.16"
 authors = [ "David Renshaw <dwrenshaw@sandstorm.io>" ]
 build = "build.rs"
 license = "MIT"
@@ -15,7 +15,7 @@ name = "capnp-rpc"
 path = "src/lib.rs"
 
 [build-dependencies]
-capnpc = "0.1.20"
+capnpc = "0.1.22"
 
 [dependencies]
-capnp = "0.1.20"
+capnp = "0.1.23"
