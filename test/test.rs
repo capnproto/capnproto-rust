@@ -498,17 +498,17 @@ mod tests {
 
         union_struct.borrow().get_union0().set_u0f0s0(());
         match union_struct.borrow().get_union0().which() {
-            Some(test_union::union0::U0f0s0(())) => {}
+            Ok(test_union::union0::U0f0s0(())) => {}
             _ => panic!()
         }
         union_struct.borrow().init_union0().set_u0f0s1(true);
         match union_struct.borrow().get_union0().which() {
-            Some(test_union::union0::U0f0s1(true)) => {}
+            Ok(test_union::union0::U0f0s1(true)) => {}
             _ => panic!()
         }
         union_struct.borrow().init_union0().set_u0f0s8(127);
         match union_struct.borrow().get_union0().which() {
-            Some(test_union::union0::U0f0s8(127)) => {}
+            Ok(test_union::union0::U0f0s8(127)) => {}
             _ => panic!()
         }
 

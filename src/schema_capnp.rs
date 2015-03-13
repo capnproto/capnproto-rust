@@ -89,39 +89,39 @@ pub mod node {
       self.reader.get_bool_field(288)
     }
     #[inline]
-    pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
+    pub fn which(self) -> ::std::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
       match self.reader.get_data_field::<u16>(6) {
         0 => {
-          return ::std::option::Option::Some(File(
+          return ::std::result::Result::Ok(File(
             ()
           ));
         }
         1 => {
-          return ::std::option::Option::Some(Struct(
+          return ::std::result::Result::Ok(Struct(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         2 => {
-          return ::std::option::Option::Some(Enum(
+          return ::std::result::Result::Ok(Enum(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         3 => {
-          return ::std::option::Option::Some(Interface(
+          return ::std::result::Result::Ok(Interface(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         4 => {
-          return ::std::option::Option::Some(Const(
+          return ::std::result::Result::Ok(Const(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         5 => {
-          return ::std::option::Option::Some(Annotation(
+          return ::std::result::Result::Ok(Annotation(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
-        _ => return ::std::option::Option::None
+        x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
       }
     }
   }
@@ -316,39 +316,39 @@ pub mod node {
       self.builder.set_bool_field(288, value);
     }
     #[inline]
-    pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
+    pub fn which(self) -> ::std::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
       match self.builder.get_data_field::<u16>(6) {
         0 => {
-          return ::std::option::Option::Some(File(
+          return ::std::result::Result::Ok(File(
             ()
           ));
         }
         1 => {
-          return ::std::option::Option::Some(Struct(
+          return ::std::result::Result::Ok(Struct(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         2 => {
-          return ::std::option::Option::Some(Enum(
+          return ::std::result::Result::Ok(Enum(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         3 => {
-          return ::std::option::Option::Some(Interface(
+          return ::std::result::Result::Ok(Interface(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         4 => {
-          return ::std::option::Option::Some(Const(
+          return ::std::result::Result::Ok(Const(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         5 => {
-          return ::std::option::Option::Some(Annotation(
+          return ::std::result::Result::Ok(Annotation(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
-        _ => return ::std::option::Option::None
+        x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
       }
     }
   }
@@ -684,8 +684,8 @@ pub mod node {
         self.reader.get_data_field::<u16>(12)
       }
       #[inline]
-      pub fn get_preferred_list_encoding(self) -> Option<::schema_capnp::ElementSize> {
-        ::std::num::FromPrimitive::from_u16(self.reader.get_data_field::<u16>(13))
+      pub fn get_preferred_list_encoding(self) -> ::std::result::Result<::schema_capnp::ElementSize, ::capnp::NotInSchema> {
+        ::capnp::traits::FromU16::from_u16(self.reader.get_data_field::<u16>(13))
       }
       #[inline]
       pub fn get_is_group(self) -> bool {
@@ -755,8 +755,8 @@ pub mod node {
         self.builder.set_data_field::<u16>(12, value);
       }
       #[inline]
-      pub fn get_preferred_list_encoding(self) -> Option<::schema_capnp::ElementSize> {
-        ::std::num::FromPrimitive::from_u16(self.builder.get_data_field::<u16>(13))
+      pub fn get_preferred_list_encoding(self) -> ::std::result::Result<::schema_capnp::ElementSize, ::capnp::NotInSchema> {
+        ::capnp::traits::FromU16::from_u16(self.builder.get_data_field::<u16>(13))
       }
       #[inline]
       pub fn set_preferred_list_encoding(&mut self, value : ::schema_capnp::ElementSize) {
@@ -1507,26 +1507,26 @@ pub mod field {
     }
     #[inline]
     pub fn get_discriminant_value(self) -> u16 {
-      self.reader.get_data_field_mask::<u16>(1, 65535u16)
+      self.reader.get_data_field_mask::<u16>(1, 65535)
     }
     #[inline]
     pub fn get_ordinal(self) -> ::schema_capnp::field::ordinal::Reader<'a> {
       ::capnp::traits::FromStructReader::new(self.reader)
     }
     #[inline]
-    pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
+    pub fn which(self) -> ::std::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
       match self.reader.get_data_field::<u16>(4) {
         0 => {
-          return ::std::option::Option::Some(Slot(
+          return ::std::result::Result::Ok(Slot(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         1 => {
-          return ::std::option::Option::Some(Group(
+          return ::std::result::Result::Ok(Group(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
-        _ => return ::std::option::Option::None
+        x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
       }
     }
   }
@@ -1614,7 +1614,7 @@ pub mod field {
     }
     #[inline]
     pub fn get_discriminant_value(self) -> u16 {
-      self.builder.get_data_field_mask::<u16>(1, 65535u16)
+      self.builder.get_data_field_mask::<u16>(1, 65535)
     }
     #[inline]
     pub fn set_discriminant_value(&mut self, value : u16) {
@@ -1646,19 +1646,19 @@ pub mod field {
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
+    pub fn which(self) -> ::std::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
       match self.builder.get_data_field::<u16>(4) {
         0 => {
-          return ::std::option::Option::Some(Slot(
+          return ::std::result::Result::Ok(Slot(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         1 => {
-          return ::std::option::Option::Some(Group(
+          return ::std::result::Result::Ok(Group(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
-        _ => return ::std::option::Option::None
+        x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
       }
     }
   }
@@ -1988,19 +1988,19 @@ pub mod field {
         self.reader.total_size()
       }
       #[inline]
-      pub fn which(self) -> ::std::option::Option<WhichReader> {
+      pub fn which(self) -> ::std::result::Result<WhichReader, ::capnp::NotInSchema> {
         match self.reader.get_data_field::<u16>(5) {
           0 => {
-            return ::std::option::Option::Some(Implicit(
+            return ::std::result::Result::Ok(Implicit(
               ()
             ));
           }
           1 => {
-            return ::std::option::Option::Some(Explicit(
+            return ::std::result::Result::Ok(Explicit(
               self.reader.get_data_field::<u16>(6)
             ));
           }
-          _ => return ::std::option::Option::None
+          x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
         }
       }
     }
@@ -2045,19 +2045,19 @@ pub mod field {
         self.builder.set_data_field::<u16>(6, value);
       }
       #[inline]
-      pub fn which(self) -> ::std::option::Option<WhichBuilder> {
+      pub fn which(self) -> ::std::result::Result<WhichBuilder, ::capnp::NotInSchema> {
         match self.builder.get_data_field::<u16>(5) {
           0 => {
-            return ::std::option::Option::Some(Implicit(
+            return ::std::result::Result::Ok(Implicit(
               ()
             ));
           }
           1 => {
-            return ::std::option::Option::Some(Explicit(
+            return ::std::result::Result::Ok(Explicit(
               self.builder.get_data_field::<u16>(6)
             ));
           }
-          _ => return ::std::option::Option::None
+          x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
         }
       }
     }
@@ -2673,104 +2673,104 @@ pub mod type_ {
       self.reader.total_size()
     }
     #[inline]
-    pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
+    pub fn which(self) -> ::std::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
       match self.reader.get_data_field::<u16>(0) {
         0 => {
-          return ::std::option::Option::Some(Void(
+          return ::std::result::Result::Ok(Void(
             ()
           ));
         }
         1 => {
-          return ::std::option::Option::Some(Bool(
+          return ::std::result::Result::Ok(Bool(
             ()
           ));
         }
         2 => {
-          return ::std::option::Option::Some(Int8(
+          return ::std::result::Result::Ok(Int8(
             ()
           ));
         }
         3 => {
-          return ::std::option::Option::Some(Int16(
+          return ::std::result::Result::Ok(Int16(
             ()
           ));
         }
         4 => {
-          return ::std::option::Option::Some(Int32(
+          return ::std::result::Result::Ok(Int32(
             ()
           ));
         }
         5 => {
-          return ::std::option::Option::Some(Int64(
+          return ::std::result::Result::Ok(Int64(
             ()
           ));
         }
         6 => {
-          return ::std::option::Option::Some(Uint8(
+          return ::std::result::Result::Ok(Uint8(
             ()
           ));
         }
         7 => {
-          return ::std::option::Option::Some(Uint16(
+          return ::std::result::Result::Ok(Uint16(
             ()
           ));
         }
         8 => {
-          return ::std::option::Option::Some(Uint32(
+          return ::std::result::Result::Ok(Uint32(
             ()
           ));
         }
         9 => {
-          return ::std::option::Option::Some(Uint64(
+          return ::std::result::Result::Ok(Uint64(
             ()
           ));
         }
         10 => {
-          return ::std::option::Option::Some(Float32(
+          return ::std::result::Result::Ok(Float32(
             ()
           ));
         }
         11 => {
-          return ::std::option::Option::Some(Float64(
+          return ::std::result::Result::Ok(Float64(
             ()
           ));
         }
         12 => {
-          return ::std::option::Option::Some(Text(
+          return ::std::result::Result::Ok(Text(
             ()
           ));
         }
         13 => {
-          return ::std::option::Option::Some(Data(
+          return ::std::result::Result::Ok(Data(
             ()
           ));
         }
         14 => {
-          return ::std::option::Option::Some(List(
+          return ::std::result::Result::Ok(List(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         15 => {
-          return ::std::option::Option::Some(Enum(
+          return ::std::result::Result::Ok(Enum(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         16 => {
-          return ::std::option::Option::Some(Struct(
+          return ::std::result::Result::Ok(Struct(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         17 => {
-          return ::std::option::Option::Some(Interface(
+          return ::std::result::Result::Ok(Interface(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
         18 => {
-          return ::std::option::Option::Some(AnyPointer(
+          return ::std::result::Result::Ok(AnyPointer(
             ::capnp::traits::FromStructReader::new(self.reader)
           ));
         }
-        _ => return ::std::option::Option::None
+        x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
       }
     }
   }
@@ -2912,104 +2912,104 @@ pub mod type_ {
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
-    pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
+    pub fn which(self) -> ::std::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
       match self.builder.get_data_field::<u16>(0) {
         0 => {
-          return ::std::option::Option::Some(Void(
+          return ::std::result::Result::Ok(Void(
             ()
           ));
         }
         1 => {
-          return ::std::option::Option::Some(Bool(
+          return ::std::result::Result::Ok(Bool(
             ()
           ));
         }
         2 => {
-          return ::std::option::Option::Some(Int8(
+          return ::std::result::Result::Ok(Int8(
             ()
           ));
         }
         3 => {
-          return ::std::option::Option::Some(Int16(
+          return ::std::result::Result::Ok(Int16(
             ()
           ));
         }
         4 => {
-          return ::std::option::Option::Some(Int32(
+          return ::std::result::Result::Ok(Int32(
             ()
           ));
         }
         5 => {
-          return ::std::option::Option::Some(Int64(
+          return ::std::result::Result::Ok(Int64(
             ()
           ));
         }
         6 => {
-          return ::std::option::Option::Some(Uint8(
+          return ::std::result::Result::Ok(Uint8(
             ()
           ));
         }
         7 => {
-          return ::std::option::Option::Some(Uint16(
+          return ::std::result::Result::Ok(Uint16(
             ()
           ));
         }
         8 => {
-          return ::std::option::Option::Some(Uint32(
+          return ::std::result::Result::Ok(Uint32(
             ()
           ));
         }
         9 => {
-          return ::std::option::Option::Some(Uint64(
+          return ::std::result::Result::Ok(Uint64(
             ()
           ));
         }
         10 => {
-          return ::std::option::Option::Some(Float32(
+          return ::std::result::Result::Ok(Float32(
             ()
           ));
         }
         11 => {
-          return ::std::option::Option::Some(Float64(
+          return ::std::result::Result::Ok(Float64(
             ()
           ));
         }
         12 => {
-          return ::std::option::Option::Some(Text(
+          return ::std::result::Result::Ok(Text(
             ()
           ));
         }
         13 => {
-          return ::std::option::Option::Some(Data(
+          return ::std::result::Result::Ok(Data(
             ()
           ));
         }
         14 => {
-          return ::std::option::Option::Some(List(
+          return ::std::result::Result::Ok(List(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         15 => {
-          return ::std::option::Option::Some(Enum(
+          return ::std::result::Result::Ok(Enum(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         16 => {
-          return ::std::option::Option::Some(Struct(
+          return ::std::result::Result::Ok(Struct(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         17 => {
-          return ::std::option::Option::Some(Interface(
+          return ::std::result::Result::Ok(Interface(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
         18 => {
-          return ::std::option::Option::Some(AnyPointer(
+          return ::std::result::Result::Ok(AnyPointer(
             ::capnp::traits::FromStructBuilder::new(self.builder)
           ));
         }
-        _ => return ::std::option::Option::None
+        x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
       }
     }
   }
@@ -3574,24 +3574,24 @@ pub mod type_ {
         self.reader.total_size()
       }
       #[inline]
-      pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
+      pub fn which(self) -> ::std::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
         match self.reader.get_data_field::<u16>(2) {
           0 => {
-            return ::std::option::Option::Some(Unconstrained(
+            return ::std::result::Result::Ok(Unconstrained(
               ::capnp::traits::FromStructReader::new(self.reader)
             ));
           }
           1 => {
-            return ::std::option::Option::Some(Parameter(
+            return ::std::result::Result::Ok(Parameter(
               ::capnp::traits::FromStructReader::new(self.reader)
             ));
           }
           2 => {
-            return ::std::option::Option::Some(ImplicitMethodParameter(
+            return ::std::result::Result::Ok(ImplicitMethodParameter(
               ::capnp::traits::FromStructReader::new(self.reader)
             ));
           }
-          _ => return ::std::option::Option::None
+          x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
         }
       }
     }
@@ -3646,24 +3646,24 @@ pub mod type_ {
         ::capnp::traits::FromStructBuilder::new(self.builder)
       }
       #[inline]
-      pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
+      pub fn which(self) -> ::std::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
         match self.builder.get_data_field::<u16>(2) {
           0 => {
-            return ::std::option::Option::Some(Unconstrained(
+            return ::std::result::Result::Ok(Unconstrained(
               ::capnp::traits::FromStructBuilder::new(self.builder)
             ));
           }
           1 => {
-            return ::std::option::Option::Some(Parameter(
+            return ::std::result::Result::Ok(Parameter(
               ::capnp::traits::FromStructBuilder::new(self.builder)
             ));
           }
           2 => {
-            return ::std::option::Option::Some(ImplicitMethodParameter(
+            return ::std::result::Result::Ok(ImplicitMethodParameter(
               ::capnp::traits::FromStructBuilder::new(self.builder)
             ));
           }
-          _ => return ::std::option::Option::None
+          x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
         }
       }
     }
@@ -3730,29 +3730,29 @@ pub mod type_ {
           self.reader.total_size()
         }
         #[inline]
-        pub fn which(self) -> ::std::option::Option<WhichReader> {
+        pub fn which(self) -> ::std::result::Result<WhichReader, ::capnp::NotInSchema> {
           match self.reader.get_data_field::<u16>(1) {
             0 => {
-              return ::std::option::Option::Some(AnyKind(
+              return ::std::result::Result::Ok(AnyKind(
                 ()
               ));
             }
             1 => {
-              return ::std::option::Option::Some(Struct(
+              return ::std::result::Result::Ok(Struct(
                 ()
               ));
             }
             2 => {
-              return ::std::option::Option::Some(List(
+              return ::std::result::Result::Ok(List(
                 ()
               ));
             }
             3 => {
-              return ::std::option::Option::Some(Capability(
+              return ::std::result::Result::Ok(Capability(
                 ()
               ));
             }
-            _ => return ::std::option::Option::None
+            x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
           }
         }
       }
@@ -3804,29 +3804,29 @@ pub mod type_ {
           self.builder.set_data_field::<u16>(1, 3);
         }
         #[inline]
-        pub fn which(self) -> ::std::option::Option<WhichBuilder> {
+        pub fn which(self) -> ::std::result::Result<WhichBuilder, ::capnp::NotInSchema> {
           match self.builder.get_data_field::<u16>(1) {
             0 => {
-              return ::std::option::Option::Some(AnyKind(
+              return ::std::result::Result::Ok(AnyKind(
                 ()
               ));
             }
             1 => {
-              return ::std::option::Option::Some(Struct(
+              return ::std::result::Result::Ok(Struct(
                 ()
               ));
             }
             2 => {
-              return ::std::option::Option::Some(List(
+              return ::std::result::Result::Ok(List(
                 ()
               ));
             }
             3 => {
-              return ::std::option::Option::Some(Capability(
+              return ::std::result::Result::Ok(Capability(
                 ()
               ));
             }
-            _ => return ::std::option::Option::None
+            x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
           }
         }
       }
@@ -4235,19 +4235,19 @@ pub mod brand {
         !self.reader.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
+      pub fn which(self) -> ::std::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
         match self.reader.get_data_field::<u16>(4) {
           0 => {
-            return ::std::option::Option::Some(Bind(
+            return ::std::result::Result::Ok(Bind(
               ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
             ));
           }
           1 => {
-            return ::std::option::Option::Some(Inherit(
+            return ::std::result::Result::Ok(Inherit(
               ()
             ));
           }
-          _ => return ::std::option::Option::None
+          x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
         }
       }
     }
@@ -4322,19 +4322,19 @@ pub mod brand {
         self.builder.set_data_field::<u16>(4, 1);
       }
       #[inline]
-      pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
+      pub fn which(self) -> ::std::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
         match self.builder.get_data_field::<u16>(4) {
           0 => {
-            return ::std::option::Option::Some(Bind(
+            return ::std::result::Result::Ok(Bind(
               ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
             ));
           }
           1 => {
-            return ::std::option::Option::Some(Inherit(
+            return ::std::result::Result::Ok(Inherit(
               ()
             ));
           }
-          _ => return ::std::option::Option::None
+          x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
         }
       }
     }
@@ -4407,19 +4407,19 @@ pub mod brand {
         !self.reader.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
+      pub fn which(self) -> ::std::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
         match self.reader.get_data_field::<u16>(0) {
           0 => {
-            return ::std::option::Option::Some(Unbound(
+            return ::std::result::Result::Ok(Unbound(
               ()
             ));
           }
           1 => {
-            return ::std::option::Option::Some(Type(
+            return ::std::result::Result::Ok(Type(
               ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(0))
             ));
           }
-          _ => return ::std::option::Option::None
+          x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
         }
       }
     }
@@ -4486,19 +4486,19 @@ pub mod brand {
         !self.builder.get_pointer_field(0).is_null()
       }
       #[inline]
-      pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
+      pub fn which(self) -> ::std::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
         match self.builder.get_data_field::<u16>(0) {
           0 => {
-            return ::std::option::Option::Some(Unbound(
+            return ::std::result::Result::Ok(Unbound(
               ()
             ));
           }
           1 => {
-            return ::std::option::Option::Some(Type(
+            return ::std::result::Result::Ok(Type(
               ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(0))
             ));
           }
-          _ => return ::std::option::Option::None
+          x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
         }
       }
     }
@@ -4588,104 +4588,104 @@ pub mod value {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn which(self) -> ::std::option::Option<WhichReader<'a>> {
+    pub fn which(self) -> ::std::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
       match self.reader.get_data_field::<u16>(0) {
         0 => {
-          return ::std::option::Option::Some(Void(
+          return ::std::result::Result::Ok(Void(
             ()
           ));
         }
         1 => {
-          return ::std::option::Option::Some(Bool(
+          return ::std::result::Result::Ok(Bool(
             self.reader.get_bool_field(16)
           ));
         }
         2 => {
-          return ::std::option::Option::Some(Int8(
+          return ::std::result::Result::Ok(Int8(
             self.reader.get_data_field::<i8>(2)
           ));
         }
         3 => {
-          return ::std::option::Option::Some(Int16(
+          return ::std::result::Result::Ok(Int16(
             self.reader.get_data_field::<i16>(1)
           ));
         }
         4 => {
-          return ::std::option::Option::Some(Int32(
+          return ::std::result::Result::Ok(Int32(
             self.reader.get_data_field::<i32>(1)
           ));
         }
         5 => {
-          return ::std::option::Option::Some(Int64(
+          return ::std::result::Result::Ok(Int64(
             self.reader.get_data_field::<i64>(1)
           ));
         }
         6 => {
-          return ::std::option::Option::Some(Uint8(
+          return ::std::result::Result::Ok(Uint8(
             self.reader.get_data_field::<u8>(2)
           ));
         }
         7 => {
-          return ::std::option::Option::Some(Uint16(
+          return ::std::result::Result::Ok(Uint16(
             self.reader.get_data_field::<u16>(1)
           ));
         }
         8 => {
-          return ::std::option::Option::Some(Uint32(
+          return ::std::result::Result::Ok(Uint32(
             self.reader.get_data_field::<u32>(1)
           ));
         }
         9 => {
-          return ::std::option::Option::Some(Uint64(
+          return ::std::result::Result::Ok(Uint64(
             self.reader.get_data_field::<u64>(1)
           ));
         }
         10 => {
-          return ::std::option::Option::Some(Float32(
+          return ::std::result::Result::Ok(Float32(
             self.reader.get_data_field::<f32>(1)
           ));
         }
         11 => {
-          return ::std::option::Option::Some(Float64(
+          return ::std::result::Result::Ok(Float64(
             self.reader.get_data_field::<f64>(1)
           ));
         }
         12 => {
-          return ::std::option::Option::Some(Text(
+          return ::std::result::Result::Ok(Text(
             self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
           ));
         }
         13 => {
-          return ::std::option::Option::Some(Data(
+          return ::std::result::Result::Ok(Data(
             self.reader.get_pointer_field(0).get_data(::std::ptr::null(), 0)
           ));
         }
         14 => {
-          return ::std::option::Option::Some(List(
+          return ::std::result::Result::Ok(List(
             ::capnp::any_pointer::Reader::new(self.reader.get_pointer_field(0))
           ));
         }
         15 => {
-          return ::std::option::Option::Some(Enum(
+          return ::std::result::Result::Ok(Enum(
             self.reader.get_data_field::<u16>(1)
           ));
         }
         16 => {
-          return ::std::option::Option::Some(Struct(
+          return ::std::result::Result::Ok(Struct(
             ::capnp::any_pointer::Reader::new(self.reader.get_pointer_field(0))
           ));
         }
         17 => {
-          return ::std::option::Option::Some(Interface(
+          return ::std::result::Result::Ok(Interface(
             ()
           ));
         }
         18 => {
-          return ::std::option::Option::Some(AnyPointer(
+          return ::std::result::Result::Ok(AnyPointer(
             ::capnp::any_pointer::Reader::new(self.reader.get_pointer_field(0))
           ));
         }
-        _ => return ::std::option::Option::None
+        x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
       }
     }
   }
@@ -4863,104 +4863,104 @@ pub mod value {
       !self.builder.get_pointer_field(0).is_null()
     }
     #[inline]
-    pub fn which(self) -> ::std::option::Option<WhichBuilder<'a>> {
+    pub fn which(self) -> ::std::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
       match self.builder.get_data_field::<u16>(0) {
         0 => {
-          return ::std::option::Option::Some(Void(
+          return ::std::result::Result::Ok(Void(
             ()
           ));
         }
         1 => {
-          return ::std::option::Option::Some(Bool(
+          return ::std::result::Result::Ok(Bool(
             self.builder.get_bool_field(16)
           ));
         }
         2 => {
-          return ::std::option::Option::Some(Int8(
+          return ::std::result::Result::Ok(Int8(
             self.builder.get_data_field::<i8>(2)
           ));
         }
         3 => {
-          return ::std::option::Option::Some(Int16(
+          return ::std::result::Result::Ok(Int16(
             self.builder.get_data_field::<i16>(1)
           ));
         }
         4 => {
-          return ::std::option::Option::Some(Int32(
+          return ::std::result::Result::Ok(Int32(
             self.builder.get_data_field::<i32>(1)
           ));
         }
         5 => {
-          return ::std::option::Option::Some(Int64(
+          return ::std::result::Result::Ok(Int64(
             self.builder.get_data_field::<i64>(1)
           ));
         }
         6 => {
-          return ::std::option::Option::Some(Uint8(
+          return ::std::result::Result::Ok(Uint8(
             self.builder.get_data_field::<u8>(2)
           ));
         }
         7 => {
-          return ::std::option::Option::Some(Uint16(
+          return ::std::result::Result::Ok(Uint16(
             self.builder.get_data_field::<u16>(1)
           ));
         }
         8 => {
-          return ::std::option::Option::Some(Uint32(
+          return ::std::result::Result::Ok(Uint32(
             self.builder.get_data_field::<u32>(1)
           ));
         }
         9 => {
-          return ::std::option::Option::Some(Uint64(
+          return ::std::result::Result::Ok(Uint64(
             self.builder.get_data_field::<u64>(1)
           ));
         }
         10 => {
-          return ::std::option::Option::Some(Float32(
+          return ::std::result::Result::Ok(Float32(
             self.builder.get_data_field::<f32>(1)
           ));
         }
         11 => {
-          return ::std::option::Option::Some(Float64(
+          return ::std::result::Result::Ok(Float64(
             self.builder.get_data_field::<f64>(1)
           ));
         }
         12 => {
-          return ::std::option::Option::Some(Text(
+          return ::std::result::Result::Ok(Text(
             self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
           ));
         }
         13 => {
-          return ::std::option::Option::Some(Data(
+          return ::std::result::Result::Ok(Data(
             self.builder.get_pointer_field(0).get_data(::std::ptr::null(), 0)
           ));
         }
         14 => {
-          return ::std::option::Option::Some(List(
+          return ::std::result::Result::Ok(List(
             ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
         15 => {
-          return ::std::option::Option::Some(Enum(
+          return ::std::result::Result::Ok(Enum(
             self.builder.get_data_field::<u16>(1)
           ));
         }
         16 => {
-          return ::std::option::Option::Some(Struct(
+          return ::std::result::Result::Ok(Struct(
             ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
         17 => {
-          return ::std::option::Option::Some(Interface(
+          return ::std::result::Result::Ok(Interface(
             ()
           ));
         }
         18 => {
-          return ::std::option::Option::Some(AnyPointer(
+          return ::std::result::Result::Ok(AnyPointer(
             ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field(0))
           ));
         }
-        _ => return ::std::option::Option::None
+        x => return ::std::result::Result::Err(::capnp::NotInSchema(x))
       }
     }
   }
@@ -5179,6 +5179,7 @@ pub enum ElementSize {
   Pointer = 6,
   InlineComposite = 7,
 }
+impl ::capnp::traits::FromU16 for ElementSize {}
 impl ::capnp::traits::ToU16 for ElementSize {
   #[inline]
   fn to_u16(self) -> u16 { self as u16 }

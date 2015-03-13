@@ -82,27 +82,27 @@ pub mod addressbook {
             println!("{}: {}", person.get_name(), person.get_email());
             for phone in person.get_phones().iter() {
                 let type_name = match phone.get_type() {
-                    Some(person::phone_number::Type::Mobile) => {"mobile"}
-                    Some(person::phone_number::Type::Home) => {"home"}
-                    Some(person::phone_number::Type::Work) => {"work"}
-                    None => {"UNKNOWN"}
+                    Ok(person::phone_number::Type::Mobile) => {"mobile"}
+                    Ok(person::phone_number::Type::Home) => {"home"}
+                    Ok(person::phone_number::Type::Work) => {"work"}
+                    Err(::capnp::NotInSchema(_)) => {"UNKNOWN"}
                 };
                 println!("  {} phone: {}", type_name, phone.get_number());
             }
             match person.get_employment().which() {
-                Some(person::employment::Unemployed(())) => {
+                Ok(person::employment::Unemployed(())) => {
                     println!("  unemployed");
                 }
-                Some(person::employment::Employer(employer)) => {
+                Ok(person::employment::Employer(employer)) => {
                     println!("  employer: {}", employer);
                 }
-                Some(person::employment::School(school)) => {
+                Ok(person::employment::School(school)) => {
                     println!("  student at: {}", school);
                 }
-                Some(person::employment::SelfEmployed(())) => {
+                Ok(person::employment::SelfEmployed(())) => {
                     println!("  self-employed");
                 }
-                None => { }
+                Err(::capnp::NotInSchema(_)) => { }
             }
         }
         Ok(())

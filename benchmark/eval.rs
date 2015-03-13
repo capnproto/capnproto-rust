@@ -51,35 +51,31 @@ fn make_expression(rng : &mut FastRand, mut exp : expression::Builder, depth : u
         make_expression(rng, exp.borrow().get_right().init_expression(), depth + 1)
     };
 
-    match exp.get_op() {
-        Some(Operation::Add) => { return left + right }
-        Some(Operation::Subtract) => { return left - right }
-        Some(Operation::Multiply) => { return left * right }
-        Some(Operation::Divide) => { return div(left, right) }
-        Some(Operation::Modulus) => { return modulus(left, right) }
-        None => { panic!("impossible") }
+    match exp.get_op().unwrap() {
+        Operation::Add => { return left + right }
+        Operation::Subtract => { return left - right }
+        Operation::Multiply => { return left * right }
+        Operation::Divide => { return div(left, right) }
+        Operation::Modulus => { return modulus(left, right) }
     }
 }
 
 fn evaluate_expression(exp : expression::Reader) -> i32 {
-    let left = match exp.get_left().which() {
-        Some(expression::left::Value(v)) => v,
-        Some(expression::left::Expression(e)) => evaluate_expression(e),
-        None => panic!("impossible")
+    let left = match exp.get_left().which().unwrap() {
+        expression::left::Value(v) => v,
+        expression::left::Expression(e) => evaluate_expression(e),
     };
-    let right = match exp.get_right().which() {
-        Some(expression::right::Value(v)) => v,
-        Some(expression::right::Expression(e)) => evaluate_expression(e),
-        None => panic!("impossible")
+    let right = match exp.get_right().which().unwrap() {
+        expression::right::Value(v) => v,
+        expression::right::Expression(e) => evaluate_expression(e),
     };
 
-    match exp.get_op() {
-        Some(Operation::Add) => return left + right,
-        Some(Operation::Subtract) => return left - right,
-        Some(Operation::Multiply) => return left * right,
-        Some(Operation::Divide) => return div(left, right),
-        Some(Operation::Modulus) => return modulus(left, right),
-        None => panic!("impossible")
+    match exp.get_op().unwrap() {
+        Operation::Add => return left + right,
+        Operation::Subtract => return left - right,
+        Operation::Multiply => return left * right,
+        Operation::Divide => return div(left, right),
+        Operation::Modulus => return modulus(left, right),
     }
 }
 

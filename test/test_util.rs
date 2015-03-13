@@ -162,7 +162,7 @@ check_test_message_impl(($typ:ident) => (
                     assert_eq!("nested", sub_sub_reader.borrow().get_text_field().as_slice());
                     assert_eq!("really nested", sub_sub_reader.get_struct_field().get_text_field().as_slice());
                 }
-                assert!(Some(TestEnum::Baz) == sub_reader.borrow().get_enum_field());
+                assert!(Ok(TestEnum::Baz) == sub_reader.borrow().get_enum_field());
                 assert_eq!(3, sub_reader.borrow().get_void_list().len());
 
                 {
