@@ -21,16 +21,18 @@
 
 //! UTF-8 encoded text.
 
+use {Result};
+
 pub type Reader<'a> = &'a str;
 
 // len does not include the required null terminator at the end
-pub fn new_reader<'a>(p : *const u8, len : u32) -> Result<Reader<'a>, ::std::str::Utf8Error> {
+pub fn new_reader<'a>(p : *const u8, len : u32) -> ::std::result::Result<Reader<'a>, ::std::str::Utf8Error> {
     let v : &'a [u8] = unsafe { ::std::slice::from_raw_parts(p, len as usize) };
     ::std::str::from_utf8(v)
 }
 
 impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader : &::private::layout::PointerReader<'a>) -> Reader<'a> {
+    fn get_from_pointer(reader : &::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
         reader.get_text(::std::ptr::null(), 0)
     }
 }
@@ -42,7 +44,7 @@ pub struct Builder<'a> {
 
 impl <'a> Builder <'a> {
 
-    pub fn new<'b>(bytes : &'b mut [u8], pos : u32) -> Result<Builder<'b>, ::std::str::Utf8Error> {
+    pub fn new<'b>(bytes : &'b mut [u8], pos : u32) -> ::std::result::Result<Builder<'b>, ::std::str::Utf8Error> {
         if pos != 0 {
             match ::std::str::from_utf8(bytes) {
                 Err(e) => return Err(e),
@@ -82,13 +84,14 @@ impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
     fn init_pointer(builder : ::private::layout::PointerBuilder<'a>, size : u32) -> Builder<'a> {
         builder.init_text(size)
     }
-    fn get_from_pointer(builder : ::private::layout::PointerBuilder<'a>) -> Builder<'a> {
+    fn get_from_pointer(builder : ::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
         builder.get_text(::std::ptr::null(), 0)
     }
 }
 
 impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a>) {
+    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a>) -> Result<()> {
         pointer.set_text(value);
+        Ok(())
     }
 }

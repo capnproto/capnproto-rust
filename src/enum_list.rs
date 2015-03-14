@@ -24,6 +24,7 @@
 use traits::{FromPointerReader, FromPointerBuilder, ToU16};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                       TwoBytes, PrimitiveElement};
+use Result;
 
 #[derive(Copy)]
 pub struct Reader<'a, T> {
@@ -41,9 +42,9 @@ impl <'a, T : ::std::num::FromPrimitive> Reader<'a, T> {
 }
 
 impl <'a, T : ::std::num::FromPrimitive> FromPointerReader<'a> for Reader<'a, T> {
-    fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a, T> {
-        Reader { reader : reader.get_list(TwoBytes, ::std::ptr::null()),
-                 marker : ::std::marker::PhantomData }
+    fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
+        Ok(Reader { reader : try!(reader.get_list(TwoBytes, ::std::ptr::null())),
+                    marker : ::std::marker::PhantomData })
     }
 }
 
@@ -78,9 +79,9 @@ impl <'a, T : ::std::num::FromPrimitive> FromPointerBuilder<'a> for Builder<'a, 
         Builder { builder : builder.init_list(TwoBytes, size),
                   marker : ::std::marker::PhantomData }
     }
-    fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder : builder.get_list(TwoBytes, ::std::ptr::null()),
-                  marker : ::std::marker::PhantomData }
+    fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a, T>> {
+        Ok(Builder { builder : try!(builder.get_list(TwoBytes, ::std::ptr::null())),
+                     marker : ::std::marker::PhantomData })
     }
 }
 
@@ -93,8 +94,9 @@ impl <'a, T : ToU16 + ::std::num::FromPrimitive>  Builder<'a, T> {
 }
 
 impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
-    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
-        pointer.set_list(&value.reader);
+    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
+                               value : Reader<'a, T>) -> Result<()> {
+        pointer.set_list(&value.reader)
     }
 }
 

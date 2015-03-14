@@ -146,4 +146,10 @@ impl ::std::error::FromError<NotInSchema> for Error {
     }
 }
 
+impl ::std::error::FromError<::std::str::Utf8Error> for Error {
+    fn from_error(err : ::std::str::Utf8Error) -> Error {
+        Error::new_decode_error("Text contains non-utf8 data.",
+                                Some(format!("{:?}", err)))
+    }
+}
 

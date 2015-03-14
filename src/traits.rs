@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use Word;
+use {Word, Result};
 use private::layout::{StructReader, StructBuilder, StructSize, PointerBuilder, PointerReader};
 
 pub trait FromStructReader<'a> {
@@ -35,7 +35,7 @@ pub trait FromStructBuilder<'a> {
 }
 
 pub trait FromPointerReader<'a> {
-    fn get_from_pointer(reader : &PointerReader<'a>) -> Self;
+    fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Self>;
 }
 
 pub trait FromPointerReaderRefDefault<'a> {
@@ -44,7 +44,7 @@ pub trait FromPointerReaderRefDefault<'a> {
 
 pub trait FromPointerBuilder<'a> {
     fn init_pointer(PointerBuilder<'a>, u32) -> Self;
-    fn get_from_pointer(builder : PointerBuilder<'a>) -> Self;
+    fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Self>;
 }
 
 pub trait FromPointerBuilderRefDefault<'a> {
@@ -52,7 +52,7 @@ pub trait FromPointerBuilderRefDefault<'a> {
 }
 
 pub trait SetPointerBuilder<To>: ::std::marker::PhantomFn<To> {
-    fn set_pointer_builder<'a>(PointerBuilder<'a>, Self);
+    fn set_pointer_builder<'a>(PointerBuilder<'a>, Self) -> Result<()>;
 }
 
 pub trait HasTypeId {
@@ -71,7 +71,7 @@ pub trait ToU16 {
 
 pub trait FromU16 : ::std::num::FromPrimitive {
     #[inline]
-    fn from_u16(value : u16) -> Result<Self, ::NotInSchema> {
+    fn from_u16(value : u16) -> ::std::result::Result<Self, ::NotInSchema> {
         match ::std::num::FromPrimitive::from_u16(value) {
             Some(x) => Ok(x),
             None => Err(::NotInSchema(value)),

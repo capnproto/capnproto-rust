@@ -23,6 +23,7 @@
 
 use traits::{FromPointerReader, FromPointerBuilder};
 use private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
+use Result;
 
 #[derive(Copy)]
 pub struct Reader<'a> {
@@ -38,13 +39,13 @@ impl <'a> Reader<'a> {
 }
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a> {
-        Reader { reader : reader.get_list(Pointer, ::std::ptr::null()) }
+    fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a>> {
+        Ok(Reader { reader : try!(reader.get_list(Pointer, ::std::ptr::null())) })
     }
 }
 
 impl <'a> Reader<'a> {
-    pub fn get(self, index : u32) -> ::text::Reader<'a> {
+    pub fn get(self, index : u32) -> Result<::text::Reader<'a>> {
         assert!(index <  self.len());
         self.reader.get_pointer_element(index).get_text(::std::ptr::null(), 0)
     }
@@ -78,22 +79,22 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
             builder : builder.init_list(Pointer, size)
         }
     }
-    fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a> {
-        Builder {
-            builder : builder.get_list(Pointer, ::std::ptr::null())
-        }
+    fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a>> {
+        Ok(Builder {
+            builder : try!(builder.get_list(Pointer, ::std::ptr::null()))
+        })
     }
 }
 
 impl <'a> Builder<'a> {
-    pub fn get(self, index : u32) -> ::text::Builder<'a> {
+    pub fn get(self, index : u32) -> Result<::text::Builder<'a>> {
         self.builder.get_pointer_element(index).get_text(::std::ptr::null(), 0)
     }
 }
 
 impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a>) {
-        pointer.set_list(&value.reader);
+    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a>) -> Result<()> {
+        pointer.set_list(&value.reader)
     }
 }
 

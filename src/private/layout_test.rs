@@ -29,7 +29,7 @@ fn simple_raw_data_struct() {
     };
 
     let reader = unsafe { ::private::layout::PointerReader::get_root_unchecked(
-        ::std::mem::transmute(data.data.as_ptr())).get_struct(::std::ptr::null()) };
+        ::std::mem::transmute(data.data.as_ptr())).get_struct(::std::ptr::null()).unwrap() };
 
     assert_eq!(0xefcdab8967452301u64, reader.get_data_field::<u64>(0));
     assert_eq!(0, reader.get_data_field::<u64>(1));

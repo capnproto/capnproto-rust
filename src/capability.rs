@@ -69,7 +69,7 @@ CallContext<Params, Results> {
     pub fn get<'b>(&'b mut self) -> (Params, Results) {
         let tmp : &'a mut Box<CallContextHook+Send> = unsafe { ::std::mem::transmute(& mut self.hook)};
         let (any_params, any_results) = tmp.get();
-        (any_params.get_as(), any_results.get_as())
+        (any_params.get_as::<Params>().unwrap(), any_results.get_as().unwrap())
     }
 }
 

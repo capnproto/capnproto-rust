@@ -25,6 +25,7 @@ use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, In
 use traits::{FromPointerReader, FromPointerBuilder,
              FromStructBuilder, FromStructReader, HasStructSize,
              IndexMove, ListIter};
+use Result;
 
 pub struct Reader<'a, T> {
     marker : ::std::marker::PhantomData<T>,
@@ -53,9 +54,9 @@ impl <'a, T> Reader<'a, T>  {
 
 
 impl <'a, T : FromStructReader<'a>> FromPointerReader<'a> for Reader<'a, T> {
-    fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a, T> {
-        Reader { reader : reader.get_list(InlineComposite, ::std::ptr::null()),
-                 marker : ::std::marker::PhantomData }
+    fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
+        Ok(Reader { reader : try!(reader.get_list(InlineComposite, ::std::ptr::null())),
+                    marker : ::std::marker::PhantomData })
     }
 }
 
@@ -102,11 +103,11 @@ impl <'a, T : FromStructBuilder<'a> + HasStructSize> FromPointerBuilder<'a> for 
             builder : builder.init_struct_list(size, HasStructSize::struct_size(None::<T>))
         }
     }
-    fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a, T> {
-        Builder {
+    fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a, T>> {
+        Ok(Builder {
             marker : ::std::marker::PhantomData,
-            builder : builder.get_struct_list(HasStructSize::struct_size(None::<T>), ::std::ptr::null())
-        }
+            builder : try!(builder.get_struct_list(HasStructSize::struct_size(None::<T>), ::std::ptr::null()))
+        })
     }
 }
 
@@ -121,8 +122,9 @@ impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
 }
 
 impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
-    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
-        pointer.set_list(&value.reader);
+    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
+                               value : Reader<'a, T>) -> Result<()> {
+        pointer.set_list(&value.reader)
     }
 }
 

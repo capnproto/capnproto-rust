@@ -23,6 +23,7 @@
 
 use traits::{FromPointerReader, FromPointerBuilder};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
+use Result;
 
 #[derive(Copy)]
 pub struct Reader<'a, T> {
@@ -39,14 +40,14 @@ impl <'a, T> Reader<'a, T> {
 }
 
 impl <'a, T : FromPointerReader<'a>> FromPointerReader<'a> for Reader<'a, T> {
-    fn get_from_pointer(reader : &PointerReader<'a>) -> Reader<'a, T> {
-        Reader { reader : reader.get_list(Pointer, ::std::ptr::null()),
-                 marker : ::std::marker::PhantomData }
+    fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
+        Ok(Reader { reader : try!(reader.get_list(Pointer, ::std::ptr::null())),
+                    marker : ::std::marker::PhantomData })
     }
 }
 
 impl <'a, T : FromPointerReader<'a>> Reader<'a, T> {
-    pub fn get(self, index : u32) -> T {
+    pub fn get(self, index : u32) -> Result<T> {
         assert!(index <  self.len());
         FromPointerReader::get_from_pointer(&self.reader.get_pointer_element(index))
     }
@@ -84,24 +85,25 @@ impl <'a, T : FromPointerBuilder<'a>> FromPointerBuilder<'a> for Builder<'a, T> 
             builder : builder.init_list(Pointer, size)
         }
     }
-    fn get_from_pointer(builder : PointerBuilder<'a>) -> Builder<'a, T> {
-        Builder {
+    fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a, T>> {
+        Ok(Builder {
             marker : ::std::marker::PhantomData,
-            builder : builder.get_list(Pointer, ::std::ptr::null())
-        }
+            builder : try!(builder.get_list(Pointer, ::std::ptr::null()))
+        })
     }
 }
 
 impl <'a, T : FromPointerBuilder<'a>> Builder<'a, T> {
-    pub fn get(self, index : u32) -> T {
+    pub fn get(self, index : u32) -> Result<T> {
         assert!(index < self.len());
         FromPointerBuilder::get_from_pointer(self.builder.get_pointer_element(index))
     }
 }
 
 impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
-    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a, T>) {
-        pointer.set_list(&value.reader);
+    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
+                               value : Reader<'a, T>) -> Result<()> {
+        pointer.set_list(&value.reader)
     }
 }
 

@@ -25,6 +25,7 @@ use capability::FromClientHook;
 use private::capability::{ClientHook, PipelineHook, PipelineOp};
 use private::layout::{PointerReader, PointerBuilder};
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
+use Result;
 
 #[derive(Copy)]
 pub struct Reader<'a> {
@@ -43,24 +44,24 @@ impl <'a> Reader<'a> {
     }
 
     #[inline]
-    pub fn get_as<T : FromPointerReader<'a>>(&self) -> T {
+    pub fn get_as<T : FromPointerReader<'a>>(&self) -> Result<T> {
         FromPointerReader::get_from_pointer(&self.reader)
     }
 
-    pub fn get_as_capability<T : FromClientHook>(&self) -> T {
-        FromClientHook::new(self.reader.get_capability())
+    pub fn get_as_capability<T : FromClientHook>(&self) -> Result<T> {
+        Ok(FromClientHook::new(try!(self.reader.get_capability())))
     }
 
     //# Used by RPC system to implement pipelining. Applications
     //# generally shouldn't use this directly.
-    pub fn get_pipelined_cap(&self, ops : &[PipelineOp]) -> Box<ClientHook+Send> {
+    pub fn get_pipelined_cap(&self, ops : &[PipelineOp]) -> Result<Box<ClientHook+Send>> {
         let mut pointer = self.reader;
 
         for op in ops.iter() {
             match op {
                 &PipelineOp::Noop =>  { }
                 &PipelineOp::GetPointerField(idx) => {
-                    pointer = pointer.get_struct(::std::ptr::null()).get_pointer_field(idx as usize)
+                    pointer = try!(pointer.get_struct(::std::ptr::null())).get_pointer_field(idx as usize);
                 }
             }
         }
@@ -79,7 +80,7 @@ impl <'a> Builder<'a> {
         Builder { builder : builder }
     }
 
-    pub fn get_as<T : FromPointerBuilder<'a>>(self) -> T {
+    pub fn get_as<T : FromPointerBuilder<'a>>(self) -> Result<T> {
         FromPointerBuilder::get_from_pointer(self.builder)
     }
 
@@ -91,8 +92,8 @@ impl <'a> Builder<'a> {
         FromPointerBuilder::init_pointer(self.builder, size)
     }
 
-    pub fn set_as<To, From : SetPointerBuilder<To>>(self, value : From) {
-        SetPointerBuilder::<To>::set_pointer_builder(self.builder, value);
+    pub fn set_as<To, From : SetPointerBuilder<To>>(self, value : From) -> Result<()> {
+        SetPointerBuilder::<To>::set_pointer_builder(self.builder, value)
     }
 
     // XXX value should be a user client.

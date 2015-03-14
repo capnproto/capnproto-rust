@@ -27,7 +27,7 @@ use private::units::*;
 use private::arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};
 use private::layout;
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
-use Word;
+use {Result, Word};
 
 /// Options controlling how data is read.
 #[derive(Copy)]
@@ -110,7 +110,7 @@ pub trait MessageReader {
     }
 
     /// Get the root of the message, interpreting it as the given type.
-    fn get_root<'a, T : FromPointerReader<'a>>(&'a self) -> T {
+    fn get_root<'a, T : FromPointerReader<'a>>(&'a self) -> Result<T> {
         self.get_root_internal().get_as()
     }
 
@@ -228,13 +228,13 @@ pub trait MessageBuilder {
     }
 
     /// Get the root, interpreting it as the given type.
-    fn get_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> T {
+    fn get_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> Result<T> {
         self.get_root_internal().get_as()
     }
 
     /// Set the root to a deep copy of the given value.
-    fn set_root<To, From : SetPointerBuilder<To>>(&mut self, value : From) {
-        self.get_root_internal().set_as(value);
+    fn set_root<To, From : SetPointerBuilder<To>>(&mut self, value : From) -> Result<()> {
+        self.get_root_internal().set_as(value)
     }
 
     /// Get the slices of memory that comprise this message. Typically, this method needs to
