@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+//! Untyped root container for a Cap'n Proto value.
+
 use any_pointer;
 use private::capability::ClientHook;
 use private::units::*;
@@ -27,9 +29,35 @@ use private::layout;
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 use Word;
 
+/// Options controlling how data is read.
 #[derive(Copy)]
 pub struct ReaderOptions {
+
+    /// Limits how many total words of data are allowed to be traversed. Traversal is counted when
+    /// a new struct or list builder is obtained, e.g. from a get() accessor. This means that calling
+    /// the getter for the same sub-struct multiple times will cause it to be double-counted. Once
+    /// the traversal limit is reached, an error will be reported.
+    ///
+    /// This limit exists for security reasons. It is possible for an attacker to construct a message
+    /// in which multiple pointers point at the same location. This is technically invalid, but hard
+    /// to detect. Using such a message, an attacker could cause a message which is small on the wire
+    /// to appear much larger when actually traversed, possibly exhausting server resources leading to
+    /// denial-of-service.
+    ///
+    /// It makes sense to set a traversal limit that is much larger than the underlying message.
+    /// Together with sensible coding practices (e.g. trying to avoid calling sub-object getters
+    /// multiple times, which is expensive anyway), this should provide adequate protection without
+    /// inconvenience.
     pub traversal_limit_in_words : u64,
+
+    /// Limits how deeply nested a message structure can be, e.g. structs containing other structs or
+    /// lists of structs.
+    ///
+    /// Like the traversal limit, this limit exists for security reasons. Since it is common to use
+    /// recursive code to traverse recursive data structures, an attacker could easily cause a stack
+    /// overflow by sending a very-depply-nested (or even cyclic) message, without the message even
+    /// being very large. The default limit of 64 is probably low enough to prevent any chance of
+    /// stack overflow, yet high enough that it is never a problem in practice.
     pub nesting_limit : i32,
 
     /// If true, malformed messages trigger task failure.
@@ -63,6 +91,7 @@ impl ReaderOptions {
 
 type SegmentId = u32;
 
+/// An abstract container used to read a message.
 pub trait MessageReader {
     fn get_segment(&self, id : usize) -> &[Word];
     fn arena(&self) -> &ReaderArena;
@@ -80,6 +109,7 @@ pub trait MessageReader {
         }
     }
 
+    /// Get the root of the message, interpreting it as the given type.
     fn get_root<'a, T : FromPointerReader<'a>>(&'a self) -> T {
         self.get_root_internal().get_as()
     }
@@ -163,7 +193,7 @@ impl BuilderOptions {
     }
 }
 
-
+/// An abstract container used to build a message.
 pub trait MessageBuilder {
     fn arena_mut(&mut self) -> &mut BuilderArena;
     fn arena(&self) -> &BuilderArena;
@@ -192,14 +222,17 @@ pub trait MessageBuilder {
 
     }
 
+    /// Initialize the root as a value of the given type.
     fn init_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> T {
         self.get_root_internal().init_as()
     }
 
+    /// Get the root, interpreting it as the given type.
     fn get_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> T {
         self.get_root_internal().get_as()
     }
 
+    /// Set the root to a deep copy of the given value.
     fn set_root<To, From : SetPointerBuilder<To>>(&mut self, value : From) {
         self.get_root_internal().set_as(value);
     }

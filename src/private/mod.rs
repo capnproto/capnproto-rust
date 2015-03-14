@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-//! Implementation details that should never be used by clients.
+//! Implementation details that should never be directly used by clients.
 //!
 //! We still need to make this module visible so that generated code can use it.
 

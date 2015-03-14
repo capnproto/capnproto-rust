@@ -111,6 +111,6 @@ impl MessageSize {
     }
 }
 
-/// An enum or union discriminant that was not among the expected values in a schema.
+/// An enum value or union discriminant that was not found among those defined in a schema.
 #[derive(PartialEq, Copy, Debug)]
 pub struct NotInSchema(pub u16);
