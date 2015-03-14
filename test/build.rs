@@ -1,5 +1,3 @@
-#![feature(path)]
-
 extern crate capnpc;
 
 fn main() {
