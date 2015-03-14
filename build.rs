@@ -1,4 +1,4 @@
-#![feature(core, path)]
+#![feature(core)]
 
 extern crate capnpc;
 
