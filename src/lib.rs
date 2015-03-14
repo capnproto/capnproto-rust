@@ -114,3 +114,36 @@ impl MessageSize {
 /// An enum value or union discriminant that was not found among those defined in a schema.
 #[derive(PartialEq, Copy, Debug)]
 pub struct NotInSchema(pub u16);
+
+/// Because messages are lazily validated, the return type of any method that reads a pointer field
+/// must be wrapped in a Result.
+pub type Result<T> = ::std::result::Result<T, Error>;
+
+/// Things that can go wrong when you read a message.
+#[derive(Debug)]
+pub enum Error {
+    Decode { description : &'static str,
+             detail : Option<String> },
+    Io(std::io::Error),
+}
+
+impl Error {
+    pub fn new_decode_error(description : &'static str, detail : Option<String>) -> Error {
+        Error::Decode { description : description, detail : detail}
+    }
+}
+
+impl ::std::error::FromError<::std::io::Error> for Error {
+    fn from_error(err : ::std::io::Error) -> Error {
+        Error::Io(err)
+    }
+}
+
+impl ::std::error::FromError<NotInSchema> for Error {
+    fn from_error(NotInSchema(x) : NotInSchema) -> Error {
+        Error::new_decode_error("Enum value or union descriminant not in schema.",
+                                Some(format!("value : {}", x)))
+    }
+}
+
+
