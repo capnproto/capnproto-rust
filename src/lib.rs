@@ -96,7 +96,7 @@ impl Word {
 }
 
 /// Size of a message. Every generated struct has a method `.total_size()` that returns this.
-#[derive(Copy)]
+#[derive(Copy, PartialEq)]
 pub struct MessageSize {
     pub word_count : u64,
 
@@ -120,7 +120,7 @@ pub struct NotInSchema(pub u16);
 pub type Result<T> = ::std::result::Result<T, Error>;
 
 /// Things that can go wrong when you read a message.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     Decode { description : &'static str,
              detail : Option<String> },
@@ -152,4 +152,3 @@ impl ::std::error::FromError<::std::str::Utf8Error> for Error {
                                 Some(format!("{:?}", err)))
     }
 }
-

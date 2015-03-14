@@ -59,15 +59,10 @@ pub struct ReaderOptions {
     /// being very large. The default limit of 64 is probably low enough to prevent any chance of
     /// stack overflow, yet high enough that it is never a problem in practice.
     pub nesting_limit : i32,
-
-    /// If true, malformed messages trigger task failure.
-    /// If false, malformed messages fall back to default values.
-    pub fail_fast : bool,
 }
 
 pub const DEFAULT_READER_OPTIONS : ReaderOptions =
-    ReaderOptions { traversal_limit_in_words : 8 * 1024 * 1024, nesting_limit : 64,
-                    fail_fast : true };
+    ReaderOptions { traversal_limit_in_words : 8 * 1024 * 1024, nesting_limit : 64 };
 
 impl ReaderOptions {
     pub fn new() -> ReaderOptions { DEFAULT_READER_OPTIONS }
@@ -79,11 +74,6 @@ impl ReaderOptions {
 
     pub fn traversal_limit_in_words<'a>(&'a mut self, value : u64) -> &'a mut ReaderOptions {
         self.traversal_limit_in_words = value;
-        return self;
-    }
-
-    pub fn fail_fast<'a>(&'a mut self, value : bool) -> &'a mut ReaderOptions {
-        self.fail_fast = value;
         return self;
     }
 }
@@ -164,17 +154,12 @@ pub const SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = AllocationStrateg
 pub struct BuilderOptions {
     pub first_segment_words : u32,
     pub allocation_strategy : AllocationStrategy,
-
-    /// If true, malformed messages trigger task failure.
-    /// If false, malformed messages fall back to default values.
-    pub fail_fast : bool,
 }
 
 impl BuilderOptions {
     pub fn new() -> BuilderOptions {
         BuilderOptions {first_segment_words : SUGGESTED_FIRST_SEGMENT_WORDS,
-                        allocation_strategy : AllocationStrategy::GrowHeuristically,
-                        fail_fast : true }
+                        allocation_strategy : AllocationStrategy::GrowHeuristically}
     }
 
     pub fn first_segment_words<'a>(&'a mut self, value : u32) -> &'a mut BuilderOptions {
@@ -184,11 +169,6 @@ impl BuilderOptions {
 
     pub fn allocation_strategy<'a>(&'a mut self, value : AllocationStrategy) -> &'a mut BuilderOptions {
         self.allocation_strategy = value;
-        return self;
-    }
-
-    pub fn fail_fast<'a>(&'a mut self, value : bool) -> &'a mut BuilderOptions {
-        self.fail_fast = value;
         return self;
     }
 }
@@ -263,8 +243,7 @@ impl MallocMessageBuilder {
 
     pub fn new(options : BuilderOptions) -> MallocMessageBuilder {
         let arena = BuilderArena::new(options.allocation_strategy,
-                                      NumWords(options.first_segment_words),
-                                      options.fail_fast);
+                                      NumWords(options.first_segment_words));
 
         MallocMessageBuilder { arena : arena }
     }
@@ -308,8 +287,7 @@ impl <'a> ScratchSpaceMallocMessageBuilder<'a> {
 
     pub fn new<'b>(scratch_space : &'b mut [Word], options : BuilderOptions)
                -> ScratchSpaceMallocMessageBuilder<'b> {
-        let arena = BuilderArena::new(options.allocation_strategy, ZeroedWords(scratch_space),
-                                      options.fail_fast);
+        let arena = BuilderArena::new(options.allocation_strategy, ZeroedWords(scratch_space));
 
         ScratchSpaceMallocMessageBuilder { arena : arena, scratch_space : scratch_space }
     }

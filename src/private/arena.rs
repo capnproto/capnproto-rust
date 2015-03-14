@@ -164,8 +164,6 @@ pub struct ReaderArena {
     pub cap_table : Vec<Option<Box<ClientHook+Send>>>,
 
     pub read_limiter : ::std::rc::Rc<ReadLimiter>,
-
-    pub fail_fast : bool,
 }
 
 unsafe impl Send for ReaderArena {}
@@ -184,7 +182,6 @@ impl ReaderArena {
             more_segments : Vec::new(),
             cap_table : Vec::new(),
             read_limiter : limiter.clone(),
-            fail_fast : options.fail_fast,
         });
 
 
@@ -234,7 +231,6 @@ pub struct BuilderArena {
     pub next_size : u32,
     pub cap_table : Vec<Option<Box<ClientHook+Send>>>,
     pub dummy_limiter : ::std::rc::Rc<ReadLimiter>,
-    pub fail_fast : bool,
 }
 
 impl Drop for BuilderArena {
@@ -257,8 +253,7 @@ pub enum FirstSegment<'a> {
 impl BuilderArena {
 
     pub fn new(allocation_strategy : message::AllocationStrategy,
-               first_segment : FirstSegment,
-               fail_fast : bool) -> Box<BuilderArena> {
+               first_segment : FirstSegment) -> Box<BuilderArena> {
         let limiter = ::std::rc::Rc::new(ReadLimiter::new(<u64 as ::std::num::Int>::max_value()));
 
         let (first_segment, num_words, owned_memory) : (*mut Word, u32, Vec<(*mut Word, usize)>) = unsafe {
@@ -293,7 +288,6 @@ impl BuilderArena {
             next_size : num_words,
             cap_table : Vec::new(),
             dummy_limiter : limiter,
-            fail_fast : fail_fast,
         });
 
         let arena_ptr = { let ref mut ptr = *result; ptr as *mut BuilderArena};
@@ -451,21 +445,4 @@ impl ArenaPtr {
             }
         }
     }
-
-    pub fn fail_fast(&self) -> bool {
-        unsafe {
-            match self {
-                &ArenaPtr::Reader(reader) => {
-                    (*reader).fail_fast
-                }
-                &ArenaPtr::Builder(builder) => {
-                    (*builder).fail_fast
-                }
-                &ArenaPtr::Null => {
-                    panic!()
-                }
-            }
-        }
-    }
-
 }

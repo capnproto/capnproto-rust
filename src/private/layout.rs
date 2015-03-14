@@ -1585,7 +1585,7 @@ mod wire_helpers {
 
                 if (*tag).kind() != WirePointerKind::Struct {
                     return Err(Error::new_decode_error(
-                        "InlineComposite lists of non-STRUCT type are not supported", None));
+                        "InlineComposite lists of non-STRUCT type are not supported.", None));
                 }
 
                 let size = (*tag).inline_composite_list_element_count();
@@ -1594,7 +1594,7 @@ mod wire_helpers {
 
                 if size as u64 * words_per_element as u64 > word_count as u64 {
                     return Err(Error::new_decode_error(
-                         "InlineComposite list's elements overrun its word count", None));
+                         "InlineComposite list's elements overrun its word count.", None));
                 }
 
                 if words_per_element == 0 {
