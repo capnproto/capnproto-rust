@@ -41,7 +41,7 @@ pub fn main() {
         Ok(()) => {}
         Err(e) => {
             std::env::set_exit_status(1);
-            println!("error: {}", e)
+            println!("error: {:?}", e)
         }
     }
 }

@@ -59,7 +59,7 @@ impl <'a> SchemaLoader<'a> {
 
     pub fn load(&mut self, reader : ::schema_capnp::node::Reader) {
         let id = reader.get_id();
-        let num_words = reader.total_size().word_count;
+        let num_words = reader.total_size().unwrap().word_count;
         self.schemas.get(&id);
         let _words = self.arena.alloc(num_words as usize);
         //ScratchSpaceMallocMessageBuilder::new

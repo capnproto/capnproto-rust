@@ -139,10 +139,10 @@ check_test_message_impl(($typ:ident) => (
             assert_eq!(12345678901234567890, reader.borrow().get_u_int64_field());
             assert_eq!(1234.5, reader.borrow().get_float32_field());
             assert_eq!(-123e45, reader.borrow().get_float64_field());
-            assert_eq!("foo", &*reader.borrow().get_text_field());
-            assert_eq!(b"bar", &*reader.borrow().get_data_field());
+            assert_eq!("foo", &*reader.borrow().get_text_field().unwrap());
+            assert_eq!(b"bar", &*reader.borrow().get_data_field().unwrap());
             {
-                let mut sub_reader = reader.get_struct_field();
+                let mut sub_reader = reader.get_struct_field().unwrap();
                 assert_eq!((), sub_reader.borrow().get_void_field());
                 assert_eq!(true, sub_reader.borrow().get_bool_field());
                 assert_eq!(-12, sub_reader.borrow().get_int8_field());
@@ -155,18 +155,19 @@ check_test_message_impl(($typ:ident) => (
                 assert_eq!(345678901234567890, sub_reader.borrow().get_u_int64_field());
                 assert_eq!(-1.25e-10, sub_reader.borrow().get_float32_field());
                 assert_eq!(345f64, sub_reader.borrow().get_float64_field());
-                assert_eq!("baz", sub_reader.borrow().get_text_field().as_slice());
-                assert_eq!(b"qux", &*sub_reader.borrow().get_data_field());
+                assert_eq!("baz", sub_reader.borrow().get_text_field().unwrap().as_slice());
+                assert_eq!(b"qux", &*sub_reader.borrow().get_data_field().unwrap());
                 {
-                    let mut sub_sub_reader = sub_reader.borrow().get_struct_field();
-                    assert_eq!("nested", sub_sub_reader.borrow().get_text_field().as_slice());
-                    assert_eq!("really nested", sub_sub_reader.get_struct_field().get_text_field().as_slice());
+                    let mut sub_sub_reader = sub_reader.borrow().get_struct_field().unwrap();
+                    assert_eq!("nested", sub_sub_reader.borrow().get_text_field().unwrap().as_slice());
+                    assert_eq!("really nested", sub_sub_reader.get_struct_field().unwrap()
+                                                  .get_text_field().unwrap().as_slice());
                 }
                 assert!(Ok(TestEnum::Baz) == sub_reader.borrow().get_enum_field());
-                assert_eq!(3, sub_reader.borrow().get_void_list().len());
+                assert_eq!(3, sub_reader.borrow().get_void_list().unwrap().len());
 
                 {
-                    let bool_list = sub_reader.borrow().get_bool_list();
+                    let bool_list = sub_reader.borrow().get_bool_list().unwrap();
                     assert_eq!(5, bool_list.len());
                     assert_eq!(false, bool_list.get(0));
                     assert_eq!(true, bool_list.get(1));
@@ -176,7 +177,7 @@ check_test_message_impl(($typ:ident) => (
                 }
 
                 {
-                    let int8_list = sub_reader.borrow().get_int8_list();
+                    let int8_list = sub_reader.borrow().get_int8_list().unwrap();
                     assert_eq!(4, int8_list.len());
                     assert_eq!(12, int8_list.get(0));
                     assert_eq!(-34, int8_list.get(1));
@@ -185,7 +186,7 @@ check_test_message_impl(($typ:ident) => (
                 }
 
                 {
-                    let int16_list = sub_reader.borrow().get_int16_list();
+                    let int16_list = sub_reader.borrow().get_int16_list().unwrap();
                     assert_eq!(4, int16_list.len());
                     assert_eq!(1234, int16_list.get(0));
                     assert_eq!(-5678, int16_list.get(1));
@@ -194,7 +195,7 @@ check_test_message_impl(($typ:ident) => (
                 }
 
                 {
-                    let int32_list = sub_reader.borrow().get_int32_list();
+                    let int32_list = sub_reader.borrow().get_int32_list().unwrap();
                     assert_eq!(4, int32_list.len());
                     assert_eq!(12345678, int32_list.get(0));
                     assert_eq!(-90123456, int32_list.get(1));
@@ -205,15 +206,15 @@ check_test_message_impl(($typ:ident) => (
                 // ...
 
                 {
-                    let mut struct_list = sub_reader.borrow().get_struct_list();
+                    let mut struct_list = sub_reader.borrow().get_struct_list().unwrap();
                     assert_eq!(3, struct_list.len());
-                    assert_eq!("x structlist 1", struct_list.borrow().get(0).get_text_field().as_slice());
-                    assert_eq!("x structlist 2", struct_list.borrow().get(1).get_text_field().as_slice());
-                    assert_eq!("x structlist 3", struct_list.borrow().get(2).get_text_field().as_slice());
+                    assert_eq!("x structlist 1", struct_list.borrow().get(0).get_text_field().unwrap().as_slice());
+                    assert_eq!("x structlist 2", struct_list.borrow().get(1).get_text_field().unwrap().as_slice());
+                    assert_eq!("x structlist 3", struct_list.borrow().get(2).get_text_field().unwrap().as_slice());
                 }
 
                 {
-                    let enum_list = sub_reader.get_enum_list();
+                    let enum_list = sub_reader.get_enum_list().unwrap();
                     assert_eq!(3, enum_list.len());
                     assert!(Some(TestEnum::Qux) == enum_list.get(0));
                     assert!(Some(TestEnum::Bar) == enum_list.get(1));

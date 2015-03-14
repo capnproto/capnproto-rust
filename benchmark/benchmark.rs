@@ -135,11 +135,12 @@ macro_rules! pass_by_object(
                 let expected = $testcase::setup_request(&mut rng,
                                                         message_req.init_root::<$testcase::RequestBuilder>());
 
-                $testcase::handle_request(message_req.get_root::<$testcase::RequestBuilder>().as_reader(),
+                $testcase::handle_request(message_req.get_root::<$testcase::RequestBuilder>().unwrap().as_reader(),
                                           message_res.init_root::<$testcase::ResponseBuilder>());
 
-                if !$testcase::check_response(message_res.get_root::<$testcase::ResponseBuilder>().as_reader(),
-                                              expected) {
+                if !$testcase::check_response(
+                    message_res.get_root::<$testcase::ResponseBuilder>().unwrap().as_reader(),
+                    expected) {
                     panic!("Incorrect response.");
                 }
             }
@@ -175,7 +176,7 @@ macro_rules! pass_by_bytes(
                     &mut capnp::io::ArrayInputStream::new(request_bytes.as_slice()),
                     capnp::message::DEFAULT_READER_OPTIONS);
 
-                let request_reader : $testcase::RequestReader = message_reader.get_root();
+                let request_reader : $testcase::RequestReader = message_reader.get_root().unwrap();
                 $testcase::handle_request(request_reader, response);
             }
 
@@ -188,7 +189,7 @@ macro_rules! pass_by_bytes(
                 &mut capnp::io::ArrayInputStream::new(response_bytes.as_slice()),
                 capnp::message::DEFAULT_READER_OPTIONS);
 
-            let response_reader : $testcase::ResponseReader = message_reader.get_root();
+            let response_reader : $testcase::ResponseReader = message_reader.get_root().unwrap();
             if !$testcase::check_response(response_reader, expected) {
                 panic!("Incorrect response.");
             }
@@ -208,7 +209,7 @@ macro_rules! server(
                     let message_reader = $compression::new_buffered_reader(
                         &mut in_buffered,
                         capnp::message::DEFAULT_READER_OPTIONS);
-                    let request_reader : $testcase::RequestReader = message_reader.get_root();
+                    let request_reader : $testcase::RequestReader = message_reader.get_root().unwrap();
                     $testcase::handle_request(request_reader, response);
                 }
 
@@ -236,7 +237,7 @@ macro_rules! sync_client(
                 let message_reader = $compression::new_buffered_reader(
                     &mut in_buffered,
                     capnp::message::DEFAULT_READER_OPTIONS);
-                let response_reader : $testcase::ResponseReader = message_reader.get_root();
+                let response_reader : $testcase::ResponseReader = message_reader.get_root().unwrap();
                 assert!($testcase::check_response(response_reader, expected));
 
             }

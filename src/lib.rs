@@ -55,7 +55,7 @@ pub mod schema_capnp;
 pub mod codegen;
 pub mod schema;
 
-pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::std::io::Result<()> {
+pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::capnp::Result<()> {
 
     let out_dir = ::std::path::PathBuf::new(::std::env::var("OUT_DIR").unwrap().as_slice());
     let cwd = ::std::env::current_dir().unwrap();

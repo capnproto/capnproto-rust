@@ -87,14 +87,15 @@ pub fn handle_request(request : search_result_list::Reader,
                       response : search_result_list::Builder) {
     let mut scored_results : Vec<ScoredResult> = Vec::new();
 
-    let results = request.get_results();
+    let results = request.get_results().unwrap();
     for i in range(0, results.len()) {
         let result = results.get(i);
         let mut score = result.get_score();
-        if result.get_snippet().contains(" cat ") {
+        let snippet = result.get_snippet().unwrap();
+        if snippet.contains(" cat ") {
             score *= 10000.0;
         }
-        if result.get_snippet().contains(" dog ") {
+        if snippet.contains(" dog ") {
             score /= 10000.0;
         }
         scored_results.push(ScoredResult {score : score, result : result});
@@ -109,14 +110,14 @@ pub fn handle_request(request : search_result_list::Reader,
         let mut item = list.borrow().get(i);
         let result = scored_results[i as usize];
         item.set_score(result.score);
-        item.set_url(result.result.get_url());
-        item.set_snippet(result.result.get_snippet());
+        item.set_url(result.result.get_url().unwrap());
+        item.set_snippet(result.result.get_snippet().unwrap());
     }
 }
 
 pub fn check_response(response : search_result_list::Reader, expected_good_count : i32) -> bool {
     let mut good_count : i32 = 0;
-    let results = response.get_results();
+    let results = response.get_results().unwrap();
     for i in range(0, results.len()) {
         let result = results.get(i);
         if result.get_score() > 1001.0 {

@@ -87,17 +87,17 @@ mod tests {
         assert_eq!(test_prim_list.has_void_list(), true);
 
         let test_prim_list_reader = test_prim_list.as_reader();
-        let uint8_list = test_prim_list_reader.get_uint8_list();
+        let uint8_list = test_prim_list_reader.get_uint8_list().unwrap();
         for i in range(0, uint8_list.len()) {
             assert_eq!(uint8_list.get(i), i as u8);
         }
-        let uint64_list = test_prim_list_reader.get_uint64_list();
+        let uint64_list = test_prim_list_reader.get_uint64_list().unwrap();
         for i in range(0, uint64_list.len()) {
             assert_eq!(uint64_list.get(i), i as u64);
         }
 
         assert_eq!(test_prim_list_reader.has_bool_list(), true);
-        let bool_list = test_prim_list_reader.get_bool_list();
+        let bool_list = test_prim_list_reader.get_bool_list().unwrap();
         assert!(bool_list.get(0));
         assert!(bool_list.get(1));
         assert!(bool_list.get(2));
@@ -115,7 +115,7 @@ mod tests {
         assert!(!bool_list.get(63));
         assert!(bool_list.get(64));
 
-        assert_eq!(test_prim_list_reader.get_void_list().len(), 1025);
+        assert_eq!(test_prim_list_reader.get_void_list().unwrap().len(), 1025);
     }
 
     #[test]
@@ -129,13 +129,13 @@ mod tests {
 
         test_struct_list.borrow().init_struct_list(4);
         {
-            let struct_list = test_struct_list.borrow().get_struct_list();
+            let struct_list = test_struct_list.borrow().get_struct_list().unwrap();
             struct_list.get(0).init_uint8_list(1).set(0, 5u8);
         }
 
         {
             let reader = test_struct_list.as_reader();
-            assert_eq!(reader.get_struct_list().get(0).get_uint8_list().get(0), 5u8);
+            assert_eq!(reader.get_struct_list().unwrap().get(0).get_uint8_list().unwrap().get(0), 5u8);
         }
     }
 
@@ -160,8 +160,8 @@ mod tests {
             assert_eq!(test_blob_reader.has_text_field(), true);
             assert_eq!(test_blob_reader.has_data_field(), true);
 
-            assert_eq!(test_blob_reader.get_text_field(), "abcdefghi");
-            assert!(test_blob_reader.get_data_field() == [0u8, 1u8, 2u8, 3u8, 4u8]);
+            assert_eq!(test_blob_reader.get_text_field().unwrap(), "abcdefghi");
+            assert!(test_blob_reader.get_data_field().unwrap() == [0u8, 1u8, 2u8, 3u8, 4u8]);
         }
 
         {
@@ -172,23 +172,23 @@ mod tests {
         }
 
         test_blob.borrow().init_data_field(7);
-        assert!(test_blob.borrow().as_reader().get_data_field() ==
+        assert!(test_blob.borrow().as_reader().get_data_field().unwrap() ==
                 [0u8,0u8,0u8,0u8,0u8,0u8,0u8]);
         {
-            let data_builder = test_blob.borrow().get_data_field();
+            let data_builder = test_blob.borrow().get_data_field().unwrap();
             for c in data_builder.iter_mut() {
                 *c = 5;
             }
             data_builder[0] = 4u8;
         }
 
-        assert_eq!(test_blob.borrow().as_reader().get_text_field(), "aabbccddee");
-        assert!(test_blob.borrow().as_reader().get_data_field() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
+        assert_eq!(test_blob.borrow().as_reader().get_text_field().unwrap(), "aabbccddee");
+        assert!(test_blob.borrow().as_reader().get_data_field().unwrap() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
 
         {
-            test_blob.borrow().get_data_field()[2] = 10;
+            test_blob.borrow().get_data_field().unwrap()[2] = 10;
         }
-        assert!(test_blob.as_reader().get_data_field() == [4u8,5u8,10u8,5u8,5u8,5u8,5u8]);
+        assert!(test_blob.as_reader().get_data_field().unwrap() == [4u8,5u8,10u8,5u8,5u8,5u8,5u8]);
     }
 
 
@@ -210,7 +210,7 @@ mod tests {
         big_struct.borrow().init_struct_field();
         assert_eq!(big_struct.has_struct_field(), true);
         {
-            let mut inner = big_struct.borrow().get_struct_field();
+            let mut inner = big_struct.borrow().get_struct_field().unwrap();
             inner.set_float64_field(0.1234567);
             inner.set_bool_field_b(true);
         }
@@ -223,7 +223,7 @@ mod tests {
         assert_eq!(big_struct_reader.get_int8_field(), -128);
         assert_eq!(big_struct_reader.get_int32_field(), 1009);
 
-        let inner_reader = big_struct_reader.get_struct_field();
+        let inner_reader = big_struct_reader.get_struct_field().unwrap();
         assert!(!inner_reader.get_bool_field_a());
         assert!(inner_reader.get_bool_field_b());
         assert_eq!(inner_reader.get_float64_field(), 0.1234567);
@@ -320,7 +320,7 @@ mod tests {
         }
 
         let complex_list_reader = test_complex_list.as_reader();
-        let enum_list_reader = complex_list_reader.get_enum_list();
+        let enum_list_reader = complex_list_reader.get_enum_list().unwrap();
         for i in range::<u32>(0,10) {
             assert!(enum_list_reader.get(i) == Some(AnEnum::Qux));
         }
@@ -328,41 +328,41 @@ mod tests {
             assert!(enum_list_reader.get(i) == Some(AnEnum::Bar));
         }
 
-        let text_list = complex_list_reader.get_text_list();
+        let text_list = complex_list_reader.get_text_list().unwrap();
         assert_eq!(text_list.len(), 2);
-        assert_eq!(text_list.get(0), "garply");
-        assert_eq!(text_list.get(1), "foo");
+        assert_eq!(text_list.get(0).unwrap(), "garply");
+        assert_eq!(text_list.get(1).unwrap(), "foo");
 
-        let data_list = complex_list_reader.get_data_list();
+        let data_list = complex_list_reader.get_data_list().unwrap();
         assert_eq!(data_list.len(), 2);
-        assert!(data_list.get(0) == [0u8, 1u8, 2u8]);
-        assert!(data_list.get(1) == [255u8, 254u8, 253u8]);
+        assert!(data_list.get(0).unwrap() == [0u8, 1u8, 2u8]);
+        assert!(data_list.get(1).unwrap() == [255u8, 254u8, 253u8]);
 
-        let prim_list_list = complex_list_reader.get_prim_list_list();
+        let prim_list_list = complex_list_reader.get_prim_list_list().unwrap();
         assert_eq!(prim_list_list.len(), 2);
-        assert_eq!(prim_list_list.get(0).len(), 3);
-        assert!(prim_list_list.get(0).get(0) == 5);
-        assert!(prim_list_list.get(0).get(1) == 6);
-        assert!(prim_list_list.get(0).get(2) == 7);
-        assert!(prim_list_list.get(1).get(0) == -1);
+        assert_eq!(prim_list_list.get(0).unwrap().len(), 3);
+        assert!(prim_list_list.get(0).unwrap().get(0) == 5);
+        assert!(prim_list_list.get(0).unwrap().get(1) == 6);
+        assert!(prim_list_list.get(0).unwrap().get(2) == 7);
+        assert!(prim_list_list.get(1).unwrap().get(0) == -1);
 
-        let prim_list_list_list = complex_list_reader.get_prim_list_list_list();
-        assert!(prim_list_list_list.get(0).get(0).get(0) == 0);
-        assert!(prim_list_list_list.get(0).get(0).get(1) == 1);
-        assert!(prim_list_list_list.get(0).get(1).get(0) == 255);
-        assert!(prim_list_list_list.get(1).get(0).get(0) == 10);
-        assert!(prim_list_list_list.get(1).get(0).get(1) == 9);
-        assert!(prim_list_list_list.get(1).get(0).get(2) == 8);
+        let prim_list_list_list = complex_list_reader.get_prim_list_list_list().unwrap();
+        assert!(prim_list_list_list.get(0).unwrap().get(0).unwrap().get(0) == 0);
+        assert!(prim_list_list_list.get(0).unwrap().get(0).unwrap().get(1) == 1);
+        assert!(prim_list_list_list.get(0).unwrap().get(1).unwrap().get(0) == 255);
+        assert!(prim_list_list_list.get(1).unwrap().get(0).unwrap().get(0) == 10);
+        assert!(prim_list_list_list.get(1).unwrap().get(0).unwrap().get(1) == 9);
+        assert!(prim_list_list_list.get(1).unwrap().get(0).unwrap().get(2) == 8);
 
-        let enum_list_list = complex_list_reader.get_enum_list_list();
-        assert!(enum_list_list.get(0).get(0) == Some(AnEnum::Bar));
-        assert!(enum_list_list.get(1).get(0) == Some(AnEnum::Foo));
-        assert!(enum_list_list.get(1).get(1) == Some(AnEnum::Qux));
+        let enum_list_list = complex_list_reader.get_enum_list_list().unwrap();
+        assert!(enum_list_list.get(0).unwrap().get(0) == Some(AnEnum::Bar));
+        assert!(enum_list_list.get(1).unwrap().get(0) == Some(AnEnum::Foo));
+        assert!(enum_list_list.get(1).unwrap().get(1) == Some(AnEnum::Qux));
 
-        assert!(complex_list_reader.get_text_list_list().get(0).get(0) == "abc");
-        assert!(complex_list_reader.get_data_list_list().get(0).get(0) == [255, 254, 253]);
+        assert!(complex_list_reader.get_text_list_list().unwrap().get(0).unwrap().get(0).unwrap() == "abc");
+        assert!(complex_list_reader.get_data_list_list().unwrap().get(0).unwrap().get(0).unwrap() == [255, 254, 253]);
 
-        assert!(complex_list_reader.get_struct_list_list().get(0).get(0).get_int8_field() == -1);
+        assert!(complex_list_reader.get_struct_list_list().unwrap().get(0).unwrap().get(0).get_int8_field() == -1);
     }
 
     #[test]
@@ -417,31 +417,31 @@ mod tests {
         let mut message = MallocMessageBuilder::new_default();
         let mut test_any_pointer = message.init_root::<test_any_pointer::Builder>();
 
-        test_any_pointer.borrow().init_any_pointer_field().set_as("xyzzy");
+        test_any_pointer.borrow().init_any_pointer_field().set_as("xyzzy").unwrap();
 
         {
             let reader = test_any_pointer.borrow().as_reader();
-            assert_eq!(reader.get_any_pointer_field().get_as::<::capnp::text::Reader>(), "xyzzy");
+            assert_eq!(reader.get_any_pointer_field().get_as::<::capnp::text::Reader>().unwrap(), "xyzzy");
         }
 
         test_any_pointer.borrow().get_any_pointer_field().init_as::<test_empty_struct::Builder>();
-        test_any_pointer.borrow().get_any_pointer_field().get_as::<test_empty_struct::Builder>();
+        test_any_pointer.borrow().get_any_pointer_field().get_as::<test_empty_struct::Builder>().unwrap();
 
         {
             let reader = test_any_pointer.borrow().as_reader();
-            reader.get_any_pointer_field().get_as::<test_empty_struct::Reader>();
+            reader.get_any_pointer_field().get_as::<test_empty_struct::Reader>().unwrap();
         }
 
         {
             let mut message = MallocMessageBuilder::new_default();
             let mut test_big_struct = message.init_root::<test_big_struct::Builder>();
             test_big_struct.set_int32_field(-12345);
-            test_any_pointer.get_any_pointer_field().set_as(test_big_struct.borrow().as_reader());
+            test_any_pointer.get_any_pointer_field().set_as(test_big_struct.borrow().as_reader()).unwrap();
         }
 
         fn _test_lifetimes(body : test_big_struct::Reader) {
             let mut message = MallocMessageBuilder::new_default();
-            message.set_root(body);
+            message.set_root(body).unwrap();
         }
 
     }
@@ -460,7 +460,7 @@ mod tests {
             struct_field.set_uint64_field(-7);
             assert_eq!(struct_field.get_uint64_field(), -7);
         }
-        assert_eq!(big_struct.borrow().get_struct_field().get_uint64_field(), -7);
+        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint64_field(), -7);
         {
             let mut struct_field = big_struct.borrow().init_struct_field();
             assert_eq!(struct_field.borrow().get_uint64_field(), 0);
@@ -469,24 +469,25 @@ mod tests {
 
         {
             // getting before init is the same as init
-            assert_eq!(big_struct.borrow().get_another_struct_field().get_uint64_field(), 0);
-            big_struct.borrow().get_another_struct_field().set_uint32_field(-31);
+            assert_eq!(big_struct.borrow().get_another_struct_field().unwrap().get_uint64_field(), 0);
+            big_struct.borrow().get_another_struct_field().unwrap().set_uint32_field(-31);
 
             // Alas, we need to make a copy to appease the borrow checker.
             let mut other_message = MallocMessageBuilder::new_default();
-            other_message.set_root(big_struct.borrow().get_another_struct_field().as_reader());
-            big_struct.set_struct_field(other_message.get_root::<test_big_struct::inner::Builder>().as_reader());
+            other_message.set_root(big_struct.borrow().get_another_struct_field().unwrap().as_reader()).unwrap();
+            big_struct.set_struct_field(
+                other_message.get_root::<test_big_struct::inner::Builder>().unwrap().as_reader()).unwrap();
         }
 
-        assert_eq!(big_struct.borrow().get_struct_field().get_uint32_field(), -31);
+        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint32_field(), -31);
         {
-            let mut other_struct_field = big_struct.borrow().get_another_struct_field();
+            let mut other_struct_field = big_struct.borrow().get_another_struct_field().unwrap();
             assert_eq!(other_struct_field.borrow().get_uint32_field(), -31);
             other_struct_field.set_uint32_field(42);
             assert_eq!(other_struct_field.get_uint32_field(), 42);
         }
-        assert_eq!(big_struct.borrow().get_struct_field().get_uint32_field(), -31);
-        assert_eq!(big_struct.get_another_struct_field().get_uint32_field(), 42);
+        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint32_field(), -31);
+        assert_eq!(big_struct.get_another_struct_field().unwrap().get_uint32_field(), 42);
     }
 
     #[test]
@@ -542,8 +543,8 @@ mod tests {
         let mut message2 = MallocMessageBuilder::new_default();
         let mut struct1 = message1.init_root::<test_big_struct::Builder>();
         struct1.set_uint8_field(3);
-        message2.set_root(struct1.as_reader());
-        let struct2 = message2.get_root::<test_big_struct::Builder>();
+        message2.set_root(struct1.as_reader()).unwrap();
+        let struct2 = message2.get_root::<test_big_struct::Builder>().unwrap();
 
         assert_eq!(struct2.get_uint8_field(), 3u8);
     }
@@ -558,9 +559,9 @@ mod tests {
             old_version.set_old1(123);
         }
         {
-            let mut new_version = message.get_root::<test_new_version::Builder>();
-            new_version.borrow().get_new2();
-            assert_eq!(new_version.get_new3().get_int8_field(), -123);
+            let mut new_version = message.get_root::<test_new_version::Builder>().unwrap();
+            new_version.borrow().get_new2().unwrap();
+            assert_eq!(new_version.get_new3().unwrap().get_int8_field(), -123);
         }
     }
 
@@ -570,8 +571,9 @@ mod tests {
 
         let mut message = MallocMessageBuilder::new_default();
         ::test_util::init_test_message(message.init_root());
-        ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>());
-        ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().as_reader());
+        ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().unwrap());
+        ::test_util::CheckTestMessage::check_test_message(
+            message.get_root::<test_all_types::Builder>().unwrap().as_reader());
 
     }
 
@@ -583,8 +585,9 @@ mod tests {
         builder_options.first_segment_words(1).allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
         let mut message = MallocMessageBuilder::new(builder_options);
         ::test_util::init_test_message(message.init_root());
-        ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>());
-        ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().as_reader());
+        ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().unwrap());
+        ::test_util::CheckTestMessage::check_test_message(
+            message.get_root::<test_all_types::Builder>().unwrap().as_reader());
     }
 
     #[test]
@@ -599,10 +602,10 @@ mod tests {
             let mut message2 = MallocMessageBuilder::new_default();
             let mut all_types2 = message2.init_root::<test_all_types::Builder>();
 
-            all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().as_reader());
-            ::test_util::CheckTestMessage::check_test_message(all_types2.borrow().get_struct_field());
+            all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().unwrap().as_reader()).unwrap();
+            ::test_util::CheckTestMessage::check_test_message(all_types2.borrow().get_struct_field().unwrap());
 
-            let reader = all_types2.as_reader().get_struct_field();
+            let reader = all_types2.as_reader().get_struct_field().unwrap();
             ::test_util::CheckTestMessage::check_test_message(reader);
         }
 
@@ -620,10 +623,10 @@ mod tests {
             let mut message2 = MallocMessageBuilder::new(builder_options);
             let mut all_types2 = message2.init_root::<test_all_types::Builder>();
 
-            all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().as_reader());
-            ::test_util::CheckTestMessage::check_test_message(all_types2.borrow().get_struct_field());
+            all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().unwrap().as_reader()).unwrap();
+            ::test_util::CheckTestMessage::check_test_message(all_types2.borrow().get_struct_field().unwrap());
 
-            let reader = all_types2.as_reader().get_struct_field();
+            let reader = all_types2.as_reader().get_struct_field().unwrap();
             ::test_util::CheckTestMessage::check_test_message(reader);
         }
     }
@@ -643,17 +646,14 @@ mod tests {
     fn text_builder_int_underflow() {
         use test_capnp::{test_any_pointer};
 
-        let mut message = MallocMessageBuilder::new(*BuilderOptions::new().fail_fast(false));
+        let mut message = MallocMessageBuilder::new(BuilderOptions::new());
         {
             let mut root = message.init_root::<test_any_pointer::Builder>();
             let _ : ::capnp::data::Builder = root.borrow().get_any_pointer_field().init_as_sized(0);
 
             // No NUL terminator!
-            let text : ::capnp::text::Builder = root.get_any_pointer_field().get_as();
-
-            // TODO check that the error was detected.
-
-            assert_eq!(text.as_slice().as_bytes().len(), 0);
+            let result = root.get_any_pointer_field().get_as::<::capnp::text::Builder>();
+            assert!(result.is_err());
         }
     }
 
@@ -670,35 +670,30 @@ mod tests {
 
         let words = [::capnp::Word::bytes_to_words(&bytes.data[..])];
         let message =
-            ::capnp::message::SegmentArrayMessageReader::new(&words,
-                                                             * ::capnp::ReaderOptions::new().fail_fast(false));
+            ::capnp::message::SegmentArrayMessageReader::new(&words, ::capnp::ReaderOptions::new());
 
-        let root : ::test_capnp::test_any_pointer::Reader = message.get_root();
-        root.total_size();
-        // TODO check that error was detected: "list's elements overrun its word count"
+        let root : ::test_capnp::test_any_pointer::Reader = message.get_root().unwrap();
+        assert!(root.total_size() ==
+                Err(::capnp::Error::Decode{description:"InlineComposite list's elements overrun its word count.",
+                                           detail:None}));
 
         {
-            let list = root.get_any_pointer_field()
+            let result = root.get_any_pointer_field()
                 .get_as::<::capnp::struct_list::Reader<::test_capnp::test_all_types::Reader>>();
 
-            // TODO check that error was detected: "list's elements overrun its word count"
-
-            if list.len() > 0 {
-                let element = list.get(list.len() - 1);
-                assert_eq!(element.get_text_field(), "");
-                // At one point this caused a segfault.
-            }
+            assert!(result.is_err());
         }
 
         let mut message_builder = MallocMessageBuilder::new_default();
         let builder_root = message_builder.init_root::<::test_capnp::test_any_pointer::Builder>();
-        builder_root.get_any_pointer_field().set_as(root);
-        // TODO check that error was detected: "list's elements overrun its word count"
+        let result = builder_root.get_any_pointer_field().set_as(root);
+        assert!(result ==
+                Err(::capnp::Error::Decode{description:"InlineComposite list's elements overrun its word count.",
+                                           detail:None}));
     }
 
 
     #[test]
-    #[should_panic]  // TODO failure message
     fn void_list_amplification() {
         use test_capnp::{test_any_pointer, test_all_types};
         use capnp::MessageReader;
@@ -717,13 +712,13 @@ mod tests {
             ::capnp::message::SegmentArrayMessageReader::new(
                 &segments,
                 ::capnp::ReaderOptions::new());
-        let root = reader.get_root::<test_any_pointer::Reader>();
-        root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Reader>>();
+        let root = reader.get_root::<test_any_pointer::Reader>().unwrap();
+        let result = root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Reader>>();
+        assert!(result.is_err());
     }
 
 
     #[test]
-    #[should_panic]  // TODO failure message
     fn empty_struct_list_amplification() {
         use test_capnp::{test_any_pointer, test_empty_struct, test_all_types};
         use capnp::MessageReader;
@@ -742,8 +737,9 @@ mod tests {
             ::capnp::message::SegmentArrayMessageReader::new(
                 &segments,
                 ::capnp::ReaderOptions::new());
-        let root = reader.get_root::<test_any_pointer::Reader>();
-        root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Reader>>();
+        let root = reader.get_root::<test_any_pointer::Reader>().unwrap();
+        let result = root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Reader>>();
+        assert!(result.is_err());
     }
 
 

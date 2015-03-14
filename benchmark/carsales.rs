@@ -45,7 +45,7 @@ macro_rules! car_value_impl(
                     // Using an iterator here slows things down considerably.
                     // TODO: investigate why.
                     {
-                        let mut wheels = self.borrow().get_wheels();
+                        let mut wheels = self.borrow().get_wheels().unwrap();
                         for ii in range(0, wheels.len()) {
                             let mut wheel = wheels.borrow().get(ii);
                             result += wheel.borrow().get_diameter() as u64 * wheel.borrow().get_diameter() as u64;
@@ -57,7 +57,7 @@ macro_rules! car_value_impl(
                         self.borrow().get_width() as u64 * self.borrow().get_height() as u64 / 50;
 
                     {
-                        let mut engine = self.borrow().get_engine();
+                        let mut engine = self.borrow().get_engine().unwrap();
                         result += engine.borrow().get_horsepower() as u64 * 40;
                         if engine.borrow().get_uses_electric() {
                             if engine.borrow().get_uses_gas() {
@@ -151,7 +151,7 @@ pub fn setup_request(rng : &mut FastRand, request : parking_lot::Builder) -> u64
 
 pub fn handle_request(request : parking_lot::Reader, mut response : total_value::Builder) {
     let mut result = 0;
-    for car in request.get_cars().iter() {
+    for car in request.get_cars().unwrap().iter() {
         result += car.car_value();
     }
     response.set_amount(result);
