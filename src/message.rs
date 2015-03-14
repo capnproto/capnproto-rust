@@ -88,20 +88,20 @@ pub trait MessageReader {
     fn arena_mut(&mut self) -> &mut ReaderArena;
     fn get_options(&self) -> &ReaderOptions;
 
-    fn get_root_internal(&self) -> any_pointer::Reader {
+    fn get_root_internal(&self) -> Result<any_pointer::Reader> {
         unsafe {
             let segment : *const SegmentReader = &self.arena().segment0;
 
-            let pointer_reader = layout::PointerReader::get_root(
-                segment, (*segment).get_start_ptr(), self.get_options().nesting_limit);
+            let pointer_reader = try!(layout::PointerReader::get_root(
+                segment, (*segment).get_start_ptr(), self.get_options().nesting_limit));
 
-            any_pointer::Reader::new(pointer_reader)
+            Ok(any_pointer::Reader::new(pointer_reader))
         }
     }
 
     /// Get the root of the message, interpreting it as the given type.
     fn get_root<'a, T : FromPointerReader<'a>>(&'a self) -> Result<T> {
-        self.get_root_internal().get_as()
+        try!(self.get_root_internal()).get_as()
     }
 
     fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook+Send>>>) {

@@ -1790,17 +1790,17 @@ impl <'a> PointerReader<'a> {
     }
 
     pub fn get_root<'b>(segment : *const SegmentReader, location : *const Word,
-                        nesting_limit : i32) -> PointerReader<'b> {
+                        nesting_limit : i32) -> Result<PointerReader<'b>> {
         unsafe {
-            wire_helpers::bounds_check(segment, location,
-                                       location.offset(POINTER_SIZE_IN_WORDS as isize),
-                                       WirePointerKind::Struct).unwrap(); // XXX
+            try!(wire_helpers::bounds_check(segment, location,
+                                            location.offset(POINTER_SIZE_IN_WORDS as isize),
+                                            WirePointerKind::Struct));
 
-            PointerReader {
+            Ok(PointerReader {
                 marker : ::std::marker::PhantomData::<&'b ()>,
                 segment : segment,
                 pointer : ::std::mem::transmute(location),
-                nesting_limit : nesting_limit }
+                nesting_limit : nesting_limit })
         }
     }
 
@@ -2241,10 +2241,6 @@ impl <'a> ListReader<'a> {
     pub fn len(&self) -> ElementCount32 { self.element_count }
 
     pub fn get_struct_element(&self, index : ElementCount32) -> StructReader<'a> {
-        if self.nesting_limit <= 0 {
-            // TODO
-        }
-
         let index_bit : BitCount64 = index as ElementCount64 * (self.step as BitCount64);
 
         let struct_data : *const u8 = unsafe {
@@ -2255,12 +2251,6 @@ impl <'a> ListReader<'a> {
                     struct_data.offset((self.struct_data_size as usize / BITS_PER_BYTE) as isize))
         };
 
-/*
-        assert!(self.struct_pointer_count == 0 ||
-                struct_pointers % BYTES_PER_POINTER == 0,
-                "Pointer section of struct list element not aligned"
-               );
-*/
         StructReader {
             marker : ::std::marker::PhantomData::<&'a ()>,
             segment : self.segment,
