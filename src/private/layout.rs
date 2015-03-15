@@ -436,36 +436,32 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn follow_builder_fars(reff : &mut * mut WirePointer,
                                       ref_target : *mut Word,
-                                      segment : &mut *mut SegmentBuilder) -> *mut Word {
-        //# If `ref` is a far pointer, follow it. On return, `ref` will
-        //# have been updated to point at a WirePointer that contains
-        //# the type information about the target object, and a pointer
-        //# to the object contents is returned. The caller must NOT use
-        //# `ref->target()` as this may or may not actually return a
-        //# valid pointer. `segment` is also updated to point at the
-        //# segment which actually contains the object.
-        //#
-        //# If `ref` is not a far pointer, this simply returns
-        //# `ref_target`. Usually, `ref_target` should be the same as
-        //# `ref->target()`, but may not be in cases where `ref` is
-        //# only a tag.
+                                      segment : &mut *mut SegmentBuilder) -> Result<*mut Word> {
+        // If `ref` is a far pointer, follow it. On return, `ref` will have been updated to point at
+        // a WirePointer that contains the type information about the target object, and a pointer
+        // to the object contents is returned. The caller must NOT use `ref->target()` as this may
+        // or may not actually return a valid pointer. `segment` is also updated to point at the
+        // segment which actually contains the object.
+        //
+        // If `ref` is not a far pointer, this simply returns `ref_target`. Usually, `ref_target`
+        // should be the same as `ref->target()`, but may not be in cases where `ref` is only a tag.
 
         if (**reff).kind() == WirePointerKind::Far {
-            *segment = (*(**segment).get_arena()).get_segment((**reff).far_ref().segment_id.get());
+            *segment = try!((*(**segment).get_arena()).get_segment((**reff).far_ref().segment_id.get()));
             let pad : *mut WirePointer =
                 ::std::mem::transmute((**segment).get_ptr_unchecked((**reff).far_position_in_segment()));
             if !(**reff).is_double_far() {
                 *reff = pad;
-                return (*pad).mut_target();
+                return Ok((*pad).mut_target());
             }
 
             //# Landing pad is another far pointer. It is followed by a
             //# tag describing the pointed-to object.
             *reff = pad.offset(1);
-            *segment = (*(**segment).get_arena()).get_segment((*pad).far_ref().segment_id.get());
-            return (**segment).get_ptr_unchecked((*pad).far_position_in_segment());
+            *segment = try!((*(**segment).get_arena()).get_segment((*pad).far_ref().segment_id.get()));
+            return Ok((**segment).get_ptr_unchecked((*pad).far_position_in_segment()));
         } else {
-            ref_target
+            Ok(ref_target)
         }
     }
 
@@ -474,11 +470,10 @@ mod wire_helpers {
                               ref_target: *const Word,
                               segment : &mut *const SegmentReader) -> Result<*const Word> {
 
-        //# If the segment is null, this is an unchecked message,
-        //# so there are no FAR pointers.
+        // If the segment is null, this is an unchecked message, so there are no FAR pointers.
         if !(*segment).is_null() && (**reff).kind() == WirePointerKind::Far {
             *segment =
-                (**segment).arena.try_get_segment((**reff).far_ref().segment_id.get());
+                try!((**segment).arena.try_get_segment((**reff).far_ref().segment_id.get()));
 
             let ptr : *const Word = (**segment).get_start_ptr().offset(
                 (**reff).far_position_in_segment() as isize);
@@ -499,7 +494,7 @@ mod wire_helpers {
                 *reff = pad.offset(1);
 
                 *segment =
-                    (**segment).arena.try_get_segment((*pad).far_ref().segment_id.get());
+                    try!((**segment).arena.try_get_segment((*pad).far_ref().segment_id.get()));
 
                 return Ok((**segment).get_start_ptr().offset((*pad).far_position_in_segment() as isize));
             }
@@ -519,12 +514,12 @@ mod wire_helpers {
                                  reff, (*reff).mut_target())
             }
             WirePointerKind::Far => {
-                segment = (*(*segment).get_arena()).get_segment((*reff).far_ref().segment_id.get());
+                segment = (*(*segment).get_arena()).get_segment((*reff).far_ref().segment_id.get()).unwrap();
                 let pad : *mut WirePointer =
                     ::std::mem::transmute((*segment).get_ptr_unchecked((*reff).far_position_in_segment()));
 
                 if (*reff).is_double_far() {
-                    segment = (*(*segment).get_arena()).get_segment((*pad).far_ref().segment_id.get());
+                    segment = (*(*segment).get_arena()).get_segment((*pad).far_ref().segment_id.get()).unwrap();
 
                     zero_object_helper(segment,
                                      pad.offset(1),
@@ -604,18 +599,18 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub unsafe fn zero_pointer_and_fars(segment : *mut SegmentBuilder, reff : *mut WirePointer) {
-        //# Zero out the pointer itself and, if it is a far pointer,
-        //# zero the landing pad as well, but do not zero the object
-        //# body. Used when upgrading.
+    pub unsafe fn zero_pointer_and_fars(segment : *mut SegmentBuilder, reff : *mut WirePointer) -> Result<()> {
+        // Zero out the pointer itself and, if it is a far pointer, zero the landing pad as well,
+        // but do not zero the object body. Used when upgrading.
 
         if (*reff).kind() == WirePointerKind::Far {
-            let pad = (*(*(*segment).get_arena()).get_segment((*reff).far_ref().segment_id.get()))
+            let pad = (* try!((* (*segment).get_arena()).get_segment((*reff).far_ref().segment_id.get())))
                 .get_ptr_unchecked((*reff).far_position_in_segment());
             let num_elements = if (*reff).is_double_far() { 2 } else { 1 };
             ::std::ptr::write_bytes(pad, 0, num_elements);
         }
         ::std::ptr::write_bytes(reff, 0, 1);
+        Ok(())
     }
 
     pub unsafe fn total_size(mut segment : *const SegmentReader,
@@ -824,7 +819,7 @@ mod wire_helpers {
 
         let mut old_ref = reff;
         let mut old_segment = segment;
-        let old_ptr = follow_builder_fars(&mut old_ref, ref_target, &mut old_segment);
+        let old_ptr = try!(follow_builder_fars(&mut old_ref, ref_target, &mut old_segment));
         if (*old_ref).kind() != WirePointerKind::Struct {
             return Err(Error::new_decode_error(
                 "Message contains non-struct pointer where struct pointer was expected.", None));
@@ -846,7 +841,7 @@ mod wire_helpers {
             let total_size = new_data_size as u32 + new_pointer_count as u32 * WORDS_PER_POINTER as u32;
 
             //# Don't let allocate() zero out the object just yet.
-            zero_pointer_and_fars(segment, reff);
+            try!(zero_pointer_and_fars(segment, reff));
 
             let ptr = allocate(&mut reff, &mut segment, total_size, WirePointerKind::Struct);
             (*reff).mut_struct_ref().set(new_data_size, new_pointer_count);
@@ -969,7 +964,7 @@ mod wire_helpers {
 
         let mut reff = orig_ref;
         let mut segment = orig_segment;
-        let mut ptr = follow_builder_fars(&mut reff, orig_ref_target, &mut segment);
+        let mut ptr = try!(follow_builder_fars(&mut reff, orig_ref_target, &mut segment));
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::new_decode_error(
@@ -1077,7 +1072,7 @@ mod wire_helpers {
         let mut old_ref = orig_ref;
         let mut old_segment = orig_segment;
 
-        let mut old_ptr = follow_builder_fars(&mut old_ref, orig_ref_target, &mut old_segment);
+        let mut old_ptr = try!(follow_builder_fars(&mut old_ref, orig_ref_target, &mut old_segment));
 
         if (*old_ref).kind() != WirePointerKind::List {
             return Err(Error::new_decode_error(
@@ -1169,7 +1164,7 @@ mod wire_helpers {
             }
         }
         let ref_target = (*reff).mut_target();
-        let ptr = follow_builder_fars(&mut reff, ref_target, &mut segment);
+        let ptr = try!(follow_builder_fars(&mut reff, ref_target, &mut segment));
         let cptr : *mut u8 = ::std::mem::transmute(ptr);
 
         if (*reff).kind() != WirePointerKind::List {
@@ -1233,7 +1228,7 @@ mod wire_helpers {
             }
         }
         let ref_target = (*reff).mut_target();
-        let ptr = follow_builder_fars(&mut reff, ref_target, &mut segment);
+        let ptr = try!(follow_builder_fars(&mut reff, ref_target, &mut segment));
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::new_decode_error(

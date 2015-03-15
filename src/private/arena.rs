@@ -22,7 +22,7 @@
 use private::capability::ClientHook;
 use private::units::*;
 use message;
-use Word;
+use {Error, Result, Word};
 
 pub use self::FirstSegment::{NumWords, ZeroedWords};
 
@@ -206,11 +206,13 @@ impl ReaderArena {
         arena
     }
 
-    pub fn try_get_segment(&self, id : SegmentId) -> *const SegmentReader {
+    pub fn try_get_segment(&self, id : SegmentId) -> Result<*const SegmentReader> {
         if id == 0 {
-            return &self.segment0 as *const SegmentReader;
+            return Ok(&self.segment0 as *const SegmentReader);
+        } else if ((id - 1) as usize) < self.more_segments.len() {
+            unsafe { Ok(self.more_segments.get_unchecked(id as usize - 1) as *const SegmentReader) }
         } else {
-            unsafe { self.more_segments.get_unchecked(id as usize - 1) as *const SegmentReader }
+            Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
         }
     }
 
@@ -346,11 +348,13 @@ impl BuilderArena {
         }
     }
 
-    pub fn get_segment(&mut self, id : SegmentId) -> *mut SegmentBuilder {
+    pub fn get_segment(&mut self, id : SegmentId) -> Result<*mut SegmentBuilder> {
         if id == 0 {
-            &mut self.segment0 as *mut SegmentBuilder
+            Ok(&mut self.segment0 as *mut SegmentBuilder)
+        } else if ((id - 1) as usize) < self.more_segments.len() {
+            Ok(&mut *self.more_segments.as_mut_slice()[(id - 1) as usize] as *mut SegmentBuilder)
         } else {
-            &mut *self.more_segments.as_mut_slice()[(id - 1) as usize] as *mut SegmentBuilder
+            Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
         }
     }
 
@@ -392,7 +396,7 @@ pub enum ArenaPtr {
 }
 
 impl ArenaPtr {
-    pub fn try_get_segment(&self, id : SegmentId) -> *const SegmentReader {
+    pub fn try_get_segment(&self, id : SegmentId) -> Result<*const SegmentReader> {
         unsafe {
             match self {
                 &ArenaPtr::Reader(reader) => {
@@ -400,13 +404,16 @@ impl ArenaPtr {
                 }
                 &ArenaPtr::Builder(builder) => {
                     if id == 0 {
-                        &(*builder).segment0.reader as *const SegmentReader
+                        Ok(&(*builder).segment0.reader as *const SegmentReader)
+                    } else if ((id - 1) as usize) < (*builder).more_segments.len() {
+                        Ok(&(*builder).more_segments.as_mut_slice()[(id - 1) as usize].reader
+                           as *const SegmentReader)
                     } else {
-                        &(*builder).more_segments.as_slice()[id as usize - 1].reader as *const SegmentReader
+                        Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
                     }
                 }
                 &ArenaPtr::Null => {
-                    panic!()
+                    Err(Error::new_decode_error("Null arena.", None))
                 }
             }
         }
