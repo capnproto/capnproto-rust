@@ -101,9 +101,9 @@ for Request<Params, Results, Pipeline> {
     // We may have to wait for associated types or higher-kinded types.
     fn init(&'b mut self) -> Params {
         let tmp : &'a mut Box<::capnp::private::capability::RequestHook> = unsafe { ::std::mem::transmute(& mut self.hook)};
-        let message : message::Builder = tmp.message::<'a>().get_root();
+        let message : message::Builder = tmp.message::<'a>().get_root().unwrap();
         match message.which() {
-            Ok(message::Call(call)) => {
+            Ok(message::Call(Ok(call))) => {
                 let params = call.init_params();
                 params.get_content().init_as()
             }
@@ -124,15 +124,15 @@ for ResultFuture<Results, Pipeline> {
         match self.answer_result {
             Err(_) => Err("answer channel closed".to_string()),
             Ok(ref mut response_hook) => {
-                let root : message::Reader = response_hook.get().get_as();
+                let root : message::Reader = response_hook.get().get_as().unwrap();
                 match root.which() {
-                    Ok(message::Return(ret)) => {
+                    Ok(message::Return(Ok(ret))) => {
                         match ret.which() {
-                            Ok(return_::Results(res)) => {
-                                Ok(res.get_content().get_as())
+                            Ok(return_::Results(Ok(res))) => {
+                                Ok(res.get_content().get_as().unwrap())
                             }
-                            Ok(return_::Exception(e)) => {
-                                Err(e.get_reason().to_string())
+                            Ok(return_::Exception(Ok(e))) => {
+                                Err(e.get_reason().unwrap().to_string())
                             }
                             _ => panic!(),
                         }

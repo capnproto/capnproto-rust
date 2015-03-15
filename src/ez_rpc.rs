@@ -61,7 +61,7 @@ impl EzRpcClient {
         let chan = connection_state.run(::capnp::io::ReadInputStream::new(try!(tcp.try_clone())),
                                         ::capnp::io::WriteOutputStream::new(try!(tcp.try_clone())),
                                         bootstrap,
-                                        *ReaderOptions::new().fail_fast(false));
+                                        ReaderOptions::new());
 
         return Ok(EzRpcClient { rpc_chan : chan, tcp : tcp });
     }
@@ -76,12 +76,12 @@ impl EzRpcClient {
         self.rpc_chan.send(RpcEvent::Outgoing(outgoing)).unwrap();
 
         let mut response_hook = answer_port.recv().unwrap();
-        let message : message::Reader = response_hook.get().get_as();
+        let message : message::Reader = response_hook.get().get_as().unwrap();
         let client = match message.which() {
-            Ok(message::Return(ret)) => {
+            Ok(message::Return(Ok(ret))) => {
                 match ret.which() {
-                    Ok(return_::Results(payload)) => {
-                        payload.get_content().get_as_capability::<T>()
+                    Ok(return_::Results(Ok(payload))) => {
+                        payload.get_content().get_as_capability::<T>().unwrap()
                     }
                     _ => { panic!() }
                 }
@@ -116,7 +116,7 @@ impl EzRpcServer {
                         ::capnp::io::ReadInputStream::new(tcp.try_clone().unwrap()),
                         ::capnp::io::WriteOutputStream::new(tcp),
                         bootstrap_interface,
-                        *ReaderOptions::new().fail_fast(false));
+                        ReaderOptions::new());
                 });
             }
         })
