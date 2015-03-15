@@ -24,6 +24,7 @@ use io::{BufferedInputStream, BufferedOutputStream,
          InputStream, OutputStream};
 use message::*;
 use serialize;
+use Result;
 
 trait PtrUsize<T>: ::std::marker::PhantomFn<T> {
     fn as_usize(self) -> usize;
@@ -213,7 +214,7 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
 
 pub fn new_reader<U : BufferedInputStream>(input : &mut U,
                                            options : ReaderOptions)
-                                           -> ::std::io::Result<serialize::OwnedSpaceMessageReader> {
+                                           -> Result<serialize::OwnedSpaceMessageReader> {
     let mut packed_input = PackedInputStream {
         inner : input
     };
@@ -223,7 +224,7 @@ pub fn new_reader<U : BufferedInputStream>(input : &mut U,
 
 pub fn new_reader_unbuffered<U : InputStream>(input : U,
                                               options : ReaderOptions)
-                                              -> ::std::io::Result<serialize::OwnedSpaceMessageReader> {
+                                              -> Result<serialize::OwnedSpaceMessageReader> {
     let mut packed_input = PackedInputStream {
         inner : &mut BufferedInputStreamWrapper::new(input)
     };

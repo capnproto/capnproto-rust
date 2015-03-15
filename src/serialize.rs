@@ -24,7 +24,7 @@ use private::endian::WireValue;
 use message::*;
 use private::arena;
 use io::{InputStream, OutputStream};
-use Word;
+use {Error, Result, Word};
 
 pub struct OwnedSpaceMessageReader {
     options : ReaderOptions,
@@ -47,13 +47,9 @@ impl MessageReader for OwnedSpaceMessageReader {
     }
 }
 
-fn invalid_input<T>(desc : &'static str) -> ::std::io::Result<T> {
-    return Err(::std::io::Error::new(::std::io::ErrorKind::InvalidInput, desc, None));
-}
-
 pub fn new_reader<U : InputStream>(
     input_stream : &mut U,
-    options : ReaderOptions) -> ::std::io::Result<OwnedSpaceMessageReader> {
+    options : ReaderOptions) -> Result<OwnedSpaceMessageReader> {
 
     let mut first_word : [WireValue<u32>; 2] = unsafe {::std::mem::uninitialized()};
     unsafe {
@@ -69,7 +65,7 @@ pub fn new_reader<U : InputStream>(
     let mut total_words = segment0_size;
 
     if segment_count >= 512 {
-        return invalid_input("too many segments");
+        return Err(Error::new_decode_error("Too many segments.", Some(format!("{}", segment_count))));
     }
 
     let more_sizes_len = (segment_count & !1) as usize;
@@ -87,14 +83,13 @@ pub fn new_reader<U : InputStream>(
         }
     }
 
-    //# Don't accept a message which the receiver couldn't possibly
-    //# traverse without hitting the traversal limit. Without this
-    //# check, a malicious client could transmit a very large
-    //# segment size to make the receiver allocate excessive space
-    //# and possibly crash.
+    // Don't accept a message which the receiver couldn't possibly traverse without hitting the
+    // traversal limit. Without this check, a malicious client could transmit a very large segment
+    // size to make the receiver allocate excessive space and possibly crash.
     if ! (total_words as u64 <= options.traversal_limit_in_words)  {
-        return invalid_input("Message is too large. To increase the limit on the \
-                              receiving end, see capnp::ReaderOptions.");
+        return Err(Error::new_decode_error(
+            "Message is too large. To increase the limit on the \
+             receiving end, see capnp::ReaderOptions.", None));
     }
 
     let mut owned_space : Vec<Word> = Word::allocate_zeroed_vec(total_words as usize);
