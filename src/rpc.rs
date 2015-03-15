@@ -866,7 +866,7 @@ impl RpcResponse {
 
 impl ResponseHook for RpcResponse {
     fn get<'a>(&'a mut self) -> any_pointer::Reader<'a> {
-        self.message.get_root_internal()
+        self.message.get_root_internal().unwrap()
     }
 }
 
