@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 
 #![crate_type = "bin"]
-#![feature(core)]
 
 extern crate capnp;
 pub mod addressbook_capnp {
@@ -115,7 +114,7 @@ pub fn main() {
     if args.len() < 2 {
         println!("usage: $ {} [write | read]", args[0]);
     } else {
-        match args[1].as_slice() {
+        match &*args[1] {
             "write" => addressbook::write_address_book().unwrap(),
             "read" =>  addressbook::print_address_book().unwrap(),
             _ => {println!("unrecognized argument") }

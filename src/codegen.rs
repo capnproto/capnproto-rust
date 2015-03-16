@@ -148,7 +148,7 @@ fn to_lines(ft : &FormattedText, indent : usize) -> Vec<String> {
         }
         Line(ref s) => {
             let mut s1 : String = ::std::iter::repeat(' ').take(indent * 2).collect();
-            s1.push_str(s.as_slice());
+            s1.push_str(&s);
             return vec!(s1.to_string());
         }
         BlankLine => return vec!("".to_string())
@@ -176,7 +176,7 @@ const RUST_KEYWORDS : [&'static str; 51] =
 
 fn module_name(camel_case : &str) -> String {
     let mut name = camel_to_snake_case(camel_case);
-    if RUST_KEYWORDS.contains(&name.as_slice()) {
+    if RUST_KEYWORDS.contains(&&*name) {
         name.push('_');
     }
     return name;
@@ -999,7 +999,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
     for nested_node in nested_nodes.iter() {
         let id = nested_node.get_id();
         nested_output.push(generate_node(node_map, scope_map,
-                                         id, scope_map[id].last().unwrap().as_slice()));
+                                         id, &scope_map[id].last().unwrap()));
     }
 
     match node_reader.which() {
@@ -1061,17 +1061,17 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 }
 
                 builder_members.push(generate_setter(node_map, scope_map,
-                                                    discriminant_offset,
-                                                    styled_name.as_slice(), &field));
+                                                     discriminant_offset,
+                                                     &styled_name, &field));
 
-                reader_members.push(generate_haser(discriminant_offset, styled_name.as_slice(), &field, true));
-                builder_members.push(generate_haser(discriminant_offset, styled_name.as_slice(), &field, false));
+                reader_members.push(generate_haser(discriminant_offset, &styled_name, &field, true));
+                builder_members.push(generate_haser(discriminant_offset, &styled_name, &field, false));
 
                 match field.which() {
                     Ok(field::Group(group)) => {
                         let id = group.get_type_id();
                         let text = generate_node(node_map, scope_map,
-                                                 id, scope_map[id].last().unwrap().as_slice());
+                                                 id, &scope_map[id].last().unwrap());
                         nested_output.push(text);
                     }
                     _ => { }
@@ -1082,14 +1082,14 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             if discriminant_count > 0 {
                 let (which_enums1, union_getter, typedef) =
                     generate_union(node_map, scope_map,
-                                   discriminant_offset, union_fields.as_slice(), true);
+                                   discriminant_offset, &union_fields, true);
                 which_enums.push(which_enums1);
                 which_enums.push(typedef);
                 reader_members.push(union_getter);
 
                 let (_, union_getter, typedef) =
                     generate_union(node_map, scope_map,
-                                   discriminant_offset, union_fields.as_slice(), false);
+                                   discriminant_offset, &union_fields, false);
                 which_enums.push(typedef);
                 builder_members.push(union_getter);
 
@@ -1097,7 +1097,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 reexports.push_str("pub use self::Which::{");
                 let whichs : Vec<String> =
                     union_fields.iter().map(|f| {capitalize_first_letter(f.get_name().unwrap())}).collect();
-                reexports.push_str(whichs.connect(",").as_slice());
+                reexports.push_str(&whichs.connect(","));
                 reexports.push_str("};");
                 preamble.push(Line(reexports));
                 preamble.push(BlankLine);
@@ -1323,10 +1323,10 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 let params_id = method.get_param_struct_type();
                 let params_node = &node_map[params_id];
                 let params_name = if params_node.get_scope_id() == 0 {
-                    let params_name = module_name(format!("{}Params", name).as_slice());
+                    let params_name = module_name(&format!("{}Params", name));
 
                     nested_output.push(generate_node(node_map, scope_map,
-                                                     params_id, params_name.as_slice()));
+                                                     params_id, &params_name));
                     params_name
                 } else {
                     scope_map[params_node.get_id()].connect("::")
@@ -1335,9 +1335,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 let results_id = method.get_result_struct_type();
                 let results_node = node_map[results_id];
                 let results_name = if results_node.get_scope_id() == 0 {
-                    let results_name = module_name(format!("{}Results", name).as_slice());
+                    let results_name = module_name(&format!("{}Results", name));
                     nested_output.push(generate_node(node_map, scope_map,
-                                                     results_id, results_name.as_slice() ));
+                                                     results_id, &results_name));
                     results_name
                 } else {
                     scope_map[results_node.get_id()].connect("::")
@@ -1382,7 +1382,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                 base_id, the_mod)));
                     base_traits.push(format!("{}::Server", the_mod));
                 }
-                if extends.len() > 0 { format!(": {}", base_traits.as_slice().connect(" + ")) }
+                if extends.len() > 0 { format!(": {}", base_traits.connect(" + ")) }
                 else if methods.len() == 0 { ": ::std::marker::PhantomFn<Self>".to_string() }
                 else { "".to_string() }
             };
@@ -1484,7 +1484,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
         Ok(node::Const(c)) => {
             let names = &scope_map[node_id];
-            let styled_name = snake_to_upper_case(names.last().unwrap().as_slice());
+            let styled_name = snake_to_upper_case(&names.last().unwrap());
 
             let (typ, txt) = match tuple_result(c.get_type().unwrap().which(), c.get_value().unwrap().which()) {
                 Ok((type_::Void(()), value::Void(()))) => ("()".to_string(), "()".to_string()),
@@ -1575,7 +1575,7 @@ pub fn main<T : ::capnp::io::InputStream>(mut inp : T, out_dir : &::std::path::P
                                          filepath.file_stem().unwrap().to_owned().
                                          into_string().unwrap().replace("-", "_"));
 
-        filepath.set_file_name(format!("{}.rs", root_name).as_slice());
+        filepath.set_file_name(&format!("{}.rs", root_name));
 
         let root_mod = format!("::{}", root_name);
 
@@ -1586,8 +1586,7 @@ pub fn main<T : ::capnp::io::InputStream>(mut inp : T, out_dir : &::std::path::P
             Line("// DO NOT EDIT.".to_string()),
             Line(format!("// source: {}", try!(requested_file.get_filename()))),
             BlankLine,
-            generate_node(&node_map, &scope_map,
-                          id, root_name.as_slice())));
+            generate_node(&node_map, &scope_map, id, &root_name)));
 
         let text = stringify(&lines);
 

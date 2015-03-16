@@ -42,7 +42,7 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
 
     let mut list = request.init_results(count);
 
-    for i in range(0, count) {
+    for i in 0..count {
         let mut result = list.borrow().get(i);
         result.set_score(1000.0 - i as f64);
         let url_size = rng.next_less_than(100);
@@ -52,7 +52,7 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
             let mut url = result.borrow().init_url(url_size + url_prefix_length as u32);
 
             url.push_str(URL_PREFIX);
-            for _ in range(0, url_size) {
+            for _ in 0..url_size {
                 url.push_ascii((97 + rng.next_less_than(26)) as u8);
             }
         }
@@ -66,18 +66,18 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
         let mut snippet = String::from_str(" ");
 
         let prefix = rng.next_less_than(20) as usize;
-        for _ in range(0, prefix) {
+        for _ in 0..prefix {
             snippet.push_str(WORDS[rng.next_less_than(WORDS.len() as u32) as usize]);
         }
         if is_cat { snippet.push_str("cat ") }
         if is_dog { snippet.push_str("dog ") }
 
         let suffix = rng.next_less_than(20) as usize;
-        for _ in range(0, suffix) {
+        for _ in 0..suffix {
             snippet.push_str(WORDS[rng.next_less_than(WORDS.len() as u32) as usize]);
         }
 
-        result.set_snippet(snippet.as_slice());
+        result.set_snippet(&snippet);
     }
 
     good_count
@@ -88,7 +88,7 @@ pub fn handle_request(request : search_result_list::Reader,
     let mut scored_results : Vec<ScoredResult> = Vec::new();
 
     let results = request.get_results().unwrap();
-    for i in range(0, results.len()) {
+    for i in 0..results.len() {
         let result = results.get(i);
         let mut score = result.get_score();
         let snippet = result.get_snippet().unwrap();
@@ -106,7 +106,7 @@ pub fn handle_request(request : search_result_list::Reader,
                                       else { ::std::cmp::Ordering::Less } });
 
     let mut list = response.init_results(scored_results.len() as u32);
-    for i in range(0, list.len()) {
+    for i in 0..list.len() {
         let mut item = list.borrow().get(i);
         let result = scored_results[i as usize];
         item.set_score(result.score);
@@ -118,7 +118,7 @@ pub fn handle_request(request : search_result_list::Reader,
 pub fn check_response(response : search_result_list::Reader, expected_good_count : i32) -> bool {
     let mut good_count : i32 = 0;
     let results = response.get_results().unwrap();
-    for i in range(0, results.len()) {
+    for i in 0..results.len() {
         let result = results.get(i);
         if result.get_score() > 1001.0 {
             good_count += 1;

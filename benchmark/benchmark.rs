@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "bin"]
-#![feature(collections, core, exit_status)]
+#![feature(collections, exit_status)]
 
 extern crate capnp;
 extern crate rand;
@@ -128,7 +128,7 @@ impl UseScratch {
 macro_rules! pass_by_object(
     ( $testcase:ident, $reuse:ident, $iters:expr ) => ({
             let mut rng = common::FastRand::new();
-            for _ in range(0, $iters) {
+            for _ in 0..$iters {
                 let mut message_req = $reuse.new_builder(0);
                 let mut message_res = $reuse.new_builder(1);
 
@@ -155,7 +155,7 @@ macro_rules! pass_by_bytes(
         let mut response_bytes : ::std::vec::Vec<u8> =
             ::std::iter::repeat(0u8).take(SCRATCH_SIZE * 8).collect();
         let mut rng = common::FastRand::new();
-        for _ in range(0, $iters) {
+        for _ in 0..$iters {
             let mut message_req = $reuse.new_builder(0);
             let mut message_res = $reuse.new_builder(1);
 
@@ -173,7 +173,7 @@ macro_rules! pass_by_bytes(
                 }
 
                 let message_reader = $compression::new_buffered_reader(
-                    &mut capnp::io::ArrayInputStream::new(request_bytes.as_slice()),
+                    &mut capnp::io::ArrayInputStream::new(&request_bytes),
                     capnp::message::DEFAULT_READER_OPTIONS);
 
                 let request_reader : $testcase::RequestReader = message_reader.get_root().unwrap();
@@ -186,7 +186,7 @@ macro_rules! pass_by_bytes(
             }
 
             let message_reader = $compression::new_buffered_reader(
-                &mut capnp::io::ArrayInputStream::new(response_bytes.as_slice()),
+                &mut capnp::io::ArrayInputStream::new(&response_bytes),
                 capnp::message::DEFAULT_READER_OPTIONS);
 
             let response_reader : $testcase::ResponseReader = message_reader.get_root().unwrap();
@@ -201,7 +201,7 @@ macro_rules! server(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
             let mut out_buffered = capnp::io::BufferedOutputStreamWrapper::new($output);
             let mut in_buffered = capnp::io::BufferedInputStreamWrapper::new($input);
-            for _ in range(0, $iters) {
+            for _ in 0..$iters {
                 let mut message_res = $reuse.new_builder(0);
 
                 {
@@ -225,7 +225,7 @@ macro_rules! sync_client(
             let mut in_stream = ::capnp::io::ReadInputStream::new(::std::io::stdin());
             let mut in_buffered = capnp::io::BufferedInputStreamWrapper::new(&mut in_stream);
             let mut rng = common::FastRand::new();
-            for _ in range(0, $iters) {
+            for _ in 0..$iters {
                 let mut message_req = $reuse.new_builder(0);
 
                 let expected = {
@@ -253,7 +253,7 @@ macro_rules! pass_by_pipe(
         let mut args : Vec<String> = ::std::env::args().collect();
         args[2] = "client".to_string();
 
-        let mut command = process::Command::new(args[0].as_slice());
+        let mut command = process::Command::new(&args[0]);
         command.args(&args[1..args.len()]);
         command.stdin(process::Stdio::piped());
         command.stdout(process::Stdio::piped());
@@ -275,7 +275,7 @@ macro_rules! pass_by_pipe(
 
 macro_rules! do_testcase(
     ( $testcase:ident, $mode:expr, $reuse:ident, $compression:ident, $iters:expr ) => ({
-            match $mode.as_slice() {
+            match &*$mode {
                 "object" => pass_by_object!($testcase, $reuse, $iters),
                 "bytes" => pass_by_bytes!($testcase, $reuse, $compression, $iters),
                 "client" => sync_client!($testcase, $reuse, $compression, $iters),
@@ -292,7 +292,7 @@ macro_rules! do_testcase(
 
 macro_rules! do_testcase1(
     ( $testcase:expr, $mode:expr, $reuse:ident, $compression:ident, $iters:expr) => ({
-            match $testcase.as_slice() {
+            match &*$testcase {
                 "carsales" => do_testcase!(carsales, $mode, $reuse, $compression, $iters),
                 "catrank" => do_testcase!(catrank, $mode, $reuse, $compression, $iters),
                 "eval" => do_testcase!(eval, $mode, $reuse, $compression, $iters),
@@ -303,7 +303,7 @@ macro_rules! do_testcase1(
 
 macro_rules! do_testcase2(
     ( $testcase:expr, $mode:expr, $reuse:expr, $compression:ident, $iters:expr) => ({
-            match $reuse.as_slice() {
+            match &*$reuse {
                 "no-reuse" => {
                     let mut scratch = NoScratch;
                     do_testcase1!($testcase, $mode, scratch, $compression, $iters)
@@ -335,7 +335,7 @@ pub fn main() {
         }
     };
 
-    match args[4].as_slice() {
+    match &*args[4] {
         "none" => do_testcase2!(args[1], args[2],  args[3], uncompressed, iters),
         "packed" => do_testcase2!(args[1], args[2], args[3], packed, iters),
         s => panic!("unrecognized compression: {}", s)

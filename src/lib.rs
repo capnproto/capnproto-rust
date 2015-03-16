@@ -58,10 +58,10 @@ pub mod schema;
 pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::capnp::Result<()> {
     let mut command = ::std::process::Command::new("capnp");
     command.arg("compile").arg("-o/bin/cat")
-           .arg(format!("--src-prefix={}", prefix.display()).as_slice());
+           .arg(&format!("--src-prefix={}", prefix.display()));
 
     for file in files.iter() {
-        command.arg(format!("{}", file.display()).as_slice());
+        command.arg(&format!("{}", file.display()));
     }
 
     command.stdout(::std::process::Stdio::piped());
@@ -70,7 +70,7 @@ pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::
     let mut p =  try!(command.spawn());
     let child_stdout = ::capnp::io::ReadInputStream::new(p.stdout.take().unwrap());
     try!(::codegen::main(child_stdout,
-                         ::std::path::Path::new(::std::env::var("OUT_DIR").unwrap().as_slice())));
+                         ::std::path::Path::new(&::std::env::var("OUT_DIR").unwrap())));
     try!(p.wait());
     return Ok(());
 }

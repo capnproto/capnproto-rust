@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 #![crate_type = "lib"]
-#![feature(core)]
+//#![feature(core)]
 
 extern crate capnp;
 
@@ -50,14 +50,14 @@ mod tests {
         {
             {
                 let mut uint8_list = test_prim_list.borrow().init_uint8_list(100);
-                for i in range(0, uint8_list.len()) {
+                for i in 0..uint8_list.len() {
                     uint8_list.set(i, i as u8);
                 }
             }
 
             {
                 let mut uint64_list = test_prim_list.borrow().init_uint64_list(20);
-                for i in range(0, uint64_list.len()) {
+                for i in 0..uint64_list.len() {
                     uint64_list.set(i, i as u64);
                 }
             }
@@ -88,11 +88,11 @@ mod tests {
 
         let test_prim_list_reader = test_prim_list.as_reader();
         let uint8_list = test_prim_list_reader.get_uint8_list().unwrap();
-        for i in range(0, uint8_list.len()) {
+        for i in 0..uint8_list.len() {
             assert_eq!(uint8_list.get(i), i as u8);
         }
         let uint64_list = test_prim_list_reader.get_uint64_list().unwrap();
-        for i in range(0, uint64_list.len()) {
+        for i in 0..uint64_list.len() {
             assert_eq!(uint64_list.get(i), i as u64);
         }
 
@@ -166,8 +166,7 @@ mod tests {
 
         {
             let mut text = test_blob.borrow().init_text_field(10);
-            assert_eq!(text.as_slice(),
-                       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
+            assert_eq!(&*text,"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
             text.push_str("aabbccddee");
         }
 
@@ -240,10 +239,10 @@ mod tests {
         {
             {
                 let mut enum_list = test_complex_list.borrow().init_enum_list(100);
-                for i in range::<u32>(0, 10) {
+                for i in 0..10 {
                     enum_list.set(i, AnEnum::Qux);
                 }
-                for i in range::<u32>(10, 20) {
+                for i in 10..20 {
                     enum_list.set(i, AnEnum::Bar);
                 }
             }
@@ -321,10 +320,10 @@ mod tests {
 
         let complex_list_reader = test_complex_list.as_reader();
         let enum_list_reader = complex_list_reader.get_enum_list().unwrap();
-        for i in range::<u32>(0,10) {
+        for i in 0..10 {
             assert!(enum_list_reader.get(i) == Some(AnEnum::Qux));
         }
-        for i in range::<u32>(10,20) {
+        for i in 10..20 {
             assert!(enum_list_reader.get(i) == Some(AnEnum::Bar));
         }
 

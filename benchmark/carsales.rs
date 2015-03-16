@@ -46,7 +46,7 @@ macro_rules! car_value_impl(
                     // TODO: investigate why.
                     {
                         let mut wheels = self.borrow().get_wheels().unwrap();
-                        for ii in range(0, wheels.len()) {
+                        for ii in 0..wheels.len() {
                             let mut wheel = wheels.borrow().get(ii);
                             result += wheel.borrow().get_diameter() as u64 * wheel.borrow().get_diameter() as u64;
                             result += if wheel.borrow().get_snow_tires() { 100 } else { 0 };
@@ -100,7 +100,7 @@ pub fn random_car(rng : &mut FastRand, mut car : car::Builder) {
 
     {
         let mut wheels = car.borrow().init_wheels(4);
-        for ii in range(0, wheels.len()) {
+        for ii in 0..wheels.len() {
             let mut wheel = wheels.borrow().get(ii);
             wheel.set_diameter(25 + rng.next_less_than(15) as u16);
             wheel.set_air_pressure((30.0 + rng.next_double(20.0)) as f32);
@@ -138,7 +138,7 @@ pub fn random_car(rng : &mut FastRand, mut car : car::Builder) {
 pub fn setup_request(rng : &mut FastRand, request : parking_lot::Builder) -> u64 {
     let mut result = 0;
     let mut cars = request.init_cars(rng.next_less_than(200));
-    for ii in range(0, cars.len()) {
+    for ii in 0..cars.len() {
         {
             let car = cars.borrow().get(ii);
             random_car(rng, car);
