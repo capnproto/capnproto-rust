@@ -1559,7 +1559,8 @@ pub fn main<T : ::capnp::io::InputStream>(mut inp : T, out_dir : &::std::path::P
 
     for requested_file in try!(request.get_requested_files()).iter() {
         let id = requested_file.get_id();
-        let mut filepath = ::std::path::PathBuf::new(try!(requested_file.get_filename()));
+        let mut filepath = out_dir.to_path_buf();
+        filepath.push(try!(requested_file.get_filename()));
 
         let imports = try!(requested_file.get_imports());
         for import in imports.iter() {
@@ -1588,14 +1589,7 @@ pub fn main<T : ::capnp::io::InputStream>(mut inp : T, out_dir : &::std::path::P
             generate_node(&node_map, &scope_map,
                           id, root_name.as_slice())));
 
-
         let text = stringify(&lines);
-
-        if filepath.is_relative() {
-            let mut new_filepath = out_dir.to_path_buf();
-            new_filepath.push(&filepath);
-            filepath = new_filepath;
-        }
 
         // It would be simpler to use try! instead of a pattern match, but then the error message
         // would not include `filepath`.
