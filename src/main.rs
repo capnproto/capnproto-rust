@@ -37,7 +37,7 @@ pub fn main() {
 
     let inp = ::capnp::io::ReadInputStream::new(::std::io::stdin());
 
-    match ::capnpc::codegen::main(inp) {
+    match ::capnpc::codegen::main(inp, ::std::path::Path::new(".")) {
         Ok(()) => {}
         Err(e) => {
             std::env::set_exit_status(1);

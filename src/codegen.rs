@@ -1538,7 +1538,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
 
 
-pub fn main<T : ::capnp::io::InputStream>(mut inp : T) -> ::capnp::Result<()> {
+pub fn main<T : ::capnp::io::InputStream>(mut inp : T, out_dir : &::std::path::Path) -> ::capnp::Result<()> {
     //! Generate Rust code according to a `schema_capnp::code_generator_request` read from `inp`.
 
     use capnp::serialize;
@@ -1590,6 +1590,12 @@ pub fn main<T : ::capnp::io::InputStream>(mut inp : T) -> ::capnp::Result<()> {
 
 
         let text = stringify(&lines);
+
+        if filepath.is_relative() {
+            let mut new_filepath = out_dir.to_path_buf();
+            new_filepath.push(&filepath);
+            filepath = new_filepath;
+        }
 
         // It would be simpler to use try! instead of a pattern match, but then the error message
         // would not include `filepath`.

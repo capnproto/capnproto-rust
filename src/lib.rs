@@ -56,27 +56,12 @@ pub mod codegen;
 pub mod schema;
 
 pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::capnp::Result<()> {
-
-    let out_dir = ::std::path::PathBuf::new(::std::env::var("OUT_DIR").unwrap().as_slice());
-    let cwd = ::std::env::current_dir().unwrap();
-    ::std::env::set_current_dir(&out_dir).unwrap();
-
-    // ::std::Path does not normalize "foo/." to "foo/", and the schema compiler does not recognize
-    // "foo/." as a prefix of "foo/bar.capnp". So we handle this case specially.
-    let src_prefix = if prefix == ::std::path::Path::new(".") {
-        cwd.clone()
-    } else {
-        cwd.clone().join(&prefix)
-    };
-
     let mut command = ::std::process::Command::new("capnp");
-    command
-        .arg("compile")
-        .arg("-o/bin/cat")
-        .arg(format!("--src-prefix={}", src_prefix.display()).as_slice());
+    command.arg("compile").arg("-o/bin/cat")
+           .arg(format!("--src-prefix={}", prefix.display()).as_slice());
 
     for file in files.iter() {
-        command.arg(format!("{}", cwd.join(file).display()).as_slice());
+        command.arg(format!("{}", file.display()).as_slice());
     }
 
     command.stdout(::std::process::Stdio::piped());
@@ -84,7 +69,8 @@ pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::
 
     let mut p =  try!(command.spawn());
     let child_stdout = ::capnp::io::ReadInputStream::new(p.stdout.take().unwrap());
-    try!(::codegen::main(child_stdout));
+    try!(::codegen::main(child_stdout,
+                         ::std::path::Path::new(::std::env::var("OUT_DIR").unwrap().as_slice())));
     try!(p.wait());
     return Ok(());
 }
