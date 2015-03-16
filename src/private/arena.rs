@@ -373,13 +373,13 @@ impl BuilderArena {
                                                                       seg.current_size() as usize))
                 }
 
-                self.for_output.as_slice()
+                &self.for_output
             }
         }
     }
 
     pub fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
-        self.cap_table.as_slice()
+        &self.cap_table
     }
 
     pub fn inject_cap(&mut self, cap : Box<ClientHook+Send>) -> u32 {
@@ -424,7 +424,7 @@ impl ArenaPtr {
             match self {
                 &ArenaPtr::Reader(reader) => {
                     if index < (*reader).cap_table.len() {
-                        match (*reader).cap_table.as_slice()[index] {
+                        match (*reader).cap_table[index] {
                             Some( ref hook ) => { Some(hook.copy()) }
                             None => {
                                 None
@@ -436,7 +436,7 @@ impl ArenaPtr {
                 }
                 &ArenaPtr::Builder(builder) => {
                     if index < (*builder).cap_table.len() {
-                        match (*builder).cap_table.as_slice()[index] {
+                        match (*builder).cap_table[index] {
                             Some( ref hook ) => { Some(hook.copy()) }
                             None => {
                                 None

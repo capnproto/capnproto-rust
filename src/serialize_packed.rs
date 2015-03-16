@@ -427,8 +427,7 @@ mod tests {
             packed_output_stream.write(unpacked).unwrap();
         }
 
-        assert!(bytes.as_slice().eq(packed),
-                "expected: {:?}, got: {:?}", packed, bytes);
+        assert_eq!(bytes, packed);
 
         // --------
         // read
@@ -441,9 +440,7 @@ mod tests {
         packed_input_stream.read_exact(bytes.as_mut_slice()).unwrap();
 
         //    assert!(packed_input_stream.eof());
-        assert!(bytes[..].eq(unpacked),
-                "expected: {:?}, got: {:?}", unpacked, bytes);
-
+        assert_eq!(bytes, unpacked);
     }
 
     static ZEROES : &'static[u8] = &[0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0];

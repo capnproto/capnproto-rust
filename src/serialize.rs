@@ -35,7 +35,7 @@ pub struct OwnedSpaceMessageReader {
 
 impl MessageReader for OwnedSpaceMessageReader {
     fn get_segment(&self, id : usize) -> &[Word] {
-        let (a,b) = self.segment_slices.as_slice()[id];
+        let (a,b) = self.segment_slices[id];
         &self.owned_space[a .. b]
     }
 
@@ -120,7 +120,7 @@ pub fn new_reader<U : InputStream>(
                 offset += more_sizes[ii].get();
             }
         }
-        arena::ReaderArena::new(segments.as_slice(), options)
+        arena::ReaderArena::new(&segments, options)
     };
 
     Ok(OwnedSpaceMessageReader {
