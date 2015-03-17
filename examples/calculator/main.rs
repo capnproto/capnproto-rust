@@ -21,7 +21,6 @@
 
 #![crate_name="calculator"]
 #![crate_type="bin"]
-#![feature(core)]
 
 extern crate capnp;
 extern crate "capnp-rpc" as capnp_rpc;

@@ -117,7 +117,7 @@ impl AnswerRef {
                 match ret.which() {
                     Ok(return_::Results(Ok(payload))) => {
                         let hook = payload.get_content().as_reader().
-                            get_pipelined_cap(ops.as_slice()).unwrap();
+                            get_pipelined_cap(&ops).unwrap();
                         hook.call(interface_id, method_id, context);
                     }
                     Ok(return_::Exception(_exc)) => {
@@ -205,7 +205,7 @@ impl <T> ImportTable<T> {
 #[derive(PartialEq, Eq)]
 struct ReverseU32 { val : u32 }
 
-impl ::core::cmp::Ord for ReverseU32 {
+impl ::std::cmp::Ord for ReverseU32 {
     fn cmp(&self, other : &ReverseU32) -> ::std::cmp::Ordering {
         if self.val > other.val { ::std::cmp::Ordering::Less }
         else if self.val < other.val { ::std::cmp::Ordering::Greater }
@@ -213,7 +213,7 @@ impl ::core::cmp::Ord for ReverseU32 {
     }
 }
 
-impl ::core::cmp::PartialOrd for ReverseU32 {
+impl ::std::cmp::PartialOrd for ReverseU32 {
     fn partial_cmp(&self, other : &ReverseU32) -> Option<::std::cmp::Ordering> {
         Some(self.cmp(other))
     }
@@ -722,8 +722,8 @@ impl ClientHook for PipelineClient {
             let mut promised_answer = target.init_promised_answer();
             promised_answer.set_question_id(self.question_ref.id);
             let mut transform = promised_answer.init_transform(self.ops.len() as u32);
-            for ii in range(0, self.ops.len()) {
-                match self.ops.as_slice()[ii] {
+            for ii in 0..self.ops.len() {
+                match self.ops[ii] {
                     PipelineOp::Noop => transform.borrow().get(ii as u32).set_noop(()),
                     PipelineOp::GetPointerField(idx) => transform.borrow().get(ii as u32).set_get_pointer_field(idx),
                 }
@@ -790,7 +790,7 @@ fn write_outgoing_cap_table(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, mes
     fn write_payload(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, cap_table : & [Box<::std::any::Any>],
                      payload : payload::Builder) {
         let mut new_cap_table = payload.init_cap_table(cap_table.len() as u32);
-        for ii in range::<u32>(0, cap_table.len() as u32) {
+        for ii in 0..(cap_table.len() as u32) {
             match cap_table[ii as usize].downcast_ref::<OwnedCapDescriptor>() {
                 Some(&OwnedCapDescriptor::NoDescriptor) => {}
                 Some(&OwnedCapDescriptor::ReceiverHosted(import_id)) => {
@@ -800,8 +800,8 @@ fn write_outgoing_cap_table(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, mes
                     let mut promised_answer = new_cap_table.borrow().get(ii).init_receiver_answer();
                     promised_answer.set_question_id(question_id);
                     let mut transform = promised_answer.init_transform(ops.len() as u32);
-                    for jj in range(0, ops.len()) {
-                        match ops.as_slice()[jj] {
+                    for jj in 0..ops.len() {
+                        match ops[jj] {
                             PipelineOp::Noop => transform.borrow().get(jj as u32).set_noop(()),
                             PipelineOp::GetPointerField(idx) => transform.borrow().get(jj as u32).set_get_pointer_field(idx),
                         }
@@ -840,12 +840,12 @@ fn write_outgoing_cap_table(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, mes
     let root : message::Builder = message.get_root().unwrap();
     match root.which() {
         Ok(message::Call(Ok(call))) => {
-            write_payload(rpc_chan, cap_table.as_slice(), call.get_params().unwrap())
+            write_payload(rpc_chan, &cap_table, call.get_params().unwrap())
         }
         Ok(message::Return(Ok(ret))) => {
             match ret.which() {
                 Ok(return_::Results(Ok(payload))) => {
-                    write_payload(rpc_chan, cap_table.as_slice(), payload);
+                    write_payload(rpc_chan, &cap_table, payload);
                 }
                 _ => {}
             }

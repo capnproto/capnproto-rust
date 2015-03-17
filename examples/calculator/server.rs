@@ -77,7 +77,7 @@ fn evaluate_impl(
             let mut request = func.call_request();
             {
                 let mut request_params = request.init().init_params(param_values.len() as u32);
-                for ii in range(0, param_values.len()) {
+                for ii in 0..param_values.len() {
                     request_params.set(ii as u32, param_values[ii]);
                 }
             }
