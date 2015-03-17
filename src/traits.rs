@@ -63,20 +63,12 @@ pub trait CastableTo<T> {
     fn cast(self) -> T;
 }
 
-/// Because `#[derive(ToPrimitive)]` is not supported, using our own custom trait is more
-/// convenient than using `ToPrimitive`.
 pub trait ToU16 {
     fn to_u16(self) -> u16;
 }
 
-pub trait FromU16 : ::std::num::FromPrimitive {
-    #[inline]
-    fn from_u16(value : u16) -> ::std::result::Result<Self, ::NotInSchema> {
-        match ::std::num::FromPrimitive::from_u16(value) {
-            Some(x) => Ok(x),
-            None => Err(::NotInSchema(value)),
-        }
-    }
+pub trait FromU16 {
+    fn from_u16(value : u16) -> ::std::result::Result<Self, ::NotInSchema>;
 }
 
 pub trait IndexMove<I, T> {

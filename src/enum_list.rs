@@ -21,10 +21,10 @@
 
 //! List of enums.
 
-use traits::{FromPointerReader, FromPointerBuilder, ToU16};
+use traits::{FromPointerReader, FromPointerBuilder, ToU16, FromU16};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                       TwoBytes, PrimitiveElement};
-use Result;
+use {NotInSchema, Result};
 
 #[derive(Copy)]
 pub struct Reader<'a, T> {
@@ -32,7 +32,7 @@ pub struct Reader<'a, T> {
     reader : ListReader<'a>
 }
 
-impl <'a, T : ::std::num::FromPrimitive> Reader<'a, T> {
+impl <'a, T : FromU16> Reader<'a, T> {
     pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
         Reader::<'b, T> { reader : reader, marker : ::std::marker::PhantomData }
     }
@@ -41,18 +41,18 @@ impl <'a, T : ::std::num::FromPrimitive> Reader<'a, T> {
 
 }
 
-impl <'a, T : ::std::num::FromPrimitive> FromPointerReader<'a> for Reader<'a, T> {
+impl <'a, T : FromU16> FromPointerReader<'a> for Reader<'a, T> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader : try!(reader.get_list(TwoBytes, ::std::ptr::null())),
                     marker : ::std::marker::PhantomData })
     }
 }
 
-impl <'a, T : ::std::num::FromPrimitive> Reader<'a, T> {
-    pub fn get(&self, index : u32) -> Option<T> {
+impl <'a, T : FromU16> Reader<'a, T> {
+    pub fn get(&self, index : u32) -> ::std::result::Result<T, NotInSchema> {
         assert!(index < self.len());
         let result : u16 = PrimitiveElement::get(&self.reader, index);
-        ::std::num::FromPrimitive::from_u16(result)
+        FromU16::from_u16(result)
     }
 }
 
@@ -61,7 +61,7 @@ pub struct Builder<'a, T> {
     builder : ListBuilder<'a>
 }
 
-impl <'a, T : ToU16 + ::std::num::FromPrimitive> Builder<'a, T> {
+impl <'a, T : ToU16 + FromU16> Builder<'a, T> {
     pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
         Builder { builder : builder, marker : ::std::marker::PhantomData }
     }
@@ -74,7 +74,7 @@ impl <'a, T : ToU16 + ::std::num::FromPrimitive> Builder<'a, T> {
     }
 }
 
-impl <'a, T : ::std::num::FromPrimitive> FromPointerBuilder<'a> for Builder<'a, T> {
+impl <'a, T : FromU16> FromPointerBuilder<'a> for Builder<'a, T> {
     fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
         Builder { builder : builder.init_list(TwoBytes, size),
                   marker : ::std::marker::PhantomData }
@@ -85,11 +85,11 @@ impl <'a, T : ::std::num::FromPrimitive> FromPointerBuilder<'a> for Builder<'a, 
     }
 }
 
-impl <'a, T : ToU16 + ::std::num::FromPrimitive>  Builder<'a, T> {
-    pub fn get(&self, index : u32) -> Option<T> {
+impl <'a, T : ToU16 + FromU16>  Builder<'a, T> {
+    pub fn get(&self, index : u32) -> ::std::result::Result<T, NotInSchema> {
         assert!(index < self.len());
         let result : u16 = PrimitiveElement::get_from_builder(&self.builder, index);
-        ::std::num::FromPrimitive::from_u16(result)
+        FromU16::from_u16(result)
     }
 }
 
