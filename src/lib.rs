@@ -59,7 +59,7 @@ pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::
 
     // Find the absolute path of `cat`.
     //
-    // TODO: Once a resleased version of `capnp compile` includes the '-o -' option, switch to
+    // TODO: Once a released version of `capnp compile` includes the '-o -' option, switch to
     //       using that. (see https://github.com/sandstorm-io/capnproto/pull/190)
     let which_output = ::std::process::Command::new("which").arg("cat").output().unwrap().stdout;
 
