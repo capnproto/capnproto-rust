@@ -321,10 +321,10 @@ mod tests {
         let complex_list_reader = test_complex_list.as_reader();
         let enum_list_reader = complex_list_reader.get_enum_list().unwrap();
         for i in 0..10 {
-            assert!(enum_list_reader.get(i) == Some(AnEnum::Qux));
+            assert!(enum_list_reader.get(i) == Ok(AnEnum::Qux));
         }
         for i in 10..20 {
-            assert!(enum_list_reader.get(i) == Some(AnEnum::Bar));
+            assert!(enum_list_reader.get(i) == Ok(AnEnum::Bar));
         }
 
         let text_list = complex_list_reader.get_text_list().unwrap();
@@ -354,9 +354,9 @@ mod tests {
         assert!(prim_list_list_list.get(1).unwrap().get(0).unwrap().get(2) == 8);
 
         let enum_list_list = complex_list_reader.get_enum_list_list().unwrap();
-        assert!(enum_list_list.get(0).unwrap().get(0) == Some(AnEnum::Bar));
-        assert!(enum_list_list.get(1).unwrap().get(0) == Some(AnEnum::Foo));
-        assert!(enum_list_list.get(1).unwrap().get(1) == Some(AnEnum::Qux));
+        assert!(enum_list_list.get(0).unwrap().get(0) == Ok(AnEnum::Bar));
+        assert!(enum_list_list.get(1).unwrap().get(0) == Ok(AnEnum::Foo));
+        assert!(enum_list_list.get(1).unwrap().get(1) == Ok(AnEnum::Qux));
 
         assert!(complex_list_reader.get_text_list_list().unwrap().get(0).unwrap().get(0).unwrap() == "abc");
         assert!(complex_list_reader.get_data_list_list().unwrap().get(0).unwrap().get(0).unwrap() == [255, 254, 253]);

@@ -1262,24 +1262,39 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             output.push(BlankLine);
 
             let mut members = Vec::new();
+            let mut match_branches = Vec::new();
             let enumerants = enum_reader.get_enumerants().unwrap();
             for ii in 0..enumerants.len() {
-                let enumerant = enumerants.get(ii);
-                members.push(
-                    Line(format!("{} = {},", capitalize_first_letter(enumerant.get_name().unwrap()),
-                              ii)));
+                let enumerant = capitalize_first_letter(enumerants.get(ii).get_name().unwrap());
+                members.push(Line(format!("{} = {},", enumerant, ii)));
+                match_branches.push(Line(format!("{} => Ok({}::{}),", ii, *names.last().unwrap(), enumerant)));
             }
+            match_branches.push(Line("n => Err(::capnp::NotInSchema(n)),".to_string()));
 
             output.push(Branch(vec!(
                 Line("#[repr(u16)]".to_string()),
-                Line("#[derive(PartialEq, FromPrimitive, Copy)]".to_string()),
+                Line("#[derive(PartialEq, Copy)]".to_string()),
                 Line(format!("pub enum {} {{", *names.last().unwrap())),
                 Indent(box Branch(members)),
                 Line("}".to_string()))));
 
             output.push(
                 Branch(vec!(
-                    Line(format!("impl ::capnp::traits::FromU16 for {} {{}}", *names.last().unwrap())),
+                    Line(format!("impl ::capnp::traits::FromU16 for {} {{", *names.last().unwrap())),
+                    Indent(box Line("#[inline]".to_string())),
+                    Indent(
+                        box Branch(vec![
+                            Line(format!(
+                                "fn from_u16(value : u16) -> ::std::result::Result<{}, ::capnp::NotInSchema> {{",
+                                *names.last().unwrap())),
+                            Indent(
+                                box Branch(vec![
+                                    Line("match value {".to_string()),
+                                    Indent(box Branch(match_branches)),
+                                    Line("}".to_string())
+                                        ])),
+                            Line("}".to_string())])),
+                    Line("}".to_string()),
                     Line(format!("impl ::capnp::traits::ToU16 for {} {{", *names.last().unwrap())),
                     Indent(box Line("#[inline]".to_string())),
                     Indent(

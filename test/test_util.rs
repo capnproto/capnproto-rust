@@ -216,9 +216,9 @@ check_test_message_impl(($typ:ident) => (
                 {
                     let enum_list = sub_reader.get_enum_list().unwrap();
                     assert_eq!(3, enum_list.len());
-                    assert!(Some(TestEnum::Qux) == enum_list.get(0));
-                    assert!(Some(TestEnum::Bar) == enum_list.get(1));
-                    assert!(Some(TestEnum::Grault) == enum_list.get(2));
+                    assert!(Ok(TestEnum::Qux) == enum_list.get(0));
+                    assert!(Ok(TestEnum::Bar) == enum_list.get(1));
+                    assert!(Ok(TestEnum::Grault) == enum_list.get(2));
                 }
             }
         }

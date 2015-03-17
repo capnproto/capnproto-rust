@@ -5170,7 +5170,22 @@ pub enum ElementSize {
   Pointer = 6,
   InlineComposite = 7,
 }
-impl ::capnp::traits::FromU16 for ElementSize {}
+impl ::capnp::traits::FromU16 for ElementSize {
+    #[inline]
+    fn from_u16(value : u16) -> ::std::result::Result<ElementSize, ::capnp::NotInSchema> {
+        match value {
+            0 => Ok(ElementSize::Empty),
+            1 => Ok(ElementSize::Bit),
+            2 => Ok(ElementSize::Byte),
+            3 => Ok(ElementSize::TwoBytes),
+            4 => Ok(ElementSize::FourBytes),
+            5 => Ok(ElementSize::EightBytes),
+            6 => Ok(ElementSize::Pointer),
+            7 => Ok(ElementSize::InlineComposite),
+            n => Err(::capnp::NotInSchema(n)),
+        }
+    }
+}
 impl ::capnp::traits::ToU16 for ElementSize {
   #[inline]
   fn to_u16(self) -> u16 { self as u16 }
