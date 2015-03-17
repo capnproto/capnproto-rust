@@ -455,7 +455,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Ok((type_::Interface(interface), _)) => {
                     let the_mod = scope_map[interface.get_type_id()].connect("::");
                     return (format!("Result<{}::Client>", the_mod),
-                            Line(format!("match self.{}.get_pointer_field({}).get_capability() {{ Ok(c) => Ok(FromClientHook::new(c)), Err(e) => Err(e)}}",
+                            Line(format!("match self.{}.get_pointer_field({}).get_capability() {{ ::std::result::Result::Ok(c) => ::std::result::Result::Ok(FromClientHook::new(c)), ::std::result::Result::Err(e) => ::std::result::Result::Err(e)}}",
                                          member, offset)));
                 }
                 Ok((type_::AnyPointer(_), _)) => {
@@ -1139,7 +1139,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                 Indent(box Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))".to_string())),
                                 Line("}".to_string()),
                                 Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {".to_string()),
-                                Indent(box Line("Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))".to_string())),
+                                Indent(box Line("::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))".to_string())),
                                 Line("}".to_string())))),
                         Line("}".to_string()),
                         BlankLine])
@@ -1167,7 +1167,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Indent(
                     box Branch(vec!(
                         Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {".to_string()),
-                        Indent(box Line("Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))".to_string())),
+                        Indent(box Line("::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))".to_string())),
                         Line("}".to_string())))),
                 Line("}".to_string()),
                 BlankLine,
@@ -1267,9 +1267,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             for ii in 0..enumerants.len() {
                 let enumerant = capitalize_first_letter(enumerants.get(ii).get_name().unwrap());
                 members.push(Line(format!("{} = {},", enumerant, ii)));
-                match_branches.push(Line(format!("{} => Ok({}::{}),", ii, *names.last().unwrap(), enumerant)));
+                match_branches.push(Line(format!("{} => ::std::result::Result::Ok({}::{}),", ii, *names.last().unwrap(), enumerant)));
             }
-            match_branches.push(Line("n => Err(::capnp::NotInSchema(n)),".to_string()));
+            match_branches.push(Line("n => ::std::result::Result::Err(::capnp::NotInSchema(n)),".to_string()));
 
             output.push(Branch(vec!(
                 Line("#[repr(u16)]".to_string()),
