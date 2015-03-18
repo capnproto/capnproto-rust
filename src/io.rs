@@ -189,31 +189,12 @@ pub trait OutputStream {
     fn flush(&mut self) -> ::std::io::Result<()> { Ok(()) }
 }
 
-impl <'a, T : OutputStream> OutputStream for &'a mut T {
+impl <W> OutputStream for W where W : ::std::io::Write {
     fn write(&mut self, buf : &[u8]) -> ::std::io::Result<()> {
-        (**self).write(buf)
+        self.write_all(buf)
     }
     fn flush(&mut self) -> ::std::io::Result<()> {
-        (**self).flush()
-    }
-}
-
-pub struct WriteOutputStream<W> {
-    writer : W,
-}
-
-impl <W : ::std::io::Write> WriteOutputStream <W> {
-    pub fn new(writer : W) -> WriteOutputStream<W> {
-        WriteOutputStream { writer : writer }
-    }
-}
-
-impl <W : ::std::io::Write> OutputStream for WriteOutputStream<W> {
-    fn write(&mut self, buf : &[u8]) -> ::std::io::Result<()> {
-        self.writer.write_all(buf)
-    }
-    fn flush(&mut self) -> ::std::io::Result<()> {
-        self.writer.flush()
+        self.flush()
     }
 }
 
@@ -223,14 +204,14 @@ pub trait BufferedOutputStream : OutputStream {
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: usize) -> ::std::io::Result<()>;
 }
 
-pub struct BufferedOutputStreamWrapper<W> {
-    inner: W,
+pub struct BufferedOutputStreamWrapper<'a, W:'a> {
+    inner: &'a mut W,
     buf: Vec<u8>,
     pos: usize
 }
 
-impl <W> BufferedOutputStreamWrapper<W> {
-    pub fn new<'b> (w : W) -> BufferedOutputStreamWrapper<W> {
+impl <'a, W> BufferedOutputStreamWrapper<'a, W> {
+    pub fn new<'b> (w : &'b mut W) -> BufferedOutputStreamWrapper<W> {
         let mut result = BufferedOutputStreamWrapper {
             inner: w,
             buf : Vec::with_capacity(8192),
@@ -243,7 +224,7 @@ impl <W> BufferedOutputStreamWrapper<W> {
     }
 }
 
-impl<W: OutputStream> BufferedOutputStream for BufferedOutputStreamWrapper<W> {
+impl<'a, W: OutputStream> BufferedOutputStream for BufferedOutputStreamWrapper<'a, W> {
     #[inline]
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.buf.len();
@@ -265,8 +246,7 @@ impl<W: OutputStream> BufferedOutputStream for BufferedOutputStreamWrapper<W> {
 
 }
 
-
-impl<W: OutputStream> OutputStream for BufferedOutputStreamWrapper<W> {
+impl<'a, W: OutputStream> OutputStream for BufferedOutputStreamWrapper<'a, W> {
     fn write(&mut self, buf: &[u8]) -> ::std::io::Result<()> {
         let available = self.buf.len() - self.pos;
         let mut size = buf.len();
