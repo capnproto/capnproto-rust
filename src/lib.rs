@@ -152,3 +152,30 @@ impl ::std::error::FromError<::std::str::Utf8Error> for Error {
                                 Some(format!("{:?}", err)))
     }
 }
+
+impl ::std::fmt::Display for Error {
+    fn fmt(&self, fmt : &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
+        match *self {
+            Error::Decode { ref description, detail : Some(ref detail) } => {
+                write!(fmt, "{} {}", description, detail)
+            },
+            Error::Decode { ref description, .. } => write!(fmt, "{}", description),
+            Error::Io(ref io) => io.fmt(fmt),
+        }
+    }
+}
+
+impl ::std::error::Error for Error {
+    fn description(&self) -> &str {
+        match *self {
+            Error::Decode { ref description, .. } => description,
+            Error::Io(ref io) => ::std::error::Error::description(io),
+        }
+    }
+    fn cause(&self) -> Option<&::std::error::Error> {
+        match *self {
+            Error::Decode { .. } => None,
+            Error::Io(ref io) => io.cause(),
+        }
+    }
+}
