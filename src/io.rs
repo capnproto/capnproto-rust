@@ -41,29 +41,13 @@ pub trait InputStream {
     }
 }
 
-impl <'a, T : InputStream> InputStream for &'a mut T {
-    fn try_read(&mut self, buf : &mut [u8], min_bytes : usize) -> ::std::io::Result<usize> {
-        (**self).try_read(buf, min_bytes)
-    }
-}
-
-pub struct ReadInputStream<R> {
-    reader : R,
-}
-
-impl <R : ::std::io::Read> ReadInputStream <R> {
-    pub fn new(reader : R) -> ReadInputStream<R> {
-        ReadInputStream { reader : reader }
-    }
-}
-
-impl <R : ::std::io::Read> InputStream for ReadInputStream<R> {
+impl <R> InputStream for R where R : ::std::io::Read {
     fn try_read(&mut self, buf : &mut [u8], min_bytes : usize) -> ::std::io::Result<usize> {
         let mut pos = 0;
         let buf_len = buf.len();
         while pos < min_bytes {
             let buf1 = &mut buf[pos .. buf_len];
-            let n = try!(self.reader.read(buf1));
+            let n = try!(self.read(buf1));
             pos += n;
             if n == 0 { return Ok(pos); }
         }
