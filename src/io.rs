@@ -21,10 +21,14 @@
 
 //! Input / output.
 
+/// A producer of bytes.
 pub trait InputStream {
+    /// Reads at least `min_bytes` into `buf` unless EOF is encountered first. Returns the
+    /// number of bytes read.
     fn try_read(&mut self, buf : &mut [u8], min_bytes : usize) -> ::std::io::Result<usize>;
 
-
+    /// Reads at least `min_bytes` into `buf`, returning the number of bytes read. If EOF is
+    /// encountered first, returns an error.
     fn read(&mut self, buf : &mut [u8], min_bytes : usize) -> ::std::io::Result<usize> {
         let n = try!(self.try_read(buf, min_bytes));
         if n < min_bytes {
@@ -34,6 +38,7 @@ pub trait InputStream {
         }
     }
 
+    /// Reads into `buf` until it is full. Returns an error if EOF is encountered first.
     fn read_exact(&mut self, buf : &mut [u8]) -> ::std::io::Result<()> {
         let min_bytes = buf.len();
         try!(self.read(buf, min_bytes));
@@ -184,7 +189,9 @@ impl <'a> BufferedInputStream for ArrayInputStream<'a> {
     }
 }
 
+/// A consumer of bytes.
 pub trait OutputStream {
+    /// Writes all of `buf`.
     fn write(&mut self, buf : &[u8]) -> ::std::io::Result<()>;
     fn flush(&mut self) -> ::std::io::Result<()> { Ok(()) }
 }
