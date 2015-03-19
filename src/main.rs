@@ -34,6 +34,5 @@ extern crate capnpc;
 pub fn main() {
     //! Generate Rust code according to a `schema_capnp::code_generator_request` read from stdin.
 
-    let inp = ::capnp::io::ReadInputStream::new(::std::io::stdin());
-    ::capnpc::codegen::main(inp, ::std::path::Path::new(".")).unwrap();
+    ::capnpc::codegen::main(::std::io::stdin(), ::std::path::Path::new(".")).unwrap();
 }

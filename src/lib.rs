@@ -75,8 +75,7 @@ pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::
     command.stderr(::std::process::Stdio::inherit());
 
     let mut p =  try!(command.spawn());
-    let child_stdout = ::capnp::io::ReadInputStream::new(p.stdout.take().unwrap());
-    try!(::codegen::main(child_stdout,
+    try!(::codegen::main(p.stdout.take().unwrap(),
                          ::std::path::Path::new(&::std::env::var("OUT_DIR").unwrap())));
     try!(p.wait());
     return Ok(());

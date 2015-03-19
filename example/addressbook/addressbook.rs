@@ -67,14 +67,13 @@ pub mod addressbook {
             }
         }
 
-        serialize_packed::write_packed_message_unbuffered(
-            &mut ::capnp::io::WriteOutputStream::new(::std::io::stdout()), &mut message)
+        serialize_packed::write_packed_message_unbuffered(&mut ::std::io::stdout(), &mut message)
     }
 
     pub fn print_address_book() -> ::capnp::Result<()> {
 
         let message_reader = try!(serialize_packed::new_reader_unbuffered(
-            ::capnp::io::ReadInputStream::new(::std::io::stdin()), ReaderOptions::new()));
+            ::std::io::stdin(), ReaderOptions::new()));
         let address_book = try!(message_reader.get_root::<address_book::Reader>());
 
         for person in try!(address_book.get_people()).iter() {

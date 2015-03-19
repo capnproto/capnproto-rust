@@ -199,8 +199,8 @@ macro_rules! pass_by_bytes(
 
 macro_rules! server(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
-            let mut out_buffered = capnp::io::BufferedOutputStreamWrapper::new($output);
-            let mut in_buffered = capnp::io::BufferedInputStreamWrapper::new($input);
+            let mut out_buffered = capnp::io::BufferedOutputStreamWrapper::new(&mut $output);
+            let mut in_buffered = capnp::io::BufferedInputStreamWrapper::new(&mut $input);
             for _ in 0..$iters {
                 let mut message_res = $reuse.new_builder(0);
 
@@ -221,8 +221,8 @@ macro_rules! server(
 
 macro_rules! sync_client(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
-            let mut out_stream = ::capnp::io::WriteOutputStream::new(::std::io::stdout());
-            let mut in_stream = ::capnp::io::ReadInputStream::new(::std::io::stdin());
+            let mut out_stream = ::std::io::stdout();
+            let mut in_stream = ::std::io::stdin();
             let mut in_buffered = capnp::io::BufferedInputStreamWrapper::new(&mut in_stream);
             let mut rng = common::FastRand::new();
             for _ in 0..$iters {
@@ -260,8 +260,8 @@ macro_rules! pass_by_pipe(
         command.stderr(process::Stdio::null());
         match command.spawn() {
             Ok(ref mut p) => {
-                let child_std_out = ::capnp::io::ReadInputStream::new(p.stdout.take().unwrap());
-                let child_std_in = ::capnp::io::WriteOutputStream::new(p.stdin.take().unwrap());
+                let mut child_std_out = p.stdout.take().unwrap();
+                let mut child_std_in = p.stdin.take().unwrap();
 
                 server!($testcase, $reuse, $compression, $iters, child_std_out, child_std_in);
                 println!("{}", p.wait().unwrap());
@@ -280,8 +280,8 @@ macro_rules! do_testcase(
                 "bytes" => pass_by_bytes!($testcase, $reuse, $compression, $iters),
                 "client" => sync_client!($testcase, $reuse, $compression, $iters),
                 "server" => {
-                    let input = ::capnp::io::ReadInputStream::new(::std::io::stdin());
-                    let output = ::capnp::io::WriteOutputStream::new(::std::io::stdout());
+                    let mut input = ::std::io::stdin();
+                    let mut output = ::std::io::stdout();
                     server!($testcase, $reuse, $compression, $iters, input, output)
                 }
                 "pipe" => pass_by_pipe!($testcase, $reuse, $compression, $iters),
