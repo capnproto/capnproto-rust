@@ -25,9 +25,7 @@ use {Result};
 
 pub type Reader<'a> = &'a str;
 
-// len does not include the required null terminator at the end
-pub fn new_reader<'a>(p : *const u8, len : u32) -> ::std::result::Result<Reader<'a>, ::std::str::Utf8Error> {
-    let v : &'a [u8] = unsafe { ::std::slice::from_raw_parts(p, len as usize) };
+pub fn new_reader<'a>(v : &'a [u8]) -> ::std::result::Result<Reader<'a>, ::std::str::Utf8Error> {
     ::std::str::from_utf8(v)
 }
 
@@ -65,18 +63,25 @@ impl <'a> Builder <'a> {
         ::std::slice::bytes::copy_memory(&mut self.bytes[self.pos ..], bytes);
         self.pos += bytes.len();
     }
+
+    pub fn clear(&mut self) {
+        for ii in 0..self.pos {
+            self.bytes[ii] = 0;
+        }
+        self.pos = 0;
+    }
 }
 
 impl <'a> ::std::ops::Deref for Builder <'a> {
     type Target = str;
     fn deref<'b>(&'b self) -> &'b str {
-        unsafe { ::std::str::from_utf8_unchecked(self.bytes) }
+        ::std::str::from_utf8(self.bytes).unwrap()
     }
 }
 
 impl <'a> ::std::str::Str for Builder<'a> {
     fn as_slice<'b>(&'b self) -> &'b str {
-        unsafe { ::std::str::from_utf8_unchecked(self.bytes) }
+        ::std::str::from_utf8(self.bytes).unwrap()
     }
 }
 

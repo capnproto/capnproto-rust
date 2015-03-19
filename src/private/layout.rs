@@ -1693,7 +1693,8 @@ mod wire_helpers {
                                         default_size : ByteCount32) -> Result<text::Reader<'a>> {
         if (*reff).is_null() {
             //   TODO?       if default_value.is_null() { default_value = &"" }
-            return Ok(try!(text::new_reader(::std::mem::transmute(default_value), default_size)));
+            return Ok(try!(text::new_reader(
+                ::std::slice::from_raw_parts(::std::mem::transmute(default_value), default_size as usize))));
         }
 
         let ref_target = (*reff).target();
@@ -1726,7 +1727,7 @@ mod wire_helpers {
                 "Message contains text that is not NUL-terminated", None));
         }
 
-        Ok(try!(text::new_reader(str_ptr, size-1)))
+        Ok(try!(text::new_reader(::std::slice::from_raw_parts(str_ptr, size as usize -1))))
     }
 
     #[inline]
