@@ -70,7 +70,7 @@ pub mod traits;
 pub struct Word {_unused_member : u64}
 
 impl Word {
-    /// Do this, but faster:
+    /// Does this, but faster:
     /// `::std::iter::repeat(Word{ _unused_member : 0}).take(length).collect()`
     pub fn allocate_zeroed_vec(length : usize) -> ::std::vec::Vec<Word> {
         let mut result : ::std::vec::Vec<Word> = ::std::vec::Vec::with_capacity(length);

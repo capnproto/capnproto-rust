@@ -99,7 +99,7 @@ pub trait MessageReader {
         }
     }
 
-    /// Get the root of the message, interpreting it as the given type.
+    /// Gets the root of the message, interpreting it as the given type.
     fn get_root<'a, T : FromPointerReader<'a>>(&'a self) -> Result<T> {
         try!(self.get_root_internal()).get_as()
     }
@@ -202,22 +202,22 @@ pub trait MessageBuilder {
 
     }
 
-    /// Initialize the root as a value of the given type.
+    /// Initializes the root as a value of the given type.
     fn init_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> T {
         self.get_root_internal().init_as()
     }
 
-    /// Get the root, interpreting it as the given type.
+    /// Gets the root, interpreting it as the given type.
     fn get_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> Result<T> {
         self.get_root_internal().get_as()
     }
 
-    /// Set the root to a deep copy of the given value.
+    /// Sets the root to a deep copy of the given value.
     fn set_root<To, From : SetPointerBuilder<To>>(&mut self, value : From) -> Result<()> {
         self.get_root_internal().set_as(value)
     }
 
-    /// Get the slices of memory that comprise this message. Typically, this method needs to
+    /// Gets the slices of memory that comprise this message. Typically, this method needs to
     /// construct these slices and stash them in some interior field before returning them. It
     /// therefore needs to take a mutable `self` parameter.
     fn get_segments_for_output<'a>(&'a mut self) -> &'a[&'a[Word]] {
