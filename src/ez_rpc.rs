@@ -58,8 +58,8 @@ impl EzRpcClient {
         let empty_cap = Box::new(EmptyCap) as Box<Server+Send>;
         let bootstrap = box LocalClient::new(empty_cap) as Box<ClientHook+Send>;
 
-        let chan = connection_state.run(::capnp::io::ReadInputStream::new(try!(tcp.try_clone())),
-                                        ::capnp::io::WriteOutputStream::new(try!(tcp.try_clone())),
+        let chan = connection_state.run(try!(tcp.try_clone()),
+                                        try!(tcp.try_clone()),
                                         bootstrap,
                                         ReaderOptions::new());
 
@@ -113,8 +113,8 @@ impl EzRpcServer {
                 ::std::thread::spawn(move || {
                     let connection_state = RpcConnectionState::new();
                     let _rpc_chan = connection_state.run(
-                        ::capnp::io::ReadInputStream::new(tcp.try_clone().unwrap()),
-                        ::capnp::io::WriteOutputStream::new(tcp),
+                        tcp.try_clone().unwrap(),
+                        tcp,
                         bootstrap_interface,
                         ReaderOptions::new());
                 });

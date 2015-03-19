@@ -686,7 +686,7 @@ impl ClientHook for ImportClient {
         Request::new(hook as Box<RequestHook+Send>)
     }
 
-    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
         panic!()
     }
 
@@ -735,7 +735,7 @@ impl ClientHook for PipelineClient {
         Request::new(hook as Box<RequestHook+Send>)
     }
 
-    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
         panic!()
     }
 
@@ -776,7 +776,7 @@ impl ClientHook for PromisedAnswerClient {
         Request::new(hook as Box<RequestHook+Send>)
     }
 
-    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
         panic!()
     }
 

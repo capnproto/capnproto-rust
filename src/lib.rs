@@ -22,7 +22,7 @@
 #![crate_name="capnp-rpc"]
 #![crate_type="lib"]
 
-#![feature(box_syntax, net)]
+#![feature(box_syntax)]
 
 extern crate capnp;
 
