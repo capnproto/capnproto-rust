@@ -58,8 +58,8 @@ fn camel_to_upper_case(s : &str) -> String {
     use std::ascii::*;
     let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() {
-        assert!(::std::char::CharExt::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
-        if ::std::char::CharExt::is_uppercase(c) {
+        assert!(c.is_alphanumeric(), format!("not alphanumeric '{}'", c));
+        if c.is_uppercase() {
             result_chars.push('_');
         }
         result_chars.push((c as u8).to_ascii_uppercase() as char);
@@ -74,7 +74,7 @@ fn snake_to_upper_case(s : &str) -> String {
         if c == '_' {
             result_chars.push('_');
         } else {
-            assert!(::std::char::CharExt::is_alphanumeric(c), format!("not alphanumeric '{}'", c));
+            assert!(c.is_alphanumeric(), format!("not alphanumeric '{}'", c));
             result_chars.push((c as u8).to_ascii_uppercase() as char);
         }
     }
@@ -87,9 +87,9 @@ fn camel_to_snake_case(s : &str) -> String {
     let mut result_chars : Vec<char> = Vec::new();
     let mut first_char = true;
     for c in s.chars() {
-        assert!(::std::char::CharExt::is_alphanumeric(c),
+        assert!(c.is_alphanumeric(),
                 format!("not alphanumeric '{}', i.e. {}", c, c as usize));
-        if ::std::char::CharExt::is_uppercase(c) && !first_char {
+        if c.is_uppercase() && !first_char {
             result_chars.push('_');
         }
         result_chars.push((c as u8).to_ascii_lowercase() as char);
