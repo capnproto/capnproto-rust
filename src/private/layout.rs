@@ -322,12 +322,6 @@ impl WirePointer {
     }
 }
 
-struct SegmentAnd<T> {
-    #[allow(dead_code)]
-    segment : *mut SegmentBuilder,
-    value : T
-}
-
 mod wire_helpers {
     use private::capability::ClientHook;
     use private::arena::*;
@@ -336,6 +330,12 @@ mod wire_helpers {
     use data;
     use text;
     use {Error, MessageSize, Result, Word};
+
+    pub struct SegmentAnd<T> {
+        #[allow(dead_code)]
+        segment : *mut SegmentBuilder,
+        pub value : T,
+    }
 
     #[inline]
     pub fn round_bytes_up_to_words(bytes : ByteCount32) -> WordCount32 {
@@ -1121,7 +1121,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn init_text_pointer<'a>(mut reff : *mut WirePointer,
                                         mut segment : *mut SegmentBuilder,
-                                        size : ByteCount32) -> super::SegmentAnd<text::Builder<'a>> {
+                                        size : ByteCount32) -> SegmentAnd<text::Builder<'a>> {
         //# The byte list must include a NUL terminator.
         let byte_size = size + 1;
 
@@ -1132,7 +1132,7 @@ mod wire_helpers {
         //# Initialize the pointer.
         (*reff).mut_list_ref().set(Byte, byte_size);
 
-        return super::SegmentAnd {segment : segment,
+        return SegmentAnd {segment : segment,
                                   value : text::Builder::new(
                                       ::std::slice::from_raw_parts_mut(::std::mem::transmute(ptr),
                                                                        size as usize),
@@ -1142,7 +1142,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn set_text_pointer<'a>(reff : *mut WirePointer,
                                        segment : *mut SegmentBuilder,
-                                       value : &str) -> super::SegmentAnd<text::Builder<'a>> {
+                                       value : &str) -> SegmentAnd<text::Builder<'a>> {
         let value_bytes = value.as_bytes();
         // TODO make sure the string is not longer than 2 ** 29.
         let mut allocation = init_text_pointer(reff, segment, value_bytes.len() as u32);
@@ -1189,7 +1189,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn init_data_pointer<'a>(mut reff : *mut WirePointer,
                                         mut segment : *mut SegmentBuilder,
-                                        size : ByteCount32) -> super::SegmentAnd<data::Builder<'a>> {
+                                        size : ByteCount32) -> SegmentAnd<data::Builder<'a>> {
         //# Allocate the space.
         let ptr =
             allocate(&mut reff, &mut segment, round_bytes_up_to_words(size), WirePointerKind::List);
@@ -1197,14 +1197,14 @@ mod wire_helpers {
         //# Initialize the pointer.
         (*reff).mut_list_ref().set(Byte, size);
 
-        return super::SegmentAnd { segment : segment,
+        return SegmentAnd { segment : segment,
                                    value : data::new_builder(::std::mem::transmute(ptr), size) };
     }
 
     #[inline]
     pub unsafe fn set_data_pointer<'a>(reff : *mut WirePointer,
                                        segment : *mut SegmentBuilder,
-                                       value : &[u8]) -> super::SegmentAnd<data::Builder<'a>> {
+                                       value : &[u8]) -> SegmentAnd<data::Builder<'a>> {
         let allocation = init_data_pointer(reff, segment, value.len() as u32);
         ::std::ptr::copy_nonoverlapping(allocation.value.as_mut_ptr(), value.as_ptr(),
                                         value.len());
@@ -1244,7 +1244,7 @@ mod wire_helpers {
 
     pub unsafe fn set_struct_pointer<'a>(mut segment : *mut SegmentBuilder,
                                          mut reff : *mut WirePointer,
-                                         value : StructReader) -> Result<super::SegmentAnd<*mut Word>> {
+                                         value : StructReader) -> Result<SegmentAnd<*mut Word>> {
         let data_size : WordCount32 = round_bits_up_to_words(value.data_size as u64);
         let total_size : WordCount32 = data_size + value.pointer_count as u32 * WORDS_PER_POINTER as u32;
 
@@ -1264,7 +1264,7 @@ mod wire_helpers {
                               value.nesting_limit));
         }
 
-        Ok(super::SegmentAnd { segment : segment, value : ptr })
+        Ok(SegmentAnd { segment : segment, value : ptr })
     }
 
     pub unsafe fn set_capability_pointer(segment : *mut SegmentBuilder,
@@ -1275,7 +1275,7 @@ mod wire_helpers {
 
     pub unsafe fn set_list_pointer<'a>(mut segment : *mut SegmentBuilder,
                                        mut reff : *mut WirePointer,
-                                       value : ListReader) -> Result<super::SegmentAnd<*mut Word>> {
+                                       value : ListReader) -> Result<SegmentAnd<*mut Word>> {
         let total_size = round_bits_up_to_words((value.element_count * value.step) as u64);
 
         if value.step <= BITS_PER_WORD as u32 {
@@ -1308,7 +1308,7 @@ mod wire_helpers {
                                                 total_size as usize);
             }
 
-            Ok(super::SegmentAnd { segment : segment, value : ptr })
+            Ok(SegmentAnd { segment : segment, value : ptr })
         } else {
             //# List of structs.
             let ptr = allocate(&mut reff, &mut segment, total_size + POINTER_SIZE_IN_WORDS as u32, WirePointerKind::List);
@@ -1336,18 +1336,18 @@ mod wire_helpers {
                     src = src.offset(POINTER_SIZE_IN_WORDS as isize);
                 }
             }
-            Ok(super::SegmentAnd { segment : segment, value : ptr })
+            Ok(SegmentAnd { segment : segment, value : ptr })
         }
     }
 
     pub unsafe fn copy_pointer(dst_segment : *mut SegmentBuilder, dst : *mut WirePointer,
                                mut src_segment : *const SegmentReader, mut src : *const WirePointer,
-                               nesting_limit : i32) -> Result<super::SegmentAnd<*mut Word>> {
+                               nesting_limit : i32) -> Result<SegmentAnd<*mut Word>> {
         let src_target = (*src).target();
 
         if (*src).is_null() {
             ::std::ptr::write_bytes(dst, 0, 1);
-            return Ok(super::SegmentAnd { segment : dst_segment, value : ::std::ptr::null_mut() });
+            return Ok(SegmentAnd { segment : dst_segment, value : ::std::ptr::null_mut() });
         }
 
         let mut ptr = try!(follow_fars(&mut src, src_target, &mut src_segment));
@@ -1459,7 +1459,7 @@ mod wire_helpers {
                 match (*src_segment).arena.extract_cap((*src).cap_ref().index.get() as usize) {
                     Some(cap) => {
                         set_capability_pointer(dst_segment, dst, cap);
-                        return Ok(super::SegmentAnd { segment : dst_segment, value : ::std::ptr::null_mut() });
+                        return Ok(SegmentAnd { segment : dst_segment, value : ::std::ptr::null_mut() });
                     }
                     None => {
                         return Err(Error::new_decode_error(
