@@ -10,6 +10,7 @@ documentation = "http://docs.capnproto-rust.org"
 
 readme = "README.md"
 
+keywords = ["encoding", "protocol", "serialization"]
 
 [lib]
 
