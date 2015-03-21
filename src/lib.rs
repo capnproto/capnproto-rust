@@ -115,6 +115,18 @@ impl MessageSize {
 #[derive(PartialEq, Copy, Debug)]
 pub struct NotInSchema(pub u16);
 
+impl ::std::fmt::Display for NotInSchema {
+    fn fmt(&self, fmt : &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
+        write!(fmt, "Enum value or union discriminant {} was not present in the schema.", self.0)
+    }
+}
+
+impl ::std::error::Error for NotInSchema {
+    fn description(&self) -> &str {
+        "Enum value or union disriminant was not present in schema."
+    }
+}
+
 /// Because messages are lazily validated, the return type of any method that reads a pointer field
 /// must be wrapped in a Result.
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -140,9 +152,9 @@ impl ::std::error::FromError<::std::io::Error> for Error {
 }
 
 impl ::std::error::FromError<NotInSchema> for Error {
-    fn from_error(NotInSchema(x) : NotInSchema) -> Error {
-        Error::new_decode_error("Enum value or union descriminant not in schema.",
-                                Some(format!("value : {}", x)))
+    fn from_error(e : NotInSchema) -> Error {
+        Error::new_decode_error("Enum value or union discriminant was not present in schema.",
+                                Some(format!("value : {}", e.0)))
     }
 }
 
