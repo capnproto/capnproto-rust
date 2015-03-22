@@ -49,9 +49,8 @@ pub trait InputStream {
 impl <R> InputStream for R where R : ::std::io::Read {
     fn try_read(&mut self, buf : &mut [u8], min_bytes : usize) -> ::std::io::Result<usize> {
         let mut pos = 0;
-        let buf_len = buf.len();
         while pos < min_bytes {
-            let buf1 = &mut buf[pos .. buf_len];
+            let buf1 = &mut buf[pos ..];
             let n = try!(self.read(buf1));
             pos += n;
             if n == 0 { return Ok(pos); }
