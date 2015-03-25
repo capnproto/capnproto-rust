@@ -79,8 +79,8 @@ impl <'a> ::std::ops::Deref for Builder <'a> {
     }
 }
 
-impl <'a> ::std::str::Str for Builder<'a> {
-    fn as_slice<'b>(&'b self) -> &'b str {
+impl <'a> ::std::convert::AsRef<str> for Builder<'a> {
+    fn as_ref<'b>(&'b self) -> &'b str {
         ::std::str::from_utf8(self.bytes).unwrap()
     }
 }
