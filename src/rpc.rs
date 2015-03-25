@@ -488,7 +488,7 @@ impl RpcConnectionState {
                                 answers.slots.insert(answer_id, Answer::new());
 
                                 serialize::write_message(&mut outpipe, &mut *message).is_ok();
-                                answers.slots[answer_id].answer_ref.sent(message);
+                                answers.slots.get_mut(&answer_id).unwrap().answer_ref.sent(message);
 
                                 MessageReceiver::Nobody
                             }
@@ -566,7 +566,7 @@ impl RpcConnectionState {
                                     box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
 
                                 answers.slots.insert(answer_id, Answer::new());
-                                answers.slots[id].answer_ref
+                                answers.slots.get_mut(&id).unwrap().answer_ref
                                     .receive(interface_id, method_id, ops, context);
                             }
                         }
@@ -635,7 +635,7 @@ impl RpcConnectionState {
 
                         match answer_id_opt {
                             Some(answer_id) => {
-                                answers.slots[answer_id].answer_ref.sent(message)
+                                answers.slots.get_mut(&answer_id).unwrap().answer_ref.sent(message)
                             }
                             _ => {}
                         }
