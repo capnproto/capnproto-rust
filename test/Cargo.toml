@@ -7,7 +7,7 @@ build = "build.rs"
 
 [lib]
 
-name = "capnpc-test"
+name = "capnpc_test"
 path = "test.rs"
 
 
