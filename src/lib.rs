@@ -19,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#![crate_name="capnp-rpc"]
 #![crate_type="lib"]
 
 #![feature(box_syntax)]

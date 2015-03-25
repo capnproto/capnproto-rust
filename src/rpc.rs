@@ -287,7 +287,7 @@ fn client_hooks_of_payload(payload : payload::Reader,
                         (box PromisedAnswerClient {
                                 rpc_chan : rpc_chan.clone(),
                                 ops : get_pipeline_ops(promised_answer),
-                                answer_ref : answers.slots[promised_answer.get_question_id()]
+                                answer_ref : answers.slots[&promised_answer.get_question_id()]
                                 .answer_ref.clone(),
                                 } as Box<ClientHook+Send>)));
             }
