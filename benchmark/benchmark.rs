@@ -23,6 +23,7 @@
 #![feature(collections, exit_status)]
 
 extern crate capnp;
+extern crate fdstream;
 extern crate rand;
 
 use capnp::{MessageReader, MessageBuilder};
@@ -221,8 +222,8 @@ macro_rules! server(
 
 macro_rules! sync_client(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
-            let mut out_stream = ::std::io::stdout();
-            let mut in_stream = ::std::io::stdin();
+            let mut out_stream = ::fdstream::FdStream::new(1);
+            let mut in_stream = ::fdstream::FdStream::new(0);
             let mut in_buffered = capnp::io::BufferedInputStreamWrapper::new(&mut in_stream);
             let mut rng = common::FastRand::new();
             for _ in 0..$iters {
@@ -280,8 +281,8 @@ macro_rules! do_testcase(
                 "bytes" => pass_by_bytes!($testcase, $reuse, $compression, $iters),
                 "client" => sync_client!($testcase, $reuse, $compression, $iters),
                 "server" => {
-                    let mut input = ::std::io::stdin();
-                    let mut output = ::std::io::stdout();
+                    let mut input = ::fdstream::FdStream::new(0);
+                    let mut output = ::fdstream::FdStream::new(1);
                     server!($testcase, $reuse, $compression, $iters, input, output)
                 }
                 "pipe" => pass_by_pipe!($testcase, $reuse, $compression, $iters),
