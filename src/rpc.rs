@@ -269,11 +269,11 @@ fn client_hooks_of_payload(payload : payload::Reader,
                 result.push(None)
             }
             Ok(cap_descriptor::SenderHosted(id)) => {
-                result.push(Some(
-                        (box ImportClient {
-                                channel : rpc_chan.clone(),
-                                import_id : id})
-                            as Box<ClientHook+Send>));
+                let tmp : Box<ClientHook+Send> =
+                    box ImportClient {
+                        channel : rpc_chan.clone(),
+                        import_id : id};
+                result.push(Some(tmp));
             }
             Ok(cap_descriptor::SenderPromise(_id)) => {
                 println!("warning: SenderPromise is unimplemented");
@@ -284,12 +284,12 @@ fn client_hooks_of_payload(payload : payload::Reader,
             }
             Ok(cap_descriptor::ReceiverAnswer(Ok(promised_answer))) => {
                 result.push(Some(
-                        (box PromisedAnswerClient {
-                                rpc_chan : rpc_chan.clone(),
-                                ops : get_pipeline_ops(promised_answer),
-                                answer_ref : answers.slots[&promised_answer.get_question_id()]
+                        box PromisedAnswerClient {
+                            rpc_chan : rpc_chan.clone(),
+                            ops : get_pipeline_ops(promised_answer),
+                            answer_ref : answers.slots[&promised_answer.get_question_id()]
                                 .answer_ref.clone(),
-                                } as Box<ClientHook+Send>)));
+                        }));
             }
             Ok(cap_descriptor::ThirdPartyHosted(_)) => {
                 panic!()
@@ -481,7 +481,7 @@ impl RpcConnectionState {
                                     ret.set_answer_id(answer_id);
                                     let mut payload = ret.init_results();
                                     payload.borrow().init_cap_table(1);
-                                    payload.borrow().get_cap_table().unwrap().get(0).set_sender_hosted(idx as u32);
+                                    payload.borrow().get_cap_table().unwrap().get(0).set_sender_hosted(idx);
                                     payload.get_content().set_as_capability(bootstrap_interface.copy());
 
                                 }
@@ -525,8 +525,7 @@ impl RpcConnectionState {
                             MessageReceiver::Question(id) => {
                                 let erase_it = match &mut questions.slots[id as usize] {
                                     &mut Some(ref mut q) => {
-                                        q.chan.send(
-                                            box RpcResponse::new(message) as Box<ResponseHook+Send>).is_ok();
+                                        q.chan.send(box RpcResponse::new(message)).is_ok();
                                         q.is_awaiting_return = false;
                                         match q.ref_counter.try_recv() {
                                             Err(::std::sync::mpsc::TryRecvError::Disconnected) => {
@@ -546,8 +545,7 @@ impl RpcConnectionState {
                             }
                             MessageReceiver::Export(id) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(&*message);
-                                let context =
-                                    box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
+                                let context = box RpcCallContext::new(message, rpc_chan.clone());
 
                                 answers.slots.insert(answer_id, Answer::new());
                                 match exports.slots[id as usize] {
@@ -562,8 +560,7 @@ impl RpcConnectionState {
                             }
                             MessageReceiver::PromisedAnswer(id, ops) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(&*message);
-                                let context =
-                                    box RpcCallContext::new(message, rpc_chan.clone()) as Box<CallContextHook+Send>;
+                                let context = box RpcCallContext::new(message, rpc_chan.clone());
 
                                 answers.slots.insert(answer_id, Answer::new());
                                 answers.slots.get_mut(&id).unwrap().answer_ref
@@ -664,8 +661,8 @@ pub struct ImportClient {
 
 impl ClientHook for ImportClient {
     fn copy(&self) -> Box<ClientHook+Send> {
-        (box ImportClient {channel : self.channel.clone(),
-                           import_id : self.import_id}) as Box<ClientHook+Send>
+        box ImportClient {channel : self.channel.clone(),
+                          import_id : self.import_id}
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
@@ -683,7 +680,7 @@ impl ClientHook for ImportClient {
         let hook = box RpcRequest { channel : self.channel.clone(),
                                     message : message,
                                     question_ref : None};
-        Request::new(hook as Box<RequestHook+Send>)
+        Request::new(hook)
     }
 
     fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
@@ -691,7 +688,7 @@ impl ClientHook for ImportClient {
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
-        (box OwnedCapDescriptor::ReceiverHosted(self.import_id)) as Box<::std::any::Any+'static>
+        box OwnedCapDescriptor::ReceiverHosted(self.import_id)
     }
 }
 
@@ -703,10 +700,10 @@ pub struct PipelineClient {
 
 impl ClientHook for PipelineClient {
     fn copy(&self) -> Box<ClientHook+Send> {
-        (box PipelineClient { channel : self.channel.clone(),
-                              ops : self.ops.clone(),
-                              question_ref : self.question_ref.clone(),
-            }) as Box<ClientHook+Send>
+        box PipelineClient { channel : self.channel.clone(),
+                             ops : self.ops.clone(),
+                             question_ref : self.question_ref.clone(),
+        }
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
@@ -732,7 +729,7 @@ impl ClientHook for PipelineClient {
         let hook = box RpcRequest { channel : self.channel.clone(),
                                     message : message,
                                     question_ref : Some(self.question_ref.clone())};
-        Request::new(hook as Box<RequestHook+Send>)
+        Request::new(hook)
     }
 
     fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
@@ -740,7 +737,7 @@ impl ClientHook for PipelineClient {
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
-        (box OwnedCapDescriptor::ReceiverAnswer(self.question_ref.id, self.ops.clone())) as Box<::std::any::Any+'static>
+        box OwnedCapDescriptor::ReceiverAnswer(self.question_ref.id, self.ops.clone())
     }
 }
 
@@ -752,10 +749,10 @@ pub struct PromisedAnswerClient {
 
 impl ClientHook for PromisedAnswerClient {
     fn copy(&self) -> Box<ClientHook+Send> {
-        (box PromisedAnswerClient { rpc_chan : self.rpc_chan.clone(),
-                                 ops : self.ops.clone(),
-                                 answer_ref : self.answer_ref.clone(),
-            }) as Box<ClientHook+Send>
+        box PromisedAnswerClient { rpc_chan : self.rpc_chan.clone(),
+                                   ops : self.ops.clone(),
+                                   answer_ref : self.answer_ref.clone(),
+        }
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
@@ -773,7 +770,7 @@ impl ClientHook for PromisedAnswerClient {
                                                   message : message,
                                                   answer_ref : self.answer_ref.clone(),
                                                   ops : self.ops.clone() };
-        Request::new(hook as Box<RequestHook+Send>)
+        Request::new(hook)
     }
 
     fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
@@ -891,7 +888,7 @@ impl RequestHook for RpcRequest {
         let question_ref = question_port.recv().unwrap();
 
         let pipeline = box RpcPipeline {channel : channel, question_ref : question_ref};
-        let typeless = any_pointer::Pipeline::new(pipeline as Box<PipelineHook+Send>);
+        let typeless = any_pointer::Pipeline::new(pipeline);
 
         ResultFuture {answer_port : answer_port, answer_result : Err(()) /* XXX */,
                        pipeline : typeless, marker : ::std::marker::PhantomData  }
@@ -923,14 +920,13 @@ impl RequestHook for PromisedAnswerRpcRequest {
             }
         };
 
-        let context =
-            (box PromisedAnswerRpcCallContext::new(message, rpc_chan.clone(), answer_tx))
-            as Box<CallContextHook+Send>;
+        let context : Box<CallContextHook+Send> =
+            box PromisedAnswerRpcCallContext::new(message, rpc_chan.clone(), answer_tx);
 
         answer_ref.receive(interface_id, method_id, ops, context);
 
         let pipeline = box PromisedAnswerRpcPipeline;
-        let typeless = any_pointer::Pipeline::new(pipeline as Box<PipelineHook+Send>);
+        let typeless = any_pointer::Pipeline::new(pipeline);
 
         ResultFuture {answer_port : answer_rx, answer_result : Err(()) /* XXX */,
                        pipeline : typeless, marker : ::std::marker::PhantomData  }
@@ -945,14 +941,14 @@ pub struct RpcPipeline {
 
 impl PipelineHook for RpcPipeline {
     fn copy(&self) -> Box<PipelineHook+Send> {
-        (box RpcPipeline { channel : self.channel.clone(),
-                        question_ref : self.question_ref.clone() }) as Box<PipelineHook+Send>
+        box RpcPipeline { channel : self.channel.clone(),
+                          question_ref : self.question_ref.clone() }
     }
     fn get_pipelined_cap(&self, ops : Vec<PipelineOp>) -> Box<ClientHook+Send> {
-        (box PipelineClient { channel : self.channel.clone(),
+        box PipelineClient { channel : self.channel.clone(),
                            ops : ops,
                            question_ref : self.question_ref.clone(),
-        }) as Box<ClientHook+Send>
+        }
     }
 }
 
@@ -961,7 +957,7 @@ pub struct PromisedAnswerRpcPipeline;
 
 impl PipelineHook for PromisedAnswerRpcPipeline {
     fn copy(&self) -> Box<PipelineHook+Send> {
-        (box PromisedAnswerRpcPipeline) as Box<PipelineHook+Send>
+        box PromisedAnswerRpcPipeline
     }
     fn get_pipelined_cap(&self, _ops : Vec<PipelineOp>) -> Box<ClientHook+Send> {
         panic!()
@@ -1161,7 +1157,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
             _ => panic!(),
         }
 
-        answer_chan.send(box LocalResponse::new(results_message) as Box<ResponseHook+Send>).unwrap();
+        answer_chan.send(box LocalResponse::new(results_message)).unwrap();
 
     }
 
@@ -1171,7 +1167,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         let PromisedAnswerRpcCallContext {
             params_message : _, results_message, rpc_chan : _, answer_chan} = tmp;
 
-        answer_chan.send(box LocalResponse::new(results_message) as Box<ResponseHook+Send>).unwrap();
+        answer_chan.send(box LocalResponse::new(results_message)).unwrap();
     }
 }
 
