@@ -133,7 +133,7 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
                     in_ptr = in_ptr.offset(1);
 
                     for n in 0..8 {
-                        let is_nonzero = (tag & (1 << n)) != 0;
+                        let is_nonzero = (tag & (1u8 << n)) != 0;
                         *out = (*in_ptr) & ((-(is_nonzero as i8)) as u8);
                         out = out.offset(1);
                         in_ptr = in_ptr.offset(is_nonzero as isize);
