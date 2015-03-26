@@ -35,7 +35,7 @@
 //! distributed object-capability layer.
 
 #![feature(alloc, convert, core, io, unsafe_destructor)]
-#![allow(raw_pointer_derive, trivial_casts, trivial_numeric_casts)]
+#![allow(raw_pointer_derive, trivial_numeric_casts)]
 
 #![crate_name="capnp"]
 #![crate_type = "lib"]

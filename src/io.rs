@@ -122,8 +122,7 @@ impl<R: InputStream> BufferedInputStream for BufferedInputStreamWrapper<R> {
             self.cap = n;
             self.pos = 0;
         }
-        Ok((self.buf.get_unchecked(self.pos) as *const u8,
-            self.buf.get_unchecked(self.cap) as *const u8))
+        Ok((self.buf.get_unchecked(self.pos), self.buf.get_unchecked(self.cap)))
     }
 }
 
@@ -192,8 +191,7 @@ impl <'a> BufferedInputStream for ArrayInputStream<'a> {
     }
     unsafe fn get_read_buffer(&mut self) -> ::std::io::Result<(*const u8, *const u8)> {
         let len = self.array.len();
-        Ok((self.array.as_ptr() as *const u8,
-           self.array.get_unchecked(len) as *const u8))
+        Ok((self.array.as_ptr(), self.array.get_unchecked(len)))
     }
 }
 
@@ -243,14 +241,14 @@ impl<'a, W: OutputStream> BufferedOutputStream for BufferedOutputStreamWrapper<'
     #[inline]
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.buf.len();
-        (self.buf.get_unchecked_mut(self.pos) as *mut u8,
-         self.buf.get_unchecked_mut(len) as *mut u8)
+        (self.buf.get_unchecked_mut(self.pos),
+         self.buf.get_unchecked_mut(len))
     }
 
     #[inline]
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: usize) -> ::std::io::Result<()> {
-        let easy_case = ptr == self.buf.get_unchecked_mut(self.pos) as *mut u8;
-        if easy_case {
+        let pos_ptr : *mut u8 = self.buf.get_unchecked_mut(self.pos);
+        if ptr == pos_ptr { // easy case
             self.pos += size;
             Ok(())
         } else {
@@ -329,12 +327,12 @@ impl <'a> OutputStream for ArrayOutputStream<'a> {
 impl <'a> BufferedOutputStream for ArrayOutputStream<'a> {
     unsafe fn get_write_buffer(&mut self) -> (*mut u8, *mut u8) {
         let len = self.array.len();
-        (self.array.get_unchecked_mut(self.fill_pos) as *mut u8,
-         self.array.get_unchecked_mut(len) as *mut u8)
+        (self.array.get_unchecked_mut(self.fill_pos),
+         self.array.get_unchecked_mut(len))
     }
     unsafe fn write_ptr(&mut self, ptr: *mut u8, size: usize) -> ::std::io::Result<()> {
-        let easy_case = ptr == self.array.get_unchecked_mut(self.fill_pos) as *mut u8;
-        if easy_case {
+        let fill_ptr : *mut u8 = self.array.get_unchecked_mut(self.fill_pos);
+        if ptr == fill_ptr { // easy case
             self.fill_pos += size;
             Ok(())
         } else {

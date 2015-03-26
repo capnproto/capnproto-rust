@@ -742,7 +742,7 @@ mod wire_helpers {
         if (*src).is_null() {
             ::std::ptr::write_bytes(dst, 0, 1);
         } else if (*src).kind() == WirePointerKind::Far {
-            ::std::ptr::copy_nonoverlapping(dst, src as *const WirePointer, 1);
+            ::std::ptr::copy_nonoverlapping(dst, src, 1);
         } else {
             transfer_pointer_split(dst_segment, dst, src_segment, src, (*src).mut_target());
         }
@@ -846,10 +846,9 @@ mod wire_helpers {
             let ptr = allocate(&mut reff, &mut segment, total_size, WirePointerKind::Struct);
             (*reff).mut_struct_ref().set(new_data_size, new_pointer_count);
 
-            //# Copy data section.
+            // Copy data section.
             // Note: copy_nonoverlapping's third argument is an element count, not a byte count.
-            ::std::ptr::copy_nonoverlapping(ptr, old_ptr as *const Word,
-                                            old_data_size as usize);
+            ::std::ptr::copy_nonoverlapping(ptr, old_ptr, old_data_size as usize);
 
             //# Copy pointer section.
             let new_pointer_section : *mut WirePointer =
@@ -1918,7 +1917,7 @@ impl <'a> PointerBuilder<'a> {
     pub fn get_capability(&self) -> Result<Box<ClientHook+Send>> {
         unsafe {
             wire_helpers::read_capability_pointer(
-                &(*self.segment).reader, self.pointer as *const WirePointer, ::std::i32::MAX)
+                &(*self.segment).reader, self.pointer, ::std::i32::MAX)
         }
     }
 
@@ -2000,7 +1999,7 @@ impl <'a> PointerBuilder<'a> {
             PointerReader {
                 marker : ::std::marker::PhantomData::<&'a ()>,
                 segment : segment_reader,
-                pointer : self.pointer as *const WirePointer,
+                pointer : self.pointer,
                 nesting_limit : 0x7fffffff }
         }
     }

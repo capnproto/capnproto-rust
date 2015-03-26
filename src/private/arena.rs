@@ -208,9 +208,9 @@ impl ReaderArena {
 
     pub fn try_get_segment(&self, id : SegmentId) -> Result<*const SegmentReader> {
         if id == 0 {
-            return Ok(&self.segment0 as *const SegmentReader);
+            return Ok(&self.segment0);
         } else if ((id - 1) as usize) < self.more_segments.len() {
-            unsafe { Ok(self.more_segments.get_unchecked(id as usize - 1) as *const SegmentReader) }
+            unsafe { Ok(self.more_segments.get_unchecked(id as usize - 1)) }
         } else {
             Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
         }
@@ -275,7 +275,7 @@ impl BuilderArena {
         let mut result = Box::new(BuilderArena {
             segment0 : SegmentBuilder {
                 reader : SegmentReader {
-                    ptr : first_segment as *const Word,
+                    ptr : first_segment,
                     size : num_words,
                     arena : ArenaPtr::Null,
                     read_limiter : limiter.clone()},
@@ -292,7 +292,7 @@ impl BuilderArena {
             dummy_limiter : limiter,
         });
 
-        let arena_ptr = { let ref mut ptr = *result; ptr as *mut BuilderArena};
+        let arena_ptr : *mut BuilderArena = { let ref mut ptr = *result; ptr};
         result.segment0.reader.arena = ArenaPtr::Builder(arena_ptr);
 
         result
@@ -320,7 +320,7 @@ impl BuilderArena {
     pub fn allocate(&mut self, amount : WordCount32) -> (*mut SegmentBuilder, *mut Word) {
         unsafe {
             match self.segment0.allocate(amount) {
-                Some(result) => { return ((&mut self.segment0) as *mut SegmentBuilder, result) }
+                Some(result) => { return (&mut self.segment0, result) }
                 None => {}
             }
 
@@ -330,7 +330,7 @@ impl BuilderArena {
                 let len = self.more_segments.len();
                 if len == 0 { 1 }
                 else {
-                    let result_ptr = &mut *self.more_segments.as_mut_slice()[len-1] as *mut SegmentBuilder;
+                    let result_ptr : *mut SegmentBuilder = &mut *self.more_segments.as_mut_slice()[len-1];
                     match self.more_segments.as_mut_slice()[len - 1].allocate(amount) {
                         Some(result) => { return (result_ptr, result) }
                         None => { len + 1 }
@@ -340,7 +340,7 @@ impl BuilderArena {
             let (words, size) = self.allocate_owned_memory(amount);
             let mut new_builder = Box::new(SegmentBuilder::new(self, self.dummy_limiter.clone(),
                                                                id as u32, words, size));
-            let builder_ptr = &mut *new_builder as *mut SegmentBuilder;
+            let builder_ptr : *mut SegmentBuilder = &mut *new_builder;
 
             self.more_segments.push(new_builder);
 
@@ -350,9 +350,9 @@ impl BuilderArena {
 
     pub fn get_segment(&mut self, id : SegmentId) -> Result<*mut SegmentBuilder> {
         if id == 0 {
-            Ok(&mut self.segment0 as *mut SegmentBuilder)
+            Ok(&mut self.segment0)
         } else if ((id - 1) as usize) < self.more_segments.len() {
-            Ok(&mut *self.more_segments.as_mut_slice()[(id - 1) as usize] as *mut SegmentBuilder)
+            Ok(&mut *self.more_segments.as_mut_slice()[(id - 1) as usize])
         } else {
             Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
         }
@@ -404,10 +404,9 @@ impl ArenaPtr {
                 }
                 &ArenaPtr::Builder(builder) => {
                     if id == 0 {
-                        Ok(&(*builder).segment0.reader as *const SegmentReader)
+                        Ok(&(*builder).segment0.reader)
                     } else if ((id - 1) as usize) < (*builder).more_segments.len() {
-                        Ok(&(*builder).more_segments.as_mut_slice()[(id - 1) as usize].reader
-                           as *const SegmentReader)
+                        Ok(&(*builder).more_segments.as_mut_slice()[(id - 1) as usize].reader)
                     } else {
                         Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
                     }
