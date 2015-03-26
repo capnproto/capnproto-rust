@@ -51,9 +51,18 @@ impl <R> InputStream for R where R : ::std::io::Read {
         let mut pos = 0;
         while pos < min_bytes {
             let buf1 = &mut buf[pos ..];
-            let n = try!(self.read(buf1));
-            pos += n;
-            if n == 0 { return Ok(pos); }
+            match self.read(buf1) {
+                Ok(n) => {
+                    pos += n;
+                    if n == 0 { return Ok(pos); }
+                }
+                Err(e) => {
+                    if e.kind() != ::std::io::ErrorKind::Interrupted {
+                        return Err(e);
+                    }
+                    // Retry if we were interrupted.
+                }
+            }
         }
         return Ok(pos);
     }
