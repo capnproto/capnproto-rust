@@ -20,7 +20,7 @@ path = "src/lib.rs"
 
 [[bin]]
 
-name = "capnpc_rust"
+name = "capnpc-rust"
 path = "src/main.rs"
 
 
