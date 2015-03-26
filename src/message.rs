@@ -181,7 +181,7 @@ pub trait MessageBuilder {
 
     // XXX is there a way to make this private?
     fn get_root_internal<'a>(&mut self) -> any_pointer::Builder<'a> {
-        let root_segment = &mut self.arena_mut().segment0 as *mut SegmentBuilder;
+        let root_segment : *mut SegmentBuilder = &mut self.arena_mut().segment0;
 
         if self.arena().segment0.current_size() == 0 {
             match self.arena_mut().segment0.allocate(WORDS_PER_POINTER as u32) {

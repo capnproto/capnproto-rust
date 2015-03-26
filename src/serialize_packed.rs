@@ -76,7 +76,7 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
 
         unsafe {
             let mut out = out_buf.as_mut_ptr();
-            let out_end = out_buf.get_unchecked_mut(len) as *mut u8;
+            let out_end : *mut u8 = out_buf.get_unchecked_mut(len);
 
             let (mut in_ptr, mut in_end) = try!(self.inner.get_read_buffer());
             let mut buffer_begin = in_ptr;
@@ -133,7 +133,7 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
                     in_ptr = in_ptr.offset(1);
 
                     for n in 0..8 {
-                        let is_nonzero = (tag & ((1 as u8) << n)) != 0;
+                        let is_nonzero = (tag & (1 << n)) != 0;
                         *out = (*in_ptr) & ((-(is_nonzero as i8)) as u8);
                         out = out.offset(1);
                         in_ptr = in_ptr.offset(is_nonzero as isize);
@@ -256,7 +256,7 @@ impl <'a, W : BufferedOutputStream> OutputStream for PackedOutputStream<'a, W> {
                     try!(self.inner.write_ptr(buffer_begin, ptr_sub(out, buffer_begin)));
 
                     out = slow_buffer.as_mut_ptr();
-                    buffer_end = slow_buffer.get_unchecked_mut(20) as *mut u8;
+                    buffer_end = slow_buffer.get_unchecked_mut(20);
                     buffer_begin = out;
                 }
 
