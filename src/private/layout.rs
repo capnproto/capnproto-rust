@@ -166,13 +166,13 @@ impl ListRef {
     #[inline]
     pub fn set(&mut self, es : ElementSize, ec : ElementCount32) {
         assert!(ec < (1 << 29), "Lists are limited to 2**29 elements");
-        self.element_size_and_count.set(((ec as u32) << 3 ) | (es as u32));
+        self.element_size_and_count.set((ec << 3 ) | (es as u32));
     }
 
     #[inline]
-    pub fn set_inline_composite(& mut self, wc : WordCount32) {
+    pub fn set_inline_composite(&mut self, wc : WordCount32) {
         assert!(wc < (1 << 29), "Inline composite lists are limited to 2**29 words");
-        self.element_size_and_count.set(((wc as u32) << 3) | (InlineComposite as u32));
+        self.element_size_and_count.set((wc << 3) | (InlineComposite as u32));
     }
 }
 
@@ -902,7 +902,7 @@ mod wire_helpers {
             ptr : ::std::mem::transmute(ptr),
             step : step,
             element_count : element_count,
-            struct_data_size : data_size as u32,
+            struct_data_size : data_size,
             struct_pointer_count : pointer_count as u16
         }
     }
@@ -1045,7 +1045,7 @@ mod wire_helpers {
                 ptr : ::std::mem::transmute(ptr),
                 step : step,
                 element_count : (*reff).list_ref().element_count(),
-                struct_data_size : data_size as u32,
+                struct_data_size : data_size,
                 struct_pointer_count : pointer_count as u16
             });
         }
@@ -1442,7 +1442,7 @@ mod wire_helpers {
                             ptr : ::std::mem::transmute(ptr),
                             element_count : element_count,
                             step : step,
-                            struct_data_size : data_size as u32,
+                            struct_data_size : data_size,
                             struct_pointer_count : pointer_count as u16,
                             nesting_limit : nesting_limit - 1
                         })
@@ -1635,7 +1635,7 @@ mod wire_helpers {
                     element_count : size,
                     step : words_per_element * BITS_PER_WORD as u32,
                     struct_data_size : struct_ref.data_size.get() as u32 * (BITS_PER_WORD as u32),
-                    struct_pointer_count : struct_ref.ptr_count.get() as u16,
+                    struct_pointer_count : struct_ref.ptr_count.get(),
                     nesting_limit : nesting_limit - 1
                 });
             }
@@ -1677,7 +1677,7 @@ mod wire_helpers {
                     ptr : ::std::mem::transmute(ptr),
                     element_count : list_ref.element_count(),
                     step : step,
-                    struct_data_size : data_size as u32,
+                    struct_data_size : data_size,
                     struct_pointer_count : pointer_count as u16,
                     nesting_limit : nesting_limit - 1
                 });
@@ -2054,7 +2054,7 @@ impl <'a> StructReader<'a>  {
         if boffset < self.data_size {
             unsafe {
                 let b : *const u8 = self.data.offset((boffset as usize / BITS_PER_BYTE) as isize);
-                ((*b) & (1u8 << (boffset as u32 % BITS_PER_BYTE as u32) as usize)) != 0
+                ((*b) & (1u8 << (boffset % BITS_PER_BYTE as u32) as usize)) != 0
             }
         } else {
             false
@@ -2251,7 +2251,7 @@ impl <'a> ListReader<'a> {
             segment : self.segment,
             data : struct_data,
             pointers : struct_pointers,
-            data_size : self.struct_data_size as BitCount32,
+            data_size : self.struct_data_size,
             pointer_count : self.struct_pointer_count,
             nesting_limit : self.nesting_limit - 1
         }

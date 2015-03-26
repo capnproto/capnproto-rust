@@ -25,25 +25,25 @@ pub trait Mask {
 }
 
 macro_rules! int_mask(
-    ($s:ident, $t:ident) => (
-        impl Mask for $s {
+    ($t:ident) => (
+        impl Mask for $t {
             type T = $t;
             #[inline]
-            fn mask(value : $s, mask : $t) -> $s {
-                value ^ (mask as $s)
+            fn mask(value : $t, mask : $t) -> $t {
+                value ^ mask
             }
         }
     )
 );
 
-int_mask!(i8, i8);
-int_mask!(i16, i16);
-int_mask!(i32, i32);
-int_mask!(i64, i64);
-int_mask!(u8, u8);
-int_mask!(u16, u16);
-int_mask!(u32, u32);
-int_mask!(u64, u64);
+int_mask!(i8);
+int_mask!(i16);
+int_mask!(i32);
+int_mask!(i64);
+int_mask!(u8);
+int_mask!(u16);
+int_mask!(u32);
+int_mask!(u64);
 
 impl Mask for f32 {
     type T = u32;
