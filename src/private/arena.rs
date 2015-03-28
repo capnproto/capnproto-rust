@@ -330,8 +330,8 @@ impl BuilderArena {
                 let len = self.more_segments.len();
                 if len == 0 { 1 }
                 else {
-                    let result_ptr : *mut SegmentBuilder = &mut *self.more_segments.as_mut_slice()[len-1];
-                    match self.more_segments.as_mut_slice()[len - 1].allocate(amount) {
+                    let result_ptr : *mut SegmentBuilder = &mut *self.more_segments[len-1];
+                    match self.more_segments[len - 1].allocate(amount) {
                         Some(result) => { return (result_ptr, result) }
                         None => { len + 1 }
                     }
@@ -352,7 +352,7 @@ impl BuilderArena {
         if id == 0 {
             Ok(&mut self.segment0)
         } else if ((id - 1) as usize) < self.more_segments.len() {
-            Ok(&mut *self.more_segments.as_mut_slice()[(id - 1) as usize])
+            Ok(&mut *self.more_segments[(id - 1) as usize])
         } else {
             Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
         }
@@ -406,7 +406,7 @@ impl ArenaPtr {
                     if id == 0 {
                         Ok(&(*builder).segment0.reader)
                     } else if ((id - 1) as usize) < (*builder).more_segments.len() {
-                        Ok(&(*builder).more_segments.as_mut_slice()[(id - 1) as usize].reader)
+                        Ok(&(*builder).more_segments[(id - 1) as usize].reader)
                     } else {
                         Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
                     }

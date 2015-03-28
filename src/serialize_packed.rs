@@ -422,7 +422,7 @@ mod tests {
 
         let mut bytes : std::vec::Vec<u8> = ::std::iter::repeat(0u8).take(packed.len()).collect();
         {
-            let mut writer = ArrayOutputStream::new(bytes.as_mut_slice());
+            let mut writer = ArrayOutputStream::new(&mut bytes[..]);
             let mut packed_output_stream = PackedOutputStream {inner : &mut writer};
             packed_output_stream.write(unpacked).unwrap();
         }
@@ -437,7 +437,7 @@ mod tests {
 
 
         let mut bytes : std::vec::Vec<u8> = ::std::iter::repeat(0u8).take(unpacked.len()).collect();
-        packed_input_stream.read_exact(bytes.as_mut_slice()).unwrap();
+        packed_input_stream.read_exact(&mut bytes[..]).unwrap();
 
         //    assert!(packed_input_stream.eof());
         assert_eq!(bytes, unpacked);

@@ -105,7 +105,7 @@ impl<R: InputStream> BufferedInputStream for BufferedInputStreamWrapper<R> {
             bytes -= available;
             if bytes <= self.buf.len() {
                 //# Read the next buffer-full.
-                let n = try!(self.inner.try_read(self.buf.as_mut_slice(), bytes));
+                let n = try!(self.inner.try_read(&mut self.buf[..], bytes));
                 self.pos = bytes;
                 self.cap = n;
             } else {
@@ -118,7 +118,7 @@ impl<R: InputStream> BufferedInputStream for BufferedInputStreamWrapper<R> {
 
     unsafe fn get_read_buffer(&mut self) -> ::std::io::Result<(*const u8, *const u8)> {
         if self.cap - self.pos == 0 {
-            let n = try!(self.inner.try_read(self.buf.as_mut_slice(), 1));
+            let n = try!(self.inner.try_read(&mut self.buf[..], 1));
             self.cap = n;
             self.pos = 0;
         }
@@ -146,7 +146,7 @@ impl<R: InputStream> InputStream for BufferedInputStreamWrapper<R> {
 
             if dst.len() <= self.buf.len() {
                 // Read the next buffer-full.
-                let n = try!(self.inner.try_read(self.buf.as_mut_slice(), min_bytes));
+                let n = try!(self.inner.try_read(&mut self.buf[..], min_bytes));
                 let from_second_buffer = ::std::cmp::min(n, dst.len());
                 ::std::slice::bytes::copy_memory(dst,
                                                  &self.buf[0 .. from_second_buffer]);
@@ -264,21 +264,21 @@ impl<'a, W: OutputStream> OutputStream for BufferedOutputStreamWrapper<'a, W> {
         let available = self.buf.len() - self.pos;
         let mut size = buf.len();
         if size <= available {
-            let dst = &mut self.buf.as_mut_slice()[self.pos ..];
+            let dst = &mut self.buf[self.pos ..];
             ::std::slice::bytes::copy_memory(dst, buf);
             self.pos += size;
         } else if size <= self.buf.len() {
             // Too much for this buffer, but not a full buffer's
             // worth, so we'll go ahead and copy.
             {
-                let dst = &mut self.buf.as_mut_slice()[self.pos ..];
+                let dst = &mut self.buf[self.pos ..];
                 ::std::slice::bytes::copy_memory(dst, &buf[0 .. available]);
             }
-            try!(self.inner.write(self.buf.as_mut_slice()));
+            try!(self.inner.write(&mut self.buf[..]));
 
             size -= available;
             let src = &buf[available ..];
-            let dst = &mut self.buf.as_mut_slice()[0 ..];
+            let dst = &mut self.buf[0 ..];
             ::std::slice::bytes::copy_memory(dst, src);
             self.pos = size;
         } else {
