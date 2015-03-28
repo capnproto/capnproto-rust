@@ -76,7 +76,7 @@ impl Word {
         let mut result : ::std::vec::Vec<Word> = ::std::vec::Vec::with_capacity(length);
         unsafe {
             result.set_len(length);
-            let p : *mut u8 = ::std::mem::transmute(&mut result[..].as_mut_ptr());
+            let p : *mut u8 = ::std::mem::transmute(result.as_mut_ptr());
             ::std::ptr::write_bytes(p, 0u8, length * ::std::mem::size_of::<Word>());
         }
         return result;

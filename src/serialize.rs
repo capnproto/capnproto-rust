@@ -96,7 +96,7 @@ pub fn new_reader<U : InputStream>(
     let buf_len = total_words as usize * BYTES_PER_WORD;
 
     unsafe {
-        let ptr : *mut u8 = ::std::mem::transmute(&mut owned_space[..].as_mut_ptr());
+        let ptr : *mut u8 = ::std::mem::transmute(owned_space.as_mut_ptr());
         let buf = ::std::slice::from_raw_parts_mut::<u8>(ptr, buf_len);
         try!(input_stream.read_exact(buf));
     }
@@ -142,14 +142,14 @@ pub fn write_message<T : OutputStream, U : MessageBuilder>(
     let mut table : Vec<WireValue<u32>> = Vec::with_capacity(table_size);
     unsafe { table.set_len(table_size) }
 
-    &mut table[..][0].set((segments.len() - 1) as u32);
+    table[0].set((segments.len() - 1) as u32);
 
     for i in 0..segments.len() {
-        &mut table[..][i + 1].set(segments[i].len() as u32);
+        table[i + 1].set(segments[i].len() as u32);
     }
     if segments.len() % 2 == 0 {
         // Set padding.
-        &mut table[..][segments.len() + 1].set( 0 );
+        table[segments.len() + 1].set( 0 );
     }
 
     unsafe {
