@@ -24,7 +24,7 @@ use MessageSize;
 use capability::{CallContext, Request, ResultFuture, Server};
 use message::{MallocMessageBuilder};
 
-pub trait ResponseHook:Send {
+pub trait ResponseHook:Send + ::std::any::Any {
     fn get<'a>(&'a mut self) -> any_pointer::Reader<'a>;
 }
 
@@ -33,7 +33,7 @@ pub trait RequestHook {
     fn send<'a>(self : Box<Self>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline>;
 }
 
-pub trait ClientHook : Send + 'static {
+pub trait ClientHook : Send + 'static + ::std::any::Any {
     fn copy(&self) -> Box<ClientHook+Send>;
     fn new_call(&self,
                 interface_id : u64,
