@@ -102,7 +102,7 @@ fn capitalize_first_letter(s : &str) -> String {
     use std::ascii::*;
     let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() { result_chars.push(c) }
-    result_chars.as_mut_slice()[0] = (result_chars[0] as u8).to_ascii_uppercase() as char;
+    result_chars[0] = (result_chars[0] as u8).to_ascii_uppercase() as char;
     return result_chars.into_iter().collect();
 }
 

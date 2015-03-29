@@ -169,7 +169,7 @@ macro_rules! pass_by_bytes(
                 let response = message_res.init_root::<$testcase::ResponseBuilder>();
 
                 {
-                    let mut writer = capnp::io::ArrayOutputStream::new(request_bytes.as_mut_slice());
+                    let mut writer = capnp::io::ArrayOutputStream::new(&mut request_bytes);
                     $compression::write_buffered(&mut writer, &mut message_req)
                 }
 
@@ -182,7 +182,7 @@ macro_rules! pass_by_bytes(
             }
 
             {
-                let mut writer = capnp::io::ArrayOutputStream::new(response_bytes.as_mut_slice());
+                let mut writer = capnp::io::ArrayOutputStream::new(&mut response_bytes);
                 $compression::write_buffered(&mut writer, &mut message_res)
             }
 
