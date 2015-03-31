@@ -263,15 +263,11 @@ impl MessageBuilder for MallocMessageBuilder {
     }
 }
 
-
 pub struct ScratchSpaceMallocMessageBuilder<'a> {
     arena : Box<BuilderArena>,
     scratch_space : &'a mut [Word],
 }
 
-
-// TODO: figure out why rust thinks this is unsafe.
-#[unsafe_destructor]
 impl <'a> Drop for ScratchSpaceMallocMessageBuilder<'a> {
     fn drop(&mut self) {
         let ptr = self.scratch_space.as_mut_ptr();
