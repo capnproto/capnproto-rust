@@ -15,6 +15,6 @@ path = "benchmark.rs"
 path = "../"
 
 [dependencies]
-rand = "0.2.1"
+rand = "0.3.4"
 capnp = "0.1.4"
 fdstream = "*"
