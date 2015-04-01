@@ -469,7 +469,7 @@ mod tests {
         {
             // getting before init is the same as init
             assert_eq!(big_struct.borrow().get_another_struct_field().unwrap().get_uint64_field(), 0);
-            big_struct.borrow().get_another_struct_field().unwrap().set_uint32_field(-31);
+            big_struct.borrow().get_another_struct_field().unwrap().set_uint32_field(4294967265);
 
             // Alas, we need to make a copy to appease the borrow checker.
             let mut other_message = MallocMessageBuilder::new_default();
@@ -478,14 +478,14 @@ mod tests {
                 other_message.get_root::<test_big_struct::inner::Builder>().unwrap().as_reader()).unwrap();
         }
 
-        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint32_field(), -31);
+        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint32_field(), 4294967265);
         {
             let mut other_struct_field = big_struct.borrow().get_another_struct_field().unwrap();
-            assert_eq!(other_struct_field.borrow().get_uint32_field(), -31);
+            assert_eq!(other_struct_field.borrow().get_uint32_field(), 4294967265);
             other_struct_field.set_uint32_field(42);
             assert_eq!(other_struct_field.get_uint32_field(), 42);
         }
-        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint32_field(), -31);
+        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint32_field(), 4294967265);
         assert_eq!(big_struct.get_another_struct_field().unwrap().get_uint32_field(), 42);
     }
 

@@ -762,7 +762,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
             result.push(Line(format!("pub fn set_{}{}(&mut self, {} : {}) {} {{",
                                      styled_name, setter_lifetime_param, setter_param,
                                      reader_type, return_type)));
-            result.push(Indent(box Branch(setter_interior)));
+            result.push(Indent(Box::new(Branch(setter_interior))));
             result.push(Line("}".to_string()));
         }
         None => {}
@@ -773,7 +773,7 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
             let args = initter_params.connect(", ");
             result.push(Line(format!("pub fn init_{}(self, {}) -> {} {{",
                                      styled_name, args, builder_type)));
-            result.push(Indent(box Branch(initter_interior)));
+            result.push(Indent(Box::new(Branch(initter_interior))));
             result.push(Line("}".to_string()));
         }
         None => {}
@@ -818,9 +818,9 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
 
         getter_interior.push(Branch(vec!(
                     Line(format!("{} => {{", dvalue)),
-                    Indent(box Line(format!("return ::std::result::Result::Ok({}(", enumerant_name.clone()))),
-                    Indent(box Indent(box get)),
-                    Indent(box Line("));".to_string())),
+                    Indent(Box::new(Line(format!("return ::std::result::Result::Ok({}(", enumerant_name.clone())))),
+                    Indent(Box::new(Indent(Box::new(get)))),
+                    Indent(Box::new(Line("));".to_string()))),
                     Line("}".to_string())
                 )));
 
@@ -858,7 +858,7 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
 
     interior.push(
         Branch(vec!(Line(format!("pub enum {} {{", enum_name)),
-                    Indent(box Branch(enum_interior)),
+                    Indent(Box::new(Branch(enum_interior))),
                     Line("}".to_string()))));
 
     let result = Branch(interior);
@@ -880,10 +880,10 @@ fn generate_union(node_map : &collections::hash_map::HashMap<u64, schema_capnp::
         Branch(vec!(Line("#[inline]".to_string()),
                     Line(format!("pub fn which(self) -> ::std::result::Result<{}, ::capnp::NotInSchema> {{",
                                  concrete_type)),
-                    Indent(box Branch(vec!(
+                    Indent(Box::new(Branch(vec!(
                         Line(format!("match self.{}.get_data_field::<u16>({}) {{", field_name, doffset)),
-                        Indent(box Branch(getter_interior)),
-                        Line("}".to_string())))),
+                        Indent(Box::new(Branch(getter_interior))),
+                        Line("}".to_string()))))),
                     Line("}".to_string())));
 
     // TODO set_which() for builders?
@@ -923,7 +923,7 @@ fn generate_haser(discriminant_offset : u32,
                     result.push(
                         Line(format!("pub fn has_{}(&self) -> bool {{", styled_name)));
                     result.push(
-                        Indent(box Branch(interior)));
+                        Indent(Box::new(Branch(interior))));
                     result.push(Line("}".to_string()));
                 }
                 _ => {}
@@ -948,7 +948,8 @@ fn generate_pipeline_getter(_node_map : &collections::hash_map::HashMap<u64, sch
             return Branch(vec!(Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
                                             camel_to_snake_case(name),
                                             the_mod)),
-                               Indent(box Line("FromTypelessPipeline::new(self._typeless.noop())".to_string())),
+                               Indent(
+                                   Box::new(Line("FromTypelessPipeline::new(self._typeless.noop())".to_string()))),
                                Line("}".to_string())));
         }
         Ok(field::Slot(reg_field)) => {
@@ -960,9 +961,9 @@ fn generate_pipeline_getter(_node_map : &collections::hash_map::HashMap<u64, sch
                         Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
                                      camel_to_snake_case(name),
                                      the_mod)),
-                        Indent(box Line(
+                        Indent(Box::new(Line(
                             format!("FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
-                                    reg_field.get_offset()))),
+                                    reg_field.get_offset())))),
                         Line("}".to_string())));
                 }
                 Ok(type_::Interface(interface)) => {
@@ -971,9 +972,9 @@ fn generate_pipeline_getter(_node_map : &collections::hash_map::HashMap<u64, sch
                         Line(format!("pub fn get_{}(&self) -> {}::Client {{",
                                      camel_to_snake_case(name),
                                      the_mod)),
-                        Indent(box Line(
+                        Indent(Box::new(Line(
                             format!("FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
-                                    reg_field.get_offset()))),
+                                    reg_field.get_offset())))),
                         Line("}".to_string())));
                 }
                 _ => {
@@ -1044,7 +1045,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         Branch(vec!(
                             Line("#[inline]".to_string()),
                             Line(format!("pub fn get_{}(self) -> {} {{", styled_name, ty)),
-                            Indent(box get),
+                            Indent(Box::new(get)),
                             Line("}".to_string()))));
 
                     let (ty_b, get_b) = getter_text(node_map, scope_map, &field, false);
@@ -1053,7 +1054,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         Branch(vec!(
                             Line("#[inline]".to_string()),
                             Line(format!("pub fn get_{}(self) -> {} {{", styled_name, ty_b)),
-                            Indent(box get_b),
+                            Indent(Box::new(get_b)),
                             Line("}".to_string()))));
 
                 } else {
@@ -1108,8 +1109,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 else {
                     Branch(vec!(
                         Line("impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {".to_string()),
-                        Indent(box Branch(vec!(Line("#[inline]".to_string()),
-                                            Line("fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }".to_string())))),
+                        Indent(Box::new(
+                            Branch(vec!(Line("#[inline]".to_string()),
+                                        Line("fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }".to_string()))))),
                        Line("}".to_string())))
             };
 
@@ -1134,13 +1136,14 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Branch(vec![
                         Line("impl <'a> ::capnp::traits::FromPointerBuilder<'a> for Builder<'a> {".to_string()),
                         Indent(
-                            box Branch(vec!(
-                                Line("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size : u32) -> Builder<'a> {".to_string()),
-                                Indent(box Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))".to_string())),
-                                Line("}".to_string()),
-                                Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {".to_string()),
-                                Indent(box Line("::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))".to_string())),
-                                Line("}".to_string())))),
+                            Box::new(
+                                Branch(vec!(
+                                    Line("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size : u32) -> Builder<'a> {".to_string()),
+                                    Indent(Box::new(Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))".to_string()))),
+                                    Line("}".to_string()),
+                                    Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {".to_string()),
+                                    Indent(Box::new(Line("::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))".to_string()))),
+                                    Line("}".to_string()))))),
                         Line("}".to_string()),
                         BlankLine])
                 };
@@ -1152,107 +1155,108 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 BlankLine,
                 Branch(vec!(
                         Line("impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {".to_string()),
-                        Indent(box Branch(vec!(Line("#[inline]".to_string()),
-                        Line("fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }".to_string())))),
-                        Line("}".to_string()))),
+                        Indent(Box::new(Branch(vec!(Line("#[inline]".to_string()),
+                                               Line("fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }".to_string()))))),
+                    Line("}".to_string()))),
                 Line("impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {".to_string()),
                 Indent(
-                    box Branch(vec!(
+                    Box::new(Branch(vec!(
                         Line("fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a> {".to_string()),
-                        Indent(box Line("Reader { reader : reader }".to_string())),
-                        Line("}".to_string())))),
+                        Indent(Box::new(Line("Reader { reader : reader }".to_string()))),
+                        Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
                 Line("impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {".to_string()),
                 Indent(
-                    box Branch(vec!(
+                    Box::new(Branch(vec!(
                         Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {".to_string()),
-                        Indent(box Line("::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))".to_string())),
-                        Line("}".to_string())))),
+                        Indent(Box::new(Line("::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))".to_string()))),
+                        Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
                 Line("impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {".to_string()),
-                Indent(box Line("fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }".to_string())),
+                Indent(
+                    Box::new(Line("fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }".to_string()))),
                 Line("}".to_string()),
                 BlankLine,
 
                 Line("impl <'a> Reader<'a> {".to_string()),
                 Indent(
-                    box Branch(vec![
+                    Box::new(Branch(vec![
                         Line("pub fn borrow<'b>(&'b self) -> Reader<'b> {".to_string()),
-                        Indent(box Line("Reader { reader : self.reader}".to_string())),
+                        Indent(Box::new(Line("Reader { reader : self.reader}".to_string()))),
                         Line("}".to_string()),
                         BlankLine,
                         Line("pub fn total_size(&self) -> Result<::capnp::MessageSize> {".to_string()),
-                        Indent(box Line("self.reader.total_size()".to_string())),
-                        Line("}".to_string())])),
-                Indent(box Branch(reader_members)),
+                        Indent(Box::new(Line("self.reader.total_size()".to_string()))),
+                        Line("}".to_string())]))),
+                Indent(Box::new(Branch(reader_members))),
                 Line("}".to_string()),
                 BlankLine,
                 Line("pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }".to_string()),
                 builder_struct_size,
                 Branch(vec!(
                         Line("impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {".to_string()),
-                        Indent(box Branch(vec!(Line("#[inline]".to_string()),
-                        Line("fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }".to_string())))),
-                        Line("}".to_string()))),
+                        Indent(Box::new(Branch(vec!(Line("#[inline]".to_string()),
+                                                    Line("fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }".to_string()))))),
+                               Line("}".to_string()))),
                 Line("impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {".to_string()),
                 Indent(
-                    box Branch(vec!(
+                    Box::new(Branch(vec!(
                         Line("fn new(builder : ::capnp::private::layout::StructBuilder<'a>) -> Builder<'a> {".to_string()),
-                        Indent(box Line("Builder { builder : builder }".to_string())),
-                        Line("}".to_string())))),
+                        Indent(Box::new(Line("Builder { builder : builder }".to_string()))),
+                        Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
                 from_pointer_builder_impl,
                 Line("impl <'a> ::capnp::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {".to_string()),
-                Indent(box Line("fn set_pointer_builder<'b>(pointer : ::capnp::private::layout::PointerBuilder<'b>, value : Reader<'a>) -> Result<()> { pointer.set_struct(&value.reader) }".to_string())),
+                Indent(Box::new(Line("fn set_pointer_builder<'b>(pointer : ::capnp::private::layout::PointerBuilder<'b>, value : Reader<'a>) -> Result<()> { pointer.set_struct(&value.reader) }".to_string()))),
                 Line("}".to_string()),
                 BlankLine,
 
                 Line("impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {".to_string()),
-                Indent(box Line("fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }".to_string())),
+                Indent(Box::new(Line("fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }".to_string()))),
                 Line("}".to_string()),
                 BlankLine,
 
 
                 Line("impl <'a> Builder<'a> {".to_string()),
                 Indent(
-                    box Branch(vec![
+                    Box::new(Branch(vec![
                         Line("pub fn as_reader(self) -> Reader<'a> {".to_string()),
-                        Indent(box Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string())),
+                        Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string()))),
                         Line("}".to_string()),
                         Line("pub fn borrow<'b>(&'b mut self) -> Builder<'b> {".to_string()),
-                        Indent(box Line("Builder { builder : self.builder}".to_string())),
+                        Indent(Box::new(Line("Builder { builder : self.builder}".to_string()))),
                         Line("}".to_string()),
 
                         BlankLine,
                         Line("pub fn total_size(&self) -> Result<::capnp::MessageSize> {".to_string()),
-                        Indent(box Line("self.builder.as_reader().total_size()".to_string())),
+                        Indent(Box::new(Line("self.builder.as_reader().total_size()".to_string()))),
                         Line("}".to_string())
-                        ])),
-                Indent(box Branch(builder_members)),
+                        ]))),
+                Indent(Box::new(Branch(builder_members))),
                 Line("}".to_string()),
                 BlankLine,
                 Line("pub struct Pipeline { _typeless : ::capnp::any_pointer::Pipeline }".to_string()),
                 Line("impl FromTypelessPipeline for Pipeline {".to_string()),
                 Indent(
-                    box Branch(vec!(
+                    Box::new(Branch(vec!(
                         Line("fn new(typeless : ::capnp::any_pointer::Pipeline) -> Pipeline {".to_string()),
-                        Indent(box Line("Pipeline { _typeless : typeless }".to_string())),
-                        Line("}".to_string())))),
+                        Indent(Box::new(Line("Pipeline { _typeless : typeless }".to_string()))),
+                        Line("}".to_string()))))),
                 Line("}".to_string()),
                 Line("impl Pipeline {".to_string()),
-                Indent(box Branch(pipeline_impl_interior)),
+                Indent(Box::new(Branch(pipeline_impl_interior))),
                 Line("}".to_string()),
                 Line("mod _private {".to_string()),
-                Indent(box Branch(private_mod_interior)),
+                Indent(Box::new(Branch(private_mod_interior))),
                 Line("}".to_string()),
                 );
 
-            output.push(Indent(box Branch(vec!(Branch(accessors),
-                                            Branch(which_enums),
-                                            Branch(nested_output)))));
+            output.push(Indent(Box::new(Branch(vec!(Branch(accessors),
+                                                    Branch(which_enums),
+                                                    Branch(nested_output))))));
             output.push(Line("}".to_string()));
 
         }
@@ -1275,38 +1279,38 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("#[repr(u16)]".to_string()),
                 Line("#[derive(PartialEq, Copy)]".to_string()),
                 Line(format!("pub enum {} {{", *names.last().unwrap())),
-                Indent(box Branch(members)),
+                Indent(Box::new(Branch(members))),
                 Line("}".to_string()))));
 
             output.push(
                 Branch(vec!(
                     Line(format!("impl ::capnp::traits::FromU16 for {} {{", *names.last().unwrap())),
-                    Indent(box Line("#[inline]".to_string())),
+                    Indent(Box::new(Line("#[inline]".to_string()))),
                     Indent(
-                        box Branch(vec![
+                        Box::new(Branch(vec![
                             Line(format!(
                                 "fn from_u16(value : u16) -> ::std::result::Result<{}, ::capnp::NotInSchema> {{",
                                 *names.last().unwrap())),
                             Indent(
-                                box Branch(vec![
+                                Box::new(Branch(vec![
                                     Line("match value {".to_string()),
-                                    Indent(box Branch(match_branches)),
+                                    Indent(Box::new(Branch(match_branches))),
                                     Line("}".to_string())
-                                        ])),
-                            Line("}".to_string())])),
+                                        ]))),
+                            Line("}".to_string())]))),
                     Line("}".to_string()),
                     Line(format!("impl ::capnp::traits::ToU16 for {} {{", *names.last().unwrap())),
-                    Indent(box Line("#[inline]".to_string())),
+                    Indent(Box::new(Line("#[inline]".to_string()))),
                     Indent(
-                        box Line("fn to_u16(self) -> u16 { self as u16 }".to_string())),
+                        Box::new(Line("fn to_u16(self) -> u16 { self as u16 }".to_string()))),
                     Line("}".to_string()))));
 
             output.push(
                 Branch(vec!(
                     Line(format!("impl ::capnp::traits::HasTypeId for {} {{", *names.last().unwrap())),
-                    Indent(box Line("#[inline]".to_string())),
+                    Indent(Box::new(Line("#[inline]".to_string()))),
                     Indent(
-                        box Line(format!("fn type_id(_unused_self : Option<{}>) -> u64 {{ {:#x}u64 }}", *names.last().unwrap(), node_id).to_string())),
+                        Box::new(Line(format!("fn type_id(_unused_self : Option<{}>) -> u64 {{ {:#x}u64 }}", *names.last().unwrap(), node_id).to_string()))),
                     Line("}".to_string()))));
         }
 
@@ -1378,7 +1382,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                  camel_to_snake_case(name), params_name, results_name, results_name)));
 
                 client_impl_interior.push(Indent(
-                        box Line(format!("self.client.new_call(_private::TYPE_ID, {}, None)", ordinal))));
+                    Box::new(Line(format!("self.client.new_call(_private::TYPE_ID, {}, None)", ordinal)))));
                 client_impl_interior.push(Line("}".to_string()));
 
                 method.get_annotations().unwrap();
@@ -1408,9 +1412,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             mod_interior.push(
                 Branch(vec!(
                     Line("impl FromClientHook for Client {".to_string()),
-                    Indent(box Line("fn new(hook : Box<ClientHook+Send>) -> Client {".to_string())),
-                    Indent(box Indent(box Line("Client { client : ::capnp::private::capability::Client::new(hook) }".to_string()))),
-                    Indent(box Line("}".to_string())),
+                    Indent(Box::new(Line("fn new(hook : Box<ClientHook+Send>) -> Client {".to_string()))),
+                    Indent(Box::new(Indent(Box::new(Line("Client { client : ::capnp::private::capability::Client::new(hook) }".to_string()))))),
+                    Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
 
 
@@ -1418,72 +1422,72 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Branch(vec!(
                     Line("pub struct ToClient<U>(pub U);".to_string()),
                     Line("impl <T:ServerHook, U : Server + Send + 'static> FromServer<T, Client> for ToClient<U> {".to_string()),
-                    Indent(box Branch( vec!(
+                    Indent(Box::new(Branch( vec!(
                         Line("fn from_server(self, _hook : Option<T>) -> Client {".to_string()),
                         Indent(
-                            box Line("Client { client : ServerHook::new_client(None::<T>, ::std::boxed::Box::new(ServerDispatch { server : ::std::boxed::Box::new(self.0)}))}".to_string())),
-                        Line("}".to_string())))),
+                            Box::new(Line("Client { client : ServerHook::new_client(None::<T>, ::std::boxed::Box::new(ServerDispatch { server : ::std::boxed::Box::new(self.0)}))}".to_string()))),
+                        Line("}".to_string()))))),
                     Line("}".to_string()))));
 
 
             mod_interior.push(
                     Branch(vec!(
                         Line("impl ::capnp::traits::HasTypeId for Client {".to_string()),
-                        Indent(box Line("#[inline]".to_string())),
-                        Indent(box Line("fn type_id(_unused_self : Option<Client>) -> u64 { _private::TYPE_ID }".to_string())),
+                        Indent(Box::new(Line("#[inline]".to_string()))),
+                        Indent(Box::new(Line("fn type_id(_unused_self : Option<Client>) -> u64 { _private::TYPE_ID }".to_string()))),
                         Line("}".to_string()))));
 
 
             mod_interior.push(
                     Branch(vec!(
                         Line("impl Clone for Client {".to_string()),
-                        Indent(box Line("fn clone(&self) -> Client {".to_string())),
-                        Indent(box Indent(box Line("Client { client : ::capnp::private::capability::Client::new(self.client.hook.copy()) }".to_string()))),
-                        Indent(box Line("}".to_string())),
+                        Indent(Box::new(Line("fn clone(&self) -> Client {".to_string()))),
+                        Indent(Box::new(Indent(Box::new(Line("Client { client : ::capnp::private::capability::Client::new(self.client.hook.copy()) }".to_string()))))),
+                        Indent(Box::new(Line("}".to_string()))),
                         Line("}".to_string()))));
 
 
             mod_interior.push(
                 Branch(vec!(Line("impl Client {".to_string()),
-                            Indent(box Branch(client_impl_interior)),
+                            Indent(Box::new(Branch(client_impl_interior))),
                             Line("}".to_string()))));
 
             mod_interior.push(Branch(vec!(Line(format!("pub trait Server {} {{", server_base)),
-                                          Indent(box Branch(server_interior)),
+                                          Indent(Box::new(Branch(server_interior))),
                                           Line("}".to_string()))));
 
             mod_interior.push(Branch(vec!(Line("pub struct ServerDispatch<T> {".to_string()),
-                                          Indent(box Line("pub server : Box<T>,".to_string())),
+                                          Indent(Box::new(Line("pub server : Box<T>,".to_string()))),
                                           Line("}".to_string()))));
 
             mod_interior.push(
                 Branch(vec!(
                     Line("impl <T : Server> ::capnp::capability::Server for ServerDispatch<T> {".to_string()),
-                    Indent(box Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string())),
-                    Indent(box Indent(box Line("match interface_id {".to_string()))),
-                    Indent(box Indent(box Indent(
-                        box Line("_private::TYPE_ID => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),".to_string())))),
-                    Indent(box Indent(box Indent(box Branch(base_dispatch_arms)))),
-                    Indent(box Indent(box Indent(box Line("_ => {}".to_string())))),
-                    Indent(box Indent(box Line("}".to_string()))),
-                    Indent(box Line("}".to_string())),
+                    Indent(Box::new(Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string()))),
+                    Indent(Box::new(Indent(Box::new(Line("match interface_id {".to_string()))))),
+                    Indent(Box::new(Indent(Box::new(Indent(
+                        Box::new(Line("_private::TYPE_ID => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),".to_string()))))))),
+                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(base_dispatch_arms))))))),
+                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => {}".to_string()))))))),
+                    Indent(Box::new(Indent(Box::new(Line("}".to_string()))))),
+                    Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
 
             mod_interior.push(
                 Branch(vec!(
                     Line("impl <T : Server> ServerDispatch<T> {".to_string()),
-                    Indent(box Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string())),
-                    Indent(box Indent(box Line("match method_id {".to_string()))),
-                    Indent(box Indent(box Indent(box Branch(dispatch_arms)))),
-                    Indent(box Indent(box Indent(box Line("_ => {}".to_string())))),
-                    Indent(box Indent(box Line("}".to_string()))),
-                    Indent(box Line("}".to_string())),
+                    Indent(Box::new(Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string()))),
+                    Indent(Box::new(Indent(Box::new(Line("match method_id {".to_string()))))),
+                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(dispatch_arms))))))),
+                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => {}".to_string()))))))),
+                    Indent(Box::new(Indent(Box::new(Line("}".to_string()))))),
+                    Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
 
             mod_interior.push(
                 Branch(vec!(
                     Line("pub mod _private {".to_string()),
-                    Indent(box Branch(private_mod_interior)),
+                    Indent(Box::new(Branch(private_mod_interior))),
                     Line("}".to_string()),
                     )));
 
@@ -1493,7 +1497,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} {{", *names.last().unwrap())));
-            output.push(Indent(box Branch(mod_interior)));
+            output.push(Indent(Box::new(Branch(mod_interior))));
             output.push(Line("}".to_string()));
         }
 
