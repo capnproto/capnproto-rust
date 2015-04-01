@@ -229,22 +229,10 @@ pub struct BuilderArena {
     pub more_segments : Vec<Box<SegmentBuilder>>,
     pub for_output : Vec<&'static[Word]>,
     pub allocation_strategy : message::AllocationStrategy,
-    pub owned_memory : Vec<(*mut Word, usize)>,
+    pub owned_memory : Vec<Vec<Word>>,
     pub next_size : u32,
     pub cap_table : Vec<Option<Box<ClientHook+Send>>>,
     pub dummy_limiter : ::std::rc::Rc<ReadLimiter>,
-}
-
-impl Drop for BuilderArena {
-    fn drop(&mut self) {
-        for &(ptr, size) in self.owned_memory.iter() {
-            unsafe {
-                ::std::rt::heap::deallocate(::std::mem::transmute(ptr),
-                                            BYTES_PER_WORD * size,
-                                            BYTES_PER_WORD);
-            }
-        }
-    }
 }
 
 pub enum FirstSegment<'a> {
@@ -258,18 +246,15 @@ impl BuilderArena {
                first_segment : FirstSegment) -> Box<BuilderArena> {
         let limiter = ::std::rc::Rc::new(ReadLimiter::new(<u64 as ::std::num::Int>::max_value()));
 
-        let (first_segment, num_words, owned_memory) : (*mut Word, u32, Vec<(*mut Word, usize)>) = unsafe {
+        let (first_segment, num_words, owned_memory) : (*mut Word, u32, Vec<Vec<Word>>) =
             match first_segment {
                 NumWords(n) => {
-                    let ptr : *mut Word = ::std::mem::transmute(
-                        ::std::rt::heap::allocate(BYTES_PER_WORD * n as usize,
-                                                  ::std::mem::min_align_of::<Word>()));
-                    if ptr.is_null() {panic!("could not allocate segment")}
-                    ::std::ptr::write_bytes(ptr, 0, n as usize);
-                    (ptr, n, vec![(ptr, n as usize)])
+                    let mut vec = Word::allocate_zeroed_vec(n as usize);
+                    let ptr : *mut Word = vec.as_mut_ptr();
+                    (ptr, n, vec![vec])
                 }
                 ZeroedWords(w) => (w.as_mut_ptr(), w.len() as u32, Vec::new())
-            }};
+            };
 
 
         let mut result = Box::new(BuilderArena {
@@ -300,21 +285,17 @@ impl BuilderArena {
 
     pub fn allocate_owned_memory(&mut self, minimum_size : WordCount32) -> (*mut Word, WordCount32) {
         let size = ::std::cmp::max(minimum_size, self.next_size);
-        let new_words : *mut Word = unsafe {
-            ::std::mem::transmute(::std::rt::heap::allocate(BYTES_PER_WORD * size as usize,
-                                                            ::std::mem::min_align_of::<Word>())) };
-        if new_words.is_null() { panic!("could not allocate a new segment.") }
-        unsafe { ::std::ptr::write_bytes(new_words, 0, size as usize) };
+        let mut new_words = Word::allocate_zeroed_vec(size as usize);
+        let ptr = new_words.as_mut_ptr();
 
-        self.owned_memory.push((new_words, size as usize));
+        self.owned_memory.push(new_words);
 
         match self.allocation_strategy {
             message::AllocationStrategy::GrowHeuristically => { self.next_size += size; }
             _ => { }
         }
-        (new_words, size)
+        (ptr, size)
     }
-
 
     #[inline]
     pub fn allocate(&mut self, amount : WordCount32) -> (*mut SegmentBuilder, *mut Word) {
