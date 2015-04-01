@@ -29,8 +29,6 @@ pub struct PowerFunction;
 
 impl calculator::function::Server for PowerFunction {
     fn call(&mut self, mut context : calculator::function::CallContext) {
-        use std::num::Float;
-
         let (params, mut results) = context.get();
         let params = params.get_params().unwrap();
         if params.len() != 2 {
