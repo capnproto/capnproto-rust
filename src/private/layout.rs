@@ -742,7 +742,7 @@ mod wire_helpers {
         if (*src).is_null() {
             ::std::ptr::write_bytes(dst, 0, 1);
         } else if (*src).kind() == WirePointerKind::Far {
-            ::std::ptr::copy_nonoverlapping(dst, src, 1);
+            ::std::ptr::copy_nonoverlapping(src, dst, 1);
         } else {
             transfer_pointer_split(dst_segment, dst, src_segment, src, (*src).mut_target());
         }
@@ -847,7 +847,7 @@ mod wire_helpers {
 
             // Copy data section.
             // Note: copy_nonoverlapping's third argument is an element count, not a byte count.
-            ::std::ptr::copy_nonoverlapping(ptr, old_ptr, old_data_size as usize);
+            ::std::ptr::copy_nonoverlapping(old_ptr, ptr, old_data_size as usize);
 
             //# Copy pointer section.
             let new_pointer_section : *mut WirePointer =
@@ -1219,8 +1219,8 @@ mod wire_helpers {
                 return Ok(data::new_builder(::std::ptr::null_mut(), 0));
             } else {
                 let builder = init_data_pointer(reff, segment, default_size).value;
-                ::std::ptr::copy_nonoverlapping::<u8>(builder.as_mut_ptr(),
-                                                      ::std::mem::transmute(default_value),
+                ::std::ptr::copy_nonoverlapping::<u8>(::std::mem::transmute(default_value),
+                                                      builder.as_mut_ptr(),
                                                       default_size as usize);
                 return Ok(builder);
             }
@@ -1252,7 +1252,7 @@ mod wire_helpers {
         if value.data_size == 1 {
             *::std::mem::transmute::<*mut Word, *mut u8>(ptr) = value.get_bool_field(0) as u8
         } else {
-            ::std::ptr::copy_nonoverlapping::<Word>(ptr, ::std::mem::transmute(value.data),
+            ::std::ptr::copy_nonoverlapping::<Word>(::std::mem::transmute(value.data), ptr,
                                                     value.data_size as usize / BITS_PER_WORD);
         }
 
