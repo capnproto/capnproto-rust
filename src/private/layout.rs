@@ -759,8 +759,7 @@ mod wire_helpers {
             (*dst).set_kind_and_target((*src_tag).kind(), src_ptr, dst_segment);
 
             //# We can just copy the upper 32 bits. (Use memcpy() to comply with aliasing rules.)
-            ::std::ptr::copy_nonoverlapping(&mut (*dst).upper32bits,
-                                            &(*src_tag).upper32bits, 1);
+            ::std::ptr::copy_nonoverlapping(&(*src_tag).upper32bits, &mut (*dst).upper32bits, 1);
         } else {
             // Need to create a far pointer. Try to allocate it in the same segment as the source,
             // so that it doesn't need to be a double-far.
@@ -774,8 +773,8 @@ mod wire_helpers {
                     //# Simple landing pad is just a pointer.
                     let landing_pad : *mut WirePointer = ::std::mem::transmute(landing_pad_word);
                     (*landing_pad).set_kind_and_target((*src_tag).kind(), src_ptr, src_segment);
-                    ::std::ptr::copy_nonoverlapping(&mut (*landing_pad).upper32bits,
-                                                    &(*src_tag).upper32bits, 1);
+                    ::std::ptr::copy_nonoverlapping(&(*src_tag).upper32bits,
+                                                    &mut (*landing_pad).upper32bits, 1);
 
                     (*dst).set_far(false, (*src_segment).get_word_offset_to(landing_pad_word));
                     (*dst).mut_far_ref().set((*src_segment).get_segment_id());
@@ -1205,7 +1204,7 @@ mod wire_helpers {
                                        segment : *mut SegmentBuilder,
                                        value : &[u8]) -> SegmentAnd<data::Builder<'a>> {
         let allocation = init_data_pointer(reff, segment, value.len() as u32);
-        ::std::ptr::copy_nonoverlapping(allocation.value.as_mut_ptr(), value.as_ptr(),
+        ::std::ptr::copy_nonoverlapping(value.as_ptr(), allocation.value.as_mut_ptr(),
                                         value.len());
         return allocation;
     }
@@ -1303,7 +1302,8 @@ mod wire_helpers {
                 };
 
                 (*reff).mut_list_ref().set(element_size, value.element_count);
-                ::std::ptr::copy_nonoverlapping(ptr, ::std::mem::transmute::<*const u8,*const Word>(value.ptr),
+                ::std::ptr::copy_nonoverlapping(::std::mem::transmute::<*const u8,*const Word>(value.ptr),
+                                                ptr,
                                                 total_size as usize);
             }
 
@@ -1323,7 +1323,7 @@ mod wire_helpers {
 
             let mut src : *const Word = ::std::mem::transmute(value.ptr);
             for _ in 0.. value.element_count {
-                ::std::ptr::copy_nonoverlapping(dst, src,
+                ::std::ptr::copy_nonoverlapping(src, dst,
                                                 value.struct_data_size as usize / BITS_PER_WORD);
                 dst = dst.offset(data_size as isize);
                 src = src.offset(data_size as isize);

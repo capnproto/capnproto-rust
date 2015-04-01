@@ -171,12 +171,12 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
                     let in_remaining = ptr_sub(in_end, in_ptr);
                     if in_remaining >= run_length {
                         //# Fast path.
-                        ::std::ptr::copy_nonoverlapping(out, in_ptr, run_length);
+                        ::std::ptr::copy_nonoverlapping(in_ptr, out, run_length);
                         out = out.offset(run_length as isize);
                         in_ptr = in_ptr.offset(run_length as isize);
                     } else {
                         //# Copy over the first buffer, then do one big read for the rest.
-                        ::std::ptr::copy_nonoverlapping(out, in_ptr, in_remaining);
+                        ::std::ptr::copy_nonoverlapping(in_ptr, out, in_remaining);
                         out = out.offset(in_remaining as isize);
                         run_length -= in_remaining;
 
@@ -365,7 +365,7 @@ impl <'a, W : BufferedOutputStream> OutputStream for PackedOutputStream<'a, W> {
                         //# There's enough space to memcpy.
 
                         let src : *const u8 = run_start;
-                        ::std::ptr::copy_nonoverlapping(out, src, count);
+                        ::std::ptr::copy_nonoverlapping(src, out, count);
 
                         out = out.offset(count as isize);
                     } else {
