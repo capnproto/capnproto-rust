@@ -1155,7 +1155,7 @@ mod wire_helpers {
                                                 default_size : ByteCount32) -> Result<text::Builder<'a>> {
         if (*reff).is_null() {
             if default_size == 0 {
-                return Ok(try!(text::Builder::new(::std::slice::from_raw_parts_mut(::std::ptr::null_mut(), 0), 0)));
+                return text::Builder::new(::std::slice::from_raw_parts_mut(::std::ptr::null_mut(), 0), 0);
             } else {
                 let _builder = init_text_pointer(reff, segment, default_size).value;
                 unimplemented!()
@@ -1181,7 +1181,7 @@ mod wire_helpers {
         }
 
         // Subtract 1 from the size for the NUL terminator.
-        Ok(try!(text::Builder::new(::std::slice::from_raw_parts_mut(cptr, (count - 1) as usize), count - 1)))
+        return text::Builder::new(::std::slice::from_raw_parts_mut(cptr, (count - 1) as usize), count - 1);
     }
 
     #[inline]
@@ -1692,8 +1692,8 @@ mod wire_helpers {
                                         default_size : ByteCount32) -> Result<text::Reader<'a>> {
         if (*reff).is_null() {
             //   TODO?       if default_value.is_null() { default_value = &"" }
-            return Ok(try!(text::new_reader(
-                ::std::slice::from_raw_parts(::std::mem::transmute(default_value), default_size as usize))));
+            return text::new_reader(
+                ::std::slice::from_raw_parts(::std::mem::transmute(default_value), default_size as usize));
         }
 
         let ref_target = (*reff).target();

@@ -21,12 +21,16 @@
 
 //! UTF-8 encoded text.
 
-use {Result};
+use {Error, Result};
 
 pub type Reader<'a> = &'a str;
 
-pub fn new_reader<'a>(v : &'a [u8]) -> ::std::result::Result<Reader<'a>, ::std::str::Utf8Error> {
-    ::std::str::from_utf8(v)
+pub fn new_reader<'a>(v : &'a [u8]) -> Result<Reader<'a>> {
+    match ::std::str::from_utf8(v) {
+        Ok(v) => return Ok(v),
+        Err(e) => return Err(Error::new_decode_error(
+            "Text contains non-utf8 data.", Some(format!("{:?}", e)))),
+    }
 }
 
 impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
@@ -42,10 +46,11 @@ pub struct Builder<'a> {
 
 impl <'a> Builder <'a> {
 
-    pub fn new<'b>(bytes : &'b mut [u8], pos : u32) -> ::std::result::Result<Builder<'b>, ::std::str::Utf8Error> {
+    pub fn new<'b>(bytes : &'b mut [u8], pos : u32) -> Result<Builder<'b>> {
         if pos != 0 {
             match ::std::str::from_utf8(bytes) {
-                Err(e) => return Err(e),
+                Err(e) => return Err(Error::new_decode_error(
+                    "Text contains non-utf8 data.", Some(format!("{:?}", e)))),
                 _ => {}
             }
         }

@@ -158,13 +158,6 @@ impl ::std::convert::From<NotInSchema> for Error {
     }
 }
 
-impl ::std::convert::From<::std::str::Utf8Error> for Error {
-    fn from(err : ::std::str::Utf8Error) -> Error {
-        Error::new_decode_error("Text contains non-utf8 data.",
-                                Some(format!("{:?}", err)))
-    }
-}
-
 impl ::std::fmt::Display for Error {
     fn fmt(&self, fmt : &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
         match *self {
