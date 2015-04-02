@@ -244,7 +244,7 @@ impl BuilderArena {
 
     pub fn new(allocation_strategy : message::AllocationStrategy,
                first_segment : FirstSegment) -> Box<BuilderArena> {
-        let limiter = ::std::rc::Rc::new(ReadLimiter::new(<u64 as ::std::num::Int>::max_value()));
+        let limiter = ::std::rc::Rc::new(ReadLimiter::new(::std::u64::MAX));
 
         let (first_segment, num_words, owned_memory) : (*mut Word, u32, Vec<Vec<Word>>) =
             match first_segment {
@@ -343,7 +343,7 @@ impl BuilderArena {
         unsafe {
             if self.more_segments.len() == 0 {
                 self.segment0_for_output = ::std::mem::transmute(self.segment0.currently_allocated());
-                ::std::slice::ref_slice(&self.segment0_for_output)
+                ::std::slice::from_raw_parts(&self.segment0_for_output, 1)
             } else {
                 self.for_output = Vec::new();
                 self.for_output.push(::std::slice::from_raw_parts(self.segment0.reader.ptr,
