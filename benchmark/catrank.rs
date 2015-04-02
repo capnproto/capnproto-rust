@@ -63,7 +63,7 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
             good_count += 1;
         }
 
-        let mut snippet = String::from_str(" ");
+        let mut snippet = " ".to_string();
 
         let prefix = rng.next_less_than(20) as usize;
         for _ in 0..prefix {

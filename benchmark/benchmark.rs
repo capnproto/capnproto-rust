@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 
 #![crate_type = "bin"]
-#![feature(collections, exit_status)]
 
 extern crate capnp;
 extern crate fdstream;
@@ -321,18 +320,14 @@ macro_rules! do_testcase2(
 pub fn main() {
     let args : Vec<String> = ::std::env::args().collect();
 
-    if args.len() != 6 {
-        println!("USAGE: {} CASE MODE REUSE COMPRESSION ITERATION_COUNT", args[0]);
-        ::std::env::set_exit_status(1);
-        return;
-    }
+    assert!(args.len() == 6,
+            "USAGE: {} CASE MODE REUSE COMPRESSION ITERATION_COUNT",
+            args[0]);
 
     let iters = match args[5].parse::<u64>() {
         Ok(n) => n,
         Err(_) => {
-            println!("Could not parse a u64 from: {}", args[5]);
-            ::std::env::set_exit_status(1);
-            return;
+            panic!("Could not parse a u64 from: {}", args[5]);
         }
     };
 
