@@ -355,20 +355,20 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                                                 member, offset)))
                     }
                 }
-                Ok((type_::Int8(()), value::Int8(i))) => return common_case("i8", member, offset, i),
-                Ok((type_::Int16(()), value::Int16(i))) => return common_case("i16", member, offset, i),
-                Ok((type_::Int32(()), value::Int32(i))) => return common_case("i32", member, offset, i),
-                Ok((type_::Int64(()), value::Int64(i))) => return common_case("i64", member, offset, i),
-                Ok((type_::Uint8(()), value::Uint8(i))) => return common_case("u8", member, offset, i),
-                Ok((type_::Uint16(()), value::Uint16(i))) => return common_case("u16", member, offset, i),
-                Ok((type_::Uint32(()), value::Uint32(i))) => return common_case("u32", member, offset, i),
-                Ok((type_::Uint64(()), value::Uint64(i))) => return common_case("u64", member, offset, i),
+                Ok((type_::Int8(()), value::Int8(i))) => return common_case("i8", member, offset, i, 0),
+                Ok((type_::Int16(()), value::Int16(i))) => return common_case("i16", member, offset, i, 0),
+                Ok((type_::Int32(()), value::Int32(i))) => return common_case("i32", member, offset, i, 0),
+                Ok((type_::Int64(()), value::Int64(i))) => return common_case("i64", member, offset, i, 0),
+                Ok((type_::Uint8(()), value::Uint8(i))) => return common_case("u8", member, offset, i, 0),
+                Ok((type_::Uint16(()), value::Uint16(i))) => return common_case("u16", member, offset, i, 0),
+                Ok((type_::Uint32(()), value::Uint32(i))) => return common_case("u32", member, offset, i, 0),
+                Ok((type_::Uint64(()), value::Uint64(i))) => return common_case("u64", member, offset, i, 0),
                 Ok((type_::Float32(()), value::Float32(f))) =>
                     return common_case("f32", member, offset,
-                                       unsafe { ::std::mem::transmute::<f32, u32>(f) }),
+                                       unsafe { ::std::mem::transmute::<f32, u32>(f) }, 0),
                 Ok((type_::Float64(()), value::Float64(f))) =>
                     return common_case("f64", member, offset,
-                                       unsafe { ::std::mem::transmute::<f64, u64>(f) }),
+                                       unsafe { ::std::mem::transmute::<f64, u64>(f) }, 0),
                 Ok((type_::Text(()), _)) => {
                     return (format!("Result<text::{}>", module_with_var),
                             Line(format!("self.{}.get_pointer_field({}).get_text(::std::ptr::null(), 0)",
@@ -475,10 +475,10 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
         }
     }
 
-    fn common_case<T: ::std::num::FromPrimitive + PartialEq + ::std::fmt::Display>(
+    fn common_case<T: PartialEq + ::std::fmt::Display>(
         typ: &str, member : &str,
-        offset: usize, default : T) -> (String, FormattedText) {
-        let interior = if default == ::std::num::FromPrimitive::from_u8(0).unwrap() {
+        offset: usize, default : T, zero : T) -> (String, FormattedText) {
+        let interior = if default == zero {
             Line(format!("self.{}.get_data_field::<{}>({})",
                          member, typ, offset))
         } else {
