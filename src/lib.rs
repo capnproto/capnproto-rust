@@ -21,8 +21,6 @@
 
 #![crate_type="lib"]
 
-#![feature(box_syntax)]
-
 extern crate capnp;
 
 pub mod rpc_capnp {

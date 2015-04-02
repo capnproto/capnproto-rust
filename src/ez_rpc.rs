@@ -56,7 +56,7 @@ impl EzRpcClient {
         let connection_state = RpcConnectionState::new();
 
         let empty_cap = Box::new(EmptyCap);
-        let bootstrap = box LocalClient::new(empty_cap);
+        let bootstrap = Box::new(LocalClient::new(empty_cap));
 
         let chan = connection_state.run(try!(tcp.try_clone()),
                                         try!(tcp.try_clone()),
@@ -67,7 +67,7 @@ impl EzRpcClient {
     }
 
     pub fn get_main<T : FromClientHook>(&mut self) -> T {
-        let mut message = box MallocMessageBuilder::new_default();
+        let mut message = Box::new(MallocMessageBuilder::new_default());
         {
             message.init_root::<message::Builder>().init_bootstrap();
         }
@@ -106,7 +106,7 @@ impl EzRpcServer {
     pub fn serve<'a>(self, bootstrap_interface : Box<Server + Send>) -> ::std::thread::JoinGuard<'a, ()> {
         ::std::thread::scoped(move || {
             let server = self;
-            let bootstrap_interface = box LocalClient::new(bootstrap_interface);
+            let bootstrap_interface = Box::new(LocalClient::new(bootstrap_interface));
             for stream_result in server.tcp_listener.incoming() {
                 let bootstrap_interface = bootstrap_interface.copy();
                 let tcp = stream_result.unwrap();

@@ -270,9 +270,9 @@ fn client_hooks_of_payload(payload : payload::Reader,
             }
             Ok(cap_descriptor::SenderHosted(id)) => {
                 let tmp : Box<ClientHook+Send> =
-                    box ImportClient {
+                    Box::new(ImportClient {
                         channel : rpc_chan.clone(),
-                        import_id : id};
+                        import_id : id});
                 result.push(Some(tmp));
             }
             Ok(cap_descriptor::SenderPromise(_id)) => {
@@ -284,12 +284,12 @@ fn client_hooks_of_payload(payload : payload::Reader,
             }
             Ok(cap_descriptor::ReceiverAnswer(Ok(promised_answer))) => {
                 result.push(Some(
-                        box PromisedAnswerClient {
+                        Box::new(PromisedAnswerClient {
                             rpc_chan : rpc_chan.clone(),
                             ops : get_pipeline_ops(promised_answer),
                             answer_ref : answers.slots[&promised_answer.get_question_id()]
                                 .answer_ref.clone(),
-                        }));
+                        })));
             }
             Ok(cap_descriptor::ThirdPartyHosted(_)) => {
                 panic!()
@@ -353,7 +353,7 @@ fn finish_question<W : ::capnp::io::OutputStream>(questions : &mut ExportTable<Q
                                                   id : u32) {
     questions.erase(id);
 
-    let mut finish_message = box MallocMessageBuilder::new_default();
+    let mut finish_message = Box::new(MallocMessageBuilder::new_default());
     {
         let root : message::Builder = finish_message.init_root();
         let mut finish = root.init_finish();
@@ -393,7 +393,7 @@ impl RpcConnectionState {
                         opts) {
                         Err(_e) => { listener_chan.send(RpcEvent::Shutdown).is_ok(); break; }
                         Ok(message) => {
-                            listener_chan.send(RpcEvent::IncomingMessage(box message)).is_ok();
+                            listener_chan.send(RpcEvent::IncomingMessage(Box::new(message))).is_ok();
                         }
                     }
                 }
@@ -474,7 +474,7 @@ impl RpcConnectionState {
                                 let idx = exports.push(Export::new(bootstrap_interface.copy()));
 
                                 let answer_id = restore.get_question_id();
-                                let mut message = box MallocMessageBuilder::new_default();
+                                let mut message = Box::new(MallocMessageBuilder::new_default());
                                 {
                                     let root : message::Builder = message.init_root();
                                     let mut ret = root.init_return();
@@ -525,7 +525,7 @@ impl RpcConnectionState {
                             MessageReceiver::Question(id) => {
                                 let erase_it = match &mut questions.slots[id as usize] {
                                     &mut Some(ref mut q) => {
-                                        q.chan.send(box RpcResponse::new(message)).is_ok();
+                                        q.chan.send(Box::new(RpcResponse::new(message))).is_ok();
                                         q.is_awaiting_return = false;
                                         match q.ref_counter.try_recv() {
                                             Err(::std::sync::mpsc::TryRecvError::Disconnected) => {
@@ -545,7 +545,7 @@ impl RpcConnectionState {
                             }
                             MessageReceiver::Export(id) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(&*message);
-                                let context = box RpcCallContext::new(message, rpc_chan.clone());
+                                let context = Box::new(RpcCallContext::new(message, rpc_chan.clone()));
 
                                 answers.slots.insert(answer_id, Answer::new());
                                 match exports.slots[id as usize] {
@@ -560,7 +560,7 @@ impl RpcConnectionState {
                             }
                             MessageReceiver::PromisedAnswer(id, ops) => {
                                 let (answer_id, interface_id, method_id) = get_call_ids(&*message);
-                                let context = box RpcCallContext::new(message, rpc_chan.clone());
+                                let context = Box::new(RpcCallContext::new(message, rpc_chan.clone()));
 
                                 answers.slots.insert(answer_id, Answer::new());
                                 answers.slots.get_mut(&id).unwrap().answer_ref
@@ -661,14 +661,14 @@ pub struct ImportClient {
 
 impl ClientHook for ImportClient {
     fn copy(&self) -> Box<ClientHook+Send> {
-        box ImportClient {channel : self.channel.clone(),
-                          import_id : self.import_id}
+        Box::new(ImportClient {channel : self.channel.clone(),
+                               import_id : self.import_id})
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<::capnp::MessageSize>)
                 -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
-        let mut message = box MallocMessageBuilder::new(BuilderOptions::new());
+        let mut message = Box::new(MallocMessageBuilder::new(BuilderOptions::new()));
         {
             let root : message::Builder = message.get_root().unwrap();
             let mut call = root.init_call();
@@ -677,9 +677,9 @@ impl ClientHook for ImportClient {
             let mut target = call.init_target();
             target.set_imported_cap(self.import_id);
         }
-        let hook = box RpcRequest { channel : self.channel.clone(),
-                                    message : message,
-                                    question_ref : None};
+        let hook = Box::new(RpcRequest { channel : self.channel.clone(),
+                                         message : message,
+                                         question_ref : None});
         Request::new(hook)
     }
 
@@ -688,7 +688,7 @@ impl ClientHook for ImportClient {
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
-        box OwnedCapDescriptor::ReceiverHosted(self.import_id)
+        Box::new(OwnedCapDescriptor::ReceiverHosted(self.import_id))
     }
 }
 
@@ -700,16 +700,16 @@ pub struct PipelineClient {
 
 impl ClientHook for PipelineClient {
     fn copy(&self) -> Box<ClientHook+Send> {
-        box PipelineClient { channel : self.channel.clone(),
-                             ops : self.ops.clone(),
-                             question_ref : self.question_ref.clone(),
-        }
+        Box::new(PipelineClient { channel : self.channel.clone(),
+                                  ops : self.ops.clone(),
+                                  question_ref : self.question_ref.clone(),
+        })
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<::capnp::MessageSize>)
                 -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
-        let mut message = box MallocMessageBuilder::new(BuilderOptions::new());
+        let mut message = Box::new(MallocMessageBuilder::new(BuilderOptions::new()));
         {
             let root : message::Builder = message.get_root().unwrap();
             let mut call = root.init_call();
@@ -726,9 +726,9 @@ impl ClientHook for PipelineClient {
                 }
             }
         }
-        let hook = box RpcRequest { channel : self.channel.clone(),
-                                    message : message,
-                                    question_ref : Some(self.question_ref.clone())};
+        let hook = Box::new(RpcRequest { channel : self.channel.clone(),
+                                         message : message,
+                                         question_ref : Some(self.question_ref.clone())});
         Request::new(hook)
     }
 
@@ -737,7 +737,7 @@ impl ClientHook for PipelineClient {
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
-        box OwnedCapDescriptor::ReceiverAnswer(self.question_ref.id, self.ops.clone())
+        Box::new(OwnedCapDescriptor::ReceiverAnswer(self.question_ref.id, self.ops.clone()))
     }
 }
 
@@ -749,16 +749,16 @@ pub struct PromisedAnswerClient {
 
 impl ClientHook for PromisedAnswerClient {
     fn copy(&self) -> Box<ClientHook+Send> {
-        box PromisedAnswerClient { rpc_chan : self.rpc_chan.clone(),
+        Box::new(PromisedAnswerClient { rpc_chan : self.rpc_chan.clone(),
                                    ops : self.ops.clone(),
                                    answer_ref : self.answer_ref.clone(),
-        }
+        })
     }
 
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<::capnp::MessageSize>)
                 -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
-        let mut message = box MallocMessageBuilder::new(BuilderOptions::new());
+        let mut message = Box::new(MallocMessageBuilder::new(BuilderOptions::new()));
         {
             let root : message::Builder = message.get_root().unwrap();
             let mut call = root.init_call();
@@ -766,10 +766,10 @@ impl ClientHook for PromisedAnswerClient {
             call.set_method_id(method_id);
         }
 
-        let hook = box PromisedAnswerRpcRequest { rpc_chan : self.rpc_chan.clone(),
-                                                  message : message,
-                                                  answer_ref : self.answer_ref.clone(),
-                                                  ops : self.ops.clone() };
+        let hook = Box::new(PromisedAnswerRpcRequest { rpc_chan : self.rpc_chan.clone(),
+                                                       message : message,
+                                                       answer_ref : self.answer_ref.clone(),
+                                                       ops : self.ops.clone() });
         Request::new(hook)
     }
 
@@ -887,7 +887,7 @@ impl RequestHook for RpcRequest {
 
         let question_ref = question_port.recv().unwrap();
 
-        let pipeline = box RpcPipeline {channel : channel, question_ref : question_ref};
+        let pipeline = Box::new(RpcPipeline {channel : channel, question_ref : question_ref});
         let typeless = any_pointer::Pipeline::new(pipeline);
 
         ResultFuture {answer_port : answer_port, answer_result : Err(()) /* XXX */,
@@ -921,11 +921,11 @@ impl RequestHook for PromisedAnswerRpcRequest {
         };
 
         let context : Box<CallContextHook+Send> =
-            box PromisedAnswerRpcCallContext::new(message, rpc_chan.clone(), answer_tx);
+            Box::new(PromisedAnswerRpcCallContext::new(message, rpc_chan.clone(), answer_tx));
 
         answer_ref.receive(interface_id, method_id, ops, context);
 
-        let pipeline = box PromisedAnswerRpcPipeline;
+        let pipeline = Box::new(PromisedAnswerRpcPipeline);
         let typeless = any_pointer::Pipeline::new(pipeline);
 
         ResultFuture {answer_port : answer_rx, answer_result : Err(()) /* XXX */,
@@ -941,14 +941,14 @@ pub struct RpcPipeline {
 
 impl PipelineHook for RpcPipeline {
     fn copy(&self) -> Box<PipelineHook+Send> {
-        box RpcPipeline { channel : self.channel.clone(),
-                          question_ref : self.question_ref.clone() }
+        Box::new(RpcPipeline { channel : self.channel.clone(),
+                               question_ref : self.question_ref.clone() })
     }
     fn get_pipelined_cap(&self, ops : Vec<PipelineOp>) -> Box<ClientHook+Send> {
-        box PipelineClient { channel : self.channel.clone(),
+        Box::new(PipelineClient { channel : self.channel.clone(),
                            ops : ops,
                            question_ref : self.question_ref.clone(),
-        }
+        })
     }
 }
 
@@ -957,7 +957,7 @@ pub struct PromisedAnswerRpcPipeline;
 
 impl PipelineHook for PromisedAnswerRpcPipeline {
     fn copy(&self) -> Box<PipelineHook+Send> {
-        box PromisedAnswerRpcPipeline
+        Box::new(PromisedAnswerRpcPipeline)
     }
     fn get_pipelined_cap(&self, _ops : Vec<PipelineOp>) -> Box<ClientHook+Send> {
         panic!()
@@ -974,7 +974,7 @@ pub struct Aborter {
 impl Drop for Aborter {
     fn drop(&mut self) {
         if !self.succeeded {
-            let mut results_message = box MallocMessageBuilder::new_default();
+            let mut results_message = Box::new(MallocMessageBuilder::new_default());
             {
                 let root : message::Builder = results_message.init_root();
                 let mut ret = root.init_return();
@@ -1006,7 +1006,7 @@ impl RpcCallContext {
                 _ => panic!(),
             }
         };
-        let mut results_message = box MallocMessageBuilder::new(BuilderOptions::new());
+        let mut results_message = Box::new(MallocMessageBuilder::new(BuilderOptions::new()));
         {
             let root : message::Builder = results_message.init_root();
             let mut ret = root.init_return();
@@ -1099,7 +1099,7 @@ impl PromisedAnswerRpcCallContext {
                -> PromisedAnswerRpcCallContext {
 
 
-        let mut results_message = box MallocMessageBuilder::new(BuilderOptions::new());
+        let mut results_message = Box::new(MallocMessageBuilder::new(BuilderOptions::new()));
         {
             let root : message::Builder = results_message.init_root();
             let ret = root.init_return();
@@ -1157,7 +1157,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
             _ => panic!(),
         }
 
-        answer_chan.send(box LocalResponse::new(results_message)).unwrap();
+        answer_chan.send(Box::new(LocalResponse::new(results_message))).unwrap();
 
     }
 
@@ -1167,7 +1167,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
         let PromisedAnswerRpcCallContext {
             params_message : _, results_message, rpc_chan : _, answer_chan} = tmp;
 
-        answer_chan.send(box LocalResponse::new(results_message)).unwrap();
+        answer_chan.send(Box::new(LocalResponse::new(results_message))).unwrap();
     }
 }
 

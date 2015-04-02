@@ -63,7 +63,7 @@ impl LocalClient {
 
 impl ClientHook for LocalClient {
     fn copy(&self) -> Box<ClientHook+Send> {
-        box LocalClient { object_channel : self.object_channel.clone() }
+        Box::new(LocalClient { object_channel : self.object_channel.clone() })
     }
     fn new_call(&self,
                 _interface_id : u64,
@@ -78,14 +78,14 @@ impl ClientHook for LocalClient {
 
     // HACK
     fn get_descriptor(&self) -> Box<::std::any::Any + 'static> {
-        box self.copy()
+        Box::new(self.copy())
     }
 
 }
 
 impl ServerHook for LocalClient {
     fn new_client(_unused_self : Option<LocalClient>, server : Box<Server+Send>) -> Client {
-        Client::new(box LocalClient::new(server))
+        Client::new(Box::new(LocalClient::new(server)))
     }
 }
 
