@@ -21,6 +21,23 @@
 
 //! Input / output.
 
+/// Copies data from `src` to `dst`.
+///
+/// Panics if the length of `dst` is less than the length of `src`.
+#[inline]
+pub fn copy_memory(src: &[u8], dst: &mut [u8]) {
+    let len_src = src.len();
+    assert!(dst.len() >= len_src);
+    // `dst` is unaliasable, so we know statically it doesn't overlap
+    // with `src`.
+    unsafe {
+        ::std::ptr::copy_nonoverlapping(src.as_ptr(),
+                                        dst.as_mut_ptr(),
+                                        len_src);
+    }
+}
+
+
 /// A producer of bytes.
 pub trait InputStream {
     /// Reads at least `min_bytes` into `buf` unless EOF is encountered first. Returns the
@@ -131,12 +148,12 @@ impl<R: InputStream> InputStream for BufferedInputStreamWrapper<R> {
         if min_bytes <= self.cap - self.pos {
             // Serve from the current buffer.
             let n = ::std::cmp::min(self.cap - self.pos, dst.len());
-            ::std::slice::bytes::copy_memory(&self.buf[self.pos .. self.pos + n], dst);
+            copy_memory(&self.buf[self.pos .. self.pos + n], dst);
             self.pos += n;
             return Ok(n);
         } else {
             // Copy current available into destination.
-            ::std::slice::bytes::copy_memory(&self.buf[self.pos .. self.cap], dst);
+            copy_memory(&self.buf[self.pos .. self.cap], dst);
             let from_first_buffer = self.cap - self.pos;
 
             let dst = &mut dst[from_first_buffer ..];
@@ -146,7 +163,7 @@ impl<R: InputStream> InputStream for BufferedInputStreamWrapper<R> {
                 // Read the next buffer-full.
                 let n = try!(self.inner.try_read(&mut self.buf[..], min_bytes));
                 let from_second_buffer = ::std::cmp::min(n, dst.len());
-                ::std::slice::bytes::copy_memory(&self.buf[0 .. from_second_buffer], dst);
+                copy_memory(&self.buf[0 .. from_second_buffer], dst);
                 self.cap = n;
                 self.pos = from_second_buffer;
                 return Ok(from_first_buffer + from_second_buffer);
@@ -173,7 +190,7 @@ impl <'a> ArrayInputStream<'a> {
 impl <'a> InputStream for ArrayInputStream<'a> {
     fn try_read(&mut self, dst: &mut [u8], _min_bytes : usize) -> ::std::io::Result<usize> {
         let n = ::std::cmp::min(dst.len(), self.array.len());
-        ::std::slice::bytes::copy_memory(&self.array[0 .. n], dst);
+        copy_memory(&self.array[0 .. n], dst);
         self.array = &self.array[n ..];
         Ok(n)
     }
@@ -262,21 +279,21 @@ impl<'a, W: OutputStream> OutputStream for BufferedOutputStreamWrapper<'a, W> {
         let mut size = buf.len();
         if size <= available {
             let dst = &mut self.buf[self.pos ..];
-            ::std::slice::bytes::copy_memory(buf, dst);
+            copy_memory(buf, dst);
             self.pos += size;
         } else if size <= self.buf.len() {
             // Too much for this buffer, but not a full buffer's
             // worth, so we'll go ahead and copy.
             {
                 let dst = &mut self.buf[self.pos ..];
-                ::std::slice::bytes::copy_memory(&buf[0 .. available], dst);
+                copy_memory(&buf[0 .. available], dst);
             }
             try!(self.inner.write(&mut self.buf[..]));
 
             size -= available;
             let src = &buf[available ..];
             let dst = &mut self.buf[0 ..];
-            ::std::slice::bytes::copy_memory(src, dst);
+            copy_memory(src, dst);
             self.pos = size;
         } else {
             // Writing so much data that we might as well write
@@ -315,7 +332,7 @@ impl <'a> OutputStream for ArrayOutputStream<'a> {
     fn write(&mut self, buf: &[u8]) -> ::std::io::Result<()> {
         assert!(buf.len() <= self.array.len() - self.fill_pos,
                 "ArrayOutputStream's backing array was not large enough for the data written.");
-        ::std::slice::bytes::copy_memory(buf, &mut self.array[self.fill_pos ..]);
+        copy_memory(buf, &mut self.array[self.fill_pos ..]);
         self.fill_pos += buf.len();
         Ok(())
     }

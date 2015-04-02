@@ -65,7 +65,9 @@ impl <'a> Builder <'a> {
 
     pub fn push_str(&mut self, string : &str) {
         let bytes = string.as_bytes();
-        ::std::slice::bytes::copy_memory(bytes, &mut self.bytes[self.pos ..]);
+        for ii in 0..bytes.len() {
+            self.bytes[self.pos + ii] = bytes[ii];
+        }
         self.pos += bytes.len();
     }
 
