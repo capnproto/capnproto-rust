@@ -671,9 +671,11 @@ mod tests {
             ::capnp::message::SegmentArrayMessageReader::new(&words, ::capnp::ReaderOptions::new());
 
         let root : ::test_capnp::test_any_pointer::Reader = message.get_root().unwrap();
-        assert!(root.total_size() ==
-                Err(::capnp::Error::Decode{description:"InlineComposite list's elements overrun its word count.",
-                                           detail:None}));
+        match root.total_size() {
+            Err(::capnp::Error::Decode{description: d, detail : None} ) =>
+                assert_eq!("InlineComposite list's elements overrun its word count.", d),
+            _ => panic!("did not get expected error")
+        }
 
         {
             let result = root.get_any_pointer_field()
@@ -684,12 +686,12 @@ mod tests {
 
         let mut message_builder = MallocMessageBuilder::new_default();
         let builder_root = message_builder.init_root::<::test_capnp::test_any_pointer::Builder>();
-        let result = builder_root.get_any_pointer_field().set_as(root);
-        assert!(result ==
-                Err(::capnp::Error::Decode{description:"InlineComposite list's elements overrun its word count.",
-                                           detail:None}));
+        match builder_root.get_any_pointer_field().set_as(root) {
+            Err(::capnp::Error::Decode{description: d, detail : None}) =>
+                assert_eq!("InlineComposite list's elements overrun its word count.", d),
+            _ => panic!("did ont get expected error"),
+        }
     }
-
 
     #[test]
     fn void_list_amplification() {
