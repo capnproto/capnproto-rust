@@ -34,7 +34,7 @@
 //! [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust) is an implementation of a
 //! distributed object-capability layer.
 
-#![feature(convert, core, io)]
+#![feature(core)]
 #![allow(raw_pointer_derive)]
 
 #![crate_name="capnp"]
@@ -132,7 +132,7 @@ impl ::std::error::Error for NotInSchema {
 pub type Result<T> = ::std::result::Result<T, Error>;
 
 /// Things that can go wrong when you read a message.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Error {
     Decode { description : &'static str,
              detail : Option<String> },
@@ -145,21 +145,21 @@ impl Error {
     }
 }
 
-impl ::std::error::FromError<::std::io::Error> for Error {
-    fn from_error(err : ::std::io::Error) -> Error {
+impl ::std::convert::From<::std::io::Error> for Error {
+    fn from(err : ::std::io::Error) -> Error {
         Error::Io(err)
     }
 }
 
-impl ::std::error::FromError<NotInSchema> for Error {
-    fn from_error(e : NotInSchema) -> Error {
+impl ::std::convert::From<NotInSchema> for Error {
+    fn from(e : NotInSchema) -> Error {
         Error::new_decode_error("Enum value or union discriminant was not present in schema.",
                                 Some(format!("value : {}", e.0)))
     }
 }
 
-impl ::std::error::FromError<::std::str::Utf8Error> for Error {
-    fn from_error(err : ::std::str::Utf8Error) -> Error {
+impl ::std::convert::From<::std::str::Utf8Error> for Error {
+    fn from(err : ::std::str::Utf8Error) -> Error {
         Error::new_decode_error("Text contains non-utf8 data.",
                                 Some(format!("{:?}", err)))
     }

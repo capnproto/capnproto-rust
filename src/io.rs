@@ -32,7 +32,7 @@ pub trait InputStream {
     fn read(&mut self, buf : &mut [u8], min_bytes : usize) -> ::std::io::Result<usize> {
         let n = try!(self.try_read(buf, min_bytes));
         if n < min_bytes {
-            Err(::std::io::Error::new(::std::io::ErrorKind::Other, "Premature EOF", None))
+            Err(::std::io::Error::new(::std::io::ErrorKind::Other, "Premature EOF"))
         } else {
             Ok(n)
         }

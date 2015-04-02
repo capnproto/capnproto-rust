@@ -148,8 +148,8 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
 
                     if run_length > ptr_sub(out_end, out) {
                         return Err(::std::io::Error::new(::std::io::ErrorKind::Other,
-                                                         "Packed input did not end cleanly on a segment boundary",
-                                                         None));
+                                                         "Packed input did not end cleanly on a segment boundary"
+                                                         ));
                     }
 
                     ::std::ptr::write_bytes(out, 0, run_length);
@@ -164,8 +164,8 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
 
                     if run_length > ptr_sub(out_end, out) {
                         return Err(::std::io::Error::new(::std::io::ErrorKind::Other,
-                                                         "Packed input did not end cleanly on a segment boundary",
-                                                         None));
+                                                         "Packed input did not end cleanly on a segment boundary"
+                                                         ));
                     }
 
                     let in_remaining = ptr_sub(in_end, in_ptr);
