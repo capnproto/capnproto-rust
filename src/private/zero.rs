@@ -19,48 +19,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-//! Implementation details that should never be directly used by clients.
-//!
-//! We still need to make this module visible so that generated code can use it.
-
-use Word;
-
-pub mod arena;
-pub mod capability;
-pub mod endian;
-pub mod layout;
-mod mask;
-pub mod units;
-mod zero;
-
-#[cfg(test)]
-mod layout_test;
-
-/// Some data that's guaranteed to be aligned on a word boundary.
-///
-/// Typically the type parameter `T` will be instantiated as `[u8; n]` where `n` is a multiple of
-/// eight.
-///
-/// Perhaps in the future Rust will provide a nicer way to guarantee alignment.
-#[repr(C)]
-pub struct AlignedData<T> {
-    pub _dummy : u64,
-    pub data : T
+/// Since ::std::num::Zero isn't stable, we have our own version.
+pub trait Zero {
+    fn zero() -> Self;
 }
 
-pub struct RawSchema<'a> {
-    pub id : u64,
-    pub blob: &'a [u8], // must be aligned to a word boundary
-}
-
-impl <'a> RawSchema<'a> {
-    pub fn get_encoded_node(&self) -> &'a [Word] {
-        unsafe {
-            ::std::slice::from_raw_parts(
-                ::std::mem::transmute(&self.blob.as_ptr()),
-                self.blob.len() / 8)
+macro_rules! zero_impl(
+    ($t:ident, $e:expr) => (
+        impl Zero for $t {
+            #[inline]
+            fn zero() -> $t { $e }
         }
-    }
-}
+    )
+);
 
-
+zero_impl!(u8,  0);
+zero_impl!(u16, 0);
+zero_impl!(u32, 0);
+zero_impl!(u64, 0);
+zero_impl!(i8,  0);
+zero_impl!(i16, 0);
+zero_impl!(i32, 0);
+zero_impl!(i64, 0);
+zero_impl!(f32, 0.0);
+zero_impl!(f64, 0.0);

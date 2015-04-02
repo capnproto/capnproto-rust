@@ -26,6 +26,7 @@ use private::arena::*;
 use private::endian::{WireValue, Endian};
 use private::mask::*;
 use private::units::*;
+use private::zero;
 use {MessageSize, Result, Word};
 
 pub use self::ElementSize::{Void, Bit, Byte, TwoBytes, FourBytes, EightBytes, Pointer, InlineComposite};
@@ -2034,7 +2035,7 @@ impl <'a> StructReader<'a>  {
     pub fn get_data_section_as_blob(&self) -> usize { panic!("unimplemented") }
 
     #[inline]
-    pub fn get_data_field<T:Endian + ::std::num::FromPrimitive>(&self, offset : ElementCount) -> T {
+    pub fn get_data_field<T:Endian + zero::Zero>(&self, offset : ElementCount) -> T {
         // We need to check the offset because the struct may have
         // been created with an old version of the protocol that did
         // not contain the field.
@@ -2044,7 +2045,7 @@ impl <'a> StructReader<'a>  {
                 (*dwv.offset(offset as isize)).get()
             }
         } else {
-            return ::std::num::FromPrimitive::from_u8(0).unwrap();
+            return T::zero();
         }
     }
 
@@ -2062,9 +2063,9 @@ impl <'a> StructReader<'a>  {
     }
 
     #[inline]
-    pub fn get_data_field_mask<T:Endian + ::std::num::FromPrimitive + Mask>(&self,
-                                                                            offset : ElementCount,
-                                                                            mask : <T as Mask>::T) -> T {
+    pub fn get_data_field_mask<T:Endian + zero::Zero + Mask>(&self,
+                                                             offset : ElementCount,
+                                                             mask : <T as Mask>::T) -> T {
         Mask::mask(self.get_data_field(offset), mask)
     }
 
