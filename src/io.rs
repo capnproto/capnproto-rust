@@ -28,7 +28,7 @@
 /// This implementation is copied from ::std::slice::bytes::copy_memory(),
 /// which is marked as 'unstable' at the time of this writing.
 #[inline]
-pub fn copy_memory(src: &[u8], dst: &mut [u8]) {
+fn copy_memory(src: &[u8], dst: &mut [u8]) {
     let len_src = src.len();
     assert!(dst.len() >= len_src);
     // `dst` is unaliasable, so we know statically it doesn't overlap
