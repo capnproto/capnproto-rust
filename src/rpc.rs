@@ -189,7 +189,7 @@ impl Export {
     }
 }
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct Import;
 
 pub struct ImportTable<T> {
@@ -952,7 +952,7 @@ impl PipelineHook for RpcPipeline {
     }
 }
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct PromisedAnswerRpcPipeline;
 
 impl PipelineHook for PromisedAnswerRpcPipeline {
