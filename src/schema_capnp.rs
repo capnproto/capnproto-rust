@@ -28,7 +28,7 @@ pub mod node {
 
   impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-      Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
     }
   }
 
@@ -146,7 +146,7 @@ pub mod node {
       ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
     }
     fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-      Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
     }
   }
 
@@ -400,7 +400,7 @@ pub mod node {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -445,7 +445,7 @@ pub mod node {
         ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
       }
       fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-        Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
       }
     }
 
@@ -523,7 +523,7 @@ pub mod node {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -572,7 +572,7 @@ pub mod node {
         ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
       }
       fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-        Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
       }
     }
 
@@ -658,7 +658,7 @@ pub mod node {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -838,7 +838,7 @@ pub mod node {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -946,7 +946,7 @@ pub mod node {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -1076,7 +1076,7 @@ pub mod node {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -1212,7 +1212,7 @@ pub mod node {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -1470,7 +1470,7 @@ pub mod field {
 
   impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-      Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
     }
   }
 
@@ -1550,7 +1550,7 @@ pub mod field {
       ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
     }
     fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-      Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
     }
   }
 
@@ -1709,7 +1709,7 @@ pub mod field {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -1869,7 +1869,7 @@ pub mod field {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -1969,7 +1969,7 @@ pub mod field {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -2103,7 +2103,7 @@ pub mod enumerant {
 
   impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-      Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
     }
   }
 
@@ -2159,7 +2159,7 @@ pub mod enumerant {
       ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
     }
     fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-      Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
     }
   }
 
@@ -2260,7 +2260,7 @@ pub mod superclass {
 
   impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-      Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
     }
   }
 
@@ -2309,7 +2309,7 @@ pub mod superclass {
       ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
     }
     fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-      Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
     }
   }
 
@@ -2398,7 +2398,7 @@ pub mod method {
 
   impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-      Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
     }
   }
 
@@ -2483,7 +2483,7 @@ pub mod method {
       ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
     }
     fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-      Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
     }
   }
 
@@ -2653,7 +2653,7 @@ pub mod type_ {
 
   impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-      Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
     }
   }
 
@@ -2792,7 +2792,7 @@ pub mod type_ {
       ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
     }
     fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-      Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
     }
   }
 
@@ -3071,7 +3071,7 @@ pub mod type_ {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -3182,7 +3182,7 @@ pub mod type_ {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -3305,7 +3305,7 @@ pub mod type_ {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -3428,7 +3428,7 @@ pub mod type_ {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -3553,7 +3553,7 @@ pub mod type_ {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -3708,7 +3708,7 @@ pub mod type_ {
 
       impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
         fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-          Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+          ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
         }
       }
 
@@ -3870,7 +3870,7 @@ pub mod type_ {
 
       impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
         fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-          Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+          ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
         }
       }
 
@@ -3980,7 +3980,7 @@ pub mod type_ {
 
       impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
         fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-          Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+          ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
         }
       }
 
@@ -4080,7 +4080,7 @@ pub mod brand {
 
   impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-      Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
     }
   }
 
@@ -4125,7 +4125,7 @@ pub mod brand {
       ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
     }
     fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-      Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
     }
   }
 
@@ -4204,7 +4204,7 @@ pub mod brand {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -4266,7 +4266,7 @@ pub mod brand {
         ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
       }
       fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-        Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
       }
     }
 
@@ -4379,7 +4379,7 @@ pub mod brand {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -4437,7 +4437,7 @@ pub mod brand {
         ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
       }
       fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-        Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
       }
     }
 
@@ -4543,7 +4543,7 @@ pub mod value {
 
   impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-      Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
     }
   }
 
@@ -4702,7 +4702,7 @@ pub mod value {
       ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
     }
     fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-      Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
     }
   }
 
@@ -5018,7 +5018,7 @@ pub mod annotation {
 
   impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-      Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
     }
   }
 
@@ -5074,7 +5074,7 @@ pub mod annotation {
       ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
     }
     fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-      Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
     }
   }
 
@@ -5159,7 +5159,7 @@ pub mod annotation {
 }
 
 #[repr(u16)]
-#[derive(Clone, Copy, PartialEq, FromPrimitive)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum ElementSize {
   Empty = 0,
   Bit = 1,
@@ -5171,20 +5171,20 @@ pub enum ElementSize {
   InlineComposite = 7,
 }
 impl ::capnp::traits::FromU16 for ElementSize {
-    #[inline]
-    fn from_u16(value : u16) -> ::std::result::Result<ElementSize, ::capnp::NotInSchema> {
-        match value {
-            0 => Ok(ElementSize::Empty),
-            1 => Ok(ElementSize::Bit),
-            2 => Ok(ElementSize::Byte),
-            3 => Ok(ElementSize::TwoBytes),
-            4 => Ok(ElementSize::FourBytes),
-            5 => Ok(ElementSize::EightBytes),
-            6 => Ok(ElementSize::Pointer),
-            7 => Ok(ElementSize::InlineComposite),
-            n => Err(::capnp::NotInSchema(n)),
-        }
+  #[inline]
+  fn from_u16(value : u16) -> ::std::result::Result<ElementSize, ::capnp::NotInSchema> {
+    match value {
+      0 => ::std::result::Result::Ok(ElementSize::Empty),
+      1 => ::std::result::Result::Ok(ElementSize::Bit),
+      2 => ::std::result::Result::Ok(ElementSize::Byte),
+      3 => ::std::result::Result::Ok(ElementSize::TwoBytes),
+      4 => ::std::result::Result::Ok(ElementSize::FourBytes),
+      5 => ::std::result::Result::Ok(ElementSize::EightBytes),
+      6 => ::std::result::Result::Ok(ElementSize::Pointer),
+      7 => ::std::result::Result::Ok(ElementSize::InlineComposite),
+      n => ::std::result::Result::Err(::capnp::NotInSchema(n)),
     }
+  }
 }
 impl ::capnp::traits::ToU16 for ElementSize {
   #[inline]
@@ -5218,7 +5218,7 @@ pub mod code_generator_request {
 
   impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-      Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
     }
   }
 
@@ -5270,7 +5270,7 @@ pub mod code_generator_request {
       ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
     }
     fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-      Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
     }
   }
 
@@ -5362,7 +5362,7 @@ pub mod code_generator_request {
 
     impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
       }
     }
 
@@ -5418,7 +5418,7 @@ pub mod code_generator_request {
         ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
       }
       fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-        Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+        ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
       }
     }
 
@@ -5518,7 +5518,7 @@ pub mod code_generator_request {
 
       impl <'a> ::capnp::traits::FromPointerReader<'a> for Reader<'a> {
         fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-          Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+          ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
         }
       }
 
@@ -5567,7 +5567,7 @@ pub mod code_generator_request {
           ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
         }
         fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-          Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+          ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
         }
       }
 
