@@ -26,7 +26,7 @@ use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                       TwoBytes, PrimitiveElement};
 use {NotInSchema, Result};
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct Reader<'a, T> {
     marker : ::std::marker::PhantomData<T>,
     reader : ListReader<'a>

@@ -369,7 +369,7 @@ impl BuilderArena {
     }
 }
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub enum ArenaPtr {
     Reader(*const ReaderArena),
     Builder(*mut BuilderArena),

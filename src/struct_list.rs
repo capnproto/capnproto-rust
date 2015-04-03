@@ -32,7 +32,13 @@ pub struct Reader<'a, T> {
     reader : ListReader<'a>
 }
 
+impl <'a, T> Clone for Reader<'a, T> {
+    fn clone(&self) -> Reader<'a, T> {
+        Reader { marker : self.marker, reader : self.reader }
+    }
+}
 impl <'a, T> Copy for Reader<'a, T> {}
+
 
 impl <'a, T : FromStructReader<'a>> Reader<'a, T> {
     pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {

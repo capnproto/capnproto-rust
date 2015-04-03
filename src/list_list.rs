@@ -25,7 +25,7 @@ use traits::{FromPointerReader, FromPointerBuilder};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
 use Result;
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct Reader<'a, T> {
     marker : ::std::marker::PhantomData<T>,
     reader : ListReader<'a>

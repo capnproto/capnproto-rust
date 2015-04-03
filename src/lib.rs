@@ -64,7 +64,7 @@ pub mod traits;
 /// Eight bytes of memory with opaque interior.
 ///
 /// This type is used to ensure that the data of a message is properly aligned.
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 #[repr(C)]
 pub struct Word {_unused_member : u64}
 
@@ -95,7 +95,7 @@ impl Word {
 }
 
 /// Size of a message. Every generated struct has a method `.total_size()` that returns this.
-#[derive(Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct MessageSize {
     pub word_count : u64,
 
@@ -111,7 +111,7 @@ impl MessageSize {
 }
 
 /// An enum value or union discriminant that was not found among those defined in a schema.
-#[derive(PartialEq, Copy, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub struct NotInSchema(pub u16);
 
 impl ::std::fmt::Display for NotInSchema {

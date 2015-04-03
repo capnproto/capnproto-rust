@@ -32,7 +32,7 @@ use {MessageSize, Result, Word};
 pub use self::ElementSize::{Void, Bit, Byte, TwoBytes, FourBytes, EightBytes, Pointer, InlineComposite};
 
 #[repr(u8)]
-#[derive(PartialEq, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum ElementSize {
     Void = 0,
     Bit = 1,
@@ -79,7 +79,7 @@ pub fn element_size_for_type<T>() -> ElementSize {
     }
 }
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct StructSize {
     pub data : WordCount16,
     pub pointers : WirePointerCount16,
@@ -92,7 +92,7 @@ impl StructSize {
 }
 
 #[repr(u8)]
-#[derive(PartialEq, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum WirePointerKind {
     Struct = 0,
     List = 1,
@@ -1768,7 +1768,7 @@ mod wire_helpers {
 static ZERO : u64 = 0;
 fn zero_pointer() -> *const WirePointer { unsafe {::std::mem::transmute(&ZERO)}}
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct PointerReader<'a> {
     marker : ::std::marker::PhantomData<&'a ()>,
     segment : *const SegmentReader,
@@ -2006,7 +2006,7 @@ impl <'a> PointerBuilder<'a> {
     }
 }
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct StructReader<'a> {
     marker : ::std::marker::PhantomData<&'a ()>,
     segment : *const SegmentReader,
@@ -2109,7 +2109,7 @@ impl <'a> StructReader<'a>  {
     }
 }
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct StructBuilder<'a> {
     marker : ::std::marker::PhantomData<&'a ()>,
     segment : *mut SegmentBuilder,
@@ -2211,7 +2211,7 @@ impl <'a> StructBuilder<'a> {
 
 }
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct ListReader<'a> {
     marker : ::std::marker::PhantomData<&'a ()>,
     segment : *const SegmentReader,
@@ -2271,7 +2271,7 @@ impl <'a> ListReader<'a> {
     }
 }
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct ListBuilder<'a> {
     marker : ::std::marker::PhantomData<&'a ()>,
     segment : *mut SegmentBuilder,

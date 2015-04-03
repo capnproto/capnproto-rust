@@ -30,7 +30,7 @@ use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 use {Result, Word};
 
 /// Options controlling how data is read.
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct ReaderOptions {
 
     /// Limits how many total words of data are allowed to be traversed. Traversal is counted when
@@ -141,7 +141,7 @@ impl <'a> SegmentArrayMessageReader<'a> {
     }
 }
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub enum AllocationStrategy {
     FixedSize,
     GrowHeuristically
@@ -150,7 +150,7 @@ pub enum AllocationStrategy {
 pub const SUGGESTED_FIRST_SEGMENT_WORDS : u32 = 1024;
 pub const SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = AllocationStrategy::GrowHeuristically;
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct BuilderOptions {
     pub first_segment_words : u32,
     pub allocation_strategy : AllocationStrategy,

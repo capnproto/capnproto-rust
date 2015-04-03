@@ -27,7 +27,7 @@ use private::layout::{PointerReader, PointerBuilder};
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 use Result;
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct Reader<'a> {
     reader : PointerReader<'a>
 }
