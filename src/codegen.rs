@@ -1150,7 +1150,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             let accessors = vec!(
                 Branch(preamble),
-                Line("#[derive(Copy)]".to_string()),
+                Line("#[derive(Clone, Copy)]".to_string()),
                 Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_string()),
                 BlankLine,
                 Branch(vec!(
@@ -1277,7 +1277,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             output.push(Branch(vec!(
                 Line("#[repr(u16)]".to_string()),
-                Line("#[derive(PartialEq, Copy)]".to_string()),
+                Line("#[derive(Clone, Copy, PartialEq)]".to_string()),
                 Line(format!("pub enum {} {{", *names.last().unwrap())),
                 Indent(Box::new(Branch(members))),
                 Line("}".to_string()))));

@@ -28,7 +28,7 @@ pub type Expectation = i32;
 pub type RequestReader<'a> = search_result_list::Reader<'a>;
 pub type ResponseReader<'a> = search_result_list::Reader<'a>;
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct ScoredResult<'a> {
     score : f64,
     result : search_result::Reader<'a>

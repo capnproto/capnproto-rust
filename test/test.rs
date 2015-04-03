@@ -451,14 +451,16 @@ mod tests {
         let mut message = MallocMessageBuilder::new_default();
         let mut big_struct = message.init_root::<test_big_struct::Builder>();
 
+
+        let neg_seven : u64 = (-7i64) as u64;
         {
             let mut struct_field = big_struct.borrow().init_struct_field();
             assert_eq!(struct_field.borrow().get_uint64_field(), 0);
 
-            struct_field.set_uint64_field(-7);
-            assert_eq!(struct_field.get_uint64_field(), -7);
+            struct_field.set_uint64_field(neg_seven);
+            assert_eq!(struct_field.get_uint64_field(), neg_seven);
         }
-        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint64_field(), -7);
+        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint64_field(), neg_seven);
         {
             let mut struct_field = big_struct.borrow().init_struct_field();
             assert_eq!(struct_field.borrow().get_uint64_field(), 0);

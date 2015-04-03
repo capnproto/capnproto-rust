@@ -94,7 +94,7 @@ mod packed {
 
 const SCRATCH_SIZE : usize = 128 * 1024;
 
-#[derive(Copy)]
+#[derive(Clone, Copy)]
 pub struct NoScratch;
 
 impl NoScratch {
