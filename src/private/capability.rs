@@ -33,7 +33,7 @@ pub trait RequestHook {
     fn send<'a>(self : Box<Self>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline>;
 }
 
-pub trait ClientHook : Send + 'static + ::std::any::Any {
+pub trait ClientHook : Send + ::std::any::Any {
     fn copy(&self) -> Box<ClientHook+Send>;
     fn new_call(&self,
                 interface_id : u64,
@@ -43,7 +43,7 @@ pub trait ClientHook : Send + 'static + ::std::any::Any {
     fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>);
 
     // HACK
-    fn get_descriptor(&self) -> Box<::std::any::Any + 'static>;
+    fn get_descriptor(&self) -> Box<::std::any::Any>;
 }
 
 pub trait ServerHook : 'static {
