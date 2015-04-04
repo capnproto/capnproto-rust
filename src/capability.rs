@@ -77,7 +77,7 @@ impl ClientHook for LocalClient {
     }
 
     // HACK
-    fn get_descriptor(&self) -> Box<::std::any::Any + 'static> {
+    fn get_descriptor(&self) -> Box<::std::any::Any> {
         Box::new(self.copy())
     }
 

@@ -687,7 +687,7 @@ impl ClientHook for ImportClient {
         panic!()
     }
 
-    fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
+    fn get_descriptor(&self) -> Box<::std::any::Any> {
         Box::new(OwnedCapDescriptor::ReceiverHosted(self.import_id))
     }
 }
@@ -736,7 +736,7 @@ impl ClientHook for PipelineClient {
         panic!()
     }
 
-    fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
+    fn get_descriptor(&self) -> Box<::std::any::Any> {
         Box::new(OwnedCapDescriptor::ReceiverAnswer(self.question_ref.id, self.ops.clone()))
     }
 }
@@ -777,7 +777,7 @@ impl ClientHook for PromisedAnswerClient {
         panic!()
     }
 
-    fn get_descriptor(&self) -> Box<::std::any::Any+'static> {
+    fn get_descriptor(&self) -> Box<::std::any::Any> {
         panic!()
     }
 }
