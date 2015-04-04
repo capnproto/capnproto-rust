@@ -89,7 +89,8 @@ impl ServerHook for LocalClient {
     }
 }
 
-pub trait InitRequest<'a, 'b, T> : ::std::marker::PhantomFn<&'a ()> {
+pub trait InitRequest<'a, 'b, T> {
+    fn phantom(&'a()) { panic!("This function only exists for variance.") }
     fn init(&'b mut self) -> T;
 }
 
