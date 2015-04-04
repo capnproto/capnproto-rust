@@ -1402,8 +1402,12 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     base_traits.push(format!("{}::Server", the_mod));
                 }
                 if extends.len() > 0 { format!(": {}", base_traits.connect(" + ")) }
-                else if methods.len() == 0 { ": ::std::marker::PhantomFn<Self>".to_string() }
-                else { "".to_string() }
+                else if methods.len() == 0 {
+                    // TODO: remove this once the Rust stable release no longer demands PhantomFn.
+                    server_interior.push(
+                        Line("fn phantom(&self) {panic!(\"This function only exists for variance.\")}".to_string()));
+                    "".to_string()
+                } else { "".to_string() }
             };
 
 
