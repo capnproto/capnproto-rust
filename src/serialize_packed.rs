@@ -27,7 +27,9 @@ use serialize;
 use Result;
 
 trait PtrUsize<T> {
+    /// TODO: delete this function once a stable Rust release no longer demands PhantonFn bounds.
     fn phantom(T) -> T { panic!("This function only exists for variance.") }
+
     fn as_usize(self) -> usize;
 }
 

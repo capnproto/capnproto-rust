@@ -52,7 +52,9 @@ pub trait FromPointerBuilderRefDefault<'a> {
 }
 
 pub trait SetPointerBuilder<To> {
+    /// TODO: delete this function once a stable Rust release no longer demands PhantonFn bounds.
     fn phantom(To) { panic!("This function only exists for variance.") }
+
     fn set_pointer_builder<'a>(PointerBuilder<'a>, Self) -> Result<()>;
 }
 
