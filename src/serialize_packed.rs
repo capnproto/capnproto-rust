@@ -26,7 +26,8 @@ use message::*;
 use serialize;
 use Result;
 
-trait PtrUsize<T>: ::std::marker::PhantomFn<T> {
+trait PtrUsize<T> {
+    fn phantom(T) -> T { panic!("This function only exists for variance.") }
     fn as_usize(self) -> usize;
 }
 

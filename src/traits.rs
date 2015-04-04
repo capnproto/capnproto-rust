@@ -51,7 +51,8 @@ pub trait FromPointerBuilderRefDefault<'a> {
     fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Self;
 }
 
-pub trait SetPointerBuilder<To>: ::std::marker::PhantomFn<To> {
+pub trait SetPointerBuilder<To> {
+    fn phantom(To) { panic!("This function only exists for variance.") }
     fn set_pointer_builder<'a>(PointerBuilder<'a>, Self) -> Result<()>;
 }
 
