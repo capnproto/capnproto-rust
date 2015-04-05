@@ -1,7 +1,7 @@
 [package]
 
 name = "capnpc"
-version = "0.1.29"
+version = "0.2.0"
 authors = [ "David Renshaw <david@sandstorm.io>" ]
 license = "MIT"
 description = "Cap'n Proto schema compiler plugin"
@@ -25,4 +25,4 @@ path = "src/main.rs"
 
 
 [dependencies]
-capnp = "0.1.33"
+capnp = "0.2.0"

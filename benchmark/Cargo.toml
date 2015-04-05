@@ -16,5 +16,5 @@ path = "../"
 
 [dependencies]
 rand = "0.3.4"
-capnp = "0.1.4"
+capnp = "0.2.0"
 fdstream = "*"
