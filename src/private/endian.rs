@@ -19,11 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[cfg(target_endian = "big")]
-use std::intrinsics::{bswap16, bswap32, bswap64};
-#[cfg(target_endian = "big")]
-use std::cast::transmute;
-
 #[repr(C)]
 pub struct WireValue<T> {
     value : T
@@ -51,13 +46,13 @@ macro_rules! endian_impl(
             fn set(&mut self, value : $typ) {*self = value;}
         }
         );
-    ($typ:ty, $typ2:ty, $swapper:ident) => (
+    ($typ:ty, $swapper:ident) => (
         impl Endian for $typ {
             #[inline]
-            fn get(&self) -> $typ { unsafe { transmute($swapper(transmute::<$typ, $typ2>(*self)))} }
+            fn get(&self) -> $typ { self.$swapper() }
             #[inline]
             fn set(&mut self, value : $typ) {
-                *self = unsafe { transmute($swapper(transmute::<$typ,$typ2>(value))) };
+                *self = value.$swapper();
             }
         }
         );
@@ -68,41 +63,27 @@ endian_impl!(bool);
 endian_impl!(u8);
 endian_impl!(i8);
 
-#[cfg(target_endian = "little")]
-endian_impl!(u16);
-#[cfg(target_endian = "little")]
-endian_impl!(i16);
+endian_impl!(u16, to_le);
+endian_impl!(i16, to_le);
+endian_impl!(u32, to_le);
+endian_impl!(i32, to_le);
+endian_impl!(u64, to_le);
+endian_impl!(i64, to_le);
 
-#[cfg(target_endian = "little")]
-endian_impl!(u32);
-#[cfg(target_endian = "little")]
-endian_impl!(i32);
+impl Endian for f32 {
+    fn get(&self) -> f32 {
+        unsafe { ::std::mem::transmute(::std::mem::transmute::<f32, u32>(*self).to_le()) }
+    }
+    fn set(&mut self, value : f32) {
+        *self = unsafe { ::std::mem::transmute(::std::mem::transmute::<f32, u32>(value).to_le()) };
+    }
+}
 
-#[cfg(target_endian = "little")]
-endian_impl!(u64);
-#[cfg(target_endian = "little")]
-endian_impl!(i64);
-#[cfg(target_endian = "little")]
-endian_impl!(f32);
-#[cfg(target_endian = "little")]
-endian_impl!(f64);
-
-#[cfg(target_endian = "big")]
-endian_impl!(u16, i16, bswap16);
-#[cfg(target_endian = "big")]
-endian_impl!(i16, i16, bswap16);
-
-#[cfg(target_endian = "big")]
-endian_impl!(u32, i32, bswap32);
-#[cfg(target_endian = "big")]
-endian_impl!(i32, i32, bswap32);
-
-#[cfg(target_endian = "big")]
-endian_impl!(u64, i64, bswap64);
-#[cfg(target_endian = "big")]
-endian_impl!(i64, i64, bswap64);
-#[cfg(target_endian = "big")]
-endian_impl!(f32, i32, bswap32);
-#[cfg(target_endian = "big")]
-endian_impl!(f64, i64, bswap64);
-
+impl Endian for f64 {
+    fn get(&self) -> f64 {
+        unsafe { ::std::mem::transmute(::std::mem::transmute::<f64, u64>(*self).to_le()) }
+    }
+    fn set(&mut self, value : f64) {
+        *self = unsafe { ::std::mem::transmute(::std::mem::transmute::<f64, u64>(value).to_le()) };
+    }
+}
