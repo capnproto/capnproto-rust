@@ -60,10 +60,16 @@ pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::
     //
     // TODO: Once a released version of `capnp compile` includes the '-o -' option, switch to
     //       using that. (see https://github.com/sandstorm-io/capnproto/pull/190)
-    let which_output = ::std::process::Command::new("which").arg("cat").output().unwrap().stdout;
+    let cat_file = match ::std::process::Command::new("which").arg("cat").output() {
+        Ok(result) => match result.status.success() {
+		true => result.stdout,
+		false => vec!(b'-'),
+	},
+        Err(_) => vec!(b'-'),
+    };
 
     let mut command = ::std::process::Command::new("capnp");
-    command.arg("compile").arg("-o").arg(&::std::str::from_utf8(&which_output).unwrap().trim())
+    command.arg("compile").arg("-o").arg(&::std::str::from_utf8(&cat_file).unwrap().trim())
            .arg(&format!("--src-prefix={}", prefix.display()));
 
     for file in files.iter() {
