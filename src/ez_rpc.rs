@@ -50,7 +50,7 @@ impl Server for EmptyCap {
 }
 
 impl EzRpcClient {
-    pub fn new(server_address : &str) -> ::std::io::Result<EzRpcClient> {
+    pub fn new<A: ::std::net::ToSocketAddrs>(server_address : A) -> ::std::io::Result<EzRpcClient> {
         let tcp = try!(::std::net::TcpStream::connect(server_address));
 
         let connection_state = RpcConnectionState::new();
@@ -98,7 +98,7 @@ pub struct EzRpcServer {
 }
 
 impl EzRpcServer {
-    pub fn new(bind_address : &str) -> ::std::io::Result<EzRpcServer> {
+    pub fn new<A: ::std::net::ToSocketAddrs>(bind_address : A) -> ::std::io::Result<EzRpcServer> {
         let tcp_listener = try!(::std::net::TcpListener::bind(bind_address));
         Ok(EzRpcServer { tcp_listener : tcp_listener  })
     }
