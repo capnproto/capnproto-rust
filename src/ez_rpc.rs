@@ -103,23 +103,21 @@ impl EzRpcServer {
         Ok(EzRpcServer { tcp_listener : tcp_listener  })
     }
 
-    pub fn serve<'a>(self, bootstrap_interface : Box<Server + Send>) -> ::std::thread::JoinGuard<'a, ()> {
-        ::std::thread::scoped(move || {
-            let server = self;
-            let bootstrap_interface = Box::new(LocalClient::new(bootstrap_interface));
-            for stream_result in server.tcp_listener.incoming() {
-                let bootstrap_interface = bootstrap_interface.copy();
-                let tcp = stream_result.unwrap();
-                ::std::thread::spawn(move || {
-                    let connection_state = RpcConnectionState::new();
-                    let _rpc_chan = connection_state.run(
-                        tcp.try_clone().unwrap(),
-                        tcp,
-                        bootstrap_interface,
-                        ReaderOptions::new());
-                });
-            }
-        })
+    pub fn serve<'a>(self, bootstrap_interface : Box<Server + Send>) {
+        let server = self;
+        let bootstrap_interface = Box::new(LocalClient::new(bootstrap_interface));
+        for stream_result in server.tcp_listener.incoming() {
+            let bootstrap_interface = bootstrap_interface.copy();
+            let tcp = stream_result.unwrap();
+            ::std::thread::spawn(move || {
+                let connection_state = RpcConnectionState::new();
+                let _rpc_chan = connection_state.run(
+                    tcp.try_clone().unwrap(),
+                    tcp,
+                    bootstrap_interface,
+                    ReaderOptions::new());
+            });
+        }
     }
 }
 

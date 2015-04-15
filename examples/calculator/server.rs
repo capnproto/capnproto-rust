@@ -195,5 +195,5 @@ pub fn main() {
     // There's got to be a better way to do this.
     let calculator = Box::new(calculator::ServerDispatch { server : Box::new(CalculatorImpl)});
 
-    let _ = rpc_server.serve(calculator).join();
+    let _ = rpc_server.serve(calculator);
 }
