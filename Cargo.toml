@@ -17,3 +17,8 @@ keywords = ["encoding", "protocol", "serialization"]
 name = "capnp"
 path = "src/lib.rs"
 
+[dependencies]
+byteorder = "*"
+
+[dev-dependencies]
+quickcheck = "*"

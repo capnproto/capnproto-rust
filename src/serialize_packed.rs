@@ -19,44 +19,34 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use io::{BufferedInputStream, BufferedOutputStream,
-         BufferedInputStreamWrapper, BufferedOutputStreamWrapper,
-         InputStream, OutputStream};
+use std::{io, ptr, slice};
+use std::io::{Read, BufRead, Write};
+
 use message::*;
 use serialize;
 use Result;
+use util::{ptr_sub, read_exact};
 
-trait PtrUsize<T> {
-    fn as_usize(self) -> usize;
+struct PackedRead<R> where R: BufRead {
+    inner: R,
 }
 
-impl <T> PtrUsize<T> for *const T {
-    fn as_usize(self) -> usize {
-        self as usize
+impl <R> PackedRead<R> where R: BufRead {
+
+    fn get_read_buffer(&mut self) -> io::Result<(*const u8, *const u8)> {
+        let buf = try!(self.inner.fill_buf());
+        unsafe {
+            Ok((buf.as_ptr(), buf.get_unchecked(buf.len())))
+        }
     }
-}
-
-impl <T> PtrUsize<T> for *mut T {
-    fn as_usize(self) -> usize {
-        self as usize
-    }
-}
-
-#[inline]
-fn ptr_sub<T, U: PtrUsize<T>, V: PtrUsize<T>>(p1 : U, p2 : V) -> usize {
-    return (p1.as_usize() - p2.as_usize()) / ::std::mem::size_of::<T>();
-}
-
-struct PackedInputStream<'a, R : 'a> {
-    pub inner : &'a mut R
 }
 
 macro_rules! refresh_buffer(
-    ($inner:expr, $size:ident, $in_ptr:ident, $in_end:ident, $out:ident,
+    ($this:expr, $size:ident, $in_ptr:ident, $in_end:ident, $out:ident,
      $outBuf:ident, $buffer_begin:ident) => (
         {
-            try!($inner.skip($size));
-            let (b, e) = try!($inner.get_read_buffer());
+            $this.inner.consume($size);
+            let (b, e) = try!($this.get_read_buffer());
             $in_ptr = b;
             $in_end = e;
             $size = ptr_sub($in_end, $in_ptr);
@@ -66,19 +56,20 @@ macro_rules! refresh_buffer(
         );
     );
 
-impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
-    fn try_read(&mut self, out_buf: &mut [u8], _min_bytes : usize) -> ::std::io::Result<usize> {
+impl <R> Read for PackedRead<R> where R: BufRead {
+
+    fn read(&mut self, out_buf: &mut [u8]) -> io::Result<usize> {
         let len = out_buf.len();
 
         if len == 0 { return Ok(0); }
 
-        assert!(len % 8 == 0, "PackedInputStream reads must be word-aligned");
+        assert!(len % 8 == 0, "PackedRead reads must be word-aligned");
 
         unsafe {
             let mut out = out_buf.as_mut_ptr();
-            let out_end : *mut u8 = out_buf.get_unchecked_mut(len);
+            let out_end: *mut u8 = out_buf.get_unchecked_mut(len);
 
-            let (mut in_ptr, mut in_end) = try!(self.inner.get_read_buffer());
+            let (mut in_ptr, mut in_end) = try!(self.get_read_buffer());
             let mut buffer_begin = in_ptr;
             let mut size = ptr_sub(in_end, in_ptr);
             if size == 0 {
@@ -94,12 +85,12 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
 
                 if ptr_sub(in_end, in_ptr) < 10 {
                     if out >= out_end {
-                        try!(self.inner.skip(ptr_sub(in_ptr, buffer_begin)));
+                        self.inner.consume(ptr_sub(in_ptr, buffer_begin));
                         return Ok(ptr_sub(out, out_buf.as_mut_ptr()));
                     }
 
                     if ptr_sub(in_end, in_ptr) == 0 {
-                        refresh_buffer!(self.inner, size, in_ptr, in_end, out, out_buf, buffer_begin);
+                        refresh_buffer!(self, size, in_ptr, in_end, out, out_buf, buffer_begin);
                         continue;
                     }
 
@@ -112,7 +103,7 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
                     for i in 0..8 {
                         if (tag & (1u8 << i)) != 0 {
                             if ptr_sub(in_end, in_ptr) == 0 {
-                                refresh_buffer!(self.inner, size, in_ptr, in_end,
+                                refresh_buffer!(self, size, in_ptr, in_end,
                                                 out, out_buf, buffer_begin);
                             }
                             *out = *in_ptr;
@@ -125,7 +116,7 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
                     }
 
                     if ptr_sub(in_end, in_ptr) == 0 && (tag == 0 || tag == 0xff) {
-                        refresh_buffer!(self.inner, size, in_ptr, in_end,
+                        refresh_buffer!(self, size, in_ptr, in_end,
                                         out, out_buf, buffer_begin);
                     }
                 } else {
@@ -147,12 +138,11 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
                     in_ptr = in_ptr.offset(1);
 
                     if run_length > ptr_sub(out_end, out) {
-                        return Err(::std::io::Error::new(::std::io::ErrorKind::Other,
-                                                         "Packed input did not end cleanly on a segment boundary"
-                                                         ));
+                        return Err(io::Error::new(io::ErrorKind::Other,
+                                                  "Packed input did not end cleanly on a segment boundary"));
                     }
 
-                    ::std::ptr::write_bytes(out, 0, run_length);
+                    ptr::write_bytes(out, 0, run_length);
                     out = out.offset(run_length as isize);
 
                 } else if tag == 0xff {
@@ -163,27 +153,26 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
                     in_ptr = in_ptr.offset(1);
 
                     if run_length > ptr_sub(out_end, out) {
-                        return Err(::std::io::Error::new(::std::io::ErrorKind::Other,
-                                                         "Packed input did not end cleanly on a segment boundary"
-                                                         ));
+                        return Err(io::Error::new(io::ErrorKind::Other,
+                                                  "Packed input did not end cleanly on a segment boundary"));
                     }
 
                     let in_remaining = ptr_sub(in_end, in_ptr);
                     if in_remaining >= run_length {
                         //# Fast path.
-                        ::std::ptr::copy_nonoverlapping(in_ptr, out, run_length);
+                        ptr::copy_nonoverlapping(in_ptr, out, run_length);
                         out = out.offset(run_length as isize);
                         in_ptr = in_ptr.offset(run_length as isize);
                     } else {
                         //# Copy over the first buffer, then do one big read for the rest.
-                        ::std::ptr::copy_nonoverlapping(in_ptr, out, in_remaining);
+                        ptr::copy_nonoverlapping(in_ptr, out, in_remaining);
                         out = out.offset(in_remaining as isize);
                         run_length -= in_remaining;
 
-                        try!(self.inner.skip(size));
+                        self.inner.consume(size);
                         {
-                            let buf = ::std::slice::from_raw_parts_mut::<u8>(out, run_length);
-                            try!(self.inner.read_exact(buf));
+                            let buf = slice::from_raw_parts_mut::<u8>(out, run_length);
+                            try!(read_exact(&mut self.inner, buf));
                         }
 
                         out = out.offset(run_length as isize);
@@ -191,7 +180,7 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
                         if out == out_end {
                             return Ok(len);
                         } else {
-                            let (b, e) = try!(self.inner.get_read_buffer());
+                            let (b, e) = try!(self.get_read_buffer());
                             in_ptr = b;
                             in_end = e;
                             size = ptr_sub(e, b);
@@ -202,7 +191,7 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
                 }
 
                 if out == out_end {
-                    try!(self.inner.skip(ptr_sub(in_ptr, buffer_begin)));
+                    self.inner.consume(ptr_sub(in_ptr, buffer_begin));
                     return Ok(len);
                 }
             }
@@ -210,123 +199,91 @@ impl <'a, R : BufferedInputStream> InputStream for PackedInputStream<'a, R> {
     }
 }
 
-
-
-pub fn new_reader<U : BufferedInputStream>(input : &mut U,
-                                           options : ReaderOptions)
-                                           -> Result<serialize::OwnedSpaceMessageReader> {
-    let mut packed_input = PackedInputStream {
-        inner : input
-    };
-
-    serialize::new_reader(&mut packed_input, options)
+pub fn read_message<R>(read: &mut R,
+                          options: ReaderOptions)
+                          -> Result<serialize::OwnedSpaceMessageReader>
+where R: BufRead {
+    let mut packed_read = PackedRead { inner: read };
+    serialize::read_message(&mut packed_read, options)
 }
 
-pub fn new_reader_unbuffered<U : InputStream>(input : U,
-                                              options : ReaderOptions)
-                                              -> Result<serialize::OwnedSpaceMessageReader> {
-    let mut packed_input = PackedInputStream {
-        inner : &mut BufferedInputStreamWrapper::new(input)
-    };
-
-    serialize::new_reader(&mut packed_input, options)
+struct PackedWrite<W> where W: Write {
+    inner: W,
 }
 
-
-struct PackedOutputStream<'a, W:'a> {
-    pub inner : &'a mut W
-}
-
-impl <'a, W : BufferedOutputStream> OutputStream for PackedOutputStream<'a, W> {
-    fn write(&mut self, in_buf : &[u8]) -> ::std::io::Result<()> {
+impl <W> Write for PackedWrite<W> where W: Write {
+    fn write(&mut self, in_buf: &[u8]) -> io::Result<usize> {
         unsafe {
-            let (mut out, mut buffer_end) = self.inner.get_write_buffer();
-            let mut buffer_begin = out;
-            let mut slow_buffer : [u8; 20] = [0; 20];
-
-            let mut in_ptr : *const u8 = in_buf.get_unchecked(0);
-            let in_end : *const u8 = in_buf.get_unchecked(in_buf.len());
+            let mut in_ptr: *const u8 = in_buf.get_unchecked(0);
+            let in_end: *const u8 = in_buf.get_unchecked(in_buf.len());
 
             while in_ptr < in_end {
 
-                if ptr_sub(buffer_end, out) < 10 {
-                    //# Oops, we're out of space. We need at least 10
-                    //# bytes for the fast path, since we don't
-                    //# bounds-check on every byte.
-                    try!(self.inner.write_ptr(buffer_begin, ptr_sub(out, buffer_begin)));
-
-                    out = slow_buffer.as_mut_ptr();
-                    buffer_end = slow_buffer.get_unchecked_mut(20);
-                    buffer_begin = out;
-                }
-
-                let tag_pos : *mut u8 = out;
-                out = out.offset(1);
+                let mut tagged_word: [u8; 9] = [0; 9];
+                let mut idx: usize = 1;
 
                 let bit0 = (*in_ptr != 0) as u8;
-                *out = *in_ptr;
-                out = out.offset(bit0 as isize);
+                tagged_word[idx] = *in_ptr;
+                idx += bit0 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit1 = (*in_ptr != 0) as u8;
-                *out = *in_ptr;
-                out = out.offset(bit1 as isize);
+                tagged_word[idx] = *in_ptr;
+                idx += bit1 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit2 = (*in_ptr != 0) as u8;
-                *out = *in_ptr;
-                out = out.offset(bit2 as isize);
+                tagged_word[idx] = *in_ptr;
+                idx += bit2 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit3 = (*in_ptr != 0) as u8;
-                *out = *in_ptr;
-                out = out.offset(bit3 as isize);
+                tagged_word[idx] = *in_ptr;
+                idx += bit3 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit4 = (*in_ptr != 0) as u8;
-                *out = *in_ptr;
-                out = out.offset(bit4 as isize);
+                tagged_word[idx] = *in_ptr;
+                idx += bit4 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit5 = (*in_ptr != 0) as u8;
-                *out = *in_ptr;
-                out = out.offset(bit5 as isize);
+                tagged_word[idx] = *in_ptr;
+                idx += bit5 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit6 = (*in_ptr != 0) as u8;
-                *out = *in_ptr;
-                out = out.offset(bit6 as isize);
+                tagged_word[idx] = *in_ptr;
+                idx += bit6 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit7 = (*in_ptr != 0) as u8;
-                *out = *in_ptr;
-                out = out.offset(bit7 as isize);
+                tagged_word[idx] = *in_ptr;
+                idx += bit7 as usize;
                 in_ptr = in_ptr.offset(1);
 
+                let tag: u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
+                            | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
 
-                let tag : u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
-                    | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
-
-                *tag_pos = tag;
+                tagged_word[0] = tag;
+                try!(self.inner.write_all(&tagged_word[..idx]));
 
                 if tag == 0 {
                     //# An all-zero word is followed by a count of
                     //# consecutive zero words (not including the first
                     //# one).
 
-                    let mut in_word : *const u64 = ::std::mem::transmute(in_ptr);
-                    let mut limit : *const u64 = ::std::mem::transmute(in_end);
+                    let mut in_word : *const u64 = in_ptr as *const u64;
+                    let mut limit : *const u64 = in_end as *const u64;
                     if ptr_sub(limit, in_word) > 255 {
                         limit = in_word.offset(255);
                     }
                     while in_word < limit && *in_word == 0 {
                         in_word = in_word.offset(1);
                     }
-                    *out = ptr_sub(in_word, ::std::mem::transmute::<*const u8, *const u64>(in_ptr)) as u8;
 
-                    out = out.offset(1);
-                    in_ptr = ::std::mem::transmute::<*const u64, *const u8>(in_word);
-
+                    try!(self.inner.write_all(&[ptr_sub(in_word, in_ptr as *const u64) as u8]));
+                    in_ptr = in_word as *const u8;
                 } else if tag == 0xff {
                     //# An all-nonzero word is followed by a count of
                     //# consecutive uncompressed words, followed by the
@@ -358,61 +315,41 @@ impl <'a, W : BufferedOutputStream> OutputStream for PackedOutputStream<'a, W> {
                         }
                     }
                     let count : usize = ptr_sub(in_ptr, run_start);
-                    *out = (count / 8) as u8;
-                    out = out.offset(1);
-
-                    if count <= ptr_sub(buffer_end, out) {
-                        //# There's enough space to memcpy.
-
-                        let src : *const u8 = run_start;
-                        ::std::ptr::copy_nonoverlapping(src, out, count);
-
-                        out = out.offset(count as isize);
-                    } else {
-                        //# Input overruns the output buffer. We'll give it
-                        //# to the output stream in one chunk and let it
-                        //# decide what to do.
-                        try!(self.inner.write_ptr(buffer_begin, ptr_sub(out, buffer_begin)));
-
-                        {
-                            let buf = ::std::slice::from_raw_parts::<u8>(run_start, count);
-                            try!(self.inner.write(buf));
-                        }
-
-                        let (out1, buffer_end1) = self.inner.get_write_buffer();
-                        out = out1; buffer_end = buffer_end1;
-                        buffer_begin = out;
-                    }
+                    try!(self.inner.write_all(&[(count / 8) as u8]));
+                    try!(self.inner.write_all(slice::from_raw_parts::<u8>(run_start, count)));
                 }
             }
 
-            try!(self.inner.write_ptr(buffer_begin, ptr_sub(out, buffer_begin)));
-            Ok(())
+            Ok(in_buf.len())
         }
     }
 
-   fn flush(&mut self) -> ::std::io::Result<()> { self.inner.flush() }
+   fn flush(&mut self) -> io::Result<()> { self.inner.flush() }
 }
 
-pub fn write_packed_message<T: BufferedOutputStream, U: MessageBuilder>(
-    output : &mut T, message : &mut U) -> ::std::io::Result<()> {
-    let mut packed_output_stream = PackedOutputStream {inner : output};
-    serialize::write_message(&mut packed_output_stream, message)
-}
-
-
-pub fn write_packed_message_unbuffered<T: OutputStream, U: MessageBuilder>(
-    output : &mut T, message : &mut U) -> ::std::io::Result<()> {
-    let mut buffered = BufferedOutputStreamWrapper::new(output);
-    try!(write_packed_message(&mut buffered, message));
-    buffered.flush()
+pub fn write_message<W, M>(write: &mut W, message : &mut M) -> io::Result<()>
+where W: Write, M: MessageBuilder {
+    let mut packed_write = PackedWrite { inner: write };
+    serialize::write_message(&mut packed_write, message)
 }
 
 #[cfg(test)]
 mod tests {
-    use std;
-    use serialize_packed::{PackedOutputStream, PackedInputStream};
-    use io::{ArrayInputStream, ArrayOutputStream, InputStream, OutputStream};
+
+    use std::iter;
+    use std::io::Write;
+
+    use std::io::Cursor;
+    use quickcheck::{quickcheck, TestResult};
+
+    use {Word, MessageReader};
+    use message::ReaderOptions;
+    use serialize::test::write_message_segments;
+    use serialize_packed::{PackedRead, PackedWrite};
+    use super::read_message;
+    use util::read_exact;
+
+
 
     pub fn expect_packs_to(unpacked : &[u8],
                            packed : &[u8]) {
@@ -420,11 +357,10 @@ mod tests {
         // --------
         // write
 
-        let mut bytes : std::vec::Vec<u8> = ::std::iter::repeat(0u8).take(packed.len()).collect();
+        let mut bytes : Vec<u8> = iter::repeat(0u8).take(packed.len()).collect();
         {
-            let mut writer = ArrayOutputStream::new(&mut bytes[..]);
-            let mut packed_output_stream = PackedOutputStream {inner : &mut writer};
-            packed_output_stream.write(unpacked).unwrap();
+            let mut packed_write = PackedWrite { inner: &mut bytes[..] };
+            packed_write.write(unpacked).unwrap();
         }
 
         assert_eq!(bytes, packed);
@@ -432,14 +368,13 @@ mod tests {
         // --------
         // read
 
-        let mut reader = ArrayInputStream::new(packed);
-        let mut packed_input_stream = PackedInputStream {inner : &mut reader};
+        let mut packed_read = PackedRead {inner: packed};
 
 
-        let mut bytes : std::vec::Vec<u8> = ::std::iter::repeat(0u8).take(unpacked.len()).collect();
-        packed_input_stream.read_exact(&mut bytes[..]).unwrap();
+        let mut bytes : Vec<u8> = iter::repeat(0u8).take(unpacked.len()).collect();
+        read_exact(&mut packed_read, &mut bytes[..]).unwrap();
 
-        //    assert!(packed_input_stream.eof());
+        //    assert!(packed_read.eof());
         assert_eq!(bytes, unpacked);
     }
 
@@ -472,4 +407,23 @@ mod tests {
         expect_packs_to(&[0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0], &[0,2]);
 
     }
+
+    #[test]
+    fn check_serde() {
+        fn serde(segments: Vec<Vec<Word>>) -> TestResult {
+            if segments.len() == 0 { return TestResult::discard(); }
+            let mut cursor = Cursor::new(Vec::new());
+
+            write_message_segments(&mut PackedWrite { inner: &mut cursor }, &segments);
+            cursor.set_position(0);
+            let message = read_message(&mut cursor, ReaderOptions::new()).unwrap();
+
+            TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
+                &segment[..] == message.get_segment(i)
+            }))
+        }
+
+        quickcheck(serde as fn(Vec<Vec<Word>>) -> TestResult);
+    }
+
 }
