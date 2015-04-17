@@ -1,7 +1,7 @@
 language: rust
 rust:
   - nightly
-  - 1.0.0-beta
+  - 1.0.0-beta.2
 before_install:
   - yes | sudo add-apt-repository ppa:ubuntu-toolchain-r/test
   - sudo apt-get update
