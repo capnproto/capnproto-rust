@@ -27,7 +27,7 @@ pub trait FromStructReader<'a> {
 }
 
 pub trait HasStructSize {
-    fn struct_size(unused_self : Option<Self>) -> StructSize;
+    fn struct_size() -> StructSize;
 }
 
 pub trait FromStructBuilder<'a> {

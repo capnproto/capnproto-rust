@@ -106,13 +106,13 @@ impl <'a, T : FromStructBuilder<'a> + HasStructSize> FromPointerBuilder<'a> for 
     fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
         Builder {
             marker : ::std::marker::PhantomData,
-            builder : builder.init_struct_list(size, HasStructSize::struct_size(None::<T>))
+            builder : builder.init_struct_list(size, <T as HasStructSize>::struct_size())
         }
     }
     fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a, T>> {
         Ok(Builder {
             marker : ::std::marker::PhantomData,
-            builder : try!(builder.get_struct_list(HasStructSize::struct_size(None::<T>), ::std::ptr::null()))
+            builder : try!(builder.get_struct_list(<T as HasStructSize>::struct_size(), ::std::ptr::null()))
         })
     }
 }
