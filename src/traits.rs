@@ -56,7 +56,7 @@ pub trait SetPointerBuilder<To> {
 }
 
 pub trait HasTypeId {
-    fn type_id(unused_self : Option<Self>) -> u64;
+    fn type_id() -> u64;
 }
 
 pub trait CastableTo<T> {
