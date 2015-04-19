@@ -1111,7 +1111,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         Line("impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {".to_string()),
                         Indent(Box::new(
                             Branch(vec!(Line("#[inline]".to_string()),
-                                        Line("fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }".to_string()))))),
+                                        Line("fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }".to_string()))))),
                        Line("}".to_string())))
             };
 
@@ -1156,7 +1156,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Branch(vec!(
                         Line("impl <'a> ::capnp::traits::HasTypeId for Reader<'a> {".to_string()),
                         Indent(Box::new(Branch(vec!(Line("#[inline]".to_string()),
-                                               Line("fn type_id(_unused_self : Option<Reader>) -> u64 { _private::TYPE_ID }".to_string()))))),
+                                               Line("fn type_id() -> u64 { _private::TYPE_ID }".to_string()))))),
                     Line("}".to_string()))),
                 Line("impl <'a> ::capnp::traits::FromStructReader<'a> for Reader<'a> {".to_string()),
                 Indent(
@@ -1198,7 +1198,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Branch(vec!(
                         Line("impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {".to_string()),
                         Indent(Box::new(Branch(vec!(Line("#[inline]".to_string()),
-                                                    Line("fn type_id(_unused_self : Option<Builder>) -> u64 { _private::TYPE_ID }".to_string()))))),
+                                                    Line("fn type_id() -> u64 { _private::TYPE_ID }".to_string()))))),
                                Line("}".to_string()))),
                 Line("impl <'a> ::capnp::traits::FromStructBuilder<'a> for Builder<'a> {".to_string()),
                 Indent(
@@ -1310,7 +1310,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Line(format!("impl ::capnp::traits::HasTypeId for {} {{", *names.last().unwrap())),
                     Indent(Box::new(Line("#[inline]".to_string()))),
                     Indent(
-                        Box::new(Line(format!("fn type_id(_unused_self : Option<{}>) -> u64 {{ {:#x}u64 }}", *names.last().unwrap(), node_id).to_string()))),
+                        Box::new(Line(format!("fn type_id() -> u64 {{ {:#x}u64 }}", node_id).to_string()))),
                     Line("}".to_string()))));
         }
 
@@ -1433,7 +1433,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Branch(vec!(
                         Line("impl ::capnp::traits::HasTypeId for Client {".to_string()),
                         Indent(Box::new(Line("#[inline]".to_string()))),
-                        Indent(Box::new(Line("fn type_id(_unused_self : Option<Client>) -> u64 { _private::TYPE_ID }".to_string()))),
+                        Indent(Box::new(Line("fn type_id() -> u64 { _private::TYPE_ID }".to_string()))),
                         Line("}".to_string()))));
 
 
