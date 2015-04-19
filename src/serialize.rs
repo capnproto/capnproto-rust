@@ -167,3 +167,16 @@ pub fn write_message<T : OutputStream, U : MessageBuilder>(
     }
     output_stream.flush()
 }
+
+pub fn compute_serialized_size_in_words<U : MessageBuilder>(message: &mut U) -> usize {
+    let segments = message.get_segments_for_output();
+
+    // Table size
+    let mut size = (segments.len() / 2) + 1;
+
+    for segment in segments {
+        size += segment.len();
+    }
+
+    size
+}
