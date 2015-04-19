@@ -27,7 +27,7 @@ pub trait FromStructReader<'a> {
 }
 
 pub trait HasStructSize {
-    fn struct_size(unused_self : Option<Self>) -> StructSize;
+    fn struct_size() -> StructSize;
 }
 
 pub trait FromStructBuilder<'a> {
@@ -56,7 +56,7 @@ pub trait SetPointerBuilder<To> {
 }
 
 pub trait HasTypeId {
-    fn type_id(unused_self : Option<Self>) -> u64;
+    fn type_id() -> u64;
 }
 
 pub trait CastableTo<T> {
