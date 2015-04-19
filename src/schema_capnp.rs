@@ -129,7 +129,7 @@ pub mod node {
   pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
-    fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+    fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
   }
   impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
     #[inline]
@@ -428,7 +428,7 @@ pub mod node {
     pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
-      fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+      fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
     }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -555,7 +555,7 @@ pub mod node {
     pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
-      fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+      fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
     }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -1533,7 +1533,7 @@ pub mod field {
   pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
-    fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+    fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
   }
   impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
     #[inline]
@@ -2142,7 +2142,7 @@ pub mod enumerant {
   pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
-    fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+    fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
   }
   impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
     #[inline]
@@ -2292,7 +2292,7 @@ pub mod superclass {
   pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
-    fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+    fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
   }
   impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
     #[inline]
@@ -2466,7 +2466,7 @@ pub mod method {
   pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
-    fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+    fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
   }
   impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
     #[inline]
@@ -2775,7 +2775,7 @@ pub mod type_ {
   pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
-    fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+    fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
   }
   impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
     #[inline]
@@ -4108,7 +4108,7 @@ pub mod brand {
   pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
-    fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+    fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
   }
   impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
     #[inline]
@@ -4249,7 +4249,7 @@ pub mod brand {
     pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
-      fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+      fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
     }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -4420,7 +4420,7 @@ pub mod brand {
     pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
-      fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+      fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
     }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -4685,7 +4685,7 @@ pub mod value {
   pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
-    fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+    fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
   }
   impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
     #[inline]
@@ -5057,7 +5057,7 @@ pub mod annotation {
   pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
-    fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+    fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
   }
   impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
     #[inline]
@@ -5253,7 +5253,7 @@ pub mod code_generator_request {
   pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
   impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
     #[inline]
-    fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+    fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
   }
   impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
     #[inline]
@@ -5401,7 +5401,7 @@ pub mod code_generator_request {
     pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
     impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
       #[inline]
-      fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+      fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
     }
     impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
       #[inline]
@@ -5550,7 +5550,7 @@ pub mod code_generator_request {
       pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }
       impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {
         #[inline]
-        fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }
+        fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }
       }
       impl <'a> ::capnp::traits::HasTypeId for Builder<'a> {
         #[inline]

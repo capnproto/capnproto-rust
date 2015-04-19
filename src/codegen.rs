@@ -1111,7 +1111,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         Line("impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {".to_string()),
                         Indent(Box::new(
                             Branch(vec!(Line("#[inline]".to_string()),
-                                        Line("fn struct_size(_unused_self : Option<Builder>) -> layout::StructSize { _private::STRUCT_SIZE }".to_string()))))),
+                                        Line("fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }".to_string()))))),
                        Line("}".to_string())))
             };
 
