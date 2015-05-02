@@ -214,59 +214,70 @@ struct PackedWrite<W> where W: Write {
 impl <W> Write for PackedWrite<W> where W: Write {
     fn write(&mut self, in_buf: &[u8]) -> io::Result<usize> {
         unsafe {
+            let mut buf_idx = 0;
+            let mut buf = [0; 64];
+
             let mut in_ptr: *const u8 = in_buf.get_unchecked(0);
             let in_end: *const u8 = in_buf.get_unchecked(in_buf.len());
 
             while in_ptr < in_end {
 
-                let mut tagged_word: [u8; 9] = [0; 9];
-                let mut idx: usize = 1;
+                if buf_idx + 10 > buf.len() {
+                    //# Oops, we're out of space. We need at least 10
+                    //# bytes for the fast path, since we don't
+                    //# bounds-check on every byte.
+                    try!(self.inner.write_all(&buf[..buf_idx]));
+                    buf_idx = 0;
+                }
+
+                let tag_pos = buf_idx;
+                buf_idx += 1;
 
                 let bit0 = (*in_ptr != 0) as u8;
-                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
-                idx += bit0 as usize;
+                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
+                buf_idx += bit0 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit1 = (*in_ptr != 0) as u8;
-                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
-                idx += bit1 as usize;
+                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
+                buf_idx += bit1 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit2 = (*in_ptr != 0) as u8;
-                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
-                idx += bit2 as usize;
+                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
+                buf_idx += bit2 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit3 = (*in_ptr != 0) as u8;
-                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
-                idx += bit3 as usize;
+                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
+                buf_idx += bit3 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit4 = (*in_ptr != 0) as u8;
-                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
-                idx += bit4 as usize;
+                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
+                buf_idx += bit4 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit5 = (*in_ptr != 0) as u8;
-                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
-                idx += bit5 as usize;
+                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
+                buf_idx += bit5 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit6 = (*in_ptr != 0) as u8;
-                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
-                idx += bit6 as usize;
+                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
+                buf_idx += bit6 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit7 = (*in_ptr != 0) as u8;
-                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
-                idx += bit7 as usize;
+                *buf.get_unchecked_mut(buf_idx) = *in_ptr;
+                buf_idx += bit7 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let tag: u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
                             | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
 
-                *tagged_word.get_unchecked_mut(0) = tag;
-                try!(self.inner.write_all(&tagged_word[..idx]));
+
+                *buf.get_unchecked_mut(tag_pos) = tag;
 
                 if tag == 0 {
                     //# An all-zero word is followed by a count of
@@ -282,7 +293,8 @@ impl <W> Write for PackedWrite<W> where W: Write {
                         in_word = in_word.offset(1);
                     }
 
-                    try!(self.inner.write_all(&[ptr_sub(in_word, in_ptr as *const u64) as u8]));
+                    *buf.get_unchecked_mut(buf_idx) = ptr_sub(in_word, in_ptr as *const u64) as u8;
+                    buf_idx += 1;
                     in_ptr = in_word as *const u8;
                 } else if tag == 0xff {
                     //# An all-nonzero word is followed by a count of
@@ -314,12 +326,18 @@ impl <W> Write for PackedWrite<W> where W: Write {
                             break;
                         }
                     }
-                    let count : usize = ptr_sub(in_ptr, run_start);
-                    try!(self.inner.write_all(&[(count / 8) as u8]));
+
+                    let count: usize = ptr_sub(in_ptr, run_start);
+                    *buf.get_unchecked_mut(buf_idx) = (count / 8) as u8;
+                    buf_idx += 1;
+
+                    try!(self.inner.write_all(&buf[..buf_idx]));
+                    buf_idx = 0;
                     try!(self.inner.write_all(slice::from_raw_parts::<u8>(run_start, count)));
                 }
             }
 
+            try!(self.inner.write_all(&buf[..buf_idx]));
             Ok(in_buf.len())
         }
     }
