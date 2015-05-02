@@ -223,49 +223,49 @@ impl <W> Write for PackedWrite<W> where W: Write {
                 let mut idx: usize = 1;
 
                 let bit0 = (*in_ptr != 0) as u8;
-                tagged_word[idx] = *in_ptr;
+                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
                 idx += bit0 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit1 = (*in_ptr != 0) as u8;
-                tagged_word[idx] = *in_ptr;
+                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
                 idx += bit1 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit2 = (*in_ptr != 0) as u8;
-                tagged_word[idx] = *in_ptr;
+                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
                 idx += bit2 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit3 = (*in_ptr != 0) as u8;
-                tagged_word[idx] = *in_ptr;
+                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
                 idx += bit3 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit4 = (*in_ptr != 0) as u8;
-                tagged_word[idx] = *in_ptr;
+                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
                 idx += bit4 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit5 = (*in_ptr != 0) as u8;
-                tagged_word[idx] = *in_ptr;
+                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
                 idx += bit5 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit6 = (*in_ptr != 0) as u8;
-                tagged_word[idx] = *in_ptr;
+                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
                 idx += bit6 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let bit7 = (*in_ptr != 0) as u8;
-                tagged_word[idx] = *in_ptr;
+                *tagged_word.get_unchecked_mut(idx) = *in_ptr;
                 idx += bit7 as usize;
                 in_ptr = in_ptr.offset(1);
 
                 let tag: u8 = (bit0 << 0) | (bit1 << 1) | (bit2 << 2) | (bit3 << 3)
                             | (bit4 << 4) | (bit5 << 5) | (bit6 << 6) | (bit7 << 7);
 
-                tagged_word[0] = tag;
+                *tagged_word.get_unchecked_mut(0) = tag;
                 try!(self.inner.write_all(&tagged_word[..idx]));
 
                 if tag == 0 {
