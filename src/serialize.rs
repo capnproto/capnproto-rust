@@ -54,16 +54,18 @@ impl MessageReader for OwnedSpaceMessageReader {
 /// For optimal performance, `read` should be a buffered reader type.
 pub fn read_message<R>(read: &mut R, options: ReaderOptions) -> Result<OwnedSpaceMessageReader>
 where R: Read {
-    let (total_words, segment_slices) = try!(read_frame(read, options));
+    let (total_words, segment_slices) = try!(read_segment_table(read, options));
     read_segments(read, total_words, segment_slices, options)
 }
 
-/// Reads a stream frame from `read` and returns the total number of words across all
+/// Reads a segment table from `read` and returns the total number of words across all
 /// segments, as well as the segment offsets.
 ///
-/// The frame format for streams is defined in the Cap'n Proto
+/// The segment table format for streams is defined in the Cap'n Proto
 /// [encoding spec](https://capnproto.org/encoding.html)
-fn read_frame<R>(read: &mut R, options: ReaderOptions) -> Result<(usize, Vec<(usize, usize)>)>
+fn read_segment_table<R>(read: &mut R,
+                         options: ReaderOptions)
+                         -> Result<(usize, Vec<(usize, usize)>)>
 where R: Read {
 
     let mut buf: [u8; 8] = [0; 8];
@@ -153,14 +155,14 @@ where R: Read {
 pub fn write_message<W, M>(write: &mut W, message: &mut M) -> ::std::io::Result<()>
 where W: Write, M: MessageBuilder {
     let segments = message.get_segments_for_output();
-    try!(write_frame(write, segments));
+    try!(write_segment_table(write, segments));
     write_segments(write, segments)
 }
 
-/// Writes a stream frame to `write`.
+/// Writes a segment table to `write`.
 ///
 /// `segments` must contain at least one segment.
-fn write_frame<W>(write: &mut W, segments: &[&[Word]]) -> ::std::io::Result<()>
+fn write_segment_table<W>(write: &mut W, segments: &[&[Word]]) -> ::std::io::Result<()>
 where W: Write {
     let mut buf: [u8; 8] = [0; 8];
     let segment_count = segments.len();
@@ -220,26 +222,27 @@ pub mod test {
 
     use {Word, MessageReader};
     use message::ReaderOptions;
-    use super::{read_message, read_frame, write_frame, write_segments};
+    use super::{read_message, read_segment_table, write_segment_table, write_segments};
 
     /// Writes segments as if they were a Capnproto message.
     pub fn write_message_segments<W>(write: &mut W, segments: &Vec<Vec<Word>>) where W: Write {
         let borrowed_segments: &[&[Word]] = &segments.iter()
                                                      .map(|segment| &segment[..])
                                                      .collect::<Vec<_>>()[..];
-        write_frame(write, borrowed_segments).unwrap();
+        write_segment_table(write, borrowed_segments).unwrap();
         write_segments(write, borrowed_segments).unwrap();
     }
 
     #[test]
-    fn test_read_frame() {
+    fn test_read_segment_table() {
 
         let mut buf = vec![];
 
         buf.extend([0,0,0,0, // 1 segments
                     0,0,0,0] // 0 length
                     .iter().cloned());
-        let (words, segment_slices) = read_frame(&mut Cursor::new(&buf[..]), ReaderOptions::new()).unwrap();
+        let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
+                                                         ReaderOptions::new()).unwrap();
         assert_eq!(0, words);
         assert_eq!(vec![(0,0)], segment_slices);
         buf.clear();
@@ -247,8 +250,8 @@ pub mod test {
         buf.extend([0,0,0,0, // 1 segments
                     1,0,0,0] // 1 length
                     .iter().cloned());
-        let (words, segment_slices) = read_frame(&mut Cursor::new(&buf[..]),
-                                                 ReaderOptions::new()).unwrap();
+        let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
+                                                         ReaderOptions::new()).unwrap();
         assert_eq!(1, words);
         assert_eq!(vec![(0,1)], segment_slices);
         buf.clear();
@@ -258,8 +261,8 @@ pub mod test {
                     1,0,0,0, // 1 length
                     0,0,0,0] // padding
                     .iter().cloned());
-        let (words, segment_slices) = read_frame(&mut Cursor::new(&buf[..]),
-                                                 ReaderOptions::new()).unwrap();
+        let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
+                                                         ReaderOptions::new()).unwrap();
         assert_eq!(2, words);
         assert_eq!(vec![(0,1), (1, 2)], segment_slices);
         buf.clear();
@@ -269,8 +272,8 @@ pub mod test {
                     1,0,0,0, // 1 length
                     0,1,0,0] // 256 length
                     .iter().cloned());
-        let (words, segment_slices) = read_frame(&mut Cursor::new(&buf[..]),
-                                                 ReaderOptions::new()).unwrap();
+        let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
+                                                         ReaderOptions::new()).unwrap();
         assert_eq!(258, words);
         assert_eq!(vec![(0,1), (1, 2), (2, 258)], segment_slices);
         buf.clear();
@@ -282,43 +285,43 @@ pub mod test {
                     99,0,0,0, // 99 length
                     0,0,0,0]  // padding
                     .iter().cloned());
-        let (words, segment_slices) = read_frame(&mut Cursor::new(&buf[..]),
-                                                 ReaderOptions::new()).unwrap();
+        let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
+                                                         ReaderOptions::new()).unwrap();
         assert_eq!(200, words);
         assert_eq!(vec![(0,77), (77, 100), (100, 101), (101, 200)], segment_slices);
         buf.clear();
     }
 
     #[test]
-    fn test_read_invalid_frame() {
+    fn test_read_invalid_segment_table() {
 
         let mut buf = vec![];
 
         buf.extend([0,2,0,0].iter().cloned()); // 513 segments
         buf.extend([0; 513 * 4].iter().cloned());
-        assert!(read_frame(&mut Cursor::new(&buf[..]),
-                           ReaderOptions::new()).is_err());
+        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+                                   ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([0,0,0,0].iter().cloned()); // 1 segments
-        assert!(read_frame(&mut Cursor::new(&buf[..]),
-                           ReaderOptions::new()).is_err());
+        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+                                   ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([0,0,0,0].iter().cloned()); // 1 segments
         buf.extend([0; 3].iter().cloned());
-        assert!(read_frame(&mut Cursor::new(&buf[..]),
-                           ReaderOptions::new()).is_err());
+        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+                                   ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([255,255,255,255].iter().cloned()); // 0 segments
-        assert!(read_frame(&mut Cursor::new(&buf[..]),
-                           ReaderOptions::new()).is_err());
+        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+                                   ReaderOptions::new()).is_err());
         buf.clear();
     }
 
     #[test]
-    fn test_write_frame() {
+    fn test_write_segment_table() {
 
         let mut buf = vec![];
 
@@ -326,25 +329,25 @@ pub mod test {
         let segment_1 = [Word::from(1); 1];
         let segment_199 = [Word::from(199); 199];
 
-        write_frame(&mut buf, &[&segment_0]).unwrap();
+        write_segment_table(&mut buf, &[&segment_0]).unwrap();
         assert_eq!(&[0,0,0,0,  // 1 segments
                      0,0,0,0], // 0 length
                    &buf[..]);
         buf.clear();
 
-        write_frame(&mut buf, &[&segment_1]).unwrap();
+        write_segment_table(&mut buf, &[&segment_1]).unwrap();
         assert_eq!(&[0,0,0,0,  // 1 segments
                      1,0,0,0], // 1 length
                    &buf[..]);
         buf.clear();
 
-        write_frame(&mut buf, &[&segment_199]).unwrap();
+        write_segment_table(&mut buf, &[&segment_199]).unwrap();
         assert_eq!(&[0,0,0,0,    // 1 segments
                      199,0,0,0], // 199 length
                    &buf[..]);
         buf.clear();
 
-        write_frame(&mut buf, &[&segment_0, &segment_1]).unwrap();
+        write_segment_table(&mut buf, &[&segment_0, &segment_1]).unwrap();
         assert_eq!(&[1,0,0,0,  // 2 segments
                      0,0,0,0,  // 0 length
                      1,0,0,0,  // 1 length
@@ -352,7 +355,8 @@ pub mod test {
                    &buf[..]);
         buf.clear();
 
-        write_frame(&mut buf, &[&segment_199, &segment_1, &segment_199, &segment_0]).unwrap();
+        write_segment_table(&mut buf,
+                            &[&segment_199, &segment_1, &segment_199, &segment_0]).unwrap();
         assert_eq!(&[3,0,0,0,   // 4 segments
                      199,0,0,0, // 199 length
                      1,0,0,0,   // 1 length
@@ -362,7 +366,8 @@ pub mod test {
                    &buf[..]);
         buf.clear();
 
-        write_frame(&mut buf, &[&segment_199, &segment_1, &segment_199, &segment_0, &segment_1]).unwrap();
+        write_segment_table(&mut buf,
+                            &[&segment_199, &segment_1, &segment_199, &segment_0, &segment_1]).unwrap();
         assert_eq!(&[4,0,0,0,   // 5 segments
                      199,0,0,0, // 199 length
                      1,0,0,0,   // 1 length
