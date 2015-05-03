@@ -26,7 +26,6 @@ extern crate fdstream;
 extern crate rand;
 
 use capnp::{MessageReader, MessageBuilder};
-use capnp::io::{OutputStream};
 
 pub mod common;
 
@@ -49,45 +48,33 @@ pub mod eval;
 mod uncompressed {
     use capnp;
 
-    pub fn write<T : ::capnp::io::OutputStream, U : capnp::message::MessageBuilder>(
+    pub fn write<T : ::std::io::Write, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &mut U) {
         capnp::serialize::write_message(writer, message).unwrap();
     }
 
-    pub fn write_buffered<T : ::capnp::io::OutputStream, U : capnp::message::MessageBuilder>(
-        writer: &mut T,
-        message: &mut U) {
-        capnp::serialize::write_message(writer, message).unwrap();
-    }
-
-    pub fn new_buffered_reader<R: capnp::io::BufferedInputStream>(
+    pub fn new_reader<R: ::std::io::BufRead>(
         input_stream : &mut R,
         options : capnp::message::ReaderOptions) -> capnp::serialize::OwnedSpaceMessageReader {
-        capnp::serialize::new_reader(input_stream, options).unwrap()
+        capnp::serialize::read_message(input_stream, options).unwrap()
     }
 }
 
 mod packed {
     use capnp;
-    use capnp::serialize_packed::{write_packed_message, write_packed_message_unbuffered};
+    use capnp::serialize_packed::{write_message};
 
-    pub fn write<T : ::capnp::io::OutputStream, U : capnp::message::MessageBuilder>(
+    pub fn write<T : ::std::io::Write, U : capnp::message::MessageBuilder>(
         writer: &mut T,
         message: &mut U) {
-        write_packed_message_unbuffered(writer, message).unwrap();
+        write_message(writer, message).unwrap();
     }
 
-    pub fn write_buffered<T : capnp::io::BufferedOutputStream, U : capnp::message::MessageBuilder>(
-        writer: &mut T,
-        message: &mut U) {
-        write_packed_message(writer, message).unwrap();
-    }
-
-    pub fn new_buffered_reader<R:capnp::io::BufferedInputStream>(
+    pub fn new_reader<R: ::std::io::BufRead>(
         input_stream : &mut R,
         options : capnp::message::ReaderOptions) -> capnp::serialize::OwnedSpaceMessageReader {
-        capnp::serialize_packed::new_reader(input_stream, options).unwrap()
+        capnp::serialize_packed::read_message(input_stream, options).unwrap()
     }
 
 }
@@ -168,12 +155,13 @@ macro_rules! pass_by_bytes(
                 let response = message_res.init_root::<$testcase::ResponseBuilder>();
 
                 {
-                    let mut writer = capnp::io::ArrayOutputStream::new(&mut request_bytes);
-                    $compression::write_buffered(&mut writer, &mut message_req)
+                    let mut writer : &mut[u8] = &mut request_bytes;
+                    $compression::write(&mut writer, &mut message_req)
                 }
 
-                let message_reader = $compression::new_buffered_reader(
-                    &mut capnp::io::ArrayInputStream::new(&request_bytes),
+                let mut request_bytes1 : &[u8] = &request_bytes;
+                let message_reader = $compression::new_reader(
+                    &mut request_bytes1,
                     capnp::message::DEFAULT_READER_OPTIONS);
 
                 let request_reader : $testcase::RequestReader = message_reader.get_root().unwrap();
@@ -181,12 +169,13 @@ macro_rules! pass_by_bytes(
             }
 
             {
-                let mut writer = capnp::io::ArrayOutputStream::new(&mut response_bytes);
-                $compression::write_buffered(&mut writer, &mut message_res)
+                let mut writer : &mut [u8] = &mut response_bytes;
+                $compression::write(&mut writer, &mut message_res)
             }
 
-            let message_reader = $compression::new_buffered_reader(
-                &mut capnp::io::ArrayInputStream::new(&response_bytes),
+            let mut response_bytes1 : &[u8] = &response_bytes;
+            let message_reader = $compression::new_reader(
+                &mut response_bytes1,
                 capnp::message::DEFAULT_READER_OPTIONS);
 
             let response_reader : $testcase::ResponseReader = message_reader.get_root().unwrap();
@@ -199,21 +188,21 @@ macro_rules! pass_by_bytes(
 
 macro_rules! server(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
-            let mut out_buffered = capnp::io::BufferedOutputStreamWrapper::new(&mut $output);
-            let mut in_buffered = capnp::io::BufferedInputStreamWrapper::new(&mut $input);
+            let mut out_buffered = ::std::io::BufWriter::new(&mut $output);
+            let mut in_buffered = ::std::io::BufReader::new(&mut $input);
             for _ in 0..$iters {
                 let mut message_res = $reuse.new_builder(0);
 
                 {
                     let response = message_res.init_root::<$testcase::ResponseBuilder>();
-                    let message_reader = $compression::new_buffered_reader(
+                    let message_reader = $compression::new_reader(
                         &mut in_buffered,
                         capnp::message::DEFAULT_READER_OPTIONS);
                     let request_reader : $testcase::RequestReader = message_reader.get_root().unwrap();
                     $testcase::handle_request(request_reader, response);
                 }
 
-                $compression::write_buffered(&mut out_buffered, &mut message_res);
+                $compression::write(&mut out_buffered, &mut message_res);
                 out_buffered.flush().unwrap();
             }
         });
@@ -223,7 +212,8 @@ macro_rules! sync_client(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
             let mut out_stream = ::fdstream::FdStream::new(1);
             let mut in_stream = ::fdstream::FdStream::new(0);
-            let mut in_buffered = capnp::io::BufferedInputStreamWrapper::new(&mut in_stream);
+            let mut in_buffered = ::std::io::BufReader::new(&mut in_stream);
+            let mut out_buffered = ::std::io::BufWriter::new(&mut out_stream);
             let mut rng = common::FastRand::new();
             for _ in 0..$iters {
                 let mut message_req = $reuse.new_builder(0);
@@ -232,9 +222,10 @@ macro_rules! sync_client(
                     let request = message_req.init_root::<$testcase::RequestBuilder>();
                     $testcase::setup_request(&mut rng, request)
                 };
-                $compression::write(&mut out_stream, &mut message_req);
+                $compression::write(&mut out_buffered, &mut message_req);
+                out_buffered.flush().unwrap();
 
-                let message_reader = $compression::new_buffered_reader(
+                let message_reader = $compression::new_reader(
                     &mut in_buffered,
                     capnp::message::DEFAULT_READER_OPTIONS);
                 let response_reader : $testcase::ResponseReader = message_reader.get_root().unwrap();
@@ -248,7 +239,6 @@ macro_rules! sync_client(
 macro_rules! pass_by_pipe(
     ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
         use std::process;
-        use capnp::io::{OutputStream};
 
         let mut args : Vec<String> = ::std::env::args().collect();
         args[2] = "client".to_string();
@@ -318,6 +308,7 @@ macro_rules! do_testcase2(
     );
 
 pub fn main() {
+    use ::std::io::{Read, Write};
     let args : Vec<String> = ::std::env::args().collect();
 
     assert!(args.len() == 6,

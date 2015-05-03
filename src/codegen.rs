@@ -1556,7 +1556,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
 
 
-pub fn main<T : ::capnp::io::InputStream>(mut inp : T, out_dir : &::std::path::Path) -> ::capnp::Result<()> {
+pub fn main<T : ::std::io::Read>(mut inp : T, out_dir : &::std::path::Path) -> ::capnp::Result<()> {
     //! Generate Rust code according to a `schema_capnp::code_generator_request` read from `inp`.
 
     use capnp::serialize;
@@ -1564,7 +1564,7 @@ pub fn main<T : ::capnp::io::InputStream>(mut inp : T, out_dir : &::std::path::P
     use std::borrow::ToOwned;
     use std::io::Write;
 
-    let message = try!(serialize::new_reader(&mut inp, capnp::ReaderOptions::new()));
+    let message = try!(serialize::read_message(&mut inp, capnp::ReaderOptions::new()));
 
     let request : schema_capnp::code_generator_request::Reader = try!(message.get_root());
 
