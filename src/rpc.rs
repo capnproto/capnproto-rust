@@ -348,9 +348,9 @@ fn get_pipeline_ops(promised_answer : promised_answer::Reader) -> Vec<PipelineOp
     return result;
 }
 
-fn finish_question<W : ::capnp::io::OutputStream>(questions : &mut ExportTable<Question>,
-                                                  outpipe : &mut W,
-                                                  id : u32) {
+fn finish_question<W : ::std::io::Write>(questions : &mut ExportTable<Question>,
+                                         outpipe : &mut W,
+                                         id : u32) {
     questions.erase(id);
 
     let mut finish_message = Box::new(MallocMessageBuilder::new_default());
@@ -374,8 +374,8 @@ impl RpcConnectionState {
         }
     }
 
-    pub fn run<T : ::capnp::io::InputStream + Send + 'static,
-               U : ::capnp::io::OutputStream + Send + 'static>(
+    pub fn run<T : ::std::io::Read + Send + 'static,
+               U : ::std::io::Write + Send + 'static>(
                    self, inpipe: T, outpipe: U,
                    bootstrap_interface : Box<ClientHook + Send>,
                    opts : ReaderOptions)
@@ -388,9 +388,7 @@ impl RpcConnectionState {
         ::std::thread::spawn(move || {
                 let mut r = inpipe;
                 loop {
-                    match serialize::new_reader(
-                        &mut r,
-                        opts) {
+                    match serialize::read_message(&mut r, opts) {
                         Err(_e) => { listener_chan.send(RpcEvent::Shutdown).is_ok(); break; }
                         Ok(message) => {
                             listener_chan.send(RpcEvent::IncomingMessage(Box::new(message))).is_ok();
