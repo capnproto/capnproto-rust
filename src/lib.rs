@@ -39,6 +39,11 @@
 #![crate_name="capnp"]
 #![crate_type = "lib"]
 
+extern crate byteorder;
+
+#[cfg(test)]
+extern crate quickcheck;
+
 // reexports
 pub use message::{MessageBuilder, BuilderOptions, MessageReader, ReaderOptions};
 pub use message::MallocMessageBuilder;
@@ -49,7 +54,6 @@ pub mod capability;
 pub mod data;
 pub mod data_list;
 pub mod enum_list;
-pub mod io;
 pub mod list_list;
 pub mod message;
 pub mod primitive_list;
@@ -61,36 +65,59 @@ pub mod text;
 pub mod text_list;
 pub mod traits;
 
+mod util;
+
 /// Eight bytes of memory with opaque interior.
 ///
 /// This type is used to ensure that the data of a message is properly aligned.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(C)]
-pub struct Word {_unused_member : u64}
+pub struct Word(u64);
 
 impl Word {
     /// Does this, but faster:
-    /// `::std::iter::repeat(Word{ _unused_member : 0}).take(length).collect()`
-    pub fn allocate_zeroed_vec(length : usize) -> ::std::vec::Vec<Word> {
-        let mut result : ::std::vec::Vec<Word> = ::std::vec::Vec::with_capacity(length);
+    /// `::std::iter::repeat(Word(0)).take(length).collect()`
+    pub fn allocate_zeroed_vec(length: usize) -> Vec<Word> {
+        let mut result : Vec<Word> = Vec::with_capacity(length);
         unsafe {
             result.set_len(length);
-            let p : *mut u8 = ::std::mem::transmute(result.as_mut_ptr());
+            let p : *mut u8 = result.as_mut_ptr() as *mut u8;
             ::std::ptr::write_bytes(p, 0u8, length * ::std::mem::size_of::<Word>());
         }
         return result;
     }
 
-    pub fn bytes_to_words<'a>(bytes : &'a [u8]) -> &'a [Word] {
+    pub fn bytes_to_words<'a>(bytes: &'a [u8]) -> &'a [Word] {
         unsafe {
-            ::std::slice::from_raw_parts(::std::mem::transmute(bytes.as_ptr()), bytes.len() / 8)
+            ::std::slice::from_raw_parts(bytes.as_ptr() as *const Word, bytes.len() / 8)
         }
     }
 
-    pub fn words_to_bytes<'a>(words : &'a [Word]) -> &'a [u8] {
+    pub fn words_to_bytes<'a>(words: &'a [Word]) -> &'a [u8] {
         unsafe {
-            ::std::slice::from_raw_parts(::std::mem::transmute(words.as_ptr()), words.len() * 8)
+            ::std::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 8)
         }
+    }
+
+    pub fn words_to_bytes_mut<'a>(words: &'a mut [Word]) -> &'a mut [u8] {
+        unsafe {
+            ::std::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, words.len() * 8)
+        }
+    }
+
+    #[cfg(test)]
+    pub fn from(n: u64) -> Word {
+        Word(n)
+    }
+}
+
+#[cfg(test)]
+impl quickcheck::Arbitrary for Word {
+    fn arbitrary<G: quickcheck::Gen>(g: &mut G) -> Word {
+        Word(quickcheck::Arbitrary::arbitrary(g))
+    }
+    fn shrink(&self) -> Box<Iterator<Item=Word>+'static> {
+        Box::new(quickcheck::Arbitrary::shrink(&self.0).map(|value| Word(value)))
     }
 }
 
