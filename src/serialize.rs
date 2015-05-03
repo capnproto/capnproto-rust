@@ -32,10 +32,10 @@ use {Error, Result, Word};
 use byteorder::{ByteOrder, LittleEndian};
 
 pub struct OwnedSpaceMessageReader {
-    options : ReaderOptions,
-    arena : Box<arena::ReaderArena>,
-    segment_slices : Vec<(usize, usize)>,
-    owned_space : Vec<Word>,
+    pub options : ReaderOptions,
+    pub arena : Box<arena::ReaderArena>,
+    pub segment_slices : Vec<(usize, usize)>,
+    pub owned_space : Vec<Word>,
 }
 
 impl MessageReader for OwnedSpaceMessageReader {
@@ -65,7 +65,7 @@ where R: Read {
 /// segments, as well as the segment offsets.
 ///
 /// The segment table format for streams is defined in the Cap'n Proto
-/// [encoding spec](https://capnproto.org/encoding.html)
+/// [encoding spec](https://capnproto.org/encoding.html#serialization-over-a-stream)
 fn read_segment_table<R>(read: &mut R,
                          options: ReaderOptions)
                          -> Result<(usize, Vec<(usize, usize)>)>
