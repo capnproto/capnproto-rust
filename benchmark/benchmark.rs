@@ -46,37 +46,11 @@ pub mod eval_capnp {
 pub mod eval;
 
 mod uncompressed {
-    use capnp;
-
-    pub fn write<T : ::std::io::Write, U : capnp::message::MessageBuilder>(
-        writer: &mut T,
-        message: &mut U) {
-        capnp::serialize::write_message(writer, message).unwrap();
-    }
-
-    pub fn new_reader<R: ::std::io::BufRead>(
-        input_stream : &mut R,
-        options : capnp::message::ReaderOptions) -> capnp::serialize::OwnedSpaceMessageReader {
-        capnp::serialize::read_message(input_stream, options).unwrap()
-    }
+    pub use capnp::serialize::{read_message, write_message};
 }
 
 mod packed {
-    use capnp;
-    use capnp::serialize_packed::{write_message};
-
-    pub fn write<T : ::std::io::Write, U : capnp::message::MessageBuilder>(
-        writer: &mut T,
-        message: &mut U) {
-        write_message(writer, message).unwrap();
-    }
-
-    pub fn new_reader<R: ::std::io::BufRead>(
-        input_stream : &mut R,
-        options : capnp::message::ReaderOptions) -> capnp::serialize::OwnedSpaceMessageReader {
-        capnp::serialize_packed::read_message(input_stream, options).unwrap()
-    }
-
+    pub use capnp::serialize_packed::{read_message, write_message};
 }
 
 const SCRATCH_SIZE : usize = 128 * 1024;
@@ -156,13 +130,13 @@ macro_rules! pass_by_bytes(
 
                 {
                     let mut writer : &mut[u8] = &mut request_bytes;
-                    $compression::write(&mut writer, &mut message_req)
+                    $compression::write_message(&mut writer, &mut message_req).unwrap()
                 }
 
                 let mut request_bytes1 : &[u8] = &request_bytes;
-                let message_reader = $compression::new_reader(
+                let message_reader = $compression::read_message(
                     &mut request_bytes1,
-                    capnp::message::DEFAULT_READER_OPTIONS);
+                    capnp::message::DEFAULT_READER_OPTIONS).unwrap();
 
                 let request_reader : $testcase::RequestReader = message_reader.get_root().unwrap();
                 $testcase::handle_request(request_reader, response);
@@ -170,13 +144,13 @@ macro_rules! pass_by_bytes(
 
             {
                 let mut writer : &mut [u8] = &mut response_bytes;
-                $compression::write(&mut writer, &mut message_res)
+                $compression::write_message(&mut writer, &mut message_res).unwrap()
             }
 
             let mut response_bytes1 : &[u8] = &response_bytes;
-            let message_reader = $compression::new_reader(
+            let message_reader = $compression::read_message(
                 &mut response_bytes1,
-                capnp::message::DEFAULT_READER_OPTIONS);
+                capnp::message::DEFAULT_READER_OPTIONS).unwrap();
 
             let response_reader : $testcase::ResponseReader = message_reader.get_root().unwrap();
             if !$testcase::check_response(response_reader, expected) {
@@ -195,14 +169,14 @@ macro_rules! server(
 
                 {
                     let response = message_res.init_root::<$testcase::ResponseBuilder>();
-                    let message_reader = $compression::new_reader(
+                    let message_reader = $compression::read_message(
                         &mut in_buffered,
-                        capnp::message::DEFAULT_READER_OPTIONS);
+                        capnp::message::DEFAULT_READER_OPTIONS).unwrap();
                     let request_reader : $testcase::RequestReader = message_reader.get_root().unwrap();
                     $testcase::handle_request(request_reader, response);
                 }
 
-                $compression::write(&mut out_buffered, &mut message_res);
+                $compression::write_message(&mut out_buffered, &mut message_res).unwrap();
                 out_buffered.flush().unwrap();
             }
         });
@@ -222,12 +196,12 @@ macro_rules! sync_client(
                     let request = message_req.init_root::<$testcase::RequestBuilder>();
                     $testcase::setup_request(&mut rng, request)
                 };
-                $compression::write(&mut out_buffered, &mut message_req);
+                $compression::write_message(&mut out_buffered, &mut message_req).unwrap();
                 out_buffered.flush().unwrap();
 
-                let message_reader = $compression::new_reader(
+                let message_reader = $compression::read_message(
                     &mut in_buffered,
-                    capnp::message::DEFAULT_READER_OPTIONS);
+                    capnp::message::DEFAULT_READER_OPTIONS).unwrap();
                 let response_reader : $testcase::ResponseReader = message_reader.get_root().unwrap();
                 assert!($testcase::check_response(response_reader, expected));
 
