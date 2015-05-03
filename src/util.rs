@@ -19,28 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::{io, mem};
-
-pub trait PtrUsize<T> {
-    fn as_usize(self) -> usize;
-}
-
-impl <T> PtrUsize<T> for *const T {
-    fn as_usize(self) -> usize {
-        self as usize
-    }
-}
-
-impl <T> PtrUsize<T> for *mut T {
-    fn as_usize(self) -> usize {
-        self as usize
-    }
-}
-
-#[inline]
-pub fn ptr_sub<T, U: PtrUsize<T>, V: PtrUsize<T>>(p1: U, p2: V) -> usize {
-    return (p1.as_usize() - p2.as_usize()) / mem::size_of::<T>();
-}
+use std::io;
 
 /// Reads into `buf` until it is full. Returns an error if EOF is encountered first.
 pub fn read_exact<R>(read: &mut R, buf: &mut [u8]) -> io::Result<()>

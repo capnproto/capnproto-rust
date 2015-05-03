@@ -19,13 +19,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::{io, ptr, slice};
+use std::{io, mem, ptr, slice};
 use std::io::{Read, BufRead, Write};
 
-use message::*;
 use serialize;
 use Result;
-use util::{ptr_sub, read_exact};
+use message::*;
+use util::read_exact;
 
 struct PackedRead<R> where R: BufRead {
     inner: R,
@@ -39,6 +39,11 @@ impl <R> PackedRead<R> where R: BufRead {
             Ok((buf.as_ptr(), buf.get_unchecked(buf.len())))
         }
     }
+}
+
+#[inline]
+fn ptr_sub<T>(p1: *const T, p2: *const T) -> usize {
+    return (p1 as usize - p2 as usize) / mem::size_of::<T>();
 }
 
 macro_rules! refresh_buffer(
@@ -214,8 +219,8 @@ struct PackedWrite<W> where W: Write {
 impl <W> Write for PackedWrite<W> where W: Write {
     fn write(&mut self, in_buf: &[u8]) -> io::Result<usize> {
         unsafe {
-            let mut buf_idx = 0;
-            let mut buf = [0; 64];
+            let mut buf_idx: usize = 0;
+            let mut buf: [u8; 64] = [0; 64];
 
             let mut in_ptr: *const u8 = in_buf.get_unchecked(0);
             let in_end: *const u8 = in_buf.get_unchecked(in_buf.len());
@@ -367,8 +372,6 @@ mod tests {
     use super::read_message;
     use util::read_exact;
 
-
-
     pub fn expect_packs_to(unpacked : &[u8],
                            packed : &[u8]) {
 
@@ -424,8 +427,8 @@ mod tests {
     }
 
     #[test]
-    fn check_serde() {
-        fn serde(segments: Vec<Vec<Word>>) -> TestResult {
+    fn check_round_trip() {
+        fn round_trip(segments: Vec<Vec<Word>>) -> TestResult {
             if segments.len() == 0 { return TestResult::discard(); }
             let mut cursor = Cursor::new(Vec::new());
 
@@ -438,7 +441,6 @@ mod tests {
             }))
         }
 
-        quickcheck(serde as fn(Vec<Vec<Word>>) -> TestResult);
+        quickcheck(round_trip as fn(Vec<Vec<Word>>) -> TestResult);
     }
-
 }

@@ -374,8 +374,8 @@ pub mod test {
     }
 
     #[test]
-    fn check_serde() {
-        fn serde(segments: Vec<Vec<Word>>) -> TestResult {
+    fn check_round_trip() {
+        fn round_trip(segments: Vec<Vec<Word>>) -> TestResult {
             if segments.len() == 0 { return TestResult::discard(); }
             let mut cursor = Cursor::new(Vec::new());
 
@@ -389,6 +389,6 @@ pub mod test {
             }))
         }
 
-        quickcheck(serde as fn(Vec<Vec<Word>>) -> TestResult);
+        quickcheck(round_trip as fn(Vec<Vec<Word>>) -> TestResult);
     }
 }
