@@ -93,7 +93,7 @@ where R: Read {
 /// segments, as well as the segment offsets.
 ///
 /// The segment table format for streams is defined in the Cap'n Proto
-/// [encoding spec](https://capnproto.org/encoding.html)
+/// [encoding spec](https://capnproto.org/encoding.html#serialization-over-a-stream)
 fn read_segment_table<R>(read: &mut R,
                          options: message::ReaderOptions)
                          -> Result<(usize, Vec<(usize, usize)>)>

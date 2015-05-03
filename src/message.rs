@@ -29,7 +29,7 @@ use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 use {OutputSegments, Result, Word};
 
 /// Options controlling how data is read.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct ReaderOptions {
 
     /// Limits how many total words of data are allowed to be traversed. Traversal is counted when
