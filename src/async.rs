@@ -110,16 +110,13 @@ pub enum ReadContinuation {
 pub type AsyncWrite = AsyncValue<(), WriteContinuation>;
 pub type AsyncRead = AsyncValue<OwnedSpaceMessageReader, ReadContinuation>;
 
-/// Read a Cap'n Proto serialized message from a stream with the provided options.
+/// Reads a Cap'n Proto serialized message from `read` with the provided options.
 pub fn read_message<R>(read: &mut R, options: ReaderOptions) -> Result<AsyncRead>
 where R: Read {
     let (segment_count, first_segment_len) = try_async!(read_segment_table_first(read, [0; 8], 0));
-
     let (total_words, segment_slices) = if segment_count == 1 {
-        // if there is only a single segment, then we have already read the whole segment table
         (first_segment_len, vec![(0, first_segment_len)])
     } else {
-        // otherwise we read the rest of the segment table
         try_async!(read_segment_table_rest(read,
                                            options,
                                            segment_count,
@@ -127,12 +124,57 @@ where R: Read {
                                            create_segment_table_buf(segment_count),
                                            0))
     };
-
     read_segments(read,
                   options,
                   segment_slices,
                   Word::allocate_zeroed_vec(total_words),
                   0)
+}
+
+/// Continues reading a message from `read` with the provided continuation state.
+pub fn read_message_continue<R>(read: &mut R,
+                                options: ReaderOptions,
+                                continuation: ReadContinuation)
+                                -> Result<AsyncRead>
+where R: Read {
+    match continuation {
+        ReadContinuation::SegmentTableFirst { buf, idx } => {
+            let (segment_count, first_segment_len) =
+                try_async!(read_segment_table_first(read, buf, idx));
+            let (total_words, segment_slices) = if segment_count == 1 {
+                (first_segment_len, vec![(0, first_segment_len)])
+            } else {
+                try_async!(read_segment_table_rest(read,
+                                                   options,
+                                                   segment_count,
+                                                   first_segment_len,
+                                                   create_segment_table_buf(segment_count),
+                                                   0))
+            };
+            read_segments(read,
+                          options,
+                          segment_slices,
+                          Word::allocate_zeroed_vec(total_words),
+                          0)
+        },
+        ReadContinuation::SegmentTableRest { segment_count, first_segment_len, buf, idx } => {
+            let (total_words, segment_slices) =
+                try_async!(read_segment_table_rest(read,
+                                                   options,
+                                                   segment_count,
+                                                   first_segment_len,
+                                                   buf,
+                                                   idx));
+            read_segments(read,
+                          options,
+                          segment_slices,
+                          Word::allocate_zeroed_vec(total_words),
+                          0)
+        },
+        ReadContinuation::Segments { segment_slices, owned_space, idx } => {
+            read_segments(read, options, segment_slices, owned_space, idx)
+        }
+    }
 }
 
 /// Reads bytes from `read` into `buf` until either `buf` is full, or the read
@@ -276,7 +318,8 @@ fn create_segment_table_buf(segment_count: usize) -> Box<[u8]> {
 #[cfg(test)]
 pub mod test {
 
-    use std::io::{Cursor, Read};
+    use std::cmp;
+    use std::io::{self, Cursor, Read};
 
     use quickcheck::{quickcheck, TestResult};
 
@@ -288,6 +331,7 @@ pub mod test {
         ReadContinuation,
         create_segment_table_buf,
         read_message,
+        read_message_continue,
         read_segment_table_first,
         read_segment_table_rest,
     };
@@ -416,5 +460,65 @@ pub mod test {
         }
 
         quickcheck(round_trip as fn(Vec<Vec<Word>>) -> TestResult);
+    }
+
+    /// Wraps a `Read` instance and introduces blocking.
+    struct BlockingRead<R> where R: Read {
+        /// The wrapped reader
+        read: R,
+
+        /// Number of bytes to read before blocking
+        frequency: usize,
+
+        /// Currently read bytes after blocking
+        idx: usize,
+    }
+
+    impl <R> BlockingRead<R> where R: Read {
+        fn new(read: R, frequency: usize) -> BlockingRead<R> {
+            BlockingRead { read: read, frequency: frequency, idx: 0 }
+        }
+    }
+
+    impl <R> Read for BlockingRead<R> where R: Read {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            if self.idx == 0 {
+                self.idx = self.frequency;
+                Err(io::Error::new(io::ErrorKind::WouldBlock, "BlockingRead"))
+            } else {
+                let len = cmp::min(self.idx, buf.len());
+                let bytes_read = try!(self.read.read(&mut buf[..len]));
+                self.idx -= bytes_read;
+                Ok(bytes_read)
+            }
+        }
+    }
+
+    #[test]
+    fn check_round_trip_blocking() {
+        fn round_trip(frequency: usize, segments: Vec<Vec<Word>>) -> TestResult {
+            if segments.len() == 0 || frequency == 0 { return TestResult::discard(); }
+
+            let mut read = {
+                let mut cursor = Cursor::new(Vec::new());
+                write_message_segments(&mut cursor, &segments);
+                cursor.set_position(0);
+                BlockingRead::new(cursor, frequency)
+            };
+
+            let message = {
+                let mut msg = read_message(&mut read, ReaderOptions::new()).unwrap();
+                while let AsyncValue::Continue(continuation) = msg {
+                    msg = read_message_continue(&mut read, ReaderOptions::new(), continuation).unwrap();
+                }
+                msg.unwrap()
+            };
+
+            TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
+                &segment[..] == message.get_segment(i)
+            }))
+        }
+
+        quickcheck(round_trip as fn(usize, Vec<Vec<Word>>) -> TestResult);
     }
 }
