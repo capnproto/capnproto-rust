@@ -106,35 +106,32 @@ pub enum ReadContinuation {
 
     /// Reading the message would block while trying to read the first word (the
     /// segment count, and the first segment's length).
-    ///
-    /// * `buf` contains the buffer being read into.
-    /// * `idx` contains the number of bytes read before being blocked.
     SegmentTableFirst {
+        /// The buffer being read into.
         buf: [u8; 8],
+        /// The number of bytes read before being blocked.
         idx: usize,
     },
 
-    /// Reading the message would block while trying to read the rest of the
-    /// segment table.
-    ///
-    /// * `segment_count` contains the total number of segments.
-    /// * `first_segment_len` contains the length of the first segment.
-    /// * `buf` contains the buffer being read into.
-    /// * `idx` contains the number of bytes read before being blocked.
+    /// Reading the message would block while trying to read the rest of the segment table.
     SegmentTableRest {
+        /// The total number of segments.
         segment_count: usize,
-        first_segment_len: usize,
-        buf: Box<[u8]>,
+        /// The segment start and end offsets into the segment buffer.
+        segment_slices: Vec<(usize, usize)>,
+        /// The buffer being read into.
+        buf: [u8; 8],
+        /// The number of bytes read before being blocked.
         idx: usize,
     },
 
     /// Reading the message would block while trying to read the segments.
-    ///
-    /// * `owned_space` contains the segment buffer.
-    /// * `idx` contains the number of bytes read into `owned_space` before being blocked.
     Segments {
+        /// The segment start and end offsets into the segment buffer.
         segment_slices: Vec<(usize, usize)>,
+        /// The segment buffer.
         owned_space: Vec<Word>,
+        /// The number of bytes read into `owned_space` before being blocked.
         idx: usize,
     },
 }
@@ -143,21 +140,18 @@ pub enum ReadContinuation {
 pub enum WriteContinuation {
 
     /// Writing the message would block while trying to write the segment table.
-    ///
-    /// * `word` contains the next word of the segment table to write.
-    /// * `idx` contains the byte offset into the next word to write.
     SegmentTable {
+        /// The next word of the segment table to write.
         word: usize,
+        /// The byte offset into the next word to write.
         idx: usize,
     },
 
-    /// Writing the message would block while trying to write the message
-    /// segments,
-    ///
-    /// * `segment` contains the next segment to write.
-    /// * `idx` contains the byte offset into the next segment to write.
+    /// Writing the message would block while trying to write the message segments.
     Segments {
+        /// The next segment to write.
         segment: usize,
+        /// The byte offset into the next segment to write.
         idx: usize,
     },
 }
@@ -180,15 +174,16 @@ pub fn read_message_async<R>(read: &mut R,
 where R: Read {
     match continuation {
         None => {
-            let (segment_count, first_segment_len) = try_async!(read_segment_table_first(read, [0; 8], 0));
-            let (total_words, segment_slices) = if segment_count == 1 {
-                (first_segment_len, vec![(0, first_segment_len)])
-            } else {
+            let (segment_count, first_segment_len) =
+                try_async!(read_segment_table_first(read, [0; 8], 0));
+            let (total_words, segment_slices) = {
+                let mut segment_slices = Vec::with_capacity(segment_count);
+                segment_slices.push((0, first_segment_len));
                 try_async!(read_segment_table_rest(read,
                                                    options,
                                                    segment_count,
-                                                   first_segment_len,
-                                                   create_segment_table_buf(segment_count),
+                                                   segment_slices,
+                                                   [0; 8],
                                                    0))
             };
             read_segments(read,
@@ -200,14 +195,14 @@ where R: Read {
         Some(ReadContinuation::SegmentTableFirst { buf, idx }) => {
             let (segment_count, first_segment_len) =
                 try_async!(read_segment_table_first(read, buf, idx));
-            let (total_words, segment_slices) = if segment_count == 1 {
-                (first_segment_len, vec![(0, first_segment_len)])
-            } else {
+            let (total_words, segment_slices) = {
+                let mut segment_slices = Vec::with_capacity(segment_count);
+                segment_slices.push((0, first_segment_len));
                 try_async!(read_segment_table_rest(read,
                                                    options,
                                                    segment_count,
-                                                   first_segment_len,
-                                                   create_segment_table_buf(segment_count),
+                                                   segment_slices,
+                                                   [0; 8],
                                                    0))
             };
             read_segments(read,
@@ -216,12 +211,12 @@ where R: Read {
                           Word::allocate_zeroed_vec(total_words),
                           0)
         },
-        Some(ReadContinuation::SegmentTableRest { segment_count, first_segment_len, buf, idx }) => {
+        Some(ReadContinuation::SegmentTableRest { segment_count, segment_slices, buf, idx }) => {
             let (total_words, segment_slices) =
                 try_async!(read_segment_table_rest(read,
                                                    options,
                                                    segment_count,
-                                                   first_segment_len,
+                                                   segment_slices,
                                                    buf,
                                                    idx));
             read_segments(read,
@@ -234,13 +229,6 @@ where R: Read {
             read_segments(read, options, segment_slices, owned_space, idx)
         }
     }
-}
-
-/// Creates a new buffer for reading the segment slice lengths.
-fn create_segment_table_buf(segment_count: usize) -> Box<[u8]> {
-    // number of segments rounded down to the nearest even number times 4 bytes per value
-    let len = (segment_count / 2) * 8;
-    vec![0; len].into_boxed_slice()
 }
 
 /// Reads or continues reading the first word of a segment table from `read`.
@@ -280,33 +268,60 @@ where R: Read {
 ///
 /// Returns the total segment words and segment slices, or a continuation if the
 /// read would block.
+///
+/// `segment_slices` must contain at least the first segment.
 fn read_segment_table_rest<R>(read: &mut R,
                               options: ReaderOptions,
                               segment_count: usize,
-                              first_segment_len: usize,
-                              mut buf: Box<[u8]>,
+                              mut segment_slices: Vec<(usize, usize)>,
+                              mut buf: [u8; 8],
                               mut idx: usize)
                               -> Result<AsyncValue<(usize, Vec<(usize, usize)>), ReadContinuation>>
 where R: Read {
-    idx += try!(async_read_all(read, &mut buf[idx..]));
-    if idx < buf.len() {
-        let continuation = ReadContinuation::SegmentTableRest {
-            segment_count: segment_count,
-            first_segment_len: first_segment_len,
-            buf: buf,
-            idx: idx,
-        };
-        return Ok(AsyncValue::Continue(continuation));
-    }
+    let mut total_words = segment_slices[segment_slices.len() - 1].1;
 
-    let mut segment_slices: Vec<(usize, usize)> = Vec::with_capacity(segment_count);
-    segment_slices.push((0, first_segment_len));
-    let mut total_words = first_segment_len;
+    if segment_count > 1 {
+        for _ in 0..((segment_count - segment_slices.len()) / 2) {
+            // read two segment lengths at a time starting with the second
+            // segment through the final full Word
+            idx += try!(async_read_all(read, &mut buf[idx..]));
+            if idx < buf.len() {
+                let continuation = ReadContinuation::SegmentTableRest {
+                    segment_count: segment_count,
+                    segment_slices: segment_slices,
+                    buf: buf,
+                    idx: idx,
+                };
+                return Ok(AsyncValue::Continue(continuation));
+            }
 
-    for chunk in buf.chunks(4).take(segment_count - 1) {
-        let segment_len = <LittleEndian as ByteOrder>::read_u32(chunk) as usize;
-        segment_slices.push((total_words, total_words + segment_len));
-        total_words += segment_len;
+            let segment_len_a = <LittleEndian as ByteOrder>::read_u32(&buf[0..4]) as usize;
+            let segment_len_b = <LittleEndian as ByteOrder>::read_u32(&buf[4..8]) as usize;
+
+            segment_slices.push((total_words, total_words + segment_len_a));
+            total_words += segment_len_a;
+            segment_slices.push((total_words, total_words + segment_len_b));
+            total_words += segment_len_b;
+            idx = 0;
+        }
+
+        if segment_count % 2 == 0 {
+            // read the final Word containing the last segment length and padding
+            idx += try!(async_read_all(read, &mut buf[idx..]));
+            if idx < buf.len() {
+                let continuation = ReadContinuation::SegmentTableRest {
+                    segment_count: segment_count,
+                    segment_slices: segment_slices,
+                    buf: buf,
+                    idx: idx,
+                };
+                return Ok(AsyncValue::Continue(continuation));
+            }
+
+            let segment_len = <LittleEndian as ByteOrder>::read_u32(&buf[0..4]) as usize;
+            segment_slices.push((total_words, total_words + segment_len));
+            total_words += segment_len;
+        }
     }
 
     // Don't accept a message which the receiver couldn't possibly traverse without hitting the
@@ -490,7 +505,6 @@ pub mod test {
         AsyncWrite,
         ReadContinuation,
         WriteContinuation,
-        create_segment_table_buf,
         read_message_async,
         read_segment_table_first,
         read_segment_table_rest,
@@ -503,19 +517,9 @@ pub mod test {
                                  -> Result<AsyncValue<(usize, Vec<(usize, usize)>), ReadContinuation>>
     where R: Read {
         let (segment_count, first_segment_len) = try_async!(read_segment_table_first(read, [0; 8], 0));
-
-        if segment_count == 1 {
-            // if there is only a single segment, then we have already read the whole segment table
-            Ok(AsyncValue::Complete((first_segment_len, vec![(0, first_segment_len)])))
-        } else {
-            // otherwise we read the rest of the segment table
-            read_segment_table_rest(read,
-                                    options,
-                                    segment_count,
-                                    first_segment_len,
-                                    create_segment_table_buf(segment_count),
-                                    0)
-        }
+        let mut segment_slices = Vec::with_capacity(segment_count);
+        segment_slices.push((0, first_segment_len));
+        read_segment_table_rest(read, options, segment_count, segment_slices, [0; 8], 0)
     }
 
     /// Writes segments as if they were a Capnproto message.
