@@ -28,6 +28,8 @@ use serialize::OwnedSpaceMessageReader;
 
 use byteorder::{ByteOrder, LittleEndian};
 
+/// Unwraps a Result<AsyncValue<T, U>, E> value into a T, or returns the error or
+/// continuation if the value is not a `Complete`.
 macro_rules! try_async {
     ($expr:expr) => (match $expr {
         ::std::result::Result::Ok($crate::async::AsyncValue::Complete(val)) => val,
@@ -38,6 +40,41 @@ macro_rules! try_async {
             return ::std::result::Result::Err(::std::convert::From::from(err))
         }
     })
+}
+
+/// Reads bytes from `read` into `buf` until either `buf` is full, or the read
+/// would block. Returns the number of bytes read.
+fn async_read_all<R>(read: &mut R, buf: &mut [u8]) -> io::Result<usize> where R: Read {
+    let mut idx = 0;
+    while idx < buf.len() {
+        let slice = &mut buf[idx..];
+        match read.read(slice) {
+            Ok(n) if n == 0 => return Err(io::Error::new(io::ErrorKind::Other, "Premature EOF")),
+            Ok(n) => idx += n,
+            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => break,
+            Err(ref e) if e.kind() == io::ErrorKind::Interrupted => (),
+            Err(e) => return Err(e),
+        }
+    }
+    return Ok(idx)
+}
+
+/// Writes bytes from `buf` into `write` until either all bytes are written, or
+/// the write would block. Returns the number of bytes written.
+fn async_write_all<W>(write: &mut W, buf: &[u8]) -> io::Result<usize> where W: Write {
+    let mut idx = 0;
+    while idx < buf.len() {
+        let slice = &buf[idx..];
+        match write.write(slice) {
+            Ok(n) if n == 0 => return Err(io::Error::new(io::ErrorKind::WriteZero,
+                                                         "failed to write whole buffer")),
+            Ok(n) => idx += n,
+            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => break,
+            Err(ref e) if e.kind() == io::ErrorKind::Interrupted => (),
+            Err(e) => return Err(e),
+        }
+    }
+    return Ok(idx)
 }
 
 /// The value of an async operation. The operation either completed successfuly, signaled by a
@@ -62,29 +99,6 @@ impl <T, U> AsyncValue<T, U> {
             AsyncValue::Continue(continuation) => continuation,
         }
     }
-}
-
-#[derive(Debug)]
-pub enum WriteContinuation {
-
-    /// Writing the message would block while trying to write the segment table.
-    ///
-    /// * `word` contains the next word of the segment table to write.
-    /// * `idx` contains the byte offset into the next word to write.
-    SegmentTable {
-        word: usize,
-        idx: usize,
-    },
-
-    /// Writing the message would block while trying to write the message
-    /// segments,
-    ///
-    /// * `segment` contains the next segment to write.
-    /// * `idx` contains the byte offset into the next segment to write.
-    Segments {
-        segment: usize,
-        idx: usize,
-    },
 }
 
 #[derive(Debug)]
@@ -125,38 +139,65 @@ pub enum ReadContinuation {
     },
 }
 
-pub type AsyncWrite = AsyncValue<(), WriteContinuation>;
-pub type AsyncRead = AsyncValue<OwnedSpaceMessageReader, ReadContinuation>;
+#[derive(Debug)]
+pub enum WriteContinuation {
 
-/// Reads a Cap'n Proto serialized message from `read` with the provided options.
-pub fn read_message<R>(read: &mut R, options: ReaderOptions) -> Result<AsyncRead>
-where R: Read {
-    let (segment_count, first_segment_len) = try_async!(read_segment_table_first(read, [0; 8], 0));
-    let (total_words, segment_slices) = if segment_count == 1 {
-        (first_segment_len, vec![(0, first_segment_len)])
-    } else {
-        try_async!(read_segment_table_rest(read,
-                                           options,
-                                           segment_count,
-                                           first_segment_len,
-                                           create_segment_table_buf(segment_count),
-                                           0))
-    };
-    read_segments(read,
-                  options,
-                  segment_slices,
-                  Word::allocate_zeroed_vec(total_words),
-                  0)
+    /// Writing the message would block while trying to write the segment table.
+    ///
+    /// * `word` contains the next word of the segment table to write.
+    /// * `idx` contains the byte offset into the next word to write.
+    SegmentTable {
+        word: usize,
+        idx: usize,
+    },
+
+    /// Writing the message would block while trying to write the message
+    /// segments,
+    ///
+    /// * `segment` contains the next segment to write.
+    /// * `idx` contains the byte offset into the next segment to write.
+    Segments {
+        segment: usize,
+        idx: usize,
+    },
 }
 
-/// Continues reading a message from `read` with the provided continuation state.
-pub fn read_message_continue<R>(read: &mut R,
-                                options: ReaderOptions,
-                                continuation: ReadContinuation)
-                                -> Result<AsyncRead>
+pub type AsyncRead = AsyncValue<OwnedSpaceMessageReader, ReadContinuation>;
+pub type AsyncWrite = AsyncValue<(), WriteContinuation>;
+
+/// Reads a Cap'n Proto serialized message from `read` with the provided options.
+///
+/// Takes an optional continuation value from a prior blocked message read attempt.
+///
+/// Returns a `Complete(OwnedSpaceMessageReader)` if the message read succeeds,
+/// or a `Continue(ReadContinuation)` if the read would block. The caller should
+/// use the continuation to resume reading the message again when `read` can
+/// supply more bytes.
+pub fn read_message_async<R>(read: &mut R,
+                             options: ReaderOptions,
+                             continuation: Option<ReadContinuation>)
+                             -> Result<AsyncRead>
 where R: Read {
     match continuation {
-        ReadContinuation::SegmentTableFirst { buf, idx } => {
+        None => {
+            let (segment_count, first_segment_len) = try_async!(read_segment_table_first(read, [0; 8], 0));
+            let (total_words, segment_slices) = if segment_count == 1 {
+                (first_segment_len, vec![(0, first_segment_len)])
+            } else {
+                try_async!(read_segment_table_rest(read,
+                                                   options,
+                                                   segment_count,
+                                                   first_segment_len,
+                                                   create_segment_table_buf(segment_count),
+                                                   0))
+            };
+            read_segments(read,
+                          options,
+                          segment_slices,
+                          Word::allocate_zeroed_vec(total_words),
+                          0)
+        },
+        Some(ReadContinuation::SegmentTableFirst { buf, idx }) => {
             let (segment_count, first_segment_len) =
                 try_async!(read_segment_table_first(read, buf, idx));
             let (total_words, segment_slices) = if segment_count == 1 {
@@ -175,7 +216,7 @@ where R: Read {
                           Word::allocate_zeroed_vec(total_words),
                           0)
         },
-        ReadContinuation::SegmentTableRest { segment_count, first_segment_len, buf, idx } => {
+        Some(ReadContinuation::SegmentTableRest { segment_count, first_segment_len, buf, idx }) => {
             let (total_words, segment_slices) =
                 try_async!(read_segment_table_rest(read,
                                                    options,
@@ -189,30 +230,21 @@ where R: Read {
                           Word::allocate_zeroed_vec(total_words),
                           0)
         },
-        ReadContinuation::Segments { segment_slices, owned_space, idx } => {
+        Some(ReadContinuation::Segments { segment_slices, owned_space, idx }) => {
             read_segments(read, options, segment_slices, owned_space, idx)
         }
     }
 }
 
-/// Reads bytes from `read` into `buf` until either `buf` is full, or the read
-/// would block. Returns the number of bytes read.
-fn async_read_all<R>(read: &mut R, buf: &mut [u8]) -> io::Result<usize> where R: Read {
-    let mut idx = 0;
-    while idx < buf.len() {
-        let slice = &mut buf[idx..];
-        match read.read(slice) {
-            Ok(n) if n == 0 => return Err(io::Error::new(io::ErrorKind::Other, "Premature EOF")),
-            Ok(n) => idx += n,
-            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => break,
-            Err(ref e) if e.kind() == io::ErrorKind::Interrupted => (),
-            Err(e) => return Err(e),
-        }
-    }
-    return Ok(idx)
+/// Creates a new buffer for reading the segment slice lengths.
+fn create_segment_table_buf(segment_count: usize) -> Box<[u8]> {
+    // number of segments rounded down to the nearest even number times 4 bytes per value
+    let len = (segment_count / 2) * 8;
+    vec![0; len].into_boxed_slice()
 }
 
 /// Reads or continues reading the first word of a segment table from `read`.
+///
 /// Returns the segment count and first segment length, or a continuation if the
 /// read would block.
 fn read_segment_table_first<R>(read: &mut R,
@@ -244,8 +276,10 @@ where R: Read {
 }
 
 /// Reads or continues reading the remaining words (after the first) of a
-/// segment table from `read`. Returns the total segment words and segment slices,
-/// or a continuation if the read would block.
+/// segment table from `read`.
+///
+/// Returns the total segment words and segment slices, or a continuation if the
+/// read would block.
 fn read_segment_table_rest<R>(read: &mut R,
                               options: ReaderOptions,
                               segment_count: usize,
@@ -326,53 +360,34 @@ where R: Read {
     Ok(AsyncValue::Complete(msg))
 }
 
-/// Creates a new buffer for reading the segment slice lengths.
-fn create_segment_table_buf(segment_count: usize) -> Box<[u8]> {
-    // number of segments rounded down to the nearest even number times 4 bytes per value
-    let len = (segment_count / 2) * 8;
-    vec![0; len].into_boxed_slice()
-}
-
-pub fn write_message<W, M>(write: &mut W, message: &mut M) -> io::Result<AsyncWrite>
-where W: Write, M: MessageBuilder {
-    let segments = message.get_segments_for_output();
-    try_async!(write_segment_table(write, segments, 0, 0));
-    write_segments(write, segments, 0, 0)
-}
-
-pub fn write_message_continue<W, M>(write: &mut W,
-                                    message: &mut M,
-                                    continuation: WriteContinuation)
-                                    -> io::Result<AsyncWrite>
+/// Writes a Cap'n Proto message to `write` with the provided options.
+///
+/// Takes an optional continuation value from a prior blocked attempt to write
+/// the message.
+///
+/// Returns a `Complete(())` if the message write succeeds, or a
+/// `Continue(WriteContinuation)` if the write would block. The caller should
+/// use the continuation to resume writing the message again when `write` can
+/// take more bytes. The message *must not* be mutated in the mean time.
+pub fn write_message_async<W, M>(write: &mut W,
+                                 message: &mut M,
+                                 continuation: Option<WriteContinuation>)
+                                 -> io::Result<AsyncWrite>
 where W: Write, M: MessageBuilder {
     let segments = message.get_segments_for_output();
     match continuation {
-        WriteContinuation::SegmentTable { word, idx } => {
+        None => {
+            try_async!(write_segment_table(write, segments, 0, 0));
+            write_segments(write, segments, 0, 0)
+        },
+        Some(WriteContinuation::SegmentTable { word, idx }) => {
             try_async!(write_segment_table(write, segments, word, idx));
             write_segments(write, segments, 0, 0)
         },
-        WriteContinuation::Segments { segment, idx } => {
+        Some(WriteContinuation::Segments { segment, idx }) => {
             write_segments(write, segments, segment, idx)
         },
     }
-}
-
-/// Writes bytes from `buf` into `write` until either all bytes are written, or
-/// the write would block. Returns the number of bytes written.
-fn async_write_all<W>(write: &mut W, buf: &[u8]) -> io::Result<usize> where W: Write {
-    let mut idx = 0;
-    while idx < buf.len() {
-        let slice = &buf[idx..];
-        match write.write(slice) {
-            Ok(n) if n == 0 => return Err(io::Error::new(io::ErrorKind::WriteZero,
-                                                         "failed to write whole buffer")),
-            Ok(n) => idx += n,
-            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => break,
-            Err(ref e) if e.kind() == io::ErrorKind::Interrupted => (),
-            Err(e) => return Err(e),
-        }
-    }
-    return Ok(idx)
 }
 
 /// Writes or continues writing a segment table to `write`.
@@ -381,7 +396,8 @@ fn async_write_all<W>(write: &mut W, buf: &[u8]) -> io::Result<usize> where W: W
 fn write_segment_table<W>(write: &mut W,
                           segments: &[&[Word]],
                           mut word: usize,
-                          mut idx: usize) -> io::Result<AsyncWrite>
+                          mut idx: usize)
+                          -> io::Result<AsyncWrite>
 where W: Write {
     let mut buf: [u8; 8] = [0; 8];
     let segment_count = segments.len();
@@ -472,11 +488,10 @@ pub mod test {
     use super::{
         AsyncValue,
         AsyncWrite,
-        WriteContinuation,
         ReadContinuation,
+        WriteContinuation,
         create_segment_table_buf,
-        read_message,
-        read_message_continue,
+        read_message_async,
         read_segment_table_first,
         read_segment_table_rest,
         write_segment_table,
@@ -690,7 +705,8 @@ pub mod test {
             write_message_segments(&mut cursor, &segments).unwrap().unwrap();
             cursor.set_position(0);
 
-            let message = read_message(&mut cursor, ReaderOptions::new()).unwrap().unwrap();
+            let message =
+                read_message_async(&mut cursor, ReaderOptions::new(), None).unwrap().unwrap();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
                 &segment[..] == message.get_segment(i)
@@ -749,9 +765,9 @@ pub mod test {
             };
 
             let message = {
-                let mut msg = read_message(&mut read, ReaderOptions::new()).unwrap();
+                let mut msg = read_message_async(&mut read, ReaderOptions::new(), None).unwrap();
                 while let AsyncValue::Continue(continuation) = msg {
-                    msg = read_message_continue(&mut read, ReaderOptions::new(), continuation).unwrap();
+                    msg = read_message_async(&mut read, ReaderOptions::new(), Some(continuation)).unwrap();
                 }
                 msg.unwrap()
             };
