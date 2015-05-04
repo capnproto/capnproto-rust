@@ -340,6 +340,22 @@ where W: Write, M: MessageBuilder {
     write_segments(write, segments, 0, 0)
 }
 
+pub fn write_message_continue<W, M>(write: &mut W,
+                                    message: &mut M,
+                                    continuation: WriteContinuation)
+                                    -> io::Result<AsyncWrite>
+where W: Write, M: MessageBuilder {
+    let segments = message.get_segments_for_output();
+    match continuation {
+        WriteContinuation::SegmentTable { word, idx } => {
+            try_async!(write_segment_table(write, segments, word, idx));
+            write_segments(write, segments, 0, 0)
+        },
+        WriteContinuation::Segments { segment, idx } => {
+            write_segments(write, segments, segment, idx)
+        },
+    }
+}
 
 /// Writes bytes from `buf` into `write` until either all bytes are written, or
 /// the write would block. Returns the number of bytes written.
@@ -451,10 +467,12 @@ pub mod test {
 
     use quickcheck::{quickcheck, TestResult};
 
-    use {MessageReader, Result, Word, serialize};
-    use message::ReaderOptions;
+    use {Result, Word};
+    use message::{MessageReader, ReaderOptions};
     use super::{
         AsyncValue,
+        AsyncWrite,
+        WriteContinuation,
         ReadContinuation,
         create_segment_table_buf,
         read_message,
@@ -486,12 +504,34 @@ pub mod test {
     }
 
     /// Writes segments as if they were a Capnproto message.
-    pub fn write_message_segments<W>(write: &mut W, segments: &Vec<Vec<Word>>) where W: Write {
+    pub fn write_message_segments<W>(write: &mut W,
+                                     segments: &Vec<Vec<Word>>)
+                                     -> io::Result<AsyncWrite>
+    where W: Write {
         let borrowed_segments: &[&[Word]] = &segments.iter()
                                                      .map(|segment| &segment[..])
                                                      .collect::<Vec<_>>()[..];
-        write_segment_table(write, borrowed_segments, 0, 0).unwrap().unwrap();
-        write_segments(write, borrowed_segments, 0, 0).unwrap().unwrap();
+        try_async!(write_segment_table(write, borrowed_segments, 0, 0));
+        write_segments(write, borrowed_segments, 0, 0)
+    }
+
+    pub fn write_message_segments_continue<W>(write: &mut W,
+                                                 segments: &Vec<Vec<Word>>,
+                                                 continuation: WriteContinuation)
+                                                 -> io::Result<AsyncWrite>
+    where W: Write {
+        let borrowed_segments: &[&[Word]] = &segments.iter()
+                                                     .map(|segment| &segment[..])
+                                                     .collect::<Vec<_>>()[..];
+        match continuation {
+            WriteContinuation::SegmentTable { word, idx } => {
+                try_async!(write_segment_table(write, borrowed_segments, word, idx));
+                write_segments(write, borrowed_segments, 0, 0)
+            },
+            WriteContinuation::Segments { segment, idx } => {
+                write_segments(write, borrowed_segments, segment, idx)
+            },
+        }
     }
 
     #[test]
@@ -647,7 +687,7 @@ pub mod test {
             if segments.len() == 0 { return TestResult::discard(); }
             let mut cursor = Cursor::new(Vec::new());
 
-            write_message_segments(&mut cursor, &segments);
+            write_message_segments(&mut cursor, &segments).unwrap().unwrap();
             cursor.set_position(0);
 
             let message = read_message(&mut cursor, ReaderOptions::new()).unwrap().unwrap();
@@ -699,7 +739,11 @@ pub mod test {
 
             let mut read = {
                 let mut cursor = Cursor::new(Vec::new());
-                serialize::test::write_message_segments(&mut cursor, &segments);
+                let mut async_write = write_message_segments(&mut cursor, &segments).unwrap();
+                while let AsyncValue::Continue(continuation) = async_write {
+                    async_write =
+                        write_message_segments_continue(&mut cursor, &segments, continuation).unwrap();
+                }
                 cursor.set_position(0);
                 BlockingRead::new(cursor, frequency)
             };
