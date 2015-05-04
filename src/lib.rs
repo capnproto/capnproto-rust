@@ -50,7 +50,6 @@ pub use message::MallocMessageBuilder;
 pub use serialize::OwnedSpaceMessageReader;
 
 pub mod any_pointer;
-pub mod async;
 pub mod capability;
 pub mod data;
 pub mod data_list;
