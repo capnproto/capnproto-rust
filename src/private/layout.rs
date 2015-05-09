@@ -283,7 +283,7 @@ impl WirePointer {
 
     #[inline]
     pub fn mut_struct_ref<'a>(&'a mut self) -> &'a mut StructRef {
-        unsafe { ::std::mem::transmute(& self.upper32bits) }
+        unsafe { ::std::mem::transmute(&mut self.upper32bits) }
     }
 
     #[inline]
@@ -292,18 +292,18 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn mut_list_ref<'a>(&'a self) -> &'a mut ListRef {
-        unsafe { ::std::mem::transmute(& self.upper32bits) }
+    pub fn mut_list_ref<'a>(&'a mut self) -> &'a mut ListRef {
+        unsafe { ::std::mem::transmute(&mut self.upper32bits) }
     }
 
     #[inline]
     pub fn far_ref<'a>(&'a self) -> &'a FarRef {
-        unsafe { ::std::mem::transmute(& self.upper32bits) }
+        unsafe { ::std::mem::transmute(&self.upper32bits) }
     }
 
     #[inline]
     pub fn mut_far_ref<'a>(&'a mut self) -> &'a mut FarRef {
-        unsafe { ::std::mem::transmute(& self.upper32bits) }
+        unsafe { ::std::mem::transmute(&mut self.upper32bits) }
     }
 
     #[inline]
@@ -313,7 +313,7 @@ impl WirePointer {
 
     #[inline]
     pub fn mut_cap_ref<'a>(&'a mut self) -> &'a mut CapRef {
-        unsafe { ::std::mem::transmute(& self.upper32bits) }
+        unsafe { ::std::mem::transmute(&mut self.upper32bits) }
     }
 
 
