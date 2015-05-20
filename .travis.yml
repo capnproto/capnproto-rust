@@ -2,6 +2,7 @@ language: rust
 rust:
   - nightly
   - beta
+  - stable
 before_install:
   - yes | sudo add-apt-repository ppa:ubuntu-toolchain-r/test
   - sudo apt-get update
