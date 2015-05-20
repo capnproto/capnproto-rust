@@ -19,6 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+//! Reading and writing of messages using the
+//! [packed stream encoding](https://capnproto.org/encoding.html#packing).
+
 use std::{io, mem, ptr, slice};
 use std::io::{Read, BufRead, Write};
 
@@ -204,10 +207,12 @@ impl <R> Read for PackedRead<R> where R: BufRead {
     }
 }
 
+/// Reads a packed message from a stream using the provided options.
 pub fn read_message<R>(read: &mut R,
-                          options: ReaderOptions)
-                          -> Result<serialize::OwnedSpaceMessageReader>
-where R: BufRead {
+                       options: ReaderOptions)
+                       -> Result<serialize::OwnedSpaceMessageReader>
+    where R: BufRead
+{
     let mut packed_read = PackedRead { inner: read };
     serialize::read_message(&mut packed_read, options)
 }
@@ -350,8 +355,10 @@ impl <W> Write for PackedWrite<W> where W: Write {
    fn flush(&mut self) -> io::Result<()> { self.inner.flush() }
 }
 
+/// Writes a packed message to a stream.
 pub fn write_message<W, M>(write: &mut W, message : &mut M) -> io::Result<()>
-where W: Write, M: MessageBuilder {
+    where W: Write, M: MessageBuilder
+{
     let mut packed_write = PackedWrite { inner: write };
     serialize::write_message(&mut packed_write, message)
 }

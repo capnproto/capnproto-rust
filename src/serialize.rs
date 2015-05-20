@@ -19,6 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+//! Reading and writing of messages using the
+//! [standard stream framing](https://capnproto.org/encoding.html#serialization-over-a-stream).
+
 use std::io::{Read, Write};
 
 use message::*;
@@ -49,7 +52,7 @@ impl MessageReader for OwnedSpaceMessageReader {
     }
 }
 
-/// Read a Cap'n Proto serialized message from a stream with the provided options.
+/// Reads a serialized message from a stream with the provided options.
 ///
 /// For optimal performance, `read` should be a buffered reader type.
 pub fn read_message<R>(read: &mut R, options: ReaderOptions) -> Result<OwnedSpaceMessageReader>
