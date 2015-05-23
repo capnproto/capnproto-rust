@@ -21,7 +21,7 @@
 
 //! # Cap'n Proto Runtime Library
 //!
-//! [Cap'n Proto](http://kentonv.github.io/capnproto/) is an extremely efficient protocol for
+//! [Cap'n Proto](https://capnproto.org) is an extremely efficient protocol for
 //! sharing data and capabilities.
 //!
 //! The Rust implementation is split into three separate crates.
