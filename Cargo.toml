@@ -6,7 +6,7 @@ authors = [ "David Renshaw <david@sandstorm.io>" ]
 license = "MIT"
 description = "Cap'n Proto schema compiler plugin"
 repository = "https://github.com/dwrensha/capnpc-rust"
-documentation = "http://docs.capnproto-rust.org"
+documentation = "http://docs.capnproto-rust.org/capnpc"
 
 readme = "README.md"
 

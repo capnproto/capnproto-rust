@@ -21,7 +21,7 @@
 
 //! # Cap'n Proto Schema Compiler Plugin Executable
 //!
-//! [See this.](http://kentonv.github.io/capnproto/otherlang.html#how-to-write-compiler-plugins)
+//! [See this.](https://capnproto.org/otherlang.html#how-to-write-compiler-plugins)
 //!
 //!
 
