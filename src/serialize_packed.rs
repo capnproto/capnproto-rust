@@ -356,9 +356,8 @@ impl <W> Write for PackedWrite<W> where W: Write {
 }
 
 /// Writes a packed message to a stream.
-pub fn write_message<W, M>(write: &mut W, message : &mut M) -> io::Result<()>
-    where W: Write, M: MessageBuilder
-{
+pub fn write_message<W, M>(write: &mut W, message: &M) -> io::Result<()>
+where W: Write, M: MessageBuilder {
     let mut packed_write = PackedWrite { inner: write };
     serialize::write_message(&mut packed_write, message)
 }

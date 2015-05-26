@@ -141,10 +141,31 @@ impl <'a> SegmentArrayMessageReader<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum AllocationStrategy {
     FixedSize,
     GrowHeuristically
+}
+
+#[cfg(test)]
+impl ::quickcheck::Arbitrary for AllocationStrategy {
+    fn arbitrary<G: ::quickcheck::Gen>(g: &mut G) -> AllocationStrategy {
+        if ::quickcheck::Arbitrary::arbitrary(g) {
+            AllocationStrategy::FixedSize
+        } else {
+            AllocationStrategy::GrowHeuristically
+        }
+    }
+    fn shrink(&self) -> Box<Iterator<Item=AllocationStrategy>+'static> {
+        match *self {
+            AllocationStrategy::FixedSize => {
+                ::quickcheck::empty_shrinker()
+            },
+            AllocationStrategy::GrowHeuristically => {
+                ::quickcheck::single_shrinker(AllocationStrategy::FixedSize)
+            },
+        }
+    }
 }
 
 pub const SUGGESTED_FIRST_SEGMENT_WORDS : u32 = 1024;
@@ -220,8 +241,8 @@ pub trait MessageBuilder {
     /// Gets the slices of memory that comprise this message. Typically, this method needs to
     /// construct these slices and stash them in some interior field before returning them. It
     /// therefore needs to take a mutable `self` parameter.
-    fn get_segments_for_output<'a>(&'a mut self) -> &'a[&'a[Word]] {
-        self.arena_mut().get_segments_for_output()
+    fn get_segments_for_output<'a>(&'a self) -> Vec<&'a[Word]> {
+        self.arena().get_segments_for_output()
     }
 
     fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
