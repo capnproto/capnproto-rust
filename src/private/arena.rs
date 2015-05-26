@@ -127,8 +127,8 @@ impl SegmentBuilder {
         }
     }
 
-    pub fn currently_allocated<'a>(&'a self) -> &'a [Word] {
-        unsafe { ::std::slice::from_raw_parts(self.get_ptr_unchecked(0), self.current_size() as usize) }
+    pub unsafe fn currently_allocated(&self) -> &'static [Word] {
+        ::std::slice::from_raw_parts(self.get_ptr_unchecked(0), self.current_size() as usize)
     }
 }
 
@@ -225,9 +225,7 @@ impl ReaderArena {
 
 pub struct BuilderArena {
     pub segment0 : SegmentBuilder,
-    pub segment0_for_output : &'static [Word],
     pub more_segments : Vec<Box<SegmentBuilder>>,
-    pub for_output : Vec<&'static[Word]>,
     pub allocation_strategy : message::AllocationStrategy,
     pub owned_memory : Vec<Vec<Word>>,
     pub next_size : u32,
@@ -267,9 +265,7 @@ impl BuilderArena {
                 id : 0,
                 pos : first_segment,
             },
-            segment0_for_output : &[],
             more_segments : Vec::new(),
-            for_output : Vec::new(),
             allocation_strategy : allocation_strategy,
             owned_memory : owned_memory,
             next_size : num_words,
@@ -339,24 +335,13 @@ impl BuilderArena {
         }
     }
 
-    pub fn get_segments_for_output<'a>(&'a mut self) -> &'a [&'a [Word]] {
+    pub fn get_segments_for_output<'a>(&'a self) -> Vec<&'a [Word]> {
+        let mut segments = Vec::with_capacity(self.more_segments.len() + 1);
         unsafe {
-            if self.more_segments.len() == 0 {
-                self.segment0_for_output = ::std::mem::transmute(self.segment0.currently_allocated());
-                ::std::slice::from_raw_parts(&self.segment0_for_output, 1)
-            } else {
-                self.for_output = Vec::new();
-                self.for_output.push(::std::slice::from_raw_parts(self.segment0.reader.ptr,
-                                                                  self.segment0.reader.size as usize));
-
-                for seg in self.more_segments.iter() {
-                    self.for_output.push(::std::slice::from_raw_parts(seg.reader.ptr,
-                                                                      seg.current_size() as usize))
-                }
-
-                &self.for_output
-            }
+            segments.push(self.segment0.currently_allocated());
+            segments.extend(self.more_segments.iter().map(|segment| segment.currently_allocated()));
         }
+        segments
     }
 
     pub fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
@@ -431,5 +416,33 @@ impl ArenaPtr {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use quickcheck::quickcheck;
+
+    use message::AllocationStrategy;
+    use super::{BuilderArena, FirstSegment};
+
+    #[test]
+    fn check_builder_arena_output_segments() {
+        fn output_segments(allocations: Vec<u32>,
+                           strategy: AllocationStrategy,
+                           segment0_size: u32) -> bool {
+            let mut arena = BuilderArena::new(strategy, FirstSegment::NumWords(segment0_size));
+
+            for &allocation in allocations.iter() {
+                arena.allocate(allocation);
+            }
+
+            let expected: usize = allocations.into_iter().fold(0, |a, b| a + b as usize);
+            let actual: usize = arena.get_segments_for_output().into_iter().fold(0, |acc, segment| acc + segment.len());
+            expected == actual
+        }
+
+        quickcheck(output_segments as fn(Vec<u32>, AllocationStrategy, u32) -> bool);
     }
 }
