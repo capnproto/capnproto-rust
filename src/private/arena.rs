@@ -336,6 +336,8 @@ impl BuilderArena {
     }
 
     pub fn get_segments_for_output<'a>(&'a self, collector: &'a mut OutputCollector) -> &'a [&'a [Word]] {
+        collector.for_output.clear();
+
         unsafe {
             if self.more_segments.len() == 0 {
                 collector.segment0_for_output = ::std::mem::transmute(self.segment0.currently_allocated());

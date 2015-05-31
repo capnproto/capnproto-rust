@@ -223,12 +223,6 @@ impl OutputCollector {
         OutputCollector { segment0_for_output: &[], for_output: Vec::new() }
     }
 
-    /// Prepare this collector to be reused.
-    pub fn clear(&mut self) {
-        self.segment0_for_output = &[];
-        self.for_output.clear();
-    }
-
     fn get<'a>(&'a self) -> &'a [ &'a [Word]] {
         if self.for_output.len() == 0 {
             unsafe { ::std::slice::from_raw_parts(&self.segment0_for_output, 1) }
