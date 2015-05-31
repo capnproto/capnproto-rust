@@ -214,7 +214,7 @@ impl ::std::error::Error for Error {
 /// Helper struct that allows `MessageBuilder::get_segments_for_output()` to avoid heap allocations
 /// in the single-segment case.
 pub enum OutputSegments<'a> {
-    SingleSegment(&'a [Word]),
+    SingleSegment([&'a [Word]; 1]),
     MultiSegment(Vec<&'a [Word]>),
 }
 
@@ -223,7 +223,7 @@ impl <'a> ::std::ops::Deref for OutputSegments<'a> {
     fn deref<'b>(&'b self) -> &'b [&'a [Word]] {
         match self {
             &OutputSegments::SingleSegment(ref s) => {
-                unsafe { ::std::slice::from_raw_parts(s, 1) }
+                s
             }
             &OutputSegments::MultiSegment(ref v) => {
                 &*v
