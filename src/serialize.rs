@@ -155,11 +155,11 @@ where R: Read {
 ///
 /// For optimal performance, `write` should be a buffered writer. `flush` will not be called on
 /// the writer.
-pub fn write_message<W, M>(write: &mut W, message: &mut M) -> ::std::io::Result<()>
+pub fn write_message<W, M>(write: &mut W, message: &M) -> ::std::io::Result<()>
 where W: Write, M: MessageBuilder {
     let segments = message.get_segments_for_output();
-    try!(write_segment_table(write, segments));
-    write_segments(write, segments)
+    try!(write_segment_table(write, &*segments));
+    write_segments(write, &*segments)
 }
 
 /// Writes a segment table to `write`.
@@ -209,7 +209,7 @@ pub fn compute_serialized_size_in_words<U : MessageBuilder>(message: &mut U) -> 
     // Table size
     let mut size = (segments.len() / 2) + 1;
 
-    for segment in segments {
+    for segment in &*segments {
         size += segment.len();
     }
 
