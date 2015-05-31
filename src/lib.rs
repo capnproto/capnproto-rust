@@ -33,9 +33,7 @@
 //! In your build.rs, call
 //!
 //! ```ignore
-//! ::capnpc::compile(Path::new("schema"),
-//!                   &[Path::new("schema/foo.capnp"),
-//!                     Path::new("schema/bar.capnp")]);
+//! ::capnpc::compile("schema", &["schema/foo.capnp", "schema/bar.capnp"]);
 //! ```
 //!
 //! This will be equivalent to executing the shell command
