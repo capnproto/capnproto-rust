@@ -13,7 +13,7 @@ fn main() {
         path1
     };
 
-    ::capnpc::compile(&*prefix,
-                      &[&*prefix.clone().join(::std::path::Path::new("rpc.capnp")),
-                        &*prefix.join(::std::path::Path::new("rpc-twoparty.capnp"))]).unwrap();
+    ::capnpc::compile(&prefix,
+                      &[&prefix.clone().join("rpc.capnp"),
+                        &prefix.join("rpc-twoparty.capnp")]).unwrap();
 }
