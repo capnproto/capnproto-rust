@@ -22,7 +22,7 @@
 use private::capability::ClientHook;
 use private::units::*;
 use message;
-use {Error, Result, Word};
+use {Error, OutputCollector, Result, Word};
 
 pub use self::FirstSegment::{NumWords, ZeroedWords};
 
@@ -225,9 +225,7 @@ impl ReaderArena {
 
 pub struct BuilderArena {
     pub segment0 : SegmentBuilder,
-    pub segment0_for_output : &'static [Word],
     pub more_segments : Vec<Box<SegmentBuilder>>,
-    pub for_output : Vec<&'static[Word]>,
     pub allocation_strategy : message::AllocationStrategy,
     pub owned_memory : Vec<Vec<Word>>,
     pub next_size : u32,
@@ -267,9 +265,7 @@ impl BuilderArena {
                 id : 0,
                 pos : first_segment,
             },
-            segment0_for_output : &[],
             more_segments : Vec::new(),
-            for_output : Vec::new(),
             allocation_strategy : allocation_strategy,
             owned_memory : owned_memory,
             next_size : num_words,
@@ -339,23 +335,20 @@ impl BuilderArena {
         }
     }
 
-    pub fn get_segments_for_output<'a>(&'a mut self) -> &'a [&'a [Word]] {
+    pub fn get_segments_for_output<'a>(&'a self, collector: &'a mut OutputCollector) -> &'a [&'a [Word]] {
         unsafe {
             if self.more_segments.len() == 0 {
-                self.segment0_for_output = ::std::mem::transmute(self.segment0.currently_allocated());
-                ::std::slice::from_raw_parts(&self.segment0_for_output, 1)
+                collector.segment0_for_output = ::std::mem::transmute(self.segment0.currently_allocated());
             } else {
-                self.for_output = Vec::new();
-                self.for_output.push(::std::slice::from_raw_parts(self.segment0.reader.ptr,
+                collector.for_output.push(::std::slice::from_raw_parts(self.segment0.reader.ptr,
                                                                   self.segment0.reader.size as usize));
 
                 for seg in self.more_segments.iter() {
-                    self.for_output.push(::std::slice::from_raw_parts(seg.reader.ptr,
-                                                                      seg.current_size() as usize))
+                    collector.for_output.push(::std::slice::from_raw_parts(seg.reader.ptr,
+                                                                           seg.current_size() as usize))
                 }
-
-                &self.for_output
             }
+            return collector.get();
         }
     }
 
