@@ -1,3 +1,5 @@
 Cargo.lock
 /target/
-
+test/target/
+benchmark/target/
+example/addressbook/target/

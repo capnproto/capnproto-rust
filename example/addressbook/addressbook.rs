@@ -67,7 +67,7 @@ pub mod addressbook {
             }
         }
 
-        serialize_packed::write_message(&mut ::std::io::stdout(), &mut message)
+        serialize_packed::write_message(&mut ::std::io::stdout(), &message)
     }
 
     pub fn print_address_book() -> ::capnp::Result<()> {
