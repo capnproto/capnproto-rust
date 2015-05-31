@@ -27,7 +27,7 @@
 //!
 //! ```ignore
 //!   [build-dependencies]
-//!   capnpc = "0.1.5"
+//!   capnpc = "*"
 //! ```
 //!
 //! In your build.rs, call
