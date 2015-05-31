@@ -210,3 +210,25 @@ impl ::std::error::Error for Error {
         }
     }
 }
+
+/// Helper struct that allows `MessageBuilder::get_segments_for_output()` to avoid heap allocations
+/// in the single-segment case.
+pub struct OutputCollector {
+    segment0_for_output: &'static [Word],
+    for_output: Vec<&'static [Word]>,
+}
+
+impl OutputCollector {
+    pub fn new() -> OutputCollector {
+        OutputCollector { segment0_for_output: &[], for_output: Vec::new() }
+    }
+
+    fn get<'a>(&'a self) -> &'a [ &'a [Word]] {
+        if self.for_output.len() == 0 {
+            unsafe { ::std::slice::from_raw_parts(&self.segment0_for_output, 1) }
+        } else {
+            &self.for_output
+        }
+    }
+}
+

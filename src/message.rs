@@ -27,7 +27,7 @@ use private::units::*;
 use private::arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};
 use private::layout;
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
-use {Result, Word};
+use {OutputCollector, Result, Word};
 
 /// Options controlling how data is read.
 #[derive(Clone, Copy)]
@@ -217,11 +217,8 @@ pub trait MessageBuilder {
         self.get_root_internal().set_as(value)
     }
 
-    /// Gets the slices of memory that comprise this message. Typically, this method needs to
-    /// construct these slices and stash them in some interior field before returning them. It
-    /// therefore needs to take a mutable `self` parameter.
-    fn get_segments_for_output<'a>(&'a mut self) -> &'a[&'a[Word]] {
-        self.arena_mut().get_segments_for_output()
+     fn get_segments_for_output<'a>(&'a self, collector: &'a mut OutputCollector) -> &'a[&'a[Word]] {
+        self.arena().get_segments_for_output(collector)
     }
 
     fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
@@ -271,7 +268,8 @@ pub struct ScratchSpaceMallocMessageBuilder<'a> {
 impl <'a> Drop for ScratchSpaceMallocMessageBuilder<'a> {
     fn drop(&mut self) {
         let ptr = self.scratch_space.as_mut_ptr();
-        let segments = self.get_segments_for_output();
+        let mut collector = OutputCollector::new();
+        let segments = self.get_segments_for_output(&mut collector);
         unsafe {
             ::std::ptr::write_bytes(ptr, 0u8, segments[0].len());
         }
@@ -302,3 +300,4 @@ impl <'b> MessageBuilder for ScratchSpaceMallocMessageBuilder<'b> {
         & *self.arena
     }
 }
+

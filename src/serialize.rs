@@ -27,7 +27,7 @@ use std::io::{Read, Write};
 use message::*;
 use private::arena;
 use util::read_exact;
-use {Error, Result, Word};
+use {Error, OutputCollector, Result, Word};
 
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -155,9 +155,10 @@ where R: Read {
 ///
 /// For optimal performance, `write` should be a buffered writer. `flush` will not be called on
 /// the writer.
-pub fn write_message<W, M>(write: &mut W, message: &mut M) -> ::std::io::Result<()>
+pub fn write_message<W, M>(write: &mut W, message: &M) -> ::std::io::Result<()>
 where W: Write, M: MessageBuilder {
-    let segments = message.get_segments_for_output();
+    let mut collector = OutputCollector::new();
+    let segments = message.get_segments_for_output(&mut collector);
     try!(write_segment_table(write, segments));
     write_segments(write, segments)
 }
@@ -204,7 +205,8 @@ where W: Write {
 }
 
 pub fn compute_serialized_size_in_words<U : MessageBuilder>(message: &mut U) -> usize {
-    let segments = message.get_segments_for_output();
+    let mut collector = OutputCollector::new();
+    let segments = message.get_segments_for_output(&mut collector);
 
     // Table size
     let mut size = (segments.len() / 2) + 1;
