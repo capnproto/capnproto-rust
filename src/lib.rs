@@ -54,8 +54,10 @@ pub mod schema_capnp;
 pub mod codegen;
 pub mod schema;
 
-pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::capnp::Result<()> {
+use std::path::Path;
 
+pub fn compile<P1: AsRef<Path> + ?Sized, P2: AsRef<Path> + ?Sized>(prefix : &P1, files : &[&P2]) -> ::capnp::Result<()>
+{
     // Find the absolute path of `cat`.
     //
     // TODO: Once a released version of `capnp compile` includes the '-o -' option, switch to
@@ -70,10 +72,10 @@ pub fn compile(prefix : &::std::path::Path, files : &[&::std::path::Path]) -> ::
 
     let mut command = ::std::process::Command::new("capnp");
     command.arg("compile").arg("-o").arg(&::std::str::from_utf8(&cat_file).unwrap().trim())
-           .arg(&format!("--src-prefix={}", prefix.display()));
+           .arg(&format!("--src-prefix={}", prefix.as_ref().display()));
 
     for file in files.iter() {
-        command.arg(&format!("{}", file.display()));
+        command.arg(&format!("{}", file.as_ref().display()));
     }
 
     command.stdout(::std::process::Stdio::piped());
