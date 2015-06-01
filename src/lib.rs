@@ -214,7 +214,10 @@ impl ::std::error::Error for Error {
 /// Helper struct that allows `MessageBuilder::get_segments_for_output()` to avoid heap allocations
 /// in the single-segment case.
 pub enum OutputSegments<'a> {
+    #[doc(hidden)]
     SingleSegment([&'a [Word]; 1]),
+
+    #[doc(hidden)]
     MultiSegment(Vec<&'a [Word]>),
 }
 

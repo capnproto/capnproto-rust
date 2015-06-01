@@ -336,21 +336,15 @@ impl BuilderArena {
     }
 
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
-        unsafe {
-            if self.more_segments.len() == 0 {
-                OutputSegments::SingleSegment(::std::mem::transmute(self.segment0.currently_allocated()))
-            } else {
-                let mut v = Vec::new();
-                v.push(::std::slice::from_raw_parts(self.segment0.reader.ptr,
-                                                    self.segment0.reader.size as usize));
-
-                for seg in self.more_segments.iter() {
-                    v.push(::std::slice::from_raw_parts(seg.reader.ptr,
-                                                        seg.current_size() as usize))
-                }
-
-                OutputSegments::MultiSegment(v)
+        if self.more_segments.len() == 0 {
+            OutputSegments::SingleSegment([self.segment0.currently_allocated()])
+        } else {
+            let mut v = Vec::new();
+            v.push(self.segment0.currently_allocated());
+            for seg in self.more_segments.iter() {
+                v.push(seg.currently_allocated());
             }
+            OutputSegments::MultiSegment(v)
         }
     }
 
