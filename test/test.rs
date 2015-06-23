@@ -566,6 +566,25 @@ mod tests {
     }
 
     #[test]
+    fn upgrade_union() {
+        use test_capnp::{test_old_union_version, test_new_union_version};
+        // This tests for a specific case that was broken originally.
+        let mut message = MallocMessageBuilder::new_default();
+        {
+            let mut old_version = message.init_root::<test_old_union_version::Builder>();
+            old_version.set_b(123);
+        }
+
+        {
+            let mut new_version = message.get_root::<test_new_union_version::Builder>().unwrap();
+            match new_version.which().unwrap() {
+                test_new_union_version::B(n) => assert_eq!(n, 123),
+                _ => panic!("expected B"),
+            }
+        }
+    }
+
+    #[test]
     fn all_types() {
         use test_capnp::{test_all_types};
 

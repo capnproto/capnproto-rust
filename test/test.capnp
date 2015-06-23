@@ -166,6 +166,23 @@ struct TestNewVersion {
   new3 @5 :TestDefaults;
 }
 
+struct TestOldUnionVersion {
+  union {
+    a @0 :Void;
+    b @1 :UInt64;
+  }
+}
+
+struct TestNewUnionVersion {
+  union {
+    a :union {
+      a0 @0 :Void;
+      a1 @2 :UInt64;
+    }
+    b @1 :UInt64;
+  }
+}
+
 struct TestConstants {
    const voidConst     :Void = void;
    const boolConst     :Bool = true;

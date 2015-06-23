@@ -2901,11 +2901,11 @@ pub mod type_ {
     #[inline]
     pub fn init_any_pointer(self, ) -> ::schema_capnp::type_::any_pointer::Builder<'a> {
       self.builder.set_data_field::<u16>(0, 18);
-      self.builder.set_data_field::<u16>(2, 0);
-      self.builder.set_data_field::<u16>(1, 0);
-      self.builder.set_data_field::<u64>(1, 0u8 as u64);
-      self.builder.set_data_field::<u16>(1, 0u8 as u16);
-      self.builder.set_data_field::<u16>(1, 0u8 as u16);
+      self.builder.set_data_field::<u16>(4, 0);
+      self.builder.set_data_field::<u16>(5, 0);
+      self.builder.set_data_field::<u64>(2, 0u8 as u64);
+      self.builder.set_data_field::<u16>(5, 0u8 as u16);
+      self.builder.set_data_field::<u16>(5, 0u8 as u16);
       ::capnp::traits::FromStructBuilder::new(self.builder)
     }
     #[inline]
@@ -3021,7 +3021,7 @@ pub mod type_ {
   }
   mod _private {
     use capnp::private::layout;
-    pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 2, pointers : 1 };
+    pub const STRUCT_SIZE : layout::StructSize = layout::StructSize { data : 3, pointers : 1 };
     pub const TYPE_ID: u64 = 0xd07378ede1f9cc60;
   }
   pub enum Which<A0,A1,A2,A3,A4> {
@@ -3571,7 +3571,7 @@ pub mod type_ {
       }
       #[inline]
       pub fn which(self) -> ::std::result::Result<WhichReader<'a>, ::capnp::NotInSchema> {
-        match self.reader.get_data_field::<u16>(2) {
+        match self.reader.get_data_field::<u16>(4) {
           0 => {
             return ::std::result::Result::Ok(Unconstrained(
               ::capnp::traits::FromStructReader::new(self.reader)
@@ -3624,26 +3624,26 @@ pub mod type_ {
       }
       #[inline]
       pub fn init_unconstrained(self, ) -> ::schema_capnp::type_::any_pointer::unconstrained::Builder<'a> {
-        self.builder.set_data_field::<u16>(2, 0);
-        self.builder.set_data_field::<u16>(1, 0);
+        self.builder.set_data_field::<u16>(4, 0);
+        self.builder.set_data_field::<u16>(5, 0);
         ::capnp::traits::FromStructBuilder::new(self.builder)
       }
       #[inline]
       pub fn init_parameter(self, ) -> ::schema_capnp::type_::any_pointer::parameter::Builder<'a> {
-        self.builder.set_data_field::<u16>(2, 1);
-        self.builder.set_data_field::<u64>(1, 0u8 as u64);
-        self.builder.set_data_field::<u16>(1, 0u8 as u16);
+        self.builder.set_data_field::<u16>(4, 1);
+        self.builder.set_data_field::<u64>(2, 0u8 as u64);
+        self.builder.set_data_field::<u16>(5, 0u8 as u16);
         ::capnp::traits::FromStructBuilder::new(self.builder)
       }
       #[inline]
       pub fn init_implicit_method_parameter(self, ) -> ::schema_capnp::type_::any_pointer::implicit_method_parameter::Builder<'a> {
-        self.builder.set_data_field::<u16>(2, 2);
-        self.builder.set_data_field::<u16>(1, 0u8 as u16);
+        self.builder.set_data_field::<u16>(4, 2);
+        self.builder.set_data_field::<u16>(5, 0u8 as u16);
         ::capnp::traits::FromStructBuilder::new(self.builder)
       }
       #[inline]
       pub fn which(self) -> ::std::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema> {
-        match self.builder.get_data_field::<u16>(2) {
+        match self.builder.get_data_field::<u16>(4) {
           0 => {
             return ::std::result::Result::Ok(Unconstrained(
               ::capnp::traits::FromStructBuilder::new(self.builder)
@@ -3726,7 +3726,7 @@ pub mod type_ {
         }
         #[inline]
         pub fn which(self) -> ::std::result::Result<WhichReader, ::capnp::NotInSchema> {
-          match self.reader.get_data_field::<u16>(1) {
+          match self.reader.get_data_field::<u16>(5) {
             0 => {
               return ::std::result::Result::Ok(AnyKind(
                 ()
@@ -3784,23 +3784,23 @@ pub mod type_ {
         }
         #[inline]
         pub fn set_any_kind(&mut self, _value : ())  {
-          self.builder.set_data_field::<u16>(1, 0);
+          self.builder.set_data_field::<u16>(5, 0);
         }
         #[inline]
         pub fn set_struct(&mut self, _value : ())  {
-          self.builder.set_data_field::<u16>(1, 1);
+          self.builder.set_data_field::<u16>(5, 1);
         }
         #[inline]
         pub fn set_list(&mut self, _value : ())  {
-          self.builder.set_data_field::<u16>(1, 2);
+          self.builder.set_data_field::<u16>(5, 2);
         }
         #[inline]
         pub fn set_capability(&mut self, _value : ())  {
-          self.builder.set_data_field::<u16>(1, 3);
+          self.builder.set_data_field::<u16>(5, 3);
         }
         #[inline]
         pub fn which(self) -> ::std::result::Result<WhichBuilder, ::capnp::NotInSchema> {
-          match self.builder.get_data_field::<u16>(1) {
+          match self.builder.get_data_field::<u16>(5) {
             0 => {
               return ::std::result::Result::Ok(AnyKind(
                 ()
@@ -3888,11 +3888,11 @@ pub mod type_ {
         }
         #[inline]
         pub fn get_scope_id(self) -> u64 {
-          self.reader.get_data_field::<u64>(1)
+          self.reader.get_data_field::<u64>(2)
         }
         #[inline]
         pub fn get_parameter_index(self) -> u16 {
-          self.reader.get_data_field::<u16>(1)
+          self.reader.get_data_field::<u16>(5)
         }
       }
 
@@ -3928,19 +3928,19 @@ pub mod type_ {
         }
         #[inline]
         pub fn get_scope_id(self) -> u64 {
-          self.builder.get_data_field::<u64>(1)
+          self.builder.get_data_field::<u64>(2)
         }
         #[inline]
         pub fn set_scope_id(&mut self, value : u64)  {
-          self.builder.set_data_field::<u64>(1, value);
+          self.builder.set_data_field::<u64>(2, value);
         }
         #[inline]
         pub fn get_parameter_index(self) -> u16 {
-          self.builder.get_data_field::<u16>(1)
+          self.builder.get_data_field::<u16>(5)
         }
         #[inline]
         pub fn set_parameter_index(&mut self, value : u16)  {
-          self.builder.set_data_field::<u16>(1, value);
+          self.builder.set_data_field::<u16>(5, value);
         }
       }
 
@@ -3998,7 +3998,7 @@ pub mod type_ {
         }
         #[inline]
         pub fn get_parameter_index(self) -> u16 {
-          self.reader.get_data_field::<u16>(1)
+          self.reader.get_data_field::<u16>(5)
         }
       }
 
@@ -4034,11 +4034,11 @@ pub mod type_ {
         }
         #[inline]
         pub fn get_parameter_index(self) -> u16 {
-          self.builder.get_data_field::<u16>(1)
+          self.builder.get_data_field::<u16>(5)
         }
         #[inline]
         pub fn set_parameter_index(&mut self, value : u16)  {
-          self.builder.set_data_field::<u16>(1, value);
+          self.builder.set_data_field::<u16>(5, value);
         }
       }
 
