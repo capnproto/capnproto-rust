@@ -54,7 +54,7 @@ pub mod schema;
 
 use std::path::Path;
 
-pub fn compile<P1: ?Sized, P2: ?Sized>(prefix : &P1, files : &[&P2]) -> ::capnp::Result<()>
+pub fn compile<P1, P2>(prefix : P1, files : &[P2]) -> ::capnp::Result<()>
     where P1: AsRef<Path>, P2: AsRef<Path>
 {
     let mut command = ::std::process::Command::new("capnp");
