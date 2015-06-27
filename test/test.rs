@@ -576,12 +576,60 @@ mod tests {
         }
 
         {
-            let mut new_version = message.get_root::<test_new_union_version::Builder>().unwrap();
+            let new_version = message.get_root::<test_new_union_version::Builder>().unwrap();
             match new_version.which().unwrap() {
                 test_new_union_version::B(n) => assert_eq!(n, 123),
                 _ => panic!("expected B"),
             }
         }
+    }
+
+    #[test]
+    fn upgrade_list() {
+        use test_capnp::{test_any_pointer, test_lists};
+
+        {
+            let mut builder = MallocMessageBuilder::new_default();
+
+            let mut root = builder.init_root::<test_any_pointer::Builder>();
+            {
+                let mut list = root.borrow()
+                    .get_any_pointer_field().init_as_sized::<::capnp::primitive_list::Builder<u8>>(3);
+                list.set(0, 12);
+                list.set(1, 34);
+                list.set(2, 56);
+            }
+            {
+                let mut l = root.get_any_pointer_field()
+                    .get_as::<::capnp::struct_list::Builder<test_lists::struct8::Builder>>().unwrap();
+                assert_eq!(3, l.len());
+                assert_eq!(12, l.borrow().get(0).get_f());
+                assert_eq!(34, l.borrow().get(1).get_f());
+                assert_eq!(56, l.borrow().get(2).get_f());
+            }
+        }
+
+        {
+            let mut builder = MallocMessageBuilder::new_default();
+
+            let mut root = builder.init_root::<test_any_pointer::Builder>();
+            {
+                let mut list = root.borrow()
+                    .get_any_pointer_field().init_as_sized::<::capnp::text_list::Builder>(3);
+                list.set(0, "foo");
+                list.set(1, "bar");
+                list.set(2, "baz");
+            }
+            {
+                let mut l = root.get_any_pointer_field()
+                    .get_as::<::capnp::struct_list::Builder<test_lists::struct_p::Builder>>().unwrap();
+                assert_eq!(3, l.len());
+                assert_eq!("foo", &*l.borrow().get(0).get_f().unwrap());
+                assert_eq!("bar", &*l.borrow().get(1).get_f().unwrap());
+//                assert_eq!("baz", l.borrow().get(2).get_f());
+            }
+        }
+
     }
 
     #[test]
