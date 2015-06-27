@@ -1113,7 +1113,86 @@ mod wire_helpers {
 
             unimplemented!();
         } else {
-            unimplemented!()
+            // We're upgrading from a non-struct list.
+
+            let old_data_size = data_bits_per_element(old_size);
+            let old_pointer_count = pointers_per_element(old_size);
+            let old_step = old_data_size + old_pointer_count * BITS_PER_POINTER as u32;
+            let element_count = (*old_ref).list_ref().element_count();
+
+            if old_size == ElementSize::Void {
+                // Nothing to copy, just allocate a new list.
+                return Ok(init_struct_list_pointer(orig_ref, orig_segment, element_count, element_size));
+            } else {
+                // Upgrade to an inline composite list.
+
+                if old_size == ElementSize::Bit {
+                    return Err(Error::new_decode_error(
+                        "Found bit list where struct list was expected; upgrading boolean \
+                         lists to struct lists is no longer supported.", None));
+                }
+
+                let mut new_data_size = element_size.data;
+                let mut new_pointer_count = element_size.pointers;
+
+                if old_size == ElementSize::Pointer {
+                    new_pointer_count = ::std::cmp::max(new_pointer_count, 1);
+                } else {
+                    // Old list contains data elements, so we need at least one word of data.
+                    new_data_size = ::std::cmp::max(new_data_size, 1);
+                }
+
+                let new_step = new_data_size as u32 + new_pointer_count as u32 * WORDS_PER_POINTER as u32;
+                let total_words = element_count * new_step;
+
+                // Don't let allocate() zero out the object just yet.
+                try!(zero_pointer_and_fars(orig_segment, orig_ref));
+
+                let mut new_ref = orig_ref;
+                let mut new_segment = orig_segment;
+                let mut new_ptr = allocate(&mut new_ref, &mut new_segment,
+                                           total_words + POINTER_SIZE_IN_WORDS as u32, WirePointerKind::List);
+                (*new_ref).mut_list_ref().set_inline_composite(total_words);
+
+                let tag : *mut WirePointer = ::std::mem::transmute(new_ptr);
+                (*tag).set_kind_and_inline_composite_list_element_count(WirePointerKind::Struct, element_count);
+                (*tag).mut_struct_ref().set(new_data_size, new_pointer_count);
+                new_ptr = new_ptr.offset(POINTER_SIZE_IN_WORDS as isize);
+
+                if old_size == ElementSize::Pointer {
+                    let mut dst : *mut Word = new_ptr.offset(new_data_size as isize);
+                    let mut src : *mut WirePointer = ::std::mem::transmute(old_ptr);
+                    for _ in 0..element_count {
+                        transfer_pointer(new_segment, ::std::mem::transmute(dst), old_segment, src);
+                        dst = dst.offset(new_step as isize / WORDS_PER_POINTER as isize);
+                        src = src.offset(1);
+                    }
+                } else {
+                    let mut dst : *mut Word = new_ptr;
+                    let mut src : *mut u8 = ::std::mem::transmute(old_ptr);
+                    let old_byte_step = old_data_size / BITS_PER_BYTE as u32;
+                    for _ in 0..element_count {
+                        ::std::ptr::copy_nonoverlapping(src, ::std::mem::transmute(dst), old_byte_step as usize);
+                        src = src.offset(old_byte_step as isize);
+                        dst = dst.offset(new_step as isize);
+                    }
+                }
+
+                // Zero out old location.
+                ::std::ptr::write_bytes(::std::mem::transmute::<*mut Word, *mut u8>(old_ptr), 0,
+                                        round_bits_up_to_bytes(old_step as u64 * element_count as u64) as usize);
+
+
+                return Ok(ListBuilder {
+                    marker : ::std::marker::PhantomData::<&'a ()>,
+                    segment : new_segment,
+                    ptr : ::std::mem::transmute(new_ptr),
+                    element_count : element_count,
+                    step : new_step * BITS_PER_WORD as u32,
+                    struct_data_size : new_data_size as u32 * BITS_PER_WORD as u32,
+                    struct_pointer_count : new_pointer_count
+                });
+            }
         }
     }
 
