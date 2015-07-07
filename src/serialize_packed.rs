@@ -86,7 +86,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
             loop {
 
-                let mut tag : u8;
+                let tag : u8;
 
                 assert!(ptr_sub(out, out_buf.as_mut_ptr()) % 8 == 0,
                         "Output pointer should always be aligned here.");
