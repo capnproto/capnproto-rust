@@ -107,6 +107,10 @@ unsafe impl <'b> ReaderSegments for SegmentArray<'b> {
 }
 
 /// An abstract container used to read a message.
+///
+/// The underlying implemention uses the `ReaderSegments` as a trait object. However, we
+/// need to include `S` as concrete type parameter so that the typechecker can
+/// correctly deduce appropriate bounds like `Send`.
 pub struct Reader<S> where S: ReaderSegments {
     arena: Box<ReaderArena>,
     segments: Box<S>,
@@ -159,18 +163,22 @@ pub unsafe trait Allocator {
 }
 
 /// A container used to build a message.
-pub struct Builder<S> where S: Allocator {
+///
+/// The underlying implemention uses the `Allocator` as a trait object. However, we
+/// need to include `A` as concrete type parameter so that the typechecker can
+/// correctly deduce appropriate bounds like `Send`.
+pub struct Builder<A> where A: Allocator {
     arena: Box<BuilderArena>,
-    allocator: Box<S>,
+    allocator: Box<A>,
 }
 
 unsafe impl <A> Send for Builder<A> where A: Send + Allocator {}
 
-impl <S> Builder<S> where S: Allocator {
-    pub fn new(allocator: S) -> Builder<S> {
+impl <A> Builder<A> where A: Allocator {
+    pub fn new(allocator: A) -> Builder<A> {
         let mut boxed_allocator = Box::new(allocator);
         let boxed_allocator_ref = {
-            let r: &mut S = &mut *boxed_allocator;
+            let r: &mut A = &mut *boxed_allocator;
             unsafe { ::std::mem::transmute(r as &mut Allocator) }
         };
         let arena = BuilderArena::new(boxed_allocator_ref);
@@ -223,7 +231,7 @@ impl <S> Builder<S> where S: Allocator {
     }
 }
 
-impl <S> Drop for Builder<S> where S: Allocator {
+impl <A> Drop for Builder<A> where A: Allocator {
     fn drop(&mut self) {
         self.allocator.pre_drop(self.arena.segment0.current_size());
     }
