@@ -44,11 +44,6 @@ extern crate byteorder;
 #[cfg(test)]
 extern crate quickcheck;
 
-// reexports
-pub use message::{MessageBuilder, BuilderOptions, MessageReader, ReaderOptions};
-pub use message::MallocMessageBuilder;
-pub use serialize::OwnedSpaceMessageReader;
-
 pub mod any_pointer;
 pub mod capability;
 pub mod data;

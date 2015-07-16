@@ -24,7 +24,7 @@
 use any_pointer;
 use private::capability::ClientHook;
 use private::units::*;
-use private::arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader, NumWords, ZeroedWords};
+use private::arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader};
 use private::layout;
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 use {OutputSegments, Result, Word};
@@ -78,67 +78,161 @@ impl ReaderOptions {
     }
 }
 
-
 type SegmentId = u32;
 
+pub unsafe trait ReaderSegments {
+    // UNSAFETY ALERT: The callee is responsible for ensuring that the returned memory is valid
+    // for the lifetime of the object. This could be much longer than `'a`.
+    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]>;
+}
+
+pub struct SegmentArray<'a> {
+    segments: &'a [&'a [Word]],
+}
+
+impl <'a> SegmentArray<'a> {
+    pub fn new(segments: &'a [&'a [Word]]) -> SegmentArray<'a> {
+        SegmentArray { segments: segments }
+    }
+}
+
+unsafe impl <'b> ReaderSegments for SegmentArray<'b> {
+    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
+        if id < self.segments.len() as u32 {
+            Some(self.segments[id as usize])
+        } else {
+            None
+        }
+    }
+}
+
 /// An abstract container used to read a message.
-pub trait MessageReader {
-    fn get_segment(&self, id : usize) -> &[Word];
-    fn arena(&self) -> &ReaderArena;
-    fn arena_mut(&mut self) -> &mut ReaderArena;
-    fn get_options(&self) -> &ReaderOptions;
+pub struct Reader<S> where S: ReaderSegments {
+    arena: Box<ReaderArena>,
+    segments: Box<S>,
+    options: ReaderOptions,
+}
+
+unsafe impl <S> Send for Reader<S> where S: Send + ReaderSegments {}
+
+impl <S> Reader<S> where S: ReaderSegments {
+    pub fn new(segments: S, options: ReaderOptions) -> Reader<S> {
+        let boxed_segments = Box::new(segments);
+        let boxed_segments_ref = {
+            let r :&S = &*boxed_segments;
+            unsafe { ::std::mem::transmute(r as &ReaderSegments) }
+        };
+        let arena = ReaderArena::new(boxed_segments_ref, options);
+        Reader { arena: arena, segments: boxed_segments, options: options }
+    }
 
     fn get_root_internal(&self) -> Result<any_pointer::Reader> {
         unsafe {
-            let segment : *const SegmentReader = &self.arena().segment0;
+            let segment : *const SegmentReader = &self.arena.segment0;
 
             let pointer_reader = try!(layout::PointerReader::get_root(
-                segment, (*segment).get_start_ptr(), self.get_options().nesting_limit));
+                segment, (*segment).get_start_ptr(), self.options.nesting_limit));
 
             Ok(any_pointer::Reader::new(pointer_reader))
         }
     }
 
     /// Gets the root of the message, interpreting it as the given type.
-    fn get_root<'a, T : FromPointerReader<'a>>(&'a self) -> Result<T> {
+    pub fn get_root<'a, T : FromPointerReader<'a>>(&'a self) -> Result<T> {
         try!(self.get_root_internal()).get_as()
     }
 
-    fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook+Send>>>) {
-        self.arena_mut().init_cap_table(cap_table);
+    pub fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook+Send>>>) {
+        self.arena.init_cap_table(cap_table);
+    }
+
+    pub fn into_segments(self) -> S {
+        *self.segments
     }
 }
 
-pub struct SegmentArrayMessageReader<'a> {
-    segments : &'a [ &'a [Word]],
-    options : ReaderOptions,
-    arena : Box<ReaderArena>
+pub unsafe trait Allocator {
+    // UNSAFETY ALERT: The callee is responsible for ensuring that the returned memory is valid
+    // for the lifetime of the object.
+    fn allocate_segment(&mut self, miniumum_size: u32) -> (*mut Word, u32);
+    fn pre_drop(&mut self, _segment0_currently_allocated: u32) {}
 }
 
-
-impl <'a> MessageReader for SegmentArrayMessageReader<'a> {
-    fn get_segment<'b>(&'b self, id : usize) -> &'b [Word] {
-        self.segments[id]
-    }
-
-    fn arena<'b>(&'b self) -> &'b ReaderArena { &*self.arena }
-    fn arena_mut<'b>(&'b mut self) -> &'b mut ReaderArena { &mut *self.arena }
-
-    fn get_options<'b>(&'b self) -> &'b ReaderOptions {
-        return &self.options;
-    }
+/// A container used to build a message.
+pub struct Builder<S> where S: Allocator {
+    arena: Box<BuilderArena>,
+    allocator: Box<S>,
 }
 
-impl <'a> SegmentArrayMessageReader<'a> {
+unsafe impl <A> Send for Builder<A> where A: Send + Allocator {}
 
-    pub fn new<'b>(segments : &'b [&'b [Word]], options : ReaderOptions) -> SegmentArrayMessageReader<'b> {
-        assert!(segments.len() > 0);
-        SegmentArrayMessageReader {
-            segments : segments,
-            arena : ReaderArena::new(segments, options),
-            options : options
+impl <S> Builder<S> where S: Allocator {
+    pub fn new(allocator: S) -> Builder<S> {
+        let mut boxed_allocator = Box::new(allocator);
+        let boxed_allocator_ref = {
+            let r: &mut S = &mut *boxed_allocator;
+            unsafe { ::std::mem::transmute(r as &mut Allocator) }
+        };
+        let arena = BuilderArena::new(boxed_allocator_ref);
+        Builder { arena: arena, allocator: boxed_allocator }
+    }
+
+    fn get_root_internal<'a>(&mut self) -> any_pointer::Builder<'a> {
+        let root_segment: *mut SegmentBuilder = &mut self.arena.segment0;
+
+        if self.arena.segment0.current_size() == 0 {
+            match self.arena.segment0.allocate(WORDS_PER_POINTER as u32) {
+                None => {panic!("could not allocate root pointer") }
+                Some(location) => {
+                    assert!(location == self.arena.segment0.get_ptr_unchecked(0),
+                            "First allocated word of new segment was not at offset 0");
+
+                    any_pointer::Builder::new(layout::PointerBuilder::get_root(root_segment, location))
+
+                }
+            }
+        } else {
+            any_pointer::Builder::new(
+                layout::PointerBuilder::get_root(root_segment,
+                                                 self.arena.segment0.get_ptr_unchecked(0)))
         }
+
     }
+
+    /// Initializes the root as a value of the given type.
+    pub fn init_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> T {
+        self.get_root_internal().init_as()
+    }
+
+    /// Gets the root, interpreting it as the given type.
+    pub fn get_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> Result<T> {
+        self.get_root_internal().get_as()
+    }
+
+    /// Sets the root to a deep copy of the given value.
+    pub fn set_root<To, From : SetPointerBuilder<To>>(&mut self, value : From) -> Result<()> {
+        self.get_root_internal().set_as(value)
+    }
+
+    pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
+        self.arena.get_segments_for_output()
+    }
+
+    pub fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
+        self.arena.get_cap_table()
+    }
+}
+
+impl <S> Drop for Builder<S> where S: Allocator {
+    fn drop(&mut self) {
+        self.allocator.pre_drop(self.arena.segment0.current_size());
+    }
+}
+
+pub struct HeapAllocator {
+    owned_memory : Vec<Vec<Word>>,
+    next_size: u32,
+    allocation_strategy: AllocationStrategy,
 }
 
 #[derive(Clone, Copy)]
@@ -150,153 +244,95 @@ pub enum AllocationStrategy {
 pub const SUGGESTED_FIRST_SEGMENT_WORDS : u32 = 1024;
 pub const SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = AllocationStrategy::GrowHeuristically;
 
-#[derive(Clone, Copy)]
-pub struct BuilderOptions {
-    pub first_segment_words : u32,
-    pub allocation_strategy : AllocationStrategy,
-}
-
-impl BuilderOptions {
-    pub fn new() -> BuilderOptions {
-        BuilderOptions {first_segment_words : SUGGESTED_FIRST_SEGMENT_WORDS,
-                        allocation_strategy : AllocationStrategy::GrowHeuristically}
+impl HeapAllocator {
+    pub fn new() -> HeapAllocator {
+        HeapAllocator { owned_memory: Vec::new(),
+                        next_size: SUGGESTED_FIRST_SEGMENT_WORDS,
+                        allocation_strategy: SUGGESTED_ALLOCATION_STRATEGY }
     }
 
-    pub fn first_segment_words<'a>(&'a mut self, value : u32) -> &'a mut BuilderOptions {
-        self.first_segment_words = value;
+    pub fn first_segment_words(mut self, value: u32) -> HeapAllocator {
+        self.next_size = value;
         return self;
     }
 
-    pub fn allocation_strategy<'a>(&'a mut self, value : AllocationStrategy) -> &'a mut BuilderOptions {
+    pub fn allocation_strategy(mut self, value : AllocationStrategy) -> HeapAllocator {
         self.allocation_strategy = value;
         return self;
     }
 }
 
-/// An abstract container used to build a message.
-pub trait MessageBuilder {
-    fn arena_mut(&mut self) -> &mut BuilderArena;
-    fn arena(&self) -> &BuilderArena;
+unsafe impl Allocator for HeapAllocator {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32) {
+        let size = ::std::cmp::max(minimum_size, self.next_size);
+        let mut new_words = Word::allocate_zeroed_vec(size as usize);
+        let ptr = new_words.as_mut_ptr();
+        self.owned_memory.push(new_words);
 
+        match self.allocation_strategy {
+            AllocationStrategy::GrowHeuristically => { self.next_size += size; }
+            _ => { }
+        }
+        (ptr, size as u32)
+    }
+}
 
-    // XXX is there a way to make this private?
-    fn get_root_internal<'a>(&mut self) -> any_pointer::Builder<'a> {
-        let root_segment : *mut SegmentBuilder = &mut self.arena_mut().segment0;
+impl Builder<HeapAllocator> {
+    pub fn new_default() -> Builder<HeapAllocator> {
+        Builder::new(HeapAllocator::new())
+    }
+}
 
-        if self.arena().segment0.current_size() == 0 {
-            match self.arena_mut().segment0.allocate(WORDS_PER_POINTER as u32) {
-                None => {panic!("could not allocate root pointer") }
-                Some(location) => {
-                    assert!(location == self.arena().segment0.get_ptr_unchecked(0),
-                            "First allocated word of new segment was not at offset 0");
+pub struct ScratchSpace<'a> {
+    slice: &'a mut [Word],
+    in_use: bool,
+}
 
-                    any_pointer::Builder::new(layout::PointerBuilder::get_root(root_segment, location))
+impl <'a> ScratchSpace<'a> {
+    pub fn new(slice: &'a mut [Word]) -> ScratchSpace<'a> {
+        ScratchSpace { slice: slice, in_use: false }
+    }
+}
 
-                }
-            }
+pub struct ScratchSpaceHeapAllocator<'a, 'b: 'a> {
+    scratch_space: &'a mut ScratchSpace<'b>,
+    allocator: HeapAllocator,
+}
+
+impl <'a, 'b: 'a> ScratchSpaceHeapAllocator<'a, 'b> {
+    pub fn new(scratch_space: &'a mut ScratchSpace<'b>) -> ScratchSpaceHeapAllocator<'a, 'b> {
+        ScratchSpaceHeapAllocator { scratch_space: scratch_space,
+                                    allocator: HeapAllocator::new()}
+    }
+
+    pub fn second_segment_words(mut self, value: u32) -> ScratchSpaceHeapAllocator<'a, 'b> {
+        ScratchSpaceHeapAllocator { scratch_space: self.scratch_space,
+                                    allocator: self.allocator.first_segment_words(value) }
+
+    }
+
+    pub fn allocation_strategy(mut self, value: AllocationStrategy) -> ScratchSpaceHeapAllocator<'a, 'b> {
+        ScratchSpaceHeapAllocator { scratch_space: self.scratch_space,
+                                    allocator: self.allocator.allocation_strategy(value) }
+    }
+
+}
+
+unsafe impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32) {
+        if !self.scratch_space.in_use {
+            self.scratch_space.in_use = true;
+            (self.scratch_space.slice.as_mut_ptr(), self.scratch_space.slice.len() as u32)
         } else {
-            any_pointer::Builder::new(
-                layout::PointerBuilder::get_root(root_segment,
-                                                 self.arena().segment0.get_ptr_unchecked(0)))
+            self.allocator.allocate_segment(minimum_size)
         }
-
     }
 
-    /// Initializes the root as a value of the given type.
-    fn init_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> T {
-        self.get_root_internal().init_as()
-    }
-
-    /// Gets the root, interpreting it as the given type.
-    fn get_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> Result<T> {
-        self.get_root_internal().get_as()
-    }
-
-    /// Sets the root to a deep copy of the given value.
-    fn set_root<To, From : SetPointerBuilder<To>>(&mut self, value : From) -> Result<()> {
-        self.get_root_internal().set_as(value)
-    }
-
-     fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
-        self.arena().get_segments_for_output()
-    }
-
-    fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
-        self.arena().get_cap_table()
-    }
-}
-
-pub struct MallocMessageBuilder {
-    arena : Box<BuilderArena>,
-}
-
-impl Drop for MallocMessageBuilder {
-    fn drop(&mut self) { }
-}
-
-unsafe impl Send for MallocMessageBuilder {}
-
-impl MallocMessageBuilder {
-
-    pub fn new(options : BuilderOptions) -> MallocMessageBuilder {
-        let arena = BuilderArena::new(options.allocation_strategy,
-                                      NumWords(options.first_segment_words));
-
-        MallocMessageBuilder { arena : arena }
-    }
-
-    pub fn new_default() -> MallocMessageBuilder {
-        MallocMessageBuilder::new(BuilderOptions::new())
-    }
-
-}
-
-impl MessageBuilder for MallocMessageBuilder {
-    fn arena_mut(&mut self) -> &mut BuilderArena {
-        &mut *self.arena
-    }
-    fn arena(&self) -> &BuilderArena {
-        & *self.arena
-    }
-}
-
-pub struct ScratchSpaceMallocMessageBuilder<'a> {
-    arena : Box<BuilderArena>,
-    scratch_space : &'a mut [Word],
-}
-
-impl <'a> Drop for ScratchSpaceMallocMessageBuilder<'a> {
-    fn drop(&mut self) {
-        let ptr = self.scratch_space.as_mut_ptr();
-        let segments = self.get_segments_for_output();
+    fn pre_drop(&mut self, segment0_currently_allocated: u32) {
+        let ptr = self.scratch_space.slice.as_mut_ptr();
         unsafe {
-            ::std::ptr::write_bytes(ptr, 0u8, segments[0].len());
+            ::std::ptr::write_bytes(ptr, 0u8, segment0_currently_allocated as usize);
         }
+        self.scratch_space.in_use = false;
     }
 }
-
-
-impl <'a> ScratchSpaceMallocMessageBuilder<'a> {
-
-    pub fn new<'b>(scratch_space : &'b mut [Word], options : BuilderOptions)
-               -> ScratchSpaceMallocMessageBuilder<'b> {
-        let arena = BuilderArena::new(options.allocation_strategy, ZeroedWords(scratch_space));
-
-        ScratchSpaceMallocMessageBuilder { arena : arena, scratch_space : scratch_space }
-    }
-
-    pub fn new_default<'b>(scratch_space : &'b mut [Word]) -> ScratchSpaceMallocMessageBuilder<'b> {
-        ScratchSpaceMallocMessageBuilder::new(scratch_space, BuilderOptions::new())
-    }
-
-}
-
-impl <'b> MessageBuilder for ScratchSpaceMallocMessageBuilder<'b> {
-    fn arena_mut(&mut self) -> &mut BuilderArena {
-        &mut *self.arena
-    }
-    fn arena(&self) -> &BuilderArena {
-        & *self.arena
-    }
-}
-

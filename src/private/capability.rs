@@ -22,14 +22,13 @@
 use any_pointer;
 use MessageSize;
 use capability::{CallContext, Request, ResultFuture, Server};
-use message::{MallocMessageBuilder};
 
 pub trait ResponseHook:Send + ::std::any::Any {
     fn get<'a>(&'a mut self) -> any_pointer::Reader<'a>;
 }
 
 pub trait RequestHook {
-    fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder;
+    fn message<'a>(&'a mut self) -> &'a mut ::message::Builder<::message::HeapAllocator>;
     fn send<'a>(self : Box<Self>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline>;
 }
 

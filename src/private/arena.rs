@@ -22,23 +22,20 @@
 use private::capability::ClientHook;
 use private::units::*;
 use message;
+use message::{Allocator, ReaderSegments};
 use {Error, OutputSegments, Result, Word};
-
-pub use self::FirstSegment::{NumWords, ZeroedWords};
+use std::collections::HashMap;
 
 pub type SegmentId = u32;
 
 pub struct SegmentReader {
-    pub arena : ArenaPtr,
-    pub ptr : *const Word,
-    pub size : WordCount32,
-    pub read_limiter : ::std::rc::Rc<ReadLimiter>,
+    pub arena: ArenaPtr,
+    pub ptr: *const Word,
+    pub size: WordCount32,
+    pub read_limiter: ::std::rc::Rc<ReadLimiter>,
 }
 
-unsafe impl Send for SegmentReader {}
-
 impl SegmentReader {
-
     #[inline]
     pub unsafe fn get_start_ptr(&self) -> *const Word {
         self.ptr.offset(0)
@@ -59,15 +56,14 @@ impl SegmentReader {
 }
 
 pub struct SegmentBuilder {
-    pub reader : SegmentReader,
-    pub id : SegmentId,
-    pos : *mut Word,
+    pub reader: SegmentReader,
+    pub id: SegmentId,
+    pos: *mut Word,
 }
 
 unsafe impl Send for SegmentBuilder {}
 
 impl SegmentBuilder {
-
     pub fn new(arena : *mut BuilderArena,
                limiter : ::std::rc::Rc<ReadLimiter>,
                id : SegmentId,
@@ -120,7 +116,7 @@ impl SegmentBuilder {
     pub fn get_segment_id(&self) -> SegmentId { self.id }
 
     #[inline]
-    pub fn get_arena(&self) -> *mut BuilderArena {
+    pub fn get_arena<'a> (&'a mut self) -> *mut BuilderArena {
         match self.reader.arena {
             ArenaPtr::Builder(b) => b,
             _ => unreachable!()
@@ -155,64 +151,61 @@ impl ReadLimiter {
 }
 
 pub struct ReaderArena {
-    //    message : *message::MessageReader<'a>,
-    pub segment0 : SegmentReader,
-
-    pub more_segments : Vec<SegmentReader>,
-    //XXX should this be a map as in capnproto-c++?
-
+    raw_segments: &'static ReaderSegments,
+    pub segment0: SegmentReader,
+    pub more_segments: HashMap<SegmentId, Box<SegmentReader>>,
     pub cap_table : Vec<Option<Box<ClientHook+Send>>>,
-
     pub read_limiter : ::std::rc::Rc<ReadLimiter>,
 }
 
-unsafe impl Send for ReaderArena {}
-
 impl ReaderArena {
-    pub fn new(segments : &[&[Word]], options : message::ReaderOptions) -> Box<ReaderArena> {
-        assert!(segments.len() > 0);
+    pub fn new(segments: &'static ReaderSegments, options: message::ReaderOptions) -> Box<ReaderArena> {
+
         let limiter = ::std::rc::Rc::new(ReadLimiter::new(options.traversal_limit_in_words));
+
+        let segment0 = segments.get_segment(0).expect("segment zero does not exist");
+
+        let segment0_reader =  SegmentReader {
+            arena: ArenaPtr::Null,
+            ptr: unsafe { segment0.get_unchecked(0) },
+            size: segment0.len() as u32,
+            read_limiter: limiter.clone(),
+        };
+
         let mut arena = Box::new(ReaderArena {
-            segment0 : SegmentReader {
-                arena : ArenaPtr::Null,
-                ptr : unsafe { segments[0].get_unchecked(0) },
-                size : segments[0].len() as u32,
-                read_limiter : limiter.clone(),
-            },
-            more_segments : Vec::new(),
+            raw_segments: segments,
+            segment0: segment0_reader,
+            more_segments : HashMap::new(),
             cap_table : Vec::new(),
             read_limiter : limiter.clone(),
         });
 
-
-        let arena_ptr = ArenaPtr::Reader (&*arena);
-
+        let arena_ptr = ArenaPtr::Reader(&mut *arena);
         arena.segment0.arena = arena_ptr;
-
-        if segments.len() > 1 {
-            let mut more_segment_readers = Vec::new();
-            for segment in segments[1 ..].iter() {
-                let segment_reader = SegmentReader {
-                    arena : arena_ptr,
-                    ptr : unsafe { segment.get_unchecked(0) },
-                    size : segment.len() as u32,
-                    read_limiter : limiter.clone(),
-                };
-                more_segment_readers.push(segment_reader);
-            }
-            arena.more_segments = more_segment_readers;
-        }
-
         arena
     }
 
-    pub fn try_get_segment(&self, id : SegmentId) -> Result<*const SegmentReader> {
+    fn try_get_segment(&mut self, id: SegmentId) -> Result<*const SegmentReader> {
         if id == 0 {
             return Ok(&self.segment0);
-        } else if ((id - 1) as usize) < self.more_segments.len() {
-            unsafe { Ok(self.more_segments.get_unchecked(id as usize - 1)) }
+        } else if self.more_segments.contains_key(&id) {
+            return Ok(&*self.more_segments[&id]);
         } else {
-            Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
+            let cloned_limiter = self.read_limiter.clone();
+            let new_segment = match self.raw_segments.get_segment(id) {
+                Some(s) => s,
+                None => {
+                    return Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))));
+                }
+            };
+            let new_segment_reader = SegmentReader {
+                arena: ArenaPtr::Reader(&mut *self),
+                ptr: unsafe { new_segment.get_unchecked(0) },
+                size: new_segment.len() as u32,
+                read_limiter: cloned_limiter
+            };
+            self.more_segments.insert(id, Box::new(new_segment_reader));
+            return Ok(&*self.more_segments[&id]);
         }
     }
 
@@ -220,81 +213,54 @@ impl ReaderArena {
     pub fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook+Send>>>) {
         self.cap_table = cap_table;
     }
-
 }
 
 pub struct BuilderArena {
+    allocator: &'static mut Allocator,
     pub segment0 : SegmentBuilder,
     pub more_segments : Vec<Box<SegmentBuilder>>,
-    pub allocation_strategy : message::AllocationStrategy,
-    pub owned_memory : Vec<Vec<Word>>,
-    pub next_size : u32,
     pub cap_table : Vec<Option<Box<ClientHook+Send>>>,
     pub dummy_limiter : ::std::rc::Rc<ReadLimiter>,
 }
 
-pub enum FirstSegment<'a> {
-    NumWords(u32),
-    ZeroedWords(&'a mut [Word])
-}
-
-impl BuilderArena {
-
-    pub fn new(allocation_strategy : message::AllocationStrategy,
-               first_segment : FirstSegment) -> Box<BuilderArena> {
+impl BuilderArena  {
+    pub fn new(allocator: &'static mut Allocator) -> Box<BuilderArena> {
         let limiter = ::std::rc::Rc::new(ReadLimiter::new(::std::u64::MAX));
-
-        let (first_segment, num_words, owned_memory) : (*mut Word, u32, Vec<Vec<Word>>) =
-            match first_segment {
-                NumWords(n) => {
-                    let mut vec = Word::allocate_zeroed_vec(n as usize);
-                    let ptr : *mut Word = vec.as_mut_ptr();
-                    (ptr, n, vec![vec])
-                }
-                ZeroedWords(w) => (w.as_mut_ptr(), w.len() as u32, Vec::new())
-            };
-
+        let (first_segment, num_words) = allocator.allocate_segment(2);
 
         let mut result = Box::new(BuilderArena {
-            segment0 : SegmentBuilder {
-                reader : SegmentReader {
-                    ptr : first_segment,
-                    size : num_words,
-                    arena : ArenaPtr::Null,
-                    read_limiter : limiter.clone()},
-                id : 0,
-                pos : first_segment,
+            allocator: allocator,
+            segment0: SegmentBuilder {
+                reader: SegmentReader {
+                    ptr: first_segment,
+                    size: num_words,
+                    arena: ArenaPtr::Null,
+                    read_limiter: limiter.clone()},
+                id: 0,
+                pos: first_segment,
             },
-            more_segments : Vec::new(),
-            allocation_strategy : allocation_strategy,
-            owned_memory : owned_memory,
-            next_size : num_words,
-            cap_table : Vec::new(),
-            dummy_limiter : limiter,
+            more_segments: Vec::new(),
+            cap_table: Vec::new(),
+            dummy_limiter: limiter,
         });
 
-        let arena_ptr : *mut BuilderArena = { let ref mut ptr = *result; ptr};
-        result.segment0.reader.arena = ArenaPtr::Builder(arena_ptr);
-
+        let arena_ptr = ArenaPtr::Builder(&mut *result);
+        result.segment0.reader.arena = arena_ptr;
         result
     }
 
-    pub fn allocate_owned_memory(&mut self, minimum_size : WordCount32) -> (*mut Word, WordCount32) {
-        let size = ::std::cmp::max(minimum_size, self.next_size);
-        let mut new_words = Word::allocate_zeroed_vec(size as usize);
-        let ptr = new_words.as_mut_ptr();
-
-        self.owned_memory.push(new_words);
-
-        match self.allocation_strategy {
-            message::AllocationStrategy::GrowHeuristically => { self.next_size += size; }
-            _ => { }
+    pub fn try_get_segment(&self, id: SegmentId) -> Result<*const SegmentReader> {
+        if id == 0 {
+            Ok(&self.segment0.reader)
+        } else if ((id - 1) as usize) < self.more_segments.len() {
+            Ok(&self.more_segments[(id - 1) as usize].reader)
+        } else {
+            Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
         }
-        (ptr, size)
     }
 
     #[inline]
-    pub fn allocate(&mut self, amount : WordCount32) -> (*mut SegmentBuilder, *mut Word) {
+    pub fn allocate(&mut self, amount: WordCount32) -> (*mut SegmentBuilder, *mut Word) {
         unsafe {
             match self.segment0.allocate(amount) {
                 Some(result) => { return (&mut self.segment0, result) }
@@ -314,7 +280,7 @@ impl BuilderArena {
                     }
                 }};
 
-            let (words, size) = self.allocate_owned_memory(amount);
+            let (words, size) = self.allocator.allocate_segment(amount);
             let mut new_builder = Box::new(SegmentBuilder::new(self, self.dummy_limiter.clone(),
                                                                id as u32, words, size));
             let builder_ptr : *mut SegmentBuilder = &mut *new_builder;
@@ -360,26 +326,20 @@ impl BuilderArena {
 
 #[derive(Clone, Copy)]
 pub enum ArenaPtr {
-    Reader(*const ReaderArena),
+    Reader(*mut ReaderArena),
     Builder(*mut BuilderArena),
     Null
 }
 
 impl ArenaPtr {
-    pub fn try_get_segment(&self, id : SegmentId) -> Result<*const SegmentReader> {
+    pub fn try_get_segment(&self, id: SegmentId) -> Result<*const SegmentReader> {
         unsafe {
             match self {
                 &ArenaPtr::Reader(reader) => {
-                    (&*reader).try_get_segment(id)
+                    (&mut *reader).try_get_segment(id)
                 }
                 &ArenaPtr::Builder(builder) => {
-                    if id == 0 {
-                        Ok(&(*builder).segment0.reader)
-                    } else if ((id - 1) as usize) < (*builder).more_segments.len() {
-                        Ok(&(*builder).more_segments[(id - 1) as usize].reader)
-                    } else {
-                        Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
-                    }
+                    (&*builder).try_get_segment(id)
                 }
                 &ArenaPtr::Null => {
                     Err(Error::new_decode_error("Null arena.", None))
@@ -388,7 +348,7 @@ impl ArenaPtr {
         }
     }
 
-    pub fn extract_cap(&self, index : usize) -> Option<Box<ClientHook+Send>> {
+    pub fn extract_cap(&self, index: usize) -> Option<Box<ClientHook+Send>> {
         unsafe {
             match self {
                 &ArenaPtr::Reader(reader) => {

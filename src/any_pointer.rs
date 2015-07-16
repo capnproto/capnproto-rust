@@ -70,6 +70,13 @@ impl <'a> Reader<'a> {
     }
 }
 
+impl <'a> FromPointerReader<'a> for Reader<'a> {
+    fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a>> {
+        Ok(Reader { reader: *reader })
+    }
+}
+
+
 pub struct Builder<'a> {
     builder : PointerBuilder<'a>
 }
@@ -111,6 +118,16 @@ impl <'a> Builder<'a> {
         Reader { reader : self.builder.as_reader() }
     }
 }
+
+impl <'a> FromPointerBuilder<'a> for Builder<'a> {
+    fn init_pointer(builder: PointerBuilder<'a>, _len: u32) -> Builder<'a> {
+        Builder { builder: builder }
+    }
+    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a>> {
+        Ok(Builder { builder: builder })
+    }
+}
+
 
 pub struct Pipeline {
     hook : Box<PipelineHook+Send>,

@@ -210,7 +210,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 /// Reads a packed message from a stream using the provided options.
 pub fn read_message<R>(read: &mut R,
                        options: ReaderOptions)
-                       -> Result<serialize::OwnedSpaceMessageReader>
+                       -> Result<::message::Reader<serialize::OwnedSegments>>
     where R: BufRead
 {
     let mut packed_read = PackedRead { inner: read };
@@ -356,8 +356,8 @@ impl <W> Write for PackedWrite<W> where W: Write {
 }
 
 /// Writes a packed message to a stream.
-pub fn write_message<W, M>(write: &mut W, message : &M) -> io::Result<()>
-    where W: Write, M: MessageBuilder
+pub fn write_message<W, A>(write: &mut W, message : &::message::Builder<A>) -> io::Result<()>
+    where W: Write, A: ::message::Allocator
 {
     let mut packed_write = PackedWrite { inner: write };
     serialize::write_message(&mut packed_write, message)
@@ -372,8 +372,8 @@ mod tests {
     use std::io::Cursor;
     use quickcheck::{quickcheck, TestResult};
 
-    use {Word, MessageReader};
-    use message::ReaderOptions;
+    use {Word};
+    use message::{ReaderOptions, ReaderSegments};
     use serialize::test::write_message_segments;
     use serialize_packed::{PackedRead, PackedWrite};
     use super::read_message;
@@ -436,15 +436,17 @@ mod tests {
     #[test]
     fn check_round_trip() {
         fn round_trip(segments: Vec<Vec<Word>>) -> TestResult {
+            use message::ReaderSegments;
             if segments.len() == 0 { return TestResult::discard(); }
             let mut cursor = Cursor::new(Vec::new());
 
             write_message_segments(&mut PackedWrite { inner: &mut cursor }, &segments);
             cursor.set_position(0);
             let message = read_message(&mut cursor, ReaderOptions::new()).unwrap();
+            let result_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
-                &segment[..] == message.get_segment(i)
+                &segment[..] == result_segments.get_segment(i as u32).unwrap()
             }))
         }
 

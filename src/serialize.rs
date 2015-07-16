@@ -25,37 +25,31 @@
 use std::io::{Read, Write};
 
 use message::*;
-use private::arena;
 use util::read_exact;
 use {Error, Result, Word};
 
 use byteorder::{ByteOrder, LittleEndian};
 
-pub struct OwnedSpaceMessageReader {
-    options : ReaderOptions,
-    arena : Box<arena::ReaderArena>,
+pub struct OwnedSegments {
     segment_slices : Vec<(usize, usize)>,
     owned_space : Vec<Word>,
 }
 
-impl MessageReader for OwnedSpaceMessageReader {
-    fn get_segment(&self, id : usize) -> &[Word] {
-        let (a,b) = self.segment_slices[id];
-        &self.owned_space[a .. b]
-    }
-
-    fn arena(&self) -> &arena::ReaderArena { &*self.arena }
-    fn arena_mut(&mut self) -> &mut arena::ReaderArena { &mut *self.arena }
-
-    fn get_options(&self) -> &ReaderOptions {
-        return &self.options;
+unsafe impl ::message::ReaderSegments for OwnedSegments {
+    fn get_segment(&self, id: u32) -> Option<&[Word]> {
+        if id < self.segment_slices.len() as u32 {
+            let (a, b) = self.segment_slices[id as usize];
+            Some(&self.owned_space[a..b])
+        } else {
+            None
+        }
     }
 }
 
 /// Reads a serialized message from a stream with the provided options.
 ///
 /// For optimal performance, `read` should be a buffered reader type.
-pub fn read_message<R>(read: &mut R, options: ReaderOptions) -> Result<OwnedSpaceMessageReader>
+pub fn read_message<R>(read: &mut R, options: ReaderOptions) -> Result<::message::Reader<OwnedSegments>>
 where R: Read {
     let (total_words, segment_slices) = try!(read_segment_table(read, options));
     read_segments(read, total_words, segment_slices, options)
@@ -130,33 +124,20 @@ fn read_segments<R>(read: &mut R,
                     total_words: usize,
                     segment_slices: Vec<(usize, usize)>,
                     options: ReaderOptions)
-                    -> Result<OwnedSpaceMessageReader>
+                    -> Result<::message::Reader<OwnedSegments>>
 where R: Read {
     let mut owned_space: Vec<Word> = Word::allocate_zeroed_vec(total_words);
     try!(read_exact(read, Word::words_to_bytes_mut(&mut owned_space[..])));
-
-    let arena = {
-        let segments = segment_slices.iter().map(|&(start, end)| {
-            &owned_space[start..end]
-        }).collect::<Vec<_>>();
-
-        arena::ReaderArena::new(&segments[..], options)
-    };
-
-    Ok(OwnedSpaceMessageReader {
-        segment_slices: segment_slices,
-        owned_space: owned_space,
-        arena: arena,
-        options: options,
-    })
+    let segments = OwnedSegments {segment_slices: segment_slices, owned_space: owned_space};
+    Ok(::message::Reader::new(segments, options))
 }
 
 /// Writes the provided message to `write`.
 ///
 /// For optimal performance, `write` should be a buffered writer. `flush` will not be called on
 /// the writer.
-pub fn write_message<W, M>(write: &mut W, message: &M) -> ::std::io::Result<()>
-where W: Write, M: MessageBuilder {
+pub fn write_message<W, A>(write: &mut W, message: &::message::Builder<A>) -> ::std::io::Result<()>
+where W: Write, A: ::message::Allocator {
     let segments = message.get_segments_for_output();
     try!(write_segment_table(write, &*segments));
     write_segments(write, &*segments)
@@ -203,7 +184,9 @@ where W: Write {
     Ok(())
 }
 
-pub fn compute_serialized_size_in_words<U : MessageBuilder>(message: &mut U) -> usize {
+pub fn compute_serialized_size_in_words<A>(message: &mut ::message::Builder<A>) -> usize
+    where A: ::message::Allocator
+{
     let segments = message.get_segments_for_output();
 
     // Table size
@@ -223,8 +206,8 @@ pub mod test {
 
     use quickcheck::{quickcheck, TestResult};
 
-    use {Word, MessageReader};
-    use message::ReaderOptions;
+    use {Word};
+    use message::{ReaderOptions, ReaderSegments};
     use super::{read_message, read_segment_table, write_segment_table, write_segments};
 
     /// Writes segments as if they were a Capnproto message.
@@ -391,9 +374,10 @@ pub mod test {
             cursor.set_position(0);
 
             let message = read_message(&mut cursor, ReaderOptions::new()).unwrap();
+            let result_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
-                &segment[..] == message.get_segment(i)
+                &segment[..] == result_segments.get_segment(i as u32).unwrap()
             }))
         }
 
