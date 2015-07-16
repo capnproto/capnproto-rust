@@ -21,7 +21,6 @@
 
 use rpc_capnp::{message, return_};
 
-use capnp::{MessageBuilder, MallocMessageBuilder, ReaderOptions};
 use capnp::private::capability::{ClientHook};
 use capnp::capability::{FromClientHook, Server};
 use rpc::{RpcConnectionState, RpcEvent};
@@ -61,13 +60,13 @@ impl EzRpcClient {
         let chan = connection_state.run(try!(tcp.try_clone()),
                                         try!(tcp.try_clone()),
                                         bootstrap,
-                                        ReaderOptions::new());
+                                        ::capnp::message::ReaderOptions::new());
 
         return Ok(EzRpcClient { rpc_chan : chan, tcp : tcp });
     }
 
     pub fn get_main<T : FromClientHook>(&mut self) -> T {
-        let mut message = Box::new(MallocMessageBuilder::new_default());
+        let mut message = Box::new(::capnp::message::Builder::new_default());
         {
             message.init_root::<message::Builder>().init_bootstrap();
         }
@@ -115,7 +114,7 @@ impl EzRpcServer {
                     tcp.try_clone().unwrap(),
                     tcp,
                     bootstrap_interface,
-                    ReaderOptions::new());
+                    ::capnp::message::ReaderOptions::new());
             });
         }
     }

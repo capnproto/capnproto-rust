@@ -26,7 +26,6 @@ use capnp::MessageSize;
 use capnp::private::capability::{CallContextHook, Client, ClientHook, PipelineHook, ServerHook};
 use capnp::capability::{CallContext, Request, ResultFuture, Server};
 use capnp::traits::{FromPointerReader, FromPointerBuilder};
-use capnp::{MessageReader, MessageBuilder};
 
 use rpc_capnp::{message, return_};
 

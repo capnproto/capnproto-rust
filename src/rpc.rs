@@ -24,9 +24,7 @@ use capnp::capability;
 use capnp::capability::{ResultFuture, Request};
 use capnp::private::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook};
-use capnp::{ReaderOptions, MessageReader, BuilderOptions, MessageBuilder, MallocMessageBuilder};
 use capnp::serialize;
-use capnp::OwnedSpaceMessageReader;
 
 use std::vec::Vec;
 use std::collections::hash_map::HashMap;
@@ -86,7 +84,7 @@ impl Clone for QuestionRef {
 }
 
 pub enum AnswerStatus {
-    Sent(Box<MallocMessageBuilder>),
+    Sent(Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>),
     Pending(Vec<(u64, u16, Vec<PipelineOp>, Box<CallContextHook+Send>)>),
 }
 
@@ -109,7 +107,7 @@ impl AnswerRef {
         }
     }
 
-    fn do_call(answer_message : &mut Box<MallocMessageBuilder>, interface_id : u64, method_id : u16,
+    fn do_call(answer_message : &mut Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>, interface_id : u64, method_id : u16,
                ops : Vec<PipelineOp>, context : Box<CallContextHook+Send>) {
         let root : message::Builder = answer_message.get_root().unwrap();
         match root.which() {
@@ -143,7 +141,7 @@ impl AnswerRef {
         }
     }
 
-    pub fn sent(&mut self, mut message : Box<MallocMessageBuilder>) {
+    pub fn sent(&mut self, mut message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>) {
         use std::ops::DerefMut;
         match self.status.lock().unwrap().deref_mut() {
             &mut AnswerStatus::Sent(_) => {panic!()}
@@ -301,7 +299,7 @@ fn client_hooks_of_payload(payload : payload::Reader,
     result
 }
 
-fn populate_cap_table(message : &mut OwnedSpaceMessageReader,
+fn populate_cap_table(message : &mut ::capnp::message::Reader<serialize::OwnedSegments>,
                       rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>,
                       answers : &ImportTable<Answer>) {
     let mut the_cap_table : Vec<Option<Box<ClientHook+Send>>> = Vec::new();
@@ -353,7 +351,7 @@ fn finish_question<W : ::std::io::Write>(questions : &mut ExportTable<Question>,
                                          id : u32) {
     questions.erase(id);
 
-    let mut finish_message = Box::new(MallocMessageBuilder::new_default());
+    let mut finish_message = Box::new(::capnp::message::Builder::new_default());
     {
         let root : message::Builder = finish_message.init_root();
         let mut finish = root.init_finish();
@@ -378,7 +376,7 @@ impl RpcConnectionState {
                U : ::std::io::Write + Send + 'static>(
                    self, inpipe: T, outpipe: U,
                    bootstrap_interface : Box<ClientHook + Send>,
-                   opts : ReaderOptions)
+                   opts : ::capnp::message::ReaderOptions)
         -> ::std::sync::mpsc::Sender<RpcEvent> {
 
         let (result_rpc_chan, port) = ::std::sync::mpsc::channel::<RpcEvent>();
@@ -472,7 +470,7 @@ impl RpcConnectionState {
                                 let idx = exports.push(Export::new(bootstrap_interface.copy()));
 
                                 let answer_id = restore.get_question_id();
-                                let mut message = Box::new(MallocMessageBuilder::new_default());
+                                let mut message = Box::new(::capnp::message::Builder::new_default());
                                 {
                                     let root : message::Builder = message.init_root();
                                     let mut ret = root.init_return();
@@ -509,7 +507,7 @@ impl RpcConnectionState {
                             _ => panic!(),
                         };
 
-                        fn get_call_ids(message : &OwnedSpaceMessageReader) -> (QuestionId, u64, u16) {
+                        fn get_call_ids(message : &::capnp::message::Reader<serialize::OwnedSegments>) -> (QuestionId, u64, u16) {
                             let root : message::Reader = message.get_root().unwrap();
                             match root.which() {
                                 Ok(message::Call(Ok(call))) =>
@@ -666,7 +664,7 @@ impl ClientHook for ImportClient {
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<::capnp::MessageSize>)
                 -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
-        let mut message = Box::new(MallocMessageBuilder::new(BuilderOptions::new()));
+        let mut message = Box::new(::capnp::message::Builder::new_default());
         {
             let root : message::Builder = message.get_root().unwrap();
             let mut call = root.init_call();
@@ -707,7 +705,7 @@ impl ClientHook for PipelineClient {
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<::capnp::MessageSize>)
                 -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
-        let mut message = Box::new(MallocMessageBuilder::new(BuilderOptions::new()));
+        let mut message = Box::new(::capnp::message::Builder::new_default());
         {
             let root : message::Builder = message.get_root().unwrap();
             let mut call = root.init_call();
@@ -756,7 +754,7 @@ impl ClientHook for PromisedAnswerClient {
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<::capnp::MessageSize>)
                 -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
-        let mut message = Box::new(MallocMessageBuilder::new(BuilderOptions::new()));
+        let mut message = Box::new(::capnp::message::Builder::new_default());
         {
             let root : message::Builder = message.get_root().unwrap();
             let mut call = root.init_call();
@@ -781,7 +779,7 @@ impl ClientHook for PromisedAnswerClient {
 }
 
 
-fn write_outgoing_cap_table(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, message : &mut MallocMessageBuilder) {
+fn write_outgoing_cap_table(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, message : &mut ::capnp::message::Builder<::capnp::message::HeapAllocator>) {
     fn write_payload(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, cap_table : & [Box<::std::any::Any>],
                      payload : payload::Builder) {
         let mut new_cap_table = payload.init_cap_table(cap_table.len() as u32);
@@ -850,29 +848,29 @@ fn write_outgoing_cap_table(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, mes
 }
 
 pub struct RpcResponse {
-    message : Box<OwnedSpaceMessageReader>,
+    message: Box<::capnp::message::Reader<serialize::OwnedSegments>>,
 }
 
 impl RpcResponse {
-    pub fn new(message : Box<OwnedSpaceMessageReader>) -> RpcResponse {
+    pub fn new(message : Box<::capnp::message::Reader<serialize::OwnedSegments>>) -> RpcResponse {
         RpcResponse { message : message }
     }
 }
 
 impl ResponseHook for RpcResponse {
     fn get<'a>(&'a mut self) -> any_pointer::Reader<'a> {
-        self.message.get_root_internal().unwrap()
+        self.message.get_root().unwrap()
     }
 }
 
 pub struct RpcRequest {
     channel : ::std::sync::mpsc::Sender<RpcEvent>,
-    message : Box<MallocMessageBuilder>,
+    message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
     question_ref : Option<QuestionRef>,
 }
 
 impl RequestHook for RpcRequest {
-    fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
+    fn message<'a>(&'a mut self) -> &'a mut ::capnp::message::Builder<::capnp::message::HeapAllocator> {
         &mut *self.message
     }
     fn send<'a>(self : Box<RpcRequest>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline> {
@@ -895,13 +893,13 @@ impl RequestHook for RpcRequest {
 
 pub struct PromisedAnswerRpcRequest {
     rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
-    message : Box<MallocMessageBuilder>,
+    message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
     answer_ref : AnswerRef,
     ops : Vec<PipelineOp>,
 }
 
 impl RequestHook for PromisedAnswerRpcRequest {
-    fn message<'a>(&'a mut self) -> &'a mut MallocMessageBuilder {
+    fn message<'a>(&'a mut self) -> &'a mut ::capnp::message::Builder<::capnp::message::HeapAllocator> {
         &mut *self.message
     }
     fn send<'a>(self : Box<PromisedAnswerRpcRequest>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline> {
@@ -972,7 +970,7 @@ pub struct Aborter {
 impl Drop for Aborter {
     fn drop(&mut self) {
         if !self.succeeded {
-            let mut results_message = Box::new(MallocMessageBuilder::new_default());
+            let mut results_message = Box::new(::capnp::message::Builder::new_default());
             {
                 let root : message::Builder = results_message.init_root();
                 let mut ret = root.init_return();
@@ -986,14 +984,14 @@ impl Drop for Aborter {
 }
 
 pub struct RpcCallContext {
-    params_message : Box<OwnedSpaceMessageReader>,
-    results_message : Box<MallocMessageBuilder>,
+    params_message : Box<::capnp::message::Reader<serialize::OwnedSegments>>,
+    results_message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
     rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
     aborter : Aborter,
 }
 
 impl RpcCallContext {
-    pub fn new(params_message : Box<OwnedSpaceMessageReader>,
+    pub fn new(params_message : Box<::capnp::message::Reader<serialize::OwnedSegments>>,
                rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>) -> RpcCallContext {
         let answer_id = {
             let root : message::Reader = params_message.get_root().unwrap();
@@ -1004,7 +1002,7 @@ impl RpcCallContext {
                 _ => panic!(),
             }
         };
-        let mut results_message = Box::new(MallocMessageBuilder::new(BuilderOptions::new()));
+        let mut results_message = Box::new(::capnp::message::Builder::new_default());
         {
             let root : message::Builder = results_message.init_root();
             let mut ret = root.init_return();
@@ -1067,37 +1065,37 @@ impl CallContextHook for RpcCallContext {
 }
 
 pub struct LocalResponse {
-    message : Box<MallocMessageBuilder>,
+    message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
 }
 
 impl LocalResponse {
-    pub fn new(message : Box<MallocMessageBuilder>) -> LocalResponse {
+    pub fn new(message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>) -> LocalResponse {
         LocalResponse { message : message }
     }
 }
 
 impl ResponseHook for LocalResponse {
     fn get<'a>(&'a mut self) -> any_pointer::Reader<'a> {
-        self.message.get_root_internal().as_reader()
+        self.message.get_root::<any_pointer::Builder>().unwrap().as_reader()
     }
 }
 
 
 pub struct PromisedAnswerRpcCallContext {
-    params_message : Box<MallocMessageBuilder>,
-    results_message : Box<MallocMessageBuilder>,
+    params_message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
+    results_message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
     rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
     answer_chan : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>,
 }
 
 impl PromisedAnswerRpcCallContext {
-    pub fn new(params_message : Box <MallocMessageBuilder>,
+    pub fn new(params_message : Box <::capnp::message::Builder<::capnp::message::HeapAllocator>>,
                rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
                answer_chan : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>)
                -> PromisedAnswerRpcCallContext {
 
 
-        let mut results_message = Box::new(MallocMessageBuilder::new(BuilderOptions::new()));
+        let mut results_message = Box::new(::capnp::message::Builder::new_default());
         {
             let root : message::Builder = results_message.init_root();
             let ret = root.init_return();
@@ -1171,24 +1169,24 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 
 
 pub struct OutgoingMessage {
-    message : Box<MallocMessageBuilder>,
+    message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
     answer_chan : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>,
     question_chan : ::std::sync::mpsc::Sender<QuestionRef>,
 }
 
 
 pub enum RpcEvent {
-    IncomingMessage(Box<serialize::OwnedSpaceMessageReader>),
+    IncomingMessage(Box<::capnp::message::Reader<serialize::OwnedSegments>>),
     Outgoing(OutgoingMessage),
     NewLocalServer(Box<ClientHook+Send>, ::std::sync::mpsc::Sender<ExportId>),
-    Return(Box<MallocMessageBuilder>),
+    Return(Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>),
     DoneWithQuestion(QuestionId),
     Shutdown,
 }
 
 
 impl RpcEvent {
-    pub fn new_outgoing(message : Box<MallocMessageBuilder>)
+    pub fn new_outgoing(message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>)
                         -> (OutgoingMessage, ::std::sync::mpsc::Receiver<Box<ResponseHook+Send>>,
                             ::std::sync::mpsc::Receiver<QuestionRef>) {
         let (answer_chan, answer_port) = ::std::sync::mpsc::channel::<Box<ResponseHook+Send>>();

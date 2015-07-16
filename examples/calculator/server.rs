@@ -21,7 +21,6 @@
 
 use capnp::capability::{FromServer, Server};
 use capnp::primitive_list;
-use capnp::{MallocMessageBuilder, MessageBuilder};
 
 use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
 use capnp_rpc::ez_rpc::EzRpcServer;
@@ -90,12 +89,12 @@ fn evaluate_impl(
 
 struct FunctionImpl {
     param_count : u32,
-    body : MallocMessageBuilder,
+    body: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
 }
 
 impl FunctionImpl {
     fn new(param_count : u32, body : calculator::expression::Reader) -> FunctionImpl {
-        let mut result = FunctionImpl { param_count : param_count, body : MallocMessageBuilder::new_default() };
+        let mut result = FunctionImpl { param_count : param_count, body: ::capnp::message::Builder::new_default() };
         result.body.set_root(body).unwrap();
         result
     }
