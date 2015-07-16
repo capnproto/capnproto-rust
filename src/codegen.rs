@@ -1560,11 +1560,10 @@ pub fn main<T : ::std::io::Read>(mut inp : T, out_dir : &::std::path::Path) -> :
     //! Generate Rust code according to a `schema_capnp::code_generator_request` read from `inp`.
 
     use capnp::serialize;
-    use capnp::MessageReader;
     use std::borrow::ToOwned;
     use std::io::Write;
 
-    let message = try!(serialize::read_message(&mut inp, capnp::ReaderOptions::new()));
+    let message = try!(serialize::read_message(&mut inp, capnp::message::ReaderOptions::new()));
 
     let request : schema_capnp::code_generator_request::Reader = try!(message.get_root());
 

@@ -33,7 +33,8 @@ mod test_util;
 
 #[cfg(test)]
 mod tests {
-    use capnp::message::{MessageBuilder, MallocMessageBuilder, BuilderOptions};
+    use capnp::message;
+    use capnp::message::{ReaderOptions};
 
     #[test]
     fn test_prim_list () {
@@ -41,7 +42,7 @@ mod tests {
         use test_capnp::test_prim_list;
 
         // Make the first segment small to force allocation of a second segment.
-        let mut message = MallocMessageBuilder::new(*BuilderOptions::new().first_segment_words(50));
+        let mut message = message::Builder::new(message::HeapAllocator::new().first_segment_words(50));
 
         let mut test_prim_list = message.init_root::<test_prim_list::Builder>();
         assert_eq!(test_prim_list.has_bool_list(), false);
@@ -122,7 +123,7 @@ mod tests {
 
         use test_capnp::test_struct_list;
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new(message::HeapAllocator::new());
 
         let mut test_struct_list = message.init_root::<test_struct_list::Builder>();
 
@@ -142,7 +143,7 @@ mod tests {
     fn test_blob () {
         use test_capnp::test_blob;
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new(message::HeapAllocator::new());
         let mut test_blob = message.init_root::<test_blob::Builder>();
 
         assert_eq!(test_blob.has_text_field(), false);
@@ -195,7 +196,7 @@ mod tests {
         use test_capnp::test_big_struct;
 
         // Make the first segment small to force allocation of a second segment.
-        let mut message = MallocMessageBuilder::new(*BuilderOptions::new().first_segment_words(5));
+        let mut message = message::Builder::new(message::HeapAllocator::new().first_segment_words(5));
 
         let mut big_struct = message.init_root::<test_big_struct::Builder>();
 
@@ -231,7 +232,7 @@ mod tests {
     fn test_complex_list () {
         use test_capnp::{test_complex_list, AnEnum};
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new_default();
 
         let mut test_complex_list = message.init_root::<test_complex_list::Builder>();
 
@@ -367,7 +368,7 @@ mod tests {
     fn test_defaults() {
         use test_capnp::test_defaults;
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new_default();
         let mut test_defaults = message.init_root::<test_defaults::Builder>();
 
         assert_eq!(test_defaults.borrow().get_void_field(), ());
@@ -412,7 +413,7 @@ mod tests {
     fn test_any_pointer() {
         use test_capnp::{test_any_pointer, test_empty_struct, test_big_struct};
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new_default();
         let mut test_any_pointer = message.init_root::<test_any_pointer::Builder>();
 
         test_any_pointer.borrow().init_any_pointer_field().set_as("xyzzy").unwrap();
@@ -431,14 +432,14 @@ mod tests {
         }
 
         {
-            let mut message = MallocMessageBuilder::new_default();
+            let mut message = message::Builder::new_default();
             let mut test_big_struct = message.init_root::<test_big_struct::Builder>();
             test_big_struct.set_int32_field(-12345);
             test_any_pointer.get_any_pointer_field().set_as(test_big_struct.borrow().as_reader()).unwrap();
         }
 
         fn _test_lifetimes(body : test_big_struct::Reader) {
-            let mut message = MallocMessageBuilder::new_default();
+            let mut message = message::Builder::new_default();
             message.set_root(body).unwrap();
         }
 
@@ -448,7 +449,7 @@ mod tests {
     fn test_writable_struct_pointer() {
         use test_capnp::test_big_struct;
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new_default();
         let mut big_struct = message.init_root::<test_big_struct::Builder>();
 
 
@@ -473,7 +474,7 @@ mod tests {
             big_struct.borrow().get_another_struct_field().unwrap().set_uint32_field(4294967265);
 
             // Alas, we need to make a copy to appease the borrow checker.
-            let mut other_message = MallocMessageBuilder::new_default();
+            let mut other_message = message::Builder::new_default();
             other_message.set_root(big_struct.borrow().get_another_struct_field().unwrap().as_reader()).unwrap();
             big_struct.set_struct_field(
                 other_message.get_root::<test_big_struct::inner::Builder>().unwrap().as_reader()).unwrap();
@@ -494,7 +495,7 @@ mod tests {
     fn test_union() {
         use test_capnp::test_union;
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new_default();
         let mut union_struct = message.init_root::<test_union::Builder>();
 
         union_struct.borrow().get_union0().set_u0f0s0(());
@@ -539,8 +540,8 @@ mod tests {
     fn test_set_root() {
         use test_capnp::test_big_struct;
 
-        let mut message1 = MallocMessageBuilder::new_default();
-        let mut message2 = MallocMessageBuilder::new_default();
+        let mut message1 = message::Builder::new_default();
+        let mut message2 = message::Builder::new_default();
         let mut struct1 = message1.init_root::<test_big_struct::Builder>();
         struct1.set_uint8_field(3);
         message2.set_root(struct1.as_reader()).unwrap();
@@ -553,7 +554,7 @@ mod tests {
     fn upgrade_struct() {
         use test_capnp::{test_old_version, test_new_version};
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new_default();
         {
             let mut old_version = message.init_root::<test_old_version::Builder>();
             old_version.set_old1(123);
@@ -569,7 +570,7 @@ mod tests {
     fn upgrade_union() {
         use test_capnp::{test_old_union_version, test_new_union_version};
         // This tests for a specific case that was broken originally.
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new_default();
         {
             let mut old_version = message.init_root::<test_old_union_version::Builder>();
             old_version.set_b(123);
@@ -589,8 +590,7 @@ mod tests {
         use test_capnp::{test_any_pointer, test_lists};
 
         {
-            let mut builder = MallocMessageBuilder::new_default();
-
+            let mut builder = message::Builder::new_default();
             let mut root = builder.init_root::<test_any_pointer::Builder>();
             {
                 let mut list = root.borrow()
@@ -610,8 +610,7 @@ mod tests {
         }
 
         {
-            let mut builder = MallocMessageBuilder::new_default();
-
+            let mut builder = message::Builder::new_default();
             let mut root = builder.init_root::<test_any_pointer::Builder>();
             {
                 let mut list = root.borrow()
@@ -636,7 +635,7 @@ mod tests {
     fn all_types() {
         use test_capnp::{test_all_types};
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new_default();
         ::test_util::init_test_message(message.init_root());
         ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().unwrap());
         ::test_util::CheckTestMessage::check_test_message(
@@ -648,9 +647,9 @@ mod tests {
     fn all_types_multi_segment() {
         use test_capnp::{test_all_types};
 
-        let mut builder_options = BuilderOptions::new();
-        builder_options.first_segment_words(1).allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
-        let mut message = MallocMessageBuilder::new(builder_options);
+        let builder_options = message::HeapAllocator::new()
+            .first_segment_words(1).allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
+        let mut message = message::Builder::new(builder_options);
         ::test_util::init_test_message(message.init_root());
         ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().unwrap());
         ::test_util::CheckTestMessage::check_test_message(
@@ -662,11 +661,11 @@ mod tests {
         use test_capnp::{test_all_types};
 
         {
-            let mut message = MallocMessageBuilder::new_default();
+            let mut message = message::Builder::new_default();
 
             ::test_util::init_test_message(message.init_root::<test_all_types::Builder>());
 
-            let mut message2 = MallocMessageBuilder::new_default();
+            let mut message2 = message::Builder::new_default();
             let mut all_types2 = message2.init_root::<test_all_types::Builder>();
 
             all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().unwrap().as_reader()).unwrap();
@@ -677,17 +676,17 @@ mod tests {
         }
 
         {
-            let mut builder_options = BuilderOptions::new();
-            builder_options.first_segment_words(1)
+            let builder_options = message::HeapAllocator::new()
+                .first_segment_words(1)
                 .allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
-            let mut message = MallocMessageBuilder::new(builder_options);
+            let mut message = message::Builder::new(builder_options);
 
             ::test_util::init_test_message(message.init_root::<test_all_types::Builder>());
 
-            let mut builder_options = BuilderOptions::new();
-            builder_options.first_segment_words(1)
+            let builder_options = message::HeapAllocator::new()
+                .first_segment_words(1)
                 .allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
-            let mut message2 = MallocMessageBuilder::new(builder_options);
+            let mut message2 = message::Builder::new(builder_options);
             let mut all_types2 = message2.init_root::<test_all_types::Builder>();
 
             all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().unwrap().as_reader()).unwrap();
@@ -713,7 +712,7 @@ mod tests {
     fn text_builder_int_underflow() {
         use test_capnp::{test_any_pointer};
 
-        let mut message = MallocMessageBuilder::new(BuilderOptions::new());
+        let mut message = message::Builder::new_default();
         {
             let mut root = message.init_root::<test_any_pointer::Builder>();
             let _ : ::capnp::data::Builder = root.borrow().get_any_pointer_field().init_as_sized(0);
@@ -726,8 +725,6 @@ mod tests {
 
     #[test]
     fn inline_composite_list_int_overflow() {
-        use capnp::MessageReader;
-
         let bytes : ::capnp::private::AlignedData<[u8; 40]> = ::capnp::private::AlignedData {
             _dummy : 0,
             data : [0,0,0,0, 0,0,1,0,
@@ -737,7 +734,7 @@ mod tests {
 
         let words = [::capnp::Word::bytes_to_words(&bytes.data[..])];
         let message =
-            ::capnp::message::SegmentArrayMessageReader::new(&words, ::capnp::ReaderOptions::new());
+            message::Reader::new(message::SegmentArray::new(&words), ReaderOptions::new());
 
         let root : ::test_capnp::test_any_pointer::Reader = message.get_root().unwrap();
         match root.total_size() {
@@ -753,7 +750,7 @@ mod tests {
             assert!(result.is_err());
         }
 
-        let mut message_builder = MallocMessageBuilder::new_default();
+        let mut message_builder = message::Builder::new_default();
         let builder_root = message_builder.init_root::<::test_capnp::test_any_pointer::Builder>();
         match builder_root.get_any_pointer_field().set_as(root) {
             Err(::capnp::Error::Decode{description: d, detail : None}) =>
@@ -765,9 +762,8 @@ mod tests {
     #[test]
     fn void_list_amplification() {
         use test_capnp::{test_any_pointer, test_all_types};
-        use capnp::MessageReader;
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new_default();
         {
             let root = message.init_root::<test_any_pointer::Builder>();
             let _ : ::capnp::primitive_list::Builder<()> =
@@ -777,22 +773,18 @@ mod tests {
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].len(), 2);
 
-        let reader =
-            ::capnp::message::SegmentArrayMessageReader::new(
-                &segments,
-                ::capnp::ReaderOptions::new());
+        let reader = message::Reader::new(message::SegmentArray::new(&segments),
+                                          ReaderOptions::new());
         let root = reader.get_root::<test_any_pointer::Reader>().unwrap();
         let result = root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Reader>>();
         assert!(result.is_err());
     }
 
-
     #[test]
     fn empty_struct_list_amplification() {
         use test_capnp::{test_any_pointer, test_empty_struct, test_all_types};
-        use capnp::MessageReader;
 
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = message::Builder::new_default();
         {
             let root = message.init_root::<test_any_pointer::Builder>();
             let _ : ::capnp::struct_list::Builder<test_empty_struct::Builder> =
@@ -803,21 +795,19 @@ mod tests {
         assert_eq!(segments[0].len(), 3);
 
         let reader =
-            ::capnp::message::SegmentArrayMessageReader::new(
-                &segments,
-                ::capnp::ReaderOptions::new());
+            message::Reader::new(message::SegmentArray::new(&segments),
+                                 ReaderOptions::new());
         let root = reader.get_root::<test_any_pointer::Reader>().unwrap();
         let result = root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Reader>>();
         assert!(result.is_err());
     }
-
 
     #[test]
     fn threads() {
         use test_capnp::{test_all_types};
 
         {
-            let mut message = MallocMessageBuilder::new_default();
+            let mut message = message::Builder::new_default();
             let mut root = message.init_root::<test_all_types::Builder>();
             ::test_util::init_test_message(root.borrow());
             {

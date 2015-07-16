@@ -29,10 +29,9 @@ pub mod addressbook_capnp {
 pub mod addressbook {
     use addressbook_capnp::{address_book, person};
     use capnp::serialize_packed;
-    use capnp::{MessageBuilder, MessageReader, ReaderOptions, MallocMessageBuilder};
 
     pub fn write_address_book() -> ::std::io::Result<()> {
-        let mut message = MallocMessageBuilder::new_default();
+        let mut message = ::capnp::message::Builder::new_default();
         {
             let address_book = message.init_root::<address_book::Builder>();
 
@@ -73,7 +72,8 @@ pub mod addressbook {
     pub fn print_address_book() -> ::capnp::Result<()> {
 
         let stdin = ::std::io::stdin();
-        let message_reader = try!(serialize_packed::read_message(&mut stdin.lock(), ReaderOptions::new()));
+        let message_reader = try!(serialize_packed::read_message(&mut stdin.lock(),
+                                                                 ::capnp::message::ReaderOptions::new()));
         let address_book = try!(message_reader.get_root::<address_book::Reader>());
 
         for person in try!(address_book.get_people()).iter() {

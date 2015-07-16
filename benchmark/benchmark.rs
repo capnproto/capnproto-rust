@@ -25,8 +25,6 @@ extern crate capnp;
 extern crate fdstream;
 extern crate rand;
 
-use capnp::{MessageReader, MessageBuilder};
-
 pub mod common;
 
 pub mod carsales_capnp {
@@ -59,29 +57,36 @@ const SCRATCH_SIZE : usize = 128 * 1024;
 pub struct NoScratch;
 
 impl NoScratch {
-    fn new_builder(&mut self, _idx : usize) -> capnp::message::MallocMessageBuilder {
-        capnp::message::MallocMessageBuilder::new_default()
+    fn new_builder(&mut self, _idx : usize) -> capnp::message::Builder<capnp::message::HeapAllocator> {
+        capnp::message::Builder::new_default()
     }
 }
 
 pub struct UseScratch {
-    scratch_space : ::std::vec::Vec<capnp::Word>
+    _owned_space: ::std::vec::Vec<::std::vec::Vec<capnp::Word>>,
+    scratch_space: ::std::vec::Vec<::capnp::message::ScratchSpace<'static>>,
 }
 
 impl UseScratch {
     pub fn new() -> UseScratch {
+        let mut owned = Vec::new();
+        let mut scratch = Vec::new();
+        for _ in 0..6 {
+            let mut words = ::capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE);
+            scratch.push(::capnp::message::ScratchSpace::new(
+                unsafe {::std::mem::transmute(&mut words[..])}));
+            owned.push(words);
+        }
         UseScratch {
-            scratch_space : ::capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE * 6)
+            _owned_space: owned,
+            scratch_space: scratch,
         }
     }
 
-    fn new_builder<'a>(&mut self, idx : usize) -> capnp::message::ScratchSpaceMallocMessageBuilder<'a> {
+    fn new_builder<'a>(&mut self, idx: usize) -> capnp::message::Builder<capnp::message::ScratchSpaceHeapAllocator<'a, 'a>> {
         assert!(idx < 6);
-        unsafe {
-            capnp::message::ScratchSpaceMallocMessageBuilder::new_default(
-                ::std::slice::from_raw_parts_mut(self.scratch_space.get_unchecked_mut(idx * SCRATCH_SIZE),
-                                                 SCRATCH_SIZE))
-        }
+        capnp::message::Builder::new(::capnp::message::ScratchSpaceHeapAllocator::new(
+            unsafe{::std::mem::transmute(&mut self.scratch_space[idx])})) // XXX
     }
 }
 
