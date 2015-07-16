@@ -1,20 +1,32 @@
+sudo: false
 language: rust
 rust:
   - nightly
   - beta
   - stable
-before_install:
-  - yes | sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-  - sudo apt-get update
+env:
+  global:
+    - CC=gcc-4.8
+    - CXX=g++-4.8
+    - export PATH="$PATH:$HOME/bin"
+    - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HOME/lib"
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-4.8
+      - g++-4.8
 install:
-  - sudo apt-get install g++-4.8 gcc-4.8 git
   - git clone https://github.com/kentonv/capnproto.git
-  - export CC=gcc-4.8
-  - export CXX=g++-4.8
   - cd capnproto/c++
   - ./setup-autotools.sh
   - autoreconf -i
-  - ./configure && make -j5 && sudo make install && cd ../..
+  - ./configure --prefix=$HOME
+  - make -j3
+  - make install
+  - cd ../..
+
 script:
   - cargo build
   - cargo test
