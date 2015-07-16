@@ -76,7 +76,6 @@ impl <'a> FromPointerReader<'a> for Reader<'a> {
     }
 }
 
-
 pub struct Builder<'a> {
     builder : PointerBuilder<'a>
 }
@@ -127,7 +126,6 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
         Ok(Builder { builder: builder })
     }
 }
-
 
 pub struct Pipeline {
     hook : Box<PipelineHook+Send>,
