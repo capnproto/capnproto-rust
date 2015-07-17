@@ -104,7 +104,7 @@ impl <'b> ReaderSegments for SegmentArray<'b> {
     }
 }
 
-/// An abstract container used to read a message.
+/// A container used to read a message.
 ///
 /// The underlying implemention uses the `ReaderSegments` as a trait object. However, we
 /// need to include `S` as concrete type parameter so that the typechecker can
