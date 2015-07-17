@@ -36,7 +36,7 @@ pub struct OwnedSegments {
 }
 
 impl ::message::ReaderSegments for OwnedSegments {
-    fn get_segment(&self, id: u32) -> Option<&[Word]> {
+    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
         if id < self.segment_slices.len() as u32 {
             let (a, b) = self.segment_slices[id as usize];
             Some(&self.owned_space[a..b])
