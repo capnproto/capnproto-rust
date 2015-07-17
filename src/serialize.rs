@@ -35,7 +35,7 @@ pub struct OwnedSegments {
     owned_space : Vec<Word>,
 }
 
-unsafe impl ::message::ReaderSegments for OwnedSegments {
+impl ::message::ReaderSegments for OwnedSegments {
     fn get_segment(&self, id: u32) -> Option<&[Word]> {
         if id < self.segment_slices.len() as u32 {
             let (a, b) = self.segment_slices[id as usize];

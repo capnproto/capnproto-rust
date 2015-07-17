@@ -80,9 +80,7 @@ impl ReaderOptions {
 
 type SegmentId = u32;
 
-pub unsafe trait ReaderSegments {
-    // UNSAFETY ALERT: The callee is responsible for ensuring that the returned memory is valid
-    // for the lifetime of the object. This could be much longer than `'a`.
+pub trait ReaderSegments {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]>;
 }
 
@@ -96,7 +94,7 @@ impl <'a> SegmentArray<'a> {
     }
 }
 
-unsafe impl <'b> ReaderSegments for SegmentArray<'b> {
+impl <'b> ReaderSegments for SegmentArray<'b> {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
         if id < self.segments.len() as u32 {
             Some(self.segments[id as usize])
