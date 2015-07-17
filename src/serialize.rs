@@ -24,11 +24,40 @@
 
 use std::io::{Read, Write};
 
-use message::*;
+use message;
 use util::read_exact;
 use {Error, Result, Word};
 
 use byteorder::{ByteOrder, LittleEndian};
+
+pub struct SliceSegments<'a> {
+    words: &'a [Word],
+    segment_slices : Vec<(usize, usize)>,
+}
+
+impl <'a> message::ReaderSegments for SliceSegments<'a> {
+    fn get_segment<'b>(&'b self, id: u32) -> Option<&'b [Word]> {
+        if id < self.segment_slices.len() as u32 {
+            let (a, b) = self.segment_slices[id as usize];
+            Some(&self.words[a..b])
+        } else {
+            None
+        }
+    }
+}
+
+pub fn read_message_from_slice<'a>(slice: &'a [Word],
+                                   options: message::ReaderOptions) -> Result<message::Reader<SliceSegments<'a>>> {
+    let mut bytes = ::Word::words_to_bytes(slice);
+    let (num_words, offsets) = try!(read_segment_table(&mut bytes, options));
+    let words = ::Word::bytes_to_words(bytes);
+    if num_words != words.len() {
+        return Err(Error::new_decode_error("Wrong number of words.",
+                                           Some(format!("Header claimed {} words, but message has {} words",
+                                                        num_words, words.len()))));
+    }
+    return Ok(message::Reader::new(SliceSegments { words: words, segment_slices: offsets }, options));
+}
 
 pub struct OwnedSegments {
     segment_slices : Vec<(usize, usize)>,
@@ -49,7 +78,7 @@ impl ::message::ReaderSegments for OwnedSegments {
 /// Reads a serialized message from a stream with the provided options.
 ///
 /// For optimal performance, `read` should be a buffered reader type.
-pub fn read_message<R>(read: &mut R, options: ReaderOptions) -> Result<::message::Reader<OwnedSegments>>
+pub fn read_message<R>(read: &mut R, options: message::ReaderOptions) -> Result<message::Reader<OwnedSegments>>
 where R: Read {
     let (total_words, segment_slices) = try!(read_segment_table(read, options));
     read_segments(read, total_words, segment_slices, options)
@@ -61,7 +90,7 @@ where R: Read {
 /// The segment table format for streams is defined in the Cap'n Proto
 /// [encoding spec](https://capnproto.org/encoding.html)
 fn read_segment_table<R>(read: &mut R,
-                         options: ReaderOptions)
+                         options: message::ReaderOptions)
                          -> Result<(usize, Vec<(usize, usize)>)>
 where R: Read {
 
@@ -113,7 +142,7 @@ where R: Read {
     if total_words as u64 > options.traversal_limit_in_words  {
         return Err(Error::new_decode_error(
             "Message is too large. To increase the limit on the \
-             receiving end, see capnp::ReaderOptions.", Some(format!("{}", total_words))));
+             receiving end, see capnp::message::ReaderOptions.", Some(format!("{}", total_words))));
     }
 
     Ok((total_words, segment_slices))
@@ -123,8 +152,8 @@ where R: Read {
 fn read_segments<R>(read: &mut R,
                     total_words: usize,
                     segment_slices: Vec<(usize, usize)>,
-                    options: ReaderOptions)
-                    -> Result<::message::Reader<OwnedSegments>>
+                    options: message::ReaderOptions)
+                    -> Result<message::Reader<OwnedSegments>>
 where R: Read {
     let mut owned_space: Vec<Word> = Word::allocate_zeroed_vec(total_words);
     try!(read_exact(read, Word::words_to_bytes_mut(&mut owned_space[..])));
@@ -136,8 +165,8 @@ where R: Read {
 ///
 /// For optimal performance, `write` should be a buffered writer. `flush` will not be called on
 /// the writer.
-pub fn write_message<W, A>(write: &mut W, message: &::message::Builder<A>) -> ::std::io::Result<()>
-where W: Write, A: ::message::Allocator {
+pub fn write_message<W, A>(write: &mut W, message: &message::Builder<A>) -> ::std::io::Result<()>
+where W: Write, A: message::Allocator {
     let segments = message.get_segments_for_output();
     try!(write_segment_table(write, &*segments));
     write_segments(write, &*segments)
