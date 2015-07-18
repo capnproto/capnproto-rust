@@ -80,6 +80,7 @@ impl ReaderOptions {
 
 type SegmentId = u32;
 
+// An object that owns the underlying buffers of a Cap'n Proto message.
 pub trait ReaderSegments {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]>;
 }
@@ -153,10 +154,15 @@ impl <S> Reader<S> where S: ReaderSegments {
     }
 }
 
+/// An object that allocates memory for a Cap'n Proto message as it is being built.
 pub unsafe trait Allocator {
-    // UNSAFETY ALERT: The callee is responsible for ensuring that the returned memory is valid
-    // for the lifetime of the object.
+    /// Allocates memory for a new segment, returning a pointer to the start of the segment
+    /// and a u32 indicating the length of the segment.
+    ///
+    /// UNSAFETY ALERT: The callee is responsible for ensuring that the returned memory is valid
+    /// for the lifetime of the object and doesn't overlap with other allocated memory.
     fn allocate_segment(&mut self, miniumum_size: u32) -> (*mut Word, u32);
+
     fn pre_drop(&mut self, _segment0_currently_allocated: u32) {}
 }
 

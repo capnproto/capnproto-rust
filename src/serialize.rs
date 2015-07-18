@@ -46,6 +46,7 @@ impl <'a> message::ReaderSegments for SliceSegments<'a> {
     }
 }
 
+/// Reads a serialized message from a slice of words.
 pub fn read_message_from_words<'a>(slice: &'a [Word],
                                    options: message::ReaderOptions) -> Result<message::Reader<SliceSegments<'a>>> {
     let mut bytes = ::Word::words_to_bytes(slice);
