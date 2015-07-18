@@ -421,9 +421,17 @@ pub mod test {
             let mut cursor = Cursor::new(Vec::new());
             write_message_segments(&mut cursor, &segments);
             let bytes = cursor.into_inner();
-            let words = ::Word::bytes_to_words(&bytes[..]); // XXX what about alignment?
 
-            let message = read_message_from_slice(words, ReaderOptions::new()).unwrap();
+            // Copy so we're sure about alignment.
+            let mut words = ::Word::allocate_zeroed_vec(bytes.len() / 8);
+            {
+                let mut bytes2 = ::Word::words_to_bytes_mut(&mut words[..]);
+                for idx in 0..bytes.len() {
+                    bytes2[idx] = bytes[idx];
+                }
+            }
+
+            let message = read_message_from_slice(&words[..], ReaderOptions::new()).unwrap();
             let result_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
