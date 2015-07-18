@@ -142,8 +142,8 @@ impl AnswerRef {
     }
 
     pub fn sent(&mut self, mut message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>) {
-        use std::ops::DerefMut;
-        match self.status.lock().unwrap().deref_mut() {
+        let mut lock = self.status.lock().unwrap();
+        match &mut *lock {
             &mut AnswerStatus::Sent(_) => {panic!()}
             &mut AnswerStatus::Pending(ref mut waiters) => {
                 waiters.reverse();
@@ -156,7 +156,7 @@ impl AnswerRef {
                 }
             }
         }
-        *self.status.lock().unwrap() = AnswerStatus::Sent(message);
+        *lock = AnswerStatus::Sent(message);
     }
 
 
