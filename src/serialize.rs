@@ -237,7 +237,8 @@ pub mod test {
 
     use {Word};
     use message::{ReaderOptions, ReaderSegments};
-    use super::{read_message, read_segment_table, write_segment_table, write_segments};
+    use super::{read_message, read_message_from_slice,
+                read_segment_table, write_segment_table, write_segments};
 
     /// Writes segments as if they were a Capnproto message.
     pub fn write_message_segments<W>(write: &mut W, segments: &Vec<Vec<Word>>) where W: Write {
@@ -403,6 +404,26 @@ pub mod test {
             cursor.set_position(0);
 
             let message = read_message(&mut cursor, ReaderOptions::new()).unwrap();
+            let result_segments = message.into_segments();
+
+            TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
+                &segment[..] == result_segments.get_segment(i as u32).unwrap()
+            }))
+        }
+
+        quickcheck(round_trip as fn(Vec<Vec<Word>>) -> TestResult);
+    }
+
+    #[test]
+    fn check_round_trip_slice_segments() {
+        fn round_trip(segments: Vec<Vec<Word>>) -> TestResult {
+            if segments.len() == 0 { return TestResult::discard(); }
+            let mut cursor = Cursor::new(Vec::new());
+            write_message_segments(&mut cursor, &segments);
+            let bytes = cursor.into_inner();
+            let words = ::Word::bytes_to_words(&bytes[..]); // XXX what about alignment?
+
+            let message = read_message_from_slice(words, ReaderOptions::new()).unwrap();
             let result_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
