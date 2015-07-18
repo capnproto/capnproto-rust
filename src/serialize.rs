@@ -30,6 +30,7 @@ use {Error, Result, Word};
 
 use byteorder::{ByteOrder, LittleEndian};
 
+/// Segments read from a single flat slice of words.
 pub struct SliceSegments<'a> {
     words: &'a [Word],
     segment_slices : Vec<(usize, usize)>,
@@ -162,6 +163,7 @@ where R: Read {
     Ok(::message::Reader::new(segments, options))
 }
 
+/// Constructs a flat vector containing the entire message.
 pub fn write_message_to_words<A>(message: &message::Builder<A>) -> Vec<Word>
     where A: message::Allocator
 {
@@ -248,6 +250,7 @@ fn compute_serialized_size(segments: &[&[Word]]) -> usize {
     size
 }
 
+/// Returns the number of words required to serialize the message.
 pub fn compute_serialized_size_in_words<A>(message: &mut ::message::Builder<A>) -> usize
     where A: ::message::Allocator
 {
