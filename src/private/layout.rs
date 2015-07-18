@@ -2066,6 +2066,23 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
+    pub fn copy_from(&self, other: PointerReader) -> Result<()> {
+        if other.pointer.is_null()  {
+            if !self.pointer.is_null() {
+                unsafe {
+                    wire_helpers::zero_object(self.segment, self.pointer);
+                    *self.pointer = ::std::mem::zeroed();
+                }
+            }
+        } else {
+            unsafe {
+                try!(wire_helpers::copy_pointer(self.segment, self.pointer, other.segment, other.pointer,
+                                                other.nesting_limit));
+            }
+        }
+        Ok(())
+    }
+
     pub fn clear(&self) {
         unsafe {
             wire_helpers::zero_object(self.segment, self.pointer);

@@ -46,7 +46,7 @@ impl <'a> message::ReaderSegments for SliceSegments<'a> {
     }
 }
 
-pub fn read_message_from_slice<'a>(slice: &'a [Word],
+pub fn read_message_from_words<'a>(slice: &'a [Word],
                                    options: message::ReaderOptions) -> Result<message::Reader<SliceSegments<'a>>> {
     let mut bytes = ::Word::words_to_bytes(slice);
     let (num_words, offsets) = try!(read_segment_table(&mut bytes, options));
@@ -161,6 +161,31 @@ where R: Read {
     Ok(::message::Reader::new(segments, options))
 }
 
+pub fn write_message_to_words<A>(message: &message::Builder<A>) -> Vec<Word>
+    where A: message::Allocator
+{
+    flatten_segments(&*message.get_segments_for_output())
+}
+
+fn flatten_segments(segments: &[&[Word]]) -> Vec<Word> {
+    let word_count = compute_serialized_size(&*segments);
+    let table_size = segments.len() / 2 + 1;
+    let mut result = Vec::with_capacity(word_count);
+    for _ in 0..table_size {
+        result.push(Word(0));
+    }
+    {
+        let mut bytes = ::Word::words_to_bytes_mut(&mut result[..]);
+        write_segment_table(&mut bytes, &*segments).unwrap();
+    }
+    for segment in &*segments {
+        for idx in 0..segment.len() {
+            result.push(segment[idx]);
+        }
+    }
+    result
+}
+
 /// Writes the provided message to `write`.
 ///
 /// For optimal performance, `write` should be a buffered writer. `flush` will not be called on
@@ -213,19 +238,19 @@ where W: Write {
     Ok(())
 }
 
-pub fn compute_serialized_size_in_words<A>(message: &mut ::message::Builder<A>) -> usize
-    where A: ::message::Allocator
-{
-    let segments = message.get_segments_for_output();
-
+fn compute_serialized_size(segments: &[&[Word]]) -> usize {
     // Table size
     let mut size = (segments.len() / 2) + 1;
-
     for segment in &*segments {
         size += segment.len();
     }
-
     size
+}
+
+pub fn compute_serialized_size_in_words<A>(message: &mut ::message::Builder<A>) -> usize
+    where A: ::message::Allocator
+{
+    compute_serialized_size(&*message.get_segments_for_output())
 }
 
 #[cfg(test)]
@@ -236,8 +261,9 @@ pub mod test {
     use quickcheck::{quickcheck, TestResult};
 
     use {Word};
-    use message::{ReaderOptions, ReaderSegments};
-    use super::{read_message, read_message_from_slice,
+    use message;
+    use message::ReaderSegments;
+    use super::{read_message, read_message_from_words, flatten_segments,
                 read_segment_table, write_segment_table, write_segments};
 
     /// Writes segments as if they were a Capnproto message.
@@ -258,7 +284,7 @@ pub mod test {
                     0,0,0,0] // 0 length
                     .iter().cloned());
         let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
-                                                         ReaderOptions::new()).unwrap();
+                                                         message::ReaderOptions::new()).unwrap();
         assert_eq!(0, words);
         assert_eq!(vec![(0,0)], segment_slices);
         buf.clear();
@@ -267,7 +293,7 @@ pub mod test {
                     1,0,0,0] // 1 length
                     .iter().cloned());
         let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
-                                                         ReaderOptions::new()).unwrap();
+                                                         message::ReaderOptions::new()).unwrap();
         assert_eq!(1, words);
         assert_eq!(vec![(0,1)], segment_slices);
         buf.clear();
@@ -278,7 +304,7 @@ pub mod test {
                     0,0,0,0] // padding
                     .iter().cloned());
         let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
-                                                         ReaderOptions::new()).unwrap();
+                                                         message::ReaderOptions::new()).unwrap();
         assert_eq!(2, words);
         assert_eq!(vec![(0,1), (1, 2)], segment_slices);
         buf.clear();
@@ -289,7 +315,7 @@ pub mod test {
                     0,1,0,0] // 256 length
                     .iter().cloned());
         let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
-                                                         ReaderOptions::new()).unwrap();
+                                                         message::ReaderOptions::new()).unwrap();
         assert_eq!(258, words);
         assert_eq!(vec![(0,1), (1, 2), (2, 258)], segment_slices);
         buf.clear();
@@ -302,7 +328,7 @@ pub mod test {
                     0,0,0,0]  // padding
                     .iter().cloned());
         let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
-                                                         ReaderOptions::new()).unwrap();
+                                                         message::ReaderOptions::new()).unwrap();
         assert_eq!(200, words);
         assert_eq!(vec![(0,77), (77, 100), (100, 101), (101, 200)], segment_slices);
         buf.clear();
@@ -316,23 +342,23 @@ pub mod test {
         buf.extend([0,2,0,0].iter().cloned()); // 513 segments
         buf.extend([0; 513 * 4].iter().cloned());
         assert!(read_segment_table(&mut Cursor::new(&buf[..]),
-                                   ReaderOptions::new()).is_err());
+                                   message::ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([0,0,0,0].iter().cloned()); // 1 segments
         assert!(read_segment_table(&mut Cursor::new(&buf[..]),
-                                   ReaderOptions::new()).is_err());
+                                   message::ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([0,0,0,0].iter().cloned()); // 1 segments
         buf.extend([0; 3].iter().cloned());
         assert!(read_segment_table(&mut Cursor::new(&buf[..]),
-                                   ReaderOptions::new()).is_err());
+                                   message::ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([255,255,255,255].iter().cloned()); // 0 segments
         assert!(read_segment_table(&mut Cursor::new(&buf[..]),
-                                   ReaderOptions::new()).is_err());
+                                   message::ReaderOptions::new()).is_err());
         buf.clear();
     }
 
@@ -403,7 +429,7 @@ pub mod test {
             write_message_segments(&mut cursor, &segments);
             cursor.set_position(0);
 
-            let message = read_message(&mut cursor, ReaderOptions::new()).unwrap();
+            let message = read_message(&mut cursor, message::ReaderOptions::new()).unwrap();
             let result_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
@@ -418,20 +444,11 @@ pub mod test {
     fn check_round_trip_slice_segments() {
         fn round_trip(segments: Vec<Vec<Word>>) -> TestResult {
             if segments.len() == 0 { return TestResult::discard(); }
-            let mut cursor = Cursor::new(Vec::new());
-            write_message_segments(&mut cursor, &segments);
-            let bytes = cursor.into_inner();
-
-            // Copy so we're sure about alignment.
-            let mut words = ::Word::allocate_zeroed_vec(bytes.len() / 8);
-            {
-                let mut bytes2 = ::Word::words_to_bytes_mut(&mut words[..]);
-                for idx in 0..bytes.len() {
-                    bytes2[idx] = bytes[idx];
-                }
-            }
-
-            let message = read_message_from_slice(&words[..], ReaderOptions::new()).unwrap();
+            let borrowed_segments: &[&[Word]] = &segments.iter()
+                                                     .map(|segment| &segment[..])
+                                                     .collect::<Vec<_>>()[..];
+            let words = flatten_segments(&borrowed_segments);
+            let message = read_message_from_words(&words[..], message::ReaderOptions::new()).unwrap();
             let result_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {

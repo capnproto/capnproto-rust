@@ -76,6 +76,12 @@ impl <'a> FromPointerReader<'a> for Reader<'a> {
     }
 }
 
+impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>, value: Reader<'a>) -> Result<()> {
+        pointer.copy_from(value.reader)
+    }
+}
+
 pub struct Builder<'a> {
     builder : PointerBuilder<'a>
 }
