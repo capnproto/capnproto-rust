@@ -179,7 +179,7 @@ fn flatten_segments(segments: &[&[Word]]) -> Vec<Word> {
     }
     {
         let mut bytes = ::Word::words_to_bytes_mut(&mut result[..]);
-        write_segment_table(&mut bytes, &*segments).unwrap();
+        write_segment_table(&mut bytes, &*segments).ok().expect("Failed to write segment table.");
     }
     for segment in &*segments {
         for idx in 0..segment.len() {
@@ -251,7 +251,7 @@ fn compute_serialized_size(segments: &[&[Word]]) -> usize {
 }
 
 /// Returns the number of words required to serialize the message.
-pub fn compute_serialized_size_in_words<A>(message: &mut ::message::Builder<A>) -> usize
+pub fn compute_serialized_size_in_words<A>(message: &::message::Builder<A>) -> usize
     where A: ::message::Allocator
 {
     compute_serialized_size(&*message.get_segments_for_output())
