@@ -130,8 +130,7 @@ impl AnswerRef {
 
     pub fn receive(&mut self, interface_id : u64, method_id : u16,
                    ops : Vec<PipelineOp>, context : Box<CallContextHook+Send>) {
-        use std::ops::DerefMut;
-        match self.status.lock().unwrap().deref_mut() {
+        match &mut *self.status.lock().unwrap() {
             &mut AnswerStatus::Sent(ref mut answer_message) => {
                 AnswerRef::do_call(answer_message, interface_id, method_id, ops, context);
             }
