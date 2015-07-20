@@ -1170,7 +1170,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 pub struct OutgoingMessage {
     message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
     answer_chan : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>,
-    question_chan : ::std::sync::mpsc::Sender<QuestionRef>,
+    question_chan : ::std::sync::mpsc::SyncSender<QuestionRef>,
 }
 
 
@@ -1190,7 +1190,7 @@ impl RpcEvent {
                             ::std::sync::mpsc::Receiver<QuestionRef>) {
         let (answer_chan, answer_port) = ::std::sync::mpsc::channel::<Box<ResponseHook+Send>>();
 
-        let (question_chan, question_port) = ::std::sync::mpsc::channel::<QuestionRef>();
+        let (question_chan, question_port) = ::std::sync::mpsc::sync_channel::<QuestionRef>(1);
 
         (OutgoingMessage{ message : message,
                           answer_chan : answer_chan,
