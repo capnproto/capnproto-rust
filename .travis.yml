@@ -18,14 +18,13 @@ addons:
       - gcc-4.8
       - g++-4.8
 install:
-  - git clone https://github.com/kentonv/capnproto.git
-  - cd capnproto/c++
-  - ./setup-autotools.sh
-  - autoreconf -i
+  - curl -O https://capnproto.org/capnproto-c++-0.5.3.tar.gz
+  - tar zxf capnproto-c++-0.5.3.tar.gz
+  - cd capnproto-c++-0.5.3
   - ./configure --prefix=$HOME
   - make -j3
   - make install
-  - cd ../..
+  - cd ../
 
 script:
   - cargo build
