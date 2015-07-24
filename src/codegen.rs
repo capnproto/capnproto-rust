@@ -1422,9 +1422,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                     Line("pub struct ToClient<U>(pub U);".to_string()),
                     Line("impl <U : Server + Send + 'static> ToClient<U> {".to_string()),
                     Indent(Box::new(Branch( vec!(
-                        Line("pub fn from_server<T: ServerHook>(self, _hook : Option<T>) -> Client {".to_string()),
+                        Line("pub fn from_server<T: ServerHook>(self) -> Client {".to_string()),
                         Indent(
-                            Box::new(Line("Client { client : ServerHook::new_client(None::<T>, ::std::boxed::Box::new(ServerDispatch { server : ::std::boxed::Box::new(self.0)}))}".to_string()))),
+                            Box::new(Line("Client { client : T::new_client(::std::boxed::Box::new(ServerDispatch { server : ::std::boxed::Box::new(self.0)}))}".to_string()))),
                         Line("}".to_string()))))),
                     Line("}".to_string()))));
 
