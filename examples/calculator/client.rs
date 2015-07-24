@@ -19,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capnp::capability::{FromServer};
 use capnp_rpc::ez_rpc::EzRpcClient;
 use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
 use calculator_capnp::calculator;

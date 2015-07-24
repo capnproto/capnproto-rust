@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capnp::capability::{FromServer, Server};
+use capnp::capability::{Server};
 use capnp::primitive_list;
 
 use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
