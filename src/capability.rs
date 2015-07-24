@@ -81,10 +81,6 @@ pub trait FromClientHook {
     fn new(Box<ClientHook+Send>) -> Self;
 }
 
-pub trait FromServer<T, U> {
-    fn from_server(self, hook : Option<T>) -> U;
-}
-
 pub trait Server {
     fn dispatch_call(&mut self, interface_id : u64, method_id : u16,
                      context : CallContext<any_pointer::Reader, any_pointer::Builder>);
