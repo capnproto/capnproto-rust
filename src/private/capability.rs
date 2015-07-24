@@ -46,9 +46,8 @@ pub trait ClientHook : Send + ::std::any::Any {
 }
 
 pub trait ServerHook : 'static {
-    fn new_client(unused : Option<Self>, server : Box<Server+Send>) -> Client;
+    fn new_client(server : Box<Server+Send>) -> Client;
 }
-
 
 pub struct Client {
     pub hook : Box<ClientHook+Send>
