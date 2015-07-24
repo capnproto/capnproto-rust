@@ -1327,7 +1327,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             mod_interior.push(Line ("#![allow(unused_variables)]".to_string()));
             mod_interior.push(Line("#![allow(unused_imports)]".to_string()));
             mod_interior.push(
-                Line("use capnp::capability::{FromClientHook, Request, FromServer};".to_string()));
+                Line("use capnp::capability::{FromClientHook, Request};".to_string()));
             mod_interior.push(
                 Line("use capnp::private::capability::{ClientHook, ServerHook};".to_string()));
             mod_interior.push(Line("use capnp::capability;".to_string()));
@@ -1420,9 +1420,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             mod_interior.push(
                 Branch(vec!(
                     Line("pub struct ToClient<U>(pub U);".to_string()),
-                    Line("impl <T:ServerHook, U : Server + Send + 'static> FromServer<T, Client> for ToClient<U> {".to_string()),
+                    Line("impl <U : Server + Send + 'static> ToClient<U> {".to_string()),
                     Indent(Box::new(Branch( vec!(
-                        Line("fn from_server(self, _hook : Option<T>) -> Client {".to_string()),
+                        Line("pub fn from_server<T: ServerHook>(self, _hook : Option<T>) -> Client {".to_string()),
                         Indent(
                             Box::new(Line("Client { client : ServerHook::new_client(None::<T>, ::std::boxed::Box::new(ServerDispatch { server : ::std::boxed::Box::new(self.0)}))}".to_string()))),
                         Line("}".to_string()))))),
