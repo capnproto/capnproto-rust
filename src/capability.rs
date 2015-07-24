@@ -83,7 +83,7 @@ impl ClientHook for LocalClient {
 }
 
 impl ServerHook for LocalClient {
-    fn new_client(_unused_self : Option<LocalClient>, server : Box<Server+Send>) -> Client {
+    fn new_client(server : Box<Server+Send>) -> Client {
         Client::new(Box::new(LocalClient::new(server)))
     }
 }

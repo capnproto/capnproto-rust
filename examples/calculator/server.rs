@@ -153,7 +153,7 @@ impl calculator::Server for CalculatorImpl {
         match evaluate_impl(params.get_expression().unwrap(), None) {
             Ok(r) => {
                 results.set_value(
-                    calculator::value::ToClient(ValueImpl::new(r)).from_server(None::<LocalClient>));
+                    calculator::value::ToClient(ValueImpl::new(r)).from_server::<LocalClient>());
             }
             Err(_) => return context.fail("Evaluation failed.".to_string()),
         }
@@ -164,7 +164,7 @@ impl calculator::Server for CalculatorImpl {
         results.set_func(
             calculator::function::ToClient(
                 FunctionImpl::new(params.get_param_count() as u32, params.get_body().unwrap()))
-                .from_server(None::<LocalClient>));
+                .from_server::<LocalClient>());
         context.done();
     }
     fn get_operator<'a>(& mut self, mut context : calculator::GetOperatorContext<'a>) {
@@ -173,7 +173,7 @@ impl calculator::Server for CalculatorImpl {
             results.set_func(
                 match params.get_op() {
                     Ok(op) => {
-                        calculator::function::ToClient(OperatorImpl {op : op}).from_server(None::<LocalClient>)
+                        calculator::function::ToClient(OperatorImpl {op : op}).from_server::<LocalClient>()
                     }
                     Err(_) => return context.fail("Unknown operator.".to_string()),
                 });
