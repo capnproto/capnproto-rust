@@ -41,6 +41,9 @@ extern crate byteorder;
 #[cfg(any(feature="quickcheck", test))]
 extern crate quickcheck;
 
+#[cfg(feature = "rpc")]
+extern crate gj;
+
 pub mod any_pointer;
 pub mod capability;
 pub mod data;

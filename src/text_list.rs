@@ -76,7 +76,7 @@ impl <'a> Builder<'a> {
     }
 
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder {builder : self.builder}
+        Builder::<'b> {builder : self.builder}
     }
 }
 
@@ -101,7 +101,8 @@ impl <'a> Builder<'a> {
 }
 
 impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>, value : Reader<'a>) -> Result<()> {
+    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
+                               value : Reader<'a>) -> Result<()> {
         pointer.set_list(&value.reader)
     }
 }

@@ -22,7 +22,6 @@
 //! Untyped root container for a Cap'n Proto value.
 
 use any_pointer;
-use private::capability::ClientHook;
 use private::units::*;
 use private::arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader};
 use private::layout;
@@ -142,10 +141,6 @@ impl <S> Reader<S> where S: ReaderSegments {
         try!(self.get_root_internal()).get_as()
     }
 
-    pub fn init_cap_table(&mut self, cap_table : Vec<Option<Box<ClientHook+Send>>>) {
-        self.arena.init_cap_table(cap_table);
-    }
-
     pub fn into_segments(self) -> S {
         *self.segments
     }
@@ -225,10 +220,6 @@ impl <A> Builder<A> where A: Allocator {
 
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
         self.arena.get_segments_for_output()
-    }
-
-    pub fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
-        self.arena.get_cap_table()
     }
 }
 

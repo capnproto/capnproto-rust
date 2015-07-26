@@ -24,65 +24,111 @@
 //! Roughly corresponds to capability.h in the C++ implementation.
 
 use any_pointer;
-use private::capability::{CallContextHook, ClientHook, RequestHook, ResponseHook};
+use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, ResultsHook};
+use std::cell::RefCell;
+use std::rc::Rc;
 
-pub struct ResultFuture<Results> where Results: ::traits::Pipelined {
-    pub answer_port: ::std::sync::mpsc::Receiver<Box<ResponseHook+Send>>,
-    pub answer_result: Result<Box<ResponseHook+Send>, ()>,
+pub struct RemotePromise<Results> where Results: ::traits::Pipelined {
+    #[cfg(feature = "rpc")]
+    pub answer_promise: ::gj::Promise<Box<ResponseHook>, ::Error>,
     pub pipeline: Results::Pipeline,
 }
 
+pub struct ReaderCapTable {
+    hooks: Vec<Option<Rc<RefCell<Box<ClientHook>>>>>
+}
+
+impl ReaderCapTable {
+    pub fn new() -> ReaderCapTable {
+        ReaderCapTable { hooks: Vec::new() }
+    }
+
+    // Do I need an Imbueable trait?
+    pub fn imbue<'a, T>(&'a self) -> T {
+        &self.hooks;
+        unimplemented!();
+    }
+}
+
 pub struct Request<Params, Results> {
-    pub marker : ::std::marker::PhantomData<(Params, Results)>,
-    pub hook : Box<RequestHook+Send>
+    pub marker: ::std::marker::PhantomData<(Params, Results)>,
+    pub hook: Box<RequestHook>
 }
 
 impl <Params, Results> Request <Params, Results> {
-    pub fn new(hook : Box<RequestHook+Send>) -> Request <Params, Results> {
-        Request { hook : hook, marker: ::std::marker::PhantomData }
+    pub fn new(hook: Box<RequestHook>) -> Request <Params, Results> {
+        Request { hook: hook, marker: ::std::marker::PhantomData }
     }
 }
+
+#[cfg(feature = "rpc")]
 impl <Params, Results> Request <Params, Results>
 where Results: ::traits::Pipelined,
       <Results as ::traits::Pipelined>::Pipeline: FromTypelessPipeline
 {
-    pub fn send(self) -> ResultFuture<Results> {
-        let ResultFuture {answer_port, answer_result, pipeline, ..} = self.hook.send();
-        ResultFuture { answer_port : answer_port, answer_result : answer_result,
+    pub fn send(self) -> RemotePromise<Results> {
+        let RemotePromise {answer_promise, pipeline, ..} = self.hook.send();
+        RemotePromise { answer_promise : answer_promise,
                         pipeline : FromTypelessPipeline::new(pipeline)
                       }
     }
 }
 
-pub struct CallContext<Params, Results> {
-    pub marker: ::std::marker::PhantomData<(Params, Results)>,
-    pub hook: Box<CallContextHook+Send>,
+pub struct Params<T> {
+    pub marker: ::std::marker::PhantomData<T>,
+    pub hook: Box<ParamsHook>,
 }
 
-impl <Params, Results> CallContext<Params, Results> {
-    pub fn fail(self, message: String) {self.hook.fail(message);}
-    pub fn done(self) {self.hook.done();}
+pub struct Results<T> {
+    pub marker: ::std::marker::PhantomData<T>,
+    pub hook: Box<ResultsHook>,
 }
 
-impl <Params, Results> CallContext<Params, Results> {
-    pub fn get<'a>(&'a mut self) -> (<Params as ::traits::Owned<'a>>::Reader,
-                                     <Results as ::traits::Owned<'a>>::Builder)
-        where Params: ::traits::Owned<'a>, Results: ::traits::Owned<'a>
+impl <T> Results<T> {
+    pub fn fail(self, message: String) { self.hook.fail(message); }
+    pub fn unimplemented(self) { self.hook.unimplemented(); }
+    pub fn disconnected(self) { self.hook.disconnected(); }
+    pub fn overloaded(self) { self.hook.overloaded(); }
+
+    pub fn get<'a>(&'a mut self) -> <T as ::traits::Owned<'a>>::Builder
+        where T: ::traits::Owned<'a>
     {
-        let (any_params, any_results) = self.hook.get();
-        (any_params.get_as().unwrap(), any_results.get_as().unwrap())
+        self.hook.get().get_as().unwrap()
     }
 }
 
+
 pub trait FromTypelessPipeline {
-    fn new (typeless : any_pointer::Pipeline) -> Self;
+    fn new (typeless: any_pointer::Pipeline) -> Self;
 }
 
 pub trait FromClientHook {
-    fn new(Box<ClientHook+Send>) -> Self;
+    fn new(Rc<RefCell<Box<ClientHook>>>) -> Self;
 }
 
-pub trait Server {
-    fn dispatch_call(&mut self, interface_id : u64, method_id : u16,
-                     context : CallContext<any_pointer::Reader, any_pointer::Builder>);
+pub struct Client {
+    pub hook: Rc<RefCell<Box<ClientHook>>>
 }
+
+impl Client {
+    pub fn new(hook: Rc<RefCell<Box<ClientHook>>>) -> Client {
+        Client { hook : hook }
+    }
+
+    pub fn new_call<Params, Results>(&self,
+                                     interface_id : u64,
+                                     method_id : u16,
+                                     size_hint : Option<::MessageSize>)
+                                     -> Request<Params, Results> {
+        let typeless = self.hook.borrow().new_call(interface_id, method_id, size_hint);
+        Request { hook: typeless.hook, marker: ::std::marker::PhantomData }
+    }
+}
+
+#[cfg(feature = "rpc")]
+pub trait Server {
+    fn dispatch_call(&mut self, interface_id: u64, method_id: u16,
+                     params: Params<any_pointer::Owned>,
+                     results: Results<any_pointer::Owned>) -> ::gj::Promise<(), ::Error>;
+}
+

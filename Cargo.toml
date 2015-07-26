@@ -23,3 +23,10 @@ quickcheck = { version = "0.2", optional = true }
 
 [dev-dependencies]
 quickcheck = "0.2"
+
+[features]
+rpc = ["gj"]
+
+[dependencies.gj]
+version = "*"
+optional = true

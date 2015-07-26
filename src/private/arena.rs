@@ -26,7 +26,6 @@ use std::rc::Rc;
 use std::slice;
 use std::u64;
 
-use private::capability::ClientHook;
 use private::units::*;
 use message;
 use message::{Allocator, ReaderSegments};
@@ -162,7 +161,6 @@ pub struct ReaderArena {
     raw_segments: &'static ReaderSegments,
     pub segment0: SegmentReader,
     pub more_segments: HashMap<SegmentId, Box<SegmentReader>>,
-    pub cap_table: Vec<Option<Box<ClientHook+Send>>>,
     pub read_limiter: Rc<ReadLimiter>,
 }
 
@@ -186,7 +184,6 @@ impl ReaderArena {
             raw_segments: segments,
             segment0: segment0_reader,
             more_segments: HashMap::new(),
-            cap_table: Vec::new(),
             read_limiter: limiter.clone(),
         });
 
@@ -219,18 +216,12 @@ impl ReaderArena {
             Ok(&*self.more_segments[&id])
         }
     }
-
-    #[inline]
-    pub fn init_cap_table(&mut self, cap_table: Vec<Option<Box<ClientHook+Send>>>) {
-        self.cap_table = cap_table;
-    }
 }
 
 pub struct BuilderArena {
     allocator: &'static mut Allocator,
     pub segment0: SegmentBuilder,
     pub more_segments: Vec<Box<SegmentBuilder>>,
-    pub cap_table: Vec<Option<Box<ClientHook+Send>>>,
     pub dummy_limiter: Rc<ReadLimiter>,
 }
 
@@ -251,7 +242,6 @@ impl BuilderArena  {
                 pos: first_segment,
             },
             more_segments: Vec::new(),
-            cap_table: Vec::new(),
             dummy_limiter: limiter,
         });
 
@@ -324,15 +314,6 @@ impl BuilderArena  {
             OutputSegments::MultiSegment(v)
         }
     }
-
-    pub fn get_cap_table<'a>(&'a self) -> &'a [Option<Box<ClientHook+Send>>] {
-        &self.cap_table
-    }
-
-    pub fn inject_cap(&mut self, cap: Box<ClientHook+Send>) -> u32 {
-        self.cap_table.push(Some(cap));
-        self.cap_table.len() as u32 - 1
-    }
 }
 
 #[derive(Clone, Copy)]
@@ -354,40 +335,6 @@ impl ArenaPtr {
                 }
                 &ArenaPtr::Null => {
                     Err(Error::new_decode_error("Null arena.", None))
-                }
-            }
-        }
-    }
-
-    pub fn extract_cap(&self, index: usize) -> Option<Box<ClientHook+Send>> {
-        unsafe {
-            match self {
-                &ArenaPtr::Reader(reader) => {
-                    if index < (*reader).cap_table.len() {
-                        match (*reader).cap_table[index] {
-                            Some( ref hook ) => { Some(hook.copy()) }
-                            None => {
-                                None
-                            }
-                        }
-                    } else {
-                        None
-                    }
-                }
-                &ArenaPtr::Builder(builder) => {
-                    if index < (*builder).cap_table.len() {
-                        match (*builder).cap_table[index] {
-                            Some( ref hook ) => { Some(hook.copy()) }
-                            None => {
-                                None
-                            }
-                        }
-                    } else {
-                        None
-                    }
-                }
-                &ArenaPtr::Null => {
-                    panic!();
                 }
             }
         }

@@ -102,8 +102,8 @@ impl <'a, T : PrimitiveElement> Builder<'a, T> {
 impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     where T: PrimitiveElement
 {
-    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
-                               value : Reader<'a, T>) -> Result<()> {
+    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
+                               value: Reader<'a, T>) -> Result<()> {
         pointer.set_list(&value.reader)
     }
 }

@@ -70,7 +70,7 @@ impl <'a> Builder<'a> {
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
-    pub fn set(&mut self, index : u32, value : ::data::Reader) {
+    pub fn set(&mut self, index: u32, value: ::data::Reader) {
         assert!(index < self.len());
         self.builder.get_pointer_element(index).set_data(value);
     }

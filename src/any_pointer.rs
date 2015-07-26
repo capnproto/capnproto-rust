@@ -26,6 +26,8 @@ use private::capability::{ClientHook, PipelineHook, PipelineOp};
 use private::layout::{PointerReader, PointerBuilder};
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 use Result;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Copy, Clone)]
 pub struct Owned(());
@@ -61,17 +63,17 @@ impl <'a> Reader<'a> {
     }
 
     #[inline]
-    pub fn get_as<T : FromPointerReader<'a>>(&self) -> Result<T> {
+    pub fn get_as<T: FromPointerReader<'a>>(&self) -> Result<T> {
         FromPointerReader::get_from_pointer(&self.reader)
     }
 
-    pub fn get_as_capability<T : FromClientHook>(&self) -> Result<T> {
+    pub fn get_as_capability<T: FromClientHook>(&self) -> Result<T> {
         Ok(FromClientHook::new(try!(self.reader.get_capability())))
     }
 
     //# Used by RPC system to implement pipelining. Applications
     //# generally shouldn't use this directly.
-    pub fn get_pipelined_cap(&self, ops : &[PipelineOp]) -> Result<Box<ClientHook+Send>> {
+    pub fn get_pipelined_cap(&self, ops : &[PipelineOp]) -> Result<Rc<RefCell<Box<ClientHook>>>> {
         let mut pointer = self.reader;
 
         for op in ops.iter() {
@@ -94,7 +96,8 @@ impl <'a> FromPointerReader<'a> for Reader<'a> {
 }
 
 impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>, value: Reader<'a>) -> Result<()> {
+    fn set_pointer_builder<'b>(mut pointer: ::private::layout::PointerBuilder<'b>,
+                               value: Reader<'a>) -> Result<()> {
         pointer.copy_from(value.reader)
     }
 }
@@ -139,7 +142,7 @@ impl <'a> Builder<'a> {
     }
 
     // XXX value should be a user client.
-    pub fn set_as_capability(&self, value : Box<ClientHook+Send>) {
+    pub fn set_as_capability(&mut self, value: Rc<RefCell<Box<ClientHook>>>) {
         self.builder.set_capability(value);
     }
 
@@ -164,30 +167,30 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
 }
 
 pub struct Pipeline {
-    hook : Box<PipelineHook+Send>,
-    ops : Vec<PipelineOp>,
+    hook: Rc<RefCell<Box<PipelineHook>>>,
+    ops: Vec<PipelineOp>,
 }
 
 impl Pipeline {
-    pub fn new(hook : Box<PipelineHook+Send>) -> Pipeline {
-        Pipeline { hook : hook, ops : Vec::new() }
+    pub fn new(hook: Box<PipelineHook>) -> Pipeline {
+        Pipeline { hook: Rc::new(RefCell::new(hook)), ops : Vec::new() }
     }
 
     pub fn noop(&self) -> Pipeline {
-        Pipeline { hook : self.hook.copy(), ops : self.ops.clone() }
+        Pipeline { hook : self.hook.clone(), ops : self.ops.clone() }
     }
 
-    pub fn get_pointer_field(&self, pointer_index : u16) -> Pipeline {
+    pub fn get_pointer_field(&self, pointer_index: u16) -> Pipeline {
         let mut new_ops = Vec::with_capacity(self.ops.len() + 1);
         for &op in self.ops.iter() {
             new_ops.push(op)
         }
         new_ops.push(PipelineOp::GetPointerField(pointer_index));
-        Pipeline { hook : self.hook.copy(), ops : new_ops }
+        Pipeline { hook : self.hook.clone(), ops : new_ops }
     }
 
-    pub fn as_cap(&self) -> Box<ClientHook+Send> {
-        self.hook.get_pipelined_cap(self.ops.clone())
+    pub fn as_cap(&self) -> Rc<RefCell<Box<ClientHook>>> {
+        self.hook.borrow().get_pipelined_cap(self.ops.clone())
     }
 }
 
