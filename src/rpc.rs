@@ -121,10 +121,10 @@ impl AnswerRef {
                     Ok(return_::Exception(_exc)) => {
                         // TODO
                     }
-                    _ => panic!(),
+                    _ => unimplemented!(),
                 }
             }
-            _ => panic!(),
+            _ => unimplemented!(),
         }
     }
 
@@ -143,13 +143,13 @@ impl AnswerRef {
     pub fn sent(&mut self, mut message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>) {
         let mut lock = self.status.lock().unwrap();
         match &mut *lock {
-            &mut AnswerStatus::Sent(_) => {panic!()}
+            &mut AnswerStatus::Sent(_) => { unreachable!() }
             &mut AnswerStatus::Pending(ref mut waiters) => {
                 waiters.reverse();
                 while waiters.len() > 0 {
                     let (interface_id, method_id, ops, context) = match waiters.pop() {
                         Some(r) => r,
-                        None => panic!(),
+                        None => unreachable!(),
                     };
                     AnswerRef::do_call(&mut message, interface_id, method_id, ops, context);
                 }
@@ -277,7 +277,7 @@ fn client_hooks_of_payload(payload : payload::Reader,
                 result.push(None);
             }
             Ok(cap_descriptor::ReceiverHosted(_id)) => {
-                panic!()
+                unimplemented!()
             }
             Ok(cap_descriptor::ReceiverAnswer(Ok(promised_answer))) => {
                 result.push(Some(
@@ -289,10 +289,10 @@ fn client_hooks_of_payload(payload : payload::Reader,
                         })));
             }
             Ok(cap_descriptor::ThirdPartyHosted(_)) => {
-                panic!()
+                unimplemented!()
             }
             Err(_) => { panic!("unknown cap descriptor")}
-            _ => panic!(),
+            _ => unimplemented!(),
         }
     }
     result
@@ -531,7 +531,7 @@ impl RpcConnectionState {
                                     }
                                     &mut None => {
                                         // XXX Todo
-                                        panic!()
+                                        unimplemented!()
                                     }
                                 };
                                 if erase_it {
@@ -587,7 +587,7 @@ impl RpcConnectionState {
                                     if !question_chan.send(qref).is_ok() { panic!() }
                                 }
                                 _ => {
-                                    panic!("NONE OF THOSE");
+                                    unreachable!("NONE OF THOSE");
                                 }
                             }
                         }
@@ -679,7 +679,7 @@ impl ClientHook for ImportClient {
     }
 
     fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
-        panic!()
+        unimplemented!()
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any> {
@@ -728,7 +728,7 @@ impl ClientHook for PipelineClient {
     }
 
     fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
-        panic!()
+        unimplemented!()
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any> {
@@ -769,11 +769,11 @@ impl ClientHook for PromisedAnswerClient {
     }
 
     fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
-        panic!()
+        unimplemented!()
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any> {
-        panic!()
+        unimplemented!()
     }
 }
 
@@ -955,7 +955,7 @@ impl PipelineHook for PromisedAnswerRpcPipeline {
         Box::new(PromisedAnswerRpcPipeline)
     }
     fn get_pipelined_cap(&self, _ops : Vec<PipelineOp>) -> Box<ClientHook+Send> {
-        panic!()
+        unimplemented!()
     }
 }
 

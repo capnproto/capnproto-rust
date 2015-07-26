@@ -69,7 +69,7 @@ impl ClientHook for LocalClient {
                 _method_id : u16,
                 _size_hint : Option<MessageSize>)
                 -> Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
-        panic!()
+        unimplemented!()
     }
     fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>) {
         self.object_channel.send((interface_id, method_id, context)).unwrap();

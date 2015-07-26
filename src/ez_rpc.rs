@@ -28,7 +28,6 @@ use capability::{LocalClient};
 
 pub struct EzRpcClient {
     rpc_chan : ::std::sync::mpsc::Sender<RpcEvent>,
-    tcp : ::std::net::TcpStream,
 }
 
 impl Drop for EzRpcClient {
@@ -62,7 +61,7 @@ impl EzRpcClient {
                                         bootstrap,
                                         ::capnp::message::ReaderOptions::new());
 
-        return Ok(EzRpcClient { rpc_chan : chan, tcp : tcp });
+        return Ok(EzRpcClient { rpc_chan : chan });
     }
 
     pub fn get_main<T : FromClientHook>(&mut self) -> T {
