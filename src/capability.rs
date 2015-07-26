@@ -24,7 +24,7 @@
 use capnp::any_pointer;
 use capnp::MessageSize;
 use capnp::private::capability::{CallContextHook, Client, ClientHook, PipelineHook, ServerHook};
-use capnp::capability::{CallContext, Request, ResultFuture, Server};
+use capnp::capability::{CallContext, Request, RemotePromise, Server};
 
 use rpc_capnp::{message, return_};
 
@@ -39,8 +39,8 @@ impl Clone for LocalClient {
 }
 
 impl LocalClient {
-    pub fn new(server : Box<Server+Send>) -> LocalClient {
-        let (chan, port) = ::std::sync::mpsc::channel::<(u64, u16, Box<CallContextHook+Send>)>();
+    pub fn new(server : Box<Server>) -> LocalClient {
+        let (chan, port) = ::std::sync::mpsc::channel::<(u64, u16, Box<CallContextHook>)>();
         ::std::thread::spawn(move || {
                 let mut server = server;
                 loop {
@@ -60,7 +60,7 @@ impl LocalClient {
 
 
 impl ClientHook for LocalClient {
-    fn copy(&self) -> Box<ClientHook+Send> {
+    fn copy(&self) -> Box<ClientHook> {
         Box::new(LocalClient { object_channel : self.object_channel.clone() })
     }
     fn new_call(&self,
@@ -70,7 +70,7 @@ impl ClientHook for LocalClient {
                 -> Request<any_pointer::Owned, any_pointer::Owned> {
         unimplemented!()
     }
-    fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>) {
+    fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook>) {
         self.object_channel.send((interface_id, method_id, context)).unwrap();
     }
 
@@ -82,7 +82,7 @@ impl ClientHook for LocalClient {
 }
 
 impl ServerHook for LocalClient {
-    fn new_client(server : Box<Server+Send>) -> Client {
+    fn new_client(server : Box<Server>) -> Client {
         Client::new(Box::new(LocalClient::new(server)))
     }
 }
@@ -110,14 +110,14 @@ pub trait WaitForContent<T> where T: for<'a> ::capnp::traits::Owned<'a> {
     fn wait<'a>(&'a mut self) -> Result<<T as ::capnp::traits::Owned<'a>>::Reader, String>;
 }
 
-impl <Results> WaitForContent <Results> for ResultFuture<Results>
+impl <Results> WaitForContent <Results> for RemotePromise<Results>
     where Results: for<'a> ::capnp::traits::Owned<'a>,
           Results: ::capnp::traits::Pipelined
 {
-    fn wait<'a>(&'a mut self) -> Result<<Results as ::capnp::traits::Owned<'a>>::Reader, String>
-    {
+    fn wait<'a>(&'a mut self) -> Result<<Results as ::capnp::traits::Owned<'a>>::Reader, String> {
+        unimplemented!()
         // XXX should check that it's not already been received.
-        self.answer_result = match self.answer_port.recv() {Ok(x) => Ok(x), Err(_) => Err(()) };
+/*        self.answer_result = match self.answer_port.recv() {Ok(x) => Ok(x), Err(_) => Err(()) };
         match self.answer_result {
             Err(_) => Err("answer channel closed".to_string()),
             Ok(ref mut response_hook) => {
@@ -138,5 +138,6 @@ impl <Results> WaitForContent <Results> for ResultFuture<Results>
                 }
             }
         }
+*/
     }
 }

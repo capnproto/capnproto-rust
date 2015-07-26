@@ -22,6 +22,7 @@
 #![crate_type="lib"]
 
 extern crate capnp;
+extern crate gj;
 
 pub mod rpc_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_capnp.rs"));

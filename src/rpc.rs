@@ -21,7 +21,7 @@
 
 use capnp::{any_pointer};
 use capnp::capability;
-use capnp::capability::{ResultFuture, Request};
+use capnp::capability::{RemotePromise, Request};
 use capnp::private::capability::{CallContextHook, ClientHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook};
 use capnp::serialize;
@@ -40,13 +40,13 @@ pub type ExportId = u32;
 pub type ImportId = ExportId;
 
 pub struct Question {
-    chan : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>,
+    chan : ::std::sync::mpsc::Sender<Box<ResponseHook>>,
     is_awaiting_return : bool,
     ref_counter : ::std::sync::mpsc::Receiver<()>,
 }
 
 impl Question {
-    pub fn new(sender : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>) -> (Question, ::std::sync::mpsc::Sender<()>) {
+    pub fn new(sender : ::std::sync::mpsc::Sender<Box<ResponseHook>>) -> (Question, ::std::sync::mpsc::Sender<()>) {
         let (tx, rx) = ::std::sync::mpsc::channel::<()>();
         (Question {
             chan : sender,
@@ -655,7 +655,7 @@ pub struct ImportClient {
 }
 
 impl ClientHook for ImportClient {
-    fn copy(&self) -> Box<ClientHook+Send> {
+    fn copy(&self) -> Box<ClientHook> {
         Box::new(ImportClient {channel : self.channel.clone(),
                                import_id : self.import_id})
     }
@@ -678,7 +678,7 @@ impl ClientHook for ImportClient {
         Request::new(hook)
     }
 
-    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
         unimplemented!()
     }
 
@@ -694,7 +694,7 @@ pub struct PipelineClient {
 }
 
 impl ClientHook for PipelineClient {
-    fn copy(&self) -> Box<ClientHook+Send> {
+    fn copy(&self) -> Box<ClientHook> {
         Box::new(PipelineClient { channel : self.channel.clone(),
                                   ops : self.ops.clone(),
                                   question_ref : self.question_ref.clone(),
@@ -727,7 +727,7 @@ impl ClientHook for PipelineClient {
         Request::new(hook)
     }
 
-    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
         unimplemented!()
     }
 
@@ -743,7 +743,7 @@ pub struct PromisedAnswerClient {
 }
 
 impl ClientHook for PromisedAnswerClient {
-    fn copy(&self) -> Box<ClientHook+Send> {
+    fn copy(&self) -> Box<ClientHook> {
         Box::new(PromisedAnswerClient { rpc_chan : self.rpc_chan.clone(),
                                    ops : self.ops.clone(),
                                    answer_ref : self.answer_ref.clone(),
@@ -768,7 +768,7 @@ impl ClientHook for PromisedAnswerClient {
         Request::new(hook)
     }
 
-    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook+Send>) {
+    fn call(&self, _interface_id : u64, _method_id : u16, _context : Box<CallContextHook>) {
         unimplemented!()
     }
 
@@ -779,7 +779,7 @@ impl ClientHook for PromisedAnswerClient {
 
 
 fn write_outgoing_cap_table(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, message : &mut ::capnp::message::Builder<::capnp::message::HeapAllocator>) {
-    fn write_payload(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, cap_table : & [Box<::std::any::Any>],
+    fn write_payload(rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>, cap_table: &[Box<::std::any::Any>],
                      payload : payload::Builder) {
         let mut new_cap_table = payload.init_cap_table(cap_table.len() as u32);
         for ii in 0..(cap_table.len() as u32) {
@@ -872,7 +872,7 @@ impl RequestHook for RpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut ::capnp::message::Builder<::capnp::message::HeapAllocator> {
         &mut *self.message
     }
-    fn send<'a>(self : Box<RpcRequest>) -> ResultFuture<any_pointer::Owned> {
+    fn send<'a>(self : Box<RpcRequest>) -> RemotePromise<any_pointer::Owned> {
         let tmp = *self;
         let RpcRequest { channel, mut message, question_ref : _ } = tmp;
         write_outgoing_cap_table(&channel, &mut *message);
@@ -884,9 +884,11 @@ impl RequestHook for RpcRequest {
 
         let pipeline = Box::new(RpcPipeline {channel : channel, question_ref : question_ref});
         let typeless = any_pointer::Pipeline::new(pipeline);
-
-        ResultFuture {answer_port : answer_port, answer_result : Err(()) /* XXX */,
-                       pipeline : typeless }
+        unimplemented!()
+/*
+        RemotePromise {answer_port : answer_port, answer_result : Err(()),
+                       pipeline : typeless, marker : ::std::marker::PhantomData  }
+*/
     }
 }
 
@@ -901,7 +903,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut ::capnp::message::Builder<::capnp::message::HeapAllocator> {
         &mut *self.message
     }
-    fn send<'a>(self : Box<PromisedAnswerRpcRequest>) -> ResultFuture<any_pointer::Owned> {
+    fn send<'a>(self : Box<PromisedAnswerRpcRequest>) -> RemotePromise<any_pointer::Owned> {
         let tmp = *self;
         let PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = tmp;
         let (answer_tx, answer_rx) = ::std::sync::mpsc::channel();
@@ -922,9 +924,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
 
         let pipeline = Box::new(PromisedAnswerRpcPipeline);
         let typeless = any_pointer::Pipeline::new(pipeline);
-
-        ResultFuture {answer_port : answer_rx, answer_result : Err(()) /* XXX */,
-                       pipeline : typeless }
+        unimplemented!()
     }
 }
 
@@ -935,11 +935,11 @@ pub struct RpcPipeline {
 }
 
 impl PipelineHook for RpcPipeline {
-    fn copy(&self) -> Box<PipelineHook+Send> {
+    fn copy(&self) -> Box<PipelineHook> {
         Box::new(RpcPipeline { channel : self.channel.clone(),
                                question_ref : self.question_ref.clone() })
     }
-    fn get_pipelined_cap(&self, ops : Vec<PipelineOp>) -> Box<ClientHook+Send> {
+    fn get_pipelined_cap(&self, ops : Vec<PipelineOp>) -> Box<ClientHook> {
         Box::new(PipelineClient { channel : self.channel.clone(),
                            ops : ops,
                            question_ref : self.question_ref.clone(),
@@ -951,10 +951,10 @@ impl PipelineHook for RpcPipeline {
 pub struct PromisedAnswerRpcPipeline;
 
 impl PipelineHook for PromisedAnswerRpcPipeline {
-    fn copy(&self) -> Box<PipelineHook+Send> {
+    fn copy(&self) -> Box<PipelineHook> {
         Box::new(PromisedAnswerRpcPipeline)
     }
-    fn get_pipelined_cap(&self, _ops : Vec<PipelineOp>) -> Box<ClientHook+Send> {
+    fn get_pipelined_cap(&self, _ops : Vec<PipelineOp>) -> Box<ClientHook> {
         unimplemented!()
     }
 }
@@ -1169,7 +1169,7 @@ impl CallContextHook for PromisedAnswerRpcCallContext {
 
 pub struct OutgoingMessage {
     message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
-    answer_chan : ::std::sync::mpsc::Sender<Box<ResponseHook+Send>>,
+    answer_chan : ::std::sync::mpsc::Sender<Box<ResponseHook>>,
     question_chan : ::std::sync::mpsc::SyncSender<QuestionRef>,
 }
 
@@ -1177,7 +1177,7 @@ pub struct OutgoingMessage {
 pub enum RpcEvent {
     IncomingMessage(Box<::capnp::message::Reader<serialize::OwnedSegments>>),
     Outgoing(OutgoingMessage),
-    NewLocalServer(Box<ClientHook+Send>, ::std::sync::mpsc::Sender<ExportId>),
+    NewLocalServer(Box<ClientHook>, ::std::sync::mpsc::Sender<ExportId>),
     Return(Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>),
     DoneWithQuestion(QuestionId),
     Shutdown,
@@ -1186,9 +1186,9 @@ pub enum RpcEvent {
 
 impl RpcEvent {
     pub fn new_outgoing(message : Box<::capnp::message::Builder<::capnp::message::HeapAllocator>>)
-                        -> (OutgoingMessage, ::std::sync::mpsc::Receiver<Box<ResponseHook+Send>>,
+                        -> (OutgoingMessage, ::std::sync::mpsc::Receiver<Box<ResponseHook>>,
                             ::std::sync::mpsc::Receiver<QuestionRef>) {
-        let (answer_chan, answer_port) = ::std::sync::mpsc::channel::<Box<ResponseHook+Send>>();
+        let (answer_chan, answer_port) = ::std::sync::mpsc::channel::<Box<ResponseHook>>();
 
         let (question_chan, question_port) = ::std::sync::mpsc::sync_channel::<QuestionRef>(1);
 
