@@ -662,7 +662,7 @@ impl ClientHook for ImportClient {
 
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<::capnp::MessageSize>)
-                -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
+                -> capability::Request<any_pointer::Marker, any_pointer::Marker> {
         let mut message = Box::new(::capnp::message::Builder::new_default());
         {
             let root : message::Builder = message.get_root().unwrap();
@@ -703,7 +703,7 @@ impl ClientHook for PipelineClient {
 
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<::capnp::MessageSize>)
-                -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
+                -> capability::Request<any_pointer::Marker, any_pointer::Marker> {
         let mut message = Box::new(::capnp::message::Builder::new_default());
         {
             let root : message::Builder = message.get_root().unwrap();
@@ -752,7 +752,7 @@ impl ClientHook for PromisedAnswerClient {
 
     fn new_call(&self, interface_id : u64, method_id : u16,
                 _size_hint : Option<::capnp::MessageSize>)
-                -> capability::Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
+                -> capability::Request<any_pointer::Marker, any_pointer::Marker> {
         let mut message = Box::new(::capnp::message::Builder::new_default());
         {
             let root : message::Builder = message.get_root().unwrap();
@@ -872,7 +872,7 @@ impl RequestHook for RpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut ::capnp::message::Builder<::capnp::message::HeapAllocator> {
         &mut *self.message
     }
-    fn send<'a>(self : Box<RpcRequest>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline> {
+    fn send<'a>(self : Box<RpcRequest>) -> ResultFuture<any_pointer::Marker> {
         let tmp = *self;
         let RpcRequest { channel, mut message, question_ref : _ } = tmp;
         write_outgoing_cap_table(&channel, &mut *message);
@@ -886,7 +886,7 @@ impl RequestHook for RpcRequest {
         let typeless = any_pointer::Pipeline::new(pipeline);
 
         ResultFuture {answer_port : answer_port, answer_result : Err(()) /* XXX */,
-                       pipeline : typeless, marker : ::std::marker::PhantomData  }
+                       pipeline : typeless }
     }
 }
 
@@ -901,7 +901,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
     fn message<'a>(&'a mut self) -> &'a mut ::capnp::message::Builder<::capnp::message::HeapAllocator> {
         &mut *self.message
     }
-    fn send<'a>(self : Box<PromisedAnswerRpcRequest>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline> {
+    fn send<'a>(self : Box<PromisedAnswerRpcRequest>) -> ResultFuture<any_pointer::Marker> {
         let tmp = *self;
         let PromisedAnswerRpcRequest { rpc_chan, mut message, mut answer_ref, ops } = tmp;
         let (answer_tx, answer_rx) = ::std::sync::mpsc::channel();
@@ -924,7 +924,7 @@ impl RequestHook for PromisedAnswerRpcRequest {
         let typeless = any_pointer::Pipeline::new(pipeline);
 
         ResultFuture {answer_port : answer_rx, answer_result : Err(()) /* XXX */,
-                       pipeline : typeless, marker : ::std::marker::PhantomData  }
+                       pipeline : typeless }
     }
 }
 

@@ -28,12 +28,14 @@ pub struct PowerFunction;
 
 impl calculator::function::Server for PowerFunction {
     fn call(&mut self, mut context : calculator::function::CallContext) {
-        let (params, mut results) = context.get();
-        let params = params.get_params().unwrap();
-        if params.len() != 2 {
-            return context.fail("Wrong number of parameters".to_string());
-        };
-        results.set_value(params.get(0).powf(params.get(1)));
+        {
+            let (params, mut results) = context.get();
+            let params = params.get_params().unwrap();
+            if params.len() != 2 {
+                panic!(); //return context.fail("Wrong number of parameters".to_string());
+            };
+            results.set_value(params.get(0).powf(params.get(1)));
+        }
         context.done();
     }
 }
@@ -100,16 +102,18 @@ pub fn main() {
 
         let mut request = calculator.evaluate_request();
 
-        let mut subtract_call = request.init().init_expression().init_call();
-        subtract_call.set_function(subtract);
-        let mut subtract_params = subtract_call.init_params(2);
-        subtract_params.borrow().get(1).set_literal(67.0);
+        {
+            let mut subtract_call = request.init().init_expression().init_call();
+            subtract_call.set_function(subtract);
+            let mut subtract_params = subtract_call.init_params(2);
+            subtract_params.borrow().get(1).set_literal(67.0);
 
-        let mut add_call = subtract_params.get(0).init_call();
-        add_call.set_function(add);
-        let mut add_params = add_call.init_params(2);
-        add_params.borrow().get(0).set_literal(123.0);
-        add_params.get(1).set_literal(45.0);
+            let mut add_call = subtract_params.get(0).init_call();
+            add_call.set_function(add);
+            let mut add_params = add_call.init_params(2);
+            add_params.borrow().get(0).set_literal(123.0);
+            add_params.get(1).set_literal(45.0);
+        }
 
         let eval_promise = request.send();
         let mut read_promise = eval_promise.pipeline.get_value().read_request().send();
@@ -145,30 +149,36 @@ pub fn main() {
         //# Build the request to evaluate 4 * 6
         let mut request = calculator.evaluate_request();
 
-        let mut multiply_call = request.init().init_expression().init_call();
-        multiply_call.set_function(multiply);
-        let mut multiply_params = multiply_call.init_params(2);
-        multiply_params.borrow().get(0).set_literal(4.0);
-        multiply_params.get(1).set_literal(6.0);
+        {
+            let mut multiply_call = request.init().init_expression().init_call();
+            multiply_call.set_function(multiply);
+            let mut multiply_params = multiply_call.init_params(2);
+            multiply_params.borrow().get(0).set_literal(4.0);
+            multiply_params.get(1).set_literal(6.0);
+        }
 
         let multiply_result = request.send().pipeline.get_value();
 
         //# Use the result in two calls that add 3 and 5.
 
         let mut add3_request = calculator.evaluate_request();
-        let mut add3_call = add3_request.init().init_expression().init_call();
-        add3_call.set_function(add.clone());
-        let mut add3_params = add3_call.init_params(2);
-        add3_params.borrow().get(0).set_previous_result(multiply_result.clone());
-        add3_params.get(1).set_literal(3.0);
+        {
+            let mut add3_call = add3_request.init().init_expression().init_call();
+            add3_call.set_function(add.clone());
+            let mut add3_params = add3_call.init_params(2);
+            add3_params.borrow().get(0).set_previous_result(multiply_result.clone());
+            add3_params.get(1).set_literal(3.0);
+        }
         let mut add3_promise = add3_request.send().pipeline.get_value().read_request().send();
 
         let mut add5_request = calculator.evaluate_request();
-        let mut add5_call = add5_request.init().init_expression().init_call();
-        add5_call.set_function(add);
-        let mut add5_params = add5_call.init_params(2);
-        add5_params.borrow().get(0).set_previous_result(multiply_result);
-        add5_params.get(1).set_literal(5.0);
+        {
+            let mut add5_call = add5_request.init().init_expression().init_call();
+            add5_call.set_function(add);
+            let mut add5_params = add5_call.init_params(2);
+            add5_params.borrow().get(0).set_previous_result(multiply_result);
+            add5_params.get(1).set_literal(5.0);
+        }
         let mut add5_promise = add5_request.send().pipeline.get_value().read_request().send();
 
         assert!(add3_promise.wait().unwrap().get_value() == 27.0);
@@ -204,59 +214,67 @@ pub fn main() {
 
         let f = {
             let mut request = calculator.def_function_request();
-            let mut def_function_params = request.init();
-            def_function_params.set_param_count(2);
             {
-                let mut add_call = def_function_params.init_body().init_call();
-                add_call.set_function(add.clone());
-                let mut add_params = add_call.init_params(2);
-                add_params.borrow().get(1).set_parameter(1);
+                let mut def_function_params = request.init();
+                def_function_params.set_param_count(2);
+                {
+                    let mut add_call = def_function_params.init_body().init_call();
+                    add_call.set_function(add.clone());
+                    let mut add_params = add_call.init_params(2);
+                    add_params.borrow().get(1).set_parameter(1);
 
-                let mut multiply_call = add_params.get(0).init_call();
-                multiply_call.set_function(multiply.clone());
-                let mut multiply_params = multiply_call.init_params(2);
-                multiply_params.borrow().get(0).set_parameter(0);
-                multiply_params.get(1).set_literal(100.0);
+                    let mut multiply_call = add_params.get(0).init_call();
+                    multiply_call.set_function(multiply.clone());
+                    let mut multiply_params = multiply_call.init_params(2);
+                    multiply_params.borrow().get(0).set_parameter(0);
+                    multiply_params.get(1).set_literal(100.0);
+                }
             }
             request.send().pipeline.get_func()
         };
 
         let g = {
             let mut request = calculator.def_function_request();
-            let mut def_function_params = request.init();
-            def_function_params.set_param_count(1);
             {
-                let mut multiply_call = def_function_params.init_body().init_call();
-                multiply_call.set_function(multiply);
-                let mut multiply_params = multiply_call.init_params(2);
-                multiply_params.borrow().get(1).set_literal(2.0);
+                let mut def_function_params = request.init();
+                def_function_params.set_param_count(1);
+                {
+                    let mut multiply_call = def_function_params.init_body().init_call();
+                    multiply_call.set_function(multiply);
+                    let mut multiply_params = multiply_call.init_params(2);
+                    multiply_params.borrow().get(1).set_literal(2.0);
 
-                let mut f_call = multiply_params.get(0).init_call();
-                f_call.set_function(f.clone());
-                let mut f_params = f_call.init_params(2);
-                f_params.borrow().get(0).set_parameter(0);
+                    let mut f_call = multiply_params.get(0).init_call();
+                    f_call.set_function(f.clone());
+                    let mut f_params = f_call.init_params(2);
+                    f_params.borrow().get(0).set_parameter(0);
 
-                let mut add_call = f_params.get(1).init_call();
-                add_call.set_function(add);
-                let mut add_params = add_call.init_params(2);
-                add_params.borrow().get(0).set_parameter(0);
-                add_params.get(1).set_literal(1.0);
+                    let mut add_call = f_params.get(1).init_call();
+                    add_call.set_function(add);
+                    let mut add_params = add_call.init_params(2);
+                    add_params.borrow().get(0).set_parameter(0);
+                    add_params.get(1).set_literal(1.0);
+                }
             }
             request.send().pipeline.get_func()
         };
 
         let mut f_eval_request = calculator.evaluate_request();
-        let mut f_call = f_eval_request.init().init_expression().init_call();
-        f_call.set_function(f);
-        let mut f_params = f_call.init_params(2);
-        f_params.borrow().get(0).set_literal(12.0);
-        f_params.get(1).set_literal(34.0);
+        {
+            let mut f_call = f_eval_request.init().init_expression().init_call();
+            f_call.set_function(f);
+            let mut f_params = f_call.init_params(2);
+            f_params.borrow().get(0).set_literal(12.0);
+            f_params.get(1).set_literal(34.0);
+        }
         let mut f_eval_promise = f_eval_request.send().pipeline.get_value().read_request().send();
 
         let mut g_eval_request = calculator.evaluate_request();
-        let mut g_call = g_eval_request.init().init_expression().init_call();
-        g_call.set_function(g);
-        g_call.init_params(1).get(0).set_literal(21.0);
+        {
+            let mut g_call = g_eval_request.init().init_expression().init_call();
+            g_call.set_function(g);
+            g_call.init_params(1).get(0).set_literal(21.0);
+        }
         let mut g_eval_promise = g_eval_request.send().pipeline.get_value().read_request().send();
 
         assert!(f_eval_promise.wait().unwrap().get_value() == 1234.0);

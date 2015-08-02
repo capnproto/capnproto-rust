@@ -68,7 +68,7 @@ impl ClientHook for LocalClient {
                 _interface_id : u64,
                 _method_id : u16,
                 _size_hint : Option<MessageSize>)
-                -> Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline> {
+                -> Request<any_pointer::Marker, any_pointer::Marker> {
         unimplemented!()
     }
     fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>) {
@@ -88,19 +88,20 @@ impl ServerHook for LocalClient {
     }
 }
 
-pub trait InitRequest<'a, 'b, T> {
-    fn init(&'b mut self) -> T;
+pub trait InitRequest<T> where T: for <'a> ::capnp::traits::Marker<'a> {
+    fn init<'a>(&'a mut self) -> <T as ::capnp::traits::Marker<'a>>::Builder
+        where
+      <T as ::capnp::traits::Marker<'a>>::Builder : ::capnp::traits::FromPointerBuilder<'a>;
 }
 
-impl <'a, 'b, Params : FromPointerBuilder<'a>, Results, Pipeline> InitRequest<'a, 'b, Params>
-for Request<Params, Results, Pipeline> {
-
-    // XXX we are bypassing lifetime tracking here.
-    // TODO: maybe there's something clever we can do to get this to work.
-    // We may have to wait for associated types or higher-kinded types.
-    fn init(&'b mut self) -> Params {
-        let tmp : &'a mut Box<::capnp::private::capability::RequestHook> = unsafe { ::std::mem::transmute(& mut self.hook)};
-        let message : message::Builder = tmp.message::<'a>().get_root().unwrap();
+impl <Params, Results> InitRequest<Params> for Request<Params, Results>
+    where Params: for <'a> ::capnp::traits::Marker<'a>
+{
+    fn init<'a>(&'a mut self) -> <Params as ::capnp::traits::Marker<'a>>::Builder
+        where
+      <Params as ::capnp::traits::Marker<'a>>::Builder : ::capnp::traits::FromPointerBuilder<'a>
+    {
+        let message : message::Builder = self.hook.message::<'a>().get_root().unwrap();
         match message.which() {
             Ok(message::Call(Ok(call))) => {
                 let params = call.init_params();
@@ -111,13 +112,19 @@ for Request<Params, Results, Pipeline> {
     }
 }
 
-pub trait WaitForContent<'a, T> {
-    fn wait(&'a mut self) -> Result<T, String>;
+pub trait WaitForContent<T> where T: for<'a> ::capnp::traits::Marker<'a> {
+    fn wait<'a>(&'a mut self) -> Result<<T as ::capnp::traits::Marker<'a>>::Reader, String>
+        where
+      <T as ::capnp::traits::Marker<'a>>::Reader : ::capnp::traits::FromPointerReader<'a>;
 }
 
-impl <'a, Results : FromPointerReader<'a>, Pipeline> WaitForContent<'a, Results>
-for ResultFuture<Results, Pipeline> {
-    fn wait(&'a mut self) -> Result<Results, String> {
+impl <Results> WaitForContent <Results> for ResultFuture<Results>
+    where Results: for<'a> ::capnp::traits::Marker<'a>
+{
+    fn wait<'a>(&'a mut self) -> Result<<Results as ::capnp::traits::Marker<'a>>::Reader, String>
+        where
+      <Results as ::capnp::traits::Marker<'a>>::Reader : ::capnp::traits::FromPointerReader<'a>
+    {
         // XXX should check that it's not already been received.
         self.answer_result = match self.answer_port.recv() {Ok(x) => Ok(x), Err(_) => Err(()) };
         match self.answer_result {

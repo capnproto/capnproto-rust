@@ -40,8 +40,10 @@ impl ValueImpl {
 
 impl calculator::value::Server for ValueImpl {
     fn read(&mut self, mut context : calculator::value::ReadContext) {
-        let (_, mut results) = context.get();
-        results.set_value(self.value);
+        {
+            let (_, mut results) = context.get();
+            results.set_value(self.value);
+        }
         context.done();
     }
 }
@@ -102,18 +104,19 @@ impl FunctionImpl {
 
 impl calculator::function::Server for FunctionImpl {
     fn call(&mut self, mut context : calculator::function::CallContext) {
-        let (params, mut results) = context.get();
-        if params.get_params().unwrap().len() != self.param_count {
-            return context.fail("Wrong number of parameters.".to_string());
-        };
-
         {
-            match evaluate_impl(self.body.get_root::<calculator::expression::Builder>().unwrap().as_reader(),
-                                Some(params.get_params().unwrap())) {
-                Ok(r) => results.set_value(r),
-                Err(_) => return context.fail("Evaluation failed.".to_string()),
-            }
+            let (params, mut results) = context.get();
+            if params.get_params().unwrap().len() != self.param_count {
+                panic!();//return context.fail("Wrong number of parameters.".to_string());
+            };
 
+            {
+                match evaluate_impl(self.body.get_root::<calculator::expression::Builder>().unwrap().as_reader(),
+                                    Some(params.get_params().unwrap())) {
+                    Ok(r) => results.set_value(r),
+                    Err(_) => panic!(),//return context.fail("Evaluation failed.".to_string()),
+                }
+            }
         }
         context.done();
     }
@@ -126,20 +129,22 @@ pub struct OperatorImpl {
 
 impl calculator::function::Server for OperatorImpl {
     fn call(&mut self, mut context : calculator::function::CallContext) {
-        let (params, mut results) = context.get();
-        let params = params.get_params().unwrap();
-        if params.len() != 2 {
-            return context.fail(format!("Wrong number of parameters: {}", params.len()));
+        {
+            let (params, mut results) = context.get();
+            let params = params.get_params().unwrap();
+            if params.len() != 2 {
+                panic!();//return context.fail(format!("Wrong number of parameters: {}", params.len()));
+            }
+
+            let result = match self.op {
+                calculator::Operator::Add => params.get(0) + params.get(1),
+                calculator::Operator::Subtract => params.get(0) - params.get(1),
+                calculator::Operator::Multiply => params.get(0) * params.get(1),
+                calculator::Operator::Divide => params.get(0) / params.get(1),
+            };
+
+            results.set_value(result);
         }
-
-        let result = match self.op {
-            calculator::Operator::Add => params.get(0) + params.get(1),
-            calculator::Operator::Subtract => params.get(0) - params.get(1),
-            calculator::Operator::Multiply => params.get(0) * params.get(1),
-            calculator::Operator::Divide => params.get(0) / params.get(1),
-        };
-
-        results.set_value(result);
         context.done();
     }
 }
@@ -149,25 +154,29 @@ struct CalculatorImpl;
 
 impl calculator::Server for CalculatorImpl {
     fn evaluate(&mut self, mut context : calculator::EvaluateContext) {
-        let (params, mut results) = context.get();
-        match evaluate_impl(params.get_expression().unwrap(), None) {
-            Ok(r) => {
-                results.set_value(
-                    calculator::value::ToClient(ValueImpl::new(r)).from_server::<LocalClient>());
+        {
+            let (params, mut results) = context.get();
+            match evaluate_impl(params.get_expression().unwrap(), None) {
+                Ok(r) => {
+                    results.set_value(
+                        calculator::value::ToClient(ValueImpl::new(r)).from_server::<LocalClient>());
+                }
+                Err(_) => panic!(), //return context.fail("Evaluation failed.".to_string()),
             }
-            Err(_) => return context.fail("Evaluation failed.".to_string()),
         }
         context.done();
     }
     fn def_function(&mut self, mut context : calculator::DefFunctionContext) {
-        let (params, mut results) = context.get();
-        results.set_func(
-            calculator::function::ToClient(
-                FunctionImpl::new(params.get_param_count() as u32, params.get_body().unwrap()))
-                .from_server::<LocalClient>());
+        {
+            let (params, mut results) = context.get();
+            results.set_func(
+                calculator::function::ToClient(
+                    FunctionImpl::new(params.get_param_count() as u32, params.get_body().unwrap()))
+                    .from_server::<LocalClient>());
+        }
         context.done();
     }
-    fn get_operator<'a>(& mut self, mut context : calculator::GetOperatorContext<'a>) {
+    fn get_operator<'a>(& mut self, mut context : calculator::GetOperatorContext) {
         {
             let (params, mut results) = context.get();
             results.set_func(
@@ -175,7 +184,7 @@ impl calculator::Server for CalculatorImpl {
                     Ok(op) => {
                         calculator::function::ToClient(OperatorImpl {op : op}).from_server::<LocalClient>()
                     }
-                    Err(_) => return context.fail("Unknown operator.".to_string()),
+                    Err(_) => panic!(),//return context.fail("Unknown operator.".to_string()),
                 });
         }
         context.done();
