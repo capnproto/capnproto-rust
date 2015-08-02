@@ -245,11 +245,8 @@ fn generate_import_statements() -> FormattedText {
 }
 
 fn list_list_type_param(scope_map : &collections::hash_map::HashMap<u64, Vec<String>>,
-                        typ : schema_capnp::type_::Reader,
-                        is_reader: bool,
-                        lifetime_name: &str) -> String {
+                        typ : schema_capnp::type_::Reader) -> String {
     use schema_capnp::type_;
-    let module = if is_reader { "Reader" } else { "Builder" };
     match typ.which() {
         Err(_) => panic!("unsupported type"),
         Ok(t) => {
@@ -258,26 +255,24 @@ fn list_list_type_param(scope_map : &collections::hash_map::HashMap<u64, Vec<Str
                 type_::Int16(()) | type_::Int32(()) | type_::Int64(()) |
                 type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) |
                 type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
-                    format!("primitive_list::{}<{}, {}>", module, lifetime_name, prim_type_str(t))
+                    format!("primitive_list::Owned<{}>", prim_type_str(t))
                 }
                 type_::Enum(en) => {
                     let the_mod = scope_map[&en.get_type_id()].connect("::");
-                    format!("enum_list::{}<{},{}>", module, lifetime_name, the_mod)
+                    format!("enum_list::Owned<{}>", the_mod)
                 }
                 type_::Text(()) => {
-                    format!("text_list::{}<{}>", module, lifetime_name)
+                    "text_list::Owned".to_string()
                 }
                 type_::Data(()) => {
-                    format!("data_list::{}<{}>", module, lifetime_name)
+                    "data_list::Owned".to_string()
                 }
                 type_::Struct(st) => {
-                    format!("struct_list::{}<{lifetime}, {}::{}<{lifetime}>>", module,
-                            scope_map[&st.get_type_id()].connect("::"), module, lifetime = lifetime_name)
+                    format!("struct_list::Owned<{}::Owned>", scope_map[&st.get_type_id()].connect("::"))
                 }
                 type_::List(t) => {
-                    let inner = list_list_type_param(scope_map, t.get_element_type().unwrap(),
-                                                     is_reader, lifetime_name);
-                    format!("list_list::{}<{}, {}>", module, lifetime_name, inner)
+                    let inner = list_list_type_param(scope_map, t.get_element_type().unwrap());
+                    format!("list_list::Owned<{}>", inner)
                 }
                 type_::AnyPointer(_) => {
                     panic!("List(AnyPointer) is unsupported");
@@ -395,8 +390,8 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         Err(_) => { panic!("unsupported type") }
                         Ok(type_::Struct(st)) => {
                             let the_mod = scope_map[&st.get_type_id()].connect("::");
-                            return (format!("Result<struct_list::{}<{lifetime},{}::{}<{lifetime}>>>",
-                                            module, the_mod, module, lifetime=lifetime),
+                            return (format!("Result<struct_list::{}<{lifetime},{}::Owned>>",
+                                            module, the_mod, lifetime=lifetime),
                                     get_it);
                         }
                         Ok(type_::Enum(e)) => {
@@ -405,8 +400,7 @@ fn getter_text (_node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                                     get_it);
                         }
                         Ok(type_::List(t1)) => {
-                            let type_param = list_list_type_param(scope_map, t1.get_element_type().unwrap(),
-                                                                  is_reader, lifetime);
+                            let type_param = list_list_type_param(scope_map, t1.get_element_type().unwrap());
                             return (format!("Result<list_list::{}<{},{}>>", module, lifetime, type_param),
                                     get_it);
                         }
@@ -688,8 +682,8 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                     let scope = &scope_map[&id];
                                     let the_mod = scope.connect("::");
 
-                                    (Some(format!("struct_list::Reader<'a,{}::Reader<'a>>", the_mod)),
-                                     Some(format!("struct_list::Builder<'a,{}::Builder<'a>>", the_mod)))
+                                    (Some(format!("struct_list::Reader<'a,{}::Owned>", the_mod)),
+                                     Some(format!("struct_list::Builder<'a,{}::Owned>", the_mod)))
                                 }
                                 type_::Text(()) => {
 
@@ -703,13 +697,11 @@ fn generate_setter(node_map : &collections::hash_map::HashMap<u64, schema_capnp:
                                 }
                                 type_::List(t1) => {
                                     let type_param = list_list_type_param(scope_map,
-                                                                          t1.get_element_type().unwrap(),
-                                                                          false, "'a");
+                                                                          t1.get_element_type().unwrap());
                                     setter_lifetime_param = "<'b>";
 
                                     (Some(format!("list_list::Reader<'b, {}>",
-                                             list_list_type_param(scope_map, t1.get_element_type().unwrap(),
-                                                                  true, "'b"))),
+                                             list_list_type_param(scope_map, t1.get_element_type().unwrap()))),
                                      Some(format!("list_list::Builder<'a, {}>", type_param)))
                                 }
                                 type_::AnyPointer(_) => {panic!("List(AnyPointer) not supported")}
@@ -1023,7 +1015,6 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             let data_size = struct_reader.get_data_word_count();
             let pointer_size = struct_reader.get_pointer_count();
-            let is_group = struct_reader.get_is_group();
             let discriminant_count = struct_reader.get_discriminant_count();
             let discriminant_offset = struct_reader.get_discriminant_offset();
 
@@ -1105,53 +1096,45 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
             }
 
             let builder_struct_size =
-                if is_group { Branch(Vec::new()) }
-                else {
                     Branch(vec!(
                         Line("impl <'a> ::capnp::traits::HasStructSize for Builder<'a> {".to_string()),
                         Indent(Box::new(
                             Branch(vec!(Line("#[inline]".to_string()),
                                         Line("fn struct_size() -> layout::StructSize { _private::STRUCT_SIZE }".to_string()))))),
-                       Line("}".to_string())))
-            };
+                       Line("}".to_string())));
 
-
-            if !is_group {
-                private_mod_interior.push(
-                    Line(
-                        "use capnp::private::layout;".to_string()));
-                private_mod_interior.push(
-                    Line(
-                        format!("pub const STRUCT_SIZE : layout::StructSize = layout::StructSize {{ data : {}, pointers : {} }};",
-                                data_size as usize, pointer_size as usize)));
-            }
+            private_mod_interior.push(
+                Line(
+                    "use capnp::private::layout;".to_string()));
+            private_mod_interior.push(
+                Line(
+                    format!("pub const STRUCT_SIZE : layout::StructSize = layout::StructSize {{ data : {}, pointers : {} }};",
+                            data_size as usize, pointer_size as usize)));
             private_mod_interior.push(
                 Line(
                     format!("pub const TYPE_ID: u64 = {:#x};", node_id)));
 
 
             let from_pointer_builder_impl =
-                if is_group { Branch(Vec::new()) }
-                else {
-                    Branch(vec![
-                        Line("impl <'a> ::capnp::traits::FromPointerBuilder<'a> for Builder<'a> {".to_string()),
-                        Indent(
-                            Box::new(
-                                Branch(vec!(
-                                    Line("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size : u32) -> Builder<'a> {".to_string()),
-                                    Indent(Box::new(Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))".to_string()))),
-                                    Line("}".to_string()),
-                                    Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {".to_string()),
-                                    Indent(Box::new(Line("::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))".to_string()))),
-                                    Line("}".to_string()))))),
-                        Line("}".to_string()),
-                        BlankLine])
-                };
+                Branch(vec![
+                    Line("impl <'a> ::capnp::traits::FromPointerBuilder<'a> for Builder<'a> {".to_string()),
+                    Indent(
+                        Box::new(
+                            Branch(vec!(
+                                Line("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size : u32) -> Builder<'a> {".to_string()),
+                                Indent(Box::new(Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))".to_string()))),
+                                Line("}".to_string()),
+                                Line("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {".to_string()),
+                                Indent(Box::new(Line("::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))".to_string()))),
+                                Line("}".to_string()))))),
+                    Line("}".to_string()),
+                    BlankLine]);
 
             let accessors = vec!(
                 Branch(preamble),
-                Line("pub struct Marker;".to_string()),
-                Line("impl <'a> ::capnp::traits::Marker<'a> for Marker { type Reader = Reader<'a>; type Builder = Builder<'a>; type Pipeline = Pipeline; }".to_string()),
+                Line("pub struct Owned;".to_string()),
+                Line("impl <'a> ::capnp::traits::Owned<'a> for Owned { type Reader = Reader<'a>; type Builder = Builder<'a>; type Pipeline = Pipeline; }".to_string()),
+                Line("impl <'a> ::capnp::traits::OwnedStruct<'a> for Owned { type Reader = Reader<'a>; type Builder = Builder<'a>; type Pipeline = Pipeline; }".to_string()),
 
                 Line("#[derive(Clone, Copy)]".to_string()),
                 Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_string()),
@@ -1175,11 +1158,6 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                         Line("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {".to_string()),
                         Indent(Box::new(Line("::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))".to_string()))),
                         Line("}".to_string()))))),
-                Line("}".to_string()),
-                BlankLine,
-                Line("impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Reader<'a>> for Reader<'b> {".to_string()),
-                Indent(
-                    Box::new(Line("fn cast(self) -> Reader<'a> { Reader { reader : self.reader } }".to_string()))),
                 Line("}".to_string()),
                 BlankLine,
 
@@ -1216,12 +1194,6 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Indent(Box::new(Line("fn set_pointer_builder<'b>(pointer : ::capnp::private::layout::PointerBuilder<'b>, value : Reader<'a>) -> Result<()> { pointer.set_struct(&value.reader) }".to_string()))),
                 Line("}".to_string()),
                 BlankLine,
-
-                Line("impl <'a, 'b : 'a> ::capnp::traits::CastableTo<Builder<'a>> for Builder<'b> {".to_string()),
-                Indent(Box::new(Line("fn cast(self) -> Builder<'a> { Builder { builder : self.builder } }".to_string()))),
-                Line("}".to_string()),
-                BlankLine,
-
 
                 Line("impl <'a> Builder<'a> {".to_string()),
                 Indent(
@@ -1372,7 +1344,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
                 mod_interior.push(
                     Line(format!(
-                            "pub type {}Context = capability::CallContext<{}::Marker, {}::Marker>;",
+                            "pub type {}Context = capability::CallContext<{}::Owned, {}::Owned>;",
                             capitalize_first_letter(name), params_name, results_name)));
                 server_interior.push(
                     Line(format!(
@@ -1381,7 +1353,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                             )));
 
                 client_impl_interior.push(
-                    Line(format!("pub fn {}_request(&self) -> Request<{}::Marker,{}::Marker> {{",
+                    Line(format!("pub fn {}_request(&self) -> Request<{}::Owned,{}::Owned> {{",
                                  camel_to_snake_case(name), params_name, results_name)));
 
                 client_impl_interior.push(Indent(

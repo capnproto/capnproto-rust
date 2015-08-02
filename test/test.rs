@@ -607,7 +607,7 @@ mod tests {
             }
             {
                 let mut l = root.get_any_pointer_field()
-                    .get_as::<::capnp::struct_list::Builder<test_lists::struct8::Builder>>().unwrap();
+                    .get_as::<::capnp::struct_list::Builder<test_lists::struct8::Owned>>().unwrap();
                 assert_eq!(3, l.len());
                 assert_eq!(12, l.borrow().get(0).get_f());
                 assert_eq!(34, l.borrow().get(1).get_f());
@@ -627,7 +627,7 @@ mod tests {
             }
             {
                 let mut l = root.get_any_pointer_field()
-                    .get_as::<::capnp::struct_list::Builder<test_lists::struct_p::Builder>>().unwrap();
+                    .get_as::<::capnp::struct_list::Builder<test_lists::struct_p::Owned>>().unwrap();
                 assert_eq!(3, l.len());
                 assert_eq!("foo", &*l.borrow().get(0).get_f().unwrap());
                 assert_eq!("bar", &*l.borrow().get(1).get_f().unwrap());
@@ -751,7 +751,7 @@ mod tests {
 
         {
             let result = root.get_any_pointer_field()
-                .get_as::<::capnp::struct_list::Reader<::test_capnp::test_all_types::Reader>>();
+                .get_as::<::capnp::struct_list::Reader<::test_capnp::test_all_types::Owned>>();
 
             assert!(result.is_err());
         }
@@ -782,7 +782,7 @@ mod tests {
         let reader = message::Reader::new(message::SegmentArray::new(&segments),
                                           ReaderOptions::new());
         let root = reader.get_root::<test_any_pointer::Reader>().unwrap();
-        let result = root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Reader>>();
+        let result = root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Owned>>();
         assert!(result.is_err());
     }
 
@@ -793,7 +793,7 @@ mod tests {
         let mut message = message::Builder::new_default();
         {
             let root = message.init_root::<test_any_pointer::Builder>();
-            let _ : ::capnp::struct_list::Builder<test_empty_struct::Builder> =
+            let _ : ::capnp::struct_list::Builder<test_empty_struct::Owned> =
                 root.get_any_pointer_field().init_as_sized((1 << 29) - 1);
         }
         let segments = message.get_segments_for_output();
@@ -804,33 +804,8 @@ mod tests {
             message::Reader::new(message::SegmentArray::new(&segments),
                                  ReaderOptions::new());
         let root = reader.get_root::<test_any_pointer::Reader>().unwrap();
-        let result = root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Reader>>();
+        let result = root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Owned>>();
         assert!(result.is_err());
-    }
-
-
-    pub struct OwnedReader<T> where T : for<'a> ::capnp::traits::Marker<'a> {
-        marker: ::std::marker::PhantomData<T>,
-        message: ::capnp::message::Reader<::capnp::serialize::OwnedSegments>,
-    }
-
-    impl <T> OwnedReader<T> where T: for <'a> ::capnp::traits::Marker<'a> {
-        pub fn get<'a> (&'a self) -> ::capnp::Result<<T as ::capnp::traits::Marker<'a>>::Reader >
-            where <T as ::capnp::traits::Marker<'a>>::Reader : ::capnp::traits::FromPointerReader<'a>
-        {
-            self.message.get_root()
-        }
-    }
-
-
-    fn testing(message: ::capnp::message::Reader<::capnp::serialize::OwnedSegments>) {
-        use test_capnp::{test_all_types};
-        let reader = OwnedReader::<test_all_types::Marker> {
-            marker : ::std::marker::PhantomData,
-            message: message
-        };
-        let x = reader.get().unwrap();
-        x.get_u_int8_field();
     }
 
     #[test]
