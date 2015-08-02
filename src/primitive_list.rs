@@ -40,7 +40,7 @@ impl <'a, T> ::traits::Owned<'a> for Owned<T> where T: PrimitiveElement {
 pub struct Pipeline; // TODO
 
 #[derive(Clone, Copy)]
-pub struct Reader<'a, T> {
+pub struct Reader<'a, T> where T: PrimitiveElement {
     marker : ::std::marker::PhantomData<T>,
     reader : ListReader<'a>
 }
@@ -67,12 +67,12 @@ impl <'a, T : PrimitiveElement> Reader<'a, T> {
     }
 }
 
-pub struct Builder<'a, T> {
+pub struct Builder<'a, T> where T: PrimitiveElement {
     marker : ::std::marker::PhantomData<T>,
     builder : ListBuilder<'a>
 }
 
-impl <'a, T : PrimitiveElement> Builder<'a, T> {
+impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
     pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
         Builder { builder : builder, marker : ::std::marker::PhantomData }
     }
@@ -84,7 +84,7 @@ impl <'a, T : PrimitiveElement> Builder<'a, T> {
     }
 }
 
-impl <'a, T : PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
+impl <'a, T: PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
     fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
         Builder { builder : builder.init_list(element_size_for_type::<T>(), size),
                   marker : ::std::marker::PhantomData }
@@ -102,7 +102,9 @@ impl <'a, T : PrimitiveElement> Builder<'a, T> {
     }
 }
 
-impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
+impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
+    where T: PrimitiveElement
+{
     fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
                                value : Reader<'a, T>) -> Result<()> {
         pointer.set_list(&value.reader)

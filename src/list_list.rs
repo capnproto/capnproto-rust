@@ -66,12 +66,12 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
     }
 }
 
-pub struct Builder<'a, T> {
+pub struct Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
     marker : ::std::marker::PhantomData<T>,
     builder : ListBuilder<'a>
 }
 
-impl <'a, T> Builder<'a, T> {
+impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
     pub fn new(builder: ListBuilder<'a>) -> Builder<'a, T> {
         Builder { builder : builder, marker : ::std::marker::PhantomData }
     }

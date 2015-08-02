@@ -39,17 +39,17 @@ impl<'a, T> ::traits::Owned<'a> for Owned<T> where T: for<'b> ::traits::OwnedStr
 
 pub struct Pipeline; // TODO
 
-pub struct Reader<'a, T> {
+pub struct Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     marker: ::std::marker::PhantomData<T>,
     reader: ListReader<'a>
 }
 
-impl <'a, T> Clone for Reader<'a, T> {
+impl <'a, T> Clone for Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     fn clone(&self) -> Reader<'a, T> {
         Reader { marker : self.marker, reader : self.reader }
     }
 }
-impl <'a, T> Copy for Reader<'a, T> {}
+impl <'a, T> Copy for Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {}
 
 impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
@@ -63,8 +63,8 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     }
 }
 
-impl <'a, T> Reader<'a, T>  {
-    pub fn borrow<'b>(&'b self) -> Reader<'b, T> where T: for<'c> ::traits::OwnedStruct<'c> {
+impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b, T>  {
         Reader {reader : self.reader, marker : ::std::marker::PhantomData}
     }
 }
@@ -90,7 +90,7 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     }
 }
 
-pub struct Builder<'a, T> {
+pub struct Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     marker : ::std::marker::PhantomData<T>,
     builder : ListBuilder<'a>
 }
@@ -107,8 +107,8 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 
 }
 
-impl <'a, T> Builder<'a, T> {
-    pub fn borrow<'b>(&'b mut self) -> Builder<'b, T> where T : for<'c> ::traits::OwnedStruct<'c> {
+impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b, T> {
         Builder {builder : self.builder, marker : ::std::marker::PhantomData}
     }
 }
@@ -139,7 +139,9 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     }
 }
 
-impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
+impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
+    where T: for<'b> ::traits::OwnedStruct<'b>
+{
     fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
                                value : Reader<'a, T>) -> Result<()> {
         pointer.set_list(&value.reader)
