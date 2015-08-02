@@ -44,6 +44,12 @@ pub trait Owned<'a> {
     type Pipeline;
 }
 
+pub trait OwnedStruct<'a> {
+   type Reader: FromStructReader<'a>;
+   type Builder: FromStructBuilder<'a> + HasStructSize;
+   type Pipeline;
+}
+
 pub trait FromPointerReaderRefDefault<'a> {
     fn get_from_pointer(reader : &PointerReader<'a>, default_value : *const Word) -> Self;
 }
@@ -63,10 +69,6 @@ pub trait SetPointerBuilder<To> {
 
 pub trait HasTypeId {
     fn type_id() -> u64;
-}
-
-pub trait CastableTo<T> {
-    fn cast(self) -> T;
 }
 
 pub trait ToU16 {

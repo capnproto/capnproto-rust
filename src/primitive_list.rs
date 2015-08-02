@@ -27,6 +27,19 @@ use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
 use Result;
 
 #[derive(Clone, Copy)]
+pub struct Owned<T> {
+    marker: ::std::marker::PhantomData<T>,
+}
+
+impl <'a, T> ::traits::Owned<'a> for Owned<T> where T: PrimitiveElement {
+    type Reader = Reader<'a, T>;
+    type Builder = Builder<'a, T>;
+    type Pipeline = Pipeline;
+}
+
+pub struct Pipeline; // TODO
+
+#[derive(Clone, Copy)]
 pub struct Reader<'a, T> {
     marker : ::std::marker::PhantomData<T>,
     reader : ListReader<'a>
@@ -96,8 +109,3 @@ impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
     }
 }
 
-impl <'a, 'b : 'a, T> ::traits::CastableTo<Builder<'a, T> > for Builder<'b, T> {
-    fn cast(self) -> Builder<'a, T> {
-        Builder { builder : self.builder, marker : ::std::marker::PhantomData }
-    }
-}

@@ -27,9 +27,21 @@ use traits::{FromPointerReader, FromPointerBuilder,
              IndexMove, ListIter};
 use Result;
 
+pub struct Owned<T> where T: for<'a> ::traits::OwnedStruct<'a> {
+    marker: ::std::marker::PhantomData<T>,
+}
+
+impl<'a, T> ::traits::Owned<'a> for Owned<T> where T: for<'b> ::traits::OwnedStruct<'b> {
+    type Reader = Reader<'a, T>;
+    type Builder = Builder<'a, T>;
+    type Pipeline = Pipeline;
+}
+
+pub struct Pipeline; // TODO
+
 pub struct Reader<'a, T> {
-    marker : ::std::marker::PhantomData<T>,
-    reader : ListReader<'a>
+    marker: ::std::marker::PhantomData<T>,
+    reader: ListReader<'a>
 }
 
 impl <'a, T> Clone for Reader<'a, T> {
@@ -39,41 +51,40 @@ impl <'a, T> Clone for Reader<'a, T> {
 }
 impl <'a, T> Copy for Reader<'a, T> {}
 
-
-impl <'a, T : FromStructReader<'a>> Reader<'a, T> {
+impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
         Reader::<'b, T> { reader : reader, marker : ::std::marker::PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
 
-    pub fn iter(self) -> ListIter<Reader<'a, T>, T> {
+    pub fn iter(self) -> ListIter<Reader<'a, T>, <T as ::traits::OwnedStruct<'a>>::Reader> {
         return ListIter::new(self, self.len());
     }
 }
 
 impl <'a, T> Reader<'a, T>  {
-    pub fn borrow<'b, U>(&'b self) -> Reader<'b, U> where T : ::traits::CastableTo<U> {
+    pub fn borrow<'b>(&'b self) -> Reader<'b, T> where T: for<'c> ::traits::OwnedStruct<'c> {
         Reader {reader : self.reader, marker : ::std::marker::PhantomData}
     }
 }
 
-
-impl <'a, T : FromStructReader<'a>> FromPointerReader<'a> for Reader<'a, T> {
+impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader : try!(reader.get_list(InlineComposite, ::std::ptr::null())),
                     marker : ::std::marker::PhantomData })
     }
 }
 
-impl <'a, T : FromStructReader<'a>>  IndexMove<u32, T> for Reader<'a, T> {
-    fn index_move(&self, index : u32) -> T {
+impl <'a, T>  IndexMove<u32, <T as ::traits::OwnedStruct<'a>>::Reader> for Reader<'a, T>
+where T: for<'b> ::traits::OwnedStruct<'b> {
+    fn index_move(&self, index : u32) -> <T as ::traits::OwnedStruct<'a>>::Reader {
         self.get(index)
     }
 }
 
-impl <'a, T : FromStructReader<'a>> Reader<'a, T> {
-    pub fn get(self, index : u32) -> T {
+impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
+    pub fn get(self, index : u32) -> <T as ::traits::OwnedStruct<'a>>::Reader {
         assert!(index < self.len());
         FromStructReader::new(self.reader.get_struct_element(index))
     }
@@ -84,7 +95,7 @@ pub struct Builder<'a, T> {
     builder : ListBuilder<'a>
 }
 
-impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
+impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
         Builder { builder : builder, marker : ::std::marker::PhantomData }
     }
@@ -97,33 +108,34 @@ impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
 }
 
 impl <'a, T> Builder<'a, T> {
-    pub fn borrow<'b, U>(&'b mut self) -> Builder<'b, U> where T : ::traits::CastableTo<U> {
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b, T> where T : for<'c> ::traits::OwnedStruct<'c> {
         Builder {builder : self.builder, marker : ::std::marker::PhantomData}
     }
 }
 
-impl <'a, T : FromStructBuilder<'a> + HasStructSize> FromPointerBuilder<'a> for Builder<'a, T> {
+impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
         Builder {
             marker : ::std::marker::PhantomData,
-            builder : builder.init_struct_list(size, <T as HasStructSize>::struct_size())
+            builder : builder.init_struct_list(
+                size,
+                <<T as ::traits::OwnedStruct>::Builder as HasStructSize>::struct_size())
         }
     }
     fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a, T>> {
         Ok(Builder {
             marker : ::std::marker::PhantomData,
-            builder : try!(builder.get_struct_list(<T as HasStructSize>::struct_size(), ::std::ptr::null()))
+            builder :
+            try!(builder.get_struct_list(<<T as ::traits::OwnedStruct>::Builder as HasStructSize>::struct_size(),
+                                         ::std::ptr::null()))
         })
     }
 }
 
-impl <'a, T : FromStructBuilder<'a>> Builder<'a, T> {
-    pub fn get(self, index : u32) -> T {
+impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
+    pub fn get(self, index : u32) -> <T as ::traits::OwnedStruct<'a>>::Builder {
         assert!(index < self.len());
-        let result : T =
-            FromStructBuilder::new(self.builder.get_struct_element(index));
-        result
-
+        FromStructBuilder::new(self.builder.get_struct_element(index))
     }
 }
 
@@ -131,11 +143,5 @@ impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
     fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
                                value : Reader<'a, T>) -> Result<()> {
         pointer.set_list(&value.reader)
-    }
-}
-
-impl <'a, 'b : 'a, T, U : ::traits::CastableTo<T>> ::traits::CastableTo<Builder<'a, T> > for Builder<'b, U> {
-    fn cast(self) -> Builder<'a, T> {
-        Builder { builder : self.builder, marker : ::std::marker::PhantomData }
     }
 }

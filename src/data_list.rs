@@ -25,6 +25,16 @@ use traits::{FromPointerReader, FromPointerBuilder};
 use private::layout::*;
 use Result;
 
+pub struct Owned;
+
+impl <'a> ::traits::Owned<'a> for Owned {
+    type Reader = Reader<'a>;
+    type Builder = Builder<'a>;
+    type Pipeline = Pipeline;
+}
+
+pub struct Pipeline; // TODO
+
 #[derive(Clone, Copy)]
 pub struct Reader<'a> {
     pub reader : ListReader<'a>
