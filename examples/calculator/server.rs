@@ -104,18 +104,14 @@ impl FunctionImpl {
 
 impl calculator::function::Server for FunctionImpl {
     fn call(&mut self, mut context : calculator::function::CallContext) {
+        if context.get().0.get_params().unwrap().len() != self.param_count {
+            return context.fail("Wrong number of parameters.".to_string());
+        };
         {
-            let (params, mut results) = context.get();
-            if params.get_params().unwrap().len() != self.param_count {
-                panic!();//return context.fail("Wrong number of parameters.".to_string());
-            };
-
-            {
-                match evaluate_impl(self.body.get_root::<calculator::expression::Builder>().unwrap().as_reader(),
-                                    Some(params.get_params().unwrap())) {
-                    Ok(r) => results.set_value(r),
-                    Err(_) => panic!(),//return context.fail("Evaluation failed.".to_string()),
-                }
+            match evaluate_impl(self.body.get_root::<calculator::expression::Builder>().unwrap().as_reader(),
+                                Some(context.get().0.get_params().unwrap())) {
+                Ok(r) => context.get().1.set_value(r),
+                Err(_) => return context.fail("Evaluation failed.".to_string()),
             }
         }
         context.done();
@@ -129,13 +125,15 @@ pub struct OperatorImpl {
 
 impl calculator::function::Server for OperatorImpl {
     fn call(&mut self, mut context : calculator::function::CallContext) {
+        match context.get().0.get_params().unwrap().len() {
+            2 => {}
+            n => {
+                return context.fail(format!("Wrong number of parameters: {}", n));
+            }
+        }
         {
             let (params, mut results) = context.get();
             let params = params.get_params().unwrap();
-            if params.len() != 2 {
-                panic!();//return context.fail(format!("Wrong number of parameters: {}", params.len()));
-            }
-
             let result = match self.op {
                 calculator::Operator::Add => params.get(0) + params.get(1),
                 calculator::Operator::Subtract => params.get(0) - params.get(1),
@@ -154,15 +152,12 @@ struct CalculatorImpl;
 
 impl calculator::Server for CalculatorImpl {
     fn evaluate(&mut self, mut context : calculator::EvaluateContext) {
-        {
-            let (params, mut results) = context.get();
-            match evaluate_impl(params.get_expression().unwrap(), None) {
-                Ok(r) => {
-                    results.set_value(
-                        calculator::value::ToClient(ValueImpl::new(r)).from_server::<LocalClient>());
-                }
-                Err(_) => panic!(), //return context.fail("Evaluation failed.".to_string()),
+        match evaluate_impl(context.get().0.get_expression().unwrap(), None) {
+            Ok(r) => {
+                context.get().1.set_value(
+                    calculator::value::ToClient(ValueImpl::new(r)).from_server::<LocalClient>());
             }
+            Err(_) => return context.fail("Evaluation failed.".to_string()),
         }
         context.done();
     }
@@ -177,16 +172,15 @@ impl calculator::Server for CalculatorImpl {
         context.done();
     }
     fn get_operator<'a>(& mut self, mut context : calculator::GetOperatorContext) {
-        {
-            let (params, mut results) = context.get();
-            results.set_func(
-                match params.get_op() {
-                    Ok(op) => {
-                        calculator::function::ToClient(OperatorImpl {op : op}).from_server::<LocalClient>()
-                    }
-                    Err(_) => panic!(),//return context.fail("Unknown operator.".to_string()),
-                });
-        }
+        let func = {
+            match context.get().0.get_op() {
+                Ok(op) => {
+                    calculator::function::ToClient(OperatorImpl {op : op}).from_server::<LocalClient>()
+                }
+                Err(_) => return context.fail("Unknown operator.".to_string()),
+            }
+        };
+        context.get().1.set_func(func);
         context.done();
     }
 }

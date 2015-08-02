@@ -27,13 +27,13 @@ use calculator_capnp::calculator;
 pub struct PowerFunction;
 
 impl calculator::function::Server for PowerFunction {
-    fn call(&mut self, mut context : calculator::function::CallContext) {
+    fn call(&mut self, mut context: calculator::function::CallContext) {
+        if context.get().0.get_params().unwrap().len() != 2 {
+            return context.fail("Wrong number of parameters".to_string());
+        };
         {
             let (params, mut results) = context.get();
             let params = params.get_params().unwrap();
-            if params.len() != 2 {
-                panic!(); //return context.fail("Wrong number of parameters".to_string());
-            };
             results.set_value(params.get(0).powf(params.get(1)));
         }
         context.done();
