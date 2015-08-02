@@ -808,10 +808,34 @@ mod tests {
         assert!(result.is_err());
     }
 
+
+    pub struct OwnedReader<T> where T : for<'a> ::capnp::traits::Marker<'a> {
+        marker: ::std::marker::PhantomData<T>,
+        message: ::capnp::message::Reader<::capnp::serialize::OwnedSegments>,
+    }
+
+    impl <T> OwnedReader<T> where T: for <'a> ::capnp::traits::Marker<'a> {
+        pub fn get<'a> (&'a self) -> ::capnp::Result<<T as ::capnp::traits::Marker<'a>>::Reader >
+            where <T as ::capnp::traits::Marker<'a>>::Reader : ::capnp::traits::FromPointerReader<'a>
+        {
+            self.message.get_root()
+        }
+    }
+
+
+    fn testing(message: ::capnp::message::Reader<::capnp::serialize::OwnedSegments>) {
+        use test_capnp::{test_all_types};
+        let reader = OwnedReader::<test_all_types::Marker> {
+            marker : ::std::marker::PhantomData,
+            message: message
+        };
+        let x = reader.get().unwrap();
+        x.get_u_int8_field();
+    }
+
     #[test]
     fn threads() {
         use test_capnp::{test_all_types};
-
         {
             let mut message = message::Builder::new_default();
             let mut root = message.init_root::<test_all_types::Builder>();

@@ -1150,6 +1150,9 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
             let accessors = vec!(
                 Branch(preamble),
+                Line("pub struct Marker;".to_string()),
+                Line("impl <'a> ::capnp::traits::Marker<'a> for Marker { type Reader = Reader<'a>; type Builder = Builder<'a>; type Pipeline = Pipeline; }".to_string()),
+
                 Line("#[derive(Clone, Copy)]".to_string()),
                 Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_string()),
                 BlankLine,
@@ -1369,17 +1372,17 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
 
                 mod_interior.push(
                     Line(format!(
-                            "pub type {}Context<'a> = capability::CallContext<{}::Reader<'a>, {}::Builder<'a>>;",
+                            "pub type {}Context = capability::CallContext<{}::Marker, {}::Marker>;",
                             capitalize_first_letter(name), params_name, results_name)));
                 server_interior.push(
                     Line(format!(
-                            "fn {}<'a>(&mut self, {}Context<'a>);",
+                            "fn {}(&mut self, {}Context);",
                             camel_to_snake_case(name), capitalize_first_letter(name)
                             )));
 
                 client_impl_interior.push(
-                    Line(format!("pub fn {}_request<'a>(&self) -> Request<{}::Builder<'a>,{}::Reader<'a>,{}::Pipeline> {{",
-                                 camel_to_snake_case(name), params_name, results_name, results_name)));
+                    Line(format!("pub fn {}_request(&self) -> Request<{}::Marker,{}::Marker> {{",
+                                 camel_to_snake_case(name), params_name, results_name)));
 
                 client_impl_interior.push(Indent(
                     Box::new(Line(format!("self.client.new_call(_private::TYPE_ID, {}, None)", ordinal)))));
