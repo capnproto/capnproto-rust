@@ -27,9 +27,9 @@ use private::layout::{PointerReader, PointerBuilder};
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 use Result;
 
-pub struct Marker;
+pub struct Owned;
 
-impl <'a> ::traits::Marker<'a> for Marker {
+impl <'a> ::traits::Owned<'a> for Owned {
     type Reader = Reader<'a>;
     type Builder = Builder<'a>;
     type Pipeline = Pipeline;

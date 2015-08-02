@@ -29,7 +29,7 @@ pub trait ResponseHook:Send + ::std::any::Any {
 
 pub trait RequestHook {
     fn message<'a>(&'a mut self) -> &'a mut ::message::Builder<::message::HeapAllocator>;
-    fn send<'a>(self : Box<Self>) -> ResultFuture<any_pointer::Marker>;
+    fn send<'a>(self : Box<Self>) -> ResultFuture<any_pointer::Owned>;
 }
 
 pub trait ClientHook : Send + ::std::any::Any {
@@ -38,7 +38,7 @@ pub trait ClientHook : Send + ::std::any::Any {
                 interface_id : u64,
                 method_id : u16,
                 size_hint : Option<MessageSize>)
-                -> Request<any_pointer::Marker, any_pointer::Marker>;
+                -> Request<any_pointer::Owned, any_pointer::Owned>;
     fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>);
 
     // HACK

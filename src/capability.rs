@@ -24,13 +24,12 @@
 //! Roughly corresponds to capability.h in the C++ implementation.
 
 use any_pointer;
-use traits::{FromPointerReader, FromPointerBuilder};
 use private::capability::{CallContextHook, ClientHook, RequestHook, ResponseHook};
 
-pub struct ResultFuture<Results> where Results: for<'a> ::traits::Marker<'a> {
+pub struct ResultFuture<Results> where Results: for<'a> ::traits::Owned<'a> {
     pub answer_port : ::std::sync::mpsc::Receiver<Box<ResponseHook+Send>>,
     pub answer_result : Result<Box<ResponseHook+Send>, ()>,
-    pub pipeline : <Results as ::traits::Marker<'static>>::Pipeline,
+    pub pipeline : <Results as ::traits::Owned<'static>>::Pipeline,
 }
 
 pub struct Request<Params, Results> {
@@ -44,8 +43,8 @@ impl <Params, Results> Request <Params, Results> {
     }
 }
 impl <Params, Results> Request <Params, Results>
-where Results : for<'a> ::traits::Marker<'a>,
-      <Results as ::traits::Marker<'static>>::Pipeline : FromTypelessPipeline
+where Results : for<'a> ::traits::Owned<'a>,
+      <Results as ::traits::Owned<'static>>::Pipeline : FromTypelessPipeline
 {
     pub fn send(self) -> ResultFuture<Results> {
         let ResultFuture {answer_port, answer_result, pipeline, ..} = self.hook.send();
@@ -66,10 +65,9 @@ impl <Params, Results> CallContext<Params, Results> {
 }
 
 impl <Params, Results> CallContext<Params, Results> {
-    pub fn get<'a>(&'a mut self) -> (<Params as ::traits::Marker<'a>>::Reader, <Results as ::traits::Marker<'a>>::Builder)
-        where Params : ::traits::Marker<'a>, Results : ::traits::Marker<'a>,
-             <Params as ::traits::Marker<'a>>::Reader: FromPointerReader<'a>,
-              <Results as ::traits::Marker<'a>>::Builder : FromPointerBuilder<'a>
+    pub fn get<'a>(&'a mut self) -> (<Params as ::traits::Owned<'a>>::Reader,
+                                     <Results as ::traits::Owned<'a>>::Builder)
+        where Params: ::traits::Owned<'a>, Results: ::traits::Owned<'a>
     {
         let (any_params, any_results) = self.hook.get();
         (any_params.get_as().unwrap(), any_results.get_as().unwrap())
