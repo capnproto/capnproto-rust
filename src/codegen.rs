@@ -1135,7 +1135,7 @@ fn generate_node(node_map : &collections::hash_map::HashMap<u64, schema_capnp::n
                 Line("pub struct Owned;".to_string()),
                 Line("impl <'a> ::capnp::traits::Owned<'a> for Owned { type Reader = Reader<'a>; type Builder = Builder<'a>; type Pipeline = Pipeline; }".to_string()),
                 Line("impl <'a> ::capnp::traits::OwnedStruct<'a> for Owned { type Reader = Reader<'a>; type Builder = Builder<'a>; type Pipeline = Pipeline; }".to_string()),
-
+                BlankLine,
                 Line("#[derive(Clone, Copy)]".to_string()),
                 Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_string()),
                 BlankLine,
