@@ -27,49 +27,52 @@ use any_pointer;
 use traits::{FromPointerReader, FromPointerBuilder};
 use private::capability::{CallContextHook, ClientHook, RequestHook, ResponseHook};
 
-pub struct ResultFuture<Results, Pipeline> {
-    pub marker : ::std::marker::PhantomData<Results>,
+pub struct ResultFuture<Results> where Results: for<'a> ::traits::Marker<'a> {
     pub answer_port : ::std::sync::mpsc::Receiver<Box<ResponseHook+Send>>,
     pub answer_result : Result<Box<ResponseHook+Send>, ()>,
-    pub pipeline : Pipeline,
+    pub pipeline : <Results as ::traits::Marker<'static>>::Pipeline,
 }
 
-pub struct Request<Params, Results, Pipeline> {
-    pub marker : ::std::marker::PhantomData<(Params, Results, Pipeline)>,
+pub struct Request<Params, Results> {
+    pub marker : ::std::marker::PhantomData<(Params, Results)>,
     pub hook : Box<RequestHook+Send>
 }
 
-impl <Params, Results, Pipeline > Request <Params, Results, Pipeline> {
-    pub fn new(hook : Box<RequestHook+Send>) -> Request <Params, Results, Pipeline> {
+impl <Params, Results> Request <Params, Results> {
+    pub fn new(hook : Box<RequestHook+Send>) -> Request <Params, Results> {
         Request { hook : hook, marker: ::std::marker::PhantomData }
     }
 }
-impl <Params, Results, Pipeline : FromTypelessPipeline> Request <Params, Results, Pipeline> {
-    pub fn send(self) -> ResultFuture<Results, Pipeline> {
+impl <Params, Results> Request <Params, Results>
+where Results : for<'a> ::traits::Marker<'a>,
+      <Results as ::traits::Marker<'static>>::Pipeline : FromTypelessPipeline
+{
+    pub fn send(self) -> ResultFuture<Results> {
         let ResultFuture {answer_port, answer_result, pipeline, ..} = self.hook.send();
         ResultFuture { answer_port : answer_port, answer_result : answer_result,
-                        pipeline : FromTypelessPipeline::new(pipeline),
-                        marker : ::std::marker::PhantomData }
+                        pipeline : FromTypelessPipeline::new(pipeline)
+                      }
     }
 }
 
 pub struct CallContext<Params, Results> {
-    pub marker : ::std::marker::PhantomData<(Params, Results)>,
-    pub hook : Box<CallContextHook+Send>,
+    pub marker: ::std::marker::PhantomData<(Params, Results)>,
+    pub hook: Box<CallContextHook+Send>,
 }
 
 impl <Params, Results> CallContext<Params, Results> {
-    pub fn fail(self, message : String) {self.hook.fail(message);}
+    pub fn fail(self, message: String) {self.hook.fail(message);}
     pub fn done(self) {self.hook.done();}
 }
 
-impl <'a, Params : FromPointerReader<'a>, Results : FromPointerBuilder<'a>>
-CallContext<Params, Results> {
-    // XXX this 'b lifetime should be 'a.
-    pub fn get<'b>(&'b mut self) -> (Params, Results) {
-        let tmp : &'a mut Box<CallContextHook+Send> = unsafe { ::std::mem::transmute(& mut self.hook)};
-        let (any_params, any_results) = tmp.get();
-        (any_params.get_as::<Params>().unwrap(), any_results.get_as().unwrap())
+impl <Params, Results> CallContext<Params, Results> {
+    pub fn get<'a>(&'a mut self) -> (<Params as ::traits::Marker<'a>>::Reader, <Results as ::traits::Marker<'a>>::Builder)
+        where Params : ::traits::Marker<'a>, Results : ::traits::Marker<'a>,
+             <Params as ::traits::Marker<'a>>::Reader: FromPointerReader<'a>,
+              <Results as ::traits::Marker<'a>>::Builder : FromPointerBuilder<'a>
+    {
+        let (any_params, any_results) = self.hook.get();
+        (any_params.get_as().unwrap(), any_results.get_as().unwrap())
     }
 }
 
@@ -84,5 +87,4 @@ pub trait FromClientHook {
 pub trait Server {
     fn dispatch_call(&mut self, interface_id : u64, method_id : u16,
                      context : CallContext<any_pointer::Reader, any_pointer::Builder>);
-
 }

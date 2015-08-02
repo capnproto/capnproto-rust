@@ -38,6 +38,8 @@ pub trait FromPointerReader<'a> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Self>;
 }
 
+pub trait Marker<'a> { type Reader; type Builder; type Pipeline; }
+
 pub trait FromPointerReaderRefDefault<'a> {
     fn get_from_pointer(reader : &PointerReader<'a>, default_value : *const Word) -> Self;
 }

@@ -29,7 +29,7 @@ pub trait ResponseHook:Send + ::std::any::Any {
 
 pub trait RequestHook {
     fn message<'a>(&'a mut self) -> &'a mut ::message::Builder<::message::HeapAllocator>;
-    fn send<'a>(self : Box<Self>) -> ResultFuture<any_pointer::Reader<'a>, any_pointer::Pipeline>;
+    fn send<'a>(self : Box<Self>) -> ResultFuture<any_pointer::Marker>;
 }
 
 pub trait ClientHook : Send + ::std::any::Any {
@@ -38,7 +38,7 @@ pub trait ClientHook : Send + ::std::any::Any {
                 interface_id : u64,
                 method_id : u16,
                 size_hint : Option<MessageSize>)
-                -> Request<any_pointer::Builder, any_pointer::Reader, any_pointer::Pipeline>;
+                -> Request<any_pointer::Marker, any_pointer::Marker>;
     fn call(&self, interface_id : u64, method_id : u16, context : Box<CallContextHook+Send>);
 
     // HACK
@@ -58,11 +58,11 @@ impl Client {
         Client { hook : hook }
     }
 
-    pub fn new_call<Params, Results, Pipeline>(&self,
-                                               interface_id : u64,
-                                               method_id : u16,
-                                               size_hint : Option<MessageSize>)
-                                               -> Request<Params, Results, Pipeline> {
+    pub fn new_call<Params, Results>(&self,
+                                     interface_id : u64,
+                                     method_id : u16,
+                                     size_hint : Option<MessageSize>)
+                                     -> Request<Params, Results> {
         let typeless = self.hook.new_call(interface_id, method_id, size_hint);
         Request { hook : typeless.hook, marker : ::std::marker::PhantomData }
     }
