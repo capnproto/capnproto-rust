@@ -27,8 +27,8 @@ pub type Reader<'a> = &'a str;
 
 pub fn new_reader<'a>(v : &'a [u8]) -> Result<Reader<'a>> {
     match ::std::str::from_utf8(v) {
-        Ok(v) => return Ok(v),
-        Err(e) => return Err(Error::new_decode_error(
+        Ok(v) => Ok(v),
+        Err(e) => Err(Error::new_decode_error(
             "Text contains non-utf8 data.", Some(format!("{:?}", e)))),
     }
 }

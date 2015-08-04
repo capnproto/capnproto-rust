@@ -37,7 +37,7 @@ pub struct Pipeline; // TODO
 
 #[derive(Clone, Copy)]
 pub struct Reader<'a> {
-    reader : ListReader<'a>
+    reader: ListReader<'a>
 }
 
 impl <'a> Reader<'a> {
@@ -49,7 +49,7 @@ impl <'a> Reader<'a> {
 }
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a>> {
+    fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a>> {
         Ok(Reader { reader : try!(reader.get_list(Pointer, ::std::ptr::null())) })
     }
 }
@@ -62,7 +62,7 @@ impl <'a> Reader<'a> {
 }
 
 pub struct Builder<'a> {
-    builder : ListBuilder<'a>
+    builder: ListBuilder<'a>
 }
 
 impl <'a> Builder<'a> {

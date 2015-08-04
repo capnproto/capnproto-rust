@@ -266,12 +266,12 @@ impl HeapAllocator {
 
     pub fn first_segment_words(mut self, value: u32) -> HeapAllocator {
         self.next_size = value;
-        return self;
+        self
     }
 
     pub fn allocation_strategy(mut self, value : AllocationStrategy) -> HeapAllocator {
         self.allocation_strategy = value;
-        return self;
+        self
     }
 }
 

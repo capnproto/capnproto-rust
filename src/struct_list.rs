@@ -59,7 +59,7 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     pub fn len(&self) -> u32 { self.reader.len() }
 
     pub fn iter(self) -> ListIter<Reader<'a, T>, <T as ::traits::OwnedStruct<'a>>::Reader> {
-        return ListIter::new(self, self.len());
+        ListIter::new(self, self.len())
     }
 }
 

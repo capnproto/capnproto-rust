@@ -860,23 +860,23 @@ mod wire_helpers {
 
             ::std::ptr::write_bytes(old_ptr, 0, old_data_size as usize + old_pointer_count as usize);
 
-            return Ok(StructBuilder {
+            Ok(StructBuilder {
                 marker : ::std::marker::PhantomData::<&'a ()>,
                 segment : segment,
                 data : ::std::mem::transmute(ptr),
                 pointers : new_pointer_section,
                 data_size : new_data_size as u32 * BITS_PER_WORD as u32,
                 pointer_count : new_pointer_count
-            });
+            })
         } else {
-            return Ok(StructBuilder {
+            Ok(StructBuilder {
                 marker : ::std::marker::PhantomData::<&'a ()>,
                 segment : old_segment,
                 data : ::std::mem::transmute(old_ptr),
                 pointers : old_pointer_section,
                 data_size : old_data_size as u32 * BITS_PER_WORD as u32,
                 pointer_count : old_pointer_count
-            });
+            })
         }
     }
 
@@ -1018,7 +1018,7 @@ mod wire_helpers {
             }
             // OK, looks valid.
 
-            return Ok(ListBuilder {
+            Ok(ListBuilder {
                 marker : ::std::marker::PhantomData::<&'a ()>,
                 segment : segment,
                 ptr : ::std::mem::transmute(ptr),
@@ -1026,7 +1026,7 @@ mod wire_helpers {
                 step : (*tag).struct_ref().word_size() * BITS_PER_WORD as u32,
                 struct_data_size : data_size as u32 * BITS_PER_WORD as u32,
                 struct_pointer_count : pointer_count
-            });
+            })
         } else {
             let data_size = data_bits_per_element(old_size);
             let pointer_count = pointers_per_element(old_size);
@@ -1039,7 +1039,7 @@ mod wire_helpers {
 
             let step = data_size + pointer_count * BITS_PER_POINTER as u32;
 
-            return Ok(ListBuilder {
+            Ok(ListBuilder {
                 marker : ::std::marker::PhantomData::<&'a ()>,
                 segment : segment,
                 ptr : ::std::mem::transmute(ptr),
@@ -1047,7 +1047,7 @@ mod wire_helpers {
                 element_count : (*reff).list_ref().element_count(),
                 struct_data_size : data_size,
                 struct_pointer_count : pointer_count as u16
-            });
+            })
         }
     }
 

@@ -79,7 +79,7 @@ impl Word {
             let p : *mut u8 = result.as_mut_ptr() as *mut u8;
             ::std::ptr::write_bytes(p, 0u8, length * ::std::mem::size_of::<Word>());
         }
-        return result;
+        result
     }
 
     pub fn bytes_to_words<'a>(bytes: &'a [u8]) -> &'a [Word] {

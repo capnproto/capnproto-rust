@@ -54,11 +54,12 @@ pub fn read_message_from_words<'a>(slice: &'a [Word],
     let (num_words, offsets) = try!(read_segment_table(&mut bytes, options));
     let words = ::Word::bytes_to_words(bytes);
     if num_words != words.len() {
-        return Err(Error::new_decode_error("Wrong number of words.",
-                                           Some(format!("Header claimed {} words, but message has {} words",
-                                                        num_words, words.len()))));
+        Err(Error::new_decode_error("Wrong number of words.",
+                                    Some(format!("Header claimed {} words, but message has {} words",
+                                                 num_words, words.len()))))
+    } else {
+        Ok(message::Reader::new(SliceSegments { words: words, segment_slices: offsets }, options))
     }
-    return Ok(message::Reader::new(SliceSegments { words: words, segment_slices: offsets }, options));
 }
 
 pub struct OwnedSegments {

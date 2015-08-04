@@ -45,13 +45,13 @@ impl SegmentReader {
     pub fn contains_interval(&self, from : *const Word, to : *const Word) -> bool {
         let this_begin : usize = self.ptr as usize;
         let this_end : usize = unsafe { self.ptr.offset(self.size as isize) as usize };
-        return from as usize >= this_begin && to as usize <= this_end && from as usize <= to as usize &&
-            self.read_limiter.can_read((to as usize - from as usize) as u64 / BYTES_PER_WORD as u64);
+        from as usize >= this_begin && to as usize <= this_end && from as usize <= to as usize &&
+            self.read_limiter.can_read((to as usize - from as usize) as u64 / BYTES_PER_WORD as u64)
     }
 
     #[inline]
     pub fn amplified_read(&self, virtual_amount : u64) -> bool {
-        return self.read_limiter.can_read(virtual_amount);
+        self.read_limiter.can_read(virtual_amount)
     }
 }
 
@@ -86,7 +86,7 @@ impl SegmentBuilder {
         let ptr_addr : usize = ptr as usize;
         assert!(ptr_addr >= this_addr);
         let result = (ptr_addr - this_addr) / BYTES_PER_WORD;
-        return result as u32;
+        result as u32
     }
 
     #[inline]
@@ -97,11 +97,11 @@ impl SegmentBuilder {
     #[inline]
     pub fn allocate(&mut self, amount : WordCount32) -> Option<*mut Word> {
         if amount > self.reader.size - self.current_size() {
-            return None;
+            None
         } else {
             let result = self.pos;
             self.pos = unsafe { self.pos.offset(amount as isize) };
-            return Some(result);
+            Some(result)
         }
     }
 
@@ -142,10 +142,10 @@ impl ReadLimiter {
         let current = *self.limit.borrow();
         if amount > current {
             // TODO arena->reportReadLimitReached()
-            return false;
+            false
         } else {
             *self.limit.borrow_mut() = current - amount;
-            return true;
+            true
         }
     }
 }
@@ -187,9 +187,9 @@ impl ReaderArena {
 
     fn try_get_segment(&mut self, id: SegmentId) -> Result<*const SegmentReader> {
         if id == 0 {
-            return Ok(&self.segment0);
+            Ok(&self.segment0)
         } else if self.more_segments.contains_key(&id) {
-            return Ok(&*self.more_segments[&id]);
+            Ok(&*self.more_segments[&id])
         } else {
             let cloned_limiter = self.read_limiter.clone();
             let new_segment = match self.raw_segments.get_segment(id) {
@@ -205,7 +205,7 @@ impl ReaderArena {
                 read_limiter: cloned_limiter
             };
             self.more_segments.insert(id, Box::new(new_segment_reader));
-            return Ok(&*self.more_segments[&id]);
+            Ok(&*self.more_segments[&id])
         }
     }
 
