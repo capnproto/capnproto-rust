@@ -862,7 +862,7 @@ fn generate_node(gen:&GeneratorContext,
             output.push(BlankLine);
             output.push(Line(format!("pub mod {} {{", node_name)));
 
-            let is_generic = node_reader.get_is_generic();
+            let is_generic = false; // FIXME #18 node_reader.get_is_generic();
 
             let mut preamble = Vec::new();
             let mut builder_members = Vec::new();
