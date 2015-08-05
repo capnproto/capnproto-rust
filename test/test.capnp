@@ -314,3 +314,20 @@ struct TestKeywords {
   struct Use{}
   struct While{}
 }
+
+struct GenericOnce(Foo) {
+    genericField @0 : Foo;
+}
+
+struct BrandOnce {
+    brandedField @0 : GenericOnce(TestAllTypes);
+}
+
+struct GenericTwice(Foo,Bar) {
+    fooField @0 : Foo;
+    barField @1 : Bar;
+}
+
+struct BrandTwice {
+    bazField @0 : GenericTwice(Text, TestBlob);
+}
