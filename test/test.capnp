@@ -328,8 +328,7 @@ struct TestUseGenerics $TestGenerics(Text, Data).ann("foo") {
   wrapper @8 :TestGenericsWrapper(TestAllTypes, TestAnyPointer);
   cap @18 :TestGenerics(TestInterface, Text);
 
-#  Currently broken:
-#  genericCap @19 :TestGenerics(TestAllTypes, List(UInt32)).Interface(Data);
+  genericCap @19 :TestGenerics(TestAllTypes, List(UInt32)).Interface(Data);
 
   default @5 :TestGenerics(TestAllTypes, Text) =
       (foo = (int16Field = 123), rev = (foo = "text", rev = (foo = (int16Field = 321))));

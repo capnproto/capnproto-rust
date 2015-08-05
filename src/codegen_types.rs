@@ -123,7 +123,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             },
             type_::Interface(interface) => {
                 let the_mod = gen.scope_map[&interface.get_type_id()].connect("::");
-                format!("{}::Client>", the_mod)
+                format!("{}::Client", the_mod)
             },
             type_::AnyPointer(pointer) => {
                 match pointer.which().unwrap() {
