@@ -492,6 +492,42 @@ mod tests {
     }
 
     #[test]
+    fn test_generic_one_parameter() {
+        use test_capnp::brand_once;
+
+        let mut message_for_brand = message::Builder::new_default();
+        let mut branded = message_for_brand.init_root::<brand_once::Builder>();
+        {
+            let branded_field = branded.borrow().init_branded_field();
+            let mut foo = branded_field.init_generic_field();
+            foo.set_text_field("blah");
+        }
+
+        let reader = branded.as_reader();
+        assert_eq!("blah", reader.get_branded_field().unwrap().get_generic_field().unwrap().get_text_field().unwrap());
+    }
+
+    #[test]
+    fn test_generic_two_parameter() {
+        use test_capnp::brand_twice;
+
+        let mut message_for_brand = message::Builder::new_default();
+        let mut branded = message_for_brand.init_root::<brand_twice::Builder>();
+        {
+            let mut baz = branded.borrow().init_baz_field();
+            baz.set_foo_field("blah").unwrap();
+            let mut bar = baz.init_bar_field();
+            bar.set_text_field("some text");
+            bar.set_data_field("some data".as_bytes());
+        }
+
+        let reader = branded.as_reader();
+        assert_eq!("blah", reader.get_baz_field().unwrap().get_foo_field().unwrap());
+        assert_eq!("some text", reader.get_baz_field().unwrap().get_bar_field().unwrap().get_text_field().unwrap());
+        assert_eq!("some data".as_bytes(), reader.get_baz_field().unwrap().get_bar_field().unwrap().get_data_field().unwrap());
+    }
+
+    #[test]
     fn test_union() {
         use test_capnp::test_union;
 

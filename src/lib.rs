@@ -50,6 +50,7 @@ extern crate capnp;
 
 pub mod schema_capnp;
 pub mod codegen;
+pub mod codegen_types;
 pub mod schema;
 
 use std::path::Path;
