@@ -1549,7 +1549,7 @@ fn capnp_decode_dump(buffer:&[u8]) {
 }
 
 #[cfg(test)]
-fn capnp_parse_schema(schema:&str) -> ::capnp::message::Reader<::capnp::serialize::OwnedSegments> {
+fn capnp_parse_schema(schema:&str, dump:bool) -> ::capnp::message::Reader<::capnp::serialize::OwnedSegments> {
     use std::io::Write;
     use capnp::serialize;
 
@@ -1564,7 +1564,9 @@ fn capnp_parse_schema(schema:&str) -> ::capnp::message::Reader<::capnp::serializ
     let parsed = command.output().unwrap();
     let buffer:Vec<u8> = parsed.stdout;
 
-    capnp_decode_dump(&*buffer);
+    if dump {
+        capnp_decode_dump(&*buffer);
+    }
 
     let mut reader = ::std::io::Cursor::new(buffer);
     serialize::read_message(&mut reader, ::capnp::message::ReaderOptions::new()).unwrap()
@@ -1572,7 +1574,7 @@ fn capnp_parse_schema(schema:&str) -> ::capnp::message::Reader<::capnp::serializ
 
 #[test]
 fn test_context_basics() {
-    let message = capnp_parse_schema("@0x99d187209d25cee7; struct Foo { foo @0: UInt64; }");
+    let message = capnp_parse_schema("@0x99d187209d25cee7; struct Foo { foo @0: UInt64; }", false);
     let gen = ::codegen::GeneratorContext::new(&message).unwrap();
     assert_eq!(1, gen.request.get_requested_files().unwrap().iter().count());
     let file = gen.request.get_requested_files().unwrap().get(0);
@@ -1597,8 +1599,7 @@ fn get_struct_by_name<'a>(gen: &'a ::codegen::GeneratorContext, name:&str)
 
 #[test]
 fn test_stringify_basics() {
-    use codegen_types::{ RustTypeInfo, Module };
-    let message = capnp_parse_schema("@0x99d187209d25cee7; struct Foo { foo @0: UInt64; }");
+    let message = capnp_parse_schema("@0x99d187209d25cee7; struct Foo { foo @0: UInt64; }", false);
     let gen = ::codegen::GeneratorContext::new(&message).unwrap();
     let st = get_struct_by_name(&gen, ":Foo").unwrap();
     assert_eq!(1, st.get_fields().unwrap().len());
@@ -1606,4 +1607,22 @@ fn test_stringify_basics() {
     assert_eq!("foo", field.get_name().unwrap());
     let test = getter_text(&gen, &field, true);
     assert_eq!("u64", test.0);
+}
+
+#[test]
+fn test_map_example() {
+    let message = capnp_parse_schema(r#"@0x99d187209d25cee7; struct Map(Key, Value) {
+        entries @0 :List(Entry);
+        struct Entry { key @0 :Key; value @1 :Value; }
+    }"#, false);
+    let gen = ::codegen::GeneratorContext::new(&message).unwrap();
+    let map_st = get_struct_by_name(&gen, ":Map").unwrap();
+    assert_eq!(1, map_st.get_fields().unwrap().len());
+    let field = map_st.get_fields().unwrap().get(0);
+    assert_eq!("entries", field.get_name().unwrap());
+
+    let entry_st = get_struct_by_name(&gen, ":Map.Entry").unwrap();
+    assert_eq!(2, entry_st.get_fields().unwrap().len());
+    assert_eq!("key", entry_st.get_fields().unwrap().get(0).get_name().unwrap());
+    assert_eq!("value", entry_st.get_fields().unwrap().get(1).get_name().unwrap());
 }
