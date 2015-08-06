@@ -1536,3 +1536,74 @@ pub fn main<T : ::std::io::Read>(mut inp : T, out_dir : &::std::path::Path) -> :
     Ok(())
 }
 
+#[cfg(test)]
+#[allow(dead_code)]
+fn capnp_decode_dump(buffer:&[u8]) {
+    use std::io::Write;
+    let mut command = ::std::process::Command::new("capnp");
+    command.arg("decode").arg("/usr/local/include/capnp/schema.capnp").arg("CodeGeneratorRequest");
+    command.stdin(::std::process::Stdio::piped());
+    let mut process = command.spawn().unwrap();
+    process.stdin.as_mut().unwrap().write_all(buffer).unwrap();
+    let _ = process.wait();
+}
+
+#[cfg(test)]
+fn capnp_parse_schema(schema:&str) -> ::capnp::message::Reader<::capnp::serialize::OwnedSegments> {
+    use std::io::Write;
+    use capnp::serialize;
+
+    let mut named_file = ::tempfile::NamedTempFile::new().unwrap();
+    named_file.write_all(schema.as_bytes()).unwrap();
+
+    let mut command = ::std::process::Command::new("capnp");
+    let prefix = named_file.path().parent().unwrap().to_str().unwrap();
+    command.arg("compile").arg("-o").arg("-")
+           .arg(&format!("--src-prefix={}", prefix));
+    command.arg(named_file.path());
+    let parsed = command.output().unwrap();
+    let buffer:Vec<u8> = parsed.stdout;
+
+    capnp_decode_dump(&*buffer);
+
+    let mut reader = ::std::io::Cursor::new(buffer);
+    serialize::read_message(&mut reader, ::capnp::message::ReaderOptions::new()).unwrap()
+}
+
+#[test]
+fn test_context_basics() {
+    let message = capnp_parse_schema("@0x99d187209d25cee7; struct Foo { foo @0: UInt64; }");
+    let gen = ::codegen::GeneratorContext::new(&message).unwrap();
+    assert_eq!(1, gen.request.get_requested_files().unwrap().iter().count());
+    let file = gen.request.get_requested_files().unwrap().get(0);
+    assert_eq!(0x99d187209d25cee7u64, file.get_id());
+    let file_node = &gen.node_map[&file.get_id()];
+    let nodes = file_node.get_nested_nodes().unwrap();
+    assert_eq!(1, nodes.len());
+    let st = nodes.get(0);
+    assert_eq!("Foo", st.get_name().unwrap());
+}
+
+#[cfg(test)]
+fn get_struct_by_name<'a>(gen: &'a ::codegen::GeneratorContext, name:&str)
+        -> Option<::schema_capnp::node::struct_::Reader<'a>> {
+    gen.node_map.values().find(|n| n.get_display_name().unwrap().ends_with(name)).map( |st| {
+        match st.which().unwrap() {
+            ::schema_capnp::node::Struct(struct_reader) => struct_reader,
+            _ => { panic!("expected a struct here") }
+        }
+    })
+}
+
+#[test]
+fn test_stringify_basics() {
+    use codegen_types::{ RustTypeInfo, Module };
+    let message = capnp_parse_schema("@0x99d187209d25cee7; struct Foo { foo @0: UInt64; }");
+    let gen = ::codegen::GeneratorContext::new(&message).unwrap();
+    let st = get_struct_by_name(&gen, ":Foo").unwrap();
+    assert_eq!(1, st.get_fields().unwrap().len());
+    let field = st.get_fields().unwrap().get(0);
+    assert_eq!("foo", field.get_name().unwrap());
+    let test = getter_text(&gen, &field, true);
+    assert_eq!("u64", test.0);
+}
