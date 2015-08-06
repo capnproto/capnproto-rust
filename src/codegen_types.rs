@@ -2,7 +2,7 @@ use schema_capnp::*;
 
 use codegen;
 
-#[derive(Copy,Clone)]
+#[derive(Copy,Clone,PartialEq)]
 pub enum Module { Reader, Builder, Owned }
 impl ::std::fmt::Display for Module {
     fn fmt(&self, fmt:&mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
@@ -27,6 +27,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
 
     fn type_string(&self, gen:&codegen::GeneratorContext,
                    module:Module, lifetime:&str) -> String {
+        use codegen_types::RustTypeInfo;
 
         let bracketed_lifetime = if lifetime == "" { "".to_string() } else {
             format!("<{}>", lifetime)
@@ -53,36 +54,37 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Data(()) => format!("data::{}", module_with_var),
             type_::Struct(st) => {
                 let the_mod = gen.scope_map[&st.get_type_id()].connect("::");
+                let mut reader_bindings = vec!();
+                let mut builder_bindings = vec!();
                 let brand = st.get_brand().unwrap();
                 let scopes = brand.get_scopes().unwrap();
-                if scopes.len() == 0 {
-                    format!("{}::{}", the_mod, module_with_var)
-                } else {
-                    match scopes.get(0).which().unwrap() {
-                        brand::scope::Bind(b) => {
-                            let bindings = b.unwrap();
-                            let bindings_reader:Vec<String> = bindings.iter().map(|binding|
-                                match binding.which().unwrap() {
-                                    brand::binding::Type(t) => t.unwrap().type_string(gen, Module::Reader, lifetime),
-                                    _ => format!("::capnp::any_pointer::{}{}", module, bracketed_lifetime)
-                                }
-                            ).collect();
-                            match module {
-                                Module::Reader | Module::Owned =>
-                                    format!("{}::{}<{}{}>", the_mod, module, lifetime_coma, bindings_reader.connect(",")),
-                                Module::Builder => {
-                                    let bindings_builder:Vec<String> = bindings.iter().map(|binding|
-                                        match binding.which().unwrap() {
-                                            brand::binding::Type(t) => t.unwrap().type_string(gen, Module::Builder, lifetime),
-                                            _ => format!("::capnp::any_pointer::{}{}", module, bracketed_lifetime)
-                                        }
-                                    ).collect();
-                                    format!("{}::{}<{}{},{}>", the_mod, module, lifetime_coma, bindings_reader.connect(","), bindings_builder.connect(","))
-                                }
-                            }
+                for scope in scopes.iter() {
+                    match scope.which().unwrap() {
+                        brand::scope::Inherit(_) => {
+                            let parent_node = gen.node_map[&scope.get_scope_id()];
+                            reader_bindings.extend(parent_node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()+"Reader"));
+                            builder_bindings.extend(parent_node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()+"Builder"));
                         },
-                        _ => format!("{}::{}", the_mod, module_with_var)
+                        brand::scope::Bind(b) => {
+                            b.unwrap().iter().map(|binding|
+                                match binding.which().unwrap() {
+                                    brand::binding::Type(Ok(t)) => {
+                                        reader_bindings.push(t.type_string(gen, Module::Reader, lifetime));
+                                        builder_bindings.push(t.type_string(gen, Module::Builder, lifetime));
+                                    }
+                                    _ => {}
+                                }
+                            ).count();
+                        },
                     }
+                }
+
+                if reader_bindings.len() == 0 {
+                    format!("{}::{}", the_mod, module_with_var)
+                } else if module == Module::Reader {
+                    format!("{}::{}<{}{}>", the_mod, module, lifetime_coma, reader_bindings.connect(","))
+                } else {
+                    format!("{}::{}<{}{},{}>", the_mod, module, lifetime_coma, reader_bindings.connect(","), builder_bindings.connect(","))
                 }
             },
             type_::List(ot1) => {

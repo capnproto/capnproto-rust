@@ -1703,11 +1703,11 @@ fn test_map_example() {
     match entries_type.which().unwrap() {
         ::schema_capnp::type_::List(ot1) => {
             let inner = ot1.get_element_type().unwrap();
-            assert_eq!("::utest_capnp::map::entry::Reader<&'a KeyReader,ValueReader>", inner.type_string(&gen, Module::Reader, "'a"));
+            assert_eq!("::utest_capnp::map::entry::Reader<'a,KeyReader,ValueReader>", inner.type_string(&gen, Module::Reader, "'a"));
         },
         _ => panic!("entries is expected to be a list")
     }
-    assert_eq!("struct_list::Reader<'a,::utest_capnp::map::entry::Owned<KeyReader,ValueReader, KeyBuilder,ValueBuilder>>",
+    assert_eq!("struct_list::Reader<'a,::utest_capnp::map::entry::Owned<KeyReader,ValueReader,KeyBuilder,ValueBuilder>>",
         entries_type.type_string(&gen, Module::Reader, "'a"));
 
     let entry_st = node_as_struct(&entry);
