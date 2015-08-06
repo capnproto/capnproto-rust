@@ -29,4 +29,4 @@ capnp = "0.4.0"
 
 
 [dev-dependencies]
-tempfile = "1.1.0"
+tempdir = "0.3"

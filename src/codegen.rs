@@ -58,7 +58,9 @@ impl <'a> GeneratorContext<'a> {
                 populate_scope_map(&gen.node_map, &mut gen.scope_map, vec!(root_name), import.get_id());
             }
 
-            let root_mod = format!("::{}_capnp", try!(requested_file.get_filename()).to_owned().replace("-", "_"));
+            let root_name = ::std::path::PathBuf::from(try!(requested_file.get_filename()))
+                .file_stem().unwrap().to_owned().into_string().unwrap();
+            let root_mod = format!("::{}_capnp", root_name.to_owned().replace("-", "_"));
             populate_scope_map(&gen.node_map, &mut gen.scope_map, vec!(root_mod), id);
         }
 
@@ -863,6 +865,41 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
     }
 }
 
+fn expand_parameters_for_node<'a>(gen:&'a ::codegen::GeneratorContext, node:&::schema_capnp::node::Reader<'a>) -> Vec<String> {
+    let mut vec:Vec<String> = node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()).collect();
+    match node.which().unwrap() {
+        ::schema_capnp::node::Struct(struct_reader) => {
+            let fields = struct_reader.get_fields().unwrap();
+            for field in fields.iter() {
+                match field.which().unwrap() {
+                    ::schema_capnp::field::Slot(slot) => {
+                        let typ = slot.get_type().unwrap().which().unwrap();
+                        match typ {
+                            ::schema_capnp::type_::AnyPointer(any) => {
+                                match any.which().unwrap() {
+                                    ::schema_capnp::type_::any_pointer::Parameter(def) => {
+                                        let the_struct = &gen.node_map[&def.get_scope_id()];
+                                        let parameters = the_struct.get_parameters().unwrap();
+                                        let parameter = parameters.get(def.get_parameter_index() as u32);
+                                        let parameter_name = parameter.get_name().unwrap().to_string();
+                                        if !vec.contains(&parameter_name) {
+                                            vec.push(parameter_name);
+                                        }
+                                    },
+                                    _ => {}
+                                }
+                            },
+                            _ => {} // FIXME
+                        }
+                    },
+                    _ => {} // FIXME
+                }
+            }
+        },
+        _ => {} // FIXME
+    }
+    vec
+}
 
 fn generate_node(gen:&GeneratorContext,
                  node_id : u64,
@@ -917,20 +954,20 @@ fn generate_node(gen:&GeneratorContext,
                 preamble.push(generate_import_statements_for_generics());
                 preamble.push(BlankLine);
 
-                let params = node_reader.get_parameters().unwrap();
+                let params = expand_parameters_for_node(&gen, node_reader);
                 reader_type_parameters_a = params.iter().map(|param| {
-                    format!("{}Reader",param.get_name().unwrap())
+                    format!("{}Reader",param)
                 }).collect::<Vec<String>>().connect(",");
                 builder_type_parameters_a = reader_type_parameters_a.clone() + ", " +
                     &*(params.iter().map(|param| {
-                        format!("{}Builder",param.get_name().unwrap())
+                        format!("{}Builder",param)
                     }).collect::<Vec<String>>().connect(","));
                 reader_where_clause_a = "where ".to_string() + &*(params.iter().map(|param| {
-                    format!("{}Reader:FromPointerReader<'a>", param.get_name().unwrap())
+                    format!("{}Reader:FromPointerReader<'a>", param)
                 }).collect::<Vec<String>>().connect(", ") + " ");
                 builder_where_clause_a = reader_where_clause_a.clone() + ", "
                     + &*(params.iter().map(|param| {
-                    format!("{}Builder:FromPointerBuilder<'a>", param.get_name().unwrap())
+                    format!("{}Builder:FromPointerBuilder<'a>", param)
                 }).collect::<Vec<String>>().connect(", ") + " ");
                 phantom_data = "_phantom: PhantomData,".to_string();
                 preamble.push(BlankLine);
@@ -1506,9 +1543,9 @@ pub fn main<T : ::std::io::Read>(mut inp : T, out_dir : &::std::path::Path) -> :
         let id = requested_file.get_id();
         let mut filepath = out_dir.to_path_buf();
         let root_name : String = format!("{}_capnp",
-                                         filepath.file_stem().unwrap().to_owned().
+                                         ::std::path::PathBuf::from(requested_file.get_filename().unwrap()).
+                                         file_stem().unwrap().to_owned().
                                          into_string().unwrap().replace("-", "_"));
-
         filepath.push(&format!("{}.rs", root_name));
 
         let lines = Branch(vec!(
@@ -1553,14 +1590,19 @@ fn capnp_parse_schema(schema:&str, dump:bool) -> ::capnp::message::Reader<::capn
     use std::io::Write;
     use capnp::serialize;
 
-    let mut named_file = ::tempfile::NamedTempFile::new().unwrap();
-    named_file.write_all(schema.as_bytes()).unwrap();
+    let tmp = ::tempdir::TempDir::new("capnpc-unit-test").unwrap();
+    let mut filename = tmp.path().to_path_buf();
+    filename.push("utest");
+    {
+        let mut file = ::std::fs::File::create(filename.clone()).unwrap();
+        file.write_all(schema.as_bytes()).unwrap();
+    }
 
     let mut command = ::std::process::Command::new("capnp");
-    let prefix = named_file.path().parent().unwrap().to_str().unwrap();
+    let prefix = tmp.path().to_str().unwrap();
     command.arg("compile").arg("-o").arg("-")
            .arg(&format!("--src-prefix={}", prefix));
-    command.arg(named_file.path());
+    command.arg(filename);
     let parsed = command.output().unwrap();
     let buffer:Vec<u8> = parsed.stdout;
 
@@ -1587,21 +1629,35 @@ fn test_context_basics() {
 }
 
 #[cfg(test)]
-fn get_struct_by_name<'a>(gen: &'a ::codegen::GeneratorContext, name:&str)
-        -> Option<::schema_capnp::node::struct_::Reader<'a>> {
-    gen.node_map.values().find(|n| n.get_display_name().unwrap().ends_with(name)).map( |st| {
-        match st.which().unwrap() {
-            ::schema_capnp::node::Struct(struct_reader) => struct_reader,
-            _ => { panic!("expected a struct here") }
-        }
-    })
+fn get_node_by_name<'a>(gen: &'a ::codegen::GeneratorContext, name:&str)
+        -> Option<&'a ::schema_capnp::node::Reader<'a>> {
+    gen.node_map.values().find(|n| n.get_display_name().unwrap() == name)
 }
+
+#[cfg(test)]
+fn node_as_struct<'a>(st:&::schema_capnp::node::Reader<'a>)
+        -> ::schema_capnp::node::struct_::Reader<'a> {
+    match st.which().unwrap() {
+        ::schema_capnp::node::Struct(struct_reader) => struct_reader,
+        _ => { panic!("expected a struct here") }
+    }
+}
+
+#[cfg(test)]
+fn field_as_slot<'a>(field:&::schema_capnp::field::Reader<'a>)
+        -> ::schema_capnp::field::slot::Reader<'a> {
+    match field.which().unwrap() {
+        ::schema_capnp::field::Slot(slot) => slot,
+        _ => panic!("expected a slot"),
+    }
+}
+
 
 #[test]
 fn test_stringify_basics() {
     let message = capnp_parse_schema("@0x99d187209d25cee7; struct Foo { foo @0: UInt64; }", false);
     let gen = ::codegen::GeneratorContext::new(&message).unwrap();
-    let st = get_struct_by_name(&gen, ":Foo").unwrap();
+    let st = node_as_struct(get_node_by_name(&gen, "utest:Foo").unwrap());
     assert_eq!(1, st.get_fields().unwrap().len());
     let field = st.get_fields().unwrap().get(0);
     assert_eq!("foo", field.get_name().unwrap());
@@ -1611,18 +1667,57 @@ fn test_stringify_basics() {
 
 #[test]
 fn test_map_example() {
+    use codegen_types::RustTypeInfo;
     let message = capnp_parse_schema(r#"@0x99d187209d25cee7; struct Map(Key, Value) {
         entries @0 :List(Entry);
         struct Entry { key @0 :Key; value @1 :Value; }
-    }"#, false);
+    }"#, true);
     let gen = ::codegen::GeneratorContext::new(&message).unwrap();
-    let map_st = get_struct_by_name(&gen, ":Map").unwrap();
+
+    // Map structure: generic
+    // need 2 parameters named Key and Value, parameter expansion is noop
+    let map = get_node_by_name(&gen, "utest:Map").unwrap();
+    assert!(map.get_is_generic());
+    assert_eq!(2, map.get_parameters().unwrap().len());
+    let map_params:Vec<&str> = map.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap()).collect();
+    assert_eq!(vec!("Key", "Value"), map_params);
+    let map_expanded_params:Vec<String> = expand_parameters_for_node(&gen, map);
+    assert_eq!(vec!("Key".to_string(), "Value".to_string()), map_expanded_params);
+
+    // Map:Entry structure: generic
+    // no parameters in schema but inherits parent Map ones
+    let entry = get_node_by_name(&gen, "utest:Map.Entry").unwrap();
+    assert!(entry.get_is_generic());
+    assert_eq!(0, entry.get_parameters().unwrap().len());
+    let entry_expanded_params:Vec<String> = expand_parameters_for_node(&gen, entry);
+    assert_eq!(vec!("Key".to_string(), "Value".to_string()), entry_expanded_params);
+
+    // Map.entries field is a list of implicitely parameterized entries
+    // in rust code, we need that to be explicit
+    let map_st = node_as_struct(map);
     assert_eq!(1, map_st.get_fields().unwrap().len());
     let field = map_st.get_fields().unwrap().get(0);
     assert_eq!("entries", field.get_name().unwrap());
+    let entries_slot = field_as_slot(&field);
+    let entries_type = entries_slot.get_type().unwrap();
+    match entries_type.which().unwrap() {
+        ::schema_capnp::type_::List(ot1) => {
+            let inner = ot1.get_element_type().unwrap();
+            assert_eq!("::utest_capnp::map::entry::Reader<&'a KeyReader,ValueReader>", inner.type_string(&gen, Module::Reader, "'a"));
+        },
+        _ => panic!("entries is expected to be a list")
+    }
+    assert_eq!("struct_list::Reader<'a,::utest_capnp::map::entry::Owned<KeyReader,ValueReader, KeyBuilder,ValueBuilder>>",
+        entries_type.type_string(&gen, Module::Reader, "'a"));
 
-    let entry_st = get_struct_by_name(&gen, ":Map.Entry").unwrap();
+    let entry_st = node_as_struct(&entry);
     assert_eq!(2, entry_st.get_fields().unwrap().len());
     assert_eq!("key", entry_st.get_fields().unwrap().get(0).get_name().unwrap());
     assert_eq!("value", entry_st.get_fields().unwrap().get(1).get_name().unwrap());
+
+
+/*
+    let entry_params:Vec<&str> = entry.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap()).collect();
+    assert_eq!(vec!("Key", "Value"), entry_params);
+*/
 }
