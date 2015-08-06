@@ -53,8 +53,6 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Data(()) => format!("data::{}", module_with_var),
             type_::Struct(st) => {
                 let the_mod = gen.scope_map[&st.get_type_id()].connect("::");
-                format!("{}::{}", the_mod, module_with_var)
-/* FIXME #18
                 let brand = st.get_brand().unwrap();
                 let scopes = brand.get_scopes().unwrap();
                 if scopes.len() == 0 {
@@ -86,7 +84,6 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                         _ => format!("{}::{}", the_mod, module_with_var)
                     }
                 }
-*/
             },
             type_::List(ot1) => {
                 match ot1.get_element_type().unwrap().which() {
@@ -127,7 +124,6 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             },
             type_::AnyPointer(pointer) => {
                 match pointer.which().unwrap() {
-/* FIXME #18
                     type_::any_pointer::Parameter(def) => {
                         let the_struct = &gen.node_map[&def.get_scope_id()];
                         let parameters = the_struct.get_parameters().unwrap();
@@ -135,7 +131,6 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                         let parameter_name = parameter.get_name().unwrap();
                         format!("{}{}", parameter_name, module)
                     },
-*/
                     _ => {
                         format!("::capnp::any_pointer::{}{}", module, bracketed_lifetime)
                     }
@@ -145,7 +140,6 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
     }
 
     fn is_parameterized(&self) -> bool {
-/* FIXME #18
         match self.which().unwrap() {
             type_::AnyPointer(pointer) => {
                 match pointer.which().unwrap() {
@@ -155,12 +149,9 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             }
             _ => false
         }
-*/
-        return false;
     }
 
     fn is_branded(&self) -> bool {
-/* FIXME #18
         match self.which().unwrap() {
             type_::Struct(st) => {
                 let brand = st.get_brand().unwrap();
@@ -169,8 +160,6 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             }
             _ => false
         }
-*/
-        return false;
     }
 
     #[inline(always)]
