@@ -47,6 +47,7 @@
 #![crate_type = "lib"]
 
 extern crate capnp;
+#[cfg(test)] extern crate tempfile;
 
 pub mod schema_capnp;
 pub mod codegen;

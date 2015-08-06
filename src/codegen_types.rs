@@ -183,3 +183,42 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
         }
     }
 }
+
+#[cfg(test)]
+fn capnp_parse_schema(schema:&str) -> ::capnp::message::Reader<::capnp::serialize::OwnedSegments> {
+    use std::io::Write;
+    use capnp::serialize;
+
+    let mut named_file = ::tempfile::NamedTempFile::new().unwrap();
+    named_file.write_all(schema.as_bytes()).unwrap();
+
+    let mut command = ::std::process::Command::new("capnp");
+    command.arg("compile").arg("-o").arg("-");
+
+    command.arg(named_file.path());
+
+    command.stdout(::std::process::Stdio::piped());
+    command.stderr(::std::process::Stdio::inherit());
+
+    let mut p = command.spawn().unwrap();
+    let message = {
+        let mut reader = p.stdout.take().unwrap();
+        serialize::read_message(&mut reader, ::capnp::message::ReaderOptions::new()).unwrap()
+    };
+    p.wait().unwrap();
+    message
+}
+
+#[test]
+fn test_context_basics() {
+    let message = capnp_parse_schema("@0x99d187209d25cee7; struct Foo { foo @0: UInt64; }");
+    let gen = ::codegen::GeneratorContext::new(&message).unwrap();
+    assert_eq!(1, gen.request.get_requested_files().unwrap().iter().count());
+    let file = gen.request.get_requested_files().unwrap().get(0);
+    assert_eq!(0x99d187209d25cee7u64, file.get_id());
+    let file_node = &gen.node_map[&file.get_id()];
+    let nodes = file_node.get_nested_nodes().unwrap();
+    assert_eq!(1, nodes.len());
+    let st = nodes.get(0);
+    assert_eq!("Foo", st.get_name().unwrap());
+}
