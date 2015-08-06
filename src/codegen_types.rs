@@ -81,8 +81,6 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
 
                 if reader_bindings.len() == 0 {
                     format!("{}::{}", the_mod, module_with_var)
-                } else if module == Module::Reader {
-                    format!("{}::{}<{}{}>", the_mod, module, lifetime_coma, reader_bindings.connect(","))
                 } else {
                     format!("{}::{}<{}{},{}>", the_mod, module, lifetime_coma, reader_bindings.connect(","), builder_bindings.connect(","))
                 }
