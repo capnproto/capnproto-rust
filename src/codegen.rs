@@ -916,7 +916,7 @@ fn generate_node(gen:&GeneratorContext,
                 preamble.push(generate_import_statements_for_generics());
                 preamble.push(BlankLine);
 
-                let params = expand_parameters_for_node(&gen, node_reader);
+                let params = node_reader.expand_parameters(&gen);
                 type_parameters = params.iter().map(|param| {
                     format!("{}Reader",param)
                 }).collect::<Vec<String>>().connect(",") + ", " +
@@ -1633,7 +1633,6 @@ fn test_stringify_basics() {
 
 #[test]
 fn test_map_example() {
-    use codegen_types::RustTypeInfo;
     let message = capnp_parse_schema(r#"@0x99d187209d25cee7; struct Map(Key, Value) {
         entries @0 :List(Entry);
         struct Entry { key @0 :Key; value @1 :Value; }
@@ -1647,7 +1646,7 @@ fn test_map_example() {
     assert_eq!(2, map.get_parameters().unwrap().len());
     let map_params:Vec<&str> = map.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap()).collect();
     assert_eq!(vec!("Key", "Value"), map_params);
-    let map_expanded_params:Vec<String> = expand_parameters_for_node(&gen, map);
+    let map_expanded_params:Vec<String> = map.expand_parameters(&gen);
     assert_eq!(vec!("Key".to_string(), "Value".to_string()), map_expanded_params);
 
     // Map:Entry structure: generic
@@ -1655,7 +1654,7 @@ fn test_map_example() {
     let entry = get_node_by_name(&gen, "utest:Map.Entry").unwrap();
     assert!(entry.get_is_generic());
     assert_eq!(0, entry.get_parameters().unwrap().len());
-    let entry_expanded_params:Vec<String> = expand_parameters_for_node(&gen, entry);
+    let entry_expanded_params:Vec<String> = entry.expand_parameters(&gen);
     assert_eq!(vec!("Key".to_string(), "Value".to_string()), entry_expanded_params);
 
     // Map.entries field is a list of implicitely parameterized entries
@@ -1692,21 +1691,21 @@ fn test_partial_parameter_list_expansion() {
     assert!(test_gen.get_is_generic());
     let test_gen_params:Vec<&str> = test_gen.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap()).collect();
     assert_eq!(vec!("Foo", "Bar"), test_gen_params);
-    let test_gen_expanded_params:Vec<String> = expand_parameters_for_node(&gen, test_gen);
+    let test_gen_expanded_params:Vec<String> = test_gen.expand_parameters(&gen);
     assert_eq!(vec!("Foo".to_string(), "Bar".to_string()), test_gen_expanded_params);
 
     // TestGenerics.Inner parameters list
     let inner = get_node_by_name(&gen, "utest:TestGenerics.Inner").unwrap();
     let inner_gen_params:Vec<&str> = inner.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap()).collect();
     assert_eq!(0, inner_gen_params.len());
-    let inner_expanded_params:Vec<String> = expand_parameters_for_node(&gen, inner);
+    let inner_expanded_params:Vec<String> = inner.expand_parameters(&gen);
     assert_eq!(vec!("Foo".to_string(), "Bar".to_string()), inner_expanded_params);
 
     // TestGenerics.Inner2 parameters list
     let inner2 = get_node_by_name(&gen, "utest:TestGenerics.Inner2").unwrap();
     let inner2_gen_params:Vec<&str> = inner2.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap()).collect();
     assert_eq!(vec!("Baz"), inner2_gen_params);
-    let inner2_expanded_params:Vec<String> = expand_parameters_for_node(&gen, inner2);
+    let inner2_expanded_params:Vec<String> = inner2.expand_parameters(&gen);
     assert_eq!(vec!("Baz".to_string(), "Bar".to_string(), "Foo".to_string()), inner2_expanded_params);
 
     // TestGenerics fields types

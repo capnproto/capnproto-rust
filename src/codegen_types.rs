@@ -14,6 +14,21 @@ impl ::std::fmt::Display for Module {
     }
 }
 
+
+// this is a collection of helpers acting on a "Node" (most of them are Type definitions)
+pub trait RustNodeInfo {
+//    fn typedef_string(&self, gen:&codegen::GeneratorContext, module:Module, lifetime:&str) -> String;
+
+    // in rust, we have only nestable modules, and parameterizable types...
+    // so a logically child struct will be a physical sibling to its logical parent. so it must
+    // keep track of all parameterization on its own
+    // this function recursively parse a node definition to find out the parameters used and inherited by scoping
+    // and add them to the explicit parameters
+    // the result is the actual parameters for the type to be generated
+    fn expand_parameters(&self, gen:&::codegen::GeneratorContext) -> Vec<String>;
+}
+
+// this is a collection of helpers acting on a "Type" (someplace where a Type is used, not defined)
 pub trait RustTypeInfo {
 
     fn is_prim(&self) -> bool;
@@ -21,6 +36,67 @@ pub trait RustTypeInfo {
     fn is_branded(&self) -> bool;
     fn type_string(&self, gen:&codegen::GeneratorContext,
         module:Module, lifetime:&str) -> String;
+}
+
+impl <'a> RustNodeInfo for node::Reader<'a> {
+/*
+    fn typedef_string(&self, gen:&codegen::GeneratorContext, module:Module, lifetime:&str) -> String {
+        "blah".to_string()
+    }
+*/
+    fn expand_parameters(&self, gen:&::codegen::GeneratorContext) -> Vec<String> {
+        let mut vec:Vec<String> = self.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()).collect();
+        match self.which().unwrap() {
+            ::schema_capnp::node::Struct(struct_reader) => {
+                let fields = struct_reader.get_fields().unwrap();
+                for field in fields.iter() {
+                    match field.which().unwrap() {
+                        ::schema_capnp::field::Slot(slot) => {
+                            let typ = slot.get_type().unwrap().which().unwrap();
+                            match typ {
+                                ::schema_capnp::type_::Struct(st) => {
+                                    let brand = st.get_brand().unwrap();
+                                    let scopes = brand.get_scopes().unwrap();
+                                    for scope in scopes.iter() {
+                                        match scope.which().unwrap() {
+                                            ::schema_capnp::brand::scope::Inherit(_) => {
+                                                let parent_node = gen.node_map[&scope.get_scope_id()];
+                                                for p in parent_node.get_parameters().unwrap().iter() {
+                                                    let parameter_name = p.get_name().unwrap().to_string();
+                                                    if !vec.contains(&parameter_name) {
+                                                        vec.push(parameter_name);
+                                                        }
+                                                }
+                                            },
+                                            _ => {}
+                                        }
+                                    }
+                                },
+                                ::schema_capnp::type_::AnyPointer(any) => {
+                                    match any.which().unwrap() {
+                                        ::schema_capnp::type_::any_pointer::Parameter(def) => {
+                                            let the_struct = &gen.node_map[&def.get_scope_id()];
+                                            let parameters = the_struct.get_parameters().unwrap();
+                                            let parameter = parameters.get(def.get_parameter_index() as u32);
+                                            let parameter_name = parameter.get_name().unwrap().to_string();
+                                            if !vec.contains(&parameter_name) {
+                                                vec.push(parameter_name);
+                                            }
+                                        },
+                                        _ => {}
+                                    }
+                                },
+                                _ => {} // FIXME
+                            }
+                        },
+                        _ => {} // FIXME
+                    }
+                }
+            },
+            _ => {} // FIXME
+        }
+        vec
+    }
 }
 
 impl <'a> RustTypeInfo for type_::Reader<'a> {
@@ -57,7 +133,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                 let mut reader_bindings:Vec<String> = vec!();
                 let mut builder_bindings:Vec<String> = vec!();
                 let brand = st.get_brand().unwrap();
-                let parameters_count = expand_parameters_for_node(gen, &gen.node_map[&st.get_type_id()]).len();
+                let parameters_count = gen.node_map[&st.get_type_id()].expand_parameters(gen).len();
                 let scopes = brand.get_scopes().unwrap();
                 for scope in scopes.iter() {
                     match scope.which().unwrap() {
@@ -179,59 +255,5 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             _ => false
         }
     }
-}
-
-pub fn expand_parameters_for_node<'a>(gen:&'a ::codegen::GeneratorContext, node:&::schema_capnp::node::Reader<'a>) -> Vec<String> {
-    let mut vec:Vec<String> = node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()).collect();
-    match node.which().unwrap() {
-        ::schema_capnp::node::Struct(struct_reader) => {
-            let fields = struct_reader.get_fields().unwrap();
-            for field in fields.iter() {
-                match field.which().unwrap() {
-                    ::schema_capnp::field::Slot(slot) => {
-                        let typ = slot.get_type().unwrap().which().unwrap();
-                        match typ {
-                            ::schema_capnp::type_::Struct(st) => {
-                                let brand = st.get_brand().unwrap();
-                                let scopes = brand.get_scopes().unwrap();
-                                for scope in scopes.iter() {
-                                    match scope.which().unwrap() {
-                                        ::schema_capnp::brand::scope::Inherit(_) => {
-                                            let parent_node = gen.node_map[&scope.get_scope_id()];
-                                            for p in parent_node.get_parameters().unwrap().iter() {
-                                                let parameter_name = p.get_name().unwrap().to_string();
-                                                if !vec.contains(&parameter_name) {
-                                                    vec.push(parameter_name);
-                                                    }
-                                            }
-                                        },
-                                        _ => {}
-                                    }
-                                }
-                            },
-                            ::schema_capnp::type_::AnyPointer(any) => {
-                                match any.which().unwrap() {
-                                    ::schema_capnp::type_::any_pointer::Parameter(def) => {
-                                        let the_struct = &gen.node_map[&def.get_scope_id()];
-                                        let parameters = the_struct.get_parameters().unwrap();
-                                        let parameter = parameters.get(def.get_parameter_index() as u32);
-                                        let parameter_name = parameter.get_name().unwrap().to_string();
-                                        if !vec.contains(&parameter_name) {
-                                            vec.push(parameter_name);
-                                        }
-                                    },
-                                    _ => {}
-                                }
-                            },
-                            _ => {} // FIXME
-                        }
-                    },
-                    _ => {} // FIXME
-                }
-            }
-        },
-        _ => {} // FIXME
-    }
-    vec
 }
 
