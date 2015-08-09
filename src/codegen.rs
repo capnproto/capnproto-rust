@@ -22,7 +22,7 @@
 use capnp;
 use std::collections;
 use schema_capnp;
-use codegen_types::{ RustTypeInfo, Module };
+use codegen_types::*;
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
 
 pub struct GeneratorContext<'a> {
@@ -865,42 +865,6 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
     }
 }
 
-fn expand_parameters_for_node<'a>(gen:&'a ::codegen::GeneratorContext, node:&::schema_capnp::node::Reader<'a>) -> Vec<String> {
-    let mut vec:Vec<String> = node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()).collect();
-    match node.which().unwrap() {
-        ::schema_capnp::node::Struct(struct_reader) => {
-            let fields = struct_reader.get_fields().unwrap();
-            for field in fields.iter() {
-                match field.which().unwrap() {
-                    ::schema_capnp::field::Slot(slot) => {
-                        let typ = slot.get_type().unwrap().which().unwrap();
-                        match typ {
-                            ::schema_capnp::type_::AnyPointer(any) => {
-                                match any.which().unwrap() {
-                                    ::schema_capnp::type_::any_pointer::Parameter(def) => {
-                                        let the_struct = &gen.node_map[&def.get_scope_id()];
-                                        let parameters = the_struct.get_parameters().unwrap();
-                                        let parameter = parameters.get(def.get_parameter_index() as u32);
-                                        let parameter_name = parameter.get_name().unwrap().to_string();
-                                        if !vec.contains(&parameter_name) {
-                                            vec.push(parameter_name);
-                                        }
-                                    },
-                                    _ => {}
-                                }
-                            },
-                            _ => {} // FIXME
-                        }
-                    },
-                    _ => {} // FIXME
-                }
-            }
-        },
-        _ => {} // FIXME
-    }
-    vec
-}
-
 fn generate_node(gen:&GeneratorContext,
                  node_id : u64,
                  node_name: &str) -> FormattedText {
@@ -1648,6 +1612,12 @@ fn field_as_slot<'a>(field:&::schema_capnp::field::Reader<'a>)
     }
 }
 
+#[cfg(test)]
+fn type_string_for(gen: &::codegen::GeneratorContext, st:&::schema_capnp::node::struct_::Reader, field_name:&str) -> String {
+    use codegen_types::RustTypeInfo;
+    let field = st.get_fields().unwrap().iter().find(|f| f.get_name().unwrap() == field_name).unwrap();
+    field_as_slot(&field).get_type().unwrap().type_string(&gen, Module::Reader, "'a")
+}
 
 #[test]
 fn test_stringify_basics() {
@@ -1667,7 +1637,7 @@ fn test_map_example() {
     let message = capnp_parse_schema(r#"@0x99d187209d25cee7; struct Map(Key, Value) {
         entries @0 :List(Entry);
         struct Entry { key @0 :Key; value @1 :Value; }
-    }"#, true);
+    }"#, false);
     let gen = ::codegen::GeneratorContext::new(&message).unwrap();
 
     // Map structure: generic
@@ -1692,19 +1662,8 @@ fn test_map_example() {
     // in rust code, we need that to be explicit
     let map_st = node_as_struct(map);
     assert_eq!(1, map_st.get_fields().unwrap().len());
-    let field = map_st.get_fields().unwrap().get(0);
-    assert_eq!("entries", field.get_name().unwrap());
-    let entries_slot = field_as_slot(&field);
-    let entries_type = entries_slot.get_type().unwrap();
-    match entries_type.which().unwrap() {
-        ::schema_capnp::type_::List(ot1) => {
-            let inner = ot1.get_element_type().unwrap();
-            assert_eq!("::utest_capnp::map::entry::Reader<'a,KeyReader,ValueReader>", inner.type_string(&gen, Module::Reader, "'a"));
-        },
-        _ => panic!("entries is expected to be a list")
-    }
     assert_eq!("struct_list::Reader<'a,::utest_capnp::map::entry::Owned<KeyReader,ValueReader,KeyBuilder,ValueBuilder>>",
-        entries_type.type_string(&gen, Module::Reader, "'a"));
+            type_string_for(&gen, &map_st, "entries"));
 
     let entry_st = node_as_struct(&entry);
     assert_eq!(2, entry_st.get_fields().unwrap().len());
@@ -1716,4 +1675,57 @@ fn test_map_example() {
     let entry_params:Vec<&str> = entry.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap()).collect();
     assert_eq!(vec!("Key", "Value"), entry_params);
 */
+}
+
+#[test]
+fn test_partial_parameter_list_expansion() {
+    let message = capnp_parse_schema(r#"@0x99d187209d25cee7; 
+        struct TestGenerics(Foo, Bar) {
+          foo @0 :Foo; rev @1 :TestGenerics(Bar, Foo);
+          struct Inner { foo @0 :Foo; bar @1 :Bar; }
+          struct Inner2(Baz) { bar @0 :Bar; baz @1 :Baz; innerBound @2 :Inner; innerUnbound @3 :TestGenerics.Inner; }
+          interface Interface(Qux) { call @0 Inner2(Text) -> (qux :Qux, gen :TestGenerics(Text, Data)); }
+    } "#, true);
+    let gen = ::codegen::GeneratorContext::new(&message).unwrap();
+    // TestGenerics parameters list
+    let test_gen = get_node_by_name(&gen, "utest:TestGenerics").unwrap();
+    assert!(test_gen.get_is_generic());
+    let test_gen_params:Vec<&str> = test_gen.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap()).collect();
+    assert_eq!(vec!("Foo", "Bar"), test_gen_params);
+    let test_gen_expanded_params:Vec<String> = expand_parameters_for_node(&gen, test_gen);
+    assert_eq!(vec!("Foo".to_string(), "Bar".to_string()), test_gen_expanded_params);
+
+    // TestGenerics.Inner parameters list
+    let inner = get_node_by_name(&gen, "utest:TestGenerics.Inner").unwrap();
+    let inner_gen_params:Vec<&str> = inner.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap()).collect();
+    assert_eq!(0, inner_gen_params.len());
+    let inner_expanded_params:Vec<String> = expand_parameters_for_node(&gen, inner);
+    assert_eq!(vec!("Foo".to_string(), "Bar".to_string()), inner_expanded_params);
+
+    // TestGenerics.Inner2 parameters list
+    let inner2 = get_node_by_name(&gen, "utest:TestGenerics.Inner2").unwrap();
+    let inner2_gen_params:Vec<&str> = inner2.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap()).collect();
+    assert_eq!(vec!("Baz"), inner2_gen_params);
+    let inner2_expanded_params:Vec<String> = expand_parameters_for_node(&gen, inner2);
+    assert_eq!(vec!("Baz".to_string(), "Bar".to_string(), "Foo".to_string()), inner2_expanded_params);
+
+    // TestGenerics fields types
+    let test_gen_st = node_as_struct(test_gen);
+    assert_eq!(2, test_gen_st.get_fields().unwrap().len());
+    assert_eq!("FooReader", type_string_for(&gen, &test_gen_st, "foo"));
+    assert_eq!("::utest_capnp::test_generics::Reader<'a,BarReader,FooReader,BarBuilder,FooBuilder>", type_string_for(&gen, &test_gen_st, "rev"));
+
+    // TestGenerics.Inner fields types
+    let inner_st = node_as_struct(inner);
+    assert_eq!(2, inner_st.get_fields().unwrap().len());
+    assert_eq!("FooReader", type_string_for(&gen, &inner_st, "foo"));
+    assert_eq!("BarReader", type_string_for(&gen, &inner_st, "bar"));
+
+    // TestGenerics.Inner2 fields types
+    let inner2_st = node_as_struct(inner2);
+    assert_eq!(4, inner2_st.get_fields().unwrap().len());
+    assert_eq!("BarReader", type_string_for(&gen, &inner2_st, "bar"));
+    assert_eq!("BazReader", type_string_for(&gen, &inner2_st, "baz"));
+    assert_eq!("::utest_capnp::test_generics::inner::Reader<'a,FooReader,BarReader,FooBuilder,BarBuilder>", type_string_for(&gen, &inner2_st, "innerBound"));
+    assert_eq!("::utest_capnp::test_generics::inner::Reader<'a,::capnp::any_pointer::Reader<'a>,::capnp::any_pointer::Reader<'a>,::capnp::any_pointer::Builder<'a>,::capnp::any_pointer::Builder<'a>>", type_string_for(&gen, &inner2_st, "innerUnbound"));
 }

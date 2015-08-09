@@ -54,9 +54,10 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Data(()) => format!("data::{}", module_with_var),
             type_::Struct(st) => {
                 let the_mod = gen.scope_map[&st.get_type_id()].connect("::");
-                let mut reader_bindings = vec!();
-                let mut builder_bindings = vec!();
+                let mut reader_bindings:Vec<String> = vec!();
+                let mut builder_bindings:Vec<String> = vec!();
                 let brand = st.get_brand().unwrap();
+                let parameters_count = expand_parameters_for_node(gen, &gen.node_map[&st.get_type_id()]).len();
                 let scopes = brand.get_scopes().unwrap();
                 for scope in scopes.iter() {
                     match scope.which().unwrap() {
@@ -78,10 +79,17 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                         },
                     }
                 }
-
-                if reader_bindings.len() == 0 {
+                if parameters_count == 0 {
                     format!("{}::{}", the_mod, module_with_var)
                 } else {
+                    if parameters_count != reader_bindings.len() {
+                        reader_bindings.clear();
+                        builder_bindings.clear();
+                        for _ in 0 .. parameters_count {
+                            reader_bindings.push(format!("::capnp::any_pointer::Reader<{}>", lifetime));
+                            builder_bindings.push(format!("::capnp::any_pointer::Builder<{}>", lifetime));
+                        }
+                    }
                     format!("{}::{}<{}{},{}>", the_mod, module, lifetime_coma, reader_bindings.connect(","), builder_bindings.connect(","))
                 }
             },
@@ -172,3 +180,58 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
         }
     }
 }
+
+pub fn expand_parameters_for_node<'a>(gen:&'a ::codegen::GeneratorContext, node:&::schema_capnp::node::Reader<'a>) -> Vec<String> {
+    let mut vec:Vec<String> = node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()).collect();
+    match node.which().unwrap() {
+        ::schema_capnp::node::Struct(struct_reader) => {
+            let fields = struct_reader.get_fields().unwrap();
+            for field in fields.iter() {
+                match field.which().unwrap() {
+                    ::schema_capnp::field::Slot(slot) => {
+                        let typ = slot.get_type().unwrap().which().unwrap();
+                        match typ {
+                            ::schema_capnp::type_::Struct(st) => {
+                                let brand = st.get_brand().unwrap();
+                                let scopes = brand.get_scopes().unwrap();
+                                for scope in scopes.iter() {
+                                    match scope.which().unwrap() {
+                                        ::schema_capnp::brand::scope::Inherit(_) => {
+                                            let parent_node = gen.node_map[&scope.get_scope_id()];
+                                            for p in parent_node.get_parameters().unwrap().iter() {
+                                                let parameter_name = p.get_name().unwrap().to_string();
+                                                if !vec.contains(&parameter_name) {
+                                                    vec.push(parameter_name);
+                                                    }
+                                            }
+                                        },
+                                        _ => {}
+                                    }
+                                }
+                            },
+                            ::schema_capnp::type_::AnyPointer(any) => {
+                                match any.which().unwrap() {
+                                    ::schema_capnp::type_::any_pointer::Parameter(def) => {
+                                        let the_struct = &gen.node_map[&def.get_scope_id()];
+                                        let parameters = the_struct.get_parameters().unwrap();
+                                        let parameter = parameters.get(def.get_parameter_index() as u32);
+                                        let parameter_name = parameter.get_name().unwrap().to_string();
+                                        if !vec.contains(&parameter_name) {
+                                            vec.push(parameter_name);
+                                        }
+                                    },
+                                    _ => {}
+                                }
+                            },
+                            _ => {} // FIXME
+                        }
+                    },
+                    _ => {} // FIXME
+                }
+            }
+        },
+        _ => {} // FIXME
+    }
+    vec
+}
+
