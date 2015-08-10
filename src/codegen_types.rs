@@ -103,7 +103,6 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
         let parameters_count = self.expand_parameters(gen).len();
         let scopes = brand.get_scopes().unwrap();
         for scope in scopes.iter() {
-            println!("scope");
             match scope.which().unwrap() {
                 brand::scope::Inherit(_) => {
                     let parent_node = gen.node_map[&scope.get_scope_id()];
@@ -123,7 +122,6 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 },
             }
         };
-        println!("generating {:?} params done", self.get_display_name());
         let bracketed_lifetime = if lifetime == "" { "".to_string() } else {
             format!("<{}>", lifetime)
         };
