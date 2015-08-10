@@ -14,6 +14,12 @@ impl ::std::fmt::Display for Module {
     }
 }
 
+pub struct TypeParameterTexts {
+    pub expanded_list: Vec<String>,
+    pub params: String,
+    pub where_clause: String,
+    pub phantom_data: String
+}
 
 // this is a collection of helpers acting on a "Node" (most of them are Type definitions)
 pub trait RustNodeInfo {
@@ -27,6 +33,8 @@ pub trait RustNodeInfo {
     // and add them to the explicit parameters
     // the result is the actual parameters for the type to be generated
     fn expand_parameters(&self, gen:&::codegen::GeneratorContext) -> Vec<String>;
+
+    fn parameters_texts(&self, gen:&::codegen::GeneratorContext) -> TypeParameterTexts;
 }
 
 // this is a collection of helpers acting on a "Type" (someplace where a Type is used, not defined)
@@ -43,6 +51,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
 
     fn expand_parameters(&self, gen:&::codegen::GeneratorContext) -> Vec<String> {
         let mut vec:Vec<String> = self.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()).collect();
+
         match self.which().unwrap() {
             ::schema_capnp::node::Struct(struct_reader) => {
                 let fields = struct_reader.get_fields().unwrap();
@@ -62,7 +71,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                                                     let parameter_name = p.get_name().unwrap().to_string();
                                                     if !vec.contains(&parameter_name) {
                                                         vec.push(parameter_name);
-                                                        }
+                                                    }
                                                 }
                                             },
                                             _ => {}
@@ -90,9 +99,63 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                     }
                 }
             },
+            ::schema_capnp::node::Interface(iface_reader) => {
+                let methods = iface_reader.get_methods().unwrap();
+                for method in methods.iter() {
+                    for brand in vec!(method.get_param_brand().unwrap(), method.get_result_brand().unwrap()) {
+                        for scope in brand.get_scopes().unwrap().iter() {
+                            match scope.which().unwrap() {
+                                ::schema_capnp::brand::scope::Inherit(_) => {
+                                    let parent_node = gen.node_map[&scope.get_scope_id()];
+                                    for p in parent_node.get_parameters().unwrap().iter() {
+                                        let parameter_name = p.get_name().unwrap().to_string();
+                                        if !vec.contains(&parameter_name) {
+                                            vec.push(parameter_name);
+                                        }
+                                    }
+                                },
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
             _ => {} // FIXME
         }
         vec
+    }
+
+    fn parameters_texts(&self, gen:&::codegen::GeneratorContext) -> TypeParameterTexts {
+        if self.get_is_generic() {
+            let params = self.expand_parameters(&gen);
+            let type_parameters = params.iter().map(|param| {
+                format!("{}Reader",param)
+            }).collect::<Vec<String>>().connect(",") + ", " +
+                &*(params.iter().map(|param| {
+                    format!("{}Builder",param)
+                }).collect::<Vec<String>>().connect(","));
+            let where_clause = "where ".to_string() + &*(params.iter().map(|param| {
+                format!("{}Reader:FromPointerReader<'a>", param)
+            }).collect::<Vec<String>>().connect(", ") + " ") + ", "
+                + &*(params.iter().map(|param| {
+                format!("{}Builder:FromPointerBuilder<'a>", param)
+            }).collect::<Vec<String>>().connect(", ") + " ");
+            let phantom_data = "_phantom: PhantomData,".to_string();
+
+            TypeParameterTexts {
+                expanded_list: params,
+                params: type_parameters,
+                where_clause: where_clause,
+                phantom_data: phantom_data
+            }
+        } else {
+            TypeParameterTexts {
+                expanded_list: vec!(),
+                params: "".to_string(),
+                where_clause: "".to_string(),
+                phantom_data: "".to_string(),
+            }
+        }
     }
 
     fn type_string(&self, gen:&codegen::GeneratorContext, brand:&::schema_capnp::brand::Reader,
@@ -122,11 +185,12 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 },
             }
         };
-        let bracketed_lifetime = if lifetime == "" { "".to_string() } else {
-            format!("<{}>", lifetime)
+        let local_lifetime = if module == Module::Owned { "" } else { lifetime };
+        let bracketed_lifetime = if local_lifetime == "" { "".to_string() } else {
+            format!("<{}>", local_lifetime)
         };
-        let lifetime_coma = if lifetime == "" { "".to_string() } else {
-            format!("{},", lifetime)
+        let lifetime_coma = if local_lifetime == "" { "".to_string() } else {
+            format!("{},", local_lifetime)
         };
         let module_with_var = format!("{}{}", module, bracketed_lifetime);
         if parameters_count == 0 {
@@ -151,11 +215,13 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                    module:Module, lifetime:&str) -> String {
         use codegen_types::RustTypeInfo;
 
-        let bracketed_lifetime = if lifetime == "" { "".to_string() } else {
-            format!("<{}>", lifetime)
+        let local_lifetime = if module == Module::Owned { "" } else { lifetime };
+
+        let bracketed_lifetime = if local_lifetime == "" { "".to_string() } else {
+            format!("<{}>", local_lifetime)
         };
-        let lifetime_coma = if lifetime == "" { "".to_string() } else {
-            format!("{},", lifetime)
+        let lifetime_coma = if local_lifetime == "" { "".to_string() } else {
+            format!("{},", local_lifetime)
         };
         let module_with_var = format!("{}{}", module, bracketed_lifetime);
 
@@ -175,7 +241,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Text(()) => format!("text::{}", module_with_var),
             type_::Data(()) => format!("data::{}", module_with_var),
             type_::Struct(st) => {
-                gen.node_map[&st.get_type_id()].type_string(gen, &st.get_brand().unwrap(), None, module, lifetime)
+                gen.node_map[&st.get_type_id()].type_string(gen, &st.get_brand().unwrap(), None, module, local_lifetime)
             },
             type_::List(ot1) => {
                 match ot1.get_element_type().unwrap().which() {
