@@ -63,7 +63,6 @@ impl <'a> GeneratorContext<'a> {
             let root_mod = format!("::{}_capnp", root_name.to_owned().replace("-", "_"));
             populate_scope_map(&gen.node_map, &mut gen.scope_map, vec!(root_mod), id);
         }
-
         Ok(gen)
     }
 
@@ -1260,8 +1259,9 @@ fn generate_node(gen:&GeneratorContext,
 
             mod_interior.push(Line ("#![allow(unused_variables)]".to_string()));
             mod_interior.push(Line("#![allow(unused_imports)]".to_string()));
+            mod_interior.push(generate_import_statements());
             mod_interior.push(
-                Line("use capnp::capability::{FromClientHook, Request};".to_string()));
+                Line("use capnp::capability::Request;".to_string()));
             mod_interior.push(
                 Line("use capnp::private::capability::{ClientHook, ServerHook};".to_string()));
             mod_interior.push(Line("use capnp::capability;".to_string()));
@@ -1273,36 +1273,40 @@ fn generate_node(gen:&GeneratorContext,
                 let name = method.get_name().unwrap();
 
                 method.get_code_order();
-                let params_id = method.get_param_struct_type();
-                let params_node = &gen.node_map[&params_id];
-                let params_name = if params_node.get_scope_id() == 0 {
-                    let params_name = module_name(&format!("{}Params", name));
-
-                    nested_output.push(generate_node(gen, params_id, &params_name));
-                    params_name
+                let param_id = method.get_param_struct_type();
+                let param_node = &gen.node_map[&param_id];
+                let param_scopes = if param_node.get_scope_id() == 0 {
+                    let mut names = names.clone();
+                    let local_name = module_name(&format!("{}Params", name));
+                    nested_output.push(generate_node(gen, param_id, &*local_name));
+                    names.push(local_name);
+                    names
                 } else {
-                    gen.scope_map[&params_node.get_id()].connect("::")
+                    gen.scope_map[&param_node.get_id()].clone()
                 };
+                let param_type = param_node.type_string(&gen, &method.get_param_brand().unwrap(), Some(&param_scopes), Module::Owned, "");
 
-                let results_id = method.get_result_struct_type();
-                let results_node = gen.node_map[&results_id];
-                let results_name = if results_node.get_scope_id() == 0 {
-                    let results_name = module_name(&format!("{}Results", name));
-                    nested_output.push(generate_node(gen, results_id, &results_name));
-                    results_name
+                let result_id = method.get_result_struct_type();
+                let result_node = &gen.node_map[&result_id];
+                let result_scopes = if result_node.get_scope_id() == 0 {
+                    let mut names = names.clone();
+                    let local_name = module_name(&format!("{}Results", name));
+                    nested_output.push(generate_node(gen, result_id, &*local_name));
+                    names.push(local_name);
+                    names
                 } else {
-                    gen.scope_map[&results_node.get_id()].connect("::")
+                    gen.scope_map[&result_node.get_id()].clone()
                 };
+                let result_type = result_node.type_string(&gen, &method.get_result_brand().unwrap(), Some(&result_scopes), Module::Owned, "");
 
                 dispatch_arms.push(
                     Line(format!(
                             "{} => server.{}(::capnp::private::capability::internal_get_typed_context(context)),",
                             ordinal, camel_to_snake_case(name))));
-
                 mod_interior.push(
                     Line(format!(
-                            "pub type {}Context<'a> = capability::CallContext<{}::Owned, {}::Owned>;",
-                            capitalize_first_letter(name), params_name, results_name)));
+                            "pub type {}Context<'a> = capability::CallContext<{}, {}>;",
+                            capitalize_first_letter(name), param_type, result_type)));
                 server_interior.push(
                     Line(format!(
                             "fn {}<'a>(&mut self, {}Context<'a>);",
@@ -1310,8 +1314,8 @@ fn generate_node(gen:&GeneratorContext,
                             )));
 
                 client_impl_interior.push(
-                    Line(format!("pub fn {}_request<'a>(&self) -> Request<{}::Owned,{}::Owned> {{",
-                                 camel_to_snake_case(name), params_name, results_name)));
+                    Line(format!("pub fn {}_request<'a>(&self) -> Request<{},{}> {{",
+                                 camel_to_snake_case(name), param_type, result_type)));
 
                 client_impl_interior.push(Indent(
                     Box::new(Line(format!("self.client.new_call(_private::TYPE_ID, {}, None)", ordinal)))));
@@ -1707,6 +1711,13 @@ fn test_partial_parameter_list_expansion() {
     assert_eq!(vec!("Baz"), inner2_gen_params);
     let inner2_expanded_params:Vec<String> = inner2.expand_parameters(&gen);
     assert_eq!(vec!("Baz".to_string(), "Bar".to_string(), "Foo".to_string()), inner2_expanded_params);
+
+    // TestGenerics.Interface parameters list
+    let interface = get_node_by_name(&gen, "utest:TestGenerics.Interface").unwrap();
+    let interface_params:Vec<&str> = interface.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap()).collect();
+    assert_eq!(vec!("Qux"), interface_params);
+    let interface_expanded_params:Vec<String> = interface.expand_parameters(&gen);
+    assert_eq!(vec!("Qux".to_string()), interface_expanded_params);
 
     // TestGenerics fields types
     let test_gen_st = node_as_struct(test_gen);

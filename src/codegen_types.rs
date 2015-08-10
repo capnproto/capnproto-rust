@@ -17,7 +17,8 @@ impl ::std::fmt::Display for Module {
 
 // this is a collection of helpers acting on a "Node" (most of them are Type definitions)
 pub trait RustNodeInfo {
-//    fn typedef_string(&self, gen:&codegen::GeneratorContext, module:Module, lifetime:&str) -> String;
+    fn type_string(&self, gen:&codegen::GeneratorContext, brand:&::schema_capnp::brand::Reader,
+        scope:Option<&Vec<String>>, module:Module, lifetime:&str) -> String;
 
     // in rust, we have only nestable modules, and parameterizable types...
     // so a logically child struct will be a physical sibling to its logical parent. so it must
@@ -39,11 +40,7 @@ pub trait RustTypeInfo {
 }
 
 impl <'a> RustNodeInfo for node::Reader<'a> {
-/*
-    fn typedef_string(&self, gen:&codegen::GeneratorContext, module:Module, lifetime:&str) -> String {
-        "blah".to_string()
-    }
-*/
+
     fn expand_parameters(&self, gen:&::codegen::GeneratorContext) -> Vec<String> {
         let mut vec:Vec<String> = self.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()).collect();
         match self.which().unwrap() {
@@ -97,6 +94,57 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
         }
         vec
     }
+
+    fn type_string(&self, gen:&codegen::GeneratorContext, brand:&::schema_capnp::brand::Reader,
+            scope:Option<&Vec<String>>, module:Module, lifetime:&str) -> String {
+        let the_mod = scope.unwrap_or_else( || &gen.scope_map[&self.get_id()]).connect("::");
+        let mut reader_bindings:Vec<String> = vec!();
+        let mut builder_bindings:Vec<String> = vec!();
+        let parameters_count = self.expand_parameters(gen).len();
+        let scopes = brand.get_scopes().unwrap();
+        for scope in scopes.iter() {
+            println!("scope");
+            match scope.which().unwrap() {
+                brand::scope::Inherit(_) => {
+                    let parent_node = gen.node_map[&scope.get_scope_id()];
+                    reader_bindings.extend(parent_node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()+"Reader"));
+                    builder_bindings.extend(parent_node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()+"Builder"));
+                },
+                brand::scope::Bind(b) => {
+                    b.unwrap().iter().map(|binding|
+                        match binding.which().unwrap() {
+                            brand::binding::Type(Ok(t)) => {
+                                reader_bindings.push(t.type_string(gen, Module::Reader, lifetime));
+                                builder_bindings.push(t.type_string(gen, Module::Builder, lifetime));
+                            }
+                            _ => {}
+                        }
+                    ).count();
+                },
+            }
+        };
+        println!("generating {:?} params done", self.get_display_name());
+        let bracketed_lifetime = if lifetime == "" { "".to_string() } else {
+            format!("<{}>", lifetime)
+        };
+        let lifetime_coma = if lifetime == "" { "".to_string() } else {
+            format!("{},", lifetime)
+        };
+        let module_with_var = format!("{}{}", module, bracketed_lifetime);
+        if parameters_count == 0 {
+            format!("{}::{}", the_mod, module_with_var)
+        } else {
+            if parameters_count != reader_bindings.len() {
+                reader_bindings.clear();
+                builder_bindings.clear();
+                for _ in 0 .. parameters_count {
+                    reader_bindings.push(format!("::capnp::any_pointer::Reader<{}>", lifetime));
+                    builder_bindings.push(format!("::capnp::any_pointer::Builder<{}>", lifetime));
+                }
+            }
+            format!("{}::{}<{}{},{}>", the_mod, module, lifetime_coma, reader_bindings.connect(","), builder_bindings.connect(","))
+        }
+    }
 }
 
 impl <'a> RustTypeInfo for type_::Reader<'a> {
@@ -129,45 +177,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Text(()) => format!("text::{}", module_with_var),
             type_::Data(()) => format!("data::{}", module_with_var),
             type_::Struct(st) => {
-                let the_mod = gen.scope_map[&st.get_type_id()].connect("::");
-                let mut reader_bindings:Vec<String> = vec!();
-                let mut builder_bindings:Vec<String> = vec!();
-                let brand = st.get_brand().unwrap();
-                let parameters_count = gen.node_map[&st.get_type_id()].expand_parameters(gen).len();
-                let scopes = brand.get_scopes().unwrap();
-                for scope in scopes.iter() {
-                    match scope.which().unwrap() {
-                        brand::scope::Inherit(_) => {
-                            let parent_node = gen.node_map[&scope.get_scope_id()];
-                            reader_bindings.extend(parent_node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()+"Reader"));
-                            builder_bindings.extend(parent_node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()+"Builder"));
-                        },
-                        brand::scope::Bind(b) => {
-                            b.unwrap().iter().map(|binding|
-                                match binding.which().unwrap() {
-                                    brand::binding::Type(Ok(t)) => {
-                                        reader_bindings.push(t.type_string(gen, Module::Reader, lifetime));
-                                        builder_bindings.push(t.type_string(gen, Module::Builder, lifetime));
-                                    }
-                                    _ => {}
-                                }
-                            ).count();
-                        },
-                    }
-                }
-                if parameters_count == 0 {
-                    format!("{}::{}", the_mod, module_with_var)
-                } else {
-                    if parameters_count != reader_bindings.len() {
-                        reader_bindings.clear();
-                        builder_bindings.clear();
-                        for _ in 0 .. parameters_count {
-                            reader_bindings.push(format!("::capnp::any_pointer::Reader<{}>", lifetime));
-                            builder_bindings.push(format!("::capnp::any_pointer::Builder<{}>", lifetime));
-                        }
-                    }
-                    format!("{}::{}<{}{},{}>", the_mod, module, lifetime_coma, reader_bindings.connect(","), builder_bindings.connect(","))
-                }
+                gen.node_map[&st.get_type_id()].type_string(gen, &st.get_brand().unwrap(), None, module, lifetime)
             },
             type_::List(ot1) => {
                 match ot1.get_element_type().unwrap().which() {
