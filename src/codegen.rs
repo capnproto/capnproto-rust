@@ -1245,6 +1245,8 @@ fn generate_node(gen:&GeneratorContext,
             let mut dispatch_arms = Vec::new();
             let mut private_mod_interior = Vec::new();
 
+            let bracketed_params = if params.params == "" { "".to_string() } else { format!("<{}>", params.params) };
+
             private_mod_interior.push(Line(format!("pub const TYPE_ID: u64 = {:#x};", node_id)));
 
             mod_interior.push(Line ("#![allow(unused_variables)]".to_string()));
@@ -1331,13 +1333,14 @@ fn generate_node(gen:&GeneratorContext,
                 else { "".to_string() }
             };
 
-
             mod_interior.push(BlankLine);
-            mod_interior.push(Line("pub struct Client{ pub client : ::capnp::private::capability::Client }".to_string()));
+            mod_interior.push(Line(format!("pub struct Client{} {{", bracketed_params)));
+            mod_interior.push(Indent(Box::new(Line("pub client : ::capnp::private::capability::Client".to_string()))));
+            mod_interior.push(Line("}".to_string()));
             mod_interior.push(
                 Branch(vec!(
-                    Line("impl FromClientHook for Client {".to_string()),
-                    Indent(Box::new(Line("fn new(hook : Box<ClientHook+Send>) -> Client {".to_string()))),
+                    Line(format!("impl {} FromClientHook for Client{} {{", bracketed_params, bracketed_params)),
+                    Indent(Box::new(Line(format!("fn new(hook : Box<ClientHook+Send>) -> Client{} {{", bracketed_params)))),
                     Indent(Box::new(Indent(Box::new(Line("Client { client : ::capnp::private::capability::Client::new(hook) }".to_string()))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
@@ -1345,14 +1348,14 @@ fn generate_node(gen:&GeneratorContext,
 
             mod_interior.push(
                 Branch(vec!(
-                    Line("pub struct ToClient<U>(pub U);".to_string()),
+                    Line(format!("pub struct ToClient<U,{}>(pub U);", params.params)),
                     (if is_generic {
-                        Line(format!("impl <U : Server<{}> + Send + 'static> ToClient<U> {{", params.params))
+                        Line(format!("impl <{}, U : Server<{}> + Send + 'static> ToClient<U,{}> {{", params.params, params.params, params.params))
                     } else {
                         Line("impl <U : Server + Send + 'static> ToClient<U> {".to_string())
                     }),
                     Indent(Box::new(Branch( vec!(
-                        Line("pub fn from_server<T: ServerHook>(self) -> Client {".to_string()),
+                        Line(format!("pub fn from_server<T: ServerHook>(self) -> Client{} {{", bracketed_params)),
                         Indent(
                             Box::new(Line("Client { client : T::new_client(::std::boxed::Box::new(ServerDispatch { server : ::std::boxed::Box::new(self.0)}))}".to_string()))),
                         Line("}".to_string()))))),
@@ -1361,7 +1364,7 @@ fn generate_node(gen:&GeneratorContext,
 
             mod_interior.push(
                     Branch(vec!(
-                        Line("impl ::capnp::traits::HasTypeId for Client {".to_string()),
+                        Line(format!("impl {} ::capnp::traits::HasTypeId for Client{} {{", bracketed_params, bracketed_params)),
                         Indent(Box::new(Line("#[inline]".to_string()))),
                         Indent(Box::new(Line("fn type_id() -> u64 { _private::TYPE_ID }".to_string()))),
                         Line("}".to_string()))));
@@ -1369,15 +1372,15 @@ fn generate_node(gen:&GeneratorContext,
 
             mod_interior.push(
                     Branch(vec!(
-                        Line("impl Clone for Client {".to_string()),
-                        Indent(Box::new(Line("fn clone(&self) -> Client {".to_string()))),
+                        Line(format!("impl {} Clone for Client{} {{", bracketed_params, bracketed_params)),
+                        Indent(Box::new(Line(format!("fn clone(&self) -> Client{} {{", bracketed_params)))),
                         Indent(Box::new(Indent(Box::new(Line("Client { client : ::capnp::private::capability::Client::new(self.client.hook.copy()) }".to_string()))))),
                         Indent(Box::new(Line("}".to_string()))),
                         Line("}".to_string()))));
 
 
             mod_interior.push(
-                Branch(vec!(Line("impl Client {".to_string()),
+                Branch(vec!(Line(format!("impl {} Client{} {{", bracketed_params, bracketed_params)),
                             Indent(Box::new(Branch(client_impl_interior))),
                             Line("}".to_string()))));
 
@@ -1385,13 +1388,17 @@ fn generate_node(gen:&GeneratorContext,
                                           Indent(Box::new(Branch(server_interior))),
                                           Line("}".to_string()))));
 
-            mod_interior.push(Branch(vec!(Line("pub struct ServerDispatch<T> {".to_string()),
+            mod_interior.push(Branch(vec!(Line(format!("pub struct ServerDispatch<T,{}> {{", params.params)),
                                           Indent(Box::new(Line("pub server : Box<T>,".to_string()))),
                                           Line("}".to_string()))));
 
             mod_interior.push(
                 Branch(vec!(
-                    Line("impl <T : Server> ::capnp::capability::Server for ServerDispatch<T> {".to_string()),
+                    (if is_generic {
+                        Line(format!("impl <{}, T : Server{}> ::capnp::capability::Server for ServerDispatch<T,{}> {{", params.params, bracketed_params, params.params))
+                    } else {
+                        Line("impl <T : Server> ::capnp::capability::Server for ServerDispatch<T> {".to_string())
+                    }),
                     Indent(Box::new(Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match interface_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(
@@ -1404,7 +1411,11 @@ fn generate_node(gen:&GeneratorContext,
 
             mod_interior.push(
                 Branch(vec!(
-                    Line("impl <T : Server> ServerDispatch<T> {".to_string()),
+                    (if is_generic {
+                        Line(format!("impl <{}, T : Server{}> ServerDispatch<T,{}> {{", params.params, bracketed_params, params.params))
+                    } else {
+                        Line("impl <T : Server> ServerDispatch<T> {".to_string())
+                    }),
                     Indent(Box::new(Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match method_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(dispatch_arms))))))),
