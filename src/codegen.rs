@@ -636,7 +636,7 @@ fn generate_setter(gen:&GeneratorContext, discriminant_offset : u32,
     };
     let mut result = Vec::new();
     match maybe_reader_type {
-        Some(reader_type) => {
+        Some(ref reader_type) => {
             let return_type = if return_result { "-> Result<()>" } else { "" };
             result.push(Line("#[inline]".to_string()));
             result.push(Line(format!("pub fn set_{}{}(&mut self, {} : {}) {} {{",
@@ -1171,7 +1171,7 @@ fn generate_node(gen:&GeneratorContext,
                 Indent(
                     Box::new(Branch(vec!(
                         Line(format!("fn new(typeless : ::capnp::any_pointer::Pipeline) -> Pipeline{} {{", bracketed_params)),
-                        Indent(Box::new(Line("Pipeline { _typeless : typeless }".to_string()))),
+                        Indent(Box::new(Line(format!("Pipeline {{ _typeless : typeless, {} }}", params.phantom_data)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 Line(format!("impl{} Pipeline{} {{", bracketed_params, bracketed_params)),
@@ -1276,7 +1276,6 @@ fn generate_node(gen:&GeneratorContext,
                 let method = methods.get(ordinal);
                 let name = method.get_name().unwrap();
 
-                mod_interior.push(Line(format!("/* method: {} */", name)));
                 method.get_code_order();
                 let param_id = method.get_param_struct_type();
                 let param_node = &gen.node_map[&param_id];
@@ -1290,12 +1289,9 @@ fn generate_node(gen:&GeneratorContext,
                     gen.scope_map[&param_node.get_id()].clone()
                 };
                 let param_type = param_node.type_string(&gen, &method.get_param_brand().unwrap(), Some(&param_scopes), Module::Owned, "'a");
-                mod_interior.push(Line(format!("/* params: {:?} */", param_scopes)));
 
                 let result_id = method.get_result_struct_type();
-                mod_interior.push(Line(format!("/* result_id: {} */", result_id)));
                 let result_node = &gen.node_map[&result_id];
-                mod_interior.push(Line(format!("/* result scope_id: {} */", gen.node_map[&result_id].get_scope_id())));
                 let result_scopes = if result_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Results", name));
@@ -1306,8 +1302,6 @@ fn generate_node(gen:&GeneratorContext,
                     gen.scope_map[&result_node.get_id()].clone()
                 };
                 let result_type = result_node.type_string(&gen, &method.get_result_brand().unwrap(), Some(&result_scopes), Module::Owned, "'a");
-                mod_interior.push(Line(format!("/* results: {:?}", result_scopes)));
-                mod_interior.push(Line(format!("   {} */", result_type)));
 
                 dispatch_arms.push(
                     Line(format!(
@@ -1362,7 +1356,7 @@ fn generate_node(gen:&GeneratorContext,
                 Branch(vec!(
                     Line(format!("impl {} FromClientHook for Client{} {{", bracketed_params, bracketed_params)),
                     Indent(Box::new(Line(format!("fn new(hook : Box<ClientHook+Send>) -> Client{} {{", bracketed_params)))),
-                    Indent(Box::new(Indent(Box::new(Line("Client { client : ::capnp::private::capability::Client::new(hook) }".to_string()))))),
+                    Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::private::capability::Client::new(hook), {} }}", params.phantom_data)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
 
@@ -1377,7 +1371,8 @@ fn generate_node(gen:&GeneratorContext,
                                 Line(format!("_phantom: PhantomData<({})>", params.params))
                             )))),
                             Line("}".to_string()),
-                            Line(format!("impl <{}, U : Server<{}> + Send + 'static> ToClient<U,{}> {{", params.params, params.params, params.params))
+                            Line(format!("impl <{}, U : Server<{}> + Send + 'static> ToClient<U,{}>", params.params, params.params, params.params)),
+                            Line(params.where_clause_with_send.clone() + "{"),
                         ))
                     } else {
                         Branch(vec!(
@@ -1388,7 +1383,7 @@ fn generate_node(gen:&GeneratorContext,
                     Indent(Box::new(Branch( vec!(
                         Line(format!("pub fn from_server<T: ServerHook>(self) -> Client{} {{", bracketed_params)),
                         Indent(
-                            Box::new(Line("Client { client : T::new_client(::std::boxed::Box::new(ServerDispatch { server : ::std::boxed::Box::new(self.0)}))}".to_string()))),
+                            Box::new(Line(format!("Client {{ client : T::new_client(::std::boxed::Box::new(ServerDispatch {{ server : ::std::boxed::Box::new(self.u), {} }})), {} }}", params.phantom_data, params.phantom_data)))),
                         Line("}".to_string()))))),
                     Line("}".to_string()))));
 
@@ -1422,7 +1417,7 @@ fn generate_node(gen:&GeneratorContext,
             mod_interior.push(Branch(vec!(Line(format!("pub struct ServerDispatch<T,{}> {{", params.params)),
                                           Indent(Box::new(Line("pub server : Box<T>,".to_string()))),
                                           Indent(Box::new(Branch(if is_generic {
-                                            vec!(Line(format!("_phantomData: PhantomData<({})>", params.params))) } else { vec!() } ))),
+                                            vec!(Line(format!("_phantom: PhantomData<({})>", params.params))) } else { vec!() } ))),
                                           Line("}".to_string()))));
 
             mod_interior.push(

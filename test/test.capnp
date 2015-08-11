@@ -299,7 +299,7 @@ struct TestGenerics(Foo, Bar) {
     inner2 @2 :AliasInner2;
     inner2Bind @3 :AliasInner2(Text);
     inner2Text @4 :AliasInner2Text;
-    revFoo @5 :AliasRev.AliasFoo;
+#    revFoo @5 :AliasRev.AliasFoo;
   }
 }
 
@@ -357,8 +357,8 @@ struct TestUseGenerics $TestGenerics(Text, Data).ann("foo") {
       inner = (foo = (int16Field = 123)),
       inner2 = (innerBound = (foo = (int16Field = 123))),
       inner2Bind = (baz = "text", innerBound = (foo = (int16Field = 123))),
-      inner2Text = (baz = "text", innerBound = (foo = (int16Field = 123))),
-      revFoo = [12, 34, 56]);
+      inner2Text = (baz = "text", innerBound = (foo = (int16Field = 123))));
+#      revFoo = [12, 34, 56]);
 }
 
 struct TestEmptyStruct {}
