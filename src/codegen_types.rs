@@ -3,14 +3,25 @@ use schema_capnp::*;
 use codegen;
 
 #[derive(Copy,Clone,PartialEq)]
-pub enum Module { Reader, Builder, Owned }
+pub enum Module { Reader, Builder, Owned, Client, Pipeline }
 impl ::std::fmt::Display for Module {
     fn fmt(&self, fmt:&mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
         ::std::fmt::Display::fmt(match self {
             &Module::Reader => "Reader",
             &Module::Builder => "Builder",
             &Module::Owned => "Owned",
+            &Module::Client => "Client",
+            &Module::Pipeline => "Pipeline",
         }, fmt)
+    }
+}
+
+impl Module {
+    fn have_lifetime(&self) -> bool {
+        match self {
+            &Module::Reader | &Module::Builder => true,
+            &Module::Owned | &Module::Client | &Module::Pipeline => false,
+        }
     }
 }
 
@@ -51,7 +62,6 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
 
     fn expand_parameters(&self, gen:&::codegen::GeneratorContext) -> Vec<String> {
         let mut vec:Vec<String> = self.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()).collect();
-
         match self.which().unwrap() {
             ::schema_capnp::node::Struct(struct_reader) => {
                 let fields = struct_reader.get_fields().unwrap();
@@ -163,14 +173,17 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
         let the_mod = scope.unwrap_or_else( || &gen.scope_map[&self.get_id()]).connect("::");
         let mut reader_bindings:Vec<String> = vec!();
         let mut builder_bindings:Vec<String> = vec!();
-        let parameters_count = self.expand_parameters(gen).len();
-        let scopes = brand.get_scopes().unwrap();
-        for scope in scopes.iter() {
-            match scope.which().unwrap() {
+        let parameters = self.expand_parameters(gen);
+        for s in brand.get_scopes().unwrap().iter() {
+            match s.which().unwrap() {
                 brand::scope::Inherit(_) => {
-                    let parent_node = gen.node_map[&scope.get_scope_id()];
-                    reader_bindings.extend(parent_node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()+"Reader"));
-                    builder_bindings.extend(parent_node.get_parameters().unwrap().iter().map(|p| p.get_name().unwrap().to_string()+"Builder"));
+                    let parent_node = gen.node_map[&s.get_scope_id()];
+                    for p in parent_node.get_parameters().unwrap().iter() {
+                        if parameters.contains(&p.get_name().unwrap().to_string()) {
+                            reader_bindings.push(p.get_name().unwrap().to_string()+"Reader");
+                            builder_bindings.push(p.get_name().unwrap().to_string()+"Builder");
+                        }
+                    }
                 },
                 brand::scope::Bind(b) => {
                     b.unwrap().iter().map(|binding|
@@ -185,7 +198,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 },
             }
         };
-        let local_lifetime = if module == Module::Owned { "" } else { lifetime };
+        let local_lifetime = if module.have_lifetime() { lifetime } else { "" };
         let bracketed_lifetime = if local_lifetime == "" { "".to_string() } else {
             format!("<{}>", local_lifetime)
         };
@@ -193,13 +206,14 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             format!("{},", local_lifetime)
         };
         let module_with_var = format!("{}{}", module, bracketed_lifetime);
-        if parameters_count == 0 {
+println!("XXXX {} {}", self.get_display_name().unwrap(), parameters.connect(","));
+        if parameters.len() == 0 {
             format!("{}::{}", the_mod, module_with_var)
         } else {
-            if parameters_count != reader_bindings.len() {
+            if parameters.len() != reader_bindings.len() {
                 reader_bindings.clear();
                 builder_bindings.clear();
-                for _ in 0 .. parameters_count {
+                for _ in 0 .. parameters.len() {
                     reader_bindings.push(format!("::capnp::any_pointer::Reader<{}>", lifetime));
                     builder_bindings.push(format!("::capnp::any_pointer::Builder<{}>", lifetime));
                 }
@@ -215,7 +229,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                    module:Module, lifetime:&str) -> String {
         use codegen_types::RustTypeInfo;
 
-        let local_lifetime = if module == Module::Owned { "" } else { lifetime };
+        let local_lifetime = if module.have_lifetime() { lifetime } else { "" };
 
         let bracketed_lifetime = if local_lifetime == "" { "".to_string() } else {
             format!("<{}>", local_lifetime)
@@ -242,6 +256,9 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Data(()) => format!("data::{}", module_with_var),
             type_::Struct(st) => {
                 gen.node_map[&st.get_type_id()].type_string(gen, &st.get_brand().unwrap(), None, module, local_lifetime)
+            },
+            type_::Interface(interface) => {
+                gen.node_map[&interface.get_type_id()].type_string(gen, &interface.get_brand().unwrap(), None, Module::Client, local_lifetime)
             },
             type_::List(ot1) => {
                 match ot1.get_element_type().unwrap().which() {
@@ -275,10 +292,6 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Enum(en) => {
                 let scope = &gen.scope_map[&en.get_type_id()];
                 scope.connect("::").to_string()
-            },
-            type_::Interface(interface) => {
-                let the_mod = gen.scope_map[&interface.get_type_id()].connect("::");
-                format!("{}::Client", the_mod)
             },
             type_::AnyPointer(pointer) => {
                 match pointer.which().unwrap() {
