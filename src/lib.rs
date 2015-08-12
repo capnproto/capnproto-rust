@@ -53,6 +53,7 @@ pub mod schema_capnp;
 pub mod codegen;
 pub mod codegen_types;
 pub mod schema;
+#[cfg(test)] pub mod test_codegen;
 
 use std::path::Path;
 
