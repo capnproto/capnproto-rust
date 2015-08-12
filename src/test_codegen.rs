@@ -62,8 +62,8 @@ impl CapnpcTest {
         command.arg(libfile.to_str().unwrap());
         command.arg("--crate-type").arg("lib").arg("-g");
         command.arg("--out-dir").arg(self.path.path().to_str().unwrap());
-        command.arg("-L").arg("test/target/debug");
-        command.arg("-L").arg("test/target/debug/deps");
+        command.arg("-L").arg("target/debug");
+        command.arg("-L").arg("target/debug/deps");
         command
     }
 
