@@ -50,7 +50,7 @@ impl CapnpcTest {
         ::codegen::main(reader, self.path.path()).unwrap();
     }
 
-    fn compile(&self) -> ::std::process::ExitStatus {
+    fn compile_command(&self) -> ::std::process::Command {
         use std::io::Write;
         let mut libfile = self.path.path().to_path_buf().clone();
         libfile.push("lib.rs");
@@ -64,12 +64,17 @@ impl CapnpcTest {
         command.arg("--out-dir").arg(self.path.path().to_str().unwrap());
         command.arg("-L").arg("test/target/debug");
         command.arg("-L").arg("test/target/debug/deps");
-        command.status().unwrap()
+        command
+    }
+
+    fn compile(&self) -> ::std::process::ExitStatus {
+        self.compile_command().status().unwrap()
     }
 
     #[allow(dead_code)]
     fn persist(self) -> () {
-        panic!("Persisted test files to {}", self.path.into_path().to_str().unwrap());
+        let command:String = format!("{:?}", self.compile_command()).chars().filter(|c| *c != '"').collect();
+        panic!("{:?} failed, persist files in {:?}", command, self.path.into_path());
     }
 
     fn compile_or_persist(self) {
@@ -97,12 +102,14 @@ fn test_context_basics() {
     test.compile_or_persist();
 }
 
+#[allow(dead_code)]
 #[cfg(test)]
 fn get_node_by_name<'a>(gen: &'a ::codegen::GeneratorContext, name:&str)
         -> Option<&'a ::schema_capnp::node::Reader<'a>> {
     gen.node_map.values().find(|n| n.get_display_name().unwrap() == name)
 }
 
+#[allow(dead_code)]
 #[cfg(test)]
 fn node_as_struct<'a>(st:&::schema_capnp::node::Reader<'a>)
         -> ::schema_capnp::node::struct_::Reader<'a> {
@@ -112,6 +119,7 @@ fn node_as_struct<'a>(st:&::schema_capnp::node::Reader<'a>)
     }
 }
 
+#[allow(dead_code)]
 #[cfg(test)]
 fn field_as_slot<'a>(field:&::schema_capnp::field::Reader<'a>)
         -> ::schema_capnp::field::slot::Reader<'a> {
@@ -121,6 +129,7 @@ fn field_as_slot<'a>(field:&::schema_capnp::field::Reader<'a>)
     }
 }
 
+#[allow(dead_code)]
 #[cfg(test)]
 fn type_string_for(gen: &::codegen::GeneratorContext, st:&::schema_capnp::node::struct_::Reader, field_name:&str) -> String {
     let field = st.get_fields().unwrap().iter().find(|f| f.get_name().unwrap() == field_name).unwrap();
@@ -175,7 +184,29 @@ fn test_generic_list() {
     test.compile_or_persist();
 }
 
+#[ignore]
 #[test]
+fn test_inner_generic_list() {
+    let test = CapnpcTest::new(r#"@0x99d187209d25cee7; struct Gen(T) {
+        struct Inner { t @0: T; } 
+        l @0 :List(Inner); }"#);
+    test.codegen();
+    test.compile_or_persist();
+}
+
+#[test]
+fn test_generic_use() {
+    let test = CapnpcTest::new(r#"@0x99d187209d25cee7;
+        struct Gen(T) { t @0: T; }
+        struct A { a @0: Int64; }
+        struct Bound { foo @0: Gen(A); }
+    "#);
+    test.codegen();
+    test.compile_or_persist();
+}
+
+#[test]
+#[ignore]
 fn test_map_example_from_doc() {
     let test = CapnpcTest::new(r#"@0x99d187209d25cee7; struct Map(Key, Value) {
         entries @0 :List(Entry);
@@ -219,7 +250,9 @@ fn test_map_example_from_doc() {
     test.compile_or_persist();
 }
 
+
 #[test]
+#[ignore]
 fn test_partial_parameter_list_expansion() {
     let test = CapnpcTest::new(r#"@0x99d187209d25cee7; 
         struct TestGenerics(Foo, Bar) {
@@ -299,4 +332,6 @@ fn test_partial_parameter_list_expansion() {
         assert_eq!("::Reader<QuxReader,QuxBuilder>",
                     result_type.type_string(&gen, &call_method.get_result_brand().unwrap(), Some(&vec!()), Module::Reader, ""));
     }
+    test.codegen();
+    test.compile_or_persist();
 }

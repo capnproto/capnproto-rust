@@ -146,9 +146,11 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                     format!("{}Builder",param)
                 }).collect::<Vec<String>>().connect(","));
             let where_clause = "where ".to_string() + &*(params.iter().map(|param| {
+                //format!("{}Reader:for<'x> FromPointerReader<'x>", param)
                 format!("{}Reader:FromPointerReader<'a>", param)
             }).collect::<Vec<String>>().connect(", ") + " ") + ", "
                 + &*(params.iter().map(|param| {
+                // format!("{}Builder:for<'x> FromPointerBuilder<'x>", param)
                 format!("{}Builder:FromPointerBuilder<'a>", param)
             }).collect::<Vec<String>>().connect(", ") + " ");
             let where_clause_with_send = "where ".to_string() + &*(params.iter().map(|param| {
