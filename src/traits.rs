@@ -38,6 +38,17 @@ pub trait FromPointerReader<'a> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Self>;
 }
 
+/// Associated types hackery that allows us to reason about Cap'n Proto types
+/// without needing to give them a lifetime `'a`.
+///
+/// If `Foo` is a Cap'n Proto struct and `Bar` is a Rust-native struct, then
+/// `foo::Reader<'a>` is to `foo::Owned` as `&'a Bar` is to `Bar`, and
+/// `foo::Builder<'a>` is to `foo::Owned` as `&'a mut Bar` is to `Bar`.
+/// The relationship is formalized by an `impl <'a> capnp::traits::Owned<'a> for foo::Owned`.
+/// Because Cap'n Proto struct layout differs from Rust struct layout,
+/// `foo::Owned` cannot be an inhabited type; it is useful nonetheless
+/// as a type parameter, e.g. for a generic container that owns a Cap'n Proto message
+/// of type `T: for<'a> capnp::traits::Owned<'a>`.
 pub trait Owned<'a> {
     type Reader: FromPointerReader<'a>;
     type Builder: FromPointerBuilder<'a>;
