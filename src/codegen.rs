@@ -639,7 +639,6 @@ fn generate_setter(gen:&GeneratorContext, discriminant_offset : u32,
         Some(ref reader_type) => {
             let return_type = if return_result { "-> Result<()>" } else { "" };
             result.push(Line("#[inline]".to_string()));
-            result.push(Line("#[allow(dead_code)]".to_string()));
             result.push(Line(format!("pub fn set_{}{}(&mut self, {} : {}) {} {{",
                                      styled_name, setter_generic_param, setter_param,
                                      reader_type, return_type)));
@@ -651,7 +650,6 @@ fn generate_setter(gen:&GeneratorContext, discriminant_offset : u32,
     match maybe_builder_type {
         Some(builder_type) => {
             result.push(Line("#[inline]".to_string()));
-            result.push(Line("#[allow(dead_code)]".to_string()));
             let args = initter_params.connect(", ");
             result.push(Line(format!("pub fn init_{}(self, {}) -> {} {{",
                                      styled_name, args, builder_type)));
@@ -1401,7 +1399,7 @@ fn generate_node(gen:&GeneratorContext,
                         Line("#[allow(dead_code)]".to_string()),
                         Line(format!("pub fn from_server<T: ServerHook>(self) -> Client{} {{", bracketed_params)),
                         Indent(
-                            Box::new(Line(format!("Client {{ client : T::new_client(::std::boxed::Box::new(ServerDispatch {{ server : ::std::boxed::Box::new(self.u), {} }})), {} }}", params.phantom_data, params.phantom_data)))),
+                            Box::new(Line(format!("Client {{ client : T::new_client(::std::boxed::Box::new(ServerDispatch {{ server : ::std::boxed::Box::new(self.0), {} }})), {} }}", params.phantom_data, params.phantom_data)))),
                         Line("}".to_string()))))),
                     Line("}".to_string()))));
 

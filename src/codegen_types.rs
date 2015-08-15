@@ -140,18 +140,10 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
         if self.get_is_generic() {
             let params = self.expand_parameters(&gen);
             let type_parameters = params.iter().map(|param| {
-                format!("{}Reader",param)
-            }).collect::<Vec<String>>().connect(",") + ", " +
-                &*(params.iter().map(|param| {
-                    format!("{}Builder",param)
-                }).collect::<Vec<String>>().connect(","));
+                format!("{}",param)
+            }).collect::<Vec<String>>().connect(",");
             let where_clause = "where ".to_string() + &*(params.iter().map(|param| {
-                //format!("{}Reader:for<'x> FromPointerReader<'x>", param)
-                format!("{}Reader:FromPointerReader<'a>", param)
-            }).collect::<Vec<String>>().connect(", ") + " ") + ", "
-                + &*(params.iter().map(|param| {
-                // format!("{}Builder:for<'x> FromPointerBuilder<'x>", param)
-                format!("{}Builder:FromPointerBuilder<'a>", param)
+                format!("{}: for<'c> ::capnp::traits::Owned<'c>", param)
             }).collect::<Vec<String>>().connect(", ") + " ");
             let where_clause_with_send = "where ".to_string() + &*(params.iter().map(|param| {
                 //format!("{}Reader:Send+FromPointerReader<'a>", param)
@@ -193,8 +185,8 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                     let parent_node = gen.node_map[&s.get_scope_id()];
                     for p in parent_node.get_parameters().unwrap().iter() {
                         if parameters.contains(&p.get_name().unwrap().to_string()) {
-                            reader_bindings.push(p.get_name().unwrap().to_string()+"Reader");
-                            builder_bindings.push(p.get_name().unwrap().to_string()+"Builder");
+                            reader_bindings.push(p.get_name().unwrap().to_string());
+                            builder_bindings.push(p.get_name().unwrap().to_string());
                         }
                     }
                 },
@@ -202,8 +194,8 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                     b.unwrap().iter().map(|binding|
                         match binding.which().unwrap() {
                             brand::binding::Type(Ok(t)) => {
-                                reader_bindings.push(t.type_string(gen, Module::Reader, lifetime));
-                                builder_bindings.push(t.type_string(gen, Module::Builder, lifetime));
+                                reader_bindings.push(t.type_string(gen, Module::Owned, lifetime));
+                                builder_bindings.push(t.type_string(gen, Module::Owned, lifetime));
                             }
                             _ => {}
                         }
@@ -230,7 +222,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                     builder_bindings.push(format!("::capnp::any_pointer::Builder<{}>", lifetime));
                 }
             }
-            format!("{}::{}<{}{},{}>", the_mod, module, lifetime_coma, reader_bindings.connect(","), builder_bindings.connect(","))
+            format!("{}::{}<{}{}>", the_mod, module, lifetime_coma, reader_bindings.connect(","))
         }
     }
 }
@@ -312,7 +304,13 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                         let parameters = the_struct.get_parameters().unwrap();
                         let parameter = parameters.get(def.get_parameter_index() as u32);
                         let parameter_name = parameter.get_name().unwrap();
-                        format!("{}{}", parameter_name, module)
+                        match module {
+                            Module::Owned => parameter_name.to_string(),
+                            _ => {
+                                format!("<{} as ::capnp::traits::Owned<{}>>::{}",
+                                        parameter_name, lifetime, module)
+                            }
+                        }
                     },
                     _ => {
                         format!("::capnp::any_pointer::{}{}", module, bracketed_lifetime)
