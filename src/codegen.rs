@@ -451,10 +451,15 @@ fn zero_fields_of_group(gen:&GeneratorContext, node_id : u64) -> FormattedText {
                             type_::Int8(()) |
                             type_::Int16(()) | type_::Int32(()) | type_::Int64(()) |
                             type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) |
-                            type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) |
-                            type_::Enum(_) => {
+                            type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
                                 let line = Line(format!("self.builder.set_data_field::<{0}>({1}, 0u8 as {0});",
                                                         slot.get_type().unwrap().type_string(gen, Module::Builder("'a")),
+                                                        slot.get_offset()));
+                                // PERF could dedup more efficiently
+                                if !result.contains(&line) { result.push(line) }
+                            }
+                            type_::Enum(_) => {
+                                let line = Line(format!("self.builder.set_data_field::<u16>({}, 0u16);",
                                                         slot.get_offset()));
                                 // PERF could dedup more efficiently
                                 if !result.contains(&line) { result.push(line) }
@@ -1430,11 +1435,13 @@ fn generate_node(gen: &GeneratorContext,
                             Line("}".to_string()),
                             Line(format!("impl <{}, U : Server<{}> + Send + 'static> ToClient<U,{}>", params.params, params.params, params.params)),
                             Line(params.where_clause_with_send.clone() + "{"),
+                            Line(format!("pub fn new(u: U) -> ToClient<U, {}> {{ ToClient {{u: u, _phantom: PhantomData}} }}", params.params)),
                         ))
                     } else {
                         Branch(vec!(
                             Line("pub struct ToClient<U>{pub u: U}".to_string()),
-                            Line("impl <U : Server + Send + 'static> ToClient<U> {".to_string())
+                            Line("impl <U : Server + Send + 'static> ToClient<U> {".to_string()),
+                            Line("pub fn new(u: U) -> ToClient<U> { ToClient {u: u} }".to_string()),
                         ))
                     }),
                     Indent(Box::new(Branch( vec!(
