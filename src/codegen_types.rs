@@ -4,7 +4,7 @@ use codegen::{GeneratorContext};
 use std::collections::hash_map::HashMap;
 
 #[derive(Copy,Clone,PartialEq)]
-pub enum Module {
+pub enum Leaf {
     Reader(&'static str),
     Builder(&'static str),
     Owned,
@@ -12,34 +12,34 @@ pub enum Module {
     Pipeline
 }
 
-impl ::std::fmt::Display for Module {
+impl ::std::fmt::Display for Leaf {
     fn fmt(&self, fmt:&mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
         let display_string = match self {
-            &Module::Reader(lt) => format!("Reader<{}>", lt),
-            &Module::Builder(lt) => format!("Builder<{}>", lt),
-            &Module::Owned => "Owned".to_string(),
-            &Module::Client => "Client".to_string(),
-            &Module::Pipeline => "Pipeline".to_string(),
+            &Leaf::Reader(lt) => format!("Reader<{}>", lt),
+            &Leaf::Builder(lt) => format!("Builder<{}>", lt),
+            &Leaf::Owned => "Owned".to_string(),
+            &Leaf::Client => "Client".to_string(),
+            &Leaf::Pipeline => "Pipeline".to_string(),
         };
         ::std::fmt::Display::fmt(&display_string, fmt)
     }
 }
 
-impl Module {
+impl Leaf {
     fn bare_name(&self) -> &'static str {
         match self {
-            &Module::Reader(_) => "Reader",
-            &Module::Builder(_) => "Builder",
-            &Module::Owned => "Owned",
-            &Module::Client => "Client",
-            &Module::Pipeline => "Pipeline",
+            &Leaf::Reader(_) => "Reader",
+            &Leaf::Builder(_) => "Builder",
+            &Leaf::Owned => "Owned",
+            &Leaf::Client => "Client",
+            &Leaf::Pipeline => "Pipeline",
         }
     }
 
     fn _have_lifetime(&self) -> bool {
         match self {
-            &Module::Reader(_) | &Module::Builder(_) => true,
-            &Module::Owned | &Module::Client | &Module::Pipeline => false,
+            &Leaf::Reader(_) | &Leaf::Builder(_) => true,
+            &Leaf::Owned | &Leaf::Client | &Leaf::Pipeline => false,
         }
     }
 }
@@ -64,7 +64,7 @@ pub trait RustTypeInfo {
     fn is_prim(&self) -> bool;
     fn is_parameterized(&self) -> bool;
     fn is_branded(&self) -> bool;
-    fn type_string(&self, gen:&codegen::GeneratorContext, module:Module) -> String;
+    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> String;
 }
 
 impl <'a> RustNodeInfo for node::Reader<'a> {
@@ -109,12 +109,12 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
 
 impl <'a> RustTypeInfo for type_::Reader<'a> {
 
-    fn type_string(&self, gen:&codegen::GeneratorContext, module:Module) -> String {
+    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> String {
         use codegen_types::RustTypeInfo;
 
         let local_lifetime = match module {
-            Module::Reader(lt) => lt,
-            Module::Builder(lt) => lt,
+            Leaf::Reader(lt) => lt,
+            Leaf::Builder(lt) => lt,
             _ => "",
         };
 
@@ -149,15 +149,15 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                 match ot1.get_element_type().unwrap().which() {
                     Err(_) => { panic!("unsupported type") },
                     Ok(type_::Struct(_)) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned);
+                        let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
                         format!("struct_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
                     },
                     Ok(type_::Enum(_)) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned);
+                        let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
                         format!("enum_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
                     },
                     Ok(type_::List(_)) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned);
+                        let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
                         format!("list_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
                     },
                     Ok(type_::Text(())) => {
@@ -169,7 +169,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                     Ok(type_::Interface(_)) => {panic!("unimplemented") },
                     Ok(type_::AnyPointer(_)) => {panic!("List(AnyPointer) is unsupported")},
                     Ok(_) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned);
+                        let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
                         format!("primitive_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
                     },
                 }
@@ -186,16 +186,16 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                         let parameter = parameters.get(def.get_parameter_index() as u32);
                         let parameter_name = parameter.get_name().unwrap();
                         match module {
-                            Module::Owned => parameter_name.to_string(),
-                            Module::Reader(lifetime) => {
+                            Leaf::Owned => parameter_name.to_string(),
+                            Leaf::Reader(lifetime) => {
                                 format!("<{} as ::capnp::traits::Owned<{}>>::Reader",
                                         parameter_name, lifetime)
                             }
-                            Module::Builder(lifetime) => {
+                            Leaf::Builder(lifetime) => {
                                 format!("<{} as ::capnp::traits::Owned<{}>>::Builder",
                                         parameter_name, lifetime)
                             }
-                            Module::Pipeline => {
+                            Leaf::Pipeline => {
                                 format!("<{} as ::capnp::traits::Owned<'static>>::Pipeline", parameter_name)
                             }
                             _ => { unimplemented!() }
@@ -203,10 +203,10 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                     },
                     _ => {
                         match module {
-                            Module::Reader(lifetime) => {
+                            Leaf::Reader(lifetime) => {
                                 format!("::capnp::any_pointer::Reader<{}>", lifetime)
                             }
-                            Module::Builder(lifetime) => {
+                            Leaf::Builder(lifetime) => {
                                 format!("::capnp::any_pointer::Builder<{}>", lifetime)
                             }
                             _ => {
@@ -258,7 +258,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
 pub fn do_branding(gen: &GeneratorContext,
                    node_id: u64,
                    brand: brand::Reader,
-                   leaf: Module,
+                   leaf: Leaf,
                    the_mod: String,
                    mut parent_scope_id: Option<u64>) -> String {
     let scopes = brand.get_scopes().unwrap();
@@ -298,7 +298,7 @@ pub fn do_branding(gen: &GeneratorContext,
                                     arguments.push("::capnp::any_pointer::Owned".to_string());
                                 }
                                 brand::binding::Type(t) => {
-                                    arguments.push(t.unwrap().type_string(gen, Module::Owned));
+                                    arguments.push(t.unwrap().type_string(gen, Leaf::Owned));
                                 }
                             }
                         }
@@ -317,8 +317,8 @@ pub fn do_branding(gen: &GeneratorContext,
 
     // Now add a lifetime parameter if the leaf has one.
     match leaf {
-        Module::Reader(lt) => accumulator.push(vec!(lt.to_string())),
-        Module::Builder(lt) => accumulator.push(vec!(lt.to_string())),
+        Leaf::Reader(lt) => accumulator.push(vec!(lt.to_string())),
+        Leaf::Builder(lt) => accumulator.push(vec!(lt.to_string())),
         _ => (),
     }
 
