@@ -271,14 +271,14 @@ struct TestGenerics(Foo, Bar) {
     bar @0 :Bar;
     baz @1 :Baz;
     innerBound @2 :Inner;
-#    innerUnbound @3 :TestGenerics.Inner;
+    innerUnbound @3 :TestGenerics.Inner;
 
-#    struct DeepNest(Qux) {
-#      foo @0 :Foo;
-#      bar @1 :Bar;
-#      baz @2 :Baz;
-#      qux @3 :Qux;
-#    }
+    struct DeepNest(Qux) {
+      foo @0 :Foo;
+      bar @1 :Bar;
+      baz @2 :Baz;
+      qux @3 :Qux;
+    }
   }
 
 #  interface Interface(Qux) {

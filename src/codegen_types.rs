@@ -26,7 +26,7 @@ impl ::std::fmt::Display for Module {
 }
 
 impl Module {
-    fn bare_name(&self) -> &'static str{
+    fn bare_name(&self) -> &'static str {
         match self {
             &Module::Reader(_) => "Reader",
             &Module::Builder(_) => "Builder",
@@ -193,6 +193,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
 
     fn type_string(&self, gen:&codegen::GeneratorContext, brand:&::schema_capnp::brand::Reader,
             scope:Option<&Vec<String>>, module:Module) -> String {
+//        unimplemented!();
         let the_mod = scope.unwrap_or_else( || &gen.scope_map[&self.get_id()]).connect("::");
         let mut reader_bindings:Vec<String> = vec!();
         let mut builder_bindings:Vec<String> = vec!();
@@ -276,11 +277,9 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Float64(()) => "f64".to_string(),
             type_::Text(()) => format!("text::{}", module),
             type_::Data(()) => format!("data::{}", module),
-            type_::Struct(st) => {
-                gen.node_map[&st.get_type_id()].type_string(gen, &st.get_brand().unwrap(), None, module)
-            },
+            type_::Struct(st) => do_branding(gen, st.get_type_id(), st.get_brand().unwrap(), module),
             type_::Interface(interface) => {
-                gen.node_map[&interface.get_type_id()].type_string(gen, &interface.get_brand().unwrap(), None, Module::Client)
+                do_branding(gen, interface.get_type_id(), interface.get_brand().unwrap(), module)
             },
             type_::List(ot1) => {
                 match ot1.get_element_type().unwrap().which() {
@@ -392,7 +391,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
 
 ///
 ///
-pub fn compute_specifics(gen: GeneratorContext, node_id: u64, brand: brand::Reader) -> Vec<String> {
+fn do_branding(gen: &GeneratorContext, node_id: u64, brand: brand::Reader, leaf: Module) -> String {
     let scopes = brand.get_scopes().unwrap();
     let mut brand_scopes = HashMap::new();
     for scope in scopes.iter() {
@@ -402,7 +401,7 @@ pub fn compute_specifics(gen: GeneratorContext, node_id: u64, brand: brand::Read
     let mut current_node_id = node_id;
     let mut accumulator: Vec<Vec<String>> = Vec::new();
     loop {
-        let current_node = match gen.node_map.get(&node_id) {
+        let current_node = match gen.node_map.get(&current_node_id) {
             None => break,
             Some(node) => node,
         };
@@ -430,7 +429,7 @@ pub fn compute_specifics(gen: GeneratorContext, node_id: u64, brand: brand::Read
                                     arguments.push("::capnp::any_pointer::Owned".to_string());
                                 }
                                 brand::binding::Type(t) => {
-                                    arguments.push(t.unwrap().type_string(&gen, Module::Owned));
+                                    arguments.push(t.unwrap().type_string(gen, Module::Owned));
                                 }
                             }
                         }
@@ -441,5 +440,23 @@ pub fn compute_specifics(gen: GeneratorContext, node_id: u64, brand: brand::Read
         accumulator.push(arguments);
         current_node_id = current_node.get_scope_id();
     }
-    return accumulator.concat();
+
+    // Now add a lifetime paramter if the leaf has one.
+    match leaf {
+        Module::Reader(lt) => accumulator.push(vec!(lt.to_string())),
+        Module::Builder(lt) => accumulator.push(vec!(lt.to_string())),
+        _ => (),
+    }
+
+    accumulator.reverse();
+
+    let arguments = if accumulator.len() > 0 {
+        format!("<{}>", accumulator.concat().connect(","))
+    } else {
+        "".to_string()
+    };
+
+    return format!("{}::{}{}", gen.scope_map[&node_id].connect("::"),
+                   leaf.bare_name().to_string(), arguments);
 }
+
