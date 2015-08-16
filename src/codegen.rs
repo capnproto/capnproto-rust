@@ -52,8 +52,8 @@ impl <'a> GeneratorContext<'a> {
             let imports = try!(requested_file.get_imports());
             for import in imports.iter() {
                 let importpath = ::std::path::Path::new(try!(import.get_name()));
-                let root_name : String = format!("::{}_capnp",
-                                                 importpath.file_stem().unwrap().to_owned()
+                let root_name: String = format!("::{}_capnp",
+                                                importpath.file_stem().unwrap().to_owned()
                                                 .into_string().unwrap().replace("-", "_"));
                 populate_scope_map(&gen.node_map, &mut gen.scope_map, vec!(root_name), import.get_id());
             }
@@ -870,9 +870,13 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
     }
 }
 
-fn generate_node(gen:&GeneratorContext,
-                 node_id : u64,
-                 node_name: &str) -> FormattedText {
+fn generate_node(gen: &GeneratorContext,
+                 node_id: u64,
+                 node_name: &str,
+                 // Ugh. We need this to deal with the anonymous Params and Results
+                 // structs that go with RPC methods.
+                 parent_node_id: Option<u64>,
+                 ) -> FormattedText {
     use schema_capnp::*;
 
     let mut output: Vec<FormattedText> = Vec::new();
@@ -882,7 +886,7 @@ fn generate_node(gen:&GeneratorContext,
     let nested_nodes = node_reader.get_nested_nodes().unwrap();
     for nested_node in nested_nodes.iter() {
         let id = nested_node.get_id();
-        nested_output.push(generate_node(gen, id, &gen.scope_map[&id].last().unwrap()));
+        nested_output.push(generate_node(gen, id, &gen.scope_map[&id].last().unwrap(), None));
     }
 
     match node_reader.which() {
@@ -892,7 +896,7 @@ fn generate_node(gen:&GeneratorContext,
         }
 
         Ok(node::Struct(struct_reader)) => {
-            let params = node_reader.parameters_texts(gen);
+            let params = node_reader.parameters_texts(gen, parent_node_id);
             output.push(BlankLine);
 
             let is_generic = node_reader.get_is_generic();
@@ -967,7 +971,7 @@ fn generate_node(gen:&GeneratorContext,
                     Ok(field::Group(group)) => {
                         let id = group.get_type_id();
                         let text = generate_node(gen, id,
-                                                 &gen.scope_map[&id].last().unwrap());
+                                                 &gen.scope_map[&id].last().unwrap(), None);
                         nested_output.push(text);
                     }
                     _ => { }
@@ -1259,7 +1263,7 @@ fn generate_node(gen:&GeneratorContext,
         }
 
         Ok(node::Interface(interface)) => {
-            let params = node_reader.parameters_texts(gen);
+            let params = node_reader.parameters_texts(gen, parent_node_id);
             output.push(BlankLine);
 
             let is_generic = node_reader.get_is_generic();
@@ -1298,7 +1302,7 @@ fn generate_node(gen:&GeneratorContext,
                 let param_scopes = if param_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Params", name));
-                    nested_output.push(generate_node(gen, param_id, &*local_name));
+                    nested_output.push(generate_node(gen, param_id, &*local_name, Some(node_id)));
                     names.push(local_name);
                     names
                 } else {
@@ -1313,7 +1317,7 @@ fn generate_node(gen:&GeneratorContext,
                 let result_scopes = if result_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Results", name));
-                    nested_output.push(generate_node(gen, result_id, &*local_name));
+                    nested_output.push(generate_node(gen, result_id, &*local_name, Some(node_id)));
                     names.push(local_name);
                     names
                 } else {
@@ -1575,7 +1579,7 @@ pub fn main<T : ::std::io::Read>(mut inp : T, out_dir : &::std::path::Path) -> :
             Line("// DO NOT EDIT.".to_string()),
             Line(format!("// source: {}", try!(requested_file.get_filename()))),
             BlankLine,
-            generate_node(&gen, id, &root_name)));
+            generate_node(&gen, id, &root_name, None)));
 
         let text = stringify(&lines);
 
