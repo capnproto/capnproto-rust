@@ -1323,7 +1323,7 @@ fn generate_node(gen: &GeneratorContext,
                 } else {
                     gen.scope_map[&result_node.get_id()].clone()
                 };
-                let result_type = do_branding(&gen, param_id, method.get_param_brand().unwrap(),
+                let result_type = do_branding(&gen, result_id, method.get_result_brand().unwrap(),
                                               Module::Owned, result_scopes.connect("::"), Some(node_id));
 
                 dispatch_arms.push(
