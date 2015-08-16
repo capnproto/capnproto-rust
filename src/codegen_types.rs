@@ -54,9 +54,6 @@ pub struct TypeParameterTexts {
 
 // this is a collection of helpers acting on a "Node" (most of them are Type definitions)
 pub trait RustNodeInfo {
-    fn type_string(&self, gen: &codegen::GeneratorContext, brand: &brand::Reader,
-        scope:Option<&Vec<String>>, module:Module) -> String;
-
     // in rust, we have only nestable modules, and parameterizable types...
     // so a logically child struct will be a physical sibling to its logical parent. so it must
     // keep track of all parameterization on its own
@@ -190,61 +187,6 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             }
         }
     }
-
-    fn type_string(&self, gen:&codegen::GeneratorContext, brand:&::schema_capnp::brand::Reader,
-            scope:Option<&Vec<String>>, module:Module) -> String {
-//        unimplemented!();
-        let the_mod = scope.unwrap_or_else( || &gen.scope_map[&self.get_id()]).connect("::");
-        let mut reader_bindings:Vec<String> = vec!();
-        let mut builder_bindings:Vec<String> = vec!();
-        let parameters = self.expand_parameters(gen);
-        for s in brand.get_scopes().unwrap().iter() {
-            match s.which().unwrap() {
-                brand::scope::Inherit(_) => {
-                    let parent_node = gen.node_map[&s.get_scope_id()];
-                    for p in parent_node.get_parameters().unwrap().iter() {
-                        if parameters.contains(&p.get_name().unwrap().to_string()) {
-                            reader_bindings.push(p.get_name().unwrap().to_string());
-                            builder_bindings.push(p.get_name().unwrap().to_string());
-                        }
-                    }
-                },
-                brand::scope::Bind(b) => {
-                    b.unwrap().iter().map(|binding|
-                        match binding.which().unwrap() {
-                            brand::binding::Type(Ok(t)) => {
-                                reader_bindings.push(t.type_string(gen, Module::Owned));
-                                builder_bindings.push(t.type_string(gen, Module::Owned));
-                            }
-                            _ => {}
-                        }
-                    ).count();
-                },
-            }
-        };
-        let local_lifetime = match module {
-            Module::Reader(lt) => lt,
-            Module::Builder(lt) => lt,
-            _ => "",
-        };
-
-        let lifetime_coma = if local_lifetime == "" { "".to_string() } else {
-            format!("{},", local_lifetime)
-        };
-        if parameters.len() == 0 {
-            format!("{}::{}", the_mod, module)
-        } else {
-            if parameters.len() != reader_bindings.len() {
-                reader_bindings.clear();
-                builder_bindings.clear();
-                for _ in 0 .. parameters.len() {
-                    reader_bindings.push(format!("::capnp::any_pointer::Reader<{}>", local_lifetime));
-                    builder_bindings.push(format!("::capnp::any_pointer::Builder<{}>", local_lifetime));
-                }
-            }
-            format!("{}::{}<{}{}>", the_mod, module.bare_name(), lifetime_coma, reader_bindings.connect(","))
-        }
-    }
 }
 
 impl <'a> RustTypeInfo for type_::Reader<'a> {
@@ -277,10 +219,14 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Float64(()) => "f64".to_string(),
             type_::Text(()) => format!("text::{}", module),
             type_::Data(()) => format!("data::{}", module),
-            type_::Struct(st) => do_branding(gen, st.get_type_id(), st.get_brand().unwrap(), module),
+            type_::Struct(st) => {
+                do_branding(gen, st.get_type_id(), st.get_brand().unwrap(), module,
+                            gen.scope_map[&st.get_type_id()].connect("::"), None)
+            }
             type_::Interface(interface) => {
-                do_branding(gen, interface.get_type_id(), interface.get_brand().unwrap(), module)
-            },
+                do_branding(gen, interface.get_type_id(), interface.get_brand().unwrap(), module,
+                            gen.scope_map[&interface.get_type_id()].connect("::"), None)
+            }
             type_::List(ot1) => {
                 match ot1.get_element_type().unwrap().which() {
                     Err(_) => { panic!("unsupported type") },
@@ -391,7 +337,12 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
 
 ///
 ///
-fn do_branding(gen: &GeneratorContext, node_id: u64, brand: brand::Reader, leaf: Module) -> String {
+pub fn do_branding(gen: &GeneratorContext,
+                   node_id: u64,
+                   brand: brand::Reader,
+                   leaf: Module,
+                   the_mod: String,
+                   mut parent_scope_id: Option<u64>) -> String {
     let scopes = brand.get_scopes().unwrap();
     let mut brand_scopes = HashMap::new();
     for scope in scopes.iter() {
@@ -439,9 +390,14 @@ fn do_branding(gen: &GeneratorContext, node_id: u64, brand: brand::Reader, leaf:
         }
         accumulator.push(arguments);
         current_node_id = current_node.get_scope_id();
+        match (current_node_id, parent_scope_id) {
+            (0, Some(id)) => current_node_id = id,
+            _ => (),
+        }
+        parent_scope_id = None; // Only consider on the first time around.
     }
 
-    // Now add a lifetime paramter if the leaf has one.
+    // Now add a lifetime parameter if the leaf has one.
     match leaf {
         Module::Reader(lt) => accumulator.push(vec!(lt.to_string())),
         Module::Builder(lt) => accumulator.push(vec!(lt.to_string())),
@@ -456,7 +412,7 @@ fn do_branding(gen: &GeneratorContext, node_id: u64, brand: brand::Reader, leaf:
         "".to_string()
     };
 
-    return format!("{}::{}{}", gen.scope_map[&node_id].connect("::"),
+    return format!("{}::{}{}", the_mod,
                    leaf.bare_name().to_string(), arguments);
 }
 

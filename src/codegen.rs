@@ -22,7 +22,7 @@
 use capnp;
 use std::collections;
 use schema_capnp;
-use codegen_types::{ Module, RustTypeInfo, RustNodeInfo };
+use codegen_types::{ Module, RustTypeInfo, RustNodeInfo, do_branding };
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
 
 pub struct GeneratorContext<'a> {
@@ -1304,7 +1304,9 @@ fn generate_node(gen:&GeneratorContext,
                 } else {
                     gen.scope_map[&param_node.get_id()].clone()
                 };
-                let param_type = param_node.type_string(&gen, &method.get_param_brand().unwrap(), Some(&param_scopes), Module::Owned);
+                let param_type = do_branding(&gen, param_id, method.get_param_brand().unwrap(),
+                                             Module::Owned, param_scopes.connect("::"), Some(node_id));
+
 
                 let result_id = method.get_result_struct_type();
                 let result_node = &gen.node_map[&result_id];
@@ -1317,7 +1319,8 @@ fn generate_node(gen:&GeneratorContext,
                 } else {
                     gen.scope_map[&result_node.get_id()].clone()
                 };
-                let result_type = result_node.type_string(&gen, &method.get_result_brand().unwrap(), Some(&result_scopes), Module::Owned);
+                let result_type = do_branding(&gen, param_id, method.get_param_brand().unwrap(),
+                                              Module::Owned, result_scopes.connect("::"), Some(node_id));
 
                 dispatch_arms.push(
                     Line(format!(
