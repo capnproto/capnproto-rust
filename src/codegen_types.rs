@@ -162,11 +162,11 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             }).collect::<Vec<String>>().connect(", ") + " ");
             let where_clause_with_send = "where ".to_string() + &*(params.iter().map(|param| {
                 //format!("{}Reader:Send+FromPointerReader<'a>", param)
-                format!("{}Reader:Send", param)
+                format!("{}:Send", param)
             }).collect::<Vec<String>>().connect(", ") + " ") + ", "
                 + &*(params.iter().map(|param| {
                 //format!("{}Builder:Send+FromPointerBuilder<'a>", param)
-                format!("{}Builder:Send", param)
+                format!("{}:Send", param)
             }).collect::<Vec<String>>().connect(", ") + " ");
             let phantom_data = "_phantom: PhantomData,".to_string();
 
