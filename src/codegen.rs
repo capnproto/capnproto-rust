@@ -298,10 +298,10 @@ fn prim_default (value : &schema_capnp::value::Reader) -> Option<String> {
     }
 }
 
-pub fn getter_text (gen:&GeneratorContext,
-               field : &schema_capnp::field::Reader,
-               is_reader : bool)
-    -> (String, FormattedText) {
+pub fn getter_text (gen: &GeneratorContext,
+                    field: &schema_capnp::field::Reader,
+                    is_reader: bool)
+                    -> (String, FormattedText) {
     use schema_capnp::*;
 
     match field.which().ok().expect("unrecognized field type") {
@@ -317,8 +317,9 @@ pub fn getter_text (gen:&GeneratorContext,
         }
         field::Slot(reg_field) => {
             let offset = reg_field.get_offset() as usize;
-            let module = if is_reader { Module::Reader } else { Module::Builder };
-            let member = camel_to_snake_case(&*format!("{}", module));
+            let module_string = if is_reader { "Reader" } else { "Builder" };
+            let module = if is_reader { Module::Reader("'a") } else { Module::Builder("'a") };
+            let member = camel_to_snake_case(&*format!("{}", module_string));
 
             fn primitive_case<T: PartialEq + ::std::fmt::Display>(typ: &str, member:String,
                     offset: usize, default : T, zero : T) -> FormattedText {
@@ -330,7 +331,7 @@ pub fn getter_text (gen:&GeneratorContext,
             }
 
             let raw_type = reg_field.get_type().unwrap();
-            let typ = raw_type.type_string(gen, module, "'a");
+            let typ = raw_type.type_string(gen, module);
             let default = reg_field.get_default_value().unwrap().which().unwrap();
 
             let result_type = match raw_type.which().unwrap() {
@@ -398,7 +399,7 @@ pub fn getter_text (gen:&GeneratorContext,
                 }
                 (type_::AnyPointer(_), _) => {
                     if !raw_type.is_parameterized() {
-                        Line(format!("::capnp::any_pointer::{}::new(self.{}.get_pointer_field({}))", module, member, offset))
+                        Line(format!("::capnp::any_pointer::{}::new(self.{}.get_pointer_field({}))", module_string, member, offset))
                     } else {
                         if is_reader {
                             Line(format!("{}::get_from_pointer(&self.{}.get_pointer_field({}))", typ, member, offset))
@@ -449,7 +450,7 @@ fn zero_fields_of_group(gen:&GeneratorContext, node_id : u64) -> FormattedText {
                             type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) |
                             type_::Enum(_) => {
                                 let line = Line(format!("self.builder.set_data_field::<{0}>({1}, 0u8 as {0});",
-                                                        slot.get_type().unwrap().type_string(gen, Module::Builder, "'a"),
+                                                        slot.get_type().unwrap().type_string(gen, Module::Builder("'a")),
                                                         slot.get_offset()));
                                 // PERF could dedup more efficiently
                                 if !result.contains(&line) { result.push(line) }
@@ -532,7 +533,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     (Some("bool".to_string()), None)
                 }
                 _ if typ.is_prim() => {
-                    let tstr = typ.type_string(gen, Module::Reader, "'a");
+                    let tstr = typ.type_string(gen, Module::Reader("'a"));
                     match prim_default(&reg_field.get_default_value().unwrap()) {
                         None => {
                             setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
@@ -575,12 +576,12 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     match ot1.get_element_type().unwrap().which().unwrap() {
                         type_::List(_) => {
                             setter_generic_param = "<'b>".to_string();
-                            (Some(reg_field.get_type().unwrap().type_string(gen, Module::Reader, "'b")),
-                             Some(reg_field.get_type().unwrap().type_string(gen, Module::Builder, "'a")))
+                            (Some(reg_field.get_type().unwrap().type_string(gen, Module::Reader("'b"))),
+                             Some(reg_field.get_type().unwrap().type_string(gen, Module::Builder("'a"))))
                         }
                         _ =>
-                            (Some(reg_field.get_type().unwrap().type_string(gen, Module::Reader, "'a")),
-                             Some(reg_field.get_type().unwrap().type_string(gen, Module::Builder, "'a")))
+                            (Some(reg_field.get_type().unwrap().type_string(gen, Module::Reader("'a"))),
+                             Some(reg_field.get_type().unwrap().type_string(gen, Module::Builder("'a"))))
                     }
                 }
                 type_::Enum(e) => {
@@ -599,29 +600,29 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                                    offset)));
                     if typ.is_branded() {
                         setter_interior.push(
-                            Line(format!("<{} as ::capnp::traits::SetPointerBuilder<{}>>::set_pointer_builder(self.builder.get_pointer_field({}), value)", typ.type_string(gen, Module::Reader, "'b"), typ.type_string(gen, Module::Builder, "'b"), offset)));
-                        (Some(typ.type_string(gen, Module::Reader, "'b")),
-                         Some(typ.type_string(gen, Module::Builder, "'a")))
+                            Line(format!("<{} as ::capnp::traits::SetPointerBuilder<{}>>::set_pointer_builder(self.builder.get_pointer_field({}), value)", typ.type_string(gen, Module::Reader("'b")), typ.type_string(gen, Module::Builder("'b")), offset)));
+                        (Some(typ.type_string(gen, Module::Reader("'b"))),
+                         Some(typ.type_string(gen, Module::Builder("'a"))))
                     } else {
                         setter_interior.push(
                             Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)", offset)));
-                        (Some(reg_field.get_type().unwrap().type_string(gen, Module::Reader, "'b")),
-                         Some(reg_field.get_type().unwrap().type_string(gen, Module::Builder, "'a")))
+                        (Some(reg_field.get_type().unwrap().type_string(gen, Module::Reader("'b"))),
+                         Some(reg_field.get_type().unwrap().type_string(gen, Module::Builder("'a"))))
                     }
                 }
                 type_::Interface(_) => {
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_capability(value.client.hook);",
                                      offset)));
-                    (Some(typ.type_string(gen, Module::Client, "")), None)
+                    (Some(typ.type_string(gen, Module::Client)), None)
                 }
                 type_::AnyPointer(_) => {
                     if typ.is_parameterized() {
                         initter_interior.push(Line(format!("::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({})).init_as()", offset)));
-                        setter_generic_param = format!("<SPB: SetPointerBuilder<{}>>", typ.type_string(gen, Module::Builder, "'a"));
+                        setter_generic_param = format!("<SPB: SetPointerBuilder<{}>>", typ.type_string(gen, Module::Builder("'a")));
                         setter_interior.push(Line(format!("SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)", offset)));
                         return_result = true;
-                        (Some("SPB".to_string()), Some(typ.type_string(gen, Module::Builder, "'a")))
+                        (Some("SPB".to_string()), Some(typ.type_string(gen, Module::Builder("'a"))))
                     } else {
                         initter_interior.push(Line(format!("let mut result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({}));",
                                                    offset)));
@@ -844,7 +845,7 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
                         Line("#[allow(dead_code)]".to_string()),
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
-                                     typ.type_string(gen, Module::Pipeline, ""))),
+                                     typ.type_string(gen, Module::Pipeline))),
                         Indent(Box::new(Line(
                             format!("FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
                                     reg_field.get_offset())))),
@@ -855,7 +856,7 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
                         Line("#[allow(dead_code)]".to_string()),
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
-                                     typ.type_string(gen, Module::Client, ""))),
+                                     typ.type_string(gen, Module::Client))),
                         Indent(Box::new(Line(
                             format!("FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
                                     reg_field.get_offset())))),
@@ -1303,7 +1304,7 @@ fn generate_node(gen:&GeneratorContext,
                 } else {
                     gen.scope_map[&param_node.get_id()].clone()
                 };
-                let param_type = param_node.type_string(&gen, &method.get_param_brand().unwrap(), Some(&param_scopes), Module::Owned, "'a");
+                let param_type = param_node.type_string(&gen, &method.get_param_brand().unwrap(), Some(&param_scopes), Module::Owned);
 
                 let result_id = method.get_result_struct_type();
                 let result_node = &gen.node_map[&result_id];
@@ -1316,7 +1317,7 @@ fn generate_node(gen:&GeneratorContext,
                 } else {
                     gen.scope_map[&result_node.get_id()].clone()
                 };
-                let result_type = result_node.type_string(&gen, &method.get_result_brand().unwrap(), Some(&result_scopes), Module::Owned, "'a");
+                let result_type = result_node.type_string(&gen, &method.get_result_brand().unwrap(), Some(&result_scopes), Module::Owned);
 
                 dispatch_arms.push(
                     Line(format!(

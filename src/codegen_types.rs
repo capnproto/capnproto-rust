@@ -4,23 +4,41 @@ use codegen::{GeneratorContext};
 use std::collections::hash_map::HashMap;
 
 #[derive(Copy,Clone,PartialEq)]
-pub enum Module { Reader, Builder, Owned, Client, Pipeline }
+pub enum Module {
+    Reader(&'static str),
+    Builder(&'static str),
+    Owned,
+    Client,
+    Pipeline
+}
+
 impl ::std::fmt::Display for Module {
     fn fmt(&self, fmt:&mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-        ::std::fmt::Display::fmt(match self {
-            &Module::Reader => "Reader",
-            &Module::Builder => "Builder",
-            &Module::Owned => "Owned",
-            &Module::Client => "Client",
-            &Module::Pipeline => "Pipeline",
-        }, fmt)
+        let display_string = match self {
+            &Module::Reader(lt) => format!("Reader<{}>", lt),
+            &Module::Builder(lt) => format!("Builder<{}>", lt),
+            &Module::Owned => "Owned".to_string(),
+            &Module::Client => "Client".to_string(),
+            &Module::Pipeline => "Pipeline".to_string(),
+        };
+        ::std::fmt::Display::fmt(&display_string, fmt)
     }
 }
 
 impl Module {
-    fn have_lifetime(&self) -> bool {
+    fn bare_name(&self) -> &'static str{
         match self {
-            &Module::Reader | &Module::Builder => true,
+            &Module::Reader(lt) => "Reader",
+            &Module::Builder(lt) => "Builder",
+            &Module::Owned => "Owned",
+            &Module::Client => "Client",
+            &Module::Pipeline => "Pipeline",
+        }
+    }
+
+    fn _have_lifetime(&self) -> bool {
+        match self {
+            &Module::Reader(_) | &Module::Builder(_) => true,
             &Module::Owned | &Module::Client | &Module::Pipeline => false,
         }
     }
@@ -37,7 +55,7 @@ pub struct TypeParameterTexts {
 // this is a collection of helpers acting on a "Node" (most of them are Type definitions)
 pub trait RustNodeInfo {
     fn type_string(&self, gen: &codegen::GeneratorContext, brand: &brand::Reader,
-        scope:Option<&Vec<String>>, module:Module, lifetime:&str) -> String;
+        scope:Option<&Vec<String>>, module:Module) -> String;
 
     // in rust, we have only nestable modules, and parameterizable types...
     // so a logically child struct will be a physical sibling to its logical parent. so it must
@@ -56,8 +74,7 @@ pub trait RustTypeInfo {
     fn is_prim(&self) -> bool;
     fn is_parameterized(&self) -> bool;
     fn is_branded(&self) -> bool;
-    fn type_string(&self, gen:&codegen::GeneratorContext,
-        module:Module, lifetime:&str) -> String;
+    fn type_string(&self, gen:&codegen::GeneratorContext, module:Module) -> String;
 }
 
 impl <'a> RustNodeInfo for node::Reader<'a> {
@@ -175,7 +192,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
     }
 
     fn type_string(&self, gen:&codegen::GeneratorContext, brand:&::schema_capnp::brand::Reader,
-            scope:Option<&Vec<String>>, module:Module, lifetime:&str) -> String {
+            scope:Option<&Vec<String>>, module:Module) -> String {
         let the_mod = scope.unwrap_or_else( || &gen.scope_map[&self.get_id()]).connect("::");
         let mut reader_bindings:Vec<String> = vec!();
         let mut builder_bindings:Vec<String> = vec!();
@@ -195,8 +212,8 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                     b.unwrap().iter().map(|binding|
                         match binding.which().unwrap() {
                             brand::binding::Type(Ok(t)) => {
-                                reader_bindings.push(t.type_string(gen, Module::Owned, lifetime));
-                                builder_bindings.push(t.type_string(gen, Module::Owned, lifetime));
+                                reader_bindings.push(t.type_string(gen, Module::Owned));
+                                builder_bindings.push(t.type_string(gen, Module::Owned));
                             }
                             _ => {}
                         }
@@ -204,7 +221,12 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 },
             }
         };
-        let local_lifetime = if module.have_lifetime() { lifetime } else { "" };
+        let local_lifetime = match module {
+            Module::Reader(lt) => lt,
+            Module::Builder(lt) => lt,
+            _ => "",
+        };
+
         let bracketed_lifetime = if local_lifetime == "" { "".to_string() } else {
             format!("<{}>", local_lifetime)
         };
@@ -213,28 +235,31 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
         };
         let module_with_var = format!("{}{}", module, bracketed_lifetime);
         if parameters.len() == 0 {
-            format!("{}::{}", the_mod, module_with_var)
+            format!("{}::{}", the_mod, module)
         } else {
             if parameters.len() != reader_bindings.len() {
                 reader_bindings.clear();
                 builder_bindings.clear();
                 for _ in 0 .. parameters.len() {
-                    reader_bindings.push(format!("::capnp::any_pointer::Reader<{}>", lifetime));
-                    builder_bindings.push(format!("::capnp::any_pointer::Builder<{}>", lifetime));
+                    reader_bindings.push(format!("::capnp::any_pointer::Reader<{}>", local_lifetime));
+                    builder_bindings.push(format!("::capnp::any_pointer::Builder<{}>", local_lifetime));
                 }
             }
-            format!("{}::{}<{}{}>", the_mod, module, lifetime_coma, reader_bindings.connect(","))
+            format!("{}::{}<{}{}>", the_mod, module.bare_name(), lifetime_coma, reader_bindings.connect(","))
         }
     }
 }
 
 impl <'a> RustTypeInfo for type_::Reader<'a> {
 
-    fn type_string(&self, gen:&codegen::GeneratorContext,
-                   module:Module, lifetime:&str) -> String {
+    fn type_string(&self, gen:&codegen::GeneratorContext, module:Module) -> String {
         use codegen_types::RustTypeInfo;
 
-        let local_lifetime = if module.have_lifetime() { lifetime } else { "" };
+        let local_lifetime = match module {
+            Module::Reader(lt) => lt,
+            Module::Builder(lt) => lt,
+            _ => "",
+        };
 
         let bracketed_lifetime = if local_lifetime == "" { "".to_string() } else {
             format!("<{}>", local_lifetime)
@@ -257,40 +282,40 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Uint64(()) => "u64".to_string(),
             type_::Float32(()) => "f32".to_string(),
             type_::Float64(()) => "f64".to_string(),
-            type_::Text(()) => format!("text::{}", module_with_var),
-            type_::Data(()) => format!("data::{}", module_with_var),
+            type_::Text(()) => format!("text::{}", module),
+            type_::Data(()) => format!("data::{}", module),
             type_::Struct(st) => {
-                gen.node_map[&st.get_type_id()].type_string(gen, &st.get_brand().unwrap(), None, module, local_lifetime)
+                gen.node_map[&st.get_type_id()].type_string(gen, &st.get_brand().unwrap(), None, module)
             },
             type_::Interface(interface) => {
-                gen.node_map[&interface.get_type_id()].type_string(gen, &interface.get_brand().unwrap(), None, Module::Client, local_lifetime)
+                gen.node_map[&interface.get_type_id()].type_string(gen, &interface.get_brand().unwrap(), None, Module::Client)
             },
             type_::List(ot1) => {
                 match ot1.get_element_type().unwrap().which() {
                     Err(_) => { panic!("unsupported type") },
                     Ok(type_::Struct(_)) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned, "");
-                        format!("struct_list::{}<{}{}>", module, lifetime_coma, inner)
+                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned);
+                        format!("struct_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
                     },
                     Ok(type_::Enum(_)) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned, "");
-                        format!("enum_list::{}<{}{}>",module, lifetime_coma, inner)
+                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned);
+                        format!("enum_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
                     },
                     Ok(type_::List(_)) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned, "");
-                        format!("list_list::{}<{}{}>", module, lifetime_coma, inner)
+                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned);
+                        format!("list_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
                     },
                     Ok(type_::Text(())) => {
-                        format!("text_list::{}", module_with_var)
+                        format!("text_list::{}", module)
                     },
                     Ok(type_::Data(())) => {
-                        format!("data_list::{}", module_with_var)
+                        format!("data_list::{}", module)
                     },
                     Ok(type_::Interface(_)) => {panic!("unimplemented") },
                     Ok(type_::AnyPointer(_)) => {panic!("List(AnyPointer) is unsupported")},
                     Ok(_) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned, "");
-                        format!("primitive_list::{}<{}{}>", module, lifetime_coma, inner)
+                        let inner = ot1.get_element_type().unwrap().type_string(gen, Module::Owned);
+                        format!("primitive_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
                     },
                 }
             },
@@ -307,21 +332,32 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                         let parameter_name = parameter.get_name().unwrap();
                         match module {
                             Module::Owned => parameter_name.to_string(),
-                            _ => {
-                                format!("<{} as ::capnp::traits::Owned<{}>>::{}",
-                                        parameter_name, lifetime, module)
+                            Module::Reader(lifetime) => {
+                                format!("<{} as ::capnp::traits::Owned<{}>>::Reader",
+                                        parameter_name, lifetime)
                             }
+                            Module::Builder(lifetime) => {
+                                format!("<{} as ::capnp::traits::Owned<{}>>::Builder",
+                                        parameter_name, lifetime)
+                            }
+                            Module::Pipeline => {
+                                format!("<{} as ::capnp::traits::Owned<'static>>::Pipeline", parameter_name)
+                            }
+                            _ => { unimplemented!() }
                         }
                     },
                     _ => {
                         match module {
-                            Module::Owned => "::capnp::any_pointer::Owned".to_string(),
+                            Module::Reader(lifetime) => {
+                                format!("::capnp::any_pointer::Reader<{}>", lifetime)
+                            }
+                            Module::Builder(lifetime) => {
+                                format!("::capnp::any_pointer::Builder<{}>", lifetime)
+                            }
                             _ => {
-                                format!("::capnp::any_pointer::{}{}", module, bracketed_lifetime)
+                                format!("::capnp::any_pointer::{}", module)
                             }
                         }
-
-
                     }
                 }
             }
