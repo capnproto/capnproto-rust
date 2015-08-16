@@ -1,6 +1,7 @@
-use schema_capnp::*;
-
+use schema_capnp::{brand, node, type_};
 use codegen;
+use codegen::{GeneratorContext};
+use std::collections::hash_map::HashMap;
 
 #[derive(Copy,Clone,PartialEq)]
 pub enum Module { Reader, Builder, Owned, Client, Pipeline }
@@ -35,7 +36,7 @@ pub struct TypeParameterTexts {
 
 // this is a collection of helpers acting on a "Node" (most of them are Type definitions)
 pub trait RustNodeInfo {
-    fn type_string(&self, gen:&codegen::GeneratorContext, brand:&::schema_capnp::brand::Reader,
+    fn type_string(&self, gen: &codegen::GeneratorContext, brand: &brand::Reader,
         scope:Option<&Vec<String>>, module:Module, lifetime:&str) -> String;
 
     // in rust, we have only nestable modules, and parameterizable types...
@@ -44,9 +45,9 @@ pub trait RustNodeInfo {
     // this function recursively parse a node definition to find out the parameters used and inherited by scoping
     // and add them to the explicit parameters
     // the result is the actual parameters for the type to be generated
-    fn expand_parameters(&self, gen:&::codegen::GeneratorContext) -> Vec<String>;
+    fn expand_parameters(&self, gen: &::codegen::GeneratorContext) -> Vec<String>;
 
-    fn parameters_texts(&self, gen:&::codegen::GeneratorContext) -> TypeParameterTexts;
+    fn parameters_texts(&self, gen: &::codegen::GeneratorContext) -> TypeParameterTexts;
 }
 
 // this is a collection of helpers acting on a "Type" (someplace where a Type is used, not defined)
@@ -313,7 +314,14 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                         }
                     },
                     _ => {
-                        format!("::capnp::any_pointer::{}{}", module, bracketed_lifetime)
+                        match module {
+                            Module::Owned => "::capnp::any_pointer::Owned".to_string(),
+                            _ => {
+                                format!("::capnp::any_pointer::{}{}", module, bracketed_lifetime)
+                            }
+                        }
+
+
                     }
                 }
             }
@@ -354,3 +362,54 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
     }
 }
 
+///
+///
+pub fn compute_specifics(gen: GeneratorContext, node_id: u64, brand: brand::Reader) -> Vec<String> {
+    let scopes = brand.get_scopes().unwrap();
+    let mut brand_scopes = HashMap::new();
+    for scope in scopes.iter() {
+        brand_scopes.insert(scope.get_scope_id(), scope);
+    }
+    let brand_scopes = brand_scopes; // freeze
+    let mut current_node_id = node_id;
+    let mut accumulator: Vec<Vec<String>> = Vec::new();
+    loop {
+        let current_node = match gen.node_map.get(&node_id) {
+            None => break,
+            Some(node) => node,
+        };
+        let params = current_node.get_parameters().unwrap();
+        let mut arguments: Vec<String> = Vec::new();
+        match brand_scopes.get(&current_node_id) {
+            None => {
+                for param in params.iter() {
+                    arguments.push("::capnp::any_pointer::Owned".to_string());
+                }
+            },
+            Some(scope) => {
+                match scope.which().unwrap() {
+                    brand::scope::Inherit(()) => {
+                        for param in params.iter() {
+                            arguments.push(param.get_name().unwrap().to_string());
+                        }
+                    }
+                    brand::scope::Bind(bindings_list) => {
+                        for binding in bindings_list.unwrap().iter() {
+                            match binding.which().unwrap() {
+                                brand::binding::Unbound(()) => {
+//                                    arguments.push(param.get_name().unwrap().to_string());
+                                }
+                                brand::binding::Type(t) => {
+//                                    t.type_string(gen, Module::Owned)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        accumulator.push(arguments);
+        current_node_id = current_node.get_scope_id();
+    }
+    return accumulator.concat();
+}

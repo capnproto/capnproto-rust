@@ -473,9 +473,9 @@ fn zero_fields_of_group(gen:&GeneratorContext, node_id : u64) -> FormattedText {
     }
 }
 
-fn generate_setter(gen:&GeneratorContext, discriminant_offset : u32,
-                  styled_name : &str,
-                  field :&schema_capnp::field::Reader) -> FormattedText {
+fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
+                   styled_name: &str,
+                   field: &schema_capnp::field::Reader) -> FormattedText {
 
     use schema_capnp::*;
 
