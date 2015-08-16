@@ -337,6 +337,10 @@ pub fn getter_text (gen: &GeneratorContext,
             let result_type = match raw_type.which().unwrap() {
                 type_::Enum(_) => format!("::std::result::Result<{},::capnp::NotInSchema>", typ),
                 type_::AnyPointer(_) if !raw_type.is_parameterized() => typ.clone(),
+                type_::Interface(_) => {
+                    format!("::std::result::Result<{},::capnp::NotInSchema>",
+                            raw_type.type_string(gen, Module::Client))
+                }
                 _ if raw_type.is_prim() => typ.clone(),
                 _ => format!("Result<{}>", typ),
             };
@@ -1368,6 +1372,49 @@ fn generate_node(gen: &GeneratorContext,
                     Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::private::capability::Client::new(hook), {} }}", params.phantom_data)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
+
+
+            mod_interior.push(if !is_generic {
+                Branch(vec!(
+                    Line("pub struct Owned;".to_string()),
+                    Line("impl <'a> ::capnp::traits::Owned<'a> for Owned { type Reader = Client; type Builder = Client; type Pipeline = Client; }".to_string()),
+                    ))
+            } else {
+                Branch(vec!(
+                    Line(format!("pub struct Owned<{}>", params.params)),
+                    Line(params.where_clause.clone() + "{"),
+                    Indent(Box::new(Line(format!("_phantom: PhantomData<({})>", params.params)))),
+                    Line("}".to_string()),
+                    Line(format!("impl <'a, {}> ::capnp::traits::Owned<'a> for Owned <{}> {} {{ type Reader = Client<{}>; type Builder = Client<{}>; type Pipeline = Client{}; }}",
+                                 params.params, params.params, params.where_clause, params.params, params.params, bracketed_params))))
+            });
+
+            mod_interior.push(Branch(vec!(
+                Line(format!("impl <'a,{}> ::capnp::traits::FromPointerReader<'a> for Client<{}>",
+                    params.params, params.params)),
+                Line(params.where_clause.clone() + "{"),
+                Indent(
+                    Box::new(Branch(vec!(
+                        Line(format!("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Client<{}>> {{",params.params)),
+                        Indent(Box::new(Line(format!("::std::result::Result::Ok(FromClientHook::new(try!(reader.get_capability())))")))),
+                        Line("}".to_string()))))),
+                Line("}".to_string()))));
+
+
+            mod_interior.push(Branch(vec![
+                Line(format!("impl <'a,{}> ::capnp::traits::FromPointerBuilder<'a> for Client<{}>", params.params, params.params)),
+                Line(params.where_clause.clone() + " {"),
+                Indent(
+                    Box::new(
+                        Branch(vec!(
+                            Line(format!("fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size : u32) -> Client<{}> {{", params.params)),
+                            Indent(Box::new(Line("FromClientHook::new(unimplemented!())".to_string()))),
+                            Line("}".to_string()),
+                            Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Client<{}>> {{", params.params)),
+                            Indent(Box::new(Line("::std::result::Result::Ok(FromClientHook::new(try!(builder.get_capability())))".to_string()))),
+                            Line("}".to_string()))))),
+                Line("}".to_string()),
+                BlankLine]));
 
 
             mod_interior.push(

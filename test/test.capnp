@@ -327,7 +327,7 @@ struct TestUseGenerics $TestGenerics(Text, Data).ann("foo") {
   unspecified @3 :TestGenerics;
   unspecifiedInner @4 :TestGenerics.Inner2(Text);
   wrapper @8 :TestGenericsWrapper(TestAllTypes, TestAnyPointer);
-#  cap @18 :TestGenerics(TestInterface, Text);
+  cap @18 :TestGenerics(TestInterface, Text);
 
 #  genericCap @19 :TestGenerics(TestAllTypes, List(UInt32)).Interface(Data);
 
