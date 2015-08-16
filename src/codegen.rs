@@ -1399,7 +1399,7 @@ fn generate_node(gen: &GeneratorContext,
                         ))
                     } else {
                         Branch(vec!(
-                            Line("pub struct ToClient<U>(pub U);".to_string()),
+                            Line("pub struct ToClient<U>{pub u: U}".to_string()),
                             Line("impl <U : Server + Send + 'static> ToClient<U> {".to_string())
                         ))
                     }),
@@ -1407,7 +1407,7 @@ fn generate_node(gen: &GeneratorContext,
                         Line("#[allow(dead_code)]".to_string()),
                         Line(format!("pub fn from_server<T: ServerHook>(self) -> Client{} {{", bracketed_params)),
                         Indent(
-                            Box::new(Line(format!("Client {{ client : T::new_client(::std::boxed::Box::new(ServerDispatch {{ server : ::std::boxed::Box::new(self.0), {} }})), {} }}", params.phantom_data, params.phantom_data)))),
+                            Box::new(Line(format!("Client {{ client : T::new_client(::std::boxed::Box::new(ServerDispatch {{ server : ::std::boxed::Box::new(self.u), {} }})), {} }}", params.phantom_data, params.phantom_data)))),
                         Line("}".to_string()))))),
                     Line("}".to_string()))));
 
@@ -1424,7 +1424,7 @@ fn generate_node(gen: &GeneratorContext,
                     Branch(vec!(
                         Line(format!("impl {} Clone for Client{} {{", bracketed_params, bracketed_params)),
                         Indent(Box::new(Line(format!("fn clone(&self) -> Client{} {{", bracketed_params)))),
-                        Indent(Box::new(Indent(Box::new(Line("Client { client : ::capnp::private::capability::Client::new(self.client.hook.copy()) }".to_string()))))),
+                        Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::private::capability::Client::new(self.client.hook.copy()), {} }}", params.phantom_data)))))),
                         Indent(Box::new(Line("}".to_string()))),
                         Line("}".to_string()))));
 
@@ -1454,7 +1454,7 @@ fn generate_node(gen: &GeneratorContext,
                     Indent(Box::new(Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match interface_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(
-                        Box::new(Line("_private::TYPE_ID => ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),".to_string()))))))),
+                        Box::new(Line(format!("_private::TYPE_ID => ServerDispatch::<T, {}>::dispatch_call_internal(&mut *self.server, method_id, context),",params.params)))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(base_dispatch_arms))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => {}".to_string()))))))),
                     Indent(Box::new(Indent(Box::new(Line("}".to_string()))))),
