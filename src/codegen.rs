@@ -758,7 +758,6 @@ fn generate_union(gen:&GeneratorContext,
 
     let getter_result =
         Branch(vec!(Line("#[inline]".to_string()),
-                    Line("#[allow(dead_code)]".to_string()),
                     Line(format!("pub fn which(self) -> ::std::result::Result<{}, ::capnp::NotInSchema> {{",
                                  concrete_type)),
                     Indent(Box::new(Branch(vec!(
@@ -802,8 +801,6 @@ fn generate_haser(discriminant_offset : u32,
                         Line(format!("!self.{}.get_pointer_field({}).is_null()",
                                      member, reg_field.get_offset())));
                     result.push(
-                        Line("#[allow(dead_code)]".to_string()));
-                    result.push(
                         Line(format!("pub fn has_{}(&self) -> bool {{", styled_name)));
                     result.push(
                         Indent(Box::new(Branch(interior))));
@@ -828,7 +825,6 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
         Ok(field::Group(group)) => {
             let the_mod = gen.scope_map[&group.get_type_id()].connect("::");
             return Branch(vec!(
-                                Line("#[allow(dead_code)]".to_string()),
                                 Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
                                             camel_to_snake_case(name),
                                             the_mod)),
@@ -842,7 +838,6 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
                 Err(_) => panic!("unrecognized type"),
                 Ok(type_::Struct(_)) => {
                     return Branch(vec!(
-                        Line("#[allow(dead_code)]".to_string()),
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
                                      typ.type_string(gen, Module::Pipeline))),
@@ -853,7 +848,6 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
                 }
                 Ok(type_::Interface(_)) => {
                     return Branch(vec!(
-                        Line("#[allow(dead_code)]".to_string()),
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
                                      typ.type_string(gen, Module::Client))),
@@ -942,7 +936,6 @@ fn generate_node(gen: &GeneratorContext,
                     reader_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line("#[allow(dead_code)]".to_string()),
                             Line(format!("pub fn get_{}(self) -> {} {{", styled_name, ty)),
                             Indent(Box::new(get)),
                             Line("}".to_string()))));
@@ -952,7 +945,6 @@ fn generate_node(gen: &GeneratorContext,
                     builder_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line("#[allow(dead_code)]".to_string()),
                             Line(format!("pub fn get_{}(self) -> {} {{", styled_name, ty_b)),
                             Indent(Box::new(get_b)),
                             Line("}".to_string()))));
@@ -1041,7 +1033,6 @@ fn generate_node(gen: &GeneratorContext,
 
             let accessors = vec!(
                 Branch(preamble),
-                Line("#[allow(dead_code)]".to_string()),
                 (if !is_generic {
                     Branch(vec!(
                         Line("pub struct Owned;".to_string()),
@@ -1106,12 +1097,10 @@ fn generate_node(gen: &GeneratorContext,
                 Line(params.where_clause.clone() + "{"),
                 Indent(
                     Box::new(Branch(vec![
-                        Line("#[allow(dead_code)]".to_string()),
                         Line(format!("pub fn borrow<'b>(&'b self) -> Reader<'b,{}> {{",params.params)),
                         Indent(Box::new(Line("Reader { .. *self }".to_string()))),
                         Line("}".to_string()),
                         BlankLine,
-                        Line("#[allow(dead_code)]".to_string()),
                         Line("pub fn total_size(&self) -> Result<::capnp::MessageSize> {".to_string()),
                         Indent(Box::new(Line("self.reader.total_size()".to_string()))),
                         Line("}".to_string())]))),
@@ -1157,17 +1146,14 @@ fn generate_node(gen: &GeneratorContext,
                 Line(params.where_clause + " {"),
                 Indent(
                     Box::new(Branch(vec![
-                        Line("#[allow(dead_code)]".to_string()),
                         Line(format!("pub fn as_reader(self) -> Reader<'a,{}> {{", params.params)),
                         Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string()))),
                         Line("}".to_string()),
-                        Line("#[allow(dead_code)]".to_string()),
                         Line(format!("pub fn borrow<'b>(&'b mut self) -> Builder<'b,{}> {{", params.params)),
                         Indent(Box::new(Line("Builder { .. *self }".to_string()))),
                         Line("}".to_string()),
 
                         BlankLine,
-                        Line("#[allow(dead_code)]".to_string()),
                         Line("pub fn total_size(&self) -> Result<::capnp::MessageSize> {".to_string()),
                         Indent(Box::new(Line("self.builder.as_reader().total_size()".to_string()))),
                         Line("}".to_string())
@@ -1404,7 +1390,6 @@ fn generate_node(gen: &GeneratorContext,
                         ))
                     }),
                     Indent(Box::new(Branch( vec!(
-                        Line("#[allow(dead_code)]".to_string()),
                         Line(format!("pub fn from_server<T: ServerHook>(self) -> Client{} {{", bracketed_params)),
                         Indent(
                             Box::new(Line(format!("Client {{ client : T::new_client(::std::boxed::Box::new(ServerDispatch {{ server : ::std::boxed::Box::new(self.u), {} }})), {} }}", params.phantom_data, params.phantom_data)))),
@@ -1468,7 +1453,6 @@ fn generate_node(gen: &GeneratorContext,
                     } else {
                         Line("impl <T : Server> ServerDispatch<T> {".to_string())
                     }),
-                    Line("#[allow(dead_code)]".to_string()),
                     Indent(Box::new(Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match method_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(dispatch_arms))))))),
