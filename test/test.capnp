@@ -311,14 +311,20 @@ struct TestGenericsWrapper2 {
   value @0 :TestGenericsWrapper(Text, TestAllTypes);
 }
 
-#interface TestImplicitMethodParams {
-#  call @0 [T, U] (foo :T, bar :U) -> TestGenerics(T, U);
-#}
+interface TestImplicitMethodParams {
+  call @0 [T, U] (foo :T, bar :U) -> TestGenerics(T, U);
+}
 
-# FIXME #18 
-#interface TestImplicitMethodParamsInGeneric(V) {
-#  call @0 [T, U] (foo :T, bar :U) -> TestGenerics(T, U);
-#}
+interface TestImplicitMethodParamsInGeneric(V) {
+  call @0 [T, U] (foo :T, bar :U) -> TestGenerics(T, U);
+}
+
+struct TestGenericsUnion(Foo, Bar) {
+  union {
+    foo @0 :Foo;
+    bar @1 :Bar;
+  }
+}
 
 struct TestUseGenerics $TestGenerics(Text, Data).ann("foo") {
   basic @0 :TestGenerics(TestAllTypes, TestAnyPointer);
@@ -329,7 +335,7 @@ struct TestUseGenerics $TestGenerics(Text, Data).ann("foo") {
   wrapper @8 :TestGenericsWrapper(TestAllTypes, TestAnyPointer);
   cap @18 :TestGenerics(TestInterface, Text);
 
-#  genericCap @19 :TestGenerics(TestAllTypes, List(UInt32)).Interface(Data);
+  genericCap @19 :TestGenerics(TestAllTypes, List(UInt32)).Interface(Data);
 
   default @5 :TestGenerics(TestAllTypes, Text) =
       (foo = (int16Field = 123), rev = (foo = "text", rev = (foo = (int16Field = 321))));

@@ -338,7 +338,7 @@ pub fn getter_text (gen: &GeneratorContext,
                 type_::Enum(_) => format!("::std::result::Result<{},::capnp::NotInSchema>", typ),
                 type_::AnyPointer(_) if !raw_type.is_parameterized() => typ.clone(),
                 type_::Interface(_) => {
-                    format!("::std::result::Result<{},::capnp::NotInSchema>",
+                    format!("::capnp::Result<{}>",
                             raw_type.type_string(gen, Module::Client))
                 }
                 _ if raw_type.is_prim() => typ.clone(),
