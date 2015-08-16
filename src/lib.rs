@@ -47,13 +47,11 @@
 #![crate_type = "lib"]
 
 extern crate capnp;
-#[cfg(test)] extern crate tempdir;
 
 pub mod schema_capnp;
 pub mod codegen;
 pub mod codegen_types;
 pub mod schema;
-#[cfg(test)] pub mod test_codegen;
 
 use std::path::Path;
 
