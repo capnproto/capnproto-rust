@@ -22,7 +22,7 @@
 use capnp;
 use std::collections;
 use schema_capnp;
-use codegen_types::{ Module, RustTypeInfo, RustNodeInfo, do_branding };
+use codegen_types::{ Module, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
 
 pub struct GeneratorContext<'a> {
@@ -668,10 +668,11 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
 
 
 // return (the 'Which' enum, the 'which()' accessor, typedef)
-fn generate_union(gen:&GeneratorContext,
-                  discriminant_offset : u32,
-                  fields : &[schema_capnp::field::Reader],
-                  is_reader : bool)
+fn generate_union(gen: &GeneratorContext,
+                  discriminant_offset: u32,
+                  fields: &[schema_capnp::field::Reader],
+                  is_reader: bool,
+                  params: &TypeParameterTexts)
                   -> (FormattedText, FormattedText, FormattedText)
 {
     use schema_capnp::*;
@@ -752,7 +753,7 @@ fn generate_union(gen:&GeneratorContext,
     let concrete_type =
             format!("Which{}{}",
                     if is_reader {"Reader"} else {"Builder"},
-                    if ty_params.len() > 0 { "<'a>" } else {""});
+                    if ty_params.len() > 0 { format!("<'a,{}>", params.params) } else { "".to_string() });
 
     let typedef =
         Line(format!("pub type {} = Which{};",
@@ -977,13 +978,13 @@ fn generate_node(gen: &GeneratorContext,
 
             if discriminant_count > 0 {
                 let (which_enums1, union_getter, typedef) =
-                    generate_union(gen, discriminant_offset, &union_fields, true);
+                    generate_union(gen, discriminant_offset, &union_fields, true, &params);
                 which_enums.push(which_enums1);
                 which_enums.push(typedef);
                 reader_members.push(union_getter);
 
                 let (_, union_getter, typedef) =
-                    generate_union(gen, discriminant_offset, &union_fields, false);
+                    generate_union(gen, discriminant_offset, &union_fields, false, &params);
                 which_enums.push(typedef);
                 builder_members.push(union_getter);
 

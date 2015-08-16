@@ -321,8 +321,8 @@ interface TestImplicitMethodParamsInGeneric(V) {
 
 struct TestGenericsUnion(Foo, Bar) {
   union {
-    foo @0 :Foo;
-    bar @1 :Bar;
+    foo1 @0 :Foo;
+    bar1 @1 :Bar;
   }
 }
 
