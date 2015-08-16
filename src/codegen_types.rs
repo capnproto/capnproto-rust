@@ -28,8 +28,8 @@ impl ::std::fmt::Display for Module {
 impl Module {
     fn bare_name(&self) -> &'static str{
         match self {
-            &Module::Reader(lt) => "Reader",
-            &Module::Builder(lt) => "Builder",
+            &Module::Reader(_) => "Reader",
+            &Module::Builder(_) => "Builder",
             &Module::Owned => "Owned",
             &Module::Client => "Client",
             &Module::Pipeline => "Pipeline",
@@ -227,13 +227,9 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             _ => "",
         };
 
-        let bracketed_lifetime = if local_lifetime == "" { "".to_string() } else {
-            format!("<{}>", local_lifetime)
-        };
         let lifetime_coma = if local_lifetime == "" { "".to_string() } else {
             format!("{},", local_lifetime)
         };
-        let module_with_var = format!("{}{}", module, bracketed_lifetime);
         if parameters.len() == 0 {
             format!("{}::{}", the_mod, module)
         } else {
@@ -261,13 +257,9 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             _ => "",
         };
 
-        let bracketed_lifetime = if local_lifetime == "" { "".to_string() } else {
-            format!("<{}>", local_lifetime)
-        };
         let lifetime_coma = if local_lifetime == "" { "".to_string() } else {
             format!("{},", local_lifetime)
         };
-        let module_with_var = format!("{}{}", module, bracketed_lifetime);
 
         match self.which().unwrap() {
             type_::Void(()) => "()".to_string(),
@@ -418,7 +410,7 @@ pub fn compute_specifics(gen: GeneratorContext, node_id: u64, brand: brand::Read
         let mut arguments: Vec<String> = Vec::new();
         match brand_scopes.get(&current_node_id) {
             None => {
-                for param in params.iter() {
+                for _ in params.iter() {
                     arguments.push("::capnp::any_pointer::Owned".to_string());
                 }
             },
@@ -429,14 +421,16 @@ pub fn compute_specifics(gen: GeneratorContext, node_id: u64, brand: brand::Read
                             arguments.push(param.get_name().unwrap().to_string());
                         }
                     }
-                    brand::scope::Bind(bindings_list) => {
-                        for binding in bindings_list.unwrap().iter() {
+                    brand::scope::Bind(bindings_list_opt) => {
+                        let bindings_list = bindings_list_opt.unwrap();
+                        assert_eq!(bindings_list.len(), params.len());
+                        for binding in bindings_list.iter() {
                             match binding.which().unwrap() {
                                 brand::binding::Unbound(()) => {
-//                                    arguments.push(param.get_name().unwrap().to_string());
+                                    arguments.push("::capnp::any_pointer::Owned".to_string());
                                 }
                                 brand::binding::Type(t) => {
-//                                    t.type_string(gen, Module::Owned)
+                                    arguments.push(t.unwrap().type_string(&gen, Module::Owned));
                                 }
                             }
                         }
