@@ -528,6 +528,32 @@ mod tests {
     }
 
     #[test]
+    fn test_generics() {
+        use capnp::text;
+        use test_capnp::{test_generics, test_all_types};
+        let mut message = message::Builder::new_default();
+        let mut root: test_generics::Builder<test_all_types::Owned, text::Owned> = message.init_root();
+        ::test_util::init_test_message(root.borrow().get_foo().unwrap());
+        root.borrow().get_dub().unwrap().set_foo("Hello").unwrap();
+//        let mut bar: ::capnp::primitive_list::Builder<u8> = root.borrow().get_dub().unwrap().init_bar();
+// TODO generate init_sized_bar() method.
+        {
+            let mut rev_bar = root.borrow().get_rev().unwrap().get_bar().unwrap();
+            rev_bar.set_int8_field(111);
+            let mut bool_list = rev_bar.init_bool_list(2);
+            bool_list.set(0, false);
+            bool_list.set(1, true);
+        }
+
+        ::test_util::CheckTestMessage::check_test_message(root.borrow().get_foo().unwrap());
+        let root_reader = root.as_reader();
+        ::test_util::CheckTestMessage::check_test_message(root_reader.borrow().get_foo().unwrap());
+        let dub_reader = root_reader.get_dub().unwrap();
+        assert_eq!("Hello", dub_reader.get_foo().unwrap());
+//        let bar_reader = dub_reader.get_bar().unwrap();
+    }
+
+    #[test]
     fn test_union() {
         use test_capnp::test_union;
 

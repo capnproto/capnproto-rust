@@ -261,7 +261,9 @@ struct TestNewUnionVersion {
 
 struct TestGenerics(Foo, Bar) {
   foo @0 :Foo;
-  rev @1 :TestGenerics(Bar, Foo);
+  bar @1 :Bar;
+  rev @2 :TestGenerics(Bar, Foo);
+  dub @3 :TestGenerics(Text, List(UInt8));
 
   struct Inner {
     foo @0 :Foo;
