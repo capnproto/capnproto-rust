@@ -310,7 +310,7 @@ pub fn main() {
         {
             let mut pow_call = request.init().init_expression().init_call();
             pow_call.set_function(
-                calculator::function::ToClient(PowerFunction).from_server::<LocalClient>());
+                calculator::function::ToClient::new(PowerFunction).from_server::<LocalClient>());
             let mut pow_params = pow_call.init_params(2);
             pow_params.borrow().get(0).set_literal(2.0);
 

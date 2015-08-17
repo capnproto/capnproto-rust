@@ -155,7 +155,7 @@ impl calculator::Server for CalculatorImpl {
         match evaluate_impl(context.get().0.get_expression().unwrap(), None) {
             Ok(r) => {
                 context.get().1.set_value(
-                    calculator::value::ToClient(ValueImpl::new(r)).from_server::<LocalClient>());
+                    calculator::value::ToClient::new(ValueImpl::new(r)).from_server::<LocalClient>());
             }
             Err(_) => return context.fail("Evaluation failed.".to_string()),
         }
@@ -165,7 +165,7 @@ impl calculator::Server for CalculatorImpl {
         {
             let (params, mut results) = context.get();
             results.set_func(
-                calculator::function::ToClient(
+                calculator::function::ToClient::new(
                     FunctionImpl::new(params.get_param_count() as u32, params.get_body().unwrap()))
                     .from_server::<LocalClient>());
         }
@@ -175,7 +175,7 @@ impl calculator::Server for CalculatorImpl {
         let func = {
             match context.get().0.get_op() {
                 Ok(op) => {
-                    calculator::function::ToClient(OperatorImpl {op : op}).from_server::<LocalClient>()
+                    calculator::function::ToClient::new(OperatorImpl {op : op}).from_server::<LocalClient>()
                 }
                 Err(_) => return context.fail("Unknown operator.".to_string()),
             }
