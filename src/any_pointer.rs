@@ -109,7 +109,7 @@ impl <'a> Builder<'a> {
         FromPointerBuilder::init_pointer(self.builder, 0)
     }
 
-    pub fn init_as_sized<T : FromPointerBuilder<'a>>(self, size: u32) -> T {
+    pub fn initn_as<T: FromPointerBuilder<'a>>(self, size: u32) -> T {
         FromPointerBuilder::init_pointer(self.builder, size)
     }
 
