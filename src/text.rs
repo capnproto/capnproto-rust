@@ -23,6 +23,7 @@
 
 use {Error, Result};
 
+#[derive(Copy, Clone)]
 pub struct Owned(());
 
 impl<'a> ::traits::Owned<'a> for Owned {

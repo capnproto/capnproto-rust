@@ -27,7 +27,8 @@ use private::layout::{PointerReader, PointerBuilder};
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 use Result;
 
-pub struct Owned;
+#[derive(Copy, Clone)]
+pub struct Owned(());
 
 impl <'a> ::traits::Owned<'a> for Owned {
     type Reader = Reader<'a>;
@@ -108,7 +109,7 @@ impl <'a> Builder<'a> {
         FromPointerBuilder::init_pointer(self.builder, 0)
     }
 
-    pub fn init_as_sized<T : FromPointerBuilder<'a>>(self, size : u32) -> T {
+    pub fn init_as_sized<T : FromPointerBuilder<'a>>(self, size: u32) -> T {
         FromPointerBuilder::init_pointer(self.builder, size)
     }
 

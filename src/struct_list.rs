@@ -27,6 +27,7 @@ use traits::{FromPointerReader, FromPointerBuilder,
              IndexMove, ListIter};
 use Result;
 
+#[derive(Copy, Clone)]
 pub struct Owned<T> where T: for<'a> ::traits::OwnedStruct<'a> {
     marker: ::std::marker::PhantomData<T>,
 }

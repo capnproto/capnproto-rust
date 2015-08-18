@@ -25,6 +25,7 @@ use traits::{FromPointerReader, FromPointerBuilder};
 use private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 use Result;
 
+#[derive(Copy, Clone)]
 pub struct Owned;
 
 impl <'a> ::traits::Owned<'a> for Owned {
