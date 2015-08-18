@@ -535,8 +535,10 @@ mod tests {
         let mut root: test_generics::Builder<test_all_types::Owned, text::Owned> = message.init_root();
         ::test_util::init_test_message(root.borrow().get_foo().unwrap());
         root.borrow().get_dub().unwrap().set_foo("Hello").unwrap();
-//        let mut bar: ::capnp::primitive_list::Builder<u8> = root.borrow().get_dub().unwrap().init_bar();
-// TODO generate init_sized_bar() method.
+        {
+            let mut bar: ::capnp::primitive_list::Builder<u8> = root.borrow().get_dub().unwrap().initn_bar(1);
+            bar.set(0, 11);
+        }
         {
             let mut rev_bar = root.borrow().get_rev().unwrap().get_bar().unwrap();
             rev_bar.set_int8_field(111);
@@ -550,7 +552,9 @@ mod tests {
         ::test_util::CheckTestMessage::check_test_message(root_reader.borrow().get_foo().unwrap());
         let dub_reader = root_reader.get_dub().unwrap();
         assert_eq!("Hello", dub_reader.get_foo().unwrap());
-//        let bar_reader = dub_reader.get_bar().unwrap();
+        let bar_reader = dub_reader.get_bar().unwrap();
+        assert_eq!(bar_reader.len(), 1);
+        assert_eq!(bar_reader.get(0), 11);
     }
 
     #[test]
@@ -662,7 +666,7 @@ mod tests {
             let mut root = builder.init_root::<test_any_pointer::Builder>();
             {
                 let mut list = root.borrow()
-                    .get_any_pointer_field().init_as_sized::<::capnp::primitive_list::Builder<u8>>(3);
+                    .get_any_pointer_field().initn_as::<::capnp::primitive_list::Builder<u8>>(3);
                 list.set(0, 12);
                 list.set(1, 34);
                 list.set(2, 56);
@@ -682,7 +686,7 @@ mod tests {
             let mut root = builder.init_root::<test_any_pointer::Builder>();
             {
                 let mut list = root.borrow()
-                    .get_any_pointer_field().init_as_sized::<::capnp::text_list::Builder>(3);
+                    .get_any_pointer_field().initn_as::<::capnp::text_list::Builder>(3);
                 list.set(0, "foo");
                 list.set(1, "bar");
                 list.set(2, "baz");
@@ -783,7 +787,7 @@ mod tests {
         let mut message = message::Builder::new_default();
         {
             let mut root = message.init_root::<test_any_pointer::Builder>();
-            let _ : ::capnp::data::Builder = root.borrow().get_any_pointer_field().init_as_sized(0);
+            let _ : ::capnp::data::Builder = root.borrow().get_any_pointer_field().initn_as(0);
 
             // No NUL terminator!
             let result = root.get_any_pointer_field().get_as::<::capnp::text::Builder>();
@@ -835,7 +839,7 @@ mod tests {
         {
             let root = message.init_root::<test_any_pointer::Builder>();
             let _ : ::capnp::primitive_list::Builder<()> =
-                root.get_any_pointer_field().init_as_sized((1 << 29) - 1);
+                root.get_any_pointer_field().initn_as((1 << 29) - 1);
         }
         let segments = message.get_segments_for_output();
         assert_eq!(segments.len(), 1);
@@ -856,7 +860,7 @@ mod tests {
         {
             let root = message.init_root::<test_any_pointer::Builder>();
             let _ : ::capnp::struct_list::Builder<test_empty_struct::Owned> =
-                root.get_any_pointer_field().init_as_sized((1 << 29) - 1);
+                root.get_any_pointer_field().initn_as((1 << 29) - 1);
         }
         let segments = message.get_segments_for_output();
         assert_eq!(segments.len(), 1);

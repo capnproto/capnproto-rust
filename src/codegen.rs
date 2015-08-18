@@ -336,7 +336,7 @@ pub fn getter_text (gen: &GeneratorContext,
 
             let result_type = match raw_type.which().unwrap() {
                 type_::Enum(_) => format!("::std::result::Result<{},::capnp::NotInSchema>", typ),
-                type_::AnyPointer(_) if !raw_type.is_parameterized() => typ.clone(),
+                type_::AnyPointer(_) if !raw_type.is_parameter() => typ.clone(),
                 type_::Interface(_) => {
                     format!("::capnp::Result<{}>",
                             raw_type.type_string(gen, Leaf::Client))
@@ -402,7 +402,7 @@ pub fn getter_text (gen: &GeneratorContext,
                                  member, offset))
                 }
                 (type_::AnyPointer(_), _) => {
-                    if !raw_type.is_parameterized() {
+                    if !raw_type.is_parameter() {
                         Line(format!("::capnp::any_pointer::{}::new(self.{}.get_pointer_field({}))", module_string, member, offset))
                     } else {
                         if is_reader {
@@ -508,6 +508,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
 
     let mut setter_generic_param = String::new();
     let mut return_result = false;
+    let mut result = Vec::new();
 
     let (maybe_reader_type, maybe_builder_type) : (Option<String>, Option<String>) = match field.which() {
         Err(_) => panic!("unrecognized field type"),
@@ -626,12 +627,24 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     (Some(typ.type_string(gen, Leaf::Client)), None)
                 }
                 type_::AnyPointer(_) => {
-                    if typ.is_parameterized() {
+                    if typ.is_parameter() {
                         initter_interior.push(Line(format!("::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({})).init_as()", offset)));
                         setter_generic_param = format!("<SPB: SetPointerBuilder<{}>>", typ.type_string(gen, Leaf::Builder("'a")));
                         setter_interior.push(Line(format!("SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)", offset)));
                         return_result = true;
-                        (Some("SPB".to_string()), Some(typ.type_string(gen, Leaf::Builder("'a"))))
+
+
+                        let builder_type = typ.type_string(gen, Leaf::Builder("'a"));
+
+                        result.push(Line("#[inline]".to_string()));
+                        result.push(Line(format!("pub fn initn_{}(self, length: u32) -> {} {{",
+                                                 styled_name, builder_type)));
+                        result.push(Indent(Box::new(
+                            Line(format!("::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({})).initn_as(length)", offset)))));
+                        result.push(Line("}".to_string()));
+
+
+                        (Some("SPB".to_string()), Some(builder_type))
                     } else {
                         initter_interior.push(Line(format!("let mut result = ::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({}));",
                                                    offset)));
@@ -644,7 +657,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
             }
         }
     };
-    let mut result = Vec::new();
+
     match maybe_reader_type {
         Some(ref reader_type) => {
             let return_type = if return_result { "-> Result<()>" } else { "" };
@@ -1069,7 +1082,7 @@ fn generate_node(gen: &GeneratorContext,
                         Line(format!("pub struct Reader<'a,{}>", params.params)),
                         Line(params.where_clause.clone() + " {"),
                         Indent(Box::new(Branch(vec!(
-                            Line("reader : layout::StructReader<'a>,".to_string()),
+                            Line("reader: layout::StructReader<'a>,".to_string()),
                             Line(format!("_phantom: PhantomData<({})>", params.params)),
                         )))),
                         Line("}".to_string())

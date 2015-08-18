@@ -62,7 +62,7 @@ pub trait RustNodeInfo {
 pub trait RustTypeInfo {
 
     fn is_prim(&self) -> bool;
-    fn is_parameterized(&self) -> bool;
+    fn is_parameter(&self) -> bool;
     fn is_branded(&self) -> bool;
     fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> String;
 }
@@ -219,7 +219,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
         }
     }
 
-    fn is_parameterized(&self) -> bool {
+    fn is_parameter(&self) -> bool {
         match self.which().unwrap() {
             type_::AnyPointer(pointer) => {
                 match pointer.which().unwrap() {
