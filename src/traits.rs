@@ -50,7 +50,7 @@ pub trait FromPointerReader<'a> {
 /// as a type parameter, e.g. for a generic container that owns a Cap'n Proto message
 /// of type `T: for<'a> capnp::traits::Owned<'a>`.
 pub trait Owned<'a> {
-    type Reader: FromPointerReader<'a>;
+    type Reader: FromPointerReader<'a> + SetPointerBuilder<Self::Builder>;
     type Builder: FromPointerBuilder<'a>;
     type Pipeline;
 }
