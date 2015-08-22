@@ -33,6 +33,9 @@ pub struct Owned(());
 impl <'a> ::traits::Owned<'a> for Owned {
     type Reader = Reader<'a>;
     type Builder = Builder<'a>;
+}
+
+impl ::traits::Pipeline for Owned {
     type Pipeline = Pipeline;
 }
 

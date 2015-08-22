@@ -52,13 +52,15 @@ pub trait FromPointerReader<'a> : Sized {
 pub trait Owned<'a> {
     type Reader: FromPointerReader<'a> + SetPointerBuilder<Self::Builder>;
     type Builder: FromPointerBuilder<'a>;
-    type Pipeline;
 }
 
 pub trait OwnedStruct<'a> {
-   type Reader: FromStructReader<'a>;
-   type Builder: FromStructBuilder<'a> + HasStructSize;
-   type Pipeline;
+    type Reader: FromStructReader<'a>;
+    type Builder: FromStructBuilder<'a> + HasStructSize;
+}
+
+pub trait Pipeline {
+    type Pipeline;
 }
 
 pub trait FromPointerReaderRefDefault<'a> {

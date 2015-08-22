@@ -35,10 +35,7 @@ pub struct Owned<T> where T: for<'a> ::traits::OwnedStruct<'a> {
 impl<'a, T> ::traits::Owned<'a> for Owned<T> where T: for<'b> ::traits::OwnedStruct<'b> {
     type Reader = Reader<'a, T>;
     type Builder = Builder<'a, T>;
-    type Pipeline = Pipeline;
 }
-
-pub struct Pipeline; // TODO
 
 pub struct Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     marker: ::std::marker::PhantomData<T>,

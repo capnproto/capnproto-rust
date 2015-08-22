@@ -29,10 +29,7 @@ pub struct Owned(());
 impl<'a> ::traits::Owned<'a> for Owned {
     type Reader = Reader<'a>;
     type Builder = Builder<'a>;
-    type Pipeline = Pipeline;
 }
-
-pub struct Pipeline;
 
 pub type Reader<'a> = &'a str;
 

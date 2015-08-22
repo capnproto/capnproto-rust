@@ -33,10 +33,7 @@ pub struct Owned<T> where T: for<'a> ::traits::Owned<'a> {
 impl<'a, T> ::traits::Owned<'a> for Owned<T> where T: for<'b> ::traits::Owned<'b> {
     type Reader = Reader<'a, T>;
     type Builder = Builder<'a, T>;
-    type Pipeline = Pipeline;
 }
-
-pub struct Pipeline; // TODO
 
 #[derive(Clone, Copy)]
 pub struct Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {

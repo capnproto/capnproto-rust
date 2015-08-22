@@ -34,10 +34,7 @@ pub struct Owned<T> {
 impl <'a, T> ::traits::Owned<'a> for Owned<T> where T: PrimitiveElement {
     type Reader = Reader<'a, T>;
     type Builder = Builder<'a, T>;
-    type Pipeline = Pipeline;
 }
-
-pub struct Pipeline; // TODO
 
 #[derive(Clone, Copy)]
 pub struct Reader<'a, T> where T: PrimitiveElement {
