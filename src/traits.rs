@@ -31,11 +31,11 @@ pub trait HasStructSize {
 }
 
 pub trait FromStructBuilder<'a> {
-    fn new(structBuilder : StructBuilder<'a>) -> Self;
+    fn new(structBuilder: StructBuilder<'a>) -> Self;
 }
 
-pub trait FromPointerReader<'a> {
-    fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Self>;
+pub trait FromPointerReader<'a> : Sized {
+    fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Self>;
 }
 
 /// Associated types hackery that allows us to reason about Cap'n Proto types
@@ -62,16 +62,16 @@ pub trait OwnedStruct<'a> {
 }
 
 pub trait FromPointerReaderRefDefault<'a> {
-    fn get_from_pointer(reader : &PointerReader<'a>, default_value : *const Word) -> Self;
+    fn get_from_pointer(reader: &PointerReader<'a>, default_value : *const Word) -> Self;
 }
 
-pub trait FromPointerBuilder<'a> {
+pub trait FromPointerBuilder<'a> : Sized {
     fn init_pointer(PointerBuilder<'a>, u32) -> Self;
-    fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Self>;
+    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Self>;
 }
 
 pub trait FromPointerBuilderRefDefault<'a> {
-    fn get_from_pointer(builder : PointerBuilder<'a>, default_value : *const Word) -> Self;
+    fn get_from_pointer(builder: PointerBuilder<'a>, default_value: *const Word) -> Self;
 }
 
 pub trait SetPointerBuilder<To> {
@@ -86,12 +86,12 @@ pub trait ToU16 {
     fn to_u16(self) -> u16;
 }
 
-pub trait FromU16 {
-    fn from_u16(value : u16) -> ::std::result::Result<Self, ::NotInSchema>;
+pub trait FromU16 : Sized {
+    fn from_u16(value: u16) -> ::std::result::Result<Self, ::NotInSchema>;
 }
 
 pub trait IndexMove<I, T> {
-    fn index_move(&self, index : I) -> T;
+    fn index_move(&self, index: I) -> T;
 }
 
 pub struct ListIter<T, U> {
