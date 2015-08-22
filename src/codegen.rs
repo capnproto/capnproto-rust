@@ -1409,8 +1409,8 @@ fn generate_node(gen: &GeneratorContext,
             });
 
             mod_interior.push(Branch(vec!(
-                Line(format!("impl <'a,{}> ::capnp::traits::FromPointerReader<'a> for Client<{}>",
-                    params.params, params.params)),
+                Line(format!("impl <'a,{0}> ::capnp::traits::FromPointerReader<'a> for Client<{0}>",
+                    params.params)),
                 Line(params.where_clause.clone() + "{"),
                 Indent(
                     Box::new(Branch(vec!(
@@ -1421,7 +1421,8 @@ fn generate_node(gen: &GeneratorContext,
 
 
             mod_interior.push(Branch(vec![
-                Line(format!("impl <'a,{}> ::capnp::traits::FromPointerBuilder<'a> for Client<{}>", params.params, params.params)),
+                Line(format!("impl <'a,{0}> ::capnp::traits::FromPointerBuilder<'a> for Client<{0}>",
+                             params.params)),
                 Line(params.where_clause.clone() + " {"),
                 Indent(
                     Box::new(
@@ -1434,6 +1435,20 @@ fn generate_node(gen: &GeneratorContext,
                             Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine]));
+
+            mod_interior.push(Branch(vec![
+                Line(format!("impl <{params}> ::capnp::traits::SetPointerBuilder<Client<{params}>> for Client<{params}>",
+                             params= params.params)),
+                Line(params.where_clause.clone() + " {"),
+                Indent(
+                    Box::new(
+                        Branch(vec![
+                            Line(format!("fn set_pointer_builder<'a>(pointer: ::capnp::private::layout::PointerBuilder<'a>, from: Client<{}>) -> ::capnp::Result<()> {{",
+                                         params.params)),
+                            Indent(Box::new(Line(
+                                "::std::result::Result::Ok(pointer.set_capability(from.client.hook))".to_string()))),
+                            Line("}".to_string())]))),
+                Line("}".to_string())]));
 
 
             mod_interior.push(
