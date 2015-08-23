@@ -155,7 +155,7 @@ mod tests {
         assert_eq!(test_blob.has_data_field(), true);
 
         {
-            let test_blob_reader = test_blob.borrow().as_reader();
+            let test_blob_reader = test_blob.borrow_as_reader();
 
             assert_eq!(test_blob_reader.has_text_field(), true);
             assert_eq!(test_blob_reader.has_data_field(), true);
