@@ -1,3 +1,24 @@
+// Copyright (c) 2013-2015 Sandstorm Development Group, Inc. and contributors
+// Licensed under the MIT License:
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 use schema_capnp::{brand, node, type_};
 use codegen;
 use codegen::{GeneratorContext};
@@ -74,18 +95,18 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             let params = get_type_parameters(&gen, self.get_id(), parent_node_id);
             let type_parameters = params.iter().map(|param| {
                 format!("{}",param)
-            }).collect::<Vec<String>>().connect(",");
+            }).collect::<Vec<String>>().join(",");
             let where_clause = "where ".to_string() + &*(params.iter().map(|param| {
                 format!("{}: for<'c> ::capnp::traits::Owned<'c>", param)
-            }).collect::<Vec<String>>().connect(", ") + " ");
+            }).collect::<Vec<String>>().join(", ") + " ");
             let where_clause_with_send = "where ".to_string() + &*(params.iter().map(|param| {
                 //format!("{}Reader:Send+FromPointerReader<'a>", param)
                 format!("{}:Send+'static", param)
-            }).collect::<Vec<String>>().connect(", ") + " ") + ", "
+            }).collect::<Vec<String>>().join(", ") + " ") + ", "
                 + &*(params.iter().map(|param| {
                 //format!("{}Builder:Send+FromPointerBuilder<'a>", param)
                 format!("{}:Send+'static", param)
-            }).collect::<Vec<String>>().connect(", ") + " ");
+            }).collect::<Vec<String>>().join(", ") + " ");
             let phantom_data = "_phantom: PhantomData,".to_string();
 
             TypeParameterTexts {
@@ -139,11 +160,11 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Data(()) => format!("data::{}", module),
             type_::Struct(st) => {
                 do_branding(gen, st.get_type_id(), st.get_brand().unwrap(), module,
-                            gen.scope_map[&st.get_type_id()].connect("::"), None)
+                            gen.scope_map[&st.get_type_id()].join("::"), None)
             }
             type_::Interface(interface) => {
                 do_branding(gen, interface.get_type_id(), interface.get_brand().unwrap(), module,
-                            gen.scope_map[&interface.get_type_id()].connect("::"), None)
+                            gen.scope_map[&interface.get_type_id()].join("::"), None)
             }
             type_::List(ot1) => {
                 match ot1.get_element_type().unwrap().which() {
@@ -176,7 +197,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             },
             type_::Enum(en) => {
                 let scope = &gen.scope_map[&en.get_type_id()];
-                scope.connect("::").to_string()
+                scope.join("::").to_string()
             },
             type_::AnyPointer(pointer) => {
                 match pointer.which().unwrap() {
@@ -325,7 +346,7 @@ pub fn do_branding(gen: &GeneratorContext,
     accumulator.reverse();
 
     let arguments = if accumulator.len() > 0 {
-        format!("<{}>", accumulator.concat().connect(","))
+        format!("<{}>", accumulator.concat().join(","))
     } else {
         "".to_string()
     };

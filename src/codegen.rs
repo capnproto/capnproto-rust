@@ -177,7 +177,7 @@ fn to_lines(ft : &FormattedText, indent : usize) -> Vec<String> {
 }
 
 fn stringify(ft : & FormattedText) -> String {
-    let mut result = to_lines(ft, 0).connect("\n");
+    let mut result = to_lines(ft, 0).join("\n");
     result.push_str("\n");
     return result.to_string();
 }
@@ -306,7 +306,7 @@ pub fn getter_text (gen: &GeneratorContext,
 
     match field.which().ok().expect("unrecognized field type") {
         field::Group(group) => {
-            let the_mod = gen.scope_map[&group.get_type_id()].connect("::");
+            let the_mod = gen.scope_map[&group.get_type_id()].join("::");
             if is_reader {
                 (format!("{}::Reader<'a>", the_mod),
                         Line("::capnp::traits::FromStructReader::new(self.reader)".to_string()))
@@ -514,7 +514,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
         Err(_) => panic!("unrecognized field type"),
         Ok(field::Group(group)) => {
             let scope = &gen.scope_map[&group.get_type_id()];
-            let the_mod = scope.connect("::");
+            let the_mod = scope.join("::");
 
             initter_interior.push(zero_fields_of_group(gen, group.get_type_id()));
 
@@ -596,7 +596,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                 }
                 type_::Enum(e) => {
                     let id = e.get_type_id();
-                    let the_mod = gen.scope_map[&id].connect("::");
+                    let the_mod = gen.scope_map[&id].join("::");
                     setter_interior.push(
                         Line(format!("self.builder.set_data_field::<u16>({}, value as u16)",
                                      offset)));
@@ -673,7 +673,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
     match maybe_builder_type {
         Some(builder_type) => {
             result.push(Line("#[inline]".to_string()));
-            let args = initter_params.connect(", ");
+            let args = initter_params.join(", ");
             result.push(Line(format!("pub fn init_{}(self, {}) -> {} {{",
                                      styled_name, args, builder_type)));
             result.push(Indent(Box::new(Branch(initter_interior))));
@@ -753,7 +753,7 @@ fn generate_union(gen: &GeneratorContext,
     }
 
     let enum_name = format!("Which{}",
-                            if ty_params.len() > 0 { format!("<{}>", ty_params.connect(",")) }
+                            if ty_params.len() > 0 { format!("<{}>", ty_params.join(",")) }
                             else {"".to_string()} );
 
 
@@ -777,7 +777,7 @@ fn generate_union(gen: &GeneratorContext,
         Line(format!("pub type {} = Which{};",
                      concrete_type,
                      if ty_args.len() > 0 {format!("<{}>",
-                                                   ty_args.connect(","))} else {"".to_string()}));
+                                                   ty_args.join(","))} else {"".to_string()}));
 
     let getter_result =
         Branch(vec!(Line("#[inline]".to_string()),
@@ -846,7 +846,7 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
     match field.which() {
         Err(_) => panic!("unrecognized field type"),
         Ok(field::Group(group)) => {
-            let the_mod = gen.scope_map[&group.get_type_id()].connect("::");
+            let the_mod = gen.scope_map[&group.get_type_id()].join("::");
             return Branch(vec!(
                                 Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
                                             camel_to_snake_case(name),
@@ -918,7 +918,7 @@ fn generate_node(gen: &GeneratorContext,
 
             let is_generic = node_reader.get_is_generic();
             if is_generic {
-                output.push(Line(format!("pub mod {} {{ /* {} */", node_name, params.expanded_list.connect(","))));
+                output.push(Line(format!("pub mod {} {{ /* {} */", node_name, params.expanded_list.join(","))));
             } else {
                 output.push(Line(format!("pub mod {} {{", node_name)));
             }
@@ -1010,7 +1010,7 @@ fn generate_node(gen: &GeneratorContext,
                 reexports.push_str("pub use self::Which::{");
                 let whichs : Vec<String> =
                     union_fields.iter().map(|f| {capitalize_first_letter(f.get_name().unwrap())}).collect();
-                reexports.push_str(&whichs.connect(","));
+                reexports.push_str(&whichs.join(","));
                 reexports.push_str("};");
                 preamble.push(Line(reexports));
                 preamble.push(BlankLine);
@@ -1321,7 +1321,7 @@ fn generate_node(gen: &GeneratorContext,
                     gen.scope_map[&param_node.get_id()].clone()
                 };
                 let param_type = do_branding(&gen, param_id, method.get_param_brand().unwrap(),
-                                             Leaf::Owned, param_scopes.connect("::"), Some(node_id));
+                                             Leaf::Owned, param_scopes.join("::"), Some(node_id));
 
 
                 let result_id = method.get_result_struct_type();
@@ -1336,7 +1336,7 @@ fn generate_node(gen: &GeneratorContext,
                     gen.scope_map[&result_node.get_id()].clone()
                 };
                 let result_type = do_branding(&gen, result_id, method.get_result_brand().unwrap(),
-                                              Leaf::Owned, result_scopes.connect("::"), Some(node_id));
+                                              Leaf::Owned, result_scopes.join("::"), Some(node_id));
 
                 dispatch_arms.push(
                     Line(format!(
@@ -1369,14 +1369,14 @@ fn generate_node(gen: &GeneratorContext,
                 let extends = interface.get_superclasses().unwrap();
                 for ii in 0..extends.len() {
                     let base_id = extends.get(ii).get_id();
-                    let the_mod = gen.scope_map[&base_id].connect("::");
+                    let the_mod = gen.scope_map[&base_id].join("::");
                     base_dispatch_arms.push(
                         Line(format!(
                                 "0x{:x} => {}::ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),",
                                 base_id, the_mod)));
                     base_traits.push(format!("{}::Server", the_mod));
                 }
-                if extends.len() > 0 { format!(": {}", base_traits.connect(" + ")) }
+                if extends.len() > 0 { format!(": {}", base_traits.join(" + ")) }
                 else { "".to_string() }
             };
 
@@ -1560,7 +1560,7 @@ fn generate_node(gen: &GeneratorContext,
 
             output.push(BlankLine);
             if is_generic {
-                output.push(Line(format!("pub mod {} {{ /* ({}) */", node_name, params.expanded_list.connect(","))));
+                output.push(Line(format!("pub mod {} {{ /* ({}) */", node_name, params.expanded_list.join(","))));
             } else {
                 output.push(Line(format!("pub mod {} {{", node_name)));
             }
