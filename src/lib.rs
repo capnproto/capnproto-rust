@@ -36,9 +36,6 @@
 
 #![allow(raw_pointer_derive)]
 
-#![crate_name="capnp"]
-#![crate_type = "lib"]
-
 extern crate byteorder;
 
 #[cfg(test)]
