@@ -43,9 +43,6 @@
 //! ```
 //!
 
-#![crate_name="capnpc"]
-#![crate_type = "lib"]
-
 extern crate capnp;
 
 pub mod schema_capnp;

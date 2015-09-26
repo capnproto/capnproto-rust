@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#![crate_type = "bin"]
-
 extern crate capnp;
 extern crate fdstream;
 extern crate rand;

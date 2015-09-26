@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#![crate_type = "bin"]
-
 extern crate capnp;
 pub mod addressbook_capnp {
   include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
