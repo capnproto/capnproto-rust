@@ -26,7 +26,7 @@
 use any_pointer;
 use private::capability::{CallContextHook, ClientHook, RequestHook, ResponseHook};
 
-pub struct ResultFuture<Results> where Results: ::traits::Pipeline {
+pub struct ResultFuture<Results> where Results: ::traits::Pipelined {
     pub answer_port: ::std::sync::mpsc::Receiver<Box<ResponseHook+Send>>,
     pub answer_result: Result<Box<ResponseHook+Send>, ()>,
     pub pipeline: Results::Pipeline,
@@ -43,8 +43,8 @@ impl <Params, Results> Request <Params, Results> {
     }
 }
 impl <Params, Results> Request <Params, Results>
-where Results: ::traits::Pipeline,
-      <Results as ::traits::Pipeline>::Pipeline : FromTypelessPipeline
+where Results: ::traits::Pipelined,
+      <Results as ::traits::Pipelined>::Pipeline: FromTypelessPipeline
 {
     pub fn send(self) -> ResultFuture<Results> {
         let ResultFuture {answer_port, answer_result, pipeline, ..} = self.hook.send();

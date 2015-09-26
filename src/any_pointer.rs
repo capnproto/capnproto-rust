@@ -35,7 +35,7 @@ impl <'a> ::traits::Owned<'a> for Owned {
     type Builder = Builder<'a>;
 }
 
-impl ::traits::Pipeline for Owned {
+impl ::traits::Pipelined for Owned {
     type Pipeline = Pipeline;
 }
 

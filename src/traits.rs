@@ -59,7 +59,7 @@ pub trait OwnedStruct<'a> {
     type Builder: FromStructBuilder<'a> + HasStructSize;
 }
 
-pub trait Pipeline {
+pub trait Pipelined {
     type Pipeline;
 }
 
