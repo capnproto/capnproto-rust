@@ -111,7 +111,8 @@ pub trait WaitForContent<T> where T: for<'a> ::capnp::traits::Owned<'a> {
 }
 
 impl <Results> WaitForContent <Results> for ResultFuture<Results>
-    where Results: for<'a> ::capnp::traits::Owned<'a>
+    where Results: for<'a> ::capnp::traits::Owned<'a>,
+          Results: ::capnp::traits::Pipelined
 {
     fn wait<'a>(&'a mut self) -> Result<<Results as ::capnp::traits::Owned<'a>>::Reader, String>
     {
