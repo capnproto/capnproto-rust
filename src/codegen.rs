@@ -1393,7 +1393,7 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(
                 Branch(vec!(
                     Line(format!("impl {} FromClientHook for Client{} {{", bracketed_params, bracketed_params)),
-                    Indent(Box::new(Line(format!("fn new(hook : Box<ClientHook+Send>) -> Client{} {{", bracketed_params)))),
+                    Indent(Box::new(Line(format!("fn new(hook : Box<ClientHook>) -> Client{} {{", bracketed_params)))),
                     Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::private::capability::Client::new(hook), {} }}", params.phantom_data)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
@@ -1469,14 +1469,14 @@ fn generate_node(gen: &GeneratorContext,
                                 Line(format!("_phantom: PhantomData<({})>", params.params))
                             )))),
                             Line("}".to_string()),
-                            Line(format!("impl <{}, U : Server<{}> + Send + 'static> ToClient<U,{}>", params.params, params.params, params.params)),
+                            Line(format!("impl <{}, U : Server<{}> + 'static> ToClient<U,{}>", params.params, params.params, params.params)),
                             Line(params.where_clause_with_send.clone() + "{"),
                             Line(format!("pub fn new(u: U) -> ToClient<U, {}> {{ ToClient {{u: u, _phantom: PhantomData}} }}", params.params)),
                         ))
                     } else {
                         Branch(vec!(
                             Line("pub struct ToClient<U>{pub u: U}".to_string()),
-                            Line("impl <U : Server + Send + 'static> ToClient<U> {".to_string()),
+                            Line("impl <U : Server + 'static> ToClient<U> {".to_string()),
                             Line("pub fn new(u: U) -> ToClient<U> { ToClient {u: u} }".to_string()),
                         ))
                     }),
