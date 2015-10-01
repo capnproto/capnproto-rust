@@ -21,7 +21,7 @@
 
 //! List of lists.
 
-use traits::{FromPointerReader, FromPointerBuilder};
+use traits::{FromPointerReader, FromPointerBuilder, ListIter, IndexMove};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
 use Result;
 
@@ -35,7 +35,6 @@ impl<'a, T> ::traits::Owned<'a> for Owned<T> where T: for<'b> ::traits::Owned<'b
     type Builder = Builder<'a, T>;
 }
 
-#[derive(Clone, Copy)]
 pub struct Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
     marker: ::std::marker::PhantomData<<T as ::traits::Owned<'a>>::Reader>,
     reader: ListReader<'a>
@@ -47,6 +46,24 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
+    pub fn iter(self) -> ListIter<Reader<'a, T>, Result<<T as ::traits::Owned<'a>>::Reader>> {
+        ListIter::new(self, self.len())
+    }
+}
+
+impl <'a, T> Clone for Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
+    fn clone(&self) -> Reader<'a, T> {
+        Reader { marker : self.marker, reader : self.reader }
+    }
+}
+
+impl <'a, T> Copy for Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {}
+
+impl <'a, T>  IndexMove<u32, Result<<T as ::traits::Owned<'a>>::Reader>> for Reader<'a, T>
+where T: for<'b> ::traits::Owned<'b> {
+    fn index_move(&self, index : u32) -> Result<<T as ::traits::Owned<'a>>::Reader> {
+        self.get(index)
+    }
 }
 
 impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
