@@ -1119,6 +1119,16 @@ fn generate_node(gen: &GeneratorContext,
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
+                Line(format!("impl <'a,{}> ::capnp::traits::Imbue<'a> for Reader<'a,{}>",
+                    params.params, params.params)),
+                Line(params.where_clause.clone() + "{"),
+                Indent(
+                    Box::new(Branch(vec!(
+                        Line("fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {".to_string()),
+                        Indent(Box::new(Line("self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))".to_string()))),
+                        Line("}".to_string()))))),
+                Line("}".to_string()),
+                BlankLine,
                 Line(format!("impl <'a,{}> Reader<'a,{}>", params.params, params.params)),
                 Line(params.where_clause.clone() + "{"),
                 Indent(
@@ -1162,6 +1172,16 @@ fn generate_node(gen: &GeneratorContext,
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
+                Line(format!("impl <'a,{}> ::capnp::traits::ImbueMut<'a> for Builder<'a,{}>", params.params, params.params)),
+                Line(params.where_clause.clone() + " {"),
+                Indent(
+                    Box::new(Branch(vec!(
+                        Line("fn imbue_mut(&mut self, cap_table: &'a mut ::capnp::private::layout::CapTable) {".to_string()),
+                        Indent(Box::new(Line("self.builder.imbue(::capnp::private::layout::CapTableBuilder::Plain(cap_table))".to_string()))),
+                        Line("}".to_string()))))),
+                Line("}".to_string()),
+                BlankLine,
+
                 from_pointer_builder_impl,
                 Line(format!("impl <'a,{}> ::capnp::traits::SetPointerBuilder<Builder<'a,{}>> for Reader<'a,{}>", params.params, params.params, params.params)),
                 Line(params.where_clause.clone() + " {"),
