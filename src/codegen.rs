@@ -1347,16 +1347,16 @@ fn generate_node(gen: &GeneratorContext,
                             ordinal, camel_to_snake_case(name))));
                 mod_interior.push(
                     Line(format!(
-                            "pub type {}Context<'a,{}> = capability::CallContext<{}, {}>;",
+                            "pub type {}Context<{}> = capability::CallContext<{}, {}>;",
                             capitalize_first_letter(name), params.params, param_type, result_type)));
                 server_interior.push(
                     Line(format!(
-                            "fn {}<'a>(&mut self, {}Context<'a,{}>);",
+                            "fn {}(&mut self, {}Context<{}>);",
                             camel_to_snake_case(name), capitalize_first_letter(name), params.params
                             )));
 
                 client_impl_interior.push(
-                    Line(format!("pub fn {}_request<'a>(&self) -> Request<{},{}> {{",
+                    Line(format!("pub fn {}_request(&self) -> Request<{},{}> {{",
                                  camel_to_snake_case(name), param_type, result_type)));
 
                 client_impl_interior.push(Indent(
