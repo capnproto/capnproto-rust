@@ -284,9 +284,9 @@ struct TestGenerics(Foo, Bar) {
     }
   }
 
-  interface Interface(Qux) {
-    call @0 Inner2(Text) -> (qux :Qux, gen :TestGenerics(TestAllTypes, TestAnyPointer));
-  }
+  #interface Interface(Qux) {
+  #  call @0 Inner2(Text) -> (qux :Qux, gen :TestGenerics(TestAllTypes, TestAnyPointer));
+  #}
 
   annotation ann(struct) :Foo;
 
@@ -318,9 +318,9 @@ interface TestImplicitMethodParams {
   call @0 [T, U] (foo :T, bar :U) -> TestGenerics(T, U);
 }
 
-interface TestImplicitMethodParamsInGeneric(V) {
-  call @0 [T, U] (foo :T, bar :U) -> TestGenerics(T, U);
-}
+#interface TestImplicitMethodParamsInGeneric(V) {
+#  call @0 [T, U] (foo :T, bar :U) -> TestGenerics(T, U);
+#}
 
 struct TestGenericsUnion(Foo, Bar) {
   union {
@@ -338,7 +338,7 @@ struct TestUseGenerics $TestGenerics(Text, Data).ann("foo") {
   wrapper @8 :TestGenericsWrapper(TestAllTypes, TestAnyPointer);
   cap @18 :TestGenerics(TestInterface, Text);
 
-  genericCap @19 :TestGenerics(TestAllTypes, List(UInt32)).Interface(Data);
+  #genericCap @19 :TestGenerics(TestAllTypes, List(UInt32)).Interface(Data);
 
   default @5 :TestGenerics(TestAllTypes, Text) =
       (foo = (int16Field = 123), rev = (foo = "text", rev = (foo = (int16Field = 321))));

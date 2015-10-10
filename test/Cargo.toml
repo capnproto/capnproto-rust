@@ -15,4 +15,8 @@ path = "test.rs"
 path = "../"
 
 [dependencies]
-capnp = "0.5.0"
+gj = "*"
+
+[dependencies.capnp]
+path = "../../capnproto-rust"
+features = ["rpc"]

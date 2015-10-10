@@ -1363,16 +1363,21 @@ fn generate_node(gen: &GeneratorContext,
 
                 dispatch_arms.push(
                     Line(format!(
-                            "{} => server.{}(::capnp::private::capability::internal_get_typed_context(context)),",
+                            "{} => server.{}(::capnp::private::capability::internal_get_typed_params(params), ::capnp::private::capability::internal_get_typed_results(results)),",
                             ordinal, camel_to_snake_case(name))));
                 mod_interior.push(
                     Line(format!(
-                            "pub type {}Context<{}> = capability::CallContext<{}, {}>;",
-                            capitalize_first_letter(name), params.params, param_type, result_type)));
+                            "pub type {}Params<{}> = capability::Params<{}>;",
+                            capitalize_first_letter(name), params.params, param_type)));
+                mod_interior.push(
+                    Line(format!(
+                            "pub type {}Results<{}> = capability::Results<{}>;",
+                            capitalize_first_letter(name), params.params, result_type)));
                 server_interior.push(
                     Line(format!(
-                            "fn {}(&mut self, {}Context<{}>);",
-                            camel_to_snake_case(name), capitalize_first_letter(name), params.params
+                            "fn {}(&mut self, {}Params<{}>, {}Results<{}>) -> ::gj::Promise<(), ::capnp::Error>;",
+                            camel_to_snake_case(name), capitalize_first_letter(name), params.params,
+                            capitalize_first_letter(name), params.params
                             )));
 
                 client_impl_interior.push(
@@ -1395,7 +1400,7 @@ fn generate_node(gen: &GeneratorContext,
                     let the_mod = gen.scope_map[&base_id].join("::");
                     base_dispatch_arms.push(
                         Line(format!(
-                                "0x{:x} => {}::ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, context),",
+                                "0x{:x} => {}::ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, params, results),",
                                 base_id, the_mod)));
                     base_traits.push(format!("{}::Server", the_mod));
                 }
@@ -1543,16 +1548,16 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(
                 Branch(vec!(
                     (if is_generic {
-                        Line(format!("impl <{}, T : Server{}> ::capnp::capability::Server for ServerDispatch<T,{}> {{", params.params, bracketed_params, params.params))
+                        Line(format!("impl <{}, T: Server{}> ::capnp::capability::Server for ServerDispatch<T,{}> {{", params.params, bracketed_params, params.params))
                     } else {
-                        Line("impl <T : Server> ::capnp::capability::Server for ServerDispatch<T> {".to_string())
+                        Line("impl <T: Server> ::capnp::capability::Server for ServerDispatch<T> {".to_string())
                     }),
-                    Indent(Box::new(Line("fn dispatch_call(&mut self, interface_id : u64, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string()))),
+                    Indent(Box::new(Line("fn dispatch_call(&mut self, interface_id: u64, method_id: u16, params: capability::Params<::capnp::any_pointer::Owned>, results: capability::Results<::capnp::any_pointer::Owned>) -> ::gj::Promise<(), ::capnp::Error> {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match interface_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(
-                        Box::new(Line(format!("_private::TYPE_ID => ServerDispatch::<T, {}>::dispatch_call_internal(&mut *self.server, method_id, context),",params.params)))))))),
+                        Box::new(Line(format!("_private::TYPE_ID => ServerDispatch::<T, {}>::dispatch_call_internal(&mut *self.server, method_id, params, results),",params.params)))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(base_dispatch_arms))))))),
-                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => {}".to_string()))))))),
+                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => { results.unimplemented(); ::gj::Promise::fulfilled(()) }".to_string()))))))),
                     Indent(Box::new(Indent(Box::new(Line("}".to_string()))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
@@ -1564,10 +1569,10 @@ fn generate_node(gen: &GeneratorContext,
                     } else {
                         Line("impl <T : Server> ServerDispatch<T> {".to_string())
                     }),
-                    Indent(Box::new(Line("pub fn dispatch_call_internal(server :&mut T, method_id : u16, context : capability::CallContext<::capnp::any_pointer::Reader, ::capnp::any_pointer::Builder>) {".to_string()))),
+                    Indent(Box::new(Line("pub fn dispatch_call_internal(server: &mut T, method_id: u16, params: capability::Params<::capnp::any_pointer::Owned>, results: capability::Results<::capnp::any_pointer::Owned>) -> ::gj::Promise<(), ::capnp::Error> {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match method_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(dispatch_arms))))))),
-                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => {}".to_string()))))))),
+                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => { results.unimplemented(); ::gj::Promise::fulfilled(()) }".to_string()))))))),
                     Indent(Box::new(Indent(Box::new(Line("}".to_string()))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));

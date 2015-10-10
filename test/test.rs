@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 extern crate capnp;
+extern crate gj;
 
 #[allow(overflowing_literals)]
 pub mod test_capnp {
