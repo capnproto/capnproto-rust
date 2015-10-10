@@ -24,3 +24,7 @@ gj = "*"
 path = "../capnproto-rust"
 features = ["rpc"]
 
+[dependencies.capnp-gj]
+git = "https://github.com/dwrensha/capnp-gj"
+
+

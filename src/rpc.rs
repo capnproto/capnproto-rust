@@ -258,7 +258,7 @@ pub struct RpcConnectionState {
 
 fn client_hooks_of_payload(payload : payload::Reader,
                            rpc_chan : &::std::sync::mpsc::Sender<RpcEvent>,
-                           answers : &ImportTable<Answer>) -> Vec<Option<Box<ClientHook+Send>>> {
+                           answers : &ImportTable<Answer>) -> Vec<Option<Box<ClientHook>>> {
     let mut result = Vec::new();
     for cap in payload.get_cap_table().unwrap().iter() {
         match cap.which() {

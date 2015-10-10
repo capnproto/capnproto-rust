@@ -19,10 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#![crate_type="lib"]
-
 extern crate capnp;
 extern crate gj;
+extern crate capnp_gj;
 
 pub mod rpc_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_capnp.rs"));
