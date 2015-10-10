@@ -27,8 +27,6 @@ pub mod rpc_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_capnp.rs"));
 }
 
-pub mod capability;
-pub mod ez_rpc;
+//pub mod capability;
+//pub mod ez_rpc;
 pub mod rpc;
-
-
