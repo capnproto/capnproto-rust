@@ -1410,7 +1410,7 @@ fn generate_node(gen: &GeneratorContext,
 
             mod_interior.push(BlankLine);
             mod_interior.push(Line(format!("pub struct Client{} {{", bracketed_params)));
-            mod_interior.push(Indent(Box::new(Line("pub client : ::capnp::private::capability::Client,".to_string()))));
+            mod_interior.push(Indent(Box::new(Line("pub client : ::capnp::capability::Client,".to_string()))));
             if is_generic {
                 mod_interior.push(Indent(Box::new(Line(format!("_phantom: PhantomData<({})>", params.params)))))
             }
@@ -1419,7 +1419,7 @@ fn generate_node(gen: &GeneratorContext,
                 Branch(vec!(
                     Line(format!("impl {} FromClientHook for Client{} {{", bracketed_params, bracketed_params)),
                     Indent(Box::new(Line(format!("fn new(hook : Box<ClientHook>) -> Client{} {{", bracketed_params)))),
-                    Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::private::capability::Client::new(hook), {} }}", params.phantom_data)))))),
+                    Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::capability::Client::new(hook), {} }}", params.phantom_data)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
 
@@ -1525,7 +1525,7 @@ fn generate_node(gen: &GeneratorContext,
                     Branch(vec!(
                         Line(format!("impl {} Clone for Client{} {{", bracketed_params, bracketed_params)),
                         Indent(Box::new(Line(format!("fn clone(&self) -> Client{} {{", bracketed_params)))),
-                        Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::private::capability::Client::new(self.client.hook.copy()), {} }}", params.phantom_data)))))),
+                        Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::capability::Client::new(self.client.hook.copy()), {} }}", params.phantom_data)))))),
                         Indent(Box::new(Line("}".to_string()))),
                         Line("}".to_string()))));
 
