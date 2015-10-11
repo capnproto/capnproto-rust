@@ -30,3 +30,47 @@ pub mod rpc_capnp {
 //pub mod capability;
 //pub mod ez_rpc;
 pub mod rpc;
+pub mod twoparty;
+
+pub trait OutgoingMessage {
+    fn get_body<'a>(&'a mut self) -> ::capnp::any_pointer::Builder<'a>;
+    fn send(&self);
+}
+
+pub trait IncomingMessage {
+    fn get_body<'a>(&'a self) -> ::capnp::any_pointer::Reader<'a>;
+}
+
+pub trait Connection<VatId> {
+    fn get_peer_vat_id(&self) -> VatId;
+    fn new_outgoing_message(&mut self) -> Box<OutgoingMessage>;
+
+    // Waits for a message to be received and return it.  If the read stream cleanly terminates,
+    // returns None.  If any other problem occurs, returns an Error.
+    fn receive_incoming_message(&mut self) -> ::gj::Promise<Option<Box<IncomingMessage>>, ::capnp::Error>;
+
+    fn shutdown(&mut self);
+}
+
+pub trait VatNetwork<VatId> {
+    fn connect(&mut self) -> Option<Box<Connection<VatId>>>;
+    fn accept(&mut self) -> ::gj::Promise<Box<Connection<VatId>>, ::capnp::Error>;
+}
+
+
+
+pub struct RpcSystem<VatId> {
+    network: Box<VatNetwork<VatId>>,
+}
+
+impl <VatId> RpcSystem <VatId> {
+    pub fn new(network: Box<VatNetwork<VatId>>) -> RpcSystem<VatId> {
+        RpcSystem { network: network }
+    }
+
+    pub fn bootstrap(&self) -> ::capnp::capability::Client {
+        unimplemented!()
+    }
+}
+
+

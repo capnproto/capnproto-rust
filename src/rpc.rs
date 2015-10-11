@@ -39,7 +39,6 @@ pub type AnswerId = QuestionId;
 pub type ExportId = u32;
 pub type ImportId = ExportId;
 
-
 pub struct ImportTable<T> {
     slots : HashMap<u32, T>,
 }
@@ -116,24 +115,6 @@ pub struct Import {
     import_client: (),
 }
 
-
-// How should this work? I make a two party rpc system by passing in an AsyncStream.
-pub struct TwoPartyVatNetwork<T> where T: ::gj::io::AsyncWrite + ::gj::io::AsyncRead {
-    stream: T,
-    receive_options: ::capnp::message::ReaderOptions,
-}
-
-/*
-pub struct RpcSystem {
-
-}
-
-impl RpcSystem {
-    pub fn bootstrap() -> Client {
-
-    }
-}
-*/
 
 pub struct ConnectionErrorHandler {
     state: Rc<RefCell<ConnectionState>>,
