@@ -34,6 +34,25 @@ use std::rc::Rc;
 
 use rpc_capnp::{message, return_, cap_descriptor, message_target, payload, promised_answer};
 
+
+pub struct System<VatId> {
+    network: Box<::VatNetwork<VatId>>,
+}
+
+impl <VatId> System <VatId> {
+    pub fn new(network: Box<::VatNetwork<VatId>>,
+               bootstrap_interface: ::capnp::capability::Client) -> System<VatId> {
+        System { network: network }
+    }
+
+    /// Connects to the given vat and return its bootstrap interface.
+    pub fn bootstrap(&mut self, vat_id: VatId) -> ::capnp::capability::Client {
+        self.network.connect(vat_id);
+        unimplemented!()
+    }
+}
+
+
 pub type QuestionId = u32;
 pub type AnswerId = QuestionId;
 pub type ExportId = u32;
@@ -116,26 +135,100 @@ pub struct Import {
 }
 
 
-pub struct ConnectionErrorHandler {
-    state: Rc<RefCell<ConnectionState>>,
+pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
+    state: Rc<RefCell<ConnectionState<VatId>>>,
 }
 
-impl ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler {
+impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<VatId> {
     fn task_failed(&mut self, error: ::capnp::Error) {
-        // TODO: disconnect
+        self.state.borrow_mut().disconnect(error);
     }
 }
 
-pub struct ConnectionState {
+
+struct ConnectionState<VatId> where VatId: 'static {
     exports: ExportTable<Export>,
     questions: ExportTable<Question>,
     answers: ImportTable<Answer>,
     imports: ImportTable<Import>,
-    tasks: ::gj::TaskSet<(), ::capnp::Error>,
+    tasks: Option<::gj::TaskSet<(), ::capnp::Error>>,
+    connection: ::std::result::Result<Box<::Connection<VatId>>, ::capnp::Error>,
 }
 
-impl ConnectionState {
-    pub fn new() -> Rc<RefCell<ConnectionState>> {
-        unimplemented!()
+// OK, how do we kick off the message loop?
+// it needs a taskset.
+
+impl <VatId> ConnectionState<VatId> {
+    fn new(connection: Box<::Connection<VatId>>) -> Rc<RefCell<ConnectionState<VatId>>> {
+        let state = Rc::new(RefCell::new(ConnectionState {
+            exports: ExportTable::new(),
+            questions: ExportTable::new(),
+            answers: ImportTable::new(),
+            imports: ImportTable::new(),
+            tasks: None,
+            connection: Ok(connection)
+        }));
+        let mut task_set = ::gj::TaskSet::new(Box::new(ConnectionErrorHandler { state: state.clone() }));
+        task_set.add(ConnectionState::message_loop(state.clone()));
+        state.borrow_mut().tasks = Some(task_set);
+        state
     }
+
+    fn disconnect(&mut self, error: ::capnp::Error) {
+        if self.connection.is_err() {
+            // Already disconnected.
+            return;
+        }
+
+        // TODO ...
+    }
+
+    fn message_loop(state: Rc<RefCell<ConnectionState<VatId>>>) -> ::gj::Promise<(), ::capnp::Error> {
+        let promise = match state.borrow_mut().connection {
+            Err(ref e) => return ::gj::Promise::fulfilled(()),
+            Ok(ref mut connection) => connection.receive_incoming_message(),
+        };
+        let state1 = state.clone();
+        promise.map(move |message| {
+            match message {
+                Some(m) => {
+                    ConnectionState::handle_message(state, m).map(|()| true)
+                }
+                None => {
+                    state.borrow_mut().disconnect(
+                        ::capnp::Error::Io(::std::io::Error::new(::std::io::ErrorKind::Other,
+                                                                 "Peer disconnected")));
+                    Ok(false)
+                }
+            }
+        }).then(move |keepGoing| {
+            if keepGoing {
+                Ok(ConnectionState::message_loop(state1))
+            } else {
+                Ok(::gj::Promise::fulfilled(()))
+            }
+        })
+    }
+
+    fn handle_message(state: Rc<RefCell<ConnectionState<VatId>>>,
+                      message: Box<::IncomingMessage>) -> ::capnp::Result<()> {
+        let reader = try!(try!(message.get_body()).get_as::<message::Reader>());
+        match try!(reader.which()) {
+            message::Unimplemented(_) => {}
+            message::Abort(_) => {}
+            message::Bootstrap(_) => {}
+            message::Call(_) => {}
+            message::Return(_) => {}
+            message::Finish(_) => {}
+            message::Resolve(_) => {}
+            message::Release(_) => {}
+            message::Disembargo(_) => {}
+            message::Provide(_) => {}
+            message::Accept(_) => {}
+            message::Join(_) => {}
+            message::ObsoleteSave(_) | message::ObsoleteDelete(_) => {}
+        }
+        Ok(())
+    }
+
 }

@@ -49,8 +49,8 @@ pub trait Connection<VatId> {
     fn get_peer_vat_id(&self) -> VatId;
     fn new_outgoing_message(&mut self) -> Box<OutgoingMessage>;
 
-    /// Waits for a message to be received and return it.  If the read stream cleanly terminates,
-    /// returns None.  If any other problem occurs, returns an Error.
+    /// Waits for a message to be received and returns it.  If the read stream cleanly terminates,
+    /// returns None. If any other problem occurs, returns an Error.
     fn receive_incoming_message(&mut self) -> ::gj::Promise<Option<Box<IncomingMessage>>, ::capnp::Error>;
 
     fn shutdown(&mut self);
@@ -62,22 +62,6 @@ pub trait VatNetwork<VatId> {
 
     /// Waits for the next incoming connection and return it.
     fn accept(&mut self) -> ::gj::Promise<Box<Connection<VatId>>, ::capnp::Error>;
-}
-
-
-
-pub struct RpcSystem<VatId> {
-    _network: Box<VatNetwork<VatId>>,
-}
-
-impl <VatId> RpcSystem <VatId> {
-    pub fn new(network: Box<VatNetwork<VatId>>) -> RpcSystem<VatId> {
-        RpcSystem { _network: network }
-    }
-
-    pub fn bootstrap(&self) -> ::capnp::capability::Client {
-        unimplemented!()
-    }
 }
 
 
