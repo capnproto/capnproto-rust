@@ -38,7 +38,7 @@ pub mod twoparty;
 
 pub trait OutgoingMessage {
     fn get_body<'a>(&'a mut self) -> ::capnp::Result<::capnp::any_pointer::Builder<'a>>;
-    fn send(self);
+    fn send(self: Box<Self>);
 }
 
 pub trait IncomingMessage {

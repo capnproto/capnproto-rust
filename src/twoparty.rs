@@ -52,8 +52,9 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gj::io::AsyncWrite 
         self.message.get_root()
     }
 
-    fn send(self) {
-        let OutgoingMessage {message, write_queue} = self;
+    fn send(self: Box<Self>) {
+        let tmp = *self;
+        let OutgoingMessage {message, write_queue} = tmp;
         let queue = ::std::mem::replace(&mut *write_queue.borrow_mut(), ::gj::Promise::never_done());
         *write_queue.borrow_mut() = queue.then(move |s| {
             Ok(::capnp_gj::serialize::write_message(s, message).map(move |(s, _)| {
