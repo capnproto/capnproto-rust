@@ -1418,7 +1418,7 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(
                 Branch(vec!(
                     Line(format!("impl {} FromClientHook for Client{} {{", bracketed_params, bracketed_params)),
-                    Indent(Box::new(Line(format!("fn new(hook : Box<ClientHook>) -> Client{} {{", bracketed_params)))),
+                    Indent(Box::new(Line(format!("fn new(hook: ::std::rc::Rc<::std::cell::RefCell<Box<ClientHook>>>) -> Client{} {{", bracketed_params)))),
                     Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::capability::Client::new(hook), {} }}", params.phantom_data)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
@@ -1525,7 +1525,7 @@ fn generate_node(gen: &GeneratorContext,
                     Branch(vec!(
                         Line(format!("impl {} Clone for Client{} {{", bracketed_params, bracketed_params)),
                         Indent(Box::new(Line(format!("fn clone(&self) -> Client{} {{", bracketed_params)))),
-                        Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::capability::Client::new(self.client.hook.copy()), {} }}", params.phantom_data)))))),
+                        Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::capability::Client::new(self.client.hook.clone()), {} }}", params.phantom_data)))))),
                         Indent(Box::new(Line("}".to_string()))),
                         Line("}".to_string()))));
 
