@@ -104,7 +104,7 @@ impl <T> ExportTable<T> {
         self.free_ids.push(ReverseU32 { val : id } );
     }
 
-    pub fn push(&mut self, val : T) -> u32 {
+    pub fn push(&mut self, val: T) -> u32 {
         match self.free_ids.pop() {
             Some(ReverseU32 { val : id }) => {
                 self.slots[id as usize] = Some(val);
@@ -118,11 +118,23 @@ impl <T> ExportTable<T> {
     }
 }
 
-pub struct Question {
+struct Question<VatId> where VatId: 'static {
     is_awaiting_return: bool,
+    param_exports: Vec<ExportId>,
+
+    /// The local QuestionRef, set to None when it is destroyed.
+    selfRef: Option<QuestionRef<VatId>>
 }
 
-pub struct Answer {
+/// A reference to an entry on the question table.  Used to detect when the `Finish` message
+/// can be sent.
+struct QuestionRef<VatId> where VatId: 'static {
+    connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+    id: QuestionId,
+    fulfiller: ::gj::PromiseFulfiller<Response<VatId>, ()>,
+}
+
+struct Answer {
     active: bool,
 }
 
@@ -145,10 +157,9 @@ impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<Vat
     }
 }
 
-
 struct ConnectionState<VatId> where VatId: 'static {
     exports: ExportTable<Export>,
-    questions: ExportTable<Question>,
+    questions: ExportTable<Question<VatId>>,
     answers: ImportTable<Answer>,
     imports: ImportTable<Import>,
     tasks: Option<::gj::TaskSet<(), ::capnp::Error>>,
@@ -181,6 +192,10 @@ impl <VatId> ConnectionState<VatId> {
         }
 
         // TODO ...
+    }
+
+    fn bootstrap(&mut self) -> Box<ClientHook> {
+        unimplemented!()
     }
 
     fn message_loop(state: Rc<RefCell<ConnectionState<VatId>>>) -> ::gj::Promise<(), ::capnp::Error> {
@@ -230,5 +245,41 @@ impl <VatId> ConnectionState<VatId> {
         }
         Ok(())
     }
+}
 
+struct Response<VatId> where VatId: 'static {
+    connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+}
+
+impl <VatId> ResponseHook for Response<VatId> {
+    fn get<'a>(&'a self) -> any_pointer::Reader<'a> {
+        unimplemented!()
+    }
+}
+
+enum PipelineState<VatId> where VatId: 'static {
+    Waiting(Rc<RefCell<QuestionRef<VatId>>>),
+    Resolved(Response<VatId>),
+    Broken(::capnp::Error),
+}
+
+struct Pipeline<VatId> where VatId: 'static {
+    connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+    state: PipelineState<VatId>,
+}
+
+impl <VatId> PipelineHook for Pipeline<VatId> {
+    fn get_pipelined_cap(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
+        match &self.state {
+            &PipelineState::Waiting(ref question_ref) => { unimplemented!() }
+            &PipelineState::Resolved(ref response) => {
+                response.get().get_pipelined_cap(&ops[..]).unwrap()
+            }
+            &PipelineState::Broken(ref response) => { unimplemented!() }
+        }
+    }
+}
+
+struct Client<VatId> where VatId: 'static {
+    connection_state: Rc<RefCell<ConnectionState<VatId>>>,
 }
