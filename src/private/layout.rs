@@ -1910,15 +1910,17 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_text(&self, default_value : *const Word, default_size : ByteCount32) -> Result<text::Reader<'a>> {
+    pub fn get_text(&self, default_value: *const Word, default_size: ByteCount32) -> Result<text::Reader<'a>> {
+        let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
-            wire_helpers::read_text_pointer(self.segment, self.pointer, default_value, default_size)
+            wire_helpers::read_text_pointer(self.segment, reff, default_value, default_size)
         }
     }
 
     pub fn get_data(&self, default_value : *const Word, default_size : ByteCount32) -> Result<data::Reader<'a>> {
+        let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
-            wire_helpers::read_data_pointer(self.segment, self.pointer, default_value, default_size)
+            wire_helpers::read_data_pointer(self.segment, reff, default_value, default_size)
         }
     }
 
@@ -1926,12 +1928,6 @@ impl <'a> PointerReader<'a> {
         let reff : *const WirePointer = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_capability_pointer(self.segment, reff, self.nesting_limit)
-        }
-    }
-
-    pub fn total_size(&self) -> Result<MessageSize> {
-        unsafe {
-            wire_helpers::total_size(self.segment, self.pointer, self.nesting_limit)
         }
     }
 }
