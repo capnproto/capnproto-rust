@@ -873,6 +873,27 @@ mod tests {
     }
 
     #[test]
+    fn null_struct_fields() {
+        use test_capnp::{test_all_types};
+        let mut message = message::Builder::new_default();
+        {
+	    let mut test = message.init_root::<test_all_types::Builder>();
+	    test.set_text_field("Hello");
+        }
+        let reader = message.get_root::<test_all_types::Builder>().unwrap().as_reader();
+        assert_eq!(reader.get_text_field().unwrap(), "Hello");
+        assert_eq!(reader.has_struct_field(), false);
+        let nested = reader.get_struct_field().unwrap();
+        assert_eq!(nested.get_int8_field(), 0);
+        assert_eq!(nested.get_u_int64_field(), 0);
+        assert_eq!(nested.get_void_list().unwrap().len(), 0);
+        assert_eq!(nested.get_float64_list().unwrap().len(), 0);
+        assert_eq!(nested.get_struct_list().unwrap().len(), 0);
+        assert_eq!(nested.get_text_field().unwrap(), "");
+        assert_eq!(nested.get_data_field().unwrap(), &[]);
+    }
+
+    #[test]
     fn threads() {
         use test_capnp::{test_all_types};
         {
