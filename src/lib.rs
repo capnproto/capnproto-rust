@@ -38,7 +38,7 @@
 
 extern crate byteorder;
 
-#[cfg(test)]
+#[cfg(any(feature="quickcheck", test))]
 extern crate quickcheck;
 
 pub mod any_pointer;
@@ -103,13 +103,10 @@ impl Word {
     }
 }
 
-#[cfg(test)]
+#[cfg(any(feature="quickcheck", test))]
 impl quickcheck::Arbitrary for Word {
     fn arbitrary<G: quickcheck::Gen>(g: &mut G) -> Word {
         Word(quickcheck::Arbitrary::arbitrary(g))
-    }
-    fn shrink(&self) -> Box<Iterator<Item=Word>+'static> {
-        Box::new(quickcheck::Arbitrary::shrink(&self.0).map(|value| Word(value)))
     }
 }
 

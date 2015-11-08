@@ -19,6 +19,7 @@ path = "src/lib.rs"
 
 [dependencies]
 byteorder = "0.3.13"
+quickcheck = { version = "0.2", optional = true }
 
 [dev-dependencies]
-quickcheck = "*"
+quickcheck = "0.2"
