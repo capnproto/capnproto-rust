@@ -129,22 +129,22 @@ impl SegmentBuilder {
 }
 
 pub struct ReadLimiter {
-    pub limit : ::std::cell::RefCell<u64>,
+    pub limit : ::std::cell::Cell<u64>,
 }
 
 impl ReadLimiter {
     pub fn new(limit : u64) -> ReadLimiter {
-        ReadLimiter { limit : ::std::cell::RefCell::new(limit) }
+        ReadLimiter { limit : ::std::cell::Cell::new(limit) }
     }
 
     #[inline]
     pub fn can_read(&self, amount : u64) -> bool {
-        let current = *self.limit.borrow();
+        let current = self.limit.get();
         if amount > current {
             // TODO arena->reportReadLimitReached()
             false
         } else {
-            *self.limit.borrow_mut() = current - amount;
+            self.limit.set(current - amount);
             true
         }
     }
