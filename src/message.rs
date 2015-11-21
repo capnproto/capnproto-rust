@@ -98,11 +98,7 @@ impl <'a> SegmentArray<'a> {
 
 impl <'b> ReaderSegments for SegmentArray<'b> {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
-        if id < self.segments.len() as u32 {
-            Some(self.segments[id as usize])
-        } else {
-            None
-        }
+        self.segments.get(id as usize).map(|slice| *slice)
     }
 }
 
