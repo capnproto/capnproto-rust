@@ -85,6 +85,12 @@ impl Word {
         }
     }
 
+    pub fn bytes_to_words_mut<'a>(bytes: &'a mut [u8]) -> &'a mut [Word] {
+        unsafe {
+            ::std::slice::from_raw_parts_mut(bytes.as_ptr() as *mut Word, bytes.len() / 8)
+        }
+    }
+
     pub fn words_to_bytes<'a>(words: &'a [Word]) -> &'a [u8] {
         unsafe {
             ::std::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 8)
