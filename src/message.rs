@@ -158,7 +158,7 @@ pub unsafe trait Allocator {
     ///
     /// UNSAFETY ALERT: The callee is responsible for ensuring that the returned memory is valid
     /// for the lifetime of the object and doesn't overlap with other allocated memory.
-    fn allocate_segment(&mut self, miniumum_size: u32) -> (*mut Word, u32);
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32);
 
     fn pre_drop(&mut self, _segment0_currently_allocated: u32) {}
 }
