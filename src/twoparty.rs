@@ -113,17 +113,17 @@ impl <T, U> ::Connection<VatId> for Connection<T, U>
     }
 }
 
-pub struct TwoPartyVatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
+pub struct VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
     connection: Option<Connection<T,U>>,
 }
 
-impl <T, U> TwoPartyVatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
-    pub fn new(input_stream: T, output_stream: U, receive_options: ReaderOptions) -> TwoPartyVatNetwork<T, U> {
-        TwoPartyVatNetwork { connection: Some(Connection::new(input_stream, output_stream, receive_options)) }
+impl <T, U> VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
+    pub fn new(input_stream: T, output_stream: U, receive_options: ReaderOptions) -> VatNetwork<T, U> {
+        VatNetwork { connection: Some(Connection::new(input_stream, output_stream, receive_options)) }
     }
 }
 
-impl <T, U> ::VatNetwork<VatId> for TwoPartyVatNetwork<T, U>
+impl <T, U> ::VatNetwork<VatId> for VatNetwork<T, U>
     where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite
 {
     fn connect(&mut self, _host_id: VatId) -> Option<Box<::Connection<VatId>>> {

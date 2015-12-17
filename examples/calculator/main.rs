@@ -24,20 +24,21 @@
 
 extern crate capnp;
 extern crate capnp_rpc;
+extern crate gj;
 
 pub mod calculator_capnp {
   include!(concat!(env!("OUT_DIR"), "/calculator_capnp.rs"));
 }
 
 pub mod client;
-pub mod server;
+//pub mod server;
 
 pub fn main() {
     let args : Vec<String> = ::std::env::args().collect();
     if args.len() >= 2 {
         match &args[1][..] {
             "client" => return client::main(),
-            "server" => return server::main(),
+//            "server" => return server::main(),
             _ => (),
         }
     }
