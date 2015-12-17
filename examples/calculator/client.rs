@@ -19,6 +19,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use capnp_rpc::{rpc, twoparty, rpc_twoparty_capnp};
+use capnp_rpc::InitRequest;
+use calculator_capnp::calculator;
+
 pub fn main() {
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
@@ -33,7 +37,19 @@ pub fn main() {
 
             let stream2 = try!(stream.try_clone());
 
-            let connection = ::capnp_rpc::twoparty::VatNetwork::new(stream, stream2, Default::default());
+            let connection: Box<::capnp_rpc::VatNetwork<twoparty::VatId>> =
+                Box::new(twoparty::VatNetwork::new(stream, stream2, Default::default()));
+
+            let mut rpc_system = rpc::System::new(connection, None);
+
+            let calculator = calculator::Client {
+                client: rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server)
+            };
+
+            let mut request = calculator.evaluate_request();
+
+            request.init().init_expression().set_literal(11.0);
+            request.send();
 
             Ok(::gj::Promise::fulfilled(()))
         }).lift().wait(wait_scope)

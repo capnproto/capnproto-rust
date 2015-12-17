@@ -23,6 +23,8 @@ extern crate capnp;
 extern crate gj;
 extern crate capnp_gj;
 
+use rpc_capnp::message;
+
 pub mod rpc_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_capnp.rs"));
 }
@@ -65,3 +67,22 @@ pub trait VatNetwork<VatId> {
 }
 
 
+
+pub trait InitRequest<T> where T: for <'a> ::capnp::traits::Owned<'a> {
+    fn init<'a>(&'a mut self) -> <T as ::capnp::traits::Owned<'a>>::Builder;
+}
+
+impl <Params, Results> InitRequest<Params> for ::capnp::capability::Request<Params, Results>
+    where Params: for <'a> ::capnp::traits::Owned<'a>
+{
+    fn init<'a>(&'a mut self) -> <Params as ::capnp::traits::Owned<'a>>::Builder {
+        let message: message::Builder = self.hook.message::<'a>().get_root().unwrap();
+        match message.which() {
+            Ok(message::Call(Ok(call))) => {
+                let params = call.init_params();
+                params.get_content().init_as()
+            }
+            _ => panic!(),
+        }
+    }
+}

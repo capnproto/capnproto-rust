@@ -40,7 +40,7 @@ pub struct System<VatId> where VatId: 'static {
 
 impl <VatId> System <VatId> {
     pub fn new(network: Box<::VatNetwork<VatId>>,
-               bootstrap_interface: ::capnp::capability::Client) -> System<VatId> {
+               _bootstrap_interface: Option<::capnp::capability::Client>) -> System<VatId> {
         System { network: network, connection_state: None }
     }
 
@@ -343,6 +343,7 @@ enum Client<VatId> where VatId: 'static {
     Import(ImportClient<VatId>),
     Pipeline(PipelineClient<VatId>),
     Promise(PromiseClient<VatId>),
+    Broken(BrokenClient),
     NoIntercept(()),
 }
 
@@ -357,6 +358,8 @@ struct PipelineClient<VatId> where VatId: 'static {
 struct PromiseClient<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
 }
+
+struct BrokenClient;
 
 impl <VatId> ClientHook for Client<VatId> {
     fn new_call(&self, _interface_id: u64, _method_id: u16,

@@ -95,7 +95,7 @@ impl <Params, Results> InitRequest<Params> for Request<Params, Results>
     where Params: for <'a> ::capnp::traits::Owned<'a>
 {
     fn init<'a>(&'a mut self) -> <Params as ::capnp::traits::Owned<'a>>::Builder {
-        let message : message::Builder = self.hook.message::<'a>().get_root().unwrap();
+        let message: message::Builder = self.hook.message::<'a>().get_root().unwrap();
         match message.which() {
             Ok(message::Call(Ok(call))) => {
                 let params = call.init_params();
