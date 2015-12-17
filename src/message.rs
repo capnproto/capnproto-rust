@@ -63,6 +63,13 @@ pub struct ReaderOptions {
 pub const DEFAULT_READER_OPTIONS : ReaderOptions =
     ReaderOptions { traversal_limit_in_words : 8 * 1024 * 1024, nesting_limit : 64 };
 
+
+impl Default for ReaderOptions {
+    fn default() -> ReaderOptions {
+        ReaderOptions { traversal_limit_in_words : 8 * 1024 * 1024, nesting_limit : 64 }
+    }
+}
+
 impl ReaderOptions {
     pub fn new() -> ReaderOptions { DEFAULT_READER_OPTIONS }
 
