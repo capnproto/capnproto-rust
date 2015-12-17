@@ -777,11 +777,16 @@ mod wire_helpers {
         // target. Particularly useful for OrphanBuilder.
 
         if dst_segment == src_segment {
-            //# Same segment, so create a direct pointer.
-            (*dst).set_kind_and_target((*src_tag).kind(), src_ptr);
+            // Same segment, so create a direct pointer.
 
-            //# We can just copy the upper 32 bits. (Use memcpy() to comply with aliasing rules.)
-            ::std::ptr::copy_nonoverlapping(&(*src_tag).upper32bits, &mut (*dst).upper32bits, 1);
+            if (*src_tag).kind() == WirePointerKind::Struct && (*src_tag).struct_ref().word_size() == 0 {
+                (*dst).set_kind_and_target_for_empty_struct();
+            } else {
+                (*dst).set_kind_and_target((*src_tag).kind(), src_ptr);
+
+                // We can just copy the upper 32 bits. (Use memcpy() to comply with aliasing rules.)
+                ::std::ptr::copy_nonoverlapping(&(*src_tag).upper32bits, &mut (*dst).upper32bits, 1);
+            }
         } else {
             // Need to create a far pointer. Try to allocate it in the same segment as the source,
             // so that it doesn't need to be a double-far.
