@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 
 use capnp_rpc::{rpc, twoparty, rpc_twoparty_capnp};
-use capnp_rpc::{InitRequest};
 use calculator_capnp::calculator;
 use gj::Promise;
 
