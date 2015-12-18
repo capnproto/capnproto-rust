@@ -30,7 +30,7 @@ pub trait ResponseHook {
 }
 
 pub trait RequestHook {
-    fn message<'a>(&'a mut self) -> &'a mut ::message::Builder<::message::HeapAllocator>;
+    fn init<'a>(&'a mut self) -> any_pointer::Builder<'a>;
     fn send<'a>(self : Box<Self>) -> RemotePromise<any_pointer::Owned>;
 }
 

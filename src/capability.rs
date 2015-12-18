@@ -68,9 +68,15 @@ pub struct Request<Params, Results> {
     pub hook: Box<RequestHook>
 }
 
-impl <Params, Results> Request <Params, Results> {
+impl <Params, Results> Request <Params, Results>
+    where Params: for<'a> ::traits::Owned<'a>
+{
     pub fn new(hook: Box<RequestHook>) -> Request <Params, Results> {
         Request { hook: hook, marker: ::std::marker::PhantomData }
+    }
+
+    pub fn init<'a>(&'a mut self) -> <Params as ::traits::Owned<'a>>::Builder {
+        self.hook.init().init_as()
     }
 }
 
