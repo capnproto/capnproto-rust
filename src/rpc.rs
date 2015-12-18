@@ -235,6 +235,7 @@ impl <VatId> ConnectionState<VatId> {
             &mut Err(_) => panic!(),
         }
 
+        // construct a pipeline out of `promise`
         unimplemented!()
     }
 
@@ -313,28 +314,93 @@ impl <VatId> ResponseHook for Response<VatId> {
 
 enum PipelineState<VatId> where VatId: 'static {
     Waiting(Rc<RefCell<QuestionRef<VatId>>>),
-    Resolved(Response<VatId>),
+    Resolved(Rc<RefCell<Response<VatId>>>),
     Broken(::capnp::Error),
 }
 
 struct Pipeline<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
     state: PipelineState<VatId>,
+    redirect_later: Option<::gj::ForkedPromise<Rc<RefCell<Response<VatId>>>>>,
 }
 
-/*impl <VatId> PipelineHook<VatId> {
-    fn new(state: Rc<RefCell<ConnectionState<VatId>>>, question_ref: Rc<RefCell<QuestionRef<VatId>>>,
-           redirect_later_param: ::gj::Promise<
-}*/
+impl <VatId> Pipeline<VatId> {
+    fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+           question_ref: Rc<RefCell<QuestionRef<VatId>>>,
+           redirect_later: Option<::gj::Promise<Rc<RefCell<Response<VatId>>>, Box<::std::error::Error>>>)
+           -> Rc<RefCell<Pipeline<VatId>>>
+    {
+        match redirect_later {
+            Some(redirect_later_promise) => {
+                let fork = redirect_later_promise.fork();
+                let result = Rc::new(RefCell::new(Pipeline {
+                    connection_state: connection_state,
+                    state: PipelineState::Waiting(question_ref),
+                    redirect_later: None,
+                }));
+
+                let this = result.clone();
+/*
+                fork.add_branch().map_else(move |response| {
+                    match 
+                    this.borrow_mut().resolve(response);
+                    Ok(())
+                });*/
+
+                result.borrow_mut().redirect_later = Some(fork);
+                result
+            }
+            None =>
+                Rc::new(RefCell::new(Pipeline {
+                    connection_state: connection_state,
+                    state: PipelineState::Waiting(question_ref),
+                    redirect_later: None,
+                }))
+        }
+    }
+
+    fn resolve(&mut self, response: Rc<RefCell<Response<VatId>>>) {
+        match self.state { PipelineState::Waiting( _ ) => (), _ => panic!("Already resolved?") }
+        self.state = PipelineState::Resolved(response);
+    }
+
+    fn resolve_err(&mut self, err: ()) {
+        unimplemented!()
+    }
+}
 
 impl <VatId> PipelineHook for Pipeline<VatId> {
-    fn get_pipelined_cap(&self, ops: Vec<PipelineOp>) -> Rc<RefCell<Box<ClientHook>>> {
-        match &self.state {
-            &PipelineState::Waiting(ref question_ref) => { unimplemented!() }
-            &PipelineState::Resolved(ref response) => {
-                response.get().unwrap().get_pipelined_cap(&ops[..]).unwrap()
+    fn get_pipelined_cap(&mut self, ops: &[PipelineOp]) -> Rc<RefCell<Box<ClientHook>>> {
+        let mut copy = Vec::new();
+        for &op in ops {
+            copy.push(op)
+        }
+        self.get_pipelined_cap_move(copy)
+    }
+    fn get_pipelined_cap_move(&mut self, ops: Vec<PipelineOp>) -> Rc<RefCell<Box<ClientHook>>> {
+        match &mut self.state {
+            &mut PipelineState::Waiting(ref question_ref) => {
+                // Wrap a PipelineClient in a PromiseClient.
+                question_ref.clone();
+
+                match &mut self.redirect_later {
+                    &mut Some(ref mut r) => {
+                        let resolution_promise = r.add_branch().map(move |response| {
+                            Ok(response.borrow().get().unwrap().get_pipelined_cap(&ops))
+                        });
+                        // return PromiseClient.
+                        unimplemented!()
+                    }
+                    &mut None => {
+                        // Oh, this pipeline will never get redirected, so just return the PipelineClient.
+                        unimplemented!()
+                    }
+                }
             }
-            &PipelineState::Broken(ref response) => { unimplemented!() }
+            &mut PipelineState::Resolved(ref response) => {
+                response.borrow().get().unwrap().get_pipelined_cap(&ops[..]).unwrap()
+            }
+            &mut PipelineState::Broken(ref response) => { unimplemented!() }
         }
     }
 }
@@ -353,10 +419,29 @@ struct ImportClient<VatId> where VatId: 'static {
 
 struct PipelineClient<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+    question_ref: Rc<RefCell<QuestionRef<VatId>>>,
+    ops: Vec<PipelineOp>,
 }
 
+impl <VatId> PipelineClient<VatId> where VatId: 'static {
+    fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+           question_ref: Rc<RefCell<QuestionRef<VatId>>>,
+           ops: Vec<PipelineOp>) -> PipelineClient<VatId> {
+        PipelineClient {
+            connection_state: connection_state,
+            question_ref: question_ref,
+            ops: ops,
+        }
+    }
+}
+
+/// A ClientHook that initially wraps one client and then, later on, redirects
+/// to some other client.
 struct PromiseClient<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+    initial: Rc<RefCell<Box<ClientHook>>>,
+    eventual: ::gj::Promise<Rc<RefCell<Box<ClientHook>>>, Box<::std::error::Error>>,
+    importId: Option<ImportId>
 }
 
 struct BrokenClient;
