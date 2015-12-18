@@ -20,8 +20,9 @@
 // THE SOFTWARE.
 
 use capnp_rpc::{rpc, twoparty, rpc_twoparty_capnp};
-use capnp_rpc::InitRequest;
+use capnp_rpc::{InitRequest};
 use calculator_capnp::calculator;
+use gj::Promise;
 
 pub fn main() {
     let args: Vec<String> = ::std::env::args().collect();
@@ -33,7 +34,7 @@ pub fn main() {
     ::gj::EventLoop::top_level(move |wait_scope| {
         use std::net::ToSocketAddrs;
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-        ::gj::io::tcp::Stream::connect(addr).then(|stream| {
+        ::gj::io::tcp::Stream::connect(addr).lift().then(|stream| -> ::std::result::Result<Promise<(), Box<::std::error::Error>>, Box<::std::error::Error>> {
 
             let stream2 = try!(stream.try_clone());
 
@@ -49,9 +50,13 @@ pub fn main() {
             let mut request = calculator.evaluate_request();
 
             request.init().init_expression().set_literal(11.0);
-            request.send();
+            Ok(request.send().promise.then(|response| {
+                try!(try!(response.get()).get_value());
+                // ...
+                println!("Got the value!");
 
-            Ok(::gj::Promise::fulfilled(()))
-        }).lift().wait(wait_scope)
+                Ok(::gj::Promise::fulfilled(()))
+            }).lift())
+        }).wait(wait_scope)
     }).expect("top level error");
 }

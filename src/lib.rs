@@ -23,7 +23,7 @@ extern crate capnp;
 extern crate gj;
 extern crate capnp_gj;
 
-use rpc_capnp::message;
+use rpc_capnp::{message, exception};
 
 pub mod rpc_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_capnp.rs"));
@@ -86,3 +86,4 @@ impl <Params, Results> InitRequest<Params> for ::capnp::capability::Request<Para
         }
     }
 }
+
