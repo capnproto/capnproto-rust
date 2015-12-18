@@ -25,7 +25,7 @@ use capability::{Params, Request, RemotePromise, Results};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub trait ResponseHook: {
+pub trait ResponseHook {
     fn get<'a>(&'a self) -> ::Result<any_pointer::Reader<'a>>;
 }
 

@@ -28,9 +28,9 @@ use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, Res
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub struct RemotePromise<Results> where Results: ::traits::Pipelined {
+pub struct RemotePromise<Results> where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static {
     #[cfg(feature = "rpc")]
-    pub answer_promise: ::gj::Promise<Box<ResponseHook>, ::Error>,
+    pub promise: ::gj::Promise<Response<Results>, ::Error>,
     pub pipeline: Results::Pipeline,
 }
 
@@ -50,6 +50,19 @@ impl ReaderCapTable {
     }
 }
 
+pub struct Response<Results> {
+    pub marker: ::std::marker::PhantomData<Results>,
+    pub hook: Box<ResponseHook>,
+}
+
+impl <Results> Response<Results>
+    where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a>
+{
+    pub fn get<'a>(&'a self) -> ::Result<<Results as ::traits::Owned<'a>>::Reader> {
+        try!(self.hook.get()).get_as()
+    }
+}
+
 pub struct Request<Params, Results> {
     pub marker: ::std::marker::PhantomData<(Params, Results)>,
     pub hook: Box<RequestHook>
@@ -63,13 +76,17 @@ impl <Params, Results> Request <Params, Results> {
 
 #[cfg(feature = "rpc")]
 impl <Params, Results> Request <Params, Results>
-where Results: ::traits::Pipelined,
+where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static,
       <Results as ::traits::Pipelined>::Pipeline: FromTypelessPipeline
 {
     pub fn send(self) -> RemotePromise<Results> {
-        let RemotePromise {answer_promise, pipeline, ..} = self.hook.send();
-        RemotePromise { answer_promise : answer_promise,
-                        pipeline : FromTypelessPipeline::new(pipeline)
+        let RemotePromise {promise, pipeline, ..} = self.hook.send();
+        let typed_promise = promise.map(|response| {
+            Ok(Response {hook: response.hook,
+                        marker: ::std::marker::PhantomData})
+        });
+        RemotePromise { promise: typed_promise,
+                        pipeline: FromTypelessPipeline::new(pipeline)
                       }
     }
 }
