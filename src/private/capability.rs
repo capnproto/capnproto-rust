@@ -75,7 +75,13 @@ pub fn internal_get_typed_results<T>(typeless: Results<any_pointer::Owned>) -> R
 }
 
 pub trait PipelineHook {
-    fn get_pipelined_cap(&self, ops: Vec<PipelineOp>) -> Rc<RefCell<Box<ClientHook>>>;
+    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Rc<RefCell<Box<ClientHook>>>;
+
+    /// Version of get_pipelined_cap() passing the array by move. May avoid a copy in some cases.
+    /// Default implementation just calls the other version.
+    fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Rc<RefCell<Box<ClientHook>>> {
+        self.get_pipelined_cap(&ops)
+    }
 }
 
 #[derive(Clone, Copy)]

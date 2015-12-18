@@ -73,7 +73,7 @@ impl <'a> Reader<'a> {
 
     //# Used by RPC system to implement pipelining. Applications
     //# generally shouldn't use this directly.
-    pub fn get_pipelined_cap(&self, ops : &[PipelineOp]) -> Result<Rc<RefCell<Box<ClientHook>>>> {
+    pub fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Result<Rc<RefCell<Box<ClientHook>>>> {
         let mut pointer = self.reader;
 
         for op in ops.iter() {
@@ -190,7 +190,7 @@ impl Pipeline {
     }
 
     pub fn as_cap(&self) -> Rc<RefCell<Box<ClientHook>>> {
-        self.hook.borrow().get_pipelined_cap(self.ops.clone())
+        self.hook.borrow().get_pipelined_cap(&self.ops)
     }
 }
 
