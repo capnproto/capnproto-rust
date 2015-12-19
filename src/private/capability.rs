@@ -44,6 +44,7 @@ pub trait ClientHook {
             params: Box<ParamsHook>, results: Box<ResultsHook>);
 
     fn get_brand(&self) -> usize;
+    fn write_target(&self, target: any_pointer::Builder) -> Option<Box<ClientHook>>;
 
     // HACK
     fn get_descriptor(&self) -> Box<::std::any::Any>;
