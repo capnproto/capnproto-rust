@@ -139,12 +139,12 @@ impl <VatId> Question<VatId> {
 struct QuestionRef<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
     id: QuestionId,
-    fulfiller: ::gj::PromiseFulfiller<Response<VatId>, ()>,
+    fulfiller: ::gj::PromiseFulfiller<Rc<RefCell<Response<VatId>>>, ()>,
 }
 
 impl <VatId> QuestionRef<VatId> {
     fn new(state: Rc<RefCell<ConnectionState<VatId>>>, id: QuestionId,
-           fulfiller: ::gj::PromiseFulfiller<Response<VatId>, ()>) -> QuestionRef<VatId> {
+           fulfiller: ::gj::PromiseFulfiller<Rc<RefCell<Response<VatId>>>, ()>) -> QuestionRef<VatId> {
         QuestionRef { connection_state: state, id: id, fulfiller: fulfiller }
     }
 }
@@ -234,8 +234,9 @@ impl <VatId> ConnectionState<VatId> {
             &mut Err(_) => panic!(),
         }
 
-        // construct a pipeline out of `promise`
-        unimplemented!()
+        let pipeline = Pipeline::new(state, question_ref, Some(promise));
+        let result = pipeline.borrow().get_pipelined_cap_move(Vec::new());
+        result
     }
 
     fn message_loop(state: Rc<RefCell<ConnectionState<VatId>>>) -> ::gj::Promise<(), ::capnp::Error> {
@@ -365,7 +366,7 @@ struct Pipeline<VatId> where VatId: 'static {
 impl <VatId> Pipeline<VatId> {
     fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
            question_ref: Rc<RefCell<QuestionRef<VatId>>>,
-           redirect_later: Option<::gj::Promise<Rc<RefCell<Response<VatId>>>, Box<::std::error::Error>>>)
+           redirect_later: Option<::gj::Promise<Rc<RefCell<Response<VatId>>>, ()>>)
            -> Rc<RefCell<Pipeline<VatId>>>
     {
         match redirect_later {
@@ -423,14 +424,18 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
         match &self.state {
             &PipelineState::Waiting(ref question_ref) => {
                 // Wrap a PipelineClient in a PromiseClient.
-                question_ref.clone();
+                let pipeline_client =
+                    PipelineClient::new(self.connection_state.clone(), question_ref.clone(), ops.clone());
 
                 match &self.redirect_later {
                     &Some(ref r) => {
                         let resolution_promise = r.borrow_mut().add_branch().map(move |response| {
                             Ok(response.borrow().get().unwrap().get_pipelined_cap(&ops))
                         });
-                        // return PromiseClient.
+                        let client: Client<VatId> = pipeline_client.into();
+                        PromiseClient::new(self.connection_state.clone(),
+                                           Box::new(client),
+                                           unimplemented!(), None);
                         unimplemented!()
                     }
                     &None => {
@@ -448,9 +453,9 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
 }
 
 enum ClientVariant<VatId> where VatId: 'static {
-    Import(ImportClient<VatId>),
-    Pipeline(PipelineClient<VatId>),
-    Promise(PromiseClient<VatId>),
+    Import(Rc<RefCell<ImportClient<VatId>>>),
+    Pipeline(Rc<RefCell<PipelineClient<VatId>>>),
+    Promise(Rc<RefCell<PromiseClient<VatId>>>),
     Broken(BrokenClient),
     NoIntercept(()),
 }
@@ -498,12 +503,20 @@ struct PipelineClient<VatId> where VatId: 'static {
 impl <VatId> PipelineClient<VatId> where VatId: 'static {
     fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
            question_ref: Rc<RefCell<QuestionRef<VatId>>>,
-           ops: Vec<PipelineOp>) -> PipelineClient<VatId> {
-        PipelineClient {
+           ops: Vec<PipelineOp>) -> Rc<RefCell<PipelineClient<VatId>>> {
+        Rc::new(RefCell::new(PipelineClient {
             connection_state: connection_state,
             question_ref: question_ref,
             ops: ops,
-        }
+        }))
+    }
+}
+
+impl <VatId> From<Rc<RefCell<PipelineClient<VatId>>>> for Client<VatId> {
+    fn from(client: Rc<RefCell<PipelineClient<VatId>>>) -> Client<VatId> {
+        let connection_state = client.borrow().connection_state.clone();
+        Client { connection_state: connection_state,
+                 variant: ClientVariant::Pipeline(client) }
     }
 }
 
@@ -511,18 +524,20 @@ impl <VatId> PipelineClient<VatId> where VatId: 'static {
 /// to some other client.
 struct PromiseClient<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
-    initial: Rc<RefCell<Box<ClientHook>>>,
-    eventual: ::gj::Promise<Rc<RefCell<Box<ClientHook>>>, Box<::std::error::Error>>,
-    importId: Option<ImportId>,
+    initial: Box<ClientHook>,
+    eventual: ::gj::Promise<Box<ClientHook>, Box<::std::error::Error>>,
     is_resolved: bool,
+    cap: Box<ClientHook>,
+    importId: Option<ImportId>,
     fork: ::gj::ForkedPromise<Rc<RefCell<Box<ClientHook>>>>,
 }
 
 impl <VatId> PromiseClient<VatId> {
     fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
-           initial: Rc<RefCell<Box<ClientHook>>>,
-           eventual: ::gj::Promise<Rc<RefCell<Box<ClientHook>>>, Box<::std::error::Error>>,
-           importId: Option<ImportId>) -> PromiseClient<VatId> {
+           initial: Box<ClientHook>,
+           eventual: ::gj::Promise<Box<ClientHook>, Box<::std::error::Error>>,
+           importId: Option<ImportId>) -> Rc<RefCell<PromiseClient<VatId>>> {
+        let fork = eventual.fork();
         unimplemented!()
     }
 }
@@ -535,12 +550,13 @@ impl <VatId> Client<VatId> {
     {
         match &self.variant {
             &ClientVariant::Import(ref import_client) => {
-                target.set_imported_cap(import_client.import_id);
+                target.set_imported_cap(import_client.borrow().import_id);
                 None
             }
             &ClientVariant::Pipeline(ref pipeline_client) => {
                 let mut builder = target.init_promised_answer();
-                builder.set_question_id(pipeline_client.question_ref.borrow().id);
+                let question_ref = &pipeline_client.borrow().question_ref;
+                builder.set_question_id(question_ref.borrow().id);
                 // adopt_transform
                 None
             }
@@ -556,7 +572,21 @@ impl <VatId> Client<VatId> {
 
 impl <VatId> Clone for Client<VatId> {
     fn clone(&self) -> Client<VatId> {
-        unimplemented!()
+        let variant = match &self.variant {
+            &ClientVariant::Import(ref import_client) => {
+                ClientVariant::Import(import_client.clone())
+            }
+            &ClientVariant::Pipeline(ref pipeline_client) => {
+                ClientVariant::Pipeline(pipeline_client.clone())
+            }
+            &ClientVariant::Promise(ref promise_client) => {
+                ClientVariant::Promise(promise_client.clone())
+            }
+            _ => {
+                unimplemented!()
+            }
+        };
+        Client { connection_state: self.connection_state.clone(), variant: variant}
     }
 }
 
