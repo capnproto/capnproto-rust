@@ -211,7 +211,7 @@ impl <VatId> ConnectionState<VatId> {
         // TODO ...
     }
 
-    fn bootstrap(state: Rc<RefCell<ConnectionState<VatId>>>) -> Rc<RefCell<Box<ClientHook>>> {
+    fn bootstrap(state: Rc<RefCell<ConnectionState<VatId>>>) -> Box<ClientHook> {
         let question_id = state.borrow_mut().questions.push(Question::new());
 
         let (promise, fulfiller) = ::gj::new_promise_and_fulfiller();
@@ -359,7 +359,7 @@ enum PipelineState<VatId> where VatId: 'static {
 struct Pipeline<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
     state: PipelineState<VatId>,
-    redirect_later: Option<::gj::ForkedPromise<Rc<RefCell<Response<VatId>>>>>,
+    redirect_later: Option<RefCell<::gj::ForkedPromise<Rc<RefCell<Response<VatId>>>>>>,
 }
 
 impl <VatId> Pipeline<VatId> {
@@ -385,7 +385,7 @@ impl <VatId> Pipeline<VatId> {
                     Ok(())
                 });*/
 
-                result.borrow_mut().redirect_later = Some(fork);
+                result.borrow_mut().redirect_later = Some(RefCell::new(fork));
                 result
             }
             None =>
@@ -408,37 +408,41 @@ impl <VatId> Pipeline<VatId> {
 }
 
 impl <VatId> PipelineHook for Pipeline<VatId> {
-    fn get_pipelined_cap(&mut self, ops: &[PipelineOp]) -> Rc<RefCell<Box<ClientHook>>> {
+    fn add_ref(&self) -> Box<PipelineHook> {
+//        self.clone();
+        unimplemented!()
+    }
+    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
         let mut copy = Vec::new();
         for &op in ops {
             copy.push(op)
         }
         self.get_pipelined_cap_move(copy)
     }
-    fn get_pipelined_cap_move(&mut self, ops: Vec<PipelineOp>) -> Rc<RefCell<Box<ClientHook>>> {
-        match &mut self.state {
-            &mut PipelineState::Waiting(ref question_ref) => {
+    fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
+        match &self.state {
+            &PipelineState::Waiting(ref question_ref) => {
                 // Wrap a PipelineClient in a PromiseClient.
                 question_ref.clone();
 
-                match &mut self.redirect_later {
-                    &mut Some(ref mut r) => {
-                        let resolution_promise = r.add_branch().map(move |response| {
+                match &self.redirect_later {
+                    &Some(ref r) => {
+                        let resolution_promise = r.borrow_mut().add_branch().map(move |response| {
                             Ok(response.borrow().get().unwrap().get_pipelined_cap(&ops))
                         });
                         // return PromiseClient.
                         unimplemented!()
                     }
-                    &mut None => {
+                    &None => {
                         // Oh, this pipeline will never get redirected, so just return the PipelineClient.
                         unimplemented!()
                     }
                 }
             }
-            &mut PipelineState::Resolved(ref response) => {
-                response.borrow().get().unwrap().get_pipelined_cap(&ops[..]).unwrap()
+            &PipelineState::Resolved(ref response) => {
+                response.borrow_mut().get().unwrap().get_pipelined_cap(&ops[..]).unwrap()
             }
-            &mut PipelineState::Broken(ref response) => { unimplemented!() }
+            &PipelineState::Broken(ref response) => { unimplemented!() }
         }
     }
 }
@@ -551,6 +555,9 @@ impl <VatId> Client<VatId> {
 }
 
 impl <VatId> ClientHook for Client<VatId> {
+    fn add_ref(&self) -> Box<ClientHook> {
+        unimplemented!()
+    }
     fn new_call(&self, _interface_id: u64, _method_id: u16,
                 size_hint: Option<::capnp::MessageSize>)
                 -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
