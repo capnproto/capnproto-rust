@@ -190,7 +190,7 @@ impl Pipeline {
     }
 
     pub fn as_cap(&self) -> Rc<RefCell<Box<ClientHook>>> {
-        self.hook.borrow().get_pipelined_cap(&self.ops)
+        self.hook.borrow_mut().get_pipelined_cap(&self.ops)
     }
 }
 
