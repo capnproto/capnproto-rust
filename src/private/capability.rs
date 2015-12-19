@@ -44,6 +44,8 @@ pub trait ClientHook {
     fn call(&self, interface_id: u64, method_id: u16,
             params: Box<ParamsHook>, results: Box<ResultsHook>);
 
+    fn get_brand(&self) -> usize;
+
     // HACK
     fn get_descriptor(&self) -> Box<::std::any::Any>;
 }
