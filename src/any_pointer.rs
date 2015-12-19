@@ -55,6 +55,11 @@ impl <'a> Reader<'a> {
         self.reader.is_null()
     }
 
+    /// Gets the total size of the target and all of its children. Does not count far pointer overhead.
+    pub fn total_size(&self) -> Result<::MessageSize> {
+        self.reader.total_size()
+    }
+
     #[inline]
     pub fn get_as<T : FromPointerReader<'a>>(&self) -> Result<T> {
         FromPointerReader::get_from_pointer(&self.reader)
@@ -102,6 +107,15 @@ impl <'a> Builder<'a> {
     #[inline]
     pub fn new<'b>(builder : PointerBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
+    }
+
+    pub fn is_null(&self) -> bool {
+        self.builder.is_null()
+    }
+
+    /// Gets the total size of the target and all of its children. Does not count far pointer overhead.
+    pub fn total_size(&self) -> Result<::MessageSize> {
+        self.builder.as_reader().total_size()
     }
 
     pub fn get_as<T : FromPointerBuilder<'a>>(self) -> Result<T> {

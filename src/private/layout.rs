@@ -1912,6 +1912,14 @@ impl <'a> PointerReader<'a> {
         self.pointer.is_null() || unsafe { (*self.pointer).is_null() }
     }
 
+    pub fn total_size(&self) -> Result<MessageSize> {
+        if self.pointer.is_null() {
+            Ok( MessageSize { word_count: 0, cap_count: 0 } )
+        } else {
+            unsafe { wire_helpers::total_size(self.segment, self.pointer, self.nesting_limit) }
+        }
+    }
+
     pub fn get_struct(&self, default_value: *const Word) -> Result<StructReader<'a>> {
         let reff: *const WirePointer = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
