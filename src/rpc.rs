@@ -344,10 +344,22 @@ impl <VatId> Request<VatId> where VatId: 'static {
 
 impl <VatId> RequestHook for Request<VatId> {
     fn init<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        unimplemented!()
+        self.get_root()
     }
-    fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
-        unimplemented!()
+    fn send<'a>(mut self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
+        let tmp = *self;
+        let Request { connection_state, mut target, mut message } = tmp;
+        let mut call_builder: ::rpc_capnp::call::Builder = message.get_body().unwrap().get_as().unwrap();
+        match target.write_target(call_builder.get_target().unwrap()) {
+            Some(redirect) => {
+                // Whoops, this capability has been redirected while we were building the request!
+                // We'll have to make a new request and do a copy.  Ick.
+                unimplemented!()
+            }
+            None => {
+                unimplemented!()
+            }
+        }
     }
 }
 
@@ -430,13 +442,14 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                 match &self.redirect_later {
                     &Some(ref r) => {
                         let resolution_promise = r.borrow_mut().add_branch().map(move |response| {
-                            Ok(response.borrow().get().unwrap().get_pipelined_cap(&ops))
+                            Ok(response.borrow().get().unwrap().get_pipelined_cap(&ops).unwrap())
                         });
                         let client: Client<VatId> = pipeline_client.into();
-                        PromiseClient::new(self.connection_state.clone(),
-                                           Box::new(client),
-                                           unimplemented!(), None);
-                        unimplemented!()
+                        let promise_client = PromiseClient::new(self.connection_state.clone(),
+                                                                Box::new(client),
+                                                                resolution_promise, None);
+                        let result: Client<VatId> = promise_client.into();
+                        Box::new(result)
                     }
                     &None => {
                         // Oh, this pipeline will never get redirected, so just return the PipelineClient.
@@ -524,23 +537,84 @@ impl <VatId> From<Rc<RefCell<PipelineClient<VatId>>>> for Client<VatId> {
 /// to some other client.
 struct PromiseClient<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
-    initial: Box<ClientHook>,
-    eventual: ::gj::Promise<Box<ClientHook>, Box<::std::error::Error>>,
     is_resolved: bool,
     cap: Box<ClientHook>,
-    importId: Option<ImportId>,
-    fork: ::gj::ForkedPromise<Rc<RefCell<Box<ClientHook>>>>,
+    import_id: Option<ImportId>,
+    fork: ::gj::ForkedPromise<Box<ClientHook>>,
+    resolve_self_promise: ::gj::Promise<(), ()>,
+    received_call: bool,
 }
 
 impl <VatId> PromiseClient<VatId> {
     fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
            initial: Box<ClientHook>,
-           eventual: ::gj::Promise<Box<ClientHook>, Box<::std::error::Error>>,
-           importId: Option<ImportId>) -> Rc<RefCell<PromiseClient<VatId>>> {
-        let fork = eventual.fork();
-        unimplemented!()
+           eventual: ::gj::Promise<Box<ClientHook>, ()>,
+           import_id: Option<ImportId>) -> Rc<RefCell<PromiseClient<VatId>>> {
+        let client = Rc::new(RefCell::new(PromiseClient {
+            connection_state: connection_state,
+            is_resolved: false,
+            cap: initial,
+            import_id: import_id,
+            fork: eventual.fork(),
+            resolve_self_promise: ::gj::Promise::fulfilled(()),
+            received_call: false,
+        }));
+        let resolved = client.borrow_mut().fork.add_branch();
+        let this = client.clone();
+        let resolved1 = resolved.map_else(move |result| {
+            match result {
+                Ok(v) => {
+                    this.borrow_mut().resolve(v, false);
+                    Ok(())
+                }
+                Err(e) => {
+                    this.borrow_mut().resolve(unimplemented!(), true);
+                    Err(())
+                }
+            }
+        }).eagerly_evaluate();
+
+        client.borrow_mut().resolve_self_promise = resolved1;
+        client
+    }
+
+    fn resolve(&mut self, replacement: Box<ClientHook>, is_error: bool) {
+        let replacement_brand = replacement.get_brand();
+        if false && !is_error {
+            // The new capability is hosted locally, not on the remote machine.  And, we had made calls
+            // to the promise.  We need to make sure those calls echo back to us before we allow new
+            // calls to go directly to the local capability, so we need to set a local embargo and send
+            // a `Disembargo` to echo through the peer.
+        }
+        self.cap = replacement;
+        self.is_resolved = true;
     }
 }
+
+impl <VatId> Drop for PromiseClient<VatId> {
+    fn drop(&mut self) {
+        match self.import_id {
+            Some(id) => {
+                // This object is representing an import promise.  That means the import table may still
+                // contain a pointer back to it.  Remove that pointer.  Note that we have to verify that
+                // the import still exists and the pointer still points back to this object because this
+                // object may actually outlive the import.
+
+                // TODO
+            }
+            None => {}
+        }
+    }
+}
+
+impl <VatId> From<Rc<RefCell<PromiseClient<VatId>>>> for Client<VatId> {
+    fn from(client: Rc<RefCell<PromiseClient<VatId>>>) -> Client<VatId> {
+        let connection_state = client.borrow().connection_state.clone();
+        Client { connection_state: connection_state,
+                 variant: ClientVariant::Promise(client) }
+    }
+}
+
 
 struct BrokenClient;
 
@@ -561,6 +635,7 @@ impl <VatId> Client<VatId> {
                 None
             }
             &ClientVariant::Promise(ref promise_client) => {
+                promise_client.borrow_mut().received_call = true;
                 unimplemented!()
             }
             _ => {
@@ -620,7 +695,7 @@ impl <VatId> ClientHook for Client<VatId> {
     }
 
     fn get_brand(&self) -> usize {
-        unimplemented!()
+        (&*self.connection_state.borrow()) as *const _ as usize
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any> {
