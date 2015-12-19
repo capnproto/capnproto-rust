@@ -26,8 +26,6 @@ use private::capability::{ClientHook, PipelineHook, PipelineOp};
 use private::layout::{PointerReader, PointerBuilder};
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 use Result;
-use std::rc::Rc;
-use std::cell::RefCell;
 
 #[derive(Copy, Clone)]
 pub struct Owned(());
@@ -73,7 +71,7 @@ impl <'a> Reader<'a> {
 
     //# Used by RPC system to implement pipelining. Applications
     //# generally shouldn't use this directly.
-    pub fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Result<Rc<RefCell<Box<ClientHook>>>> {
+    pub fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Result<Box<ClientHook>> {
         let mut pointer = self.reader;
 
         for op in ops.iter() {
@@ -142,7 +140,7 @@ impl <'a> Builder<'a> {
     }
 
     // XXX value should be a user client.
-    pub fn set_as_capability(&mut self, value: Rc<RefCell<Box<ClientHook>>>) {
+    pub fn set_as_capability(&mut self, value: Box<ClientHook>) {
         self.builder.set_capability(value);
     }
 
@@ -167,17 +165,17 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
 }
 
 pub struct Pipeline {
-    hook: Rc<RefCell<Box<PipelineHook>>>,
+    hook: Box<PipelineHook>,
     ops: Vec<PipelineOp>,
 }
 
 impl Pipeline {
     pub fn new(hook: Box<PipelineHook>) -> Pipeline {
-        Pipeline { hook: Rc::new(RefCell::new(hook)), ops : Vec::new() }
+        Pipeline { hook: hook, ops: Vec::new() }
     }
 
     pub fn noop(&self) -> Pipeline {
-        Pipeline { hook : self.hook.clone(), ops : self.ops.clone() }
+        Pipeline { hook : self.hook.add_ref(), ops : self.ops.clone() }
     }
 
     pub fn get_pointer_field(&self, pointer_index: u16) -> Pipeline {
@@ -186,11 +184,11 @@ impl Pipeline {
             new_ops.push(op)
         }
         new_ops.push(PipelineOp::GetPointerField(pointer_index));
-        Pipeline { hook : self.hook.clone(), ops : new_ops }
+        Pipeline { hook : self.hook.add_ref(), ops: new_ops }
     }
 
-    pub fn as_cap(&self) -> Rc<RefCell<Box<ClientHook>>> {
-        self.hook.borrow_mut().get_pipelined_cap(&self.ops)
+    pub fn as_cap(&self) -> Box<ClientHook> {
+        self.hook.get_pipelined_cap(&self.ops)
     }
 }
 

@@ -22,8 +22,6 @@
 use any_pointer;
 use MessageSize;
 use capability::{Params, Request, RemotePromise, Results};
-use std::cell::RefCell;
-use std::rc::Rc;
 
 pub trait ResponseHook {
     fn get<'a>(&'a self) -> ::Result<any_pointer::Reader<'a>>;
@@ -35,6 +33,7 @@ pub trait RequestHook {
 }
 
 pub trait ClientHook {
+    fn add_ref(&self) -> Box<ClientHook>;
     fn new_call(&self,
                 interface_id: u64,
                 method_id: u16,
@@ -77,11 +76,12 @@ pub fn internal_get_typed_results<T>(typeless: Results<any_pointer::Owned>) -> R
 }
 
 pub trait PipelineHook {
-    fn get_pipelined_cap(&mut self, ops: &[PipelineOp]) -> Rc<RefCell<Box<ClientHook>>>;
+    fn add_ref(&self) -> Box<PipelineHook>;
+    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook>;
 
     /// Version of get_pipelined_cap() passing the array by move. May avoid a copy in some cases.
     /// Default implementation just calls the other version.
-    fn get_pipelined_cap_move(&mut self, ops: Vec<PipelineOp>) -> Rc<RefCell<Box<ClientHook>>> {
+    fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
         self.get_pipelined_cap(&ops)
     }
 }
