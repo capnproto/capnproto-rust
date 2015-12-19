@@ -123,6 +123,7 @@ impl <T> ExportTable<T> {
 struct Question<VatId> where VatId: 'static {
     is_awaiting_return: bool,
     param_exports: Vec<ExportId>,
+    is_tail_call: bool,
 
     /// The local QuestionRef, set to None when it is destroyed.
     self_ref: Option<Rc<RefCell<QuestionRef<VatId>>>>
@@ -130,7 +131,8 @@ struct Question<VatId> where VatId: 'static {
 
 impl <VatId> Question<VatId> {
     fn new() -> Question<VatId> {
-        Question { is_awaiting_return: true, param_exports: Vec::new(), self_ref: None }
+        Question { is_awaiting_return: true, param_exports: Vec::new(),
+                   is_tail_call: false, self_ref: None }
     }
 }
 
@@ -235,7 +237,7 @@ impl <VatId> ConnectionState<VatId> {
         }
 
         let pipeline = Pipeline::new(state, question_ref, Some(promise));
-        let result = pipeline.borrow().get_pipelined_cap_move(Vec::new());
+        let result = pipeline.get_pipelined_cap_move(Vec::new());
         result
     }
 
@@ -274,7 +276,39 @@ impl <VatId> ConnectionState<VatId> {
             message::Abort(_) => {}
             message::Bootstrap(_) => {}
             message::Call(_) => {}
-            message::Return(_) => {}
+            message::Return(oret) => {
+                let ret = try!(oret);
+                let question_id = ret.get_answer_id();
+                match &mut state.borrow_mut().questions.slots[question_id as usize] {
+                    &mut Some(ref mut question) => {
+                        question.is_awaiting_return = false;
+                        match &question.self_ref {
+                            &Some(ref question_ref) => {
+                                match try!(ret.which()) {
+                                    return_::Results(results) => {
+                                        //question_ref.fulfiller.fulfill()
+
+                                    }
+                                    return_::Exception(_) => {
+                                    }
+                                    return_::Canceled(_) => {
+                                    }
+                                    return_::ResultsSentElsewhere(_) => {
+                                    }
+                                    return_::TakeFromOtherQuestion(_) => {
+                                    }
+                                    return_::AcceptFromThirdParty(_) => {
+                                    }
+                                }
+                            }
+                            &None => {
+
+                            }
+                        }
+                    }
+                    &mut None => {}
+                }
+            }
             message::Finish(_) => {}
             message::Resolve(_) => {}
             message::Release(_) => {}
@@ -286,7 +320,6 @@ impl <VatId> ConnectionState<VatId> {
         }
         Ok(())
     }
-
 
     fn get_brand(&self) -> usize {
         self as * const _ as usize
@@ -379,6 +412,51 @@ impl <VatId> Request<VatId> where VatId: 'static {
     fn get_call<'a>(&'a mut self) -> ::rpc_capnp::call::Builder<'a> {
         self.message.get_body().unwrap().get_as().unwrap()
     }
+
+    fn send_internal(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+                     mut message: Box<::OutgoingMessage>,
+                     is_tail_call: bool)
+                     -> (Rc<RefCell<QuestionRef<VatId>>>, ::gj::Promise<Rc<RefCell<Response<VatId>>>, ()>)
+    {
+        // Build the cap table.
+        //auto exports = connectionState->writeDescriptors(
+        //    capTable.getTable(), callBuilder.getParams());
+        let exports = Vec::new();
+
+        // Init the question table.  Do this after writing descriptors to avoid interference.
+        let mut question = Question::<VatId>::new();
+        question.is_awaiting_return = true;
+        question.param_exports = exports;
+        question.is_tail_call = is_tail_call;
+
+        let question_id = connection_state.borrow_mut().questions.push(question);
+
+        {
+            let mut call_builder: ::rpc_capnp::call::Builder = message.get_body().unwrap().get_as().unwrap();
+            // Finish and send.
+            call_builder.borrow().set_question_id(question_id);
+            if is_tail_call {
+                call_builder.get_send_results_to().set_yourself(());
+            }
+        }
+
+        // Make the result promise.
+        let (promise, fulfiller) = ::gj::new_promise_and_fulfiller();
+        let question_ref = Rc::new(RefCell::new(
+            QuestionRef::new(connection_state.clone(), question_id, fulfiller)));
+
+        match &mut connection_state.borrow_mut().questions.slots[question_id as usize] {
+            &mut Some(ref mut q) => {
+                q.self_ref = Some(question_ref.clone());
+            }
+            &mut None => unreachable!(),
+        }
+
+        // TODO attach?
+        //result.promise = paf.promise.attach(kj::addRef(*result.questionRef));
+
+        (question_ref, promise)
+    }
 }
 
 impl <VatId> RequestHook for Request<VatId> {
@@ -388,48 +466,70 @@ impl <VatId> RequestHook for Request<VatId> {
     fn send<'a>(mut self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
         let Request { connection_state, mut target, mut message } = tmp;
-        let mut call_builder: ::rpc_capnp::call::Builder = message.get_body().unwrap().get_as().unwrap();
-        match target.write_target(call_builder.get_target().unwrap()) {
+        let write_target_result = {
+            let mut call_builder: ::rpc_capnp::call::Builder = message.get_body().unwrap().get_as().unwrap();
+            target.write_target(call_builder.get_target().unwrap())
+        };
+
+        match write_target_result {
             Some(redirect) => {
                 // Whoops, this capability has been redirected while we were building the request!
                 // We'll have to make a new request and do a copy.  Ick.
                 unimplemented!()
             }
             None => {
-                unimplemented!()
+                let (question_ref, promise) =
+                    Request::send_internal(connection_state.clone(), message, false);
+                let mut forked_promise = promise.fork();
+
+                // The pipeline must get notified of resolution before the app does to maintain ordering.
+                let pipeline = Pipeline::new(connection_state, question_ref,
+                                             Some(forked_promise.add_branch()));
+
+                let app_promise = forked_promise.add_branch().map(|response| {
+                    unimplemented!()
+                }).map_err(|()| {::capnp::Error::new_decode_error("this error is bogus", None)});
+                ::capnp::capability::RemotePromise {
+                    promise: app_promise,
+                    pipeline: any_pointer::Pipeline::new(Box::new(pipeline))
+                }
             }
         }
     }
 }
 
-enum PipelineState<VatId> where VatId: 'static {
+enum PipelineVariant<VatId> where VatId: 'static {
     Waiting(Rc<RefCell<QuestionRef<VatId>>>),
     Resolved(Rc<RefCell<Response<VatId>>>),
     Broken(::capnp::Error),
 }
 
-struct Pipeline<VatId> where VatId: 'static {
-    connection_state: Rc<RefCell<ConnectionState<VatId>>>,
-    state: PipelineState<VatId>,
+struct PipelineState<VatId> where VatId: 'static {
+    variant: PipelineVariant<VatId>,
     redirect_later: Option<RefCell<::gj::ForkedPromise<Rc<RefCell<Response<VatId>>>>>>,
+    connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+}
+
+struct Pipeline<VatId> where VatId: 'static {
+    state: Rc<RefCell<PipelineState<VatId>>>,
 }
 
 impl <VatId> Pipeline<VatId> {
     fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
            question_ref: Rc<RefCell<QuestionRef<VatId>>>,
            redirect_later: Option<::gj::Promise<Rc<RefCell<Response<VatId>>>, ()>>)
-           -> Rc<RefCell<Pipeline<VatId>>>
+           -> Pipeline<VatId>
     {
+        let state = Rc::new(RefCell::new(PipelineState {
+            variant: PipelineVariant::Waiting(question_ref),
+            connection_state: connection_state,
+            redirect_later: None,
+        }));
         match redirect_later {
             Some(redirect_later_promise) => {
                 let fork = redirect_later_promise.fork();
-                let result = Rc::new(RefCell::new(Pipeline {
-                    connection_state: connection_state,
-                    state: PipelineState::Waiting(question_ref),
-                    redirect_later: None,
-                }));
 
-                let this = result.clone();
+                let this = state.clone();
 /*
                 fork.add_branch().map_else(move |response| {
                     match
@@ -437,21 +537,17 @@ impl <VatId> Pipeline<VatId> {
                     Ok(())
                 });*/
 
-                result.borrow_mut().redirect_later = Some(RefCell::new(fork));
-                result
+                state.borrow_mut().redirect_later = Some(RefCell::new(fork));
             }
-            None =>
-                Rc::new(RefCell::new(Pipeline {
-                    connection_state: connection_state,
-                    state: PipelineState::Waiting(question_ref),
-                    redirect_later: None,
-                }))
+            None => {}
         }
+        Pipeline { state: state }
     }
 
     fn resolve(&mut self, response: Rc<RefCell<Response<VatId>>>) {
-        match self.state { PipelineState::Waiting( _ ) => (), _ => panic!("Already resolved?") }
-        self.state = PipelineState::Resolved(response);
+        match self.state.borrow().variant { PipelineVariant::Waiting( _ ) => (),
+                                            _ => panic!("Already resolved?") }
+        self.state.borrow_mut().variant = PipelineVariant::Resolved(response);
     }
 
     fn resolve_err(&mut self, err: ()) {
@@ -461,8 +557,7 @@ impl <VatId> Pipeline<VatId> {
 
 impl <VatId> PipelineHook for Pipeline<VatId> {
     fn add_ref(&self) -> Box<PipelineHook> {
-//        self.clone();
-        unimplemented!()
+        Box::new(Pipeline { state: self.state.clone() })
     }
     fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
         let mut copy = Vec::new();
@@ -472,19 +567,20 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
         self.get_pipelined_cap_move(copy)
     }
     fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
-        match &self.state {
-            &PipelineState::Waiting(ref question_ref) => {
+        match &*self.state.borrow() {
+            &PipelineState {variant: PipelineVariant::Waiting(ref question_ref),
+                            ref connection_state, ref redirect_later} => {
                 // Wrap a PipelineClient in a PromiseClient.
                 let pipeline_client =
-                    PipelineClient::new(self.connection_state.clone(), question_ref.clone(), ops.clone());
+                    PipelineClient::new(connection_state.clone(), question_ref.clone(), ops.clone());
 
-                match &self.redirect_later {
+                match redirect_later {
                     &Some(ref r) => {
                         let resolution_promise = r.borrow_mut().add_branch().map(move |response| {
                             Ok(response.borrow().get().unwrap().get_pipelined_cap(&ops).unwrap())
                         });
                         let client: Client<VatId> = pipeline_client.into();
-                        let promise_client = PromiseClient::new(self.connection_state.clone(),
+                        let promise_client = PromiseClient::new(connection_state.clone(),
                                                                 Box::new(client),
                                                                 resolution_promise, None);
                         let result: Client<VatId> = promise_client.into();
@@ -496,10 +592,10 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                     }
                 }
             }
-            &PipelineState::Resolved(ref response) => {
+            &PipelineState {variant: PipelineVariant::Resolved(ref response), ..} => {
                 response.borrow_mut().get().unwrap().get_pipelined_cap(&ops[..]).unwrap()
             }
-            &PipelineState::Broken(ref response) => { unimplemented!() }
+            &PipelineState {variant: PipelineVariant::Broken(ref response), ..}  => { unimplemented!() }
         }
     }
 }
