@@ -470,7 +470,7 @@ struct ImportClient<VatId> where VatId: 'static {
 
 impl <VatId> Drop for ImportClient<VatId> {
     fn drop(&mut self) {
-        // Remove self from the imiport table, if the table is still pointing at us.
+        // Remove self from the import table, if the table is still pointing at us.
         // ...
 
         // Send a message releasing our remote references.
@@ -554,17 +554,28 @@ impl <VatId> Client<VatId> {
     }
 }
 
-impl <VatId> ClientHook for Client<VatId> {
-    fn add_ref(&self) -> Box<ClientHook> {
+impl <VatId> Clone for Client<VatId> {
+    fn clone(&self) -> Client<VatId> {
         unimplemented!()
     }
-    fn new_call(&self, _interface_id: u64, _method_id: u16,
+}
+
+impl <VatId> ClientHook for Client<VatId> {
+    fn add_ref(&self) -> Box<ClientHook> {
+        Box::new(self.clone())
+    }
+    fn new_call(&self, interface_id: u64, method_id: u16,
                 size_hint: Option<::capnp::MessageSize>)
                 -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
     {
-        // Request::new(self.connection_state, size_hint, )
+        let mut request = Request::new(self.connection_state.clone(), size_hint, self.clone());
+        {
+            let mut call_builder = request.get_call();
+            call_builder.set_interface_id(interface_id);
+            call_builder.set_method_id(method_id);
+        }
 
-        unimplemented!()
+        ::capnp::capability::Request::new(Box::new(request))
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>) {
