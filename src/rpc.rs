@@ -286,6 +286,45 @@ impl <VatId> ConnectionState<VatId> {
         }
         Ok(())
     }
+
+
+    fn get_brand(&self) -> usize {
+        self as * const _ as usize
+    }
+
+    /// If calls to the given capability should pass over this connection, fill in `target`
+    /// appropriately for such a call and return nullptr.  Otherwise, return a `ClientHook` to which
+    /// the call should be forwarded; the caller should then delegate the call to that `ClientHook`.
+    ///
+    /// The main case where this ends up returning non-null is if `cap` is a promise that has
+    /// recently resolved.  The application might have started building a request before the promise
+    /// resolved, and so the request may have been built on the assumption that it would be sent over
+    /// this network connection, but then the promise resolved to point somewhere else before the
+    /// request was sent.  Now the request has to be redirected to the new target instead.
+    fn write_target(&self, cap: &ClientHook, mut target: ::rpc_capnp::message_target::Builder)
+        -> Option<Box<ClientHook>>
+    {
+        if cap.get_brand() == self.get_brand() {
+            // Orphans would let us avoid the need for this copying..
+            let mut message = ::capnp::message::Builder::new_default();
+            let mut root: any_pointer::Builder = message.init_root();
+            let result = cap.write_target(root.borrow());
+            let mt: ::rpc_capnp::message_target::Builder = root.get_as().unwrap();
+
+            // Yuck.
+            match mt.which().unwrap() {
+                ::rpc_capnp::message_target::ImportedCap(imported_cap) => {
+                    target.set_imported_cap(imported_cap);
+                }
+                ::rpc_capnp::message_target::PromisedAnswer(promised_answer) => {
+                    target.set_promised_answer(promised_answer.unwrap().as_reader()).unwrap();
+                }
+            }
+            result
+        } else {
+            unimplemented!()
+        }
+    }
 }
 
 struct Response<VatId> where VatId: 'static {
@@ -620,7 +659,7 @@ struct BrokenClient;
 
 impl <VatId> Client<VatId> {
     fn write_target(&self, mut target: ::rpc_capnp::message_target::Builder)
-                    -> Option<Rc<RefCell<Box<ClientHook>>>>
+                    -> Option<Box<ClientHook>>
     {
         match &self.variant {
             &ClientVariant::Import(ref import_client) => {
@@ -636,7 +675,8 @@ impl <VatId> Client<VatId> {
             }
             &ClientVariant::Promise(ref promise_client) => {
                 promise_client.borrow_mut().received_call = true;
-                unimplemented!()
+                self.connection_state.borrow().write_target(
+                    &*promise_client.borrow().cap, target)
             }
             _ => {
                 unimplemented!()
@@ -695,7 +735,12 @@ impl <VatId> ClientHook for Client<VatId> {
     }
 
     fn get_brand(&self) -> usize {
-        (&*self.connection_state.borrow()) as *const _ as usize
+        self.connection_state.borrow().get_brand()
+    }
+
+    fn write_target(&self, mut target: any_pointer::Builder) -> Option<Box<ClientHook>>
+    {
+        self.write_target(target.init_as())
     }
 
     fn get_descriptor(&self) -> Box<::std::any::Any> {
