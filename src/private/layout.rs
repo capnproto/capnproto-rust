@@ -1977,6 +1977,10 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
+    pub fn borrow<'b>(&'b mut self) -> PointerBuilder<'b> {
+        PointerBuilder { .. *self }
+    }
+
     pub fn is_null(&self) -> bool {
         unsafe { (*self.pointer).is_null() }
     }

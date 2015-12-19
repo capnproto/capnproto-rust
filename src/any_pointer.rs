@@ -100,13 +100,17 @@ impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
 }
 
 pub struct Builder<'a> {
-    builder : PointerBuilder<'a>
+    builder: PointerBuilder<'a>
 }
 
 impl <'a> Builder<'a> {
     #[inline]
     pub fn new<'b>(builder : PointerBuilder<'a>) -> Builder<'a> {
         Builder { builder : builder }
+    }
+
+    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+        Builder { builder: self.builder.borrow() }
     }
 
     pub fn is_null(&self) -> bool {
