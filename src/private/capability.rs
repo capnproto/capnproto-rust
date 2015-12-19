@@ -49,6 +49,12 @@ pub trait ClientHook {
     fn get_descriptor(&self) -> Box<::std::any::Any>;
 }
 
+impl Clone for Box<ClientHook> {
+    fn clone(&self) -> Box<ClientHook> {
+        self.add_ref()
+    }
+}
+
 #[cfg(feature = "rpc")]
 pub trait ServerHook: 'static {
     fn new_client(server: Box<::capability::Server>) -> ::capability::Client;
