@@ -85,7 +85,7 @@ impl <T, U> ::Connection<VatId> for Connection<T, U>
         unimplemented!()
     }
 
-    fn new_outgoing_message(&mut self) -> Box<::OutgoingMessage> {
+    fn new_outgoing_message(&mut self, _first_segment_word_size: u32) -> Box<::OutgoingMessage> {
         Box::new(OutgoingMessage {
             message: ::capnp::message::Builder::new_default(),
             write_queue: self.write_queue.clone()

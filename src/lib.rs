@@ -49,7 +49,7 @@ pub trait IncomingMessage {
 
 pub trait Connection<VatId> {
     fn get_peer_vat_id(&self) -> VatId;
-    fn new_outgoing_message(&mut self) -> Box<OutgoingMessage>;
+    fn new_outgoing_message(&mut self, first_segment_word_size: u32) -> Box<OutgoingMessage>;
 
     /// Waits for a message to be received and returns it.  If the read stream cleanly terminates,
     /// returns None. If any other problem occurs, returns an Error.

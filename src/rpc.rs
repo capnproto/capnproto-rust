@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 
 use capnp::{any_pointer};
-use capnp::capability::{RemotePromise, Request};
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook};
 
@@ -225,7 +224,7 @@ impl <VatId> ConnectionState<VatId> {
         }
         match &mut state.borrow_mut().connection {
             &mut Ok(ref mut c) => {
-                let mut message = c.new_outgoing_message();
+                let mut message = c.new_outgoing_message(100); // TODO estimate size
                 {
                     let mut builder = message.get_body().unwrap().init_as::<message::Builder>().init_bootstrap();
                     builder.set_question_id(question_id);
@@ -312,6 +311,45 @@ impl <VatId> ResponseHook for Response<VatId> {
     }
 }
 
+struct Request<VatId> where VatId: 'static {
+    connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+    target: Client<VatId>,
+    message: Box<::OutgoingMessage>,
+}
+
+impl <VatId> Request<VatId> where VatId: 'static {
+    fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+           size_hint: Option<::capnp::MessageSize>,
+           target: Client<VatId>) -> Request<VatId> {
+
+        let message = connection_state.borrow_mut().connection.as_mut().expect("not connected?")
+            .new_outgoing_message(100);
+        Request {
+            connection_state: connection_state,
+            target: target,
+            message: message,
+        }
+    }
+
+    fn get_root<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+        // TODO imbue
+        self.get_call().get_params().unwrap().get_content()
+    }
+
+    fn get_call<'a>(&'a mut self) -> ::rpc_capnp::call::Builder<'a> {
+        self.message.get_body().unwrap().get_as().unwrap()
+    }
+}
+
+impl <VatId> RequestHook for Request<VatId> {
+    fn init<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+        unimplemented!()
+    }
+    fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
+        unimplemented!()
+    }
+}
+
 enum PipelineState<VatId> where VatId: 'static {
     Waiting(Rc<RefCell<QuestionRef<VatId>>>),
     Resolved(Rc<RefCell<Response<VatId>>>),
@@ -342,7 +380,7 @@ impl <VatId> Pipeline<VatId> {
                 let this = result.clone();
 /*
                 fork.add_branch().map_else(move |response| {
-                    match 
+                    match
                     this.borrow_mut().resolve(response);
                     Ok(())
                 });*/
@@ -405,7 +443,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
     }
 }
 
-enum Client<VatId> where VatId: 'static {
+enum ClientVariant<VatId> where VatId: 'static {
     Import(ImportClient<VatId>),
     Pipeline(PipelineClient<VatId>),
     Promise(PromiseClient<VatId>),
@@ -413,10 +451,40 @@ enum Client<VatId> where VatId: 'static {
     NoIntercept(()),
 }
 
-struct ImportClient<VatId> where VatId: 'static {
+struct Client<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+    variant: ClientVariant<VatId>,
 }
 
+struct ImportClient<VatId> where VatId: 'static {
+    connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+    import_id: ImportId,
+
+    /// Number of times we've received this import from the peer.
+    remote_ref_count: u32,
+}
+
+impl <VatId> Drop for ImportClient<VatId> {
+    fn drop(&mut self) {
+        // Remove self from the imiport table, if the table is still pointing at us.
+        // ...
+
+        // Send a message releasing our remote references.
+        // ...
+    }
+}
+
+impl <VatId> ImportClient<VatId> where VatId: 'static {
+    fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>, import_id: ImportId) -> ImportClient<VatId> {
+        ImportClient {
+            connection_state: connection_state,
+            import_id: import_id,
+            remote_ref_count: 0,
+        }
+    }
+}
+
+/// A ClientHook representing a pipelined promise.  Always wrapped in PromiseClient.
 struct PipelineClient<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
     question_ref: Rc<RefCell<QuestionRef<VatId>>>,
@@ -441,20 +509,69 @@ struct PromiseClient<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
     initial: Rc<RefCell<Box<ClientHook>>>,
     eventual: ::gj::Promise<Rc<RefCell<Box<ClientHook>>>, Box<::std::error::Error>>,
-    importId: Option<ImportId>
+    importId: Option<ImportId>,
+    is_resolved: bool,
+    fork: ::gj::ForkedPromise<Rc<RefCell<Box<ClientHook>>>>,
+}
+
+impl <VatId> PromiseClient<VatId> {
+    fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+           initial: Rc<RefCell<Box<ClientHook>>>,
+           eventual: ::gj::Promise<Rc<RefCell<Box<ClientHook>>>, Box<::std::error::Error>>,
+           importId: Option<ImportId>) -> PromiseClient<VatId> {
+        unimplemented!()
+    }
 }
 
 struct BrokenClient;
 
+impl <VatId> Client<VatId> {
+    fn write_target(&self, mut target: ::rpc_capnp::message_target::Builder)
+                    -> Option<Rc<RefCell<Box<ClientHook>>>>
+    {
+        match &self.variant {
+            &ClientVariant::Import(ref import_client) => {
+                target.set_imported_cap(import_client.import_id);
+                None
+            }
+            &ClientVariant::Pipeline(ref pipeline_client) => {
+                let mut builder = target.init_promised_answer();
+                builder.set_question_id(pipeline_client.question_ref.borrow().id);
+                // adopt_transform
+                None
+            }
+            &ClientVariant::Promise(ref promise_client) => {
+                unimplemented!()
+            }
+            _ => {
+                unimplemented!()
+            }
+        }
+    }
+}
+
 impl <VatId> ClientHook for Client<VatId> {
     fn new_call(&self, _interface_id: u64, _method_id: u16,
-                _size_hint: Option<::capnp::MessageSize>)
+                size_hint: Option<::capnp::MessageSize>)
                 -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
     {
+        // Request::new(self.connection_state, size_hint, )
+
         unimplemented!()
     }
 
-    fn call(&self, _interface_id: u64, _method_id: u16, _params: Box<ParamsHook>, _results: Box<ResultsHook>) {
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>) {
+        let mut request = self.new_call(interface_id, method_id,
+                                        Some(params.get().total_size().unwrap()));
+        request.init().set_as(params.get()).unwrap();
+
+        // We can and should propagate cancellation.
+        // context -> allowCancellation();
+
+        unimplemented!()
+    }
+
+    fn get_brand(&self) -> usize {
         unimplemented!()
     }
 
