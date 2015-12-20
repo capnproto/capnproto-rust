@@ -28,7 +28,7 @@ pub trait ResponseHook {
 }
 
 pub trait RequestHook {
-    fn init<'a>(&'a mut self) -> any_pointer::Builder<'a>;
+    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a>;
     fn send<'a>(self : Box<Self>) -> RemotePromise<any_pointer::Owned>;
 }
 

@@ -56,6 +56,9 @@ pub struct Response<Results> {
 impl <Results> Response<Results>
     where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a>
 {
+    pub fn new(hook: Box<ResponseHook>) -> Response<Results> {
+        Response { marker: ::std::marker::PhantomData, hook: hook }
+    }
     pub fn get<'a>(&'a self) -> ::Result<<Results as ::traits::Owned<'a>>::Reader> {
         try!(self.hook.get()).get_as()
     }
@@ -74,7 +77,7 @@ impl <Params, Results> Request <Params, Results>
     }
 
     pub fn init<'a>(&'a mut self) -> <Params as ::traits::Owned<'a>>::Builder {
-        self.hook.init().init_as()
+        self.hook.get().init_as()
     }
 }
 
