@@ -452,7 +452,7 @@ impl <VatId> ConnectionState<VatId> {
         // We just received a copy of this import ID, so the remote refcount has gone up.
         import_client.borrow_mut().add_remote_ref();
 
-        if (is_promise) {
+        if is_promise {
             unimplemented!()
         } else {
             let client: Box<Client<VatId>> = Box::new(import_client.into());
@@ -879,8 +879,9 @@ impl <VatId> PromiseClient<VatId> {
             received_call: false,
         }));
         let resolved = client.borrow_mut().fork.add_branch();
-        let this = client.clone();
+        let weak_this = Rc::downgrade(&client);
         let resolved1 = resolved.map_else(move |result| {
+            let this = weak_this.upgrade().expect("impossible");
             match result {
                 Ok(v) => {
                     this.borrow_mut().resolve(v, false);
