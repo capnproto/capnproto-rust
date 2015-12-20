@@ -33,7 +33,7 @@ pub struct RemotePromise<Results> where Results: ::traits::Pipelined + for<'a> :
 }
 
 pub struct ReaderCapTable {
-    hooks: Vec<Option<Box<ClientHook>>>
+    pub hooks: Vec<Option<Box<ClientHook>>>
 }
 
 impl ReaderCapTable {

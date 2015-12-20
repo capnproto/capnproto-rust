@@ -1913,7 +1913,7 @@ impl CapTableReader {
             &CapTableReader::Dummy => None,
             &CapTableReader::Plain(hooks) => {
                 let hooks: &Vec<Option<Box<ClientHook>>> = unsafe { &*hooks };
-                if index < hooks.len() { None }
+                if index >= hooks.len() { None }
                 else {
                     match hooks[index] {
                         None => None,
