@@ -141,13 +141,13 @@ impl <VatId> Question<VatId> {
 struct QuestionRef<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
     id: QuestionId,
-    fulfiller: ::gj::PromiseFulfiller<Rc<RefCell<Response<VatId>>>, ()>,
+    fulfiller: Option<::gj::PromiseFulfiller<Response<VatId>, ()>>,
 }
 
 impl <VatId> QuestionRef<VatId> {
     fn new(state: Rc<RefCell<ConnectionState<VatId>>>, id: QuestionId,
-           fulfiller: ::gj::PromiseFulfiller<Rc<RefCell<Response<VatId>>>, ()>) -> QuestionRef<VatId> {
-        QuestionRef { connection_state: state, id: id, fulfiller: fulfiller }
+           fulfiller: ::gj::PromiseFulfiller<Response<VatId>, ()>) -> QuestionRef<VatId> {
+        QuestionRef { connection_state: state, id: id, fulfiller: Some(fulfiller) }
     }
 }
 
@@ -270,53 +270,103 @@ impl <VatId> ConnectionState<VatId> {
 
     fn handle_message(state: Rc<RefCell<ConnectionState<VatId>>>,
                       message: Box<::IncomingMessage>) -> ::capnp::Result<()> {
-        let reader = try!(try!(message.get_body()).get_as::<message::Reader>());
-        match try!(reader.which()) {
-            message::Unimplemented(_) => {}
-            message::Abort(_) => {}
-            message::Bootstrap(_) => {}
-            message::Call(_) => {}
-            message::Return(oret) => {
-                let ret = try!(oret);
-                let question_id = ret.get_answer_id();
-                match &mut state.borrow_mut().questions.slots[question_id as usize] {
-                    &mut Some(ref mut question) => {
-                        question.is_awaiting_return = false;
-                        match &question.self_ref {
-                            &Some(ref question_ref) => {
-                                match try!(ret.which()) {
-                                    return_::Results(results) => {
-                                        //question_ref.fulfiller.fulfill()
 
-                                    }
-                                    return_::Exception(_) => {
-                                    }
-                                    return_::Canceled(_) => {
-                                    }
-                                    return_::ResultsSentElsewhere(_) => {
-                                    }
-                                    return_::TakeFromOtherQuestion(_) => {
-                                    }
-                                    return_::AcceptFromThirdParty(_) => {
+        // Someday Rust will have non-lexical borrows and this thing won't be needed.
+        enum BorrowWorkaround<VatId> where VatId: 'static {
+            ReturnResults(Rc<RefCell<QuestionRef<VatId>>>),
+            Other
+        }
+
+        let intermediate = {
+            let reader = try!(try!(message.get_body()).get_as::<message::Reader>());
+            match try!(reader.which()) {
+                message::Unimplemented(_) => {
+                    unimplemented!()
+                }
+                message::Abort(_) => {
+                    unimplemented!()
+                }
+                message::Bootstrap(_) => {
+                    unimplemented!()
+                }
+                message::Call(_) => {
+                    unimplemented!()
+                }
+                message::Return(oret) => {
+                    let ret = try!(oret);
+                    let question_id = ret.get_answer_id();
+                    match &mut state.borrow_mut().questions.slots[question_id as usize] {
+                        &mut Some(ref mut question) => {
+                            question.is_awaiting_return = false;
+                            match &question.self_ref {
+                                &Some(ref question_ref) => {
+                                    match try!(ret.which()) {
+                                        return_::Results(results) => {
+                                            BorrowWorkaround::ReturnResults(question_ref.clone())
+                                        }
+                                        return_::Exception(_) => {
+                                            unimplemented!()
+                                        }
+                                        return_::Canceled(_) => {
+                                            unimplemented!()
+                                        }
+                                        return_::ResultsSentElsewhere(_) => {
+                                            unimplemented!()
+                                        }
+                                        return_::TakeFromOtherQuestion(_) => {
+                                            unimplemented!()
+                                        }
+                                        return_::AcceptFromThirdParty(_) => {
+                                            unimplemented!()
+                                        }
                                     }
                                 }
-                            }
-                            &None => {
-
+                                &None => {
+                                    unimplemented!()
+                                }
                             }
                         }
+                        &mut None => {
+                            // invalid question ID
+                            unimplemented!()
+                        }
                     }
-                    &mut None => {}
+                }
+                message::Finish(_) => {
+                    unimplemented!()
+                }
+                message::Resolve(_) => {
+                    unimplemented!()
+                }
+                message::Release(_) => {
+                    unimplemented!()
+                }
+                message::Disembargo(_) => {
+                    unimplemented!()
+                }
+                message::Provide(_) => {
+                    unimplemented!()
+                }
+                message::Accept(_) => {
+                    unimplemented!()
+                }
+                message::Join(_) => {
+                    unimplemented!()
+                }
+                message::ObsoleteSave(_) | message::ObsoleteDelete(_) => {
+                    unimplemented!()
                 }
             }
-            message::Finish(_) => {}
-            message::Resolve(_) => {}
-            message::Release(_) => {}
-            message::Disembargo(_) => {}
-            message::Provide(_) => {}
-            message::Accept(_) => {}
-            message::Join(_) => {}
-            message::ObsoleteSave(_) | message::ObsoleteDelete(_) => {}
+        };
+        match intermediate {
+            BorrowWorkaround::ReturnResults(question_ref) => {
+                let response = Response::new(state, question_ref.clone(), message, Vec::new());
+                let fulfiller = ::std::mem::replace(&mut question_ref.borrow_mut().fulfiller, None);
+                fulfiller.expect("no fulfiller?").fulfill(response);
+            }
+            _ => {
+                unimplemented!()
+            }
         }
         Ok(())
     }
@@ -360,16 +410,41 @@ impl <VatId> ConnectionState<VatId> {
     }
 }
 
-struct Response<VatId> where VatId: 'static {
+struct ResponseState<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
     message: Box<::IncomingMessage>,
 //    cap_table:
     question_ref: Rc<RefCell<QuestionRef<VatId>>>,
 }
 
+struct Response<VatId> where VatId: 'static {
+    state: Rc<ResponseState<VatId>>,
+}
+
+impl <VatId> Response<VatId> {
+    fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
+           question_ref: Rc<RefCell<QuestionRef<VatId>>>,
+           message: Box<::IncomingMessage>,
+           _cap_table_array: Vec<Option<Box<ClientHook>>>) -> Response<VatId> {
+        Response {
+            state: Rc::new(ResponseState {
+                connection_state: connection_state,
+                message: message,
+                question_ref: question_ref,
+            }),
+        }
+    }
+}
+
+impl <VatId> Clone for Response<VatId> {
+    fn clone(&self) -> Response<VatId> {
+        Response { state: self.state.clone() }
+    }
+}
+
 impl <VatId> ResponseHook for Response<VatId> {
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        match try!(try!(try!(self.message.get_body()).get_as::<message::Reader>()).which()) {
+        match try!(try!(try!(self.state.message.get_body()).get_as::<message::Reader>()).which()) {
             message::Return(Ok(ret)) => {
                 match try!(ret.which()) {
                     return_::Results(Ok(payload)) => {
@@ -416,7 +491,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
     fn send_internal(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
                      mut message: Box<::OutgoingMessage>,
                      is_tail_call: bool)
-                     -> (Rc<RefCell<QuestionRef<VatId>>>, ::gj::Promise<Rc<RefCell<Response<VatId>>>, ()>)
+                     -> (Rc<RefCell<QuestionRef<VatId>>>, ::gj::Promise<Response<VatId>, ()>)
     {
         // Build the cap table.
         //auto exports = connectionState->writeDescriptors(
@@ -500,13 +575,13 @@ impl <VatId> RequestHook for Request<VatId> {
 
 enum PipelineVariant<VatId> where VatId: 'static {
     Waiting(Rc<RefCell<QuestionRef<VatId>>>),
-    Resolved(Rc<RefCell<Response<VatId>>>),
+    Resolved(Response<VatId>),
     Broken(::capnp::Error),
 }
 
 struct PipelineState<VatId> where VatId: 'static {
     variant: PipelineVariant<VatId>,
-    redirect_later: Option<RefCell<::gj::ForkedPromise<Rc<RefCell<Response<VatId>>>>>>,
+    redirect_later: Option<RefCell<::gj::ForkedPromise<Response<VatId>>>>,
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
 }
 
@@ -517,7 +592,7 @@ struct Pipeline<VatId> where VatId: 'static {
 impl <VatId> Pipeline<VatId> {
     fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
            question_ref: Rc<RefCell<QuestionRef<VatId>>>,
-           redirect_later: Option<::gj::Promise<Rc<RefCell<Response<VatId>>>, ()>>)
+           redirect_later: Option<::gj::Promise<Response<VatId>, ()>>)
            -> Pipeline<VatId>
     {
         let state = Rc::new(RefCell::new(PipelineState {
@@ -544,7 +619,7 @@ impl <VatId> Pipeline<VatId> {
         Pipeline { state: state }
     }
 
-    fn resolve(&mut self, response: Rc<RefCell<Response<VatId>>>) {
+    fn resolve(&mut self, response: Response<VatId>) {
         match self.state.borrow().variant { PipelineVariant::Waiting( _ ) => (),
                                             _ => panic!("Already resolved?") }
         self.state.borrow_mut().variant = PipelineVariant::Resolved(response);
@@ -577,7 +652,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                 match redirect_later {
                     &Some(ref r) => {
                         let resolution_promise = r.borrow_mut().add_branch().map(move |response| {
-                            Ok(response.borrow().get().unwrap().get_pipelined_cap(&ops).unwrap())
+                            Ok(response.get().unwrap().get_pipelined_cap(&ops).unwrap())
                         });
                         let client: Client<VatId> = pipeline_client.into();
                         let promise_client = PromiseClient::new(connection_state.clone(),
@@ -593,7 +668,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                 }
             }
             &PipelineState {variant: PipelineVariant::Resolved(ref response), ..} => {
-                response.borrow_mut().get().unwrap().get_pipelined_cap(&ops[..]).unwrap()
+                response.get().unwrap().get_pipelined_cap(&ops[..]).unwrap()
             }
             &PipelineState {variant: PipelineVariant::Broken(ref response), ..}  => { unimplemented!() }
         }
