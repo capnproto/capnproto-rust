@@ -165,8 +165,17 @@ pub struct Export {
     ref_count: usize
 }
 
-pub struct Import {
-    import_client: (),
+pub struct Import<VatId> where VatId: 'static {
+    // Becomes null when the import is destroyed.
+    import_client: Option<Rc<RefCell<ImportClient<VatId>>>>,
+
+    // Either a copy of importClient, or, in the case of promises, the wrapping PromiseClient.
+    // Becomes null when it is discarded *or* when the import is destroyed (e.g. the promise is
+    // resolved and the import is no longer needed).
+    app_client: Option<Client<VatId>>,
+
+    // If non-null, the import is a promise.
+    promise_fulfiller: Option<::gj::PromiseFulfiller<Box<ClientHook>, ()>>,
 }
 
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
@@ -183,7 +192,7 @@ struct ConnectionState<VatId> where VatId: 'static {
     exports: ExportTable<Export>,
     questions: ExportTable<Question<VatId>>,
     answers: ImportTable<Answer>,
-    imports: ImportTable<Import>,
+    imports: ImportTable<Import<VatId>>,
     tasks: Option<::gj::TaskSet<(), ::capnp::Error>>,
     connection: ::std::result::Result<Box<::Connection<VatId>>, ::capnp::Error>,
 }
@@ -273,10 +282,11 @@ impl <VatId> ConnectionState<VatId> {
 
         // Someday Rust will have non-lexical borrows and this thing won't be needed.
         enum BorrowWorkaround<VatId> where VatId: 'static {
-            ReturnResults(Rc<RefCell<QuestionRef<VatId>>>),
+            ReturnResults(Rc<RefCell<QuestionRef<VatId>>>, Vec<Option<Box<ClientHook>>>),
             Other
         }
 
+        let connection_state = state.clone();
         let intermediate = {
             let reader = try!(try!(message.get_body()).get_as::<message::Reader>());
             match try!(reader.which()) {
@@ -302,7 +312,11 @@ impl <VatId> ConnectionState<VatId> {
                                 &Some(ref question_ref) => {
                                     match try!(ret.which()) {
                                         return_::Results(results) => {
-                                            BorrowWorkaround::ReturnResults(question_ref.clone())
+                                            let cap_table =
+                                                ConnectionState::receive_caps(connection_state,
+                                                                              try!(try!(results).get_cap_table()));
+                                            BorrowWorkaround::ReturnResults(question_ref.clone(),
+                                                                            try!(cap_table))
                                         }
                                         return_::Exception(_) => {
                                             unimplemented!()
@@ -359,8 +373,8 @@ impl <VatId> ConnectionState<VatId> {
             }
         };
         match intermediate {
-            BorrowWorkaround::ReturnResults(question_ref) => {
-                let response = Response::new(state, question_ref.clone(), message, Vec::new());
+            BorrowWorkaround::ReturnResults(question_ref, cap_table) => {
+                let response = Response::new(state, question_ref.clone(), message, cap_table);
                 let fulfiller = ::std::mem::replace(&mut question_ref.borrow_mut().fulfiller, None);
                 fulfiller.expect("no fulfiller?").fulfill(response);
             }
@@ -408,12 +422,82 @@ impl <VatId> ConnectionState<VatId> {
             unimplemented!()
         }
     }
+
+    fn import(state: Rc<RefCell<ConnectionState<VatId>>>,
+              import_id: ImportId, is_promise: bool) -> Box<ClientHook> {
+        let connection_state = state.clone();
+        let import_client = match state.borrow_mut().imports.slots.get_mut(&import_id) {
+            Some(ref mut v) => {
+                if v.import_client.is_some() {
+                    v.import_client.as_ref().unwrap().clone()
+                } else {
+                    let import_client = ImportClient::new(connection_state, import_id);
+                    v.import_client = Some(import_client.clone());
+                    import_client
+                }
+            }
+            None => { unimplemented!() }
+        };
+
+        // We just received a copy of this import ID, so the remote refcount has gone up.
+        import_client.borrow_mut().add_remote_ref();
+
+        if (is_promise) {
+            unimplemented!()
+        } else {
+            let client: Box<Client<VatId>> = Box::new(import_client.into());
+            match state.borrow_mut().imports.slots.get_mut(&import_id) {
+                Some(ref mut v) => {
+                    v.app_client = Some(*client.clone());
+                }
+                None => { unreachable!() }
+            };
+
+            client
+        }
+    }
+
+    fn receive_cap(state: Rc<RefCell<ConnectionState<VatId>>>, descriptor: cap_descriptor::Reader)
+                   -> ::capnp::Result<Option<Box<ClientHook>>>
+    {
+        match try!(descriptor.which()) {
+            cap_descriptor::None(()) => {
+                Ok(None)
+            }
+            cap_descriptor::SenderHosted(sender_hosted) => {
+                Ok(Some(ConnectionState::import(state, sender_hosted, false)))
+            }
+            cap_descriptor::SenderPromise(sender_promise) => {
+                Ok(Some(ConnectionState::import(state, sender_promise, true)))
+            }
+            cap_descriptor::ReceiverHosted(receiver_hosted) => {
+                unimplemented!()
+            }
+            cap_descriptor::ReceiverAnswer(receiver_answer) => {
+                unimplemented!()
+            }
+            cap_descriptor::ThirdPartyHosted(third_party_hosted) => {
+                unimplemented!()
+            }
+        }
+    }
+
+    fn receive_caps(state: Rc<RefCell<ConnectionState<VatId>>>,
+                    cap_table: ::capnp::struct_list::Reader<cap_descriptor::Owned>)
+        -> ::capnp::Result<Vec<Option<Box<ClientHook>>>>
+    {
+        let mut result = Vec::new();
+        for idx in 0..cap_table.len() {
+            result.push(try!(ConnectionState::receive_cap(state.clone(), cap_table.get(idx))));
+        }
+        Ok(result)
+    }
 }
 
 struct ResponseState<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<ConnectionState<VatId>>>,
     message: Box<::IncomingMessage>,
-//    cap_table:
+    cap_table: ::capnp::capability::ReaderCapTable,
     question_ref: Rc<RefCell<QuestionRef<VatId>>>,
 }
 
@@ -425,11 +509,12 @@ impl <VatId> Response<VatId> {
     fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>,
            question_ref: Rc<RefCell<QuestionRef<VatId>>>,
            message: Box<::IncomingMessage>,
-           _cap_table_array: Vec<Option<Box<ClientHook>>>) -> Response<VatId> {
+           cap_table_array: Vec<Option<Box<ClientHook>>>) -> Response<VatId> {
         Response {
             state: Rc::new(ResponseState {
                 connection_state: connection_state,
                 message: message,
+                cap_table: ::capnp::capability::ReaderCapTable::new(cap_table_array),
                 question_ref: question_ref,
             }),
         }
@@ -707,12 +792,25 @@ impl <VatId> Drop for ImportClient<VatId> {
 }
 
 impl <VatId> ImportClient<VatId> where VatId: 'static {
-    fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>, import_id: ImportId) -> ImportClient<VatId> {
-        ImportClient {
+    fn new(connection_state: Rc<RefCell<ConnectionState<VatId>>>, import_id: ImportId)
+           -> Rc<RefCell<ImportClient<VatId>>> {
+        Rc::new(RefCell::new(ImportClient {
             connection_state: connection_state,
             import_id: import_id,
             remote_ref_count: 0,
-        }
+        }))
+    }
+
+    fn add_remote_ref(&mut self) {
+        self.remote_ref_count += 1;
+    }
+}
+
+impl <VatId> From<Rc<RefCell<ImportClient<VatId>>>> for Client<VatId> {
+    fn from(client: Rc<RefCell<ImportClient<VatId>>>) -> Client<VatId> {
+        let connection_state = client.borrow().connection_state.clone();
+        Client { connection_state: connection_state,
+                 variant: ClientVariant::Import(client) }
     }
 }
 
@@ -789,7 +887,7 @@ impl <VatId> PromiseClient<VatId> {
     }
 
     fn resolve(&mut self, replacement: Box<ClientHook>, is_error: bool) {
-        let replacement_brand = replacement.get_brand();
+        let _replacement_brand = replacement.get_brand();
         if false && !is_error {
             // The new capability is hosted locally, not on the remote machine.  And, we had made calls
             // to the promise.  We need to make sure those calls echo back to us before we allow new
@@ -804,7 +902,7 @@ impl <VatId> PromiseClient<VatId> {
 impl <VatId> Drop for PromiseClient<VatId> {
     fn drop(&mut self) {
         match self.import_id {
-            Some(id) => {
+            Some(_id) => {
                 // This object is representing an import promise.  That means the import table may still
                 // contain a pointer back to it.  Remove that pointer.  Note that we have to verify that
                 // the import still exists and the pointer still points back to this object because this
@@ -894,7 +992,7 @@ impl <VatId> ClientHook for Client<VatId> {
         ::capnp::capability::Request::new(Box::new(request))
     }
 
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>) {
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, _results: Box<ResultsHook>) {
         let mut request = self.new_call(interface_id, method_id,
                                         Some(params.get().total_size().unwrap()));
         request.init().set_as(params.get()).unwrap();
@@ -909,7 +1007,7 @@ impl <VatId> ClientHook for Client<VatId> {
         self.connection_state.borrow().get_brand()
     }
 
-    fn write_target(&self, mut target: any_pointer::Builder) -> Option<Box<ClientHook>>
+    fn write_target(&self, target: any_pointer::Builder) -> Option<Box<ClientHook>>
     {
         self.write_target(target.init_as())
     }
