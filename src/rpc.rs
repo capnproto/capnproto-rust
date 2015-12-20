@@ -680,7 +680,7 @@ impl <VatId> RequestHook for Request<VatId> {
                                              Some(forked_promise.add_branch()));
 
                 let app_promise = forked_promise.add_branch().map(|response| {
-                    unimplemented!()
+                    Ok(::capnp::capability::Response::new(Box::new(response)))
                 }).map_err(|()| {::capnp::Error::new_decode_error("this error is bogus", None)});
                 ::capnp::capability::RemotePromise {
                     promise: app_promise,
