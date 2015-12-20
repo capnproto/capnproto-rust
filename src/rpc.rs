@@ -563,6 +563,18 @@ struct Request<VatId> where VatId: 'static {
     message: Box<::OutgoingMessage>,
 }
 
+fn get_call<'a>(message: &'a mut Box<::OutgoingMessage>) -> ::rpc_capnp::call::Builder<'a> {
+    let message_root: message::Builder = message.get_body().unwrap().get_as().unwrap();
+    match message_root.which().unwrap() {
+        message::Call(call) => {
+            call.unwrap()
+        }
+        _ => {
+            unimplemented!()
+        }
+    }
+}
+
 impl <VatId> Request<VatId> where VatId: 'static {
     fn new(connection_state: Rc<ConnectionState<VatId>>,
            size_hint: Option<::capnp::MessageSize>,
@@ -601,17 +613,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         let question_id = connection_state.questions.borrow_mut().push(question);
 
         {
-            let mut call_builder: ::rpc_capnp::call::Builder = {
-                let message_root: message::Builder = message.get_body().unwrap().get_as().unwrap();
-                match message_root.which().unwrap() {
-                    message::Call(call) => {
-                        call.unwrap()
-                    }
-                    _ => {
-                        unimplemented!()
-                    }
-                }
-            };
+            let mut call_builder: ::rpc_capnp::call::Builder = get_call(&mut message);
             // Finish and send.
             call_builder.borrow().set_question_id(question_id);
             if is_tail_call {
@@ -637,24 +639,11 @@ impl <VatId> Request<VatId> where VatId: 'static {
 
         (question_ref, promise)
     }
-
-    fn get_call<'a>(&'a mut self) -> ::rpc_capnp::call::Builder<'a> {
-        let message_root: message::Builder = self.message.get_body().unwrap().get_as().unwrap();
-        match message_root.which().unwrap() {
-            message::Call(call) => {
-                call.unwrap()
-            }
-            _ => {
-                unimplemented!()
-            }
-        }
-    }
-
 }
 
 impl <VatId> RequestHook for Request<VatId> {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        self.get_call().get_params().unwrap().get_content()
+        get_call(&mut self.message).get_params().unwrap().get_content()
     }
     fn send<'a>(mut self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
