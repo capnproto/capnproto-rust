@@ -37,8 +37,8 @@ pub struct ReaderCapTable {
 }
 
 impl ReaderCapTable {
-    pub fn new() -> ReaderCapTable {
-        ReaderCapTable { hooks: Vec::new() }
+    pub fn new(hooks: Vec<Option<Box<ClientHook>>>) -> ReaderCapTable {
+        ReaderCapTable { hooks: hooks }
     }
 
     // Do I need an Imbueable trait?
