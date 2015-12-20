@@ -178,6 +178,16 @@ pub struct Import<VatId> where VatId: 'static {
     promise_fulfiller: Option<::gj::PromiseFulfiller<Box<ClientHook>, ()>>,
 }
 
+impl <VatId> Import<VatId> {
+    fn new() -> Import<VatId> {
+        Import {
+            import_client: None,
+            app_client: None,
+            promise_fulfiller: None,
+        }
+    }
+}
+
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
     state: Rc<ConnectionState<VatId>>,
 }
@@ -426,17 +436,17 @@ impl <VatId> ConnectionState<VatId> {
     fn import(state: Rc<ConnectionState<VatId>>,
               import_id: ImportId, is_promise: bool) -> Box<ClientHook> {
         let connection_state = state.clone();
-        let import_client = match state.imports.borrow_mut().slots.get_mut(&import_id) {
-            Some(ref mut v) => {
-                if v.import_client.is_some() {
-                    v.import_client.as_ref().unwrap().clone()
-                } else {
-                    let import_client = ImportClient::new(connection_state, import_id);
-                    v.import_client = Some(import_client.clone());
-                    import_client
-                }
+
+        let import_client = {
+            let mut slots = &mut state.imports.borrow_mut().slots;
+            let mut v = slots.entry(import_id).or_insert(Import::new());
+            if v.import_client.is_some() {
+                v.import_client.as_ref().unwrap().clone()
+            } else {
+                let import_client = ImportClient::new(connection_state, import_id);
+                v.import_client = Some(import_client.clone());
+                import_client
             }
-            None => { unimplemented!() }
         };
 
         // We just received a copy of this import ID, so the remote refcount has gone up.
