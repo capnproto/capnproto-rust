@@ -45,7 +45,6 @@ pub fn main() {
             let calculator = calculator::Client {
                 client: rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server)
             };
-
             let mut request = calculator.evaluate_request();
 
             request.init().init_expression().set_literal(11.0);

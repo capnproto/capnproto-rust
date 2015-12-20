@@ -542,8 +542,9 @@ impl <VatId> ResponseHook for Response<VatId> {
         match try!(try!(try!(self.state.message.get_body()).get_as::<message::Reader>()).which()) {
             message::Return(Ok(ret)) => {
                 match try!(ret.which()) {
-                    return_::Results(Ok(payload)) => {
-                        payload.get_cap_table(); // TODO imbue
+                    return_::Results(Ok(mut payload)) => {
+                        use ::capnp::traits::Imbue;
+                        payload.imbue(&self.state.cap_table.hooks);
                         Ok(payload.get_content())
                     }
                     _ => panic!(),
