@@ -303,7 +303,9 @@ impl <VatId> ConnectionState<VatId> {
                 message::Unimplemented(_) => {
                     unimplemented!()
                 }
-                message::Abort(_) => {
+                message::Abort(abort) => {
+                    let exc = try!(abort);
+                    //println!("ABORT {}", try!(exc.get_reason()));
                     unimplemented!()
                 }
                 message::Bootstrap(_) => {
@@ -575,13 +577,9 @@ impl <VatId> Request<VatId> where VatId: 'static {
         }
     }
 
-    fn get_root<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        // TODO imbue
-        self.get_call().get_params().unwrap().get_content()
-    }
-
-    fn get_call<'a>(&'a mut self) -> ::rpc_capnp::call::Builder<'a> {
-        self.message.get_body().unwrap().get_as().unwrap()
+    fn init_call<'a>(&'a mut self) -> ::rpc_capnp::call::Builder<'a> {
+        let message_root: message::Builder = self.message.get_body().unwrap().get_as().unwrap();
+        message_root.init_call()
     }
 
     fn send_internal(connection_state: Rc<ConnectionState<VatId>>,
@@ -603,13 +601,24 @@ impl <VatId> Request<VatId> where VatId: 'static {
         let question_id = connection_state.questions.borrow_mut().push(question);
 
         {
-            let mut call_builder: ::rpc_capnp::call::Builder = message.get_body().unwrap().get_as().unwrap();
+            let mut call_builder: ::rpc_capnp::call::Builder = {
+                let message_root: message::Builder = message.get_body().unwrap().get_as().unwrap();
+                match message_root.which().unwrap() {
+                    message::Call(call) => {
+                        call.unwrap()
+                    }
+                    _ => {
+                        unimplemented!()
+                    }
+                }
+            };
             // Finish and send.
             call_builder.borrow().set_question_id(question_id);
             if is_tail_call {
                 call_builder.get_send_results_to().set_yourself(());
             }
         }
+        message.send();
 
         // Make the result promise.
         let (promise, fulfiller) = ::gj::new_promise_and_fulfiller();
@@ -628,11 +637,24 @@ impl <VatId> Request<VatId> where VatId: 'static {
 
         (question_ref, promise)
     }
+
+    fn get_call<'a>(&'a mut self) -> ::rpc_capnp::call::Builder<'a> {
+        let message_root: message::Builder = self.message.get_body().unwrap().get_as().unwrap();
+        match message_root.which().unwrap() {
+            message::Call(call) => {
+                call.unwrap()
+            }
+            _ => {
+                unimplemented!()
+            }
+        }
+    }
+
 }
 
 impl <VatId> RequestHook for Request<VatId> {
-    fn init<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        self.get_root()
+    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+        self.get_call().get_params().unwrap().get_content()
     }
     fn send<'a>(mut self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
@@ -996,7 +1018,7 @@ impl <VatId> ClientHook for Client<VatId> {
     {
         let mut request = Request::new(self.connection_state.clone(), size_hint, self.clone());
         {
-            let mut call_builder = request.get_call();
+            let mut call_builder = request.init_call();
             call_builder.set_interface_id(interface_id);
             call_builder.set_method_id(method_id);
         }
