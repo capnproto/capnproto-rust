@@ -27,7 +27,7 @@ use std::vec::Vec;
 use std::collections::hash_map::HashMap;
 use std::collections::binary_heap::BinaryHeap;
 use std::cell::RefCell;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 use rpc_capnp::{message, return_, cap_descriptor};
 
@@ -457,7 +457,7 @@ impl <VatId> ConnectionState<VatId> {
             if v.import_client.is_some() {
                 v.import_client.as_ref().unwrap().clone()
             } else {
-                let import_client = ImportClient::new(connection_state, import_id);
+                let import_client = ImportClient::new(&connection_state, import_id);
                 v.import_client = Some(import_client.clone());
                 import_client
             }
@@ -763,7 +763,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                             ref connection_state, ref redirect_later} => {
                 // Wrap a PipelineClient in a PromiseClient.
                 let pipeline_client =
-                    PipelineClient::new(connection_state.clone(), question_ref.clone(), ops.clone());
+                    PipelineClient::new(&connection_state, question_ref.clone(), ops.clone());
 
                 match redirect_later {
                     &Some(ref r) => {
@@ -771,7 +771,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                             Ok(response.get().unwrap().get_pipelined_cap(&ops).unwrap())
                         });
                         let client: Client<VatId> = pipeline_client.into();
-                        let promise_client = PromiseClient::new(connection_state.clone(),
+                        let promise_client = PromiseClient::new(&connection_state,
                                                                 Box::new(client),
                                                                 resolution_promise, None);
                         let result: Client<VatId> = promise_client.into();
@@ -800,12 +800,12 @@ enum ClientVariant<VatId> where VatId: 'static {
 }
 
 struct Client<VatId> where VatId: 'static {
-    connection_state: Rc<ConnectionState<VatId>>,
+    connection_state: Weak<ConnectionState<VatId>>,
     variant: ClientVariant<VatId>,
 }
 
 struct ImportClient<VatId> where VatId: 'static {
-    connection_state: Rc<ConnectionState<VatId>>,
+    connection_state: Weak<ConnectionState<VatId>>,
     import_id: ImportId,
 
     /// Number of times we've received this import from the peer.
@@ -823,10 +823,10 @@ impl <VatId> Drop for ImportClient<VatId> {
 }
 
 impl <VatId> ImportClient<VatId> where VatId: 'static {
-    fn new(connection_state: Rc<ConnectionState<VatId>>, import_id: ImportId)
+    fn new(connection_state: &Rc<ConnectionState<VatId>>, import_id: ImportId)
            -> Rc<RefCell<ImportClient<VatId>>> {
         Rc::new(RefCell::new(ImportClient {
-            connection_state: connection_state,
+            connection_state: Rc::downgrade(connection_state),
             import_id: import_id,
             remote_ref_count: 0,
         }))
@@ -847,17 +847,17 @@ impl <VatId> From<Rc<RefCell<ImportClient<VatId>>>> for Client<VatId> {
 
 /// A ClientHook representing a pipelined promise.  Always wrapped in PromiseClient.
 struct PipelineClient<VatId> where VatId: 'static {
-    connection_state: Rc<ConnectionState<VatId>>,
+    connection_state: Weak<ConnectionState<VatId>>,
     question_ref: Rc<RefCell<QuestionRef<VatId>>>,
     _ops: Vec<PipelineOp>,
 }
 
 impl <VatId> PipelineClient<VatId> where VatId: 'static {
-    fn new(connection_state: Rc<ConnectionState<VatId>>,
+    fn new(connection_state: &Rc<ConnectionState<VatId>>,
            question_ref: Rc<RefCell<QuestionRef<VatId>>>,
            ops: Vec<PipelineOp>) -> Rc<RefCell<PipelineClient<VatId>>> {
         Rc::new(RefCell::new(PipelineClient {
-            connection_state: connection_state,
+            connection_state: Rc::downgrade(connection_state),
             question_ref: question_ref,
             _ops: ops,
         }))
@@ -875,7 +875,7 @@ impl <VatId> From<Rc<RefCell<PipelineClient<VatId>>>> for Client<VatId> {
 /// A ClientHook that initially wraps one client and then, later on, redirects
 /// to some other client.
 struct PromiseClient<VatId> where VatId: 'static {
-    connection_state: Rc<ConnectionState<VatId>>,
+    connection_state: Weak<ConnectionState<VatId>>,
     is_resolved: bool,
     cap: Box<ClientHook>,
     import_id: Option<ImportId>,
@@ -885,12 +885,12 @@ struct PromiseClient<VatId> where VatId: 'static {
 }
 
 impl <VatId> PromiseClient<VatId> {
-    fn new(connection_state: Rc<ConnectionState<VatId>>,
+    fn new(connection_state: &Rc<ConnectionState<VatId>>,
            initial: Box<ClientHook>,
            eventual: ::gj::Promise<Box<ClientHook>, ()>,
            import_id: Option<ImportId>) -> Rc<RefCell<PromiseClient<VatId>>> {
         let client = Rc::new(RefCell::new(PromiseClient {
-            connection_state: connection_state,
+            connection_state: Rc::downgrade(connection_state),
             is_resolved: false,
             cap: initial,
             import_id: import_id,
@@ -973,7 +973,7 @@ impl <VatId> Client<VatId> {
             }
             &ClientVariant::Promise(ref promise_client) => {
                 promise_client.borrow_mut().received_call = true;
-                self.connection_state.write_target(
+                self.connection_state.upgrade().expect("no connection?").write_target(
                     &*promise_client.borrow().cap, target)
             }
             _ => {
@@ -1011,7 +1011,8 @@ impl <VatId> ClientHook for Client<VatId> {
                 size_hint: Option<::capnp::MessageSize>)
                 -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
     {
-        let mut request = Request::new(self.connection_state.clone(), size_hint, self.clone());
+        let mut request = Request::new(self.connection_state.upgrade().expect("no connection?"),
+                                       size_hint, self.clone());
         {
             let mut call_builder = request.init_call();
             call_builder.set_interface_id(interface_id);
@@ -1033,7 +1034,7 @@ impl <VatId> ClientHook for Client<VatId> {
     }
 
     fn get_brand(&self) -> usize {
-        self.connection_state.get_brand()
+        self.connection_state.upgrade().expect("no connection?").get_brand()
     }
 
     fn write_target(&self, target: any_pointer::Builder) -> Option<Box<ClientHook>>
