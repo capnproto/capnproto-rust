@@ -44,11 +44,15 @@ pub fn main() {
         let mut request = calculator.evaluate_request();
         request.init().init_expression().set_literal(11.0);
         request.send().promise.then(|response| {
-            try!(try!(response.get()).get_value());
+            let value = try!(try!(response.get()).get_value());
             // ...
             println!("Got the value!");
-
-            Ok(::gj::Promise::fulfilled(()))
+            let mut request = value.read_request();
+            request.init();
+            Ok(request.send().promise.then(|_response|{
+                println!("Got the final value!");
+                Ok(Promise::fulfilled(()))
+            }))
         }).wait(wait_scope).unwrap();
         Ok(())
     }).expect("top level error");

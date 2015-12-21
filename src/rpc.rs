@@ -149,6 +149,14 @@ impl <VatId> QuestionRef<VatId> {
            fulfiller: ::gj::PromiseFulfiller<Response<VatId>, ()>) -> QuestionRef<VatId> {
         QuestionRef { /*_connection_state: state,*/ id: id, fulfiller: Some(fulfiller) }
     }
+    fn fulfill(&mut self, response: Response<VatId>) {
+        let fulfiller = ::std::mem::replace(&mut self.fulfiller, None);
+        fulfiller.expect("no fulfiller?").fulfill(response);
+    }
+    fn reject(&mut self, err: ()) {
+        let fulfiller = ::std::mem::replace(&mut self.fulfiller, None);
+        fulfiller.expect("no fulfiller?").reject(err);
+    }
 }
 
 impl <VatId> Drop for QuestionRef<VatId> {
@@ -304,7 +312,7 @@ impl <VatId> ConnectionState<VatId> {
         // Someday Rust will have non-lexical borrows and this thing won't be needed.
         enum BorrowWorkaround<VatId> where VatId: 'static {
             ReturnResults(Rc<RefCell<QuestionRef<VatId>>>, Vec<Option<Box<ClientHook>>>),
-            __Other
+            Done,
         }
 
         let connection_state = weak_state.upgrade().expect("dangling reference to connection state");
@@ -343,7 +351,8 @@ impl <VatId> ConnectionState<VatId> {
                                                                             try!(cap_table))
                                         }
                                         return_::Exception(_) => {
-                                            unimplemented!()
+                                            question_ref.borrow_mut().reject(());
+                                            BorrowWorkaround::Done
                                         }
                                         return_::Canceled(_) => {
                                             unimplemented!()
@@ -399,12 +408,9 @@ impl <VatId> ConnectionState<VatId> {
         match intermediate {
             BorrowWorkaround::ReturnResults(question_ref, cap_table) => {
                 let response = Response::new(connection_state, question_ref.clone(), message, cap_table);
-                let fulfiller = ::std::mem::replace(&mut question_ref.borrow_mut().fulfiller, None);
-                fulfiller.expect("no fulfiller?").fulfill(response);
+                question_ref.borrow_mut().fulfill(response);
             }
-            _ => {
-                unimplemented!()
-            }
+            BorrowWorkaround::Done => {}
         }
         Ok(())
     }
