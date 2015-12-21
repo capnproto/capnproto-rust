@@ -73,7 +73,7 @@ pub struct Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrit
 impl <T, U> Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
     pub fn new(input_stream: T, output_stream: U, receive_options: ReaderOptions) -> Connection<T, U> {
         Connection { input_stream: Rc::new(RefCell::new(Some(input_stream))),
-                     write_queue: Rc::new(RefCell::new(::gj::Promise::fulfilled(output_stream))),
+                     write_queue: Rc::new(RefCell::new(::gj::Promise::ok(output_stream))),
                      receive_options: receive_options }
     }
 }
@@ -134,7 +134,7 @@ impl <T, U> ::VatNetwork<VatId> for VatNetwork<T, U>
     fn accept(&mut self) -> ::gj::Promise<Box<::Connection<VatId>>, ::capnp::Error> {
         let connection = ::std::mem::replace(&mut self.connection, None);
         match connection {
-            Some(c) => ::gj::Promise::fulfilled(Box::new(c) as Box<::Connection<VatId>>),
+            Some(c) => ::gj::Promise::ok(Box::new(c) as Box<::Connection<VatId>>),
             None => unimplemented!(),
         }
     }

@@ -51,7 +51,7 @@ pub fn main() {
             request.init();
             Ok(request.send().promise.then(|_response|{
                 println!("Got the final value!");
-                Ok(Promise::fulfilled(()))
+                Ok(Promise::ok(()))
             }))
         }).wait(wait_scope).unwrap();
         Ok(())

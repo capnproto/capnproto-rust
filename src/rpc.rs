@@ -280,7 +280,7 @@ impl <VatId> ConnectionState<VatId> {
     fn message_loop(weak_state: ::std::rc::Weak<ConnectionState<VatId>>) -> ::gj::Promise<(), ::capnp::Error> {
         let state = weak_state.upgrade().expect("dangling reference to connection state");
         let promise = match &mut *state.connection.borrow_mut() {
-            &mut Err(_) => return ::gj::Promise::fulfilled(()),
+            &mut Err(_) => return ::gj::Promise::ok(()),
             &mut Ok(ref mut connection) => connection.receive_incoming_message(),
         };
         let weak_state1 = weak_state.clone();
@@ -301,7 +301,7 @@ impl <VatId> ConnectionState<VatId> {
             if keep_going {
                 Ok(ConnectionState::message_loop(weak_state1))
             } else {
-                Ok(::gj::Promise::fulfilled(()))
+                Ok(::gj::Promise::ok(()))
             }
         })
     }
@@ -901,7 +901,7 @@ impl <VatId> PromiseClient<VatId> {
             cap: initial,
             import_id: import_id,
             fork: eventual.fork(),
-            resolve_self_promise: ::gj::Promise::fulfilled(()),
+            resolve_self_promise: ::gj::Promise::ok(()),
             received_call: false,
         }));
         let resolved = client.borrow_mut().fork.add_branch();
