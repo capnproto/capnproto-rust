@@ -139,15 +139,15 @@ impl <VatId> Question<VatId> {
 /// A reference to an entry on the question table.  Used to detect when the `Finish` message
 /// can be sent.
 struct QuestionRef<VatId> where VatId: 'static {
-    _connection_state: Rc<ConnectionState<VatId>>,
+    //_connection_state: Rc<ConnectionState<VatId>>,
     id: QuestionId,
     fulfiller: Option<::gj::PromiseFulfiller<Response<VatId>, ()>>,
 }
 
 impl <VatId> QuestionRef<VatId> {
-    fn new(state: Rc<ConnectionState<VatId>>, id: QuestionId,
+    fn new(_state: Rc<ConnectionState<VatId>>, id: QuestionId,
            fulfiller: ::gj::PromiseFulfiller<Response<VatId>, ()>) -> QuestionRef<VatId> {
-        QuestionRef { _connection_state: state, id: id, fulfiller: Some(fulfiller) }
+        QuestionRef { /*_connection_state: state,*/ id: id, fulfiller: Some(fulfiller) }
     }
 }
 
@@ -189,12 +189,21 @@ impl <VatId> Import<VatId> {
 }
 
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
-    state: Rc<ConnectionState<VatId>>,
+    weak_state: ::std::rc::Weak<ConnectionState<VatId>>,
+}
+
+impl <VatId> ConnectionErrorHandler<VatId> {
+    fn new(weak_state: ::std::rc::Weak<ConnectionState<VatId>>) -> ConnectionErrorHandler<VatId> {
+        ConnectionErrorHandler { weak_state: weak_state }
+    }
 }
 
 impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<VatId> {
     fn task_failed(&mut self, error: ::capnp::Error) {
-        self.state.disconnect(error);
+        match self.weak_state.upgrade() {
+            Some(state) => state.disconnect(error),
+            None => {}
+        }
     }
 }
 
@@ -217,8 +226,8 @@ impl <VatId> ConnectionState<VatId> {
             tasks: RefCell::new(None),
             connection: RefCell::new(Ok(connection))
         });
-        let mut task_set = ::gj::TaskSet::new(Box::new(ConnectionErrorHandler { state: state.clone() }));
-        task_set.add(ConnectionState::message_loop(state.clone()));
+        let mut task_set = ::gj::TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))));
+        task_set.add(ConnectionState::message_loop(Rc::downgrade(&state)));
         *state.tasks.borrow_mut() = Some(task_set);
         state
     }
@@ -260,34 +269,36 @@ impl <VatId> ConnectionState<VatId> {
         result
     }
 
-    fn message_loop(state: Rc<ConnectionState<VatId>>) -> ::gj::Promise<(), ::capnp::Error> {
+    fn message_loop(weak_state: ::std::rc::Weak<ConnectionState<VatId>>) -> ::gj::Promise<(), ::capnp::Error> {
+        let state = weak_state.upgrade().expect("dangling reference to connection state");
         let promise = match &mut *state.connection.borrow_mut() {
             &mut Err(_) => return ::gj::Promise::fulfilled(()),
             &mut Ok(ref mut connection) => connection.receive_incoming_message(),
         };
-        let state1 = state.clone();
+        let weak_state1 = weak_state.clone();
         promise.map(move |message| {
             match message {
                 Some(m) => {
-                    ConnectionState::handle_message(state, m).map(|()| true)
+                    ConnectionState::handle_message(weak_state, m).map(|()| true)
                 }
                 None => {
+                    /* XXX need to do this without forming a reference cycle.
                     state.disconnect(
                         ::capnp::Error::Io(::std::io::Error::new(::std::io::ErrorKind::Other,
-                                                                 "Peer disconnected")));
+                                                                 "Peer disconnected"))); */
                     Ok(false)
                 }
             }
         }).then(move |keep_going| {
             if keep_going {
-                Ok(ConnectionState::message_loop(state1))
+                Ok(ConnectionState::message_loop(weak_state1))
             } else {
                 Ok(::gj::Promise::fulfilled(()))
             }
         })
     }
 
-    fn handle_message(state: Rc<ConnectionState<VatId>>,
+    fn handle_message(weak_state: ::std::rc::Weak<ConnectionState<VatId>>,
                       message: Box<::IncomingMessage>) -> ::capnp::Result<()> {
 
         // Someday Rust will have non-lexical borrows and this thing won't be needed.
@@ -296,7 +307,8 @@ impl <VatId> ConnectionState<VatId> {
             __Other
         }
 
-        let connection_state = state.clone();
+        let connection_state = weak_state.upgrade().expect("dangling reference to connection state");
+        let connection_state1 = connection_state.clone();
         let intermediate = {
             let reader = try!(try!(message.get_body()).get_as::<message::Reader>());
             match try!(reader.which()) {
@@ -317,7 +329,7 @@ impl <VatId> ConnectionState<VatId> {
                 message::Return(oret) => {
                     let ret = try!(oret);
                     let question_id = ret.get_answer_id();
-                    match &mut state.questions.borrow_mut().slots[question_id as usize] {
+                    match &mut connection_state.questions.borrow_mut().slots[question_id as usize] {
                         &mut Some(ref mut question) => {
                             question.is_awaiting_return = false;
                             match &question.self_ref {
@@ -325,7 +337,7 @@ impl <VatId> ConnectionState<VatId> {
                                     match try!(ret.which()) {
                                         return_::Results(results) => {
                                             let cap_table =
-                                                ConnectionState::receive_caps(connection_state,
+                                                ConnectionState::receive_caps(connection_state1,
                                                                               try!(try!(results).get_cap_table()));
                                             BorrowWorkaround::ReturnResults(question_ref.clone(),
                                                                             try!(cap_table))
@@ -386,7 +398,7 @@ impl <VatId> ConnectionState<VatId> {
         };
         match intermediate {
             BorrowWorkaround::ReturnResults(question_ref, cap_table) => {
-                let response = Response::new(state, question_ref.clone(), message, cap_table);
+                let response = Response::new(connection_state, question_ref.clone(), message, cap_table);
                 let fulfiller = ::std::mem::replace(&mut question_ref.borrow_mut().fulfiller, None);
                 fulfiller.expect("no fulfiller?").fulfill(response);
             }
