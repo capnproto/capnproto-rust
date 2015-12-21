@@ -29,7 +29,7 @@ use std::collections::binary_heap::BinaryHeap;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use rpc_capnp::{message, return_, cap_descriptor, message_target, payload, promised_answer};
+use rpc_capnp::{message, return_, cap_descriptor};
 
 
 pub struct System<VatId> where VatId: 'static {
@@ -49,7 +49,7 @@ impl <VatId> System <VatId> {
             Some(connection) => connection,
             None => unimplemented!(),
         };
-        let mut connection_state = ConnectionState::new(connection);
+        let connection_state = ConnectionState::new(connection);
         let hook = ConnectionState::bootstrap(connection_state.clone());
         self.connection_state = Some(connection_state);
         ::capnp::capability::Client::new(hook)
@@ -139,7 +139,7 @@ impl <VatId> Question<VatId> {
 /// A reference to an entry on the question table.  Used to detect when the `Finish` message
 /// can be sent.
 struct QuestionRef<VatId> where VatId: 'static {
-    connection_state: Rc<ConnectionState<VatId>>,
+    _connection_state: Rc<ConnectionState<VatId>>,
     id: QuestionId,
     fulfiller: Option<::gj::PromiseFulfiller<Response<VatId>, ()>>,
 }
@@ -147,7 +147,7 @@ struct QuestionRef<VatId> where VatId: 'static {
 impl <VatId> QuestionRef<VatId> {
     fn new(state: Rc<ConnectionState<VatId>>, id: QuestionId,
            fulfiller: ::gj::PromiseFulfiller<Response<VatId>, ()>) -> QuestionRef<VatId> {
-        QuestionRef { connection_state: state, id: id, fulfiller: Some(fulfiller) }
+        QuestionRef { _connection_state: state, id: id, fulfiller: Some(fulfiller) }
     }
 }
 
@@ -158,11 +158,11 @@ impl <VatId> Drop for QuestionRef<VatId> {
 }
 
 struct Answer {
-    active: bool,
+    _active: bool,
 }
 
 pub struct Export {
-    ref_count: usize
+    _ref_count: usize
 }
 
 pub struct Import<VatId> where VatId: 'static {
@@ -175,7 +175,7 @@ pub struct Import<VatId> where VatId: 'static {
     app_client: Option<Client<VatId>>,
 
     // If non-null, the import is a promise.
-    promise_fulfiller: Option<::gj::PromiseFulfiller<Box<ClientHook>, ()>>,
+    _promise_fulfiller: Option<::gj::PromiseFulfiller<Box<ClientHook>, ()>>,
 }
 
 impl <VatId> Import<VatId> {
@@ -183,7 +183,7 @@ impl <VatId> Import<VatId> {
         Import {
             import_client: None,
             app_client: None,
-            promise_fulfiller: None,
+            _promise_fulfiller: None,
         }
     }
 }
@@ -199,9 +199,9 @@ impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<Vat
 }
 
 struct ConnectionState<VatId> where VatId: 'static {
-    exports: RefCell<ExportTable<Export>>,
+    _exports: RefCell<ExportTable<Export>>,
     questions: RefCell<ExportTable<Question<VatId>>>,
-    answers: RefCell<ImportTable<Answer>>,
+    _answers: RefCell<ImportTable<Answer>>,
     imports: RefCell<ImportTable<Import<VatId>>>,
     tasks: RefCell<Option<::gj::TaskSet<(), ::capnp::Error>>>,
     connection: RefCell<::std::result::Result<Box<::Connection<VatId>>, ::capnp::Error>>,
@@ -210,9 +210,9 @@ struct ConnectionState<VatId> where VatId: 'static {
 impl <VatId> ConnectionState<VatId> {
     fn new(connection: Box<::Connection<VatId>>) -> Rc<ConnectionState<VatId>> {
         let state = Rc::new(ConnectionState {
-            exports: RefCell::new(ExportTable::new()),
+            _exports: RefCell::new(ExportTable::new()),
             questions: RefCell::new(ExportTable::new()),
-            answers: RefCell::new(ImportTable::new()),
+            _answers: RefCell::new(ImportTable::new()),
             imports: RefCell::new(ImportTable::new()),
             tasks: RefCell::new(None),
             connection: RefCell::new(Ok(connection))
@@ -223,7 +223,7 @@ impl <VatId> ConnectionState<VatId> {
         state
     }
 
-    fn disconnect(&self, error: ::capnp::Error) {
+    fn disconnect(&self, _error: ::capnp::Error) {
         if self.connection.borrow().is_err() {
             // Already disconnected.
             return;
@@ -262,7 +262,7 @@ impl <VatId> ConnectionState<VatId> {
 
     fn message_loop(state: Rc<ConnectionState<VatId>>) -> ::gj::Promise<(), ::capnp::Error> {
         let promise = match &mut *state.connection.borrow_mut() {
-            &mut Err(ref e) => return ::gj::Promise::fulfilled(()),
+            &mut Err(_) => return ::gj::Promise::fulfilled(()),
             &mut Ok(ref mut connection) => connection.receive_incoming_message(),
         };
         let state1 = state.clone();
@@ -278,8 +278,8 @@ impl <VatId> ConnectionState<VatId> {
                     Ok(false)
                 }
             }
-        }).then(move |keepGoing| {
-            if keepGoing {
+        }).then(move |keep_going| {
+            if keep_going {
                 Ok(ConnectionState::message_loop(state1))
             } else {
                 Ok(::gj::Promise::fulfilled(()))
@@ -293,7 +293,7 @@ impl <VatId> ConnectionState<VatId> {
         // Someday Rust will have non-lexical borrows and this thing won't be needed.
         enum BorrowWorkaround<VatId> where VatId: 'static {
             ReturnResults(Rc<RefCell<QuestionRef<VatId>>>, Vec<Option<Box<ClientHook>>>),
-            Other
+            __Other
         }
 
         let connection_state = state.clone();
@@ -304,7 +304,7 @@ impl <VatId> ConnectionState<VatId> {
                     unimplemented!()
                 }
                 message::Abort(abort) => {
-                    let exc = try!(abort);
+                    let _exc = try!(abort);
                     //println!("ABORT {}", try!(exc.get_reason()));
                     unimplemented!()
                 }
@@ -482,13 +482,13 @@ impl <VatId> ConnectionState<VatId> {
             cap_descriptor::SenderPromise(sender_promise) => {
                 Ok(Some(ConnectionState::import(state, sender_promise, true)))
             }
-            cap_descriptor::ReceiverHosted(receiver_hosted) => {
+            cap_descriptor::ReceiverHosted(_receiver_hosted) => {
                 unimplemented!()
             }
-            cap_descriptor::ReceiverAnswer(receiver_answer) => {
+            cap_descriptor::ReceiverAnswer(_receiver_answer) => {
                 unimplemented!()
             }
-            cap_descriptor::ThirdPartyHosted(third_party_hosted) => {
+            cap_descriptor::ThirdPartyHosted(_third_party_hosted) => {
                 unimplemented!()
             }
         }
@@ -507,10 +507,10 @@ impl <VatId> ConnectionState<VatId> {
 }
 
 struct ResponseState<VatId> where VatId: 'static {
-    connection_state: Rc<ConnectionState<VatId>>,
+    _connection_state: Rc<ConnectionState<VatId>>,
     message: Box<::IncomingMessage>,
     cap_table: ::capnp::capability::ReaderCapTable,
-    question_ref: Rc<RefCell<QuestionRef<VatId>>>,
+    _question_ref: Rc<RefCell<QuestionRef<VatId>>>,
 }
 
 struct Response<VatId> where VatId: 'static {
@@ -524,10 +524,10 @@ impl <VatId> Response<VatId> {
            cap_table_array: Vec<Option<Box<ClientHook>>>) -> Response<VatId> {
         Response {
             state: Rc::new(ResponseState {
-                connection_state: connection_state,
+                _connection_state: connection_state,
                 message: message,
                 cap_table: ::capnp::capability::ReaderCapTable::new(cap_table_array),
-                question_ref: question_ref,
+                _question_ref: question_ref,
             }),
         }
     }
@@ -577,7 +577,7 @@ fn get_call<'a>(message: &'a mut Box<::OutgoingMessage>) -> ::rpc_capnp::call::B
 
 impl <VatId> Request<VatId> where VatId: 'static {
     fn new(connection_state: Rc<ConnectionState<VatId>>,
-           size_hint: Option<::capnp::MessageSize>,
+           _size_hint: Option<::capnp::MessageSize>,
            target: Client<VatId>) -> Request<VatId> {
 
         let message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
@@ -645,16 +645,16 @@ impl <VatId> RequestHook for Request<VatId> {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
         get_call(&mut self.message).get_params().unwrap().get_content()
     }
-    fn send<'a>(mut self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
+    fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
-        let Request { connection_state, mut target, mut message } = tmp;
+        let Request { connection_state, target, mut message } = tmp;
         let write_target_result = {
-            let mut call_builder: ::rpc_capnp::call::Builder = message.get_body().unwrap().get_as().unwrap();
+            let call_builder: ::rpc_capnp::call::Builder = message.get_body().unwrap().get_as().unwrap();
             target.write_target(call_builder.get_target().unwrap())
         };
 
         match write_target_result {
-            Some(redirect) => {
+            Some(_redirect) => {
                 // Whoops, this capability has been redirected while we were building the request!
                 // We'll have to make a new request and do a copy.  Ick.
                 unimplemented!()
@@ -682,8 +682,8 @@ impl <VatId> RequestHook for Request<VatId> {
 
 enum PipelineVariant<VatId> where VatId: 'static {
     Waiting(Rc<RefCell<QuestionRef<VatId>>>),
-    Resolved(Response<VatId>),
-    Broken(::capnp::Error),
+    _Resolved(Response<VatId>),
+    _Broken(::capnp::Error),
 }
 
 struct PipelineState<VatId> where VatId: 'static {
@@ -711,8 +711,8 @@ impl <VatId> Pipeline<VatId> {
             Some(redirect_later_promise) => {
                 let fork = redirect_later_promise.fork();
 
-                let this = state.clone();
 /*
+                let this = state.clone();
                 fork.add_branch().map_else(move |response| {
                     match
                     this.borrow_mut().resolve(response);
@@ -726,15 +726,12 @@ impl <VatId> Pipeline<VatId> {
         Pipeline { state: state }
     }
 
-    fn resolve(&mut self, response: Response<VatId>) {
+    fn _resolve(&mut self, response: Response<VatId>) {
         match self.state.borrow().variant { PipelineVariant::Waiting( _ ) => (),
                                             _ => panic!("Already resolved?") }
-        self.state.borrow_mut().variant = PipelineVariant::Resolved(response);
+        self.state.borrow_mut().variant = PipelineVariant::_Resolved(response);
     }
 
-    fn resolve_err(&mut self, err: ()) {
-        unimplemented!()
-    }
 }
 
 impl <VatId> PipelineHook for Pipeline<VatId> {
@@ -774,10 +771,10 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                     }
                 }
             }
-            &PipelineState {variant: PipelineVariant::Resolved(ref response), ..} => {
+            &PipelineState {variant: PipelineVariant::_Resolved(ref response), ..} => {
                 response.get().unwrap().get_pipelined_cap(&ops[..]).unwrap()
             }
-            &PipelineState {variant: PipelineVariant::Broken(ref response), ..}  => { unimplemented!() }
+            &PipelineState {variant: PipelineVariant::_Broken(_), ..}  => { unimplemented!() }
         }
     }
 }
@@ -786,8 +783,8 @@ enum ClientVariant<VatId> where VatId: 'static {
     Import(Rc<RefCell<ImportClient<VatId>>>),
     Pipeline(Rc<RefCell<PipelineClient<VatId>>>),
     Promise(Rc<RefCell<PromiseClient<VatId>>>),
-    Broken(BrokenClient),
-    NoIntercept(()),
+    __Broken(()),
+    __NoIntercept(()),
 }
 
 struct Client<VatId> where VatId: 'static {
@@ -840,7 +837,7 @@ impl <VatId> From<Rc<RefCell<ImportClient<VatId>>>> for Client<VatId> {
 struct PipelineClient<VatId> where VatId: 'static {
     connection_state: Rc<ConnectionState<VatId>>,
     question_ref: Rc<RefCell<QuestionRef<VatId>>>,
-    ops: Vec<PipelineOp>,
+    _ops: Vec<PipelineOp>,
 }
 
 impl <VatId> PipelineClient<VatId> where VatId: 'static {
@@ -850,7 +847,7 @@ impl <VatId> PipelineClient<VatId> where VatId: 'static {
         Rc::new(RefCell::new(PipelineClient {
             connection_state: connection_state,
             question_ref: question_ref,
-            ops: ops,
+            _ops: ops,
         }))
     }
 }
@@ -898,7 +895,7 @@ impl <VatId> PromiseClient<VatId> {
                     this.borrow_mut().resolve(v, false);
                     Ok(())
                 }
-                Err(e) => {
+                Err(_) => {
                     this.borrow_mut().resolve(unimplemented!(), true);
                     Err(())
                 }
@@ -945,9 +942,6 @@ impl <VatId> From<Rc<RefCell<PromiseClient<VatId>>>> for Client<VatId> {
                  variant: ClientVariant::Promise(client) }
     }
 }
-
-
-struct BrokenClient;
 
 impl <VatId> Client<VatId> {
     fn write_target(&self, mut target: ::rpc_capnp::message_target::Builder)
