@@ -33,28 +33,23 @@ pub fn main() {
     ::gj::EventLoop::top_level(move |wait_scope| {
         use std::net::ToSocketAddrs;
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-        ::gj::io::tcp::Stream::connect(addr).lift().then(|stream| -> ::std::result::Result<Promise<(), Box<::std::error::Error>>, Box<::std::error::Error>> {
+        let stream = try!(::gj::io::tcp::Stream::connect(addr).wait(wait_scope));
+        let stream2 = try!(stream.try_clone());
+        let connection: Box<::capnp_rpc::VatNetwork<twoparty::VatId>> =
+            Box::new(twoparty::VatNetwork::new(stream, stream2, Default::default()));
+        let mut rpc_system = rpc::System::new(connection, None);
+        let calculator = calculator::Client {
+            client: rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server)
+        };
+        let mut request = calculator.evaluate_request();
+        request.init().init_expression().set_literal(11.0);
+        request.send().promise.then(|response| {
+            try!(try!(response.get()).get_value());
+            // ...
+            println!("Got the value!");
 
-            let stream2 = try!(stream.try_clone());
-
-            let connection: Box<::capnp_rpc::VatNetwork<twoparty::VatId>> =
-                Box::new(twoparty::VatNetwork::new(stream, stream2, Default::default()));
-
-            let mut rpc_system = rpc::System::new(connection, None);
-
-            let calculator = calculator::Client {
-                client: rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server)
-            };
-            let mut request = calculator.evaluate_request();
-
-            request.init().init_expression().set_literal(11.0);
-            Ok(request.send().promise.then(|response| {
-                try!(try!(response.get()).get_value());
-                // ...
-                println!("Got the value!");
-
-                Ok(::gj::Promise::fulfilled(()))
-            }).lift())
-        }).wait(wait_scope)
+            Ok(::gj::Promise::fulfilled(()))
+        }).wait(wait_scope).unwrap();
+        Ok(())
     }).expect("top level error");
 }
