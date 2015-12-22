@@ -168,53 +168,24 @@ pub struct Error {
 
 #[derive(Debug, Clone, Copy)]
 pub enum ErrorKind {
-    /// A generic problem occurred, and it is believed that if the operation were repeated without
-    /// any change in the state of the world, the problem would occur again.
-    ///
-    /// A client might respond to this error by logging it for investigation by the developer and/or
-    /// displaying it to the user.
+    // Something went wrong. This is the usual error kind. It includes decoding errors and I/O
+    // errors.
     Failed,
 
-
-    /// The request was rejected due to a temporary lack of resources.
-    ///
-    /// Examples include:
-    ///  - There's not enough CPU time to keep up with incoming requests, so some are rejected.
-    ///  - The server ran out of RAM or disk space during the request.
-    ///  - The operation timed out (took significantly longer than it should have).
-    ///
-    /// A client might respond to this error by scheduling to retry the operation much later. The
-    /// client should NOT retry again immediately since this would likely exacerbate the problem.
+    // The call failed because of a temporary lack of resources. This could be space resources
+    // (out of memory, out of disk space) or time resources (request queue overflow, operation
+    // timed out).
+    //
+    // The operation might work if tried again, but it should NOT be repeated immediately as this
+    // may simply exacerbate the problem.
     Overloaded,
 
-    /// The method failed because a connection to some necessary capability was lost.
-    ///
-    /// Examples include:
-    /// - The client introduced the server to a third-party capability, the connection to that third
-    ///   party was subsequently lost, and then the client requested that the server use the dead
-    ///   capability for something.
-    /// - The client previously requested that the server obtain a capability from some third party.
-    ///   The server returned a capability to an object wrapping the third-party capability. Later,
-    ///   the server's connection to the third party was lost.
-    /// - The capability has been revoked. Revocation does not necessarily mean that the client is
-    ///   no longer authorized to use the capability; it is often used simply as a way to force the
-    ///   client to repeat the setup process, perhaps to efficiently move them to a new back-end or
-    ///   get them to recognize some other change that has occurred.
-    ///
-    /// A client should normally respond to this error by releasing all capabilities it is currently
-    /// holding related to the one it called and then re-creating them by restoring SturdyRefs and/or
-    /// repeating the method calls used to create them originally. In other words, disconnect and
-    /// start over. This should in turn cause the server to obtain a new copy of the capability that
-    /// it lost, thus making everything work.
-    ///
-    /// If the client receives another `disconnencted` error in the process of rebuilding the
-    /// capability and retrying the call, it should treat this as an `overloaded` error: the network
-    /// is currently unreliable, possibly due to load or other temporary issues.
+    // The call required communication over a connection that has been lost. The callee will need
+    // to re-establish connections and try again.
     Disconnected,
 
-    /// The server doesn't implement the requested method. If there is some other method that the
-    /// client could call (perhaps an older and/or slower interface), it should try that instead.
-    /// Otherwise, this should be treated like `failed`.
+    // The requested method is not implemented. The caller may wish to revert to a fallback
+    // approach based on other methods.
     Unimplemented,
 }
 
