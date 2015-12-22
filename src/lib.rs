@@ -251,6 +251,16 @@ impl ::std::error::Error for Error {
     }
 }
 
+#[cfg(feature = "rpc")]
+impl ::gj::FulfillerDropped for Error {
+    fn fulfiller_dropped() -> Error {
+        Error {
+            reason: "Promise fulfiller was dropped.".to_string(),
+            kind: ErrorKind::Failed
+        }
+    }
+}
+
 /// Helper struct that allows `MessageBuilder::get_segments_for_output()` to avoid heap allocations
 /// in the single-segment case.
 pub enum OutputSegments<'a> {
