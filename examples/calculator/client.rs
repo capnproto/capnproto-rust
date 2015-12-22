@@ -70,6 +70,57 @@ pub fn main() {
             println!("PASS");
         }
 
+        {
+            // Make a request to evaluate 123 + 45 - 67.
+            //
+            // The Calculator interface requires that we first call getOperator() to
+            // get the addition and subtraction functions, then call evaluate() to use
+            // them.  But, once again, we can get both functions, call evaluate(), and
+            // then read() the result -- four RPCs -- in the time of *one* network
+            // round trip, because of promise pipelining.
+
+            println!("Using add and subtract... ");
+
+            let add = {
+                // Get the "add" function from the server.
+                let mut request = calculator.get_operator_request();
+                request.init().set_op(calculator::Operator::Add);
+                request.send().pipeline.get_func()
+            };
+
+            let subtract = {
+                // Get the "subtract" function from the server.
+                let mut request = calculator.get_operator_request();
+                request.init().set_op(calculator::Operator::Subtract);
+                request.send().pipeline.get_func()
+            };
+
+            // Build the request to evaluate 123 + 45 - 67.
+            let mut request = calculator.evaluate_request();
+
+            {
+                let mut subtract_call = request.init().init_expression().init_call();
+                subtract_call.set_function(subtract);
+                let mut subtract_params = subtract_call.init_params(2);
+                subtract_params.borrow().get(1).set_literal(67.0);
+
+                let mut add_call = subtract_params.get(0).init_call();
+                add_call.set_function(add);
+                let mut add_params = add_call.init_params(2);
+                add_params.borrow().get(0).set_literal(123.0);
+                add_params.get(1).set_literal(45.0);
+            }
+
+            // Send the evaluate() request, read() the result, and wait for read() to
+            // finish.
+            let eval_promise = request.send();
+            let read_promise = eval_promise.pipeline.get_value().read_request().send();
+
+            let response = try!(read_promise.promise.wait(wait_scope));
+            assert_eq!(try!(response.get()).get_value(), 101.0);
+
+            println!("PASS");
+        }
         Ok(())
     }).expect("top level error");
 }
