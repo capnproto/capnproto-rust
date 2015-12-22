@@ -446,25 +446,25 @@ impl <VatId> ConnectionState<VatId> {
     /// this network connection, but then the promise resolved to point somewhere else before the
     /// request was sent.  Now the request has to be redirected to the new target instead.
     fn write_target(&self, cap: &ClientHook, mut target: ::rpc_capnp::message_target::Builder)
-        -> Option<Box<ClientHook>>
+        -> ::capnp::Result<Option<Box<ClientHook>>>
     {
         if cap.get_brand() == self.get_brand() {
             // Orphans would let us avoid the need for this copying..
             let mut message = ::capnp::message::Builder::new_default();
             let mut root: any_pointer::Builder = message.init_root();
             let result = cap.write_target(root.borrow());
-            let mt: ::rpc_capnp::message_target::Builder = root.get_as().unwrap();
+            let mt: ::rpc_capnp::message_target::Builder = try!(root.get_as());
 
             // Yuck.
-            match mt.which().unwrap() {
+            match try!(mt.which()) {
                 ::rpc_capnp::message_target::ImportedCap(imported_cap) => {
                     target.set_imported_cap(imported_cap);
                 }
                 ::rpc_capnp::message_target::PromisedAnswer(promised_answer) => {
-                    target.set_promised_answer(promised_answer.unwrap().as_reader()).unwrap();
+                    try!(target.set_promised_answer(try!(promised_answer).as_reader()));
                 }
             }
-            result
+            Ok(result)
         } else {
             unimplemented!()
         }
@@ -598,11 +598,13 @@ struct Request<VatId> where VatId: 'static {
     message: Box<::OutgoingMessage>,
 }
 
-fn get_call<'a>(message: &'a mut Box<::OutgoingMessage>) -> ::rpc_capnp::call::Builder<'a> {
-    let message_root: message::Builder = message.get_body().unwrap().get_as().unwrap();
-    match message_root.which().unwrap() {
+fn get_call<'a>(message: &'a mut Box<::OutgoingMessage>)
+                -> ::capnp::Result<::rpc_capnp::call::Builder<'a>>
+{
+    let message_root: message::Builder = try!(try!(message.get_body()).get_as());
+    match try!(message_root.which()) {
         message::Call(call) => {
-            call.unwrap()
+            call
         }
         _ => {
             unimplemented!()
@@ -648,7 +650,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         let question_id = connection_state.questions.borrow_mut().push(question);
 
         {
-            let mut call_builder: ::rpc_capnp::call::Builder = get_call(&mut message);
+            let mut call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
             // Finish and send.
             call_builder.borrow().set_question_id(question_id);
             if is_tail_call {
@@ -678,7 +680,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
 
 impl <VatId> RequestHook for Request<VatId> {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        get_call(&mut self.message).get_params().unwrap().get_content()
+        get_call(&mut self.message).unwrap().get_params().unwrap().get_content()
     }
     fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
@@ -791,7 +793,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                 match redirect_later {
                     &Some(ref r) => {
                         let resolution_promise = r.borrow_mut().add_branch().map(move |response| {
-                            Ok(response.get().unwrap().get_pipelined_cap(&ops).unwrap())
+                           try!(response.get()).get_pipelined_cap(&ops)
                         });
                         let client: Client<VatId> = pipeline_client.into();
                         let promise_client = PromiseClient::new(&connection_state,
@@ -997,7 +999,7 @@ impl <VatId> Client<VatId> {
             &ClientVariant::Promise(ref promise_client) => {
                 promise_client.borrow_mut().received_call = true;
                 self.connection_state.upgrade().expect("no connection?").write_target(
-                    &*promise_client.borrow().cap, target)
+                    &*promise_client.borrow().cap, target).unwrap()
             }
             _ => {
                 unimplemented!()
