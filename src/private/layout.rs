@@ -1961,7 +1961,7 @@ impl CapTableBuilder {
             &mut CapTableBuilder::Plain(hooks) => {
                 let hooks: &mut Vec<Option<Box<ClientHook>>> = unsafe { &mut *hooks };
                 hooks.push(Some(cap));
-                hooks.len()
+                hooks.len() - 1
             }
         }
     }
