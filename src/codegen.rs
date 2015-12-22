@@ -1557,7 +1557,7 @@ fn generate_node(gen: &GeneratorContext,
                     Indent(Box::new(Indent(Box::new(Indent(
                         Box::new(Line(format!("_private::TYPE_ID => ServerDispatch::<T, {}>::dispatch_call_internal(&mut *self.server, method_id, params, results),",params.params)))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(base_dispatch_arms))))))),
-                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => { results.unimplemented(); ::gj::Promise::fulfilled(()) }".to_string()))))))),
+                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => { results.unimplemented(); ::gj::Promise::ok(()) }".to_string()))))))),
                     Indent(Box::new(Indent(Box::new(Line("}".to_string()))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
@@ -1572,7 +1572,7 @@ fn generate_node(gen: &GeneratorContext,
                     Indent(Box::new(Line("pub fn dispatch_call_internal(server: &mut T, method_id: u16, params: capability::Params<::capnp::any_pointer::Owned>, results: capability::Results<::capnp::any_pointer::Owned>) -> ::gj::Promise<(), ::capnp::Error> {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match method_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(dispatch_arms))))))),
-                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => { results.unimplemented(); ::gj::Promise::fulfilled(()) }".to_string()))))))),
+                    Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => { results.unimplemented(); ::gj::Promise::ok(()) }".to_string()))))))),
                     Indent(Box::new(Indent(Box::new(Line("}".to_string()))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
@@ -1692,7 +1692,7 @@ pub fn main<T : ::std::io::Read>(mut inp : T, out_dir : &::std::path::Path) -> :
             Err(e) => {
                 let _ = writeln!(&mut ::std::io::stderr(),
                                  "could not open file {:?} for writing: {}", filepath, e);
-                return Err(::capnp::Error::Io(e));
+                return Err(e.into());
             }
         }
     }
