@@ -197,19 +197,19 @@ impl <VatId> Import<VatId> {
     }
 }
 
-fn to_error(exception: ::rpc_capnp::exception::Reader) -> Error {
+fn remote_exception_to_error(exception: ::rpc_capnp::exception::Reader) -> Error {
     let (kind, reason) = match (exception.get_type(), exception.get_reason()) {
         (Ok(::rpc_capnp::exception::Type::Failed), Ok(reason)) =>
-            (::capnp::ErrorKind::Failed, reason.to_string()),
+            (::capnp::ErrorKind::Failed, reason),
         (Ok(::rpc_capnp::exception::Type::Overloaded), Ok(reason)) =>
-            (::capnp::ErrorKind::Overloaded, reason.to_string()),
+            (::capnp::ErrorKind::Overloaded, reason),
         (Ok(::rpc_capnp::exception::Type::Disconnected), Ok(reason)) =>
-            (::capnp::ErrorKind::Disconnected, reason.to_string()),
+            (::capnp::ErrorKind::Disconnected, reason),
         (Ok(::rpc_capnp::exception::Type::Unimplemented), Ok(reason)) =>
-            (::capnp::ErrorKind::Unimplemented, reason.to_string()),
-        _ => (::capnp::ErrorKind::Failed, "(malformed error)".to_string()),
+            (::capnp::ErrorKind::Unimplemented, reason),
+        _ => (::capnp::ErrorKind::Failed, "(malformed error)"),
     };
-    Error { reason: reason, kind: kind }
+    Error { reason: format!("remote exception: {}", reason), kind: kind }
 }
 
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
@@ -367,7 +367,8 @@ impl <VatId> ConnectionState<VatId> {
                                                                             try!(cap_table))
                                         }
                                         return_::Exception(e) => {
-                                            question_ref.borrow_mut().reject(to_error(try!(e)));
+                                            question_ref.borrow_mut().reject(
+                                                remote_exception_to_error(try!(e)));
                                             BorrowWorkaround::Done
                                         }
                                         return_::Canceled(_) => {
