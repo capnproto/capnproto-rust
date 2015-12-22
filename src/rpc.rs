@@ -315,9 +315,9 @@ impl <VatId> ConnectionState<VatId> {
             }
         }).then(move |keep_going| {
             if keep_going {
-                Ok(ConnectionState::message_loop(weak_state1))
+                ConnectionState::message_loop(weak_state1)
             } else {
-                Ok(::gj::Promise::ok(()))
+                ::gj::Promise::ok(())
             }
         })
     }

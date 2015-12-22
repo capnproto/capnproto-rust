@@ -59,9 +59,9 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gj::io::AsyncWrite 
         *write_queue.borrow_mut() = queue.then(move |s| {
 // DEBUG
 //            try!(::capnp::serialize::write_message(&mut ::std::io::stdout(), &message));
-            Ok(::capnp_gj::serialize::write_message(s, message).map(move |(s, _)| {
+            ::capnp_gj::serialize::write_message(s, message).map(move |(s, _)| {
                 Ok(s)
-            }))
+            })
         });
     }
 }

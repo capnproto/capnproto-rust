@@ -24,6 +24,7 @@
 
 extern crate capnp;
 extern crate capnp_rpc;
+#[macro_use]
 extern crate gj;
 
 pub mod calculator_capnp {
