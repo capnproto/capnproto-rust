@@ -197,6 +197,21 @@ impl <VatId> Import<VatId> {
     }
 }
 
+fn to_error(exception: ::rpc_capnp::exception::Reader) -> Error {
+    let (kind, reason) = match (exception.get_type(), exception.get_reason()) {
+        (Ok(::rpc_capnp::exception::Type::Failed), Ok(reason)) =>
+            (::capnp::ErrorKind::Failed, reason.to_string()),
+        (Ok(::rpc_capnp::exception::Type::Overloaded), Ok(reason)) =>
+            (::capnp::ErrorKind::Overloaded, reason.to_string()),
+        (Ok(::rpc_capnp::exception::Type::Disconnected), Ok(reason)) =>
+            (::capnp::ErrorKind::Disconnected, reason.to_string()),
+        (Ok(::rpc_capnp::exception::Type::Unimplemented), Ok(reason)) =>
+            (::capnp::ErrorKind::Unimplemented, reason.to_string()),
+        _ => (::capnp::ErrorKind::Failed, "(malformed error)".to_string()),
+    };
+    Error { reason: reason, kind: kind }
+}
+
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
     weak_state: ::std::rc::Weak<ConnectionState<VatId>>,
 }
@@ -351,8 +366,8 @@ impl <VatId> ConnectionState<VatId> {
                                             BorrowWorkaround::ReturnResults(question_ref.clone(),
                                                                             try!(cap_table))
                                         }
-                                        return_::Exception(_) => {
-                                            //question_ref.borrow_mut().reject(());
+                                        return_::Exception(e) => {
+                                            question_ref.borrow_mut().reject(to_error(try!(e)));
                                             BorrowWorkaround::Done
                                         }
                                         return_::Canceled(_) => {
