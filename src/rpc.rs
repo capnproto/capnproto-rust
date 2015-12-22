@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 use capnp::{any_pointer};
+use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook};
 
@@ -141,19 +142,19 @@ impl <VatId> Question<VatId> {
 struct QuestionRef<VatId> where VatId: 'static {
     //_connection_state: Rc<ConnectionState<VatId>>,
     id: QuestionId,
-    fulfiller: Option<::gj::PromiseFulfiller<Response<VatId>, ()>>,
+    fulfiller: Option<::gj::PromiseFulfiller<Response<VatId>, Error>>,
 }
 
 impl <VatId> QuestionRef<VatId> {
     fn new(_state: Rc<ConnectionState<VatId>>, id: QuestionId,
-           fulfiller: ::gj::PromiseFulfiller<Response<VatId>, ()>) -> QuestionRef<VatId> {
+           fulfiller: ::gj::PromiseFulfiller<Response<VatId>, Error>) -> QuestionRef<VatId> {
         QuestionRef { /*_connection_state: state,*/ id: id, fulfiller: Some(fulfiller) }
     }
     fn fulfill(&mut self, response: Response<VatId>) {
         let fulfiller = ::std::mem::replace(&mut self.fulfiller, None);
         fulfiller.expect("no fulfiller?").fulfill(response);
     }
-    fn reject(&mut self, err: ()) {
+    fn reject(&mut self, err: Error) {
         let fulfiller = ::std::mem::replace(&mut self.fulfiller, None);
         fulfiller.expect("no fulfiller?").reject(err);
     }
@@ -351,7 +352,7 @@ impl <VatId> ConnectionState<VatId> {
                                                                             try!(cap_table))
                                         }
                                         return_::Exception(_) => {
-                                            question_ref.borrow_mut().reject(());
+                                            //question_ref.borrow_mut().reject(());
                                             BorrowWorkaround::Done
                                         }
                                         return_::Canceled(_) => {
@@ -615,7 +616,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
     fn send_internal(connection_state: Rc<ConnectionState<VatId>>,
                      mut message: Box<::OutgoingMessage>,
                      is_tail_call: bool)
-                     -> (Rc<RefCell<QuestionRef<VatId>>>, ::gj::Promise<Response<VatId>, ()>)
+                     -> (Rc<RefCell<QuestionRef<VatId>>>, ::gj::Promise<Response<VatId>, Error>)
     {
         // Build the cap table.
         //auto exports = connectionState->writeDescriptors(
@@ -688,7 +689,7 @@ impl <VatId> RequestHook for Request<VatId> {
 
                 let app_promise = forked_promise.add_branch().map(|response| {
                     Ok(::capnp::capability::Response::new(Box::new(response)))
-                }).map_err(|()| {::capnp::Error::new_decode_error("this error is bogus", None)});
+                });
                 ::capnp::capability::RemotePromise {
                     promise: app_promise,
                     pipeline: any_pointer::Pipeline::new(Box::new(pipeline))
@@ -706,7 +707,7 @@ enum PipelineVariant<VatId> where VatId: 'static {
 
 struct PipelineState<VatId> where VatId: 'static {
     variant: PipelineVariant<VatId>,
-    redirect_later: Option<RefCell<::gj::ForkedPromise<Response<VatId>>>>,
+    redirect_later: Option<RefCell<::gj::ForkedPromise<Response<VatId>, ::capnp::Error>>>,
     connection_state: Rc<ConnectionState<VatId>>,
 }
 
@@ -717,7 +718,7 @@ struct Pipeline<VatId> where VatId: 'static {
 impl <VatId> Pipeline<VatId> {
     fn new(connection_state: Rc<ConnectionState<VatId>>,
            question_ref: Rc<RefCell<QuestionRef<VatId>>>,
-           redirect_later: Option<::gj::Promise<Response<VatId>, ()>>)
+           redirect_later: Option<::gj::Promise<Response<VatId>, ::capnp::Error>>)
            -> Pipeline<VatId>
     {
         let state = Rc::new(RefCell::new(PipelineState {
@@ -885,7 +886,7 @@ struct PromiseClient<VatId> where VatId: 'static {
     is_resolved: bool,
     cap: Box<ClientHook>,
     import_id: Option<ImportId>,
-    fork: ::gj::ForkedPromise<Box<ClientHook>>,
+    fork: ::gj::ForkedPromise<Box<ClientHook>, ::capnp::Error>,
     resolve_self_promise: ::gj::Promise<(), ()>,
     received_call: bool,
 }
@@ -893,7 +894,7 @@ struct PromiseClient<VatId> where VatId: 'static {
 impl <VatId> PromiseClient<VatId> {
     fn new(connection_state: &Rc<ConnectionState<VatId>>,
            initial: Box<ClientHook>,
-           eventual: ::gj::Promise<Box<ClientHook>, ()>,
+           eventual: ::gj::Promise<Box<ClientHook>, ::capnp::Error>,
            import_id: Option<ImportId>) -> Rc<RefCell<PromiseClient<VatId>>> {
         let client = Rc::new(RefCell::new(PromiseClient {
             connection_state: Rc::downgrade(connection_state),

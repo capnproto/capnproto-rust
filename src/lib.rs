@@ -63,4 +63,3 @@ pub trait VatNetwork<VatId> {
     /// Waits for the next incoming connection and return it.
     fn accept(&mut self) -> ::gj::Promise<Box<Connection<VatId>>, ::capnp::Error>;
 }
-
