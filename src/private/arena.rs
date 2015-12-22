@@ -202,8 +202,7 @@ impl ReaderArena {
             let new_segment = match self.raw_segments.get_segment(id) {
                 Some(s) => s,
                 None => {
-                    return Err(Error::new_decode_error("Invalid segment id.",
-                                                       Some(format!("{}", id))));
+                    return Err(Error::new_decode_error(format!("Invalid segment id: {}", id)));
                 }
             };
             let new_segment_reader = SegmentReader {
@@ -256,7 +255,7 @@ impl BuilderArena  {
         } else if ((id - 1) as usize) < self.more_segments.len() {
             Ok(&self.more_segments[(id - 1) as usize].reader)
         } else {
-            Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
+            Err(Error::new_decode_error(format!("Invalid segment id: {}", id)))
         }
     }
 
@@ -298,7 +297,7 @@ impl BuilderArena  {
         } else if ((id - 1) as usize) < self.more_segments.len() {
             Ok(&mut *self.more_segments[(id - 1) as usize])
         } else {
-            Err(Error::new_decode_error("Invalid segment id.", Some(format!("{}", id))))
+            Err(Error::new_decode_error(format!("Invalid segment id: {}", id)))
         }
     }
 
@@ -334,7 +333,7 @@ impl ArenaPtr {
                     (&*builder).try_get_segment(id)
                 }
                 &ArenaPtr::Null => {
-                    Err(Error::new_decode_error("Null arena.", None))
+                    Err(Error::new_decode_error("Null arena.".to_string()))
                 }
             }
         }

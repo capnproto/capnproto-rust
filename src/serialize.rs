@@ -49,14 +49,16 @@ impl <'a> message::ReaderSegments for SliceSegments<'a> {
 
 /// Reads a serialized message from a slice of words.
 pub fn read_message_from_words<'a>(slice: &'a [Word],
-                                   options: message::ReaderOptions) -> Result<message::Reader<SliceSegments<'a>>> {
+                                   options: message::ReaderOptions)
+                                   -> Result<message::Reader<SliceSegments<'a>>>
+{
     let mut bytes = ::Word::words_to_bytes(slice);
     let (num_words, offsets) = try!(read_segment_table(&mut bytes, options));
     let words = ::Word::bytes_to_words(bytes);
     if num_words != words.len() {
-        Err(Error::new_decode_error("Wrong number of words.",
-                                    Some(format!("Header claimed {} words, but message has {} words",
-                                                 num_words, words.len()))))
+        Err(Error::new_decode_error(
+            format!("Wrong number of words. Header claimed {} words, but message has {} words",
+                    num_words, words.len())))
     } else {
         Ok(message::Reader::new(SliceSegments { words: words, segment_slices: offsets }, options))
     }
@@ -105,11 +107,9 @@ where R: Read {
                                                    .wrapping_add(1) as usize;
 
     if segment_count >= 512 {
-        return Err(Error::new_decode_error("Too many segments.",
-                                           Some(format!("{}", segment_count))));
+        return Err(Error::new_decode_error(format!("Too many segments: {}", segment_count)))
     } else if segment_count == 0 {
-        return Err(Error::new_decode_error("Too few segments.",
-                                           Some(format!("{}", segment_count))));
+        return Err(Error::new_decode_error(format!("Too few segments: {}", segment_count)))
     }
 
     let mut segment_slices = Vec::with_capacity(segment_count);
@@ -144,8 +144,8 @@ where R: Read {
     // size to make the receiver allocate excessive space and possibly crash.
     if total_words as u64 > options.traversal_limit_in_words  {
         return Err(Error::new_decode_error(
-            "Message is too large. To increase the limit on the \
-             receiving end, see capnp::message::ReaderOptions.", Some(format!("{}", total_words))));
+            format!("Message has {} words, which is too large. To increase the limit on the \
+             receiving end, see capnp::message::ReaderOptions.", total_words)))
     }
 
     Ok((total_words, segment_slices))

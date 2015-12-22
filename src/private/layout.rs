@@ -405,7 +405,7 @@ mod wire_helpers {
                 WirePointerKind::Far => "Message contained out-of-bounds far pointer.",
                 WirePointerKind::Other => "Message contained out-of-bounds other pointer.",
             };
-            Err(Error::new_decode_error(desc, None))
+            Err(Error::new_decode_error(desc.to_string()))
         }
     }
 
@@ -415,7 +415,7 @@ mod wire_helpers {
         if segment.is_null() || (*segment).amplified_read(virtual_amount) {
             Ok(())
         } else {
-            Err(Error::new_decode_error("Message contained amplified list pointer.", None))
+            Err(Error::new_decode_error("Message contained amplified list pointer.".to_string()))
         }
     }
 
@@ -646,7 +646,7 @@ mod wire_helpers {
         if (*reff).is_null() { return Ok(result) };
 
         if nesting_limit <= 0 {
-            return Err(Error::new_decode_error("Message is too deeply nested.", None));
+            return Err(Error::new_decode_error("Message is too deeply nested.".to_string()));
         }
 
         nesting_limit -= 1;
@@ -707,12 +707,12 @@ mod wire_helpers {
 
                         if (*element_tag).kind() != WirePointerKind::Struct {
                             return Err(Error::new_decode_error(
-                                "Don't know how to handle non-STRUCT inline composite.", None));
+                                "Don't know how to handle non-STRUCT inline composite.".to_string()));
                         }
 
                         if (*element_tag).struct_ref().word_size() as u64 * count as u64 > word_count as u64 {
                             return Err(Error::new_decode_error(
-                                "InlineComposite list's elements overrun its word count.", None));
+                                "InlineComposite list's elements overrun its word count.".to_string()));
                         }
 
                         let data_size = (*element_tag).struct_ref().data_size.get();
@@ -738,7 +738,7 @@ mod wire_helpers {
                 if (*reff).is_capability() {
                     result.cap_count += 1;
                 } else {
-                    return Err(Error::new_decode_error("Unknown pointer type.", None));
+                    return Err(Error::new_decode_error("Unknown pointer type.".to_string()));
                 }
             }
         }
@@ -852,7 +852,7 @@ mod wire_helpers {
         let old_ptr = try!(follow_builder_fars(&mut old_ref, ref_target, &mut old_segment));
         if (*old_ref).kind() != WirePointerKind::Struct {
             return Err(Error::new_decode_error(
-                "Message contains non-struct pointer where struct pointer was expected.", None));
+                "Message contains non-struct pointer where struct pointer was expected.".to_string()));
         }
 
         let old_data_size = (*old_ref).struct_ref().data_size.get();
@@ -1003,7 +1003,7 @@ mod wire_helpers {
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::new_decode_error(
-                "Called get_list_{{field,element}}() but existing pointer is not a list.", None));
+                "Called get_list_{{field,element}}() but existing pointer is not a list.".to_string()));
         }
 
         let old_size = (*reff).list_ref().element_size();
@@ -1020,7 +1020,7 @@ mod wire_helpers {
 
             if (*tag).kind() != WirePointerKind::Struct {
                 return Err(Error::new_decode_error(
-                    "InlineComposite list with non-STRUCT elements not supported.", None));
+                    "InlineComposite list with non-STRUCT elements not supported.".to_string()));
             }
 
             ptr = ptr.offset(POINTER_SIZE_IN_WORDS as isize);
@@ -1032,18 +1032,18 @@ mod wire_helpers {
                 Void => {} // Anything is a valid upgrade from Void.
                 Bit => {
                     return Err(Error::new_decode_error(
-                        "Found struct list where bit list was expected.", None));
+                        "Found struct list where bit list was expected.".to_string()));
                 }
                 Byte | TwoBytes | FourBytes | EightBytes => {
                     if data_size < 1 {
                         return Err(Error::new_decode_error(
-                            "Existing list value is incompatible with expected type.", None));
+                            "Existing list value is incompatible with expected type.".to_string()));
                     }
                 }
                 Pointer => {
                     if pointer_count < 1 {
                         return Err(Error::new_decode_error(
-                            "Existing list value is incompatible with expected type.", None));
+                            "Existing list value is incompatible with expected type.".to_string()));
                     }
                     // Adjust the pointer to point at the reference segment.
                     ptr = ptr.offset(data_size as isize);
@@ -1071,7 +1071,7 @@ mod wire_helpers {
             if data_size < data_bits_per_element(element_size) ||
                 pointer_count < pointers_per_element(element_size) {
                 return Err(Error::new_decode_error(
-                    "Existing list value is incompatible with expected type.", None));
+                    "Existing list value is incompatible with expected type.".to_string()));
             }
 
             let step = data_size + pointer_count * BITS_PER_POINTER as u32;
@@ -1113,7 +1113,7 @@ mod wire_helpers {
 
         if (*old_ref).kind() != WirePointerKind::List {
             return Err(Error::new_decode_error(
-                "Called getList{{Field,Element}} but existing pointer is not a list.", None));
+                "Called getList{{Field,Element}} but existing pointer is not a list.".to_string()));
         }
 
         let old_size = (*old_ref).list_ref().element_size();
@@ -1125,7 +1125,7 @@ mod wire_helpers {
             old_ptr = old_ptr.offset(POINTER_SIZE_IN_WORDS as isize);
             if (*old_tag).kind() != WirePointerKind::Struct {
                 return Err(Error::new_decode_error(
-                    "InlineComposite list with non-STRUCT elements not supported.", None));
+                    "InlineComposite list with non-STRUCT elements not supported.".to_string()));
             }
 
             let old_data_size = (*old_tag).struct_ref().data_size.get();
@@ -1168,7 +1168,7 @@ mod wire_helpers {
                 if old_size == ElementSize::Bit {
                     return Err(Error::new_decode_error(
                         "Found bit list where struct list was expected; upgrading boolean \
-                         lists to struct lists is no longer supported.", None));
+                         lists to struct lists is no longer supported.".to_string()));
                 }
 
                 let mut new_data_size = element_size.data;
@@ -1286,17 +1286,17 @@ mod wire_helpers {
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::new_decode_error(
-                "Called getText{{Field,Element}}() but existing pointer is not a list.", None));
+                "Called getText{{Field,Element}}() but existing pointer is not a list.".to_string()));
         }
         if (*reff).list_ref().element_size() != Byte {
             return Err(Error::new_decode_error(
-                "Called getText{{Field,Element}}() but existing list pointer is not byte-sized.", None));
+                "Called getText{{Field,Element}}() but existing list pointer is not byte-sized.".to_string()));
         }
 
         let count = (*reff).list_ref().element_count();
         if count <= 0 || *cptr.offset((count - 1) as isize) != 0 {
             return Err(Error::new_decode_error(
-                "Text blob missing NUL terminator.", None));
+                "Text blob missing NUL terminator.".to_string()));
         }
 
         // Subtract 1 from the size for the NUL terminator.
@@ -1348,11 +1348,11 @@ mod wire_helpers {
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::new_decode_error(
-                "Called getData{{Field,Element}}() but existing pointer is not a list.", None));
+                "Called getData{{Field,Element}}() but existing pointer is not a list.".to_string()));
         }
         if (*reff).list_ref().element_size() != Byte {
             return Err(Error::new_decode_error(
-                "Called getData{{Field,Element}}() but existing list pointer is not byte-sized.", None));
+                "Called getData{{Field,Element}}() but existing list pointer is not byte-sized.".to_string()));
         }
 
         return Ok(data::new_builder(ptr as *mut _, (*reff).list_ref().element_count()));
@@ -1480,7 +1480,7 @@ mod wire_helpers {
             WirePointerKind::Struct => {
                 if nesting_limit <= 0 {
                     return Err(Error::new_decode_error(
-                        "Message is too deeply-nested or contains cycles. See ReaderOptions.", None));
+                        "Message is too deeply-nested or contains cycles. See ReaderOptions.".to_string()));
                 }
 
                 try!(bounds_check(src_segment, ptr, ptr.offset((*src).struct_ref().word_size() as isize),
@@ -1503,7 +1503,7 @@ mod wire_helpers {
                 let element_size = (*src).list_ref().element_size();
                 if nesting_limit <= 0 {
                     return Err(Error::new_decode_error(
-                        "Message is too deeply-nested or contains cycles. See ReaderOptions.", None));
+                        "Message is too deeply-nested or contains cycles. See ReaderOptions.".to_string()));
                 }
 
                 if element_size == InlineComposite {
@@ -1516,7 +1516,7 @@ mod wire_helpers {
 
                     if (*tag).kind() != WirePointerKind::Struct {
                         return Err(Error::new_decode_error(
-                            "InlineComposite lists of non-STRUCT type are not supported.", None));
+                            "InlineComposite lists of non-STRUCT type are not supported.".to_string()));
                     }
 
                     let element_count = (*tag).inline_composite_list_element_count();
@@ -1524,7 +1524,7 @@ mod wire_helpers {
 
                     if words_per_element as u64 * element_count as u64 > word_count as u64 {
                         return Err(Error::new_decode_error(
-                            "InlineComposite list's elements overrun its word count.", None));
+                            "InlineComposite list's elements overrun its word count.".to_string()));
                     }
 
                     if words_per_element == 0 {
@@ -1581,7 +1581,7 @@ mod wire_helpers {
             }
             WirePointerKind::Other => {
                 if !(*src).is_capability() {
-                    return Err(Error::new_decode_error("Unknown pointer type.", None));
+                    return Err(Error::new_decode_error("Unknown pointer type.".to_string()));
                 }
                 match src_cap_table.extract_cap((*src).cap_ref().index.get() as usize) {
                     Some(cap) => {
@@ -1590,7 +1590,7 @@ mod wire_helpers {
                     }
                     None => {
                         return Err(Error::new_decode_error(
-                            "Message contained invalid capability pointer.", None));
+                            "Message contained invalid capability pointer.".to_string()));
                     }
                 }
             }
@@ -1615,7 +1615,7 @@ mod wire_helpers {
         }
 
         if nesting_limit <= 0 {
-            return Err(Error::new_decode_error("Message is too deeply-nested or contains cycles.", None));
+            return Err(Error::new_decode_error("Message is too deeply-nested or contains cycles.".to_string()));
         }
 
         let ptr = try!(follow_fars(&mut reff, ref_target, &mut segment));
@@ -1624,7 +1624,7 @@ mod wire_helpers {
 
         if (*reff).kind() != WirePointerKind::Struct {
             return Err(Error::new_decode_error(
-                "Message contains non-struct pointer where struct pointer was expected.", None));
+                "Message contains non-struct pointer where struct pointer was expected.".to_string()));
         }
 
         try!(bounds_check(segment, ptr,
@@ -1652,14 +1652,14 @@ mod wire_helpers {
             panic!("broken cap factory is unimplemented");
         } else if !(*reff).is_capability() {
             return Err(Error::new_decode_error(
-                "Message contains non-capability pointer where capability pointer was expected.", None));
+                "Message contains non-capability pointer where capability pointer was expected.".to_string()));
         } else {
             let n = (*reff).cap_ref().index.get() as usize;
             match cap_table.extract_cap(n) {
                 Some(client_hook) => { Ok(client_hook) }
                 None => {
                     Err(Error::new_decode_error(
-                        "Message contains invalid capability pointer.", Some(format!("index = {}", n))))
+                        format!("Message contains invalid capability pointer. Index: {}", n)))
                 }
             }
         }
@@ -1682,14 +1682,14 @@ mod wire_helpers {
         }
 
         if nesting_limit <= 0 {
-            return Err(Error::new_decode_error("nesting limit exceeded", None));
+            return Err(Error::new_decode_error("nesting limit exceeded".to_string()));
         }
 
         let mut ptr: *const Word = try!(follow_fars(&mut reff, ref_target, &mut segment));
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::new_decode_error(
-                "Message contains non-list pointer where list pointer was expected", None));
+                "Message contains non-list pointer where list pointer was expected".to_string()));
         }
 
         let list_ref = (*reff).list_ref();
@@ -1709,7 +1709,7 @@ mod wire_helpers {
 
                 if (*tag).kind() != WirePointerKind::Struct {
                     return Err(Error::new_decode_error(
-                        "InlineComposite lists of non-STRUCT type are not supported.", None));
+                        "InlineComposite lists of non-STRUCT type are not supported.".to_string()));
                 }
 
                 let size = (*tag).inline_composite_list_element_count();
@@ -1718,7 +1718,7 @@ mod wire_helpers {
 
                 if size as u64 * words_per_element as u64 > word_count as u64 {
                     return Err(Error::new_decode_error(
-                         "InlineComposite list's elements overrun its word count.", None));
+                         "InlineComposite list's elements overrun its word count.".to_string()));
                 }
 
                 if words_per_element == 0 {
@@ -1737,12 +1737,12 @@ mod wire_helpers {
                     Void => {}
                     Bit => {
                         return Err(Error::new_decode_error(
-                            "Found struct list where bit list was expected.", None));
+                            "Found struct list where bit list was expected.".to_string()));
                     }
                     Byte | TwoBytes | FourBytes | EightBytes => {
                         if struct_ref.data_size.get() <= 0 {
                             return Err(Error::new_decode_error(
-                                "Expected a primitive list, but got a list of pointer-only structs", None));
+                                "Expected a primitive list, but got a list of pointer-only structs".to_string()));
                         }
                     }
                     Pointer => {
@@ -1752,7 +1752,7 @@ mod wire_helpers {
                         ptr = ptr.offset(struct_ref.data_size.get() as isize);
                         if struct_ref.ptr_count.get() <= 0 {
                             return Err(Error::new_decode_error(
-                                "Expected a pointer list, but got a list of data-only structs", None));
+                                "Expected a pointer list, but got a list of data-only structs".to_string()));
                         }
                     }
                     InlineComposite => {}
@@ -1799,7 +1799,7 @@ mod wire_helpers {
                 if expected_data_bits_per_element > data_size ||
                     expected_pointers_per_element > pointer_count {
                     return Err(Error::new_decode_error(
-                        "Message contains list with incompatible element type.", None));
+                        "Message contains list with incompatible element type.".to_string()));
                 }
 
                 return Ok(ListReader {
@@ -1835,12 +1835,12 @@ mod wire_helpers {
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::new_decode_error(
-                "Message contains non-list pointer where text was expected.", None));
+                "Message contains non-list pointer where text was expected.".to_string()));
         }
 
         if list_ref.element_size() != Byte {
             return Err(Error::new_decode_error(
-                "Message contains list pointer of non-bytes where text was expected.", None));
+                "Message contains list pointer of non-bytes where text was expected.".to_string()));
         }
 
         try!(bounds_check(segment, ptr,
@@ -1848,14 +1848,14 @@ mod wire_helpers {
                           WirePointerKind::List));
 
         if size <= 0 {
-            return Err(Error::new_decode_error("Message contains text that is not NUL-terminated.", None));
+            return Err(Error::new_decode_error("Message contains text that is not NUL-terminated.".to_string()));
         }
 
         let str_ptr = ptr as *const u8;
 
         if (*str_ptr.offset((size - 1) as isize)) != 0u8 {
             return Err(Error::new_decode_error(
-                "Message contains text that is not NUL-terminated", None));
+                "Message contains text that is not NUL-terminated".to_string()));
         }
 
         Ok(try!(text::new_reader(slice::from_raw_parts(str_ptr, size as usize -1))))
@@ -1880,12 +1880,12 @@ mod wire_helpers {
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::new_decode_error(
-                "Message contains non-list pointer where data was expected.", None));
+                "Message contains non-list pointer where data was expected.".to_string()));
         }
 
         if list_ref.element_size() != Byte {
             return Err(Error::new_decode_error(
-                "Message contains list pointer of non-bytes where data was expected.", None));
+                "Message contains list pointer of non-bytes where data was expected.".to_string()));
         }
 
         try!(bounds_check(segment, ptr,

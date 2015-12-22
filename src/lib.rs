@@ -122,10 +122,10 @@ impl quickcheck::Arbitrary for Word {
 /// Size of a message. Every generated struct has a method `.total_size()` that returns this.
 #[derive(Clone, Copy, PartialEq)]
 pub struct MessageSize {
-    pub word_count : u64,
+    pub word_count: u64,
 
     /// Size of the capability table.
-    pub cap_count : u32
+    pub cap_count: u32
 }
 
 impl MessageSize {
@@ -140,13 +140,13 @@ impl MessageSize {
 pub struct NotInSchema(pub u16);
 
 impl ::std::fmt::Display for NotInSchema {
-    fn fmt(&self, fmt : &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
+    fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
         write!(fmt, "Enum value or union discriminant {} was not present in the schema.", self.0)
     }
 }
 
 impl ::std::error::Error for NotInSchema {
-    fn description(&self) -> &str {
+    fn description<'a>(&'a self) -> &'a str {
         "Enum value or union disriminant was not present in schema."
     }
 }
@@ -155,57 +155,99 @@ impl ::std::error::Error for NotInSchema {
 /// must be wrapped in a Result.
 pub type Result<T> = ::std::result::Result<T, Error>;
 
-/// Things that can go wrong when you read a message.
-#[derive(Debug)]
-pub enum Error {
-    Decode { description : &'static str,
-             detail : Option<String> },
-    Io(std::io::Error),
+/// Describes an arbitrary error that prevented an operation from completing.
+#[derive(Debug, Clone)]
+pub struct Error {
+    /// The type of the error. The purpose of this enum is not to describe the error itself, but
+    /// rather to describe how the client might want to respond to the error.
+    pub kind: ErrorKind,
+
+    /// Human-readable failure description.
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ErrorKind {
+    /// A generic problem occurred, and it is believed that if the operation were repeated without
+    /// any change in the state of the world, the problem would occur again.
+    ///
+    /// A client might respond to this error by logging it for investigation by the developer and/or
+    /// displaying it to the user.
+    Failed,
+
+
+    /// The request was rejected due to a temporary lack of resources.
+    ///
+    /// Examples include:
+    ///  - There's not enough CPU time to keep up with incoming requests, so some are rejected.
+    ///  - The server ran out of RAM or disk space during the request.
+    ///  - The operation timed out (took significantly longer than it should have).
+    ///
+    /// A client might respond to this error by scheduling to retry the operation much later. The
+    /// client should NOT retry again immediately since this would likely exacerbate the problem.
+    Overloaded,
+
+    /// The method failed because a connection to some necessary capability was lost.
+    ///
+    /// Examples include:
+    /// - The client introduced the server to a third-party capability, the connection to that third
+    ///   party was subsequently lost, and then the client requested that the server use the dead
+    ///   capability for something.
+    /// - The client previously requested that the server obtain a capability from some third party.
+    ///   The server returned a capability to an object wrapping the third-party capability. Later,
+    ///   the server's connection to the third party was lost.
+    /// - The capability has been revoked. Revocation does not necessarily mean that the client is
+    ///   no longer authorized to use the capability; it is often used simply as a way to force the
+    ///   client to repeat the setup process, perhaps to efficiently move them to a new back-end or
+    ///   get them to recognize some other change that has occurred.
+    ///
+    /// A client should normally respond to this error by releasing all capabilities it is currently
+    /// holding related to the one it called and then re-creating them by restoring SturdyRefs and/or
+    /// repeating the method calls used to create them originally. In other words, disconnect and
+    /// start over. This should in turn cause the server to obtain a new copy of the capability that
+    /// it lost, thus making everything work.
+    ///
+    /// If the client receives another `disconnencted` error in the process of rebuilding the
+    /// capability and retrying the call, it should treat this as an `overloaded` error: the network
+    /// is currently unreliable, possibly due to load or other temporary issues.
+    Disconnected,
+
+    /// The server doesn't implement the requested method. If there is some other method that the
+    /// client could call (perhaps an older and/or slower interface), it should try that instead.
+    /// Otherwise, this should be treated like `failed`.
+    Unimplemented,
 }
 
 impl Error {
-    pub fn new_decode_error(description : &'static str, detail : Option<String>) -> Error {
-        Error::Decode { description : description, detail : detail}
+    pub fn new_decode_error(description: String) -> Error {
+        Error { reason: description, kind: ErrorKind::Failed }
     }
 }
 
 impl ::std::convert::From<::std::io::Error> for Error {
-    fn from(err : ::std::io::Error) -> Error {
-        Error::Io(err)
+    fn from(err: ::std::io::Error) -> Error {
+        Error { reason: format!("{}", err), kind: ErrorKind::Failed }
     }
 }
 
 impl ::std::convert::From<NotInSchema> for Error {
-    fn from(e : NotInSchema) -> Error {
-        Error::new_decode_error("Enum value or union discriminant was not present in schema.",
-                                Some(format!("value : {}", e.0)))
+    fn from(e: NotInSchema) -> Error {
+        Error::new_decode_error(format!("Enum value or union discriminant {} was not present in schema.", e.0))
     }
 }
 
 impl ::std::fmt::Display for Error {
-    fn fmt(&self, fmt : &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
-        match *self {
-            Error::Decode { ref description, detail : Some(ref detail) } => {
-                write!(fmt, "{} {}", description, detail)
-            },
-            Error::Decode { ref description, .. } => write!(fmt, "{}", description),
-            Error::Io(ref io) => io.fmt(fmt),
-        }
+    fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
+        write!(fmt, "{:?}: {}", self.kind, self.reason)
     }
 }
 
 impl ::std::error::Error for Error {
     fn description(&self) -> &str {
-        match *self {
-            Error::Decode { ref description, .. } => description,
-            Error::Io(ref io) => ::std::error::Error::description(io),
-        }
+        &self.reason
     }
     fn cause(&self) -> Option<&::std::error::Error> {
-        match *self {
-            Error::Decode { .. } => None,
-            Error::Io(ref io) => io.cause(),
-        }
+        None
     }
 }
 
