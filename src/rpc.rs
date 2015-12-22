@@ -224,6 +224,7 @@ impl <VatId> ConnectionErrorHandler<VatId> {
 
 impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<VatId> {
     fn task_failed(&mut self, error: ::capnp::Error) {
+        println!("task failed! {}", error);
         match self.weak_state.upgrade() {
             Some(state) => state.disconnect(error),
             None => {}
@@ -340,9 +341,7 @@ impl <VatId> ConnectionState<VatId> {
                     unimplemented!()
                 }
                 message::Abort(abort) => {
-                    let _exc = try!(abort);
-                    //println!("ABORT {}", try!(exc.get_reason()));
-                    unimplemented!()
+                    return Err(remote_exception_to_error(try!(abort)))
                 }
                 message::Bootstrap(_) => {
                     unimplemented!()

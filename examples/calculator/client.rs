@@ -58,7 +58,7 @@ pub fn main() {
             println!("PASS");
         }
 
-/*        {
+        {
             println!("Evaluating a literal using pipelining...");
             let mut request = calculator.evaluate_request();
             request.init().init_expression().set_literal(23.0);
@@ -70,7 +70,7 @@ pub fn main() {
                 Promise::ok(())
             }).wait(wait_scope).unwrap();
             println!("PASS");
-        } */
+        }
 
         Ok(())
     }).expect("top level error");
