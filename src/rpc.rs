@@ -1117,8 +1117,7 @@ impl <VatId> Client<VatId> {
                 None
             }
             &ClientVariant::Promise(ref promise_client) => {
-                // XXX
-                // self.received_call = true
+                promise_client.borrow_mut().received_call = true;
 
                 ConnectionState::write_descriptor(&self.connection_state.upgrade().expect("dangling ref?"),
                                                   &promise_client.borrow().cap.clone(),
