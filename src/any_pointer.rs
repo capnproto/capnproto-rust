@@ -164,6 +164,12 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
     }
 }
 
+impl <'a> ::traits::ImbueMut<'a> for Builder<'a> {
+    fn imbue_mut(&mut self, cap_table: &'a mut ::private::layout::CapTable) {
+        self.builder.imbue(::private::layout::CapTableBuilder::Plain(cap_table));
+    }
+}
+
 pub struct Pipeline {
     hook: Box<PipelineHook>,
     ops: Vec<PipelineOp>,

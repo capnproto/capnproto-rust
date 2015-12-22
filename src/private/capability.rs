@@ -46,8 +46,21 @@ pub trait ClientHook {
     fn get_brand(&self) -> usize;
     fn write_target(&self, target: any_pointer::Builder) -> Option<Box<ClientHook>>;
 
-    // HACK
-    fn get_descriptor(&self) -> Box<::std::any::Any>;
+    fn write_descriptor(&self, descriptor: any_pointer::Builder) -> Option<u32>;
+
+    /// If this ClientHook is a promise that has already resolved, returns the inner, resolved version
+    /// of the capability.  The caller may permanently replace this client with the resolved one if
+    /// desired.  Returns null if the client isn't a promise or hasn't resolved yet -- use
+    /// `whenMoreResolved()` to distinguish between them.
+    fn get_resolved(&self) -> Option<Box<ClientHook>>;
+
+
+    /// If this client is a settled reference (not a promise), return nullptr.  Otherwise, return a
+    /// promise that eventually resolves to a new client that is closer to being the final, settled
+    /// client (i.e. the value eventually returned by `getResolved()`).  Calling this repeatedly
+    /// should eventually produce a settled client.
+    #[cfg(feature = "rpc")]
+    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, ::Error>>;
 }
 
 impl Clone for Box<ClientHook> {
