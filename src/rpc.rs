@@ -224,7 +224,7 @@ impl <VatId> ConnectionErrorHandler<VatId> {
 
 impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<VatId> {
     fn task_failed(&mut self, error: ::capnp::Error) {
-        println!("task failed! {}", error);
+//        println!("task failed! {}", error);
         match self.weak_state.upgrade() {
             Some(state) => state.disconnect(error),
             None => {}
@@ -873,7 +873,7 @@ impl <VatId> From<Rc<RefCell<ImportClient<VatId>>>> for Client<VatId> {
 struct PipelineClient<VatId> where VatId: 'static {
     connection_state: Weak<ConnectionState<VatId>>,
     question_ref: Rc<RefCell<QuestionRef<VatId>>>,
-    _ops: Vec<PipelineOp>,
+    ops: Vec<PipelineOp>,
 }
 
 impl <VatId> PipelineClient<VatId> where VatId: 'static {
@@ -883,7 +883,7 @@ impl <VatId> PipelineClient<VatId> where VatId: 'static {
         Rc::new(RefCell::new(PipelineClient {
             connection_state: Rc::downgrade(connection_state),
             question_ref: question_ref,
-            _ops: ops,
+            ops: ops,
         }))
     }
 }
@@ -992,7 +992,15 @@ impl <VatId> Client<VatId> {
                 let mut builder = target.init_promised_answer();
                 let question_ref = &pipeline_client.borrow().question_ref;
                 builder.set_question_id(question_ref.borrow().id);
-                // adopt_transform
+                let mut transform = builder.init_transform(pipeline_client.borrow().ops.len() as u32);
+                for idx in 0 .. pipeline_client.borrow().ops.len() {
+                    match &pipeline_client.borrow().ops[idx] {
+                        &::capnp::private::capability::PipelineOp::GetPointerField(ordinal) => {
+                            transform.borrow().get(idx as u32).set_get_pointer_field(ordinal);
+                        }
+                        _ => {}
+                    }
+                }
                 None
             }
             &ClientVariant::Promise(ref promise_client) => {
