@@ -469,6 +469,82 @@ impl <VatId> ConnectionState<VatId> {
         }
     }
 
+    fn write_descriptor(state: &Rc<ConnectionState<VatId>>,
+                        cap: &Box<ClientHook>,
+                        mut descriptor: cap_descriptor::Builder) -> ::capnp::Result<Option<ExportId>> {
+
+        // Find the innermost wrapped capability.
+        let mut inner = cap.clone();
+        loop {
+            match inner.get_resolved() {
+                Some(resolved) => {
+                    inner = resolved;
+                }
+                None => break,
+            }
+        }
+        if inner.get_brand() == state.get_brand() {
+
+            // Orphans would let us avoid the need for this copying..
+            let mut message = ::capnp::message::Builder::new_default();
+            let mut root: any_pointer::Builder = message.init_root();
+            let result = inner.write_descriptor(root.borrow());
+            let cd: ::rpc_capnp::cap_descriptor::Builder = try!(root.get_as());
+
+            // Yuck.
+            match try!(cd.which()) {
+                ::rpc_capnp::cap_descriptor::None(()) => {
+                    descriptor.set_none(());
+                }
+                ::rpc_capnp::cap_descriptor::SenderHosted(export_id) => {
+                    descriptor.set_sender_hosted(export_id)
+                }
+                ::rpc_capnp::cap_descriptor::SenderPromise(export_id) => {
+                    descriptor.set_sender_promise(export_id)
+                }
+                ::rpc_capnp::cap_descriptor::ReceiverHosted(import_id) => {
+                    descriptor.set_receiver_hosted(import_id)
+                }
+                ::rpc_capnp::cap_descriptor::ReceiverAnswer(promised_answer) => {
+                    let promised_answer = try!(promised_answer);
+                    try!(descriptor.set_receiver_answer(promised_answer.as_reader()))
+                }
+                _ => {
+                    unimplemented!()
+                }
+            }
+            Ok(result)
+        } else {
+            unimplemented!()
+        }
+    }
+
+    fn write_descriptors(state: &Rc<ConnectionState<VatId>>,
+                         cap_table: &[Option<Box<ClientHook>>],
+                         payload: ::rpc_capnp::payload::Builder)
+                         -> Vec<ExportId>
+    {
+        let mut cap_table_builder = payload.init_cap_table(cap_table.len() as u32);
+        let mut exports = Vec::new();
+        for idx in 0 .. cap_table.len() {
+            match &cap_table[idx] {
+                &Some(ref cap) => {
+                    match ConnectionState::write_descriptor(state, cap,
+                                                            cap_table_builder.borrow().get(idx as u32)).unwrap() {
+                        Some(export_id) => {
+                            exports.push(export_id);
+                        }
+                        None => {}
+                    }
+                }
+                &None => {
+                    cap_table_builder.borrow().get(idx as u32).set_none(());
+                }
+            }
+        }
+        exports
+    }
+
     fn import(state: Rc<ConnectionState<VatId>>,
               import_id: ImportId, is_promise: bool) -> Box<ClientHook> {
         let connection_state = state.clone();
@@ -595,6 +671,7 @@ struct Request<VatId> where VatId: 'static {
     connection_state: Rc<ConnectionState<VatId>>,
     target: Client<VatId>,
     message: Box<::OutgoingMessage>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
 }
 
 fn get_call<'a>(message: &'a mut Box<::OutgoingMessage>)
@@ -622,6 +699,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
             connection_state: connection_state,
             target: target,
             message: message,
+            cap_table: Vec::new(),
         }
     }
 
@@ -632,13 +710,13 @@ impl <VatId> Request<VatId> where VatId: 'static {
 
     fn send_internal(connection_state: Rc<ConnectionState<VatId>>,
                      mut message: Box<::OutgoingMessage>,
+                     mut cap_table: Vec<Option<Box<ClientHook>>>,
                      is_tail_call: bool)
                      -> (Rc<RefCell<QuestionRef<VatId>>>, ::gj::Promise<Response<VatId>, Error>)
     {
         // Build the cap table.
-        //auto exports = connectionState->writeDescriptors(
-        //    capTable.getTable(), callBuilder.getParams());
-        let exports = Vec::new();
+        let exports = ConnectionState::write_descriptors(&connection_state, &mut cap_table,
+                                                         get_call(&mut message).unwrap().get_params().unwrap());
 
         // Init the question table.  Do this after writing descriptors to avoid interference.
         let mut question = Question::<VatId>::new();
@@ -679,11 +757,14 @@ impl <VatId> Request<VatId> where VatId: 'static {
 
 impl <VatId> RequestHook for Request<VatId> {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        get_call(&mut self.message).unwrap().get_params().unwrap().get_content()
+        use ::capnp::traits::ImbueMut;
+        let mut builder = get_call(&mut self.message).unwrap().get_params().unwrap().get_content();
+        builder.imbue_mut(&mut self.cap_table);
+        builder
     }
     fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
-        let Request { connection_state, target, mut message } = tmp;
+        let Request { connection_state, target, mut message, cap_table } = tmp;
         let write_target_result = {
             let call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
             target.write_target(call_builder.get_target().unwrap())
@@ -697,7 +778,7 @@ impl <VatId> RequestHook for Request<VatId> {
             }
             None => {
                 let (question_ref, promise) =
-                    Request::send_internal(connection_state.clone(), message, false);
+                    Request::send_internal(connection_state.clone(), message, cap_table, false);
                 let mut forked_promise = promise.fork();
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
@@ -1013,6 +1094,41 @@ impl <VatId> Client<VatId> {
             }
         }
     }
+
+    fn write_descriptor(&self, descriptor: cap_descriptor::Builder) -> Option<u32> {
+        match &self.variant {
+            &ClientVariant::Import(ref _import_client) => {
+                unimplemented!()
+            }
+            &ClientVariant::Pipeline(ref pipeline_client) => {
+                let mut promised_answer = descriptor.init_receiver_answer();
+                let question_ref = &pipeline_client.borrow().question_ref;
+                promised_answer.set_question_id(question_ref.borrow().id);
+                let mut transform = promised_answer.init_transform(pipeline_client.borrow().ops.len() as u32);
+                for idx in 0 .. pipeline_client.borrow().ops.len() {
+                    match &pipeline_client.borrow().ops[idx] {
+                        &::capnp::private::capability::PipelineOp::GetPointerField(ordinal) => {
+                            transform.borrow().get(idx as u32).set_get_pointer_field(ordinal);
+                        }
+                        _ => {}
+                    }
+                }
+
+                None
+            }
+            &ClientVariant::Promise(ref promise_client) => {
+                // XXX
+                // self.received_call = true
+
+                ConnectionState::write_descriptor(&self.connection_state.upgrade().expect("dangling ref?"),
+                                                  &promise_client.borrow().cap.clone(),
+                                                  descriptor).unwrap()
+            }
+            _ => {
+                unimplemented!()
+            }
+        }
+    }
 }
 
 impl <VatId> Clone for Client<VatId> {
@@ -1074,7 +1190,32 @@ impl <VatId> ClientHook for Client<VatId> {
         self.write_target(target.init_as())
     }
 
-    fn get_descriptor(&self) -> Box<::std::any::Any> {
+    fn write_descriptor(&self, descriptor: any_pointer::Builder) -> Option<u32> {
+        self.write_descriptor(descriptor.init_as())
+    }
+
+    fn get_resolved(&self) -> Option<Box<ClientHook>> {
+        match &self.variant {
+            &ClientVariant::Import(ref _import_client) => {
+                unimplemented!()
+            }
+            &ClientVariant::Pipeline(ref _pipeline_client) => {
+                None
+            }
+            &ClientVariant::Promise(ref promise_client) => {
+                if promise_client.borrow().is_resolved {
+                    Some(promise_client.borrow().cap.clone())
+                } else {
+                    None
+                }
+            }
+            _ => {
+                unimplemented!()
+            }
+        }
+    }
+
+    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
         unimplemented!()
     }
 }
