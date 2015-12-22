@@ -41,19 +41,37 @@ pub fn main() {
         let calculator = calculator::Client {
             client: rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server)
         };
-        let mut request = calculator.evaluate_request();
-        request.init().init_expression().set_literal(11.0);
-        request.send().promise.then(|response| {
-            let value = pry!(pry!(response.get()).get_value());
-            // ...
-            println!("Got the value!");
+
+        {
+            println!("Evaluating a literal...");
+            let mut request = calculator.evaluate_request();
+            request.init().init_expression().set_literal(11.0);
+            request.send().promise.then(|response| {
+                let value = pry!(pry!(response.get()).get_value());
+                let mut request = value.read_request();
+                request.init();
+                request.send().promise.then(|response|{
+                    assert_eq!(pry!(response.get()).get_value(), 11.0);
+                    Promise::ok(())
+                })
+            }).wait(wait_scope).unwrap();
+            println!("PASS");
+        }
+
+/*        {
+            println!("Evaluating a literal using pipelining...");
+            let mut request = calculator.evaluate_request();
+            request.init().init_expression().set_literal(23.0);
+            let value = request.send().pipeline.get_value();
             let mut request = value.read_request();
             request.init();
-            request.send().promise.then(|_response|{
-                println!("Got the final value!");
+            request.send().promise.then(|response|{
+                assert_eq!(pry!(response.get()).get_value(), 23.0);
                 Promise::ok(())
-            })
-        }).wait(wait_scope).unwrap();
+            }).wait(wait_scope).unwrap();
+            println!("PASS");
+        } */
+
         Ok(())
     }).expect("top level error");
 }

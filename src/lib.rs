@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 extern crate capnp;
+#[macro_use]
 extern crate gj;
 extern crate capnp_gj;
 

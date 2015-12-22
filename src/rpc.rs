@@ -686,7 +686,7 @@ impl <VatId> RequestHook for Request<VatId> {
         let tmp = *self;
         let Request { connection_state, target, mut message } = tmp;
         let write_target_result = {
-            let call_builder: ::rpc_capnp::call::Builder = message.get_body().unwrap().get_as().unwrap();
+            let call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
             target.write_target(call_builder.get_target().unwrap())
         };
 
