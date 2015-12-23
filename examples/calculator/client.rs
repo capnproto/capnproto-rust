@@ -191,6 +191,102 @@ pub fn main() {
             println!("PASS")
         }
 
+        {
+            // Our calculator interface supports defining functions.  Here we use it
+            // to define two functions and then make calls to them as follows:
+            //
+            //   f(x, y) = x * 100 + y
+            //   g(x) = f(x, x + 1) * 2;
+            //   f(12, 34)
+            //   g(21)
+            //
+            // Once again, the whole thing takes only one network round trip.
+
+            println!("Defining functions... ");
+
+            let add = {
+                let mut request = calculator.get_operator_request();
+                request.init().set_op(calculator::Operator::Add);
+                request.send().pipeline.get_func()
+            };
+
+            let multiply = {
+                let mut request = calculator.get_operator_request();
+                request.init().set_op(calculator::Operator::Multiply);
+                request.send().pipeline.get_func()
+            };
+
+            let f = {
+                let mut request = calculator.def_function_request();
+                {
+                    let mut def_function_params = request.init();
+                    def_function_params.set_param_count(2);
+                    {
+                        let mut add_call = def_function_params.init_body().init_call();
+                        add_call.set_function(add.clone());
+                        let mut add_params = add_call.init_params(2);
+                        add_params.borrow().get(1).set_parameter(1);
+
+                        let mut multiply_call = add_params.get(0).init_call();
+                        multiply_call.set_function(multiply.clone());
+                        let mut multiply_params = multiply_call.init_params(2);
+                        multiply_params.borrow().get(0).set_parameter(0);
+                        multiply_params.get(1).set_literal(100.0);
+                    }
+                }
+                request.send().pipeline.get_func()
+            };
+
+            let g = {
+                let mut request = calculator.def_function_request();
+                {
+                    let mut def_function_params = request.init();
+                    def_function_params.set_param_count(1);
+                    {
+                        let mut multiply_call = def_function_params.init_body().init_call();
+                        multiply_call.set_function(multiply);
+                        let mut multiply_params = multiply_call.init_params(2);
+                        multiply_params.borrow().get(1).set_literal(2.0);
+
+                        let mut f_call = multiply_params.get(0).init_call();
+                        f_call.set_function(f.clone());
+                        let mut f_params = f_call.init_params(2);
+                        f_params.borrow().get(0).set_parameter(0);
+
+                        let mut add_call = f_params.get(1).init_call();
+                        add_call.set_function(add);
+                        let mut add_params = add_call.init_params(2);
+                        add_params.borrow().get(0).set_parameter(0);
+                        add_params.get(1).set_literal(1.0);
+                    }
+                }
+                request.send().pipeline.get_func()
+            };
+
+            let mut f_eval_request = calculator.evaluate_request();
+            {
+                let mut f_call = f_eval_request.init().init_expression().init_call();
+                f_call.set_function(f);
+                let mut f_params = f_call.init_params(2);
+                f_params.borrow().get(0).set_literal(12.0);
+                f_params.get(1).set_literal(34.0);
+            }
+            let f_eval_promise = f_eval_request.send().pipeline.get_value().read_request().send();
+
+            let mut g_eval_request = calculator.evaluate_request();
+            {
+                let mut g_call = g_eval_request.init().init_expression().init_call();
+                g_call.set_function(g);
+                g_call.init_params(1).get(0).set_literal(21.0);
+            }
+            let g_eval_promise = g_eval_request.send().pipeline.get_value().read_request().send();
+
+            assert!(try!(try!(f_eval_promise.promise.wait(wait_scope)).get()).get_value() == 1234.0);
+            assert!(try!(try!(g_eval_promise.promise.wait(wait_scope)).get()).get_value() == 4244.0);
+
+            println!("PASS")
+        }
+
         Ok(())
     }).expect("top level error");
 }
