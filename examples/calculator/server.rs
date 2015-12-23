@@ -20,168 +20,161 @@
 // THE SOFTWARE.
 
 use capnp::capability::{Server};
+use capnp::Error;
 use capnp::primitive_list;
 
-use capnp_rpc::capability::{InitRequest, LocalClient, WaitForContent};
-use capnp_rpc::ez_rpc::EzRpcServer;
+use capnp_rpc::rpc::{LocalClient};
 
 use calculator_capnp::calculator;
-
+use gj::Promise;
 
 struct ValueImpl {
-    value : f64
+    value: f64
 }
 
 impl ValueImpl {
-    fn new(value : f64) -> ValueImpl {
-        ValueImpl { value : value }
+    fn new(value: f64) -> ValueImpl {
+        ValueImpl { value: value }
     }
 }
 
 impl calculator::value::Server for ValueImpl {
-    fn read(&mut self, mut context : calculator::value::ReadContext) {
-        {
-            let (_, mut results) = context.get();
-            results.set_value(self.value);
-        }
-        context.done();
+    fn read(&mut self,
+            _params: calculator::value::ReadParams,
+            mut results: calculator::value::ReadResults)
+            -> Promise<calculator::value::ReadResults, Error>
+    {
+        results.get().set_value(self.value);
+        Promise::ok(results)
     }
 }
 
 fn evaluate_impl(
-    expression : calculator::expression::Reader,
-    params : Option<primitive_list::Reader<f64>>) -> Result<f64, String> {
+    expression: calculator::expression::Reader,
+    params: Option<primitive_list::Reader<f64>>) -> Promise<f64, Error> {
 
-    match expression.which() {
-        Ok(calculator::expression::Literal(v)) => {
-            Ok(v)
+    match pry!(expression.which()) {
+        calculator::expression::Literal(v) => {
+            Promise::ok(v)
         },
-        Ok(calculator::expression::PreviousResult(Ok(p))) => {
-            Ok(try!(p.read_request().send().wait()).get_value())
+        calculator::expression::PreviousResult(_p) => {
+            unimplemented!()
+//            Ok(try!(p.read_request().send().wait()).get_value())
         }
-        Ok(calculator::expression::Parameter(p)) => {
+        calculator::expression::Parameter(p) => {
             match params {
-                None => {Err("bad parameter".to_string())}
-                Some(params) => {
-                    Ok(params.get(p))
+                Some(params) if p < params.len() => {
+                    Promise::ok(params.get(p))
+                }
+                _ => {
+                    Promise::err(Error::failed(format!("bad parameter: {}", p)))
                 }
             }
         }
-        Ok(calculator::expression::Call(call)) => {
-            let func = call.get_function().unwrap();
-            let call_params = call.get_params().unwrap();
-            let mut param_values = Vec::new();
-            for call_param in call_params.iter() {
-                let x = try!(evaluate_impl(call_param, params));
-                param_values.push(x);
-            }
-            let mut request = func.call_request();
-            {
-                let mut request_params = request.init().init_params(param_values.len() as u32);
-                for ii in 0..param_values.len() {
-                    request_params.set(ii as u32, param_values[ii]);
-                }
-            }
-            Ok(try!(request.send().wait()).get_value())
+        calculator::expression::Call(_call) => {
+            unimplemented!()
         }
-        Err(_) => panic!("unsupported expression"),
-        _ => panic!(),
     }
 }
 
 struct FunctionImpl {
-    param_count : u32,
+    param_count: u32,
     body: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
 }
 
 impl FunctionImpl {
-    fn new(param_count : u32, body : calculator::expression::Reader) -> FunctionImpl {
-        let mut result = FunctionImpl { param_count : param_count, body: ::capnp::message::Builder::new_default() };
+    fn new(param_count: u32, body: calculator::expression::Reader) -> FunctionImpl {
+        let mut result = FunctionImpl {
+            param_count: param_count,
+            body: ::capnp::message::Builder::new_default()
+        };
         result.body.set_root(body).unwrap();
         result
     }
 }
 
 impl calculator::function::Server for FunctionImpl {
-    fn call(&mut self, mut context : calculator::function::CallContext) {
-        if context.get().0.get_params().unwrap().len() != self.param_count {
-            return context.fail("Wrong number of parameters.".to_string());
-        };
-        {
-            match evaluate_impl(self.body.get_root::<calculator::expression::Builder>().unwrap().as_reader(),
-                                Some(context.get().0.get_params().unwrap())) {
-                Ok(r) => context.get().1.set_value(r),
-                Err(_) => return context.fail("Evaluation failed.".to_string()),
-            }
+    fn call(&mut self,
+            params: calculator::function::CallParams,
+            mut results: calculator::function::CallResults)
+        -> Promise<calculator::function::CallResults, Error>
+    {
+        let params = pry!(params.get().get_params());
+        if params.len() != self.param_count {
+            Promise::err(Error::failed(
+                format!("Expect {} parameters but got {}.", self.param_count, params.len())))
+        } else {
+            evaluate_impl(
+                pry!(self.body.get_root::<calculator::expression::Builder>()).as_reader(),
+                Some(params)).map(move |v| {
+                    results.get().set_value(v);
+                    Ok(results)
+                })
         }
-        context.done();
     }
 }
 
 #[derive(Clone, Copy)]
 pub struct OperatorImpl {
-    op : calculator::Operator,
+    op: calculator::Operator,
 }
 
 impl calculator::function::Server for OperatorImpl {
-    fn call(&mut self, mut context : calculator::function::CallContext) {
-        match context.get().0.get_params().unwrap().len() {
-            2 => {}
-            n => {
-                return context.fail(format!("Wrong number of parameters: {}", n));
-            }
-        }
-        {
-            let (params, mut results) = context.get();
-            let params = params.get_params().unwrap();
-            let result = match self.op {
-                calculator::Operator::Add => params.get(0) + params.get(1),
-                calculator::Operator::Subtract => params.get(0) - params.get(1),
-                calculator::Operator::Multiply => params.get(0) * params.get(1),
-                calculator::Operator::Divide => params.get(0) / params.get(1),
+    fn call(&mut self,
+            params: calculator::function::CallParams,
+            mut results: calculator::function::CallResults)
+            -> Promise<calculator::function::CallResults, Error>
+    {
+        let params = pry!(params.get().get_params());
+        if params.len() != 2 {
+            Promise::err(Error::failed("Wrong number of paramters.".to_string()))
+        } else {
+            let v = match self.op {
+                calculator::Operator::Add =>       params.get(0) + params.get(1),
+                calculator::Operator::Subtract =>  params.get(0) - params.get(1),
+                calculator::Operator::Multiply =>  params.get(0) * params.get(1),
+                calculator::Operator::Divide =>    params.get(0) / params.get(1),
             };
-
-            results.set_value(result);
+            results.get().set_value(v);
+            Promise::ok(results)
         }
-        context.done();
     }
 }
-
 
 struct CalculatorImpl;
 
 impl calculator::Server for CalculatorImpl {
-    fn evaluate(&mut self, mut context : calculator::EvaluateContext) {
-        match evaluate_impl(context.get().0.get_expression().unwrap(), None) {
-            Ok(r) => {
-                context.get().1.set_value(
-                    calculator::value::ToClient::new(ValueImpl::new(r)).from_server::<LocalClient>());
-            }
-            Err(_) => return context.fail("Evaluation failed.".to_string()),
-        }
-        context.done();
+    fn evaluate(&mut self,
+                params: calculator::EvaluateParams,
+                mut results: calculator::EvaluateResults)
+                -> Promise<calculator::EvaluateResults, Error>
+    {
+        evaluate_impl(pry!(params.get().get_expression()), None).map(move |v| {
+            results.get().set_value(
+                calculator::value::ToClient::new(ValueImpl::new(v)).from_server::<LocalClient>());
+            Ok(results)
+        })
     }
-    fn def_function(&mut self, mut context : calculator::DefFunctionContext) {
-        {
-            let (params, mut results) = context.get();
-            results.set_func(
-                calculator::function::ToClient::new(
-                    FunctionImpl::new(params.get_param_count() as u32, params.get_body().unwrap()))
-                    .from_server::<LocalClient>());
-        }
-        context.done();
+    fn def_function(&mut self,
+                    params: calculator::DefFunctionParams,
+                    mut results: calculator::DefFunctionResults)
+                    -> Promise<calculator::DefFunctionResults, Error>
+    {
+        results.get().set_func(
+            calculator::function::ToClient::new(
+                FunctionImpl::new(params.get().get_param_count() as u32, pry!(params.get().get_body())))
+                .from_server::<LocalClient>());
+        Promise::ok(results)
     }
-    fn get_operator<'a>(& mut self, mut context : calculator::GetOperatorContext) {
-        let func = {
-            match context.get().0.get_op() {
-                Ok(op) => {
-                    calculator::function::ToClient::new(OperatorImpl {op : op}).from_server::<LocalClient>()
-                }
-                Err(_) => return context.fail("Unknown operator.".to_string()),
-            }
-        };
-        context.get().1.set_func(func);
-        context.done();
+    fn get_operator(&mut self,
+                    params: calculator::GetOperatorParams,
+                    mut results: calculator::GetOperatorResults)
+                    -> Promise<calculator::GetOperatorResults, Error>
+    {
+        let op = pry!(params.get().get_op());
+        results.get().set_func(
+            calculator::function::ToClient::new(OperatorImpl {op : op}).from_server::<LocalClient>());
+        Promise::ok(results)
     }
 }
 
@@ -192,10 +185,10 @@ pub fn main() {
         return;
     }
 
-    let rpc_server = EzRpcServer::new(&*args[2]).unwrap();
+    //let rpc_server = EzRpcServer::new(&*args[2]).unwrap();
 
     // There's got to be a better way to do this.
-    let calculator = Box::new(calculator::ServerDispatch { server : Box::new(CalculatorImpl)});
+    //let calculator = Box::new(calculator::ServerDispatch { server : Box::new(CalculatorImpl)});
 
-    let _ = rpc_server.serve(calculator);
+    //let _ = rpc_server.serve(calculator);
 }

@@ -32,7 +32,7 @@ pub mod calculator_capnp {
 }
 
 pub mod client;
-//pub mod server;
+pub mod server;
 
 pub fn main() {
     let args : Vec<String> = ::std::env::args().collect();
