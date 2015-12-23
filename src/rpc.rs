@@ -22,7 +22,7 @@
 use capnp::{any_pointer};
 use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
-                                 RequestHook, ResponseHook, ResultsHook};
+                                 RequestHook, ResponseHook, ResultsHook, ServerHook};
 
 use std::vec::Vec;
 use std::collections::hash_map::HashMap;
@@ -166,12 +166,34 @@ impl <VatId> Drop for QuestionRef<VatId> {
     }
 }
 
-struct Answer {
+struct Answer<VatId> where VatId: 'static {
+    // True from the point when the Call message is received to the point when both the `Finish`
+    // message has been received and the `Return` has been sent.
     _active: bool,
+
+    // Send pipelined calls here.  Becomes null as soon as a `Finish` is received.
+    _pipeline: Option<Box<PipelineHook>>,
+
+    // For locally-redirected calls (Call.sendResultsTo.yourself), this is a promise for the call
+    // result, to be picked up by a subsequent `Return`.
+    _redirected_results: Option<::gj::Promise<Box<Response<VatId>>, Error>>,
+
+    // The call context, if it's still active.  Becomes null when the `Return` message is sent.
+    // This object, if non-null, is owned by `asyncOp`.
+    //kj::Maybe<RpcCallContext&> callContext;
+
+    // List of exports that were sent in the results.  If the finish has `releaseResultCaps` these
+    // will need to be released.
+    _result_exports: Vec<ExportId>,
 }
 
 pub struct Export {
-    _ref_count: usize
+    ref_count: usize,
+    client_hook: Box<ClientHook>,
+
+    // If this export is a promise (not a settled capability), the `resolve_op` represents the
+    // ongoing operation to wait for that promise to resolve and then send a `Resolve` message.
+    _resolve_op: ::gj::Promise<(), Error>,
 }
 
 pub struct Import<VatId> where VatId: 'static {
@@ -235,8 +257,11 @@ impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<Vat
 struct ConnectionState<VatId> where VatId: 'static {
     _exports: RefCell<ExportTable<Export>>,
     questions: RefCell<ExportTable<Question<VatId>>>,
-    _answers: RefCell<ImportTable<Answer>>,
+    _answers: RefCell<ImportTable<Answer<VatId>>>,
     imports: RefCell<ImportTable<Import<VatId>>>,
+
+    exports_by_cap: RefCell<HashMap<usize, ExportId>>,
+
     tasks: RefCell<Option<::gj::TaskSet<(), ::capnp::Error>>>,
     connection: RefCell<::std::result::Result<Box<::Connection<VatId>>, ::capnp::Error>>,
 }
@@ -248,6 +273,7 @@ impl <VatId> ConnectionState<VatId> {
             questions: RefCell::new(ExportTable::new()),
             _answers: RefCell::new(ImportTable::new()),
             imports: RefCell::new(ImportTable::new()),
+            exports_by_cap: RefCell::new(HashMap::new()),
             tasks: RefCell::new(None),
             connection: RefCell::new(Ok(connection))
         });
@@ -1259,13 +1285,28 @@ struct LocalClientInner {
     server: Box<::capnp::capability::Server>,
 }
 
-struct LocalClient {
+pub struct LocalClient {
     inner: Rc<RefCell<LocalClientInner>>,
 }
+
+impl LocalClient {
+    fn new(server: Box<::capnp::capability::Server>) -> LocalClient {
+        LocalClient {
+            inner: Rc::new(RefCell::new(LocalClientInner { server: server }))
+        }
+    }
+}
+
 
 impl Clone for LocalClient {
     fn clone(&self) -> LocalClient {
         LocalClient { inner: self.inner.clone() }
+    }
+}
+
+impl ServerHook for LocalClient {
+    fn new_client(server: Box<::capnp::capability::Server>) -> ::capnp::capability::Client {
+        ::capnp::capability::Client::new(Box::new(LocalClient::new(server)))
     }
 }
 
@@ -1298,9 +1339,15 @@ impl ClientHook for LocalClient {
         // We have to fork this promise for the pipeline to receive a copy of the answer.
         let mut forked = promise.fork();
 
-        let _pipeline_promise = forked.add_branch().map(move |()| {
-            Ok(LocalPipeline::new(results))
+        let results1 = results.clone();
+        let pipeline_promise = forked.add_branch().map(move |()| {
+            drop(params);
+            Ok(LocalPipeline::new(results1))
         });
+
+/*        let _tail_pipeline_promise = results.on_tail_call().map(move |_pipeline| {
+            uni
+        }); */
         unimplemented!()
     }
 

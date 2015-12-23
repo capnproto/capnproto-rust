@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 use capnp_rpc::{rpc, twoparty, rpc_twoparty_capnp};
+use capnp_rpc::rpc::LocalClient;
 use calculator_capnp::calculator;
 use gj::Promise;
 
@@ -318,12 +319,12 @@ pub fn main() {
 
             println!("Using a callback... ");
 
-            let _add = {
+            let add = {
                 let mut request = calculator.get_operator_request();
                 request.init().set_op(calculator::Operator::Add);
                 request.send().pipeline.get_func()
             };
-/*
+
             let mut request = calculator.evaluate_request();
             {
                 let mut pow_call = request.init().init_expression().init_call();
@@ -339,11 +340,10 @@ pub fn main() {
                 add_params.get(1).set_literal(5.0);
             }
 
-            let mut response_promise = request.send().pipeline.get_value().read_request().send();
-            let response = response_promise.wait().unwrap();
+            let response_promise = request.send().pipeline.get_value().read_request().send();
 
-            assert!(response.get_value() == 512.0);
-*/
+            assert!(try!(try!(response_promise.promise.wait(wait_scope)).get()).get_value() == 512.0);
+
             println!("PASS");
         }
 
