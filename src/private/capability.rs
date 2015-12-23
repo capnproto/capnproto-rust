@@ -59,8 +59,7 @@ pub trait ClientHook {
     /// promise that eventually resolves to a new client that is closer to being the final, settled
     /// client (i.e. the value eventually returned by `getResolved()`).  Calling this repeatedly
     /// should eventually produce a settled client.
-    #[cfg(feature = "rpc")]
-    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, ::Error>>;
+    fn when_more_resolved(&self) -> Option<::capability::Promise<Box<ClientHook>, ::Error>>;
 }
 
 impl Clone for Box<ClientHook> {
@@ -69,7 +68,6 @@ impl Clone for Box<ClientHook> {
     }
 }
 
-#[cfg(feature = "rpc")]
 pub trait ServerHook: 'static {
     fn new_client(server: Box<::capability::Server>) -> ::capability::Client;
 }

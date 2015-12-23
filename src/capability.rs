@@ -26,9 +26,15 @@
 use any_pointer;
 use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, ResultsHook};
 
+#[cfg(feature = "rpc")]
+pub type Promise<T,E> = ::gj::Promise<T,E>;
+
+#[cfg(not(feature = "rpc"))]
+pub type Promise<T,E> = ::std::result::Result<T,E>;
+
+
 pub struct RemotePromise<Results> where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static {
-    #[cfg(feature = "rpc")]
-    pub promise: ::gj::Promise<Response<Results>, ::Error>,
+    pub promise: Promise<Response<Results>, ::Error>,
     pub pipeline: Results::Pipeline,
 }
 
@@ -149,10 +155,9 @@ impl Client {
     }
 }
 
-#[cfg(feature = "rpc")]
 pub trait Server {
     fn dispatch_call(&mut self, interface_id: u64, method_id: u16,
                      params: Params<any_pointer::Owned>,
-                     results: Results<any_pointer::Owned>) -> ::gj::Promise<(), ::Error>;
+                     results: Results<any_pointer::Owned>) -> Promise<(), ::Error>;
 }
 
