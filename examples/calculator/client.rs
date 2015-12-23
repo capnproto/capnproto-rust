@@ -23,6 +23,20 @@ use capnp_rpc::{rpc, twoparty, rpc_twoparty_capnp};
 use calculator_capnp::calculator;
 use gj::Promise;
 
+
+#[derive(Clone, Copy)]
+pub struct PowerFunction;
+
+impl calculator::function::Server for PowerFunction {
+    fn call(&mut self,
+            mut _params: calculator::function::CallParams,
+            mut _results: calculator::function::CallResults)
+        -> Promise<(), ::capnp::Error>
+    {
+        unimplemented!()
+    }
+}
+
 pub fn main() {
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
@@ -285,6 +299,52 @@ pub fn main() {
             assert!(try!(try!(g_eval_promise.promise.wait(wait_scope)).get()).get_value() == 4244.0);
 
             println!("PASS")
+        }
+
+        {
+            // Make a request that will call back to a function defined locally.
+            //
+            // Specifically, we will compute 2^(4 + 5).  However, exponent is not
+            // defined by the Calculator server.  So, we'll implement the Function
+            // interface locally and pass it to the server for it to use when
+            // evaluating the expression.
+            //
+            // This example requires two network round trips to complete, because the
+            // server calls back to the client once before finishing.  In this
+            // particular case, this could potentially be optimized by using a tail
+            // call on the server side -- see CallContext::tailCall().  However, to
+            // keep the example simpler, we haven't implemented this optimization in
+            // the sample server.
+
+            println!("Using a callback... ");
+
+            let _add = {
+                let mut request = calculator.get_operator_request();
+                request.init().set_op(calculator::Operator::Add);
+                request.send().pipeline.get_func()
+            };
+/*
+            let mut request = calculator.evaluate_request();
+            {
+                let mut pow_call = request.init().init_expression().init_call();
+                pow_call.set_function(
+                    calculator::function::ToClient::new(PowerFunction).from_server::<LocalClient>());
+                let mut pow_params = pow_call.init_params(2);
+                pow_params.borrow().get(0).set_literal(2.0);
+
+                let mut add_call = pow_params.get(1).init_call();
+                add_call.set_function(add);
+                let mut add_params = add_call.init_params(2);
+                add_params.borrow().get(0).set_literal(4.0);
+                add_params.get(1).set_literal(5.0);
+            }
+
+            let mut response_promise = request.send().pipeline.get_value().read_request().send();
+            let response = response_promise.wait().unwrap();
+
+            assert!(response.get_value() == 512.0);
+*/
+            println!("PASS");
         }
 
         Ok(())
