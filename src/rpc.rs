@@ -498,6 +498,8 @@ impl <VatId> ConnectionState<VatId> {
                 let (promise, pipeline) = capability.call(interface_id, method_id,
                                                           Box::new(params), Box::new(results));
 
+                // XXX There's a lot more we need to do here.
+
                 unimplemented!()
             }
             BorrowWorkaround::ReturnResults(question_ref, cap_table) => {
@@ -1533,7 +1535,7 @@ impl PipelineHook for QueuedPipeline {
 }
 
 struct LocalPipelineInner {
-    results: Box<ResultsHook>,
+    results: Box<ResultsDoneHook>,
 }
 
 struct LocalPipeline {
@@ -1541,7 +1543,7 @@ struct LocalPipeline {
 }
 
 impl LocalPipeline {
-    fn new(results: Box<ResultsHook>) -> LocalPipeline {
+    fn new(results: Box<ResultsDoneHook>) -> LocalPipeline {
         LocalPipeline {
             inner: Rc::new(RefCell::new(LocalPipelineInner { results: results }))
         }
@@ -1560,7 +1562,7 @@ impl PipelineHook for LocalPipeline {
     }
     fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
         // Do I need to call imbue() here?
-        self.inner.borrow_mut().results.get().unwrap().as_reader().get_pipelined_cap(ops).unwrap()
+        self.inner.borrow_mut().results.get().unwrap().get_pipelined_cap(ops).unwrap()
     }
 }
 
@@ -1613,32 +1615,30 @@ impl ClientHook for LocalClient {
         // race conditions.
 
         let inner = self.inner.clone();
-        let promise = ::gj::Promise::ok(()).then(move |()| {
+        let promise = Promise::ok(()).then(move |()| {
             let server = &mut inner.borrow_mut().server;
             server.dispatch_call(interface_id, method_id,
                                  ::capnp::capability::Params::new(params),
                                  ::capnp::capability::Results::new(results))
+        }).map(|results|{
+            Ok(Box::new(ResultsDone::new(results.hook)) as Box<ResultsDoneHook>)
         });
 
         // We have to fork this promise for the pipeline to receive a copy of the answer.
-        //let mut forked = promise.fork();
+        let mut forked = promise.fork();
 
-        //let results2 = results.clone();
-        //let pipeline_promise = forked.add_branch().map(move |()| {
+        let pipeline_promise = forked.add_branch().map(move |results_done| {
             //drop(params);
-        //    Ok(Box::new(LocalPipeline::new(results2)) as Box<PipelineHook>)
-        //});
+            Ok(Box::new(LocalPipeline::new(results_done)) as Box<PipelineHook>)
+        });
 
 /*        let _tail_pipeline_promise = results.on_tail_call().map(move |_pipeline| {
             uni
         }); */
 
-        //let completion_promise = forked.add_branch().map(move |()| {
-        //    drop(results);
-        //    Ok(())
-        //});
-        //(completion_promise, Box::new(QueuedPipeline::new(pipeline_promise)))
-        unimplemented!()
+        let completion_promise = forked.add_branch();
+
+        (completion_promise, Box::new(QueuedPipeline::new(pipeline_promise)))
     }
 
     fn get_ptr(&self) -> usize {
