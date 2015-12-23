@@ -24,6 +24,8 @@ use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook, ServerHook};
 
+use gj::Promise;
+
 use std::vec::Vec;
 use std::collections::hash_map::HashMap;
 use std::collections::binary_heap::BinaryHeap;
@@ -193,7 +195,17 @@ pub struct Export {
 
     // If this export is a promise (not a settled capability), the `resolve_op` represents the
     // ongoing operation to wait for that promise to resolve and then send a `Resolve` message.
-    _resolve_op: ::gj::Promise<(), Error>,
+    _resolve_op: Promise<(), Error>,
+}
+
+impl Export {
+    fn new(client_hook: Box<ClientHook>) -> Export {
+        Export {
+            ref_count: 1,
+            client_hook: client_hook,
+            _resolve_op: Promise::ok(()),
+        }
+    }
 }
 
 pub struct Import<VatId> where VatId: 'static {
@@ -255,7 +267,7 @@ impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<Vat
 }
 
 struct ConnectionState<VatId> where VatId: 'static {
-    _exports: RefCell<ExportTable<Export>>,
+    exports: RefCell<ExportTable<Export>>,
     questions: RefCell<ExportTable<Question<VatId>>>,
     _answers: RefCell<ImportTable<Answer<VatId>>>,
     imports: RefCell<ImportTable<Import<VatId>>>,
@@ -269,7 +281,7 @@ struct ConnectionState<VatId> where VatId: 'static {
 impl <VatId> ConnectionState<VatId> {
     fn new(connection: Box<::Connection<VatId>>) -> Rc<ConnectionState<VatId>> {
         let state = Rc::new(ConnectionState {
-            _exports: RefCell::new(ExportTable::new()),
+            exports: RefCell::new(ExportTable::new()),
             questions: RefCell::new(ExportTable::new()),
             _answers: RefCell::new(ImportTable::new()),
             imports: RefCell::new(ImportTable::new()),
@@ -541,7 +553,27 @@ impl <VatId> ConnectionState<VatId> {
             }
             Ok(result)
         } else {
-            unimplemented!()
+            let ptr = inner.get_ptr();
+            let contains_key = state.exports_by_cap.borrow().contains_key(&ptr);
+            if contains_key {
+                // We've already seen and exported this capability before.  Just up the refcount.
+                unimplemented!()
+            } else {
+                // This is the first time we've seen this capability.
+
+                let exp = Export::new(inner.clone());
+                let export_id = state.exports.borrow_mut().push(exp);
+                state.exports_by_cap.borrow_mut().insert(ptr, export_id);
+                match inner.when_more_resolved() {
+                    Some(_) => {
+                        unimplemented!()
+                    }
+                    None => {
+                        descriptor.set_sender_hosted(export_id);
+                    }
+                }
+                Ok(Some(export_id))
+            }
         }
     }
 
@@ -1208,6 +1240,10 @@ impl <VatId> ClientHook for Client<VatId> {
         unimplemented!()
     }
 
+    fn get_ptr(&self) -> usize {
+        unimplemented!()
+    }
+
     fn get_brand(&self) -> usize {
         self.connection_state.upgrade().expect("no connection?").get_brand()
     }
@@ -1351,6 +1387,10 @@ impl ClientHook for LocalClient {
         unimplemented!()
     }
 
+    fn get_ptr(&self) -> usize {
+        (&*self.inner.borrow()) as * const _ as usize
+    }
+
     fn get_brand(&self) -> usize {
         0
     }
@@ -1369,7 +1409,7 @@ impl ClientHook for LocalClient {
     }
 
     fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
-        unimplemented!()
+        None
     }
 }
 
