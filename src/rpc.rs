@@ -1005,6 +1005,45 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
     }
 }
 
+pub struct Params<VatId> where VatId: 'static {
+    connection_state: Weak<ConnectionState<VatId>>,
+    request: Box<::IncomingMessage>,
+}
+
+pub struct ResultsInner<VatId> where VatId: 'static {
+    connection_state: Weak<ConnectionState<VatId>>,
+    response: Box<::OutgoingMessage>,
+}
+
+pub struct Results<VatId> where VatId: 'static {
+    inner: Rc<RefCell<ResultsInner<VatId>>>,
+}
+
+impl <VatId> ResultsHook for Results<VatId> {
+    fn add_ref(&self) -> Box<ResultsHook> {
+        Box::new(Results { inner: self.inner.clone() })
+    }
+
+    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+//        let inner = self.inner.borrow_mut();
+//        self.inner.borrow_mut().response.get_body().unwrap()
+//        let root: message::Builder = inner.response.get_body().unwrap().get_as().unwrap();
+        unimplemented!()
+    }
+
+    fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), Error> {
+        unimplemented!()
+    }
+
+    fn allow_cancellation(&self) {
+        unimplemented!()
+    }
+
+    fn on_tail_call(&self) -> Promise<any_pointer::Pipeline, Error> {
+        unimplemented!()
+    }
+}
+
 enum ClientVariant<VatId> where VatId: 'static {
     Import(Rc<RefCell<ImportClient<VatId>>>),
     Pipeline(Rc<RefCell<PipelineClient<VatId>>>),
