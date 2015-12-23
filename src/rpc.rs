@@ -367,6 +367,7 @@ impl <VatId> ConnectionState<VatId> {
         // Someday Rust will have non-lexical borrows and this thing won't be needed.
         enum BorrowWorkaround<VatId> where VatId: 'static {
             ReturnResults(Rc<RefCell<QuestionRef<VatId>>>, Vec<Option<Box<ClientHook>>>),
+            Call(Box<ClientHook>),
             Done,
         }
 
@@ -384,8 +385,16 @@ impl <VatId> ConnectionState<VatId> {
                 message::Bootstrap(_) => {
                     unimplemented!()
                 }
-                message::Call(_) => {
-                    unimplemented!()
+                message::Call(call) => {
+                    let call = try!(call);
+                    match try!(connection_state.get_message_target(try!(call.get_target()))) {
+                        Some(t) => {
+                            BorrowWorkaround::Call(t)
+                        }
+                        None => {
+                            unimplemented!()
+                        }
+                    }
                 }
                 message::Return(oret) => {
                     let ret = try!(oret);
@@ -460,6 +469,28 @@ impl <VatId> ConnectionState<VatId> {
             }
         };
         match intermediate {
+            BorrowWorkaround::Call(capability) => {
+                let call = match try!(try!(try!(message.get_body()).get_as::<message::Reader>()).which()) {
+                    message::Call(call) => try!(call),
+                    _ => {
+                        // exception already reported?
+                        unreachable!()
+                    }
+                };
+                let redirect_results = match try!(call.get_send_results_to().which()) {
+                    ::rpc_capnp::call::send_results_to::Caller(()) => false,
+                    ::rpc_capnp::call::send_results_to::Yourself(()) => true,
+                    ::rpc_capnp::call::send_results_to::ThirdParty(_) => unimplemented!(),
+                };
+                let payload = try!(call.get_params());
+                let cap_table_array = ConnectionState::receive_caps(connection_state,
+                                                                    try!(payload.get_cap_table()));
+                //let (cancel_promise, cancel_fulfiller) = ::gj::new_promise_and_fulfiller();
+
+//                capability.call(call.get_interface_id(), call.get_method_id(), ...
+
+                unimplemented!()
+            }
             BorrowWorkaround::ReturnResults(question_ref, cap_table) => {
                 let response = Response::new(connection_state, question_ref.clone(), message, cap_table);
                 question_ref.borrow_mut().fulfill(response);
@@ -471,6 +502,26 @@ impl <VatId> ConnectionState<VatId> {
 
     fn get_brand(&self) -> usize {
         self as * const _ as usize
+    }
+
+    fn get_message_target(&self, target: ::rpc_capnp::message_target::Reader)
+                          -> ::capnp::Result<Option<Box<ClientHook>>>
+    {
+        match try!(target.which()) {
+            ::rpc_capnp::message_target::ImportedCap(export_id) => {
+                match self.exports.borrow().slots.get(export_id as usize) {
+                    Some(&Some(ref exp)) => {
+                        Ok(Some(exp.client_hook.clone()))
+                    }
+                    _ => {
+                        Ok(None)
+                    }
+                }
+            }
+            ::rpc_capnp::message_target::PromisedAnswer(_promised_answer) => {
+                unimplemented!()
+            }
+        }
     }
 
     /// If calls to the given capability should pass over this connection, fill in `target`
@@ -1285,6 +1336,62 @@ impl <VatId> ClientHook for Client<VatId> {
 
 // ===================================
 
+struct QueuedPipelineInner {
+    promise: ::gj::ForkedPromise<Box<PipelineHook>, Error>,
+
+    // Once the promise resolves, this will become non-null and point to the underlying object.
+    redirect: Option<Box<PipelineHook>>,
+
+    // Represents the operation which will set `redirect` when possible.
+    self_resolution_op: Promise<(), Error>,
+}
+
+struct QueuedPipeline {
+    inner: Rc<RefCell<QueuedPipelineInner>>,
+}
+
+impl QueuedPipeline {
+    fn new(promise_param: Promise<Box<PipelineHook>, Error>) -> QueuedPipeline {
+        let mut promise = promise_param.fork();
+        let branch = promise.add_branch();
+        let inner = Rc::new(RefCell::new(QueuedPipelineInner {
+            promise: promise,
+            redirect: None,
+            self_resolution_op: Promise::ok(()),
+        }));
+        let this = Rc::downgrade(&inner);
+        let self_res = branch.map_else(move |result| {
+            match result {
+                Ok(pipeline_hook) => {
+                    let this = this.upgrade().expect("dangling reference?");
+                    this.borrow_mut().redirect = Some(pipeline_hook);
+                    Ok(())
+                }
+                Err(_) => {
+                    unimplemented!()
+                }
+            }
+        }).eagerly_evaluate();
+        inner.borrow_mut().self_resolution_op = self_res;
+        QueuedPipeline { inner: inner }
+    }
+}
+
+impl Clone for QueuedPipeline {
+    fn clone(&self) -> QueuedPipeline {
+        QueuedPipeline { inner: self.inner.clone() }
+    }
+}
+
+impl PipelineHook for QueuedPipeline {
+    fn add_ref(&self) -> Box<PipelineHook> {
+        Box::new(self.clone())
+    }
+    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
+        unimplemented!()
+    }
+}
+
 struct LocalPipelineInner {
     results: Box<ResultsHook>,
 }
@@ -1365,26 +1472,33 @@ impl ClientHook for LocalClient {
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
 
+        let results1 = results.clone();
         let inner = self.inner.clone();
         let promise = ::gj::Promise::ok(()).then(move |()| {
             let server = &mut inner.borrow_mut().server;
             server.dispatch_call(interface_id, method_id,
-                                 unimplemented!(), unimplemented!())
+                                 ::capnp::capability::Params::new(params),
+                                 ::capnp::capability::Results::new(results1))
         });
 
         // We have to fork this promise for the pipeline to receive a copy of the answer.
         let mut forked = promise.fork();
 
-        let results1 = results.clone();
+        let results2 = results.clone();
         let pipeline_promise = forked.add_branch().map(move |()| {
-            drop(params);
-            Ok(LocalPipeline::new(results1))
+            //drop(params);
+            Ok(Box::new(LocalPipeline::new(results2)) as Box<PipelineHook>)
         });
 
 /*        let _tail_pipeline_promise = results.on_tail_call().map(move |_pipeline| {
             uni
         }); */
-        unimplemented!()
+
+        let completion_promise = forked.add_branch().map(move |()| {
+            drop(results);
+            Ok(())
+        });
+        (completion_promise, Box::new(QueuedPipeline::new(pipeline_promise)))
     }
 
     fn get_ptr(&self) -> usize {
