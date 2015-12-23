@@ -42,7 +42,7 @@ pub trait ClientHook {
 
     fn call(&self, interface_id: u64, method_id: u16,
             params: Box<ParamsHook>, results: Box<ResultsHook>)
-            -> (::capability::Promise<(), ::Error>, Box<PipelineHook>);
+            -> (::capability::Promise<Box<ResultsDoneHook>, ::Error>, Box<PipelineHook>);
 
     fn get_brand(&self) -> usize;
     fn get_ptr(&self) -> usize;
@@ -76,24 +76,26 @@ pub trait ServerHook: 'static {
 }
 
 pub trait ResultsHook {
-    fn add_ref(&self) -> Box<ResultsHook>;
-    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a>;
-    fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), ::Error>;
+    fn get<'a>(&'a mut self) -> ::Result<any_pointer::Builder<'a>>;
+    fn get_as_reader<'a>(&'a self) -> ::Result<any_pointer::Reader<'a>>;
     fn allow_cancellation(&self);
+    fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), ::Error>;
 
-    // If `tail_call()` is called, resolves to the PipelineHook from the tail call. An
-    // implementation of `ClientHook::call()` is allowed to call this at most once.
-    fn on_tail_call(&self) -> Promise<any_pointer::Pipeline, ::Error>;
 }
 
-impl Clone for Box<ResultsHook> {
-    fn clone(&self) -> Box<ResultsHook> {
+pub trait ResultsDoneHook {
+    fn add_ref(&self) -> Box<ResultsDoneHook>;
+    fn get<'a>(&'a self) -> ::Result<any_pointer::Reader<'a>>;
+}
+
+impl Clone for Box<ResultsDoneHook> {
+    fn clone(&self) -> Box<ResultsDoneHook> {
         self.add_ref()
     }
 }
 
 pub trait ParamsHook {
-    fn get<'a>(&'a self) -> any_pointer::Reader<'a>;
+    fn get<'a>(&'a self) -> ::Result<any_pointer::Reader<'a>>;
 }
 
 // Where should this live?
@@ -103,6 +105,10 @@ pub fn internal_get_typed_params<T>(typeless: Params<any_pointer::Owned>) -> Par
 
 pub fn internal_get_typed_results<T>(typeless: Results<any_pointer::Owned>) -> Results<T> {
     Results { hook: typeless.hook, marker: ::std::marker::PhantomData }
+}
+
+pub fn internal_get_untyped_results<T>(typeful: Results<T>) -> Results<any_pointer::Owned> {
+    Results { hook: typeful.hook, marker: ::std::marker::PhantomData }
 }
 
 pub trait PipelineHook {

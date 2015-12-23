@@ -207,7 +207,6 @@ impl <A> Builder<A> where A: Allocator {
                 layout::PointerBuilder::get_root(root_segment,
                                                  self.arena.segment0.get_ptr_unchecked(0)))
         }
-
     }
 
     /// Initializes the root as a value of the given type.
@@ -218,6 +217,18 @@ impl <A> Builder<A> where A: Allocator {
     /// Gets the root, interpreting it as the given type.
     pub fn get_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> Result<T> {
         self.get_root_internal().get_as()
+    }
+
+    pub fn get_root_as_reader<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
+        let root_segment: *const SegmentReader = &self.arena.segment0.reader;
+        if self.arena.segment0.current_size() == 0 {
+            Err(::Error::new_decode_error("Segment zero is empty.".to_string()))
+        } else {
+            any_pointer::Reader::new(
+                try!(layout::PointerReader::get_root(root_segment,
+                                                     self.arena.segment0.get_ptr_unchecked(0),
+                                                     0x7fffffff))).get_as()
+        }
     }
 
     /// Sets the root to a deep copy of the given value.

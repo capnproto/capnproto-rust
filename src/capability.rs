@@ -128,7 +128,7 @@ impl <T> Results<T> {
     pub fn get<'a>(&'a mut self) -> <T as ::traits::Owned<'a>>::Builder
         where T: ::traits::Owned<'a>
     {
-        self.hook.get().get_as().unwrap()
+        self.hook.get().unwrap().get_as().unwrap()
     }
 }
 
@@ -163,6 +163,7 @@ impl Client {
 pub trait Server {
     fn dispatch_call(&mut self, interface_id: u64, method_id: u16,
                      params: Params<any_pointer::Owned>,
-                     results: Results<any_pointer::Owned>) -> Promise<(), ::Error>;
+                     results: Results<any_pointer::Owned>)
+                     -> Promise<Results<any_pointer::Owned>, ::Error>;
 }
 

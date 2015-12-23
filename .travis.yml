@@ -8,3 +8,7 @@ script:
   - cargo build
   - cargo test
   - cargo doc
+  - cargo clean
+  - cargo build --features rpc
+  - cargo test --features rpc
+  - cargo doc --features rpc
