@@ -74,9 +74,20 @@ pub trait ServerHook: 'static {
 }
 
 pub trait ResultsHook {
+    fn add_ref(&self) -> Box<ResultsHook>;
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a>;
     fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), ::Error>;
     fn allow_cancellation(&self);
+
+    // If `tail_call()` is called, resolves to the PipelineHook from the tail call. An
+    // implementation of `ClientHook::call()` is allowed to call this at most once.
+    fn on_tail_call(&self) -> Promise<any_pointer::Pipeline, ::Error>;
+}
+
+impl Clone for Box<ResultsHook> {
+    fn clone(&self) -> Box<ResultsHook> {
+        self.add_ref()
+    }
 }
 
 pub trait ParamsHook {
