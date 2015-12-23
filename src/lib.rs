@@ -193,6 +193,9 @@ impl Error {
     pub fn new_decode_error(description: String) -> Error {
         Error { reason: description, kind: ErrorKind::Failed }
     }
+    pub fn failed(description: String) -> Error {
+        Error { reason: description, kind: ErrorKind::Failed }
+    }
 }
 
 impl ::std::convert::From<::std::io::Error> for Error {

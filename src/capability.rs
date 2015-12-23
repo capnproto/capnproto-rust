@@ -113,6 +113,11 @@ impl <T> Params <T> {
     pub fn new(hook: Box<ParamsHook>) -> Params<T> {
         Params { marker: ::std::marker::PhantomData, hook: hook }
     }
+    pub fn get<'a>(&'a self) -> <T as ::traits::Owned<'a>>::Reader
+        where T: ::traits::Owned<'a>
+    {
+        self.hook.get().unwrap().get_as().unwrap()
+    }
 }
 
 pub struct Results<T> {
