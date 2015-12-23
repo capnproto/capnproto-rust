@@ -122,6 +122,75 @@ pub fn main() {
             println!("PASS");
         }
 
+        {
+            // Make a request to evaluate 4 * 6, then use the result in two more
+            // requests that add 3 and 5.
+            //
+            // Since evaluate() returns its result wrapped in a `Value`, we can pass
+            // that `Value` back to the server in subsequent requests before the first
+            // `evaluate()` has actually returned.  Thus, this example again does only
+            // one network round trip.
+
+            println!("Pipelining eval() calls... ");
+
+            let add = {
+                // Get the "add" function from the server.
+                let mut request = calculator.get_operator_request();
+                request.init().set_op(calculator::Operator::Add);
+                request.send().pipeline.get_func()
+            };
+
+            let multiply = {
+                // Get the "multiply" function from the server.
+                let mut request = calculator.get_operator_request();
+                request.init().set_op(calculator::Operator::Multiply);
+                request.send().pipeline.get_func()
+            };
+
+            // Build the request to evaluate 4 * 6
+            let mut request = calculator.evaluate_request();
+
+            {
+                let mut multiply_call = request.init().init_expression().init_call();
+                multiply_call.set_function(multiply);
+                let mut multiply_params = multiply_call.init_params(2);
+                multiply_params.borrow().get(0).set_literal(4.0);
+                multiply_params.borrow().get(1).set_literal(6.0);
+            }
+
+            let multiply_result = request.send().pipeline.get_value();
+
+            // Use the result in two calls that add 3 and add 5.
+
+            let mut add3_request = calculator.evaluate_request();
+            {
+                let mut add3_call = add3_request.init().init_expression().init_call();
+                add3_call.set_function(add.clone());
+                let mut add3_params = add3_call.init_params(2);
+                add3_params.borrow().get(0).set_previous_result(multiply_result.clone());
+                add3_params.borrow().get(1).set_literal(3.0);
+            }
+
+            let add3_promise = add3_request.send().pipeline.get_value().read_request().send();
+
+            let mut add5_request = calculator.evaluate_request();
+            {
+                let mut add5_call = add5_request.init().init_expression().init_call();
+                add5_call.set_function(add);
+                let mut add5_params = add5_call.init_params(2);
+                add5_params.borrow().get(0).set_previous_result(multiply_result);
+                add5_params.get(1).set_literal(5.0);
+            }
+
+            let add5_promise = add5_request.send().pipeline.get_value().read_request().send();
+
+            // Now wait for the results.
+            assert!(try!(try!(add3_promise.promise.wait(wait_scope)).get()).get_value() == 27.0);
+            assert!(try!(try!(add5_promise.promise.wait(wait_scope)).get()).get_value() == 29.0);
+
+            println!("PASS")
+        }
+
         Ok(())
     }).expect("top level error");
 }
