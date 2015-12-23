@@ -109,12 +109,22 @@ pub struct Params<T> {
     pub hook: Box<ParamsHook>,
 }
 
+impl <T> Params <T> {
+    pub fn new(hook: Box<ParamsHook>) -> Params<T> {
+        Params { marker: ::std::marker::PhantomData, hook: hook }
+    }
+}
+
 pub struct Results<T> {
     pub marker: ::std::marker::PhantomData<T>,
     pub hook: Box<ResultsHook>,
 }
 
 impl <T> Results<T> {
+    pub fn new(hook: Box<ResultsHook>) -> Results<T> {
+        Results { marker: ::std::marker::PhantomData, hook: hook }
+    }
+
     pub fn get<'a>(&'a mut self) -> <T as ::traits::Owned<'a>>::Builder
         where T: ::traits::Owned<'a>
     {

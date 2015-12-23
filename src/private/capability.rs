@@ -45,6 +45,8 @@ pub trait ClientHook {
             -> (::capability::Promise<(), ::Error>, Box<PipelineHook>);
 
     fn get_brand(&self) -> usize;
+    fn get_ptr(&self) -> usize;
+
     fn write_target(&self, target: any_pointer::Builder) -> Option<Box<ClientHook>>;
 
     fn write_descriptor(&self, descriptor: any_pointer::Builder) -> Option<u32>;
@@ -111,6 +113,12 @@ pub trait PipelineHook {
     /// Default implementation just calls the other version.
     fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
         self.get_pipelined_cap(&ops)
+    }
+}
+
+impl Clone for Box<PipelineHook> {
+    fn clone(&self) -> Box<PipelineHook> {
+        self.add_ref()
     }
 }
 
