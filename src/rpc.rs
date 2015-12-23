@@ -1169,7 +1169,9 @@ impl <VatId> ClientHook for Client<VatId> {
         ::capnp::capability::Request::new(Box::new(request))
     }
 
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, _results: Box<ResultsHook>) {
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, _results: Box<ResultsHook>)
+        -> (::gj::Promise<(), Error>, Box<PipelineHook>)
+    {
         let mut request = self.new_call(interface_id, method_id,
                                         Some(params.get().total_size().unwrap()));
         request.init().set_as(params.get()).unwrap();
@@ -1218,3 +1220,109 @@ impl <VatId> ClientHook for Client<VatId> {
         unimplemented!()
     }
 }
+
+// ===================================
+
+struct LocalPipelineInner {
+    results: Box<ResultsHook>,
+}
+
+struct LocalPipeline {
+    inner: Rc<RefCell<LocalPipelineInner>>,
+}
+
+impl LocalPipeline {
+    fn new(results: Box<ResultsHook>) -> LocalPipeline {
+        LocalPipeline {
+            inner: Rc::new(RefCell::new(LocalPipelineInner { results: results }))
+        }
+    }
+}
+
+impl Clone for LocalPipeline {
+    fn clone(&self) -> LocalPipeline {
+        LocalPipeline { inner: self.inner.clone() }
+    }
+}
+
+impl PipelineHook for LocalPipeline {
+    fn add_ref(&self) -> Box<PipelineHook> {
+        Box::new(self.clone())
+    }
+    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
+        // Do I need to call imbue() here?
+        self.inner.borrow_mut().results.get().as_reader().get_pipelined_cap(ops).unwrap()
+    }
+}
+
+struct LocalClientInner {
+    server: Box<::capnp::capability::Server>,
+}
+
+struct LocalClient {
+    inner: Rc<RefCell<LocalClientInner>>,
+}
+
+impl Clone for LocalClient {
+    fn clone(&self) -> LocalClient {
+        LocalClient { inner: self.inner.clone() }
+    }
+}
+
+impl ClientHook for LocalClient {
+    fn add_ref(&self) -> Box<ClientHook> {
+        Box::new(self.clone())
+    }
+    fn new_call(&self, _interface_id: u64, _method_id: u16,
+                _size_hint: Option<::capnp::MessageSize>)
+                -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
+    {
+        unimplemented!()
+    }
+
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
+        -> (::gj::Promise<(), Error>, Box<PipelineHook>)
+    {
+
+        // We don't want to actually dispatch the call synchronously, because we don't want the callee
+        // to have any side effects before the promise is returned to the caller.  This helps avoid
+        // race conditions.
+
+        let inner = self.inner.clone();
+        let promise = ::gj::Promise::ok(()).then(move |()| {
+            let server = &mut inner.borrow_mut().server;
+            server.dispatch_call(interface_id, method_id,
+                                 unimplemented!(), unimplemented!())
+        });
+
+        // We have to fork this promise for the pipeline to receive a copy of the answer.
+        let mut forked = promise.fork();
+
+        let _pipeline_promise = forked.add_branch().map(move |()| {
+            Ok(LocalPipeline::new(results))
+        });
+        unimplemented!()
+    }
+
+    fn get_brand(&self) -> usize {
+        0
+    }
+
+    fn write_target(&self, _target: any_pointer::Builder) -> Option<Box<ClientHook>>
+    {
+        unimplemented!()
+    }
+
+    fn write_descriptor(&self, _descriptor: any_pointer::Builder) -> Option<u32> {
+        unimplemented!()
+    }
+
+    fn get_resolved(&self) -> Option<Box<ClientHook>> {
+        None
+    }
+
+    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
+        unimplemented!()
+    }
+}
+
