@@ -115,11 +115,6 @@ pub struct Results<T> {
 }
 
 impl <T> Results<T> {
-    pub fn fail(self, message: String) { self.hook.fail(message); }
-    pub fn unimplemented(self) { self.hook.unimplemented(); }
-    pub fn disconnected(self) { self.hook.disconnected(); }
-    pub fn overloaded(self) { self.hook.overloaded(); }
-
     pub fn get<'a>(&'a mut self) -> <T as ::traits::Owned<'a>>::Builder
         where T: ::traits::Owned<'a>
     {

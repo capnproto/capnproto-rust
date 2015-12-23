@@ -21,7 +21,7 @@
 
 use any_pointer;
 use MessageSize;
-use capability::{Params, Request, RemotePromise, Results};
+use capability::{Params, Promise, Request, RemotePromise, Results};
 
 pub trait ResponseHook {
     fn get<'a>(&'a self) -> ::Result<any_pointer::Reader<'a>>;
@@ -41,7 +41,8 @@ pub trait ClientHook {
                 -> Request<any_pointer::Owned, any_pointer::Owned>;
 
     fn call(&self, interface_id: u64, method_id: u16,
-            params: Box<ParamsHook>, results: Box<ResultsHook>);
+            params: Box<ParamsHook>, results: Box<ResultsHook>)
+            -> (::capability::Promise<(), ::Error>, Box<PipelineHook>);
 
     fn get_brand(&self) -> usize;
     fn write_target(&self, target: any_pointer::Builder) -> Option<Box<ClientHook>>;
@@ -74,10 +75,8 @@ pub trait ServerHook: 'static {
 
 pub trait ResultsHook {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a>;
-    fn fail(self: Box<Self>, message: String);
-    fn unimplemented(self: Box<Self>);
-    fn disconnected(self: Box<Self>);
-    fn overloaded(self: Box<Self>);
+    fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), ::Error>;
+    fn allow_cancellation(&self);
 }
 
 pub trait ParamsHook {
