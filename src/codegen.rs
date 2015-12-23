@@ -1363,7 +1363,7 @@ fn generate_node(gen: &GeneratorContext,
 
                 dispatch_arms.push(
                     Line(format!(
-                            "{} => server.{}(::capnp::private::capability::internal_get_typed_params(params), ::capnp::private::capability::internal_get_typed_results(results)),",
+                            "{} => server.{}(::capnp::private::capability::internal_get_typed_params(params), ::capnp::private::capability::internal_get_typed_results(results)).map(|r| Ok(::capnp::private::capability::internal_get_untyped_results(r))),",
                             ordinal, camel_to_snake_case(name))));
                 mod_interior.push(
                     Line(format!(
@@ -1375,8 +1375,10 @@ fn generate_node(gen: &GeneratorContext,
                             capitalize_first_letter(name), params.params, result_type)));
                 server_interior.push(
                     Line(format!(
-                            "fn {}(&mut self, {}Params<{}>, {}Results<{}>) -> ::gj::Promise<(), ::capnp::Error>;",
-                            camel_to_snake_case(name), capitalize_first_letter(name), params.params,
+                            "fn {}(&mut self, {}Params<{}>, {}Results<{}>) -> ::gj::Promise<{}Results<{}>, ::capnp::Error>;",
+                            camel_to_snake_case(name),
+                            capitalize_first_letter(name), params.params,
+                            capitalize_first_letter(name), params.params,
                             capitalize_first_letter(name), params.params
                             )));
 
@@ -1552,7 +1554,7 @@ fn generate_node(gen: &GeneratorContext,
                     } else {
                         Line("impl <T: Server> ::capnp::capability::Server for ServerDispatch<T> {".to_string())
                     }),
-                    Indent(Box::new(Line("fn dispatch_call(&mut self, interface_id: u64, method_id: u16, params: capability::Params<::capnp::any_pointer::Owned>, results: capability::Results<::capnp::any_pointer::Owned>) -> ::gj::Promise<(), ::capnp::Error> {".to_string()))),
+                    Indent(Box::new(Line("fn dispatch_call(&mut self, interface_id: u64, method_id: u16, params: capability::Params<::capnp::any_pointer::Owned>, results: capability::Results<::capnp::any_pointer::Owned>) -> ::gj::Promise<capability::Results<::capnp::any_pointer::Owned>, ::capnp::Error> {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match interface_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(
                         Box::new(Line(format!("_private::TYPE_ID => ServerDispatch::<T, {}>::dispatch_call_internal(&mut *self.server, method_id, params, results),",params.params)))))))),
@@ -1569,7 +1571,7 @@ fn generate_node(gen: &GeneratorContext,
                     } else {
                         Line("impl <T : Server> ServerDispatch<T> {".to_string())
                     }),
-                    Indent(Box::new(Line("pub fn dispatch_call_internal(server: &mut T, method_id: u16, params: capability::Params<::capnp::any_pointer::Owned>, results: capability::Results<::capnp::any_pointer::Owned>) -> ::gj::Promise<(), ::capnp::Error> {".to_string()))),
+                    Indent(Box::new(Line("pub fn dispatch_call_internal(server: &mut T, method_id: u16, params: capability::Params<::capnp::any_pointer::Owned>, results: capability::Results<::capnp::any_pointer::Owned>) -> ::gj::Promise<capability::Results<::capnp::any_pointer::Owned>, ::capnp::Error> {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match method_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(dispatch_arms))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => { ::gj::Promise::err(::capnp::Error {reason:\"Method not implemented.\".to_string(), kind: ::capnp::ErrorKind::Unimplemented }) }".to_string()))))))),
