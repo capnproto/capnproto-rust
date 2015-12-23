@@ -52,6 +52,10 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gj::io::AsyncWrite 
         self.message.get_root()
     }
 
+    fn get_body_as_reader<'a>(&'a self) -> ::capnp::Result<::capnp::any_pointer::Reader<'a>> {
+        self.message.get_root_as_reader()
+    }
+
     fn send(self: Box<Self>) {
         let tmp = *self;
         let OutgoingMessage {message, write_queue} = tmp;

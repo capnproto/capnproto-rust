@@ -22,7 +22,8 @@
 use capnp::{any_pointer};
 use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
-                                 RequestHook, ResponseHook, ResultsHook, ServerHook};
+                                 RequestHook, ResponseHook, ResultsHook, ResultsDoneHook,
+                                 ServerHook};
 
 use gj::Promise;
 
@@ -470,24 +471,32 @@ impl <VatId> ConnectionState<VatId> {
         };
         match intermediate {
             BorrowWorkaround::Call(capability) => {
-                let call = match try!(try!(try!(message.get_body()).get_as::<message::Reader>()).which()) {
-                    message::Call(call) => try!(call),
-                    _ => {
-                        // exception already reported?
-                        unreachable!()
-                    }
+                let (interface_id, method_id, cap_table_array) = {
+                    let call = match try!(try!(try!(message.get_body()).get_as::<message::Reader>()).which()) {
+                        message::Call(call) => try!(call),
+                        _ => {
+                            // exception already reported?
+                            unreachable!()
+                        }
+                    };
+                    let redirect_results = match try!(call.get_send_results_to().which()) {
+                        ::rpc_capnp::call::send_results_to::Caller(()) => false,
+                        ::rpc_capnp::call::send_results_to::Yourself(()) => true,
+                        ::rpc_capnp::call::send_results_to::ThirdParty(_) => unimplemented!(),
+                    };
+                    let payload = try!(call.get_params());
+
+                    (call.get_interface_id(), call.get_method_id(),
+                     try!(ConnectionState::receive_caps(connection_state.clone(),
+                                                        try!(payload.get_cap_table()))))
                 };
-                let redirect_results = match try!(call.get_send_results_to().which()) {
-                    ::rpc_capnp::call::send_results_to::Caller(()) => false,
-                    ::rpc_capnp::call::send_results_to::Yourself(()) => true,
-                    ::rpc_capnp::call::send_results_to::ThirdParty(_) => unimplemented!(),
-                };
-                let payload = try!(call.get_params());
-                let cap_table_array = ConnectionState::receive_caps(connection_state,
-                                                                    try!(payload.get_cap_table()));
+
+                let params = Params::new(message, cap_table_array);
+                let results = Results::new(&connection_state);
                 //let (cancel_promise, cancel_fulfiller) = ::gj::new_promise_and_fulfiller();
 
-//                capability.call(call.get_interface_id(), call.get_method_id(), ...
+                let (promise, pipeline) = capability.call(interface_id, method_id,
+                                                          Box::new(params), Box::new(results));
 
                 unimplemented!()
             }
@@ -1005,30 +1014,98 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
     }
 }
 
-pub struct Params<VatId> where VatId: 'static {
-    connection_state: Weak<ConnectionState<VatId>>,
+pub struct Params{
     request: Box<::IncomingMessage>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
 }
 
-pub struct ResultsInner<VatId> where VatId: 'static {
-    connection_state: Weak<ConnectionState<VatId>>,
-    response: Box<::OutgoingMessage>,
+impl Params {
+    fn new(request: Box<::IncomingMessage>,
+           cap_table: Vec<Option<Box<ClientHook>>>)
+           -> Params
+    {
+        Params {
+            request: request,
+            cap_table: cap_table,
+        }
+    }
 }
 
+impl ParamsHook for Params {
+    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+        let root: message::Reader = try!(try!(self.request.get_body()).get_as());
+        match try!(root.which()) {
+            message::Call(call) => {
+                // TODO imbue
+                Ok(try!(try!(call).get_params()).get_content())
+            }
+            _ =>  {
+                unreachable!()
+            }
+        }
+    }
+}
+
+// This takes the place of both RpcCallContext and RpcServerResponse in capnproto-c++.
 pub struct Results<VatId> where VatId: 'static {
-    inner: Rc<RefCell<ResultsInner<VatId>>>,
+    connection_state: Weak<ConnectionState<VatId>>,
+    message: Box<::OutgoingMessage>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
+}
+
+
+impl <VatId> Results<VatId> where VatId: 'static {
+    fn new(connection_state: &Rc<ConnectionState<VatId>>) -> Results<VatId> {
+        let message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
+            .new_outgoing_message(100); // size hint?
+
+        Results {
+            connection_state: Rc::downgrade(connection_state),
+            message: message,
+            cap_table: Vec::new(),
+        }
+    }
 }
 
 impl <VatId> ResultsHook for Results<VatId> {
-    fn add_ref(&self) -> Box<ResultsHook> {
-        Box::new(Results { inner: self.inner.clone() })
+    fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
+        let root: message::Builder = try!(try!(self.message.get_body()).get_as());
+        match try!(root.which()) {
+            message::Return(ret) => {
+                match try!(try!(ret).which()) {
+                    ::rpc_capnp::return_::Results(payload) => {
+                        // TODO imbue
+                        Ok(try!(payload).get_content())
+                    }
+                    _ => {
+                        unreachable!()
+                    }
+                }
+            }
+            _ =>  {
+                unreachable!()
+            }
+        }
     }
 
-    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-//        let inner = self.inner.borrow_mut();
-//        self.inner.borrow_mut().response.get_body().unwrap()
-//        let root: message::Builder = inner.response.get_body().unwrap().get_as().unwrap();
-        unimplemented!()
+    fn get_as_reader<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+        let root: message::Reader = try!(try!(self.message.get_body_as_reader()).get_as());
+        match try!(root.which()) {
+            message::Return(ret) => {
+                match try!(try!(ret).which()) {
+                    ::rpc_capnp::return_::Results(payload) => {
+                        // TODO imbue
+                        Ok(try!(payload).get_content())
+                    }
+                    _ => {
+                        unreachable!()
+                    }
+                }
+            }
+            _ =>  {
+                unreachable!()
+            }
+        }
     }
 
     fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), Error> {
@@ -1039,8 +1116,32 @@ impl <VatId> ResultsHook for Results<VatId> {
         unimplemented!()
     }
 
-    fn on_tail_call(&self) -> Promise<any_pointer::Pipeline, Error> {
-        unimplemented!()
+}
+
+pub struct ResultsDone {
+    inner: Rc<Box<ResultsHook>>
+}
+
+impl Clone for ResultsDone {
+    fn clone(&self) -> ResultsDone {
+        ResultsDone { inner: self.inner.clone() }
+    }
+}
+
+impl ResultsDone {
+    fn new(hook: Box<ResultsHook>) -> ResultsDone {
+        ResultsDone {
+            inner: Rc::new(hook)
+        }
+    }
+}
+
+impl ResultsDoneHook for ResultsDone {
+    fn add_ref(&self) -> Box<ResultsDoneHook> {
+        Box::new(self.clone())
+    }
+    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+        self.inner.get_as_reader()
     }
 }
 
@@ -1318,11 +1419,11 @@ impl <VatId> ClientHook for Client<VatId> {
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, _results: Box<ResultsHook>)
-        -> (::gj::Promise<(), Error>, Box<PipelineHook>)
+        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
     {
         let mut request = self.new_call(interface_id, method_id,
-                                        Some(params.get().total_size().unwrap()));
-        request.init().set_as(params.get()).unwrap();
+                                        Some(params.get().unwrap().total_size().unwrap()));
+        request.init().set_as(params.get().unwrap()).unwrap();
 
         // We can and should propagate cancellation.
         // context -> allowCancellation();
@@ -1459,7 +1560,7 @@ impl PipelineHook for LocalPipeline {
     }
     fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
         // Do I need to call imbue() here?
-        self.inner.borrow_mut().results.get().as_reader().get_pipelined_cap(ops).unwrap()
+        self.inner.borrow_mut().results.get().unwrap().as_reader().get_pipelined_cap(ops).unwrap()
     }
 }
 
@@ -1504,40 +1605,40 @@ impl ClientHook for LocalClient {
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
-        -> (::gj::Promise<(), Error>, Box<PipelineHook>)
+        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
     {
 
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
 
-        let results1 = results.clone();
         let inner = self.inner.clone();
         let promise = ::gj::Promise::ok(()).then(move |()| {
             let server = &mut inner.borrow_mut().server;
             server.dispatch_call(interface_id, method_id,
                                  ::capnp::capability::Params::new(params),
-                                 ::capnp::capability::Results::new(results1))
+                                 ::capnp::capability::Results::new(results))
         });
 
         // We have to fork this promise for the pipeline to receive a copy of the answer.
-        let mut forked = promise.fork();
+        //let mut forked = promise.fork();
 
-        let results2 = results.clone();
-        let pipeline_promise = forked.add_branch().map(move |()| {
+        //let results2 = results.clone();
+        //let pipeline_promise = forked.add_branch().map(move |()| {
             //drop(params);
-            Ok(Box::new(LocalPipeline::new(results2)) as Box<PipelineHook>)
-        });
+        //    Ok(Box::new(LocalPipeline::new(results2)) as Box<PipelineHook>)
+        //});
 
 /*        let _tail_pipeline_promise = results.on_tail_call().map(move |_pipeline| {
             uni
         }); */
 
-        let completion_promise = forked.add_branch().map(move |()| {
-            drop(results);
-            Ok(())
-        });
-        (completion_promise, Box::new(QueuedPipeline::new(pipeline_promise)))
+        //let completion_promise = forked.add_branch().map(move |()| {
+        //    drop(results);
+        //    Ok(())
+        //});
+        //(completion_promise, Box::new(QueuedPipeline::new(pipeline_promise)))
+        unimplemented!()
     }
 
     fn get_ptr(&self) -> usize {

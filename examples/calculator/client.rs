@@ -32,7 +32,7 @@ impl calculator::function::Server for PowerFunction {
     fn call(&mut self,
             mut _params: calculator::function::CallParams,
             mut _results: calculator::function::CallResults)
-        -> Promise<(), ::capnp::Error>
+        -> Promise<calculator::function::CallResults, ::capnp::Error>
     {
         unimplemented!()
     }
