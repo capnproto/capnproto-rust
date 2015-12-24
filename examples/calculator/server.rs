@@ -49,10 +49,10 @@ impl calculator::value::Server for ValueImpl {
     }
 }
 
-fn evaluate_impl(
-    expression: calculator::expression::Reader,
-    params: Option<primitive_list::Reader<f64>>) -> Promise<f64, Error> {
-
+fn evaluate_impl(expression: calculator::expression::Reader,
+                 params: Option<primitive_list::Reader<f64>>)
+                 -> Promise<f64, Error>
+{
     match pry!(expression.which()) {
         calculator::expression::Literal(v) => {
             Promise::ok(v)
@@ -73,9 +73,23 @@ fn evaluate_impl(
             }
         }
         calculator::expression::Call(call) => {
-            let func = call.get_function();
-            let params = call.get_params();
-            unimplemented!()
+            let func = pry!(call.get_function());
+            let mut param_promises = Vec::new();
+            for param in pry!(call.get_params()).iter() {
+                param_promises.push(evaluate_impl(param, params));
+            }
+            Promise::all(param_promises.into_iter()).then(move |param_values| {
+                let mut request = func.call_request();
+                {
+                    let mut params = request.init().init_params(param_values.len() as u32);
+                    for ii in 0..param_values.len() {
+                        params.set(ii as u32, param_values[ii]);
+                    }
+                }
+                request.send().promise.map(|result| {
+                    Ok(try!(result.get()).get_value())
+                })
+            })
         }
     }
 }
