@@ -40,7 +40,11 @@ pub mod twoparty;
 pub trait OutgoingMessage {
     fn get_body<'a>(&'a mut self) -> ::capnp::Result<::capnp::any_pointer::Builder<'a>>;
     fn get_body_as_reader<'a>(&'a self) -> ::capnp::Result<::capnp::any_pointer::Reader<'a>>;
-    fn send(self: Box<Self>);
+
+    /// Sends the message. Returns a promise for the message that resolves once the send has completed.
+    /// Dropping the returned promise does *not* cancel the send.
+    fn send(self: Box<Self>)
+            -> ::gj::Promise<::capnp::message::Builder<::capnp::message::HeapAllocator>, ::capnp::Error>;
 }
 
 pub trait IncomingMessage {

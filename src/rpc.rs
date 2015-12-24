@@ -323,7 +323,7 @@ impl <VatId> ConnectionState<VatId> {
                     let mut builder = message.get_body().unwrap().init_as::<message::Builder>().init_bootstrap();
                     builder.set_question_id(question_id);
                 }
-                message.send();
+                let _ = message.send();
             }
             &mut Err(_) => panic!(),
         }
@@ -854,7 +854,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
                 call_builder.get_send_results_to().set_yourself(());
             }
         }
-        message.send();
+        let _ = message.send();
 
         // Make the result promise.
         let (promise, fulfiller) = Promise::and_fulfiller();
