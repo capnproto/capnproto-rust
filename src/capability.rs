@@ -29,8 +29,25 @@ use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, Res
 #[cfg(feature = "rpc")]
 pub type Promise<T,E> = ::gj::Promise<T,E>;
 
+/// This fake Promise struct is defined so that the generated code for interfaces
+/// can typecheck even if the "rpc" feature is not enabled.
 #[cfg(not(feature = "rpc"))]
-pub type Promise<T,E> = ::std::result::Result<T,E>;
+pub struct Promise<T,E>(::std::result::Result<T,E>);
+
+#[cfg(not(feature = "rpc"))]
+impl <T,E> Promise<T,E> {
+    pub fn ok(v: T) -> Promise<T,E> {
+        Promise(Ok(v))
+    }
+    pub fn err(e: E) -> Promise<T,E> {
+        Promise(Err(e))
+    }
+    pub fn map<F, R>(self, _func: F) -> Promise<R, E>
+        where F: FnOnce(T) -> Result<R, E>,
+    {
+        unimplemented!()
+    }
+}
 
 
 pub struct RemotePromise<Results> where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static {
