@@ -57,9 +57,10 @@ fn evaluate_impl(
         calculator::expression::Literal(v) => {
             Promise::ok(v)
         },
-        calculator::expression::PreviousResult(_p) => {
-            unimplemented!()
-//            Ok(try!(p.read_request().send().wait()).get_value())
+        calculator::expression::PreviousResult(p) => {
+            pry!(p).read_request().send().promise.map(|v| {
+                Ok(try!(v.get()).get_value())
+            })
         }
         calculator::expression::Parameter(p) => {
             match params {
@@ -71,7 +72,9 @@ fn evaluate_impl(
                 }
             }
         }
-        calculator::expression::Call(_call) => {
+        calculator::expression::Call(call) => {
+            let func = call.get_function();
+            let params = call.get_params();
             unimplemented!()
         }
     }
