@@ -81,7 +81,7 @@ fn evaluate_impl(expression: calculator::expression::Reader,
             Promise::all(param_promises.into_iter()).then(move |param_values| {
                 let mut request = func.call_request();
                 {
-                    let mut params = request.init().init_params(param_values.len() as u32);
+                    let mut params = request.get().init_params(param_values.len() as u32);
                     for ii in 0..param_values.len() {
                         params.set(ii as u32, param_values[ii]);
                     }

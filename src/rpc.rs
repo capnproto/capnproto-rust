@@ -1425,7 +1425,7 @@ impl <VatId> ClientHook for Client<VatId> {
     {
         let mut request = self.new_call(interface_id, method_id,
                                         Some(params.get().unwrap().total_size().unwrap()));
-        request.init().set_as(params.get().unwrap()).unwrap();
+        request.get().set_as(params.get().unwrap()).unwrap();
 
         // We can and should propagate cancellation.
         // context -> allowCancellation();

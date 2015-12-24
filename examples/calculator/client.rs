@@ -60,7 +60,7 @@ pub fn main() {
         {
             println!("Evaluating a literal...");
             let mut request = calculator.evaluate_request();
-            request.init().init_expression().set_literal(11.0);
+            request.get().init_expression().set_literal(11.0);
             request.send().promise.then(|response| {
                 let value = pry!(pry!(response.get()).get_value());
                 let request = value.read_request();
@@ -75,7 +75,7 @@ pub fn main() {
         {
             println!("Evaluating a literal using pipelining...");
             let mut request = calculator.evaluate_request();
-            request.init().init_expression().set_literal(23.0);
+            request.get().init_expression().set_literal(23.0);
             let value = request.send().pipeline.get_value();
             let request = value.read_request();
             request.send().promise.then(|response|{
@@ -99,14 +99,14 @@ pub fn main() {
             let add = {
                 // Get the "add" function from the server.
                 let mut request = calculator.get_operator_request();
-                request.init().set_op(calculator::Operator::Add);
+                request.get().set_op(calculator::Operator::Add);
                 request.send().pipeline.get_func()
             };
 
             let subtract = {
                 // Get the "subtract" function from the server.
                 let mut request = calculator.get_operator_request();
-                request.init().set_op(calculator::Operator::Subtract);
+                request.get().set_op(calculator::Operator::Subtract);
                 request.send().pipeline.get_func()
             };
 
@@ -114,7 +114,7 @@ pub fn main() {
             let mut request = calculator.evaluate_request();
 
             {
-                let mut subtract_call = request.init().init_expression().init_call();
+                let mut subtract_call = request.get().init_expression().init_call();
                 subtract_call.set_function(subtract);
                 let mut subtract_params = subtract_call.init_params(2);
                 subtract_params.borrow().get(1).set_literal(67.0);
@@ -151,14 +151,14 @@ pub fn main() {
             let add = {
                 // Get the "add" function from the server.
                 let mut request = calculator.get_operator_request();
-                request.init().set_op(calculator::Operator::Add);
+                request.get().set_op(calculator::Operator::Add);
                 request.send().pipeline.get_func()
             };
 
             let multiply = {
                 // Get the "multiply" function from the server.
                 let mut request = calculator.get_operator_request();
-                request.init().set_op(calculator::Operator::Multiply);
+                request.get().set_op(calculator::Operator::Multiply);
                 request.send().pipeline.get_func()
             };
 
@@ -166,7 +166,7 @@ pub fn main() {
             let mut request = calculator.evaluate_request();
 
             {
-                let mut multiply_call = request.init().init_expression().init_call();
+                let mut multiply_call = request.get().init_expression().init_call();
                 multiply_call.set_function(multiply);
                 let mut multiply_params = multiply_call.init_params(2);
                 multiply_params.borrow().get(0).set_literal(4.0);
@@ -179,7 +179,7 @@ pub fn main() {
 
             let mut add3_request = calculator.evaluate_request();
             {
-                let mut add3_call = add3_request.init().init_expression().init_call();
+                let mut add3_call = add3_request.get().init_expression().init_call();
                 add3_call.set_function(add.clone());
                 let mut add3_params = add3_call.init_params(2);
                 add3_params.borrow().get(0).set_previous_result(multiply_result.clone());
@@ -190,7 +190,7 @@ pub fn main() {
 
             let mut add5_request = calculator.evaluate_request();
             {
-                let mut add5_call = add5_request.init().init_expression().init_call();
+                let mut add5_call = add5_request.get().init_expression().init_call();
                 add5_call.set_function(add);
                 let mut add5_params = add5_call.init_params(2);
                 add5_params.borrow().get(0).set_previous_result(multiply_result);
@@ -221,20 +221,20 @@ pub fn main() {
 
             let add = {
                 let mut request = calculator.get_operator_request();
-                request.init().set_op(calculator::Operator::Add);
+                request.get().set_op(calculator::Operator::Add);
                 request.send().pipeline.get_func()
             };
 
             let multiply = {
                 let mut request = calculator.get_operator_request();
-                request.init().set_op(calculator::Operator::Multiply);
+                request.get().set_op(calculator::Operator::Multiply);
                 request.send().pipeline.get_func()
             };
 
             let f = {
                 let mut request = calculator.def_function_request();
                 {
-                    let mut def_function_params = request.init();
+                    let mut def_function_params = request.get();
                     def_function_params.set_param_count(2);
                     {
                         let mut add_call = def_function_params.init_body().init_call();
@@ -255,7 +255,7 @@ pub fn main() {
             let g = {
                 let mut request = calculator.def_function_request();
                 {
-                    let mut def_function_params = request.init();
+                    let mut def_function_params = request.get();
                     def_function_params.set_param_count(1);
                     {
                         let mut multiply_call = def_function_params.init_body().init_call();
@@ -280,7 +280,7 @@ pub fn main() {
 
             let mut f_eval_request = calculator.evaluate_request();
             {
-                let mut f_call = f_eval_request.init().init_expression().init_call();
+                let mut f_call = f_eval_request.get().init_expression().init_call();
                 f_call.set_function(f);
                 let mut f_params = f_call.init_params(2);
                 f_params.borrow().get(0).set_literal(12.0);
@@ -290,7 +290,7 @@ pub fn main() {
 
             let mut g_eval_request = calculator.evaluate_request();
             {
-                let mut g_call = g_eval_request.init().init_expression().init_call();
+                let mut g_call = g_eval_request.get().init_expression().init_call();
                 g_call.set_function(g);
                 g_call.init_params(1).get(0).set_literal(21.0);
             }
@@ -321,13 +321,13 @@ pub fn main() {
 
             let add = {
                 let mut request = calculator.get_operator_request();
-                request.init().set_op(calculator::Operator::Add);
+                request.get().set_op(calculator::Operator::Add);
                 request.send().pipeline.get_func()
             };
 
             let mut request = calculator.evaluate_request();
             {
-                let mut pow_call = request.init().init_expression().init_call();
+                let mut pow_call = request.get().init_expression().init_call();
                 pow_call.set_function(
                     calculator::function::ToClient::new(PowerFunction).from_server::<LocalClient>());
                 let mut pow_params = pow_call.init_params(2);
