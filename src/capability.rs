@@ -49,7 +49,7 @@ impl <T,E> Promise<T,E> {
     }
 }
 
-
+#[must_use]
 pub struct RemotePromise<Results> where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static {
     pub promise: Promise<Response<Results>, ::Error>,
     pub pipeline: Results::Pipeline,
