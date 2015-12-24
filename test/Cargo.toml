@@ -14,9 +14,5 @@ path = "test.rs"
 [build-dependencies.capnpc]
 path = "../"
 
-[dependencies]
-gj = "*"
-
 [dependencies.capnp]
 path = "../../capnproto-rust"
-features = ["rpc"]
