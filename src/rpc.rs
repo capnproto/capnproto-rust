@@ -308,7 +308,7 @@ impl <VatId> ConnectionState<VatId> {
     fn bootstrap(state: Rc<ConnectionState<VatId>>) -> Box<ClientHook> {
         let question_id = state.questions.borrow_mut().push(Question::new());
 
-        let (promise, fulfiller) = ::gj::new_promise_and_fulfiller();
+        let (promise, fulfiller) = Promise::and_fulfiller();
         let question_ref = Rc::new(RefCell::new(QuestionRef::new(state.clone(), question_id, fulfiller)));
         match &mut state.questions.borrow_mut().slots[question_id as usize] {
             &mut Some(ref mut q) => {
@@ -857,7 +857,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         message.send();
 
         // Make the result promise.
-        let (promise, fulfiller) = ::gj::new_promise_and_fulfiller();
+        let (promise, fulfiller) = Promise::and_fulfiller();
         let question_ref = Rc::new(RefCell::new(
             QuestionRef::new(connection_state.clone(), question_id, fulfiller)));
 
