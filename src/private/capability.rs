@@ -81,6 +81,7 @@ pub trait ResultsHook {
     fn allow_cancellation(&self);
     fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), ::Error>;
 
+    fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, ::Error>;
 }
 
 pub trait ResultsDoneHook {
