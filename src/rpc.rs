@@ -191,7 +191,7 @@ struct Answer<VatId> where VatId: 'static {
 }
 
 pub struct Export {
-    ref_count: usize,
+    _ref_count: usize,
     client_hook: Box<ClientHook>,
 
     // If this export is a promise (not a settled capability), the `resolve_op` represents the
@@ -202,7 +202,7 @@ pub struct Export {
 impl Export {
     fn new(client_hook: Box<ClientHook>) -> Export {
         Export {
-            ref_count: 1,
+            _ref_count: 1,
             client_hook: client_hook,
             _resolve_op: Promise::ok(()),
         }
@@ -479,7 +479,7 @@ impl <VatId> ConnectionState<VatId> {
                             unreachable!()
                         }
                     };
-                    let redirect_results = match try!(call.get_send_results_to().which()) {
+                    let _redirect_results = match try!(call.get_send_results_to().which()) {
                         ::rpc_capnp::call::send_results_to::Caller(()) => false,
                         ::rpc_capnp::call::send_results_to::Yourself(()) => true,
                         ::rpc_capnp::call::send_results_to::ThirdParty(_) => unimplemented!(),
@@ -495,7 +495,7 @@ impl <VatId> ConnectionState<VatId> {
                 let results = Results::new(&connection_state);
                 //let (cancel_promise, cancel_fulfiller) = ::gj::new_promise_and_fulfiller();
 
-                let (promise, pipeline) = capability.call(interface_id, method_id,
+                let (_promise, _pipeline) = capability.call(interface_id, method_id,
                                                           Box::new(params), Box::new(results));
 
                 // XXX There's a lot more we need to do here.
@@ -1018,7 +1018,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
 
 pub struct Params{
     request: Box<::IncomingMessage>,
-    cap_table: Vec<Option<Box<ClientHook>>>,
+    _cap_table: Vec<Option<Box<ClientHook>>>,
 }
 
 impl Params {
@@ -1028,7 +1028,7 @@ impl Params {
     {
         Params {
             request: request,
-            cap_table: cap_table,
+            _cap_table: cap_table,
         }
     }
 }
@@ -1110,7 +1110,7 @@ impl <VatId> ResultsHook for Results<VatId> {
         }
     }
 
-    fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), Error> {
+    fn tail_call(self: Box<Self>, _request: Box<RequestHook>) -> Promise<(), Error> {
         unimplemented!()
     }
 
@@ -1118,6 +1118,14 @@ impl <VatId> ResultsHook for Results<VatId> {
         unimplemented!()
     }
 
+    fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
+        let tmp = *self;
+        let Results { connection_state, message, cap_table } = tmp;
+        let _ = message.send();
+        let _ = cap_table;
+        let _ = connection_state;
+        unimplemented!()
+    }
 }
 
 pub struct ResultsDone {
@@ -1479,7 +1487,7 @@ impl <VatId> ClientHook for Client<VatId> {
 // ===================================
 
 struct QueuedPipelineInner {
-    promise: ::gj::ForkedPromise<Box<PipelineHook>, Error>,
+    _promise: ::gj::ForkedPromise<Box<PipelineHook>, Error>,
 
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<PipelineHook>>,
@@ -1497,7 +1505,7 @@ impl QueuedPipeline {
         let mut promise = promise_param.fork();
         let branch = promise.add_branch();
         let inner = Rc::new(RefCell::new(QueuedPipelineInner {
-            promise: promise,
+            _promise: promise,
             redirect: None,
             self_resolution_op: Promise::ok(()),
         }));
@@ -1529,7 +1537,7 @@ impl PipelineHook for QueuedPipeline {
     fn add_ref(&self) -> Box<PipelineHook> {
         Box::new(self.clone())
     }
-    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
+    fn get_pipelined_cap(&self, _ops: &[PipelineOp]) -> Box<ClientHook> {
         unimplemented!()
     }
 }
