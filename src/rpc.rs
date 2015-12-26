@@ -66,7 +66,7 @@ pub type ExportId = u32;
 pub type ImportId = ExportId;
 
 pub struct ImportTable<T> {
-    slots : HashMap<u32, T>,
+    slots: HashMap<u32, T>,
 }
 
 impl <T> ImportTable<T> {
@@ -190,6 +190,17 @@ struct Answer<VatId> where VatId: 'static {
     _result_exports: Vec<ExportId>,
 }
 
+impl <VatId> Answer<VatId> {
+    fn new() -> Answer<VatId> {
+        Answer {
+            _active: true,
+            _pipeline: None,
+            _redirected_results: None,
+            _result_exports: Vec::new()
+        }
+    }
+}
+
 pub struct Export {
     _ref_count: usize,
     client_hook: Box<ClientHook>,
@@ -270,7 +281,7 @@ impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<Vat
 struct ConnectionState<VatId> where VatId: 'static {
     exports: RefCell<ExportTable<Export>>,
     questions: RefCell<ExportTable<Question<VatId>>>,
-    _answers: RefCell<ImportTable<Answer<VatId>>>,
+    answers: RefCell<ImportTable<Answer<VatId>>>,
     imports: RefCell<ImportTable<Import<VatId>>>,
 
     exports_by_cap: RefCell<HashMap<usize, ExportId>>,
@@ -284,7 +295,7 @@ impl <VatId> ConnectionState<VatId> {
         let state = Rc::new(ConnectionState {
             exports: RefCell::new(ExportTable::new()),
             questions: RefCell::new(ExportTable::new()),
-            _answers: RefCell::new(ImportTable::new()),
+            answers: RefCell::new(ImportTable::new()),
             imports: RefCell::new(ImportTable::new()),
             exports_by_cap: RefCell::new(HashMap::new()),
             tasks: RefCell::new(None),
@@ -303,6 +314,17 @@ impl <VatId> ConnectionState<VatId> {
         }
 
         // TODO ...
+    }
+
+    fn add_task(&self, task: Promise<(), Error>) {
+        match &mut *self.tasks.borrow_mut() {
+            &mut Some(ref mut tasks) => {
+                tasks.add(task);
+            }
+            &mut None => {
+                ()
+            }
+        }
     }
 
     fn bootstrap(state: Rc<ConnectionState<VatId>>) -> Box<ClientHook> {
@@ -471,7 +493,7 @@ impl <VatId> ConnectionState<VatId> {
         };
         match intermediate {
             BorrowWorkaround::Call(capability) => {
-                let (interface_id, method_id, cap_table_array) = {
+                let (interface_id, method_id, question_id, cap_table_array) = {
                     let call = match try!(try!(try!(message.get_body()).get_as::<message::Reader>()).which()) {
                         message::Call(call) => try!(call),
                         _ => {
@@ -486,18 +508,33 @@ impl <VatId> ConnectionState<VatId> {
                     };
                     let payload = try!(call.get_params());
 
-                    (call.get_interface_id(), call.get_method_id(),
+                    (call.get_interface_id(), call.get_method_id(), call.get_question_id(),
                      try!(ConnectionState::receive_caps(connection_state.clone(),
                                                         try!(payload.get_cap_table()))))
                 };
 
+                if connection_state.answers.borrow().slots.contains_key(&question_id) {
+                    return Err(Error::failed(
+                        format!("Received a new call on in-use question id {}", question_id)));
+                }
+
+                let answer = Answer::<VatId>::new();
+
                 let params = Params::new(message, cap_table_array);
-                let results = Results::new(&connection_state);
+                let results = Results::new(&connection_state, unimplemented!());
                 //let (cancel_promise, cancel_fulfiller) = ::gj::new_promise_and_fulfiller();
 
-                let (_promise, _pipeline) = capability.call(interface_id, method_id,
+                // Fill in the answer table.
+
+                let (promise, _pipeline) = capability.call(interface_id, method_id,
                                                           Box::new(params), Box::new(results));
 
+
+                let send_promise = promise.then(|results| {
+                    results.send_return();
+                    Promise::ok(())
+                });
+                connection_state.add_task(send_promise);
                 // XXX There's a lot more we need to do here.
 
                 unimplemented!()
@@ -1057,9 +1094,19 @@ pub struct Results<VatId> where VatId: 'static {
 
 
 impl <VatId> Results<VatId> where VatId: 'static {
-    fn new(connection_state: &Rc<ConnectionState<VatId>>) -> Results<VatId> {
-        let message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
+    fn new(connection_state: &Rc<ConnectionState<VatId>>,
+           answer_id: AnswerId
+           )
+           -> Results<VatId>
+    {
+        let mut message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
             .new_outgoing_message(100); // size hint?
+
+        {
+            let root: message::Builder = message.get_body().unwrap().init_as();
+            let mut ret = root.init_return();
+            ret.set_answer_id(answer_id);
+        }
 
         Results {
             connection_state: Rc::downgrade(connection_state),
@@ -1118,40 +1165,39 @@ impl <VatId> ResultsHook for Results<VatId> {
         unimplemented!()
     }
 
-    fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
+    fn send_return(self: Box<Self>) -> Promise<(), Error> {
         let tmp = *self;
         let Results { connection_state, message, cap_table } = tmp;
-        let _ = message.send();
-        let _ = cap_table;
-        let _ = connection_state;
-        unimplemented!()
+        message.send().map(move |message| {
+            let results_done = ResultsDone::new(message, cap_table);
+            let _ = connection_state;
+            //pipeline_fulfiller.fulfill(results_done);
+            Ok(())
+        })
     }
 }
 
 pub struct ResultsDone {
-    inner: Rc<Box<ResultsHook>>
-}
-
-impl Clone for ResultsDone {
-    fn clone(&self) -> ResultsDone {
-        ResultsDone { inner: self.inner.clone() }
-    }
+    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
 }
 
 impl ResultsDone {
-    fn new(hook: Box<ResultsHook>) -> ResultsDone {
+    fn new(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+           cap_table: Vec<Option<Box<ClientHook>>>) -> ResultsDone {
         ResultsDone {
-            inner: Rc::new(hook)
+            message: message,
+            cap_table: cap_table,
         }
     }
 }
 
 impl ResultsDoneHook for ResultsDone {
     fn add_ref(&self) -> Box<ResultsDoneHook> {
-        Box::new(self.clone())
+        unimplemented!()
     }
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        self.inner.get_as_reader()
+        self.message.get_root_as_reader()
     }
 }
 
@@ -1429,7 +1475,7 @@ impl <VatId> ClientHook for Client<VatId> {
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, _results: Box<ResultsHook>)
-        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+        -> (::gj::Promise<Box<ResultsHook>, Error>, Box<PipelineHook>)
     {
         let mut request = self.new_call(interface_id, method_id,
                                         Some(params.get().unwrap().total_size().unwrap()));
@@ -1615,7 +1661,7 @@ impl ClientHook for LocalClient {
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
-        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+        -> (::gj::Promise<Box<ResultsHook>, Error>, Box<PipelineHook>)
     {
 
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
@@ -1628,25 +1674,28 @@ impl ClientHook for LocalClient {
             server.dispatch_call(interface_id, method_id,
                                  ::capnp::capability::Params::new(params),
                                  ::capnp::capability::Results::new(results))
-        }).map(|results|{
-            Ok(Box::new(ResultsDone::new(results.hook)) as Box<ResultsDoneHook>)
         });
+
+        //.map(|results|{
+        //    Ok(Box::new(ResultsDone::new(results.hook)) as Box<ResultsDoneHook>)
+        //});
 
         // We have to fork this promise for the pipeline to receive a copy of the answer.
-        let mut forked = promise.fork();
+        //let mut forked = promise.fork();
 
-        let pipeline_promise = forked.add_branch().map(move |results_done| {
+        //let pipeline_promise = forked.add_branch().map(move |results_done| {
             //drop(params);
-            Ok(Box::new(LocalPipeline::new(results_done)) as Box<PipelineHook>)
-        });
+        //    Ok(Box::new(LocalPipeline::new(results_done)) as Box<PipelineHook>)
+        //});
 
 /*        let _tail_pipeline_promise = results.on_tail_call().map(move |_pipeline| {
             uni
         }); */
 
-        let completion_promise = forked.add_branch();
+        //let completion_promise = forked.add_branch();
 
-        (completion_promise, Box::new(QueuedPipeline::new(pipeline_promise)))
+        //(completion_promise, Box::new(QueuedPipeline::new(pipeline_promise)))
+        unimplemented!()
     }
 
     fn get_ptr(&self) -> usize {
