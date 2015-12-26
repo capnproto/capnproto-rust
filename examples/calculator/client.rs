@@ -30,11 +30,17 @@ pub struct PowerFunction;
 
 impl calculator::function::Server for PowerFunction {
     fn call(&mut self,
-            mut _params: calculator::function::CallParams,
-            mut _results: calculator::function::CallResults)
+            params: calculator::function::CallParams,
+            mut results: calculator::function::CallResults)
         -> Promise<calculator::function::CallResults, ::capnp::Error>
     {
-        unimplemented!()
+        let params = pry!(params.get().get_params());
+        if params.len() != 2 {
+            Promise::err(::capnp::Error::failed("Wrong number of parameters".to_string()))
+        } else {
+            results.get().set_value(params.get(0).powf(params.get(1)));
+            Promise::ok(results)
+        }
     }
 }
 
