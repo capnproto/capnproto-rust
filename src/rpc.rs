@@ -466,7 +466,22 @@ impl <VatId> ConnectionState<VatId> {
                     }
                 }
                 message::Finish(finish) => {
-                    unimplemented!()
+                    let finish = try!(finish);
+
+                    // TODO: release exports.
+
+                    let answer_id = finish.get_question_id();
+                    let answers_slots = &mut connection_state1.answers.borrow_mut().slots;
+                    match answers_slots.remove(&answer_id) {
+                        None => {
+                            return Err(Error::failed(
+                                format!("Invalid question ID {} in Finish message.", answer_id)));
+                        }
+                        Some(answer) => {
+                            //  TODO...
+                        }
+                    }
+                    BorrowWorkaround::Done
                 }
                 message::Resolve(_) => {
                     unimplemented!()
@@ -518,7 +533,7 @@ impl <VatId> ConnectionState<VatId> {
                         format!("Received a new call on in-use question id {}", question_id)));
                 }
 
-                let answer = Answer::<VatId>::new();
+                let mut answer = Answer::<VatId>::new();
 
                 let params = Params::new(message, cap_table_array);
                 let results = Results::new(&connection_state, question_id);
@@ -531,14 +546,7 @@ impl <VatId> ConnectionState<VatId> {
 
 
                 connection_state.add_task(promise.map(|_| Ok(())));
-                //let send_promise = promise.then(|results| {
-                //    results.send_return();
-                //    Promise::ok(())
-                //});
-                //connection_state.add_task(send_promise);
-                // XXX There's a lot more we need to do here.
-
-
+                connection_state.answers.borrow_mut().slots.insert(question_id, answer);
             }
             BorrowWorkaround::ReturnResults(question_ref, cap_table) => {
                 let response = Response::new(connection_state, question_ref.clone(), message, cap_table);
