@@ -916,7 +916,9 @@ impl <VatId> Request<VatId> where VatId: 'static {
             &mut None => unreachable!(),
         }
 
-        let promise = promise.attach(question_ref.clone());
+        // TODO: capnproto-c++ seems to get away with not attaching cap_table here.
+        // what gives?
+        let promise = promise.attach(question_ref.clone()).attach(cap_table);
 
         (question_ref, promise)
     }
