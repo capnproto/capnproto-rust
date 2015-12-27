@@ -182,7 +182,6 @@ pub fn main() {
             let multiply_result = request.send().pipeline.get_value();
 
             // Use the result in two calls that add 3 and add 5.
-
             let mut add3_request = calculator.evaluate_request();
             {
                 let mut add3_call = add3_request.get().init_expression().init_call();

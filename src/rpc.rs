@@ -143,15 +143,15 @@ impl <VatId> Question<VatId> {
 /// A reference to an entry on the question table.  Used to detect when the `Finish` message
 /// can be sent.
 struct QuestionRef<VatId> where VatId: 'static {
-    //_connection_state: Rc<ConnectionState<VatId>>,
+    connection_state: Rc<ConnectionState<VatId>>,
     id: QuestionId,
     fulfiller: Option<::gj::PromiseFulfiller<Response<VatId>, Error>>,
 }
 
 impl <VatId> QuestionRef<VatId> {
-    fn new(_state: Rc<ConnectionState<VatId>>, id: QuestionId,
+    fn new(state: Rc<ConnectionState<VatId>>, id: QuestionId,
            fulfiller: ::gj::PromiseFulfiller<Response<VatId>, Error>) -> QuestionRef<VatId> {
-        QuestionRef { /*_connection_state: state,*/ id: id, fulfiller: Some(fulfiller) }
+        QuestionRef { connection_state: state, id: id, fulfiller: Some(fulfiller) }
     }
     fn fulfill(&mut self, response: Response<VatId>) {
         let fulfiller = ::std::mem::replace(&mut self.fulfiller, None);
@@ -165,7 +165,15 @@ impl <VatId> QuestionRef<VatId> {
 
 impl <VatId> Drop for QuestionRef<VatId> {
     fn drop(&mut self) {
-        // TODO send the Finish message.
+        match &mut self.connection_state.questions.borrow_mut().slots[self.id as usize] {
+            &mut Some(ref mut q) => {
+                q.self_ref = None;
+            }
+            &mut None => {
+                unreachable!()
+            }
+        }
+         // TODO send the Finish message.
     }
 }
 
@@ -457,7 +465,14 @@ impl <VatId> ConnectionState<VatId> {
                                     }
                                 }
                                 &None => {
-                                    unimplemented!()
+                                    match try!(ret.which()) {
+                                        return_::TakeFromOtherQuestion(_) => {
+                                            unimplemented!()
+                                        }
+                                        _ => {}
+                                    }
+                                    // TODO erase from questions table.
+                                    BorrowWorkaround::Done
                                 }
                             }
                         }
@@ -916,9 +931,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
             &mut None => unreachable!(),
         }
 
-        // TODO: capnproto-c++ seems to get away with not attaching cap_table here.
-        // what gives?
-        let promise = promise.attach(question_ref.clone()).attach(cap_table);
+        let promise = promise.attach(question_ref.clone());
 
         (question_ref, promise)
     }
