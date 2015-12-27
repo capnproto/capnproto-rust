@@ -130,7 +130,7 @@ struct Question<VatId> where VatId: 'static {
     is_tail_call: bool,
 
     /// The local QuestionRef, set to None when it is destroyed.
-    self_ref: Option<Rc<RefCell<QuestionRef<VatId>>>>
+    self_ref: Option<Weak<RefCell<QuestionRef<VatId>>>>
 }
 
 impl <VatId> Question<VatId> {
@@ -332,9 +332,10 @@ impl <VatId> ConnectionState<VatId> {
 
         let (promise, fulfiller) = Promise::and_fulfiller();
         let question_ref = Rc::new(RefCell::new(QuestionRef::new(state.clone(), question_id, fulfiller)));
+        let promise = promise.attach(question_ref.clone());
         match &mut state.questions.borrow_mut().slots[question_id as usize] {
             &mut Some(ref mut q) => {
-                q.self_ref = Some(question_ref.clone());
+                q.self_ref = Some(Rc::downgrade(&question_ref));
             }
             &mut None => unreachable!(),
         }
@@ -432,12 +433,13 @@ impl <VatId> ConnectionState<VatId> {
                                             let cap_table =
                                                 ConnectionState::receive_caps(connection_state1,
                                                                               try!(try!(results).get_cap_table()));
-                                            BorrowWorkaround::ReturnResults(question_ref.clone(),
+                                            BorrowWorkaround::ReturnResults(question_ref.upgrade()
+                                                                            .expect("dangling question ref?"),
                                                                             try!(cap_table))
                                         }
                                         return_::Exception(e) => {
-                                            question_ref.borrow_mut().reject(
-                                                remote_exception_to_error(try!(e)));
+                                            let tmp = question_ref.upgrade().expect("dangling question ref?");
+                                            tmp.borrow_mut().reject(remote_exception_to_error(try!(e)));
                                             BorrowWorkaround::Done
                                         }
                                         return_::Canceled(_) => {
@@ -549,7 +551,9 @@ impl <VatId> ConnectionState<VatId> {
                 connection_state.answers.borrow_mut().slots.insert(question_id, answer);
             }
             BorrowWorkaround::ReturnResults(question_ref, cap_table) => {
-                let response = Response::new(connection_state, question_ref.clone(), message, cap_table);
+                let response = Response::new(connection_state,
+                                             question_ref.clone(),
+                                             message, cap_table);
                 question_ref.borrow_mut().fulfill(response);
             }
             BorrowWorkaround::Done => {}
@@ -891,7 +895,6 @@ impl <VatId> Request<VatId> where VatId: 'static {
         question.is_tail_call = is_tail_call;
 
         let question_id = connection_state.questions.borrow_mut().push(question);
-
         {
             let mut call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
             // Finish and send.
@@ -901,7 +904,6 @@ impl <VatId> Request<VatId> where VatId: 'static {
             }
         }
         let _ = message.send();
-
         // Make the result promise.
         let (promise, fulfiller) = Promise::and_fulfiller();
         let question_ref = Rc::new(RefCell::new(
@@ -909,13 +911,12 @@ impl <VatId> Request<VatId> where VatId: 'static {
 
         match &mut connection_state.questions.borrow_mut().slots[question_id as usize] {
             &mut Some(ref mut q) => {
-                q.self_ref = Some(question_ref.clone());
+                q.self_ref = Some(Rc::downgrade(&question_ref));
             }
             &mut None => unreachable!(),
         }
 
-        // TODO attach?
-        //result.promise = paf.promise.attach(kj::addRef(*result.questionRef));
+        let promise = promise.attach(question_ref.clone());
 
         (question_ref, promise)
     }
@@ -935,7 +936,6 @@ impl <VatId> RequestHook for Request<VatId> {
             let call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
             target.write_target(call_builder.get_target().unwrap())
         };
-
         match write_target_result {
             Some(_redirect) => {
                 // Whoops, this capability has been redirected while we were building the request!
@@ -946,7 +946,6 @@ impl <VatId> RequestHook for Request<VatId> {
                 let (question_ref, promise) =
                     Request::send_internal(connection_state.clone(), message, cap_table, false);
                 let mut forked_promise = promise.fork();
-
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
                 let pipeline = Pipeline::new(connection_state, question_ref,
                                              Some(forked_promise.add_branch()));
