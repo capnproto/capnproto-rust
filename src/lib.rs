@@ -24,6 +24,9 @@ extern crate capnp;
 extern crate gj;
 extern crate capnp_gj;
 
+use gj::Promise;
+use capnp::Error;
+
 pub mod rpc_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_capnp.rs"));
 }
@@ -57,9 +60,11 @@ pub trait Connection<VatId> {
 
     /// Waits for a message to be received and returns it.  If the read stream cleanly terminates,
     /// returns None. If any other problem occurs, returns an Error.
-    fn receive_incoming_message(&mut self) -> ::gj::Promise<Option<Box<IncomingMessage>>, ::capnp::Error>;
+    fn receive_incoming_message(&mut self) -> Promise<Option<Box<IncomingMessage>>, Error>;
 
-    fn shutdown(&mut self);
+    // Waits until all outgoing messages have been sent, then shuts down the outgoing stream. The
+    // returned promise resolves after shutdown is complete.
+    fn shutdown(&mut self) -> Promise<(), Error>;
 }
 
 pub trait VatNetwork<VatId> {

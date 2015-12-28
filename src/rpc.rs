@@ -36,26 +36,51 @@ use std::rc::{Rc, Weak};
 use rpc_capnp::{message, return_, cap_descriptor};
 
 
+pub struct SystemTaskReaper;
+impl ::gj::TaskReaper<(), Error> for SystemTaskReaper {
+    fn task_failed(&mut self, error: Error) {
+        println!("ERROR: {}", error);
+    }
+}
+
 pub struct System<VatId> where VatId: 'static {
     network: Box<::VatNetwork<VatId>>,
-    connection_state: Option<Rc<ConnectionState<VatId>>>,
+
+    // XXX To handle three or more party networks, this should be a map from connection pointers
+    // to connection states.
+    connection_state: Rc<RefCell<Option<Rc<ConnectionState<VatId>>>>>,
+
+    tasks: ::gj::TaskSet<(), Error>,
 }
 
 impl <VatId> System <VatId> {
     pub fn new(network: Box<::VatNetwork<VatId>>,
                _bootstrap_interface: Option<::capnp::capability::Client>) -> System<VatId> {
-        System { network: network, connection_state: None }
+        System {
+            network: network,
+            connection_state: Rc::new(RefCell::new(None)),
+            tasks: ::gj::TaskSet::new(Box::new(SystemTaskReaper)),
+        }
     }
 
-    /// Connects to the given vat and return its bootstrap interface.
+    /// Connects to the given vat and returns its bootstrap interface.
     pub fn bootstrap(&mut self, vat_id: VatId) -> ::capnp::capability::Client {
         let connection = match self.network.connect(vat_id) {
             Some(connection) => connection,
             None => unimplemented!(),
         };
-        let connection_state = ConnectionState::new(connection);
+        let (on_disconnect_promise, on_disconnect_fulfiller) = Promise::and_fulfiller();
+
+        let connection_state_ref = self.connection_state.clone();
+        self.tasks.add(on_disconnect_promise.then(move |shutdown_promise| {
+            println!("on disconnect promise executing");
+            *connection_state_ref.borrow_mut() = None;
+            shutdown_promise
+        }));
+
+        let connection_state = ConnectionState::new(connection, on_disconnect_fulfiller);
         let hook = ConnectionState::bootstrap(connection_state.clone());
-        self.connection_state = Some(connection_state);
+        *self.connection_state.borrow_mut() = Some(connection_state);
         ::capnp::capability::Client::new(hook)
     }
 }
@@ -166,12 +191,22 @@ impl <VatId> QuestionRef<VatId> {
         QuestionRef { connection_state: state, id: id, fulfiller: Some(fulfiller) }
     }
     fn fulfill(&mut self, response: Response<VatId>) {
-        let fulfiller = ::std::mem::replace(&mut self.fulfiller, None);
-        fulfiller.expect("no fulfiller?").fulfill(response);
+        let maybe_fulfiller = ::std::mem::replace(&mut self.fulfiller, None);
+        match maybe_fulfiller {
+            Some(fulfiller) => {
+                fulfiller.fulfill(response);
+            }
+            None => (),
+        }
     }
     fn reject(&mut self, err: Error) {
-        let fulfiller = ::std::mem::replace(&mut self.fulfiller, None);
-        fulfiller.expect("no fulfiller?").reject(err);
+        let maybe_fulfiller = ::std::mem::replace(&mut self.fulfiller, None);
+        match maybe_fulfiller {
+            Some(fulfiller) => {
+                fulfiller.reject(err);
+            }
+            None => (),
+        }
     }
 }
 
@@ -326,7 +361,6 @@ impl <VatId> ConnectionErrorHandler<VatId> {
 
 impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<VatId> {
     fn task_failed(&mut self, error: ::capnp::Error) {
-//        println!("task failed! {}", error);
         match self.weak_state.upgrade() {
             Some(state) => state.disconnect(error),
             None => {}
@@ -344,10 +378,15 @@ struct ConnectionState<VatId> where VatId: 'static {
 
     tasks: RefCell<Option<::gj::TaskSet<(), ::capnp::Error>>>,
     connection: RefCell<::std::result::Result<Box<::Connection<VatId>>, ::capnp::Error>>,
+    disconnect_fulfiller: RefCell<Option<::gj::PromiseFulfiller<Promise<(), Error>, Error>>>,
 }
 
 impl <VatId> ConnectionState<VatId> {
-    fn new(connection: Box<::Connection<VatId>>) -> Rc<ConnectionState<VatId>> {
+    fn new(connection: Box<::Connection<VatId>>,
+           disconnect_fulfiller: ::gj::PromiseFulfiller<Promise<(), Error>, Error>
+           )
+           -> Rc<ConnectionState<VatId>>
+    {
         let state = Rc::new(ConnectionState {
             exports: RefCell::new(ExportTable::new()),
             questions: RefCell::new(ExportTable::new()),
@@ -355,7 +394,8 @@ impl <VatId> ConnectionState<VatId> {
             imports: RefCell::new(ImportTable::new()),
             exports_by_cap: RefCell::new(HashMap::new()),
             tasks: RefCell::new(None),
-            connection: RefCell::new(Ok(connection))
+            connection: RefCell::new(Ok(connection)),
+            disconnect_fulfiller: RefCell::new(Some(disconnect_fulfiller)),
         });
         let mut task_set = ::gj::TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))));
         task_set.add(ConnectionState::message_loop(Rc::downgrade(&state)));
@@ -363,13 +403,39 @@ impl <VatId> ConnectionState<VatId> {
         state
     }
 
-    fn disconnect(&self, _error: ::capnp::Error) {
+    fn disconnect(&self, error: ::capnp::Error) {
         if self.connection.borrow().is_err() {
             // Already disconnected.
             return;
         }
 
-        // TODO ...
+        // TODO ... release everything in the four tables.
+
+        match &mut *self.connection.borrow_mut() {
+            &mut Ok(ref mut c) => {
+                let mut message = c.new_outgoing_message(100); // TODO estimate size
+                {
+                    let mut builder = message.get_body().unwrap().init_as::<message::Builder>().init_abort();
+                }
+                let _ = message.send();
+            }
+            &mut Err(_) => unreachable!(),
+        }
+
+        let connection = ::std::mem::replace(&mut *self.connection.borrow_mut(), Err(error));
+        match connection {
+            Ok(mut c) => {
+                let promise = c.shutdown();
+                let maybe_fulfiller = ::std::mem::replace(&mut *self.disconnect_fulfiller.borrow_mut(), None);
+                match maybe_fulfiller {
+                    None => unreachable!(),
+                    Some(fulfiller) => {
+                        fulfiller.fulfill(promise.attach(c));
+                    }
+                }
+            }
+            Err(_) => unreachable!(),
+        }
     }
 
     fn add_task(&self, task: Promise<(), Error>) {

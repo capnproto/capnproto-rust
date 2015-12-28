@@ -81,7 +81,7 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gj::io::AsyncWrite 
 
 pub struct Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
     input_stream: Rc<RefCell<Option<T>>>,
-    write_queue: Rc<RefCell<::gj::Promise<U, ::capnp::Error>>>,
+    write_queue: Rc<RefCell<Promise<U, ::capnp::Error>>>,
     receive_options: ReaderOptions,
 }
 
@@ -107,7 +107,7 @@ impl <T, U> ::Connection<VatId> for Connection<T, U>
         })
     }
 
-    fn receive_incoming_message(&mut self) -> ::gj::Promise<Option<Box<::IncomingMessage>>, ::capnp::Error> {
+    fn receive_incoming_message(&mut self) -> Promise<Option<Box<::IncomingMessage>>, ::capnp::Error> {
         self.receive_options;
         let maybe_input_stream = ::std::mem::replace(&mut *self.input_stream.borrow_mut(), None);
         let return_it_here = self.input_stream.clone();
@@ -123,8 +123,9 @@ impl <T, U> ::Connection<VatId> for Connection<T, U>
         }
     }
 
-    fn shutdown(&mut self) {
-        unimplemented!()
+    fn shutdown(&mut self) -> Promise<(), ::capnp::Error> {
+        let write_queue = ::std::mem::replace(&mut *self.write_queue.borrow_mut(), Promise::never_done());
+        write_queue.map(|_| Ok(()))
     }
 }
 
