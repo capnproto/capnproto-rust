@@ -105,7 +105,7 @@ impl <T> ExportTable<T> {
                       free_ids : BinaryHeap::new() }
     }
 
-    pub fn erase(&mut self, id : u32) {
+    pub fn erase(&mut self, id: u32) {
         self.slots[id as usize] = None;
         self.free_ids.push(ReverseU32 { val : id } );
     }
@@ -165,15 +165,51 @@ impl <VatId> QuestionRef<VatId> {
 
 impl <VatId> Drop for QuestionRef<VatId> {
     fn drop(&mut self) {
-        match &mut self.connection_state.questions.borrow_mut().slots[self.id as usize] {
+        enum BorrowWorkaround {
+            EraseQuestion(QuestionId),
+            Done,
+        }
+        let bw = match &mut self.connection_state.questions.borrow_mut().slots[self.id as usize] {
             &mut Some(ref mut q) => {
-                q.self_ref = None;
+                match &mut *self.connection_state.connection.borrow_mut() {
+                    &mut Ok(ref mut c) => {
+                        let mut message = c.new_outgoing_message(100); // XXX size hint
+                        {
+                            let root: message::Builder = message.get_body().unwrap().init_as();
+                            let mut builder = root.init_finish();
+                            builder.set_question_id(self.id);
+
+                            // If we're still awaiting a return, then this request is being
+                            // canceled, and we're going to ignore any capabilities in the return
+                            // message, so set releaseResultCaps true. If we already received the
+                            // return, then we've already built local proxies for the caps and will
+                            // send Release messages when those are destroyed.
+                            builder.set_release_result_caps(q.is_awaiting_return);
+                        }
+                        let _ = message.send();
+                    }
+                    &mut Err(_) => {}
+                }
+
+                if q.is_awaiting_return {
+                    // Still waiting for return, so just remove the QuestionRef pointer from the table.
+                    q.self_ref = None;
+                    BorrowWorkaround::Done
+                } else {
+                    // Call has already returned, so we can now remove it from the table.
+                    BorrowWorkaround::EraseQuestion(self.id)
+                }
             }
             &mut None => {
                 unreachable!()
             }
+        };
+        match bw {
+            BorrowWorkaround::EraseQuestion(id) => {
+                self.connection_state.questions.borrow_mut().erase(id);
+            }
+            BorrowWorkaround::Done => {}
         }
-         // TODO send the Finish message.
     }
 }
 
@@ -503,8 +539,10 @@ impl <VatId> ConnectionState<VatId> {
                 message::Resolve(_) => {
                     unimplemented!()
                 }
-                message::Release(_) => {
-                    unimplemented!()
+                message::Release(release) => {
+                    let _release = try!(release);
+                    // TODO
+                    BorrowWorkaround::Done
                 }
                 message::Disembargo(_) => {
                     unimplemented!()
