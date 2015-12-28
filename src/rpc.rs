@@ -455,13 +455,14 @@ impl <VatId> ConnectionState<VatId> {
                 }
             }
         }
-        // TODO ... release everything in the four tables.
+        // TODO ... release everything in the other tables too.
 
         match &mut *self.connection.borrow_mut() {
             &mut Ok(ref mut c) => {
                 let mut message = c.new_outgoing_message(100); // TODO estimate size
                 {
                     let mut builder = message.get_body().unwrap().init_as::<message::Builder>().init_abort();
+                    // TODO write the variant and description.
                 }
                 let _ = message.send();
             }
@@ -1419,7 +1420,6 @@ enum ClientVariant<VatId> where VatId: 'static {
     Import(Rc<RefCell<ImportClient<VatId>>>),
     Pipeline(Rc<RefCell<PipelineClient<VatId>>>),
     Promise(Rc<RefCell<PromiseClient<VatId>>>),
-    __Broken(()),
     __NoIntercept(()),
 }
 
@@ -1531,8 +1531,8 @@ impl <VatId> PromiseClient<VatId> {
                     this.borrow_mut().resolve(v, false);
                     Ok(())
                 }
-                Err(_) => {
-                    this.borrow_mut().resolve(unimplemented!(), true);
+                Err(e) => {
+                    this.borrow_mut().resolve(new_broken_cap(e), true);
                     Err(())
                 }
             }
@@ -1850,7 +1850,6 @@ impl LocalClient {
     }
 }
 
-
 impl Clone for LocalClient {
     fn clone(&self) -> LocalClient {
         LocalClient { inner: self.inner.clone() }
@@ -1927,3 +1926,71 @@ impl ClientHook for LocalClient {
     }
 }
 
+struct BrokenClientInner {
+    exception: Error,
+    resolved: bool,
+    brand: usize,
+}
+
+struct BrokenClient {
+    inner: Rc<BrokenClientInner>,
+}
+
+impl BrokenClient {
+    fn new(exception: Error, resolved: bool, brand: usize) -> BrokenClient {
+        BrokenClient {
+            inner: Rc::new(BrokenClientInner {
+                exception: exception,
+                resolved: resolved,
+                brand: brand,
+            }),
+        }
+    }
+}
+
+impl ClientHook for BrokenClient {
+    fn add_ref(&self) -> Box<ClientHook> {
+        unimplemented!()
+    }
+    fn new_call(&self, _interface_id: u64, _method_id: u16,
+                _size_hint: Option<::capnp::MessageSize>)
+                -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
+    {
+        unimplemented!()
+    }
+
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
+        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+    {
+        unimplemented!()
+    }
+
+    fn get_ptr(&self) -> usize {
+        unimplemented!()
+    }
+
+    fn get_brand(&self) -> usize {
+        self.inner.brand
+    }
+
+    fn write_target(&self, _target: any_pointer::Builder) -> Option<Box<ClientHook>>
+    {
+        unimplemented!()
+    }
+
+    fn write_descriptor(&self, _descriptor: any_pointer::Builder) -> Option<u32> {
+        unimplemented!()
+    }
+
+    fn get_resolved(&self) -> Option<Box<ClientHook>> {
+        None
+    }
+
+    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
+        None
+    }
+}
+
+fn new_broken_cap(exception: Error) -> Box<ClientHook> {
+    Box::new(BrokenClient::new(exception, false, 0))
+}
