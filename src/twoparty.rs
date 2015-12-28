@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use capnp::message::ReaderOptions;
-use gj::Promise;
+use gj::{ForkedPromise, Promise, PromiseFulfiller};
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -131,11 +131,34 @@ impl <T, U> ::Connection<VatId> for Connection<T, U>
 
 pub struct VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
     connection: Option<Connection<T,U>>,
+    on_disconnect_promise: ForkedPromise<(), ::capnp::Error>,
+    on_disconnect_fulfiller: Option<PromiseFulfiller<(), ::capnp::Error>>,
 }
 
 impl <T, U> VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
     pub fn new(input_stream: T, output_stream: U, receive_options: ReaderOptions) -> VatNetwork<T, U> {
-        VatNetwork { connection: Some(Connection::new(input_stream, output_stream, receive_options)) }
+        let (promise, fulfiller) = Promise::and_fulfiller();
+        VatNetwork {
+            connection: Some(Connection::new(input_stream, output_stream, receive_options)),
+            on_disconnect_promise: promise.fork(),
+            on_disconnect_fulfiller: Some(fulfiller),
+        }
+    }
+
+    pub fn on_disconnect(&mut self) -> Promise<(), ::capnp::Error> {
+        self.on_disconnect_promise.add_branch()
+    }
+}
+
+impl <T, U> Drop for VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
+    fn drop(&mut self) {
+        let maybe_fulfiller = ::std::mem::replace(&mut self.on_disconnect_fulfiller, None);
+        match maybe_fulfiller {
+            Some(fulfiller) => {
+                fulfiller.fulfill(());
+            }
+            None => unreachable!(),
+        }
     }
 }
 

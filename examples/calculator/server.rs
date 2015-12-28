@@ -19,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capnp::capability::{Server};
 use capnp::Error;
 use capnp::primitive_list;
 
@@ -27,7 +26,7 @@ use capnp_rpc::rpc::{LocalClient};
 use capnp_rpc::twoparty;
 
 use calculator_capnp::calculator;
-use gj::{EventLoop, Promise};
+use gj::{EventLoop, Promise, TaskReaper, TaskSet};
 use gj::io::tcp;
 
 struct ValueImpl {
@@ -197,14 +196,26 @@ impl calculator::Server for CalculatorImpl {
     }
 }
 
-pub fn accept_loop(listener: tcp::Listener) -> Promise<(), Error> {
+pub fn accept_loop(listener: tcp::Listener,
+                   mut task_set: TaskSet<(), Box<::std::error::Error>>,
+                   )
+                   -> Promise<(), Error>
+{
     unimplemented!()
 /*    listener.accept().then(move |(listener, stream)| {
         let stream2 = pry!(stream.try_clone().map_err(|e| e.into() ));
         let connection: Box<::capnp_rpc::VatNetwork<twoparty::VatId>> =
             Box::new(twoparty::VatNetwork::new(stream, stream2, Default::default()));
-        accept_loop(listener)
+        accept_loop(listener, task_set)
     }) */
+}
+
+struct Reaper;
+
+impl TaskReaper<(), Box<::std::error::Error>> for Reaper {
+    fn task_failed(&mut self, error: Box<::std::error::Error>) {
+        println!("Task failed: {}", error);
+    }
 }
 
 pub fn main() {
@@ -219,7 +230,8 @@ pub fn main() {
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
         let listener = try!(tcp::Listener::bind(addr));
 
-        try!(accept_loop(listener).wait(wait_scope));
+        let task_set = TaskSet::new(Box::new(Reaper));
+        try!(accept_loop(listener, task_set).wait(wait_scope));
 
         Ok(())
     }).expect("top level error");
