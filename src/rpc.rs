@@ -93,10 +93,10 @@ impl ::std::cmp::PartialOrd for ReverseU32 {
 }
 
 pub struct ExportTable<T> {
-    slots : Vec<Option<T>>,
+    slots: Vec<Option<T>>,
 
     // prioritize lower values
-    free_ids : BinaryHeap<ReverseU32>,
+    free_ids: BinaryHeap<ReverseU32>,
 }
 
 impl <T> ExportTable<T> {
@@ -120,6 +120,18 @@ impl <T> ExportTable<T> {
                 self.slots.push(Some(val));
                 self.slots.len() as u32 - 1
             }
+        }
+    }
+
+    pub fn find<'a>(&'a mut self, id: u32) -> Option<&'a mut T> {
+        let idx = id as usize;
+        if idx < self.slots.len() {
+            match &mut self.slots[idx] {
+                &mut Some(ref mut v) => Some(v),
+                &mut None => None,
+            }
+        } else {
+            None
         }
     }
 }
@@ -246,7 +258,7 @@ impl <VatId> Answer<VatId> {
 }
 
 pub struct Export {
-    _ref_count: usize,
+    refcount: u32,
     client_hook: Box<ClientHook>,
 
     // If this export is a promise (not a settled capability), the `resolve_op` represents the
@@ -257,7 +269,7 @@ pub struct Export {
 impl Export {
     fn new(client_hook: Box<ClientHook>) -> Export {
         Export {
-            _ref_count: 1,
+            refcount: 1,
             client_hook: client_hook,
             _resolve_op: Promise::ok(()),
         }
@@ -540,8 +552,8 @@ impl <VatId> ConnectionState<VatId> {
                     unimplemented!()
                 }
                 message::Release(release) => {
-                    let _release = try!(release);
-                    // TODO
+                    let release = try!(release);
+                    try!(connection_state.release_export(release.get_id(), release.get_reference_count()));
                     BorrowWorkaround::Done
                 }
                 message::Disembargo(_) => {
@@ -610,6 +622,29 @@ impl <VatId> ConnectionState<VatId> {
                 question_ref.borrow_mut().fulfill(response);
             }
             BorrowWorkaround::Done => {}
+        }
+        Ok(())
+    }
+
+    fn release_export(&self, id: ExportId, refcount: u32) -> ::capnp::Result<()> {
+        let mut erase_export = false;
+        match self.exports.borrow_mut().find(id) {
+            Some(e) => {
+                if refcount > e.refcount {
+                    return Err(Error::failed("Tried to drop export's refcount below zero.".to_string()));
+                } else {
+                    e.refcount -= refcount;
+                    if e.refcount == 0 {
+                        erase_export = true;
+                    }
+                }
+            }
+            None => {
+                return Err(Error::failed("Tried to release invalid export ID.".to_string()));
+            }
+        }
+        if erase_export {
+            self.exports.borrow_mut().erase(id);
         }
         Ok(())
     }
@@ -1167,6 +1202,7 @@ impl <VatId> Results<VatId> where VatId: 'static {
             let root: message::Builder = message.get_body().unwrap().init_as();
             let mut ret = root.init_return();
             ret.set_answer_id(answer_id);
+            ret.set_release_param_caps(false);
         }
 
         Results {
