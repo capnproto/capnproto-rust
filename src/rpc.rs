@@ -25,7 +25,7 @@ use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineO
                                  RequestHook, ResponseHook, ResultsHook, ResultsDoneHook,
                                  ServerHook};
 
-use gj::Promise;
+use gj::{Promise, PromiseFulfiller};
 
 use std::vec::Vec;
 use std::collections::hash_map::HashMap;
@@ -73,7 +73,6 @@ impl <VatId> System <VatId> {
 
         let connection_state_ref = self.connection_state.clone();
         self.tasks.add(on_disconnect_promise.then(move |shutdown_promise| {
-            println!("on disconnect promise executing");
             *connection_state_ref.borrow_mut() = None;
             shutdown_promise
         }));
@@ -101,10 +100,10 @@ impl <T> ImportTable<T> {
 }
 
 #[derive(PartialEq, Eq)]
-struct ReverseU32 { val : u32 }
+struct ReverseU32 { val: u32 }
 
 impl ::std::cmp::Ord for ReverseU32 {
-    fn cmp(&self, other : &ReverseU32) -> ::std::cmp::Ordering {
+    fn cmp(&self, other: &ReverseU32) -> ::std::cmp::Ordering {
         if self.val > other.val { ::std::cmp::Ordering::Less }
         else if self.val < other.val { ::std::cmp::Ordering::Greater }
         else { ::std::cmp::Ordering::Equal }
@@ -112,32 +111,56 @@ impl ::std::cmp::Ord for ReverseU32 {
 }
 
 impl ::std::cmp::PartialOrd for ReverseU32 {
-    fn partial_cmp(&self, other : &ReverseU32) -> Option<::std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &ReverseU32) -> Option<::std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-pub struct ExportTable<T> {
+struct ExportTable<T> {
     slots: Vec<Option<T>>,
 
     // prioritize lower values
     free_ids: BinaryHeap<ReverseU32>,
 }
 
+struct ExportTableIter<'a, T> where T: 'a {
+    table: &'a ExportTable<T>,
+    idx: usize,
+}
+
+impl <'a, T> ::std::iter::Iterator for ExportTableIter<'a, T> where T: 'a{
+    type Item = &'a T;
+    fn next(&mut self) -> Option<&'a T> {
+        while self.idx < self.table.slots.len() {
+            let idx = self.idx;
+            self.idx += 1;
+            match &self.table.slots[idx] {
+                &Some(ref v) => {
+                    return Some(v)
+                }
+                _ => {
+
+                }
+            }
+        }
+        None
+    }
+}
+
 impl <T> ExportTable<T> {
     pub fn new() -> ExportTable<T> {
-        ExportTable { slots : Vec::new(),
-                      free_ids : BinaryHeap::new() }
+        ExportTable { slots: Vec::new(),
+                      free_ids: BinaryHeap::new() }
     }
 
     pub fn erase(&mut self, id: u32) {
         self.slots[id as usize] = None;
-        self.free_ids.push(ReverseU32 { val : id } );
+        self.free_ids.push(ReverseU32 { val: id } );
     }
 
     pub fn push(&mut self, val: T) -> u32 {
         match self.free_ids.pop() {
-            Some(ReverseU32 { val : id }) => {
+            Some(ReverseU32 { val: id }) => {
                 self.slots[id as usize] = Some(val);
                 id
             }
@@ -157,6 +180,13 @@ impl <T> ExportTable<T> {
             }
         } else {
             None
+        }
+    }
+
+    pub fn iter<'a>(&'a self) -> ExportTableIter<'a, T> {
+        ExportTableIter {
+            table: self,
+            idx: 0
         }
     }
 }
@@ -182,7 +212,7 @@ impl <VatId> Question<VatId> {
 struct QuestionRef<VatId> where VatId: 'static {
     connection_state: Rc<ConnectionState<VatId>>,
     id: QuestionId,
-    fulfiller: Option<::gj::PromiseFulfiller<Response<VatId>, Error>>,
+    fulfiller: Option<PromiseFulfiller<Response<VatId>, Error>>,
 }
 
 impl <VatId> QuestionRef<VatId> {
@@ -409,6 +439,22 @@ impl <VatId> ConnectionState<VatId> {
             return;
         }
 
+        for q in self.questions.borrow().iter() {
+            match &q.self_ref {
+                &Some(ref weak_question_ref) => {
+                    match weak_question_ref.upgrade() {
+                        Some(question_ref) => {
+                            question_ref.borrow_mut().reject(error.clone());
+                        }
+                        None => {
+
+                        }
+                    }
+                }
+                _ => {
+                }
+            }
+        }
         // TODO ... release everything in the four tables.
 
         match &mut *self.connection.borrow_mut() {
