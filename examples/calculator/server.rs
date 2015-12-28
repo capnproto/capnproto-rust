@@ -24,9 +24,11 @@ use capnp::Error;
 use capnp::primitive_list;
 
 use capnp_rpc::rpc::{LocalClient};
+use capnp_rpc::twoparty;
 
 use calculator_capnp::calculator;
-use gj::Promise;
+use gj::{EventLoop, Promise};
+use gj::io::tcp;
 
 struct ValueImpl {
     value: f64
@@ -195,12 +197,32 @@ impl calculator::Server for CalculatorImpl {
     }
 }
 
+pub fn accept_loop(listener: tcp::Listener) -> Promise<(), Error> {
+    unimplemented!()
+/*    listener.accept().then(move |(listener, stream)| {
+        let stream2 = pry!(stream.try_clone().map_err(|e| e.into() ));
+        let connection: Box<::capnp_rpc::VatNetwork<twoparty::VatId>> =
+            Box::new(twoparty::VatNetwork::new(stream, stream2, Default::default()));
+        accept_loop(listener)
+    }) */
+}
+
 pub fn main() {
     let args : Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} server ADDRESS[:PORT]", args[0]);
         return;
     }
+
+    EventLoop::top_level(move |wait_scope| {
+        use std::net::ToSocketAddrs;
+        let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
+        let listener = try!(tcp::Listener::bind(addr));
+
+        try!(accept_loop(listener).wait(wait_scope));
+
+        Ok(())
+    }).expect("top level error");
 
     //let rpc_server = EzRpcServer::new(&*args[2]).unwrap();
 
