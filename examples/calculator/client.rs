@@ -64,7 +64,7 @@ pub fn main() {
         };
 
         {
-//            println!("Evaluating a literal...");
+            println!("Evaluating a literal...");
             let mut request = calculator.evaluate_request();
             request.get().init_expression().set_literal(11.0);
             request.send().promise.then(|response| {

@@ -22,7 +22,8 @@
 use capnp::Error;
 use capnp::primitive_list;
 
-use capnp_rpc::rpc::{LocalClient};
+use capnp_rpc::rpc;
+use capnp_rpc::rpc::LocalClient;
 use capnp_rpc::twoparty;
 
 use calculator_capnp::calculator;
@@ -198,16 +199,23 @@ impl calculator::Server for CalculatorImpl {
 
 pub fn accept_loop(listener: tcp::Listener,
                    mut task_set: TaskSet<(), Box<::std::error::Error>>,
+                   calc: calculator::Client,
                    )
-                   -> Promise<(), Error>
+                   -> Promise<(), ::std::io::Error>
 {
-    unimplemented!()
-/*    listener.accept().then(move |(listener, stream)| {
-        let stream2 = pry!(stream.try_clone().map_err(|e| e.into() ));
-        let connection: Box<::capnp_rpc::VatNetwork<twoparty::VatId>> =
-            Box::new(twoparty::VatNetwork::new(stream, stream2, Default::default()));
-        accept_loop(listener, task_set)
-    }) */
+    listener.accept().lift().then(move |(listener, stream)| {
+        let stream2 = stream.try_clone().unwrap();
+        let mut connection =
+            twoparty::VatNetwork::new(stream, stream2, Default::default());
+        let disconnect_promise = connection.on_disconnect();
+
+        // Should put in the calculator for the bootstrap.
+        let rpc_system = rpc::System::new(Box::new(connection), Some(calc.clone().client));
+
+
+        task_set.add(disconnect_promise.attach(rpc_system).lift());
+        accept_loop(listener, task_set, calc)
+    })
 }
 
 struct Reaper;
@@ -230,8 +238,12 @@ pub fn main() {
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
         let listener = try!(tcp::Listener::bind(addr));
 
+
+        let calc =
+            calculator::ToClient::new(CalculatorImpl).from_server::<LocalClient>();
+
         let task_set = TaskSet::new(Box::new(Reaper));
-        try!(accept_loop(listener, task_set).wait(wait_scope));
+        try!(accept_loop(listener, task_set, calc).wait(wait_scope));
 
         Ok(())
     }).expect("top level error");
