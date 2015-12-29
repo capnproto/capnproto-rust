@@ -205,13 +205,12 @@ pub fn accept_loop(listener: tcp::Listener,
 {
     listener.accept().lift().then(move |(listener, stream)| {
         let stream2 = stream.try_clone().unwrap();
-        let mut connection =
+        let mut network =
             twoparty::VatNetwork::new(stream, stream2, Default::default());
-        let disconnect_promise = connection.on_disconnect();
+        let disconnect_promise = network.on_disconnect();
 
         // Should put in the calculator for the bootstrap.
-        let rpc_system = rpc::System::new(Box::new(connection), Some(calc.clone().client));
-
+        let rpc_system = rpc::System::new(Box::new(network), Some(calc.clone().client));
 
         task_set.add(disconnect_promise.attach(rpc_system).lift());
         accept_loop(listener, task_set, calc)

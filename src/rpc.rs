@@ -69,6 +69,7 @@ impl <VatId> System <VatId> {
             Some(connection) => connection,
             None => unimplemented!(),
         };
+
         let (on_disconnect_promise, on_disconnect_fulfiller) = Promise::and_fulfiller();
 
         let connection_state_ref = self.connection_state.clone();
@@ -78,9 +79,25 @@ impl <VatId> System <VatId> {
         }));
 
         let connection_state = ConnectionState::new(connection, on_disconnect_fulfiller);
+
+
         let hook = ConnectionState::bootstrap(connection_state.clone());
         *self.connection_state.borrow_mut() = Some(connection_state);
         ::capnp::capability::Client::new(hook)
+    }
+
+    fn accept_loop(&mut self) -> Promise<(), Error> {
+        let connection_state_ref = self.connection_state.clone();
+//        self.network.accept().map(move |connection|{
+
+  //      })
+        unimplemented!()
+    }
+
+    fn get_connection_state(&mut self) -> Rc<ConnectionState<VatId>> {
+
+//        connection_state;
+        unimplemented!()
     }
 }
 

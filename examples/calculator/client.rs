@@ -67,14 +67,14 @@ pub fn main() {
             println!("Evaluating a literal...");
             let mut request = calculator.evaluate_request();
             request.get().init_expression().set_literal(11.0);
-            request.send().promise.then(|response| {
+            try!(request.send().promise.then(|response| {
                 let value = pry!(pry!(response.get()).get_value());
                 let request = value.read_request();
                 request.send().promise.then(|response|{
                     assert_eq!(pry!(response.get()).get_value(), 11.0);
                     Promise::ok(())
                 })
-            }).wait(wait_scope).unwrap();
+            }).wait(wait_scope));
             println!("PASS");
         }
 
@@ -84,10 +84,10 @@ pub fn main() {
             request.get().init_expression().set_literal(23.0);
             let value = request.send().pipeline.get_value();
             let request = value.read_request();
-            request.send().promise.then(|response|{
+            try!(request.send().promise.then(|response|{
                 assert_eq!(pry!(response.get()).get_value(), 23.0);
                 Promise::ok(())
-            }).wait(wait_scope).unwrap();
+            }).wait(wait_scope));
             println!("PASS");
         }
 
