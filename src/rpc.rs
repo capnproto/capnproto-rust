@@ -46,6 +46,8 @@ impl ::gj::TaskReaper<(), Error> for SystemTaskReaper {
 pub struct System<VatId> where VatId: 'static {
     network: Box<::VatNetwork<VatId>>,
 
+    bootstrap_cap: Box<ClientHook>,
+
     // XXX To handle three or more party networks, this should be a map from connection pointers
     // to connection states.
     connection_state: Rc<RefCell<Option<Rc<ConnectionState<VatId>>>>>,
@@ -55,9 +57,14 @@ pub struct System<VatId> where VatId: 'static {
 
 impl <VatId> System <VatId> {
     pub fn new(network: Box<::VatNetwork<VatId>>,
-               _bootstrap_interface: Option<::capnp::capability::Client>) -> System<VatId> {
+               bootstrap: Option<::capnp::capability::Client>) -> System<VatId> {
+        let bootstrap_cap = match bootstrap {
+            Some(cap) => cap.hook,
+            None => new_broken_cap(Error::failed("no bootstrap capabiity".to_string())),
+        };
         let mut result = System {
             network: network,
+            bootstrap_cap: bootstrap_cap,
             connection_state: Rc::new(RefCell::new(None)),
             tasks: Rc::new(RefCell::new(::gj::TaskSet::new(Box::new(SystemTaskReaper)))),
         };
@@ -74,6 +81,7 @@ impl <VatId> System <VatId> {
         };
         let connection_state =
             System::get_connection_state(self.connection_state.clone(),
+                                         self.bootstrap_cap.clone(),
                                          connection, self.tasks.clone());
 
         let hook = ConnectionState::bootstrap(connection_state.clone());
@@ -83,14 +91,17 @@ impl <VatId> System <VatId> {
     fn accept_loop(&mut self) -> Promise<(), Error> {
         let connection_state_ref = self.connection_state.clone();
         let tasks1 = self.tasks.clone();
+        let bootstrap_cap = self.bootstrap_cap.clone();
         self.network.accept().map(move |connection| {
             System::get_connection_state(connection_state_ref,
+                                         bootstrap_cap,
                                          connection, tasks1);
             Ok(())
         })
     }
 
     fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<ConnectionState<VatId>>>>>,
+                            bootstrap_cap: Box<ClientHook>,
                             connection: Box<::Connection<VatId>>,
                             tasks: Rc<RefCell<::gj::TaskSet<(), Error>>>)
                             -> Rc<ConnectionState<VatId>>
@@ -109,11 +120,31 @@ impl <VatId> System <VatId> {
                     *connection_state_ref1.borrow_mut() = None;
                     shutdown_promise
                 }));
-                ConnectionState::new(connection, on_disconnect_fulfiller)
+                ConnectionState::new(bootstrap_cap, connection, on_disconnect_fulfiller)
             }
         };
         *connection_state_ref.borrow_mut() = Some(result.clone());
         result
+    }
+}
+
+struct Defer<F> where F: FnOnce() {
+    deferred: Option<F>,
+}
+
+impl <F> Defer<F> where F: FnOnce() {
+    fn new(f: F) -> Defer<F> {
+        Defer {deferred: Some(f)}
+    }
+}
+
+impl <F> Drop for Defer<F> where F: FnOnce() {
+    fn drop(&mut self) {
+        let deferred = ::std::mem::replace(&mut self.deferred, None);
+        match deferred {
+            Some(f) => f(),
+            None => unreachable!(),
+        }
     }
 }
 
@@ -443,6 +474,7 @@ impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<Vat
 }
 
 struct ConnectionState<VatId> where VatId: 'static {
+    bootstrap_cap: Box<ClientHook>,
     exports: RefCell<ExportTable<Export>>,
     questions: RefCell<ExportTable<Question<VatId>>>,
     answers: RefCell<ImportTable<Answer<VatId>>>,
@@ -456,12 +488,14 @@ struct ConnectionState<VatId> where VatId: 'static {
 }
 
 impl <VatId> ConnectionState<VatId> {
-    fn new(connection: Box<::Connection<VatId>>,
+    fn new(bootstrap_cap: Box<ClientHook>,
+           connection: Box<::Connection<VatId>>,
            disconnect_fulfiller: ::gj::PromiseFulfiller<Promise<(), Error>, Error>
            )
            -> Rc<ConnectionState<VatId>>
     {
         let state = Rc::new(ConnectionState {
+            bootstrap_cap: bootstrap_cap,
             exports: RefCell::new(ExportTable::new()),
             questions: RefCell::new(ExportTable::new()),
             answers: RefCell::new(ImportTable::new()),
@@ -620,9 +654,42 @@ impl <VatId> ConnectionState<VatId> {
                     return Err(remote_exception_to_error(try!(abort)))
                 }
                 message::Bootstrap(bootstrap) => {
+                    use ::capnp::traits::ImbueMut;
+
                     let bootstrap = try!(bootstrap);
-                    let _answer_id = bootstrap.get_question_id();
-                    unimplemented!()
+                    let answer_id = bootstrap.get_question_id();
+
+                    if connection_state.connection.borrow().is_err() {
+                        // Disconnected; ignore.
+                        return Ok(());
+                    }
+
+                    let mut response = connection_state1.connection.borrow_mut().as_mut().expect("no connection?")
+                        .new_outgoing_message(50); // XXX size hint
+
+                    {
+                        let mut ret = try!(response.get_body()).init_as::<message::Builder>().init_return();
+                        ret.set_answer_id(answer_id);
+
+                        let cap = connection_state1.bootstrap_cap.clone();
+                        let mut cap_table = Vec::new();
+                        let mut payload = ret.init_results();
+                        {
+                            let mut content = payload.borrow().get_content();
+                            content.imbue_mut(&mut cap_table);
+                            content.set_as_capability(cap);
+                        }
+                        assert!(cap_table.len() == 1);
+
+                        ConnectionState::write_descriptors(&connection_state1, &cap_table,
+                                                           payload);
+                    }
+                    //let _deferred = Defer::new();
+
+                    // TODO write answer table
+
+                    let _ = response.send();
+                    BorrowWorkaround::Done
                 }
                 message::Call(call) => {
                     let call = try!(call);
@@ -806,6 +873,12 @@ impl <VatId> ConnectionState<VatId> {
             self.exports.borrow_mut().erase(id);
         }
         Ok(())
+    }
+
+    fn release_exports(&self, exports: &[ExportId]) {
+        for &export_id in exports {
+            self.release_export(export_id, 1);
+        }
     }
 
     fn get_brand(&self) -> usize {
@@ -2014,7 +2087,7 @@ impl BrokenClient {
 
 impl ClientHook for BrokenClient {
     fn add_ref(&self) -> Box<ClientHook> {
-        unimplemented!()
+        Box::new(BrokenClient { inner: self.inner.clone() } )
     }
     fn new_call(&self, _interface_id: u64, _method_id: u16,
                 _size_hint: Option<::capnp::MessageSize>)
