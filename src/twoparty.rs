@@ -82,6 +82,7 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gj::io::AsyncWrite 
 pub struct Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
     input_stream: Rc<RefCell<Option<T>>>,
     write_queue: Rc<RefCell<Promise<U, ::capnp::Error>>>,
+    side: ::rpc_twoparty_capnp::Side,
     receive_options: ReaderOptions,
     on_disconnect_fulfiller: Option<PromiseFulfiller<(), ::capnp::Error>>,
 }
@@ -89,12 +90,14 @@ pub struct Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrit
 impl <T, U> Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
     fn new(input_stream: T,
            output_stream: U,
+           side: ::rpc_twoparty_capnp::Side,
            receive_options: ReaderOptions,
            on_disconnect_fulfiller: PromiseFulfiller<(), ::capnp::Error>,
            ) -> Connection<T, U> {
         Connection {
             input_stream: Rc::new(RefCell::new(Some(input_stream))),
             write_queue: Rc::new(RefCell::new(::gj::Promise::ok(output_stream))),
+            side: side,
             receive_options: receive_options,
             on_disconnect_fulfiller: Some(on_disconnect_fulfiller),
         }
@@ -113,11 +116,11 @@ impl <T, U> Drop for Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io:
     }
 }
 
-impl <T, U> ::Connection<VatId> for Connection<T, U>
+impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
     where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite
 {
-    fn get_peer_vat_id(&self) -> VatId {
-        unimplemented!()
+    fn get_peer_vat_id(&self) -> ::rpc_twoparty_capnp::Side {
+        self.side
     }
 
     fn new_outgoing_message(&mut self, _first_segment_word_size: u32) -> Box<::OutgoingMessage> {
@@ -152,15 +155,20 @@ impl <T, U> ::Connection<VatId> for Connection<T, U>
 pub struct VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
     connection: Option<Connection<T,U>>,
     on_disconnect_promise: ForkedPromise<(), ::capnp::Error>,
-
+    _side: ::rpc_twoparty_capnp::Side,
 }
 
 impl <T, U> VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
-    pub fn new(input_stream: T, output_stream: U, receive_options: ReaderOptions) -> VatNetwork<T, U> {
+    pub fn new(input_stream: T,
+               output_stream: U,
+               side: ::rpc_twoparty_capnp::Side,
+               receive_options: ReaderOptions) -> VatNetwork<T, U>
+    {
         let (promise, fulfiller) = Promise::and_fulfiller();
         VatNetwork {
-            connection: Some(Connection::new(input_stream, output_stream, receive_options, fulfiller)),
+            connection: Some(Connection::new(input_stream, output_stream, side, receive_options, fulfiller)),
             on_disconnect_promise: promise.fork(),
+            _side: side,
         }
     }
 

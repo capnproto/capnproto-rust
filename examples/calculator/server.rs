@@ -22,9 +22,8 @@
 use capnp::Error;
 use capnp::primitive_list;
 
-use capnp_rpc::rpc;
+use capnp_rpc::{rpc, twoparty, rpc_twoparty_capnp};
 use capnp_rpc::rpc::LocalClient;
-use capnp_rpc::twoparty;
 
 use calculator_capnp::calculator;
 use gj::{EventLoop, Promise, TaskReaper, TaskSet};
@@ -206,7 +205,8 @@ pub fn accept_loop(listener: tcp::Listener,
     listener.accept().lift().then(move |(listener, stream)| {
         let stream2 = stream.try_clone().unwrap();
         let mut network =
-            twoparty::VatNetwork::new(stream, stream2, Default::default());
+            twoparty::VatNetwork::new(stream, stream2,
+                                      rpc_twoparty_capnp::Side::Server, Default::default());
         let disconnect_promise = network.on_disconnect();
 
         // Should put in the calculator for the bootstrap.

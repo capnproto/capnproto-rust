@@ -57,7 +57,9 @@ pub fn main() {
         let stream = try!(::gj::io::tcp::Stream::connect(addr).wait(wait_scope));
         let stream2 = try!(stream.try_clone());
         let connection: Box<::capnp_rpc::VatNetwork<twoparty::VatId>> =
-            Box::new(twoparty::VatNetwork::new(stream, stream2, Default::default()));
+            Box::new(twoparty::VatNetwork::new(stream, stream2,
+                                               rpc_twoparty_capnp::Side::Client,
+                                               Default::default()));
         let mut rpc_system = rpc::System::new(connection, None);
         let calculator = calculator::Client {
             client: rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server)
