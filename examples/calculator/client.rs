@@ -56,11 +56,11 @@ pub fn main() {
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
         let stream = try!(::gj::io::tcp::Stream::connect(addr).wait(wait_scope));
         let stream2 = try!(stream.try_clone());
-        let connection: Box<::capnp_rpc::VatNetwork<twoparty::VatId>> =
+        let network =
             Box::new(twoparty::VatNetwork::new(stream, stream2,
                                                rpc_twoparty_capnp::Side::Client,
                                                Default::default()));
-        let mut rpc_system = rpc::System::new(connection, None);
+        let mut rpc_system = rpc::System::new(network, None);
         let calculator = calculator::Client {
             client: rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server)
         };
