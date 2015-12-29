@@ -1952,7 +1952,7 @@ impl PipelineHook for SingleCapPipeline {
 
 
 struct QueuedPipelineInner {
-    _promise: ::gj::ForkedPromise<Box<PipelineHook>, Error>,
+    promise: ::gj::ForkedPromise<Box<PipelineHook>, Error>,
 
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<PipelineHook>>,
@@ -1970,7 +1970,7 @@ impl QueuedPipeline {
         let mut promise = promise_param.fork();
         let branch = promise.add_branch();
         let inner = Rc::new(RefCell::new(QueuedPipelineInner {
-            _promise: promise,
+            promise: promise,
             redirect: None,
             self_resolution_op: Promise::ok(()),
         }));
@@ -2002,19 +2002,210 @@ impl PipelineHook for QueuedPipeline {
     fn add_ref(&self) -> Box<PipelineHook> {
         Box::new(self.clone())
     }
-    fn get_pipelined_cap(&self, _ops: &[PipelineOp]) -> Box<ClientHook> {
-        unimplemented!()
+    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
+        let mut cp = Vec::with_capacity(ops.len());
+        for &op in ops {
+            cp.push(op);
+        }
+        self.get_pipelined_cap_move(cp)
     }
 
     fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
         match &self.inner.borrow().redirect {
             &Some(ref p) => {
-                p.get_pipelined_cap_move(ops)
+                return p.get_pipelined_cap_move(ops)
             }
-            &None => {
-                unimplemented!()
-            }
+            &None => (),
         }
+        let client_promise = self.inner.borrow_mut().promise.add_branch().map(move |pipeline| {
+            Ok(pipeline.get_pipelined_cap_move(ops))
+        });
+
+        Box::new(QueuedClient::new(client_promise))
+    }
+}
+
+type ClientHookPromiseFork = ::gj::ForkedPromise<Box<ClientHook>, Error>;
+
+struct QueuedClientInner {
+    // Once the promise resolves, this will become non-null and point to the underlying object.
+    redirect: Option<Box<ClientHook>>,
+
+    // Promise that resolves when we have a new ClientHook to forward to.
+    //
+    // This fork shall only have three branches:  `selfResolutionOp`, `promiseForCallForwarding`, and
+    // `promiseForClientResolution`, in that order.
+    promise: ClientHookPromiseFork,
+
+    // Represents the operation which will set `redirect` when possible.
+    self_resolution_op: Promise<(), Error>,
+
+    // When this promise resolves, each queued call will be forwarded to the real client.  This needs
+    // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
+    // previously-queued calls are delivered before any new calls made in response to the resolution.
+    promise_for_call_forwarding: ClientHookPromiseFork,
+
+    // whenMoreResolved() returns forks of this promise.  These must resolve *after* queued calls
+    // have been initiated (so that any calls made in the whenMoreResolved() handler are correctly
+    // delivered after calls made earlier), but *before* any queued calls return (because it might
+    // confuse the application if a queued call returns before the capability on which it was made
+    // resolves).  Luckily, we know that queued calls will involve, at the very least, an
+    // eventLoop.evalLater.
+    promise_for_client_resolution: ClientHookPromiseFork,
+}
+
+struct QueuedClient {
+    inner: Rc<RefCell<QueuedClientInner>>,
+}
+
+impl QueuedClient {
+    fn new(promise_param: Promise<Box<ClientHook>, Error>)
+           -> QueuedClient
+    {
+        let mut promise = promise_param.fork();
+        let branch1 = promise.add_branch();
+        let branch2 = promise.add_branch();
+        let branch3 = promise.add_branch();
+        let inner = Rc::new(RefCell::new(QueuedClientInner {
+            redirect: None,
+            promise: promise,
+            self_resolution_op: Promise::never_done(),
+            promise_for_call_forwarding: branch2.fork(),
+            promise_for_client_resolution: branch3.fork(),
+        }));
+        let this = Rc::downgrade(&inner);
+        let self_resolution_op = branch1.map_else(move |result| {
+            let state = this.upgrade().expect("dangling reference to QueuedClient");
+            match result {
+                Ok(clienthook) => {
+                    state.borrow_mut().redirect = Some(clienthook);
+                }
+                Err(e) => {
+                    state.borrow_mut().redirect = Some(new_broken_cap(e));
+                }
+            }
+            Ok(())
+        }).eagerly_evaluate();
+        inner.borrow_mut().self_resolution_op = self_resolution_op;
+        QueuedClient {
+            inner: inner
+        }
+    }
+}
+
+impl ClientHook for QueuedClient {
+    fn add_ref(&self) -> Box<ClientHook> {
+        Box::new(QueuedClient {inner: self.inner.clone()})
+    }
+    fn new_call(&self, _interface_id: u64, _method_id: u16,
+                _size_hint: Option<::capnp::MessageSize>)
+                -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
+    {
+        unimplemented!()
+    }
+
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
+        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+    {
+        let (pipeline_promise, pipeline_fulfiller) = Promise::and_fulfiller();
+        let completion_promise =
+            self.inner.borrow_mut().promise_for_call_forwarding.add_branch().then(move |client| {
+                let (promise, pipeline) = client.call(interface_id, method_id, params, results);
+                pipeline_fulfiller.fulfill(pipeline);
+                promise
+            });
+        let pipeline = QueuedPipeline::new(pipeline_promise);
+        (completion_promise, Box::new(pipeline))
+    }
+
+    fn get_ptr(&self) -> usize {
+        (&*self.inner.borrow()) as * const _ as usize
+    }
+
+    fn get_brand(&self) -> usize {
+        0
+    }
+
+    fn write_target(&self, _target: any_pointer::Builder) -> Option<Box<ClientHook>>
+    {
+        unimplemented!()
+    }
+
+    fn write_descriptor(&self, _descriptor: any_pointer::Builder) -> Option<u32> {
+        unimplemented!()
+    }
+
+    fn get_resolved(&self) -> Option<Box<ClientHook>> {
+        unimplemented!()
+    }
+
+    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
+        unimplemented!()
+    }
+}
+
+struct BrokenClientInner {
+    exception: Error,
+    resolved: bool,
+    brand: usize,
+}
+
+struct BrokenClient {
+    inner: Rc<BrokenClientInner>,
+}
+
+impl BrokenClient {
+    fn new(exception: Error, resolved: bool, brand: usize) -> BrokenClient {
+        BrokenClient {
+            inner: Rc::new(BrokenClientInner {
+                exception: exception,
+                resolved: resolved,
+                brand: brand,
+            }),
+        }
+    }
+}
+
+impl ClientHook for BrokenClient {
+    fn add_ref(&self) -> Box<ClientHook> {
+        Box::new(BrokenClient { inner: self.inner.clone() } )
+    }
+    fn new_call(&self, _interface_id: u64, _method_id: u16,
+                _size_hint: Option<::capnp::MessageSize>)
+                -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
+    {
+        unimplemented!()
+    }
+
+    fn call(&self, _interface_id: u64, _method_id: u16, _params: Box<ParamsHook>, _results: Box<ResultsHook>)
+        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+    {
+        unimplemented!()
+    }
+
+    fn get_ptr(&self) -> usize {
+        unimplemented!()
+    }
+
+    fn get_brand(&self) -> usize {
+        self.inner.brand
+    }
+
+    fn write_target(&self, _target: any_pointer::Builder) -> Option<Box<ClientHook>>
+    {
+        unimplemented!()
+    }
+
+    fn write_descriptor(&self, _descriptor: any_pointer::Builder) -> Option<u32> {
+        unimplemented!()
+    }
+
+    fn get_resolved(&self) -> Option<Box<ClientHook>> {
+        None
+    }
+
+    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
+        None
     }
 }
 
@@ -2122,71 +2313,6 @@ impl ClientHook for LocalClient {
 
     fn get_brand(&self) -> usize {
         0
-    }
-
-    fn write_target(&self, _target: any_pointer::Builder) -> Option<Box<ClientHook>>
-    {
-        unimplemented!()
-    }
-
-    fn write_descriptor(&self, _descriptor: any_pointer::Builder) -> Option<u32> {
-        unimplemented!()
-    }
-
-    fn get_resolved(&self) -> Option<Box<ClientHook>> {
-        None
-    }
-
-    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
-        None
-    }
-}
-
-struct BrokenClientInner {
-    exception: Error,
-    resolved: bool,
-    brand: usize,
-}
-
-struct BrokenClient {
-    inner: Rc<BrokenClientInner>,
-}
-
-impl BrokenClient {
-    fn new(exception: Error, resolved: bool, brand: usize) -> BrokenClient {
-        BrokenClient {
-            inner: Rc::new(BrokenClientInner {
-                exception: exception,
-                resolved: resolved,
-                brand: brand,
-            }),
-        }
-    }
-}
-
-impl ClientHook for BrokenClient {
-    fn add_ref(&self) -> Box<ClientHook> {
-        Box::new(BrokenClient { inner: self.inner.clone() } )
-    }
-    fn new_call(&self, _interface_id: u64, _method_id: u16,
-                _size_hint: Option<::capnp::MessageSize>)
-                -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
-    {
-        unimplemented!()
-    }
-
-    fn call(&self, _interface_id: u64, _method_id: u16, _params: Box<ParamsHook>, _results: Box<ResultsHook>)
-        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
-    {
-        unimplemented!()
-    }
-
-    fn get_ptr(&self) -> usize {
-        unimplemented!()
-    }
-
-    fn get_brand(&self) -> usize {
-        self.inner.brand
     }
 
     fn write_target(&self, _target: any_pointer::Builder) -> Option<Box<ClientHook>>
