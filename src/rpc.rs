@@ -357,10 +357,10 @@ impl <VatId> Drop for QuestionRef<VatId> {
 struct Answer<VatId> where VatId: 'static {
     // True from the point when the Call message is received to the point when both the `Finish`
     // message has been received and the `Return` has been sent.
-    _active: bool,
+    active: bool,
 
     // Send pipelined calls here.  Becomes null as soon as a `Finish` is received.
-    _pipeline: Option<Box<PipelineHook>>,
+    pipeline: Option<Box<PipelineHook>>,
 
     // For locally-redirected calls (Call.sendResultsTo.yourself), this is a promise for the call
     // result, to be picked up by a subsequent `Return`.
@@ -372,16 +372,16 @@ struct Answer<VatId> where VatId: 'static {
 
     // List of exports that were sent in the results.  If the finish has `releaseResultCaps` these
     // will need to be released.
-    _result_exports: Vec<ExportId>,
+    result_exports: Vec<ExportId>,
 }
 
 impl <VatId> Answer<VatId> {
     fn new() -> Answer<VatId> {
         Answer {
-            _active: true,
-            _pipeline: None,
+            active: false,
+            pipeline: None,
             _redirected_results: None,
-            _result_exports: Vec::new()
+            result_exports: Vec::new()
         }
     }
 }
@@ -426,6 +426,23 @@ impl <VatId> Import<VatId> {
             _promise_fulfiller: None,
         }
     }
+}
+
+fn to_pipeline_ops(ops: ::capnp::struct_list::Reader<::rpc_capnp::promised_answer::op::Owned>)
+                   -> ::capnp::Result<Vec<PipelineOp>>
+{
+    let mut result = Vec::new();
+    for op in ops.iter() {
+        match try!(op.which()) {
+            ::rpc_capnp::promised_answer::op::Noop(()) => {
+                result.push(PipelineOp::Noop);
+            }
+            ::rpc_capnp::promised_answer::op::GetPointerField(idx) => {
+                result.push(PipelineOp::GetPointerField(idx));
+            }
+        }
+    }
+    Ok(result)
 }
 
 fn from_error(error: &Error, mut builder: ::rpc_capnp::exception::Builder) {
@@ -667,7 +684,7 @@ impl <VatId> ConnectionState<VatId> {
                     let mut response = connection_state1.connection.borrow_mut().as_mut().expect("no connection?")
                         .new_outgoing_message(50); // XXX size hint
 
-                    {
+                    let result_exports = {
                         let mut ret = try!(response.get_body()).init_as::<message::Builder>().init_return();
                         ret.set_answer_id(answer_id);
 
@@ -682,11 +699,21 @@ impl <VatId> ConnectionState<VatId> {
                         assert!(cap_table.len() == 1);
 
                         ConnectionState::write_descriptors(&connection_state1, &cap_table,
-                                                           payload);
-                    }
+                                                           payload)
+                    };
+
+                    // TODO
                     //let _deferred = Defer::new();
 
-                    // TODO write answer table
+                    let ref mut slots = connection_state1.answers.borrow_mut().slots;
+                    let answer = slots.entry(answer_id).or_insert(Answer::new());
+                    if answer.active {
+                        return Err(Error::failed("questionId is already in use".to_string()));
+                    }
+                    answer.active = true;
+                    answer.result_exports = result_exports;
+                    answer.pipeline = Some(Box::new(SingleCapPipeline::new(
+                        connection_state1.bootstrap_cap.clone())));
 
                     let _ = response.send();
                     BorrowWorkaround::Done
@@ -899,8 +926,26 @@ impl <VatId> ConnectionState<VatId> {
                     }
                 }
             }
-            ::rpc_capnp::message_target::PromisedAnswer(_promised_answer) => {
-                unimplemented!()
+            ::rpc_capnp::message_target::PromisedAnswer(promised_answer) => {
+                let promised_answer = try!(promised_answer);
+                let question_id = promised_answer.get_question_id();
+                match self.answers.borrow().slots.get(&question_id) {
+                    None => {
+                        Err(Error::failed("PromisedAnswer.questionId is not a current question.".to_string()))
+                    }
+                    Some(ref base) => {
+                        let pipeline = match &base.pipeline {
+                            &Some(ref pipeline) => {
+                                pipeline.add_ref()
+                            }
+                            &None => {
+                                unimplemented!()
+                            }
+                        };
+                        let ops = try!(to_pipeline_ops(try!(promised_answer.get_transform())));
+                        Ok(Some(pipeline.get_pipelined_cap(&ops)))
+                    }
+                }
             }
         }
     }
@@ -1867,6 +1912,12 @@ impl <VatId> ClientHook for Client<VatId> {
 
 struct SingleCapPipeline {
     cap: Box<ClientHook>,
+}
+
+impl SingleCapPipeline {
+    fn new(cap: Box<ClientHook>) -> SingleCapPipeline {
+        SingleCapPipeline { cap: cap }
+    }
 }
 
 impl PipelineHook for SingleCapPipeline {
