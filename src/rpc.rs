@@ -2301,12 +2301,9 @@ impl ClientHook for LocalClient {
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
         -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
     {
-
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
-
-        let (pipeline_promise, pipeline_fulfiller) = Promise::and_fulfiller();
 
         let inner = self.inner.clone();
         let promise = Promise::ok(()).then(move |()| {
@@ -2316,13 +2313,20 @@ impl ClientHook for LocalClient {
                                  ::capnp::capability::Results::new(results))
         }).then(|results| {
             results.hook.send_return()
-        }).map(move |results_done| {
-            pipeline_fulfiller.fulfill(Box::new(LocalPipeline::new(results_done.clone())) as Box<PipelineHook>);
-            Ok(results_done)
+        });
+
+        let mut forked = promise.fork();
+
+        let pipeline_promise = forked.add_branch().map(|results_done| {
+            Ok(Box::new(LocalPipeline::new(results_done.clone())) as Box<PipelineHook>)
         });
 
         let pipeline = Box::new(QueuedPipeline::new(pipeline_promise));
-        (promise, pipeline)
+        let completion_promise = forked.add_branch();
+
+
+        ::std::mem::forget(forked);
+        (completion_promise, pipeline)
     }
 
     fn get_ptr(&self) -> usize {
