@@ -853,20 +853,37 @@ impl <VatId> ConnectionState<VatId> {
                         format!("Received a new call on in-use question id {}", question_id)));
                 }
 
-                let mut answer = Answer::<VatId>::new();
 
                 let params = Params::new(message, cap_table_array);
                 let results = Results::new(&connection_state, question_id);
-                //let (cancel_promise, cancel_fulfiller) = ::gj::new_promise_and_fulfiller();
 
-                // Fill in the answer table.
+                // cancelPaf?
 
-                let (promise, _pipeline) = capability.call(interface_id, method_id,
+                {
+                    let ref mut slots = connection_state.answers.borrow_mut().slots;
+                    let answer = slots.entry(question_id).or_insert(Answer::new());
+                    if answer.active {
+                        return Err(Error::failed("questionId is already in use".to_string()));
+                    }
+                    answer.active = true;
+                }
+
+                let (promise, pipeline) = capability.call(interface_id, method_id,
                                                           Box::new(params), Box::new(results));
 
 
+                {
+                    let ref mut slots = connection_state.answers.borrow_mut().slots;
+                    match slots.get_mut(&question_id) {
+                        Some(ref mut answer) => {
+                            answer.pipeline = Some(pipeline);
+                            // TODO if redirect results...
+                        }
+                        None => unreachable!()
+                    }
+                }
+
                 connection_state.add_task(promise.map(|_| Ok(())));
-                connection_state.answers.borrow_mut().slots.insert(question_id, answer);
             }
             BorrowWorkaround::ReturnResults(question_ref, cap_table) => {
                 let response = Response::new(connection_state,
@@ -1987,6 +2004,17 @@ impl PipelineHook for QueuedPipeline {
     }
     fn get_pipelined_cap(&self, _ops: &[PipelineOp]) -> Box<ClientHook> {
         unimplemented!()
+    }
+
+    fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
+        match &self.inner.borrow().redirect {
+            &Some(ref p) => {
+                p.get_pipelined_cap_move(ops)
+            }
+            &None => {
+                unimplemented!()
+            }
+        }
     }
 }
 
