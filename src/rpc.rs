@@ -50,17 +50,20 @@ pub struct System<VatId> where VatId: 'static {
     // to connection states.
     connection_state: Rc<RefCell<Option<Rc<ConnectionState<VatId>>>>>,
 
-    tasks: ::gj::TaskSet<(), Error>,
+    tasks: Rc<RefCell<::gj::TaskSet<(), Error>>>,
 }
 
 impl <VatId> System <VatId> {
     pub fn new(network: Box<::VatNetwork<VatId>>,
                _bootstrap_interface: Option<::capnp::capability::Client>) -> System<VatId> {
-        System {
+        let mut result = System {
             network: network,
             connection_state: Rc::new(RefCell::new(None)),
-            tasks: ::gj::TaskSet::new(Box::new(SystemTaskReaper)),
-        }
+            tasks: Rc::new(RefCell::new(::gj::TaskSet::new(Box::new(SystemTaskReaper)))),
+        };
+        let accept_loop = result.accept_loop();
+        result.tasks.borrow_mut().add(accept_loop);
+        result
     }
 
     /// Connects to the given vat and returns its bootstrap interface.
@@ -69,35 +72,48 @@ impl <VatId> System <VatId> {
             Some(connection) => connection,
             None => unimplemented!(),
         };
-
-        let (on_disconnect_promise, on_disconnect_fulfiller) = Promise::and_fulfiller();
-
-        let connection_state_ref = self.connection_state.clone();
-        self.tasks.add(on_disconnect_promise.then(move |shutdown_promise| {
-            *connection_state_ref.borrow_mut() = None;
-            shutdown_promise
-        }));
-
-        let connection_state = ConnectionState::new(connection, on_disconnect_fulfiller);
-
+        let connection_state =
+            System::get_connection_state(self.connection_state.clone(),
+                                         connection, self.tasks.clone());
 
         let hook = ConnectionState::bootstrap(connection_state.clone());
-        *self.connection_state.borrow_mut() = Some(connection_state);
         ::capnp::capability::Client::new(hook)
     }
 
     fn accept_loop(&mut self) -> Promise<(), Error> {
         let connection_state_ref = self.connection_state.clone();
-//        self.network.accept().map(move |connection|{
-
-  //      })
-        unimplemented!()
+        let tasks1 = self.tasks.clone();
+        self.network.accept().map(move |connection| {
+            System::get_connection_state(connection_state_ref,
+                                         connection, tasks1);
+            Ok(())
+        })
     }
 
-    fn get_connection_state(&mut self) -> Rc<ConnectionState<VatId>> {
+    fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<ConnectionState<VatId>>>>>,
+                            connection: Box<::Connection<VatId>>,
+                            tasks: Rc<RefCell<::gj::TaskSet<(), Error>>>)
+                            -> Rc<ConnectionState<VatId>>
+    {
 
-//        connection_state;
-        unimplemented!()
+        // TODO this needs to be updated once we allow more general VatNetworks.
+        let result = match &*connection_state_ref.borrow() {
+            &Some(ref connection_state) => {
+                // return early.
+                return connection_state.clone()
+            }
+            &None => {
+                let (on_disconnect_promise, on_disconnect_fulfiller) = Promise::and_fulfiller();
+                let connection_state_ref1 = connection_state_ref.clone();
+                tasks.borrow_mut().add(on_disconnect_promise.then(move |shutdown_promise| {
+                    *connection_state_ref1.borrow_mut() = None;
+                    shutdown_promise
+                }));
+                ConnectionState::new(connection, on_disconnect_fulfiller)
+            }
+        };
+        *connection_state_ref.borrow_mut() = Some(result.clone());
+        result
     }
 }
 
