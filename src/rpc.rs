@@ -397,6 +397,17 @@ impl <VatId> Import<VatId> {
     }
 }
 
+fn from_error(error: &Error, mut builder: ::rpc_capnp::exception::Builder) {
+    builder.set_reason(&error.reason);
+    let typ = match error.kind {
+        ::capnp::ErrorKind::Failed => ::rpc_capnp::exception::Type::Failed,
+        ::capnp::ErrorKind::Overloaded => ::rpc_capnp::exception::Type::Overloaded,
+        ::capnp::ErrorKind::Disconnected => ::rpc_capnp::exception::Type::Disconnected,
+        ::capnp::ErrorKind::Unimplemented => ::rpc_capnp::exception::Type::Unimplemented,
+    };
+    builder.set_type(typ);
+}
+
 fn remote_exception_to_error(exception: ::rpc_capnp::exception::Reader) -> Error {
     let (kind, reason) = match (exception.get_type(), exception.get_reason()) {
         (Ok(::rpc_capnp::exception::Type::Failed), Ok(reason)) =>
@@ -494,8 +505,8 @@ impl <VatId> ConnectionState<VatId> {
             &mut Ok(ref mut c) => {
                 let mut message = c.new_outgoing_message(100); // TODO estimate size
                 {
-                    let mut builder = message.get_body().unwrap().init_as::<message::Builder>().init_abort();
-                    // TODO write the variant and description.
+                    let builder = message.get_body().unwrap().init_as::<message::Builder>().init_abort();
+                    from_error(&error, builder);
                 }
                 let _ = message.send();
             }
@@ -608,7 +619,9 @@ impl <VatId> ConnectionState<VatId> {
                 message::Abort(abort) => {
                     return Err(remote_exception_to_error(try!(abort)))
                 }
-                message::Bootstrap(_) => {
+                message::Bootstrap(bootstrap) => {
+                    let bootstrap = try!(bootstrap);
+                    let _answer_id = bootstrap.get_question_id();
                     unimplemented!()
                 }
                 message::Call(call) => {
@@ -688,7 +701,7 @@ impl <VatId> ConnectionState<VatId> {
                             return Err(Error::failed(
                                 format!("Invalid question ID {} in Finish message.", answer_id)));
                         }
-                        Some(answer) => {
+                        Some(_answer) => {
                             //  TODO...
                         }
                     }
@@ -1779,6 +1792,24 @@ impl <VatId> ClientHook for Client<VatId> {
 
 // ===================================
 
+struct SingleCapPipeline {
+    cap: Box<ClientHook>,
+}
+
+impl PipelineHook for SingleCapPipeline {
+    fn add_ref(&self) -> Box<PipelineHook> {
+        Box::new(SingleCapPipeline {cap: self.cap.clone() })
+    }
+    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
+        if ops.len() == 0 {
+            self.cap.add_ref()
+        } else {
+            new_broken_cap(Error::failed("Invalid pipeline transform.".to_string()))
+        }
+    }
+}
+
+
 struct QueuedPipelineInner {
     _promise: ::gj::ForkedPromise<Box<PipelineHook>, Error>,
 
@@ -1992,7 +2023,7 @@ impl ClientHook for BrokenClient {
         unimplemented!()
     }
 
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
+    fn call(&self, _interface_id: u64, _method_id: u16, _params: Box<ParamsHook>, _results: Box<ResultsHook>)
         -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
     {
         unimplemented!()
