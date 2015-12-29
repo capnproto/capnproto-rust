@@ -2105,16 +2105,34 @@ impl ClientHook for QueuedClient {
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
-        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+        -> (Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
     {
-        let (pipeline_promise, pipeline_fulfiller) = Promise::and_fulfiller();
-        let completion_promise =
+        // The main reason this is complicated is that we don't want the call to get cancelled
+        // if the caller drops just the returned promise but not the pipeline.
+
+        struct CallResultHolder {
+            promise: Option<Promise<Box<ResultsDoneHook>, Error>>,
+            pipeline: Option<Box<PipelineHook>>,
+        }
+
+        let mut call_result_promise =
             self.inner.borrow_mut().promise_for_call_forwarding.add_branch().then(move |client| {
                 let (promise, pipeline) = client.call(interface_id, method_id, params, results);
-                pipeline_fulfiller.fulfill(pipeline);
-                promise
-            });
+                Promise::ok(Rc::new(RefCell::new(CallResultHolder {
+                    promise: Some(promise),
+                    pipeline: Some(pipeline),
+                })))
+            }).fork();
+
+        let pipeline_promise = call_result_promise.add_branch().map(|call_result| {
+            Ok(call_result.borrow_mut().pipeline.take().expect("pipeline gone?"))
+        });
         let pipeline = QueuedPipeline::new(pipeline_promise);
+
+        let completion_promise = call_result_promise.add_branch().then(|call_result| {
+            call_result.borrow_mut().promise.take().expect("promise gone?")
+        });
+
         (completion_promise, Box::new(pipeline))
     }
 
