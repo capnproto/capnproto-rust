@@ -27,7 +27,7 @@ use std::rc::Rc;
 
 pub type VatId = ::rpc_twoparty_capnp::Side;
 
-pub struct IncomingMessage {
+struct IncomingMessage {
     message: ::capnp::message::Reader<::capnp_gj::serialize::OwnedSegments>,
 }
 
@@ -43,7 +43,7 @@ impl ::IncomingMessage for IncomingMessage {
     }
 }
 
-pub struct OutgoingMessage<U> where U: ::gj::io::AsyncWrite {
+struct OutgoingMessage<U> where U: ::gj::io::AsyncWrite {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
     write_queue: Rc<RefCell<::gj::Promise<U, ::capnp::Error>>>,
 }
@@ -79,7 +79,7 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gj::io::AsyncWrite 
     }
 }
 
-pub struct Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
+struct Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
     input_stream: Rc<RefCell<Option<T>>>,
     write_queue: Rc<RefCell<Promise<U, ::capnp::Error>>>,
     side: ::rpc_twoparty_capnp::Side,
@@ -155,7 +155,7 @@ impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
 pub struct VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
     connection: Option<Connection<T,U>>,
     on_disconnect_promise: ForkedPromise<(), ::capnp::Error>,
-    _side: ::rpc_twoparty_capnp::Side,
+    side: ::rpc_twoparty_capnp::Side,
 }
 
 impl <T, U> VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
@@ -168,7 +168,7 @@ impl <T, U> VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWri
         VatNetwork {
             connection: Some(Connection::new(input_stream, output_stream, side, receive_options, fulfiller)),
             on_disconnect_promise: promise.fork(),
-            _side: side,
+            side: side,
         }
     }
 
@@ -180,9 +180,13 @@ impl <T, U> VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWri
 impl <T, U> ::VatNetwork<VatId> for VatNetwork<T, U>
     where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite
 {
-    fn connect(&mut self, _host_id: VatId) -> Option<Box<::Connection<VatId>>> {
-        let connection = ::std::mem::replace(&mut self.connection, None);
-        connection.map(|c| Box::new(c) as Box<::Connection<VatId>>)
+    fn connect(&mut self, host_id: VatId) -> Option<Box<::Connection<VatId>>> {
+        if host_id == self.side {
+            None
+        } else {
+            let connection = ::std::mem::replace(&mut self.connection, None);
+            connection.map(|c| Box::new(c) as Box<::Connection<VatId>>)
+        }
     }
 
     fn accept(&mut self) -> Promise<Box<::Connection<VatId>>, ::capnp::Error> {
