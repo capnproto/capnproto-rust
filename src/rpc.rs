@@ -2147,14 +2147,19 @@ impl RequestHook for LocalRequest {
         let results = LocalResults::new();
         let (promise, pipeline) = client.call(interface_id, method_id, Box::new(params), Box::new(results));
 
-        // TODO cancellation stuff.
-        let promise = promise.map(|results_done_hook| {
+        // Fork so that dropping just the returned promise doesn't cancel the call.
+        let mut forked = promise.fork();
+
+        let promise = forked.add_branch().map(|results_done_hook| {
             Ok(::capnp::capability::Response::new(Box::new(LocalResponse::new(results_done_hook))))
         });
 
+        let pipeline_promise = forked.add_branch().map(move |_| Ok(pipeline));
+        let pipeline = any_pointer::Pipeline::new(Box::new(QueuedPipeline::new(pipeline_promise)));
+
         ::capnp::capability::RemotePromise {
             promise: promise,
-            pipeline: any_pointer::Pipeline::new(pipeline),
+            pipeline: pipeline,
         }
     }
 }
