@@ -1147,8 +1147,24 @@ impl <VatId> ConnectionState<VatId> {
             cap_descriptor::ReceiverHosted(_receiver_hosted) => {
                 unimplemented!()
             }
-            cap_descriptor::ReceiverAnswer(_receiver_answer) => {
-                unimplemented!()
+            cap_descriptor::ReceiverAnswer(receiver_answer) => {
+                let promised_answer = try!(receiver_answer);
+                let question_id = promised_answer.get_question_id();
+                match state.answers.borrow().slots.get(&question_id) {
+                    Some(ref answer) => {
+                        if answer.active {
+                            match &answer.pipeline {
+                                &Some(ref pipeline) => {
+                                    let ops = try!(to_pipeline_ops(try!(promised_answer.get_transform())));
+                                    return Ok(Some(pipeline.get_pipelined_cap(&ops)));
+                                }
+                                &None => (),
+                            }
+                        }
+                    }
+                    None => (),
+                }
+                Ok(Some(new_broken_cap(Error::failed("invalid 'receiver answer'".to_string()))))
             }
             cap_descriptor::ThirdPartyHosted(_third_party_hosted) => {
                 unimplemented!()
