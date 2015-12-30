@@ -1996,6 +1996,14 @@ struct LocalResponse {
     results: Box<ResultsDoneHook>
 }
 
+impl LocalResponse {
+    fn new(results: Box<ResultsDoneHook>) -> LocalResponse {
+        LocalResponse {
+            results: results
+        }
+    }
+}
+
 impl ResponseHook for LocalResponse {
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
         self.results.get()
@@ -2044,8 +2052,10 @@ impl LocalResults {
 
 impl ResultsHook for LocalResults {
     fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
-
-        unimplemented!()
+        use capnp::traits::ImbueMut;
+        let mut root: any_pointer::Builder = try!(self.message.get_root());
+        root.imbue_mut(&mut self.cap_table);
+        Ok(root)
     }
 
     fn tail_call(self: Box<Self>, _request: Box<RequestHook>) -> Promise<(), Error> {
@@ -2057,9 +2067,47 @@ impl ResultsHook for LocalResults {
     }
 
     fn send_return(mut self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
-        unimplemented!()
+        let tmp = *self;
+        let LocalResults { message, cap_table } = tmp;
+        Promise::ok(Box::new(LocalResultsDone::new(message, cap_table)))
     }
 }
+
+struct LocalResultsDoneInner {
+    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
+}
+
+struct LocalResultsDone {
+    inner: Rc<LocalResultsDoneInner>,
+}
+
+impl LocalResultsDone {
+    fn new(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+           cap_table: Vec<Option<Box<ClientHook>>>)
+        -> LocalResultsDone
+    {
+        LocalResultsDone {
+            inner: Rc::new(LocalResultsDoneInner {
+                message: message,
+                cap_table: cap_table,
+            }),
+        }
+    }
+}
+
+impl ResultsDoneHook for LocalResultsDone {
+    fn add_ref(&self) -> Box<ResultsDoneHook> {
+        Box::new(LocalResultsDone { inner: self.inner.clone() })
+    }
+    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+        use ::capnp::traits::Imbue;
+        let mut root: any_pointer::Reader = try!(self.inner.message.get_root_as_reader());
+        root.imbue(&self.inner.cap_table);
+        Ok(root)
+    }
+}
+
 
 struct LocalRequest {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
@@ -2100,8 +2148,14 @@ impl RequestHook for LocalRequest {
         let (promise, pipeline) = client.call(interface_id, method_id, Box::new(params), Box::new(results));
 
         // TODO cancellation stuff.
+        let promise = promise.map(|results_done_hook| {
+            Ok(::capnp::capability::Response::new(Box::new(LocalResponse::new(results_done_hook))))
+        });
 
-        unimplemented!()
+        ::capnp::capability::RemotePromise {
+            promise: promise,
+            pipeline: any_pointer::Pipeline::new(pipeline),
+        }
     }
 }
 
@@ -2251,11 +2305,12 @@ impl ClientHook for QueuedClient {
     fn add_ref(&self) -> Box<ClientHook> {
         Box::new(QueuedClient {inner: self.inner.clone()})
     }
-    fn new_call(&self, _interface_id: u64, _method_id: u16,
-                _size_hint: Option<::capnp::MessageSize>)
+    fn new_call(&self, interface_id: u64, method_id: u16,
+                size_hint: Option<::capnp::MessageSize>)
                 -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
     {
-        unimplemented!()
+        ::capnp::capability::Request::new(
+            Box::new(LocalRequest::new(interface_id, method_id, size_hint, self.add_ref())))
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
