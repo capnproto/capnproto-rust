@@ -1560,9 +1560,31 @@ impl <VatId> ResultsHook for Results<VatId> {
         unimplemented!()
     }
 
-    fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
+    fn send_return(mut self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
         let tmp = *self;
-        let Results { connection_state, message, cap_table } = tmp;
+        let Results { connection_state, mut message, cap_table } = tmp;
+
+        {
+            let root: message::Builder = pry!(pry!(message.get_body()).get_as());
+            match pry!(root.which()) {
+                message::Return(ret) => {
+                    match pry!(pry!(ret).which()) {
+                        ::rpc_capnp::return_::Results(Ok(payload)) => {
+                            let exports = ConnectionState::write_descriptors(&connection_state.upgrade().expect("I"), &cap_table,
+                                                                             payload);
+                        }
+                        _ => {
+                            unreachable!()
+                        }
+                    }
+                }
+                _ =>  {
+                    unreachable!()
+                }
+            }
+        }
+
+
         message.send().map(move |message| {
             let _ = connection_state;
             //pipeline_fulfiller.fulfill(results_done);
@@ -2113,7 +2135,6 @@ impl ClientHook for QueuedClient {
     {
         // The main reason this is complicated is that we don't want the call to get cancelled
         // if the caller drops just the returned promise but not the pipeline.
-
         struct CallResultHolder {
             promise: Option<Promise<Box<ResultsDoneHook>, Error>>,
             pipeline: Option<Box<PipelineHook>>,
