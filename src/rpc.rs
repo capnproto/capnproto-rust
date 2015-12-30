@@ -1548,26 +1548,6 @@ impl <VatId> ResultsHook for Results<VatId> {
         }
     }
 
-    fn get_as_reader<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        let root: message::Reader = try!(try!(self.message.get_body_as_reader()).get_as());
-        match try!(root.which()) {
-            message::Return(ret) => {
-                match try!(try!(ret).which()) {
-                    ::rpc_capnp::return_::Results(payload) => {
-                        // TODO imbue
-                        Ok(try!(payload).get_content())
-                    }
-                    _ => {
-                        unreachable!()
-                    }
-                }
-            }
-            _ =>  {
-                unreachable!()
-            }
-        }
-    }
-
     fn tail_call(self: Box<Self>, _request: Box<RequestHook>) -> Promise<(), Error> {
         unimplemented!()
     }
@@ -2012,6 +1992,64 @@ impl PipelineHook for SingleCapPipeline {
     }
 }
 
+struct LocalResults {
+    request: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+}
+
+impl <VatId> ResultsHook for Results<VatId> {
+    fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
+        let root: message::Builder = try!(self.request.get_root())
+        match try!(root.which()) {
+            message::Return(ret) => {
+                match try!(try!(ret).which()) {
+                    ::rpc_capnp::return_::Results(payload) => {
+                        use ::capnp::traits::ImbueMut;
+                        let mut content = try!(payload).get_content();
+                        content.imbue_mut(&mut self.cap_table);
+                        Ok(content)
+                    }
+                    _ => {
+                        unreachable!()
+                    }
+                }
+            }
+            _ =>  {
+                unreachable!()
+            }
+        }
+    }
+
+    fn tail_call(self: Box<Self>, _request: Box<RequestHook>) -> Promise<(), Error> {
+        unimplemented!()
+    }
+
+    fn allow_cancellation(&self) {
+        unimplemented!()
+    }
+
+    fn send_return(mut self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
+        unimplemented!()
+    }
+}
+
+
+struct LocalRequest {
+    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    interface_id: u16,
+    method_id: u16,
+    client: Box<ClientHook>,
+}
+
+impl RequestHook for LocalRequest {
+    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+        unimplemented!()
+    }
+    fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
+        //let tmp = *self;
+        //let LocalRequest { message, interface_id, method_id, client } = tmp;
+        unimplemented!()
+    }
+}
 
 struct QueuedPipelineInner {
     promise: ::gj::ForkedPromise<Box<PipelineHook>, Error>,
