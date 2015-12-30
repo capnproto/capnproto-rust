@@ -1992,12 +1992,59 @@ impl PipelineHook for SingleCapPipeline {
     }
 }
 
-struct LocalResults {
-    request: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+struct LocalResponse {
+    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
 }
 
-impl <VatId> ResultsHook for Results<VatId> {
+impl ResponseHook for LocalResponse {
+    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+        match try!(try!(self.message.get_root_as_reader::<message::Reader>()).which()) {
+            message::Return(Ok(ret)) => {
+                match try!(ret.which()) {
+                    return_::Results(Ok(mut payload)) => {
+                        use ::capnp::traits::Imbue;
+                        payload.imbue(&self.cap_table);
+                        Ok(payload.get_content())
+                    }
+                    _ => panic!(),
+                }
+            }
+            _ => panic!(),
+        }
+    }
+}
+
+struct LocalParams {
+    request: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
+}
+
+impl ParamsHook for LocalParams {
+    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+        let root: message::Reader = try!(self.request.get_root_as_reader());
+        match try!(root.which()) {
+            message::Call(call) => {
+                use ::capnp::traits::Imbue;
+                let mut content = try!(try!(call).get_params()).get_content();
+                content.imbue(&self.cap_table);
+                Ok(content)
+            }
+            _ =>  {
+                unreachable!()
+            }
+        }
+    }
+}
+
+struct LocalResults {
+    request: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
+}
+
+impl ResultsHook for LocalResults {
     fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
+/*
         let root: message::Builder = try!(self.request.get_root())
         match try!(root.which()) {
             message::Return(ret) => {
@@ -2016,7 +2063,8 @@ impl <VatId> ResultsHook for Results<VatId> {
             _ =>  {
                 unreachable!()
             }
-        }
+        }*/
+        unimplemented!()
     }
 
     fn tail_call(self: Box<Self>, _request: Box<RequestHook>) -> Promise<(), Error> {
@@ -2035,9 +2083,24 @@ impl <VatId> ResultsHook for Results<VatId> {
 
 struct LocalRequest {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    interface_id: u16,
+    interface_id: u64,
     method_id: u16,
     client: Box<ClientHook>,
+}
+
+impl LocalRequest {
+    fn new(interface_id: u64, method_id: u16,
+           _size_hint: Option<::capnp::MessageSize>,
+           client: Box<ClientHook>)
+           -> LocalRequest
+    {
+        LocalRequest {
+            message: ::capnp::message::Builder::new_default(),
+            interface_id: interface_id,
+            method_id: method_id,
+            client: client,
+        }
+    }
 }
 
 impl RequestHook for LocalRequest {
@@ -2391,11 +2454,12 @@ impl ClientHook for LocalClient {
     fn add_ref(&self) -> Box<ClientHook> {
         Box::new(self.clone())
     }
-    fn new_call(&self, _interface_id: u64, _method_id: u16,
-                _size_hint: Option<::capnp::MessageSize>)
+    fn new_call(&self, interface_id: u64, method_id: u16,
+                size_hint: Option<::capnp::MessageSize>)
                 -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
     {
-        unimplemented!()
+        ::capnp::capability::Request::new(
+            Box::new(LocalRequest::new(interface_id, method_id, size_hint, self.add_ref())))
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
