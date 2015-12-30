@@ -77,7 +77,6 @@ pub trait ServerHook: 'static {
 
 pub trait ResultsHook {
     fn get<'a>(&'a mut self) -> ::Result<any_pointer::Builder<'a>>;
-    fn get_as_reader<'a>(&'a self) -> ::Result<any_pointer::Reader<'a>>;
     fn allow_cancellation(&self);
     fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), ::Error>;
 
