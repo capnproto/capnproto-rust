@@ -1445,7 +1445,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
 
 pub struct Params{
     request: Box<::IncomingMessage>,
-    _cap_table: Vec<Option<Box<ClientHook>>>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
 }
 
 impl Params {
@@ -1455,7 +1455,7 @@ impl Params {
     {
         Params {
             request: request,
-            _cap_table: cap_table,
+            cap_table: cap_table,
         }
     }
 }
@@ -1465,8 +1465,10 @@ impl ParamsHook for Params {
         let root: message::Reader = try!(try!(self.request.get_body()).get_as());
         match try!(root.which()) {
             message::Call(call) => {
-                // TODO imbue
-                Ok(try!(try!(call).get_params()).get_content())
+                use ::capnp::traits::Imbue;
+                let mut content = try!(try!(call).get_params()).get_content();
+                content.imbue(&self.cap_table);
+                Ok(content)
             }
             _ =>  {
                 unreachable!()
@@ -1514,8 +1516,10 @@ impl <VatId> ResultsHook for Results<VatId> {
             message::Return(ret) => {
                 match try!(try!(ret).which()) {
                     ::rpc_capnp::return_::Results(payload) => {
-                        // TODO imbue
-                        Ok(try!(payload).get_content())
+                        use ::capnp::traits::ImbueMut;
+                        let mut content = try!(payload).get_content();
+                        content.imbue_mut(&mut self.cap_table);
+                        Ok(content)
                     }
                     _ => {
                         unreachable!()
