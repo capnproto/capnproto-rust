@@ -246,11 +246,4 @@ pub fn main() {
 
         Ok(())
     }).expect("top level error");
-
-    //let rpc_server = EzRpcServer::new(&*args[2]).unwrap();
-
-    // There's got to be a better way to do this.
-    //let calculator = Box::new(calculator::ServerDispatch { server : Box::new(CalculatorImpl)});
-
-    //let _ = rpc_server.serve(calculator);
 }
