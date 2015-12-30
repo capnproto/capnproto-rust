@@ -2324,8 +2324,6 @@ impl ClientHook for LocalClient {
         let pipeline = Box::new(QueuedPipeline::new(pipeline_promise));
         let completion_promise = forked.add_branch();
 
-
-        ::std::mem::forget(forked);
         (completion_promise, pipeline)
     }
 
