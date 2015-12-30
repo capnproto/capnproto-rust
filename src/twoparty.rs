@@ -73,7 +73,7 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gj::io::AsyncWrite 
             ::capnp_gj::serialize::write_message(s, message).map(move |(s, m)| {
                 fulfiller.fulfill(m);
                 Ok(s)
-            })
+            }).eagerly_evaluate()
         });
         promise
     }

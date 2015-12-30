@@ -1590,7 +1590,7 @@ impl ResultsDone {
 
 impl ResultsDoneHook for ResultsDone {
     fn add_ref(&self) -> Box<ResultsDoneHook> {
-        unimplemented!()
+        Box::new(ResultsDone { inner: self.inner.clone() })
     }
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
         self.inner.message.get_root_as_reader()
