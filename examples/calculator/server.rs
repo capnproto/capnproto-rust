@@ -75,11 +75,9 @@ fn evaluate_impl(expression: calculator::expression::Reader,
         }
         calculator::expression::Call(call) => {
             let func = pry!(call.get_function());
-            let mut param_promises = Vec::new();
-            for param in pry!(call.get_params()).iter() {
-                param_promises.push(evaluate_impl(param, params));
-            }
-            Promise::all(param_promises.into_iter()).then(move |param_values| {
+            let param_promises = pry!(call.get_params()).iter().map(|p| evaluate_impl(p, params));
+
+            Promise::all(param_promises).then(move |param_values| {
                 let mut request = func.call_request();
                 {
                     let mut params = request.get().init_params(param_values.len() as u32);
