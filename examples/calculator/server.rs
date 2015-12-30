@@ -203,7 +203,7 @@ pub fn accept_loop(listener: tcp::Listener,
                    -> Promise<(), ::std::io::Error>
 {
     listener.accept().lift().then(move |(listener, stream)| {
-        let stream2 = stream.try_clone().unwrap();
+        let stream2 = pry!(stream.try_clone());
         let mut network =
             twoparty::VatNetwork::new(stream, stream2,
                                       rpc_twoparty_capnp::Side::Server, Default::default());
