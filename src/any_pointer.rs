@@ -100,6 +100,12 @@ impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     }
 }
 
+impl <'a> ::traits::Imbue<'a> for Reader<'a> {
+    fn imbue(&mut self, cap_table: &'a ::private::layout::CapTable) {
+        self.reader.imbue(::private::layout::CapTableReader::Plain(cap_table));
+    }
+}
+
 pub struct Builder<'a> {
     builder: PointerBuilder<'a>
 }
