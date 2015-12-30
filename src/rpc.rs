@@ -1570,8 +1570,10 @@ impl <VatId> ResultsHook for Results<VatId> {
                 message::Return(ret) => {
                     match pry!(pry!(ret).which()) {
                         ::rpc_capnp::return_::Results(Ok(payload)) => {
-                            let exports = ConnectionState::write_descriptors(&connection_state.upgrade().expect("I"), &cap_table,
-                                                                             payload);
+                            let exports =
+                                ConnectionState::write_descriptors(&connection_state.upgrade().expect("I"),
+                                                                   &cap_table,
+                                                                   payload);
                         }
                         _ => {
                             unreachable!()
@@ -1619,7 +1621,25 @@ impl ResultsDoneHook for ResultsDone {
         Box::new(ResultsDone { inner: self.inner.clone() })
     }
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        self.inner.message.get_root_as_reader()
+        let root: message::Reader = try!(self.inner.message.get_root_as_reader());
+        match try!(root.which()) {
+            message::Return(ret) => {
+                match try!(try!(ret).which()) {
+                    ::rpc_capnp::return_::Results(payload) => {
+                        use ::capnp::traits::Imbue;
+                        let mut content = try!(payload).get_content();
+                        content.imbue(&self.inner.cap_table);
+                        Ok(content)
+                    }
+                    _ => {
+                        unreachable!()
+                    }
+                }
+            }
+            _ =>  {
+                unreachable!()
+            }
+        }
     }
 }
 
@@ -2280,6 +2300,7 @@ impl PipelineHook for LocalPipeline {
     }
     fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
         // Do I need to call imbue() here?
+        // yeah, probably.
         self.inner.borrow_mut().results.get().unwrap().get_pipelined_cap(ops).unwrap()
     }
 }
