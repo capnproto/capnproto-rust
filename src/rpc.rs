@@ -2023,50 +2023,39 @@ impl ResponseHook for LocalResponse {
 
 struct LocalParams {
     request: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    cap_table: Vec<Option<Box<ClientHook>>>,
 }
 
 impl LocalParams {
-    fn new(request: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-           cap_table: Vec<Option<Box<ClientHook>>>)
+    fn new(request: ::capnp::message::Builder<::capnp::message::HeapAllocator>)
            -> LocalParams
     {
         LocalParams {
             request: request,
-            cap_table: cap_table,
         }
     }
 }
 
 impl ParamsHook for LocalParams {
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        use ::capnp::traits::Imbue;
-        let mut root: any_pointer::Reader = try!(self.request.get_root_as_reader());
-        root.imbue(&self.cap_table);
-        Ok(root)
+        Ok(try!(self.request.get_root_as_reader()))
     }
 }
 
 struct LocalResults {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    cap_table: Vec<Option<Box<ClientHook>>>,
 }
 
 impl LocalResults {
     fn new() -> LocalResults {
         LocalResults {
             message: ::capnp::message::Builder::new_default(),
-            cap_table: Vec::new(),
         }
     }
 }
 
 impl ResultsHook for LocalResults {
     fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
-        use capnp::traits::ImbueMut;
-        let mut root: any_pointer::Builder = try!(self.message.get_root());
-        root.imbue_mut(&mut self.cap_table);
-        Ok(root)
+        Ok(try!(self.message.get_root()))
     }
 
     fn tail_call(self: Box<Self>, _request: Box<RequestHook>) -> Promise<(), Error> {
@@ -2079,14 +2068,13 @@ impl ResultsHook for LocalResults {
 
     fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
         let tmp = *self;
-        let LocalResults { message, cap_table } = tmp;
-        Promise::ok(Box::new(LocalResultsDone::new(message, cap_table)))
+        let LocalResults { message } = tmp;
+        Promise::ok(Box::new(LocalResultsDone::new(message)))
     }
 }
 
 struct LocalResultsDoneInner {
-    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    cap_table: Vec<Option<Box<ClientHook>>>,
+    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>
 }
 
 struct LocalResultsDone {
@@ -2094,14 +2082,12 @@ struct LocalResultsDone {
 }
 
 impl LocalResultsDone {
-    fn new(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-           cap_table: Vec<Option<Box<ClientHook>>>)
+    fn new(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>)
         -> LocalResultsDone
     {
         LocalResultsDone {
             inner: Rc::new(LocalResultsDoneInner {
                 message: message,
-                cap_table: cap_table,
             }),
         }
     }
@@ -2112,17 +2098,13 @@ impl ResultsDoneHook for LocalResultsDone {
         Box::new(LocalResultsDone { inner: self.inner.clone() })
     }
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        use ::capnp::traits::Imbue;
-        let mut root: any_pointer::Reader = try!(self.inner.message.get_root_as_reader());
-        root.imbue(&self.inner.cap_table);
-        Ok(root)
+        Ok(try!(self.inner.message.get_root_as_reader()))
     }
 }
 
 
 struct LocalRequest {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    cap_table: Vec<Option<Box<ClientHook>>>,
     interface_id: u64,
     method_id: u16,
     client: Box<ClientHook>,
@@ -2136,7 +2118,6 @@ impl LocalRequest {
     {
         LocalRequest {
             message: ::capnp::message::Builder::new_default(),
-            cap_table: Vec::new(),
             interface_id: interface_id,
             method_id: method_id,
             client: client,
@@ -2146,15 +2127,12 @@ impl LocalRequest {
 
 impl RequestHook for LocalRequest {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        use ::capnp::traits::ImbueMut;
-        let mut root: any_pointer::Builder = self.message.get_root().unwrap();
-        root.imbue_mut(&mut self.cap_table);
-        root
+        self.message.get_root().unwrap()
     }
     fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
-        let LocalRequest { message, cap_table, interface_id, method_id, client } = tmp;
-        let params = LocalParams::new(message, cap_table);
+        let LocalRequest { message, interface_id, method_id, client } = tmp;
+        let params = LocalParams::new(message);
         let results = LocalResults::new();
         let (promise, pipeline) = client.call(interface_id, method_id, Box::new(params), Box::new(results));
 
