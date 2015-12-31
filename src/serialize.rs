@@ -56,7 +56,7 @@ pub fn read_message_from_words<'a>(slice: &'a [Word],
     let (num_words, offsets) = try!(read_segment_table(&mut bytes, options));
     let words = ::Word::bytes_to_words(bytes);
     if num_words != words.len() {
-        Err(Error::new_decode_error(
+        Err(Error::failed(
             format!("Wrong number of words. Header claimed {} words, but message has {} words",
                     num_words, words.len())))
     } else {
@@ -107,9 +107,9 @@ where R: Read {
                                                    .wrapping_add(1) as usize;
 
     if segment_count >= 512 {
-        return Err(Error::new_decode_error(format!("Too many segments: {}", segment_count)))
+        return Err(Error::failed(format!("Too many segments: {}", segment_count)))
     } else if segment_count == 0 {
-        return Err(Error::new_decode_error(format!("Too few segments: {}", segment_count)))
+        return Err(Error::failed(format!("Too few segments: {}", segment_count)))
     }
 
     let mut segment_slices = Vec::with_capacity(segment_count);
@@ -143,7 +143,7 @@ where R: Read {
     // traversal limit. Without this check, a malicious client could transmit a very large segment
     // size to make the receiver allocate excessive space and possibly crash.
     if total_words as u64 > options.traversal_limit_in_words  {
-        return Err(Error::new_decode_error(
+        return Err(Error::failed(
             format!("Message has {} words, which is too large. To increase the limit on the \
              receiving end, see capnp::message::ReaderOptions.", total_words)))
     }

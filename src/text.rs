@@ -36,7 +36,7 @@ pub type Reader<'a> = &'a str;
 pub fn new_reader<'a>(v : &'a [u8]) -> Result<Reader<'a>> {
     match ::std::str::from_utf8(v) {
         Ok(v) => Ok(v),
-        Err(e) => Err(Error::new_decode_error(
+        Err(e) => Err(Error::failed(
             format!("Text contains non-utf8 data: {:?}", e))),
     }
 }
@@ -57,7 +57,7 @@ impl <'a> Builder <'a> {
     pub fn new<'b>(bytes : &'b mut [u8], pos : u32) -> Result<Builder<'b>> {
         if pos != 0 {
             match ::std::str::from_utf8(bytes) {
-                Err(e) => return Err(Error::new_decode_error(
+                Err(e) => return Err(Error::failed(
                     format!("Text contains non-utf8 data: {:?}", e))),
                 _ => {}
             }

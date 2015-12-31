@@ -163,7 +163,7 @@ pub struct Error {
     pub kind: ErrorKind,
 
     /// Human-readable failure description.
-    pub reason: String,
+    pub description: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -190,38 +190,35 @@ pub enum ErrorKind {
 }
 
 impl Error {
-    pub fn new_decode_error(description: String) -> Error {
-        Error { reason: description, kind: ErrorKind::Failed }
-    }
     pub fn failed(description: String) -> Error {
-        Error { reason: description, kind: ErrorKind::Failed }
+        Error { description: description, kind: ErrorKind::Failed }
     }
     pub fn unimplemented(description: String) -> Error {
-        Error { reason: description, kind: ErrorKind::Unimplemented }
+        Error { description: description, kind: ErrorKind::Unimplemented }
     }
 }
 
 impl ::std::convert::From<::std::io::Error> for Error {
     fn from(err: ::std::io::Error) -> Error {
-        Error { reason: format!("{}", err), kind: ErrorKind::Failed }
+        Error { description: format!("{}", err), kind: ErrorKind::Failed }
     }
 }
 
 impl ::std::convert::From<NotInSchema> for Error {
     fn from(e: NotInSchema) -> Error {
-        Error::new_decode_error(format!("Enum value or union discriminant {} was not present in schema.", e.0))
+        Error::failed(format!("Enum value or union discriminant {} was not present in schema.", e.0))
     }
 }
 
 impl ::std::fmt::Display for Error {
     fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
-        write!(fmt, "{:?}: {}", self.kind, self.reason)
+        write!(fmt, "{:?}: {}", self.kind, self.description)
     }
 }
 
 impl ::std::error::Error for Error {
     fn description(&self) -> &str {
-        &self.reason
+        &self.description
     }
     fn cause(&self) -> Option<&::std::error::Error> {
         None
