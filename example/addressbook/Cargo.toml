@@ -14,5 +14,6 @@ path = "addressbook.rs"
 [build-dependencies.capnpc]
 path = "../../"
 
-[dependencies]
-capnp = "0.5.0"
+[dependencies.capnp]
+git = "https://github.com/dwrensha/capnproto-rust"
+

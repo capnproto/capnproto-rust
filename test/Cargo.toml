@@ -15,4 +15,5 @@ path = "test.rs"
 path = "../"
 
 [dependencies.capnp]
-path = "../../capnproto-rust"
+git = "https://github.com/dwrensha/capnproto-rust"
+
