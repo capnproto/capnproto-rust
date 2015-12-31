@@ -196,6 +196,9 @@ impl Error {
     pub fn failed(description: String) -> Error {
         Error { reason: description, kind: ErrorKind::Failed }
     }
+    pub fn unimplemented(description: String) -> Error {
+        Error { reason: description, kind: ErrorKind::Unimplemented }
+    }
 }
 
 impl ::std::convert::From<::std::io::Error> for Error {
