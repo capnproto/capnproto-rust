@@ -809,7 +809,7 @@ mod tests {
         let root : ::test_capnp::test_any_pointer::Reader = message.get_root().unwrap();
         match root.total_size() {
             Err(e) =>
-                assert_eq!("InlineComposite list's elements overrun its word count.", e.reason),
+                assert_eq!("InlineComposite list's elements overrun its word count.", e.description),
             _ => panic!("did not get expected error")
         }
 
@@ -824,7 +824,7 @@ mod tests {
         let builder_root = message_builder.init_root::<::test_capnp::test_any_pointer::Builder>();
         match builder_root.get_any_pointer_field().set_as(root) {
             Err(e) =>
-                assert_eq!("InlineComposite list's elements overrun its word count.", e.reason),
+                assert_eq!("InlineComposite list's elements overrun its word count.", e.description),
             _ => panic!("did ont get expected error"),
         }
     }
