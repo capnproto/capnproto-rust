@@ -879,11 +879,13 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
     }
 }
 
+// We need this to work around the fact that Rust does not allow typedefs
+// with unused type parameters.
 fn get_ty_params_of_brand(gen: &GeneratorContext,
                           brand: ::schema_capnp::brand::Reader<>) -> ::capnp::Result<String>
 {
     let mut acc = HashSet::new();
-    try!(find_bound_parameters(gen, &mut acc, brand));
+    try!(get_ty_params_of_brand_helper(gen, &mut acc, brand));
     let mut result = String::new();
     for (scope_id, parameter_index) in acc.into_iter() {
         let node = gen.node_map[&scope_id];
@@ -895,7 +897,7 @@ fn get_ty_params_of_brand(gen: &GeneratorContext,
     Ok(result)
 }
 
-fn find_bound_parameters(gen: &GeneratorContext,
+fn get_ty_params_of_brand_helper(gen: &GeneratorContext,
                          accumulator: &mut HashSet<(u64, u16)>,
                          brand: ::schema_capnp::brand::Reader<>)
                          -> ::capnp::Result<()>
@@ -1418,10 +1420,8 @@ fn generate_node(gen: &GeneratorContext,
                     names.push(local_name);
                     (names, params.params.clone())
                 } else {
-                    if method.has_result_brand() {
-//                        unimplemented!()
-                    }
-                    (gen.scope_map[&result_node.get_id()].clone(), "".to_string())
+                    (gen.scope_map[&result_node.get_id()].clone(),
+                     try!(get_ty_params_of_brand(gen, try!(method.get_result_brand()))))
                 };
                 let result_type = do_branding(&gen, result_id, try!(method.get_result_brand()),
                                               Leaf::Owned, result_scopes.join("::"), Some(node_id));
