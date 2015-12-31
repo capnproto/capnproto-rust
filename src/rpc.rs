@@ -446,7 +446,7 @@ fn to_pipeline_ops(ops: ::capnp::struct_list::Reader<::rpc_capnp::promised_answe
 }
 
 fn from_error(error: &Error, mut builder: ::rpc_capnp::exception::Builder) {
-    builder.set_reason(&error.reason);
+    builder.set_reason(&error.description);
     let typ = match error.kind {
         ::capnp::ErrorKind::Failed => ::rpc_capnp::exception::Type::Failed,
         ::capnp::ErrorKind::Overloaded => ::rpc_capnp::exception::Type::Overloaded,
@@ -468,7 +468,7 @@ fn remote_exception_to_error(exception: ::rpc_capnp::exception::Reader) -> Error
             (::capnp::ErrorKind::Unimplemented, reason),
         _ => (::capnp::ErrorKind::Failed, "(malformed error)"),
     };
-    Error { reason: format!("remote exception: {}", reason), kind: kind }
+    Error { description: format!("remote exception: {}", reason), kind: kind }
 }
 
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
