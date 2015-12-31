@@ -320,6 +320,9 @@ interface TestImplicitMethodParams {
 
 #interface TestImplicitMethodParamsInGeneric(V) {
 #  call @0 [T, U] (foo :T, bar :U) -> TestGenerics(T, U);
+#  call1 @1 [T, U] TestGenerics(T, U) -> (foo :T, bar: U);
+#  call2 @2 [T, U] TestGenerics(T, U) -> TestAllTypes;
+#  call3 @3 [T, U] TestAllTypes -> TestAllTypes;
 #}
 
 struct TestGenericsUnion(Foo, Bar) {

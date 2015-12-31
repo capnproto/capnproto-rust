@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 use capnp;
+use capnp::Error;
 use std::collections;
 use schema_capnp;
 use codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
@@ -55,13 +56,13 @@ impl <'a> GeneratorContext<'a> {
                 let root_name: String = format!("::{}_capnp",
                                                 importpath.file_stem().unwrap().to_owned()
                                                 .into_string().unwrap().replace("-", "_"));
-                populate_scope_map(&gen.node_map, &mut gen.scope_map, vec!(root_name), import.get_id());
+                try!(populate_scope_map(&gen.node_map, &mut gen.scope_map, vec!(root_name), import.get_id()));
             }
 
             let root_name = ::std::path::PathBuf::from(try!(requested_file.get_filename()))
                 .file_stem().unwrap().to_owned().into_string().unwrap();
             let root_mod = format!("::{}_capnp", root_name.to_owned().replace("-", "_"));
-            populate_scope_map(&gen.node_map, &mut gen.scope_map, vec!(root_mod), id);
+            try!(populate_scope_map(&gen.node_map, &mut gen.scope_map, vec!(root_mod), id));
         }
         Ok(gen)
     }
@@ -203,17 +204,17 @@ fn module_name(camel_case : &str) -> String {
     return name;
 }
 
-fn populate_scope_map(node_map : &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
-                      scope_map : &mut collections::hash_map::HashMap<u64, Vec<String>>,
-                      scope_names : Vec<String>,
-                      node_id : u64) {
+fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
+                      scope_map: &mut collections::hash_map::HashMap<u64, Vec<String>>,
+                      scope_names: Vec<String>,
+                      node_id: u64) -> ::capnp::Result<()> {
 
     scope_map.insert(node_id, scope_names.clone());
 
     // unused nodes in imported files might be omitted from the node map
-    let node_reader = match node_map.get(&node_id) { Some(node) => node, None => return (), };
+    let node_reader = match node_map.get(&node_id) { Some(node) => node, None => return Ok(()), };
 
-    let nested_nodes = node_reader.get_nested_nodes().unwrap();
+    let nested_nodes = try!(node_reader.get_nested_nodes());
     for nested_node in nested_nodes.iter(){
         let mut scope_names = scope_names.clone();
         let nested_node_id = nested_node.get_id();
@@ -222,12 +223,12 @@ fn populate_scope_map(node_map : &collections::hash_map::HashMap<u64, schema_cap
             Some(node_reader) => {
                 match node_reader.which() {
                     Ok(schema_capnp::node::Enum(_enum_reader)) => {
-                        scope_names.push(nested_node.get_name().unwrap().to_string());
-                        populate_scope_map(node_map, scope_map, scope_names, nested_node_id);
+                        scope_names.push(try!(nested_node.get_name()).to_string());
+                        try!(populate_scope_map(node_map, scope_map, scope_names, nested_node_id));
                     }
                     _ => {
-                        scope_names.push(module_name(nested_node.get_name().unwrap()));
-                        populate_scope_map(node_map, scope_map, scope_names, nested_node_id);
+                        scope_names.push(module_name(try!(nested_node.get_name())));
+                        try!(populate_scope_map(node_map, scope_map, scope_names, nested_node_id));
 
                     }
                 }
@@ -237,14 +238,14 @@ fn populate_scope_map(node_map : &collections::hash_map::HashMap<u64, schema_cap
 
     match node_reader.which() {
         Ok(schema_capnp::node::Struct(struct_reader)) => {
-            let fields = struct_reader.get_fields().unwrap();
+            let fields = try!(struct_reader.get_fields());
             for field in fields.iter() {
                 match field.which() {
                     Ok(schema_capnp::field::Group(group)) => {
-                        let name = module_name(field.get_name().unwrap());
+                        let name = module_name(try!(field.get_name()));
                         let mut scope_names = scope_names.clone();
                         scope_names.push(name);
-                        populate_scope_map(node_map, scope_map, scope_names, group.get_type_id());
+                        try!(populate_scope_map(node_map, scope_map, scope_names, group.get_type_id()));
                     }
                     _ => {}
                 }
@@ -252,6 +253,7 @@ fn populate_scope_map(node_map : &collections::hash_map::HashMap<u64, schema_cap
         }
         _ => {  }
     }
+    Ok(())
 }
 
 fn generate_import_statements() -> FormattedText {
@@ -272,29 +274,29 @@ fn generate_import_statements_for_generics() -> FormattedText {
     ))
 }
 
-fn prim_default (value : &schema_capnp::value::Reader) -> Option<String> {
+fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<String>> {
     use schema_capnp::value;
-    match value.which().unwrap() {
+    match try!(value.which()) {
         value::Bool(false) |
         value::Int8(0) | value::Int16(0) | value::Int32(0) |
         value::Int64(0) | value::Uint8(0) | value::Uint16(0) |
         value::Uint32(0) | value::Uint64(0) | value::Float32(0.0) |
-        value::Float64(0.0) => None,
+        value::Float64(0.0) => Ok(None),
 
-        value::Bool(true) => Some(format!("true")),
-        value::Int8(i) => Some(i.to_string()),
-        value::Int16(i) => Some(i.to_string()),
-        value::Int32(i) => Some(i.to_string()),
-        value::Int64(i) => Some(i.to_string()),
-        value::Uint8(i) => Some(i.to_string()),
-        value::Uint16(i) => Some(i.to_string()),
-        value::Uint32(i) => Some(i.to_string()),
-        value::Uint64(i) => Some(i.to_string()),
+        value::Bool(true) => Ok(Some(format!("true"))),
+        value::Int8(i) => Ok(Some(i.to_string())),
+        value::Int16(i) => Ok(Some(i.to_string())),
+        value::Int32(i) => Ok(Some(i.to_string())),
+        value::Int64(i) => Ok(Some(i.to_string())),
+        value::Uint8(i) => Ok(Some(i.to_string())),
+        value::Uint16(i) => Ok(Some(i.to_string())),
+        value::Uint32(i) => Ok(Some(i.to_string())),
+        value::Uint64(i) => Ok(Some(i.to_string())),
         value::Float32(f) =>
-            Some(format!("{}u32", unsafe {::std::mem::transmute::<f32, u32>(f)}.to_string())),
+            Ok(Some(format!("{}u32", unsafe {::std::mem::transmute::<f32, u32>(f)}.to_string()))),
         value::Float64(f) =>
-            Some(format!("{}u64", unsafe {::std::mem::transmute::<f64, u64>(f)}.to_string())),
-        _ => {panic!()}
+            Ok(Some(format!("{}u64", unsafe {::std::mem::transmute::<f64, u64>(f)}.to_string()))),
+        _ => Err(Error::failed("Non-primitive value found where primitive was expected.".to_string())),
     }
 }
 
@@ -485,7 +487,7 @@ fn zero_fields_of_group(gen:&GeneratorContext, node_id : u64) -> FormattedText {
 
 fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                    styled_name: &str,
-                   field: &schema_capnp::field::Reader) -> FormattedText {
+                   field: &schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
 
     use schema_capnp::*;
 
@@ -524,14 +526,14 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
         }
         Ok(field::Slot(reg_field)) => {
             let offset = reg_field.get_offset() as usize;
-            let typ = reg_field.get_type().unwrap();
+            let typ = try!(reg_field.get_type());
             match typ.which().ok().expect("unrecognized type") {
                 type_::Void(()) => {
                     setter_param = "_value".to_string();
                     (Some("()".to_string()), None)
                 }
                 type_::Bool(()) => {
-                    match prim_default(&reg_field.get_default_value().unwrap()) {
+                    match try!(prim_default(&try!(reg_field.get_default_value()))) {
                         None => {
                             setter_interior.push(Line(format!("self.builder.set_bool_field({}, value);", offset)));
                         }
@@ -544,7 +546,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                 }
                 _ if typ.is_prim() => {
                     let tstr = typ.type_string(gen, Leaf::Reader("'a"));
-                    match prim_default(&reg_field.get_default_value().unwrap()) {
+                    match try!(prim_default(&try!(reg_field.get_default_value()))) {
                         None => {
                             setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
                                                               tstr, offset)));
@@ -681,7 +683,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
         }
         None => {}
     }
-    return Branch(result);
+    Ok(Branch(result))
 }
 
 
@@ -893,26 +895,25 @@ fn generate_node(gen: &GeneratorContext,
                  // Ugh. We need this to deal with the anonymous Params and Results
                  // structs that go with RPC methods.
                  parent_node_id: Option<u64>,
-                 ) -> FormattedText {
+                 ) -> ::capnp::Result<FormattedText> {
     use schema_capnp::*;
 
     let mut output: Vec<FormattedText> = Vec::new();
     let mut nested_output: Vec<FormattedText> = Vec::new();
 
     let node_reader = &gen.node_map[&node_id];
-    let nested_nodes = node_reader.get_nested_nodes().unwrap();
+    let nested_nodes = try!(node_reader.get_nested_nodes());
     for nested_node in nested_nodes.iter() {
         let id = nested_node.get_id();
-        nested_output.push(generate_node(gen, id, &gen.scope_map[&id].last().unwrap(), None));
+        nested_output.push(try!(generate_node(gen, id, &gen.scope_map[&id].last().unwrap(), None)));
     }
 
-    match node_reader.which() {
+    match try!(node_reader.which()) {
 
-        Ok(node::File(())) => {
+        node::File(()) => {
             output.push(Branch(nested_output));
         }
-
-        Ok(node::Struct(struct_reader)) => {
+        node::Struct(struct_reader) => {
             let params = node_reader.parameters_texts(gen, parent_node_id);
             output.push(BlankLine);
 
@@ -945,9 +946,9 @@ fn generate_node(gen: &GeneratorContext,
                 preamble.push(BlankLine);
             }
 
-            let fields = struct_reader.get_fields().unwrap();
+            let fields = try!(struct_reader.get_fields());
             for field in fields.iter() {
-                let name = field.get_name().unwrap();
+                let name = try!(field.get_name());
                 let styled_name = camel_to_snake_case(name);
 
                 let discriminant_value = field.get_discriminant_value();
@@ -976,8 +977,8 @@ fn generate_node(gen: &GeneratorContext,
                     union_fields.push(field);
                 }
 
-                builder_members.push(generate_setter(gen, discriminant_offset,
-                                                     &styled_name, &field));
+                builder_members.push(try!(generate_setter(gen, discriminant_offset,
+                                                          &styled_name, &field)));
 
                 reader_members.push(generate_haser(discriminant_offset, &styled_name, &field, true));
                 builder_members.push(generate_haser(discriminant_offset, &styled_name, &field, false));
@@ -985,8 +986,8 @@ fn generate_node(gen: &GeneratorContext,
                 match field.which() {
                     Ok(field::Group(group)) => {
                         let id = group.get_type_id();
-                        let text = generate_node(gen, id,
-                                                 &gen.scope_map[&id].last().unwrap(), None);
+                        let text = try!(generate_node(gen, id,
+                                                      &gen.scope_map[&id].last().unwrap(), None));
                         nested_output.push(text);
                     }
                     _ => { }
@@ -1008,8 +1009,10 @@ fn generate_node(gen: &GeneratorContext,
 
                 let mut reexports = String::new();
                 reexports.push_str("pub use self::Which::{");
-                let whichs : Vec<String> =
-                    union_fields.iter().map(|f| {capitalize_first_letter(f.get_name().unwrap())}).collect();
+                let mut whichs = Vec::new();
+                for f in union_fields.iter(){
+                    whichs.push(capitalize_first_letter(try!(f.get_name())));
+                }
                 reexports.push_str(&whichs.join(","));
                 reexports.push_str("};");
                 preamble.push(Line(reexports));
@@ -1244,15 +1247,15 @@ fn generate_node(gen: &GeneratorContext,
 
         }
 
-        Ok(node::Enum(enum_reader)) => {
+        node::Enum(enum_reader) => {
             let names = &gen.scope_map[&node_id];
             output.push(BlankLine);
 
             let mut members = Vec::new();
             let mut match_branches = Vec::new();
-            let enumerants = enum_reader.get_enumerants().unwrap();
+            let enumerants = try!(enum_reader.get_enumerants());
             for ii in 0..enumerants.len() {
-                let enumerant = capitalize_first_letter(enumerants.get(ii).get_name().unwrap());
+                let enumerant = capitalize_first_letter(try!(enumerants.get(ii).get_name()));
                 members.push(Line(format!("{} = {},", enumerant, ii)));
                 match_branches.push(Line(format!("{} => ::std::result::Result::Ok({}::{}),", ii, *names.last().unwrap(), enumerant)));
             }
@@ -1297,7 +1300,7 @@ fn generate_node(gen: &GeneratorContext,
                     Line("}".to_string()))));
         }
 
-        Ok(node::Interface(interface)) => {
+        node::Interface(interface) => {
             let params = node_reader.parameters_texts(gen, parent_node_id);
             output.push(BlankLine);
 
@@ -1326,10 +1329,10 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(Line("use capnp::capability;".to_string()));
             mod_interior.push(BlankLine);
 
-            let methods = interface.get_methods().unwrap();
+            let methods = try!(interface.get_methods());
             for ordinal in 0..methods.len() {
                 let method = methods.get(ordinal);
-                let name = method.get_name().unwrap();
+                let name = try!(method.get_name());
 
                 method.get_code_order();
                 let param_id = method.get_param_struct_type();
@@ -1337,13 +1340,13 @@ fn generate_node(gen: &GeneratorContext,
                 let param_scopes = if param_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Params", name));
-                    nested_output.push(generate_node(gen, param_id, &*local_name, Some(node_id)));
+                    nested_output.push(try!(generate_node(gen, param_id, &*local_name, Some(node_id))));
                     names.push(local_name);
                     names
                 } else {
                     gen.scope_map[&param_node.get_id()].clone()
                 };
-                let param_type = do_branding(&gen, param_id, method.get_param_brand().unwrap(),
+                let param_type = do_branding(&gen, param_id, try!(method.get_param_brand()),
                                              Leaf::Owned, param_scopes.join("::"), Some(node_id));
 
 
@@ -1352,13 +1355,13 @@ fn generate_node(gen: &GeneratorContext,
                 let result_scopes = if result_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Results", name));
-                    nested_output.push(generate_node(gen, result_id, &*local_name, Some(node_id)));
+                    nested_output.push(try!(generate_node(gen, result_id, &*local_name, Some(node_id))));
                     names.push(local_name);
                     names
                 } else {
                     gen.scope_map[&result_node.get_id()].clone()
                 };
-                let result_type = do_branding(&gen, result_id, method.get_result_brand().unwrap(),
+                let result_type = do_branding(&gen, result_id, try!(method.get_result_brand()),
                                               Leaf::Owned, result_scopes.join("::"), Some(node_id));
 
                 dispatch_arms.push(
@@ -1390,13 +1393,13 @@ fn generate_node(gen: &GeneratorContext,
                     Box::new(Line(format!("self.client.new_call(_private::TYPE_ID, {}, None)", ordinal)))));
                 client_impl_interior.push(Line("}".to_string()));
 
-                method.get_annotations().unwrap();
+                try!(method.get_annotations());
             }
 
             let mut base_dispatch_arms = Vec::new();
             let server_base = {
                 let mut base_traits = Vec::new();
-                let extends = interface.get_superclasses().unwrap();
+                let extends = try!(interface.get_superclasses());
                 for ii in 0..extends.len() {
                     let base_id = extends.get(ii).get_id();
                     let the_mod = gen.scope_map[&base_id].join("::");
@@ -1600,11 +1603,11 @@ fn generate_node(gen: &GeneratorContext,
             output.push(Line("}".to_string()));
         }
 
-        Ok(node::Const(c)) => {
+        node::Const(c) => {
             let names = &gen.scope_map[&node_id];
             let styled_name = snake_to_upper_case(&names.last().unwrap());
 
-            let (typ, txt) = match tuple_result(c.get_type().unwrap().which(), c.get_value().unwrap().which()) {
+            let (typ, txt) = match tuple_result(try!(c.get_type()).which(), try!(c.get_value()).which()) {
                 Ok((type_::Void(()), value::Void(()))) => ("()".to_string(), "()".to_string()),
                 Ok((type_::Bool(()), value::Bool(b))) => ("bool".to_string(), b.to_string()),
                 Ok((type_::Int8(()), value::Int8(i))) => ("i8".to_string(), i.to_string()),
@@ -1634,7 +1637,7 @@ fn generate_node(gen: &GeneratorContext,
                 Line(format!("pub const {} : {} = {};", styled_name, typ, txt)));
         }
 
-        Ok(node::Annotation( annotation_reader )) => {
+        node::Annotation( annotation_reader ) => {
             println!("  annotation node:");
             if annotation_reader.get_targets_file() {
                 println!("  targets file");
@@ -1647,11 +1650,9 @@ fn generate_node(gen: &GeneratorContext,
                 println!("  targets annotation");
             }
         }
-
-        Err(_) => ()
     }
 
-    Branch(output)
+    Ok(Branch(output))
 }
 
 
@@ -1671,7 +1672,7 @@ pub fn main<T : ::std::io::Read>(mut inp : T, out_dir : &::std::path::Path) -> :
         let id = requested_file.get_id();
         let mut filepath = out_dir.to_path_buf();
         let root_name : String = format!("{}_capnp",
-                                         ::std::path::PathBuf::from(requested_file.get_filename().unwrap()).
+                                         ::std::path::PathBuf::from(try!(requested_file.get_filename())).
                                          file_stem().unwrap().to_owned().
                                          into_string().unwrap().replace("-", "_"));
         filepath.push(&format!("{}.rs", root_name));
@@ -1681,7 +1682,7 @@ pub fn main<T : ::std::io::Read>(mut inp : T, out_dir : &::std::path::Path) -> :
             Line("// DO NOT EDIT.".to_string()),
             Line(format!("// source: {}", try!(requested_file.get_filename()))),
             BlankLine,
-            generate_node(&gen, id, &root_name, None)));
+            try!(generate_node(&gen, id, &root_name, None))));
 
         let text = stringify(&lines);
 
