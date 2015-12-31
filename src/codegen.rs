@@ -69,14 +69,6 @@ impl <'a> GeneratorContext<'a> {
 
 }
 
-fn tuple_result<T,U,V>(t : Result<T, V>, u : Result<U, V>) -> Result<(T,U), V> {
-    match (t, u) {
-        (Ok(t1), Ok(u1)) => Ok((t1, u1)),
-        (Err(e), _) => Err(e),
-        (_, Err(e)) => Err(e),
-    }
-}
-
 pub fn camel_to_upper_case(s : &str) -> String {
     use std::ascii::*;
     let mut result_chars : Vec<char> = Vec::new();
@@ -300,21 +292,21 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
     }
 }
 
-pub fn getter_text (gen: &GeneratorContext,
-                    field: &schema_capnp::field::Reader,
-                    is_reader: bool)
-                    -> (String, FormattedText) {
+pub fn getter_text(gen: &GeneratorContext,
+                   field: &schema_capnp::field::Reader,
+                   is_reader: bool)
+                   -> ::capnp::Result<(String, FormattedText)> {
     use schema_capnp::*;
 
-    match field.which().ok().expect("unrecognized field type") {
+    match try!(field.which()) {
         field::Group(group) => {
             let the_mod = gen.scope_map[&group.get_type_id()].join("::");
             if is_reader {
-                (format!("{}::Reader<'a>", the_mod),
-                        Line("::capnp::traits::FromStructReader::new(self.reader)".to_string()))
+                Ok((format!("{}::Reader<'a>", the_mod),
+                    Line("::capnp::traits::FromStructReader::new(self.reader)".to_string())))
             } else {
-                (format!("{}::Builder<'a>", the_mod),
-                        Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string()))
+                Ok((format!("{}::Builder<'a>", the_mod),
+                    Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string())))
             }
         }
         field::Slot(reg_field) => {
@@ -324,7 +316,7 @@ pub fn getter_text (gen: &GeneratorContext,
             let member = camel_to_snake_case(&*format!("{}", module_string));
 
             fn primitive_case<T: PartialEq + ::std::fmt::Display>(typ: &str, member:String,
-                    offset: usize, default : T, zero : T) -> FormattedText {
+                    offset: usize, default: T, zero: T) -> FormattedText {
                 if default == zero {
                     Line(format!("self.{}.get_data_field::<{}>({})", member, typ, offset))
                 } else {
@@ -332,11 +324,11 @@ pub fn getter_text (gen: &GeneratorContext,
                 }
             }
 
-            let raw_type = reg_field.get_type().unwrap();
+            let raw_type = try!(reg_field.get_type());
             let typ = raw_type.type_string(gen, module);
-            let default = reg_field.get_default_value().unwrap().which().unwrap();
+            let default = try!(try!(reg_field.get_default_value()).which());
 
-            let result_type = match raw_type.which().unwrap() {
+            let result_type = match try!(raw_type.which()) {
                 type_::Enum(_) => format!("::std::result::Result<{},::capnp::NotInSchema>", typ),
                 type_::AnyPointer(_) if !raw_type.is_parameter() => typ.clone(),
                 type_::Interface(_) => {
@@ -347,7 +339,7 @@ pub fn getter_text (gen: &GeneratorContext,
                 _ => format!("Result<{}>", typ),
             };
 
-            let getter_code = match (raw_type.which().unwrap(), default) {
+            let getter_code = match (try!(raw_type.which()), default) {
                 (type_::Void(()), value::Void(())) => Line("()".to_string()),
                 (type_::Bool(()), value::Bool(b)) => {
                     if b {
@@ -418,13 +410,12 @@ pub fn getter_text (gen: &GeneratorContext,
                     panic!("default value was of wrong type");
                 }
             };
-            (result_type, getter_code)
+            Ok((result_type, getter_code))
         }
     }
-
 }
 
-fn zero_fields_of_group(gen:&GeneratorContext, node_id : u64) -> FormattedText {
+fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result<FormattedText> {
     use schema_capnp::{node, field, type_};
     match gen.node_map[&node_id].which() {
         Ok(node::Struct(st)) => {
@@ -434,14 +425,14 @@ fn zero_fields_of_group(gen:&GeneratorContext, node_id : u64) -> FormattedText {
                     Line(format!("self.builder.set_data_field::<u16>({}, 0);",
                                  st.get_discriminant_offset())));
             }
-            let fields = st.get_fields().unwrap();
+            let fields = try!(st.get_fields());
             for field in fields.iter() {
-                match field.which().unwrap() {
+                match try!(field.which()) {
                     field::Group(group) => {
-                        result.push(zero_fields_of_group(gen, group.get_type_id()));
+                        result.push(try!(zero_fields_of_group(gen, group.get_type_id())));
                     }
                     field::Slot(slot) => {
-                        let typ = slot.get_type().unwrap().which().unwrap();
+                        let typ = try!(try!(slot.get_type()).which());
                         match typ {
                             type_::Void(()) => {}
                             type_::Bool(()) => {
@@ -455,7 +446,7 @@ fn zero_fields_of_group(gen:&GeneratorContext, node_id : u64) -> FormattedText {
                             type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) |
                             type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
                                 let line = Line(format!("self.builder.set_data_field::<{0}>({1}, 0u8 as {0});",
-                                                        slot.get_type().unwrap().type_string(gen, Leaf::Builder("'a")),
+                                                        try!(slot.get_type()).type_string(gen, Leaf::Builder("'a")),
                                                         slot.get_offset()));
                                 // PERF could dedup more efficiently
                                 if !result.contains(&line) { result.push(line) }
@@ -479,7 +470,7 @@ fn zero_fields_of_group(gen:&GeneratorContext, node_id : u64) -> FormattedText {
                     }
                 }
             }
-            return Branch(result);
+            Ok(Branch(result))
         }
         _ => { panic!("expected a struct") }
     }
@@ -518,7 +509,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
             let scope = &gen.scope_map[&group.get_type_id()];
             let the_mod = scope.join("::");
 
-            initter_interior.push(zero_fields_of_group(gen, group.get_type_id()));
+            initter_interior.push(try!(zero_fields_of_group(gen, group.get_type_id())));
 
             initter_interior.push(Line(format!("::capnp::traits::FromStructBuilder::new(self.builder)")));
 
@@ -585,15 +576,15 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     initter_interior.push(
                         Line(format!("::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({}), size)", offset)));
 
-                    match ot1.get_element_type().unwrap().which().unwrap() {
+                    match try!(try!(ot1.get_element_type()).which()) {
                         type_::List(_) => {
                             setter_generic_param = "<'b>".to_string();
-                            (Some(reg_field.get_type().unwrap().type_string(gen, Leaf::Reader("'b"))),
-                             Some(reg_field.get_type().unwrap().type_string(gen, Leaf::Builder("'a"))))
+                            (Some(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'b"))),
+                             Some(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a"))))
                         }
                         _ =>
-                            (Some(reg_field.get_type().unwrap().type_string(gen, Leaf::Reader("'a"))),
-                             Some(reg_field.get_type().unwrap().type_string(gen, Leaf::Builder("'a"))))
+                            (Some(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'a"))),
+                             Some(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a"))))
                     }
                 }
                 type_::Enum(e) => {
@@ -618,8 +609,8 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     } else {
                         setter_interior.push(
                             Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)", offset)));
-                        (Some(reg_field.get_type().unwrap().type_string(gen, Leaf::Reader("'b"))),
-                         Some(reg_field.get_type().unwrap().type_string(gen, Leaf::Builder("'a"))))
+                        (Some(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'b"))),
+                         Some(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a"))))
                     }
                 }
                 type_::Interface(_) => {
@@ -693,7 +684,7 @@ fn generate_union(gen: &GeneratorContext,
                   fields: &[schema_capnp::field::Reader],
                   is_reader: bool,
                   params: &TypeParameterTexts)
-                  -> (FormattedText, FormattedText, FormattedText)
+                  -> ::capnp::Result<(FormattedText, FormattedText, FormattedText)>
 {
     use schema_capnp::*;
 
@@ -716,10 +707,10 @@ fn generate_union(gen: &GeneratorContext,
 
         let dvalue = field.get_discriminant_value() as usize;
 
-        let field_name = field.get_name().unwrap();
+        let field_name = try!(field.get_name());
         let enumerant_name = capitalize_first_letter(field_name);
 
-        let (ty, get) = getter_text(gen, field, is_reader);
+        let (ty, get) = try!(getter_text(gen, field, is_reader));
 
         getter_interior.push(Branch(vec!(
                     Line(format!("{} => {{", dvalue)),
@@ -735,7 +726,7 @@ fn generate_union(gen: &GeneratorContext,
                 new_ty_param(&mut ty_params)
             }
             Ok(field::Slot(reg_field)) => {
-                match reg_field.get_type().unwrap().which() {
+                match try!(reg_field.get_type()).which() {
                     Ok(type_::Text(())) | Ok(type_::Data(())) |
                     Ok(type_::List(_)) | Ok(type_::Struct(_)) |
                     Ok(type_::AnyPointer(_)) => {
@@ -793,14 +784,13 @@ fn generate_union(gen: &GeneratorContext,
 
     // TODO set_which() for builders?
 
-    return (result, getter_result, typedef);
+    Ok((result, getter_result, typedef))
 }
 
-fn generate_haser(discriminant_offset : u32,
-                  styled_name : &str,
-                  field :&schema_capnp::field::Reader,
-                  is_reader : bool) -> FormattedText {
-
+fn generate_haser(discriminant_offset: u32,
+                  styled_name: &str,
+                  field: &schema_capnp::field::Reader,
+                  is_reader: bool) -> ::capnp::Result<FormattedText> {
     use schema_capnp::*;
 
     let mut result = Vec::new();
@@ -818,10 +808,10 @@ fn generate_haser(discriminant_offset : u32,
     match field.which() {
         Err(_) | Ok(field::Group(_)) => {},
         Ok(field::Slot(reg_field)) => {
-            match reg_field.get_type().unwrap().which() {
-                Ok(type_::Text(())) | Ok(type_::Data(())) |
-                Ok(type_::List(_)) | Ok(type_::Struct(_)) |
-                Ok(type_::AnyPointer(_)) => {
+            match try!(try!(reg_field.get_type()).which()) {
+                type_::Text(()) | type_::Data(()) |
+                type_::List(_) | type_::Struct(_) |
+                type_::AnyPointer(_) => {
                     interior.push(
                         Line(format!("!self.{}.get_pointer_field({}).is_null()",
                                      member, reg_field.get_offset())));
@@ -836,53 +826,52 @@ fn generate_haser(discriminant_offset : u32,
         }
     }
 
-    Branch(result)
+    Ok(Branch(result))
 }
 
 fn generate_pipeline_getter(gen:&GeneratorContext,
-                            field : schema_capnp::field::Reader) -> FormattedText {
+                            field : schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
     use schema_capnp::{field, type_};
 
-    let name = field.get_name().unwrap();
+    let name = try!(field.get_name());
 
     match field.which() {
         Err(_) => panic!("unrecognized field type"),
         Ok(field::Group(group)) => {
             let the_mod = gen.scope_map[&group.get_type_id()].join("::");
-            return Branch(vec!(
-                                Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
-                                            camel_to_snake_case(name),
-                                            the_mod)),
-                               Indent(
-                                   Box::new(Line("FromTypelessPipeline::new(self._typeless.noop())".to_string()))),
-                               Line("}".to_string())));
+            Ok(Branch(vec!(
+                Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
+                             camel_to_snake_case(name),
+                             the_mod)),
+                Indent(
+                    Box::new(Line("FromTypelessPipeline::new(self._typeless.noop())".to_string()))),
+                Line("}".to_string()))))
         }
         Ok(field::Slot(reg_field)) => {
-            let typ = reg_field.get_type().unwrap();
-            match typ.which() {
-                Err(_) => panic!("unrecognized type"),
-                Ok(type_::Struct(_)) => {
-                    return Branch(vec!(
+            let typ = try!(reg_field.get_type());
+            match try!(typ.which()) {
+                type_::Struct(_) => {
+                    Ok(Branch(vec!(
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
                                      typ.type_string(gen, Leaf::Pipeline))),
                         Indent(Box::new(Line(
                             format!("FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
                                     reg_field.get_offset())))),
-                        Line("}".to_string())));
+                        Line("}".to_string()))))
                 }
-                Ok(type_::Interface(_)) => {
-                    return Branch(vec!(
+                type_::Interface(_) => {
+                    Ok(Branch(vec!(
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
                                      typ.type_string(gen, Leaf::Client))),
                         Indent(Box::new(Line(
                             format!("FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
                                     reg_field.get_offset())))),
-                        Line("}".to_string())));
+                        Line("}".to_string()))))
                 }
                 _ => {
-                    return Branch(Vec::new());
+                    Ok(Branch(Vec::new()))
                 }
             }
         }
@@ -955,8 +944,8 @@ fn generate_node(gen: &GeneratorContext,
                 let is_union_field = discriminant_value != field::NO_DISCRIMINANT;
 
                 if !is_union_field {
-                    pipeline_impl_interior.push(generate_pipeline_getter(gen, field));
-                    let (ty, get) = getter_text(gen, &field, true);
+                    pipeline_impl_interior.push(try!(generate_pipeline_getter(gen, field)));
+                    let (ty, get) = try!(getter_text(gen, &field, true));
                     reader_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
@@ -964,7 +953,7 @@ fn generate_node(gen: &GeneratorContext,
                             Indent(Box::new(get)),
                             Line("}".to_string()))));
 
-                    let (ty_b, get_b) = getter_text(gen, &field, false);
+                    let (ty_b, get_b) = try!(getter_text(gen, &field, false));
 
                     builder_members.push(
                         Branch(vec!(
@@ -980,8 +969,8 @@ fn generate_node(gen: &GeneratorContext,
                 builder_members.push(try!(generate_setter(gen, discriminant_offset,
                                                           &styled_name, &field)));
 
-                reader_members.push(generate_haser(discriminant_offset, &styled_name, &field, true));
-                builder_members.push(generate_haser(discriminant_offset, &styled_name, &field, false));
+                reader_members.push(try!(generate_haser(discriminant_offset, &styled_name, &field, true)));
+                builder_members.push(try!(generate_haser(discriminant_offset, &styled_name, &field, false)));
 
                 match field.which() {
                     Ok(field::Group(group)) => {
@@ -997,13 +986,13 @@ fn generate_node(gen: &GeneratorContext,
 
             if discriminant_count > 0 {
                 let (which_enums1, union_getter, typedef) =
-                    generate_union(gen, discriminant_offset, &union_fields, true, &params);
+                    try!(generate_union(gen, discriminant_offset, &union_fields, true, &params));
                 which_enums.push(which_enums1);
                 which_enums.push(typedef);
                 reader_members.push(union_getter);
 
                 let (_, union_getter, typedef) =
-                    generate_union(gen, discriminant_offset, &union_fields, false, &params);
+                    try!(generate_union(gen, discriminant_offset, &union_fields, false, &params));
                 which_enums.push(typedef);
                 builder_members.push(union_getter);
 
@@ -1607,30 +1596,41 @@ fn generate_node(gen: &GeneratorContext,
             let names = &gen.scope_map[&node_id];
             let styled_name = snake_to_upper_case(&names.last().unwrap());
 
-            let (typ, txt) = match tuple_result(try!(c.get_type()).which(), try!(c.get_value()).which()) {
-                Ok((type_::Void(()), value::Void(()))) => ("()".to_string(), "()".to_string()),
-                Ok((type_::Bool(()), value::Bool(b))) => ("bool".to_string(), b.to_string()),
-                Ok((type_::Int8(()), value::Int8(i))) => ("i8".to_string(), i.to_string()),
-                Ok((type_::Int16(()), value::Int16(i))) => ("i16".to_string(), i.to_string()),
-                Ok((type_::Int32(()), value::Int32(i))) => ("i32".to_string(), i.to_string()),
-                Ok((type_::Int64(()), value::Int64(i))) => ("i64".to_string(), i.to_string()),
-                Ok((type_::Uint8(()), value::Uint8(i))) => ("u8".to_string(), i.to_string()),
-                Ok((type_::Uint16(()), value::Uint16(i))) => ("u16".to_string(), i.to_string()),
-                Ok((type_::Uint32(()), value::Uint32(i))) => ("u32".to_string(), i.to_string()),
-                Ok((type_::Uint64(()), value::Uint64(i))) => ("u64".to_string(), i.to_string()),
+            let (typ, txt) = match (try!(try!(c.get_type()).which()), try!(try!(c.get_value()).which())) {
+                (type_::Void(()), value::Void(())) => ("()".to_string(), "()".to_string()),
+                (type_::Bool(()), value::Bool(b)) => ("bool".to_string(), b.to_string()),
+                (type_::Int8(()), value::Int8(i)) => ("i8".to_string(), i.to_string()),
+                (type_::Int16(()), value::Int16(i)) => ("i16".to_string(), i.to_string()),
+                (type_::Int32(()), value::Int32(i)) => ("i32".to_string(), i.to_string()),
+                (type_::Int64(()), value::Int64(i)) => ("i64".to_string(), i.to_string()),
+                (type_::Uint8(()), value::Uint8(i)) => ("u8".to_string(), i.to_string()),
+                (type_::Uint16(()), value::Uint16(i)) => ("u16".to_string(), i.to_string()),
+                (type_::Uint32(()), value::Uint32(i)) => ("u32".to_string(), i.to_string()),
+                (type_::Uint64(()), value::Uint64(i)) => ("u64".to_string(), i.to_string()),
 
                 // float string formatting appears to be a bit broken currently, in Rust.
-                Ok((type_::Float32(()), value::Float32(f))) => ("f32".to_string(), format!("{}f32", f.to_string())),
-                Ok((type_::Float64(()), value::Float64(f))) => ("f64".to_string(), format!("{}f64", f.to_string())),
+                (type_::Float32(()), value::Float32(f)) => ("f32".to_string(), format!("{}f32", f.to_string())),
+                (type_::Float64(()), value::Float64(f)) => ("f64".to_string(), format!("{}f64", f.to_string())),
 
-                Ok((type_::Text(()), value::Text(_t))) => { panic!() }
-                Ok((type_::Data(()), value::Data(_d))) => { panic!() }
-                Ok((type_::List(_t), value::List(_p))) => { panic!() }
-                Ok((type_::Struct(_t), value::Struct(_p))) => { panic!() }
-                Ok((type_::Interface(_t), value::Interface(()))) => { panic!() }
-                Ok((type_::AnyPointer(_), value::AnyPointer(_pr))) => { panic!() }
-                Err(_) => { panic!("unrecognized type") }
-                _ => { panic!("type does not match value") }
+                (type_::Text(()), value::Text(_t)) => {
+                    return Err(Error::unimplemented(format!("text constants")));
+                }
+                (type_::Data(()), value::Data(_d)) => {
+                    return Err(Error::unimplemented(format!("data constants")));
+                }
+                (type_::List(_t), value::List(_p)) => {
+                    return Err(Error::unimplemented(format!("list constants")));
+                }
+                (type_::Struct(_t), value::Struct(_p)) => {
+                    return Err(Error::unimplemented(format!("struct constants")));
+                }
+                (type_::Interface(_t), value::Interface(())) => {
+                    return Err(Error::unimplemented(format!("interface constants")));
+                }
+                (type_::AnyPointer(_), value::AnyPointer(_pr)) => {
+                    return Err(Error::unimplemented(format!("anypointer constants")));
+                }
+                _ => { return Err(Error::failed(format!("type does not match value"))); }
             };
 
             output.push(
