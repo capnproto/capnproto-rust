@@ -96,23 +96,16 @@ fn evaluate_impl(expression: calculator::expression::Reader,
 struct FunctionImpl {
     param_count: u32,
     body: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    cap_table: Vec<Option<Box<::capnp::private::capability::ClientHook>>>
 }
 
 impl FunctionImpl {
-    fn new(param_count: u32, body: calculator::expression::Reader) -> FunctionImpl {
-        use ::capnp::traits::ImbueMut;
+    fn new(param_count: u32, body: calculator::expression::Reader) -> ::capnp::Result<FunctionImpl> {
         let mut result = FunctionImpl {
             param_count: param_count,
             body: ::capnp::message::Builder::new_default(),
-            cap_table: Vec::new(),
         };
-        {
-            let mut root: ::capnp::any_pointer::Builder = result.body.init_root();
-            root.imbue_mut(&mut result.cap_table);
-            root.set_as(body).unwrap();
-        }
-        result
+        try!(result.body.set_root(body));
+        Ok(result)
     }
 }
 
@@ -122,16 +115,13 @@ impl calculator::function::Server for FunctionImpl {
             mut results: calculator::function::CallResults)
         -> Promise<calculator::function::CallResults, Error>
     {
-        use ::capnp::traits::Imbue;
         let params = pry!(params.get().get_params());
         if params.len() != self.param_count {
             Promise::err(Error::failed(
                 format!("Expect {} parameters but got {}.", self.param_count, params.len())))
         } else {
-            let mut exp = pry!(self.body.get_root::<calculator::expression::Builder>()).as_reader();
-            exp.imbue(&self.cap_table);
             evaluate_impl(
-                exp,
+                pry!(self.body.get_root::<calculator::expression::Builder>()).as_reader(),
                 Some(params)).map(move |v| {
                     results.get().set_value(v);
                     Ok(results)
@@ -188,7 +178,7 @@ impl calculator::Server for CalculatorImpl {
     {
         results.get().set_func(
             calculator::function::ToClient::new(
-                FunctionImpl::new(params.get().get_param_count() as u32, pry!(params.get().get_body())))
+                pry!(FunctionImpl::new(params.get().get_param_count() as u32,pry!(params.get().get_body()))))
                 .from_server::<LocalClient>());
         Promise::ok(results)
     }
