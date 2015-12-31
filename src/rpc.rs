@@ -898,6 +898,7 @@ impl <VatId> ConnectionState<VatId> {
 
     fn release_export(&self, id: ExportId, refcount: u32) -> ::capnp::Result<()> {
         let mut erase_export = false;
+        let mut client_ptr = 0;
         match self.exports.borrow_mut().find(id) {
             Some(e) => {
                 if refcount > e.refcount {
@@ -906,6 +907,7 @@ impl <VatId> ConnectionState<VatId> {
                     e.refcount -= refcount;
                     if e.refcount == 0 {
                         erase_export = true;
+                        client_ptr = e.client_hook.get_ptr();
                     }
                 }
             }
@@ -915,6 +917,7 @@ impl <VatId> ConnectionState<VatId> {
         }
         if erase_export {
             self.exports.borrow_mut().erase(id);
+            self.exports_by_cap.borrow_mut().remove(&client_ptr);
         }
         Ok(())
     }
@@ -1051,7 +1054,15 @@ impl <VatId> ConnectionState<VatId> {
             let contains_key = state.exports_by_cap.borrow().contains_key(&ptr);
             if contains_key {
                 // We've already seen and exported this capability before.  Just up the refcount.
-                unimplemented!()
+                let export_id = state.exports_by_cap.borrow()[(&ptr)];
+                match state.exports.borrow_mut().find(export_id) {
+                    None => unreachable!(),
+                    Some(ref mut exp) => {
+                        descriptor.set_sender_hosted(export_id);
+                        exp.refcount += 1;
+                        Ok(Some(export_id))
+                    }
+                }
             } else {
                 // This is the first time we've seen this capability.
 
@@ -2189,16 +2200,16 @@ impl QueuedPipeline {
         }));
         let this = Rc::downgrade(&inner);
         let self_res = branch.map_else(move |result| {
+            let this = this.upgrade().expect("dangling reference?");
             match result {
                 Ok(pipeline_hook) => {
-                    let this = this.upgrade().expect("dangling reference?");
                     this.borrow_mut().redirect = Some(pipeline_hook);
-                    Ok(())
                 }
-                Err(_) => {
-                    unimplemented!()
+                Err(e) => {
+                    this.borrow_mut().redirect = Some(Box::new(BrokenPipeline::new(e)));
                 }
             }
+            Ok(())
         }).eagerly_evaluate();
         inner.borrow_mut().self_resolution_op = self_res;
         QueuedPipeline { inner: inner }
@@ -2372,6 +2383,27 @@ impl ClientHook for QueuedClient {
 
     fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
         unimplemented!()
+    }
+}
+
+struct BrokenPipeline {
+    error: Error,
+}
+
+impl BrokenPipeline {
+    fn new(error: Error) -> BrokenPipeline {
+        BrokenPipeline {
+            error: error
+        }
+    }
+}
+
+impl PipelineHook for BrokenPipeline {
+    fn add_ref(&self) -> Box<PipelineHook> {
+        Box::new(BrokenPipeline::new(self.error.clone()))
+    }
+    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
+        new_broken_cap(self.error.clone())
     }
 }
 
