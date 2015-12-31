@@ -228,10 +228,7 @@ impl ::std::error::Error for Error {
 #[cfg(feature = "rpc")]
 impl ::gj::FulfillerDropped for Error {
     fn fulfiller_dropped() -> Error {
-        Error {
-            reason: "Promise fulfiller was dropped.".to_string(),
-            kind: ErrorKind::Failed
-        }
+        Error::failed("Promise fulfiller was dropped.".to_string())
     }
 }
 
