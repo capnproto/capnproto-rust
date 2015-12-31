@@ -173,6 +173,7 @@ pub unsafe trait Allocator {
 pub struct Builder<A> where A: Allocator {
     arena: Box<BuilderArena>,
     allocator: Box<A>,
+    cap_table: Vec<Option<Box<::private::capability::ClientHook>>>,
 }
 
 unsafe impl <A> Send for Builder<A> where A: Send + Allocator {}
@@ -185,7 +186,11 @@ impl <A> Builder<A> where A: Allocator {
             unsafe { ::std::mem::transmute(r as &mut Allocator) }
         };
         let arena = BuilderArena::new(boxed_allocator_ref);
-        Builder { arena: arena, allocator: boxed_allocator }
+        Builder {
+            arena: arena,
+            allocator: boxed_allocator,
+            cap_table: Vec::new(),
+        }
     }
 
     fn get_root_internal<'a>(&mut self) -> any_pointer::Builder<'a> {
@@ -210,13 +215,19 @@ impl <A> Builder<A> where A: Allocator {
     }
 
     /// Initializes the root as a value of the given type.
-    pub fn init_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> T {
-        self.get_root_internal().init_as()
+    pub fn init_root<'a, T: FromPointerBuilder<'a>>(&'a mut self) -> T {
+        use ::traits::ImbueMut;
+        let mut root = self.get_root_internal();
+        root.imbue_mut(&mut self.cap_table);
+        root.init_as()
     }
 
     /// Gets the root, interpreting it as the given type.
-    pub fn get_root<'a, T : FromPointerBuilder<'a>>(&'a mut self) -> Result<T> {
-        self.get_root_internal().get_as()
+    pub fn get_root<'a, T: FromPointerBuilder<'a>>(&'a mut self) -> Result<T> {
+        use ::traits::ImbueMut;
+        let mut root = self.get_root_internal();
+        root.imbue_mut(&mut self.cap_table);
+        root.get_as()
     }
 
     pub fn get_root_as_reader<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
@@ -224,16 +235,22 @@ impl <A> Builder<A> where A: Allocator {
         if self.arena.segment0.current_size() == 0 {
             Err(::Error::new_decode_error("Segment zero is empty.".to_string()))
         } else {
-            any_pointer::Reader::new(
+            use ::traits::Imbue;
+            let mut root = any_pointer::Reader::new(
                 try!(layout::PointerReader::get_root(root_segment,
                                                      self.arena.segment0.get_ptr_unchecked(0),
-                                                     0x7fffffff))).get_as()
+                                                     0x7fffffff)));
+            root.imbue(&self.cap_table);
+            root.get_as()
         }
     }
 
     /// Sets the root to a deep copy of the given value.
-    pub fn set_root<To, From : SetPointerBuilder<To>>(&mut self, value : From) -> Result<()> {
-        self.get_root_internal().set_as(value)
+    pub fn set_root<To, From: SetPointerBuilder<To>>(&mut self, value : From) -> Result<()> {
+        use ::traits::ImbueMut;
+        let mut root = self.get_root_internal();
+        root.imbue_mut(&mut self.cap_table);
+        root.set_as(value)
     }
 
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
