@@ -1567,7 +1567,7 @@ impl <VatId> ResultsHook for Results<VatId> {
         unimplemented!()
     }
 
-    fn send_return(mut self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
+    fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
         let tmp = *self;
         let Results { connection_state, mut message, cap_table } = tmp;
 
@@ -2077,7 +2077,7 @@ impl ResultsHook for LocalResults {
         unimplemented!()
     }
 
-    fn send_return(mut self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
+    fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
         let tmp = *self;
         let LocalResults { message, cap_table } = tmp;
         Promise::ok(Box::new(LocalResultsDone::new(message, cap_table)))
@@ -2402,13 +2402,13 @@ impl PipelineHook for BrokenPipeline {
     fn add_ref(&self) -> Box<PipelineHook> {
         Box::new(BrokenPipeline::new(self.error.clone()))
     }
-    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
+    fn get_pipelined_cap(&self, _ops: &[PipelineOp]) -> Box<ClientHook> {
         new_broken_cap(self.error.clone())
     }
 }
 
 struct BrokenClientInner {
-    exception: Error,
+    error: Error,
     resolved: bool,
     brand: usize,
 }
@@ -2418,10 +2418,10 @@ struct BrokenClient {
 }
 
 impl BrokenClient {
-    fn new(exception: Error, resolved: bool, brand: usize) -> BrokenClient {
+    fn new(error: Error, resolved: bool, brand: usize) -> BrokenClient {
         BrokenClient {
             inner: Rc::new(BrokenClientInner {
-                exception: exception,
+                error: error,
                 resolved: resolved,
                 brand: brand,
             }),
@@ -2441,9 +2441,10 @@ impl ClientHook for BrokenClient {
     }
 
     fn call(&self, _interface_id: u64, _method_id: u16, _params: Box<ParamsHook>, _results: Box<ResultsHook>)
-        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+        -> (Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
     {
-        unimplemented!()
+        (Promise::err(self.inner.error.clone()),
+         Box::new(BrokenPipeline::new(self.inner.error.clone())))
     }
 
     fn get_ptr(&self) -> usize {
