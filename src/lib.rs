@@ -26,14 +26,21 @@
 //! In your Cargo.toml:
 //!
 //! ```ignore
+//!   [package]
+//!   build = "build.rs"
+//!
 //!   [build-dependencies]
 //!   capnpc = "*"
 //! ```
 //!
-//! In your build.rs, call
+//! In your build.rs:
 //!
 //! ```ignore
-//! ::capnpc::compile("schema", &["schema/foo.capnp", "schema/bar.capnp"]);
+//! extern crate capnpc;
+//!
+//! fn main() {
+//!     ::capnpc::compile("schema", &["schema/foo.capnp", "schema/bar.capnp"]).unwrap();
+//! }
 //! ```
 //!
 //! This will be equivalent to executing the shell command
