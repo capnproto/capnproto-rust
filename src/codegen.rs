@@ -22,6 +22,7 @@
 use capnp;
 use capnp::Error;
 use std::collections;
+use std::collections::HashSet;
 use schema_capnp;
 use codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
@@ -878,6 +879,74 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
     }
 }
 
+fn get_ty_params_of_brand(gen: &GeneratorContext,
+                          brand: ::schema_capnp::brand::Reader<>) -> ::capnp::Result<String>
+{
+    let mut acc = HashSet::new();
+    try!(find_bound_parameters(gen, &mut acc, brand));
+    let mut result = String::new();
+    for (scope_id, parameter_index) in acc.into_iter() {
+        let node = gen.node_map[&scope_id];
+        let p = try!(node.get_parameters()).get(parameter_index as u32);
+        result.push_str(try!(p.get_name()));
+        result.push_str(",");
+    }
+
+    Ok(result)
+}
+
+fn find_bound_parameters(gen: &GeneratorContext,
+                         accumulator: &mut HashSet<(u64, u16)>,
+                         brand: ::schema_capnp::brand::Reader<>)
+                         -> ::capnp::Result<()>
+{
+    for scope in try!(brand.get_scopes()).iter() {
+        let scope_id = scope.get_scope_id();
+        match try!(scope.which()) {
+            ::schema_capnp::brand::scope::Bind(bind) => {
+                for binding in try!(bind).iter() {
+                    match try!(binding.which()) {
+                        ::schema_capnp::brand::binding::Unbound(()) => {}
+                        ::schema_capnp::brand::binding::Type(t) => {
+                            use schema_capnp::type_;
+                            match try!(try!(t).which()) {
+                                type_::Void(()) | type_::Bool(()) |
+                                type_::Int8(()) | type_::Int16(()) |
+                                type_::Int32(()) | type_::Int64(()) |
+                                type_::Uint8(()) | type_::Uint16(()) |
+                                type_::Uint32(()) | type_::Uint64(()) |
+                                type_::Float32(()) | type_::Float64(()) |
+                                type_::Text(_) | type_::Data(_) => {}
+                                type_::AnyPointer(p) => {
+                                    match try!(p.which()) {
+                                        type_::any_pointer::Unconstrained(_) => (),
+                                        type_::any_pointer::Parameter(p) => {
+                                            accumulator.insert((p.get_scope_id(), p.get_parameter_index()));
+                                        }
+                                        type_::any_pointer::ImplicitMethodParameter(_) => {
+                                            // XXX
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    unimplemented!()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            ::schema_capnp::brand::scope::Inherit(()) => {
+                let parameters = try!(gen.node_map[&scope_id].get_parameters());;
+                for idx in 0..parameters.len() {
+                    accumulator.insert((scope_id, idx as u16));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn generate_node(gen: &GeneratorContext,
                  node_id: u64,
                  node_name: &str,
@@ -1326,14 +1395,15 @@ fn generate_node(gen: &GeneratorContext,
                 method.get_code_order();
                 let param_id = method.get_param_struct_type();
                 let param_node = &gen.node_map[&param_id];
-                let param_scopes = if param_node.get_scope_id() == 0 {
+                let (param_scopes, params_ty_params) = if param_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Params", name));
                     nested_output.push(try!(generate_node(gen, param_id, &*local_name, Some(node_id))));
                     names.push(local_name);
-                    names
+                    (names, params.params.clone())
                 } else {
-                    gen.scope_map[&param_node.get_id()].clone()
+                    (gen.scope_map[&param_node.get_id()].clone(),
+                     try!(get_ty_params_of_brand(gen, try!(method.get_param_brand()))))
                 };
                 let param_type = do_branding(&gen, param_id, try!(method.get_param_brand()),
                                              Leaf::Owned, param_scopes.join("::"), Some(node_id));
@@ -1341,14 +1411,17 @@ fn generate_node(gen: &GeneratorContext,
 
                 let result_id = method.get_result_struct_type();
                 let result_node = &gen.node_map[&result_id];
-                let result_scopes = if result_node.get_scope_id() == 0 {
+                let (result_scopes, results_ty_params) = if result_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Results", name));
                     nested_output.push(try!(generate_node(gen, result_id, &*local_name, Some(node_id))));
                     names.push(local_name);
-                    names
+                    (names, params.params.clone())
                 } else {
-                    gen.scope_map[&result_node.get_id()].clone()
+                    if method.has_result_brand() {
+//                        unimplemented!()
+                    }
+                    (gen.scope_map[&result_node.get_id()].clone(), "".to_string())
                 };
                 let result_type = do_branding(&gen, result_id, try!(method.get_result_brand()),
                                               Leaf::Owned, result_scopes.join("::"), Some(node_id));
@@ -1360,18 +1433,18 @@ fn generate_node(gen: &GeneratorContext,
                 mod_interior.push(
                     Line(format!(
                             "pub type {}Params<{}> = capability::Params<{}>;",
-                            capitalize_first_letter(name), params.params, param_type)));
+                            capitalize_first_letter(name), params_ty_params, param_type)));
                 mod_interior.push(
                     Line(format!(
                             "pub type {}Results<{}> = capability::Results<{}>;",
-                            capitalize_first_letter(name), params.params, result_type)));
+                            capitalize_first_letter(name), results_ty_params, result_type)));
                 server_interior.push(
                     Line(format!(
                             "fn {}(&mut self, {}Params<{}>, {}Results<{}>) -> ::capnp::capability::Promise<{}Results<{}>, ::capnp::Error>;",
                             camel_to_snake_case(name),
-                            capitalize_first_letter(name), params.params,
-                            capitalize_first_letter(name), params.params,
-                            capitalize_first_letter(name), params.params
+                            capitalize_first_letter(name), params_ty_params,
+                            capitalize_first_letter(name), results_ty_params,
+                            capitalize_first_letter(name), results_ty_params
                             )));
 
                 client_impl_interior.push(
