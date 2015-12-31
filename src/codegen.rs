@@ -897,6 +897,50 @@ fn get_ty_params_of_brand(gen: &GeneratorContext,
     Ok(result)
 }
 
+fn get_ty_params_of_type_helper(gen: &GeneratorContext,
+                                accumulator: &mut HashSet<(u64, u16)>,
+                                typ: ::schema_capnp::type_::Reader<>)
+    -> ::capnp::Result<()>
+{
+    use schema_capnp::type_;
+    match try!(typ.which()) {
+        type_::Void(()) | type_::Bool(()) |
+        type_::Int8(()) | type_::Int16(()) |
+        type_::Int32(()) | type_::Int64(()) |
+        type_::Uint8(()) | type_::Uint16(()) |
+        type_::Uint32(()) | type_::Uint64(()) |
+        type_::Float32(()) | type_::Float64(()) |
+        type_::Text(_) | type_::Data(_) => {}
+        type_::AnyPointer(p) => {
+            match try!(p.which()) {
+                type_::any_pointer::Unconstrained(_) => (),
+                type_::any_pointer::Parameter(p) => {
+                    accumulator.insert((p.get_scope_id(), p.get_parameter_index()));
+                }
+                type_::any_pointer::ImplicitMethodParameter(_) => {
+                    // XXX
+                }
+            }
+        }
+        type_::List(_list) => {
+            unimplemented!()
+        }
+        type_::Enum(e) => {
+            try!(get_ty_params_of_brand_helper(gen, accumulator,
+                                               try!(e.get_brand())));
+        }
+        type_::Struct(s) => {
+            try!(get_ty_params_of_brand_helper(gen, accumulator,
+                                               try!(s.get_brand())));
+        }
+        type_::Interface(interf) => {
+            try!(get_ty_params_of_brand_helper(gen, accumulator,
+                                               try!(interf.get_brand())));
+        }
+    }
+    Ok(())
+}
+
 fn get_ty_params_of_brand_helper(gen: &GeneratorContext,
                          accumulator: &mut HashSet<(u64, u16)>,
                          brand: ::schema_capnp::brand::Reader<>)
@@ -910,30 +954,7 @@ fn get_ty_params_of_brand_helper(gen: &GeneratorContext,
                     match try!(binding.which()) {
                         ::schema_capnp::brand::binding::Unbound(()) => {}
                         ::schema_capnp::brand::binding::Type(t) => {
-                            use schema_capnp::type_;
-                            match try!(try!(t).which()) {
-                                type_::Void(()) | type_::Bool(()) |
-                                type_::Int8(()) | type_::Int16(()) |
-                                type_::Int32(()) | type_::Int64(()) |
-                                type_::Uint8(()) | type_::Uint16(()) |
-                                type_::Uint32(()) | type_::Uint64(()) |
-                                type_::Float32(()) | type_::Float64(()) |
-                                type_::Text(_) | type_::Data(_) => {}
-                                type_::AnyPointer(p) => {
-                                    match try!(p.which()) {
-                                        type_::any_pointer::Unconstrained(_) => (),
-                                        type_::any_pointer::Parameter(p) => {
-                                            accumulator.insert((p.get_scope_id(), p.get_parameter_index()));
-                                        }
-                                        type_::any_pointer::ImplicitMethodParameter(_) => {
-                                            // XXX
-                                        }
-                                    }
-                                }
-                                _ => {
-                                    unimplemented!()
-                                }
-                            }
+                            try!(get_ty_params_of_type_helper(gen, accumulator, try!(t)))
                         }
                     }
                 }
