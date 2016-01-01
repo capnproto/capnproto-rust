@@ -29,10 +29,13 @@ use gj::{EventLoop, Promise};
 use gj::io::unix;
 use capnp::Error;
 use capnp_rpc::{rpc, rpc_twoparty_capnp, twoparty};
+use capnp_rpc::rpc::LocalClient;
 
 pub mod test_capnp {
   include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
 }
+
+pub mod impls;
 
 #[test]
 fn drop_rpc_system() {
@@ -67,13 +70,17 @@ fn set_up_rpc<F>(main: F)
         }));
 
 
-        let stream2 = try!(stream.try_clone());
+        let (reader, writer) = stream.split();
         let mut network =
-            Box::new(twoparty::VatNetwork::new(stream, stream2,
+            Box::new(twoparty::VatNetwork::new(reader, writer,
                                                rpc_twoparty_capnp::Side::Server,
                                                Default::default()));
         let disconnect_promise = network.on_disconnect();
-        let _rpc_system = rpc::System::new(network, None);
+
+        let bootstrap =
+            test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<LocalClient>();
+
+        let _rpc_system = rpc::System::new(network, Some(bootstrap.client));
 
         try!(disconnect_promise.wait(wait_scope));
         join_handle.join().expect("thread exited unsuccessfully");
@@ -88,5 +95,13 @@ fn do_nothing() {
         Promise::ok(())
     });
 }
+
+/*#[test]
+fn basic() {
+    set_up_rpc(|mut rpc_system| {
+        rpc_system.bootstrap(rpc_twoparty_capnp::Side::Client);
+        Promise::ok(())
+    });
+}*/
 
 

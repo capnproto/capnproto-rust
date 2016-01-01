@@ -71,6 +71,14 @@ struct TestAllTypes {
   interfaceList @33 : List(Void);  # TODO
 }
 
+interface Bootstrap {
+  testInterface @0 () -> (cap: TestInterface);
+  testExtends @1 () -> (cap: TestExtends);
+  testExtends2 @2 () -> (cap: TestExtends2);
+  testPipeline @3 () -> (cap: TestPipeline);
+  testCallOrder @4 () -> (cap: TestCallOrder);
+}
+
 interface TestInterface {
   foo @0 (i :UInt32, j :Bool) -> (x :Text);
   bar @1 () -> ();
