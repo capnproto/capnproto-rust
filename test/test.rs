@@ -103,8 +103,38 @@ fn do_nothing() {
 #[test]
 fn basic() {
     set_up_rpc(|client| {
-//        rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-        Promise::ok(())
+        client.test_interface_request().send().promise.then(|response| {
+            let client = pry!(pry!(response.get()).get_cap());
+            let mut request1 = client.foo_request();
+            request1.get().set_i(123);
+            request1.get().set_j(true);
+            let promise1 = request1.send().promise.then(|response| {
+                if "foo" == pry!(pry!(response.get()).get_x()) {
+                    Promise::ok(())
+                } else {
+                    Promise::err(Error::failed("expected X to equal 'foo'".to_string()))
+                }
+            });
+
+            let request3 = client.bar_request();
+            let promise3 = request3.send().promise.then_else(|result| {
+                // We expect this call to fail.
+                match result {
+                    Ok(_) => {
+                        Promise::err(Error::failed("expected bar() to fail".to_string()))
+                    }
+                    Err(_) => {
+                        Promise::ok(())
+                    }
+                }
+            });
+
+            let request2 = client.baz_request();
+            // TODO fill in some values and check that they are faithfully sent.
+            let promise2 = request2.send().promise.map(|_| Ok(()));
+
+            Promise::all(vec![promise1, promise2, promise3].into_iter()).map(|_| Ok(()))
+        })
     });
 }
 

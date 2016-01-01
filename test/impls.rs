@@ -109,7 +109,7 @@ impl test_interface::Server for TestInterface {
            _results: test_interface::BarResults)
            -> Promise<test_interface::BarResults, Error>
     {
-        unimplemented!()
+        Promise::err(Error::unimplemented("bar is not implemented".to_string()))
     }
 
     fn baz(&mut self,
