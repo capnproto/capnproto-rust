@@ -20,7 +20,55 @@
 // THE SOFTWARE.
 
 extern crate capnp;
+extern crate capnp_rpc;
+
+#[macro_use]
+extern crate gj;
+
+use gj::{EventLoop, Promise};
+use gj::io::unix;
+use capnp::Error;
+use capnp_rpc::{rpc, rpc_twoparty_capnp, twoparty};
 
 pub mod test_capnp {
   include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
 }
+
+fn set_up_rpc<F>(main: F)
+    where F: FnOnce(rpc::System<twoparty::VatId>) -> Promise<(), Error>, F: Send + 'static
+{
+    EventLoop::top_level(|wait_scope| {
+        let (join_handle, stream) = try!(unix::spawn(|stream, wait_scope| {
+            let stream2 = try!(stream.try_clone());
+            let network =
+                Box::new(twoparty::VatNetwork::new(stream, stream2,
+                                                   rpc_twoparty_capnp::Side::Client,
+                                                   Default::default()));
+
+            let rpc_system = rpc::System::new(network, None);
+            try!(main(rpc_system).wait(wait_scope));
+            Ok(())
+        }));
+
+
+        let stream2 = try!(stream.try_clone());
+        let mut network =
+            Box::new(twoparty::VatNetwork::new(stream, stream2,
+                                               rpc_twoparty_capnp::Side::Server,
+                                               Default::default()));
+        let disconnect_promise = network.on_disconnect();
+        let _rpc_system = rpc::System::new(network, None);
+
+        try!(disconnect_promise.wait(wait_scope));
+        join_handle.join().expect("thread exited unsuccessfully");
+        Ok(())
+    }).expect("top level error");
+}
+
+/*
+#[test]
+fn do_nothing() {
+    set_up_rpc(|_rpc_system| {
+        Promise::ok(())
+    });
+}*/

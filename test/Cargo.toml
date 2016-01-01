@@ -20,3 +20,5 @@ git = "https://github.com/dwrensha/capnpc-rust"
 [dependencies.capnp]
 git = "https://github.com/dwrensha/capnproto-rust"
 
+[dependencies]
+gj = "*"
