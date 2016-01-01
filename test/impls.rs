@@ -92,10 +92,10 @@ impl test_interface::Server for TestInterface {
         self.call_count += 1;
         let params = params.get();
         if params.get_i() != 123 {
-//            return Promise::err(Error::failed(format!("expected i to equal 123")));
+            return Promise::err(Error::failed(format!("expected i to equal 123")));
         }
         if !params.get_j() {
-//            return Promise::err(Error::failed(format!("expected j to be true")));
+            return Promise::err(Error::failed(format!("expected j to be true")));
         }
         {
             let mut results = results.get();
