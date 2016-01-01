@@ -100,7 +100,7 @@ impl <Params, Results> Request <Params, Results>
     }
 
     pub fn get<'a>(&'a mut self) -> <Params as ::traits::Owned<'a>>::Builder {
-        self.hook.get().init_as()
+        self.hook.get().get_as().unwrap()
     }
 }
 
