@@ -28,3 +28,8 @@ install:
 script:
   - cargo build
   - cargo doc
+  - cd test
+  - cargo test
+  - cd ..
+  - cd examples/calculator
+  - cargo build
