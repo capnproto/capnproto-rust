@@ -68,7 +68,7 @@ pub trait Connection<VatId> {
 }
 
 pub trait VatNetwork<VatId> {
-    /// Returns None if `hostId` refers to the local host or a previously-requested vat.
+    /// Returns None if `hostId` refers to the local vat.
     fn connect(&mut self, hostId: VatId) -> Option<Box<Connection<VatId>>>;
 
     /// Waits for the next incoming connection and return it.

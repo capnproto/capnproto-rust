@@ -77,7 +77,9 @@ impl <VatId> System <VatId> {
     pub fn bootstrap(&mut self, vat_id: VatId) -> ::capnp::capability::Client {
         let connection = match self.network.connect(vat_id) {
             Some(connection) => connection,
-            None => unimplemented!(),
+            None => {
+                return ::capnp::capability::Client::new(self.bootstrap_cap.clone());
+            }
         };
         let connection_state =
             System::get_connection_state(self.connection_state.clone(),
@@ -2385,6 +2387,33 @@ impl PipelineHook for BrokenPipeline {
     }
 }
 
+struct BrokenRequest {
+    error: Error,
+    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+}
+
+impl BrokenRequest {
+    fn new(error: Error, _size_hint: Option<::capnp::MessageSize>) -> BrokenRequest {
+        BrokenRequest {
+            error: error,
+            message: ::capnp::message::Builder::new_default(),
+        }
+    }
+}
+
+impl RequestHook for BrokenRequest {
+    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+        self.message.get_root().unwrap()
+    }
+    fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
+        let pipeline = BrokenPipeline::new(self.error.clone());
+        ::capnp::capability::RemotePromise {
+            promise: Promise::err(self.error),
+            pipeline: any_pointer::Pipeline::new(Box::new(pipeline)),
+        }
+    }
+}
+
 struct BrokenClientInner {
     error: Error,
     resolved: bool,
@@ -2412,10 +2441,11 @@ impl ClientHook for BrokenClient {
         Box::new(BrokenClient { inner: self.inner.clone() } )
     }
     fn new_call(&self, _interface_id: u64, _method_id: u16,
-                _size_hint: Option<::capnp::MessageSize>)
+                size_hint: Option<::capnp::MessageSize>)
                 -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
     {
-        unimplemented!()
+        ::capnp::capability::Request::new(
+            Box::new(BrokenRequest::new(self.inner.error.clone(), size_hint)))
     }
 
     fn call(&self, _interface_id: u64, _method_id: u16, _params: Box<ParamsHook>, _results: Box<ResultsHook>)

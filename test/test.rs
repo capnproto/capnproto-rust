@@ -54,7 +54,8 @@ fn drop_rpc_system() {
 }
 
 fn set_up_rpc<F>(main: F)
-    where F: FnOnce(rpc::System<twoparty::VatId>) -> Promise<(), Error>, F: Send + 'static
+    where F: FnOnce(test_capnp::bootstrap::Client) -> Promise<(), Error>,
+          F: Send + 'static
 {
     EventLoop::top_level(|wait_scope| {
         let (join_handle, stream) = try!(unix::spawn(|stream, wait_scope| {
@@ -64,11 +65,14 @@ fn set_up_rpc<F>(main: F)
                                                    rpc_twoparty_capnp::Side::Client,
                                                    Default::default()));
 
-            let rpc_system = rpc::System::new(network, None);
-            try!(main(rpc_system).wait(wait_scope));
+            let mut rpc_system = rpc::System::new(network, None);
+            let client = test_capnp::bootstrap::Client {
+                client: rpc_system.bootstrap(rpc_twoparty_capnp::Side::Client)
+            };
+
+            try!(main(client).wait(wait_scope));
             Ok(())
         }));
-
 
         let (reader, writer) = stream.split();
         let mut network =
@@ -91,17 +95,17 @@ fn set_up_rpc<F>(main: F)
 
 #[test]
 fn do_nothing() {
-    set_up_rpc(|_rpc_system| {
+    set_up_rpc(|_client| {
         Promise::ok(())
     });
 }
 
-/*#[test]
+#[test]
 fn basic() {
-    set_up_rpc(|mut rpc_system| {
-        rpc_system.bootstrap(rpc_twoparty_capnp::Side::Client);
+    set_up_rpc(|client| {
+//        rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
         Promise::ok(())
     });
-}*/
+}
 
 
