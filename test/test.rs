@@ -34,6 +34,21 @@ pub mod test_capnp {
   include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
 }
 
+#[test]
+fn drop_rpc_system() {
+    EventLoop::top_level(|wait_scope| {
+        let (instream, outstream) = try!(unix::Stream::new_pair());
+        let network =
+            Box::new(twoparty::VatNetwork::new(instream, outstream,
+                                               rpc_twoparty_capnp::Side::Client,
+                                               Default::default()));
+        let rpc_system = rpc::System::new(network, None);
+        drop(rpc_system);
+        try!(Promise::<(),Error>::ok(()).wait(wait_scope));
+        Ok(())
+    }).expect("top level error");
+}
+
 fn set_up_rpc<F>(main: F)
     where F: FnOnce(rpc::System<twoparty::VatId>) -> Promise<(), Error>, F: Send + 'static
 {
@@ -72,3 +87,5 @@ fn do_nothing() {
         Promise::ok(())
     });
 }*/
+
+

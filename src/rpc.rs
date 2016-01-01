@@ -90,12 +90,13 @@ impl <VatId> System <VatId> {
 
     fn accept_loop(&mut self) -> Promise<(), Error> {
         let connection_state_ref = self.connection_state.clone();
-        let tasks1 = self.tasks.clone();
+        let tasks_ref = Rc::downgrade(&self.tasks);
         let bootstrap_cap = self.bootstrap_cap.clone();
         self.network.accept().map(move |connection| {
             System::get_connection_state(connection_state_ref,
                                          bootstrap_cap,
-                                         connection, tasks1);
+                                         connection,
+                                         tasks_ref.upgrade().expect("dangling reference to task set"));
             Ok(())
         })
     }
