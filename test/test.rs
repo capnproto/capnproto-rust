@@ -37,9 +37,10 @@ pub mod test_capnp {
 #[test]
 fn drop_rpc_system() {
     EventLoop::top_level(|wait_scope| {
-        let (instream, outstream) = try!(unix::Stream::new_pair());
+        let (instream, _outstream) = try!(unix::Stream::new_pair());
+        let (reader, writer) = instream.split();
         let network =
-            Box::new(twoparty::VatNetwork::new(instream, outstream,
+            Box::new(twoparty::VatNetwork::new(reader, writer,
                                                rpc_twoparty_capnp::Side::Client,
                                                Default::default()));
         let rpc_system = rpc::System::new(network, None);
@@ -54,9 +55,9 @@ fn set_up_rpc<F>(main: F)
 {
     EventLoop::top_level(|wait_scope| {
         let (join_handle, stream) = try!(unix::spawn(|stream, wait_scope| {
-            let stream2 = try!(stream.try_clone());
+            let (reader, writer) = stream.split();
             let network =
-                Box::new(twoparty::VatNetwork::new(stream, stream2,
+                Box::new(twoparty::VatNetwork::new(reader, writer,
                                                    rpc_twoparty_capnp::Side::Client,
                                                    Default::default()));
 

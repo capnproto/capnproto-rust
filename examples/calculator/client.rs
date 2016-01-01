@@ -54,10 +54,9 @@ pub fn main() {
     ::gj::EventLoop::top_level(move |wait_scope| {
         use std::net::ToSocketAddrs;
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-        let stream = try!(::gj::io::tcp::Stream::connect(addr).wait(wait_scope));
-        let stream2 = try!(stream.try_clone());
+        let (reader, writer) = try!(::gj::io::tcp::Stream::connect(addr).wait(wait_scope)).split();
         let network =
-            Box::new(twoparty::VatNetwork::new(stream, stream2,
+            Box::new(twoparty::VatNetwork::new(reader, writer,
                                                rpc_twoparty_capnp::Side::Client,
                                                Default::default()));
         let mut rpc_system = rpc::System::new(network, None);

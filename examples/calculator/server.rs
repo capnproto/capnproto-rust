@@ -201,9 +201,9 @@ pub fn accept_loop(listener: tcp::Listener,
                    -> Promise<(), ::std::io::Error>
 {
     listener.accept().lift().then(move |(listener, stream)| {
-        let stream2 = pry!(stream.try_clone());
+        let (reader, writer) = stream.split();
         let mut network =
-            twoparty::VatNetwork::new(stream, stream2,
+            twoparty::VatNetwork::new(reader, writer,
                                       rpc_twoparty_capnp::Side::Server, Default::default());
         let disconnect_promise = network.on_disconnect();
 
