@@ -80,12 +80,12 @@ fn set_up_rpc<F>(main: F)
     }).expect("top level error");
 }
 
-/*
+
 #[test]
 fn do_nothing() {
     set_up_rpc(|_rpc_system| {
         Promise::ok(())
     });
-}*/
+}
 
 

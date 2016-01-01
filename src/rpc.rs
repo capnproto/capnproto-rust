@@ -627,6 +627,7 @@ impl <VatId> ConnectionState<VatId> {
             &mut Err(_) => return ::gj::Promise::ok(()),
             &mut Ok(ref mut connection) => connection.receive_incoming_message(),
         };
+        let weak_state0 = weak_state.clone();
         let weak_state1 = weak_state.clone();
         promise.map(move |message| {
             match message {
@@ -634,10 +635,8 @@ impl <VatId> ConnectionState<VatId> {
                     ConnectionState::handle_message(weak_state, m).map(|()| true)
                 }
                 None => {
-                    /* XXX need to do this without forming a reference cycle.
-                    state.disconnect(
-                        ::capnp::Error::Io(::std::io::Error::new(::std::io::ErrorKind::Other,
-                                                                 "Peer disconnected"))); */
+                    weak_state0.upgrade().expect("message loop outlived connection state?")
+                        .disconnect(Error::failed("Peer disconnected.".to_string()));
                     Ok(false)
                 }
             }
