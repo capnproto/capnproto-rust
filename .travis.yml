@@ -32,4 +32,4 @@ script:
   - cargo test
   - cd ..
   - cd examples/calculator
-  - cargo build
+  - ./test_client_and_server.bash
