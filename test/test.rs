@@ -242,3 +242,16 @@ fn release_simple() {
         })
     });
 }
+
+#[test]
+fn promise_resolve() {
+    set_up_rpc(|client| {
+        client.test_more_stuff_request().send().promise.then(|response| {
+            let _client = pry!(pry!(response.get()).get_cap());
+
+            // TODO
+
+            Promise::ok(())
+        })
+    });
+}

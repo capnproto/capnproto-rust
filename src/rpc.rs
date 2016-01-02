@@ -876,7 +876,7 @@ impl <VatId> ConnectionState<VatId> {
                 let connection_state_ref = Rc::downgrade(&connection_state);
                 let promise = promise.then_else(move |result| {
                     match result {
-                        Ok(v) => Promise::ok(()),
+                        Ok(_v) => Promise::ok(()),
                         Err(e) => {
                             // Send an error return.
                             let connection_state = connection_state_ref.upgrade()
@@ -947,10 +947,11 @@ impl <VatId> ConnectionState<VatId> {
         Ok(())
     }
 
-    fn release_exports(&self, exports: &[ExportId]) {
+    fn _release_exports(&self, exports: &[ExportId]) -> ::capnp::Result<()> {
         for &export_id in exports {
-            self.release_export(export_id, 1);
+            try!(self.release_export(export_id, 1));
         }
+        Ok(())
     }
 
     fn get_brand(&self) -> usize {
@@ -1158,7 +1159,7 @@ impl <VatId> ConnectionState<VatId> {
         } else {
             let client: Box<Client<VatId>> = Box::new(import_client.into());
             match state.imports.borrow_mut().slots.get_mut(&import_id) {
-                Some(ref mut v) => {
+                Some(ref mut _v) => {
                     // XXX TODO
                     //v.app_client = Some(*client.clone());
                 }
@@ -1604,7 +1605,7 @@ impl <VatId> ResultsHook for Results<VatId> {
                 message::Return(ret) => {
                     match pry!(pry!(ret).which()) {
                         ::rpc_capnp::return_::Results(Ok(payload)) => {
-                            let exports =
+                            let _exports =
                                 ConnectionState::write_descriptors(&connection_state.upgrade().expect("I"),
                                                                    &cap_table,
                                                                    payload);
@@ -1704,7 +1705,7 @@ impl <VatId> Drop for ImportClient<VatId> {
         // Remove self from the import table, if the table is still pointing at us.
         let mut remove = false;
         if let Some(ref import) = connection_state.imports.borrow().slots.get(&self.import_id) {
-            if let Some((ref i, ptr)) = import.import_client {
+            if let Some((_, ptr)) = import.import_client {
                 if ptr == ((&*self) as *const _ as usize) {
                     remove = true;
                 }
@@ -2301,7 +2302,7 @@ struct QueuedClientInner {
     // confuse the application if a queued call returns before the capability on which it was made
     // resolves).  Luckily, we know that queued calls will involve, at the very least, an
     // eventLoop.evalLater.
-    promise_for_client_resolution: ClientHookPromiseFork,
+    _promise_for_client_resolution: ClientHookPromiseFork,
 }
 
 struct QueuedClient {
@@ -2321,7 +2322,7 @@ impl QueuedClient {
             promise: promise,
             self_resolution_op: Promise::never_done(),
             promise_for_call_forwarding: branch2.fork(),
-            promise_for_client_resolution: branch3.fork(),
+            _promise_for_client_resolution: branch3.fork(),
         }));
         let this = Rc::downgrade(&inner);
         let self_resolution_op = branch1.map_else(move |result| {
@@ -2462,7 +2463,7 @@ impl RequestHook for BrokenRequest {
 
 struct BrokenClientInner {
     error: Error,
-    resolved: bool,
+    _resolved: bool,
     brand: usize,
 }
 
@@ -2475,7 +2476,7 @@ impl BrokenClient {
         BrokenClient {
             inner: Rc::new(BrokenClientInner {
                 error: error,
-                resolved: resolved,
+                _resolved: resolved,
                 brand: brand,
             }),
         }
