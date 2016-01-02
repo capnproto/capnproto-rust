@@ -1649,10 +1649,11 @@ mod wire_helpers {
                                           reff: *const WirePointer,
                                           _nesting_limit: i32) -> Result<Box<ClientHook>> {
         if (*reff).is_null() {
-            panic!("broken cap factory is unimplemented");
+            Err(Error::failed(
+                "Message contains null capability pointer.".to_string()))
         } else if !(*reff).is_capability() {
-            return Err(Error::failed(
-                "Message contains non-capability pointer where capability pointer was expected.".to_string()));
+            Err(Error::failed(
+                "Message contains non-capability pointer where capability pointer was expected.".to_string()))
         } else {
             let n = (*reff).cap_ref().index.get() as usize;
             match cap_table.extract_cap(n) {
