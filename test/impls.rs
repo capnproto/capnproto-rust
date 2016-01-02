@@ -256,12 +256,12 @@ impl test_pipeline::Server for TestPipeline {
     }
 }
 
-struct TestCallOrder {
+pub struct TestCallOrder {
     count: u32,
 }
 
 impl TestCallOrder {
-    fn new() -> TestCallOrder {
+    pub fn new() -> TestCallOrder {
         TestCallOrder { count: 0 }
     }
 }
@@ -279,14 +279,14 @@ impl test_call_order::Server for TestCallOrder {
 }
 
 struct TestMoreStuff {
-    _call_count: Rc<Cell<i64>>,
+    call_count: u32,
     handle_count: Rc<Cell<i64>>,
 }
 
 impl TestMoreStuff {
     pub fn new() -> TestMoreStuff {
         TestMoreStuff {
-            _call_count: Rc::new(Cell::new(0)),
+            call_count: 0,
             handle_count: Rc::new(Cell::new(0)),
         }
     }
@@ -302,9 +302,11 @@ impl TestMoreStuff {
 impl test_call_order::Server for TestMoreStuff {
     fn get_call_sequence(&mut self,
                          _params: test_call_order::GetCallSequenceParams,
-                         results: test_call_order::GetCallSequenceResults)
+                         mut results: test_call_order::GetCallSequenceResults)
                          -> Promise<test_call_order::GetCallSequenceResults, Error>
     {
+        results.get().set_n(self.call_count);
+        self.call_count += 1;
         Promise::ok(results)
     }
 }
@@ -319,11 +321,13 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     fn call_foo_when_resolved(&mut self,
-                              _params: test_more_stuff::CallFooWhenResolvedParams,
+                              params: test_more_stuff::CallFooWhenResolvedParams,
                               _results: test_more_stuff::CallFooWhenResolvedResults)
                               -> Promise<test_more_stuff::CallFooWhenResolvedResults, Error>
     {
-        unimplemented!()
+        let _cap = pry!(params.get().get_cap());
+        // TODO: implemented when_resolved().
+        Promise::err(Error::unimplemented("call_foo_when_resolved is not implemented yet".to_string()))
     }
 
     fn never_return(&mut self,
@@ -359,11 +363,13 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     fn echo(&mut self,
-            _params: test_more_stuff::EchoParams,
-            _results: test_more_stuff::EchoResults)
+            params: test_more_stuff::EchoParams,
+            mut results: test_more_stuff::EchoResults)
             -> Promise<test_more_stuff::EchoResults, Error>
     {
-        unimplemented!()
+        self.call_count += 1;
+        results.get().set_cap(pry!(params.get().get_cap()));
+        Promise::ok(results)
     }
 
     fn expect_cancel(&mut self,

@@ -249,9 +249,63 @@ fn promise_resolve() {
         client.test_more_stuff_request().send().promise.then(|response| {
             let _client = pry!(pry!(response.get()).get_cap());
 
-            // TODO
+            // TODO implement Client::when_resolved() and then test it here.
 
             Promise::ok(())
+        })
+    });
+}
+
+fn get_call_sequence(client: &::test_capnp::test_call_order::Client, expected: u32)
+                     -> ::capnp::capability::RemotePromise<::test_capnp::test_call_order::get_call_sequence_results::Owned>
+{
+    let mut req = client.get_call_sequence_request();
+    req.get().set_expected(expected);
+    req.send()
+}
+
+#[test]
+fn embargo() {
+    set_up_rpc(|client| {
+        client.test_more_stuff_request().send().promise.then(|response| {
+            let client = pry!(pry!(response.get()).get_cap());
+
+            let server = ::impls::TestCallOrder::new();
+
+            // ugh, we need upcasting.
+            let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
+            let early_call = client2.get_call_sequence_request().send();
+            drop(client2);
+
+            let mut echo_request = client.echo_request();
+            echo_request.get().set_cap(
+                ::test_capnp::test_call_order::ToClient::new(server).from_server::<LocalClient>());
+            let echo = echo_request.send();
+
+            let pipeline = echo.pipeline.get_cap();
+
+            let call0 = get_call_sequence(&pipeline, 0);
+            let call1 = get_call_sequence(&pipeline, 1);
+
+            Promise::ok(())
+/*
+            early_call.promise.then(move |_early_call_response| {
+                let call2 = get_call_sequence(&pipeline, 2);
+                echo.promise.then(move |_echo_response| {
+                    let call3 = get_call_sequence(&pipeline, 3);
+                    let call4 = get_call_sequence(&pipeline, 4);
+                    let call5 = get_call_sequence(&pipeline, 5);
+
+                    Promise::all(vec![call0.promise,
+                                      call1.promise,
+                                      call2.promise,
+                                      call3.promise,
+                                      call4.promise,
+                                      call5.promise].into_iter()).map(|responses| {
+                        Ok(())
+                    })
+                })
+            }) */
         })
     });
 }
