@@ -161,4 +161,6 @@ interface TestMoreStuff extends(TestCallOrder) {
 
   getNull @10 () -> (nullCap :TestMoreStuff);
   # Always returns a null capability.
+
+  getHandleCount @11 () -> (count: Int64);
 }

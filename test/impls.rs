@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use test_capnp::{bootstrap, test_interface, test_extends, test_pipeline,
+use test_capnp::{bootstrap, test_handle, test_interface, test_extends, test_pipeline,
                  test_call_order, test_more_stuff};
 use gj::Promise;
 use capnp::Error;
@@ -279,25 +279,30 @@ impl test_call_order::Server for TestCallOrder {
 }
 
 struct TestMoreStuff {
-    call_count: Rc<Cell<u64>>,
+    _call_count: Rc<Cell<i64>>,
+    handle_count: Rc<Cell<i64>>,
 }
 
 impl TestMoreStuff {
     pub fn new() -> TestMoreStuff {
-        TestMoreStuff { call_count: Rc::new(Cell::new(0)) }
+        TestMoreStuff {
+            _call_count: Rc::new(Cell::new(0)),
+            handle_count: Rc::new(Cell::new(0)),
+        }
     }
+/*
     pub fn get_call_count(&self) -> Rc<Cell<u64>> {
         self.call_count.clone()
     }
     fn increment_call_count(&self) {
         self.call_count.set(self.call_count.get() + 1);
-    }
+    } */
 }
 
 impl test_call_order::Server for TestMoreStuff {
     fn get_call_sequence(&mut self,
                          _params: test_call_order::GetCallSequenceParams,
-                         mut results: test_call_order::GetCallSequenceResults)
+                         results: test_call_order::GetCallSequenceResults)
                          -> Promise<test_call_order::GetCallSequenceResults, Error>
     {
         Promise::ok(results)
@@ -371,10 +376,22 @@ impl test_more_stuff::Server for TestMoreStuff {
 
     fn get_handle(&mut self,
                   _params: test_more_stuff::GetHandleParams,
-                  _results: test_more_stuff::GetHandleResults)
+                  mut results: test_more_stuff::GetHandleResults)
                   -> Promise<test_more_stuff::GetHandleResults, Error>
     {
-        unimplemented!()
+        let handle = Handle::new(&self.handle_count);
+        results.get().set_handle(
+            test_handle::ToClient::new(handle).from_server::<LocalClient>());
+        Promise::ok(results)
+    }
+
+    fn get_handle_count(&mut self,
+                        _params: test_more_stuff::GetHandleCountParams,
+                        mut results: test_more_stuff::GetHandleCountResults)
+                        -> Promise<test_more_stuff::GetHandleCountResults, Error>
+    {
+        results.get().set_count(self.handle_count.get());
+        Promise::ok(results)
     }
 
     fn get_null(&mut self,
@@ -394,3 +411,23 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
 }
+
+struct Handle {
+    count: Rc<Cell<i64>>,
+}
+
+impl Handle {
+    fn new(count: &Rc<Cell<i64>>) -> Handle {
+        let count = count.clone();
+        count.set(count.get() + 1);
+        Handle { count: count }
+    }
+}
+
+impl Drop for Handle {
+    fn drop(&mut self) {
+        self.count.set(self.count.get() - 1);
+    }
+}
+
+impl test_handle::Server for Handle {}

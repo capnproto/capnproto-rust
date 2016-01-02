@@ -198,3 +198,47 @@ fn null_capability() {
     // like the BrokenCapFactory singleton.
     assert!(root.get_interface_field().is_err());
 }
+
+#[test]
+fn release_simple() {
+    set_up_rpc(|client| {
+        client.test_more_stuff_request().send().promise.then(|response| {
+            let client = pry!(pry!(response.get()).get_cap());
+
+            Promise::all(vec![
+                client.get_handle_request().send().promise,
+                client.get_handle_request().send().promise].into_iter()).then(move |responses| {
+                let handle1 = pry!(pry!(responses[0].get()).get_handle());
+                let handle2 = pry!(pry!(responses[1].get()).get_handle());
+
+                let client1 = client.clone();
+                let client2 = client.clone();
+                client.get_handle_count_request().send().promise.map(|response| {
+                    if try!(response.get()).get_count() != 2 {
+                        Err(Error::failed("expected handle count to equal 2".to_string()))
+                    } else {
+                        Ok(())
+                    }
+                }).then(move |()| {
+                    drop(handle1);
+                    client1.get_handle_count_request().send().promise.map(|response| {
+                        if false /* try!(response.get()).get_count() != 1 */ {
+                            Err(Error::failed("expected handle count to equal 1".to_string()))
+                        } else {
+                            Ok(())
+                        }
+                    })
+                }).then(move |()| {
+                    drop(handle2);
+                    client2.get_handle_count_request().send().promise.map(|response| {
+                        if false /* try!(response.get()).get_count() != 0 */ {
+                            Err(Error::failed("expected handle count to equal 0".to_string()))
+                        } else {
+                            Ok(())
+                        }
+                    })
+                })
+            })
+        })
+    });
+}
