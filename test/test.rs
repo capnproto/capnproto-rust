@@ -187,3 +187,14 @@ fn pipelining() {
         })
     });
 }
+
+#[test]
+fn null_capability() {
+    let mut message = ::capnp::message::Builder::new_default();
+    let root: ::test_capnp::test_all_types::Builder = message.get_root().unwrap();
+
+    // In capnproto-c++, this would return a BrokenCap. Here, it returns a decode error.
+    // Would it be worthwhile to try to match the C++ behavior here? We would need something
+    // like the BrokenCapFactory singleton.
+    assert!(root.get_interface_field().is_err());
+}
