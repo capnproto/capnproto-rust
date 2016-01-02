@@ -114,10 +114,10 @@ impl test_interface::Server for TestInterface {
 
     fn baz(&mut self,
            _params: test_interface::BazParams,
-           _results: test_interface::BazResults)
+           results: test_interface::BazResults)
            -> Promise<test_interface::BazResults, Error>
     {
-        unimplemented!()
+        Promise::ok(results)
     }
 
 }

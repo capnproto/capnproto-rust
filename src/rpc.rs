@@ -873,6 +873,29 @@ impl <VatId> ConnectionState<VatId> {
                 let (promise, pipeline) = capability.call(interface_id, method_id,
                                                           Box::new(params), Box::new(results));
 
+                let connection_state_ref = Rc::downgrade(&connection_state);
+                let promise = promise.then_else(move |result| {
+                    match result {
+                        Ok(v) => Promise::ok(()),
+                        Err(e) => {
+                            // Send an error return.
+                            let connection_state = connection_state_ref.upgrade()
+                                .expect("dangling reference to connection state?");
+                            let mut message = connection_state.connection.borrow_mut().as_mut()
+                                .expect("no connection?")
+                                .new_outgoing_message(50); // XXX size hint
+                            {
+                                let root: message::Builder = pry!(pry!(message.get_body()).get_as());
+                                let mut ret = root.init_return();
+                                ret.set_answer_id(question_id);
+                                ret.set_release_param_caps(false);
+                                let mut exc = ret.init_exception();
+                                from_error(&e, exc.borrow());
+                            }
+                            message.send().map(|_| Ok(()))
+                        }
+                    }
+                });
 
                 {
                     let ref mut slots = connection_state.answers.borrow_mut().slots;

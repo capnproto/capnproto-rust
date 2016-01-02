@@ -111,13 +111,12 @@ fn basic() {
             request1.get().set_j(true);
             let promise1 = request1.send().promise.then(|response| {
                 if "foo" == pry!(pry!(response.get()).get_x()) {
-                    println!("OK!");
                     Promise::ok(())
                 } else {
                     Promise::err(Error::failed("expected X to equal 'foo'".to_string()))
                 }
             });
-/*
+
             let request3 = client.bar_request();
             let promise3 = request3.send().promise.then_else(|result| {
                 // We expect this call to fail.
@@ -131,11 +130,11 @@ fn basic() {
                 }
             });
 
-            let request2 = client.bar_request();
+            let request2 = client.baz_request();
             // TODO fill in some values and check that they are faithfully sent.
             let promise2 = request2.send().promise.map(|_| Ok(()));
-*/
-            Promise::all(vec![promise1].into_iter()).map(|_| Ok(()))
+
+            Promise::all(vec![promise1, promise2, promise3].into_iter()).map(|_| Ok(()))
         })
     });
 }
