@@ -410,12 +410,12 @@ impl Export {
 
 pub struct Import<VatId> where VatId: 'static {
     // Becomes null when the import is destroyed.
-    import_client: Option<Rc<RefCell<ImportClient<VatId>>>>,
+    import_client: Option<(Weak<RefCell<ImportClient<VatId>>>, usize)>,
 
     // Either a copy of importClient, or, in the case of promises, the wrapping PromiseClient.
     // Becomes null when it is discarded *or* when the import is destroyed (e.g. the promise is
     // resolved and the import is no longer needed).
-    app_client: Option<Client<VatId>>,
+    _app_client: Option<Client<VatId>>,
 
     // If non-null, the import is a promise.
     _promise_fulfiller: Option<::gj::PromiseFulfiller<Box<ClientHook>, ()>>,
@@ -425,7 +425,7 @@ impl <VatId> Import<VatId> {
     fn new() -> Import<VatId> {
         Import {
             import_client: None,
-            app_client: None,
+            _app_client: None,
             _promise_fulfiller: None,
         }
     }
@@ -1141,10 +1141,11 @@ impl <VatId> ConnectionState<VatId> {
             let mut slots = &mut state.imports.borrow_mut().slots;
             let mut v = slots.entry(import_id).or_insert(Import::new());
             if v.import_client.is_some() {
-                v.import_client.as_ref().unwrap().clone()
+                v.import_client.as_ref().unwrap().0.upgrade().expect("dangling ref to import client?").clone()
             } else {
                 let import_client = ImportClient::new(&connection_state, import_id);
-                v.import_client = Some(import_client.clone());
+                v.import_client = Some((Rc::downgrade(&import_client),
+                                        (&*import_client.borrow())as *const _ as usize ));
                 import_client
             }
         };
@@ -1158,7 +1159,8 @@ impl <VatId> ConnectionState<VatId> {
             let client: Box<Client<VatId>> = Box::new(import_client.into());
             match state.imports.borrow_mut().slots.get_mut(&import_id) {
                 Some(ref mut v) => {
-                    v.app_client = Some(*client.clone());
+                    // XXX TODO
+                    //v.app_client = Some(*client.clone());
                 }
                 None => { unreachable!() }
             };
@@ -1697,11 +1699,32 @@ struct ImportClient<VatId> where VatId: 'static {
 
 impl <VatId> Drop for ImportClient<VatId> {
     fn drop(&mut self) {
+        let connection_state = self.connection_state.upgrade().expect("dangling ref to connection state?");
+
         // Remove self from the import table, if the table is still pointing at us.
-        // ...
+        let mut remove = false;
+        if let Some(ref import) = connection_state.imports.borrow().slots.get(&self.import_id) {
+            if let Some((ref i, ptr)) = import.import_client {
+                if ptr == ((&*self) as *const _ as usize) {
+                    remove = true;
+                }
+            }
+        }
+        if remove {
+            connection_state.imports.borrow_mut().slots.remove(&self.import_id);
+        }
 
         // Send a message releasing our remote references.
         // ...
+        let mut message = connection_state.connection.borrow_mut().as_mut().expect("no connection?")
+            .new_outgoing_message(50); // XXX size hint
+        {
+            let root: message::Builder = message.get_body().unwrap().init_as();
+            let mut release = root.init_release();
+            release.set_id(self.import_id);
+            release.set_reference_count(self.remote_ref_count);
+        }
+        let _ = message.send();
     }
 }
 

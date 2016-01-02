@@ -222,7 +222,7 @@ fn release_simple() {
                 }).then(move |()| {
                     drop(handle1);
                     client1.get_handle_count_request().send().promise.map(|response| {
-                        if false /* try!(response.get()).get_count() != 1 */ {
+                        if try!(response.get()).get_count() != 1 {
                             Err(Error::failed("expected handle count to equal 1".to_string()))
                         } else {
                             Ok(())
@@ -231,7 +231,7 @@ fn release_simple() {
                 }).then(move |()| {
                     drop(handle2);
                     client2.get_handle_count_request().send().promise.map(|response| {
-                        if false /* try!(response.get()).get_count() != 0 */ {
+                        if try!(response.get()).get_count() != 0 {
                             Err(Error::failed("expected handle count to equal 0".to_string()))
                         } else {
                             Ok(())
