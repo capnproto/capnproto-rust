@@ -29,6 +29,7 @@ pub trait ResponseHook {
 
 pub trait RequestHook {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a>;
+    fn get_brand(&self) -> usize;
     fn send<'a>(self : Box<Self>) -> RemotePromise<any_pointer::Owned>;
 }
 
@@ -79,6 +80,8 @@ pub trait ResultsHook {
     fn get<'a>(&'a mut self) -> ::Result<any_pointer::Builder<'a>>;
     fn allow_cancellation(&self);
     fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), ::Error>;
+    fn direct_tail_call(self: Box<Self>, request: Box<RequestHook>) ->
+        (::capability::Promise<Box<ResultsDoneHook>, ::Error>, Box<PipelineHook>);
 
     fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, ::Error>;
 }
