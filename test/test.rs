@@ -147,7 +147,43 @@ fn pipelining() {
     set_up_rpc(|client| {
         client.test_pipeline_request().send().promise.then(|response| {
             let client = pry!(pry!(response.get()).get_cap());
-            Promise::ok(())
+            let mut request = client.get_cap_request();
+            request.get().set_n(234);
+            let server = impls::TestInterface::new();
+            let chained_call_count = server.get_call_count();
+            request.get().set_in_cap(
+                ::test_capnp::test_interface::ToClient::new(server).from_server::<LocalClient>());
+
+            let promise = request.send();
+
+            let mut pipeline_request = promise.pipeline.get_out_box().get_cap().foo_request();
+            pipeline_request.get().set_i(321);
+            let pipeline_promise = pipeline_request.send();
+
+
+            let pipeline_request2 = {
+                let extends_client =
+                    ::test_capnp::test_extends::Client { client: promise.pipeline.get_out_box().get_cap().client };
+                extends_client.grault_request()
+            };
+            let pipeline_promise2 = pipeline_request2.send();
+
+            drop(promise); // Just to be annoying, drop the original promise.
+
+            if chained_call_count.get() != 0 {
+                return Promise::err(Error::failed("expeced chained_call_count to equal 0".to_string()));
+            }
+
+            pipeline_promise.promise.then(move |response| {
+                if pry!(pry!(response.get()).get_x()) != "bar" {
+                    return Promise::err(Error::failed("expected x to equal 'bar'".to_string()));
+                }
+                pipeline_promise2.promise.then(move |response| {
+                    ::test_util::CheckTestMessage::check_test_message(pry!(response.get()));
+                    assert_eq!(chained_call_count.get(), 1);
+                    Promise::ok(())
+                })
+            })
         })
     });
 }

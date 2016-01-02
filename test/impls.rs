@@ -25,6 +25,9 @@ use gj::Promise;
 use capnp::Error;
 use capnp_rpc::rpc::LocalClient;
 
+use std::cell::Cell;
+use std::rc::Rc;
+
 pub struct Bootstrap;
 
 impl bootstrap::Server for Bootstrap {
@@ -86,12 +89,18 @@ impl bootstrap::Server for Bootstrap {
 }
 
 pub struct TestInterface {
-    call_count: u64,
+    call_count: Rc<Cell<u64>>,
 }
 
 impl TestInterface {
-    fn new() -> TestInterface {
-        TestInterface { call_count: 0 }
+    pub fn new() -> TestInterface {
+        TestInterface { call_count: Rc::new(Cell::new(0)) }
+    }
+    pub fn get_call_count(&self) -> Rc<Cell<u64>> {
+        self.call_count.clone()
+    }
+    fn increment_call_count(&self) {
+        self.call_count.set(self.call_count.get() + 1);
     }
 }
 
@@ -101,7 +110,7 @@ impl test_interface::Server for TestInterface {
            mut results: test_interface::FooResults)
            -> Promise<test_interface::FooResults, Error>
     {
-        self.call_count += 1;
+        self.increment_call_count();
         let params = params.get();
         if params.get_i() != 123 {
             return Promise::err(Error::failed(format!("expected i to equal 123")));
@@ -121,6 +130,7 @@ impl test_interface::Server for TestInterface {
            _results: test_interface::BarResults)
            -> Promise<test_interface::BarResults, Error>
     {
+        self.increment_call_count();
         Promise::err(Error::unimplemented("bar is not implemented".to_string()))
     }
 
@@ -129,6 +139,7 @@ impl test_interface::Server for TestInterface {
            results: test_interface::BazResults)
            -> Promise<test_interface::BazResults, Error>
     {
+        self.increment_call_count();
         ::test_util::CheckTestMessage::check_test_message(pry!(params.get().get_s()));
         Promise::ok(results)
     }
@@ -205,11 +216,32 @@ struct TestPipeline;
 
 impl test_pipeline::Server for TestPipeline {
     fn get_cap(&mut self,
-               _params: test_pipeline::GetCapParams,
-               results: test_pipeline::GetCapResults)
+               params: test_pipeline::GetCapParams,
+               mut results: test_pipeline::GetCapResults)
                -> Promise<test_pipeline::GetCapResults, Error>
     {
-        Promise::ok(results)
+        if params.get().get_n() != 234 {
+            return Promise::err(Error::failed("expected n to equal 234".to_string()));
+        }
+        let cap = pry!(params.get().get_in_cap());
+        let mut request = cap.foo_request();
+        request.get().set_i(123);
+        request.get().set_j(true);
+        request.send().promise.map(move |response| {
+            if try!(try!(response.get()).get_x()) != "foo" {
+                return Err(Error::failed("expected x to equal 'foo'".to_string()));
+            }
+
+            results.get().set_s("bar");
+
+            // TODO implement better casting
+            results.get().init_out_box().set_cap(
+                test_interface::Client {
+                    client:
+                    test_extends::ToClient::new(TestExtends).from_server::<LocalClient>().client,
+                });
+            Ok(results)
+        })
     }
 }
 
