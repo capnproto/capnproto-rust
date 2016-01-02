@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#![cfg(test)]
+
 extern crate capnp;
 extern crate capnp_rpc;
 
@@ -36,6 +38,7 @@ pub mod test_capnp {
 }
 
 pub mod impls;
+pub mod test_util;
 
 #[test]
 fn drop_rpc_system() {
@@ -130,8 +133,8 @@ fn basic() {
                 }
             });
 
-            let request2 = client.baz_request();
-            // TODO fill in some values and check that they are faithfully sent.
+            let mut request2 = client.baz_request();
+            ::test_util::init_test_message(pry!(request2.get().get_s()));
             let promise2 = request2.send().promise.map(|_| Ok(()));
 
             Promise::all(vec![promise1, promise2, promise3].into_iter()).map(|_| Ok(()))
@@ -139,4 +142,12 @@ fn basic() {
     });
 }
 
-
+#[test]
+fn pipelining() {
+    set_up_rpc(|client| {
+        client.test_pipeline_request().send().promise.then(|response| {
+            let client = pry!(pry!(response.get()).get_cap());
+            Promise::ok(())
+        })
+    });
+}
