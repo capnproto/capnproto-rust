@@ -830,7 +830,7 @@ impl <VatId> ConnectionState<VatId> {
         };
         match intermediate {
             BorrowWorkaround::Call(capability) => {
-                let (interface_id, method_id, question_id, cap_table_array) = {
+                let (interface_id, method_id, question_id, cap_table_array, redirect_results) = {
                     let call = match try!(try!(try!(message.get_body()).get_as::<message::Reader>()).which()) {
                         message::Call(call) => try!(call),
                         _ => {
@@ -838,7 +838,7 @@ impl <VatId> ConnectionState<VatId> {
                             unreachable!()
                         }
                     };
-                    let _redirect_results = match try!(call.get_send_results_to().which()) {
+                    let redirect_results = match try!(call.get_send_results_to().which()) {
                         ::rpc_capnp::call::send_results_to::Caller(()) => false,
                         ::rpc_capnp::call::send_results_to::Yourself(()) => true,
                         ::rpc_capnp::call::send_results_to::ThirdParty(_) => unimplemented!(),
@@ -847,7 +847,8 @@ impl <VatId> ConnectionState<VatId> {
 
                     (call.get_interface_id(), call.get_method_id(), call.get_question_id(),
                      try!(ConnectionState::receive_caps(connection_state.clone(),
-                                                        try!(payload.get_cap_table()))))
+                                                        try!(payload.get_cap_table()))),
+                     redirect_results)
                 };
 
                 if connection_state.answers.borrow().slots.contains_key(&question_id) {
@@ -857,7 +858,7 @@ impl <VatId> ConnectionState<VatId> {
 
 
                 let params = Params::new(message, cap_table_array);
-                let results = Results::new(&connection_state, question_id);
+                let results = Results::new(&connection_state, question_id, redirect_results);
 
                 // cancelPaf?
 
@@ -1183,8 +1184,12 @@ impl <VatId> ConnectionState<VatId> {
             cap_descriptor::SenderPromise(sender_promise) => {
                 Ok(Some(ConnectionState::import(state, sender_promise, true)))
             }
-            cap_descriptor::ReceiverHosted(_receiver_hosted) => {
-                unimplemented!()
+            cap_descriptor::ReceiverHosted(receiver_hosted) => {
+                if let Some(ref mut exp) = state.exports.borrow_mut().find(receiver_hosted) {
+                    Ok(Some(exp.client_hook.add_ref()))
+                } else {
+                    Ok(Some(new_broken_cap(Error::failed("invalid 'receivedHosted' export ID".to_string()))))
+                }
             }
             cap_descriptor::ReceiverAnswer(receiver_answer) => {
                 let promised_answer = try!(receiver_answer);
@@ -1366,6 +1371,9 @@ impl <VatId> RequestHook for Request<VatId> {
         builder.imbue_mut(&mut self.cap_table);
         builder
     }
+    fn get_brand<'a>(&self) -> usize {
+        self.connection_state.get_brand()
+    }
     fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
         let Request { connection_state, target, mut message, cap_table } = tmp;
@@ -1537,12 +1545,14 @@ pub struct Results<VatId> where VatId: 'static {
     connection_state: Weak<ConnectionState<VatId>>,
     message: Box<::OutgoingMessage>,
     cap_table: Vec<Option<Box<ClientHook>>>,
+    redirect_results: bool
 }
 
 
 impl <VatId> Results<VatId> where VatId: 'static {
     fn new(connection_state: &Rc<ConnectionState<VatId>>,
-           answer_id: AnswerId
+           answer_id: AnswerId,
+           redirect_results: bool
            )
            -> Results<VatId>
     {
@@ -1560,6 +1570,7 @@ impl <VatId> Results<VatId> where VatId: 'static {
             connection_state: Rc::downgrade(connection_state),
             message: message,
             cap_table: Vec::new(),
+            redirect_results: redirect_results,
         }
     }
 }
@@ -1591,13 +1602,26 @@ impl <VatId> ResultsHook for Results<VatId> {
         unimplemented!()
     }
 
+    fn direct_tail_call(self: Box<Self>, request: Box<RequestHook>)
+                        -> (Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+    {
+        let state = self.connection_state.upgrade().expect("dangling connection state ref?");
+        if request.get_brand() == state.get_brand() && !self.redirect_results {
+            // The tail call is headed towards the peer that called us in the first place, so we can
+            // optimize out the return trip.
+            unimplemented!()
+        } else {
+            unimplemented!()
+        }
+    }
+
     fn allow_cancellation(&self) {
         unimplemented!()
     }
 
     fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
         let tmp = *self;
-        let Results { connection_state, mut message, cap_table } = tmp;
+        let Results { connection_state, mut message, cap_table, redirect_results } = tmp;
 
         {
             let root: message::Builder = pry!(pry!(message.get_body()).get_as());
@@ -1972,7 +1996,7 @@ impl <VatId> ClientHook for Client<VatId> {
         ::capnp::capability::Request::new(Box::new(request))
     }
 
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, _results: Box<ResultsHook>)
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
         -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
     {
         // Implement call() by copying params and results messages.
@@ -1982,9 +2006,10 @@ impl <VatId> ClientHook for Client<VatId> {
         request.get().set_as(params.get().unwrap()).unwrap();
 
         // We can and should propagate cancellation.
+        // (TODO ?)
         // context -> allowCancellation();
 
-        unimplemented!()
+        results.direct_tail_call(request.hook)
     }
 
     fn get_ptr(&self) -> usize {
@@ -2114,6 +2139,12 @@ impl ResultsHook for LocalResults {
         unimplemented!()
     }
 
+    fn direct_tail_call(self: Box<Self>, _request: Box<RequestHook>)
+                        -> (Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+    {
+        unimplemented!()
+    }
+
     fn allow_cancellation(&self) {
         unimplemented!()
     }
@@ -2180,6 +2211,9 @@ impl LocalRequest {
 impl RequestHook for LocalRequest {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
         self.message.get_root().unwrap()
+    }
+    fn get_brand(&self) -> usize {
+        0
     }
     fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
@@ -2454,6 +2488,9 @@ impl BrokenRequest {
 impl RequestHook for BrokenRequest {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
         self.message.get_root().unwrap()
+    }
+    fn get_brand(&self) -> usize {
+        0
     }
     fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let pipeline = BrokenPipeline::new(self.error.clone());
