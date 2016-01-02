@@ -1897,10 +1897,11 @@ impl <VatId> Client<VatId> {
         }
     }
 
-    fn write_descriptor(&self, descriptor: cap_descriptor::Builder) -> Option<u32> {
+    fn write_descriptor(&self, mut descriptor: cap_descriptor::Builder) -> Option<u32> {
         match &self.variant {
-            &ClientVariant::Import(ref _import_client) => {
-                unimplemented!()
+            &ClientVariant::Import(ref import_client) => {
+                descriptor.set_receiver_hosted(import_client.borrow().import_id);
+                None
             }
             &ClientVariant::Pipeline(ref pipeline_client) => {
                 let mut promised_answer = descriptor.init_receiver_answer();
@@ -1974,6 +1975,8 @@ impl <VatId> ClientHook for Client<VatId> {
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, _results: Box<ResultsHook>)
         -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
     {
+        // Implement call() by copying params and results messages.
+
         let mut request = self.new_call(interface_id, method_id,
                                         Some(params.get().unwrap().total_size().unwrap()));
         request.get().set_as(params.get().unwrap()).unwrap();
@@ -2004,7 +2007,7 @@ impl <VatId> ClientHook for Client<VatId> {
     fn get_resolved(&self) -> Option<Box<ClientHook>> {
         match &self.variant {
             &ClientVariant::Import(ref _import_client) => {
-                unimplemented!()
+                None
             }
             &ClientVariant::Pipeline(ref _pipeline_client) => {
                 None
