@@ -77,6 +77,7 @@ interface Bootstrap {
   testExtends2 @2 () -> (cap: TestExtends2);
   testPipeline @3 () -> (cap: TestPipeline);
   testCallOrder @4 () -> (cap: TestCallOrder);
+  testMoreStuff @5 () -> (cap: TestMoreStuff);
 }
 
 interface TestInterface {

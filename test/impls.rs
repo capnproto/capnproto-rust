@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use test_capnp::{bootstrap, test_interface, test_extends, test_pipeline,
-                 test_call_order};
+                 test_call_order, test_more_stuff};
 use gj::Promise;
 use capnp::Error;
 use capnp_rpc::rpc::LocalClient;
@@ -83,6 +83,17 @@ impl bootstrap::Server for Bootstrap {
         {
             results.get().set_cap(
                 test_call_order::ToClient::new(TestCallOrder::new()).from_server::<LocalClient>());
+        }
+        Promise::ok(results)
+    }
+    fn test_more_stuff(&mut self,
+                       _params: bootstrap::TestMoreStuffParams,
+                       mut results: bootstrap::TestMoreStuffResults)
+                       -> Promise<bootstrap::TestMoreStuffResults, Error>
+    {
+        {
+            results.get().set_cap(
+                test_more_stuff::ToClient::new(TestMoreStuff::new()).from_server::<LocalClient>());
         }
         Promise::ok(results)
     }
@@ -265,4 +276,121 @@ impl test_call_order::Server for TestCallOrder {
         self.count += 1;
         Promise::ok(results)
     }
+}
+
+struct TestMoreStuff {
+    call_count: Rc<Cell<u64>>,
+}
+
+impl TestMoreStuff {
+    pub fn new() -> TestMoreStuff {
+        TestMoreStuff { call_count: Rc::new(Cell::new(0)) }
+    }
+    pub fn get_call_count(&self) -> Rc<Cell<u64>> {
+        self.call_count.clone()
+    }
+    fn increment_call_count(&self) {
+        self.call_count.set(self.call_count.get() + 1);
+    }
+}
+
+impl test_call_order::Server for TestMoreStuff {
+    fn get_call_sequence(&mut self,
+                         _params: test_call_order::GetCallSequenceParams,
+                         mut results: test_call_order::GetCallSequenceResults)
+                         -> Promise<test_call_order::GetCallSequenceResults, Error>
+    {
+        Promise::ok(results)
+    }
+}
+
+impl test_more_stuff::Server for TestMoreStuff {
+    fn call_foo(&mut self,
+                _params: test_more_stuff::CallFooParams,
+                _results: test_more_stuff::CallFooResults)
+                -> Promise<test_more_stuff::CallFooResults, Error>
+    {
+        unimplemented!()
+    }
+
+    fn call_foo_when_resolved(&mut self,
+                              _params: test_more_stuff::CallFooWhenResolvedParams,
+                              _results: test_more_stuff::CallFooWhenResolvedResults)
+                              -> Promise<test_more_stuff::CallFooWhenResolvedResults, Error>
+    {
+        unimplemented!()
+    }
+
+    fn never_return(&mut self,
+                    _params: test_more_stuff::NeverReturnParams,
+                    _results: test_more_stuff::NeverReturnResults)
+                    -> Promise<test_more_stuff::NeverReturnResults, Error>
+    {
+        unimplemented!()
+    }
+
+    fn hold(&mut self,
+            _params: test_more_stuff::HoldParams,
+            _results: test_more_stuff::HoldResults)
+            -> Promise<test_more_stuff::HoldResults, Error>
+    {
+        unimplemented!()
+    }
+
+    fn call_held(&mut self,
+                 _params: test_more_stuff::CallHeldParams,
+                 _results: test_more_stuff::CallHeldResults)
+                 -> Promise<test_more_stuff::CallHeldResults, Error>
+    {
+        unimplemented!()
+    }
+
+    fn get_held(&mut self,
+                _params: test_more_stuff::GetHeldParams,
+                _results: test_more_stuff::GetHeldResults)
+                -> Promise<test_more_stuff::GetHeldResults, Error>
+    {
+        unimplemented!()
+    }
+
+    fn echo(&mut self,
+            _params: test_more_stuff::EchoParams,
+            _results: test_more_stuff::EchoResults)
+            -> Promise<test_more_stuff::EchoResults, Error>
+    {
+        unimplemented!()
+    }
+
+    fn expect_cancel(&mut self,
+                     _params: test_more_stuff::ExpectCancelParams,
+                     _results: test_more_stuff::ExpectCancelResults)
+                     -> Promise<test_more_stuff::ExpectCancelResults, Error>
+    {
+        unimplemented!()
+    }
+
+    fn get_handle(&mut self,
+                  _params: test_more_stuff::GetHandleParams,
+                  _results: test_more_stuff::GetHandleResults)
+                  -> Promise<test_more_stuff::GetHandleResults, Error>
+    {
+        unimplemented!()
+    }
+
+    fn get_null(&mut self,
+                _params: test_more_stuff::GetNullParams,
+                _results: test_more_stuff::GetNullResults)
+                -> Promise<test_more_stuff::GetNullResults, Error>
+    {
+        unimplemented!()
+    }
+
+    fn method_with_defaults(&mut self,
+                            _params: test_more_stuff::MethodWithDefaultsParams,
+                            _results: test_more_stuff::MethodWithDefaultsResults)
+                            -> Promise<test_more_stuff::MethodWithDefaultsResults, Error>
+    {
+        unimplemented!()
+    }
+
 }
