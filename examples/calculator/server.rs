@@ -22,8 +22,7 @@
 use capnp::Error;
 use capnp::primitive_list;
 
-use capnp_rpc::{rpc, twoparty, rpc_twoparty_capnp};
-use capnp_rpc::rpc::LocalClient;
+use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
 use calculator_capnp::calculator;
 use gj::{EventLoop, Promise, TaskReaper, TaskSet};
@@ -167,7 +166,7 @@ impl calculator::Server for CalculatorImpl {
     {
         evaluate_impl(pry!(params.get().get_expression()), None).map(move |v| {
             results.get().set_value(
-                calculator::value::ToClient::new(ValueImpl::new(v)).from_server::<LocalClient>());
+                calculator::value::ToClient::new(ValueImpl::new(v)).from_server::<::capnp_rpc::Server>());
             Ok(results)
         })
     }
@@ -179,7 +178,7 @@ impl calculator::Server for CalculatorImpl {
         results.get().set_func(
             calculator::function::ToClient::new(
                 pry!(FunctionImpl::new(params.get().get_param_count() as u32,pry!(params.get().get_body()))))
-                .from_server::<LocalClient>());
+                .from_server::<::capnp_rpc::Server>());
         Promise::ok(results)
     }
     fn get_operator(&mut self,
@@ -189,7 +188,7 @@ impl calculator::Server for CalculatorImpl {
     {
         let op = pry!(params.get().get_op());
         results.get().set_func(
-            calculator::function::ToClient::new(OperatorImpl {op : op}).from_server::<LocalClient>());
+            calculator::function::ToClient::new(OperatorImpl {op : op}).from_server::<::capnp_rpc::Server>());
         Promise::ok(results)
     }
 }
@@ -208,7 +207,7 @@ pub fn accept_loop(listener: tcp::Listener,
         let disconnect_promise = network.on_disconnect();
 
         // Should put in the calculator for the bootstrap.
-        let rpc_system = rpc::System::new(Box::new(network), Some(calc.clone().client));
+        let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
 
         task_set.add(disconnect_promise.attach(rpc_system).lift());
         accept_loop(listener, task_set, calc)
@@ -237,7 +236,7 @@ pub fn main() {
 
 
         let calc =
-            calculator::ToClient::new(CalculatorImpl).from_server::<LocalClient>();
+            calculator::ToClient::new(CalculatorImpl).from_server::<::capnp_rpc::Server>();
 
         let task_set = TaskSet::new(Box::new(Reaper));
         try!(accept_loop(listener, task_set, calc).wait(wait_scope));

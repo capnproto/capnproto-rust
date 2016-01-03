@@ -19,8 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capnp_rpc::{rpc, twoparty, rpc_twoparty_capnp};
-use capnp_rpc::rpc::LocalClient;
+use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use calculator_capnp::calculator;
 use gj::Promise;
 
@@ -59,7 +58,7 @@ pub fn main() {
             Box::new(twoparty::VatNetwork::new(reader, writer,
                                                rpc_twoparty_capnp::Side::Client,
                                                Default::default()));
-        let mut rpc_system = rpc::System::new(network, None);
+        let mut rpc_system = RpcSystem::new(network, None);
         let calculator: calculator::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
         {
@@ -328,7 +327,7 @@ pub fn main() {
             {
                 let mut pow_call = request.get().init_expression().init_call();
                 pow_call.set_function(
-                    calculator::function::ToClient::new(PowerFunction).from_server::<LocalClient>());
+                    calculator::function::ToClient::new(PowerFunction).from_server::<::capnp_rpc::Server>());
                 let mut pow_params = pow_call.init_params(2);
                 pow_params.borrow().get(0).set_literal(2.0);
 

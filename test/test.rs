@@ -30,8 +30,7 @@ extern crate gj;
 use gj::{EventLoop, Promise};
 use gj::io::unix;
 use capnp::Error;
-use capnp_rpc::{rpc, rpc_twoparty_capnp, twoparty};
-use capnp_rpc::rpc::LocalClient;
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 pub mod test_capnp {
   include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
@@ -49,7 +48,7 @@ fn drop_rpc_system() {
             Box::new(twoparty::VatNetwork::new(reader, writer,
                                                rpc_twoparty_capnp::Side::Client,
                                                Default::default()));
-        let rpc_system = rpc::System::new(network, None);
+        let rpc_system = RpcSystem::new(network, None);
         drop(rpc_system);
         try!(Promise::<(),Error>::ok(()).wait(wait_scope));
         Ok(())
@@ -70,9 +69,9 @@ fn set_up_rpc<F>(main: F)
                                                    Default::default()));
             let disconnect_promise = network.on_disconnect();
             let bootstrap =
-                test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<LocalClient>();
+                test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
 
-            let _rpc_system = rpc::System::new(network, Some(bootstrap.client));
+            let _rpc_system = RpcSystem::new(network, Some(bootstrap.client));
             try!(disconnect_promise.wait(wait_scope));
             Ok(())
         }));
@@ -83,7 +82,7 @@ fn set_up_rpc<F>(main: F)
                                                rpc_twoparty_capnp::Side::Client,
                                                Default::default()));
 
-        let mut rpc_system = rpc::System::new(network, None);
+        let mut rpc_system = RpcSystem::new(network, None);
         let client: test_capnp::bootstrap::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
         try!(main(client).wait(wait_scope));
@@ -150,7 +149,7 @@ fn pipelining() {
             let server = impls::TestInterface::new();
             let chained_call_count = server.get_call_count();
             request.get().set_in_cap(
-                ::test_capnp::test_interface::ToClient::new(server).from_server::<LocalClient>());
+                ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>());
 
             let promise = request.send();
 
@@ -277,7 +276,7 @@ fn embargo() {
 
             let mut echo_request = client.echo_request();
             echo_request.get().set_cap(
-                ::test_capnp::test_call_order::ToClient::new(server).from_server::<LocalClient>());
+                ::test_capnp::test_call_order::ToClient::new(server).from_server::<::capnp_rpc::Server>());
             let echo = echo_request.send();
 
             let pipeline = echo.pipeline.get_cap();

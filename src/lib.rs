@@ -26,6 +26,9 @@ extern crate capnp_gj;
 
 use gj::Promise;
 use capnp::Error;
+use capnp::private::capability::{ClientHook, ServerHook};
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
 
 pub mod rpc_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_capnp.rs"));
@@ -37,7 +40,7 @@ pub mod rpc_twoparty_capnp {
 
 //pub mod capability;
 //pub mod ez_rpc;
-pub mod rpc;
+mod rpc;
 pub mod twoparty;
 
 pub trait OutgoingMessage {
@@ -73,4 +76,109 @@ pub trait VatNetwork<VatId> {
 
     /// Waits for the next incoming connection and return it.
     fn accept(&mut self) -> ::gj::Promise<Box<Connection<VatId>>, ::capnp::Error>;
+}
+
+struct SystemTaskReaper;
+impl ::gj::TaskReaper<(), Error> for SystemTaskReaper {
+    fn task_failed(&mut self, error: Error) {
+        println!("ERROR: {}", error);
+    }
+}
+
+pub struct RpcSystem<VatId> where VatId: 'static {
+    network: Box<::VatNetwork<VatId>>,
+
+    bootstrap_cap: Box<ClientHook>,
+
+    // XXX To handle three or more party networks, this should be a map from connection pointers
+    // to connection states.
+    connection_state: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
+
+    tasks: Rc<RefCell<::gj::TaskSet<(), Error>>>,
+}
+
+impl <VatId> RpcSystem <VatId> {
+    pub fn new(network: Box<::VatNetwork<VatId>>,
+               bootstrap: Option<::capnp::capability::Client>) -> RpcSystem<VatId> {
+        let bootstrap_cap = match bootstrap {
+            Some(cap) => cap.hook,
+            None => rpc::new_broken_cap(Error::failed("no bootstrap capabiity".to_string())),
+        };
+        let mut result = RpcSystem {
+            network: network,
+            bootstrap_cap: bootstrap_cap,
+            connection_state: Rc::new(RefCell::new(None)),
+            tasks: Rc::new(RefCell::new(::gj::TaskSet::new(Box::new(SystemTaskReaper)))),
+        };
+        let accept_loop = result.accept_loop();
+        result.tasks.borrow_mut().add(accept_loop);
+        result
+    }
+
+    /// Connects to the given vat and returns its bootstrap interface.
+    pub fn bootstrap<T>(&mut self, vat_id: VatId) -> T
+        where T: ::capnp::capability::FromClientHook
+    {
+        let connection = match self.network.connect(vat_id) {
+            Some(connection) => connection,
+            None => {
+                return T::new(self.bootstrap_cap.clone());
+            }
+        };
+        let connection_state =
+            RpcSystem::get_connection_state(self.connection_state.clone(),
+                                            self.bootstrap_cap.clone(),
+                                            connection, self.tasks.clone());
+
+        let hook = rpc::ConnectionState::bootstrap(connection_state.clone());
+        T::new(hook)
+    }
+
+    fn accept_loop(&mut self) -> Promise<(), Error> {
+        let connection_state_ref = self.connection_state.clone();
+        let tasks_ref = Rc::downgrade(&self.tasks);
+        let bootstrap_cap = self.bootstrap_cap.clone();
+        self.network.accept().map(move |connection| {
+            RpcSystem::get_connection_state(connection_state_ref,
+                                            bootstrap_cap,
+                                            connection,
+                                            tasks_ref.upgrade().expect("dangling reference to task set"));
+            Ok(())
+        })
+    }
+
+    fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
+                            bootstrap_cap: Box<ClientHook>,
+                            connection: Box<::Connection<VatId>>,
+                            tasks: Rc<RefCell<::gj::TaskSet<(), Error>>>)
+                            -> Rc<rpc::ConnectionState<VatId>>
+    {
+
+        // TODO this needs to be updated once we allow more general VatNetworks.
+        let result = match &*connection_state_ref.borrow() {
+            &Some(ref connection_state) => {
+                // return early.
+                return connection_state.clone()
+            }
+            &None => {
+                let (on_disconnect_promise, on_disconnect_fulfiller) = Promise::and_fulfiller();
+                let connection_state_ref1 = connection_state_ref.clone();
+                tasks.borrow_mut().add(on_disconnect_promise.then(move |shutdown_promise| {
+                    *connection_state_ref1.borrow_mut() = None;
+                    shutdown_promise
+                }));
+                rpc::ConnectionState::new(bootstrap_cap, connection, on_disconnect_fulfiller)
+            }
+        };
+        *connection_state_ref.borrow_mut() = Some(result.clone());
+        result
+    }
+}
+
+pub struct Server;
+
+impl ServerHook for Server {
+    fn new_client(server: Box<::capnp::capability::Server>) -> ::capnp::capability::Client {
+        ::capnp::capability::Client::new(Box::new(rpc::LocalClient::new(server)))
+    }
 }
