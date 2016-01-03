@@ -367,7 +367,7 @@ struct Answer<VatId> where VatId: 'static {
 
     // For locally-redirected calls (Call.sendResultsTo.yourself), this is a promise for the call
     // result, to be picked up by a subsequent `Return`.
-    _redirected_results: Option<::gj::Promise<Box<Response<VatId>>, Error>>,
+    redirected_results: Option<::gj::Promise<Box<Response<VatId>>, Error>>,
 
     // The call context, if it's still active.  Becomes null when the `Return` message is sent.
     // This object, if non-null, is owned by `asyncOp`.
@@ -383,7 +383,7 @@ impl <VatId> Answer<VatId> {
         Answer {
             active: false,
             pipeline: None,
-            _redirected_results: None,
+            redirected_results: None,
             result_exports: Vec::new()
         }
     }
@@ -759,8 +759,19 @@ impl <VatId> ConnectionState<VatId> {
                                         return_::ResultsSentElsewhere(_) => {
                                             unimplemented!()
                                         }
-                                        return_::TakeFromOtherQuestion(_) => {
-                                            unimplemented!()
+                                        return_::TakeFromOtherQuestion(id) => {
+                                            if let Some(ref mut answer) =
+                                                connection_state1.answers.borrow_mut().slots.get_mut(&id)
+                                            {
+                                                if let Some(_) = answer.redirected_results {
+                                                    unimplemented!()
+                                                } else {
+                                                    unimplemented!()
+                                                }
+                                            } else {
+                                                return Err(Error::failed(format!(
+                                                    "return.takeFromOtherQuestion had invalid answer ID.")));
+                                            }
                                         }
                                         return_::AcceptFromThirdParty(_) => {
                                             unimplemented!()
@@ -1027,7 +1038,7 @@ impl <VatId> ConnectionState<VatId> {
             }
             Ok(result)
         } else {
-            unimplemented!()
+            Ok(Some(cap.add_ref()))
         }
     }
 
@@ -1382,10 +1393,16 @@ impl <VatId> RequestHook for Request<VatId> {
             target.write_target(call_builder.get_target().unwrap())
         };
         match write_target_result {
-            Some(_redirect) => {
+            Some(redirect) => {
                 // Whoops, this capability has been redirected while we were building the request!
                 // We'll have to make a new request and do a copy.  Ick.
-                unimplemented!()
+
+                let mut call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
+                let mut replacement = redirect.new_call(call_builder.borrow().get_interface_id(),
+                                                        call_builder.borrow().get_method_id(), None);
+
+                replacement.set(call_builder.get_params().unwrap().get_content().as_reader());
+                replacement.send()
             }
             None => {
                 let (question_ref, promise) =
@@ -1405,6 +1422,42 @@ impl <VatId> RequestHook for Request<VatId> {
             }
         }
     }
+    fn tail_send(self: Box<Self>)
+                 -> Option<(u32, Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)>
+    {
+        let tmp = *self;
+        let Request { connection_state, target, mut message, cap_table } = tmp;
+
+        if connection_state.connection.borrow().is_err() {
+            // Disconnected; fall back to a regular send() which will fail appropriately.
+            return None;
+        }
+
+        let write_target_result = {
+            let call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
+            target.write_target(call_builder.get_target().unwrap())
+        };
+
+        let (question_ref, promise) = match write_target_result {
+            Some(_redirect) => {
+                return None;
+            }
+            None => {
+                Request::send_internal(connection_state.clone(), message, cap_table, true)
+            }
+        };
+
+        let promise = promise.map(|response| {
+            // Response should be null if `Return` handling code is correct.
+
+            unimplemented!()
+        });
+
+        let question_id = question_ref.borrow().id;
+        let pipeline = Pipeline::never_done(connection_state, question_ref);
+
+        Some((question_id, promise, Box::new(pipeline)))
+    }
 }
 
 enum PipelineVariant<VatId> where VatId: 'static {
@@ -1417,6 +1470,8 @@ struct PipelineState<VatId> where VatId: 'static {
     variant: PipelineVariant<VatId>,
     redirect_later: Option<RefCell<::gj::ForkedPromise<Response<VatId>, ::capnp::Error>>>,
     connection_state: Rc<ConnectionState<VatId>>,
+
+    // what about resolve_self_promise?
 }
 
 struct Pipeline<VatId> where VatId: 'static {
@@ -1450,6 +1505,19 @@ impl <VatId> Pipeline<VatId> {
             }
             None => {}
         }
+        Pipeline { state: state }
+    }
+
+    fn never_done(connection_state: Rc<ConnectionState<VatId>>,
+                  question_ref: Rc<RefCell<QuestionRef<VatId>>>)
+           -> Pipeline<VatId>
+    {
+        let state = Rc::new(RefCell::new(PipelineState {
+            variant: PipelineVariant::Waiting(question_ref),
+            connection_state: connection_state,
+            redirect_later: None,
+        }));
+
         Pipeline { state: state }
     }
 
@@ -1545,7 +1613,8 @@ pub struct Results<VatId> where VatId: 'static {
     connection_state: Weak<ConnectionState<VatId>>,
     message: Box<::OutgoingMessage>,
     cap_table: Vec<Option<Box<ClientHook>>>,
-    redirect_results: bool
+    redirect_results: bool,
+    answer_id: AnswerId,
 }
 
 
@@ -1571,6 +1640,7 @@ impl <VatId> Results<VatId> where VatId: 'static {
             message: message,
             cap_table: Vec::new(),
             redirect_results: redirect_results,
+            answer_id: answer_id,
         }
     }
 }
@@ -1609,6 +1679,23 @@ impl <VatId> ResultsHook for Results<VatId> {
         if request.get_brand() == state.get_brand() && !self.redirect_results {
             // The tail call is headed towards the peer that called us in the first place, so we can
             // optimize out the return trip.
+            if let Some((question_id, promise, pipeline)) = request.tail_send() {
+
+                let mut message = state.connection.borrow_mut().as_mut().expect("not connected?")
+                    .new_outgoing_message(100); // size hint?
+
+                {
+                    let root: message::Builder = message.get_body().unwrap().init_as();
+                    let mut ret = root.init_return();
+                    ret.set_answer_id(self.answer_id);
+                    ret.set_release_param_caps(false);
+                    ret.set_take_from_other_question(question_id);
+                }
+                let _ = message.send();
+
+                // TODO cleanupanswertable
+                return (promise, pipeline);
+            }
             unimplemented!()
         } else {
             unimplemented!()
@@ -1621,7 +1708,7 @@ impl <VatId> ResultsHook for Results<VatId> {
 
     fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
         let tmp = *self;
-        let Results { connection_state, mut message, cap_table, redirect_results } = tmp;
+        let Results { connection_state, mut message, cap_table, redirect_results, answer_id } = tmp;
 
         {
             let root: message::Builder = pry!(pry!(message.get_body()).get_as());
@@ -2237,6 +2324,11 @@ impl RequestHook for LocalRequest {
             pipeline: pipeline,
         }
     }
+    fn tail_send(self: Box<Self>)
+                 -> Option<(u32, Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)>
+    {
+        unimplemented!()
+    }
 }
 
 struct QueuedPipelineInner {
@@ -2498,6 +2590,11 @@ impl RequestHook for BrokenRequest {
             promise: Promise::err(self.error),
             pipeline: any_pointer::Pipeline::new(Box::new(pipeline)),
         }
+    }
+    fn tail_send(self: Box<Self>)
+                 -> Option<(u32, Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)>
+    {
+        None
     }
 }
 
