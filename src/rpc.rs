@@ -33,7 +33,7 @@ use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 use rpc_capnp::{message, return_, cap_descriptor};
-use local;
+use {broken, local};
 
 struct Defer<F> where F: FnOnce() {
     deferred: Option<F>,
@@ -1101,7 +1101,7 @@ impl <VatId> ConnectionState<VatId> {
                 if let Some(ref mut exp) = state.exports.borrow_mut().find(receiver_hosted) {
                     Ok(Some(exp.client_hook.add_ref()))
                 } else {
-                    Ok(Some(new_broken_cap(Error::failed("invalid 'receivedHosted' export ID".to_string()))))
+                    Ok(Some(broken::new_cap(Error::failed("invalid 'receivedHosted' export ID".to_string()))))
                 }
             }
             cap_descriptor::ReceiverAnswer(receiver_answer) => {
@@ -1121,7 +1121,7 @@ impl <VatId> ConnectionState<VatId> {
                     }
                     None => (),
                 }
-                Ok(Some(new_broken_cap(Error::failed("invalid 'receiver answer'".to_string()))))
+                Ok(Some(broken::new_cap(Error::failed("invalid 'receiver answer'".to_string()))))
             }
             cap_descriptor::ThirdPartyHosted(_third_party_hosted) => {
                 unimplemented!()
@@ -1829,7 +1829,7 @@ impl <VatId> PromiseClient<VatId> {
                     Ok(())
                 }
                 Err(e) => {
-                    this.borrow_mut().resolve(new_broken_cap(e), true);
+                    this.borrow_mut().resolve(broken::new_cap(e), true);
                     Err(())
                 }
             }
@@ -2065,7 +2065,7 @@ impl PipelineHook for SingleCapPipeline {
         if ops.len() == 0 {
             self.cap.add_ref()
         } else {
-            new_broken_cap(Error::failed("Invalid pipeline transform.".to_string()))
+            broken::new_cap(Error::failed("Invalid pipeline transform.".to_string()))
         }
     }
 }
@@ -2101,7 +2101,7 @@ impl QueuedPipeline {
                     this.borrow_mut().redirect = Some(pipeline_hook);
                 }
                 Err(e) => {
-                    this.borrow_mut().redirect = Some(Box::new(BrokenPipeline::new(e)));
+                    this.borrow_mut().redirect = Some(Box::new(broken::Pipeline::new(e)));
                 }
             }
             Ok(())
@@ -2200,7 +2200,7 @@ impl QueuedClient {
                     state.borrow_mut().redirect = Some(clienthook);
                 }
                 Err(e) => {
-                    state.borrow_mut().redirect = Some(new_broken_cap(e));
+                    state.borrow_mut().redirect = Some(broken::new_cap(e));
                 }
             }
             Ok(())
@@ -2279,131 +2279,4 @@ impl ClientHook for QueuedClient {
     fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
         unimplemented!()
     }
-}
-
-struct BrokenPipeline {
-    error: Error,
-}
-
-impl BrokenPipeline {
-    fn new(error: Error) -> BrokenPipeline {
-        BrokenPipeline {
-            error: error
-        }
-    }
-}
-
-impl PipelineHook for BrokenPipeline {
-    fn add_ref(&self) -> Box<PipelineHook> {
-        Box::new(BrokenPipeline::new(self.error.clone()))
-    }
-    fn get_pipelined_cap(&self, _ops: &[PipelineOp]) -> Box<ClientHook> {
-        new_broken_cap(self.error.clone())
-    }
-}
-
-struct BrokenRequest {
-    error: Error,
-    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-}
-
-impl BrokenRequest {
-    fn new(error: Error, _size_hint: Option<::capnp::MessageSize>) -> BrokenRequest {
-        BrokenRequest {
-            error: error,
-            message: ::capnp::message::Builder::new_default(),
-        }
-    }
-}
-
-impl RequestHook for BrokenRequest {
-    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        self.message.get_root().unwrap()
-    }
-    fn get_brand(&self) -> usize {
-        0
-    }
-    fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
-        let pipeline = BrokenPipeline::new(self.error.clone());
-        ::capnp::capability::RemotePromise {
-            promise: Promise::err(self.error),
-            pipeline: any_pointer::Pipeline::new(Box::new(pipeline)),
-        }
-    }
-    fn tail_send(self: Box<Self>)
-                 -> Option<(u32, Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)>
-    {
-        None
-    }
-}
-
-struct BrokenClientInner {
-    error: Error,
-    _resolved: bool,
-    brand: usize,
-}
-
-struct BrokenClient {
-    inner: Rc<BrokenClientInner>,
-}
-
-impl BrokenClient {
-    fn new(error: Error, resolved: bool, brand: usize) -> BrokenClient {
-        BrokenClient {
-            inner: Rc::new(BrokenClientInner {
-                error: error,
-                _resolved: resolved,
-                brand: brand,
-            }),
-        }
-    }
-}
-
-impl ClientHook for BrokenClient {
-    fn add_ref(&self) -> Box<ClientHook> {
-        Box::new(BrokenClient { inner: self.inner.clone() } )
-    }
-    fn new_call(&self, _interface_id: u64, _method_id: u16,
-                size_hint: Option<::capnp::MessageSize>)
-                -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
-    {
-        ::capnp::capability::Request::new(
-            Box::new(BrokenRequest::new(self.inner.error.clone(), size_hint)))
-    }
-
-    fn call(&self, _interface_id: u64, _method_id: u16, _params: Box<ParamsHook>, _results: Box<ResultsHook>)
-        -> (Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
-    {
-        (Promise::err(self.inner.error.clone()),
-         Box::new(BrokenPipeline::new(self.inner.error.clone())))
-    }
-
-    fn get_ptr(&self) -> usize {
-        unimplemented!()
-    }
-
-    fn get_brand(&self) -> usize {
-        self.inner.brand
-    }
-
-    fn write_target(&self, _target: any_pointer::Builder) -> Option<Box<ClientHook>>
-    {
-        unimplemented!()
-    }
-
-    fn write_descriptor(&self, _descriptor: any_pointer::Builder) -> Option<u32> {
-        unimplemented!()
-    }
-
-    fn get_resolved(&self) -> Option<Box<ClientHook>> {
-        None
-    }
-
-    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
-        None
-    }
-}
-
-pub fn new_broken_cap(exception: Error) -> Box<ClientHook> {
-    Box::new(BrokenClient::new(exception, false, 0))
 }

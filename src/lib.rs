@@ -38,8 +38,8 @@ pub mod rpc_twoparty_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_twoparty_capnp.rs"));
 }
 
-//pub mod capability;
 //pub mod ez_rpc;
+mod broken;
 mod local;
 mod rpc;
 pub mod twoparty;
@@ -103,7 +103,7 @@ impl <VatId> RpcSystem <VatId> {
                bootstrap: Option<::capnp::capability::Client>) -> RpcSystem<VatId> {
         let bootstrap_cap = match bootstrap {
             Some(cap) => cap.hook,
-            None => rpc::new_broken_cap(Error::failed("no bootstrap capabiity".to_string())),
+            None => broken::new_cap(Error::failed("no bootstrap capabiity".to_string())),
         };
         let mut result = RpcSystem {
             network: network,
