@@ -179,7 +179,7 @@ impl RequestHook for Request {
         });
 
         let pipeline_promise = forked.add_branch().map(move |_| Ok(pipeline));
-        let pipeline = any_pointer::Pipeline::new(Box::new(::rpc::QueuedPipeline::new(pipeline_promise)));
+        let pipeline = any_pointer::Pipeline::new(Box::new(::queued::Pipeline::new(pipeline_promise)));
 
         ::capnp::capability::RemotePromise {
             promise: promise,
@@ -283,7 +283,7 @@ impl ClientHook for Client {
             Ok(Box::new(Pipeline::new(results_done.clone())) as Box<PipelineHook>)
         });
 
-        let pipeline = Box::new(::rpc::QueuedPipeline::new(pipeline_promise));
+        let pipeline = Box::new(::queued::Pipeline::new(pipeline_promise));
         let completion_promise = forked.add_branch();
 
         (completion_promise, pipeline)
