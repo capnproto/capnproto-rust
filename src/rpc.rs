@@ -281,30 +281,25 @@ impl <VatId> Question<VatId> {
 struct QuestionRef<VatId> where VatId: 'static {
     connection_state: Rc<ConnectionState<VatId>>,
     id: QuestionId,
-    fulfiller: Option<PromiseFulfiller<Response<VatId>, Error>>,
+    fulfiller: Option<PromiseFulfiller<Promise<Response<VatId>, Error>, Error>>,
 }
 
 impl <VatId> QuestionRef<VatId> {
     fn new(state: Rc<ConnectionState<VatId>>, id: QuestionId,
-           fulfiller: ::gj::PromiseFulfiller<Response<VatId>, Error>) -> QuestionRef<VatId> {
+           fulfiller: ::gj::PromiseFulfiller<Promise<Response<VatId>, Error>, Error>)
+           -> QuestionRef<VatId>
+    {
         QuestionRef { connection_state: state, id: id, fulfiller: Some(fulfiller) }
     }
-    fn fulfill(&mut self, response: Response<VatId>) {
-        let maybe_fulfiller = ::std::mem::replace(&mut self.fulfiller, None);
-        match maybe_fulfiller {
-            Some(fulfiller) => {
-                fulfiller.fulfill(response);
-            }
-            None => (),
+    fn fulfill(&mut self, response: Promise<Response<VatId>, Error>) {
+        if let Some(fulfiller) = self.fulfiller.take() {
+            fulfiller.fulfill(response);
         }
     }
+
     fn reject(&mut self, err: Error) {
-        let maybe_fulfiller = ::std::mem::replace(&mut self.fulfiller, None);
-        match maybe_fulfiller {
-            Some(fulfiller) => {
-                fulfiller.reject(err);
-            }
-            None => (),
+        if let Some(fulfiller) = self.fulfiller.take() {
+            fulfiller.reject(err);
         }
     }
 }
@@ -600,6 +595,7 @@ impl <VatId> ConnectionState<VatId> {
         let question_id = state.questions.borrow_mut().push(Question::new());
 
         let (promise, fulfiller) = Promise::and_fulfiller();
+        let promise = promise.then(|response_promise| response_promise );
         let question_ref = Rc::new(RefCell::new(QuestionRef::new(state.clone(), question_id, fulfiller)));
         let promise = promise.attach(question_ref.clone());
         match &mut state.questions.borrow_mut().slots[question_id as usize] {
@@ -930,7 +926,7 @@ impl <VatId> ConnectionState<VatId> {
                 let response = Response::new(connection_state,
                                              question_ref.clone(),
                                              message, cap_table);
-                question_ref.borrow_mut().fulfill(response);
+                question_ref.borrow_mut().fulfill(Promise::ok(response));
             }
             BorrowWorkaround::Done => {}
         }
@@ -1363,6 +1359,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         let _ = message.send();
         // Make the result promise.
         let (promise, fulfiller) = Promise::and_fulfiller();
+        let promise = promise.then(|response_promise| response_promise);
         let question_ref = Rc::new(RefCell::new(
             QuestionRef::new(connection_state.clone(), question_id, fulfiller)));
 
