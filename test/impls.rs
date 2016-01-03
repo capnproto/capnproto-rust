@@ -146,7 +146,7 @@ impl test_interface::Server for TestInterface {
 
     fn baz(&mut self,
            params: test_interface::BazParams,
-           results: test_interface::BazResults)
+           _results: test_interface::BazResults)
            -> Promise<(), Error>
     {
         self.increment_call_count();

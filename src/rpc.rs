@@ -1763,7 +1763,10 @@ struct ImportClient<VatId> where VatId: 'static {
 
 impl <VatId> Drop for ImportClient<VatId> {
     fn drop(&mut self) {
-        let connection_state = self.connection_state.upgrade().expect("dangling ref to connection state?");
+        let connection_state = match self.connection_state.upgrade() {
+            Some(x) => x,
+            None => return (),
+        };
 
         // Remove self from the import table, if the table is still pointing at us.
         let mut remove = false;
