@@ -32,7 +32,7 @@ pub trait RequestHook {
     fn get_brand(&self) -> usize;
     fn send<'a>(self: Box<Self>) -> RemotePromise<any_pointer::Owned>;
     fn tail_send(self: Box<Self>)
-                 -> Option<(u32, ::capability::Promise<Box<ResultsDoneHook>, ::Error>, Box<PipelineHook>)>;
+                 -> Option<(u32, ::capability::Promise<(), ::Error>, Box<PipelineHook>)>;
 }
 
 pub trait ClientHook {
@@ -44,8 +44,9 @@ pub trait ClientHook {
                 -> Request<any_pointer::Owned, any_pointer::Owned>;
 
     fn call(&self, interface_id: u64, method_id: u16,
-            params: Box<ParamsHook>, results: Box<ResultsHook>)
-            -> (::capability::Promise<Box<ResultsDoneHook>, ::Error>, Box<PipelineHook>);
+            params: Box<ParamsHook>, results: Box<ResultsHook>,
+            results_done: ::capability::Promise<Box<ResultsDoneHook>, ::Error>)
+            -> (::capability::Promise<(), ::Error>, Box<PipelineHook>);
 
     fn get_brand(&self) -> usize;
     fn get_ptr(&self) -> usize;
@@ -83,9 +84,7 @@ pub trait ResultsHook {
     fn allow_cancellation(&self);
     fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), ::Error>;
     fn direct_tail_call(self: Box<Self>, request: Box<RequestHook>) ->
-        (::capability::Promise<Box<ResultsDoneHook>, ::Error>, Box<PipelineHook>);
-
-    fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, ::Error>;
+        (::capability::Promise<(), ::Error>, Box<PipelineHook>);
 }
 
 pub trait ResultsDoneHook {

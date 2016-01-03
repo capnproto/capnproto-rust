@@ -196,6 +196,6 @@ pub trait Server {
     fn dispatch_call(&mut self, interface_id: u64, method_id: u16,
                      params: Params<any_pointer::Owned>,
                      results: Results<any_pointer::Owned>)
-                     -> Promise<Results<any_pointer::Owned>, ::Error>;
+                     -> Promise<(), ::Error>;
 }
 
