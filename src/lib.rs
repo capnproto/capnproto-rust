@@ -38,7 +38,6 @@ pub mod rpc_twoparty_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_twoparty_capnp.rs"));
 }
 
-//pub mod ez_rpc;
 mod broken;
 mod local;
 mod queued;
