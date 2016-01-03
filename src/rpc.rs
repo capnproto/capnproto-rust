@@ -774,9 +774,12 @@ impl <VatId> ConnectionState<VatId> {
                 let results = Results::new(&connection_state, question_id, redirect_results,
                                            results_inner_fulfiller);
 
-                // XXX
+
+                let (call_succeeded_promise, call_succeeded_fulfiller) = Promise::and_fulfiller();
                 let box_results_done_promise = results_inner_promise.then(|results_inner| {
-                    ResultsDone::from_results_inner(results_inner)
+                    call_succeeded_promise.then(|()| {
+                        ResultsDone::from_results_inner(results_inner)
+                    })
                 });
 
                 // cancelPaf?
@@ -797,8 +800,12 @@ impl <VatId> ConnectionState<VatId> {
                 let connection_state_ref = Rc::downgrade(&connection_state);
                 let promise = promise.then_else(move |result| {
                     match result {
-                        Ok(_v) => Promise::ok(()),
+                        Ok(_v) => {
+                            call_succeeded_fulfiller.fulfill(());
+                            Promise::ok(())
+                        }
                         Err(e) => {
+                            call_succeeded_fulfiller.reject(e.clone());
                             // Send an error return.
                             let connection_state = connection_state_ref.upgrade()
                                 .expect("dangling reference to connection state?");
