@@ -1320,7 +1320,7 @@ impl <VatId> RequestHook for Request<VatId> {
                 let mut replacement = redirect.new_call(call_builder.borrow().get_interface_id(),
                                                         call_builder.borrow().get_method_id(), None);
 
-                replacement.set(call_builder.get_params().unwrap().get_content().as_reader());
+                replacement.set(call_builder.get_params().unwrap().get_content().as_reader()).unwrap();
                 replacement.send()
             }
             None => {
@@ -1614,7 +1614,7 @@ impl <VatId> ResultsHook for Results<VatId> {
         unimplemented!()
     }
 
-    fn direct_tail_call(self: Box<Self>, request: Box<RequestHook>)
+    fn direct_tail_call(self: Box<Self>, _request: Box<RequestHook>)
                         -> (Promise<(), Error>, Box<PipelineHook>)
     {
         unimplemented!()
@@ -1671,6 +1671,8 @@ impl ResultsDone {
     {
         let ResultsInner { connection_state, mut message, cap_table, redirect_results, answer_id } = results_inner;
 
+        drop(redirect_results);
+        drop(answer_id);
         {
             let root: message::Builder = pry!(pry!(message.get_body()).get_as());
             match pry!(root.which()) {
@@ -2035,7 +2037,7 @@ impl <VatId> ClientHook for Client<VatId> {
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>,
             mut results: Box<ResultsHook>,
-            results_done: Promise<Box<ResultsDoneHook>, Error>)
+            _results_done: Promise<Box<ResultsDoneHook>, Error>)
         -> (::gj::Promise<(), Error>, Box<PipelineHook>)
     {
         // Implement call() by copying params and results messages.
@@ -2045,11 +2047,10 @@ impl <VatId> ClientHook for Client<VatId> {
         request.get().set_as(params.get().unwrap()).unwrap();
 
         let ::capnp::capability::RemotePromise { promise, pipeline } = request.send();
-        unimplemented!()
-/*
-        let promise = promise.then(move |response| {
-            pry!(results.get()).set_as(pry!(response.get()));
-            results.send_return()
+
+        let promise = promise.map(move |response| {
+            try!(try!(results.get()).set_as(try!(response.get())));
+            Ok(())
         });
 
         let mut forked = promise.fork();
@@ -2057,7 +2058,7 @@ impl <VatId> ClientHook for Client<VatId> {
         let pipeline = ::queued::Pipeline::new(forked.add_branch().map(move |_| Ok(pipeline.hook)));
 
         (promise, Box::new(pipeline))
-*/
+
         // TODO implement this in terms of direct_tail_call();
 
         // We can and should propagate cancellation.
