@@ -146,16 +146,22 @@ pub struct Results<T> {
     pub hook: Box<ResultsHook>,
 }
 
-impl <T> Results<T> {
+impl <T> Results<T>
+    where T: for<'a> ::traits::Owned<'a>
+{
     pub fn new(hook: Box<ResultsHook>) -> Results<T> {
         Results { marker: ::std::marker::PhantomData, hook: hook }
     }
 
-    pub fn get<'a>(&'a mut self) -> <T as ::traits::Owned<'a>>::Builder
-        where T: ::traits::Owned<'a>
-    {
+    pub fn get<'a>(&'a mut self) -> <T as ::traits::Owned<'a>>::Builder {
         self.hook.get().unwrap().get_as().unwrap()
     }
+
+    pub fn set(&mut self, other: <T as ::traits::Owned>::Reader) -> ::Result<()>
+    {
+        self.hook.get().unwrap().set_as(other)
+    }
+
 }
 
 

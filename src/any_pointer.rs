@@ -177,7 +177,9 @@ impl <'a> ::traits::ImbueMut<'a> for Builder<'a> {
 }
 
 pub struct Pipeline {
-    hook: Box<PipelineHook>,
+    // XXX this should not be public
+    pub hook: Box<PipelineHook>,
+
     ops: Vec<PipelineOp>,
 }
 
