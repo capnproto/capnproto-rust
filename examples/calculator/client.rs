@@ -63,6 +63,16 @@ pub fn main() {
         let calculator: calculator::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
         {
+            // Make a request that just evaluates the literal value 123.
+            //
+            // What's interesting here is that evaluate() returns a "Value", which is
+            // another interface and therefore points back to an object living on the
+            // server.  We then have to call read() on that object to read it.
+            // However, even though we are making two RPC's, this block executes in
+            // *one* network round trip because of promise pipelining:  we do not wait
+            // for the first call to complete before we send the second call to the
+            // server.
+
             println!("Evaluating a literal...");
             let mut request = calculator.evaluate_request();
             request.get().init_expression().set_literal(123.0);
