@@ -42,10 +42,10 @@ impl calculator::value::Server for ValueImpl {
     fn read(&mut self,
             _params: calculator::value::ReadParams,
             mut results: calculator::value::ReadResults)
-            -> Promise<calculator::value::ReadResults, Error>
+            -> Promise<(), Error>
     {
         results.get().set_value(self.value);
-        Promise::ok(results)
+        Promise::ok(())
     }
 }
 
@@ -112,7 +112,7 @@ impl calculator::function::Server for FunctionImpl {
     fn call(&mut self,
             params: calculator::function::CallParams,
             mut results: calculator::function::CallResults)
-        -> Promise<calculator::function::CallResults, Error>
+        -> Promise<(), Error>
     {
         let params = pry!(params.get().get_params());
         if params.len() != self.param_count {
@@ -123,7 +123,7 @@ impl calculator::function::Server for FunctionImpl {
                 pry!(self.body.get_root::<calculator::expression::Builder>()).as_reader(),
                 Some(params)).map(move |v| {
                     results.get().set_value(v);
-                    Ok(results)
+                    Ok(())
                 })
         }
     }
@@ -138,7 +138,7 @@ impl calculator::function::Server for OperatorImpl {
     fn call(&mut self,
             params: calculator::function::CallParams,
             mut results: calculator::function::CallResults)
-            -> Promise<calculator::function::CallResults, Error>
+            -> Promise<(), Error>
     {
         let params = pry!(params.get().get_params());
         if params.len() != 2 {
@@ -151,7 +151,7 @@ impl calculator::function::Server for OperatorImpl {
                 calculator::Operator::Divide =>    params.get(0) / params.get(1),
             };
             results.get().set_value(v);
-            Promise::ok(results)
+            Promise::ok(())
         }
     }
 }
@@ -162,34 +162,34 @@ impl calculator::Server for CalculatorImpl {
     fn evaluate(&mut self,
                 params: calculator::EvaluateParams,
                 mut results: calculator::EvaluateResults)
-                -> Promise<calculator::EvaluateResults, Error>
+                -> Promise<(), Error>
     {
         evaluate_impl(pry!(params.get().get_expression()), None).map(move |v| {
             results.get().set_value(
                 calculator::value::ToClient::new(ValueImpl::new(v)).from_server::<::capnp_rpc::Server>());
-            Ok(results)
+            Ok(())
         })
     }
     fn def_function(&mut self,
                     params: calculator::DefFunctionParams,
                     mut results: calculator::DefFunctionResults)
-                    -> Promise<calculator::DefFunctionResults, Error>
+                    -> Promise<(), Error>
     {
         results.get().set_func(
             calculator::function::ToClient::new(
                 pry!(FunctionImpl::new(params.get().get_param_count() as u32,pry!(params.get().get_body()))))
                 .from_server::<::capnp_rpc::Server>());
-        Promise::ok(results)
+        Promise::ok(())
     }
     fn get_operator(&mut self,
                     params: calculator::GetOperatorParams,
                     mut results: calculator::GetOperatorResults)
-                    -> Promise<calculator::GetOperatorResults, Error>
+                    -> Promise<(), Error>
     {
         let op = pry!(params.get().get_op());
         results.get().set_func(
             calculator::function::ToClient::new(OperatorImpl {op : op}).from_server::<::capnp_rpc::Server>());
-        Promise::ok(results)
+        Promise::ok(())
     }
 }
 

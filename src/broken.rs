@@ -78,7 +78,7 @@ impl RequestHook for Request {
         }
     }
     fn tail_send(self: Box<Self>)
-                 -> Option<(u32, Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)>
+                 -> Option<(u32, Promise<(), Error>, Box<PipelineHook>)>
     {
         None
     }
@@ -118,8 +118,10 @@ impl ClientHook for Client {
             Box::new(Request::new(self.inner.error.clone(), size_hint)))
     }
 
-    fn call(&self, _interface_id: u64, _method_id: u16, _params: Box<ParamsHook>, _results: Box<ResultsHook>)
-        -> (Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+    fn call(&self, _interface_id: u64, _method_id: u16, _params: Box<ParamsHook>,
+            _results: Box<ResultsHook>,
+            _results_done: Promise<Box<ResultsDoneHook>, Error>)
+        -> (Promise<(), Error>, Box<PipelineHook>)
     {
         (Promise::err(self.inner.error.clone()),
          Box::new(Pipeline::new(self.inner.error.clone())))

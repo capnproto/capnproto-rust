@@ -185,19 +185,20 @@ impl ClientHook for Client {
             Box::new(local::Request::new(interface_id, method_id, size_hint, self.add_ref())))
     }
 
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
-        -> (Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>,
+            results_done: Promise<Box<ResultsDoneHook>, Error>)
+        -> (Promise<(), Error>, Box<PipelineHook>)
     {
         // The main reason this is complicated is that we don't want the call to get cancelled
         // if the caller drops just the returned promise but not the pipeline.
         struct CallResultHolder {
-            promise: Option<Promise<Box<ResultsDoneHook>, Error>>,
+            promise: Option<Promise<(), Error>>,
             pipeline: Option<Box<PipelineHook>>,
         }
 
         let mut call_result_promise =
             self.inner.borrow_mut().promise_for_call_forwarding.add_branch().then(move |client| {
-                let (promise, pipeline) = client.call(interface_id, method_id, params, results);
+                let (promise, pipeline) = client.call(interface_id, method_id, params, results, results_done);
                 Promise::ok(Rc::new(RefCell::new(CallResultHolder {
                     promise: Some(promise),
                     pipeline: Some(pipeline),

@@ -24,7 +24,7 @@ use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
 
-use gj::{Promise};
+use gj::{Promise, PromiseFulfiller};
 
 use std::cell::RefCell;
 use std::rc::{Rc};
@@ -67,21 +67,39 @@ impl ParamsHook for Params {
     }
 }
 
+type HeapMessage = ::capnp::message::Builder<::capnp::message::HeapAllocator>;
+
 struct Results {
-    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    message: Option<HeapMessage>,
+    results_done_fulfiller: Option<PromiseFulfiller<Box<ResultsDoneHook>, Error>>,
 }
 
 impl Results {
-    fn new() -> Results {
+    fn new(fulfiller: PromiseFulfiller<Box<ResultsDoneHook>, Error>) -> Results {
         Results {
-            message: ::capnp::message::Builder::new_default(),
+            message: Some(::capnp::message::Builder::new_default()),
+            results_done_fulfiller: Some(fulfiller),
+        }
+    }
+}
+
+impl Drop for Results {
+    fn drop(&mut self) {
+        if let (Some(message), Some(fulfiller)) = (self.message.take(), self.results_done_fulfiller.take()) {
+            fulfiller.fulfill(Box::new(ResultsDone::new(message)));
+        } else {
+            unreachable!()
         }
     }
 }
 
 impl ResultsHook for Results {
     fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
-        Ok(try!(self.message.get_root()))
+        if let Some(ref mut message) = self.message {
+            Ok(try!(message.get_root()))
+        } else {
+            unreachable!()
+        }
     }
 
     fn tail_call(self: Box<Self>, _request: Box<RequestHook>) -> Promise<(), Error> {
@@ -89,19 +107,13 @@ impl ResultsHook for Results {
     }
 
     fn direct_tail_call(self: Box<Self>, _request: Box<RequestHook>)
-                        -> (Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+                        -> (Promise<(), Error>, Box<PipelineHook>)
     {
         unimplemented!()
     }
 
     fn allow_cancellation(&self) {
         unimplemented!()
-    }
-
-    fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
-        let tmp = *self;
-        let Results { message } = tmp;
-        Promise::ok(Box::new(ResultsDone::new(message)))
     }
 }
 
@@ -168,14 +180,24 @@ impl RequestHook for Request {
         let tmp = *self;
         let Request { message, interface_id, method_id, client } = tmp;
         let params = Params::new(message);
-        let results = Results::new();
-        let (promise, pipeline) = client.call(interface_id, method_id, Box::new(params), Box::new(results));
+        let (results_done_promise, results_done_fulfiller) = Promise::and_fulfiller();
+
+        let mut forked_results_done = results_done_promise.fork();
+        let results = Results::new(results_done_fulfiller);
+
+        let (promise, pipeline) = client.call(interface_id, method_id,
+                                              Box::new(params), Box::new(results),
+                                              forked_results_done.add_branch());
+
+        let results_done_branch2 = forked_results_done.add_branch();
 
         // Fork so that dropping just the returned promise doesn't cancel the call.
         let mut forked = promise.fork();
 
-        let promise = forked.add_branch().map(|results_done_hook| {
-            Ok(::capnp::capability::Response::new(Box::new(Response::new(results_done_hook))))
+        let promise = forked.add_branch().then(move |()| {
+            results_done_branch2.map(|results_done_hook| {
+                Ok(::capnp::capability::Response::new(Box::new(Response::new(results_done_hook))))
+            })
         });
 
         let pipeline_promise = forked.add_branch().map(move |_| Ok(pipeline));
@@ -187,7 +209,7 @@ impl RequestHook for Request {
         }
     }
     fn tail_send(self: Box<Self>)
-                 -> Option<(u32, Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)>
+                 -> Option<(u32, Promise<(), Error>, Box<PipelineHook>)>
     {
         unimplemented!()
     }
@@ -260,8 +282,9 @@ impl ClientHook for Client {
             Box::new(Request::new(interface_id, method_id, size_hint, self.add_ref())))
     }
 
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
-        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>,
+            results_done: Promise<Box<ResultsDoneHook>, Error>)
+        -> (::gj::Promise<(), Error>, Box<PipelineHook>)
     {
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
@@ -273,15 +296,16 @@ impl ClientHook for Client {
             server.dispatch_call(interface_id, method_id,
                                  ::capnp::capability::Params::new(params),
                                  ::capnp::capability::Results::new(results))
-        }).then(|results| {
-            results.hook.send_return()
-        });
+        }).attach(self.add_ref());
 
         let mut forked = promise.fork();
 
-        let pipeline_promise = forked.add_branch().map(|results_done| {
-            Ok(Box::new(Pipeline::new(results_done.clone())) as Box<PipelineHook>)
+        let pipeline_promise = results_done.map(|results_done_hook| {
+            Ok(Box::new(Pipeline::new(results_done_hook)) as Box<PipelineHook>)
         });
+//        let pipeline_promise = forked.add_branch().map(|()| {
+//            Ok(Box::new(Pipeline::new(results_done.clone())) as Box<PipelineHook>)
+//        });
 
         let pipeline = Box::new(::queued::Pipeline::new(pipeline_promise));
         let completion_promise = forked.add_branch();

@@ -769,7 +769,15 @@ impl <VatId> ConnectionState<VatId> {
 
 
                 let params = Params::new(message, cap_table_array);
-                let results = Results::new(&connection_state, question_id, redirect_results);
+
+                let (results_inner_promise, results_inner_fulfiller) = Promise::and_fulfiller();
+                let results = Results::new(&connection_state, question_id, redirect_results,
+                                           results_inner_fulfiller);
+
+                // XXX
+                let box_results_done_promise = results_inner_promise.then(|results_inner| {
+                    ResultsDone::from_results_inner(results_inner)
+                });
 
                 // cancelPaf?
 
@@ -783,7 +791,8 @@ impl <VatId> ConnectionState<VatId> {
                 }
 
                 let (promise, pipeline) = capability.call(interface_id, method_id,
-                                                          Box::new(params), Box::new(results));
+                                                          Box::new(params), Box::new(results),
+                                                          box_results_done_promise);
 
                 let connection_state_ref = Rc::downgrade(&connection_state);
                 let promise = promise.then_else(move |result| {
@@ -1326,7 +1335,7 @@ impl <VatId> RequestHook for Request<VatId> {
         }
     }
     fn tail_send(self: Box<Self>)
-                 -> Option<(u32, Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)>
+                 -> Option<(u32, Promise<(), Error>, Box<PipelineHook>)>
     {
         let tmp = *self;
         let Request { connection_state, target, mut message, cap_table } = tmp;
@@ -1511,8 +1520,7 @@ impl ParamsHook for Params {
     }
 }
 
-// This takes the place of both RpcCallContext and RpcServerResponse in capnproto-c++.
-pub struct Results<VatId> where VatId: 'static {
+struct ResultsInner<VatId> where VatId: 'static {
     connection_state: Weak<ConnectionState<VatId>>,
     message: Box<::OutgoingMessage>,
     cap_table: Vec<Option<Box<ClientHook>>>,
@@ -1520,11 +1528,18 @@ pub struct Results<VatId> where VatId: 'static {
     answer_id: AnswerId,
 }
 
+// This takes the place of both RpcCallContext and RpcServerResponse in capnproto-c++.
+pub struct Results<VatId> where VatId: 'static {
+    inner: Option<ResultsInner<VatId>>,
+    results_done_fulfiller: Option<PromiseFulfiller<ResultsInner<VatId>, Error>>,
+}
+
 
 impl <VatId> Results<VatId> where VatId: 'static {
     fn new(connection_state: &Rc<ConnectionState<VatId>>,
            answer_id: AnswerId,
-           redirect_results: bool
+           redirect_results: bool,
+           fulfiller: PromiseFulfiller<ResultsInner<VatId>, Error>
            )
            -> Results<VatId>
     {
@@ -1539,35 +1554,52 @@ impl <VatId> Results<VatId> where VatId: 'static {
         }
 
         Results {
-            connection_state: Rc::downgrade(connection_state),
-            message: message,
-            cap_table: Vec::new(),
-            redirect_results: redirect_results,
-            answer_id: answer_id,
+            inner: Some(ResultsInner {
+                connection_state: Rc::downgrade(connection_state),
+                message: message,
+                cap_table: Vec::new(),
+                redirect_results: redirect_results,
+                answer_id: answer_id,
+            }),
+            results_done_fulfiller: Some(fulfiller),
+        }
+    }
+}
+
+impl <VatId> Drop for Results<VatId> {
+    fn drop(&mut self) {
+        if let (Some(inner), Some(fulfiller)) = (self.inner.take(), self.results_done_fulfiller.take()) {
+            fulfiller.fulfill(inner);
+        } else {
+            unreachable!()
         }
     }
 }
 
 impl <VatId> ResultsHook for Results<VatId> {
     fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
-        let root: message::Builder = try!(try!(self.message.get_body()).get_as());
-        match try!(root.which()) {
-            message::Return(ret) => {
-                match try!(try!(ret).which()) {
-                    ::rpc_capnp::return_::Results(payload) => {
-                        use ::capnp::traits::ImbueMut;
-                        let mut content = try!(payload).get_content();
-                        content.imbue_mut(&mut self.cap_table);
-                        Ok(content)
-                    }
-                    _ => {
-                        unreachable!()
+        if let Some(ref mut inner) = self.inner {
+            let root: message::Builder = try!(try!(inner.message.get_body()).get_as());
+            match try!(root.which()) {
+                message::Return(ret) => {
+                    match try!(try!(ret).which()) {
+                        ::rpc_capnp::return_::Results(payload) => {
+                            use ::capnp::traits::ImbueMut;
+                            let mut content = try!(payload).get_content();
+                            content.imbue_mut(&mut inner.cap_table);
+                            Ok(content)
+                        }
+                        _ => {
+                            unreachable!()
+                        }
                     }
                 }
+                _ =>  {
+                    unreachable!()
+                }
             }
-            _ =>  {
-                unreachable!()
-            }
+        } else {
+            unreachable!()
         }
     }
 
@@ -1576,8 +1608,10 @@ impl <VatId> ResultsHook for Results<VatId> {
     }
 
     fn direct_tail_call(self: Box<Self>, request: Box<RequestHook>)
-                        -> (Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+                        -> (Promise<(), Error>, Box<PipelineHook>)
     {
+        unimplemented!()
+/*
         let state = self.connection_state.upgrade().expect("dangling connection state ref?");
         if request.get_brand() == state.get_brand() && !self.redirect_results {
             // The tail call is headed towards the peer that called us in the first place, so we can
@@ -1603,15 +1637,32 @@ impl <VatId> ResultsHook for Results<VatId> {
         } else {
             unimplemented!()
         }
+*/
     }
 
     fn allow_cancellation(&self) {
         unimplemented!()
     }
-
+/*
     fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
         let tmp = *self;
-        let Results { connection_state, mut message, cap_table, redirect_results, answer_id } = tmp;
+    }*/
+}
+
+struct ResultsDoneInner {
+    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
+}
+
+struct ResultsDone {
+    inner: Rc<ResultsDoneInner>
+}
+
+impl ResultsDone {
+    fn from_results_inner<VatId>(results_inner: ResultsInner<VatId>) -> Promise<Box<ResultsDoneHook>, Error>
+        where VatId: 'static
+    {
+        let ResultsInner { connection_state, mut message, cap_table, redirect_results, answer_id } = results_inner;
 
         {
             let root: message::Builder = pry!(pry!(message.get_body()).get_as());
@@ -1635,25 +1686,13 @@ impl <VatId> ResultsHook for Results<VatId> {
             }
         }
 
-
         message.send().map(move |message| {
             let _ = connection_state;
             //pipeline_fulfiller.fulfill(results_done);
             Ok(Box::new(ResultsDone::new(message, cap_table)) as Box<ResultsDoneHook>)
         })
     }
-}
 
-struct ResultsDoneInner {
-    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    cap_table: Vec<Option<Box<ClientHook>>>,
-}
-
-struct ResultsDone {
-    inner: Rc<ResultsDoneInner>
-}
-
-impl ResultsDone {
     fn new(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
            cap_table: Vec<Option<Box<ClientHook>>>) -> ResultsDone {
         ResultsDone {
@@ -1664,6 +1703,7 @@ impl ResultsDone {
         }
     }
 }
+
 
 impl ResultsDoneHook for ResultsDone {
     fn add_ref(&self) -> Box<ResultsDoneHook> {
@@ -1987,8 +2027,9 @@ impl <VatId> ClientHook for Client<VatId> {
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>,
-            mut results: Box<ResultsHook>)
-        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
+            mut results: Box<ResultsHook>,
+            results_done: Promise<Box<ResultsDoneHook>, Error>)
+        -> (::gj::Promise<(), Error>, Box<PipelineHook>)
     {
         // Implement call() by copying params and results messages.
 
@@ -1997,7 +2038,8 @@ impl <VatId> ClientHook for Client<VatId> {
         request.get().set_as(params.get().unwrap()).unwrap();
 
         let ::capnp::capability::RemotePromise { promise, pipeline } = request.send();
-
+        unimplemented!()
+/*
         let promise = promise.then(move |response| {
             pry!(results.get()).set_as(pry!(response.get()));
             results.send_return()
@@ -2008,6 +2050,7 @@ impl <VatId> ClientHook for Client<VatId> {
         let pipeline = ::queued::Pipeline::new(forked.add_branch().map(move |_| Ok(pipeline.hook)));
 
         (promise, Box::new(pipeline))
+*/
         // TODO implement this in terms of direct_tail_call();
 
         // We can and should propagate cancellation.
