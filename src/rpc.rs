@@ -74,11 +74,13 @@ impl <VatId> System <VatId> {
     }
 
     /// Connects to the given vat and returns its bootstrap interface.
-    pub fn bootstrap(&mut self, vat_id: VatId) -> ::capnp::capability::Client {
+    pub fn bootstrap<T>(&mut self, vat_id: VatId) -> T
+        where T: ::capnp::capability::FromClientHook
+    {
         let connection = match self.network.connect(vat_id) {
             Some(connection) => connection,
             None => {
-                return ::capnp::capability::Client::new(self.bootstrap_cap.clone());
+                return T::new(self.bootstrap_cap.clone());
             }
         };
         let connection_state =
@@ -87,7 +89,7 @@ impl <VatId> System <VatId> {
                                          connection, self.tasks.clone());
 
         let hook = ConnectionState::bootstrap(connection_state.clone());
-        ::capnp::capability::Client::new(hook)
+        T::new(hook)
     }
 
     fn accept_loop(&mut self) -> Promise<(), Error> {
@@ -914,13 +916,15 @@ impl <VatId> ConnectionState<VatId> {
                     match slots.get_mut(&question_id) {
                         Some(ref mut answer) => {
                             answer.pipeline = Some(pipeline);
-                            // TODO if redirect results...
+                            if redirect_results {
+                                unimplemented!()
+                            } else {
+                                connection_state.add_task(promise.map(|_| Ok(())));
+                            }
                         }
                         None => unreachable!()
                     }
                 }
-
-                connection_state.add_task(promise.map(|_| Ok(())));
             }
             BorrowWorkaround::ReturnResults(question_ref, cap_table) => {
                 let response = Response::new(connection_state,

@@ -84,9 +84,7 @@ fn set_up_rpc<F>(main: F)
                                                Default::default()));
 
         let mut rpc_system = rpc::System::new(network, None);
-        let client = test_capnp::bootstrap::Client {
-            client: rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server)
-        };
+        let client: test_capnp::bootstrap::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
         try!(main(client).wait(wait_scope));
         drop(rpc_system);

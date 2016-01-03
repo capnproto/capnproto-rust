@@ -60,9 +60,7 @@ pub fn main() {
                                                rpc_twoparty_capnp::Side::Client,
                                                Default::default()));
         let mut rpc_system = rpc::System::new(network, None);
-        let calculator = calculator::Client {
-            client: rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server)
-        };
+        let calculator: calculator::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
         {
             println!("Evaluating a literal...");
