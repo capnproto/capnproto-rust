@@ -33,31 +33,31 @@ impl bootstrap::Server for Bootstrap {
     fn test_interface(&mut self,
                       _params: bootstrap::TestInterfaceParams,
                       mut results: bootstrap::TestInterfaceResults)
-                      -> Promise<bootstrap::TestInterfaceResults, Error>
+                      -> Promise<(), Error>
     {
         {
             results.get().set_cap(
                 test_interface::ToClient::new(TestInterface::new()).from_server::<::capnp_rpc::Server>());
         }
-        Promise::ok(results)
+        Promise::ok(())
     }
 
     fn test_extends(&mut self,
                     _params: bootstrap::TestExtendsParams,
                     mut results: bootstrap::TestExtendsResults)
-                    -> Promise<bootstrap::TestExtendsResults, Error>
+                    -> Promise<(), Error>
     {
         {
             results.get().set_cap(
                 test_extends::ToClient::new(TestExtends).from_server::<::capnp_rpc::Server>());
         }
-        Promise::ok(results)
+        Promise::ok(())
     }
 
     fn test_extends2(&mut self,
                     _params: bootstrap::TestExtends2Params,
                     _results: bootstrap::TestExtends2Results)
-                    -> Promise<bootstrap::TestExtends2Results, Error>
+                    -> Promise<(), Error>
     {
         unimplemented!()
     }
@@ -65,36 +65,36 @@ impl bootstrap::Server for Bootstrap {
     fn test_pipeline(&mut self,
                     _params: bootstrap::TestPipelineParams,
                     mut results: bootstrap::TestPipelineResults)
-                    -> Promise<bootstrap::TestPipelineResults, Error>
+                    -> Promise<(), Error>
     {
         {
             results.get().set_cap(
                 test_pipeline::ToClient::new(TestPipeline).from_server::<::capnp_rpc::Server>());
         }
-        Promise::ok(results)
+        Promise::ok(())
     }
 
     fn test_call_order(&mut self,
-                    _params: bootstrap::TestCallOrderParams,
-                    mut results: bootstrap::TestCallOrderResults)
-                    -> Promise<bootstrap::TestCallOrderResults, Error>
+                       _params: bootstrap::TestCallOrderParams,
+                       mut results: bootstrap::TestCallOrderResults)
+                       -> Promise<(), Error>
     {
         {
             results.get().set_cap(
                 test_call_order::ToClient::new(TestCallOrder::new()).from_server::<::capnp_rpc::Server>());
         }
-        Promise::ok(results)
+        Promise::ok(())
     }
     fn test_more_stuff(&mut self,
                        _params: bootstrap::TestMoreStuffParams,
                        mut results: bootstrap::TestMoreStuffResults)
-                       -> Promise<bootstrap::TestMoreStuffResults, Error>
+                       -> Promise<(), Error>
     {
         {
             results.get().set_cap(
                 test_more_stuff::ToClient::new(TestMoreStuff::new()).from_server::<::capnp_rpc::Server>());
         }
-        Promise::ok(results)
+        Promise::ok(())
     }
 }
 
@@ -118,7 +118,7 @@ impl test_interface::Server for TestInterface {
     fn foo(&mut self,
            params: test_interface::FooParams,
            mut results: test_interface::FooResults)
-           -> Promise<test_interface::FooResults, Error>
+           -> Promise<(), Error>
     {
         self.increment_call_count();
         let params = params.get();
@@ -132,13 +132,13 @@ impl test_interface::Server for TestInterface {
             let mut results = results.get();
             results.set_x("foo");
         }
-          Promise::ok(results)
+        Promise::ok(())
     }
 
     fn bar(&mut self,
            _params: test_interface::BarParams,
            _results: test_interface::BarResults)
-           -> Promise<test_interface::BarResults, Error>
+           -> Promise<(), Error>
     {
         self.increment_call_count();
         Promise::err(Error::unimplemented("bar is not implemented".to_string()))
@@ -147,13 +147,12 @@ impl test_interface::Server for TestInterface {
     fn baz(&mut self,
            params: test_interface::BazParams,
            results: test_interface::BazResults)
-           -> Promise<test_interface::BazResults, Error>
+           -> Promise<(), Error>
     {
         self.increment_call_count();
         ::test_util::CheckTestMessage::check_test_message(pry!(params.get().get_s()));
-        Promise::ok(results)
+        Promise::ok(())
     }
-
 }
 
 struct TestExtends;
@@ -162,7 +161,7 @@ impl test_interface::Server for TestExtends {
    fn foo(&mut self,
            params: test_interface::FooParams,
            mut results: test_interface::FooResults)
-           -> Promise<test_interface::FooResults, Error>
+           -> Promise<(), Error>
     {
         let params = params.get();
         if params.get_i() != 321 {
@@ -175,13 +174,13 @@ impl test_interface::Server for TestExtends {
             let mut results = results.get();
             results.set_x("bar");
         }
-        Promise::ok(results)
+        Promise::ok(())
     }
 
     fn bar(&mut self,
            _params: test_interface::BarParams,
            _results: test_interface::BarResults)
-           -> Promise<test_interface::BarResults, Error>
+           -> Promise<(), Error>
     {
         Promise::err(Error::unimplemented("bar is not implemented".to_string()))
     }
@@ -189,7 +188,7 @@ impl test_interface::Server for TestExtends {
     fn baz(&mut self,
            _params: test_interface::BazParams,
            _results: test_interface::BazResults)
-           -> Promise<test_interface::BazResults, Error>
+           -> Promise<(), Error>
     {
         Promise::err(Error::unimplemented("baz is not implemented".to_string()))
     }
@@ -199,7 +198,7 @@ impl test_extends::Server for TestExtends {
   fn qux(&mut self,
            _params: test_extends::QuxParams,
            _results: test_extends::QuxResults)
-           -> Promise<test_extends::QuxResults, Error>
+           -> Promise<(), Error>
     {
         Promise::err(Error::unimplemented("qux is not implemented".to_string()))
     }
@@ -207,7 +206,7 @@ impl test_extends::Server for TestExtends {
   fn corge(&mut self,
            _params: test_extends::CorgeParams,
            _results: test_extends::CorgeResults)
-           -> Promise<test_extends::CorgeResults, Error>
+           -> Promise<(), Error>
     {
         Promise::err(Error::unimplemented("corge is not implemented".to_string()))
     }
@@ -215,10 +214,10 @@ impl test_extends::Server for TestExtends {
   fn grault(&mut self,
            _params: test_extends::GraultParams,
            mut results: test_extends::GraultResults)
-           -> Promise<test_extends::GraultResults, Error>
+           -> Promise<(), Error>
     {
         ::test_util::init_test_message(results.get());
-        Promise::ok(results)
+        Promise::ok(())
     }
 }
 
@@ -228,7 +227,7 @@ impl test_pipeline::Server for TestPipeline {
     fn get_cap(&mut self,
                params: test_pipeline::GetCapParams,
                mut results: test_pipeline::GetCapResults)
-               -> Promise<test_pipeline::GetCapResults, Error>
+               -> Promise<(), Error>
     {
         if params.get().get_n() != 234 {
             return Promise::err(Error::failed("expected n to equal 234".to_string()));
@@ -250,7 +249,7 @@ impl test_pipeline::Server for TestPipeline {
                     client:
                     test_extends::ToClient::new(TestExtends).from_server::<::capnp_rpc::Server>().client,
                 });
-            Ok(results)
+            Ok(())
         })
     }
 }
@@ -269,11 +268,11 @@ impl test_call_order::Server for TestCallOrder {
     fn get_call_sequence(&mut self,
                          _params: test_call_order::GetCallSequenceParams,
                          mut results: test_call_order::GetCallSequenceResults)
-                         -> Promise<test_call_order::GetCallSequenceResults, Error>
+                         -> Promise<(), Error>
     {
         results.get().set_n(self.count);
         self.count += 1;
-        Promise::ok(results)
+        Promise::ok(())
     }
 }
 
@@ -302,11 +301,11 @@ impl test_call_order::Server for TestMoreStuff {
     fn get_call_sequence(&mut self,
                          _params: test_call_order::GetCallSequenceParams,
                          mut results: test_call_order::GetCallSequenceResults)
-                         -> Promise<test_call_order::GetCallSequenceResults, Error>
+                         -> Promise<(), Error>
     {
         results.get().set_n(self.call_count);
         self.call_count += 1;
-        Promise::ok(results)
+        Promise::ok(())
     }
 }
 
@@ -314,7 +313,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     fn call_foo(&mut self,
                 _params: test_more_stuff::CallFooParams,
                 _results: test_more_stuff::CallFooResults)
-                -> Promise<test_more_stuff::CallFooResults, Error>
+                -> Promise<(), Error>
     {
         unimplemented!()
     }
@@ -322,7 +321,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     fn call_foo_when_resolved(&mut self,
                               params: test_more_stuff::CallFooWhenResolvedParams,
                               _results: test_more_stuff::CallFooWhenResolvedResults)
-                              -> Promise<test_more_stuff::CallFooWhenResolvedResults, Error>
+                              -> Promise<(), Error>
     {
         let _cap = pry!(params.get().get_cap());
         // TODO: implemented when_resolved().
@@ -332,7 +331,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     fn never_return(&mut self,
                     _params: test_more_stuff::NeverReturnParams,
                     _results: test_more_stuff::NeverReturnResults)
-                    -> Promise<test_more_stuff::NeverReturnResults, Error>
+                    -> Promise<(), Error>
     {
         unimplemented!()
     }
@@ -340,7 +339,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     fn hold(&mut self,
             _params: test_more_stuff::HoldParams,
             _results: test_more_stuff::HoldResults)
-            -> Promise<test_more_stuff::HoldResults, Error>
+            -> Promise<(), Error>
     {
         unimplemented!()
     }
@@ -348,7 +347,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     fn call_held(&mut self,
                  _params: test_more_stuff::CallHeldParams,
                  _results: test_more_stuff::CallHeldResults)
-                 -> Promise<test_more_stuff::CallHeldResults, Error>
+                 -> Promise<(), Error>
     {
         unimplemented!()
     }
@@ -356,7 +355,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     fn get_held(&mut self,
                 _params: test_more_stuff::GetHeldParams,
                 _results: test_more_stuff::GetHeldResults)
-                -> Promise<test_more_stuff::GetHeldResults, Error>
+                -> Promise<(), Error>
     {
         unimplemented!()
     }
@@ -364,17 +363,17 @@ impl test_more_stuff::Server for TestMoreStuff {
     fn echo(&mut self,
             params: test_more_stuff::EchoParams,
             mut results: test_more_stuff::EchoResults)
-            -> Promise<test_more_stuff::EchoResults, Error>
+            -> Promise<(), Error>
     {
         self.call_count += 1;
         results.get().set_cap(pry!(params.get().get_cap()));
-        Promise::ok(results)
+        Promise::ok(())
     }
 
     fn expect_cancel(&mut self,
                      _params: test_more_stuff::ExpectCancelParams,
                      _results: test_more_stuff::ExpectCancelResults)
-                     -> Promise<test_more_stuff::ExpectCancelResults, Error>
+                     -> Promise<(), Error>
     {
         unimplemented!()
     }
@@ -382,27 +381,27 @@ impl test_more_stuff::Server for TestMoreStuff {
     fn get_handle(&mut self,
                   _params: test_more_stuff::GetHandleParams,
                   mut results: test_more_stuff::GetHandleResults)
-                  -> Promise<test_more_stuff::GetHandleResults, Error>
+                  -> Promise<(), Error>
     {
         let handle = Handle::new(&self.handle_count);
         results.get().set_handle(
             test_handle::ToClient::new(handle).from_server::<::capnp_rpc::Server>());
-        Promise::ok(results)
+        Promise::ok(())
     }
 
     fn get_handle_count(&mut self,
                         _params: test_more_stuff::GetHandleCountParams,
                         mut results: test_more_stuff::GetHandleCountResults)
-                        -> Promise<test_more_stuff::GetHandleCountResults, Error>
+                        -> Promise<(), Error>
     {
         results.get().set_count(self.handle_count.get());
-        Promise::ok(results)
+        Promise::ok(())
     }
 
     fn get_null(&mut self,
                 _params: test_more_stuff::GetNullParams,
                 _results: test_more_stuff::GetNullResults)
-                -> Promise<test_more_stuff::GetNullResults, Error>
+                -> Promise<(), Error>
     {
         unimplemented!()
     }
@@ -410,7 +409,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     fn method_with_defaults(&mut self,
                             _params: test_more_stuff::MethodWithDefaultsParams,
                             _results: test_more_stuff::MethodWithDefaultsResults)
-                            -> Promise<test_more_stuff::MethodWithDefaultsResults, Error>
+                            -> Promise<(), Error>
     {
         unimplemented!()
     }
