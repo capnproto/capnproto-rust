@@ -282,10 +282,9 @@ fn embargo() {
             let pipeline = echo.pipeline.get_cap();
 
             let call0 = get_call_sequence(&pipeline, 0);
+
             let call1 = get_call_sequence(&pipeline, 1);
 
-            Promise::ok(())
-/*
             early_call.promise.then(move |_early_call_response| {
                 let call2 = get_call_sequence(&pipeline, 2);
                 echo.promise.then(move |_echo_response| {
@@ -305,7 +304,7 @@ fn embargo() {
                         Ok(())
                     })
                 })
-            }) */
+            })
         })
     });
 }

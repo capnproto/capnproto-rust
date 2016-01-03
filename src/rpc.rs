@@ -59,6 +59,7 @@ pub type QuestionId = u32;
 pub type AnswerId = QuestionId;
 pub type ExportId = u32;
 pub type ImportId = ExportId;
+pub type EmbargoId = u32;
 
 pub struct ImportTable<T> {
     slots: HashMap<u32, T>,
@@ -330,6 +331,16 @@ impl <VatId> Import<VatId> {
     }
 }
 
+struct Embargo {
+    fulfiller: Option<PromiseFulfiller<(), Error>>,
+}
+
+impl Embargo {
+    fn new(fulfiller: PromiseFulfiller<(), Error>) -> Embargo {
+        Embargo { fulfiller: Some(fulfiller) }
+    }
+}
+
 fn to_pipeline_ops(ops: ::capnp::struct_list::Reader<::rpc_capnp::promised_answer::op::Owned>)
                    -> ::capnp::Result<Vec<PipelineOp>>
 {
@@ -401,6 +412,8 @@ pub struct ConnectionState<VatId> where VatId: 'static {
 
     exports_by_cap: RefCell<HashMap<usize, ExportId>>,
 
+    embargoes: RefCell<ExportTable<Embargo>>,
+
     tasks: RefCell<Option<::gj::TaskSet<(), ::capnp::Error>>>,
     connection: RefCell<::std::result::Result<Box<::Connection<VatId>>, ::capnp::Error>>,
     disconnect_fulfiller: RefCell<Option<::gj::PromiseFulfiller<Promise<(), Error>, Error>>>,
@@ -420,6 +433,7 @@ impl <VatId> ConnectionState<VatId> {
             answers: RefCell::new(ImportTable::new()),
             imports: RefCell::new(ImportTable::new()),
             exports_by_cap: RefCell::new(HashMap::new()),
+            embargoes: RefCell::new(ExportTable::new()),
             tasks: RefCell::new(None),
             connection: RefCell::new(Ok(connection)),
             disconnect_fulfiller: RefCell::new(Some(disconnect_fulfiller)),
@@ -1892,12 +1906,21 @@ impl <VatId> PromiseClient<VatId> {
     }
 
     fn resolve(&mut self, replacement: Box<ClientHook>, is_error: bool) {
-        let _replacement_brand = replacement.get_brand();
-        if false && !is_error {
+        let connection_state = self.connection_state.upgrade().expect("resolve(): dangling connection_state");
+        let is_connected = connection_state.connection.borrow().is_ok();
+        let replacement_brand = replacement.get_brand();
+        if  replacement_brand != connection_state.get_brand() &&
+            replacement_brand != 0 &&
+            self.received_call && !is_error && is_connected
+        {
             // The new capability is hosted locally, not on the remote machine.  And, we had made calls
             // to the promise.  We need to make sure those calls echo back to us before we allow new
             // calls to go directly to the local capability, so we need to set a local embargo and send
             // a `Disembargo` to echo through the peer.
+            let (_promise, fulfiller) = Promise::and_fulfiller();
+            let embargo = Embargo::new(fulfiller);
+            connection_state.embargoes.borrow_mut().push(embargo);
+            // ....
         }
         self.cap = replacement;
         self.is_resolved = true;
@@ -2040,7 +2063,7 @@ impl <VatId> ClientHook for Client<VatId> {
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>,
             mut results: Box<ResultsHook>,
-            _results_done: Promise<Box<ResultsDoneHook>, Error>)
+            results_done: Promise<Box<ResultsDoneHook>, Error>)
         -> (::gj::Promise<(), Error>, Box<PipelineHook>)
     {
         // Implement call() by copying params and results messages.
@@ -2058,7 +2081,15 @@ impl <VatId> ClientHook for Client<VatId> {
 
         let mut forked = promise.fork();
         let promise = forked.add_branch();
-        let pipeline = ::queued::Pipeline::new(forked.add_branch().map(move |_| Ok(pipeline.hook)));
+
+        let pipeline = ::queued::Pipeline::new(forked.add_branch().then(move |_| {
+            results_done.map(move |results_done_hook| {
+                // TODO: why doesn't this work?
+                // Ok(pipeline.hook)
+
+                Ok(Box::new(::local::Pipeline::new(results_done_hook)) as Box<PipelineHook>)
+            })
+        }));
 
         (promise, Box::new(pipeline))
 

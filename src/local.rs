@@ -219,12 +219,12 @@ struct PipelineInner {
     results: Box<ResultsDoneHook>,
 }
 
-struct Pipeline {
+pub struct Pipeline {
     inner: Rc<RefCell<PipelineInner>>,
 }
 
 impl Pipeline {
-    fn new(results: Box<ResultsDoneHook>) -> Pipeline {
+    pub fn new(results: Box<ResultsDoneHook>) -> Pipeline {
         Pipeline {
             inner: Rc::new(RefCell::new(PipelineInner { results: results }))
         }
