@@ -121,7 +121,7 @@ impl test_interface::Server for TestInterface {
            -> Promise<(), Error>
     {
         self.increment_call_count();
-        let params = params.get();
+        let params = pry!(params.get());
         if params.get_i() != 123 {
             return Promise::err(Error::failed(format!("expected i to equal 123")));
         }
@@ -150,7 +150,7 @@ impl test_interface::Server for TestInterface {
            -> Promise<(), Error>
     {
         self.increment_call_count();
-        ::test_util::CheckTestMessage::check_test_message(pry!(params.get().get_s()));
+        ::test_util::CheckTestMessage::check_test_message(pry!(pry!(params.get()).get_s()));
         Promise::ok(())
     }
 }
@@ -163,7 +163,7 @@ impl test_interface::Server for TestExtends {
            mut results: test_interface::FooResults)
            -> Promise<(), Error>
     {
-        let params = params.get();
+        let params = pry!(params.get());
         if params.get_i() != 321 {
             return Promise::err(Error::failed(format!("expected i to equal 321")));
         }
@@ -229,10 +229,10 @@ impl test_pipeline::Server for TestPipeline {
                mut results: test_pipeline::GetCapResults)
                -> Promise<(), Error>
     {
-        if params.get().get_n() != 234 {
+        if pry!(params.get()).get_n() != 234 {
             return Promise::err(Error::failed("expected n to equal 234".to_string()));
         }
-        let cap = pry!(params.get().get_in_cap());
+        let cap = pry!(pry!(params.get()).get_in_cap());
         let mut request = cap.foo_request();
         request.get().set_i(123);
         request.get().set_j(true);
@@ -323,7 +323,7 @@ impl test_more_stuff::Server for TestMoreStuff {
                               _results: test_more_stuff::CallFooWhenResolvedResults)
                               -> Promise<(), Error>
     {
-        let _cap = pry!(params.get().get_cap());
+        let _cap = pry!(pry!(params.get()).get_cap());
         // TODO: implemented when_resolved().
         Promise::err(Error::unimplemented("call_foo_when_resolved is not implemented yet".to_string()))
     }
@@ -366,7 +366,7 @@ impl test_more_stuff::Server for TestMoreStuff {
             -> Promise<(), Error>
     {
         self.call_count += 1;
-        results.get().set_cap(pry!(params.get().get_cap()));
+        results.get().set_cap(pry!(pry!(params.get()).get_cap()));
         Promise::ok(())
     }
 

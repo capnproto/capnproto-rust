@@ -114,7 +114,7 @@ impl calculator::function::Server for FunctionImpl {
             mut results: calculator::function::CallResults)
         -> Promise<(), Error>
     {
-        let params = pry!(params.get().get_params());
+        let params = pry!(pry!(params.get()).get_params());
         if params.len() != self.param_count {
             Promise::err(Error::failed(
                 format!("Expect {} parameters but got {}.", self.param_count, params.len())))
@@ -140,7 +140,7 @@ impl calculator::function::Server for OperatorImpl {
             mut results: calculator::function::CallResults)
             -> Promise<(), Error>
     {
-        let params = pry!(params.get().get_params());
+        let params = pry!(pry!(params.get()).get_params());
         if params.len() != 2 {
             Promise::err(Error::failed("Wrong number of paramters.".to_string()))
         } else {
@@ -164,7 +164,7 @@ impl calculator::Server for CalculatorImpl {
                 mut results: calculator::EvaluateResults)
                 -> Promise<(), Error>
     {
-        evaluate_impl(pry!(params.get().get_expression()), None).map(move |v| {
+        evaluate_impl(pry!(pry!(params.get()).get_expression()), None).map(move |v| {
             results.get().set_value(
                 calculator::value::ToClient::new(ValueImpl::new(v)).from_server::<::capnp_rpc::Server>());
             Ok(())
@@ -177,7 +177,8 @@ impl calculator::Server for CalculatorImpl {
     {
         results.get().set_func(
             calculator::function::ToClient::new(
-                pry!(FunctionImpl::new(params.get().get_param_count() as u32,pry!(params.get().get_body()))))
+                pry!(FunctionImpl::new(pry!(params.get()).get_param_count() as u32,
+                                       pry!(pry!(params.get()).get_body()))))
                 .from_server::<::capnp_rpc::Server>());
         Promise::ok(())
     }
@@ -186,7 +187,7 @@ impl calculator::Server for CalculatorImpl {
                     mut results: calculator::GetOperatorResults)
                     -> Promise<(), Error>
     {
-        let op = pry!(params.get().get_op());
+        let op = pry!(pry!(params.get()).get_op());
         results.get().set_func(
             calculator::function::ToClient::new(OperatorImpl {op : op}).from_server::<::capnp_rpc::Server>());
         Promise::ok(())

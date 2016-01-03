@@ -33,7 +33,7 @@ impl calculator::function::Server for PowerFunction {
             mut results: calculator::function::CallResults)
         -> Promise<(), ::capnp::Error>
     {
-        let params = pry!(params.get().get_params());
+        let params = pry!(pry!(params.get()).get_params());
         if params.len() != 2 {
             Promise::err(::capnp::Error::failed("Wrong number of parameters".to_string()))
         } else {
