@@ -204,3 +204,8 @@ impl Pipeline {
     }
 }
 
+impl ::capability::FromTypelessPipeline for Pipeline {
+    fn new(typeless: Pipeline) -> Pipeline {
+        typeless
+    }
+}

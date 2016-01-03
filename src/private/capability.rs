@@ -30,7 +30,9 @@ pub trait ResponseHook {
 pub trait RequestHook {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a>;
     fn get_brand(&self) -> usize;
-    fn send<'a>(self : Box<Self>) -> RemotePromise<any_pointer::Owned>;
+    fn send<'a>(self: Box<Self>) -> RemotePromise<any_pointer::Owned>;
+    fn tail_send(self: Box<Self>)
+                 -> Option<(u32, ::capability::Promise<Box<ResultsDoneHook>, ::Error>, Box<PipelineHook>)>;
 }
 
 pub trait ClientHook {

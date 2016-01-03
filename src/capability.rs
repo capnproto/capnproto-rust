@@ -102,6 +102,10 @@ impl <Params, Results> Request <Params, Results>
     pub fn get<'a>(&'a mut self) -> <Params as ::traits::Owned<'a>>::Builder {
         self.hook.get().get_as().unwrap()
     }
+
+    pub fn set(&mut self, from: <Params as ::traits::Owned>::Reader) -> ::Result<()> {
+        self.hook.get().set_as(from)
+    }
 }
 
 #[cfg(feature = "rpc")]
