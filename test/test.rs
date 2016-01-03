@@ -299,6 +299,9 @@ fn embargo() {
                                       call3.promise,
                                       call4.promise,
                                       call5.promise].into_iter()).map(|responses| {
+                        for r in responses.into_iter() {
+                            println!("sequence {}", try!(r.get()).get_n())
+                        }
                         Ok(())
                     })
                 })

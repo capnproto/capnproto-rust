@@ -1986,7 +1986,8 @@ impl <VatId> ClientHook for Client<VatId> {
         ::capnp::capability::Request::new(Box::new(request))
     }
 
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>,
+            mut results: Box<ResultsHook>)
         -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
     {
         // Implement call() by copying params and results messages.
@@ -1995,11 +1996,25 @@ impl <VatId> ClientHook for Client<VatId> {
                                         Some(params.get().unwrap().total_size().unwrap()));
         request.get().set_as(params.get().unwrap()).unwrap();
 
+        let ::capnp::capability::RemotePromise { promise, pipeline } = request.send();
+
+        let promise = promise.then(move |response| {
+            pry!(results.get()).set_as(pry!(response.get()));
+            results.send_return()
+        });
+
+        let mut forked = promise.fork();
+        let promise = forked.add_branch();
+        let pipeline = ::queued::Pipeline::new(forked.add_branch().map(move |_| Ok(pipeline.hook)));
+
+        (promise, Box::new(pipeline))
+        // TODO implement this in terms of direct_tail_call();
+
         // We can and should propagate cancellation.
         // (TODO ?)
         // context -> allowCancellation();
 
-        results.direct_tail_call(request.hook)
+        //results.direct_tail_call(request.hook)
     }
 
     fn get_ptr(&self) -> usize {
