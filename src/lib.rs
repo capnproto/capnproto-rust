@@ -28,7 +28,7 @@ use gj::Promise;
 use capnp::Error;
 use capnp::private::capability::{ClientHook, ServerHook};
 use std::cell::RefCell;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 
 pub mod rpc_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_capnp.rs"));
@@ -40,6 +40,7 @@ pub mod rpc_twoparty_capnp {
 
 //pub mod capability;
 //pub mod ez_rpc;
+mod local;
 mod rpc;
 pub mod twoparty;
 
@@ -179,6 +180,6 @@ pub struct Server;
 
 impl ServerHook for Server {
     fn new_client(server: Box<::capnp::capability::Server>) -> ::capnp::capability::Client {
-        ::capnp::capability::Client::new(Box::new(rpc::LocalClient::new(server)))
+        ::capnp::capability::Client::new(Box::new(local::Client::new(server)))
     }
 }

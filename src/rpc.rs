@@ -33,6 +33,7 @@ use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 use rpc_capnp::{message, return_, cap_descriptor};
+use local;
 
 struct Defer<F> where F: FnOnce() {
     deferred: Option<F>,
@@ -2069,170 +2070,6 @@ impl PipelineHook for SingleCapPipeline {
     }
 }
 
-struct LocalResponse {
-    results: Box<ResultsDoneHook>
-}
-
-impl LocalResponse {
-    fn new(results: Box<ResultsDoneHook>) -> LocalResponse {
-        LocalResponse {
-            results: results
-        }
-    }
-}
-
-impl ResponseHook for LocalResponse {
-    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        self.results.get()
-    }
-}
-
-struct LocalParams {
-    request: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-}
-
-impl LocalParams {
-    fn new(request: ::capnp::message::Builder<::capnp::message::HeapAllocator>)
-           -> LocalParams
-    {
-        LocalParams {
-            request: request,
-        }
-    }
-}
-
-impl ParamsHook for LocalParams {
-    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        Ok(try!(self.request.get_root_as_reader()))
-    }
-}
-
-struct LocalResults {
-    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-}
-
-impl LocalResults {
-    fn new() -> LocalResults {
-        LocalResults {
-            message: ::capnp::message::Builder::new_default(),
-        }
-    }
-}
-
-impl ResultsHook for LocalResults {
-    fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
-        Ok(try!(self.message.get_root()))
-    }
-
-    fn tail_call(self: Box<Self>, _request: Box<RequestHook>) -> Promise<(), Error> {
-        unimplemented!()
-    }
-
-    fn direct_tail_call(self: Box<Self>, _request: Box<RequestHook>)
-                        -> (Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
-    {
-        unimplemented!()
-    }
-
-    fn allow_cancellation(&self) {
-        unimplemented!()
-    }
-
-    fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
-        let tmp = *self;
-        let LocalResults { message } = tmp;
-        Promise::ok(Box::new(LocalResultsDone::new(message)))
-    }
-}
-
-struct LocalResultsDoneInner {
-    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>
-}
-
-struct LocalResultsDone {
-    inner: Rc<LocalResultsDoneInner>,
-}
-
-impl LocalResultsDone {
-    fn new(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>)
-        -> LocalResultsDone
-    {
-        LocalResultsDone {
-            inner: Rc::new(LocalResultsDoneInner {
-                message: message,
-            }),
-        }
-    }
-}
-
-impl ResultsDoneHook for LocalResultsDone {
-    fn add_ref(&self) -> Box<ResultsDoneHook> {
-        Box::new(LocalResultsDone { inner: self.inner.clone() })
-    }
-    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        Ok(try!(self.inner.message.get_root_as_reader()))
-    }
-}
-
-
-struct LocalRequest {
-    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    interface_id: u64,
-    method_id: u16,
-    client: Box<ClientHook>,
-}
-
-impl LocalRequest {
-    fn new(interface_id: u64, method_id: u16,
-           _size_hint: Option<::capnp::MessageSize>,
-           client: Box<ClientHook>)
-           -> LocalRequest
-    {
-        LocalRequest {
-            message: ::capnp::message::Builder::new_default(),
-            interface_id: interface_id,
-            method_id: method_id,
-            client: client,
-        }
-    }
-}
-
-impl RequestHook for LocalRequest {
-    fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        self.message.get_root().unwrap()
-    }
-    fn get_brand(&self) -> usize {
-        0
-    }
-    fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
-        let tmp = *self;
-        let LocalRequest { message, interface_id, method_id, client } = tmp;
-        let params = LocalParams::new(message);
-        let results = LocalResults::new();
-        let (promise, pipeline) = client.call(interface_id, method_id, Box::new(params), Box::new(results));
-
-        // Fork so that dropping just the returned promise doesn't cancel the call.
-        let mut forked = promise.fork();
-
-        let promise = forked.add_branch().map(|results_done_hook| {
-            Ok(::capnp::capability::Response::new(Box::new(LocalResponse::new(results_done_hook))))
-        });
-
-        let pipeline_promise = forked.add_branch().map(move |_| Ok(pipeline));
-        let pipeline = any_pointer::Pipeline::new(Box::new(QueuedPipeline::new(pipeline_promise)));
-
-        ::capnp::capability::RemotePromise {
-            promise: promise,
-            pipeline: pipeline,
-        }
-    }
-    fn tail_send(self: Box<Self>)
-                 -> Option<(u32, Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)>
-    {
-        unimplemented!()
-    }
-}
-
 struct QueuedPipelineInner {
     promise: ::gj::ForkedPromise<Box<PipelineHook>, Error>,
 
@@ -2243,12 +2080,12 @@ struct QueuedPipelineInner {
     self_resolution_op: Promise<(), Error>,
 }
 
-struct QueuedPipeline {
+pub struct QueuedPipeline {
     inner: Rc<RefCell<QueuedPipelineInner>>,
 }
 
 impl QueuedPipeline {
-    fn new(promise_param: Promise<Box<PipelineHook>, Error>) -> QueuedPipeline {
+    pub fn new(promise_param: Promise<Box<PipelineHook>, Error>) -> QueuedPipeline {
         let mut promise = promise_param.fork();
         let branch = promise.add_branch();
         let inner = Rc::new(RefCell::new(QueuedPipelineInner {
@@ -2384,7 +2221,7 @@ impl ClientHook for QueuedClient {
                 -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
     {
         ::capnp::capability::Request::new(
-            Box::new(LocalRequest::new(interface_id, method_id, size_hint, self.add_ref())))
+            Box::new(local::Request::new(interface_id, method_id, size_hint, self.add_ref())))
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
@@ -2547,128 +2384,6 @@ impl ClientHook for BrokenClient {
 
     fn get_brand(&self) -> usize {
         self.inner.brand
-    }
-
-    fn write_target(&self, _target: any_pointer::Builder) -> Option<Box<ClientHook>>
-    {
-        unimplemented!()
-    }
-
-    fn write_descriptor(&self, _descriptor: any_pointer::Builder) -> Option<u32> {
-        unimplemented!()
-    }
-
-    fn get_resolved(&self) -> Option<Box<ClientHook>> {
-        None
-    }
-
-    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
-        None
-    }
-}
-
-struct LocalPipelineInner {
-    results: Box<ResultsDoneHook>,
-}
-
-struct LocalPipeline {
-    inner: Rc<RefCell<LocalPipelineInner>>,
-}
-
-impl LocalPipeline {
-    fn new(results: Box<ResultsDoneHook>) -> LocalPipeline {
-        LocalPipeline {
-            inner: Rc::new(RefCell::new(LocalPipelineInner { results: results }))
-        }
-    }
-}
-
-impl Clone for LocalPipeline {
-    fn clone(&self) -> LocalPipeline {
-        LocalPipeline { inner: self.inner.clone() }
-    }
-}
-
-impl PipelineHook for LocalPipeline {
-    fn add_ref(&self) -> Box<PipelineHook> {
-        Box::new(self.clone())
-    }
-    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
-        // Do I need to call imbue() here?
-        // yeah, probably.
-        self.inner.borrow_mut().results.get().unwrap().get_pipelined_cap(ops).unwrap()
-    }
-}
-
-struct LocalClientInner {
-    server: Box<::capnp::capability::Server>,
-}
-
-pub struct LocalClient {
-    inner: Rc<RefCell<LocalClientInner>>,
-}
-
-impl LocalClient {
-    pub fn new(server: Box<::capnp::capability::Server>) -> LocalClient {
-        LocalClient {
-            inner: Rc::new(RefCell::new(LocalClientInner { server: server }))
-        }
-    }
-}
-
-impl Clone for LocalClient {
-    fn clone(&self) -> LocalClient {
-        LocalClient { inner: self.inner.clone() }
-    }
-}
-
-impl ClientHook for LocalClient {
-    fn add_ref(&self) -> Box<ClientHook> {
-        Box::new(self.clone())
-    }
-    fn new_call(&self, interface_id: u64, method_id: u16,
-                size_hint: Option<::capnp::MessageSize>)
-                -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
-    {
-        ::capnp::capability::Request::new(
-            Box::new(LocalRequest::new(interface_id, method_id, size_hint, self.add_ref())))
-    }
-
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
-        -> (::gj::Promise<Box<ResultsDoneHook>, Error>, Box<PipelineHook>)
-    {
-        // We don't want to actually dispatch the call synchronously, because we don't want the callee
-        // to have any side effects before the promise is returned to the caller.  This helps avoid
-        // race conditions.
-
-        let inner = self.inner.clone();
-        let promise = Promise::ok(()).then(move |()| {
-            let server = &mut inner.borrow_mut().server;
-            server.dispatch_call(interface_id, method_id,
-                                 ::capnp::capability::Params::new(params),
-                                 ::capnp::capability::Results::new(results))
-        }).then(|results| {
-            results.hook.send_return()
-        });
-
-        let mut forked = promise.fork();
-
-        let pipeline_promise = forked.add_branch().map(|results_done| {
-            Ok(Box::new(LocalPipeline::new(results_done.clone())) as Box<PipelineHook>)
-        });
-
-        let pipeline = Box::new(QueuedPipeline::new(pipeline_promise));
-        let completion_promise = forked.add_branch();
-
-        (completion_promise, pipeline)
-    }
-
-    fn get_ptr(&self) -> usize {
-        (&*self.inner.borrow()) as * const _ as usize
-    }
-
-    fn get_brand(&self) -> usize {
-        0
     }
 
     fn write_target(&self, _target: any_pointer::Builder) -> Option<Box<ClientHook>>
