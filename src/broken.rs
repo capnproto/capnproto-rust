@@ -144,6 +144,10 @@ impl ClientHook for Client {
         unimplemented!()
     }
 
+    fn get_innermost_client(&self) -> Box<ClientHook> {
+        unimplemented!()
+    }
+
     fn get_resolved(&self) -> Option<Box<ClientHook>> {
         None
     }

@@ -131,7 +131,7 @@ struct ClientInner {
     // confuse the application if a queued call returns before the capability on which it was made
     // resolves).  Luckily, we know that queued calls will involve, at the very least, an
     // eventLoop.evalLater.
-    _promise_for_client_resolution: ClientHookPromiseFork,
+    promise_for_client_resolution: ClientHookPromiseFork,
 }
 
 pub struct Client {
@@ -151,7 +151,7 @@ impl Client {
             promise: promise,
             self_resolution_op: Promise::never_done(),
             promise_for_call_forwarding: branch2.fork(),
-            _promise_for_client_resolution: branch3.fork(),
+            promise_for_client_resolution: branch3.fork(),
         }));
         let this = Rc::downgrade(&inner);
         let self_resolution_op = branch1.map_else(move |result| {
@@ -234,11 +234,18 @@ impl ClientHook for Client {
         unimplemented!()
     }
 
-    fn get_resolved(&self) -> Option<Box<ClientHook>> {
+    fn get_innermost_client(&self) -> Box<ClientHook> {
         unimplemented!()
     }
 
+    fn get_resolved(&self) -> Option<Box<ClientHook>> {
+        match self.inner.borrow().redirect {
+            Some(ref inner) => Some(inner.clone()),
+            None => None,
+        }
+    }
+
     fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
-        unimplemented!()
+        Some(self.inner.borrow_mut().promise_for_client_resolution.add_branch())
     }
 }

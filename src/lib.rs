@@ -183,3 +183,10 @@ impl ServerHook for Server {
         ::capnp::capability::Client::new(Box::new(local::Client::new(server)))
     }
 }
+
+// TODO: figure out a better way to allow construction of promise clients.
+pub fn new_promise_client<T>(client_promise: Promise<::capnp::capability::Client, Error>) -> T
+    where T: ::capnp::capability::FromClientHook
+{
+    T::new(Box::new(queued::Client::new(client_promise.map(|c| Ok(c.hook)))))
+}

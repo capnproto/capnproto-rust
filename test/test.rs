@@ -244,11 +244,32 @@ fn release_simple() {
 fn promise_resolve() {
     set_up_rpc(|client| {
         client.test_more_stuff_request().send().promise.then(|response| {
-            let _client = pry!(pry!(response.get()).get_cap());
+            let client = pry!(pry!(response.get()).get_cap());
 
-            // TODO implement Client::when_resolved() and then test it here.
+            let mut request = client.call_foo_request();
+            let mut request2 = client.call_foo_when_resolved_request();
 
+            let (paf_promise, paf_fulfiller) =
+                Promise::<::test_capnp::test_interface::Client, Error>::and_fulfiller();
+
+            {
+                let mut fork = paf_promise.fork();
+                let cap1 = ::capnp_rpc::new_promise_client(fork.add_branch().map(|c| Ok(c.client)));
+                let cap2 = ::capnp_rpc::new_promise_client(fork.add_branch().map(|c| Ok(c.client)));
+                request.get().set_cap(cap1);
+                request2.get().set_cap(cap2);
+            }
+
+            //let promise = request.send();
+            //let promise2 = request2.send();
+
+            // Make sure getCap() has been called on the server side by sending another call and waiting
+            // for it.
+            //let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
             Promise::ok(())
+            //client2.get_call_sequence_request().send().promise.then(move |response| {
+            //    Promise::ok(())
+            //})
         })
     });
 }

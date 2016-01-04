@@ -311,21 +311,42 @@ impl test_call_order::Server for TestMoreStuff {
 
 impl test_more_stuff::Server for TestMoreStuff {
     fn call_foo(&mut self,
-                _params: test_more_stuff::CallFooParams,
-                _results: test_more_stuff::CallFooResults)
+                params: test_more_stuff::CallFooParams,
+                mut results: test_more_stuff::CallFooResults)
                 -> Promise<(), Error>
     {
-        unimplemented!()
+        let cap = pry!(pry!(params.get()).get_cap());
+        let mut request = cap.foo_request();
+        request.get().set_i(123);
+        request.get().set_j(true);
+
+        request.send().promise.map(move |response| {
+            if try!(try!(response.get()).get_x()) != "foo" {
+                return Err(Error::failed("expected x to equal 'foo'".to_string()));
+            }
+            results.get().set_s("bar");
+            Ok(())
+        })
     }
 
     fn call_foo_when_resolved(&mut self,
                               params: test_more_stuff::CallFooWhenResolvedParams,
-                              _results: test_more_stuff::CallFooWhenResolvedResults)
+                              mut results: test_more_stuff::CallFooWhenResolvedResults)
                               -> Promise<(), Error>
     {
-        let _cap = pry!(pry!(params.get()).get_cap());
-        // TODO: implemented when_resolved().
-        Promise::err(Error::unimplemented("call_foo_when_resolved is not implemented yet".to_string()))
+        let cap = pry!(pry!(params.get()).get_cap());
+        cap.client.when_resolved().then(move |()| {
+            let mut request = cap.foo_request();
+            request.get().set_i(123);
+            request.get().set_j(true);
+            request.send().promise.map(move |response| {
+                if try!(try!(response.get()).get_x()) != "foo" {
+                    return Err(Error::failed("expected x to equal 'foo'".to_string()));
+                }
+                results.get().set_s("bar");
+                Ok(())
+            })
+        })
     }
 
     fn never_return(&mut self,

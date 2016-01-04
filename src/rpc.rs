@@ -295,7 +295,7 @@ pub struct Export {
 
     // If this export is a promise (not a settled capability), the `resolve_op` represents the
     // ongoing operation to wait for that promise to resolve and then send a `Resolve` message.
-    _resolve_op: Promise<(), Error>,
+    resolve_op: Promise<(), Error>,
 }
 
 impl Export {
@@ -303,7 +303,7 @@ impl Export {
         Export {
             refcount: 1,
             client_hook: client_hook,
-            _resolve_op: Promise::ok(()),
+            resolve_op: Promise::err(Error::failed("no resolve op".to_string())),
         }
     }
 }
@@ -315,7 +315,7 @@ pub struct Import<VatId> where VatId: 'static {
     // Either a copy of importClient, or, in the case of promises, the wrapping PromiseClient.
     // Becomes null when it is discarded *or* when the import is destroyed (e.g. the promise is
     // resolved and the import is no longer needed).
-    _app_client: Option<Client<VatId>>,
+    app_client: Option<Client<VatId>>,
 
     // If non-null, the import is a promise.
     _promise_fulfiller: Option<::gj::PromiseFulfiller<Box<ClientHook>, ()>>,
@@ -325,7 +325,7 @@ impl <VatId> Import<VatId> {
     fn new() -> Import<VatId> {
         Import {
             import_client: None,
-            _app_client: None,
+            app_client: None,
             _promise_fulfiller: None,
         }
     }
@@ -1050,6 +1050,54 @@ impl <VatId> ConnectionState<VatId> {
         }
     }
 
+    fn get_innermost_client(&self, client: &ClientHook) -> Box<ClientHook> {
+        unimplemented!()
+    }
+
+    /// Implements exporting of a promise.  The promise has been exported under the given ID, and is
+    /// to eventually resolve to the ClientHook produced by `promise`.  This method waits for that
+    /// resolve to happen and then sends the appropriate `Resolve` message to the peer.
+    fn resolve_exported_promise(state: &Rc<ConnectionState<VatId>>, export_id: ExportId,
+                                promise: Promise<Box<ClientHook>, Error>)
+                                -> Promise<(), Error>
+    {
+        let connection_state = state.clone();
+        promise.map_else(move |resolution_result| {
+            match resolution_result {
+                Ok(resolution) => {
+                    let resolution = connection_state.get_innermost_client(&*resolution);
+
+                    let brand = resolution.get_brand();
+
+                    // Update the export table to point at this object instead. We know that our
+                    // entry in the export table is still live because when it is destroyed the
+                    // asynchronous resolution task (i.e. this code) is canceled.
+                    if let Some(ref mut exp) = connection_state.exports.borrow_mut().find(export_id) {
+                        connection_state.exports_by_cap.borrow_mut().remove(&exp.client_hook.get_ptr());
+                        exp.client_hook = resolution;
+                    } else {
+                        unreachable!()
+                    }
+
+                    if brand != connection_state.get_brand() {
+                        // We're resolving to a local capability. If we're resolving to a promise,
+                        // we might be able to reuse our export table entry and avoid sending a
+                        // message.
+                        unimplemented!()
+                    }
+
+                    // OK, we have to send a `Resolve` message.
+
+                    unimplemented!();
+                    Ok(())
+                }
+                Err(e) => {
+                    unimplemented!()
+                }
+            }
+        })
+    }
+
     fn write_descriptor(state: &Rc<ConnectionState<VatId>>,
                         cap: &Box<ClientHook>,
                         mut descriptor: cap_descriptor::Builder) -> ::capnp::Result<Option<ExportId>> {
@@ -1116,8 +1164,13 @@ impl <VatId> ConnectionState<VatId> {
                 let export_id = state.exports.borrow_mut().push(exp);
                 state.exports_by_cap.borrow_mut().insert(ptr, export_id);
                 match inner.when_more_resolved() {
-                    Some(_) => {
-                        unimplemented!()
+                    Some(wrapped) => {
+                        // This is a promise.  Arrange for the `Resolve` message to be sent later.
+                        if let Some(ref mut exp) = state.exports.borrow_mut().find(export_id) {
+                            exp.resolve_op =
+                                ConnectionState::resolve_exported_promise(&state, export_id, wrapped);
+                        }
+                        descriptor.set_sender_promise(export_id);
                     }
                     None => {
                         descriptor.set_sender_hosted(export_id);
@@ -1175,11 +1228,12 @@ impl <VatId> ConnectionState<VatId> {
         import_client.borrow_mut().add_remote_ref();
 
         if is_promise {
+            // We need to construct a PromiseClient around this import, if we haven't already.
             unimplemented!()
         } else {
             let client: Box<Client<VatId>> = Box::new(import_client.into());
             match state.imports.borrow_mut().slots.get_mut(&import_id) {
-                Some(ref mut _v) => {
+                Some(ref mut v) => {
                     // XXX TODO
                     //v.app_client = Some(*client.clone());
                 }
@@ -2216,6 +2270,10 @@ impl <VatId> ClientHook for Client<VatId> {
         self.write_descriptor(descriptor.init_as())
     }
 
+    fn get_innermost_client(&self) -> Box<ClientHook> {
+        unimplemented!()
+    }
+
     fn get_resolved(&self) -> Option<Box<ClientHook>> {
         match &self.variant {
             &ClientVariant::Import(ref _import_client) => {
@@ -2237,7 +2295,7 @@ impl <VatId> ClientHook for Client<VatId> {
         }
     }
 
-    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
+    fn when_more_resolved(&self) -> Option<Promise<Box<ClientHook>, Error>> {
         unimplemented!()
     }
 }
