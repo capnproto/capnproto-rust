@@ -315,7 +315,7 @@ pub struct Import<VatId> where VatId: 'static {
     // Either a copy of importClient, or, in the case of promises, the wrapping PromiseClient.
     // Becomes null when it is discarded *or* when the import is destroyed (e.g. the promise is
     // resolved and the import is no longer needed).
-    app_client: Option<Client<VatId>>,
+    app_client: Option<WeakClient<VatId>>,
 
     // If non-null, the import is a promise.
     _promise_fulfiller: Option<::gj::PromiseFulfiller<Box<ClientHook>, ()>>,
@@ -1235,7 +1235,7 @@ impl <VatId> ConnectionState<VatId> {
             match state.imports.borrow_mut().slots.get_mut(&import_id) {
                 Some(ref mut v) => {
                     // XXX TODO
-                    //v.app_client = Some(*client.clone());
+                    v.app_client = Some(client.downgrade());
                 }
                 None => { unreachable!() }
             };
@@ -1897,6 +1897,50 @@ struct Client<VatId> where VatId: 'static {
     variant: ClientVariant<VatId>,
 }
 
+enum WeakClientVariant<VatId> where VatId: 'static {
+    Import(Weak<RefCell<ImportClient<VatId>>>),
+    Pipeline(Weak<RefCell<PipelineClient<VatId>>>),
+    Promise(Weak<RefCell<PromiseClient<VatId>>>),
+    __NoIntercept(()),
+}
+
+struct WeakClient<VatId> where VatId: 'static {
+    connection_state: Weak<ConnectionState<VatId>>,
+    variant: WeakClientVariant<VatId>,
+}
+
+impl <VatId> WeakClient<VatId> where VatId: 'static {
+    fn upgrade(&self) -> Option<Client<VatId>> {
+        let variant = match self.variant {
+            WeakClientVariant::Import(ref ic) => {
+                match ic.upgrade() {
+                    Some(ic) => ClientVariant::Import(ic),
+                    None => return None,
+                }
+            }
+            WeakClientVariant::Pipeline(ref pc) => {
+                match pc.upgrade() {
+                    Some(pc) => ClientVariant::Pipeline(pc),
+                    None => return None,
+                }
+            }
+            WeakClientVariant::Promise(ref pc) => {
+                match pc.upgrade() {
+                    Some(pc) => ClientVariant::Promise(pc),
+                    None => return None,
+                }
+            }
+            WeakClientVariant::__NoIntercept(()) => {
+                ClientVariant::__NoIntercept(())
+            }
+        };
+        Some(Client {
+            connection_state: self.connection_state.clone(),
+            variant: variant,
+        })
+    }
+}
+
 struct ImportClient<VatId> where VatId: 'static {
     connection_state: Weak<ConnectionState<VatId>>,
     import_id: ImportId,
@@ -2103,15 +2147,35 @@ impl <VatId> From<Rc<RefCell<PromiseClient<VatId>>>> for Client<VatId> {
 }
 
 impl <VatId> Client<VatId> {
+    fn downgrade(&self) -> WeakClient<VatId> {
+        let variant = match self.variant {
+            ClientVariant::Import(ref import_client) => {
+                WeakClientVariant::Import(Rc::downgrade(import_client))
+            }
+            ClientVariant::Pipeline(ref pipeline_client) => {
+                WeakClientVariant::Pipeline(Rc::downgrade(pipeline_client))
+            }
+            ClientVariant::Promise(ref promise_client) => {
+                WeakClientVariant::Promise(Rc::downgrade(promise_client))
+            }
+            _ => {
+                unimplemented!()
+            }
+        };
+        WeakClient {
+            connection_state: self.connection_state.clone(),
+            variant: variant,
+        }
+    }
     fn write_target(&self, mut target: ::rpc_capnp::message_target::Builder)
                     -> Option<Box<ClientHook>>
     {
-        match &self.variant {
-            &ClientVariant::Import(ref import_client) => {
+        match self.variant {
+            ClientVariant::Import(ref import_client) => {
                 target.set_imported_cap(import_client.borrow().import_id);
                 None
             }
-            &ClientVariant::Pipeline(ref pipeline_client) => {
+            ClientVariant::Pipeline(ref pipeline_client) => {
                 let mut builder = target.init_promised_answer();
                 let question_ref = &pipeline_client.borrow().question_ref;
                 builder.set_question_id(question_ref.borrow().id);
@@ -2126,7 +2190,7 @@ impl <VatId> Client<VatId> {
                 }
                 None
             }
-            &ClientVariant::Promise(ref promise_client) => {
+            ClientVariant::Promise(ref promise_client) => {
                 promise_client.borrow_mut().received_call = true;
                 self.connection_state.upgrade().expect("no connection?").write_target(
                     &*promise_client.borrow().cap, target).unwrap()
