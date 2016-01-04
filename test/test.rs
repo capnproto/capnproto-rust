@@ -260,16 +260,16 @@ fn promise_resolve() {
                 request2.get().set_cap(cap2);
             }
 
-            //let promise = request.send();
-            //let promise2 = request2.send();
+            Promise::ok(())
+//            let promise = request.send();
+//            let promise2 = request2.send();
 
             // Make sure getCap() has been called on the server side by sending another call and waiting
             // for it.
-            //let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
-            Promise::ok(())
-            //client2.get_call_sequence_request().send().promise.then(move |response| {
-            //    Promise::ok(())
-            //})
+//            let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
+//            client2.get_call_sequence_request().send().promise.then(move |response| {
+//                Promise::ok(())
+//            })
         })
     });
 }

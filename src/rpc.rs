@@ -318,7 +318,7 @@ pub struct Import<VatId> where VatId: 'static {
     app_client: Option<WeakClient<VatId>>,
 
     // If non-null, the import is a promise.
-    _promise_fulfiller: Option<::gj::PromiseFulfiller<Box<ClientHook>, ()>>,
+    promise_fulfiller: Option<::gj::PromiseFulfiller<Box<ClientHook>, Error>>,
 }
 
 impl <VatId> Import<VatId> {
@@ -326,7 +326,7 @@ impl <VatId> Import<VatId> {
         Import {
             import_client: None,
             app_client: None,
-            _promise_fulfiller: None,
+            promise_fulfiller: None,
         }
     }
 }
@@ -1229,12 +1229,36 @@ impl <VatId> ConnectionState<VatId> {
 
         if is_promise {
             // We need to construct a PromiseClient around this import, if we haven't already.
-            unimplemented!()
+            match state.imports.borrow_mut().slots.get_mut(&import_id) {
+                Some(ref mut import) => {
+                    match import.app_client {
+                        Some(ref c) => {
+                            // Use the existing one.
+                            Box::new(c.upgrade().expect("dangling client ref?"))
+                        }
+                        None => {
+                            // Create a promise for this import's resolution.
+                            let (promise, fulfiller) = Promise::and_fulfiller();
+                            import.promise_fulfiller = Some(fulfiller);
+                            let client: Box<Client<VatId>> = Box::new(import_client.into());
+                            let client: Box<ClientHook> = client;
+                            // Make sure the import is not destroyed while this promise exists.
+                            let promise = promise.attach(client.add_ref());
+
+                            let client = PromiseClient::new(&connection_state, client, promise,
+                                                            Some(import_id));
+                            let client: Box<Client<VatId>> = Box::new(client.into());
+                            import.app_client = Some(client.downgrade());
+                            client
+                        }
+                    }
+                }
+                None => { unreachable!() }
+            }
         } else {
             let client: Box<Client<VatId>> = Box::new(import_client.into());
             match state.imports.borrow_mut().slots.get_mut(&import_id) {
                 Some(ref mut v) => {
-                    // XXX TODO
                     v.app_client = Some(client.downgrade());
                 }
                 None => { unreachable!() }
@@ -2239,14 +2263,14 @@ impl <VatId> Client<VatId> {
 
 impl <VatId> Clone for Client<VatId> {
     fn clone(&self) -> Client<VatId> {
-        let variant = match &self.variant {
-            &ClientVariant::Import(ref import_client) => {
+        let variant = match self.variant {
+            ClientVariant::Import(ref import_client) => {
                 ClientVariant::Import(import_client.clone())
             }
-            &ClientVariant::Pipeline(ref pipeline_client) => {
+            ClientVariant::Pipeline(ref pipeline_client) => {
                 ClientVariant::Pipeline(pipeline_client.clone())
             }
-            &ClientVariant::Promise(ref promise_client) => {
+            ClientVariant::Promise(ref promise_client) => {
                 ClientVariant::Promise(promise_client.clone())
             }
             _ => {
@@ -2339,14 +2363,14 @@ impl <VatId> ClientHook for Client<VatId> {
     }
 
     fn get_resolved(&self) -> Option<Box<ClientHook>> {
-        match &self.variant {
-            &ClientVariant::Import(ref _import_client) => {
+        match self.variant {
+            ClientVariant::Import(ref _import_client) => {
                 None
             }
-            &ClientVariant::Pipeline(ref _pipeline_client) => {
+            ClientVariant::Pipeline(ref _pipeline_client) => {
                 None
             }
-            &ClientVariant::Promise(ref promise_client) => {
+            ClientVariant::Promise(ref promise_client) => {
                 if promise_client.borrow().is_resolved {
                     Some(promise_client.borrow().cap.clone())
                 } else {
@@ -2360,7 +2384,20 @@ impl <VatId> ClientHook for Client<VatId> {
     }
 
     fn when_more_resolved(&self) -> Option<Promise<Box<ClientHook>, Error>> {
-        unimplemented!()
+        match self.variant {
+            ClientVariant::Import(ref _import_client) => {
+                None
+            }
+            ClientVariant::Pipeline(ref _pipeline_client) => {
+                None
+            }
+            ClientVariant::Promise(ref promise_client) => {
+                Some(promise_client.borrow_mut().fork.add_branch())
+            }
+            _ => {
+                unimplemented!()
+            }
+        }
     }
 }
 
