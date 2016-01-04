@@ -472,6 +472,13 @@ impl <VatId> ConnectionState<VatId> {
             return;
         }
 
+        // Carefully pull all the objects out of the tables prior to releasing them because their
+        // destructors could come back and mess with the tables.
+        let mut pipelines_to_release = Vec::new();
+        //let mut clients_to_release = Vec::new();
+        //let mut tail_calls_to_release = Vec::new();
+        //let mut resolve_ops_to_release = Vec::new();
+
         for q in self.questions.borrow().iter() {
             match &q.self_ref {
                 &Some(ref weak_question_ref) => {
@@ -488,7 +495,21 @@ impl <VatId> ConnectionState<VatId> {
                 }
             }
         }
+
+        {
+            let ref mut answer_slots = self.answers.borrow_mut().slots;
+            for (_, ref mut answer) in answer_slots.iter_mut() {
+                pipelines_to_release.push(answer.pipeline.take())
+            }
+        }
+
+        for exp in self.exports.borrow().iter() {
+            // TODO
+        }
+
         // TODO ... release everything in the other tables too.
+
+        drop(pipelines_to_release);
 
         match &mut *self.connection.borrow_mut() {
             &mut Ok(ref mut c) => {
