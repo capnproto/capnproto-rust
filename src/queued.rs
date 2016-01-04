@@ -134,12 +134,12 @@ struct ClientInner {
     _promise_for_client_resolution: ClientHookPromiseFork,
 }
 
-struct Client {
+pub struct Client {
     inner: Rc<RefCell<ClientInner>>,
 }
 
 impl Client {
-    fn new(promise_param: Promise<Box<ClientHook>, Error>)
+    pub fn new(promise_param: Promise<Box<ClientHook>, Error>)
            -> Client
     {
         let mut promise = promise_param.fork();

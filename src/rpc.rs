@@ -736,8 +736,43 @@ impl <VatId> ConnectionState<VatId> {
                     try!(connection_state.release_export(release.get_id(), release.get_reference_count()));
                     BorrowWorkaround::Done
                 }
-                message::Disembargo(_) => {
-                    unimplemented!()
+                message::Disembargo(disembargo) => {
+                    let disembargo = try!(disembargo);
+                    let context = disembargo.get_context();
+                    match try!(context.which()) {
+                        ::rpc_capnp::disembargo::context::SenderLoopback(embargo_id) => {
+                            let mut target = match
+                                try!(connection_state.get_message_target(try!(disembargo.get_target()))) {
+                                    Some(t) => t,
+                                    None => return Ok(()),
+                                };
+                            loop {
+                                match target.get_resolved() {
+                                    Some(resolved) => {
+                                        target = resolved;
+                                    }
+                                    None => break,
+                                }
+                            }
+
+                            if target.get_brand() != connection_state.get_brand() {
+                                return Err(Error::failed(
+                                    "'Disembargo' of type 'senderLoopback' sent to an object that does not point \
+                                     back to the sender.".to_string()));
+                            }
+
+                            unimplemented!()
+                        }
+                        ::rpc_capnp::disembargo::context::ReceiverLoopback(_) => {
+                            unimplemented!()
+                        }
+                        ::rpc_capnp::disembargo::context::Accept(_) |
+                        ::rpc_capnp::disembargo::context::Provide(_) => {
+                            return Err(
+                                Error::unimplemented(
+                                    "Disembargo::Context::Provide/Accept not implemented".to_string()));
+                        }
+                    }
                 }
                 message::Provide(_) => {
                     unimplemented!()
@@ -1905,22 +1940,40 @@ impl <VatId> PromiseClient<VatId> {
         client
     }
 
-    fn resolve(&mut self, replacement: Box<ClientHook>, is_error: bool) {
+    fn resolve(&mut self, mut replacement: Box<ClientHook>, is_error: bool) {
         let connection_state = self.connection_state.upgrade().expect("resolve(): dangling connection_state");
         let is_connected = connection_state.connection.borrow().is_ok();
         let replacement_brand = replacement.get_brand();
         if  replacement_brand != connection_state.get_brand() &&
-            replacement_brand != 0 &&
             self.received_call && !is_error && is_connected
         {
             // The new capability is hosted locally, not on the remote machine.  And, we had made calls
             // to the promise.  We need to make sure those calls echo back to us before we allow new
             // calls to go directly to the local capability, so we need to set a local embargo and send
             // a `Disembargo` to echo through the peer.
-            let (_promise, fulfiller) = Promise::and_fulfiller();
+
+            let (promise, fulfiller) = Promise::and_fulfiller();
             let embargo = Embargo::new(fulfiller);
-            connection_state.embargoes.borrow_mut().push(embargo);
-            // ....
+            let embargo_id = connection_state.embargoes.borrow_mut().push(embargo);
+
+            let mut message = connection_state.connection.borrow_mut().as_mut().expect("no connection?")
+                .new_outgoing_message(50); // XXX size hint
+            {
+                let root: message::Builder = message.get_body().unwrap().init_as();
+                let mut disembargo = root.init_disembargo();
+                disembargo.init_context().set_sender_loopback(embargo_id);
+            }
+
+            // Make a promise which resolves to `replacement` as soon as the `Disembargo` comes back.
+            //let embargo_promise = promise.map(move |()| {
+            //    Ok(replacement)
+            //});
+
+            // We need to queue up calls in the meantime, so we'll resolve ourselves to a local promise
+            // client instead.
+            //replacement = Box::new(::queued::Client::new(embargo_promise));
+
+            //let _ = message.send();
         }
         self.cap = replacement;
         self.is_resolved = true;
