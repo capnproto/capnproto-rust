@@ -47,6 +47,11 @@ impl <T,E> Promise<T,E> {
     {
         unimplemented!()
     }
+    pub fn then<F, R>(self, _func: F) -> Promise<R, E>
+        where F: FnOnce(T) -> Promise<R, E>,
+    {
+        unimplemented!()
+    }
 }
 
 #[must_use]
@@ -189,6 +194,15 @@ impl Client {
                                      -> Request<Params, Results> {
         let typeless = self.hook.new_call(interface_id, method_id, size_hint);
         Request { hook: typeless.hook, marker: ::std::marker::PhantomData }
+    }
+
+    /// If the capability is actually only a promise, the returned promise resolves once the
+    /// capability itself has resolved to its final destination (or propagates the exception if
+    /// the capability promise is rejected).  This is mainly useful for error-checking in the case
+    /// where no calls are being made.  There is no reason to wait for this before making calls; if
+    /// the capability does not resolve, the call results will propagate the error.
+    pub fn when_resolved(&self) -> Promise<(), ::Error> {
+        self.hook.when_resolved()
     }
 }
 

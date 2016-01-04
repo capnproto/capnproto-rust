@@ -67,6 +67,20 @@ pub trait ClientHook {
     /// client (i.e. the value eventually returned by `getResolved()`).  Calling this repeatedly
     /// should eventually produce a settled client.
     fn when_more_resolved(&self) -> Option<::capability::Promise<Box<ClientHook>, ::Error>>;
+
+    /// Repeatedly calls whenMoreResolved() until it returns nullptr.
+    fn when_resolved(&self) -> ::capability::Promise<(), ::Error> {
+        match self.when_more_resolved() {
+            Some(promise) => {
+                promise.then(|resolution|{
+                    resolution.when_resolved()
+                })
+            }
+            None => {
+                Promise::ok(())
+            }
+        }
+    }
 }
 
 impl Clone for Box<ClientHook> {
