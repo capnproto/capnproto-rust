@@ -384,6 +384,28 @@ fn remote_exception_to_error(exception: ::rpc_capnp::exception::Reader) -> Error
     Error { description: format!("remote exception: {}", reason), kind: kind }
 }
 
+fn ugly_write_target_hack(cap: &ClientHook, mut target: ::rpc_capnp::message_target::Builder)
+    -> ::capnp::Result<Option<Box<ClientHook>>>
+{
+    // Orphans would let us avoid the need for this copying..
+    let mut message = ::capnp::message::Builder::new_default();
+    let mut root: any_pointer::Builder = message.init_root();
+    let result = cap.write_target(root.borrow());
+    let mt: ::rpc_capnp::message_target::Builder = try!(root.get_as());
+
+    // Yuck.
+    match try!(mt.which()) {
+        ::rpc_capnp::message_target::ImportedCap(imported_cap) => {
+            target.set_imported_cap(imported_cap);
+        }
+        ::rpc_capnp::message_target::PromisedAnswer(promised_answer) => {
+            try!(target.set_promised_answer(try!(promised_answer).as_reader()));
+        }
+    }
+    Ok(result)
+}
+
+
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
     weak_state: ::std::rc::Weak<ConnectionState<VatId>>,
 }
@@ -761,10 +783,44 @@ impl <VatId> ConnectionState<VatId> {
                                      back to the sender.".to_string()));
                             }
 
-                            unimplemented!()
+                            let connection_state_ref = connection_state.clone();
+                            let task = Promise::ok(()).map(move |()| {
+                                if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
+                                    let mut message = c.new_outgoing_message(100); // TODO estimate size
+                                    {
+                                        let mut root: message::Builder = try!(message.get_body()).init_as();
+                                        let mut disembargo = root.init_disembargo();
+                                        disembargo.borrow().init_context().set_receiver_loopback(embargo_id);
+
+                                        let redirect =
+                                            try!(ugly_write_target_hack(&*target, disembargo.init_target()));
+                                        if redirect.is_some() {
+                                            return Err(Error::failed(
+                                                "'Disembargo' of type 'senderLoopback' sent to an object that \
+                                                  does not appear to have been the subject of a previous \
+                                                  'Resolve' message.".to_string()));
+                                        }
+                                    }
+                                    let _ = message.send();
+                                }
+                                Ok(())
+                            });
+                            connection_state.add_task(task);
+                            BorrowWorkaround::Done
                         }
-                        ::rpc_capnp::disembargo::context::ReceiverLoopback(_) => {
-                            unimplemented!()
+                        ::rpc_capnp::disembargo::context::ReceiverLoopback(embargo_id) => {
+                            if let Some(ref mut embargo) =
+                                connection_state.embargoes.borrow_mut().find(embargo_id)
+                            {
+                                let fulfiller = embargo.fulfiller.take().unwrap();
+                                fulfiller.fulfill(());
+                            } else {
+                                return Err(
+                                    Error::failed(
+                                        "Invalid embargo ID in `Disembargo.context.receiverLoopback".to_string()));
+                            }
+                            connection_state.embargoes.borrow_mut().erase(embargo_id);
+                            BorrowWorkaround::Done
                         }
                         ::rpc_capnp::disembargo::context::Accept(_) |
                         ::rpc_capnp::disembargo::context::Provide(_) => {
@@ -988,22 +1044,7 @@ impl <VatId> ConnectionState<VatId> {
         -> ::capnp::Result<Option<Box<ClientHook>>>
     {
         if cap.get_brand() == self.get_brand() {
-            // Orphans would let us avoid the need for this copying..
-            let mut message = ::capnp::message::Builder::new_default();
-            let mut root: any_pointer::Builder = message.init_root();
-            let result = cap.write_target(root.borrow());
-            let mt: ::rpc_capnp::message_target::Builder = try!(root.get_as());
-
-            // Yuck.
-            match try!(mt.which()) {
-                ::rpc_capnp::message_target::ImportedCap(imported_cap) => {
-                    target.set_imported_cap(imported_cap);
-                }
-                ::rpc_capnp::message_target::PromisedAnswer(promised_answer) => {
-                    try!(target.set_promised_answer(try!(promised_answer).as_reader()));
-                }
-            }
-            Ok(result)
+            ugly_write_target_hack(cap, target)
         } else {
             Ok(Some(cap.add_ref()))
         }
@@ -1961,19 +2002,22 @@ impl <VatId> PromiseClient<VatId> {
             {
                 let root: message::Builder = message.get_body().unwrap().init_as();
                 let mut disembargo = root.init_disembargo();
-                disembargo.init_context().set_sender_loopback(embargo_id);
+                disembargo.borrow().init_context().set_sender_loopback(embargo_id);
+                let mut target = disembargo.init_target();
+
+                connection_state.write_target(&*self.cap, target);
             }
 
             // Make a promise which resolves to `replacement` as soon as the `Disembargo` comes back.
-            //let embargo_promise = promise.map(move |()| {
-            //    Ok(replacement)
-            //});
+            let embargo_promise = promise.map(move |()| {
+                Ok(replacement)
+            });
 
             // We need to queue up calls in the meantime, so we'll resolve ourselves to a local promise
             // client instead.
-            //replacement = Box::new(::queued::Client::new(embargo_promise));
+            replacement = Box::new(::queued::Client::new(embargo_promise));
 
-            //let _ = message.send();
+            let _ = message.send();
         }
         self.cap = replacement;
         self.is_resolved = true;

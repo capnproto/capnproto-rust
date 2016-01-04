@@ -298,8 +298,13 @@ fn embargo() {
                                       call3.promise,
                                       call4.promise,
                                       call5.promise].into_iter()).map(|responses| {
+                        let mut counter = 0;
                         for r in responses.into_iter() {
-                            println!("sequence {}", try!(r.get()).get_n())
+                            if counter != try!(r.get()).get_n() {
+                                return Err(Error::failed(
+                                    "calls arrived out of order".to_string()))
+                            }
+                            counter += 1;
                         }
                         Ok(())
                     })
