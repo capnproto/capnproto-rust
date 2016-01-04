@@ -1082,8 +1082,10 @@ impl <VatId> ConnectionState<VatId> {
                                 promise: Promise<Box<ClientHook>, Error>)
                                 -> Promise<(), Error>
     {
-        let connection_state = state.clone();
+        let weak_connection_state = Rc::downgrade(state);
         promise.map_else(move |resolution_result| {
+            let connection_state = weak_connection_state.upgrade().expect("dangling connection state?");
+
             match resolution_result {
                 Ok(resolution) => {
                     let resolution = connection_state.get_innermost_client(&*resolution);
