@@ -52,8 +52,8 @@ pub trait ClientHook {
     fn get_ptr(&self) -> usize;
 
     fn write_target(&self, target: any_pointer::Builder) -> Option<Box<ClientHook>>;
-
     fn write_descriptor(&self, descriptor: any_pointer::Builder) -> Option<u32>;
+    fn get_innermost_client(&self) -> Box<ClientHook>;
 
     /// If this ClientHook is a promise that has already resolved, returns the inner, resolved version
     /// of the capability.  The caller may permanently replace this client with the resolved one if
