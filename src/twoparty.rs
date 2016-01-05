@@ -149,7 +149,7 @@ impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
                                          Box::new(IncomingMessage::new(message)) as Box<::IncomingMessage>))
                 })
             }
-            None => panic!(),
+            None => unreachable!(),
         }
     }
 
