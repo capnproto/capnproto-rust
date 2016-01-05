@@ -260,14 +260,31 @@ fn promise_resolve() {
                 request2.get().set_cap(cap2);
             }
 
-            let promise = request.send();
-            let promise2 = request2.send();
+            let promise = request.send().promise;
+            let promise2 = request2.send().promise;
 
             // Make sure getCap() has been called on the server side by sending another call and waiting
             // for it.
             let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
-            client2.get_call_sequence_request().send().promise.then(move |response| {
-                Promise::ok(())
+            client2.get_call_sequence_request().send().promise.then(move |_response| {
+                let server = impls::TestInterface::new();
+
+                paf_fulfiller.fulfill(
+                    ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>());
+
+                promise.then(move |response| {
+                    if pry!(pry!(response.get()).get_s()) != "bar" {
+                        return Promise::err(Error::failed("expected s to equal 'bar'".to_string()));
+                    }
+                    Promise::ok(())
+/*                    promise2.then(move |response| {
+                        if pry!(pry!(response.get()).get_s()) != "bar" {
+                            return Promise::err(Error::failed("expected s to equal 'bar'".to_string()));
+                        }
+
+                        Promise::ok(())
+                    })*/
+                })
             })
         })
     });
