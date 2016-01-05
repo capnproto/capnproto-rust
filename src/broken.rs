@@ -135,19 +135,6 @@ impl ClientHook for Client {
         self.inner.brand
     }
 
-    fn write_target(&self, _target: any_pointer::Builder) -> Option<Box<ClientHook>>
-    {
-        unimplemented!()
-    }
-
-    fn write_descriptor(&self, _descriptor: any_pointer::Builder) -> Option<u32> {
-        unimplemented!()
-    }
-
-    fn get_innermost_client(&self) -> Box<ClientHook> {
-        unimplemented!()
-    }
-
     fn get_resolved(&self) -> Option<Box<ClientHook>> {
         None
     }

@@ -384,28 +384,6 @@ fn remote_exception_to_error(exception: ::rpc_capnp::exception::Reader) -> Error
     Error { description: format!("remote exception: {}", reason), kind: kind }
 }
 
-fn ugly_write_target_hack(cap: &ClientHook, mut target: ::rpc_capnp::message_target::Builder)
-    -> ::capnp::Result<Option<Box<ClientHook>>>
-{
-    // Orphans would let us avoid the need for this copying..
-    let mut message = ::capnp::message::Builder::new_default();
-    let mut root: any_pointer::Builder = message.init_root();
-    let result = cap.write_target(root.borrow());
-    let mt: ::rpc_capnp::message_target::Builder = try!(root.get_as());
-
-    // Yuck.
-    match try!(mt.which()) {
-        ::rpc_capnp::message_target::ImportedCap(imported_cap) => {
-            target.set_imported_cap(imported_cap);
-        }
-        ::rpc_capnp::message_target::PromisedAnswer(promised_answer) => {
-            try!(target.set_promised_answer(try!(promised_answer).as_reader()));
-        }
-    }
-    Ok(result)
-}
-
-
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
     weak_state: ::std::rc::Weak<ConnectionState<VatId>>,
 }
@@ -439,6 +417,8 @@ pub struct ConnectionState<VatId> where VatId: 'static {
     tasks: RefCell<Option<::gj::TaskSet<(), ::capnp::Error>>>,
     connection: RefCell<::std::result::Result<Box<::Connection<VatId>>, ::capnp::Error>>,
     disconnect_fulfiller: RefCell<Option<::gj::PromiseFulfiller<Promise<(), Error>, Error>>>,
+
+    client_downcast_map: RefCell<HashMap<usize, WeakClient<VatId>>>,
 }
 
 impl <VatId> ConnectionState<VatId> {
@@ -459,6 +439,7 @@ impl <VatId> ConnectionState<VatId> {
             tasks: RefCell::new(None),
             connection: RefCell::new(Ok(connection)),
             disconnect_fulfiller: RefCell::new(Some(disconnect_fulfiller)),
+            client_downcast_map: RefCell::new(HashMap::new()),
         });
         let mut task_set = ::gj::TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))));
         task_set.add(ConnectionState::message_loop(Rc::downgrade(&state)));
@@ -805,6 +786,7 @@ impl <VatId> ConnectionState<VatId> {
                             }
 
                             let connection_state_ref = connection_state.clone();
+                            let connection_state_ref1 = connection_state.clone();
                             let task = Promise::ok(()).map(move |()| {
                                 if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
                                     let mut message = c.new_outgoing_message(100); // TODO estimate size
@@ -813,8 +795,11 @@ impl <VatId> ConnectionState<VatId> {
                                         let mut disembargo = root.init_disembargo();
                                         disembargo.borrow().init_context().set_receiver_loopback(embargo_id);
 
-                                        let redirect =
-                                            try!(ugly_write_target_hack(&*target, disembargo.init_target()));
+                                        let redirect = match Client::from_ptr(target.get_ptr(),
+                                                                              &connection_state_ref1) {
+                                            Some(c) => c.write_target(disembargo.init_target()),
+                                            None => unreachable!(),
+                                        };
                                         if redirect.is_some() {
                                             return Err(Error::failed(
                                                 "'Disembargo' of type 'senderLoopback' sent to an object that \
@@ -1065,7 +1050,11 @@ impl <VatId> ConnectionState<VatId> {
         -> ::capnp::Result<Option<Box<ClientHook>>>
     {
         if cap.get_brand() == self.get_brand() {
-            ugly_write_target_hack(cap, target)
+            let redirect = match Client::from_ptr(cap.get_ptr(), self) {
+                Some(c) => c.write_target(target),
+                None => unreachable!(),
+            };
+            Ok(redirect)
         } else {
             Ok(Some(cap.add_ref()))
         }
@@ -1136,35 +1125,10 @@ impl <VatId> ConnectionState<VatId> {
             }
         }
         if inner.get_brand() == state.get_brand() {
-
-            // Orphans would let us avoid the need for this copying..
-            let mut message = ::capnp::message::Builder::new_default();
-            let mut root: any_pointer::Builder = message.init_root();
-            let result = inner.write_descriptor(root.borrow());
-            let cd: ::rpc_capnp::cap_descriptor::Builder = try!(root.get_as());
-
-            // Yuck.
-            match try!(cd.which()) {
-                ::rpc_capnp::cap_descriptor::None(()) => {
-                    descriptor.set_none(());
-                }
-                ::rpc_capnp::cap_descriptor::SenderHosted(export_id) => {
-                    descriptor.set_sender_hosted(export_id)
-                }
-                ::rpc_capnp::cap_descriptor::SenderPromise(export_id) => {
-                    descriptor.set_sender_promise(export_id)
-                }
-                ::rpc_capnp::cap_descriptor::ReceiverHosted(import_id) => {
-                    descriptor.set_receiver_hosted(import_id)
-                }
-                ::rpc_capnp::cap_descriptor::ReceiverAnswer(promised_answer) => {
-                    let promised_answer = try!(promised_answer);
-                    try!(descriptor.set_receiver_answer(promised_answer.as_reader()))
-                }
-                _ => {
-                    unimplemented!()
-                }
-            }
+            let result = match Client::from_ptr(inner.get_ptr(), state) {
+                Some(c) => c.write_descriptor(descriptor),
+                None => unreachable!(),
+            };
             Ok(result)
         } else {
             let ptr = inner.get_ptr();
@@ -2003,6 +1967,8 @@ impl <VatId> Drop for ImportClient<VatId> {
             None => return (),
         };
 
+        connection_state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
+
         // Remove self from the import table, if the table is still pointing at us.
         let mut remove = false;
         if let Some(ref import) = connection_state.imports.borrow().slots.get(&self.import_id) {
@@ -2048,8 +2014,7 @@ impl <VatId> ImportClient<VatId> where VatId: 'static {
 impl <VatId> From<Rc<RefCell<ImportClient<VatId>>>> for Client<VatId> {
     fn from(client: Rc<RefCell<ImportClient<VatId>>>) -> Client<VatId> {
         let connection_state = client.borrow().connection_state.clone();
-        Client { connection_state: connection_state,
-                 variant: ClientVariant::Import(client) }
+        Client::new(connection_state, ClientVariant::Import(client))
     }
 }
 
@@ -2075,10 +2040,21 @@ impl <VatId> PipelineClient<VatId> where VatId: 'static {
 impl <VatId> From<Rc<RefCell<PipelineClient<VatId>>>> for Client<VatId> {
     fn from(client: Rc<RefCell<PipelineClient<VatId>>>) -> Client<VatId> {
         let connection_state = client.borrow().connection_state.clone();
-        Client { connection_state: connection_state,
-                 variant: ClientVariant::Pipeline(client) }
+        Client::new(connection_state, ClientVariant::Pipeline(client))
     }
 }
+
+impl <VatId> Drop for PipelineClient<VatId> {
+    fn drop(&mut self) {
+        match self.connection_state.upgrade() {
+            Some(state) => {
+                state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
+            }
+            None => (),
+        }
+    }
+}
+
 
 /// A ClientHook that initially wraps one client and then, later on, redirects
 /// to some other client.
@@ -2171,6 +2147,14 @@ impl <VatId> PromiseClient<VatId> {
 
 impl <VatId> Drop for PromiseClient<VatId> {
     fn drop(&mut self) {
+        match self.connection_state.upgrade() {
+            Some(state) => {
+                state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
+            }
+            None => (),
+        }
+
+
         match self.import_id {
             Some(_id) => {
                 // This object is representing an import promise.  That means the import table may still
@@ -2188,12 +2172,25 @@ impl <VatId> Drop for PromiseClient<VatId> {
 impl <VatId> From<Rc<RefCell<PromiseClient<VatId>>>> for Client<VatId> {
     fn from(client: Rc<RefCell<PromiseClient<VatId>>>) -> Client<VatId> {
         let connection_state = client.borrow().connection_state.clone();
-        Client { connection_state: connection_state,
-                 variant: ClientVariant::Promise(client) }
+        Client::new(connection_state, ClientVariant::Promise(client))
     }
 }
 
 impl <VatId> Client<VatId> {
+    fn new(connection_state: Weak<ConnectionState<VatId>>, variant: ClientVariant<VatId>)
+           -> Client<VatId>
+    {
+        let client = Client {
+            connection_state: connection_state.clone(),
+            variant: variant,
+        };
+        let weak = client.downgrade();
+        let state = connection_state.upgrade().expect("dangling connectionstate?");
+
+        // XXX arguably, this should go in each of the variant's constructors.
+        state.client_downcast_map.borrow_mut().insert(client.get_ptr(), weak);
+        client
+    }
     fn downgrade(&self) -> WeakClient<VatId> {
         let variant = match self.variant {
             ClientVariant::Import(ref import_client) => {
@@ -2214,6 +2211,16 @@ impl <VatId> Client<VatId> {
             variant: variant,
         }
     }
+
+    fn from_ptr(ptr: usize, connection_state: &ConnectionState<VatId>)
+                -> Option<Client<VatId>>
+    {
+        match connection_state.client_downcast_map.borrow().get(&ptr){
+            Some(c) => c.upgrade(),
+            None => None,
+        }
+    }
+
     fn write_target(&self, mut target: ::rpc_capnp::message_target::Builder)
                     -> Option<Box<ClientHook>>
     {
@@ -2365,24 +2372,24 @@ impl <VatId> ClientHook for Client<VatId> {
     }
 
     fn get_ptr(&self) -> usize {
-        unimplemented!()
+        match self.variant {
+            ClientVariant::Import(ref import_client) => {
+                (&*import_client.borrow()) as *const _ as usize
+            }
+            ClientVariant::Pipeline(ref pipeline_client) => {
+                (&*pipeline_client.borrow()) as *const _ as usize
+            }
+            ClientVariant::Promise(ref promise_client) => {
+                (&*promise_client.borrow()) as *const _ as usize
+            }
+            _ => {
+                unimplemented!()
+            }
+        }
     }
 
     fn get_brand(&self) -> usize {
         self.connection_state.upgrade().expect("no connection?").get_brand()
-    }
-
-    fn write_target(&self, target: any_pointer::Builder) -> Option<Box<ClientHook>>
-    {
-        self.write_target(target.init_as())
-    }
-
-    fn write_descriptor(&self, descriptor: any_pointer::Builder) -> Option<u32> {
-        self.write_descriptor(descriptor.init_as())
-    }
-
-    fn get_innermost_client(&self) -> Box<ClientHook> {
-        unimplemented!()
     }
 
     fn get_resolved(&self) -> Option<Box<ClientHook>> {
