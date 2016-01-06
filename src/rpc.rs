@@ -1060,8 +1060,26 @@ impl <VatId> ConnectionState<VatId> {
         }
     }
 
-    fn get_innermost_client(&self, client: &ClientHook) -> Box<ClientHook> {
-        unimplemented!()
+    fn get_innermost_client(&self, client_ref: &Box<ClientHook>) -> Box<ClientHook> {
+        let mut client = client_ref.clone();
+        loop {
+            match client.get_resolved() {
+                Some(inner) => {
+                    client = inner;
+                }
+                None => break,
+            }
+        }
+        if client.get_brand() == self.get_brand() {
+            match self.client_downcast_map.borrow().get(&client.get_ptr()) {
+                Some(ref c) => {
+                    Box::new(c.upgrade().expect("dangling client?"))
+                }
+                None => unreachable!(),
+            }
+        } else {
+            client
+        }
     }
 
     /// Implements exporting of a promise.  The promise has been exported under the given ID, and is
@@ -1077,7 +1095,7 @@ impl <VatId> ConnectionState<VatId> {
 
             match resolution_result {
                 Ok(resolution) => {
-                    let resolution = connection_state.get_innermost_client(&*resolution);
+                    let resolution = connection_state.get_innermost_client(&resolution);
 
                     let brand = resolution.get_brand();
 
@@ -1104,10 +1122,11 @@ impl <VatId> ConnectionState<VatId> {
                     Ok(())
                 }
                 Err(e) => {
+                    // send error resolution
                     unimplemented!()
                 }
             }
-        })
+        }).eagerly_evaluate()
     }
 
     fn write_descriptor(state: &Rc<ConnectionState<VatId>>,
