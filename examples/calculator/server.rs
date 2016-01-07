@@ -207,7 +207,6 @@ pub fn accept_loop(listener: tcp::Listener,
                                       rpc_twoparty_capnp::Side::Server, Default::default());
         let disconnect_promise = network.on_disconnect();
 
-        // Should put in the calculator for the bootstrap.
         let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
 
         task_set.add(disconnect_promise.attach(rpc_system).lift());
@@ -234,7 +233,6 @@ pub fn main() {
         use std::net::ToSocketAddrs;
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
         let listener = try!(tcp::Listener::bind(addr));
-
 
         let calc =
             calculator::ToClient::new(CalculatorImpl).from_server::<::capnp_rpc::Server>();
