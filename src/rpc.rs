@@ -535,7 +535,17 @@ impl <VatId> ConnectionState<VatId> {
 
         match connection {
             Ok(mut c) => {
-                let promise = c.shutdown();
+                let promise = c.shutdown().map_else(|r| match r {
+                    Ok(()) => Ok(()),
+                    Err(e) => {
+                        if e.kind != ::capnp::ErrorKind::Disconnected {
+                            // Don't report disconnects as an error.
+                            Err(e)
+                        } else {
+                            Ok(())
+                        }
+                    }
+                });
                 let maybe_fulfiller = ::std::mem::replace(&mut *self.disconnect_fulfiller.borrow_mut(), None);
                 match maybe_fulfiller {
                     None => unreachable!(),
