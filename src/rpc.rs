@@ -891,7 +891,7 @@ impl <VatId> ConnectionState<VatId> {
                                 if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
                                     let mut message = c.new_outgoing_message(100); // TODO estimate size
                                     {
-                                        let mut root: message::Builder = try!(message.get_body()).init_as();
+                                        let root: message::Builder = try!(message.get_body()).init_as();
                                         let mut disembargo = root.init_disembargo();
                                         disembargo.borrow().init_context().set_receiver_loopback(embargo_id);
 
@@ -1147,7 +1147,7 @@ impl <VatId> ConnectionState<VatId> {
     /// resolved, and so the request may have been built on the assumption that it would be sent over
     /// this network connection, but then the promise resolved to point somewhere else before the
     /// request was sent.  Now the request has to be redirected to the new target instead.
-    fn write_target(&self, cap: &ClientHook, mut target: ::rpc_capnp::message_target::Builder)
+    fn write_target(&self, cap: &ClientHook, target: ::rpc_capnp::message_target::Builder)
         -> ::capnp::Result<Option<Box<ClientHook>>>
     {
         if cap.get_brand() == self.get_brand() {
@@ -1214,7 +1214,7 @@ impl <VatId> ConnectionState<VatId> {
                         // We're resolving to a local capability. If we're resolving to a promise,
                         // we might be able to reuse our export table entry and avoid sending a
                         // message.
-                        if let Some(promise) = resolution.when_more_resolved() {
+                        if let Some(_promise) = resolution.when_more_resolved() {
                             // We're replacing a promise with another local promise. In this case,
                             // we might actually be able to just reuse the existing export table
                             // entry to represent the new promise -- unless it already has an entry.
@@ -1228,7 +1228,7 @@ impl <VatId> ConnectionState<VatId> {
                     let mut message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
                         .new_outgoing_message(100); // XXX size hint?
                     {
-                        let mut root: message::Builder = try!(try!(message.get_body()).get_as());
+                        let root: message::Builder = try!(try!(message.get_body()).get_as());
                         let mut resolve = root.init_resolve();
                         resolve.set_promise_id(export_id);
                         ConnectionState::write_descriptor(&connection_state, &resolution,
@@ -1242,7 +1242,7 @@ impl <VatId> ConnectionState<VatId> {
                     let mut message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
                         .new_outgoing_message(100); // XXX size hint?
                     {
-                        let mut root: message::Builder = try!(try!(message.get_body()).get_as());
+                        let root: message::Builder = try!(try!(message.get_body()).get_as());
                         let mut resolve = root.init_resolve();
                         resolve.set_promise_id(export_id);
                         from_error(&e, resolve.init_exception());
@@ -1665,7 +1665,7 @@ impl <VatId> RequestHook for Request<VatId> {
             }
         };
 
-        let promise = promise.map(|response| {
+        let promise = promise.map(|_response| {
             // Response should be null if `Return` handling code is correct.
 
             unimplemented!()
@@ -1681,7 +1681,6 @@ impl <VatId> RequestHook for Request<VatId> {
 enum PipelineVariant<VatId> where VatId: 'static {
     Waiting(Rc<RefCell<QuestionRef<VatId>>>),
     _Resolved(Response<VatId>),
-    _Broken(::capnp::Error),
 }
 
 struct PipelineState<VatId> where VatId: 'static {
@@ -1787,7 +1786,6 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
             &PipelineState {variant: PipelineVariant::_Resolved(ref response), ..} => {
                 response.get().unwrap().get_pipelined_cap(&ops[..]).unwrap()
             }
-            &PipelineState {variant: PipelineVariant::_Broken(_), ..}  => { unimplemented!() }
         }
     }
 }
@@ -2268,7 +2266,7 @@ impl <VatId> PromiseClient<VatId> {
                 let root: message::Builder = message.get_body().unwrap().init_as();
                 let mut disembargo = root.init_disembargo();
                 disembargo.borrow().init_context().set_sender_loopback(embargo_id);
-                let mut target = disembargo.init_target();
+                let target = disembargo.init_target();
 
                 connection_state.write_target(&*self.cap, target);
             }
@@ -2485,7 +2483,7 @@ impl <VatId> ClientHook for Client<VatId> {
                                         Some(params.get().unwrap().total_size().unwrap()));
         request.get().set_as(params.get().unwrap()).unwrap();
 
-        let ::capnp::capability::RemotePromise { promise, pipeline } = request.send();
+        let ::capnp::capability::RemotePromise { promise, pipeline: _ } = request.send();
 
         let promise = promise.map(move |response| {
             try!(try!(results.get()).set_as(try!(response.get())));
