@@ -624,6 +624,7 @@ impl <VatId> ConnectionState<VatId> {
         enum BorrowWorkaround<VatId> where VatId: 'static {
             ReturnResults(Rc<RefCell<QuestionRef<VatId>>>, Vec<Option<Box<ClientHook>>>),
             Call(Box<ClientHook>),
+            Unimplemented,
             Done,
         }
 
@@ -631,8 +632,8 @@ impl <VatId> ConnectionState<VatId> {
         let connection_state1 = connection_state.clone();
         let intermediate = {
             let reader = try!(try!(message.get_body()).get_as::<message::Reader>());
-            match try!(reader.which()) {
-                message::Unimplemented(message) => {
+            match reader.which() {
+                Ok(message::Unimplemented(message)) => {
                     let message = try!(message);
                     match try!(message.which()) {
                         ::rpc_capnp::message::Resolve(resolve) => {
@@ -665,10 +666,10 @@ impl <VatId> ConnectionState<VatId> {
                         }
                     }
                 }
-                message::Abort(abort) => {
+                Ok(message::Abort(abort)) => {
                     return Err(remote_exception_to_error(try!(abort)))
                 }
-                message::Bootstrap(bootstrap) => {
+                Ok(message::Bootstrap(bootstrap)) => {
                     use ::capnp::traits::ImbueMut;
 
                     let bootstrap = try!(bootstrap);
@@ -716,12 +717,12 @@ impl <VatId> ConnectionState<VatId> {
                     let _ = response.send();
                     BorrowWorkaround::Done
                 }
-                message::Call(call) => {
+                Ok(message::Call(call)) => {
                     let call = try!(call);
                     let t = try!(connection_state.get_message_target(try!(call.get_target())));
                     BorrowWorkaround::Call(t)
                 }
-                message::Return(oret) => {
+                Ok(message::Return(oret)) => {
                     let ret = try!(oret);
                     let question_id = ret.get_answer_id();
                     match &mut connection_state.questions.borrow_mut().slots[question_id as usize] {
@@ -786,7 +787,7 @@ impl <VatId> ConnectionState<VatId> {
                         }
                     }
                 }
-                message::Finish(finish) => {
+                Ok(message::Finish(finish)) => {
                     let finish = try!(finish);
 
                     // TODO: release exports.
@@ -804,7 +805,7 @@ impl <VatId> ConnectionState<VatId> {
                     }
                     BorrowWorkaround::Done
                 }
-                message::Resolve(resolve) => {
+                Ok(message::Resolve(resolve)) => {
                     let resolve = try!(resolve);
                     let replacement_or_error = match try!(resolve.which()) {
                         ::rpc_capnp::resolve::Cap(c) => {
@@ -847,12 +848,12 @@ impl <VatId> ConnectionState<VatId> {
                     }
                     BorrowWorkaround::Done
                 }
-                message::Release(release) => {
+                Ok(message::Release(release)) => {
                     let release = try!(release);
                     try!(connection_state.release_export(release.get_id(), release.get_reference_count()));
                     BorrowWorkaround::Done
                 }
-                message::Disembargo(disembargo) => {
+                Ok(message::Disembargo(disembargo)) => {
                     let disembargo = try!(disembargo);
                     let context = disembargo.get_context();
                     match try!(context.which()) {
@@ -925,17 +926,10 @@ impl <VatId> ConnectionState<VatId> {
                         }
                     }
                 }
-                message::Provide(_) => {
-                    unimplemented!()
-                }
-                message::Accept(_) => {
-                    unimplemented!()
-                }
-                message::Join(_) => {
-                    unimplemented!()
-                }
-                message::ObsoleteSave(_) | message::ObsoleteDelete(_) => {
-                    unimplemented!()
+                Ok(message::Provide(_)) | Ok(message::Accept(_)) |
+                Ok(message::Join(_)) | Ok(message::ObsoleteSave(_)) | Ok(message::ObsoleteDelete(_)) |
+                Err(::capnp::NotInSchema(_)) => {
+                    BorrowWorkaround::Unimplemented
                 }
             }
         };
@@ -1046,7 +1040,17 @@ impl <VatId> ConnectionState<VatId> {
                                              message, cap_table);
                 question_ref.borrow_mut().fulfill(Promise::ok(response));
             }
-            BorrowWorkaround::Done => {}
+            BorrowWorkaround::Unimplemented => {
+                let mut out_message = connection_state.connection.borrow_mut().as_mut()
+                    .expect("no connection?")
+                    .new_outgoing_message(50); // XXX size hint
+                {
+                    let mut root: message::Builder = try!(try!(out_message.get_body()).get_as());
+                    try!(root.set_unimplemented(try!(try!(message.get_body()).get_as())));
+                }
+                let _ = out_message.send();
+            }
+            BorrowWorkaround::Done => (),
         }
         Ok(())
     }
