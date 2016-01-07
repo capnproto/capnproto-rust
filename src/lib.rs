@@ -166,7 +166,7 @@ pub struct Error {
     pub description: String,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
     // Something went wrong. This is the usual error kind. It includes decoding errors and I/O
     // errors.
@@ -200,7 +200,17 @@ impl Error {
 
 impl ::std::convert::From<::std::io::Error> for Error {
     fn from(err: ::std::io::Error) -> Error {
-        Error { description: format!("{}", err), kind: ErrorKind::Failed }
+        use std::io;
+        let kind = match err.kind() {
+            io::ErrorKind::TimedOut => ErrorKind::Overloaded,
+            io::ErrorKind::BrokenPipe |
+            io::ErrorKind::ConnectionRefused |
+            io::ErrorKind::ConnectionReset |
+            io::ErrorKind::ConnectionAborted |
+            io::ErrorKind::NotConnected  => ErrorKind::Disconnected,
+            _ => ErrorKind::Failed,
+        };
+        Error { description: format!("{}", err), kind: kind }
     }
 }
 
