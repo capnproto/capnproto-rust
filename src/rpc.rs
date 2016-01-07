@@ -456,9 +456,9 @@ impl <VatId> ConnectionState<VatId> {
         // Carefully pull all the objects out of the tables prior to releasing them because their
         // destructors could come back and mess with the tables.
         let mut pipelines_to_release = Vec::new();
-        //let mut clients_to_release = Vec::new();
+        let mut clients_to_release = Vec::new();
         //let mut tail_calls_to_release = Vec::new();
-        //let mut resolve_ops_to_release = Vec::new();
+        let mut resolve_ops_to_release = Vec::new();
 
         for q in self.questions.borrow().iter() {
             match &q.self_ref {
@@ -480,17 +480,44 @@ impl <VatId> ConnectionState<VatId> {
         {
             let ref mut answer_slots = self.answers.borrow_mut().slots;
             for (_, ref mut answer) in answer_slots.iter_mut() {
+                // TODO tail call
                 pipelines_to_release.push(answer.pipeline.take())
             }
         }
 
-        for exp in self.exports.borrow().iter() {
-            // TODO
+        let len = self.exports.borrow().slots.len();
+        for idx in 0..len  {
+            if let Some(exp) = self.exports.borrow_mut().slots[idx].take() {
+                let Export { refcount: _, client_hook, resolve_op } = exp;
+                clients_to_release.push(client_hook);
+                resolve_ops_to_release.push(resolve_op);
+            }
+        }
+        *self.exports.borrow_mut() = ExportTable::new();
+
+        {
+            let ref mut import_slots = self.imports.borrow_mut().slots;
+            for (_, ref mut import) in import_slots.iter_mut() {
+                if let Some(f) = import.promise_fulfiller.take() {
+                    f.reject(error.clone());
+                }
+            }
         }
 
-        // TODO ... release everything in the other tables too.
+        let len = self.embargoes.borrow().slots.len();
+        for idx in 0..len {
+            if let &mut Some(ref mut emb) = &mut self.embargoes.borrow_mut().slots[idx] {
+                if let Some(f) = emb.fulfiller.take() {
+                    f.reject(error.clone());
+                }
+            }
+        }
+        *self.embargoes.borrow_mut() = ExportTable::new();
 
         drop(pipelines_to_release);
+        drop(clients_to_release);
+        drop(resolve_ops_to_release);
+        // TODO drop tail calls
 
         match &mut *self.connection.borrow_mut() {
             &mut Ok(ref mut c) => {
@@ -505,6 +532,7 @@ impl <VatId> ConnectionState<VatId> {
         }
 
         let connection = ::std::mem::replace(&mut *self.connection.borrow_mut(), Err(error));
+
         match connection {
             Ok(mut c) => {
                 let promise = c.shutdown();
@@ -752,8 +780,48 @@ impl <VatId> ConnectionState<VatId> {
                     }
                     BorrowWorkaround::Done
                 }
-                message::Resolve(_) => {
-                    unimplemented!()
+                message::Resolve(resolve) => {
+                    let resolve = try!(resolve);
+                    let replacement_or_error = match try!(resolve.which()) {
+                        ::rpc_capnp::resolve::Cap(c) => {
+                            match try!(ConnectionState::receive_cap(connection_state.clone(), try!(c))) {
+                                Some(cap) => Ok(cap),
+                                None => {
+                                    return Err(Error::failed(
+                                        format!("'Resolve' contained 'CapDescriptor.none'.")));
+                                }
+                            }
+                        }
+                        ::rpc_capnp::resolve::Exception(e) => {
+                            // We can't set `replacement` to a new broken cap here because this will
+                            // confuse PromiseClient::Resolve() into thinking that the remote
+                            // promise resolved to a local capability and therefore a Disembargo is
+                            // needed. We must actually reject the promise.
+                            Err(remote_exception_to_error(try!(e)))
+                        }
+                    };
+
+                    // If the import is in the table, fulfill it.
+                    let ref mut slots = connection_state.imports.borrow_mut().slots;
+                    if let Some(ref mut import) = slots.get_mut(&resolve.get_promise_id()) {
+                        match import.promise_fulfiller.take() {
+                            Some(fulfiller) => {
+                                match replacement_or_error {
+                                    Ok(r) => {
+                                        fulfiller.fulfill(r);
+                                    }
+                                    Err(e) => {
+                                        fulfiller.reject(e);
+                                    }
+                                }
+                            }
+                            None => {
+                                return Err(Error::failed(
+                                    format!("Got 'Resolve' for a non-promise import.")));
+                            }
+                        }
+                    }
+                    BorrowWorkaround::Done
                 }
                 message::Release(release) => {
                     let release = try!(release);
@@ -1104,7 +1172,7 @@ impl <VatId> ConnectionState<VatId> {
                     // asynchronous resolution task (i.e. this code) is canceled.
                     if let Some(ref mut exp) = connection_state.exports.borrow_mut().find(export_id) {
                         connection_state.exports_by_cap.borrow_mut().remove(&exp.client_hook.get_ptr());
-                        exp.client_hook = resolution;
+                        exp.client_hook = resolution.clone();
                     } else {
                         unreachable!()
                     }
@@ -1113,17 +1181,41 @@ impl <VatId> ConnectionState<VatId> {
                         // We're resolving to a local capability. If we're resolving to a promise,
                         // we might be able to reuse our export table entry and avoid sending a
                         // message.
-                        unimplemented!()
+                        if let Some(promise) = resolution.when_more_resolved() {
+                            // We're replacing a promise with another local promise. In this case,
+                            // we might actually be able to just reuse the existing export table
+                            // entry to represent the new promise -- unless it already has an entry.
+                            // Let's check.
+
+                            unimplemented!()
+                        }
                     }
 
                     // OK, we have to send a `Resolve` message.
-
-                    unimplemented!();
+                    let mut message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
+                        .new_outgoing_message(100); // XXX size hint?
+                    {
+                        let mut root: message::Builder = try!(try!(message.get_body()).get_as());
+                        let mut resolve = root.init_resolve();
+                        resolve.set_promise_id(export_id);
+                        ConnectionState::write_descriptor(&connection_state, &resolution,
+                                                          resolve.init_cap());
+                    }
+                    let _ = message.send();
                     Ok(())
                 }
                 Err(e) => {
                     // send error resolution
-                    unimplemented!()
+                    let mut message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
+                        .new_outgoing_message(100); // XXX size hint?
+                    {
+                        let mut root: message::Builder = try!(try!(message.get_body()).get_as());
+                        let mut resolve = root.init_resolve();
+                        resolve.set_promise_id(export_id);
+                        from_error(&e, resolve.init_exception());
+                    }
+                    let _ = message.send();
+                    Ok(())
                 }
             }
         }).eagerly_evaluate()

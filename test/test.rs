@@ -254,17 +254,15 @@ fn promise_resolve() {
 
             {
                 let mut fork = paf_promise.fork();
-//                let cap1 = ::capnp_rpc::new_promise_client(fork.add_branch().map(|c| Ok(c.client)));
-//                let cap2 = ::capnp_rpc::new_promise_client(fork.add_branch().map(|c| Ok(c.client)));
-//                request.get().set_cap(cap1);
-//                request2.get().set_cap(cap2);
+                let cap1 = ::capnp_rpc::new_promise_client(fork.add_branch().map(|c| Ok(c.client)));
+                let cap2 = ::capnp_rpc::new_promise_client(fork.add_branch().map(|c| Ok(c.client)));
+                request.get().set_cap(cap1);
+                request2.get().set_cap(cap2);
             }
 
-//            let promise = request.send().promise;
-//            let promise2 = request2.send().promise;
+            let promise = request.send().promise;
+            let promise2 = request2.send().promise;
 
-            Promise::ok(())
-/*
             // Make sure getCap() has been called on the server side by sending another call and waiting
             // for it.
             let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
@@ -286,7 +284,7 @@ fn promise_resolve() {
                         Promise::ok(())
                     })
                 })
-            })*/
+            })
         })
     });
 }
