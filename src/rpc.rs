@@ -632,8 +632,38 @@ impl <VatId> ConnectionState<VatId> {
         let intermediate = {
             let reader = try!(try!(message.get_body()).get_as::<message::Reader>());
             match try!(reader.which()) {
-                message::Unimplemented(_) => {
-                    unimplemented!()
+                message::Unimplemented(message) => {
+                    let message = try!(message);
+                    match try!(message.which()) {
+                        ::rpc_capnp::message::Resolve(resolve) => {
+                            let resolve = try!(resolve);
+                            match try!(resolve.which()) {
+                                ::rpc_capnp::resolve::Cap(c) => {
+                                    match try!(try!(c).which()) {
+                                        ::rpc_capnp::cap_descriptor::None(()) => (),
+                                        ::rpc_capnp::cap_descriptor::SenderHosted(export_id) => {
+                                            connection_state.release_export(export_id, 1);
+                                        }
+                                        ::rpc_capnp::cap_descriptor::SenderPromise(export_id) => {
+                                            connection_state.release_export(export_id, 1);
+                                        }
+                                        ::rpc_capnp::cap_descriptor::ReceiverAnswer(_) |
+                                        ::rpc_capnp::cap_descriptor::ReceiverHosted(_) => (),
+                                        ::rpc_capnp::cap_descriptor::ThirdPartyHosted(_) => {
+                                            return Err(Error::failed(
+                                                "Peer claims we resolved a ThirdPartyHosted cap.".to_string()));
+                                        },
+                                    }
+                                }
+                                ::rpc_capnp::resolve::Exception(_) => (),
+                            }
+                            BorrowWorkaround::Done
+                        }
+                        _ => {
+                            return Err(Error::failed(
+                                "Peer did not implement required RPC message type.".to_string()));
+                        }
+                    }
                 }
                 message::Abort(abort) => {
                     return Err(remote_exception_to_error(try!(abort)))
