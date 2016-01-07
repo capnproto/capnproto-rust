@@ -688,14 +688,8 @@ impl <VatId> ConnectionState<VatId> {
                 }
                 message::Call(call) => {
                     let call = try!(call);
-                    match try!(connection_state.get_message_target(try!(call.get_target()))) {
-                        Some(t) => {
-                            BorrowWorkaround::Call(t)
-                        }
-                        None => {
-                            unimplemented!()
-                        }
-                    }
+                    let t = try!(connection_state.get_message_target(try!(call.get_target())));
+                    BorrowWorkaround::Call(t)
                 }
                 message::Return(oret) => {
                     let ret = try!(oret);
@@ -833,11 +827,8 @@ impl <VatId> ConnectionState<VatId> {
                     let context = disembargo.get_context();
                     match try!(context.which()) {
                         ::rpc_capnp::disembargo::context::SenderLoopback(embargo_id) => {
-                            let mut target = match
-                                try!(connection_state.get_message_target(try!(disembargo.get_target()))) {
-                                    Some(t) => t,
-                                    None => return Ok(()),
-                                };
+                            let mut target =
+                                try!(connection_state.get_message_target(try!(disembargo.get_target())));
                             loop {
                                 match target.get_resolved() {
                                     Some(resolved) => {
@@ -1068,16 +1059,16 @@ impl <VatId> ConnectionState<VatId> {
     }
 
     fn get_message_target(&self, target: ::rpc_capnp::message_target::Reader)
-                          -> ::capnp::Result<Option<Box<ClientHook>>>
+                          -> ::capnp::Result<Box<ClientHook>>
     {
         match try!(target.which()) {
             ::rpc_capnp::message_target::ImportedCap(export_id) => {
                 match self.exports.borrow().slots.get(export_id as usize) {
                     Some(&Some(ref exp)) => {
-                        Ok(Some(exp.client_hook.clone()))
+                        Ok(exp.client_hook.clone())
                     }
                     _ => {
-                        Ok(None)
+                        Err(Error::failed("Message target is not a current export ID.".to_string()))
                     }
                 }
             }
@@ -1089,16 +1080,14 @@ impl <VatId> ConnectionState<VatId> {
                         Err(Error::failed("PromisedAnswer.questionId is not a current question.".to_string()))
                     }
                     Some(ref base) => {
-                        let pipeline = match &base.pipeline {
-                            &Some(ref pipeline) => {
-                                pipeline.add_ref()
-                            }
-                            &None => {
-                                unimplemented!()
-                            }
+                        let pipeline = match base.pipeline {
+                            Some(ref pipeline) => pipeline.add_ref(),
+                            None => Box::new(broken::Pipeline::new(Error::failed(
+                                "Pipeline call on a request that returned not capabilities or was \
+                                 already closed.".to_string()))) as Box<PipelineHook>,
                         };
                         let ops = try!(to_pipeline_ops(try!(promised_answer.get_transform())));
-                        Ok(Some(pipeline.get_pipelined_cap(&ops)))
+                        Ok(pipeline.get_pipelined_cap(&ops))
                     }
                 }
             }
