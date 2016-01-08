@@ -761,6 +761,7 @@ impl <VatId> ConnectionState<VatId> {
                                             unimplemented!()
                                         }
                                         return_::TakeFromOtherQuestion(id) => {
+                                            println!("taking from other question");
                                             if let Some(ref mut answer) =
                                                 connection_state1.answers.borrow_mut().slots.get_mut(&id)
                                             {
@@ -997,14 +998,19 @@ impl <VatId> ConnectionState<VatId> {
                 let box_results_done_promise = results_inner_promise.then(move |results_inner| {
                     call_succeeded_promise.then(|()| {
                         ResultsDone::from_results_inner(results_inner)
-                    }).map(move |results_done_hook| {
+                    }).map_else(move |v| {
                         match redirected_results_done_fulfiller {
                             Some(f) => {
-                                f.fulfill(Response::redirected(results_done_hook.clone()));
+                                match v {
+                                    Ok(ref r) =>
+                                        f.fulfill(Response::redirected(r.clone())),
+                                    Err(ref e) =>
+                                        f.reject(e.clone()),
+                                }
                             }
                             None => (),
                         }
-                        Ok(results_done_hook)
+                        v
                     })
                 });
 
@@ -1885,6 +1891,30 @@ struct ResultsInner<VatId> where VatId: 'static {
     answer_id: AnswerId,
 }
 
+impl <VatId> ResultsInner<VatId> where VatId: 'static {
+    fn ensure_initialized(&mut self) {
+        let answer_id = self.answer_id;
+        if self.variant.is_none() {
+            if !self.redirect_results {
+                let mut message = self.connection_state.connection.borrow_mut().as_mut()
+                    .expect("not connected?")
+                    .new_outgoing_message(100); // size hint?
+
+                {
+                    let root: message::Builder = message.get_body().unwrap().init_as();
+                    let mut ret = root.init_return();
+                    ret.set_answer_id(answer_id);
+                    ret.set_release_param_caps(false);
+                }
+                self.variant = Some(ResultsVariant::Rpc(message, Vec::new()));
+            } else {
+                self.variant =
+                    Some(ResultsVariant::LocallyRedirected(::capnp::message::Builder::new_default()));
+            }
+        }
+    }
+}
+
 // This takes the place of both RpcCallContext and RpcServerResponse in capnproto-c++.
 pub struct Results<VatId> where VatId: 'static {
     inner: Option<ResultsInner<VatId>>,
@@ -1927,27 +1957,7 @@ impl <VatId> Drop for Results<VatId> {
 impl <VatId> ResultsHook for Results<VatId> {
     fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
         if let Some(ref mut inner) = self.inner {
-            let connection_state = inner.connection_state.clone();
-            let answer_id = inner.answer_id;
-
-            if inner.variant.is_none() {
-                if !inner.redirect_results {
-                    let mut message = connection_state.connection.borrow_mut().as_mut()
-                        .expect("not connected?")
-                        .new_outgoing_message(100); // size hint?
-
-                    {
-                        let root: message::Builder = message.get_body().unwrap().init_as();
-                        let mut ret = root.init_return();
-                        ret.set_answer_id(answer_id);
-                        ret.set_release_param_caps(false);
-                    }
-                    inner.variant = Some(ResultsVariant::Rpc(message, Vec::new()));
-                } else {
-                    inner.variant =
-                        Some(ResultsVariant::LocallyRedirected(::capnp::message::Builder::new_default()));
-                }
-            }
+            inner.ensure_initialized();
             match inner.variant {
                 None => unreachable!(),
                 Some(ResultsVariant::Rpc(ref mut message, ref mut cap_table)) => {
@@ -2038,15 +2048,16 @@ struct ResultsDone {
 }
 
 impl ResultsDone {
-    fn from_results_inner<VatId>(results_inner: ResultsInner<VatId>) -> Promise<Box<ResultsDoneHook>, Error>
+    fn from_results_inner<VatId>(mut results_inner: ResultsInner<VatId>) -> Promise<Box<ResultsDoneHook>, Error>
         where VatId: 'static
     {
+        results_inner.ensure_initialized();
         let ResultsInner { connection_state, variant,
                            redirect_results, answer_id } = results_inner;
 
         drop(answer_id);
         match variant {
-            None => unimplemented!(),
+            None => unreachable!(),
             Some(ResultsVariant::Rpc(mut message, cap_table)) => {
                 {
                     let root: message::Builder = pry!(pry!(message.get_body()).get_as());
@@ -2567,11 +2578,33 @@ impl <VatId> ClientHook for Client<VatId> {
                                         Some(params.get().unwrap().total_size().unwrap()));
         request.get().set_as(params.get().unwrap()).unwrap();
 
+
+        let ::capnp::capability::RemotePromise { promise, pipeline: _ } = request.send();
+
+        let promise = promise.map(move |response| {
+            try!(try!(results.get()).set_as(try!(response.get())));
+            Ok(())
+        });
+
+        let mut forked = promise.fork();
+        let promise = forked.add_branch();
+
+        let pipeline = ::queued::Pipeline::new(forked.add_branch().then(move |_| {
+            results_done.map(move |results_done_hook| {
+                // TODO: why doesn't this work?
+                // Ok(pipeline.hook)
+
+                Ok(Box::new(::local::Pipeline::new(results_done_hook)) as Box<PipelineHook>)
+            })
+        }));
+
+        (promise, Box::new(pipeline))
+        // TODO implement this in terms of direct tail call.
         // We can and should propagate cancellation.
         // (TODO ?)
         // context -> allowCancellation();
 
-        results.direct_tail_call(request.hook)
+        //results.direct_tail_call(request.hook)
     }
 
     fn get_ptr(&self) -> usize {

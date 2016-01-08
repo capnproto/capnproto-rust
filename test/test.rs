@@ -326,7 +326,6 @@ fn embargo_success() {
                     let call3 = get_call_sequence(&pipeline, 3);
                     let call4 = get_call_sequence(&pipeline, 4);
                     let call5 = get_call_sequence(&pipeline, 5);
-
                     Promise::all(vec![call0.promise,
                                       call1.promise,
                                       call2.promise,
