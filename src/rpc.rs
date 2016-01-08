@@ -1629,6 +1629,7 @@ impl <VatId> RequestHook for Request<VatId> {
                 let (question_ref, promise) =
                     Request::send_internal(connection_state.clone(), message, cap_table, false);
                 let mut forked_promise = promise.fork();
+
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
                 let pipeline = Pipeline::new(connection_state, question_ref,
                                              Some(forked_promise.add_branch()));
@@ -2052,7 +2053,7 @@ enum ClientVariant<VatId> where VatId: 'static {
 }
 
 struct Client<VatId> where VatId: 'static {
-    connection_state: Weak<ConnectionState<VatId>>,
+    connection_state: Rc<ConnectionState<VatId>>,
     variant: ClientVariant<VatId>,
 }
 
@@ -2093,15 +2094,19 @@ impl <VatId> WeakClient<VatId> where VatId: 'static {
                 ClientVariant::__NoIntercept(())
             }
         };
+        let state = match self.connection_state.upgrade() {
+            Some(s) => s,
+            None => return None,
+        };
         Some(Client {
-            connection_state: self.connection_state.clone(),
+            connection_state: state,
             variant: variant,
         })
     }
 }
 
 struct ImportClient<VatId> where VatId: 'static {
-    connection_state: Weak<ConnectionState<VatId>>,
+    connection_state: Rc<ConnectionState<VatId>>,
     import_id: ImportId,
 
     /// Number of times we've received this import from the peer.
@@ -2110,11 +2115,7 @@ struct ImportClient<VatId> where VatId: 'static {
 
 impl <VatId> Drop for ImportClient<VatId> {
     fn drop(&mut self) {
-        let connection_state = match self.connection_state.upgrade() {
-            Some(x) => x,
-            None => return (),
-        };
-
+        let connection_state = self.connection_state.clone();
         connection_state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
 
         // Remove self from the import table, if the table is still pointing at us.
@@ -2148,7 +2149,7 @@ impl <VatId> ImportClient<VatId> where VatId: 'static {
     fn new(connection_state: &Rc<ConnectionState<VatId>>, import_id: ImportId)
            -> Rc<RefCell<ImportClient<VatId>>> {
         Rc::new(RefCell::new(ImportClient {
-            connection_state: Rc::downgrade(connection_state),
+            connection_state: connection_state.clone(),
             import_id: import_id,
             remote_ref_count: 0,
         }))
@@ -2162,13 +2163,13 @@ impl <VatId> ImportClient<VatId> where VatId: 'static {
 impl <VatId> From<Rc<RefCell<ImportClient<VatId>>>> for Client<VatId> {
     fn from(client: Rc<RefCell<ImportClient<VatId>>>) -> Client<VatId> {
         let connection_state = client.borrow().connection_state.clone();
-        Client::new(connection_state, ClientVariant::Import(client))
+        Client::new(&connection_state, ClientVariant::Import(client))
     }
 }
 
 /// A ClientHook representing a pipelined promise.  Always wrapped in PromiseClient.
 struct PipelineClient<VatId> where VatId: 'static {
-    connection_state: Weak<ConnectionState<VatId>>,
+    connection_state: Rc<ConnectionState<VatId>>,
     question_ref: Rc<RefCell<QuestionRef<VatId>>>,
     ops: Vec<PipelineOp>,
 }
@@ -2178,7 +2179,7 @@ impl <VatId> PipelineClient<VatId> where VatId: 'static {
            question_ref: Rc<RefCell<QuestionRef<VatId>>>,
            ops: Vec<PipelineOp>) -> Rc<RefCell<PipelineClient<VatId>>> {
         Rc::new(RefCell::new(PipelineClient {
-            connection_state: Rc::downgrade(connection_state),
+            connection_state: connection_state.clone(),
             question_ref: question_ref,
             ops: ops,
         }))
@@ -2188,18 +2189,13 @@ impl <VatId> PipelineClient<VatId> where VatId: 'static {
 impl <VatId> From<Rc<RefCell<PipelineClient<VatId>>>> for Client<VatId> {
     fn from(client: Rc<RefCell<PipelineClient<VatId>>>) -> Client<VatId> {
         let connection_state = client.borrow().connection_state.clone();
-        Client::new(connection_state, ClientVariant::Pipeline(client))
+        Client::new(&connection_state, ClientVariant::Pipeline(client))
     }
 }
 
 impl <VatId> Drop for PipelineClient<VatId> {
     fn drop(&mut self) {
-        match self.connection_state.upgrade() {
-            Some(state) => {
-                state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
-            }
-            None => (),
-        }
+        self.connection_state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
     }
 }
 
@@ -2207,7 +2203,7 @@ impl <VatId> Drop for PipelineClient<VatId> {
 /// A ClientHook that initially wraps one client and then, later on, redirects
 /// to some other client.
 struct PromiseClient<VatId> where VatId: 'static {
-    connection_state: Weak<ConnectionState<VatId>>,
+    connection_state: Rc<ConnectionState<VatId>>,
     is_resolved: bool,
     cap: Box<ClientHook>,
     import_id: Option<ImportId>,
@@ -2222,7 +2218,7 @@ impl <VatId> PromiseClient<VatId> {
            eventual: ::gj::Promise<Box<ClientHook>, ::capnp::Error>,
            import_id: Option<ImportId>) -> Rc<RefCell<PromiseClient<VatId>>> {
         let client = Rc::new(RefCell::new(PromiseClient {
-            connection_state: Rc::downgrade(connection_state),
+            connection_state: connection_state.clone(),
             is_resolved: false,
             cap: initial,
             import_id: import_id,
@@ -2251,7 +2247,7 @@ impl <VatId> PromiseClient<VatId> {
     }
 
     fn resolve(&mut self, mut replacement: Box<ClientHook>, is_error: bool) {
-        let connection_state = self.connection_state.upgrade().expect("resolve(): dangling connection_state");
+        let connection_state = self.connection_state.clone();
         let is_connected = connection_state.connection.borrow().is_ok();
         let replacement_brand = replacement.get_brand();
         if  replacement_brand != connection_state.get_brand() &&
@@ -2295,13 +2291,7 @@ impl <VatId> PromiseClient<VatId> {
 
 impl <VatId> Drop for PromiseClient<VatId> {
     fn drop(&mut self) {
-        match self.connection_state.upgrade() {
-            Some(state) => {
-                state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
-            }
-            None => (),
-        }
-
+        self.connection_state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
 
         match self.import_id {
             Some(_id) => {
@@ -2320,12 +2310,12 @@ impl <VatId> Drop for PromiseClient<VatId> {
 impl <VatId> From<Rc<RefCell<PromiseClient<VatId>>>> for Client<VatId> {
     fn from(client: Rc<RefCell<PromiseClient<VatId>>>) -> Client<VatId> {
         let connection_state = client.borrow().connection_state.clone();
-        Client::new(connection_state, ClientVariant::Promise(client))
+        Client::new(&connection_state, ClientVariant::Promise(client))
     }
 }
 
 impl <VatId> Client<VatId> {
-    fn new(connection_state: Weak<ConnectionState<VatId>>, variant: ClientVariant<VatId>)
+    fn new(connection_state: &Rc<ConnectionState<VatId>>, variant: ClientVariant<VatId>)
            -> Client<VatId>
     {
         let client = Client {
@@ -2333,10 +2323,9 @@ impl <VatId> Client<VatId> {
             variant: variant,
         };
         let weak = client.downgrade();
-        let state = connection_state.upgrade().expect("dangling connectionstate?");
 
         // XXX arguably, this should go in each of the variant's constructors.
-        state.client_downcast_map.borrow_mut().insert(client.get_ptr(), weak);
+        connection_state.client_downcast_map.borrow_mut().insert(client.get_ptr(), weak);
         client
     }
     fn downgrade(&self) -> WeakClient<VatId> {
@@ -2355,7 +2344,7 @@ impl <VatId> Client<VatId> {
             }
         };
         WeakClient {
-            connection_state: self.connection_state.clone(),
+            connection_state: Rc::downgrade(&self.connection_state),
             variant: variant,
         }
     }
@@ -2394,7 +2383,7 @@ impl <VatId> Client<VatId> {
             }
             ClientVariant::Promise(ref promise_client) => {
                 promise_client.borrow_mut().received_call = true;
-                self.connection_state.upgrade().expect("no connection?").write_target(
+                self.connection_state.write_target(
                     &*promise_client.borrow().cap, target).unwrap()
             }
             _ => {
@@ -2428,7 +2417,7 @@ impl <VatId> Client<VatId> {
             &ClientVariant::Promise(ref promise_client) => {
                 promise_client.borrow_mut().received_call = true;
 
-                ConnectionState::write_descriptor(&self.connection_state.upgrade().expect("dangling ref?"),
+                ConnectionState::write_descriptor(&self.connection_state.clone(),
                                                   &promise_client.borrow().cap.clone(),
                                                   descriptor).unwrap()
             }
@@ -2467,7 +2456,7 @@ impl <VatId> ClientHook for Client<VatId> {
                 size_hint: Option<::capnp::MessageSize>)
                 -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
     {
-        let mut request = Request::new(self.connection_state.upgrade().expect("no connection?"),
+        let mut request = Request::new(self.connection_state.clone(),
                                        size_hint, self.clone());
         {
             let mut call_builder = request.init_call();
@@ -2537,7 +2526,7 @@ impl <VatId> ClientHook for Client<VatId> {
     }
 
     fn get_brand(&self) -> usize {
-        self.connection_state.upgrade().expect("no connection?").get_brand()
+        self.connection_state.get_brand()
     }
 
     fn get_resolved(&self) -> Option<Box<ClientHook>> {
