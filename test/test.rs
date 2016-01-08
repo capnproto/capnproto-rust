@@ -298,7 +298,7 @@ fn get_call_sequence(client: &::test_capnp::test_call_order::Client, expected: u
 }
 
 #[test]
-fn embargo() {
+fn embargo_success() {
     set_up_rpc(|client| {
         client.test_more_stuff_request().send().promise.then(|response| {
             let client = pry!(pry!(response.get()).get_cap());

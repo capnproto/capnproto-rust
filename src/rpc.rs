@@ -767,7 +767,9 @@ impl <VatId> ConnectionState<VatId> {
                                                 if let Some(_) = answer.redirected_results {
                                                     unimplemented!()
                                                 } else {
-                                                    unimplemented!()
+                                                    return Err(Error::failed(format!(
+                                                        "return.takeFromOtherQuestion referenced a call that \
+                                                         did not use sendResultsTo.yourself.")));
                                                 }
                                             } else {
                                                 return Err(Error::failed(format!(
@@ -1038,7 +1040,10 @@ impl <VatId> ConnectionState<VatId> {
                         Some(ref mut answer) => {
                             answer.pipeline = Some(pipeline);
                             if redirect_results {
-                                unimplemented!()
+                                let mut forked = promise.fork();
+//                                answer.redirected_results = Some(forked.add_branch());
+                                unimplemented!();
+
                             } else {
                                 connection_state.add_task(promise.map(|_| Ok(())));
                             }
@@ -1832,7 +1837,7 @@ impl ParamsHook for Params {
 }
 
 struct ResultsInner<VatId> where VatId: 'static {
-    connection_state: Weak<ConnectionState<VatId>>,
+    connection_state: Rc<ConnectionState<VatId>>,
     message: Box<::OutgoingMessage>,
     cap_table: Vec<Option<Box<ClientHook>>>,
     redirect_results: bool,
@@ -1866,7 +1871,7 @@ impl <VatId> Results<VatId> where VatId: 'static {
 
         Results {
             inner: Some(ResultsInner {
-                connection_state: Rc::downgrade(connection_state),
+                connection_state: connection_state.clone(),
                 message: message,
                 cap_table: Vec::new(),
                 redirect_results: redirect_results,
@@ -1879,10 +1884,12 @@ impl <VatId> Results<VatId> where VatId: 'static {
 
 impl <VatId> Drop for Results<VatId> {
     fn drop(&mut self) {
-        if let (Some(inner), Some(fulfiller)) = (self.inner.take(), self.results_done_fulfiller.take()) {
-            fulfiller.fulfill(inner);
-        } else {
-            unreachable!()
+        match (self.inner.take(), self.results_done_fulfiller.take()) {
+            (Some(inner), Some(fulfiller)) => {
+                fulfiller.fulfill(inner)
+            }
+            (None, None) => (),
+            _ => unreachable!(),
         }
     }
 }
@@ -1918,37 +1925,39 @@ impl <VatId> ResultsHook for Results<VatId> {
         unimplemented!()
     }
 
-    fn direct_tail_call(self: Box<Self>, _request: Box<RequestHook>)
+    fn direct_tail_call(mut self: Box<Self>, request: Box<RequestHook>)
                         -> (Promise<(), Error>, Box<PipelineHook>)
     {
-        unimplemented!()
-/*
-        let state = self.connection_state.upgrade().expect("dangling connection state ref?");
-        if request.get_brand() == state.get_brand() && !self.redirect_results {
-            // The tail call is headed towards the peer that called us in the first place, so we can
-            // optimize out the return trip.
-            if let Some((question_id, promise, pipeline)) = request.tail_send() {
+        if let (Some(inner), Some(fulfiller)) = (self.inner.take(), self.results_done_fulfiller.take()) {
+            let state = inner.connection_state.clone();
+            if request.get_brand() == state.get_brand() && !inner.redirect_results {
+                // The tail call is headed towards the peer that called us in the first place, so we can
+                // optimize out the return trip.
+                if let Some((question_id, promise, pipeline)) = request.tail_send() {
 
-                let mut message = state.connection.borrow_mut().as_mut().expect("not connected?")
-                    .new_outgoing_message(100); // size hint?
+                    let mut message = state.connection.borrow_mut().as_mut().expect("not connected?")
+                        .new_outgoing_message(100); // size hint?
 
-                {
-                    let root: message::Builder = message.get_body().unwrap().init_as();
-                    let mut ret = root.init_return();
-                    ret.set_answer_id(self.answer_id);
-                    ret.set_release_param_caps(false);
-                    ret.set_take_from_other_question(question_id);
+                    {
+                        let root: message::Builder = message.get_body().unwrap().init_as();
+                        let mut ret = root.init_return();
+                        ret.set_answer_id(inner.answer_id);
+                        ret.set_release_param_caps(false);
+                        ret.set_take_from_other_question(question_id);
+                    }
+                    let _ = message.send();
+
+                    // TODO cleanupanswertable
+                    return (promise, pipeline);
                 }
-                let _ = message.send();
-
-                // TODO cleanupanswertable
-                return (promise, pipeline);
+                unimplemented!()
+            } else {
+                unimplemented!()
             }
-            unimplemented!()
+
         } else {
-            unimplemented!()
+            unreachable!();
         }
-*/
     }
 
     fn allow_cancellation(&self) {
@@ -1960,8 +1969,13 @@ impl <VatId> ResultsHook for Results<VatId> {
     }*/
 }
 
+enum ResultsDoneInnerVariant {
+    Sent(::capnp::message::Builder<::capnp::message::HeapAllocator>),
+    Redirected(Box<::OutgoingMessage>),
+}
+
 struct ResultsDoneInner {
-    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    variant: ResultsDoneInnerVariant,
     cap_table: Vec<Option<Box<ClientHook>>>,
 }
 
@@ -1973,44 +1987,57 @@ impl ResultsDone {
     fn from_results_inner<VatId>(results_inner: ResultsInner<VatId>) -> Promise<Box<ResultsDoneHook>, Error>
         where VatId: 'static
     {
-        let ResultsInner { connection_state, mut message, cap_table, redirect_results, answer_id } = results_inner;
+        let ResultsInner { connection_state, mut message, cap_table,
+                           redirect_results, answer_id } = results_inner;
 
-        drop(redirect_results);
         drop(answer_id);
-        {
-            let root: message::Builder = pry!(pry!(message.get_body()).get_as());
-            match pry!(root.which()) {
-                message::Return(ret) => {
-                    match pry!(pry!(ret).which()) {
-                        ::rpc_capnp::return_::Results(Ok(payload)) => {
-                            let _exports =
-                                ConnectionState::write_descriptors(&connection_state.upgrade().expect("I"),
-                                                                   &cap_table,
-                                                                   payload);
-                        }
-                        _ => {
-                            unreachable!()
+        if redirect_results {
+            Promise::ok(Box::new(ResultsDone::redirected(message, cap_table)))
+        } else {
+            {
+                let root: message::Builder = pry!(pry!(message.get_body()).get_as());
+                match pry!(root.which()) {
+                    message::Return(ret) => {
+                        match pry!(pry!(ret).which()) {
+                            ::rpc_capnp::return_::Results(Ok(payload)) => {
+                                let _exports =
+                                    ConnectionState::write_descriptors(&connection_state,
+                                                                       &cap_table,
+                                                                       payload);
+                            }
+                            _ => {
+                                unreachable!()
+                            }
                         }
                     }
-                }
-                _ =>  {
-                    unreachable!()
+                    _ =>  {
+                        unreachable!()
+                    }
                 }
             }
+            message.send().map(move |message| {
+                let _ = connection_state;
+                //pipeline_fulfiller.fulfill(results_done);
+                Ok(Box::new(ResultsDone::sent(message, cap_table)) as Box<ResultsDoneHook>)
+            })
         }
-
-        message.send().map(move |message| {
-            let _ = connection_state;
-            //pipeline_fulfiller.fulfill(results_done);
-            Ok(Box::new(ResultsDone::new(message, cap_table)) as Box<ResultsDoneHook>)
-        })
     }
 
-    fn new(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    fn sent(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
            cap_table: Vec<Option<Box<ClientHook>>>) -> ResultsDone {
         ResultsDone {
             inner: Rc::new(ResultsDoneInner {
-                message: message,
+                variant: ResultsDoneInnerVariant::Sent(message),
+                cap_table: cap_table,
+            }),
+        }
+    }
+
+    fn redirected(message: Box<::OutgoingMessage>,
+                  cap_table: Vec<Option<Box<ClientHook>>>) -> ResultsDone {
+        ResultsDone {
+            inner: Rc::new(ResultsDoneInner {
+                variant: ResultsDoneInnerVariant::Redirected(message),
                 cap_table: cap_table,
             }),
         }
@@ -2023,7 +2050,10 @@ impl ResultsDoneHook for ResultsDone {
         Box::new(ResultsDone { inner: self.inner.clone() })
     }
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        let root: message::Reader = try!(self.inner.message.get_root_as_reader());
+        let root: message::Reader = match self.inner.variant {
+            ResultsDoneInnerVariant::Sent(ref m) => try!(m.get_root_as_reader()),
+            ResultsDoneInnerVariant::Redirected(ref r) => try!(try!(r.get_body_as_reader()).get_as()),
+        };
         match try!(root.which()) {
             message::Return(ret) => {
                 match try!(try!(ret).which()) {
@@ -2470,13 +2500,14 @@ impl <VatId> ClientHook for Client<VatId> {
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>,
             mut results: Box<ResultsHook>,
             results_done: Promise<Box<ResultsDoneHook>, Error>)
-        -> (::gj::Promise<(), Error>, Box<PipelineHook>)
+        -> (Promise<(), Error>, Box<PipelineHook>)
     {
         // Implement call() by copying params and results messages.
 
         let mut request = self.new_call(interface_id, method_id,
                                         Some(params.get().unwrap().total_size().unwrap()));
         request.get().set_as(params.get().unwrap()).unwrap();
+
 
         let ::capnp::capability::RemotePromise { promise, pipeline: _ } = request.send();
 
@@ -2499,8 +2530,7 @@ impl <VatId> ClientHook for Client<VatId> {
 
         (promise, Box::new(pipeline))
 
-        // TODO implement this in terms of direct_tail_call();
-
+        // TODO implement this in terms of direct_tail_call
         // We can and should propagate cancellation.
         // (TODO ?)
         // context -> allowCancellation();
