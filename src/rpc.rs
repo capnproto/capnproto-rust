@@ -1002,34 +1002,32 @@ impl <VatId> ConnectionState<VatId> {
                                                           box_results_done_promise);
 
                 let connection_state_ref = Rc::downgrade(&connection_state);
-                let promise = promise.then_else(move |result| {
-                    match result {
-                        Ok(_v) => {
-                            call_succeeded_fulfiller.fulfill(());
-                            Promise::ok(())
-                        }
-                        Err(e) => {
-                            call_succeeded_fulfiller.reject(e.clone());
-                            // Send an error return.
-                            let connection_state = connection_state_ref.upgrade()
-                                .expect("dangling reference to connection state?");
-                            match connection_state.connection.borrow_mut().as_mut() {
-                                Ok(ref mut connection) => {
-                                    let mut message = connection.new_outgoing_message(50); // XXX size hint
-                                    {
-                                        let root: message::Builder = pry!(pry!(message.get_body()).get_as());
-                                        let mut ret = root.init_return();
-                                        ret.set_answer_id(question_id);
-                                        ret.set_release_param_caps(false);
-                                        let mut exc = ret.init_exception();
-                                        from_error(&e, exc.borrow());
-                                    }
-                                    let _ = message.send();
+                let promise = promise.then_else(move |result| match result {
+                    Ok(_v) => {
+                        call_succeeded_fulfiller.fulfill(());
+                        Promise::ok(())
+                    }
+                    Err(e) => {
+                        call_succeeded_fulfiller.reject(e.clone());
+                        // Send an error return.
+                        let connection_state = connection_state_ref.upgrade()
+                            .expect("dangling reference to connection state?");
+                        match connection_state.connection.borrow_mut().as_mut() {
+                            Ok(ref mut connection) => {
+                                let mut message = connection.new_outgoing_message(50); // XXX size hint
+                                {
+                                    let root: message::Builder = pry!(pry!(message.get_body()).get_as());
+                                    let mut ret = root.init_return();
+                                    ret.set_answer_id(question_id);
+                                    ret.set_release_param_caps(false);
+                                    let mut exc = ret.init_exception();
+                                    from_error(&e, exc.borrow());
                                 }
-                                Err(_) => (),
+                                let _ = message.send();
                             }
-                            Promise::ok(())
+                            Err(_) => (),
                         }
+                        Promise::ok(())
                     }
                 });
 
