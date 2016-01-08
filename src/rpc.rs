@@ -267,7 +267,7 @@ struct Answer<VatId> where VatId: 'static {
 
     // For locally-redirected calls (Call.sendResultsTo.yourself), this is a promise for the call
     // result, to be picked up by a subsequent `Return`.
-    redirected_results: Option<::gj::Promise<Box<Response<VatId>>, Error>>,
+    redirected_results: Option<::gj::Promise<Response<VatId>, Error>>,
 
     // The call context, if it's still active.  Becomes null when the `Return` message is sent.
     // This object, if non-null, is owned by `asyncOp`.
@@ -764,8 +764,11 @@ impl <VatId> ConnectionState<VatId> {
                                             if let Some(ref mut answer) =
                                                 connection_state1.answers.borrow_mut().slots.get_mut(&id)
                                             {
-                                                if let Some(_) = answer.redirected_results {
-                                                    unimplemented!()
+                                                if let Some(res) = answer.redirected_results.take() {
+                                                    let tmp = question_ref.upgrade()
+                                                        .expect("dangling question ref?");
+                                                    tmp.borrow_mut().fulfill(res);
+                                                    BorrowWorkaround::Done
                                                 } else {
                                                     return Err(Error::failed(format!(
                                                         "return.takeFromOtherQuestion referenced a call that \
@@ -982,10 +985,26 @@ impl <VatId> ConnectionState<VatId> {
                                            results_inner_fulfiller);
 
 
+                let (redirected_results_done_promise, redirected_results_done_fulfiller) =
+                    if redirect_results {
+                        let (p, f) = Promise::and_fulfiller();
+                        (Some(p), Some(f))
+                    } else {
+                        (None, None)
+                    };
+
                 let (call_succeeded_promise, call_succeeded_fulfiller) = Promise::and_fulfiller();
-                let box_results_done_promise = results_inner_promise.then(|results_inner| {
+                let box_results_done_promise = results_inner_promise.then(move |results_inner| {
                     call_succeeded_promise.then(|()| {
                         ResultsDone::from_results_inner(results_inner)
+                    }).map(move |results_done_hook| {
+                        match redirected_results_done_fulfiller {
+                            Some(f) => {
+                                f.fulfill(Response::redirected(results_done_hook.clone()));
+                            }
+                            None => (),
+                        }
+                        Ok(results_done_hook)
                     })
                 });
 
@@ -1040,9 +1059,8 @@ impl <VatId> ConnectionState<VatId> {
                         Some(ref mut answer) => {
                             answer.pipeline = Some(pipeline);
                             if redirect_results {
-                                let mut forked = promise.fork();
-//                                answer.redirected_results = Some(forked.add_branch());
-                                unimplemented!();
+                                answer.redirected_results = redirected_results_done_promise;
+                                // More to do here?
 
                             } else {
                                 connection_state.add_task(promise.map(|_| Ok(())));
@@ -1471,8 +1489,13 @@ struct ResponseState<VatId> where VatId: 'static {
     _question_ref: Rc<RefCell<QuestionRef<VatId>>>,
 }
 
+enum ResponseVariant<VatId> where VatId: 'static {
+    Rpc(ResponseState<VatId>),
+    LocallyRedirected(Box<ResultsDoneHook>),
+}
+
 struct Response<VatId> where VatId: 'static {
-    state: Rc<ResponseState<VatId>>,
+    variant: Rc<ResponseVariant<VatId>>,
 }
 
 impl <VatId> Response<VatId> {
@@ -1481,36 +1504,50 @@ impl <VatId> Response<VatId> {
            message: Box<::IncomingMessage>,
            cap_table_array: Vec<Option<Box<ClientHook>>>) -> Response<VatId> {
         Response {
-            state: Rc::new(ResponseState {
+            variant: Rc::new(ResponseVariant::Rpc(ResponseState {
                 _connection_state: connection_state,
                 message: message,
                 cap_table: ::capnp::capability::ReaderCapTable::new(cap_table_array),
                 _question_ref: question_ref,
-            }),
+            })),
+        }
+    }
+    fn redirected(results_done: Box<ResultsDoneHook>)
+        -> Response<VatId>
+    {
+        Response {
+            variant: Rc::new(ResponseVariant::LocallyRedirected(results_done))
         }
     }
 }
 
 impl <VatId> Clone for Response<VatId> {
     fn clone(&self) -> Response<VatId> {
-        Response { state: self.state.clone() }
+        Response { variant: self.variant.clone() }
     }
 }
 
 impl <VatId> ResponseHook for Response<VatId> {
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        match try!(try!(try!(self.state.message.get_body()).get_as::<message::Reader>()).which()) {
-            message::Return(Ok(ret)) => {
-                match try!(ret.which()) {
-                    return_::Results(Ok(mut payload)) => {
-                        use ::capnp::traits::Imbue;
-                        payload.imbue(&self.state.cap_table.hooks);
-                        Ok(payload.get_content())
+        match *self.variant {
+            ResponseVariant::Rpc(ref state) => {
+                match try!(try!(try!(state.message.get_body()).get_as::<message::Reader>()).which()) {
+                    message::Return(Ok(ret)) => {
+                        match try!(ret.which()) {
+                            return_::Results(Ok(mut payload)) => {
+                                use ::capnp::traits::Imbue;
+                                payload.imbue(&state.cap_table.hooks);
+                                Ok(payload.get_content())
+                            }
+                            _ => unreachable!(),
+                        }
                     }
-                    _ => panic!(),
+                    _ => unreachable!(),
                 }
             }
-            _ => panic!(),
+            ResponseVariant::LocallyRedirected(ref results_done) => {
+                results_done.get()
+            }
         }
     }
 }
@@ -1836,10 +1873,14 @@ impl ParamsHook for Params {
     }
 }
 
+enum ResultsVariant {
+    Rpc(Box<::OutgoingMessage>, Vec<Option<Box<ClientHook>>>),
+    LocallyRedirected(::capnp::message::Builder<::capnp::message::HeapAllocator>),
+}
+
 struct ResultsInner<VatId> where VatId: 'static {
     connection_state: Rc<ConnectionState<VatId>>,
-    message: Box<::OutgoingMessage>,
-    cap_table: Vec<Option<Box<ClientHook>>>,
+    variant: Option<ResultsVariant>,
     redirect_results: bool,
     answer_id: AnswerId,
 }
@@ -1859,21 +1900,10 @@ impl <VatId> Results<VatId> where VatId: 'static {
            )
            -> Results<VatId>
     {
-        let mut message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
-            .new_outgoing_message(100); // size hint?
-
-        {
-            let root: message::Builder = message.get_body().unwrap().init_as();
-            let mut ret = root.init_return();
-            ret.set_answer_id(answer_id);
-            ret.set_release_param_caps(false);
-        }
-
         Results {
             inner: Some(ResultsInner {
+                variant: None,
                 connection_state: connection_state.clone(),
-                message: message,
-                cap_table: Vec::new(),
                 redirect_results: redirect_results,
                 answer_id: answer_id,
             }),
@@ -1897,23 +1927,52 @@ impl <VatId> Drop for Results<VatId> {
 impl <VatId> ResultsHook for Results<VatId> {
     fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
         if let Some(ref mut inner) = self.inner {
-            let root: message::Builder = try!(try!(inner.message.get_body()).get_as());
-            match try!(root.which()) {
-                message::Return(ret) => {
-                    match try!(try!(ret).which()) {
-                        ::rpc_capnp::return_::Results(payload) => {
-                            use ::capnp::traits::ImbueMut;
-                            let mut content = try!(payload).get_content();
-                            content.imbue_mut(&mut inner.cap_table);
-                            Ok(content)
+            let connection_state = inner.connection_state.clone();
+            let answer_id = inner.answer_id;
+
+            if inner.variant.is_none() {
+                if !inner.redirect_results {
+                    let mut message = connection_state.connection.borrow_mut().as_mut()
+                        .expect("not connected?")
+                        .new_outgoing_message(100); // size hint?
+
+                    {
+                        let root: message::Builder = message.get_body().unwrap().init_as();
+                        let mut ret = root.init_return();
+                        ret.set_answer_id(answer_id);
+                        ret.set_release_param_caps(false);
+                    }
+                    inner.variant = Some(ResultsVariant::Rpc(message, Vec::new()));
+                } else {
+                    inner.variant =
+                        Some(ResultsVariant::LocallyRedirected(::capnp::message::Builder::new_default()));
+                }
+            }
+            match inner.variant {
+                None => unreachable!(),
+                Some(ResultsVariant::Rpc(ref mut message, ref mut cap_table)) => {
+                    let root: message::Builder = try!(try!(message.get_body()).get_as());
+                    match try!(root.which()) {
+                        message::Return(ret) => {
+                            match try!(try!(ret).which()) {
+                                ::rpc_capnp::return_::Results(payload) => {
+                                    use ::capnp::traits::ImbueMut;
+                                    let mut content = try!(payload).get_content();
+                                    content.imbue_mut(cap_table);
+                                    Ok(content)
+                                }
+                                _ => {
+                                    unreachable!()
+                                }
+                            }
                         }
-                        _ => {
+                        _ =>  {
                             unreachable!()
                         }
                     }
                 }
-                _ =>  {
-                    unreachable!()
+                Some(ResultsVariant::LocallyRedirected(ref mut message)) => {
+                    message.get_root()
                 }
             }
         } else {
@@ -1969,41 +2028,94 @@ impl <VatId> ResultsHook for Results<VatId> {
     }*/
 }
 
-enum ResultsDoneInnerVariant {
-    Sent(::capnp::message::Builder<::capnp::message::HeapAllocator>),
-    Redirected(Box<::OutgoingMessage>),
-}
-
-struct ResultsDoneInner {
-    variant: ResultsDoneInnerVariant,
-    cap_table: Vec<Option<Box<ClientHook>>>,
+enum ResultsDoneVariant {
+    Rpc(::capnp::message::Builder<::capnp::message::HeapAllocator>, Vec<Option<Box<ClientHook>>>),
+    LocallyRedirected(::capnp::message::Builder<::capnp::message::HeapAllocator>),
 }
 
 struct ResultsDone {
-    inner: Rc<ResultsDoneInner>
+    inner: Rc<ResultsDoneVariant>
 }
 
 impl ResultsDone {
     fn from_results_inner<VatId>(results_inner: ResultsInner<VatId>) -> Promise<Box<ResultsDoneHook>, Error>
         where VatId: 'static
     {
-        let ResultsInner { connection_state, mut message, cap_table,
+        let ResultsInner { connection_state, variant,
                            redirect_results, answer_id } = results_inner;
 
         drop(answer_id);
-        if redirect_results {
-            Promise::ok(Box::new(ResultsDone::redirected(message, cap_table)))
-        } else {
-            {
-                let root: message::Builder = pry!(pry!(message.get_body()).get_as());
-                match pry!(root.which()) {
+        match variant {
+            None => unimplemented!(),
+            Some(ResultsVariant::Rpc(mut message, cap_table)) => {
+                {
+                    let root: message::Builder = pry!(pry!(message.get_body()).get_as());
+                    match pry!(root.which()) {
+                        message::Return(ret) => {
+                            match pry!(pry!(ret).which()) {
+                                ::rpc_capnp::return_::Results(Ok(payload)) => {
+                                    let _exports =
+                                        ConnectionState::write_descriptors(&connection_state,
+                                                                           &cap_table,
+                                                                           payload);
+                                }
+                                _ => {
+                                    unreachable!()
+                                }
+                            }
+                        }
+                        _ =>  {
+                            unreachable!()
+                        }
+                    }
+                }
+                message.send().map(move |message| {
+                    let _ = connection_state;
+                    //pipeline_fulfiller.fulfill(results_done);
+                    Ok(Box::new(ResultsDone::rpc(message, cap_table)) as Box<ResultsDoneHook>)
+                })
+            }
+            Some(ResultsVariant::LocallyRedirected(results_done)) => {
+                Promise::ok(Box::new(ResultsDone::redirected(results_done)))
+            }
+        }
+    }
+
+    fn rpc(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+           cap_table: Vec<Option<Box<ClientHook>>>)
+           -> ResultsDone
+    {
+        ResultsDone {
+            inner: Rc::new(ResultsDoneVariant::Rpc(message, cap_table)),
+        }
+    }
+
+    fn redirected(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>)
+                  -> ResultsDone
+    {
+        ResultsDone {
+            inner: Rc::new(ResultsDoneVariant::LocallyRedirected(message)),
+        }
+    }
+}
+
+
+impl ResultsDoneHook for ResultsDone {
+    fn add_ref(&self) -> Box<ResultsDoneHook> {
+        Box::new(ResultsDone { inner: self.inner.clone() })
+    }
+    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+        match *self.inner {
+            ResultsDoneVariant::Rpc(ref message, ref cap_table) => {
+                let root: message::Reader = try!(message.get_root_as_reader());
+                match try!(root.which()) {
                     message::Return(ret) => {
-                        match pry!(pry!(ret).which()) {
-                            ::rpc_capnp::return_::Results(Ok(payload)) => {
-                                let _exports =
-                                    ConnectionState::write_descriptors(&connection_state,
-                                                                       &cap_table,
-                                                                       payload);
+                        match try!(try!(ret).which()) {
+                            ::rpc_capnp::return_::Results(payload) => {
+                                use ::capnp::traits::Imbue;
+                                let mut content = try!(payload).get_content();
+                                content.imbue(cap_table);
+                                Ok(content)
                             }
                             _ => {
                                 unreachable!()
@@ -2015,61 +2127,8 @@ impl ResultsDone {
                     }
                 }
             }
-            message.send().map(move |message| {
-                let _ = connection_state;
-                //pipeline_fulfiller.fulfill(results_done);
-                Ok(Box::new(ResultsDone::sent(message, cap_table)) as Box<ResultsDoneHook>)
-            })
-        }
-    }
-
-    fn sent(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-           cap_table: Vec<Option<Box<ClientHook>>>) -> ResultsDone {
-        ResultsDone {
-            inner: Rc::new(ResultsDoneInner {
-                variant: ResultsDoneInnerVariant::Sent(message),
-                cap_table: cap_table,
-            }),
-        }
-    }
-
-    fn redirected(message: Box<::OutgoingMessage>,
-                  cap_table: Vec<Option<Box<ClientHook>>>) -> ResultsDone {
-        ResultsDone {
-            inner: Rc::new(ResultsDoneInner {
-                variant: ResultsDoneInnerVariant::Redirected(message),
-                cap_table: cap_table,
-            }),
-        }
-    }
-}
-
-
-impl ResultsDoneHook for ResultsDone {
-    fn add_ref(&self) -> Box<ResultsDoneHook> {
-        Box::new(ResultsDone { inner: self.inner.clone() })
-    }
-    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        let root: message::Reader = match self.inner.variant {
-            ResultsDoneInnerVariant::Sent(ref m) => try!(m.get_root_as_reader()),
-            ResultsDoneInnerVariant::Redirected(ref r) => try!(try!(r.get_body_as_reader()).get_as()),
-        };
-        match try!(root.which()) {
-            message::Return(ret) => {
-                match try!(try!(ret).which()) {
-                    ::rpc_capnp::return_::Results(payload) => {
-                        use ::capnp::traits::Imbue;
-                        let mut content = try!(payload).get_content();
-                        content.imbue(&self.inner.cap_table);
-                        Ok(content)
-                    }
-                    _ => {
-                        unreachable!()
-                    }
-                }
-            }
-            _ =>  {
-                unreachable!()
+            ResultsDoneVariant::LocallyRedirected(ref r) => {
+                r.get_root_as_reader()
             }
         }
     }
@@ -2508,34 +2567,11 @@ impl <VatId> ClientHook for Client<VatId> {
                                         Some(params.get().unwrap().total_size().unwrap()));
         request.get().set_as(params.get().unwrap()).unwrap();
 
-
-        let ::capnp::capability::RemotePromise { promise, pipeline: _ } = request.send();
-
-        let promise = promise.map(move |response| {
-            try!(try!(results.get()).set_as(try!(response.get())));
-            Ok(())
-        });
-
-        let mut forked = promise.fork();
-        let promise = forked.add_branch();
-
-        let pipeline = ::queued::Pipeline::new(forked.add_branch().then(move |_| {
-            results_done.map(move |results_done_hook| {
-                // TODO: why doesn't this work?
-                // Ok(pipeline.hook)
-
-                Ok(Box::new(::local::Pipeline::new(results_done_hook)) as Box<PipelineHook>)
-            })
-        }));
-
-        (promise, Box::new(pipeline))
-
-        // TODO implement this in terms of direct_tail_call
         // We can and should propagate cancellation.
         // (TODO ?)
         // context -> allowCancellation();
 
-        //results.direct_tail_call(request.hook)
+        results.direct_tail_call(request.hook)
     }
 
     fn get_ptr(&self) -> usize {
