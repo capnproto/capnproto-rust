@@ -28,7 +28,7 @@ extern crate capnp_rpc;
 extern crate gj;
 
 use gj::{EventLoop, Promise};
-use gj::io::unix;
+use gj::io::{AsyncRead, unix};
 use capnp::Error;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
@@ -38,6 +38,40 @@ pub mod test_capnp {
 
 pub mod impls;
 pub mod test_util;
+
+
+struct ReadWrapper<R> where R: AsyncRead {
+    inner: R,
+    output_file: ::std::fs::File,
+}
+
+//::std::fs::File::create("~/Desktop/test.dat").unwrap(),
+impl <R> ReadWrapper<R> where R: AsyncRead {
+    fn new(inner: R, output_file: ::std::fs::File) -> ReadWrapper<R> {
+        ReadWrapper {
+            inner: inner,
+            output_file: output_file,
+        }
+    }
+}
+
+impl <R> AsyncRead for ReadWrapper<R> where R: AsyncRead {
+    fn try_read<T>(self, buf: T, min_bytes: usize)
+                   -> Promise<(ReadWrapper<R>, T, usize), ::gj::io::Error<(ReadWrapper<R>, T)>>
+        where T: AsMut<[u8]>
+    {
+        let ReadWrapper {inner, mut output_file} = self;
+        inner.try_read(buf, min_bytes).map_else(|r| match r {
+            Ok((r, mut buf, n)) => {
+                use std::io::Write;
+                output_file.write(&buf.as_mut()[0..n]).unwrap();
+                Ok((ReadWrapper::new(r, output_file), buf, n))
+            }
+            Err(::gj::io::Error { state: (r, buf), error }) =>
+                Err(::gj::io::Error::new((ReadWrapper::new(r, output_file), buf), error)),
+        })
+    }
+}
 
 #[test]
 fn drop_rpc_system() {
