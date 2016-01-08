@@ -761,7 +761,6 @@ impl <VatId> ConnectionState<VatId> {
                                             unimplemented!()
                                         }
                                         return_::TakeFromOtherQuestion(id) => {
-                                            println!("taking from other question");
                                             if let Some(ref mut answer) =
                                                 connection_state1.answers.borrow_mut().slots.get_mut(&id)
                                             {
@@ -2017,6 +2016,8 @@ impl <VatId> ResultsHook for Results<VatId> {
                     let _ = message.send();
 
                     // TODO cleanupanswertable
+
+                    fulfiller.fulfill(inner); // ??
                     return (promise, pipeline);
                 }
                 unimplemented!()
@@ -2577,7 +2578,6 @@ impl <VatId> ClientHook for Client<VatId> {
         let mut request = self.new_call(interface_id, method_id,
                                         Some(params.get().unwrap().total_size().unwrap()));
         request.get().set_as(params.get().unwrap()).unwrap();
-
 
         let ::capnp::capability::RemotePromise { promise, pipeline: _ } = request.send();
 
