@@ -803,6 +803,7 @@ impl <VatId> ConnectionState<VatId> {
                     // TODO: release exports.
 
                     let answer_id = finish.get_question_id();
+
                     let answers_slots = &mut connection_state1.answers.borrow_mut().slots;
                     match answers_slots.remove(&answer_id) {
                         None => {
@@ -1682,7 +1683,8 @@ impl <VatId> RequestHook for Request<VatId> {
 
 enum PipelineVariant<VatId> where VatId: 'static {
     Waiting(Rc<RefCell<QuestionRef<VatId>>>),
-    _Resolved(Response<VatId>),
+    Resolved(Response<VatId>),
+    Broken(Error),
 }
 
 struct PipelineState<VatId> where VatId: 'static {
@@ -1690,7 +1692,7 @@ struct PipelineState<VatId> where VatId: 'static {
     redirect_later: Option<RefCell<::gj::ForkedPromise<Response<VatId>, ::capnp::Error>>>,
     connection_state: Rc<ConnectionState<VatId>>,
 
-    // what about resolve_self_promise?
+    resolve_self_promise: Promise<(), Error>,
 }
 
 struct Pipeline<VatId> where VatId: 'static {
@@ -1707,19 +1709,24 @@ impl <VatId> Pipeline<VatId> {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state: connection_state,
             redirect_later: None,
+            resolve_self_promise: Promise::never_done(),
         }));
         match redirect_later {
             Some(redirect_later_promise) => {
-                let fork = redirect_later_promise.fork();
+                let mut fork = redirect_later_promise.fork();
 
-/*
-                let this = state.clone();
-                fork.add_branch().map_else(move |response| {
-                    match
-                    this.borrow_mut().resolve(response);
+                let this = Rc::downgrade(&state);
+                let resolve_self_promise = fork.add_branch().map_else(move |response| {
+                    let state = this.upgrade().expect("dangling reference to this");
+                    let new_variant = match response {
+                        Ok(r) =>  PipelineVariant::Resolved(r),
+                        Err(e) => PipelineVariant::Broken(e),
+                    };
+                    let _old_variant = ::std::mem::replace(&mut state.borrow_mut().variant, new_variant);
                     Ok(())
-                });*/
+                }).eagerly_evaluate();
 
+                state.borrow_mut().resolve_self_promise = resolve_self_promise;
                 state.borrow_mut().redirect_later = Some(RefCell::new(fork));
             }
             None => {}
@@ -1735,17 +1742,11 @@ impl <VatId> Pipeline<VatId> {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state: connection_state,
             redirect_later: None,
+            resolve_self_promise: Promise::never_done(),
         }));
 
         Pipeline { state: state }
     }
-
-    fn _resolve(&mut self, response: Response<VatId>) {
-        match self.state.borrow().variant { PipelineVariant::Waiting( _ ) => (),
-                                            _ => panic!("Already resolved?") }
-        self.state.borrow_mut().variant = PipelineVariant::_Resolved(response);
-    }
-
 }
 
 impl <VatId> PipelineHook for Pipeline<VatId> {
@@ -1762,7 +1763,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
     fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
         match &*self.state.borrow() {
             &PipelineState {variant: PipelineVariant::Waiting(ref question_ref),
-                            ref connection_state, ref redirect_later} => {
+                            ref connection_state, ref redirect_later, ..} => {
                 // Wrap a PipelineClient in a PromiseClient.
                 let pipeline_client =
                     PipelineClient::new(&connection_state, question_ref.clone(), ops.clone());
@@ -1785,8 +1786,11 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                     }
                 }
             }
-            &PipelineState {variant: PipelineVariant::_Resolved(ref response), ..} => {
+            &PipelineState {variant: PipelineVariant::Resolved(ref response), ..} => {
                 response.get().unwrap().get_pipelined_cap(&ops[..]).unwrap()
+            }
+            &PipelineState {variant: PipelineVariant::Broken(ref e), ..} => {
+                broken::new_cap(e.clone())
             }
         }
     }

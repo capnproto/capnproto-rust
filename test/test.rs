@@ -350,7 +350,7 @@ fn embargo() {
 }
 
 #[test]
-fn embargo_error() {
+fn echo_destruction() {
     set_up_rpc(|client| {
         client.test_more_stuff_request().send().promise.then(|response| {
             let client = pry!(pry!(response.get()).get_cap());
@@ -371,21 +371,12 @@ fn embargo_error() {
 
             let pipeline = echo.pipeline.get_cap();
 
-            let call0 = get_call_sequence(&pipeline, 0);
-            let call1 = get_call_sequence(&pipeline, 1);
-
             early_call.promise.then(move |_early_call_response| {
-                let call2 = get_call_sequence(&pipeline, 2);
-                Promise::ok(())
-/*
+                let _ = get_call_sequence(&pipeline, 2);
                 echo.promise.then(move |_echo_response| {
-                    let call3 = get_call_sequence(&pipeline, 3);
-                    let call4 = get_call_sequence(&pipeline, 4);
-                    let call5 = get_call_sequence(&pipeline, 5);
-
                     fulfiller.reject(Error::failed("foo".to_string()));
                     Promise::ok(())
-                })*/
+                })
             })
         })
     });
