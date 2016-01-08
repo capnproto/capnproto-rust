@@ -28,7 +28,7 @@ extern crate capnp_rpc;
 extern crate gj;
 
 use gj::{EventLoop, Promise};
-use gj::io::{AsyncRead, unix};
+use gj::io::{AsyncRead, AsyncWrite, unix};
 use capnp::Error;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
@@ -45,7 +45,6 @@ struct ReadWrapper<R> where R: AsyncRead {
     output_file: ::std::fs::File,
 }
 
-//::std::fs::File::create("~/Desktop/test.dat").unwrap(),
 impl <R> ReadWrapper<R> where R: AsyncRead {
     fn new(inner: R, output_file: ::std::fs::File) -> ReadWrapper<R> {
         ReadWrapper {
@@ -73,6 +72,40 @@ impl <R> AsyncRead for ReadWrapper<R> where R: AsyncRead {
     }
 }
 
+struct WriteWrapper<W> where W: AsyncWrite {
+    inner: W,
+    output_file: ::std::fs::File,
+}
+
+impl <W> WriteWrapper<W> where W: AsyncWrite {
+    fn new(inner: W, output_file: ::std::fs::File) -> WriteWrapper<W> {
+        WriteWrapper {
+            inner: inner,
+            output_file: output_file,
+        }
+    }
+}
+
+impl <W> AsyncWrite for WriteWrapper<W> where W: AsyncWrite {
+    fn write<T>(self, buf: T)
+                -> Promise<(WriteWrapper<W>, T), ::gj::io::Error<(WriteWrapper<W>, T)>>
+        where T: AsRef<[u8]>
+    {
+        use std::io::Write;
+        let WriteWrapper {inner, mut output_file} = self;
+        output_file.write(buf.as_ref()).unwrap();
+
+        inner.write(buf).map_else(|r| match r {
+            Ok((w, buf)) => {
+                Ok((WriteWrapper::new(w, output_file), buf))
+            }
+            Err(::gj::io::Error { state: (w, buf), error }) =>
+                Err(::gj::io::Error::new((WriteWrapper::new(w, output_file), buf), error)),
+        })
+    }
+}
+
+
 #[test]
 fn drop_rpc_system() {
     EventLoop::top_level(|wait_scope| {
@@ -97,6 +130,8 @@ fn set_up_rpc<F>(main: F)
         let (join_handle, stream) = try!(unix::spawn(|stream, wait_scope| {
 
             let (reader, writer) = stream.split();
+            //let reader = ReadWrapper::new(reader,
+            //                              ::std::fs::File::create("/Users/dwrensha/Desktop/test1.dat").unwrap());
             let mut network =
                 Box::new(twoparty::VatNetwork::new(reader, writer,
                                                    rpc_twoparty_capnp::Side::Server,
@@ -111,6 +146,9 @@ fn set_up_rpc<F>(main: F)
         }));
 
         let (reader, writer) = stream.split();
+        //let writer = WriteWrapper::new(writer,
+        //                               ::std::fs::File::create("/Users/dwrensha/Desktop/test2.dat").unwrap());
+
         let network =
             Box::new(twoparty::VatNetwork::new(reader, writer,
                                                rpc_twoparty_capnp::Side::Client,

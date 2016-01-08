@@ -65,11 +65,6 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gj::io::AsyncWrite 
         let queue = ::std::mem::replace(&mut *write_queue.borrow_mut(), Promise::never_done());
         let (promise, fulfiller) = Promise::and_fulfiller();
         *write_queue.borrow_mut() = queue.then(move |s| {
-            // DEBUG
-            //println!("writing...");
-            //use ::std::io::Write;
-            //pry!(::capnp::serialize::write_message(&mut ::std::io::stdout(), &message));
-            //::std::io::stdout().flush();
             ::capnp_gj::serialize::write_message(s, message).map(move |(s, m)| {
                 fulfiller.fulfill(m);
                 Ok(s)
