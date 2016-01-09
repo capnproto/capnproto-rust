@@ -1507,7 +1507,7 @@ impl <VatId> ConnectionState<VatId> {
 struct ResponseState<VatId> where VatId: 'static {
     _connection_state: Rc<ConnectionState<VatId>>,
     message: Box<::IncomingMessage>,
-    cap_table: ::capnp::capability::ReaderCapTable,
+    cap_table: Vec<Option<Box<ClientHook>>>,
     _question_ref: Rc<RefCell<QuestionRef<VatId>>>,
 }
 
@@ -1529,7 +1529,7 @@ impl <VatId> Response<VatId> {
             variant: Rc::new(ResponseVariant::Rpc(ResponseState {
                 _connection_state: connection_state,
                 message: message,
-                cap_table: ::capnp::capability::ReaderCapTable::new(cap_table_array),
+                cap_table: cap_table_array,
                 _question_ref: question_ref,
             })),
         }
@@ -1558,7 +1558,7 @@ impl <VatId> ResponseHook for Response<VatId> {
                         match try!(ret.which()) {
                             return_::Results(Ok(mut payload)) => {
                                 use ::capnp::traits::Imbue;
-                                payload.imbue(&state.cap_table.hooks);
+                                payload.imbue(&state.cap_table);
                                 Ok(payload.get_content())
                             }
                             _ => unreachable!(),
