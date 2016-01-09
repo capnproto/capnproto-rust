@@ -269,8 +269,7 @@ struct Answer<VatId> where VatId: 'static {
     // result, to be picked up by a subsequent `Return`.
     redirected_results: Option<::gj::Promise<Response<VatId>, Error>>,
 
-    // The call context, if it's still active.  Becomes null when the `Return` message is sent.
-    // This object, if non-null, is owned by `asyncOp`.
+    // TODO? I think this is only needed for soft cancellation, which we currently don't support.
     //kj::Maybe<RpcCallContext&> callContext;
 
     // List of exports that were sent in the results.  If the finish has `releaseResultCaps` these
@@ -633,6 +632,7 @@ impl <VatId> ConnectionState<VatId> {
         // Someday Rust will have non-lexical borrows and this thing won't be needed.
         enum BorrowWorkaround<VatId> where VatId: 'static {
             ReturnResults(Rc<RefCell<QuestionRef<VatId>>>, Vec<Option<Box<ClientHook>>>),
+            EraseQuestion(QuestionId),
             Call(Box<ClientHook>),
             Unimplemented,
             Done,
@@ -711,12 +711,10 @@ impl <VatId> ConnectionState<VatId> {
                                                            payload)
                     };
 
-                    // TODO
-                    //let _deferred = Defer::new();
-
                     let ref mut slots = connection_state1.answers.borrow_mut().slots;
                     let answer = slots.entry(answer_id).or_insert(Answer::new());
                     if answer.active {
+                        try!(connection_state1.release_exports(&result_exports));
                         return Err(Error::failed("questionId is already in use".to_string()));
                     }
                     answer.active = true;
@@ -738,8 +736,8 @@ impl <VatId> ConnectionState<VatId> {
                     match connection_state.questions.borrow_mut().slots[question_id as usize] {
                         Some(ref mut question) => {
                             question.is_awaiting_return = false;
-                            match &question.self_ref {
-                                &Some(ref question_ref) => {
+                            match question.self_ref {
+                                Some(ref question_ref) => {
                                     match try!(ret.which()) {
                                         return_::Results(results) => {
                                             let cap_table =
@@ -784,15 +782,18 @@ impl <VatId> ConnectionState<VatId> {
                                         }
                                     }
                                 }
-                                &None => {
+                                None => {
                                     match try!(ret.which()) {
                                         return_::TakeFromOtherQuestion(_) => {
                                             unimplemented!()
                                         }
                                         _ => {}
                                     }
-                                    // TODO erase from questions table.
-                                    BorrowWorkaround::Done
+                                    // Looks like this question was canceled earlier, so `Finish`
+                                    // was already sent, with `releaseResultCaps` set true so that
+                                    // we don't have to release them here. We can go ahead and
+                                    // delete it from the table.
+                                    BorrowWorkaround::EraseQuestion(question_id)
                                 }
                             }
                         }
@@ -804,7 +805,8 @@ impl <VatId> ConnectionState<VatId> {
                 Ok(message::Finish(finish)) => {
                     let finish = try!(finish);
 
-                    // TODO: release exports.
+                    let mut exports_to_release = Vec::new();
+                    let mut pipeline_to_release = None;
 
                     let answer_id = finish.get_question_id();
 
@@ -814,10 +816,22 @@ impl <VatId> ConnectionState<VatId> {
                             return Err(Error::failed(
                                 format!("Invalid question ID {} in Finish message.", answer_id)));
                         }
-                        Some(_answer) => {
-                            //  TODO...
+                        Some(answer) => {
+                            let Answer { active, pipeline, redirected_results, result_exports } = answer;
+
+                            if !active {
+                                return Err(Error::failed(
+                                    format!("'Finish' for invalid question ID {}.", answer_id)));
+                            }
+
+                            if finish.get_release_result_caps() {
+                                exports_to_release = result_exports
+                            }
+                            pipeline_to_release = pipeline;
                         }
                     }
+                    drop(pipeline_to_release);
+                    try!(connection_state1.release_exports(&exports_to_release));
                     BorrowWorkaround::Done
                 }
                 Ok(message::Resolve(resolve)) => {
@@ -1081,6 +1095,9 @@ impl <VatId> ConnectionState<VatId> {
                                              message, cap_table);
                 question_ref.borrow_mut().fulfill(Promise::ok(response));
             }
+            BorrowWorkaround::EraseQuestion(question_id) => {
+                connection_state.questions.borrow_mut().erase(question_id);
+            }
             BorrowWorkaround::Unimplemented => {
                 let mut out_message = connection_state.connection.borrow_mut().as_mut()
                     .expect("no connection?")
@@ -1122,7 +1139,7 @@ impl <VatId> ConnectionState<VatId> {
         Ok(())
     }
 
-    fn _release_exports(&self, exports: &[ExportId]) -> ::capnp::Result<()> {
+    fn release_exports(&self, exports: &[ExportId]) -> ::capnp::Result<()> {
         for &export_id in exports {
             try!(self.release_export(export_id, 1));
         }
@@ -2400,21 +2417,18 @@ impl <VatId> Drop for PromiseClient<VatId> {
             // contain a pointer back to it.  Remove that pointer.  Note that we have to verify that
             // the import still exists and the pointer still points back to this object because this
             // object may actually outlive the import.
-
-            if let Some(import_id) = self.import_id {
-                let ref mut slots = self.connection_state.imports.borrow_mut().slots;
-                if let Some(ref mut import) = slots.get_mut(&id) {
-                    let mut drop_it = false;
-                    if let Some(ref c) = import.app_client {
-                        if let Some(cs) = c.upgrade() {
-                            if cs.get_ptr() == self_ptr {
-                                drop_it = true;
-                            }
+            let ref mut slots = self.connection_state.imports.borrow_mut().slots;
+            if let Some(ref mut import) = slots.get_mut(&id) {
+                let mut drop_it = false;
+                if let Some(ref c) = import.app_client {
+                    if let Some(cs) = c.upgrade() {
+                        if cs.get_ptr() == self_ptr {
+                            drop_it = true;
                         }
                     }
-                    if drop_it {
-                        import.app_client = None;
-                    }
+                }
+                if drop_it {
+                    import.app_client = None;
                 }
             }
         }
