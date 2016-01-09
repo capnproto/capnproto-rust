@@ -317,6 +317,7 @@ impl test_more_stuff::Server for TestMoreStuff {
                 mut results: test_more_stuff::CallFooResults)
                 -> Promise<(), Error>
     {
+        self.call_count += 1;
         let cap = pry!(pry!(params.get()).get_cap());
         let mut request = cap.foo_request();
         request.get().set_i(123);
@@ -336,6 +337,7 @@ impl test_more_stuff::Server for TestMoreStuff {
                               mut results: test_more_stuff::CallFooWhenResolvedResults)
                               -> Promise<(), Error>
     {
+        self.call_count += 1;
         let cap = pry!(pry!(params.get()).get_cap());
         cap.client.when_resolved().then(move |()| {
             let mut request = cap.foo_request();
@@ -364,6 +366,7 @@ impl test_more_stuff::Server for TestMoreStuff {
             _results: test_more_stuff::HoldResults)
             -> Promise<(), Error>
     {
+        self.call_count += 1;
         self.client_to_hold = Some(pry!(pry!(params.get()).get_cap()));
         Promise::ok(())
     }
@@ -373,6 +376,7 @@ impl test_more_stuff::Server for TestMoreStuff {
                  mut results: test_more_stuff::CallHeldResults)
                  -> Promise<(), Error>
     {
+        self.call_count += 1;
         match self.client_to_hold {
             None => Promise::err(Error::failed("no held client".to_string())),
             Some(ref client) => {
@@ -399,6 +403,7 @@ impl test_more_stuff::Server for TestMoreStuff {
                 mut results: test_more_stuff::GetHeldResults)
                 -> Promise<(), Error>
     {
+        self.call_count += 1;
         match self.client_to_hold {
             None => Promise::err(Error::failed("no held client".to_string())),
             Some(ref client) => {
@@ -431,6 +436,7 @@ impl test_more_stuff::Server for TestMoreStuff {
                   mut results: test_more_stuff::GetHandleResults)
                   -> Promise<(), Error>
     {
+        self.call_count += 1;
         let handle = Handle::new(&self.handle_count);
         results.get().set_handle(
             test_handle::ToClient::new(handle).from_server::<::capnp_rpc::Server>());
@@ -442,6 +448,7 @@ impl test_more_stuff::Server for TestMoreStuff {
                         mut results: test_more_stuff::GetHandleCountResults)
                         -> Promise<(), Error>
     {
+        self.call_count += 1;
         results.get().set_count(self.handle_count.get());
         Promise::ok(())
     }
