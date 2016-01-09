@@ -1809,15 +1809,15 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
         self.get_pipelined_cap_move(copy)
     }
     fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
-        match &*self.state.borrow() {
-            &PipelineState {variant: PipelineVariant::Waiting(ref question_ref),
+        match *self.state.borrow() {
+            PipelineState {variant: PipelineVariant::Waiting(ref question_ref),
                             ref connection_state, ref redirect_later, ..} => {
                 // Wrap a PipelineClient in a PromiseClient.
                 let pipeline_client =
                     PipelineClient::new(&connection_state, question_ref.clone(), ops.clone());
 
-                match redirect_later {
-                    &Some(ref r) => {
+                match *redirect_later {
+                    Some(ref r) => {
                         let resolution_promise = r.borrow_mut().add_branch().map(move |response| {
                            try!(response.get()).get_pipelined_cap(&ops)
                         });
@@ -1828,16 +1828,16 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                         let result: Client<VatId> = promise_client.into();
                         Box::new(result)
                     }
-                    &None => {
+                    None => {
                         // Oh, this pipeline will never get redirected, so just return the PipelineClient.
                         unimplemented!()
                     }
                 }
             }
-            &PipelineState {variant: PipelineVariant::Resolved(ref response), ..} => {
+            PipelineState {variant: PipelineVariant::Resolved(ref response), ..} => {
                 response.get().unwrap().get_pipelined_cap(&ops[..]).unwrap()
             }
-            &PipelineState {variant: PipelineVariant::Broken(ref e), ..} => {
+            PipelineState {variant: PipelineVariant::Broken(ref e), ..} => {
                 broken::new_cap(e.clone())
             }
         }
