@@ -361,6 +361,47 @@ fn promise_resolve() {
     });
 }
 
+#[test]
+fn retain_and_release() {
+    use std::cell::Cell;
+    use std::rc::Rc;
+
+    set_up_rpc(|client| {
+        client.test_more_stuff_request().send().promise.then(|response| {
+            let client = pry!(pry!(response.get()).get_cap());
+
+            let (promise, fulfiller) = Promise::<(), Error>::and_fulfiller();
+            let destroyed = Rc::new(Cell::new(false));
+
+            let destroyed1 = destroyed.clone();
+            let destruction_promise = promise.map(move |()| {
+                destroyed1.set(true);
+                Ok(())
+            }).eagerly_evaluate();
+
+            let client1 = client.clone();
+            let mut request = client.hold_request();
+            request.get().set_cap(
+                ::test_capnp::test_interface::ToClient::new(impls::TestCapDestructor::new(fulfiller))
+                    .from_server::<::capnp_rpc::Server>());
+            request.send().promise.then(move |response| {
+                // Do some other call to add a round trip.
+
+                // ugh, we need upcasting.
+                let client2 = ::test_capnp::test_call_order::Client { client: client1.client };
+                client2.get_call_sequence_request().send().promise
+            }).then(move |response| {
+                if destroyed.get() {
+                    Promise::err(Error::failed("shouldn't be destroyed yet".to_string()))
+                } else {
+                    Promise::ok(())
+                }
+            })
+        })
+    });
+}
+
+
 fn get_call_sequence(client: &::test_capnp::test_call_order::Client, expected: u32)
                      -> ::capnp::capability::RemotePromise<::test_capnp::test_call_order::get_call_sequence_results::Owned>
 {

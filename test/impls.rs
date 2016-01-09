@@ -21,7 +21,7 @@
 
 use test_capnp::{bootstrap, test_handle, test_interface, test_extends, test_pipeline,
                  test_call_order, test_more_stuff};
-use gj::Promise;
+use gj::{Promise, PromiseFulfiller};
 use capnp::Error;
 
 use std::cell::Cell;
@@ -279,6 +279,7 @@ impl test_call_order::Server for TestCallOrder {
 struct TestMoreStuff {
     call_count: u32,
     handle_count: Rc<Cell<i64>>,
+    client_to_hold: Option<test_interface::Client>,
 }
 
 impl TestMoreStuff {
@@ -286,6 +287,7 @@ impl TestMoreStuff {
         TestMoreStuff {
             call_count: 0,
             handle_count: Rc::new(Cell::new(0)),
+            client_to_hold: None,
         }
     }
 /*
@@ -358,27 +360,52 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     fn hold(&mut self,
-            _params: test_more_stuff::HoldParams,
+            params: test_more_stuff::HoldParams,
             _results: test_more_stuff::HoldResults)
             -> Promise<(), Error>
     {
-        unimplemented!()
+        self.client_to_hold = Some(pry!(pry!(params.get()).get_cap()));
+        Promise::ok(())
     }
 
     fn call_held(&mut self,
                  _params: test_more_stuff::CallHeldParams,
-                 _results: test_more_stuff::CallHeldResults)
+                 mut results: test_more_stuff::CallHeldResults)
                  -> Promise<(), Error>
     {
-        unimplemented!()
+        match self.client_to_hold {
+            None => Promise::err(Error::failed("no held client".to_string())),
+            Some(ref client) => {
+                let mut request = client.foo_request();
+                {
+                    let mut params = request.get();
+                    params.set_i(123);
+                    params.set_j(true);
+                }
+                request.send().promise.map(move |response| {
+                    if try!(try!(response.get()).get_x()) != "foo" {
+                        Err(Error::failed("expected X to equal 'foo'".to_string()))
+                    } else {
+                        results.get().set_s("bar");
+                        Ok(())
+                    }
+                })
+            }
+        }
     }
 
     fn get_held(&mut self,
                 _params: test_more_stuff::GetHeldParams,
-                _results: test_more_stuff::GetHeldResults)
+                mut results: test_more_stuff::GetHeldResults)
                 -> Promise<(), Error>
     {
-        unimplemented!()
+        match self.client_to_hold {
+            None => Promise::err(Error::failed("no held client".to_string())),
+            Some(ref client) => {
+                results.get().set_cap(client.clone());
+                Promise::ok(())
+            }
+        }
     }
 
     fn echo(&mut self,
@@ -456,3 +483,53 @@ impl Drop for Handle {
 }
 
 impl test_handle::Server for Handle {}
+
+pub struct TestCapDestructor {
+    fulfiller: Option<PromiseFulfiller<(), Error>>,
+    imp: TestInterface,
+}
+
+impl TestCapDestructor {
+    pub fn new(fulfiller: PromiseFulfiller<(), Error>) -> TestCapDestructor {
+        TestCapDestructor {
+            fulfiller: Some(fulfiller),
+            imp: TestInterface::new(),
+        }
+    }
+}
+
+impl Drop for TestCapDestructor {
+    fn drop(&mut self) {
+        match self.fulfiller.take() {
+            Some(f) => f.fulfill(()),
+            None => (),
+        }
+    }
+}
+
+impl test_interface::Server for TestCapDestructor {
+    fn foo(&mut self,
+           params: test_interface::FooParams,
+           results: test_interface::FooResults)
+           -> Promise<(), Error>
+    {
+        self.imp.foo(params, results)
+    }
+
+    fn bar(&mut self,
+           _params: test_interface::BarParams,
+           _results: test_interface::BarResults)
+           -> Promise<(), Error>
+    {
+        Promise::err(Error::unimplemented("bar is not implemented".to_string()))
+    }
+
+    fn baz(&mut self,
+           _params: test_interface::BazParams,
+           _results: test_interface::BazResults)
+           -> Promise<(), Error>
+    {
+        Promise::err(Error::unimplemented("bar is not implemented".to_string()))
+    }
+
+}
