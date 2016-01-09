@@ -1450,7 +1450,7 @@ fn generate_node(gen: &GeneratorContext,
                 dispatch_arms.push(
                     Line(format!(
                             "{} => server.{}(::capnp::private::capability::internal_get_typed_params(params), ::capnp::private::capability::internal_get_typed_results(results)),",
-                            ordinal, camel_to_snake_case(name))));
+                            ordinal, module_name(name))));
                 mod_interior.push(
                     Line(format!(
                             "pub type {}Params<{}> = capability::Params<{}>;",
@@ -1462,7 +1462,7 @@ fn generate_node(gen: &GeneratorContext,
                 server_interior.push(
                     Line(format!(
                             "fn {}(&mut self, _: {}Params<{}>, _: {}Results<{}>) -> ::capnp::capability::Promise<(), ::capnp::Error> {{ ::capnp::capability::Promise::err(::capnp::Error::unimplemented(\"method not implemented\".to_string())) }}",
-                            camel_to_snake_case(name),
+                            module_name(name),
                             capitalize_first_letter(name), params_ty_params,
                             capitalize_first_letter(name), results_ty_params
                             )));
@@ -1487,7 +1487,7 @@ fn generate_node(gen: &GeneratorContext,
                     let the_mod = gen.scope_map[&base_id].join("::");
                     base_dispatch_arms.push(
                         Line(format!(
-                                "0x{:x} => {}::ServerDispatch::<T>::dispatch_call_internal(&mut *self.server, method_id, params, results),",
+                                "0x{:x} => {}::ServerDispatch::<_T>::dispatch_call_internal(&mut *self.server, method_id, params, results),",
                                 base_id, the_mod)));
                     base_traits.push(format!("{}::Server", the_mod));
                 }
@@ -1593,9 +1593,9 @@ fn generate_node(gen: &GeneratorContext,
                         ))
                     }),
                     Indent(Box::new(Branch( vec!(
-                        Line(format!("pub fn from_server<T: ServerHook>(self) -> Client{} {{", bracketed_params)),
+                        Line(format!("pub fn from_server<_T: ServerHook>(self) -> Client{} {{", bracketed_params)),
                         Indent(
-                            Box::new(Line(format!("Client {{ client : T::new_client(::std::boxed::Box::new(ServerDispatch {{ server : ::std::boxed::Box::new(self.u), {} }})), {} }}", params.phantom_data, params.phantom_data)))),
+                            Box::new(Line(format!("Client {{ client : _T::new_client(::std::boxed::Box::new(ServerDispatch {{ server : ::std::boxed::Box::new(self.u), {} }})), {} }}", params.phantom_data, params.phantom_data)))),
                         Line("}".to_string()))))),
                     Line("}".to_string()))));
 
@@ -1626,8 +1626,8 @@ fn generate_node(gen: &GeneratorContext,
                                           Indent(Box::new(Branch(server_interior))),
                                           Line("}".to_string()))));
 
-            mod_interior.push(Branch(vec!(Line(format!("pub struct ServerDispatch<T,{}> {{", params.params)),
-                                          Indent(Box::new(Line("pub server : Box<T>,".to_string()))),
+            mod_interior.push(Branch(vec!(Line(format!("pub struct ServerDispatch<_T,{}> {{", params.params)),
+                                          Indent(Box::new(Line("pub server: Box<_T>,".to_string()))),
                                           Indent(Box::new(Branch(if is_generic {
                                             vec!(Line(format!("_phantom: PhantomData<({})>", params.params))) } else { vec!() } ))),
                                           Line("}".to_string()))));
@@ -1635,14 +1635,14 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(
                 Branch(vec!(
                     (if is_generic {
-                        Line(format!("impl <{}, T: Server{}> ::capnp::capability::Server for ServerDispatch<T,{}> {{", params.params, bracketed_params, params.params))
+                        Line(format!("impl <{}, _T: Server{}> ::capnp::capability::Server for ServerDispatch<_T,{}> {{", params.params, bracketed_params, params.params))
                     } else {
-                        Line("impl <T: Server> ::capnp::capability::Server for ServerDispatch<T> {".to_string())
+                        Line("impl <_T: Server> ::capnp::capability::Server for ServerDispatch<_T> {".to_string())
                     }),
                     Indent(Box::new(Line("fn dispatch_call(&mut self, interface_id: u64, method_id: u16, params: capability::Params<::capnp::any_pointer::Owned>, results: capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::Promise<(), ::capnp::Error> {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match interface_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(
-                        Box::new(Line(format!("_private::TYPE_ID => ServerDispatch::<T, {}>::dispatch_call_internal(&mut *self.server, method_id, params, results),",params.params)))))))),
+                        Box::new(Line(format!("_private::TYPE_ID => ServerDispatch::<_T, {}>::dispatch_call_internal(&mut *self.server, method_id, params, results),",params.params)))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(base_dispatch_arms))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => { ::capnp::capability::Promise::err(::capnp::Error::unimplemented(\"Method not implemented.\".to_string())) }".to_string()))))))),
                     Indent(Box::new(Indent(Box::new(Line("}".to_string()))))),
@@ -1652,11 +1652,11 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(
                 Branch(vec!(
                     (if is_generic {
-                        Line(format!("impl <{}, T : Server{}> ServerDispatch<T,{}> {{", params.params, bracketed_params, params.params))
+                        Line(format!("impl <{}, _T: Server{}> ServerDispatch<_T,{}> {{", params.params, bracketed_params, params.params))
                     } else {
-                        Line("impl <T : Server> ServerDispatch<T> {".to_string())
+                        Line("impl <_T :Server> ServerDispatch<_T> {".to_string())
                     }),
-                    Indent(Box::new(Line("pub fn dispatch_call_internal(server: &mut T, method_id: u16, params: capability::Params<::capnp::any_pointer::Owned>, results: capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::Promise<(), ::capnp::Error> {".to_string()))),
+                    Indent(Box::new(Line("pub fn dispatch_call_internal(server: &mut _T, method_id: u16, params: capability::Params<::capnp::any_pointer::Owned>, results: capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::Promise<(), ::capnp::Error> {".to_string()))),
                     Indent(Box::new(Indent(Box::new(Line("match method_id {".to_string()))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Branch(dispatch_arms))))))),
                     Indent(Box::new(Indent(Box::new(Indent(Box::new(Line("_ => { ::capnp::capability::Promise::err(::capnp::Error::unimplemented(\"Method not implemented.\".to_string())) }".to_string()))))))),
