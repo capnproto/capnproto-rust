@@ -1830,7 +1830,8 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                     }
                     None => {
                         // Oh, this pipeline will never get redirected, so just return the PipelineClient.
-                        unimplemented!()
+                        let client: Client<VatId> = pipeline_client.into();
+                        Box::new(client)
                     }
                 }
             }
