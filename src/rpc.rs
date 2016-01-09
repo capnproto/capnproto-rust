@@ -2392,19 +2392,33 @@ impl <VatId> PromiseClient<VatId> {
 
 impl <VatId> Drop for PromiseClient<VatId> {
     fn drop(&mut self) {
-        self.connection_state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
+        let self_ptr = (&self) as *const _ as usize;
 
-        match self.import_id {
-            Some(_id) => {
-                // This object is representing an import promise.  That means the import table may still
-                // contain a pointer back to it.  Remove that pointer.  Note that we have to verify that
-                // the import still exists and the pointer still points back to this object because this
-                // object may actually outlive the import.
+        if let Some(id) = self.import_id {
+            // This object is representing an import promise.  That means the import table may still
+            // contain a pointer back to it.  Remove that pointer.  Note that we have to verify that
+            // the import still exists and the pointer still points back to this object because this
+            // object may actually outlive the import.
 
-                // TODO
+            if let Some(import_id) = self.import_id {
+                let ref mut slots = self.connection_state.imports.borrow_mut().slots;
+                if let Some(ref mut import) = slots.get_mut(&id) {
+                    let mut drop_it = false;
+                    if let Some(ref c) = import.app_client {
+                        if let Some(cs) = c.upgrade() {
+                            if cs.get_ptr() == self_ptr {
+                                drop_it = true;
+                            }
+                        }
+                    }
+                    if drop_it {
+                        import.app_client = None;
+                    }
+                }
             }
-            None => {}
         }
+
+        self.connection_state.client_downcast_map.borrow_mut().remove(&self_ptr);
     }
 }
 

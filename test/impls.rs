@@ -371,6 +371,16 @@ impl test_more_stuff::Server for TestMoreStuff {
         Promise::ok(())
     }
 
+    fn dont_hold(&mut self,
+                 params: test_more_stuff::DontHoldParams,
+                 _results: test_more_stuff::DontHoldResults)
+                 -> Promise<(), Error>
+    {
+        self.call_count += 1;
+        let _ = Some(pry!(pry!(params.get()).get_cap()));
+        Promise::ok(())
+    }
+
     fn call_held(&mut self,
                  _params: test_more_stuff::CallHeldParams,
                  mut results: test_more_stuff::CallHeldResults)

@@ -352,7 +352,6 @@ fn promise_resolve() {
                         if pry!(pry!(response.get()).get_s()) != "bar" {
                             return Promise::err(Error::failed("expected s to equal 'bar'".to_string()));
                         }
-
                         Promise::ok(())
                     })
                 })
@@ -487,6 +486,32 @@ fn retain_and_release() {
     });
 }
 
+
+#[test]
+fn dont_hold() {
+    set_up_rpc(|client| {
+        client.test_more_stuff_request().send().promise.then(|response| {
+            let client = pry!(pry!(response.get()).get_cap());
+
+            let (promise, fulfiller) =
+                Promise::<::test_capnp::test_interface::Client, Error>::and_fulfiller();
+
+            let cap: ::test_capnp::test_interface::Client =
+                ::capnp_rpc::new_promise_client(promise.map(|c| Ok(c.client)));
+
+            let mut request = client.dont_hold_request();
+            request.get().set_cap(cap.clone());
+            request.send().promise.then(move |_response| {
+                let mut request = client.dont_hold_request();
+                request.get().set_cap(cap.clone());
+                request.send().promise.then(move |_| {
+                    drop(fulfiller);
+                    Promise::ok(())
+                })
+            })
+        })
+    });
+}
 
 fn get_call_sequence(client: &::test_capnp::test_call_order::Client, expected: u32)
                      -> ::capnp::capability::RemotePromise<::test_capnp::test_call_order::get_call_sequence_results::Owned>

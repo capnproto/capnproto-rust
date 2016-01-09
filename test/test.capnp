@@ -163,4 +163,7 @@ interface TestMoreStuff extends(TestCallOrder) {
   # Always returns a null capability.
 
   getHandleCount @11 () -> (count: Int64);
+
+  dontHold @12 (cap :TestInterface) -> ();
+  #Returns immediately and does not hold on to the capability.
 }
