@@ -420,6 +420,61 @@ fn embargo_success() {
     });
 }
 
+fn expect_promise_throws<T>(promise: Promise<T, Error>) -> Promise<(), Error> {
+    promise.then_else(|r| match r {
+        Ok(_) => Promise::err(Error::failed("expected promise to fail".to_string())),
+        Err(_) => {
+            Promise::ok(())
+        }
+    })
+}
+
+#[test]
+fn embargo_error() {
+    set_up_rpc(|client| {
+        client.test_more_stuff_request().send().promise.then(|response| {
+            let client = pry!(pry!(response.get()).get_cap());
+
+            let (promise, fulfiller) =
+                Promise::<::test_capnp::test_call_order::Client, Error>::and_fulfiller();
+
+            let cap = ::capnp_rpc::new_promise_client(promise.map(|c| Ok(c.client)));
+
+
+            // ugh, we need upcasting.
+            let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
+            let early_call = client2.get_call_sequence_request().send();
+            drop(client2);
+
+            let mut echo_request = client.echo_request();
+            echo_request.get().set_cap(cap);
+            let echo = echo_request.send();
+
+            let pipeline = echo.pipeline.get_cap();
+
+            let call0 = get_call_sequence(&pipeline, 0);
+            let call1 = get_call_sequence(&pipeline, 1);
+
+            early_call.promise.then(move |_early_call_response| {
+                let call2 = get_call_sequence(&pipeline, 2);
+                echo.promise.then(move |_echo_response| {
+                    let call3 = get_call_sequence(&pipeline, 3);
+                    let call4 = get_call_sequence(&pipeline, 4);
+                    let call5 = get_call_sequence(&pipeline, 5);
+                    fulfiller.reject(Error::failed("foo".to_string()));
+                    Promise::all(vec![
+                        expect_promise_throws(call0.promise),
+                        expect_promise_throws(call1.promise),
+                        expect_promise_throws(call2.promise),
+                        expect_promise_throws(call3.promise),
+                        expect_promise_throws(call4.promise),
+                        expect_promise_throws(call5.promise)].into_iter()).map(|_| Ok(()))
+                })
+            })
+        })
+    });
+}
+
 #[test]
 fn echo_destruction() {
     set_up_rpc(|client| {
