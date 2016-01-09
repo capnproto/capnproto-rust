@@ -735,8 +735,8 @@ impl <VatId> ConnectionState<VatId> {
                 Ok(message::Return(oret)) => {
                     let ret = try!(oret);
                     let question_id = ret.get_answer_id();
-                    match &mut connection_state.questions.borrow_mut().slots[question_id as usize] {
-                        &mut Some(ref mut question) => {
+                    match connection_state.questions.borrow_mut().slots[question_id as usize] {
+                        Some(ref mut question) => {
                             question.is_awaiting_return = false;
                             match &question.self_ref {
                                 &Some(ref question_ref) => {
@@ -780,7 +780,7 @@ impl <VatId> ConnectionState<VatId> {
                                             }
                                         }
                                         return_::AcceptFromThirdParty(_) => {
-                                            unimplemented!()
+                                            BorrowWorkaround::Unimplemented
                                         }
                                     }
                                 }
@@ -796,9 +796,8 @@ impl <VatId> ConnectionState<VatId> {
                                 }
                             }
                         }
-                        &mut None => {
-                            // invalid question ID
-                            unimplemented!()
+                        None => {
+                            return Err(Error::failed("Invalid question ID in Return message.".to_string()));
                         }
                     }
                 }
@@ -962,7 +961,8 @@ impl <VatId> ConnectionState<VatId> {
                     let redirect_results = match try!(call.get_send_results_to().which()) {
                         ::rpc_capnp::call::send_results_to::Caller(()) => false,
                         ::rpc_capnp::call::send_results_to::Yourself(()) => true,
-                        ::rpc_capnp::call::send_results_to::ThirdParty(_) => unimplemented!(),
+                        ::rpc_capnp::call::send_results_to::ThirdParty(_) =>
+                            return Err(Error::failed("Unsupported `Call.sendResultsTo`.".to_string())),
                     };
                     let payload = try!(call.get_params());
 
@@ -1470,7 +1470,7 @@ impl <VatId> ConnectionState<VatId> {
                 Ok(Some(broken::new_cap(Error::failed("invalid 'receiver answer'".to_string()))))
             }
             cap_descriptor::ThirdPartyHosted(_third_party_hosted) => {
-                unimplemented!()
+                Err(Error::unimplemented("ThirdPartyHosted caps are not supported.".to_string()))
             }
         }
     }
