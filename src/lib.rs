@@ -21,7 +21,9 @@
 
 //! # Cap'n Proto Schema Compiler Plugin Library
 //!
-//! This library allows you to do Cap'n Proto code generation within a Cargo build.
+//! This library allows you to do [Cap'n Proto code generation]
+//! (https://capnproto.org/otherlang.html#how-to-write-compiler-plugins)
+//! within a Cargo build.
 //!
 //! In your Cargo.toml:
 //!
@@ -52,19 +54,22 @@
 
 extern crate capnp;
 
+/// Code generated from [schema.capnp]
+/// (https://github.com/sandstorm-io/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
 pub mod schema_capnp;
+
 pub mod codegen;
 pub mod codegen_types;
 pub mod schema;
 
 use std::path::Path;
 
-pub fn compile<P1, P2>(prefix : P1, files : &[P2]) -> ::capnp::Result<()>
+pub fn compile<P1, P2>(src_prefix: P1, files: &[P2]) -> ::capnp::Result<()>
     where P1: AsRef<Path>, P2: AsRef<Path>
 {
     let mut command = ::std::process::Command::new("capnp");
     command.arg("compile").arg("-o").arg("-")
-           .arg(&format!("--src-prefix={}", prefix.as_ref().display()));
+           .arg(&format!("--src-prefix={}", src_prefix.as_ref().display()));
 
     for file in files {
         command.arg(&format!("{}", file.as_ref().display()));
