@@ -83,21 +83,6 @@ pub fn pointers_per_element(size: ElementSize) -> WirePointerCount32 {
     }
 }
 
-// Port note: here, this is only valid for T a primitive type. In
-// capnproto-c++, it dispatches on the 'kind' of T and can handle
-// structs and pointers.
-pub fn element_size_for_type<T>() -> ElementSize {
-    match bits_per_element::<T>() {
-        0 => Void,
-        1 => Bit,
-        8 => Byte,
-        16 => TwoBytes,
-        32 => FourBytes,
-        64 => EightBytes,
-        b => panic!("don't know how to get field size with {} bits", b)
-    }
-}
-
 #[derive(Clone, Copy)]
 pub struct StructSize {
     pub data: WordCount16,
@@ -2480,6 +2465,17 @@ pub trait PrimitiveElement: Endian {
             (*ptr).set(value);
         }
     }
+
+    fn element_size() -> ElementSize {
+        match ::std::mem::size_of::<Self>() {
+            0 => Void,
+            1 => Byte,
+            2 => TwoBytes,
+            4 => FourBytes,
+            8 => EightBytes,
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl PrimitiveElement for u8 { }
@@ -2516,6 +2512,7 @@ impl PrimitiveElement for bool {
         let bitnum = bindex % BITS_PER_BYTE;
         unsafe { (*b) = ((*b) & !(1 << bitnum)) | ((value as u8) << bitnum) }
     }
+    fn element_size() -> ElementSize { Bit }
 }
 
 impl PrimitiveElement for () {
