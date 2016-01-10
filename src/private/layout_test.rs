@@ -61,3 +61,50 @@ fn simple_raw_data_struct() {
     assert_eq!(reader.get_bool_field(63), true);
     assert_eq!(reader.get_bool_field(64), false);
 }
+
+
+#[test]
+fn bool_list() {
+    use private::layout::PrimitiveElement;
+    use traits::FromPointerReader;
+
+    // [true, false, true, false,
+    //  true, true, true, false,
+    //  false, true]
+
+    let data : ::private::AlignedData<[u8; 16]> = ::private::AlignedData {
+        _dummy: 0,
+        data : [0x01, 0x00, 0x00, 0x00, 0x51, 0x00, 0x00, 0x00,
+                0x75, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+    };
+
+    let reader = unsafe {
+        ::private::layout::PointerReader::get_root_unchecked(
+            ::std::mem::transmute(data.data.as_ptr()))
+            .get_list(::private::layout::ElementSize::Bit, ::std::ptr::null()).unwrap() };
+
+    assert_eq!(reader.len(), 10);
+    assert_eq!(bool::get(&reader, 0), true);
+    assert_eq!(bool::get(&reader, 1), false);
+    assert_eq!(bool::get(&reader, 2), true);
+    assert_eq!(bool::get(&reader, 3), false);
+    assert_eq!(bool::get(&reader, 4), true);
+    assert_eq!(bool::get(&reader, 5), true);
+    assert_eq!(bool::get(&reader, 6), true);
+    assert_eq!(bool::get(&reader, 7), false);
+    assert_eq!(bool::get(&reader, 8), false);
+    assert_eq!(bool::get(&reader, 9), true);
+
+
+    let reader = unsafe {
+        ::primitive_list::Reader::<bool>::get_from_pointer(
+            &::private::layout::PointerReader::get_root_unchecked(
+                ::std::mem::transmute(data.data.as_ptr()))).unwrap() };
+
+    assert_eq!(reader.len(), 10);
+    assert_eq!(reader.get(0), true);
+    assert_eq!(reader.get(1), false);
+    assert_eq!(reader.get(2), true);
+    assert_eq!(reader.get(3), false);
+    //...
+}
