@@ -19,6 +19,48 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+//! An implementation of the [Cap'n Proto remote procedure call](https://capnproto.org/rpc.html)
+//! protocol. Includes all [Level 1](https://capnproto.org/rpc.html#protocol-features) features.
+//!
+//! # Example
+//!
+//! ```capnp
+//! # Cap'n Proto schema
+//! interface Foo {
+//!     identity @0 (x: UInt32) -> (y: UInt32);
+//! }
+//! ```
+//!
+//! ```ignore
+//! // Rust server defining an implementation of Foo.
+//! struct FooImpl;
+//! impl foo::Server for FooImpl {
+//!     fn identity(&mut self,
+//!                 params: foo::IdentityParams,
+//!                 mut results: foo::IdentityResults)
+//!                 -> Promise<(), ::capnp::Error>
+//!     {
+//!         let x = pry!(params.get()).get_x();
+//!         results.get().set_x(x);
+//!         Promise::ok(())
+//!     }
+//! }
+//! ```
+//!
+//! ```ignore
+//! // Rust client calling a remote implementation of Foo.
+//! let mut request = foo_client.identity_request();
+//! request.get().set_x(123);
+//! let promise = request.send().promise.map(|response| {
+//!     println!("results = {}", try!(response.get()).get_y());
+//!     Ok(())
+//! });
+//! ```
+//!
+//! For a more complete example, see https://github.com/dwrensha/capnp-rpc-rust/tree/master/examples/calculator
+
+
+
 extern crate capnp;
 #[macro_use]
 extern crate gj;
@@ -30,10 +72,14 @@ use capnp::private::capability::{ClientHook, ServerHook};
 use std::cell::RefCell;
 use std::rc::Rc;
 
+/// Code generated from [rpc.capnp]
+/// (https://github.com/sandstorm-io/capnproto/blob/master/c%2B%2B/src/capnp/rpc.capnp).
 pub mod rpc_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_capnp.rs"));
 }
 
+/// Code generated from [rpc-twoparty.capnp]
+/// (https://github.com/sandstorm-io/capnproto/blob/master/c%2B%2B/src/capnp/rpc-twoparty.capnp).
 pub mod rpc_twoparty_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_twoparty_capnp.rs"));
 }
@@ -86,6 +132,16 @@ impl ::gj::TaskReaper<(), Error> for SystemTaskReaper {
     }
 }
 
+/// A portal to objects available on the network.
+///
+/// The RPC implemententation sits on top of an implementation of `VatNetwork`, which
+/// determines how to form connections between vats. The RPC implementation determines
+/// how to use such connections to manage object references and make method calls.
+///
+/// At the moment, this is all rather more general than it needs to be, because the only
+/// implementation of `VatNetwork` is `twoparty::VatNetwork`. However, eventually we
+/// will need to have more sophistocated `VatNetwork` implementations, in order to support
+/// [level 3](https://capnproto.org/rpc.html#protocol-features) features.
 pub struct RpcSystem<VatId> where VatId: 'static {
     network: Box<::VatNetwork<VatId>>,
 
@@ -99,6 +155,7 @@ pub struct RpcSystem<VatId> where VatId: 'static {
 }
 
 impl <VatId> RpcSystem <VatId> {
+    /// Constructs a new `RpcSystem` with the given network and bootstrap capability.
     pub fn new(network: Box<::VatNetwork<VatId>>,
                bootstrap: Option<::capnp::capability::Client>) -> RpcSystem<VatId> {
         let bootstrap_cap = match bootstrap {
@@ -176,6 +233,14 @@ impl <VatId> RpcSystem <VatId> {
     }
 }
 
+/// Hook that allows local implementations of interfaces to be passed to the RPC system
+/// so that they can be called remotely.
+///
+/// To use this, you need to do the following dance:
+///
+/// ```ignore
+/// let client = foo:ToClient::new(FooImpl).from_server::<::capnp_rpc::Server>());
+/// ```
 pub struct Server;
 
 impl ServerHook for Server {
@@ -184,6 +249,10 @@ impl ServerHook for Server {
     }
 }
 
+
+
+/// Converts a promise for a client into a client that queues up any calls that arrive
+/// before the promise resolves.
 // TODO: figure out a better way to allow construction of promise clients.
 pub fn new_promise_client<T>(client_promise: Promise<::capnp::capability::Client, Error>) -> T
     where T: ::capnp::capability::FromClientHook

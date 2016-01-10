@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+//! An implementation of `VatNetwork` for the common case of a client-server connection.
+
 use capnp::message::ReaderOptions;
 use gj::{ForkedPromise, Promise, PromiseFulfiller};
 
@@ -155,6 +157,7 @@ impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
     }
 }
 
+/// A vat networks with two parties, the client and the server.
 pub struct VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
     connection: Option<Connection<T,U>>,
 
@@ -166,6 +169,9 @@ pub struct VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrit
 }
 
 impl <T, U> VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
+    /// Creates a new two-party vat network that will receive data on `input_stream` and send data on
+    /// `output_stream`. `side` indicates whether this is the client or the server side of the connection.
+    /// The options in `receive_options` will be used when reading the messages that come in on `input_stream`.
     pub fn new(input_stream: T,
                output_stream: U,
                side: ::rpc_twoparty_capnp::Side,
@@ -182,6 +188,7 @@ impl <T, U> VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWri
         }
     }
 
+    /// Returns a promise that resolves when the peer disconnects.
     pub fn on_disconnect(&mut self) -> Promise<(), ::capnp::Error> {
         self.on_disconnect_promise.add_branch()
     }
