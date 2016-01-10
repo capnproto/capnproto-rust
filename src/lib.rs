@@ -168,24 +168,23 @@ pub struct Error {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
-    // Something went wrong. This is the usual error kind. It includes decoding errors and I/O
-    // errors.
+    /// Something went wrong. This is the usual error kind. It includes decoding errors.
     Failed,
 
-    // The call failed because of a temporary lack of resources. This could be space resources
-    // (out of memory, out of disk space) or time resources (request queue overflow, operation
-    // timed out).
+    /// The call failed because of a temporary lack of resources. This could be space resources
+    /// (out of memory, out of disk space) or time resources (request queue overflow, operation
+    /// timed out).
     //
-    // The operation might work if tried again, but it should NOT be repeated immediately as this
-    // may simply exacerbate the problem.
+    /// The operation might work if tried again, but it should NOT be repeated immediately as this
+    /// may simply exacerbate the problem.
     Overloaded,
 
-    // The call required communication over a connection that has been lost. The callee will need
-    // to re-establish connections and try again.
+    /// The call required communication over a connection that has been lost. The callee will need
+    /// to re-establish connections and try again.
     Disconnected,
 
-    // The requested method is not implemented. The caller may wish to revert to a fallback
-    // approach based on other methods.
+    /// The requested method is not implemented. The caller may wish to revert to a fallback
+    /// approach based on other methods.
     Unimplemented,
 }
 
