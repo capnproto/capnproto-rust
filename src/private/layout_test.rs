@@ -105,5 +105,10 @@ fn bool_list() {
     assert_eq!(reader.get(1), false);
     assert_eq!(reader.get(2), true);
     assert_eq!(reader.get(3), false);
-    //...
+    assert_eq!(reader.get(4), true);
+    assert_eq!(reader.get(5), true);
+    assert_eq!(reader.get(6), true);
+    assert_eq!(reader.get(7), false);
+    assert_eq!(reader.get(8), false);
+    assert_eq!(reader.get(9), true);
 }

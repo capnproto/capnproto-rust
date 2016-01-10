@@ -23,7 +23,7 @@
 
 use traits::{FromPointerReader, FromPointerBuilder};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
-                      PrimitiveElement, element_size_for_type};
+                      PrimitiveElement};
 use Result;
 
 #[derive(Clone, Copy)]
@@ -52,7 +52,7 @@ impl <'a, T : PrimitiveElement> Reader<'a, T> {
 
 impl <'a, T : PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
-        Ok(Reader { reader : try!(reader.get_list(element_size_for_type::<T>(), ::std::ptr::null())),
+        Ok(Reader { reader : try!(reader.get_list(T::element_size(), ::std::ptr::null())),
                     marker : ::std::marker::PhantomData })
     }
 }
@@ -83,11 +83,11 @@ impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
 
 impl <'a, T: PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
     fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
-        Builder { builder : builder.init_list(element_size_for_type::<T>(), size),
+        Builder { builder : builder.init_list(T::element_size(), size),
                   marker : ::std::marker::PhantomData }
     }
     fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a, T>> {
-        Ok(Builder { builder : try!(builder.get_list(element_size_for_type::<T>(), ::std::ptr::null())),
+        Ok(Builder { builder : try!(builder.get_list(T::element_size(), ::std::ptr::null())),
                      marker : ::std::marker::PhantomData })
     }
 }
