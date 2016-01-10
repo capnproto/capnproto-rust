@@ -78,10 +78,12 @@ fn bool_list() {
                 0x75, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
     };
 
-    let reader = unsafe {
+    let pointer_reader = unsafe {
         ::private::layout::PointerReader::get_root_unchecked(
             ::std::mem::transmute(data.data.as_ptr()))
-            .get_list(::private::layout::ElementSize::Bit, ::std::ptr::null()).unwrap() };
+    };
+
+    let reader = pointer_reader.get_list(::private::layout::ElementSize::Bit, ::std::ptr::null()).unwrap();
 
     assert_eq!(reader.len(), 10);
     assert_eq!(bool::get(&reader, 0), true);
@@ -96,10 +98,7 @@ fn bool_list() {
     assert_eq!(bool::get(&reader, 9), true);
 
 
-    let reader = unsafe {
-        ::primitive_list::Reader::<bool>::get_from_pointer(
-            &::private::layout::PointerReader::get_root_unchecked(
-                ::std::mem::transmute(data.data.as_ptr()))).unwrap() };
+    let reader = ::primitive_list::Reader::<bool>::get_from_pointer(&pointer_reader).unwrap();
 
     assert_eq!(reader.len(), 10);
     assert_eq!(reader.get(0), true);
