@@ -10,15 +10,13 @@ build = "build.rs"
 name = "capnp_rpc_test"
 path = "test.rs"
 
+[build-dependencies]
+capnpc = "0.6"
 
 [dependencies.capnp-rpc]
 path = "../"
 
-[build-dependencies.capnpc]
-git = "https://github.com/dwrensha/capnpc-rust"
-
-[dependencies.capnp]
-git = "https://github.com/dwrensha/capnproto-rust"
-
 [dependencies]
-gj = "*"
+capnp = "0.6"
+gj = "0.1"
+
