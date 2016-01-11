@@ -17,6 +17,4 @@ path = "../"
 [dependencies]
 rand = "0.3.11"
 fdstream = "*"
-
-[dependencies.capnp]
-git = "https://github.com/dwrensha/capnproto-rust"
+capnp = "0.6"
