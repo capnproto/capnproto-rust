@@ -21,11 +21,11 @@ remote procedure calls built on top of this.
 
 ## Documentation
 
-Hosted [here](http://docs.capnproto-rust.org).
+Hosted [here](https://docs.capnproto-rust.org).
 
 ## Status
 
-See updates [here](http://dwrensha.github.io/capnproto-rust).
+See updates [here](https://dwrensha.github.io/capnproto-rust).
 
 
 
