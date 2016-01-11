@@ -1,6 +1,9 @@
 capnp-rpc-rust
 ==============
 
+[![Build Status](https://travis-ci.org/dwrensha/capnp-rpc-rust.svg?branch=master)](https://travis-ci.org/dwrensha/capnp-rpc-rust)
+[![crates.io](http://meritbadge.herokuapp.com/capnp-rpc)](https://crates.io/crates/capnp-rpc)
+
 This is an implementation of the Cap'n Proto remote procedure call protocol.
 
 It's a fairly literal translation of the original
