@@ -35,6 +35,7 @@ use std::rc::{Rc, Weak};
 use rpc_capnp::{message, return_, cap_descriptor};
 use broken;
 
+/*
 struct Defer<F> where F: FnOnce() {
     deferred: Option<F>,
 }
@@ -53,7 +54,7 @@ impl <F> Drop for Defer<F> where F: FnOnce() {
             None => unreachable!(),
         }
     }
-}
+}*/
 
 pub type QuestionId = u32;
 pub type AnswerId = QuestionId;
@@ -817,7 +818,7 @@ impl <VatId> ConnectionState<VatId> {
                                 format!("Invalid question ID {} in Finish message.", answer_id)));
                         }
                         Some(answer) => {
-                            let Answer { active, pipeline, redirected_results, result_exports } = answer;
+                            let Answer { active, pipeline, redirected_results: _, result_exports } = answer;
 
                             if !active {
                                 return Err(Error::failed(
@@ -2072,7 +2073,7 @@ impl ResultsDone {
     {
         results_inner.ensure_initialized();
         let ResultsInner { connection_state, variant,
-                           redirect_results, answer_id } = results_inner;
+                           redirect_results: _, answer_id } = results_inner;
 
         drop(answer_id);
         match variant {

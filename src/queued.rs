@@ -115,7 +115,7 @@ struct ClientInner {
     //
     // This fork shall only have three branches:  `selfResolutionOp`, `promiseForCallForwarding`, and
     // `promiseForClientResolution`, in that order.
-    promise: ClientHookPromiseFork,
+    _promise: ClientHookPromiseFork,
 
     // Represents the operation which will set `redirect` when possible.
     self_resolution_op: Promise<(), Error>,
@@ -148,7 +148,7 @@ impl Client {
         let branch3 = promise.add_branch();
         let inner = Rc::new(RefCell::new(ClientInner {
             redirect: None,
-            promise: promise,
+            _promise: promise,
             self_resolution_op: Promise::never_done(),
             promise_for_call_forwarding: branch2.fork(),
             promise_for_client_resolution: branch3.fork(),
