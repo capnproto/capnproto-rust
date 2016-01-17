@@ -126,6 +126,15 @@ fn set_up_rpc<F>(main: F)
     where F: FnOnce(test_capnp::bootstrap::Client) -> Promise<(), Error>,
           F: Send + 'static
 {
+    rpc_top_level(|wait_scope, client| {
+        main(client).wait(wait_scope)
+    });
+}
+
+fn rpc_top_level<F>(main: F)
+    where F: FnOnce(&::gj::WaitScope, test_capnp::bootstrap::Client) -> Result<(), Error>,
+          F: Send + 'static
+{
     EventLoop::top_level(|wait_scope| {
         let (join_handle, stream) = try!(unix::spawn(|stream, wait_scope| {
 
@@ -157,7 +166,7 @@ fn set_up_rpc<F>(main: F)
         let mut rpc_system = RpcSystem::new(network, None);
         let client: test_capnp::bootstrap::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-        try!(main(client).wait(wait_scope));
+        try!(main(wait_scope, client));
         drop(rpc_system);
         join_handle.join().expect("thread exited unsuccessfully");
         Ok(())
@@ -213,47 +222,45 @@ fn basic() {
 
 #[test]
 fn pipelining() {
-    set_up_rpc(|client| {
-        client.test_pipeline_request().send().promise.then(|response| {
-            let client = pry!(pry!(response.get()).get_cap());
-            let mut request = client.get_cap_request();
-            request.get().set_n(234);
-            let server = impls::TestInterface::new();
-            let chained_call_count = server.get_call_count();
-            request.get().set_in_cap(
-                ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>());
+    rpc_top_level(|wait_scope, client| {
+        let response = try!(client.test_pipeline_request().send().promise.wait(wait_scope));
+        let client = try!(try!(response.get()).get_cap());
 
-            let promise = request.send();
+        let mut request = client.get_cap_request();
+        request.get().set_n(234);
+        let server = impls::TestInterface::new();
+        let chained_call_count = server.get_call_count();
+        request.get().set_in_cap(
+            ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>());
 
-            let mut pipeline_request = promise.pipeline.get_out_box().get_cap().foo_request();
-            pipeline_request.get().set_i(321);
-            let pipeline_promise = pipeline_request.send();
+        let promise = request.send();
 
+        let mut pipeline_request = promise.pipeline.get_out_box().get_cap().foo_request();
+        pipeline_request.get().set_i(321);
+        let pipeline_promise = pipeline_request.send();
 
-            let pipeline_request2 = {
-                let extends_client =
-                    ::test_capnp::test_extends::Client { client: promise.pipeline.get_out_box().get_cap().client };
-                extends_client.grault_request()
-            };
-            let pipeline_promise2 = pipeline_request2.send();
+        let pipeline_request2 = {
+            let extends_client =
+                ::test_capnp::test_extends::Client { client: promise.pipeline.get_out_box().get_cap().client };
+            extends_client.grault_request()
+        };
+        let pipeline_promise2 = pipeline_request2.send();
 
-            drop(promise); // Just to be annoying, drop the original promise.
+        drop(promise); // Just to be annoying, drop the original promise.
 
-            if chained_call_count.get() != 0 {
-                return Promise::err(Error::failed("expeced chained_call_count to equal 0".to_string()));
-            }
+        if chained_call_count.get() != 0 {
+            return Err(Error::failed("expeced chained_call_count to equal 0".to_string()));
+        }
 
-            pipeline_promise.promise.then(move |response| {
-                if pry!(pry!(response.get()).get_x()) != "bar" {
-                    return Promise::err(Error::failed("expected x to equal 'bar'".to_string()));
-                }
-                pipeline_promise2.promise.then(move |response| {
-                    ::test_util::CheckTestMessage::check_test_message(pry!(response.get()));
-                    assert_eq!(chained_call_count.get(), 1);
-                    Promise::ok(())
-                })
-            })
-        })
+        let response = try!(pipeline_promise.promise.wait(wait_scope));
+        if try!(try!(response.get()).get_x()) != "bar" {
+            return Err(Error::failed("expected x to equal 'bar'".to_string()));
+        }
+
+        let response2 = try!(pipeline_promise2.promise.wait(wait_scope));
+        ::test_util::CheckTestMessage::check_test_message(try!(response2.get()));
+        assert_eq!(chained_call_count.get(), 1);
+        Ok(())
     });
 }
 
@@ -270,45 +277,41 @@ fn null_capability() {
 
 #[test]
 fn release_simple() {
-    set_up_rpc(|client| {
-        client.test_more_stuff_request().send().promise.then(|response| {
-            let client = pry!(pry!(response.get()).get_cap());
+    rpc_top_level(|wait_scope, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+        let client = try!(try!(response.get()).get_cap());
 
-            Promise::all(vec![
-                client.get_handle_request().send().promise,
-                client.get_handle_request().send().promise].into_iter()).then(move |responses| {
-                let handle1 = pry!(pry!(responses[0].get()).get_handle());
-                let handle2 = pry!(pry!(responses[1].get()).get_handle());
+        let handle1 = client.get_handle_request().send().promise;
+        let ::capnp::capability::RemotePromise {promise, pipeline} = client.get_handle_request().send();
+        let handle2 = try!(try!(try!(promise.wait(wait_scope)).get()).get_handle());
 
-                let client1 = client.clone();
-                let client2 = client.clone();
-                client.get_handle_count_request().send().promise.map(|response| {
-                    if try!(response.get()).get_count() != 2 {
-                        Err(Error::failed("expected handle count to equal 2".to_string()))
-                    } else {
-                        Ok(())
-                    }
-                }).then(move |()| {
-                    drop(handle1);
-                    client1.get_handle_count_request().send().promise.map(|response| {
-                        if try!(response.get()).get_count() != 1 {
-                            Err(Error::failed("expected handle count to equal 1".to_string()))
-                        } else {
-                            Ok(())
-                        }
-                    })
-                }).then(move |()| {
-                    drop(handle2);
-                    client2.get_handle_count_request().send().promise.map(|response| {
-                        if try!(response.get()).get_count() != 0 {
-                            Err(Error::failed("expected handle count to equal 0".to_string()))
-                        } else {
-                            Ok(())
-                        }
-                    })
-                })
-            })
-        })
+        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope));
+        if try!(get_count_response.get()).get_count() != 2 {
+            return Err(Error::failed("expected handle count to equal 2".to_string()))
+        }
+
+        drop(handle1);
+
+        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope));
+        if try!(get_count_response.get()).get_count() != 1 {
+            return Err(Error::failed("expected handle count to equal 1".to_string()))
+        }
+
+        drop(handle2);
+
+        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope));
+        if try!(get_count_response.get()).get_count() != 1 {
+            return Err(Error::failed("expected handle count to equal 1".to_string()))
+        }
+
+        drop(pipeline);
+
+        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope));
+        if try!(get_count_response.get()).get_count() != 0 {
+            return Err(Error::failed("expected handle count to equal 0".to_string()))
+        }
+
+        Ok(())
     });
 }
 
