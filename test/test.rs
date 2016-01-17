@@ -317,49 +317,45 @@ fn release_simple() {
 
 #[test]
 fn promise_resolve() {
-    set_up_rpc(|client| {
-        client.test_more_stuff_request().send().promise.then(|response| {
-            let client = pry!(pry!(response.get()).get_cap());
+    rpc_top_level(|wait_scope, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+        let client = try!(try!(response.get()).get_cap());
 
-            let mut request = client.call_foo_request();
-            let mut request2 = client.call_foo_when_resolved_request();
+        let mut request = client.call_foo_request();
+        let mut request2 = client.call_foo_when_resolved_request();
 
-            let (paf_promise, paf_fulfiller) =
-                Promise::<::test_capnp::test_interface::Client, Error>::and_fulfiller();
+        let (paf_promise, paf_fulfiller) =
+            Promise::<::test_capnp::test_interface::Client, Error>::and_fulfiller();
 
-            {
-                let mut fork = paf_promise.fork();
-                let cap1 = ::capnp_rpc::new_promise_client(fork.add_branch().map(|c| Ok(c.client)));
-                let cap2 = ::capnp_rpc::new_promise_client(fork.add_branch().map(|c| Ok(c.client)));
-                request.get().set_cap(cap1);
-                request2.get().set_cap(cap2);
-            }
+        {
+            let mut fork = paf_promise.fork();
+            let cap1 = ::capnp_rpc::new_promise_client(fork.add_branch().map(|c| Ok(c.client)));
+            let cap2 = ::capnp_rpc::new_promise_client(fork.add_branch().map(|c| Ok(c.client)));
+            request.get().set_cap(cap1);
+            request2.get().set_cap(cap2);
+        }
 
-            let promise = request.send().promise;
-            let promise2 = request2.send().promise;
+        let promise = request.send().promise;
+        let promise2 = request2.send().promise;
 
-            // Make sure getCap() has been called on the server side by sending another call and waiting
-            // for it.
-            let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
-            client2.get_call_sequence_request().send().promise.then(move |_response| {
-                let server = impls::TestInterface::new();
+        // Make sure getCap() has been called on the server side by sending another call and waiting
+        // for it.
+        let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
+        let _response = try!(client2.get_call_sequence_request().send().promise.wait(wait_scope));
 
-                paf_fulfiller.fulfill(
-                    ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>());
+        let server = impls::TestInterface::new();
+        paf_fulfiller.fulfill(
+            ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>());
 
-                promise.then(move |response| {
-                    if pry!(pry!(response.get()).get_s()) != "bar" {
-                        return Promise::err(Error::failed("expected s to equal 'bar'".to_string()));
-                    }
-                    promise2.then(move |response| {
-                        if pry!(pry!(response.get()).get_s()) != "bar" {
-                            return Promise::err(Error::failed("expected s to equal 'bar'".to_string()));
-                        }
-                        Promise::ok(())
-                    })
-                })
-            })
-        })
+        let response = try!(promise.wait(wait_scope));
+        if try!(try!(response.get()).get_s()) != "bar" {
+            return Err(Error::failed("expected s to equal 'bar'".to_string()));
+        }
+        let response = try!(promise2.wait(wait_scope));
+        if try!(try!(response.get()).get_s()) != "bar" {
+            return Err(Error::failed("expected s to equal 'bar'".to_string()));
+        }
+        Ok(())
     });
 }
 
