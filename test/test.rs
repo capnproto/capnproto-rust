@@ -122,15 +122,6 @@ fn drop_rpc_system() {
     }).expect("top level error");
 }
 
-fn set_up_rpc<F>(main: F)
-    where F: FnOnce(test_capnp::bootstrap::Client) -> Promise<(), Error>,
-          F: Send + 'static
-{
-    rpc_top_level(|wait_scope, client| {
-        main(client).wait(wait_scope)
-    });
-}
-
 fn rpc_top_level<F>(main: F)
     where F: FnOnce(&::gj::WaitScope, test_capnp::bootstrap::Client) -> Result<(), Error>,
           F: Send + 'static
@@ -176,47 +167,46 @@ fn rpc_top_level<F>(main: F)
 
 #[test]
 fn do_nothing() {
-    set_up_rpc(|_client| {
-        Promise::ok(())
+    rpc_top_level(|_wait_scope, _client| {
+        Ok(())
     });
 }
 
 #[test]
 fn basic() {
-    set_up_rpc(|client| {
-        client.test_interface_request().send().promise.then(|response| {
+    rpc_top_level(|wait_scope, client| {
+        let response = try!(client.test_interface_request().send().promise.wait(wait_scope));
+        let client = try!(try!(response.get()).get_cap());
 
-            let client = pry!(pry!(response.get()).get_cap());
-            let mut request1 = client.foo_request();
-            request1.get().set_i(123);
-            request1.get().set_j(true);
-            let promise1 = request1.send().promise.then(|response| {
-                if "foo" == pry!(pry!(response.get()).get_x()) {
+        let mut request1 = client.foo_request();
+        request1.get().set_i(123);
+        request1.get().set_j(true);
+        let promise1 = request1.send();
+
+        let request3 = client.bar_request();
+        let promise3 = request3.send().promise.then_else(|result| {
+            // We expect this call to fail.
+            match result {
+                Ok(_) => {
+                    Promise::err(Error::failed("expected bar() to fail".to_string()))
+                }
+                Err(_) => {
                     Promise::ok(())
-                } else {
-                    Promise::err(Error::failed("expected X to equal 'foo'".to_string()))
                 }
-            });
+            }
+        });
 
-            let request3 = client.bar_request();
-            let promise3 = request3.send().promise.then_else(|result| {
-                // We expect this call to fail.
-                match result {
-                    Ok(_) => {
-                        Promise::err(Error::failed("expected bar() to fail".to_string()))
-                    }
-                    Err(_) => {
-                        Promise::ok(())
-                    }
-                }
-            });
+        let mut request2 = client.baz_request();
+        ::test_util::init_test_message(try!(request2.get().get_s()));
+        let promise2 = request2.send();
 
-            let mut request2 = client.baz_request();
-            ::test_util::init_test_message(pry!(request2.get().get_s()));
-            let promise2 = request2.send().promise.map(|_| Ok(()));
-
-            Promise::all(vec![promise1, promise2, promise3].into_iter()).map(|_| Ok(()))
-        })
+        let response1 = try!(promise1.promise.wait(wait_scope));
+        if try!(try!(response1.get()).get_x()) != "foo" {
+            return Err(Error::failed("expected X to equal 'foo'".to_string()));
+        }
+        try!(promise2.promise.wait(wait_scope));
+        try!(promise3.wait(wait_scope));
+        Ok(())
     });
 }
 
@@ -523,27 +513,26 @@ fn cancel() {
 
 #[test]
 fn dont_hold() {
-    set_up_rpc(|client| {
-        client.test_more_stuff_request().send().promise.then(|response| {
-            let client = pry!(pry!(response.get()).get_cap());
+    rpc_top_level(|wait_scope, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+        let client = try!(try!(response.get()).get_cap());
 
-            let (promise, fulfiller) =
-                Promise::<::test_capnp::test_interface::Client, Error>::and_fulfiller();
+        let (promise, fulfiller) =
+            Promise::<::test_capnp::test_interface::Client, Error>::and_fulfiller();
 
-            let cap: ::test_capnp::test_interface::Client =
-                ::capnp_rpc::new_promise_client(promise.map(|c| Ok(c.client)));
+        let cap: ::test_capnp::test_interface::Client =
+            ::capnp_rpc::new_promise_client(promise.map(|c| Ok(c.client)));
 
+        let mut request = client.dont_hold_request();
+        request.get().set_cap(cap.clone());
+        request.send().promise.then(move |_response| {
             let mut request = client.dont_hold_request();
             request.get().set_cap(cap.clone());
-            request.send().promise.then(move |_response| {
-                let mut request = client.dont_hold_request();
-                request.get().set_cap(cap.clone());
-                request.send().promise.then(move |_| {
-                    drop(fulfiller);
-                    Promise::ok(())
-                })
+            request.send().promise.then(move |_| {
+                drop(fulfiller);
+                Promise::ok(())
             })
-        })
+        }).wait(wait_scope)
     });
 }
 
@@ -557,139 +546,139 @@ fn get_call_sequence(client: &::test_capnp::test_call_order::Client, expected: u
 
 #[test]
 fn embargo_success() {
-    set_up_rpc(|client| {
-        client.test_more_stuff_request().send().promise.then(|response| {
-            let client = pry!(pry!(response.get()).get_cap());
+    rpc_top_level(|wait_scope, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+        let client = try!(try!(response.get()).get_cap());
 
-            let server = ::impls::TestCallOrder::new();
+        let server = ::impls::TestCallOrder::new();
 
-            // ugh, we need upcasting.
-            let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
-            let early_call = client2.get_call_sequence_request().send();
-            drop(client2);
+        // ugh, we need upcasting.
+        let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
+        let early_call = client2.get_call_sequence_request().send();
+        drop(client2);
 
-            let mut echo_request = client.echo_request();
-            echo_request.get().set_cap(
-                ::test_capnp::test_call_order::ToClient::new(server).from_server::<::capnp_rpc::Server>());
-            let echo = echo_request.send();
+        let mut echo_request = client.echo_request();
+        echo_request.get().set_cap(
+            ::test_capnp::test_call_order::ToClient::new(server).from_server::<::capnp_rpc::Server>());
+        let echo = echo_request.send();
 
-            let pipeline = echo.pipeline.get_cap();
+        let pipeline = echo.pipeline.get_cap();
 
-            let call0 = get_call_sequence(&pipeline, 0);
-            let call1 = get_call_sequence(&pipeline, 1);
+        let call0 = get_call_sequence(&pipeline, 0);
+        let call1 = get_call_sequence(&pipeline, 1);
 
-            early_call.promise.then(move |_early_call_response| {
-                let call2 = get_call_sequence(&pipeline, 2);
-                echo.promise.then(move |_echo_response| {
-                    let call3 = get_call_sequence(&pipeline, 3);
-                    let call4 = get_call_sequence(&pipeline, 4);
-                    let call5 = get_call_sequence(&pipeline, 5);
-                    Promise::all(vec![call0.promise,
-                                      call1.promise,
-                                      call2.promise,
-                                      call3.promise,
-                                      call4.promise,
-                                      call5.promise].into_iter()).map(|responses| {
-                        let mut counter = 0;
-                        for r in responses.into_iter() {
-                            if counter != try!(r.get()).get_n() {
-                                return Err(Error::failed(
-                                    "calls arrived out of order".to_string()))
-                            }
-                            counter += 1;
-                        }
-                        Ok(())
-                    })
-                })
-            })
-        })
+        try!(early_call.promise.wait(wait_scope));
+
+        let call2 = get_call_sequence(&pipeline, 2);
+
+        let _resolved = try!(echo.promise.wait(wait_scope));
+
+        let call3 = get_call_sequence(&pipeline, 3);
+        let call4 = get_call_sequence(&pipeline, 4);
+        let call5 = get_call_sequence(&pipeline, 5);
+
+        Promise::all(vec![call0.promise,
+                          call1.promise,
+                          call2.promise,
+                          call3.promise,
+                          call4.promise,
+                          call5.promise].into_iter()).map(|responses| {
+            let mut counter = 0;
+            for r in responses.into_iter() {
+                if counter != try!(r.get()).get_n() {
+                    return Err(Error::failed(
+                        "calls arrived out of order".to_string()))
+                }
+                counter += 1;
+            }
+            Ok(())
+        }).wait(wait_scope)
     });
 }
 
-fn expect_promise_throws<T>(promise: Promise<T, Error>) -> Promise<(), Error> {
-    promise.then_else(|r| match r {
-        Ok(_) => Promise::err(Error::failed("expected promise to fail".to_string())),
-        Err(_) => {
-            Promise::ok(())
-        }
-    })
+fn expect_promise_throws<T>(promise: Promise<T, Error>, wait_scope: &::gj::WaitScope)
+                            -> Result<(), Error> {
+    promise.map_else(|r| match r {
+        Ok(_) => Err(Error::failed("expected promise to fail".to_string())),
+        Err(_) => Ok(()),
+    }).wait(wait_scope)
 }
 
 #[test]
 fn embargo_error() {
-    set_up_rpc(|client| {
-        client.test_more_stuff_request().send().promise.then(|response| {
-            let client = pry!(pry!(response.get()).get_cap());
+    rpc_top_level(|wait_scope, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+        let client = try!(try!(response.get()).get_cap());
 
-            let (promise, fulfiller) =
-                Promise::<::test_capnp::test_call_order::Client, Error>::and_fulfiller();
+        let (promise, fulfiller) =
+            Promise::<::test_capnp::test_call_order::Client, Error>::and_fulfiller();
 
-            let cap = ::capnp_rpc::new_promise_client(promise.map(|c| Ok(c.client)));
+        let cap = ::capnp_rpc::new_promise_client(promise.map(|c| Ok(c.client)));
 
+        // ugh, we need upcasting.
+        let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
+        let early_call = client2.get_call_sequence_request().send();
+        drop(client2);
 
-            // ugh, we need upcasting.
-            let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
-            let early_call = client2.get_call_sequence_request().send();
-            drop(client2);
+        let mut echo_request = client.echo_request();
+        echo_request.get().set_cap(cap);
+        let echo = echo_request.send();
 
-            let mut echo_request = client.echo_request();
-            echo_request.get().set_cap(cap);
-            let echo = echo_request.send();
+        let pipeline = echo.pipeline.get_cap();
 
-            let pipeline = echo.pipeline.get_cap();
+        let call0 = get_call_sequence(&pipeline, 0);
+        let call1 = get_call_sequence(&pipeline, 1);
 
-            let call0 = get_call_sequence(&pipeline, 0);
-            let call1 = get_call_sequence(&pipeline, 1);
+        try!(early_call.promise.wait(wait_scope));
 
-            early_call.promise.then(move |_early_call_response| {
-                let call2 = get_call_sequence(&pipeline, 2);
-                echo.promise.then(move |_echo_response| {
-                    let call3 = get_call_sequence(&pipeline, 3);
-                    let call4 = get_call_sequence(&pipeline, 4);
-                    let call5 = get_call_sequence(&pipeline, 5);
-                    fulfiller.reject(Error::failed("foo".to_string()));
-                    Promise::all(vec![
-                        expect_promise_throws(call0.promise),
-                        expect_promise_throws(call1.promise),
-                        expect_promise_throws(call2.promise),
-                        expect_promise_throws(call3.promise),
-                        expect_promise_throws(call4.promise),
-                        expect_promise_throws(call5.promise)].into_iter()).map(|_| Ok(()))
-                })
-            })
-        })
+        let call2 = get_call_sequence(&pipeline, 2);
+
+        let _resolved = echo.promise.wait(wait_scope);
+
+        let call3 = get_call_sequence(&pipeline, 3);
+        let call4 = get_call_sequence(&pipeline, 4);
+        let call5 = get_call_sequence(&pipeline, 5);
+
+        fulfiller.reject(Error::failed("foo".to_string()));
+
+        try!(expect_promise_throws(call0.promise, wait_scope));
+        try!(expect_promise_throws(call1.promise, wait_scope));
+        try!(expect_promise_throws(call2.promise, wait_scope));
+        try!(expect_promise_throws(call3.promise, wait_scope));
+        try!(expect_promise_throws(call4.promise, wait_scope));
+        try!(expect_promise_throws(call5.promise, wait_scope));
+        Ok(())
     });
 }
 
 #[test]
 fn echo_destruction() {
-    set_up_rpc(|client| {
-        client.test_more_stuff_request().send().promise.then(|response| {
-            let client = pry!(pry!(response.get()).get_cap());
+    rpc_top_level(|wait_scope, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+        let client = try!(try!(response.get()).get_cap());
 
-            let (promise, fulfiller) =
-                Promise::<::test_capnp::test_call_order::Client, Error>::and_fulfiller();
+        let (promise, fulfiller) =
+            Promise::<::test_capnp::test_call_order::Client, Error>::and_fulfiller();
 
-            let cap = ::capnp_rpc::new_promise_client(promise.map(|c| Ok(c.client)));
+        let cap = ::capnp_rpc::new_promise_client(promise.map(|c| Ok(c.client)));
 
-            // ugh, we need upcasting.
-            let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
-            let early_call = client2.get_call_sequence_request().send();
-            drop(client2);
+        // ugh, we need upcasting.
+        let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
+        let early_call = client2.get_call_sequence_request().send();
+        drop(client2);
 
-            let mut echo_request = client.echo_request();
-            echo_request.get().set_cap(cap);
-            let echo = echo_request.send();
+        let mut echo_request = client.echo_request();
+        echo_request.get().set_cap(cap);
+        let echo = echo_request.send();
 
-            let pipeline = echo.pipeline.get_cap();
+        let pipeline = echo.pipeline.get_cap();
 
-            early_call.promise.then(move |_early_call_response| {
-                let _ = get_call_sequence(&pipeline, 2);
-                echo.promise.then(move |_echo_response| {
-                    fulfiller.reject(Error::failed("foo".to_string()));
-                    Promise::ok(())
-                })
+        early_call.promise.then(move |_early_call_response| {
+            let _ = get_call_sequence(&pipeline, 2);
+            echo.promise.then(move |_echo_response| {
+                fulfiller.reject(Error::failed("foo".to_string()));
+                Promise::ok(())
             })
-        })
-    });
+        }).wait(wait_scope)
+    })
 }
