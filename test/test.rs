@@ -368,124 +368,98 @@ fn retain_and_release() {
     use std::cell::Cell;
     use std::rc::Rc;
 
-    set_up_rpc(|client| {
-        client.test_more_stuff_request().send().promise.then(|response| {
-            let client = pry!(pry!(response.get()).get_cap());
+    rpc_top_level(|wait_scope, client| {
+        let (promise, fulfiller) = Promise::<(), Error>::and_fulfiller();
+        let destroyed = Rc::new(Cell::new(false));
 
-            let (promise, fulfiller) = Promise::<(), Error>::and_fulfiller();
-            let destroyed = Rc::new(Cell::new(false));
+        let destroyed1 = destroyed.clone();
+        let destruction_promise = promise.map(move |()| {
+            destroyed1.set(true);
+            Ok(())
+        }).eagerly_evaluate();
 
-            let destroyed1 = destroyed.clone();
-            let destruction_promise = promise.map(move |()| {
-                destroyed1.set(true);
-                Ok(())
-            }).eagerly_evaluate();
+        {
+            let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+            let client = try!(try!(response.get()).get_cap());
 
-            let client1 = client.clone();
-            let client2 = client.clone();
-            let client3 = client.clone();
-            let client4 = client.clone();
-            let destroyed2 = destroyed.clone();
-            let destroyed3 = destroyed.clone();
-            let mut request = client.hold_request();
-            request.get().set_cap(
-                ::test_capnp::test_interface::ToClient::new(impls::TestCapDestructor::new(fulfiller))
-                    .from_server::<::capnp_rpc::Server>());
-            request.send().promise.then(move |_response| {
-                // Do some other call to add a round trip.
+            {
+                let mut request = client.hold_request();
+                request.get().set_cap(
+                    ::test_capnp::test_interface::ToClient::new(impls::TestCapDestructor::new(fulfiller))
+                        .from_server::<::capnp_rpc::Server>());
+                try!(request.send().promise.wait(wait_scope));
+            }
 
-                // ugh, we need upcasting.
-                let client1 = ::test_capnp::test_call_order::Client { client: client1.client };
-                client1.get_call_sequence_request().send().promise
-            }).then(move |response| {
-                if pry!(response.get()).get_n() != 1 {
-                    Promise::err(Error::failed("N should equal 1".to_string()))
-                } else if destroyed.get() {
-                    Promise::err(Error::failed("shouldn't be destroyed yet".to_string()))
-                } else {
-                    // We can ask it to call the held capability.
-                    client2.call_held_request().send().promise.map(|response| {
-                        if try!(try!(response.get()).get_s()) != "bar" {
-                            Err(Error::failed("S should equal 'bar'".to_string()))
-                        } else {
-                            Ok(())
-                        }
-                    })
-                }
-            }).then(move |()| {
+            // Do some other call to add a round trip.
+            // ugh, we need upcasting.
+            let client1 = ::test_capnp::test_call_order::Client { client: client.clone().client };
+            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope));
+            if try!(response.get()).get_n() != 1 {
+                return Err(Error::failed("N should equal 1".to_string()))
+            }
+
+            if destroyed.get() {
+                return Err(Error::failed("shouldn't be destroyed yet".to_string()))
+            }
+
+            // We can ask it to call the held capability.
+            let response = try!(client.call_held_request().send().promise.wait(wait_scope));
+            if try!(try!(response.get()).get_s()) != "bar" {
+                return Err(Error::failed("S should equal 'bar'".to_string()))
+            }
+
+            {
                 // we can get the cap back from it.
-                client3.get_held_request().send().promise.map(move |response| {
-                    try!(response.get()).get_cap()
-                })
-            }).then(move |cap_copy| {
+                let response = try!(client.get_held_request().send().promise.wait(wait_scope));
+                let cap_copy = try!(try!(response.get()).get_cap());
+
                 // And call it, without any network communications.
                 // (TODO: verify that no network communications happen here)
-                let mut request = cap_copy.foo_request();
-                request.get().set_i(123);
-                request.get().set_j(true);
-                request.send().promise.map(|response| {
+                {
+                    let mut request = cap_copy.foo_request();
+                    request.get().set_i(123);
+                    request.get().set_j(true);
+                    let response = try!(request.send().promise.wait(wait_scope));
                     if try!(try!(response.get()).get_x()) != "foo" {
-                        Err(Error::failed("X should equal 'foo'.".to_string()))
-                    } else {
-                        Ok(cap_copy)
+                        return Err(Error::failed("X should equal 'foo'.".to_string()));
                     }
-                })
-            }).then(move |cap_copy| {
-                // We can send another copy of the same cap to another method, and it works.
-                let mut request = client4.call_foo_request();
-                request.get().set_cap(cap_copy);
-                request.send().promise.map(|response| {
-                    if try!(try!(response.get()).get_s()) != "bar" {
-                        Err(Error::failed("S should equal 'bar'.".to_string()))
-                    } else {
-                        Ok(())
-                    }
-                })
-            }).then(move |()| {
-                // Give some time to settle.
+                }
 
-                // ugh, we need upcasting.
-                let client = ::test_capnp::test_call_order::Client { client: client.client };
-                client.get_call_sequence_request().send().promise.map(move |response| {
-                    if try!(response.get()).get_n() != 5 {
-                        Err(Error::failed("N should equal 5.".to_string()))
-                    } else {
-                        Ok(client)
+                {
+                    // We can send another copy of the same cap to another method, and it works.
+                    let mut request = client.call_foo_request();
+                    request.get().set_cap(cap_copy);
+                    let response = try!(request.send().promise.wait(wait_scope));
+                    if try!(try!(response.get()).get_s()) != "bar" {
+                        return Err(Error::failed("S should equal 'bar'.".to_string()));
                     }
-                })
-            }).then(|client| {
-                client.get_call_sequence_request().send().promise.map(move |response| {
-                    if try!(response.get()).get_n() != 6 {
-                        Err(Error::failed("N should equal 6.".to_string()))
-                    } else {
-                        Ok(client)
-                    }
-                })
-            }).then(|client| {
-                client.get_call_sequence_request().send().promise.map(move |response| {
-                    if try!(response.get()).get_n() != 7 {
-                        Err(Error::failed("N should equal 7.".to_string()))
-                    } else {
-                        Ok(client)
-                    }
-                })
-            }).then(move |_client| {
-                if destroyed2.get() {
-                    Promise::err(Error::failed("haven't released it yet".to_string()))
-                } else {
-                    Promise::ok(())
                 }
-            }).then(|()| {
-                // There are no references to `client` left.
-                destruction_promise
-            }).map(move |()| {
-                if destroyed3.get() {
-                    Ok(())
-                } else {
-                    Err(Error::failed("should be destroyed now".to_string()))
-                }
-            })
-        })
+            }
+
+            // Give some time to settle.
+            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope));
+            if try!(response.get()).get_n() != 5 {
+                return Err(Error::failed("N should equal 5.".to_string()));
+            }
+            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope));
+            if try!(response.get()).get_n() != 6 {
+                return Err(Error::failed("N should equal 6.".to_string()));
+            }
+            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope));
+            if try!(response.get()).get_n() != 7 {
+                return Err(Error::failed("N should equal 7.".to_string()));
+            }
+
+            if destroyed.get() {
+                return Err(Error::failed("haven't released it yet".to_string()))
+            }
+        }
+
+        try!(destruction_promise.wait(wait_scope));
+        if !destroyed.get() {
+            return Err(Error::failed("should be destroyed now".to_string()));
+        }
+        Ok(())
     });
 }
 
