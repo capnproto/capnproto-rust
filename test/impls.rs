@@ -354,11 +354,21 @@ impl test_more_stuff::Server for TestMoreStuff {
     }
 
     fn never_return(&mut self,
-                    _params: test_more_stuff::NeverReturnParams,
-                    _results: test_more_stuff::NeverReturnResults)
+                    params: test_more_stuff::NeverReturnParams,
+                    mut results: test_more_stuff::NeverReturnResults)
                     -> Promise<(), Error>
     {
-        unimplemented!()
+        self.call_count += 1;
+
+        let cap = pry!(pry!(params.get()).get_cap());
+
+        // Attach `cap` to the promise to make sure it is released.
+        let promise = Promise::never_done().attach(cap.clone());
+
+        // Also attach `cap` to the result struct so we can make sure that the results are released.
+        results.get().set_cap_copy(cap);
+
+        promise
     }
 
     fn hold(&mut self,
