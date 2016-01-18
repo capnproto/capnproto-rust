@@ -449,67 +449,55 @@ fn retain_and_release() {
     });
 }
 
-/* currently fails to terminate
 #[test]
 fn cancel() {
     use std::rc::Rc;
     use std::cell::Cell;
 
-    set_up_rpc(|client| {
-        client.test_more_stuff_request().send().promise.then(|response| {
-            let client = pry!(pry!(response.get()).get_cap());
+    rpc_top_level(|wait_scope, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+        let client = try!(try!(response.get()).get_cap());
 
-            let (promise, fulfiller) = Promise::and_fulfiller();
+        let (promise, fulfiller) = Promise::and_fulfiller();
+        let destroyed = Rc::new(Cell::new(false));
+        let destroyed1 = destroyed.clone();
+        let destruction_promise = promise.map(move |()| {
+            destroyed1.set(true);
+            Ok(())
+        }).eagerly_evaluate();
 
-            let destroyed = Rc::new(Cell::new(false));
-
-            let destroyed1 = destroyed.clone();
-            let destroyed2 = destroyed.clone();
-            let destruction_promise = promise.map(move |()| {
-                destroyed1.set(true);
-                Ok(())
-            }).eagerly_evaluate();
-
+        {
             let mut request = client.never_return_request();
             request.get().set_cap(
                 ::test_capnp::test_interface::ToClient::new(impls::TestCapDestructor::new(fulfiller))
                     .from_server::<::capnp_rpc::Server>());
 
-            let response_promise = request.send();
+            {
+                let response_promise = request.send();
 
-            // Allow some time to settle.
+                // Allow some time to settle.
 
-            // ugh, we need upcasting.
-            let client = ::test_capnp::test_call_order::Client { client: client.client };
-            client.get_call_sequence_request().send().promise.then(move |response| {
-                if pry!(response.get()).get_n() != 1 {
-                    Promise::err(Error::failed("N should equal 1.".to_string()))
-                } else {
-                    client.get_call_sequence_request().send().promise
+                // ugh, we need upcasting.
+                let client = ::test_capnp::test_call_order::Client { client: client.client };
+                let response = try!(client.get_call_sequence_request().send().promise.wait(wait_scope));
+                if try!(response.get()).get_n() != 1 {
+                    return Err(Error::failed("N should equal 1.".to_string()));
                 }
-
-            }).then(move |response| {
-                if pry!(response.get()).get_n() != 2 {
-                    Promise::err(Error::failed("N should equal 2.".to_string()))
-                } else {
-                    if destroyed2.get() {
-                        Promise::err(Error::failed("Shouldn't be destroyed yet.".to_string()))
-                    } else {
-                        drop(response_promise);
-                        destruction_promise
-                    }
+                let response = try!(client.get_call_sequence_request().send().promise.wait(wait_scope));
+                if try!(response.get()).get_n() != 2 {
+                    return Err(Error::failed("N should equal 2.".to_string()));
                 }
-            }).map(move |()| {
-                if !destroyed.get() {
-                    Err(Error::failed("The cap should be released now.".to_string()))
-                } else {
-                    Ok(())
+                if destroyed.get() {
+                        return Err(Error::failed("Shouldn't be destroyed yet.".to_string()));
                 }
-            })
-        })
+            }
+        }
+        if !destroyed.get() {
+            return Err(Error::failed("The cap should be released now.".to_string()));
+        }
+        Ok(())
     });
 }
-*/
 
 #[test]
 fn dont_hold() {
