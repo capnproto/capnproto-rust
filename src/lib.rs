@@ -190,6 +190,12 @@ impl Error {
     pub fn failed(description: String) -> Error {
         Error { description: description, kind: ErrorKind::Failed }
     }
+    pub fn overloaded(description: String) -> Error {
+        Error { description: description, kind: ErrorKind::Overloaded }
+    }
+    pub fn disconnected(description: String) -> Error {
+        Error { description: description, kind: ErrorKind::Disconnected }
+    }
     pub fn unimplemented(description: String) -> Error {
         Error { description: description, kind: ErrorKind::Unimplemented }
     }
