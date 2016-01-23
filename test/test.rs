@@ -168,7 +168,9 @@ fn rpc_top_level<F>(main: F)
 
             let (reader, writer) = stream.split();
             //let reader = ReadWrapper::new(reader,
-            //                              ::std::fs::File::create("/Users/dwrensha/Desktop/test1.dat").unwrap());
+            //                             ::std::fs::File::create("/Users/dwrensha/Desktop/client.dat").unwrap());
+            //let writer = WriteWrapper::new(writer,
+            //                               ::std::fs::File::create("/Users/dwrensha/Desktop/server.dat").unwrap());
             let mut network =
                 Box::new(twoparty::VatNetwork::new(reader, writer,
                                                    rpc_twoparty_capnp::Side::Server,
@@ -183,8 +185,6 @@ fn rpc_top_level<F>(main: F)
         }));
 
         let (reader, writer) = stream.split();
-        //let writer = WriteWrapper::new(writer,
-        //                               ::std::fs::File::create("/Users/dwrensha/Desktop/test2.dat").unwrap());
 
         let network =
             Box::new(twoparty::VatNetwork::new(reader, writer,
@@ -486,7 +486,7 @@ fn retain_and_release() {
     });
 }
 
-/*
+
 #[test]
 fn cancel() {
     use std::rc::Rc;
@@ -537,7 +537,7 @@ fn cancel() {
         Ok(())
     });
 }
-*/
+
 
 #[test]
 fn dont_hold() {

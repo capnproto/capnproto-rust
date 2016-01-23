@@ -74,6 +74,12 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gj::io::AsyncWrite 
         });
         promise
     }
+
+    fn take(self: Box<Self>)
+            -> ::capnp::message::Builder<::capnp::message::HeapAllocator>
+    {
+        self.message
+    }
 }
 
 struct ConnectionInner<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {

@@ -300,12 +300,12 @@ impl ClientHook for Client {
 
         let mut forked = promise.fork();
 
-        let pipeline_promise = results_done.map(|results_done_hook| {
-            Ok(Box::new(Pipeline::new(results_done_hook)) as Box<PipelineHook>)
+        let branch = forked.add_branch();
+        let pipeline_promise = results_done.then(move |results_done_hook| {
+            branch.map(move |()| {
+                Ok(Box::new(Pipeline::new(results_done_hook)) as Box<PipelineHook>)
+            })
         });
-//        let pipeline_promise = forked.add_branch().map(|()| {
-//            Ok(Box::new(Pipeline::new(results_done.clone())) as Box<PipelineHook>)
-//        });
 
         let pipeline = Box::new(::queued::Pipeline::new(pipeline_promise));
         let completion_promise = forked.add_branch();

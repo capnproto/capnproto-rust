@@ -29,7 +29,7 @@ use gj::{Promise, PromiseFulfiller};
 use std::vec::Vec;
 use std::collections::hash_map::HashMap;
 use std::collections::binary_heap::BinaryHeap;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 use rpc_capnp::{message, return_, cap_descriptor};
@@ -263,15 +263,17 @@ struct Answer<VatId> where VatId: 'static {
     // message has been received and the `Return` has been sent.
     active: bool,
 
+    return_has_been_sent: bool,
+
     // Send pipelined calls here.  Becomes null as soon as a `Finish` is received.
     pipeline: Option<Box<PipelineHook>>,
 
     // For locally-redirected calls (Call.sendResultsTo.yourself), this is a promise for the call
     // result, to be picked up by a subsequent `Return`.
-    redirected_results: Option<::gj::Promise<Response<VatId>, Error>>,
+    redirected_results: Option<Promise<Response<VatId>, Error>>,
 
-    // TODO? I think this is only needed for soft cancellation, which we currently don't support.
-    //kj::Maybe<RpcCallContext&> callContext;
+    received_finish: Rc<Cell<bool>>,
+    call_completion_promise: Option<Promise<(), Error>>,
 
     // List of exports that were sent in the results.  If the finish has `releaseResultCaps` these
     // will need to be released.
@@ -282,9 +284,12 @@ impl <VatId> Answer<VatId> {
     fn new() -> Answer<VatId> {
         Answer {
             active: false,
+            return_has_been_sent: false,
             pipeline: None,
             redirected_results: None,
-            result_exports: Vec::new()
+            received_finish: Rc::new(Cell::new(false)),
+            call_completion_promise: None,
+            result_exports: Vec::new(),
         }
     }
 }
@@ -719,6 +724,7 @@ impl <VatId> ConnectionState<VatId> {
                         return Err(Error::failed("questionId is already in use".to_string()));
                     }
                     answer.active = true;
+                    answer.return_has_been_sent = true;
                     answer.result_exports = result_exports;
                     answer.pipeline = Some(Box::new(SingleCapPipeline::new(
                         connection_state1.bootstrap_cap.clone())));
@@ -799,7 +805,8 @@ impl <VatId> ConnectionState<VatId> {
                             }
                         }
                         None => {
-                            return Err(Error::failed("Invalid question ID in Return message.".to_string()));
+                            return Err(Error::failed(
+                                format!("Invalid question ID in Return message: {}", question_id)));
                         }
                     }
                 }
@@ -811,28 +818,41 @@ impl <VatId> ConnectionState<VatId> {
 
                     let answer_id = finish.get_question_id();
 
+                    let mut erase = false;
                     let answers_slots = &mut connection_state1.answers.borrow_mut().slots;
-                    match answers_slots.remove(&answer_id) {
+                    match answers_slots.get_mut(&answer_id) {
                         None => {
                             return Err(Error::failed(
                                 format!("Invalid question ID {} in Finish message.", answer_id)));
                         }
-                        Some(answer) => {
-                            let Answer { active, pipeline, redirected_results: _, result_exports } = answer;
+                        Some(ref mut answer) => {
 
-                            if !active {
+                            if !answer.active {
                                 return Err(Error::failed(
                                     format!("'Finish' for invalid question ID {}.", answer_id)));
                             }
+                            answer.received_finish.set(true);
 
                             if finish.get_release_result_caps() {
-                                exports_to_release = result_exports
+                                exports_to_release = ::std::mem::replace(&mut answer.result_exports, Vec::new());
                             }
-                            pipeline_to_release = pipeline;
+                            pipeline_to_release = answer.pipeline.take();
+
+                            answer.call_completion_promise.take();
+                            if answer.return_has_been_sent {
+                                erase = true;
+                            } else {
+                                // TODO?
+                            }
                         }
                     }
-                    drop(pipeline_to_release);
+
                     try!(connection_state1.release_exports(&exports_to_release));
+
+                    if erase {
+                        answers_slots.remove(&answer_id);
+                    }
+
                     BorrowWorkaround::Done
                 }
                 Ok(message::Resolve(resolve)) => {
@@ -992,12 +1012,13 @@ impl <VatId> ConnectionState<VatId> {
                         format!("Received a new call on in-use question id {}", question_id)));
                 }
 
-
                 let params = Params::new(message, cap_table_array);
+
+                let answer = Answer::new();
 
                 let (results_inner_promise, results_inner_fulfiller) = Promise::and_fulfiller();
                 let results = Results::new(&connection_state, question_id, redirect_results,
-                                           results_inner_fulfiller);
+                                           results_inner_fulfiller, answer.received_finish.clone());
 
 
                 let (redirected_results_done_promise, redirected_results_done_fulfiller) =
@@ -1009,30 +1030,35 @@ impl <VatId> ConnectionState<VatId> {
                     };
 
                 let (call_succeeded_promise, call_succeeded_fulfiller) = Promise::and_fulfiller();
-                let box_results_done_promise = results_inner_promise.then(move |results_inner| {
-                    call_succeeded_promise.then(|()| {
-                        ResultsDone::from_results_inner(results_inner)
-                    }).map_else(move |v| {
-                        match redirected_results_done_fulfiller {
-                            Some(f) => {
-                                match v {
-                                    Ok(ref r) =>
-                                        f.fulfill(Response::redirected(r.clone())),
-                                    Err(ref e) =>
-                                        f.reject(e.clone()),
-                                }
-                            }
-                            None => (),
-                        }
-                        v
-                    })
-                });
 
-                // cancelPaf?
+
+                let (box_results_done_promise, box_results_done_fulfiller) = Promise::and_fulfiller();
+                connection_state.add_task(results_inner_promise.then(move |results_inner| {
+                    call_succeeded_promise.then_else(move |v| {
+                        ResultsDone::from_results_inner(results_inner, v)
+                    })
+                }).map_else(move |v| {
+                    match redirected_results_done_fulfiller {
+                        Some(f) => {
+                            match v {
+                                Ok(ref r) =>
+                                    f.fulfill(Response::redirected(r.clone())),
+                                Err(ref e) =>
+                                    f.reject(e.clone()),
+                                }
+                        }
+                        None => (),
+                    }
+                    match v {
+                        Ok(x) => box_results_done_fulfiller.fulfill(x),
+                        Err(e) => box_results_done_fulfiller.reject(e),
+                    }
+                    Ok(())
+                }));
 
                 {
                     let ref mut slots = connection_state.answers.borrow_mut().slots;
-                    let answer = slots.entry(question_id).or_insert(Answer::new());
+                    let answer = slots.entry(question_id).or_insert(answer);
                     if answer.active {
                         return Err(Error::failed("questionId is already in use".to_string()));
                     }
@@ -1044,32 +1070,15 @@ impl <VatId> ConnectionState<VatId> {
                                                           box_results_done_promise);
 
                 let connection_state_ref = Rc::downgrade(&connection_state);
-                let promise = promise.then_else(move |result| match result {
-                    Ok(_v) => {
+
+                let promise = promise.map_else(move |result| match result {
+                    Ok(()) => {
                         call_succeeded_fulfiller.fulfill(());
-                        Promise::ok(())
+                        Ok(())
                     }
                     Err(e) => {
                         call_succeeded_fulfiller.reject(e.clone());
-                        // Send an error return.
-                        let connection_state = connection_state_ref.upgrade()
-                            .expect("dangling reference to connection state?");
-                        match connection_state.connection.borrow_mut().as_mut() {
-                            Ok(ref mut connection) => {
-                                let mut message = connection.new_outgoing_message(50); // XXX size hint
-                                {
-                                    let root: message::Builder = pry!(pry!(message.get_body()).get_as());
-                                    let mut ret = root.init_return();
-                                    ret.set_answer_id(question_id);
-                                    ret.set_release_param_caps(false);
-                                    let mut exc = ret.init_exception();
-                                    from_error(&e, exc.borrow());
-                                }
-                                let _ = message.send();
-                            }
-                            Err(_) => (),
-                        }
-                        Promise::ok(())
+                        Ok(())
                     }
                 });
 
@@ -1083,7 +1092,7 @@ impl <VatId> ConnectionState<VatId> {
                                 // More to do here?
 
                             } else {
-                                connection_state.add_task(promise.map(|_| Ok(())));
+                                answer.call_completion_promise = Some(promise.map(|_| Ok(())).eagerly_evaluate());
                             }
                         }
                         None => unreachable!()
@@ -1112,6 +1121,40 @@ impl <VatId> ConnectionState<VatId> {
             BorrowWorkaround::Done => (),
         }
         Ok(())
+    }
+
+    fn answer_has_sent_return(&self, id: AnswerId) {
+        let mut erase = false;
+        let answers_slots = &mut self.answers.borrow_mut().slots;
+        if let Some(ref mut a) = answers_slots.get_mut(&id) {
+            a.return_has_been_sent = true;
+            if a.received_finish.get() {
+                erase = true;
+            }
+        } else {
+            unreachable!()
+        }
+
+        if erase {
+            answers_slots.remove(&id);
+        }
+    }
+
+    fn answer_has_received_finish(&self, id: AnswerId) {
+        let mut erase = false;
+        let answers_slots = &mut self.answers.borrow_mut().slots;
+        if let Some(ref mut a) = answers_slots.get_mut(&id) {
+            a.received_finish.set(true);
+            if a.return_has_been_sent {
+                erase = true;
+            }
+        } else {
+            unreachable!()
+        }
+
+        if erase {
+            answers_slots.remove(&id);
+        }
     }
 
     fn release_export(&self, id: ExportId, refcount: u32) -> ::capnp::Result<()> {
@@ -1907,27 +1950,29 @@ struct ResultsInner<VatId> where VatId: 'static {
     variant: Option<ResultsVariant>,
     redirect_results: bool,
     answer_id: AnswerId,
+    finish_received: Rc<Cell<bool>>,
 }
 
 impl <VatId> ResultsInner<VatId> where VatId: 'static {
     fn ensure_initialized(&mut self) {
         let answer_id = self.answer_id;
         if self.variant.is_none() {
-            if !self.redirect_results {
-                let mut message = self.connection_state.connection.borrow_mut().as_mut()
-                    .expect("not connected?")
-                    .new_outgoing_message(100); // size hint?
+            match (self.redirect_results, self.connection_state.connection.borrow_mut().as_mut()) {
+                (false, Ok(c)) => {
+                    let mut message = c.new_outgoing_message(100); // size hint?
 
-                {
-                    let root: message::Builder = message.get_body().unwrap().init_as();
-                    let mut ret = root.init_return();
-                    ret.set_answer_id(answer_id);
-                    ret.set_release_param_caps(false);
+                    {
+                        let root: message::Builder = message.get_body().unwrap().init_as();
+                        let mut ret = root.init_return();
+                        ret.set_answer_id(answer_id);
+                        ret.set_release_param_caps(false);
+                    }
+                    self.variant = Some(ResultsVariant::Rpc(message, Vec::new()));
                 }
-                self.variant = Some(ResultsVariant::Rpc(message, Vec::new()));
-            } else {
-                self.variant =
-                    Some(ResultsVariant::LocallyRedirected(::capnp::message::Builder::new_default()));
+                _ => {
+                    self.variant =
+                        Some(ResultsVariant::LocallyRedirected(::capnp::message::Builder::new_default()));
+                }
             }
         }
     }
@@ -1944,7 +1989,8 @@ impl <VatId> Results<VatId> where VatId: 'static {
     fn new(connection_state: &Rc<ConnectionState<VatId>>,
            answer_id: AnswerId,
            redirect_results: bool,
-           fulfiller: PromiseFulfiller<ResultsInner<VatId>, Error>
+           fulfiller: PromiseFulfiller<ResultsInner<VatId>, Error>,
+           finish_received: Rc<Cell<bool>>,
            )
            -> Results<VatId>
     {
@@ -1954,6 +2000,7 @@ impl <VatId> Results<VatId> where VatId: 'static {
                 connection_state: connection_state.clone(),
                 redirect_results: redirect_results,
                 answer_id: answer_id,
+                finish_received: finish_received,
             }),
             results_done_fulfiller: Some(fulfiller),
         }
@@ -2068,43 +2115,91 @@ struct ResultsDone {
 }
 
 impl ResultsDone {
-    fn from_results_inner<VatId>(mut results_inner: ResultsInner<VatId>) -> Promise<Box<ResultsDoneHook>, Error>
+    fn from_results_inner<VatId>(mut results_inner: ResultsInner<VatId>,
+                                 call_status: Result<(), Error>)
+                                 -> Promise<Box<ResultsDoneHook>, Error>
         where VatId: 'static
     {
         results_inner.ensure_initialized();
         let ResultsInner { connection_state, variant,
-                           redirect_results: _, answer_id } = results_inner;
+                           redirect_results: _, answer_id, finish_received } = results_inner;
 
-        drop(answer_id);
         match variant {
             None => unreachable!(),
             Some(ResultsVariant::Rpc(mut message, cap_table)) => {
-                {
-                    let root: message::Builder = pry!(pry!(message.get_body()).get_as());
-                    match pry!(root.which()) {
-                        message::Return(ret) => {
-                            match pry!(pry!(ret).which()) {
-                                ::rpc_capnp::return_::Results(Ok(payload)) => {
-                                    let _exports =
-                                        ConnectionState::write_descriptors(&connection_state,
-                                                                           &cap_table,
-                                                                           payload);
+                match (finish_received.get(), call_status) {
+                    (true, _) => {
+                        // Send a Cancelled return.
+                        match connection_state.connection.borrow_mut().as_mut() {
+                            Ok(ref mut connection) => {
+                                let mut message = connection.new_outgoing_message(50); // XXX size hint
+                                {
+                                    let root: message::Builder = pry!(pry!(message.get_body()).get_as());
+                                    let mut ret = root.init_return();
+                                    ret.set_answer_id(answer_id);
+                                    ret.set_release_param_caps(false);
+                                    ret.set_canceled(());
                                 }
-                                _ => {
+                                let _ = message.send();
+                            }
+                            Err(_) => (),
+                        }
+
+                        connection_state.answer_has_sent_return(answer_id);
+                        Promise::ok(Box::new(ResultsDone::rpc(message.take(), cap_table))
+                                    as Box<ResultsDoneHook>)
+                    }
+                    (false, Ok(())) => {
+                        {
+                            let root: message::Builder = pry!(pry!(message.get_body()).get_as());
+                            match pry!(root.which()) {
+                                message::Return(ret) => {
+                                    match pry!(pry!(ret).which()) {
+                                        ::rpc_capnp::return_::Results(Ok(payload)) => {
+                                            let _exports =
+                                                ConnectionState::write_descriptors(&connection_state,
+                                                                                   &cap_table,
+                                                                                   payload);
+                                        }
+                                        _ => {
+                                            unreachable!()
+                                        }
+                                    }
+                                }
+                                _ =>  {
                                     unreachable!()
                                 }
                             }
                         }
-                        _ =>  {
-                            unreachable!()
+                        let connection_state1 = connection_state.clone();
+                        let promise = message.send().map(move |message| {
+                            let _ = connection_state1;
+                            Ok(Box::new(ResultsDone::rpc(message, cap_table)) as Box<ResultsDoneHook>)
+                        });
+                        connection_state.answer_has_sent_return(answer_id);
+                        promise
+                    }
+                    (false, Err(e)) => {
+                        // Send an error return.
+                        match connection_state.connection.borrow_mut().as_mut() {
+                            Ok(ref mut connection) => {
+                                let mut message = connection.new_outgoing_message(50); // XXX size hint
+                                {
+                                    let root: message::Builder = pry!(pry!(message.get_body()).get_as());
+                                    let mut ret = root.init_return();
+                                    ret.set_answer_id(answer_id);
+                                    ret.set_release_param_caps(false);
+                                    let mut exc = ret.init_exception();
+                                    from_error(&e, exc.borrow());
+                                }
+                                let _ = message.send();
+                            }
+                            Err(_) => (),
                         }
+                        connection_state.answer_has_sent_return(answer_id);
+                        Promise::err(e)
                     }
                 }
-                message.send().map(move |message| {
-                    let _ = connection_state;
-                    //pipeline_fulfiller.fulfill(results_done);
-                    Ok(Box::new(ResultsDone::rpc(message, cap_table)) as Box<ResultsDoneHook>)
-                })
             }
             Some(ResultsVariant::LocallyRedirected(results_done)) => {
                 Promise::ok(Box::new(ResultsDone::redirected(results_done)))
