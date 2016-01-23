@@ -122,6 +122,43 @@ fn drop_rpc_system() {
     }).expect("top level error");
 }
 
+#[test]
+fn drop_import_client_after_disconnect() {
+    EventLoop::top_level(|wait_scope| {
+        let (client_stream, server_stream) = try!(unix::Stream::new_pair());
+        let (client_reader, client_writer) = client_stream.split();
+        let client_network =
+            Box::new(twoparty::VatNetwork::new(client_reader, client_writer,
+                                               rpc_twoparty_capnp::Side::Client,
+                                               Default::default()));
+        let mut client_rpc_system = RpcSystem::new(client_network, None);
+
+        let (server_reader, server_writer) = server_stream.split();
+        let server_network =
+            Box::new(twoparty::VatNetwork::new(server_reader, server_writer,
+                                               rpc_twoparty_capnp::Side::Server,
+                                               Default::default()));
+
+        let bootstrap =
+            test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
+
+        let server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client));
+
+        let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+        try!(client.test_interface_request().send().promise.wait(wait_scope));
+
+        drop(server_rpc_system);
+
+        match client.test_interface_request().send().promise.wait(wait_scope) {
+            Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
+            _ => panic!("Should have gotten a 'disconnected' error."),
+        }
+
+        drop(client);
+        Ok(())
+    }).expect("top level error");
+}
+
 fn rpc_top_level<F>(main: F)
     where F: FnOnce(&::gj::WaitScope, test_capnp::bootstrap::Client) -> Result<(), Error>,
           F: Send + 'static

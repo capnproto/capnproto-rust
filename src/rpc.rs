@@ -614,7 +614,7 @@ impl <VatId> ConnectionState<VatId> {
                 }
                 None => {
                     weak_state0.upgrade().expect("message loop outlived connection state?")
-                        .disconnect(Error::failed("Peer disconnected.".to_string()));
+                        .disconnect(Error::disconnected("Peer disconnected.".to_string()));
                     Ok(false)
                 }
             }
@@ -2252,16 +2252,20 @@ impl <VatId> Drop for ImportClient<VatId> {
         }
 
         // Send a message releasing our remote references.
-        // ...
-        let mut message = connection_state.connection.borrow_mut().as_mut().expect("no connection?")
-            .new_outgoing_message(50); // XXX size hint
-        {
-            let root: message::Builder = message.get_body().unwrap().init_as();
-            let mut release = root.init_release();
-            release.set_id(self.import_id);
-            release.set_reference_count(self.remote_ref_count);
+        let mut tmp = connection_state.connection.borrow_mut();
+        match (self.remote_ref_count > 0, tmp.as_mut()) {
+            (true, Ok(ref mut c)) => {
+                let mut message = c.new_outgoing_message(50); // XXX size hint
+                {
+                    let root: message::Builder = message.get_body().unwrap().init_as();
+                    let mut release = root.init_release();
+                    release.set_id(self.import_id);
+                    release.set_reference_count(self.remote_ref_count);
+                }
+                let _ = message.send();
+            }
+            _ => (),
         }
-        let _ = message.send();
     }
 }
 
