@@ -1,7 +1,7 @@
 [package]
 
 name = "capnp-rpc"
-version = "0.6.0"
+version = "0.6.1"
 authors = [ "David Renshaw <dwrenshaw@sandstorm.io>" ]
 build = "build.rs"
 license = "MIT"
@@ -19,7 +19,7 @@ capnpc = "0.6"
 
 [dependencies]
 gj = "0.1"
-capnp = {version = "0.6", features = ["rpc"]}
+capnp = {version = "0.6.1", features = ["rpc"]}
 capnp-gj = "0.1"
 
 
