@@ -1069,8 +1069,6 @@ impl <VatId> ConnectionState<VatId> {
                                                           Box::new(params), Box::new(results),
                                                           box_results_done_promise);
 
-                let connection_state_ref = Rc::downgrade(&connection_state);
-
                 let promise = promise.map_else(move |result| match result {
                     Ok(()) => {
                         call_succeeded_fulfiller.fulfill(());
