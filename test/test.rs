@@ -343,6 +343,39 @@ fn release_simple() {
 }
 
 #[test]
+fn release_on_cancel() {
+    rpc_top_level(|wait_scope, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+        let client = try!(try!(response.get()).get_cap());
+
+        let promise = client.get_handle_request().send();
+
+        // If the server receives cancellation too early, it won't even return a capability in the
+        // results, it will just return "canceled". We want to emulate the case where the return message
+        // and the cancel (finish) message cross paths.
+        //
+        // Note: This is copied from the c++ test and might not actually trigger the situation
+        // we're interested in. Needs investigation...
+
+        let _ = Promise::<(), ()>::ok(()).map(|()| Ok(())).wait(wait_scope);
+        let _ = Promise::<(), ()>::ok(()).map(|()| Ok(())).wait(wait_scope);
+        drop(promise);
+
+        for _ in 0..16 {
+            let _ = Promise::<(), ()>::ok(()).map(|()| Ok(())).wait(wait_scope);
+        }
+
+        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope));
+        let handle_count = try!(get_count_response.get()).get_count();
+        if handle_count != 0 {
+            return Err(Error::failed(format!("handle count: expected 0, but got {}", handle_count)))
+        }
+
+        Ok(())
+    });
+}
+
+#[test]
 fn promise_resolve() {
     rpc_top_level(|wait_scope, client| {
         let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
