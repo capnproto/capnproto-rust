@@ -353,9 +353,6 @@ fn release_on_cancel() {
         // If the server receives cancellation too early, it won't even return a capability in the
         // results, it will just return "canceled". We want to emulate the case where the return message
         // and the cancel (finish) message cross paths.
-        //
-        // Note: This is copied from the c++ test and might not actually trigger the situation
-        // we're interested in. Needs investigation...
 
         let _ = Promise::<(), ()>::ok(()).map(|()| Ok(())).wait(wait_scope);
         let _ = Promise::<(), ()>::ok(()).map(|()| Ok(())).wait(wait_scope);

@@ -1121,13 +1121,15 @@ impl <VatId> ConnectionState<VatId> {
         Ok(())
     }
 
-    fn answer_has_sent_return(&self, id: AnswerId) {
+    fn answer_has_sent_return(&self, id: AnswerId, result_exports: Vec<ExportId>) {
         let mut erase = false;
         let answers_slots = &mut self.answers.borrow_mut().slots;
         if let Some(ref mut a) = answers_slots.get_mut(&id) {
             a.return_has_been_sent = true;
             if a.received_finish.get() {
                 erase = true;
+            } else {
+                a.result_exports = result_exports;
             }
         } else {
             unreachable!()
@@ -2143,21 +2145,20 @@ impl ResultsDone {
                             Err(_) => (),
                         }
 
-                        connection_state.answer_has_sent_return(answer_id);
+                        connection_state.answer_has_sent_return(answer_id, Vec::new());
                         Promise::ok(Box::new(ResultsDone::rpc(message.take(), cap_table))
                                     as Box<ResultsDoneHook>)
                     }
                     (false, Ok(())) => {
-                        {
+                        let exports = {
                             let root: message::Builder = pry!(pry!(message.get_body()).get_as());
                             match pry!(root.which()) {
                                 message::Return(ret) => {
                                     match pry!(pry!(ret).which()) {
                                         ::rpc_capnp::return_::Results(Ok(payload)) => {
-                                            let _exports =
-                                                ConnectionState::write_descriptors(&connection_state,
-                                                                                   &cap_table,
-                                                                                   payload);
+                                            ConnectionState::write_descriptors(&connection_state,
+                                                                               &cap_table,
+                                                                               payload)
                                         }
                                         _ => {
                                             unreachable!()
@@ -2168,13 +2169,13 @@ impl ResultsDone {
                                     unreachable!()
                                 }
                             }
-                        }
+                        };
                         let connection_state1 = connection_state.clone();
                         let promise = message.send().map(move |message| {
                             let _ = connection_state1;
                             Ok(Box::new(ResultsDone::rpc(message, cap_table)) as Box<ResultsDoneHook>)
                         });
-                        connection_state.answer_has_sent_return(answer_id);
+                        connection_state.answer_has_sent_return(answer_id, exports);
                         promise
                     }
                     (false, Err(e)) => {
@@ -2194,7 +2195,7 @@ impl ResultsDone {
                             }
                             Err(_) => (),
                         }
-                        connection_state.answer_has_sent_return(answer_id);
+                        connection_state.answer_has_sent_return(answer_id, Vec::new());
                         Promise::err(e)
                     }
                 }
