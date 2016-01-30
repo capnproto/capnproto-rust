@@ -659,10 +659,10 @@ impl <VatId> ConnectionState<VatId> {
                                     match try!(try!(c).which()) {
                                         ::rpc_capnp::cap_descriptor::None(()) => (),
                                         ::rpc_capnp::cap_descriptor::SenderHosted(export_id) => {
-                                            connection_state.release_export(export_id, 1);
+                                            try!(connection_state.release_export(export_id, 1));
                                         }
                                         ::rpc_capnp::cap_descriptor::SenderPromise(export_id) => {
-                                            connection_state.release_export(export_id, 1);
+                                            try!(connection_state.release_export(export_id, 1));
                                         }
                                         ::rpc_capnp::cap_descriptor::ReceiverAnswer(_) |
                                         ::rpc_capnp::cap_descriptor::ReceiverHosted(_) => (),
@@ -1240,16 +1240,15 @@ impl <VatId> ConnectionState<VatId> {
     /// this network connection, but then the promise resolved to point somewhere else before the
     /// request was sent.  Now the request has to be redirected to the new target instead.
     fn write_target(&self, cap: &ClientHook, target: ::rpc_capnp::message_target::Builder)
-        -> ::capnp::Result<Option<Box<ClientHook>>>
+        -> Option<Box<ClientHook>>
     {
         if cap.get_brand() == self.get_brand() {
-            let redirect = match Client::from_ptr(cap.get_ptr(), self) {
+            match Client::from_ptr(cap.get_ptr(), self) {
                 Some(c) => c.write_target(target),
                 None => unreachable!(),
-            };
-            Ok(redirect)
+            }
         } else {
-            Ok(Some(cap.add_ref()))
+            Some(cap.add_ref())
         }
     }
 
@@ -2488,7 +2487,10 @@ impl <VatId> PromiseClient<VatId> {
                 disembargo.borrow().init_context().set_sender_loopback(embargo_id);
                 let target = disembargo.init_target();
 
-                connection_state.write_target(&*self.cap, target);
+                let redirect = connection_state.write_target(&*self.cap, target);
+                if let Some(_) = redirect {
+                    panic!("Original promise target should always be from this RPC connection.")
+                }
             }
 
             // Make a promise which resolves to `replacement` as soon as the `Disembargo` comes back.
@@ -2613,7 +2615,7 @@ impl <VatId> Client<VatId> {
             ClientVariant::Promise(ref promise_client) => {
                 promise_client.borrow_mut().received_call = true;
                 self.connection_state.write_target(
-                    &*promise_client.borrow().cap, target).unwrap()
+                    &*promise_client.borrow().cap, target)
             }
             _ => {
                 unimplemented!()
