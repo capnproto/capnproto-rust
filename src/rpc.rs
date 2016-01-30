@@ -814,7 +814,6 @@ impl <VatId> ConnectionState<VatId> {
                     let finish = try!(finish);
 
                     let mut exports_to_release = Vec::new();
-                    let mut pipeline_to_release = None;
 
                     let answer_id = finish.get_question_id();
 
@@ -836,22 +835,22 @@ impl <VatId> ConnectionState<VatId> {
                             if finish.get_release_result_caps() {
                                 exports_to_release = ::std::mem::replace(&mut answer.result_exports, Vec::new());
                             }
-                            pipeline_to_release = answer.pipeline.take();
 
+                            // If the pipeline has not been cloned, the following two lines cancel the call.
+                            answer.pipeline.take();
                             answer.call_completion_promise.take();
+
                             if answer.return_has_been_sent {
                                 erase = true;
-                            } else {
-                                // TODO?
                             }
                         }
                     }
 
-                    try!(connection_state1.release_exports(&exports_to_release));
-
                     if erase {
                         answers_slots.remove(&answer_id);
                     }
+
+                    try!(connection_state1.release_exports(&exports_to_release));
 
                     BorrowWorkaround::Done
                 }
@@ -1140,23 +1139,6 @@ impl <VatId> ConnectionState<VatId> {
         }
     }
 
-    fn answer_has_received_finish(&self, id: AnswerId) {
-        let mut erase = false;
-        let answers_slots = &mut self.answers.borrow_mut().slots;
-        if let Some(ref mut a) = answers_slots.get_mut(&id) {
-            a.received_finish.set(true);
-            if a.return_has_been_sent {
-                erase = true;
-            }
-        } else {
-            unreachable!()
-        }
-
-        if erase {
-            answers_slots.remove(&id);
-        }
-    }
-
     fn release_export(&self, id: ExportId, refcount: u32) -> ::capnp::Result<()> {
         let mut erase_export = false;
         let mut client_ptr = 0;
@@ -1322,8 +1304,8 @@ impl <VatId> ConnectionState<VatId> {
                         let root: message::Builder = try!(try!(message.get_body()).get_as());
                         let mut resolve = root.init_resolve();
                         resolve.set_promise_id(export_id);
-                        ConnectionState::write_descriptor(&connection_state, &resolution,
-                                                          resolve.init_cap());
+                        let _export = try!(ConnectionState::write_descriptor(&connection_state, &resolution,
+                                                                             resolve.init_cap()));
                     }
                     let _ = message.send();
                     Ok(())
