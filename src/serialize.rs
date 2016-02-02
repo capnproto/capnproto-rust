@@ -176,7 +176,7 @@ fn flatten_segments(segments: &[&[Word]]) -> Vec<Word> {
     let table_size = segments.len() / 2 + 1;
     let mut result = Vec::with_capacity(word_count);
     for _ in 0..table_size {
-        result.push(Word(0));
+        result.push(Word { raw_content: 0 });
     }
     {
         let mut bytes = ::Word::words_to_bytes_mut(&mut result[..]);
