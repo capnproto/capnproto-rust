@@ -23,7 +23,6 @@
 // This is experimental for now...
 
 use ::capnp::Word;
-use ::capnp::private::RawSchema;
 use ::std::cell::RefCell;
 
 pub struct Arena {
@@ -45,7 +44,7 @@ impl Arena {
 
 pub struct SchemaLoader<'a> {
     arena : &'a Arena,
-    schemas : ::std::collections::hash_map::HashMap<u64, RawSchema<'a>>,
+    schemas : ::std::collections::hash_map::HashMap<u64, &'a [Word]>,
 }
 
 
