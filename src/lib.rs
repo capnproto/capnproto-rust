@@ -42,6 +42,30 @@ extern crate quickcheck;
 #[cfg(feature = "rpc")]
 extern crate gj;
 
+#[cfg(target_endian = "little")]
+#[macro_export]
+macro_rules! capnp_word {
+  ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
+   $b4:expr, $b5:expr, $b6:expr, $b7:expr) => (
+    $crate::Word((($b0 as u64) << 0) + (($b1 as u64) << 8) +
+                 (($b2 as u64) << 16) + (($b3 as u64) << 24) +
+                 (($b4 as u64) << 32) + (($b5 as u64) << 40) +
+                 (($b6 as u64) << 48) + (($b7 as u64) << 56))
+  )
+}
+
+#[cfg(target_endian = "big")]
+#[macro_export]
+macro_rules! capnp_word {
+  ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
+   $b4:expr, $b5:expr, $b6:expr, $b7:expr) => (
+     Word((($b7 as u64) << 0) + (($b6 as u64) << 8) +
+          (($b5 as u64) << 16) + (($b4 as u64) << 24) +
+          (($b3 as u64) << 32) + (($b2 as u64) << 40) +
+          (($b1 as u64) << 48) + (($b0 as u64) << 56))
+  )
+}
+
 pub mod any_pointer;
 pub mod capability;
 pub mod data;

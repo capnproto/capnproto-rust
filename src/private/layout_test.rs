@@ -22,14 +22,12 @@
 
 #[test]
 fn simple_raw_data_struct() {
-    let data : ::private::AlignedData<[u8; 16]> = ::private::AlignedData {
-        _dummy: 0,
-        data : [0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef]
-    };
+    let data: &[::Word] = &[
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00),
+        capnp_word!(0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef)];
 
-    let reader = unsafe { ::private::layout::PointerReader::get_root_unchecked(
-        ::std::mem::transmute(data.data.as_ptr())).get_struct(::std::ptr::null()).unwrap() };
+    let reader = ::private::layout::PointerReader::get_root_unchecked(data.as_ptr())
+        .get_struct(::std::ptr::null()).unwrap();
 
     assert_eq!(0xefcdab8967452301u64, reader.get_data_field::<u64>(0));
     assert_eq!(0, reader.get_data_field::<u64>(1));
@@ -72,16 +70,13 @@ fn bool_list() {
     //  true, true, true, false,
     //  false, true]
 
-    let data : ::private::AlignedData<[u8; 16]> = ::private::AlignedData {
-        _dummy: 0,
-        data : [0x01, 0x00, 0x00, 0x00, 0x51, 0x00, 0x00, 0x00,
-                0x75, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-    };
+    let data: &[::Word] = &[
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x51, 0x00, 0x00, 0x00),
+        capnp_word!(0x75, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)];
 
-    let pointer_reader = unsafe {
-        ::private::layout::PointerReader::get_root_unchecked(
-            ::std::mem::transmute(data.data.as_ptr()))
-    };
+
+    let pointer_reader =
+        ::private::layout::PointerReader::get_root_unchecked(data.as_ptr());
 
     let reader = pointer_reader.get_list(::private::layout::ElementSize::Bit, ::std::ptr::null()).unwrap();
 

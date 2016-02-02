@@ -42,25 +42,19 @@ mod layout_test;
 /// eight.
 ///
 /// Perhaps in the future Rust will provide a nicer way to guarantee alignment.
+///
+/// DEPRECATED. Should use capnp_word!() instead.
 #[repr(C)]
 pub struct AlignedData<T> {
     pub _dummy : u64,
     pub data : T
 }
 
+
+
 pub struct RawSchema<'a> {
-    pub id : u64,
-    pub blob: &'a [u8], // must be aligned to a word boundary
+    pub blob: &'a [Word],
 }
 
-impl <'a> RawSchema<'a> {
-    pub fn get_encoded_node(&self) -> &'a [Word] {
-        unsafe {
-            ::std::slice::from_raw_parts(
-                ::std::mem::transmute(&self.blob.as_ptr()),
-                self.blob.len() / 8)
-        }
-    }
-}
 
 
