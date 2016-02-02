@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#[macro_use]
 extern crate capnp;
 
 #[allow(overflowing_literals)]
@@ -769,12 +770,13 @@ mod tests {
 
     #[test]
     fn double_far_pointers() {
-        let _bytes : ::capnp::private::AlignedData<[u8; 48]> = ::capnp::private::AlignedData {
-            _dummy : 0,
-            data : [2,0,0,0, 1,0,0,0, 2,0,0,0, 1,0,0,0,
-                    6,0,0,0, 1,0,0,0, 2,0,0,0, 2,0,0,0,
-                    0,0,0,0, 1,0,0,0, 1,7,255,127, 0,0,0,0],
-        };
+        let _words: &[::capnp::Word] = &[
+            capnp_word!(2,0,0,0,1,0,0,0),
+            capnp_word!(2,0,0,0,1,0,0,0),
+            capnp_word!(6,0,0,0,1,0,0,0),
+            capnp_word!(2,0,0,0,2,0,0,0),
+            capnp_word!(0,0,0,0,1,0,0,0),
+            capnp_word!(1,7,255,127,0,0,0,0)];
         // ...
     }
 
@@ -795,16 +797,16 @@ mod tests {
 
     #[test]
     fn inline_composite_list_int_overflow() {
-        let bytes : ::capnp::private::AlignedData<[u8; 40]> = ::capnp::private::AlignedData {
-            _dummy : 0,
-            data : [0,0,0,0, 0,0,1,0,
-                    1,0,0,0, 0x17,0,0,0, 0,0,0,128, 16,0,0,0,
-                    0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
-        };
+        let words: &[::capnp::Word] = &[
+            capnp_word!(0,0,0,0,0,0,1,0),
+            capnp_word!(1,0,0,0,0x17,0,0,0),
+            capnp_word!(0,0,0,128,16,0,0,0),
+            capnp_word!(0,0,0,0,0,0,0,0),
+            capnp_word!(0,0,0,0,0,0,0,0)];
+        let segment_array = &[words];
 
-        let words = [::capnp::Word::bytes_to_words(&bytes.data[..])];
         let message =
-            message::Reader::new(message::SegmentArray::new(&words), ReaderOptions::new());
+            message::Reader::new(message::SegmentArray::new(segment_array), ReaderOptions::new());
 
         let root : ::test_capnp::test_any_pointer::Reader = message.get_root().unwrap();
         match root.total_size() {
