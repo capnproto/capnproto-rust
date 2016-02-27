@@ -20,12 +20,10 @@ fn main() {
         }
 
         let path = Path::new(str::from_utf8(&output.stdout).unwrap());
-        let mut path1 = path.parent().unwrap().parent().unwrap().to_path_buf();
-        path1.push("include/capnp");
-        path1
+        path.join("../../include/capnp")
     };
 
     capnpc::compile(&prefix,
-                    &[&prefix.clone().join("rpc.capnp"),
-                      &prefix.join("rpc-twoparty.capnp")]).unwrap();
+                    &[prefix.join("rpc.capnp"),
+                      prefix.join("rpc-twoparty.capnp")]).unwrap();
 }
