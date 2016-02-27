@@ -1,6 +1,6 @@
 use std::str;
 use std::path::Path;
-use std::process::Command;
+use std::process::{self, Command};
 
 extern crate capnpc;
 
@@ -12,9 +12,14 @@ fn main() {
         let output = Command::new("which")
                              .arg("capnp")
                              .output()
-                             .unwrap().stdout;
+                             .expect("Failed to run `which capnp`");
 
-        let path = Path::new(str::from_utf8(&output).unwrap());
+        if !output.status.success() {
+            println!("Failed to find `capnp` executable");
+            process::exit(1);
+        }
+
+        let path = Path::new(str::from_utf8(&output.stdout).unwrap());
         let mut path1 = path.parent().unwrap().parent().unwrap().to_path_buf();
         path1.push("include/capnp");
         path1
