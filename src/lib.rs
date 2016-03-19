@@ -64,6 +64,18 @@ pub mod schema;
 
 use std::path::Path;
 
+fn run_command(mut command: ::std::process::Command) -> ::capnp::Result<()> {
+    let mut p = try!(command.spawn());
+    try!(::codegen::main(p.stdout.take().unwrap(),
+                         ::std::path::Path::new(&::std::env::var("OUT_DIR").unwrap())));
+    let exit_status = try!(p.wait());
+    if !exit_status.success() {
+        Err(::capnp::Error::failed(format!("Non-success exit status: {}", exit_status)))
+    } else {
+        Ok(())
+    }
+}
+
 pub fn compile<P1, P2>(src_prefix: P1, files: &[P2]) -> ::capnp::Result<()>
     where P1: AsRef<Path>, P2: AsRef<Path>
 {
@@ -78,13 +90,9 @@ pub fn compile<P1, P2>(src_prefix: P1, files: &[P2]) -> ::capnp::Result<()>
     command.stdout(::std::process::Stdio::piped());
     command.stderr(::std::process::Stdio::inherit());
 
-    let mut p = try!(command.spawn().map_err(|error| {
-        ::capnp::Error::failed(format!("Failed to execute capnp executable: {}. \
-                                       See https://capnproto.org/install.html",
-                                       error))}));
-    try!(::codegen::main(p.stdout.take().unwrap(),
-                         ::std::path::Path::new(&::std::env::var("OUT_DIR").unwrap())));
-    try!(p.wait());
-    return Ok(());
+    run_command(command).map_err(|error| {
+        ::capnp::Error::failed(format!("Error while trying to execute `capnp compile`: {}.  \
+                                       Perhaps the capnp executable is not installed \
+                                       on your system? See https://capnproto.org/install.html",
+                                       error))})
 }
-
