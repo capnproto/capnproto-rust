@@ -33,3 +33,6 @@ script:
   - cd ..
   - cd examples/calculator
   - ./test_client_and_server.bash
+  - cd ..
+  - cd pubsub
+  - cargo build
