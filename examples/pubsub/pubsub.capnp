@@ -1,8 +1,9 @@
 @0xa074fbab61132cbd;
 
 interface Publisher {
-  interface Listener {
-    pushValues @0 (values: Float64) -> ();
-  }
-  registerListener @0 (listener: Listener) -> ();
+  register @0 (subscriber: Subscriber) -> ();
+}
+
+interface Subscriber {
+  pushValues @0 (values: Float64) -> ();
 }

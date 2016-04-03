@@ -8,9 +8,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
-use pubsub_capnp::publisher::listener;
-use pubsub_capnp::publisher;
-
+use pubsub_capnp::{publisher, subscriber};
 
 use gj::{EventLoop, Promise, TaskReaper, TaskSet};
 use gj::io::tcp;
@@ -20,28 +18,27 @@ pub mod pubsub_capnp {
 }
 
 struct PublisherImpl {
-  listeners: Rc<RefCell<Vec<publisher::listener::Client>>>,
+  subscribers: Rc<RefCell<Vec<subscriber::Client>>>,
 }
 
 impl PublisherImpl {
-    pub fn new() -> (PublisherImpl, Rc<RefCell<Vec<publisher::listener::Client>>>) {
-        let listeners = Rc::new(RefCell::new(Vec::new()));
-        (PublisherImpl { listeners: listeners.clone() }, listeners.clone())
+    pub fn new() -> (PublisherImpl, Rc<RefCell<Vec<subscriber::Client>>>) {
+        let subscribers = Rc::new(RefCell::new(Vec::new()));
+        (PublisherImpl { subscribers: subscribers.clone() }, subscribers.clone())
     }
 }
 
 impl publisher::Server for PublisherImpl {
-    fn register_listener(&mut self,
-                         params: publisher::RegisterListenerParams,
-                         mut results: publisher::RegisterListenerResults,)
-                         -> Promise<(), capnp::Error>
+    fn register(&mut self,
+                params: publisher::RegisterParams,
+                _results: publisher::RegisterResults,)
+                -> Promise<(), capnp::Error>
     {
         println!("Register");
-        self.listeners.borrow_mut().push(pry!(pry!(params.get()).get_listener()));
+        self.subscribers.borrow_mut().push(pry!(pry!(params.get()).get_subscriber()));
         Promise::ok(())
     }
 }
-
 
 pub fn accept_loop(listener: tcp::Listener,
                    task_set: Rc<RefCell<TaskSet<(), Box<::std::error::Error>>>>,
@@ -71,23 +68,21 @@ impl TaskReaper<(), Box<::std::error::Error>> for Reaper {
 }
 
 
-fn send_to_listeners(listeners: Rc<RefCell<Vec<publisher::listener::Client>>>,
-                     task_set: Rc<RefCell<TaskSet<(), Box<::std::error::Error>>>>)
-                      -> Promise<(), Box<::std::error::Error>>
+fn send_to_subscribers(subscribers: Rc<RefCell<Vec<subscriber::Client>>>,
+                       task_set: Rc<RefCell<TaskSet<(), Box<::std::error::Error>>>>)
+                       -> Promise<(), Box<::std::error::Error>>
 {
     gj::io::Timer.after_delay(::std::time::Duration::new(1, 0)).lift().then(move |()| {
         {
-            for listener in listeners.borrow().iter() {
-                let mut request = listener.push_values_request();
+            for subscriber in subscribers.borrow().iter() {
+                let mut request = subscriber.push_values_request();
                 request.get().set_values(1.23);
                 task_set.borrow_mut().add(request.send().promise.map(|_| Ok(())).lift());
             }
         }
-        send_to_listeners(listeners, task_set)
+        send_to_subscribers(subscribers, task_set)
     })
 }
-
-
 
 pub fn main() {
     EventLoop::top_level(move |wait_scope| {
@@ -95,7 +90,7 @@ pub fn main() {
         let addr = try!("127.0.0.1:22222".to_socket_addrs()).next().expect("could not parse address");
         let listener = try!(tcp::Listener::bind(addr));
 
-        let (publisher_impl, listeners) = PublisherImpl::new();
+        let (publisher_impl, subscribers) = PublisherImpl::new();
 
         let publisher = publisher::ToClient::new(publisher_impl).from_server::<::capnp_rpc::Server>();
 
@@ -103,7 +98,7 @@ pub fn main() {
 
         let task_set_clone = task_set.clone();
 
-        task_set.borrow_mut().add(send_to_listeners(listeners, task_set_clone));
+        task_set.borrow_mut().add(send_to_subscribers(subscribers, task_set_clone));
 
         try!(accept_loop(listener, task_set, publisher).wait(wait_scope));
 
