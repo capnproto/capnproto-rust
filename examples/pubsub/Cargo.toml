@@ -1,0 +1,24 @@
+[package]
+name = "pubsub"
+version = "0.1.0"
+authors = ["David Renshaw <david@sandstorm.io>"]
+
+build = "build.rs"
+
+[[bin]]
+name = "server"
+path = "server.rs"
+
+[[bin]]
+name = "client"
+path = "client.rs"
+
+[build-dependencies]
+capnpc = "0.6"
+
+[dependencies]
+capnp = "0.6"
+gj = "0.1"
+
+[dependencies.capnp-rpc]
+path = "../.."
