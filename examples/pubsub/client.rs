@@ -4,17 +4,12 @@ extern crate capnp_rpc;
 #[macro_use]
 extern crate gj;
 
-use std::rc::Rc;
-use std::cell::RefCell;
-
-use capnp::capability::{Server};
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use pubsub_capnp::publisher::listener;
 use pubsub_capnp::publisher;
 
 
 use gj::{EventLoop, Promise, TaskReaper, TaskSet};
-use gj::io::tcp;
 
 pub mod pubsub_capnp {
   include!(concat!(env!("OUT_DIR"), "/pubsub_capnp.rs"));

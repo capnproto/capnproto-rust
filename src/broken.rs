@@ -49,13 +49,13 @@ impl PipelineHook for Pipeline {
     }
 }
 
-struct Request {
+pub struct Request {
     error: Error,
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
 }
 
 impl Request {
-    fn new(error: Error, _size_hint: Option<::capnp::MessageSize>) -> Request {
+    pub fn new(error: Error, _size_hint: Option<::capnp::MessageSize>) -> Request {
         Request {
             error: error,
             message: ::capnp::message::Builder::new_default(),

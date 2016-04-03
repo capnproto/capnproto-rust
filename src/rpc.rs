@@ -1623,16 +1623,18 @@ fn get_call<'a>(message: &'a mut Box<::OutgoingMessage>)
 impl <VatId> Request<VatId> where VatId: 'static {
     fn new(connection_state: Rc<ConnectionState<VatId>>,
            _size_hint: Option<::capnp::MessageSize>,
-           target: Client<VatId>) -> Request<VatId> {
+           target: Client<VatId>) -> ::capnp::Result<Request<VatId>> {
 
-        let message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
-            .new_outgoing_message(100);
-        Request {
+        let message = match connection_state.connection.borrow_mut().as_mut() {
+            Ok(ref mut c) => c.new_outgoing_message(100),
+            Err(e) => return Err(e.clone()),
+        };
+        Ok(Request {
             connection_state: connection_state,
             target: target,
             message: message,
             cap_table: Vec::new(),
-        }
+        })
     }
 
     fn init_call<'a>(&'a mut self) -> ::rpc_capnp::call::Builder<'a> {
@@ -2669,15 +2671,23 @@ impl <VatId> ClientHook for Client<VatId> {
                 size_hint: Option<::capnp::MessageSize>)
                 -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
     {
-        let mut request = Request::new(self.connection_state.clone(),
-                                       size_hint, self.clone());
+        let request: Box<RequestHook> =
+            match Request::new(self.connection_state.clone(), size_hint, self.clone())
         {
-            let mut call_builder = request.init_call();
-            call_builder.set_interface_id(interface_id);
-            call_builder.set_method_id(method_id);
-        }
+            Ok(mut request) => {
+                {
+                    let mut call_builder = request.init_call();
+                    call_builder.set_interface_id(interface_id);
+                    call_builder.set_method_id(method_id);
+                }
+                Box::new(request)
+            }
+            Err(e) => {
+                Box::new(broken::Request::new(e, None))
+            }
+        };
 
-        ::capnp::capability::Request::new(Box::new(request))
+        ::capnp::capability::Request::new(request)
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>,
