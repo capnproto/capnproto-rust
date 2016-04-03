@@ -42,7 +42,9 @@ pub fn main() {
 
         let mut request = publisher.register_request();
         request.get().set_subscriber(sub);
-        request.send().promise.wait(wait_scope).unwrap();
+
+        // Need to make sure not to drop the returned handle object.
+        let _result = request.send().promise.wait(wait_scope).unwrap();
 
         Promise::<(),()>::never_done().wait(wait_scope).unwrap();
         Ok(())
