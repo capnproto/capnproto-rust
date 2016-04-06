@@ -6,12 +6,8 @@ authors = ["David Renshaw <david@sandstorm.io>"]
 build = "build.rs"
 
 [[bin]]
-name = "server"
-path = "server.rs"
-
-[[bin]]
-name = "client"
-path = "client.rs"
+name = "main"
+path = "main.rs"
 
 [build-dependencies]
 capnpc = "0.6"

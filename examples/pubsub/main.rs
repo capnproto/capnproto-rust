@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2015 Sandstorm Development Group, Inc. and contributors
+// Copyright (c) 2013-2016 Sandstorm Development Group, Inc. and contributors
 // Licensed under the MIT License:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,8 +24,8 @@ extern crate capnp_rpc;
 #[macro_use]
 extern crate gj;
 
-pub mod calculator_capnp {
-  include!(concat!(env!("OUT_DIR"), "/calculator_capnp.rs"));
+pub mod pubsub_capnp {
+  include!(concat!(env!("OUT_DIR"), "/pubsub_capnp.rs"));
 }
 
 pub mod client;
