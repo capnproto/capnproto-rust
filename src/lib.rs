@@ -94,5 +94,5 @@ pub fn compile<P1, P2>(src_prefix: P1, files: &[P2]) -> ::capnp::Result<()>
         ::capnp::Error::failed(format!("Error while trying to execute `capnp compile`: {}.  \
                                         Please verify that version 0.5.2 or higher of the capnp executable \
                                         is installed on your system. See https://capnproto.org/install.html",
-                                        error))})
+                                       error))})
 }
