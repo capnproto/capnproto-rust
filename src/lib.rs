@@ -62,8 +62,8 @@
 
 
 extern crate capnp;
-#[macro_use]
-extern crate gj;
+#[macro_use] extern crate gj;
+extern crate gjio;
 extern crate capnp_gj;
 
 use gj::Promise;

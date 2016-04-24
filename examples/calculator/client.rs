@@ -50,12 +50,15 @@ pub fn main() {
         return;
     }
 
-    ::gj::EventLoop::top_level(move |wait_scope| {
+    ::gj::EventLoop::top_level(move |wait_scope| -> Result<(), ::capnp::Error> {
         use std::net::ToSocketAddrs;
+        let mut event_port = try!(::gjio::EventPort::new());
+        let network = event_port.get_network();
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-        let (reader, writer) = try!(::gj::io::tcp::Stream::connect(addr).wait(wait_scope)).split();
+        let mut address = network.get_tcp_address(addr);
+        let stream = try!(address.connect().wait(wait_scope, &mut event_port));
         let network =
-            Box::new(twoparty::VatNetwork::new(reader, writer,
+            Box::new(twoparty::VatNetwork::new(stream.clone(), stream,
                                                rpc_twoparty_capnp::Side::Client,
                                                Default::default()));
         let mut rpc_system = RpcSystem::new(network, None);
@@ -80,7 +83,7 @@ pub fn main() {
             try!(request.send().promise.then(|response|{
                 assert_eq!(pry!(response.get()).get_value(), 123.0);
                 Promise::ok(())
-            }).wait(wait_scope));
+            }).wait(wait_scope, &mut event_port));
             println!("PASS");
         }
 
@@ -130,7 +133,7 @@ pub fn main() {
             let eval_promise = request.send();
             let read_promise = eval_promise.pipeline.get_value().read_request().send();
 
-            let response = try!(read_promise.promise.wait(wait_scope));
+            let response = try!(read_promise.promise.wait(wait_scope, &mut event_port));
             assert_eq!(try!(response.get()).get_value(), 101.0);
 
             println!("PASS");
@@ -198,8 +201,8 @@ pub fn main() {
             let add5_promise = add5_request.send().pipeline.get_value().read_request().send();
 
             // Now wait for the results.
-            assert!(try!(try!(add3_promise.promise.wait(wait_scope)).get()).get_value() == 27.0);
-            assert!(try!(try!(add5_promise.promise.wait(wait_scope)).get()).get_value() == 29.0);
+            assert!(try!(try!(add3_promise.promise.wait(wait_scope, &mut event_port)).get()).get_value() == 27.0);
+            assert!(try!(try!(add5_promise.promise.wait(wait_scope, &mut event_port)).get()).get_value() == 29.0);
 
             println!("PASS")
         }
@@ -294,8 +297,8 @@ pub fn main() {
             }
             let g_eval_promise = g_eval_request.send().pipeline.get_value().read_request().send();
 
-            assert!(try!(try!(f_eval_promise.promise.wait(wait_scope)).get()).get_value() == 1234.0);
-            assert!(try!(try!(g_eval_promise.promise.wait(wait_scope)).get()).get_value() == 4244.0);
+            assert!(try!(try!(f_eval_promise.promise.wait(wait_scope, &mut event_port)).get()).get_value() == 1234.0);
+            assert!(try!(try!(g_eval_promise.promise.wait(wait_scope, &mut event_port)).get()).get_value() == 4244.0);
 
             println!("PASS")
         }
@@ -340,11 +343,11 @@ pub fn main() {
 
             let response_promise = request.send().pipeline.get_value().read_request().send();
 
-            assert!(try!(try!(response_promise.promise.wait(wait_scope)).get()).get_value() == 512.0);
+            assert!(try!(try!(response_promise.promise.wait(wait_scope, &mut event_port)).get()).get_value() == 512.0);
 
             println!("PASS");
         }
 
         Ok(())
-    }).expect("top level error");
+    }).expect("top level");
 }

@@ -21,8 +21,8 @@
 
 extern crate capnp;
 extern crate capnp_rpc;
-#[macro_use]
-extern crate gj;
+#[macro_use] extern crate gj;
+extern crate gjio;
 
 pub mod pubsub_capnp {
   include!(concat!(env!("OUT_DIR"), "/pubsub_capnp.rs"));

@@ -27,7 +27,6 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use pubsub_capnp::{publisher, subscriber, handle};
 
 use gj::{EventLoop, Promise, TaskReaper, TaskSet};
-use gj::io::tcp;
 
 struct SubscriberMap {
     subscribers: HashMap<u64, subscriber::Client>,
@@ -90,15 +89,14 @@ impl publisher::Server for PublisherImpl {
     }
 }
 
-pub fn accept_loop(listener: tcp::Listener,
+pub fn accept_loop(mut listener: ::gjio::SocketListener,
                    task_set: Rc<RefCell<TaskSet<(), Box<::std::error::Error>>>>,
                    publisher: publisher::Client)
                    -> Promise<(), ::std::io::Error>
 {
-    listener.accept().lift().then(move |(listener, stream)| {
-        let (reader, writer) = stream.split();
+    listener.accept().then(move |stream| {
         let mut network =
-            twoparty::VatNetwork::new(reader, writer,
+            twoparty::VatNetwork::new(stream.clone(), stream,
                                       rpc_twoparty_capnp::Side::Server, Default::default());
         let disconnect_promise = network.on_disconnect();
 
@@ -118,10 +116,11 @@ impl TaskReaper<(), Box<::std::error::Error>> for Reaper {
 }
 
 fn send_to_subscribers(subscribers: Rc<RefCell<SubscriberMap>>,
+                       timer: ::gjio::Timer,
                        task_set: Rc<RefCell<TaskSet<(), Box<::std::error::Error>>>>)
                        -> Promise<(), Box<::std::error::Error>>
 {
-    ::gj::io::Timer.after_delay(::std::time::Duration::new(1, 0)).lift().then(move |()| {
+    timer.after_delay(::std::time::Duration::new(1, 0)).lift().then(move |()| {
         {
             for (_, subscriber) in subscribers.borrow().subscribers.iter() {
                 let mut request = subscriber.push_values_request();
@@ -129,7 +128,7 @@ fn send_to_subscribers(subscribers: Rc<RefCell<SubscriberMap>>,
                 task_set.borrow_mut().add(request.send().promise.map(|_| Ok(())).lift());
             }
         }
-        send_to_subscribers(subscribers, task_set)
+        send_to_subscribers(subscribers, timer, task_set)
     })
 }
 
@@ -140,10 +139,13 @@ pub fn main() {
         return;
     }
 
-    EventLoop::top_level(move |wait_scope| {
+    EventLoop::top_level(move |wait_scope| -> Result<(), Box<::std::error::Error>> {
         use std::net::ToSocketAddrs;
+        let mut event_port = try!(::gjio::EventPort::new());
+        let network = event_port.get_network();
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-        let listener = try!(tcp::Listener::bind(addr));
+        let mut address = network.get_tcp_address(addr);
+        let listener = try!(address.listen());
 
         let (publisher_impl, subscribers) = PublisherImpl::new();
 
@@ -153,9 +155,9 @@ pub fn main() {
 
         let task_set_clone = task_set.clone();
 
-        task_set.borrow_mut().add(send_to_subscribers(subscribers, task_set_clone));
+        task_set.borrow_mut().add(send_to_subscribers(subscribers, event_port.get_timer(), task_set_clone));
 
-        try!(accept_loop(listener, task_set, publisher).wait(wait_scope));
+        try!(accept_loop(listener, task_set, publisher).wait(wait_scope, &mut event_port));
 
         Ok(())
     }).expect("top level error");

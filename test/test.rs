@@ -24,13 +24,16 @@
 extern crate capnp;
 extern crate capnp_rpc;
 
-#[macro_use]
-extern crate gj;
+#[macro_use] extern crate gj;
+extern crate gjio;
 
 use gj::{EventLoop, Promise};
-use gj::io::{AsyncRead, AsyncWrite, unix};
+use gjio::{AsyncRead, AsyncWrite};
 use capnp::Error;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
+
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub mod test_capnp {
   include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
@@ -42,32 +45,28 @@ pub mod test_util;
 
 struct ReadWrapper<R> where R: AsyncRead {
     inner: R,
-    output_file: ::std::fs::File,
+    output_file: Rc<RefCell<::std::fs::File>>,
 }
 
 impl <R> ReadWrapper<R> where R: AsyncRead {
     fn new(inner: R, output_file: ::std::fs::File) -> ReadWrapper<R> {
         ReadWrapper {
             inner: inner,
-            output_file: output_file,
+            output_file: Rc::new(RefCell::new(output_file)),
         }
     }
 }
 
 impl <R> AsyncRead for ReadWrapper<R> where R: AsyncRead {
-    fn try_read<T>(self, buf: T, min_bytes: usize)
-                   -> Promise<(ReadWrapper<R>, T, usize), ::gj::io::Error<(ReadWrapper<R>, T)>>
+    fn try_read<T>(&mut self, buf: T, min_bytes: usize)
+                   -> Promise<(T, usize), ::std::io::Error>
         where T: AsMut<[u8]>
     {
-        let ReadWrapper {inner, mut output_file} = self;
-        inner.try_read(buf, min_bytes).map_else(|r| match r {
-            Ok((r, mut buf, n)) => {
-                use std::io::Write;
-                output_file.write(&buf.as_mut()[0..n]).unwrap();
-                Ok((ReadWrapper::new(r, output_file), buf, n))
-            }
-            Err(::gj::io::Error { state: (r, buf), error }) =>
-                Err(::gj::io::Error::new((ReadWrapper::new(r, output_file), buf), error)),
+        let output_file = self.output_file.clone();
+        self.inner.try_read(buf, min_bytes).map(move |(mut buf, n)| {
+            use std::io::Write;
+            try!(output_file.borrow_mut().write_all(&buf.as_mut()[0..n]));
+            Ok((buf, n))
         })
     }
 }
@@ -87,53 +86,48 @@ impl <W> WriteWrapper<W> where W: AsyncWrite {
 }
 
 impl <W> AsyncWrite for WriteWrapper<W> where W: AsyncWrite {
-    fn write<T>(self, buf: T)
-                -> Promise<(WriteWrapper<W>, T), ::gj::io::Error<(WriteWrapper<W>, T)>>
+    fn write<T>(&mut self, buf: T) -> Promise<T, ::std::io::Error>
         where T: AsRef<[u8]>
     {
         use std::io::Write;
-        let WriteWrapper {inner, mut output_file} = self;
-        output_file.write(buf.as_ref()).unwrap();
-
-        inner.write(buf).map_else(|r| match r {
-            Ok((w, buf)) => {
-                Ok((WriteWrapper::new(w, output_file), buf))
-            }
-            Err(::gj::io::Error { state: (w, buf), error }) =>
-                Err(::gj::io::Error::new((WriteWrapper::new(w, output_file), buf), error)),
-        })
+        pry!(self.output_file.write_all(buf.as_ref()));
+        self.inner.write(buf)
     }
 }
 
 
 #[test]
 fn drop_rpc_system() {
-    EventLoop::top_level(|wait_scope| {
-        let (instream, _outstream) = try!(unix::Stream::new_pair());
-        let (reader, writer) = instream.split();
+    EventLoop::top_level(|wait_scope| -> Result<(), ::capnp::Error> {
+        let mut event_port = try!(gjio::EventPort::new());
+        let network = event_port.get_network();
+        let (instream, _outstream) = try!(network.new_socket_pair());
+        let (reader, writer) = (instream.clone(), instream);
         let network =
             Box::new(twoparty::VatNetwork::new(reader, writer,
                                                rpc_twoparty_capnp::Side::Client,
                                                Default::default()));
         let rpc_system = RpcSystem::new(network, None);
         drop(rpc_system);
-        try!(Promise::<(),Error>::ok(()).wait(wait_scope));
+        try!(Promise::<(),Error>::ok(()).wait(wait_scope, &mut event_port));
         Ok(())
     }).expect("top level error");
 }
 
 #[test]
 fn drop_import_client_after_disconnect() {
-    EventLoop::top_level(|wait_scope| {
-        let (client_stream, server_stream) = try!(unix::Stream::new_pair());
-        let (client_reader, client_writer) = client_stream.split();
+    EventLoop::top_level(|wait_scope| -> Result<(), ::capnp::Error> {
+        let mut event_port = try!(gjio::EventPort::new());
+        let network = event_port.get_network();
+        let (client_stream, server_stream) = try!(network.new_socket_pair());
+        let (client_reader, client_writer) = (client_stream.clone(), client_stream);
         let client_network =
             Box::new(twoparty::VatNetwork::new(client_reader, client_writer,
                                                rpc_twoparty_capnp::Side::Client,
                                                Default::default()));
         let mut client_rpc_system = RpcSystem::new(client_network, None);
 
-        let (server_reader, server_writer) = server_stream.split();
+        let (server_reader, server_writer) = (server_stream.clone(), server_stream);
         let server_network =
             Box::new(twoparty::VatNetwork::new(server_reader, server_writer,
                                                rpc_twoparty_capnp::Side::Server,
@@ -145,17 +139,17 @@ fn drop_import_client_after_disconnect() {
         let server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client));
 
         let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-        try!(client.test_interface_request().send().promise.wait(wait_scope));
+        try!(client.test_interface_request().send().promise.wait(wait_scope, &mut event_port));
 
         drop(server_rpc_system);
 
-        match client.test_interface_request().send().promise.wait(wait_scope) {
+        match client.test_interface_request().send().promise.wait(wait_scope, &mut event_port) {
             Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
             _ => panic!("Should have gotten a 'disconnected' error."),
         }
 
         // At one point, attempting to call again would cause a panic.
-        match client.test_interface_request().send().promise.wait(wait_scope) {
+        match client.test_interface_request().send().promise.wait(wait_scope, &mut event_port) {
             Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
             _ => panic!("Should have gotten a 'disconnected' error."),
         }
@@ -166,13 +160,15 @@ fn drop_import_client_after_disconnect() {
 }
 
 fn rpc_top_level<F>(main: F)
-    where F: FnOnce(&::gj::WaitScope, test_capnp::bootstrap::Client) -> Result<(), Error>,
+    where F: FnOnce(&::gj::WaitScope, ::gjio::EventPort, test_capnp::bootstrap::Client) -> Result<(), Error>,
           F: Send + 'static
 {
-    EventLoop::top_level(|wait_scope| {
-        let (join_handle, stream) = try!(unix::spawn(|stream, wait_scope| {
+    EventLoop::top_level(|wait_scope| -> Result<(), Box<::std::error::Error>> {
+        let mut event_port = try!(gjio::EventPort::new());
+        let network = event_port.get_network();
+        let (join_handle, stream) = try!(network.socket_spawn(|stream, wait_scope, mut event_port| {
 
-            let (reader, writer) = stream.split();
+            let (reader, writer) = (stream.clone(), stream);
             //let reader = ReadWrapper::new(reader,
             //                             ::std::fs::File::create("/Users/dwrensha/Desktop/client.dat").unwrap());
             //let writer = WriteWrapper::new(writer,
@@ -186,11 +182,11 @@ fn rpc_top_level<F>(main: F)
                 test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
 
             let _rpc_system = RpcSystem::new(network, Some(bootstrap.client));
-            try!(disconnect_promise.wait(wait_scope));
+            try!(disconnect_promise.wait(wait_scope, &mut event_port));
             Ok(())
         }));
 
-        let (reader, writer) = stream.split();
+        let (reader, writer) = (stream.clone(), stream);
 
         let network =
             Box::new(twoparty::VatNetwork::new(reader, writer,
@@ -200,7 +196,7 @@ fn rpc_top_level<F>(main: F)
         let mut rpc_system = RpcSystem::new(network, None);
         let client: test_capnp::bootstrap::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-        try!(main(wait_scope, client));
+        try!(main(wait_scope, event_port, client));
         drop(rpc_system);
         join_handle.join().expect("thread exited unsuccessfully");
         Ok(())
@@ -210,15 +206,15 @@ fn rpc_top_level<F>(main: F)
 
 #[test]
 fn do_nothing() {
-    rpc_top_level(|_wait_scope, _client| {
+    rpc_top_level(|_wait_scope, _event_port, _client| {
         Ok(())
     });
 }
 
 #[test]
 fn basic() {
-    rpc_top_level(|wait_scope, client| {
-        let response = try!(client.test_interface_request().send().promise.wait(wait_scope));
+    rpc_top_level(|wait_scope, mut event_port, client| {
+        let response = try!(client.test_interface_request().send().promise.wait(wait_scope, &mut event_port));
         let client = try!(try!(response.get()).get_cap());
 
         let mut request1 = client.foo_request();
@@ -243,20 +239,20 @@ fn basic() {
         ::test_util::init_test_message(try!(request2.get().get_s()));
         let promise2 = request2.send();
 
-        let response1 = try!(promise1.promise.wait(wait_scope));
+        let response1 = try!(promise1.promise.wait(wait_scope, &mut event_port));
         if try!(try!(response1.get()).get_x()) != "foo" {
             return Err(Error::failed("expected X to equal 'foo'".to_string()));
         }
-        try!(promise2.promise.wait(wait_scope));
-        try!(promise3.wait(wait_scope));
+        try!(promise2.promise.wait(wait_scope, &mut event_port));
+        try!(promise3.wait(wait_scope, &mut event_port));
         Ok(())
     });
 }
 
 #[test]
 fn pipelining() {
-    rpc_top_level(|wait_scope, client| {
-        let response = try!(client.test_pipeline_request().send().promise.wait(wait_scope));
+    rpc_top_level(|wait_scope, mut event_port, client| {
+        let response = try!(client.test_pipeline_request().send().promise.wait(wait_scope, &mut event_port));
         let client = try!(try!(response.get()).get_cap());
 
         let mut request = client.get_cap_request();
@@ -285,12 +281,12 @@ fn pipelining() {
             return Err(Error::failed("expeced chained_call_count to equal 0".to_string()));
         }
 
-        let response = try!(pipeline_promise.promise.wait(wait_scope));
+        let response = try!(pipeline_promise.promise.wait(wait_scope, &mut event_port));
         if try!(try!(response.get()).get_x()) != "bar" {
             return Err(Error::failed("expected x to equal 'bar'".to_string()));
         }
 
-        let response2 = try!(pipeline_promise2.promise.wait(wait_scope));
+        let response2 = try!(pipeline_promise2.promise.wait(wait_scope, &mut event_port));
         ::test_util::CheckTestMessage::check_test_message(try!(response2.get()));
         assert_eq!(chained_call_count.get(), 1);
         Ok(())
@@ -310,36 +306,36 @@ fn null_capability() {
 
 #[test]
 fn release_simple() {
-    rpc_top_level(|wait_scope, client| {
-        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+    rpc_top_level(|wait_scope, mut event_port, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
         let client = try!(try!(response.get()).get_cap());
 
         let handle1 = client.get_handle_request().send().promise;
         let ::capnp::capability::RemotePromise {promise, pipeline} = client.get_handle_request().send();
-        let handle2 = try!(try!(try!(promise.wait(wait_scope)).get()).get_handle());
+        let handle2 = try!(try!(try!(promise.wait(wait_scope, &mut event_port)).get()).get_handle());
 
-        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope));
+        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope, &mut event_port));
         if try!(get_count_response.get()).get_count() != 2 {
             return Err(Error::failed("expected handle count to equal 2".to_string()))
         }
 
         drop(handle1);
 
-        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope));
+        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope, &mut event_port));
         if try!(get_count_response.get()).get_count() != 1 {
             return Err(Error::failed("expected handle count to equal 1".to_string()))
         }
 
         drop(handle2);
 
-        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope));
+        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope, &mut event_port));
         if try!(get_count_response.get()).get_count() != 1 {
             return Err(Error::failed("expected handle count to equal 1".to_string()))
         }
 
         drop(pipeline);
 
-        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope));
+        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope, &mut event_port));
         if try!(get_count_response.get()).get_count() != 0 {
             return Err(Error::failed("expected handle count to equal 0".to_string()))
         }
@@ -350,8 +346,8 @@ fn release_simple() {
 
 #[test]
 fn release_on_cancel() {
-    rpc_top_level(|wait_scope, client| {
-        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+    rpc_top_level(|wait_scope, mut event_port, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
         let client = try!(try!(response.get()).get_cap());
 
         let promise = client.get_handle_request().send();
@@ -360,15 +356,15 @@ fn release_on_cancel() {
         // results, it will just return "canceled". We want to emulate the case where the return message
         // and the cancel (finish) message cross paths.
 
-        let _ = Promise::<(), ()>::ok(()).map(|()| Ok(())).wait(wait_scope);
-        let _ = Promise::<(), ()>::ok(()).map(|()| Ok(())).wait(wait_scope);
+        let _ = Promise::<(), ::std::io::Error>::ok(()).map(|()| Ok(())).wait(wait_scope, &mut event_port);
+        let _ = Promise::<(), ::std::io::Error>::ok(()).map(|()| Ok(())).wait(wait_scope, &mut event_port);
         drop(promise);
 
         for _ in 0..16 {
-            let _ = Promise::<(), ()>::ok(()).map(|()| Ok(())).wait(wait_scope);
+            let _ = Promise::<(), ::std::io::Error>::ok(()).map(|()| Ok(())).wait(wait_scope, &mut event_port);
         }
 
-        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope));
+        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope, &mut event_port));
         let handle_count = try!(get_count_response.get()).get_count();
         if handle_count != 0 {
             return Err(Error::failed(format!("handle count: expected 0, but got {}", handle_count)))
@@ -380,8 +376,8 @@ fn release_on_cancel() {
 
 #[test]
 fn promise_resolve() {
-    rpc_top_level(|wait_scope, client| {
-        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+    rpc_top_level(|wait_scope, mut event_port, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
         let client = try!(try!(response.get()).get_cap());
 
         let mut request = client.call_foo_request();
@@ -404,17 +400,17 @@ fn promise_resolve() {
         // Make sure getCap() has been called on the server side by sending another call and waiting
         // for it.
         let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
-        let _response = try!(client2.get_call_sequence_request().send().promise.wait(wait_scope));
+        let _response = try!(client2.get_call_sequence_request().send().promise.wait(wait_scope, &mut event_port));
 
         let server = impls::TestInterface::new();
         paf_fulfiller.fulfill(
             ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>());
 
-        let response = try!(promise.wait(wait_scope));
+        let response = try!(promise.wait(wait_scope, &mut event_port));
         if try!(try!(response.get()).get_s()) != "bar" {
             return Err(Error::failed("expected s to equal 'bar'".to_string()));
         }
-        let response = try!(promise2.wait(wait_scope));
+        let response = try!(promise2.wait(wait_scope, &mut event_port));
         if try!(try!(response.get()).get_s()) != "bar" {
             return Err(Error::failed("expected s to equal 'bar'".to_string()));
         }
@@ -427,7 +423,7 @@ fn retain_and_release() {
     use std::cell::Cell;
     use std::rc::Rc;
 
-    rpc_top_level(|wait_scope, client| {
+    rpc_top_level(|wait_scope, mut event_port, client| {
         let (promise, fulfiller) = Promise::<(), Error>::and_fulfiller();
         let destroyed = Rc::new(Cell::new(false));
 
@@ -438,7 +434,7 @@ fn retain_and_release() {
         }).eagerly_evaluate();
 
         {
-            let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+            let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
             let client = try!(try!(response.get()).get_cap());
 
             {
@@ -446,13 +442,13 @@ fn retain_and_release() {
                 request.get().set_cap(
                     ::test_capnp::test_interface::ToClient::new(impls::TestCapDestructor::new(fulfiller))
                         .from_server::<::capnp_rpc::Server>());
-                try!(request.send().promise.wait(wait_scope));
+                try!(request.send().promise.wait(wait_scope, &mut event_port));
             }
 
             // Do some other call to add a round trip.
             // ugh, we need upcasting.
             let client1 = ::test_capnp::test_call_order::Client { client: client.clone().client };
-            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope));
+            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope, &mut event_port));
             if try!(response.get()).get_n() != 1 {
                 return Err(Error::failed("N should equal 1".to_string()))
             }
@@ -462,14 +458,14 @@ fn retain_and_release() {
             }
 
             // We can ask it to call the held capability.
-            let response = try!(client.call_held_request().send().promise.wait(wait_scope));
+            let response = try!(client.call_held_request().send().promise.wait(wait_scope, &mut event_port));
             if try!(try!(response.get()).get_s()) != "bar" {
                 return Err(Error::failed("S should equal 'bar'".to_string()))
             }
 
             {
                 // we can get the cap back from it.
-                let response = try!(client.get_held_request().send().promise.wait(wait_scope));
+                let response = try!(client.get_held_request().send().promise.wait(wait_scope, &mut event_port));
                 let cap_copy = try!(try!(response.get()).get_cap());
 
                 // And call it, without any network communications.
@@ -478,7 +474,7 @@ fn retain_and_release() {
                     let mut request = cap_copy.foo_request();
                     request.get().set_i(123);
                     request.get().set_j(true);
-                    let response = try!(request.send().promise.wait(wait_scope));
+                    let response = try!(request.send().promise.wait(wait_scope, &mut event_port));
                     if try!(try!(response.get()).get_x()) != "foo" {
                         return Err(Error::failed("X should equal 'foo'.".to_string()));
                     }
@@ -488,7 +484,7 @@ fn retain_and_release() {
                     // We can send another copy of the same cap to another method, and it works.
                     let mut request = client.call_foo_request();
                     request.get().set_cap(cap_copy);
-                    let response = try!(request.send().promise.wait(wait_scope));
+                    let response = try!(request.send().promise.wait(wait_scope, &mut event_port));
                     if try!(try!(response.get()).get_s()) != "bar" {
                         return Err(Error::failed("S should equal 'bar'.".to_string()));
                     }
@@ -496,15 +492,15 @@ fn retain_and_release() {
             }
 
             // Give some time to settle.
-            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope));
+            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope, &mut event_port));
             if try!(response.get()).get_n() != 5 {
                 return Err(Error::failed("N should equal 5.".to_string()));
             }
-            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope));
+            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope, &mut event_port));
             if try!(response.get()).get_n() != 6 {
                 return Err(Error::failed("N should equal 6.".to_string()));
             }
-            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope));
+            let response = try!(client1.get_call_sequence_request().send().promise.wait(wait_scope, &mut event_port));
             if try!(response.get()).get_n() != 7 {
                 return Err(Error::failed("N should equal 7.".to_string()));
             }
@@ -514,7 +510,7 @@ fn retain_and_release() {
             }
         }
 
-        try!(destruction_promise.wait(wait_scope));
+        try!(destruction_promise.wait(wait_scope, &mut event_port));
         if !destroyed.get() {
             return Err(Error::failed("should be destroyed now".to_string()));
         }
@@ -528,8 +524,8 @@ fn cancel() {
     use std::rc::Rc;
     use std::cell::Cell;
 
-    rpc_top_level(|wait_scope, client| {
-        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+    rpc_top_level(|wait_scope, mut event_port, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
         let client = try!(try!(response.get()).get_cap());
 
         let (promise, fulfiller) = Promise::and_fulfiller();
@@ -553,11 +549,11 @@ fn cancel() {
 
                 // ugh, we need upcasting.
                 let client = ::test_capnp::test_call_order::Client { client: client.client };
-                let response = try!(client.get_call_sequence_request().send().promise.wait(wait_scope));
+                let response = try!(client.get_call_sequence_request().send().promise.wait(wait_scope, &mut event_port));
                 if try!(response.get()).get_n() != 1 {
                     return Err(Error::failed("N should equal 1.".to_string()));
                 }
-                let response = try!(client.get_call_sequence_request().send().promise.wait(wait_scope));
+                let response = try!(client.get_call_sequence_request().send().promise.wait(wait_scope, &mut event_port));
                 if try!(response.get()).get_n() != 2 {
                     return Err(Error::failed("N should equal 2.".to_string()));
                 }
@@ -566,7 +562,7 @@ fn cancel() {
                 }
             }
         }
-        try!(destruction_promise.wait(wait_scope));
+        try!(destruction_promise.wait(wait_scope, &mut event_port));
         if !destroyed.get() {
             return Err(Error::failed("The cap should be released now.".to_string()));
         }
@@ -577,8 +573,8 @@ fn cancel() {
 
 #[test]
 fn dont_hold() {
-    rpc_top_level(|wait_scope, client| {
-        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+    rpc_top_level(|wait_scope, mut event_port, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
         let client = try!(try!(response.get()).get_cap());
 
         let (promise, fulfiller) =
@@ -596,7 +592,7 @@ fn dont_hold() {
                 drop(fulfiller);
                 Promise::ok(())
             })
-        }).wait(wait_scope)
+        }).wait(wait_scope, &mut event_port)
     });
 }
 
@@ -610,8 +606,8 @@ fn get_call_sequence(client: &::test_capnp::test_call_order::Client, expected: u
 
 #[test]
 fn embargo_success() {
-    rpc_top_level(|wait_scope, client| {
-        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+    rpc_top_level(|wait_scope, mut event_port, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
         let client = try!(try!(response.get()).get_cap());
 
         let server = ::impls::TestCallOrder::new();
@@ -631,11 +627,11 @@ fn embargo_success() {
         let call0 = get_call_sequence(&pipeline, 0);
         let call1 = get_call_sequence(&pipeline, 1);
 
-        try!(early_call.promise.wait(wait_scope));
+        try!(early_call.promise.wait(wait_scope, &mut event_port));
 
         let call2 = get_call_sequence(&pipeline, 2);
 
-        let _resolved = try!(echo.promise.wait(wait_scope));
+        let _resolved = try!(echo.promise.wait(wait_scope, &mut event_port));
 
         let call3 = get_call_sequence(&pipeline, 3);
         let call4 = get_call_sequence(&pipeline, 4);
@@ -656,22 +652,23 @@ fn embargo_success() {
                 counter += 1;
             }
             Ok(())
-        }).wait(wait_scope)
+        }).wait(wait_scope, &mut event_port)
     });
 }
 
-fn expect_promise_throws<T>(promise: Promise<T, Error>, wait_scope: &::gj::WaitScope)
+fn expect_promise_throws<T>(promise: Promise<T, Error>, wait_scope: &::gj::WaitScope,
+                            event_port: &mut ::gjio::EventPort)
                             -> Result<(), Error> {
     promise.map_else(|r| match r {
         Ok(_) => Err(Error::failed("expected promise to fail".to_string())),
         Err(_) => Ok(()),
-    }).wait(wait_scope)
+    }).wait(wait_scope, event_port)
 }
 
 #[test]
 fn embargo_error() {
-    rpc_top_level(|wait_scope, client| {
-        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+    rpc_top_level(|wait_scope, mut event_port, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
         let client = try!(try!(response.get()).get_cap());
 
         let (promise, fulfiller) =
@@ -693,11 +690,11 @@ fn embargo_error() {
         let call0 = get_call_sequence(&pipeline, 0);
         let call1 = get_call_sequence(&pipeline, 1);
 
-        try!(early_call.promise.wait(wait_scope));
+        try!(early_call.promise.wait(wait_scope, &mut event_port));
 
         let call2 = get_call_sequence(&pipeline, 2);
 
-        let _resolved = echo.promise.wait(wait_scope);
+        let _resolved = echo.promise.wait(wait_scope, &mut event_port);
 
         let call3 = get_call_sequence(&pipeline, 3);
         let call4 = get_call_sequence(&pipeline, 4);
@@ -705,20 +702,20 @@ fn embargo_error() {
 
         fulfiller.reject(Error::failed("foo".to_string()));
 
-        try!(expect_promise_throws(call0.promise, wait_scope));
-        try!(expect_promise_throws(call1.promise, wait_scope));
-        try!(expect_promise_throws(call2.promise, wait_scope));
-        try!(expect_promise_throws(call3.promise, wait_scope));
-        try!(expect_promise_throws(call4.promise, wait_scope));
-        try!(expect_promise_throws(call5.promise, wait_scope));
+        try!(expect_promise_throws(call0.promise, wait_scope, &mut event_port));
+        try!(expect_promise_throws(call1.promise, wait_scope, &mut event_port));
+        try!(expect_promise_throws(call2.promise, wait_scope, &mut event_port));
+        try!(expect_promise_throws(call3.promise, wait_scope, &mut event_port));
+        try!(expect_promise_throws(call4.promise, wait_scope, &mut event_port));
+        try!(expect_promise_throws(call5.promise, wait_scope, &mut event_port));
         Ok(())
     });
 }
 
 #[test]
 fn echo_destruction() {
-    rpc_top_level(|wait_scope, client| {
-        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope));
+    rpc_top_level(|wait_scope, mut event_port, client| {
+        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
         let client = try!(try!(response.get()).get_cap());
 
         let (promise, fulfiller) =
@@ -743,6 +740,6 @@ fn echo_destruction() {
                 fulfiller.reject(Error::failed("foo".to_string()));
                 Promise::ok(())
             })
-        }).wait(wait_scope)
+        }).wait(wait_scope, &mut event_port)
     })
 }

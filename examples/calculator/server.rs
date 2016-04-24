@@ -26,7 +26,6 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
 use calculator_capnp::calculator;
 use gj::{EventLoop, Promise, TaskReaper, TaskSet};
-use gj::io::tcp;
 
 struct ValueImpl {
     value: f64
@@ -194,30 +193,29 @@ impl calculator::Server for CalculatorImpl {
     }
 }
 
-pub fn accept_loop(listener: tcp::Listener,
-                   mut task_set: TaskSet<(), Box<::std::error::Error>>,
+pub fn accept_loop(mut listener: ::gjio::SocketListener,
+                   mut task_set: TaskSet<(), ::capnp::Error>,
                    calc: calculator::Client,
                    )
                    -> Promise<(), ::std::io::Error>
 {
-    listener.accept().lift().then(move |(listener, stream)| {
-        let (reader, writer) = stream.split();
+    listener.accept().then(move |stream| {
         let mut network =
-            twoparty::VatNetwork::new(reader, writer,
+            twoparty::VatNetwork::new(stream.clone(), stream,
                                       rpc_twoparty_capnp::Side::Server, Default::default());
         let disconnect_promise = network.on_disconnect();
 
         let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
 
-        task_set.add(disconnect_promise.attach(rpc_system).lift());
+        task_set.add(disconnect_promise.attach(rpc_system));
         accept_loop(listener, task_set, calc)
     })
 }
 
 struct Reaper;
 
-impl TaskReaper<(), Box<::std::error::Error>> for Reaper {
-    fn task_failed(&mut self, error: Box<::std::error::Error>) {
+impl TaskReaper<(), ::capnp::Error> for Reaper {
+    fn task_failed(&mut self, error: ::capnp::Error) {
         println!("Task failed: {}", error);
     }
 }
@@ -229,16 +227,19 @@ pub fn main() {
         return;
     }
 
-    EventLoop::top_level(move |wait_scope| {
+    EventLoop::top_level(move |wait_scope| -> Result<(), ::capnp::Error> {
         use std::net::ToSocketAddrs;
+        let mut event_port = try!(::gjio::EventPort::new());
+        let network = event_port.get_network();
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-        let listener = try!(tcp::Listener::bind(addr));
+        let mut address = network.get_tcp_address(addr);
+        let listener = try!(address.listen());
 
         let calc =
             calculator::ToClient::new(CalculatorImpl).from_server::<::capnp_rpc::Server>();
 
         let task_set = TaskSet::new(Box::new(Reaper));
-        try!(accept_loop(listener, task_set, calc).wait(wait_scope));
+        try!(accept_loop(listener, task_set, calc).wait(wait_scope, &mut event_port));
 
         Ok(())
     }).expect("top level error");

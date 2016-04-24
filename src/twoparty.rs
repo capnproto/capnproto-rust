@@ -45,12 +45,12 @@ impl ::IncomingMessage for IncomingMessage {
     }
 }
 
-struct OutgoingMessage<U> where U: ::gj::io::AsyncWrite {
+struct OutgoingMessage<U> where U: ::gjio::AsyncWrite + 'static {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
     write_queue: Rc<RefCell<::gj::Promise<U, ::capnp::Error>>>,
 }
 
-impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gj::io::AsyncWrite {
+impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gjio::AsyncWrite {
     fn get_body<'a>(&'a mut self) -> ::capnp::Result<::capnp::any_pointer::Builder<'a>> {
         self.message.get_root()
     }
@@ -82,7 +82,7 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gj::io::AsyncWrite 
     }
 }
 
-struct ConnectionInner<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
+struct ConnectionInner<T, U> where T: ::gjio::AsyncRead + 'static, U: ::gjio::AsyncWrite + 'static {
     input_stream: Rc<RefCell<Option<T>>>,
     write_queue: Rc<RefCell<Promise<U, ::capnp::Error>>>,
     side: ::rpc_twoparty_capnp::Side,
@@ -90,11 +90,11 @@ struct ConnectionInner<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWri
     on_disconnect_fulfiller: Option<PromiseFulfiller<(), ::capnp::Error>>,
 }
 
-struct Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
+struct Connection<T, U> where T: ::gjio::AsyncRead + 'static, U: ::gjio::AsyncWrite + 'static {
     inner: Rc<RefCell<ConnectionInner<T, U>>>,
 }
 
-impl <T, U> Drop for ConnectionInner<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
+impl <T, U> Drop for ConnectionInner<T, U> where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite {
     fn drop(&mut self) {
         let maybe_fulfiller = ::std::mem::replace(&mut self.on_disconnect_fulfiller, None);
         match maybe_fulfiller {
@@ -106,7 +106,7 @@ impl <T, U> Drop for ConnectionInner<T, U> where T: ::gj::io::AsyncRead, U: ::gj
     }
 }
 
-impl <T, U> Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
+impl <T, U> Connection<T, U> where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite {
     fn new(input_stream: T,
            output_stream: U,
            side: ::rpc_twoparty_capnp::Side,
@@ -127,7 +127,7 @@ impl <T, U> Connection<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWri
 }
 
 impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
-    where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite
+    where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite
 {
     fn get_peer_vat_id(&self) -> ::rpc_twoparty_capnp::Side {
         self.inner.borrow().side
@@ -164,7 +164,7 @@ impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
 }
 
 /// A vat networks with two parties, the client and the server.
-pub struct VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
+pub struct VatNetwork<T, U> where T: ::gjio::AsyncRead + 'static, U: ::gjio::AsyncWrite + 'static {
     connection: Option<Connection<T,U>>,
 
     // HACK
@@ -174,7 +174,7 @@ pub struct VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrit
     side: ::rpc_twoparty_capnp::Side,
 }
 
-impl <T, U> VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite {
+impl <T, U> VatNetwork<T, U> where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite {
     /// Creates a new two-party vat network that will receive data on `input_stream` and send data on
     /// `output_stream`. `side` indicates whether this is the client or the server side of the connection.
     /// The options in `receive_options` will be used when reading the messages that come in on `input_stream`.
@@ -201,7 +201,7 @@ impl <T, U> VatNetwork<T, U> where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWri
 }
 
 impl <T, U> ::VatNetwork<VatId> for VatNetwork<T, U>
-    where T: ::gj::io::AsyncRead, U: ::gj::io::AsyncWrite
+    where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite
 {
     fn connect(&mut self, host_id: VatId) -> Option<Box<::Connection<VatId>>> {
         if host_id == self.side {

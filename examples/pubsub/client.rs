@@ -44,15 +44,20 @@ pub fn main() {
         return;
     }
 
-    EventLoop::top_level(move |wait_scope| {
+    EventLoop::top_level(move |wait_scope| -> Result<(), ::capnp::Error> {
         use std::net::ToSocketAddrs;
+        let mut event_port = try!(::gjio::EventPort::new());
+        let network = event_port.get_network();
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-        let (reader, writer) = try!(::gj::io::tcp::Stream::connect(addr).wait(wait_scope)).split();
-        let network =
-            Box::new(twoparty::VatNetwork::new(reader, writer,
+        let mut address = network.get_tcp_address(addr);
+        let stream = try!(address.connect().wait(wait_scope, &mut event_port));
+        let mut rpc_network =
+            Box::new(twoparty::VatNetwork::new(stream.clone(), stream,
                                                rpc_twoparty_capnp::Side::Client,
                                                Default::default()));
-        let mut rpc_system = RpcSystem::new(network, None);
+
+        let disconnect_promise = rpc_network.on_disconnect();
+        let mut rpc_system = RpcSystem::new(rpc_network, None);
         let publisher: publisher::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
         let sub = subscriber::ToClient::new(SubscriberImpl).from_server::<::capnp_rpc::Server>();
@@ -61,9 +66,9 @@ pub fn main() {
         request.get().set_subscriber(sub);
 
         // Need to make sure not to drop the returned handle object.
-        let _result = request.send().promise.wait(wait_scope).unwrap();
+        let _result = request.send().promise.wait(wait_scope, &mut event_port).unwrap();
 
-        Promise::<(),()>::never_done().wait(wait_scope).unwrap();
+        disconnect_promise.wait(wait_scope, &mut event_port).unwrap();
         Ok(())
 
     }).expect("top level error");

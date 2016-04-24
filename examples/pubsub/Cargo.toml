@@ -16,5 +16,8 @@ capnpc = "0.6"
 capnp = "0.6"
 gj = "0.1"
 
+[dependencies.gjio]
+git = "https://github.com/dwrensha/gjio.git"
+
 [dependencies.capnp-rpc]
 path = "../.."
