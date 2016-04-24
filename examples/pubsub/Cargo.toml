@@ -10,14 +10,12 @@ name = "main"
 path = "main.rs"
 
 [build-dependencies]
-capnpc = "0.6"
+capnpc = "0.7"
 
 [dependencies]
-capnp = "0.6"
-gj = "0.1"
-
-[dependencies.gjio]
-git = "https://github.com/dwrensha/gjio.git"
+capnp = "0.7"
+gj = "0.2"
+gjio = "0.1"
 
 [dependencies.capnp-rpc]
 path = "../.."
