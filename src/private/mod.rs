@@ -36,22 +36,6 @@ mod zero;
 #[cfg(test)]
 mod layout_test;
 
-/// Some data that's guaranteed to be aligned on a word boundary.
-///
-/// Typically the type parameter `T` will be instantiated as `[u8; n]` where `n` is a multiple of
-/// eight.
-///
-/// Perhaps in the future Rust will provide a nicer way to guarantee alignment.
-///
-/// DEPRECATED. Should use capnp_word!() instead.
-#[repr(C)]
-pub struct AlignedData<T> {
-    pub _dummy : u64,
-    pub data : T
-}
-
-
-
 pub struct RawSchema<'a> {
     pub blob: &'a [Word],
 }
