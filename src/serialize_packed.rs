@@ -59,7 +59,10 @@ macro_rules! refresh_buffer(
             $in_end = e;
             $size = ptr_sub($in_end, $in_ptr);
             $buffer_begin = b;
-            assert!($size > 0);
+            if $size == 0 {
+                return Err(io::Error::new(io::ErrorKind::Other,
+                                          "Premature end of packed input."));
+            }
         }
         );
     );
@@ -71,7 +74,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
         if len == 0 { return Ok(0); }
 
-        assert!(len % 8 == 0, "PackedRead reads must be word-aligned");
+        assert!(len % 8 == 0, "PackedRead reads must be word-aligned.");
 
         unsafe {
             let mut out = out_buf.as_mut_ptr();
@@ -86,7 +89,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
             loop {
 
-                let tag : u8;
+                let tag: u8;
 
                 assert!(ptr_sub(out, out_buf.as_mut_ptr()) % 8 == 0,
                         "Output pointer should always be aligned here.");
@@ -140,14 +143,14 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                 }
                 if tag == 0 {
                     assert!(ptr_sub(in_end, in_ptr) > 0,
-                            "Should always have non-empty buffer here");
+                            "Should always have non-empty buffer here.");
 
                     let run_length : usize = (*in_ptr) as usize * 8;
                     in_ptr = in_ptr.offset(1);
 
                     if run_length > ptr_sub(out_end, out) {
                         return Err(io::Error::new(io::ErrorKind::Other,
-                                                  "Packed input did not end cleanly on a segment boundary"));
+                                                  "Packed input did not end cleanly on a segment boundary."));
                     }
 
                     ptr::write_bytes(out, 0, run_length);
@@ -162,7 +165,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
                     if run_length > ptr_sub(out_end, out) {
                         return Err(io::Error::new(io::ErrorKind::Other,
-                                                  "Packed input did not end cleanly on a segment boundary"));
+                                                  "Packed input did not end cleanly on a segment boundary."));
                     }
 
                     let in_remaining = ptr_sub(in_end, in_ptr);
@@ -451,5 +454,43 @@ mod tests {
         }
 
         quickcheck(round_trip as fn(Vec<Vec<Word>>) -> TestResult);
+    }
+
+    #[test]
+    fn did_not_end_cleanly_on_a_segment_boundary() {
+        let packed = &[0xff, 1, 2, 3, 4, 5, 6, 7, 8, 37, 1, 2];
+        let mut packed_read = PackedRead {inner: &packed[..]};
+
+        let mut bytes: Vec<u8> = vec![0; 200];
+        match read_exact(&mut packed_read, &mut bytes[..]) {
+            Ok(_) => panic!("should have been an error"),
+            Err(e) => {
+                assert_eq!(::std::error::Error::description(&e),
+                           "Packed input did not end cleanly on a segment boundary.");
+            }
+        }
+    }
+
+    #[test]
+    fn premature_end_of_packed_input() {
+        fn helper(packed: &[u8]) {
+            let mut packed_read = PackedRead {inner: packed};
+
+            let mut bytes: Vec<u8> = vec![0; 200];
+            match read_exact(&mut packed_read, &mut bytes[..]) {
+                Ok(_) => panic!("should have been an error"),
+                Err(e) => {
+                    assert_eq!(::std::error::Error::description(&e), "Premature end of packed input.");
+                }
+            }
+        }
+
+        helper(&[0xf0, 1, 2]);
+        helper(&[0]);
+        helper(&[0xff, 1, 2, 3, 4, 5, 6, 7, 8]);
+
+        // In this case, the error is only due to the fact that the unpacked data does not
+        // fill up the given output buffer.
+        helper(&[1, 1]);
     }
 }
