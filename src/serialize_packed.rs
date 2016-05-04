@@ -457,6 +457,22 @@ mod tests {
     }
 
     #[test]
+    fn fuzz_unpack() {
+        fn unpack(packed: Vec<u8>) -> TestResult {
+
+            let len = packed.len();
+            let mut packed_read = PackedRead { inner: &packed[..] };
+
+            let mut out_buffer: Vec<u8> = vec![0; len * 8];
+
+            let _ = read_exact(&mut packed_read, &mut out_buffer);
+            TestResult::from_bool(true)
+        }
+
+        quickcheck(unpack as fn(Vec<u8>) -> TestResult);
+    }
+
+    #[test]
     fn did_not_end_cleanly_on_a_segment_boundary() {
         let packed = &[0xff, 1, 2, 3, 4, 5, 6, 7, 8, 37, 1, 2];
         let mut packed_read = PackedRead {inner: &packed[..]};
