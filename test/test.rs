@@ -278,7 +278,7 @@ fn pipelining() {
         drop(promise); // Just to be annoying, drop the original promise.
 
         if chained_call_count.get() != 0 {
-            return Err(Error::failed("expeced chained_call_count to equal 0".to_string()));
+            return Err(Error::failed("expected chained_call_count to equal 0".to_string()));
         }
 
         let response = try!(pipeline_promise.promise.wait(wait_scope, &mut event_port));
@@ -301,8 +301,18 @@ fn pipelining_return_null() {
 
         let request = client.get_null_cap_request();
         let cap = request.send().pipeline.get_cap();
-        assert!(cap.foo_request().send().promise.wait(wait_scope, &mut event_port).is_err());
-        Ok(())
+        match cap.foo_request().send().promise.wait(wait_scope, &mut event_port) {
+            Err(ref e) => {
+                if e.description.contains("Message contains null capability pointer") {
+                    Ok(())
+                } else {
+                    Err(Error::failed(format!("Should have gotten null capability error. Instead got {:?}", e)))
+                }
+            }
+            Ok(_) => {
+                Err(Error::failed(format!("Should have gotten null capability error.")))
+            }
+        }
     });
 }
 
