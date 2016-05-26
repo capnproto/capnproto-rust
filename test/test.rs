@@ -164,7 +164,7 @@ fn rpc_top_level<F>(main: F)
           F: Send + 'static
 {
     EventLoop::top_level(|wait_scope| -> Result<(), Box<::std::error::Error>> {
-        let mut event_port = try!(gjio::EventPort::new());
+        let event_port = try!(gjio::EventPort::new());
         let network = event_port.get_network();
         let (join_handle, stream) = try!(network.socket_spawn(|stream, wait_scope, mut event_port| {
 
@@ -289,6 +289,19 @@ fn pipelining() {
         let response2 = try!(pipeline_promise2.promise.wait(wait_scope, &mut event_port));
         ::test_util::CheckTestMessage::check_test_message(try!(response2.get()));
         assert_eq!(chained_call_count.get(), 1);
+        Ok(())
+    });
+}
+
+#[test]
+fn pipelining_return_null() {
+    rpc_top_level(|wait_scope, mut event_port, client| {
+        let response = try!(client.test_pipeline_request().send().promise.wait(wait_scope, &mut event_port));
+        let client = try!(try!(response.get()).get_cap());
+
+        let request = client.get_null_cap_request();
+        let cap = request.send().pipeline.get_cap();
+        assert!(cap.foo_request().send().promise.wait(wait_scope, &mut event_port).is_err());
         Ok(())
     });
 }

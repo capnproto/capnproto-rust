@@ -252,6 +252,15 @@ impl test_pipeline::Server for TestPipeline {
             Ok(())
         })
     }
+
+    fn get_null_cap(&mut self,
+               _params: test_pipeline::GetNullCapParams,
+               _results: test_pipeline::GetNullCapResults)
+               -> Promise<(), Error>
+    {
+        Promise::ok(())
+    }
+
 }
 
 pub struct TestCallOrder {

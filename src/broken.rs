@@ -95,7 +95,7 @@ pub struct Client {
 }
 
 impl Client {
-    fn new(error: Error, resolved: bool, brand: usize) -> Client {
+    pub fn new(error: Error, resolved: bool, brand: usize) -> Client {
         Client {
             inner: Rc::new(ClientInner {
                 error: error,

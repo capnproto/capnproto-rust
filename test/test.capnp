@@ -96,6 +96,7 @@ interface TestExtends2 extends(TestExtends) {}
 
 interface TestPipeline {
   getCap @0 (n: UInt32, inCap :TestInterface) -> (s: Text, outBox :Box);
+  getNullCap @1 () -> (cap :TestInterface);
  # testPointers @1 (cap :TestInterface, obj :AnyPointer, list :List(TestInterface)) -> ();
 
   struct Box {
