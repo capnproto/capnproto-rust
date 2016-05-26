@@ -128,7 +128,7 @@ impl ClientHook for Client {
     }
 
     fn get_ptr(&self) -> usize {
-        unimplemented!()
+        (self.inner.as_ref()) as * const _ as usize
     }
 
     fn get_brand(&self) -> usize {
