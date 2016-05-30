@@ -131,7 +131,6 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
 impl <'a> RustTypeInfo for type_::Reader<'a> {
 
     fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> String {
-        use codegen_types::RustTypeInfo;
 
         let local_lifetime = match module {
             Leaf::Reader(lt) => lt,
