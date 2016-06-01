@@ -445,7 +445,6 @@ struct BrandTwice {
     bazField @0 : GenericTwice(Text, TestBlob);
 }
 
-
 struct Map(Key, Value) {
   entries @0 :List(Entry);
   struct Entry {

@@ -70,6 +70,7 @@ pub struct TypeParameterTexts {
     pub params: String,
     pub where_clause: String,
     pub where_clause_with_send: String,
+    pub pipeline_where_clause: String,
     pub phantom_data: String
 }
 
@@ -107,6 +108,9 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 //format!("{}Builder:Send+FromPointerBuilder<'a>", param)
                 format!("{}:Send+'static", param)
             }).collect::<Vec<String>>().join(", ") + " ");
+            let pipeline_where_clause = "where ".to_string() + &*(params.iter().map(|param| {
+                format!("{}: ::capnp::traits::Pipelined, <{} as ::capnp::traits::Pipelined>::Pipeline: ::capnp::capability::FromTypelessPipeline", param, param)
+            }).collect::<Vec<String>>().join(", ") + " ");
             let phantom_data = "_phantom: PhantomData,".to_string();
 
             TypeParameterTexts {
@@ -114,6 +118,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 params: type_parameters,
                 where_clause: where_clause,
                 where_clause_with_send: where_clause_with_send,
+                pipeline_where_clause: pipeline_where_clause,
                 phantom_data: phantom_data
             }
         } else {
@@ -122,6 +127,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 params: "".to_string(),
                 where_clause: "".to_string(),
                 where_clause_with_send: "".to_string(),
+                pipeline_where_clause: "".to_string(),
                 phantom_data: "".to_string(),
             }
         }
@@ -216,7 +222,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                                         parameter_name, lifetime)
                             }
                             Leaf::Pipeline => {
-                                format!("<{} as ::capnp::traits::Owned<'static>>::Pipeline", parameter_name)
+                                format!("<{} as ::capnp::traits::Pipelined>::Pipeline", parameter_name)
                             }
                             _ => { unimplemented!() }
                         }

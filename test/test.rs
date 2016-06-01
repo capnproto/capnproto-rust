@@ -895,6 +895,13 @@ mod tests {
         assert_eq!(nested.get_data_field().unwrap(), &[]);
     }
 
+    // At one point this failed to typecheck, giving the error:
+    // "no method named `get_any_pointer_field` found for type `test_capnp::test_any_pointer::Pipeline`"
+    #[allow(unused)]
+    fn pipeline_any_pointer(foo : ::test_capnp::test_any_pointer::Pipeline) {
+        let _ = foo.get_any_pointer_field();
+    }
+
     #[test]
     fn threads() {
         use test_capnp::{test_all_types};

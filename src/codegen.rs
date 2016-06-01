@@ -830,8 +830,8 @@ fn generate_haser(discriminant_offset: u32,
     Ok(Branch(result))
 }
 
-fn generate_pipeline_getter(gen:&GeneratorContext,
-                            field : schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
+fn generate_pipeline_getter(gen: &GeneratorContext,
+                            field: schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
     use schema_capnp::{field, type_};
 
     let name = try!(field.get_name());
@@ -851,7 +851,7 @@ fn generate_pipeline_getter(gen:&GeneratorContext,
         Ok(field::Slot(reg_field)) => {
             let typ = try!(reg_field.get_type());
             match try!(typ.which()) {
-                type_::Struct(_) => {
+                type_::Struct(_) | type_::AnyPointer(_) => {
                     Ok(Branch(vec!(
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
@@ -1313,7 +1313,8 @@ fn generate_node(gen: &GeneratorContext,
                         Indent(Box::new(Line(format!("Pipeline {{ _typeless : typeless, {} }}", params.phantom_data)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
-                Line(format!("impl{} Pipeline{} {{", bracketed_params, bracketed_params)),
+                Line(format!("impl{} Pipeline{} {} {{", bracketed_params, bracketed_params,
+                             params.pipeline_where_clause.clone())),
                 Indent(Box::new(Branch(pipeline_impl_interior))),
                 Line("}".to_string()),
                 Line("mod _private {".to_string()),
