@@ -111,7 +111,7 @@ pub struct ListIter<T, U> {
     size : u32,
 }
 
-impl <T, U> ListIter<T, U> {
+impl <T, U> ListIter<T, U>{
     pub fn new(list : T, size : u32) -> ListIter<T, U> {
         ListIter { list : list, index : 0, size : size, marker : ::std::marker::PhantomData }
     }
@@ -127,5 +127,25 @@ impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator for ListIter<T, U> {
         } else {
             return None;
         }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>){
+        (self.size as usize, Some(self.size as usize))
+    }
+
+    fn nth(&mut self, p: usize) -> Option<U>{
+        if p < self.size as usize {
+            self.index = p as u32;
+            let result = self.list.index_move(self.index);
+            return Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+impl <U, T: IndexMove<u32, U>> ::std::iter::ExactSizeIterator for ListIter<T, U>{
+    fn len(&self) -> usize{
+        self.size as usize
     }
 }

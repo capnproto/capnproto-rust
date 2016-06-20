@@ -21,7 +21,7 @@
 
 //! List of strings containing UTF-8 encoded text.
 
-use traits::{FromPointerReader, FromPointerBuilder};
+use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
 use private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 use Result;
 
@@ -44,11 +44,22 @@ impl <'a> Reader<'a> {
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
+
+    pub fn iter(self) -> ListIter<Reader<'a>, Result<::text::Reader<'a>>>{
+        let l = self.len();
+        ListIter::new(self, l)
+    }
 }
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a>> {
         Ok(Reader { reader : try!(reader.get_list(Pointer, ::std::ptr::null())) })
+    }
+}
+
+impl <'a>  IndexMove<u32, Result<::text::Reader<'a>>> for Reader<'a>{
+    fn index_move(&self, index : u32) -> Result<::text::Reader<'a>> {
+        self.get(index)
     }
 }
 
