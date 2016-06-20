@@ -193,7 +193,7 @@ impl calculator::Server for CalculatorImpl {
     }
 }
 
-pub fn accept_loop(mut listener: ::gjio::SocketListener,
+pub fn accept_loop(listener: ::gjio::SocketListener,
                    mut task_set: TaskSet<(), ::capnp::Error>,
                    calc: calculator::Client,
                    )
