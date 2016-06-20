@@ -285,8 +285,8 @@ macro_rules! do_testcase2(
     );
 
 pub fn main() {
-    use ::std::io::{Read, Write};
-    let args : Vec<String> = ::std::env::args().collect();
+    use ::std::io::{Write};
+    let args: Vec<String> = ::std::env::args().collect();
 
     assert!(args.len() == 6,
             "USAGE: {} CASE MODE REUSE COMPRESSION ITERATION_COUNT",

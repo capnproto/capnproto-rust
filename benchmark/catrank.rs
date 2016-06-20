@@ -30,13 +30,13 @@ pub type ResponseReader<'a> = search_result_list::Reader<'a>;
 
 #[derive(Clone, Copy)]
 pub struct ScoredResult<'a> {
-    score : f64,
-    result : search_result::Reader<'a>
+    score: f64,
+    result: search_result::Reader<'a>
 }
 
-const URL_PREFIX : &'static str = "http://example.com";
+const URL_PREFIX: &'static str = "http://example.com";
 
-pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder) -> i32 {
+pub fn setup_request(rng: &mut FastRand, request : search_result_list::Builder) -> i32 {
     let count = rng.next_less_than(1000);
     let mut good_count : i32 = 0;
 
@@ -83,9 +83,9 @@ pub fn setup_request(rng : &mut FastRand, request : search_result_list::Builder)
     good_count
 }
 
-pub fn handle_request(request : search_result_list::Reader,
-                      response : search_result_list::Builder) {
-    let mut scored_results : Vec<ScoredResult> = Vec::new();
+pub fn handle_request(request: search_result_list::Reader,
+                      response: search_result_list::Builder) {
+    let mut scored_results: Vec<ScoredResult> = Vec::new();
 
     let results = request.get_results().unwrap();
     for i in 0..results.len() {
@@ -115,11 +115,10 @@ pub fn handle_request(request : search_result_list::Reader,
     }
 }
 
-pub fn check_response(response : search_result_list::Reader, expected_good_count : i32) -> bool {
+pub fn check_response(response: search_result_list::Reader, expected_good_count: i32) -> bool {
     let mut good_count : i32 = 0;
     let results = response.get_results().unwrap();
-    for i in 0..results.len() {
-        let result = results.get(i);
+    for result in results.iter() {
         if result.get_score() > 1001.0 {
             good_count += 1;
         } else {
