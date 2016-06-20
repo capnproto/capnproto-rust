@@ -21,7 +21,7 @@
 
 //! List of enums.
 
-use traits::{FromPointerReader, FromPointerBuilder, ToU16, FromU16};
+use traits::{FromPointerReader, FromPointerBuilder, ToU16, FromU16, ListIter, IndexMove};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                       TwoBytes, PrimitiveElement};
 use {NotInSchema, Result};
@@ -49,12 +49,22 @@ impl <'a, T: FromU16> Reader<'a, T> {
 
     pub fn len(&self) -> u32 { self.reader.len() }
 
+    pub fn iter(self) -> ListIter<Reader<'a, T>, ::std::result::Result<T, NotInSchema>>{
+        let l = self.len();
+        ListIter::new(self, l)
+    }
 }
 
 impl <'a, T : FromU16> FromPointerReader<'a> for Reader<'a, T> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader : try!(reader.get_list(TwoBytes, ::std::ptr::null())),
                     marker : ::std::marker::PhantomData })
+    }
+}
+
+impl <'a, T: FromU16>  IndexMove<u32, ::std::result::Result<T, NotInSchema>> for Reader<'a, T>{
+    fn index_move(&self, index : u32) -> ::std::result::Result<T, NotInSchema> {
+        self.get(index)
     }
 }
 

@@ -21,7 +21,7 @@
 
 //! List of primitives.
 
-use traits::{FromPointerReader, FromPointerBuilder};
+use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                       PrimitiveElement};
 use Result;
@@ -48,12 +48,23 @@ impl <'a, T : PrimitiveElement> Reader<'a, T> {
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
+
+    pub fn iter(self) -> ListIter<Reader<'a, T>, T>{
+        let l = self.len();
+        ListIter::new(self, l)
+    }
 }
 
 impl <'a, T : PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader : try!(reader.get_list(T::element_size(), ::std::ptr::null())),
                     marker : ::std::marker::PhantomData })
+    }
+}
+
+impl <'a, T: PrimitiveElement>  IndexMove<u32, T> for Reader<'a, T>{
+    fn index_move(&self, index : u32) -> T {
+        self.get(index)
     }
 }
 

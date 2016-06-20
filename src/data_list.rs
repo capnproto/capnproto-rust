@@ -21,7 +21,7 @@
 
 //! List of sequences of bytes.
 
-use traits::{FromPointerReader, FromPointerBuilder};
+use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
 use private::layout::*;
 use Result;
 
@@ -44,11 +44,22 @@ impl <'a> Reader<'a> {
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
+
+    pub fn iter(self) -> ListIter<Reader<'a>, Result<::data::Reader<'a>>>{
+        let l = self.len();
+        ListIter::new(self, l)
+    }
 }
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a>> {
         Ok(Reader { reader : try!(reader.get_list(Pointer, ::std::ptr::null())) })
+    }
+}
+
+impl <'a>  IndexMove<u32, Result<::data::Reader<'a>>> for Reader<'a>{
+    fn index_move(&self, index : u32) -> Result<::data::Reader<'a>> {
+        self.get(index)
     }
 }
 
