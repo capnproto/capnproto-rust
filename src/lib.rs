@@ -251,6 +251,13 @@ impl ::std::convert::From<::std::io::Error> for Error {
     }
 }
 
+impl ::std::convert::From<::std::string::FromUtf8Error> for Error {
+    fn from(err: ::std::string::FromUtf8Error) -> Error {
+        Error::failed(format!("{}", err))
+    }
+}
+
+
 impl ::std::convert::From<NotInSchema> for Error {
     fn from(e: NotInSchema) -> Error {
         Error::failed(format!("Enum value or union discriminant {} was not present in schema.", e.0))
