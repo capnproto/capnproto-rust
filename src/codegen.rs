@@ -1702,9 +1702,8 @@ fn generate_node(gen: &GeneratorContext,
                 (type_::Uint32(()), value::Uint32(i)) => ("u32".to_string(), i.to_string()),
                 (type_::Uint64(()), value::Uint64(i)) => ("u64".to_string(), i.to_string()),
 
-                // float string formatting appears to be a bit broken currently, in Rust.
-                (type_::Float32(()), value::Float32(f)) => ("f32".to_string(), format!("{}f32", f.to_string())),
-                (type_::Float64(()), value::Float64(f)) => ("f64".to_string(), format!("{}f64", f.to_string())),
+                (type_::Float32(()), value::Float32(f)) => ("f32".to_string(),format!("{:e}f32", f)),
+                (type_::Float64(()), value::Float64(f)) => ("f64".to_string(), format!("{:e}f64", f)),
 
                 (type_::Text(()), value::Text(_t)) => {
                     return Err(Error::unimplemented(format!("text constants")));
