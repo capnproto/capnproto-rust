@@ -14,3 +14,8 @@ This library is dependent on
 the Cap'n Proto
 data encoding [runtime](https://github.com/dwrensha/capnproto-rust)
 and the [code generator](https://github.com/dwrensha/capnpc-rust).
+
+Documentation
+-------------
+
+See <http://docs.capnproto-rust.org/> for full documentation.
