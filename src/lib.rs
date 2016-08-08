@@ -41,7 +41,7 @@
 //!                 -> Promise<(), ::capnp::Error>
 //!     {
 //!         let x = pry!(params.get()).get_x();
-//!         results.get().set_x(x);
+//!         results.get().set_y(x);
 //!         Promise::ok(())
 //!     }
 //! }
