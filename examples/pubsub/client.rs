@@ -49,7 +49,7 @@ pub fn main() {
         let mut event_port = try!(::gjio::EventPort::new());
         let network = event_port.get_network();
         let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-        let mut address = network.get_tcp_address(addr);
+        let address = network.get_tcp_address(addr);
         let stream = try!(address.connect().wait(wait_scope, &mut event_port));
         let mut rpc_network =
             Box::new(twoparty::VatNetwork::new(stream.clone(), stream,

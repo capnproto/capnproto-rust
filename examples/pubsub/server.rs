@@ -89,7 +89,7 @@ impl publisher::Server for PublisherImpl {
     }
 }
 
-pub fn accept_loop(mut listener: ::gjio::SocketListener,
+pub fn accept_loop(listener: ::gjio::SocketListener,
                    task_set: Rc<RefCell<TaskSet<(), Box<::std::error::Error>>>>,
                    publisher: publisher::Client)
                    -> Promise<(), ::std::io::Error>
