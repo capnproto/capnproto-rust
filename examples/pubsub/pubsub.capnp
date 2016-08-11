@@ -7,5 +7,5 @@ interface Publisher {
 }
 
 interface Subscriber {
-  pushValues @0 (values: Float64) -> ();
+  pushValue @0 (value: Float64) -> ();
 }

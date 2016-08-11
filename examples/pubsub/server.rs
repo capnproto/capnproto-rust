@@ -123,8 +123,8 @@ fn send_to_subscribers(subscribers: Rc<RefCell<SubscriberMap>>,
     timer.after_delay(::std::time::Duration::new(1, 0)).lift().then(move |()| {
         {
             for (_, subscriber) in subscribers.borrow().subscribers.iter() {
-                let mut request = subscriber.push_values_request();
-                request.get().set_values(1.23);
+                let mut request = subscriber.push_value_request();
+                request.get().set_value(1.23);
                 task_set.borrow_mut().add(request.send().promise.map(|_| Ok(())).lift());
             }
         }
