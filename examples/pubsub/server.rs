@@ -90,7 +90,7 @@ impl publisher::Server for PublisherImpl {
 }
 
 pub fn accept_loop(listener: ::gjio::SocketListener,
-                   task_set: Rc<RefCell<TaskSet<(), Box<::std::error::Error>>>>,
+                   task_set: Rc<RefCell<TaskSet<(), ::capnp::Error>>>,
                    publisher: publisher::Client)
                    -> Promise<(), ::std::io::Error>
 {
@@ -102,30 +102,30 @@ pub fn accept_loop(listener: ::gjio::SocketListener,
 
         let rpc_system = RpcSystem::new(Box::new(network), Some(publisher.clone().client));
 
-        task_set.borrow_mut().add(disconnect_promise.attach(rpc_system).lift());
+        task_set.borrow_mut().add(disconnect_promise.attach(rpc_system));
         accept_loop(listener, task_set, publisher)
     })
 }
 
 struct Reaper;
 
-impl TaskReaper<(), Box<::std::error::Error>> for Reaper {
-    fn task_failed(&mut self, error: Box<::std::error::Error>) {
+impl TaskReaper<(), ::capnp::Error> for Reaper {
+    fn task_failed(&mut self, error: ::capnp::Error) {
         println!("Task failed: {}", error);
     }
 }
 
 fn send_to_subscribers(subscribers: Rc<RefCell<SubscriberMap>>,
                        timer: ::gjio::Timer,
-                       task_set: Rc<RefCell<TaskSet<(), Box<::std::error::Error>>>>)
-                       -> Promise<(), Box<::std::error::Error>>
+                       task_set: Rc<RefCell<TaskSet<(), ::capnp::Error>>>)
+                       -> Promise<(), ::capnp::Error>
 {
     timer.after_delay(::std::time::Duration::new(1, 0)).lift().then(move |()| {
         {
             for (_, subscriber) in subscribers.borrow().subscribers.iter() {
                 let mut request = subscriber.push_value_request();
                 request.get().set_value(1.23);
-                task_set.borrow_mut().add(request.send().promise.map(|_| Ok(())).lift());
+                task_set.borrow_mut().add(request.send().promise.map(|_| Ok(())));
             }
         }
         send_to_subscribers(subscribers, timer, task_set)
