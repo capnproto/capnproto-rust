@@ -2697,30 +2697,40 @@ impl <VatId> ClientHook for Client<VatId> {
     {
         // Implement call() by copying params and results messages.
 
-        let mut request = self.new_call(interface_id, method_id,
-                                        Some(params.get().unwrap().total_size().unwrap()));
-        request.get().set_as(params.get().unwrap()).unwrap();
-
-        let ::capnp::capability::RemotePromise { promise, pipeline: _ } = request.send();
-
-        let promise = promise.map(move |response| {
-            try!(try!(results.get()).set_as(try!(response.get())));
-            Ok(())
+        let maybe_request = params.get().and_then(|p| {
+            let mut request = try!(p.total_size().and_then(|s| {
+                Ok(self.new_call(interface_id, method_id, Some(s)))
+            }));
+            try!(request.get().set_as(p));
+            Ok(request)
         });
 
-        let mut forked = promise.fork();
-        let promise = forked.add_branch();
+        match maybe_request {
+            Err(e) => return (Promise::err(e.clone()),
+                              Box::new(broken::Pipeline::new(e))),
+            Ok(request) => {
+                let ::capnp::capability::RemotePromise { promise, pipeline: _ } = request.send();
 
-        let pipeline = ::queued::Pipeline::new(forked.add_branch().then(move |_| {
-            results_done.map(move |results_done_hook| {
-                // TODO: why doesn't this work?
-                // Ok(pipeline.hook)
+                let promise = promise.map(move |response| {
+                    try!(try!(results.get()).set_as(try!(response.get())));
+                    Ok(())
+                });
 
-                Ok(Box::new(::local::Pipeline::new(results_done_hook)) as Box<PipelineHook>)
-            })
-        }));
+                let mut forked = promise.fork();
+                let promise = forked.add_branch();
 
-        (promise, Box::new(pipeline))
+                let pipeline = ::queued::Pipeline::new(forked.add_branch().then(move |_| {
+                    results_done.map(move |results_done_hook| {
+                        // TODO: why doesn't this work?
+                        // Ok(pipeline.hook)
+
+                        Ok(Box::new(::local::Pipeline::new(results_done_hook)) as Box<PipelineHook>)
+                    })
+                }));
+
+                (promise, Box::new(pipeline))
+            }
+        }
         // TODO implement this in terms of direct tail call.
         // We can and should propagate cancellation.
         // (TODO ?)
