@@ -367,44 +367,69 @@ mod tests {
         use test_capnp::test_defaults;
 
         let mut message = message::Builder::new_default();
-        let mut test_defaults = message.init_root::<test_defaults::Builder>();
 
-        assert_eq!(test_defaults.borrow().get_void_field(), ());
-        assert_eq!(test_defaults.borrow().get_bool_field(), true);
-        assert_eq!(test_defaults.borrow().get_int8_field(), -123);
-        assert_eq!(test_defaults.borrow().get_int16_field(), -12345);
-        assert_eq!(test_defaults.borrow().get_int32_field(), -12345678);
-        assert_eq!(test_defaults.borrow().get_int64_field(), -123456789012345);
-        assert_eq!(test_defaults.borrow().get_uint8_field(), 234u8);
-        assert_eq!(test_defaults.borrow().get_uint16_field(), 45678u16);
-        assert_eq!(test_defaults.borrow().get_uint32_field(), 3456789012u32);
-        assert_eq!(test_defaults.borrow().get_uint64_field(), 12345678901234567890u64);
-        assert_eq!(test_defaults.borrow().get_float32_field(), 1234.5);
-        assert_eq!(test_defaults.borrow().get_float64_field(), -123e45);
+        {
+            let test_defaults = message.get_root_as_reader::<test_defaults::Reader>()
+                .expect("get_root_as_reader()");
 
-        test_defaults.set_bool_field(false);
-        test_defaults.set_int8_field(63);
-        test_defaults.set_int16_field(-1123);
-        test_defaults.set_int32_field(445678);
-        test_defaults.set_int64_field(-990123456789);
-        test_defaults.set_uint8_field(234);
-        test_defaults.set_uint16_field(56789);
-        test_defaults.set_uint32_field(123456789);
-        test_defaults.set_uint64_field(123456789012345);
-        test_defaults.set_float32_field(7890.123);
-        test_defaults.set_float64_field(5e55);
+            assert_eq!(test_defaults.borrow().get_void_field(), ());
+            assert_eq!(test_defaults.borrow().get_bool_field(), true);
+            assert_eq!(test_defaults.borrow().get_int8_field(), -123);
+            assert_eq!(test_defaults.borrow().get_int16_field(), -12345);
+            assert_eq!(test_defaults.borrow().get_int32_field(), -12345678);
+            assert_eq!(test_defaults.borrow().get_int64_field(), -123456789012345);
+            assert_eq!(test_defaults.borrow().get_uint8_field(), 234u8);
+            assert_eq!(test_defaults.borrow().get_uint16_field(), 45678u16);
+            assert_eq!(test_defaults.borrow().get_uint32_field(), 3456789012u32);
+            assert_eq!(test_defaults.borrow().get_uint64_field(), 12345678901234567890u64);
+            assert_eq!(test_defaults.borrow().get_float32_field(), 1234.5);
+            assert_eq!(test_defaults.borrow().get_float64_field(), -123e45);
+        }
 
-        assert_eq!(test_defaults.borrow().get_bool_field(), false);
-        assert_eq!(test_defaults.borrow().get_int8_field(), 63);
-        assert_eq!(test_defaults.borrow().get_int16_field(), -1123);
-        assert_eq!(test_defaults.borrow().get_int32_field(),  445678);
-        assert_eq!(test_defaults.borrow().get_int64_field(), -990123456789);
-        assert_eq!(test_defaults.borrow().get_uint8_field(), 234);
-        assert_eq!(test_defaults.borrow().get_uint16_field(), 56789);
-        assert_eq!(test_defaults.borrow().get_uint32_field(),  123456789);
-        assert_eq!(test_defaults.borrow().get_uint64_field(),  123456789012345);
-        assert_eq!(test_defaults.borrow().get_float32_field(), 7890.123);
-        assert_eq!(test_defaults.borrow().get_float64_field(), 5e55);
+        {
+            let mut test_defaults = message.init_root::<test_defaults::Builder>();
+
+            assert_eq!(test_defaults.borrow().get_void_field(), ());
+            assert_eq!(test_defaults.borrow().get_bool_field(), true);
+            assert_eq!(test_defaults.borrow().get_int8_field(), -123);
+            assert_eq!(test_defaults.borrow().get_int16_field(), -12345);
+            assert_eq!(test_defaults.borrow().get_int32_field(), -12345678);
+            assert_eq!(test_defaults.borrow().get_int64_field(), -123456789012345);
+            assert_eq!(test_defaults.borrow().get_uint8_field(), 234u8);
+            assert_eq!(test_defaults.borrow().get_uint16_field(), 45678u16);
+            assert_eq!(test_defaults.borrow().get_uint32_field(), 3456789012u32);
+            assert_eq!(test_defaults.borrow().get_uint64_field(), 12345678901234567890u64);
+            assert_eq!(test_defaults.borrow().get_float32_field(), 1234.5);
+            assert_eq!(test_defaults.borrow().get_float64_field(), -123e45);
+        }
+
+        {
+            let mut test_defaults = message.get_root::<test_defaults::Builder>()
+                .expect("get_root()");
+            test_defaults.set_bool_field(false);
+            test_defaults.set_int8_field(63);
+            test_defaults.set_int16_field(-1123);
+            test_defaults.set_int32_field(445678);
+            test_defaults.set_int64_field(-990123456789);
+            test_defaults.set_uint8_field(234);
+            test_defaults.set_uint16_field(56789);
+            test_defaults.set_uint32_field(123456789);
+            test_defaults.set_uint64_field(123456789012345);
+            test_defaults.set_float32_field(7890.123);
+            test_defaults.set_float64_field(5e55);
+
+            assert_eq!(test_defaults.borrow().get_bool_field(), false);
+            assert_eq!(test_defaults.borrow().get_int8_field(), 63);
+            assert_eq!(test_defaults.borrow().get_int16_field(), -1123);
+            assert_eq!(test_defaults.borrow().get_int32_field(),  445678);
+            assert_eq!(test_defaults.borrow().get_int64_field(), -990123456789);
+            assert_eq!(test_defaults.borrow().get_uint8_field(), 234);
+            assert_eq!(test_defaults.borrow().get_uint16_field(), 56789);
+            assert_eq!(test_defaults.borrow().get_uint32_field(),  123456789);
+            assert_eq!(test_defaults.borrow().get_uint64_field(),  123456789012345);
+            assert_eq!(test_defaults.borrow().get_float32_field(), 7890.123);
+            assert_eq!(test_defaults.borrow().get_float64_field(), 5e55);
+        }
     }
 
     #[test]
