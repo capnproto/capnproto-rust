@@ -233,7 +233,7 @@ impl <A> Builder<A> where A: Allocator {
     pub fn get_root_as_reader<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
         let root_segment: *const SegmentReader = &self.arena.segment0.reader;
         if self.arena.segment0.current_size() == 0 {
-            Err(::Error::failed("Segment zero is empty.".to_string()))
+            any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
         } else {
             use ::traits::Imbue;
             let mut root = any_pointer::Reader::new(
