@@ -23,6 +23,11 @@ remote procedure calls built on top of this.
 
 Hosted [here](https://docs.capnproto-rust.org).
 
+## Examples
+
+[addressbook serialization](https://github.com/dwrensha/capnpc-rust/tree/master/example/addressbook),
+[RPC](https://github.com/dwrensha/capnp-rpc-rust/tree/master/examples)
+
 ## Status
 
 See updates [here](https://dwrensha.github.io/capnproto-rust).
