@@ -29,7 +29,7 @@ use pubsub_capnp::{publisher, subscriber, subscription};
 use gj::{EventLoop, Promise, TaskReaper, TaskSet};
 
 struct SubscriberMap {
-    subscribers: HashMap<u64, subscriber::Client>,
+    subscribers: HashMap<u64, subscriber::Client<::capnp::text::Owned>>,
 }
 
 impl SubscriberMap {
@@ -71,10 +71,10 @@ impl PublisherImpl {
     }
 }
 
-impl publisher::Server for PublisherImpl {
+impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
     fn subscribe(&mut self,
-                 params: publisher::SubscribeParams,
-                 mut results: publisher::SubscribeResults,)
+                 params: publisher::SubscribeParams<::capnp::text::Owned>,
+                 mut results: publisher::SubscribeResults<::capnp::text::Owned>,)
                  -> Promise<(), ::capnp::Error>
     {
         println!("subscribe");
@@ -92,7 +92,7 @@ impl publisher::Server for PublisherImpl {
 
 pub fn accept_loop(listener: ::gjio::SocketListener,
                    task_set: Rc<RefCell<TaskSet<(), ::capnp::Error>>>,
-                   publisher: publisher::Client)
+                   publisher: publisher::Client<::capnp::text::Owned>)
                    -> Promise<(), ::std::io::Error>
 {
     listener.accept().then(move |stream| {
@@ -125,7 +125,8 @@ fn send_to_subscribers(subscribers: Rc<RefCell<SubscriberMap>>,
         {
             for (_, subscriber) in subscribers.borrow().subscribers.iter() {
                 let mut request = subscriber.push_value_request();
-                request.get().set_value(1.23);
+                pry!(request.get().set_value(
+                    &format!("system time is: {:?}", ::std::time::SystemTime::now())[..]));
                 task_set.borrow_mut().add(request.send().promise.map(|_| Ok(())));
             }
         }

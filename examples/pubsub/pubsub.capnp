@@ -2,10 +2,10 @@
 
 interface Subscription {}
 
-interface Publisher {
-  subscribe @0 (subscriber: Subscriber) -> (subscription: Subscription);
+interface Publisher(T) {
+  subscribe @0 (subscriber: Subscriber(T)) -> (subscription: Subscription);
 }
 
-interface Subscriber {
-  pushValue @0 (value: Float64) -> ();
+interface Subscriber(T) {
+  pushValue @0 (value: T) -> ();
 }

@@ -26,13 +26,13 @@ use gj::{EventLoop, Promise};
 
 struct SubscriberImpl;
 
-impl subscriber::Server for SubscriberImpl {
+impl subscriber::Server<::capnp::text::Owned> for SubscriberImpl {
     fn push_value(&mut self,
-                  params: subscriber::PushValueParams,
-                  _results: subscriber::PushValueResults)
+                  params: subscriber::PushValueParams<::capnp::text::Owned>,
+                  _results: subscriber::PushValueResults<::capnp::text::Owned>)
         -> Promise<(), ::capnp::Error>
     {
-        println!("got: {}", pry!(params.get()).get_value());
+        println!("value from publisher: {}", pry!(pry!(params.get()).get_value()));
         Promise::ok(())
     }
 }
@@ -58,7 +58,8 @@ pub fn main() {
 
         let disconnect_promise = rpc_network.on_disconnect();
         let mut rpc_system = RpcSystem::new(rpc_network, None);
-        let publisher: publisher::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+        let publisher: publisher::Client<::capnp::text::Owned> =
+            rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
         let sub = subscriber::ToClient::new(SubscriberImpl).from_server::<::capnp_rpc::Server>();
 
