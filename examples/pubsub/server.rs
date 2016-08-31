@@ -24,7 +24,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
-use pubsub_capnp::{publisher, subscriber, handle};
+use pubsub_capnp::{publisher, subscriber, subscription};
 
 use gj::{EventLoop, Promise, TaskReaper, TaskSet};
 
@@ -38,24 +38,25 @@ impl SubscriberMap {
     }
 }
 
-struct HandleImpl {
+struct SubscriptionImpl {
     id: u64,
     subscribers: Rc<RefCell<SubscriberMap>>,
 }
 
-impl HandleImpl {
-    fn new(id: u64, subscribers: Rc<RefCell<SubscriberMap>>) -> HandleImpl {
-        HandleImpl { id: id, subscribers: subscribers }
+impl SubscriptionImpl {
+    fn new(id: u64, subscribers: Rc<RefCell<SubscriberMap>>) -> SubscriptionImpl {
+        SubscriptionImpl { id: id, subscribers: subscribers }
     }
 }
 
-impl Drop for HandleImpl {
+impl Drop for SubscriptionImpl {
     fn drop(&mut self) {
+        println!("subscription dropped");
         self.subscribers.borrow_mut().subscribers.remove(&self.id);
     }
 }
 
-impl handle::Server for HandleImpl {}
+impl subscription::Server for SubscriptionImpl {}
 
 struct PublisherImpl {
     next_id: u64,
@@ -71,17 +72,17 @@ impl PublisherImpl {
 }
 
 impl publisher::Server for PublisherImpl {
-    fn register(&mut self,
-                params: publisher::RegisterParams,
-                mut results: publisher::RegisterResults,)
-                -> Promise<(), ::capnp::Error>
+    fn subscribe(&mut self,
+                 params: publisher::SubscribeParams,
+                 mut results: publisher::SubscribeResults,)
+                 -> Promise<(), ::capnp::Error>
     {
-        println!("Register");
+        println!("subscribe");
         self.subscribers.borrow_mut().subscribers.insert(self.next_id,
                                                          pry!(pry!(params.get()).get_subscriber()));
 
-        results.get().set_handle(
-            handle::ToClient::new(HandleImpl::new(self.next_id, self.subscribers.clone()))
+        results.get().set_subscription(
+            subscription::ToClient::new(SubscriptionImpl::new(self.next_id, self.subscribers.clone()))
                 .from_server::<::capnp_rpc::Server>());
 
         self.next_id += 1;

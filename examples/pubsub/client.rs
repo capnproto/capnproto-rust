@@ -62,10 +62,10 @@ pub fn main() {
 
         let sub = subscriber::ToClient::new(SubscriberImpl).from_server::<::capnp_rpc::Server>();
 
-        let mut request = publisher.register_request();
+        let mut request = publisher.subscribe_request();
         request.get().set_subscriber(sub);
 
-        // Need to make sure not to drop the returned handle object.
+        // Need to make sure not to drop the returned subscription object.
         let _result = request.send().promise.wait(wait_scope, &mut event_port).unwrap();
 
         disconnect_promise.wait(wait_scope, &mut event_port).unwrap();

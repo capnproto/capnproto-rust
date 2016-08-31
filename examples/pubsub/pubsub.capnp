@@ -1,9 +1,9 @@
 @0xa074fbab61132cbd;
 
-interface Handle {}
+interface Subscription {}
 
 interface Publisher {
-  register @0 (subscriber: Subscriber) -> (handle: Handle);
+  subscribe @0 (subscriber: Subscriber) -> (subscription: Subscription);
 }
 
 interface Subscriber {
