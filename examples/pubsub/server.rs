@@ -28,8 +28,13 @@ use pubsub_capnp::{publisher, subscriber, subscription};
 
 use gj::{EventLoop, Promise, TaskReaper, TaskSet};
 
+struct SubscriberHandle {
+    client: subscriber::Client<::capnp::text::Owned>,
+    requests_in_flight: i32,
+}
+
 struct SubscriberMap {
-    subscribers: HashMap<u64, subscriber::Client<::capnp::text::Owned>>,
+    subscribers: HashMap<u64, SubscriberHandle>,
 }
 
 impl SubscriberMap {
@@ -78,8 +83,13 @@ impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
                  -> Promise<(), ::capnp::Error>
     {
         println!("subscribe");
-        self.subscribers.borrow_mut().subscribers.insert(self.next_id,
-                                                         pry!(pry!(params.get()).get_subscriber()));
+        self.subscribers.borrow_mut().subscribers.insert(
+            self.next_id,
+            SubscriberHandle {
+                client: pry!(pry!(params.get()).get_subscriber()),
+                requests_in_flight: 0,
+            }
+        );
 
         results.get().set_subscription(
             subscription::ToClient::new(SubscriptionImpl::new(self.next_id, self.subscribers.clone()))
@@ -123,11 +133,31 @@ fn send_to_subscribers(subscribers: Rc<RefCell<SubscriberMap>>,
 {
     timer.after_delay(::std::time::Duration::new(1, 0)).lift().then(move |()| {
         {
-            for (_, subscriber) in subscribers.borrow().subscribers.iter() {
-                let mut request = subscriber.push_value_request();
-                pry!(request.get().set_value(
-                    &format!("system time is: {:?}", ::std::time::SystemTime::now())[..]));
-                task_set.borrow_mut().add(request.send().promise.map(|_| Ok(())));
+            let subscribers1 = subscribers.clone();
+            let subs = &mut subscribers.borrow_mut().subscribers;
+            for (&idx, mut subscriber) in subs.iter_mut() {
+                if subscriber.requests_in_flight < 5 {
+                    subscriber.requests_in_flight += 1;
+                    let mut request = subscriber.client.push_value_request();
+                    pry!(request.get().set_value(
+                        &format!("system time is: {:?}", ::std::time::SystemTime::now())[..]));
+
+                    let subscribers2 = subscribers1.clone();
+                    task_set.borrow_mut().add(request.send().promise.map_else(move |r| {
+                        match r {
+                            Ok(_) => {
+                                subscribers2.borrow_mut().subscribers.get_mut(&idx).map(|ref mut s| {
+                                    s.requests_in_flight -= 1;
+                                });
+                            }
+                            Err(e) => {
+                                println!("Got error: {:?}. Dropping subscriber.", e);
+                                subscribers2.borrow_mut().subscribers.remove(&idx);
+                            }
+                        }
+                        Ok(())
+                    }));
+                }
             }
         }
         send_to_subscribers(subscribers, timer, task_set)
