@@ -138,8 +138,8 @@ fn send_to_subscribers(subscribers: Rc<RefCell<SubscriberMap>>,
             for (&idx, mut subscriber) in subs.iter_mut() {
                 if subscriber.requests_in_flight < 5 {
                     subscriber.requests_in_flight += 1;
-                    let mut request = subscriber.client.push_value_request();
-                    pry!(request.get().set_value(
+                    let mut request = subscriber.client.push_message_request();
+                    pry!(request.get().set_message(
                         &format!("system time is: {:?}", ::std::time::SystemTime::now())[..]));
 
                     let subscribers2 = subscribers1.clone();

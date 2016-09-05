@@ -27,12 +27,12 @@ use gj::{EventLoop, Promise};
 struct SubscriberImpl;
 
 impl subscriber::Server<::capnp::text::Owned> for SubscriberImpl {
-    fn push_value(&mut self,
-                  params: subscriber::PushValueParams<::capnp::text::Owned>,
-                  _results: subscriber::PushValueResults<::capnp::text::Owned>)
+    fn push_message(&mut self,
+                    params: subscriber::PushMessageParams<::capnp::text::Owned>,
+                    _results: subscriber::PushMessageResults<::capnp::text::Owned>)
         -> Promise<(), ::capnp::Error>
     {
-        println!("value from publisher: {}", pry!(pry!(params.get()).get_value()));
+        println!("message from publisher: {}", pry!(pry!(params.get()).get_message()));
         Promise::ok(())
     }
 }
