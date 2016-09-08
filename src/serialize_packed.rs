@@ -27,7 +27,7 @@ use std::io::{Read, BufRead, Write};
 
 use serialize;
 use Result;
-use message::*;
+use message;
 use util::read_exact;
 
 struct PackedRead<R> where R: BufRead {
@@ -212,7 +212,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
 /// Reads a packed message from a stream using the provided options.
 pub fn read_message<R>(read: &mut R,
-                       options: ReaderOptions)
+                       options: message::ReaderOptions)
                        -> Result<::message::Reader<serialize::OwnedSegments>>
     where R: BufRead
 {
@@ -376,7 +376,7 @@ mod tests {
     use quickcheck::{quickcheck, TestResult};
 
     use {Word};
-    use message::{ReaderOptions, ReaderSegments};
+    use message::{ReaderOptions};
     use serialize::test::write_message_segments;
     use serialize_packed::{PackedRead, PackedWrite};
     use super::read_message;
