@@ -69,9 +69,6 @@
 # two-party protocol initially, and then pair applications with an appropriate proxy written in
 # C++, rather than implement other parameterizations of the RPC protocol directly.
 
-using Cxx = import "/capnp/c++.capnp";
-$Cxx.namespace("capnp::rpc::twoparty");
-
 # Note: SturdyRef is not specified here. It is up to the application to define semantics of
 # SturdyRefs if desired.
 
