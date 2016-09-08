@@ -1,3 +1,7 @@
+### v0.7.4
+- Eliminate some calls to unwrap(), in favor of saner error handling.
+- Eliminate dependency on capnp/c++.capnp.
+
 ### v0.7.3
 - Directly include rpc.capnp and rpc-twoparty.capnp to make the build more robust.
 
