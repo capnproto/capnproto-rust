@@ -24,6 +24,11 @@ install:
   - ./configure --prefix=$HOME
   - make -j3
   - make install
+
+  # On Debian, the 'capnproto' package currently does not include c++.capnp. Test here that we don't need it.
+  - ls -R $HOME/include
+  - rm -rf $HOME/include
+
   - cd ../
 script:
   - cargo build
