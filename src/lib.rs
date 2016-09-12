@@ -39,6 +39,9 @@ extern crate byteorder;
 #[cfg(any(feature="quickcheck", test))]
 extern crate quickcheck;
 
+#[cfg(feature="futures")]
+extern crate futures;
+
 #[cfg(feature = "rpc")]
 extern crate gj;
 
