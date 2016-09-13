@@ -465,11 +465,11 @@ pub fn write_message<W, M>(writer: W, message: M) -> Write<W, M>
 impl <W, M> Write<W, M> where W: ::std::io::Write, M: AsOutputSegments {
     /// Drives progress on an in-progress write. Returns `Async::NotReady` when the
     /// underyling writer returns `ErrorKind::WouldBlock`.
-    pub fn poll(&mut self) -> io::Result<Async<(W, M)>>
+    pub fn poll(&mut self) -> Result<Async<(W, M)>>
     {
         match self.state {
             WriteState::Empty => {
-                return Err(io::Error::new(io::ErrorKind::Other, "tried to poll empty Write".to_string()))
+                return Err(Error::failed("tried to poll empty Write".to_string()))
             }
             WriteState::Writing { ref mut writer, ref mut message, ref mut inner } => {
                 match try!(inner.write_helper(writer, message)) {
