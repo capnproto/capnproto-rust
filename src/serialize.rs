@@ -215,18 +215,24 @@ where W: Write {
     try!(write.write_all(&buf));
 
     if segment_count > 1 {
-        for i in 1..((segment_count + 1) / 2) {
-            // write two segment lengths at a time starting with the second
-            // segment through the final full Word
-            <LittleEndian as ByteOrder>::write_u32(&mut buf[0..4], segments[i * 2 - 1].len() as u32);
-            <LittleEndian as ByteOrder>::write_u32(&mut buf[4..8], segments[i * 2].len() as u32);
+        if segment_count < 4 {
+            for idx in 1..segment_count {
+                <LittleEndian as ByteOrder>::write_u32(
+                    &mut buf[(idx - 1) * 4..idx * 4], segments[idx].len() as u32);
+            }
+            if segment_count == 2 {
+                for idx in 4..8 { buf[idx] = 0 }
+            }
             try!(write.write_all(&buf));
-        }
-
-        if segment_count % 2 == 0 {
-            // write the final Word containing the last segment length and padding
-            <LittleEndian as ByteOrder>::write_u32(&mut buf[0..4], segments[segment_count - 1].len() as u32);
-            try!((&mut buf[4..8]).write_all(&[0, 0, 0, 0]));
+        } else {
+            let mut buf = vec![0; (segment_count & !1) * 4];
+            for idx in 1..segment_count {
+                <LittleEndian as ByteOrder>::write_u32(
+                    &mut buf[(idx - 1) * 4..idx * 4], segments[idx].len() as u32);
+            }
+            if segment_count % 2 == 0 {
+                for idx in (buf.len() - 4)..(buf.len()) { buf[idx] = 0 }
+            }
             try!(write.write_all(&buf));
         }
     }
