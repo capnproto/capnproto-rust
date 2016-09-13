@@ -264,13 +264,13 @@ impl <R> ::futures::Future for Read<R> where R: ::std::io::Read {
     }
 }
 
-/// Reads or continues reading the first word of a segment table from `read`.
-///
-/// Returns the segment count and first segment length, or a state if the
-/// read would block.
+/// Parses the first word of the segment table.
 ///
 /// The segment table format for streams is defined in the Cap'n Proto
 /// [encoding spec](https://capnproto.org/encoding.html#serialization-over-a-stream)
+///
+/// Returns the segment count and first segment length, or a state if the
+/// read would block.
 fn parse_segment_table_first(buf: &[u8]) -> Result<(u32, u32)>
 {
     let segment_count = <LittleEndian as ByteOrder>::read_u32(&buf[0..4])
@@ -285,11 +285,9 @@ fn parse_segment_table_first(buf: &[u8]) -> Result<(u32, u32)>
     Ok((segment_count, first_segment_len))
 }
 
-/// Reads or continues reading the remaining words (after the first) of a
-/// segment table from `read`.
+/// Parses Reads the remaining words (after the first) of a segment table.
 ///
-/// Returns the total segment words and segment slices, or a state if the
-/// read would block.
+/// Returns the total number of segment words and the segment slices.
 fn parse_segment_table_rest(options: &message::ReaderOptions,
                             segment_count: u32,
                             first_segment_length: u32,
