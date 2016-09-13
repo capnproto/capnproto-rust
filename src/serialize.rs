@@ -97,8 +97,8 @@ where R: Read {
 fn read_segment_table<R>(read: &mut R,
                          options: message::ReaderOptions)
                          -> Result<(usize, Vec<(usize, usize)>)>
-where R: Read {
-
+    where R: Read
+{
     let mut buf: [u8; 8] = [0; 8];
 
     // read the first Word, which contains segment_count and the 1st segment length
@@ -117,25 +117,25 @@ where R: Read {
     segment_slices.push((0, total_words));
 
     if segment_count > 1 {
-        for _ in 0..((segment_count - 1) / 2) {
-            // read two segment lengths at a time starting with the second
-            // segment through the final full Word
+        if segment_count < 4 {
             try!(read_exact(read, &mut buf));
-            let segment_len_a = <LittleEndian as ByteOrder>::read_u32(&buf[0..4]) as usize;
-            let segment_len_b = <LittleEndian as ByteOrder>::read_u32(&buf[4..8]) as usize;
+            for idx in 0..(segment_count - 1) {
+                let segment_len =
+                    <LittleEndian as ByteOrder>::read_u32(&buf[(idx * 4)..(idx + 1) * 4]) as usize;
 
-            segment_slices.push((total_words, total_words + segment_len_a));
-            total_words += segment_len_a;
-            segment_slices.push((total_words, total_words + segment_len_b));
-            total_words += segment_len_b;
-        }
+                segment_slices.push((total_words, total_words + segment_len));
+                total_words += segment_len;
+            }
+        } else {
+            let mut segment_sizes = vec![0u8; (segment_count & !1) * 4];
+            try!(read_exact(read, &mut segment_sizes[..]));
+            for idx in 0..(segment_count - 1) {
+                let segment_len =
+                    <LittleEndian as ByteOrder>::read_u32(&segment_sizes[(idx * 4)..(idx + 1) * 4]) as usize;
 
-        if segment_count % 2 == 0 {
-            // read the final Word containing the last segment length and padding
-            try!(read_exact(read, &mut buf));
-            let segment_len = <LittleEndian as ByteOrder>::read_u32(&buf[0..4]) as usize;
-            segment_slices.push((total_words, total_words + segment_len));
-            total_words += segment_len;
+                segment_slices.push((total_words, total_words + segment_len));
+                total_words += segment_len;
+            }
         }
     }
 

@@ -370,7 +370,7 @@ pub fn write_message<W, A>(write: &mut W, message : &::message::Builder<A>) -> i
 mod tests {
 
     use std::iter;
-    use std::io::Write;
+    use std::io::{Write, Read};
 
     use std::io::Cursor;
     use quickcheck::{quickcheck, TestResult};
@@ -382,8 +382,18 @@ mod tests {
     use super::read_message;
     use util::read_exact;
 
-    pub fn expect_packs_to(unpacked : &[u8],
-                           packed : &[u8]) {
+    pub fn check_unpacks_to(packed: &[u8], unpacked: &[u8]) {
+        let mut packed_read = PackedRead { inner: packed };
+
+        let mut bytes: Vec<u8> = iter::repeat(0u8).take(unpacked.len()).collect();
+        read_exact(&mut packed_read, &mut bytes[..]).unwrap();
+
+        let mut buf = [0; 8];
+        assert_eq!(packed_read.read(&mut buf).unwrap(), 0); // EOF
+        assert_eq!(bytes, unpacked);
+    }
+
+    pub fn check_packing(unpacked: &[u8], packed: &[u8]) {
 
         // --------
         // write
@@ -398,42 +408,34 @@ mod tests {
 
         // --------
         // read
-
-        let mut packed_read = PackedRead {inner: packed};
-
-
-        let mut bytes : Vec<u8> = iter::repeat(0u8).take(unpacked.len()).collect();
-        read_exact(&mut packed_read, &mut bytes[..]).unwrap();
-
-        //    assert!(packed_read.eof());
-        assert_eq!(bytes, unpacked);
+        check_unpacks_to(packed, unpacked);
     }
 
     #[test]
     pub fn simple_packing() {
-        expect_packs_to(&[], &[]);
-        expect_packs_to(&[0; 8], &[0,0]);
-        expect_packs_to(&[0,0,12,0,0,34,0,0], &[0x24,12,34]);
-        expect_packs_to(&[1,3,2,4,5,7,6,8], &[0xff,1,3,2,4,5,7,6,8,0]);
-        expect_packs_to(&[0,0,0,0,0,0,0,0,1,3,2,4,5,7,6,8], &[0,0,0xff,1,3,2,4,5,7,6,8,0]);
-        expect_packs_to(&[0,0,12,0,0,34,0,0,1,3,2,4,5,7,6,8], &[0x24,12,34,0xff,1,3,2,4,5,7,6,8,0]);
-        expect_packs_to(&[1,3,2,4,5,7,6,8,8,6,7,4,5,2,3,1], &[0xff,1,3,2,4,5,7,6,8,1,8,6,7,4,5,2,3,1]);
+        check_packing(&[], &[]);
+        check_packing(&[0; 8], &[0,0]);
+        check_packing(&[0,0,12,0,0,34,0,0], &[0x24,12,34]);
+        check_packing(&[1,3,2,4,5,7,6,8], &[0xff,1,3,2,4,5,7,6,8,0]);
+        check_packing(&[0,0,0,0,0,0,0,0,1,3,2,4,5,7,6,8], &[0,0,0xff,1,3,2,4,5,7,6,8,0]);
+        check_packing(&[0,0,12,0,0,34,0,0,1,3,2,4,5,7,6,8], &[0x24,12,34,0xff,1,3,2,4,5,7,6,8,0]);
+        check_packing(&[1,3,2,4,5,7,6,8,8,6,7,4,5,2,3,1], &[0xff,1,3,2,4,5,7,6,8,1,8,6,7,4,5,2,3,1]);
 
-        expect_packs_to(
+        check_packing(
             &[1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 0,2,4,0,9,0,5,1],
             &[0xff,1,2,3,4,5,6,7,8, 3, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8,
               0xd6,2,4,9,5,1]);
-        expect_packs_to(
+        check_packing(
             &[1,2,3,4,5,6,7,8, 1,2,3,4,5,6,7,8, 6,2,4,3,9,0,5,1, 1,2,3,4,5,6,7,8, 0,2,4,0,9,0,5,1],
             &[0xff,1,2,3,4,5,6,7,8, 3, 1,2,3,4,5,6,7,8, 6,2,4,3,9,0,5,1, 1,2,3,4,5,6,7,8,
               0xd6,2,4,9,5,1]);
 
-        expect_packs_to(
+        check_packing(
             &[8,0,100,6,0,1,1,2, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,1,0,2,0,3,1],
             &[0xed,8,100,6,1,1,2, 0,2, 0xd4,1,2,3,1]);
 
-        expect_packs_to(&[0; 16], &[0,1]);
-        expect_packs_to(&[0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0], &[0,2]);
+        check_packing(&[0; 16], &[0,1]);
+        check_packing(&[0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0], &[0,2]);
     }
 
     #[test]
@@ -508,5 +510,23 @@ mod tests {
         // In this case, the error is only due to the fact that the unpacked data does not
         // fill up the given output buffer.
         helper(&[1, 1]);
+    }
+
+    #[test]
+    fn packed_segment_table() {
+        let packed_buf = &[0x11, 4, 1, 0, 1, 0, 0];
+
+        check_unpacks_to(
+            packed_buf,
+            &[4, 0, 0, 0, 1, 0, 0, 0,
+              0, 0, 0, 0, 0, 0, 0, 0,
+              0, 0, 0, 0, 0, 0, 0, 0,
+              0, 0, 0, 0, 0, 0, 0, 0]);
+
+        let mut cursor = Cursor::new(packed_buf);
+
+        // At one point, this failed due to serialize::read_message()
+        // reading the segment table only one word at a time.
+        read_message(&mut cursor, Default::default()).unwrap();
     }
 }
