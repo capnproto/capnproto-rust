@@ -52,7 +52,7 @@ fn async_read_all<R>(read: &mut R, buf: &mut [u8]) -> io::Result<usize> where R:
     while idx < buf.len() {
         let slice = &mut buf[idx..];
         match read.read(slice) {
-            Ok(n) if n == 0 => return Err(io::Error::new(io::ErrorKind::Other, "Premature EOF")),
+            Ok(n) if n == 0 => return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "Premature EOF")),
             Ok(n) => idx += n,
             Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => break,
             Err(ref e) if e.kind() == io::ErrorKind::Interrupted => (),
@@ -149,13 +149,19 @@ pub fn read_message<R>(reader: R, options: message::ReaderOptions) -> Read<R>
 
 impl InnerReadState {
     fn read_helper<R>(&mut self, read: &mut R, options: &message::ReaderOptions)
-                      -> Result<Async<(Vec<Word>, Vec<(usize, usize)>)>>
+                      -> Result<Async<Option<(Vec<Word>, Vec<(usize, usize)>)>>>
         where R: ::std::io::Read
     {
         loop {
             let next_state = match *self {
                 InnerReadState::SegmentTableFirst { ref mut buf, ref mut idx } => {
-                    *idx += try!(async_read_all(read, &mut buf[*idx..]));
+                    let n = match async_read_all(read, &mut buf[*idx..]) {
+                        Ok(n) => n,
+                        Err(ref e) if e.kind() == io::ErrorKind::UnexpectedEof =>
+                            return Ok(Async::Ready(None)),
+                        Err(e) => return Err(e.into()),
+                    };
+                    *idx += n;
                     if *idx < buf.len() {
                         return Ok(Async::NotReady)
                     } else {
@@ -209,7 +215,7 @@ impl InnerReadState {
                     } else {
                         let words = ::std::mem::replace(owned_space, Vec::new());
                         let slices = ::std::mem::replace(segment_slices, Vec::new());
-                        return Ok(Async::Ready((words, slices)))
+                        return Ok(Async::Ready(Some((words, slices))))
                     }
                 }
             };
@@ -222,8 +228,8 @@ impl InnerReadState {
 impl <R> Read<R> where R: ::std::io::Read {
     /// Drives progress on an in-progress read. Returns `Async::NotReady` when the
     /// underyling reader returns `ErrorKind::WouldBlock`.
-    pub fn poll(&mut self) -> Result<Async<(R, message::Reader<OwnedSegments>)>> {
-        let (words, slices) = match &mut self.state {
+    pub fn poll(&mut self) -> Result<Async<(R, Option<message::Reader<OwnedSegments>>)>> {
+        let result = match &mut self.state {
             &mut ReadState::Empty => {
                 return Err(::Error::failed("tried to read empty ReadState".to_string()))
             }
@@ -241,12 +247,13 @@ impl <R> Read<R> where R: ::std::io::Read {
             ReadState::Reading { read, options, ..} => {
                 return Ok(Async::Ready((
                     read,
-                    message::Reader::new(
-                        OwnedSegments {
-                            segment_slices: slices,
-                            owned_space: words,
-                        },
-                        options))))
+                    result.map(|(words, slices)| {
+                        message::Reader::new(
+                            OwnedSegments {
+                                segment_slices: slices,
+                                owned_space: words,
+                            },
+                            options)}))))
             }
         }
     }
@@ -254,9 +261,9 @@ impl <R> Read<R> where R: ::std::io::Read {
 
 #[cfg(feature="futures")]
 impl <R> ::futures::Future for Read<R> where R: ::std::io::Read {
-    type Item = (R, message::Reader<OwnedSegments>);
+    type Item = (R, Option<message::Reader<OwnedSegments>>);
     type Error = Error;
-    fn poll(&mut self) -> ::futures::Poll<(R, message::Reader<OwnedSegments>), Error> {
+    fn poll(&mut self) -> ::futures::Poll<Self::Item, Error> {
         match try!(Read::poll(self)) {
             Async::Ready(v) => Ok(::futures::Async::Ready(v)),
             Async::NotReady => Ok(::futures::Async::NotReady),
@@ -812,7 +819,7 @@ pub mod test {
                     result = state.poll().unwrap();
                 }
                 match result {
-                    Async::Ready((_, m)) => m,
+                    Async::Ready((_, m)) => m.unwrap(),
                     _ => unreachable!(),
                 }
             };
