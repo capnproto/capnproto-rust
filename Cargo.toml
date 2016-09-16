@@ -5,7 +5,7 @@ authors = [ "David Renshaw <david@sandstorm.io>" ]
 license = "MIT"
 
 description = "async serialization for Cap'n Proto messages"
-repository = "https://github.com/dwrensha/capnp-futures"
+repository = "https://github.com/dwrensha/capnp-futures-rs"
 
 keywords = ["async"]
 
