@@ -29,7 +29,7 @@ use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 use {OutputSegments, Result, Word};
 
 /// Options controlling how data is read.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct ReaderOptions {
 
     /// Limits how many total words of data are allowed to be traversed. Traversal is counted when
@@ -47,7 +47,7 @@ pub struct ReaderOptions {
     /// Together with sensible coding practices (e.g. trying to avoid calling sub-object getters
     /// multiple times, which is expensive anyway), this should provide adequate protection without
     /// inconvenience.
-    pub traversal_limit_in_words : u64,
+    pub traversal_limit_in_words: u64,
 
     /// Limits how deeply nested a message structure can be, e.g. structs containing other structs or
     /// lists of structs.
@@ -57,7 +57,7 @@ pub struct ReaderOptions {
     /// overflow by sending a very-depply-nested (or even cyclic) message, without the message even
     /// being very large. The default limit of 64 is probably low enough to prevent any chance of
     /// stack overflow, yet high enough that it is never a problem in practice.
-    pub nesting_limit : i32,
+    pub nesting_limit: i32,
 }
 
 pub const DEFAULT_READER_OPTIONS : ReaderOptions =
@@ -264,20 +264,21 @@ impl <A> Drop for Builder<A> where A: Allocator {
     }
 }
 
+#[derive(Debug)]
 pub struct HeapAllocator {
     owned_memory : Vec<Vec<Word>>,
     next_size: u32,
     allocation_strategy: AllocationStrategy,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum AllocationStrategy {
     FixedSize,
     GrowHeuristically
 }
 
-pub const SUGGESTED_FIRST_SEGMENT_WORDS : u32 = 1024;
-pub const SUGGESTED_ALLOCATION_STRATEGY : AllocationStrategy = AllocationStrategy::GrowHeuristically;
+pub const SUGGESTED_FIRST_SEGMENT_WORDS: u32 = 1024;
+pub const SUGGESTED_ALLOCATION_STRATEGY: AllocationStrategy = AllocationStrategy::GrowHeuristically;
 
 impl HeapAllocator {
     pub fn new() -> HeapAllocator {
@@ -318,6 +319,7 @@ impl Builder<HeapAllocator> {
     }
 }
 
+#[derive(Debug)]
 pub struct ScratchSpace<'a> {
     slice: &'a mut [Word],
     in_use: bool,

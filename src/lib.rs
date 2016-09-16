@@ -152,7 +152,7 @@ impl quickcheck::Arbitrary for Word {
 }
 
 /// Size of a message. Every generated struct has a method `.total_size()` that returns this.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MessageSize {
     pub word_count: u64,
 
