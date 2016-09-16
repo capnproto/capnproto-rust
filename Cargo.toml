@@ -1,0 +1,17 @@
+[package]
+name = "capnp-futures"
+version = "0.0.1"
+authors = [ "David Renshaw <david@sandstorm.io>" ]
+license = "MIT"
+
+repository = "https://github.com/dwrensha/capnp-futures"
+
+[dependencies]
+
+byteorder = "0.5"
+capnp = "0.7"
+futures = "0.1.1"
+
+[dev-dependencies]
+capnp = { version = "0.7", features = ["quickcheck"] }
+quickcheck = "0.2"
