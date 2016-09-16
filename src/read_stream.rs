@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2016 Sandstorm Development Group, Inc. and contributors
+// Copyright (c) 2016 Sandstorm Development Group, Inc. and contributors
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,16 +18,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-extern crate byteorder;
-extern crate capnp;
+use std::io;
+use futures::{stream, Async, Future, Poll};
 
-#[macro_use]
-extern crate futures;
+use capnp::{Error, message};
 
-#[cfg(test)]
-extern crate quickcheck;
+pub struct ReadStream<R> where R: io::Read {
+    options: message::ReaderOptions,
+    read: ::serialize::Read<R>,
+}
 
-pub use read_stream::ReadStream;
+impl <R> ReadStream<R> where R: io::Read {
+    pub fn new(reader: R, options: message::ReaderOptions) -> ReadStream<R> {
+        ReadStream {
+            read: ::serialize::read_message(reader, options),
+            options: options,
+        }
+    }
+}
 
-pub mod serialize;
-mod read_stream;
+impl <R> stream::Stream for ReadStream<R> where R: io::Read {
+    type Item = message::Reader<::serialize::OwnedSegments>;
+    type Error = Error;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Error> {
+        let (r, m) = try_ready!(Future::poll(&mut self.read));
+        self.read = ::serialize::read_message(r, self.options);
+        Ok(Async::Ready(m))
+    }
+}
