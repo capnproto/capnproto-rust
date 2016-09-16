@@ -4,7 +4,10 @@ version = "0.0.1"
 authors = [ "David Renshaw <david@sandstorm.io>" ]
 license = "MIT"
 
+description = "async serialization for Cap'n Proto messages"
 repository = "https://github.com/dwrensha/capnp-futures"
+
+keywords = ["async"]
 
 [dependencies]
 
