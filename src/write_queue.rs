@@ -20,15 +20,61 @@
 
 use std::io;
 use std::collections::VecDeque;
-use futures::{stream, Async, Future, Poll, Complete};
+use futures::{self, stream, task, Future, Poll, Complete, Oneshot};
 
-use capnp::{Error, message};
+use capnp::{Error};
 
 use serialize::{self, AsOutputSegments};
 
-pub struct WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
-    queue: VecDeque<(M, Complete<M>)>,
-    in_progress: Option<(serialize::Write<W, M>, Complete<M>)>,
+
+enum State<W, M> where W: io::Write, M: AsOutputSegments {
+    Writing(serialize::Write<W, M>, Complete<M>),
+    Empty(W),
 }
 
-// TODO...
+pub struct WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
+    queue: VecDeque<(M, Complete<Result<M, Error>>)>,
+    state: State<W, M>,
+    task: Option<task::Task>,
+}
+
+impl <W, M> WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
+    pub fn new(writer: W) -> WriteQueue<W, M> {
+        WriteQueue {
+            queue: VecDeque::new(),
+            state: State::Empty(writer),
+            task: None,
+        }
+    }
+
+    pub fn push(&mut self, message: M) -> Oneshot<Result<M,Error>> {
+        let (complete, oneshot) = futures::oneshot();
+
+        // If Empty, then transition to Writing....
+        self.queue.push_back((message, complete));
+
+        oneshot
+    }
+}
+
+impl <W, M> stream::Stream for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
+    type Item = M;
+    type Error = Error;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+        match self.state {
+            State::Writing(ref mut write, ref mut _complete) => {
+                let (_w, _m) = try_ready!(Future::poll(write));
+                // complete.complete(m) ...
+                ()
+            }
+            State::Empty(ref mut _writer) => {
+                // if queue is empty, park task.
+                // otherwise, grab something off the queue and start writing it.
+                unimplemented!()
+            }
+        }
+
+        unimplemented!()
+    }
+}
