@@ -1,0 +1,21 @@
+[package]
+
+name = "capnp-gj-test"
+version = "0.0.0"
+authors = [ "David Renshaw <dwrenshaw@sandstorm.io>"  ]
+build = "build.rs"
+
+[lib]
+
+name = "capnp_futures_test"
+path = "test.rs"
+
+[build-dependencies]
+capnpc = "0.7"
+
+[dependencies]
+capnp-futures = {path = "./../"}
+capnp = "0.7"
+futures = "0.1"
+tokio-core = "0.1"
+mio-uds = "0.6"
