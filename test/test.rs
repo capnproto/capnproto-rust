@@ -114,7 +114,8 @@ mod tests {
 
         let mut m = capnp::message::Builder::new_default();
         populate_address_book(m.init_root());
-        handle.spawn(sender.send(m).map_err(|e| panic!("cancelled")).map(|_| ()));
+        handle.spawn(sender.send(m).map_err(|e| panic!("cancelled")).map(|_| { println!("SENT"); ()}));
+        drop(sender);
 
 // hangs currently?
 //        l.run(io).expect("running");

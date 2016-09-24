@@ -43,12 +43,25 @@ pub struct WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
 
 struct Inner<M> {
     queue: VecDeque<(M, Complete<M>)>,
+    sender_count: usize,
     task: Option<task::Task>,
 }
 
-#[derive(Clone)]
 pub struct Sender<M> where M: AsOutputSegments {
     inner: Rc<RefCell<Inner<M>>>,
+}
+
+impl <M> Clone for Sender<M> where M: AsOutputSegments {
+    fn clone(&self) -> Sender<M> {
+        self.inner.borrow_mut().sender_count += 1;
+        Sender { inner: self.inner.clone() }
+    }
+}
+
+impl <M> Drop for Sender<M> where M: AsOutputSegments {
+    fn drop(&mut self) {
+        self.inner.borrow_mut().sender_count -= 1;
+    }
 }
 
 pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
@@ -57,6 +70,7 @@ pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
     let inner = Rc::new(RefCell::new(Inner {
         queue: VecDeque::new(),
         task: None,
+        sender_count: 1,
     }));
 
     let queue = WriteQueue {
@@ -112,9 +126,13 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                             IntermediateState::StartWrite(m, complete)
                         }
                         None => {
-                            // if queue is empty, park task.
-                            self.inner.borrow_mut().task = Some(task::park());
-                            return Ok(Async::NotReady)
+                            let count = self.inner.borrow().sender_count;
+                            if count == 0 {
+                                return Ok(Async::Ready(()))
+                            } else {
+                                self.inner.borrow_mut().task = Some(task::park());
+                                return Ok(Async::NotReady)
+                            }
                         }
                     }
                 }
