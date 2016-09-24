@@ -28,7 +28,7 @@ extern crate futures;
 extern crate quickcheck;
 
 pub use read_stream::ReadStream;
-pub use write_queue::WriteQueue;
+pub use write_queue::{write_queue, Sender, WriteQueue};
 
 pub mod serialize;
 mod read_stream;

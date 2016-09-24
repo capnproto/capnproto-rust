@@ -20,6 +20,8 @@
 
 use std::io;
 use std::collections::VecDeque;
+use std::rc::Rc;
+use std::cell::RefCell;
 use futures::{self, task, Async, Future, Poll, Complete, Oneshot};
 
 use capnp::{Error};
@@ -35,26 +37,45 @@ enum State<W, M> where W: io::Write, M: AsOutputSegments {
 
 /// A write of messages being written.
 pub struct WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
-    queue: VecDeque<(M, Complete<M>)>,
+    inner: Rc<RefCell<Inner<M>>>,
     state: State<W, M>,
+}
+
+struct Inner<M> {
+    queue: VecDeque<(M, Complete<M>)>,
     task: Option<task::Task>,
 }
 
-impl <W, M> WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
-    pub fn new(writer: W) -> WriteQueue<W, M> {
-        WriteQueue {
-            queue: VecDeque::new(),
-            state: State::BetweenWrites(writer),
-            task: None,
-        }
-    }
+#[derive(Clone)]
+pub struct Sender<M> where M: AsOutputSegments {
+    inner: Rc<RefCell<Inner<M>>>,
+}
 
+pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
+    where W: io::Write, M: AsOutputSegments
+{
+    let inner = Rc::new(RefCell::new(Inner {
+        queue: VecDeque::new(),
+        task: None,
+    }));
+
+    let queue = WriteQueue {
+        inner: inner.clone(),
+        state: State::BetweenWrites(writer),
+    };
+
+    let sender = Sender { inner: inner };
+
+    (sender, queue)
+}
+
+impl <M> Sender<M> where M: AsOutputSegments {
     /// Enqueues a message to be written.
-    pub fn push(&mut self, message: M) -> Oneshot<M> {
+    pub fn send(&mut self, message: M) -> Oneshot<M> {
         let (complete, oneshot) = futures::oneshot();
-        self.queue.push_back((message, complete));
+        self.inner.borrow_mut().queue.push_back((message, complete));
 
-        match self.task.take() {
+        match self.inner.borrow_mut().task.take() {
             Some(t) => t.unpark(),
             None => (),
         }
@@ -62,10 +83,9 @@ impl <W, M> WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
         oneshot
     }
 
-    /// Returns the number of messages queued to be written, including an in-progress write.
+    /// Returns the number of messages queued to be written, not including any in-progress write.
     pub fn len(&mut self) -> usize {
-        let in_progress = if let State::Writing(..) = self.state { 1 } else { 0 };
-        self.queue.len() + in_progress
+        self.inner.borrow().queue.len()
     }
 }
 
@@ -86,13 +106,14 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                     IntermediateState::WriteDone(m, w)
                 }
                 State::BetweenWrites(ref mut _writer) => {
-                    match self.queue.pop_front() {
+                    let front = self.inner.borrow_mut().queue.pop_front();
+                    match front {
                         Some((m, complete)) => {
                             IntermediateState::StartWrite(m, complete)
                         }
                         None => {
                             // if queue is empty, park task.
-                            self.task = Some(task::park());
+                            self.inner.borrow_mut().task = Some(task::park());
                             return Ok(Async::NotReady)
                         }
                     }

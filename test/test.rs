@@ -86,17 +86,40 @@ mod tests {
         use mio_uds::UnixStream;
         use capnp;
         use capnp_futures;
+        use futures::{Future};
+        use futures::stream::Stream;
+
+        use std::cell::Cell;
+        use std::rc::Rc;
 
         let mut l = reactor::Core::new().unwrap();
+        let handle = l.handle();
         let (s1, s2) = UnixStream::pair().unwrap();
 
-        let mut write_queue = capnp_futures::WriteQueue::new(s1);
+        let (mut sender, write_queue) = capnp_futures::write_queue(s1);
+
+        let read_stream = capnp_futures::ReadStream::new(s2, Default::default());
+
+        let messages_read = Rc::new(Cell::new(0u32));
+        let messages_read1 = messages_read.clone();
+
+        let done_reading = read_stream.for_each(|m| {
+            let address_book = m.get_root::<address_book::Reader>().unwrap();
+            read_address_book(address_book);
+            messages_read.set(messages_read.get() + 1);
+            Ok(())
+        });
+
+        let io = done_reading.join(write_queue);
+
+        let mut m = capnp::message::Builder::new_default();
+        populate_address_book(m.init_root());
+        handle.spawn(sender.send(m).map_err(|e| panic!("cancelled")).map(|_| ()));
+
+// hangs currently?
+//        l.run(io).expect("running");
 
 
-        let m = capnp::message::Builder::new_default();
-        write_queue.push(m);
-
-        // Hm... this is awkward.
     }
 /*
     fn fill_and_send_message(mut message: message::Builder<message::HeapAllocator>) {
