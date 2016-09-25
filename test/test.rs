@@ -95,6 +95,8 @@ mod tests {
         let mut l = reactor::Core::new().unwrap();
         let handle = l.handle();
         let (s1, s2) = UnixStream::pair().unwrap();
+        let s1 = reactor::PollEvented::new(s1, &handle).unwrap();
+        let s2 = reactor::PollEvented::new(s2, &handle).unwrap();
 
         let (mut sender, write_queue) = capnp_futures::write_queue(s1);
 
@@ -114,13 +116,12 @@ mod tests {
 
         let mut m = capnp::message::Builder::new_default();
         populate_address_book(m.init_root());
-        handle.spawn(sender.send(m).map_err(|e| panic!("cancelled")).map(|_| { println!("SENT"); ()}));
+        handle.spawn(sender.send(m).map_err(|_| panic!("cancelled")).map(|_| { println!("SENT"); ()}));
         drop(sender);
 
-// hangs currently?
-//        l.run(io).expect("running");
+        l.run(io).expect("running");
 
-
+        assert_eq!(messages_read1.get(), 1);
     }
 /*
     fn fill_and_send_message(mut message: message::Builder<message::HeapAllocator>) {
