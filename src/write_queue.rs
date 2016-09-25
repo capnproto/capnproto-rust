@@ -106,10 +106,11 @@ impl <M> Sender<M> where M: AsOutputSegments {
 enum IntermediateState<W, M> where W: io::Write, M: AsOutputSegments {
     WriteDone(M, W),
     StartWrite(M, Complete<M>),
+    Resolve,
 }
 
 impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
-    type Item = (); // Should never actually terminate.
+    type Item = W; // Resolves when all senders have been dropped and all messages written.
     type Error = Error;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
@@ -128,7 +129,7 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                         None => {
                             let count = self.inner.borrow().sender_count;
                             if count == 0 {
-                                return Ok(Async::Ready(()))
+                                IntermediateState::Resolve
                             } else {
                                 self.inner.borrow_mut().task = Some(task::park());
                                 return Ok(Async::NotReady)
@@ -156,6 +157,15 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                         _ => unreachable!(),
                     };
                     self.state = new_state;
+                }
+                IntermediateState::Resolve => {
+                    match ::std::mem::replace(&mut self.state, State::Empty) {
+                        State::BetweenWrites(w) => {
+                            return Ok(Async::Ready(w))
+                        }
+                        _ => unreachable!(),
+                    }
+
                 }
             }
         }

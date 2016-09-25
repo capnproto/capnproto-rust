@@ -32,9 +32,6 @@ pub mod addressbook_capnp {
 #[cfg(test)]
 mod tests {
     use addressbook_capnp::{address_book, person};
-    use capnp_futures::serialize;
-    use capnp::message;
-    use futures;
 
     fn populate_address_book(address_book: address_book::Builder) {
         let mut people = address_book.init_people(2);
@@ -112,7 +109,7 @@ mod tests {
             Ok(())
         });
 
-        let io = done_reading.join(write_queue);
+        let io = done_reading.join(write_queue.map(|_| ()));
 
         let mut m = capnp::message::Builder::new_default();
         populate_address_book(m.init_root());
