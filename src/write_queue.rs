@@ -35,7 +35,7 @@ enum State<W, M> where W: io::Write, M: AsOutputSegments {
     Empty,
 }
 
-/// A write of messages being written.
+/// A queue of messages being written.
 pub struct WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
     inner: Rc<RefCell<Inner<M>>>,
     state: State<W, M>,
@@ -47,6 +47,7 @@ struct Inner<M> {
     task: Option<task::Task>,
 }
 
+/// A handle that allows message to be sent to a `WriteQueue`.
 pub struct Sender<M> where M: AsOutputSegments {
     inner: Rc<RefCell<Inner<M>>>,
 }
@@ -165,7 +166,6 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                         }
                         _ => unreachable!(),
                     }
-
                 }
             }
         }
