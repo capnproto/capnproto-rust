@@ -83,7 +83,7 @@ pub fn compile<P1, P2>(src_prefix: P1, files: &[P2]) -> ::capnp::Result<()>
 }
 
 // TODO(version bump): We should have only one `compile` function and it should allow
-// multiple --src-prefix flags to be set.
+// multiple --src-prefix flags to be set. Possibly we should use the "builder pattern".
 pub fn compile_with_src_prefixes<P1, P2>(src_prefixes: &[P1], files: &[P2]) -> ::capnp::Result<()>
     where P1: AsRef<Path>, P2: AsRef<Path>
 {
