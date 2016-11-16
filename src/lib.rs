@@ -79,9 +79,19 @@ fn run_command(mut command: ::std::process::Command) -> ::capnp::Result<()> {
 pub fn compile<P1, P2>(src_prefix: P1, files: &[P2]) -> ::capnp::Result<()>
     where P1: AsRef<Path>, P2: AsRef<Path>
 {
+    compile_with_src_prefixes(&[src_prefix], files)
+}
+
+// TODO(version bump): We should have only one `compile` function and it should allow
+// multiple --src-prefix flags to be set.
+pub fn compile_with_src_prefixes<P1, P2>(src_prefixes: &[P1], files: &[P2]) -> ::capnp::Result<()>
+    where P1: AsRef<Path>, P2: AsRef<Path>
+{
     let mut command = ::std::process::Command::new("capnp");
-    command.arg("compile").arg("-o").arg("-")
-           .arg(&format!("--src-prefix={}", src_prefix.as_ref().display()));
+    command.arg("compile").arg("-o").arg("-");
+    for src_prefix in src_prefixes {
+        command.arg(&format!("--src-prefix={}", src_prefix.as_ref().display()));
+    }
 
     for file in files {
         command.arg(&format!("{}", file.as_ref().display()));
