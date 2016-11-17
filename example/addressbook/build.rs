@@ -5,4 +5,4 @@ fn main() {
         .file("addressbook.capnp")
         .run()
         .expect("compiling schema");
-}}
+}
