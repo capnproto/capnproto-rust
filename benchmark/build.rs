@@ -1,5 +1,10 @@
 extern crate capnpc;
 
 fn main() {
-    ::capnpc::compile(".", &["eval.capnp", "catrank.capnp", "carsales.capnp"]).unwrap();
+    ::capnpc::CompileCommand::new()
+        .file("eval.capnp")
+        .file("catrank.capnp")
+        .file("carsales.capnp")
+        .run()
+        .expect("compiling schemas");
 }
