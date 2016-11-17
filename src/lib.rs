@@ -113,28 +113,28 @@ impl CompileCommand {
         }
     }
 
-    pub fn file<'a, P>(&'a mut self, path: P) -> &'a CompileCommand
+    pub fn file<'a, P>(&'a mut self, path: P) -> &'a mut CompileCommand
         where P: AsRef<Path>,
     {
         self.files.push(path.as_ref().to_path_buf());
         self
     }
 
-    pub fn src_prefix<'a, P>(&'a mut self, path: P) -> &'a CompileCommand
+    pub fn src_prefix<'a, P>(&'a mut self, path: P) -> &'a mut CompileCommand
         where P: AsRef<Path>,
     {
         self.src_prefixes.push(path.as_ref().to_path_buf());
         self
     }
 
-    pub fn run(self) -> ::capnp::Result<()> {
+    pub fn run(&mut self) -> ::capnp::Result<()> {
         let mut command = ::std::process::Command::new("capnp");
         command.arg("compile").arg("-o").arg("-");
-        for src_prefix in self.src_prefixes {
+        for src_prefix in &self.src_prefixes {
             command.arg(&format!("--src-prefix={}", src_prefix.display()));
         }
 
-        for file in self.files {
+        for file in &self.files {
             command.arg(&format!("{}", file.display()));
         }
 
