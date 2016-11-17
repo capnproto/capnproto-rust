@@ -62,7 +62,7 @@ pub mod codegen;
 pub mod codegen_types;
 pub mod schema;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 fn run_command(mut command: ::std::process::Command) -> ::capnp::Result<()> {
     let mut p = try!(command.spawn());
@@ -87,22 +87,66 @@ pub fn compile<P1, P2>(src_prefix: P1, files: &[P2]) -> ::capnp::Result<()>
 pub fn compile_with_src_prefixes<P1, P2>(src_prefixes: &[P1], files: &[P2]) -> ::capnp::Result<()>
     where P1: AsRef<Path>, P2: AsRef<Path>
 {
-    let mut command = ::std::process::Command::new("capnp");
-    command.arg("compile").arg("-o").arg("-");
+    let mut command = CompileCommand::new();
     for src_prefix in src_prefixes {
-        command.arg(&format!("--src-prefix={}", src_prefix.as_ref().display()));
+        command.src_prefix(src_prefix);
     }
 
     for file in files {
-        command.arg(&format!("{}", file.as_ref().display()));
+        command.file(file);
     }
 
-    command.stdout(::std::process::Stdio::piped());
-    command.stderr(::std::process::Stdio::inherit());
+    command.run()
+}
 
-    run_command(command).map_err(|error| {
-        ::capnp::Error::failed(format!("Error while trying to execute `capnp compile`: {}.  \
-                                        Please verify that version 0.5.2 or higher of the capnp executable \
-                                        is installed on your system. See https://capnproto.org/install.html",
-                                       error))})
+/// A compiler command builder.
+pub struct CompileCommand {
+    files: Vec<PathBuf>,
+    src_prefixes: Vec<PathBuf>,
+}
+
+impl CompileCommand {
+    pub fn new() -> CompileCommand {
+        CompileCommand {
+            files: Vec::new(),
+            src_prefixes: Vec::new(),
+        }
+    }
+
+    pub fn file<'a, P>(&'a mut self, path: P) -> &'a CompileCommand
+        where P: AsRef<Path>,
+    {
+        self.files.push(path.as_ref().to_path_buf());
+        self
+    }
+
+    pub fn src_prefix<'a, P>(&'a mut self, path: P) -> &'a CompileCommand
+        where P: AsRef<Path>,
+    {
+        self.src_prefixes.push(path.as_ref().to_path_buf());
+        self
+    }
+
+    pub fn run(self) -> ::capnp::Result<()> {
+        let mut command = ::std::process::Command::new("capnp");
+        command.arg("compile").arg("-o").arg("-");
+        for src_prefix in self.src_prefixes {
+            command.arg(&format!("--src-prefix={}", src_prefix.display()));
+        }
+
+        for file in self.files {
+            command.arg(&format!("{}", file.display()));
+        }
+
+        command.stdout(::std::process::Stdio::piped());
+        command.stderr(::std::process::Stdio::inherit());
+
+        run_command(command).map_err(|error| {
+            ::capnp::Error::failed(format!(
+                "Error while trying to execute `capnp compile`: {}.  \
+                 Please verify that version 0.5.2 or higher of the capnp executable \
+                 is installed on your system. See https://capnproto.org/install.html",
+                error))})
+
+    }
 }

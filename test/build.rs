@@ -1,5 +1,7 @@
 extern crate capnpc;
 
 fn main() {
-    ::capnpc::compile(".", &["test.capnp"]).unwrap();
+    let mut command = ::capnpc::CompileCommand::new();
+    command.file("test.capnp");
+    command.run().expect("compiling schema");
 }
