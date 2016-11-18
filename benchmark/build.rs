@@ -1,7 +1,7 @@
 extern crate capnpc;
 
 fn main() {
-    ::capnpc::CompileCommand::new()
+    ::capnpc::CompilerCommand::new()
         .file("eval.capnp")
         .file("catrank.capnp")
         .file("carsales.capnp")

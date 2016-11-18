@@ -87,7 +87,7 @@ pub fn compile<P1, P2>(src_prefix: P1, files: &[P2]) -> ::capnp::Result<()>
 pub fn compile_with_src_prefixes<P1, P2>(src_prefixes: &[P1], files: &[P2]) -> ::capnp::Result<()>
     where P1: AsRef<Path>, P2: AsRef<Path>
 {
-    let mut command = CompileCommand::new();
+    let mut command = CompilerCommand::new();
     for src_prefix in src_prefixes {
         command.src_prefix(src_prefix);
     }
@@ -99,34 +99,38 @@ pub fn compile_with_src_prefixes<P1, P2>(src_prefixes: &[P1], files: &[P2]) -> :
     command.run()
 }
 
-/// A compiler command builder.
-pub struct CompileCommand {
+/// A builder object for schema compiler commands.
+pub struct CompilerCommand {
     files: Vec<PathBuf>,
     src_prefixes: Vec<PathBuf>,
 }
 
-impl CompileCommand {
-    pub fn new() -> CompileCommand {
-        CompileCommand {
+impl CompilerCommand {
+    /// Creates a new, empty command.
+    pub fn new() -> CompilerCommand {
+        CompilerCommand {
             files: Vec::new(),
             src_prefixes: Vec::new(),
         }
     }
 
-    pub fn file<'a, P>(&'a mut self, path: P) -> &'a mut CompileCommand
+    /// Adds a file to be compiled.
+    pub fn file<'a, P>(&'a mut self, path: P) -> &'a mut CompilerCommand
         where P: AsRef<Path>,
     {
         self.files.push(path.as_ref().to_path_buf());
         self
     }
 
-    pub fn src_prefix<'a, P>(&'a mut self, path: P) -> &'a mut CompileCommand
+    /// Adds a --src-prefix flag.
+    pub fn src_prefix<'a, P>(&'a mut self, path: P) -> &'a mut CompilerCommand
         where P: AsRef<Path>,
     {
         self.src_prefixes.push(path.as_ref().to_path_buf());
         self
     }
 
+    /// Runs the command.
     pub fn run(&mut self) -> ::capnp::Result<()> {
         let mut command = ::std::process::Command::new("capnp");
         command.arg("compile").arg("-o").arg("-");
@@ -147,6 +151,5 @@ impl CompileCommand {
                  Please verify that version 0.5.2 or higher of the capnp executable \
                  is installed on your system. See https://capnproto.org/install.html",
                 error))})
-
     }
 }

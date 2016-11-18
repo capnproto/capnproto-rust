@@ -1,7 +1,7 @@
 extern crate capnpc;
 
 fn main() {
-     ::capnpc::CompileCommand::new()
+     ::capnpc::CompilerCommand::new()
         .file("test.capnp")
         .run()
         .expect("compiling schema");
