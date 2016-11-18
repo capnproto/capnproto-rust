@@ -41,7 +41,11 @@
 //! extern crate capnpc;
 //!
 //! fn main() {
-//!     ::capnpc::compile("schema", &["schema/foo.capnp", "schema/bar.capnp"]).unwrap();
+//!     ::capnpc::CompilerCommand::new()
+//!         .src_prefix("schema")
+//!         .file("schema/foo.capnp")
+//!         .file("schema/bar.capnp")
+//!         .run().expect("schema compiler command");
 //! }
 //! ```
 //!
