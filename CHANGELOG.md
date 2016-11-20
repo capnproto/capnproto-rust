@@ -1,4 +1,7 @@
 ### v0.7.3
+- Deprecate `compile()` and `compile_with_src_prefixes()` in favor of `CompilerCommand`.
+
+### v0.7.3
 - `capnpc -orust ./foo/bar/baz.capnp` now correctly writes to `./foo/bar/baz_capnp.rs` rather than
   just `./baz_capnp.rs`. If you were depending on the old behavior you can use the `--src-prefix`
   flag for finer-grained control of the output location.
