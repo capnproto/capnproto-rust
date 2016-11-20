@@ -1,5 +1,5 @@
 extern crate capnpc;
 
 fn main() {
-    ::capnpc::compile(".", &["pubsub.capnp"]).unwrap();
+    ::capnpc::CompilerCommand::new().file("pubsub.capnp").run().unwrap();
 }

@@ -1,7 +1,9 @@
 extern crate capnpc;
 
 fn main() {
-    capnpc::compile("schema",
-                    &["schema/rpc.capnp",
-                      "schema/rpc-twoparty.capnp"]).expect("capnp compile");
+    capnpc::CompilerCommand::new()
+        .src_prefix("schema")
+        .file("schema/rpc.capnp")
+        .file("schema/rpc-twoparty.capnp")
+        .run().expect("capnp compile");
 }
