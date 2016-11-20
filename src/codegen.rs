@@ -28,9 +28,9 @@ use codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_br
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
 
 pub struct GeneratorContext<'a> {
-    pub request : schema_capnp::code_generator_request::Reader<'a>,
-    pub node_map : collections::hash_map::HashMap<u64, schema_capnp::node::Reader<'a>>,
-    pub scope_map : collections::hash_map::HashMap<u64, Vec<String>>,
+    pub request: schema_capnp::code_generator_request::Reader<'a>,
+    pub node_map: collections::hash_map::HashMap<u64, schema_capnp::node::Reader<'a>>,
+    pub scope_map: collections::hash_map::HashMap<u64, Vec<String>>,
 }
 
 impl <'a> GeneratorContext<'a> {
@@ -70,7 +70,7 @@ impl <'a> GeneratorContext<'a> {
 
 }
 
-pub fn camel_to_upper_case(s : &str) -> String {
+pub fn camel_to_upper_case(s: &str) -> String {
     use std::ascii::*;
     let mut result_chars : Vec<char> = Vec::new();
     for c in s.chars() {
@@ -83,9 +83,9 @@ pub fn camel_to_upper_case(s : &str) -> String {
     return result_chars.into_iter().collect();
 }
 
-fn snake_to_upper_case(s : &str) -> String {
+fn snake_to_upper_case(s: &str) -> String {
     use std::ascii::*;
-    let mut result_chars : Vec<char> = Vec::new();
+    let mut result_chars: Vec<char> = Vec::new();
     for c in s.chars() {
         if c == '_' {
             result_chars.push('_');
@@ -97,9 +97,9 @@ fn snake_to_upper_case(s : &str) -> String {
     return result_chars.into_iter().collect();
 }
 
-fn camel_to_snake_case(s : &str) -> String {
+fn camel_to_snake_case(s: &str) -> String {
     use std::ascii::*;
-    let mut result_chars : Vec<char> = Vec::new();
+    let mut result_chars: Vec<char> = Vec::new();
     let mut first_char = true;
     for c in s.chars() {
         assert!(c.is_alphanumeric(),
@@ -113,9 +113,9 @@ fn camel_to_snake_case(s : &str) -> String {
     return result_chars.into_iter().collect();
 }
 
-fn capitalize_first_letter(s : &str) -> String {
+fn capitalize_first_letter(s: &str) -> String {
     use std::ascii::*;
-    let mut result_chars : Vec<char> = Vec::new();
+    let mut result_chars: Vec<char> = Vec::new();
     for c in s.chars() { result_chars.push(c) }
     result_chars[0] = (result_chars[0] as u8).to_ascii_uppercase() as char;
     return result_chars.into_iter().collect();
@@ -1748,11 +1748,10 @@ fn generate_node(gen: &GeneratorContext,
     Ok(Branch(output))
 }
 
-
-
-pub fn main<T : ::std::io::Read>(mut inp : T, out_dir : &::std::path::Path) -> ::capnp::Result<()> {
-    //! Generate Rust code according to a `schema_capnp::code_generator_request` read from `inp`.
-
+/// Generates Rust code according to a `schema_capnp::code_generator_request` read from `inp`.
+pub fn main<T>(mut inp: T, out_dir: &::std::path::Path) -> ::capnp::Result<()>
+    where T : ::std::io::Read
+{
     use capnp::serialize;
     use std::borrow::ToOwned;
     use std::io::Write;

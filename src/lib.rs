@@ -80,14 +80,17 @@ fn run_command(mut command: ::std::process::Command) -> ::capnp::Result<()> {
     }
 }
 
+#[deprecated(since="0.7.4", note="please use `CompilerCommand` instead")]
 pub fn compile<P1, P2>(src_prefix: P1, files: &[P2]) -> ::capnp::Result<()>
     where P1: AsRef<Path>, P2: AsRef<Path>
 {
+    #[allow(deprecated)]
     compile_with_src_prefixes(&[src_prefix], files)
 }
 
 // TODO(version bump): We should have only one `compile` function and it should allow
 // multiple --src-prefix flags to be set. Possibly we should use the "builder pattern".
+#[deprecated(since="0.7.4", note="please use `CompilerCommand` instead")]
 pub fn compile_with_src_prefixes<P1, P2>(src_prefixes: &[P1], files: &[P2]) -> ::capnp::Result<()>
     where P1: AsRef<Path>, P2: AsRef<Path>
 {
@@ -126,11 +129,12 @@ impl CompilerCommand {
         self
     }
 
-    /// Adds a --src-prefix flag.
-    pub fn src_prefix<'a, P>(&'a mut self, path: P) -> &'a mut CompilerCommand
+    /// Adds a --src-prefix flag. For all files specified for compilation that start
+    /// with `prefix`, removes the prefix when computing output filenames.
+    pub fn src_prefix<'a, P>(&'a mut self, prefix: P) -> &'a mut CompilerCommand
         where P: AsRef<Path>,
     {
-        self.src_prefixes.push(path.as_ref().to_path_buf());
+        self.src_prefixes.push(prefix.as_ref().to_path_buf());
         self
     }
 
