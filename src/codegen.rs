@@ -1534,10 +1534,10 @@ fn generate_node(gen: &GeneratorContext,
                     params.params)),
                 Line(params.where_clause.clone() + "{"),
                 Indent(
-                    Box::new(Branch(vec!(
+                    Box::new(Branch(vec![
                         Line(format!("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Client<{}>> {{",params.params)),
                         Indent(Box::new(Line(format!("::std::result::Result::Ok(FromClientHook::new(try!(reader.get_capability())))")))),
-                        Line("}".to_string()))))),
+                        Line("}".to_string())]))),
                 Line("}".to_string()))));
 
 
@@ -1547,13 +1547,13 @@ fn generate_node(gen: &GeneratorContext,
                 Line(params.where_clause.clone() + " {"),
                 Indent(
                     Box::new(
-                        Branch(vec!(
+                        Branch(vec![
                             Line(format!("fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size : u32) -> Client<{}> {{", params.params)),
-                            Indent(Box::new(Line("FromClientHook::new(unimplemented!())".to_string()))),
+                            Indent(Box::new(Line("unimplemented!()".to_string()))),
                             Line("}".to_string()),
                             Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Client<{}>> {{", params.params)),
                             Indent(Box::new(Line("::std::result::Result::Ok(FromClientHook::new(try!(builder.get_capability())))".to_string()))),
-                            Line("}".to_string()))))),
+                            Line("}".to_string())]))),
                 Line("}".to_string()),
                 BlankLine]));
 
