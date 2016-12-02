@@ -343,7 +343,6 @@ mod wire_helpers {
     use private::capability::ClientHook;
     use private::arena::*;
     use private::layout::*;
-    use private::units::*;
     use data;
     use text;
     use {Error, MessageSize, Result, Word};

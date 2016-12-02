@@ -31,7 +31,7 @@ pub trait HasStructSize {
 }
 
 pub trait FromStructBuilder<'a> {
-    fn new(structBuilder: StructBuilder<'a>) -> Self;
+    fn new(struct_builder: StructBuilder<'a>) -> Self;
 }
 
 pub trait FromPointerReader<'a> : Sized {
