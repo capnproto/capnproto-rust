@@ -342,7 +342,11 @@ mod wire_helpers {
 
     use private::capability::ClientHook;
     use private::arena::*;
-    use private::layout::*;
+    use private::layout::{
+        CapTableBuilder, CapTableReader, ElementSize, ListBuilder, ListReader,
+        StructBuilder, StructReader, StructSize, WirePointer, WirePointerKind};
+    use private::layout::{data_bits_per_element, pointers_per_element};
+    use private::layout::ElementSize::*;
     use private::units::*;
     use data;
     use text;
