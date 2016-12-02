@@ -149,3 +149,14 @@ impl <U, T: IndexMove<u32, U>> ::std::iter::ExactSizeIterator for ListIter<T, U>
         self.size as usize
     }
 }
+
+impl <U, T: IndexMove<u32, U>> ::std::iter::DoubleEndedIterator for ListIter<T, U>{
+    fn next_back(&mut self) -> ::std::option::Option<U> {
+        if self.size > self.index {
+            self.size -= 1;
+            Some(self.list.index_move(self.size))
+        } else {
+            None
+        }
+    }
+}
