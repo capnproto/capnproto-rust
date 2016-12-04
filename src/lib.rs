@@ -81,10 +81,10 @@ fn run_command(mut command: ::std::process::Command) -> ::capnp::Result<()> {
 }
 
 #[deprecated(since="0.7.4", note="please use `CompilerCommand` instead")]
+#[allow(deprecated)]
 pub fn compile<P1, P2>(src_prefix: P1, files: &[P2]) -> ::capnp::Result<()>
     where P1: AsRef<Path>, P2: AsRef<Path>
 {
-    #[allow(deprecated)]
     compile_with_src_prefixes(&[src_prefix], files)
 }
 
