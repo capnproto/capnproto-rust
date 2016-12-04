@@ -1,4 +1,8 @@
-### v0.7.3
+### v0.7.5
+- Fix bug that prevented compilation of interfaces with generic superclasses.
+- More robust error handling.
+
+### v0.7.4
 - Deprecate `compile()` and `compile_with_src_prefixes()` in favor of `CompilerCommand`.
 
 ### v0.7.3
