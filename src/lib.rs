@@ -257,6 +257,11 @@ impl ::std::convert::From<::std::string::FromUtf8Error> for Error {
     }
 }
 
+impl ::std::convert::From<::std::str::Utf8Error> for Error {
+    fn from(err: ::std::str::Utf8Error) -> Error {
+        Error::failed(format!("{}", err))
+    }
+}
 
 impl ::std::convert::From<NotInSchema> for Error {
     fn from(e: NotInSchema) -> Error {
