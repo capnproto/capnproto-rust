@@ -59,7 +59,7 @@ impl Leaf {
             &Leaf::Owned => "Owned",
             &Leaf::Client => "Client",
             &Leaf::Server => "Server",
-            &Leaf::ServerDispatch => "ServerDispatch::", // HACK
+            &Leaf::ServerDispatch => "ServerDispatch",
             &Leaf::Pipeline => "Pipeline",
         }
     }
@@ -365,7 +365,12 @@ pub fn do_branding(gen: &GeneratorContext,
         "".to_string()
     };
 
-    Ok(format!("{}::{}{}", the_mod, leaf.bare_name().to_string(), arguments))
+    Ok(format!(
+        "{mod}::{leaf}{maybe_colons}{arguments}",
+        mod = the_mod,
+        leaf = leaf.bare_name().to_string(),
+        maybe_colons = if leaf == Leaf::ServerDispatch { "::" } else { "" }, // HACK
+        arguments = arguments))
 }
 
 
