@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 
 use schema_capnp::{brand, node, type_, superclass};
+use capnp::Error;
 use codegen;
 use codegen::{GeneratorContext};
 use std::collections::hash_map::HashMap;
@@ -92,7 +93,7 @@ pub trait RustTypeInfo {
     fn is_prim(&self) -> bool;
     fn is_parameter(&self) -> bool;
     fn is_branded(&self) -> bool;
-    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> String;
+    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> Result<String, ::capnp::Error>;
 }
 
 impl <'a> RustNodeInfo for node::Reader<'a> {
@@ -142,7 +143,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
 
 impl <'a> RustTypeInfo for type_::Reader<'a> {
 
-    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> String {
+    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> Result<String, ::capnp::Error> {
 
         let local_lifetime = match module {
             Leaf::Reader(lt) => lt,
@@ -154,95 +155,96 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             format!("{},", local_lifetime)
         };
 
-        match self.which().unwrap() {
-            type_::Void(()) => "()".to_string(),
-            type_::Bool(()) => "bool".to_string(),
-            type_::Int8(()) => "i8".to_string(),
-            type_::Int16(()) => "i16".to_string(),
-            type_::Int32(()) => "i32".to_string(),
-            type_::Int64(()) => "i64".to_string(),
-            type_::Uint8(()) => "u8".to_string(),
-            type_::Uint16(()) => "u16".to_string(),
-            type_::Uint32(()) => "u32".to_string(),
-            type_::Uint64(()) => "u64".to_string(),
-            type_::Float32(()) => "f32".to_string(),
-            type_::Float64(()) => "f64".to_string(),
-            type_::Text(()) => format!("text::{}", module),
-            type_::Data(()) => format!("data::{}", module),
+        match try!(self.which()) {
+            type_::Void(()) => Ok("()".to_string()),
+            type_::Bool(()) => Ok("bool".to_string()),
+            type_::Int8(()) => Ok("i8".to_string()),
+            type_::Int16(()) => Ok("i16".to_string()),
+            type_::Int32(()) => Ok("i32".to_string()),
+            type_::Int64(()) => Ok("i64".to_string()),
+            type_::Uint8(()) => Ok("u8".to_string()),
+            type_::Uint16(()) => Ok("u16".to_string()),
+            type_::Uint32(()) => Ok("u32".to_string()),
+            type_::Uint64(()) => Ok("u64".to_string()),
+            type_::Float32(()) => Ok("f32".to_string()),
+            type_::Float64(()) => Ok("f64".to_string()),
+            type_::Text(()) => Ok(format!("text::{}", module)),
+            type_::Data(()) => Ok(format!("data::{}", module)),
             type_::Struct(st) => {
-                do_branding(gen, st.get_type_id(), st.get_brand().unwrap(), module,
+                do_branding(gen, st.get_type_id(), try!(st.get_brand()), module,
                             gen.scope_map[&st.get_type_id()].join("::"), None)
             }
             type_::Interface(interface) => {
-                do_branding(gen, interface.get_type_id(), interface.get_brand().unwrap(), module,
+                do_branding(gen, interface.get_type_id(), try!(interface.get_brand()), module,
                             gen.scope_map[&interface.get_type_id()].join("::"), None)
             }
             type_::List(ot1) => {
-                match ot1.get_element_type().unwrap().which() {
-                    Err(_) => { panic!("unsupported type") },
-                    Ok(type_::Struct(_)) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
-                        format!("struct_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner)
+                match try!(try!(ot1.get_element_type()).which()) {
+                    type_::Struct(_) => {
+                        let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
+                        Ok(format!("struct_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
-                    Ok(type_::Enum(_)) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
-                        format!("enum_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner)
+                    type_::Enum(_) => {
+                        let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
+                        Ok(format!("enum_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
-                    Ok(type_::List(_)) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
-                        format!("list_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner)
+                    type_::List(_) => {
+                        let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
+                        Ok(format!("list_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
-                    Ok(type_::Text(())) => {
-                        format!("text_list::{}", module)
+                    type_::Text(()) => {
+                        Ok(format!("text_list::{}", module))
                     },
-                    Ok(type_::Data(())) => {
-                        format!("data_list::{}", module)
+                    type_::Data(()) => {
+                        Ok(format!("data_list::{}", module))
                     },
-                    Ok(type_::Interface(_)) => {panic!("unimplemented") },
-                    Ok(type_::AnyPointer(_)) => {panic!("List(AnyPointer) is unsupported")},
-                    Ok(_) => {
-                        let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
-                        format!("primitive_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner)
+                    type_::Interface(_) => Err(Error::failed(("List(Interfcae) is unsupported".to_string()))),
+                    type_::AnyPointer(_) => Err(Error::failed("List(AnyPointer) is unsupported".to_string())),
+                    _ => {
+                        let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
+                        Ok(format!("primitive_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                 }
             },
             type_::Enum(en) => {
                 let scope = &gen.scope_map[&en.get_type_id()];
-                scope.join("::").to_string()
+                Ok(scope.join("::").to_string())
             },
             type_::AnyPointer(pointer) => {
-                match pointer.which().unwrap() {
+                match try!(pointer.which()) {
                     type_::any_pointer::Parameter(def) => {
                         let the_struct = &gen.node_map[&def.get_scope_id()];
-                        let parameters = the_struct.get_parameters().unwrap();
+                        let parameters = try!(the_struct.get_parameters());
                         let parameter = parameters.get(def.get_parameter_index() as u32);
-                        let parameter_name = parameter.get_name().unwrap();
+                        let parameter_name = try!(parameter.get_name());
                         match module {
-                            Leaf::Owned => parameter_name.to_string(),
+                            Leaf::Owned => Ok(parameter_name.to_string()),
                             Leaf::Reader(lifetime) => {
-                                format!("<{} as ::capnp::traits::Owned<{}>>::Reader",
-                                        parameter_name, lifetime)
+                                Ok(format!(
+                                    "<{} as ::capnp::traits::Owned<{}>>::Reader",
+                                    parameter_name, lifetime))
                             }
                             Leaf::Builder(lifetime) => {
-                                format!("<{} as ::capnp::traits::Owned<{}>>::Builder",
-                                        parameter_name, lifetime)
+                                Ok(format!(
+                                    "<{} as ::capnp::traits::Owned<{}>>::Builder",
+                                    parameter_name, lifetime))
                             }
                             Leaf::Pipeline => {
-                                format!("<{} as ::capnp::traits::Pipelined>::Pipeline", parameter_name)
+                                Ok(format!("<{} as ::capnp::traits::Pipelined>::Pipeline", parameter_name))
                             }
-                            _ => { unimplemented!() }
+                            _ => Err(Error::unimplemented("unimplemented any_pointer leaf".to_string())),
                         }
                     },
                     _ => {
                         match module {
                             Leaf::Reader(lifetime) => {
-                                format!("::capnp::any_pointer::Reader<{}>", lifetime)
+                                Ok(format!("::capnp::any_pointer::Reader<{}>", lifetime))
                             }
                             Leaf::Builder(lifetime) => {
-                                format!("::capnp::any_pointer::Builder<{}>", lifetime)
+                                Ok(format!("::capnp::any_pointer::Builder<{}>", lifetime))
                             }
                             _ => {
-                                format!("::capnp::any_pointer::{}", module)
+                                Ok(format!("::capnp::any_pointer::{}", module))
                             }
                         }
                     }
@@ -287,9 +289,9 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
 
 impl <'a> RustTypeInfo for superclass::Reader<'a> {
 
-    fn type_string(&self, gen:&codegen::GeneratorContext, module: Leaf) -> String {
+    fn type_string(&self, gen:&codegen::GeneratorContext, module: Leaf) -> Result<String, Error> {
         let type_id = self.get_id();
-        do_branding(gen, type_id, self.get_brand().unwrap(), module,
+        do_branding(gen, type_id, try!(self.get_brand()), module,
                     gen.scope_map[&type_id].join("::"), None)
     }
 
@@ -312,8 +314,8 @@ pub fn do_branding(gen: &GeneratorContext,
                    brand: brand::Reader,
                    leaf: Leaf,
                    the_mod: String,
-                   mut parent_scope_id: Option<u64>) -> String {
-    let scopes = brand.get_scopes().unwrap();
+                   mut parent_scope_id: Option<u64>) -> Result<String, Error> {
+    let scopes = try!(brand.get_scopes());
     let mut brand_scopes = HashMap::new();
     for scope in scopes.iter() {
         brand_scopes.insert(scope.get_scope_id(), scope);
@@ -326,7 +328,7 @@ pub fn do_branding(gen: &GeneratorContext,
             None => break,
             Some(node) => node,
         };
-        let params = current_node.get_parameters().unwrap();
+        let params = try!(current_node.get_parameters());
         let mut arguments: Vec<String> = Vec::new();
         match brand_scopes.get(&current_node_id) {
             None => {
@@ -335,22 +337,22 @@ pub fn do_branding(gen: &GeneratorContext,
                 }
             },
             Some(scope) => {
-                match scope.which().unwrap() {
+                match try!(scope.which()) {
                     brand::scope::Inherit(()) => {
                         for param in params.iter() {
-                            arguments.push(param.get_name().unwrap().to_string());
+                            arguments.push(try!(param.get_name()).to_string());
                         }
                     }
                     brand::scope::Bind(bindings_list_opt) => {
-                        let bindings_list = bindings_list_opt.unwrap();
+                        let bindings_list = try!(bindings_list_opt);
                         assert_eq!(bindings_list.len(), params.len());
                         for binding in bindings_list.iter() {
-                            match binding.which().unwrap() {
+                            match try!(binding.which()) {
                                 brand::binding::Unbound(()) => {
                                     arguments.push("::capnp::any_pointer::Owned".to_string());
                                 }
                                 brand::binding::Type(t) => {
-                                    arguments.push(t.unwrap().type_string(gen, Leaf::Owned));
+                                    arguments.push(try!(try!(t).type_string(gen, Leaf::Owned)));
                                 }
                             }
                         }
@@ -383,8 +385,7 @@ pub fn do_branding(gen: &GeneratorContext,
         "".to_string()
     };
 
-    return format!("{}::{}{}", the_mod,
-                   leaf.bare_name().to_string(), arguments);
+    Ok(format!("{}::{}{}", the_mod, leaf.bare_name().to_string(), arguments))
 }
 
 

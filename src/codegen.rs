@@ -326,7 +326,7 @@ pub fn getter_text(gen: &GeneratorContext,
             }
 
             let raw_type = try!(reg_field.get_type());
-            let typ = raw_type.type_string(gen, module);
+            let typ = try!(raw_type.type_string(gen, module));
             let default = try!(try!(reg_field.get_default_value()).which());
 
             let result_type = match try!(raw_type.which()) {
@@ -334,7 +334,7 @@ pub fn getter_text(gen: &GeneratorContext,
                 type_::AnyPointer(_) if !raw_type.is_parameter() => typ.clone(),
                 type_::Interface(_) => {
                     format!("::capnp::Result<{}>",
-                            raw_type.type_string(gen, Leaf::Client))
+                            try!(raw_type.type_string(gen, Leaf::Client)))
                 }
                 _ if raw_type.is_prim() => typ.clone(),
                 _ => format!("Result<{}>", typ),
@@ -446,9 +446,10 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
                             type_::Int16(()) | type_::Int32(()) | type_::Int64(()) |
                             type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) |
                             type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
-                                let line = Line(format!("self.builder.set_data_field::<{0}>({1}, 0u8 as {0});",
-                                                        try!(slot.get_type()).type_string(gen, Leaf::Builder("'a")),
-                                                        slot.get_offset()));
+                                let line = Line(format!(
+                                    "self.builder.set_data_field::<{0}>({1}, 0u8 as {0});",
+                                    try!(try!(slot.get_type()).type_string(gen, Leaf::Builder("'a"))),
+                                    slot.get_offset()));
                                 // PERF could dedup more efficiently
                                 if !result.contains(&line) { result.push(line) }
                             }
@@ -537,7 +538,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     (Some("bool".to_string()), None)
                 }
                 _ if typ.is_prim() => {
-                    let tstr = typ.type_string(gen, Leaf::Reader("'a"));
+                    let tstr = try!(typ.type_string(gen, Leaf::Reader("'a")));
                     match try!(prim_default(&try!(reg_field.get_default_value()))) {
                         None => {
                             setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
@@ -580,12 +581,12 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     match try!(try!(ot1.get_element_type()).which()) {
                         type_::List(_) => {
                             setter_generic_param = "<'b>".to_string();
-                            (Some(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'b"))),
-                             Some(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a"))))
+                            (Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'b")))),
+                             Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a")))))
                         }
                         _ =>
-                            (Some(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'a"))),
-                             Some(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a"))))
+                            (Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'a")))),
+                             Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a")))))
                     }
                 }
                 type_::Enum(e) => {
@@ -604,31 +605,37 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                                    offset)));
                     if typ.is_branded() {
                         setter_interior.push(
-                            Line(format!("<{} as ::capnp::traits::SetPointerBuilder<{}>>::set_pointer_builder(self.builder.get_pointer_field({}), value)", typ.type_string(gen, Leaf::Reader("'b")), typ.type_string(gen, Leaf::Builder("'b")), offset)));
-                        (Some(typ.type_string(gen, Leaf::Reader("'b"))),
-                         Some(typ.type_string(gen, Leaf::Builder("'a"))))
+                            Line(format!(
+                                "<{} as ::capnp::traits::SetPointerBuilder<{}>>::set_pointer_builder(self.builder.get_pointer_field({}), value)",
+                                try!(typ.type_string(gen, Leaf::Reader("'b"))),
+                                try!(typ.type_string(gen, Leaf::Builder("'b"))),
+                                offset)));
+                        (Some(try!(typ.type_string(gen, Leaf::Reader("'b")))),
+                         Some(try!(typ.type_string(gen, Leaf::Builder("'a")))))
                     } else {
                         setter_interior.push(
                             Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)", offset)));
-                        (Some(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'b"))),
-                         Some(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a"))))
+                        (Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'b")))),
+                         Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a")))))
                     }
                 }
                 type_::Interface(_) => {
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_capability(value.client.hook);",
                                      offset)));
-                    (Some(typ.type_string(gen, Leaf::Client)), None)
+                    (Some(try!(typ.type_string(gen, Leaf::Client))), None)
                 }
                 type_::AnyPointer(_) => {
                     if typ.is_parameter() {
                         initter_interior.push(Line(format!("::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({})).init_as()", offset)));
-                        setter_generic_param = format!("<SPB: SetPointerBuilder<{}>>", typ.type_string(gen, Leaf::Builder("'a")));
+                        setter_generic_param = format!(
+                            "<SPB: SetPointerBuilder<{}>>",
+                            try!(typ.type_string(gen, Leaf::Builder("'a"))));
                         setter_interior.push(Line(format!("SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)", offset)));
                         return_result = true;
 
 
-                        let builder_type = typ.type_string(gen, Leaf::Builder("'a"));
+                        let builder_type = try!(typ.type_string(gen, Leaf::Builder("'a")));
 
                         result.push(Line("#[inline]".to_string()));
                         result.push(Line(format!("pub fn initn_{}(self, length: u32) -> {} {{",
@@ -855,7 +862,7 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
                     Ok(Branch(vec!(
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
-                                     typ.type_string(gen, Leaf::Pipeline))),
+                                     try!(typ.type_string(gen, Leaf::Pipeline)))),
                         Indent(Box::new(Line(
                             format!("FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
                                     reg_field.get_offset())))),
@@ -865,7 +872,7 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
                     Ok(Branch(vec!(
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
-                                     typ.type_string(gen, Leaf::Client))),
+                                     try!(typ.type_string(gen, Leaf::Client)))),
                         Indent(Box::new(Line(
                             format!("FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
                                     reg_field.get_offset())))),
@@ -1429,8 +1436,8 @@ fn generate_node(gen: &GeneratorContext,
                     (gen.scope_map[&param_node.get_id()].clone(),
                      try!(get_ty_params_of_brand(gen, try!(method.get_param_brand()))))
                 };
-                let param_type = do_branding(&gen, param_id, try!(method.get_param_brand()),
-                                             Leaf::Owned, param_scopes.join("::"), Some(node_id));
+                let param_type = try!(do_branding(&gen, param_id, try!(method.get_param_brand()),
+                                                  Leaf::Owned, param_scopes.join("::"), Some(node_id)));
 
 
                 let result_id = method.get_result_struct_type();
@@ -1445,8 +1452,8 @@ fn generate_node(gen: &GeneratorContext,
                     (gen.scope_map[&result_node.get_id()].clone(),
                      try!(get_ty_params_of_brand(gen, try!(method.get_result_brand()))))
                 };
-                let result_type = do_branding(&gen, result_id, try!(method.get_result_brand()),
-                                              Leaf::Owned, result_scopes.join("::"), Some(node_id));
+                let result_type = try!(do_branding(&gen, result_id, try!(method.get_result_brand()),
+                                                   Leaf::Owned, result_scopes.join("::"), Some(node_id)));
 
                 dispatch_arms.push(
                     Line(format!(
@@ -1490,8 +1497,8 @@ fn generate_node(gen: &GeneratorContext,
                         Line(
                             format!(
                                 "0x{:x} => {}::dispatch_call_internal(&mut *self.server, method_id, params, results),",
-                                base_id, extend.type_string(gen, Leaf::ServerDispatch))));
-                    base_traits.push(extend.type_string(gen, Leaf::Server));
+                                base_id, try!(extend.type_string(gen, Leaf::ServerDispatch)))));
+                    base_traits.push(try!(extend.type_string(gen, Leaf::Server)));
                 }
                 if extends.len() > 0 { format!(": {}", base_traits.join(" + ")) }
                 else { "".to_string() }
