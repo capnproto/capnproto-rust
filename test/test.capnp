@@ -452,3 +452,6 @@ struct Map(Key, Value) {
     value @1 :Value;
   }
 }
+
+interface GenericBase(T) {}
+interface GenericExtend extends(GenericBase(Data)) {}

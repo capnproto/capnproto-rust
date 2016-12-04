@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use schema_capnp::{brand, node, type_};
+use schema_capnp::{brand, node, type_, superclass};
 use codegen;
 use codegen::{GeneratorContext};
 use std::collections::hash_map::HashMap;
@@ -30,6 +30,8 @@ pub enum Leaf {
     Builder(&'static str),
     Owned,
     Client,
+    Server,
+    ServerDispatch,
     Pipeline
 }
 
@@ -40,6 +42,8 @@ impl ::std::fmt::Display for Leaf {
             &Leaf::Builder(lt) => format!("Builder<{}>", lt),
             &Leaf::Owned => "Owned".to_string(),
             &Leaf::Client => "Client".to_string(),
+            &Leaf::Server => "Server".to_string(),
+            &Leaf::ServerDispatch => "ServerDispatch".to_string(),
             &Leaf::Pipeline => "Pipeline".to_string(),
         };
         ::std::fmt::Display::fmt(&display_string, fmt)
@@ -53,6 +57,8 @@ impl Leaf {
             &Leaf::Builder(_) => "Builder",
             &Leaf::Owned => "Owned",
             &Leaf::Client => "Client",
+            &Leaf::Server => "Server",
+            &Leaf::ServerDispatch => "ServerDispatch::", // HACK
             &Leaf::Pipeline => "Pipeline",
         }
     }
@@ -60,7 +66,7 @@ impl Leaf {
     fn _have_lifetime(&self) -> bool {
         match self {
             &Leaf::Reader(_) | &Leaf::Builder(_) => true,
-            &Leaf::Owned | &Leaf::Client | &Leaf::Pipeline => false,
+            &Leaf::Owned | &Leaf::Client | &Leaf::Server | &Leaf::ServerDispatch | &Leaf::Pipeline => false,
         }
     }
 }
@@ -279,6 +285,26 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
     }
 }
 
+impl <'a> RustTypeInfo for superclass::Reader<'a> {
+
+    fn type_string(&self, gen:&codegen::GeneratorContext, module: Leaf) -> String {
+        let type_id = self.get_id();
+        do_branding(gen, type_id, self.get_brand().unwrap(), module,
+                    gen.scope_map[&type_id].join("::"), None)
+    }
+
+    fn is_parameter(&self) -> bool { false }
+
+    fn is_branded(&self) -> bool {
+        let brand = self.get_brand().unwrap();
+        let scopes = brand.get_scopes().unwrap();
+        scopes.len() > 0
+    }
+
+    fn is_prim(&self) -> bool { false }
+}
+
+
 ///
 ///
 pub fn do_branding(gen: &GeneratorContext,
@@ -345,6 +371,7 @@ pub fn do_branding(gen: &GeneratorContext,
     match leaf {
         Leaf::Reader(lt) => accumulator.push(vec!(lt.to_string())),
         Leaf::Builder(lt) => accumulator.push(vec!(lt.to_string())),
+        Leaf::ServerDispatch => accumulator.push(vec!["_T".to_string()]), // HACK
         _ => (),
     }
 
