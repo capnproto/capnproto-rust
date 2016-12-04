@@ -150,7 +150,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             _ => "",
         };
 
-        let lifetime_coma = if local_lifetime == "" { "".to_string() } else {
+        let lifetime_comma = if local_lifetime == "" { "".to_string() } else {
             format!("{},", local_lifetime)
         };
 
@@ -182,15 +182,15 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                     Err(_) => { panic!("unsupported type") },
                     Ok(type_::Struct(_)) => {
                         let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
-                        format!("struct_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
+                        format!("struct_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner)
                     },
                     Ok(type_::Enum(_)) => {
                         let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
-                        format!("enum_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
+                        format!("enum_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner)
                     },
                     Ok(type_::List(_)) => {
                         let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
-                        format!("list_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
+                        format!("list_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner)
                     },
                     Ok(type_::Text(())) => {
                         format!("text_list::{}", module)
@@ -202,7 +202,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                     Ok(type_::AnyPointer(_)) => {panic!("List(AnyPointer) is unsupported")},
                     Ok(_) => {
                         let inner = ot1.get_element_type().unwrap().type_string(gen, Leaf::Owned);
-                        format!("primitive_list::{}<{}{}>", module.bare_name(), lifetime_coma, inner)
+                        format!("primitive_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner)
                     },
                 }
             },
