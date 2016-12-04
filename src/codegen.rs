@@ -331,12 +331,12 @@ pub fn getter_text(gen: &GeneratorContext,
 
             let result_type = match try!(raw_type.which()) {
                 type_::Enum(_) => format!("::std::result::Result<{},::capnp::NotInSchema>", typ),
-                type_::AnyPointer(_) if !raw_type.is_parameter() => typ.clone(),
+                type_::AnyPointer(_) if !try!(raw_type.is_parameter()) => typ.clone(),
                 type_::Interface(_) => {
                     format!("::capnp::Result<{}>",
                             try!(raw_type.type_string(gen, Leaf::Client)))
                 }
-                _ if raw_type.is_prim() => typ.clone(),
+                _ if try!(raw_type.is_prim()) => typ.clone(),
                 _ => format!("Result<{}>", typ),
             };
 
@@ -397,7 +397,7 @@ pub fn getter_text(gen: &GeneratorContext,
                                  member, offset))
                 }
                 (type_::AnyPointer(_), _) => {
-                    if !raw_type.is_parameter() {
+                    if !try!(raw_type.is_parameter()) {
                         Line(format!("::capnp::any_pointer::{}::new(self.{}.get_pointer_field({}))", module_string, member, offset))
                     } else {
                         if is_reader {
@@ -537,7 +537,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     }
                     (Some("bool".to_string()), None)
                 }
-                _ if typ.is_prim() => {
+                _ if try!(typ.is_prim()) => {
                     let tstr = try!(typ.type_string(gen, Leaf::Reader("'a")));
                     match try!(prim_default(&try!(reg_field.get_default_value()))) {
                         None => {
@@ -603,7 +603,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     initter_interior.push(
                       Line(format!("::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({}), 0)",
                                    offset)));
-                    if typ.is_branded() {
+                    if try!(typ.is_branded()) {
                         setter_interior.push(
                             Line(format!(
                                 "<{} as ::capnp::traits::SetPointerBuilder<{}>>::set_pointer_builder(self.builder.get_pointer_field({}), value)",
@@ -626,7 +626,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     (Some(try!(typ.type_string(gen, Leaf::Client))), None)
                 }
                 type_::AnyPointer(_) => {
-                    if typ.is_parameter() {
+                    if try!(typ.is_parameter()) {
                         initter_interior.push(Line(format!("::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({})).init_as()", offset)));
                         setter_generic_param = format!(
                             "<SPB: SetPointerBuilder<{}>>",

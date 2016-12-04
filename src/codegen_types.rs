@@ -90,10 +90,10 @@ pub trait RustNodeInfo {
 // this is a collection of helpers acting on a "Type" (someplace where a Type is used, not defined)
 pub trait RustTypeInfo {
 
-    fn is_prim(&self) -> bool;
-    fn is_parameter(&self) -> bool;
-    fn is_branded(&self) -> bool;
-    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> Result<String, ::capnp::Error>;
+    fn is_prim(&self) -> Result<bool, Error>;
+    fn is_parameter(&self) -> Result<bool, Error>;
+    fn is_branded(&self) -> Result<bool, Error>;
+    fn type_string(&self, gen:&codegen::GeneratorContext, module:Leaf) -> Result<String, Error>;
 }
 
 impl <'a> RustNodeInfo for node::Reader<'a> {
@@ -253,36 +253,36 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
         }
     }
 
-    fn is_parameter(&self) -> bool {
-        match self.which().unwrap() {
+    fn is_parameter(&self) -> Result<bool, Error> {
+        match try!(self.which()) {
             type_::AnyPointer(pointer) => {
-                match pointer.which().unwrap() {
-                    type_::any_pointer::Parameter(_) => true,
-                    _ => false
+                match try!(pointer.which()) {
+                    type_::any_pointer::Parameter(_) => Ok(true),
+                    _ => Ok(false),
                 }
             }
-            _ => false
+            _ => Ok(false)
         }
     }
 
-    fn is_branded(&self) -> bool {
-        match self.which().unwrap() {
+    fn is_branded(&self) -> Result<bool, Error> {
+        match try!(self.which()) {
             type_::Struct(st) => {
-                let brand = st.get_brand().unwrap();
-                let scopes = brand.get_scopes().unwrap();
-                scopes.len() > 0
+                let brand = try!(st.get_brand());
+                let scopes = try!(brand.get_scopes());
+                Ok(scopes.len() > 0)
             }
-            _ => false
+            _ => Ok(false)
         }
     }
 
     #[inline(always)]
-    fn is_prim(&self) -> bool {
-        match self.which().unwrap() {
+    fn is_prim(&self) -> Result<bool, Error> {
+        match try!(self.which()) {
             type_::Int8(()) | type_::Int16(()) | type_::Int32(()) | type_::Int64(()) |
             type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) | type_::Uint64(()) |
-            type_::Float32(()) | type_::Float64(()) | type_::Void(()) | type_::Bool(()) => true,
-            _ => false
+            type_::Float32(()) | type_::Float64(()) | type_::Void(()) | type_::Bool(()) => Ok(true),
+            _ => Ok(false)
         }
     }
 }
