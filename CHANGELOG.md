@@ -1,3 +1,8 @@
+## v0.7.5
+- Implement DoubleEndedIter for ListIter.
+- Implement From<std::str::Utf8Error> for ::capnp::Error.
+- Address some new linter warnings.
+
 ## v0.7.4
 - Fix rare case where `serialize_packed::read()` could fail on valid input.
 
