@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use schema_capnp::{brand, node, type_, superclass};
+use schema_capnp::{brand, node, type_};
 use capnp::Error;
 use codegen;
 use codegen::{GeneratorContext};
@@ -286,26 +286,6 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
         }
     }
 }
-
-impl <'a> RustTypeInfo for superclass::Reader<'a> {
-
-    fn type_string(&self, gen:&codegen::GeneratorContext, module: Leaf) -> Result<String, Error> {
-        let type_id = self.get_id();
-        do_branding(gen, type_id, try!(self.get_brand()), module,
-                    gen.scope_map[&type_id].join("::"), None)
-    }
-
-    fn is_parameter(&self) -> bool { false }
-
-    fn is_branded(&self) -> bool {
-        let brand = self.get_brand().unwrap();
-        let scopes = brand.get_scopes().unwrap();
-        scopes.len() > 0
-    }
-
-    fn is_prim(&self) -> bool { false }
-}
-
 
 ///
 ///

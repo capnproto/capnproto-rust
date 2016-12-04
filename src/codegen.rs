@@ -1491,14 +1491,19 @@ fn generate_node(gen: &GeneratorContext,
                 let mut base_traits = Vec::new();
                 let extends = try!(interface.get_superclasses());
                 for ii in 0..extends.len() {
-                    let extend = extends.get(ii);
-                    let base_id = extend.get_id();
+                    let type_id = extends.get(ii).get_id();
+                    let brand = try!(extends.get(ii).get_brand());
+                    let the_mod = gen.scope_map[&type_id].join("::");
+
                     base_dispatch_arms.push(
                         Line(
                             format!(
                                 "0x{:x} => {}::dispatch_call_internal(&mut *self.server, method_id, params, results),",
-                                base_id, try!(extend.type_string(gen, Leaf::ServerDispatch)))));
-                    base_traits.push(try!(extend.type_string(gen, Leaf::Server)));
+                                type_id,
+                                try!(do_branding(
+                                    gen, type_id, brand, Leaf::ServerDispatch, the_mod.clone(), None)))));
+                    base_traits.push(try!(
+                        do_branding(gen, type_id, brand, Leaf::Server, the_mod, None)));
                 }
                 if extends.len() > 0 { format!(": {}", base_traits.join(" + ")) }
                 else { "".to_string() }
