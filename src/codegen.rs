@@ -505,9 +505,8 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
     let mut return_result = false;
     let mut result = Vec::new();
 
-    let (maybe_reader_type, maybe_builder_type) : (Option<String>, Option<String>) = match field.which() {
-        Err(_) => panic!("unrecognized field type"),
-        Ok(field::Group(group)) => {
+    let (maybe_reader_type, maybe_builder_type) : (Option<String>, Option<String>) = match try!(field.which()) {
+        field::Group(group) => {
             let scope = &gen.scope_map[&group.get_type_id()];
             let the_mod = scope.join("::");
 
@@ -517,7 +516,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
 
             (None, Some(format!("{}::Builder<'a>", the_mod)))
         }
-        Ok(field::Slot(reg_field)) => {
+        field::Slot(reg_field) => {
             let offset = reg_field.get_offset() as usize;
             let typ = try!(reg_field.get_type());
             match typ.which().ok().expect("unrecognized type") {
@@ -843,9 +842,8 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
 
     let name = try!(field.get_name());
 
-    match field.which() {
-        Err(_) => panic!("unrecognized field type"),
-        Ok(field::Group(group)) => {
+    match try!(field.which()) {
+        field::Group(group) => {
             let the_mod = gen.scope_map[&group.get_type_id()].join("::");
             Ok(Branch(vec!(
                 Line(format!("pub fn get_{}(&self) -> {}::Pipeline {{",
@@ -855,7 +853,7 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
                     Box::new(Line("FromTypelessPipeline::new(self._typeless.noop())".to_string()))),
                 Line("}".to_string()))))
         }
-        Ok(field::Slot(reg_field)) => {
+        field::Slot(reg_field) => {
             let typ = try!(reg_field.get_type());
             match try!(typ.which()) {
                 type_::Struct(_) | type_::AnyPointer(_) => {
