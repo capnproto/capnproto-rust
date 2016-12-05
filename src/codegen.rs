@@ -407,9 +407,7 @@ pub fn getter_text(gen: &GeneratorContext,
                         }
                     }
                 }
-                _ => {
-                    panic!("default value was of wrong type");
-                }
+                _ => return Err(Error::failed(format!("default value was of wrong type"))),
             };
             Ok((result_type, getter_code))
         }
@@ -418,8 +416,8 @@ pub fn getter_text(gen: &GeneratorContext,
 
 fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result<FormattedText> {
     use schema_capnp::{node, field, type_};
-    match gen.node_map[&node_id].which() {
-        Ok(node::Struct(st)) => {
+    match try!(gen.node_map[&node_id].which()) {
+        node::Struct(st) => {
             let mut result = Vec::new();
             if st.get_discriminant_count() != 0 {
                 result.push(
@@ -474,7 +472,7 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
             }
             Ok(Branch(result))
         }
-        _ => { panic!("expected a struct") }
+        _ => Err(Error::failed(format!("zero_fields_of_groupd() expected a struct"))),
     }
 }
 
@@ -653,7 +651,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                         (None, Some("::capnp::any_pointer::Builder<'a>".to_string()))
                     }
                 }
-                _ => panic!("unrecognized type")
+                _ => return Err(Error::failed(format!("unrecognized type"))),
             }
         }
     };
