@@ -286,6 +286,7 @@ struct TestGenerics(Foo, Bar) {
 
   interface Interface(Qux) {
     call @0 Inner2(Text) -> (qux :Qux, gen :TestGenerics(TestAllTypes, TestAnyPointer));
+    otherCall @1 Inner2(List(Text)) -> Inner2(List(Int16));
   }
 
   annotation ann(struct) :Foo;

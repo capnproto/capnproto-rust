@@ -925,8 +925,10 @@ fn get_ty_params_of_type_helper(gen: &GeneratorContext,
                 }
             }
         }
-        type_::List(_list) => {
-            unimplemented!()
+        type_::List(list) => {
+            try!(get_ty_params_of_type_helper(
+                gen, accumulator,
+                try!(list.get_element_type())))
         }
         type_::Enum(e) => {
             try!(get_ty_params_of_brand_helper(gen, accumulator,
