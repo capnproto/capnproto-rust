@@ -65,7 +65,6 @@ impl <'a> GeneratorContext<'a> {
         }
         Ok(gen)
     }
-
 }
 
 fn path_to_stem_string<P: AsRef<::std::path::Path>>(path: P) -> ::capnp::Result<String> {
@@ -116,13 +115,6 @@ fn capitalize_first_letter(s: &str) -> String {
     for c in s.chars() { result_chars.push(c) }
     result_chars[0] = (result_chars[0] as u8).to_ascii_uppercase() as char;
     return result_chars.into_iter().collect();
-}
-
-#[test]
-fn test_camel_to_upper_case() {
-    assert_eq!(camel_to_upper_case("fooBar"), "FOO_BAR".to_string());
-    assert_eq!(camel_to_upper_case("fooBarBaz"), "FOO_BAR_BAZ".to_string());
-    assert_eq!(camel_to_upper_case("helloWorld"), "HELLO_WORLD".to_string());
 }
 
 #[test]
