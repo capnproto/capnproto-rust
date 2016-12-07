@@ -65,6 +65,17 @@ impl <'a> GeneratorContext<'a> {
         }
         Ok(gen)
     }
+
+
+    fn get_last_name<'b>(&'b self, id: u64) -> ::capnp::Result<&'b str> {
+        match self.scope_map.get(&id) {
+            None => Err(Error::failed(format!("node not found: {}", id))),
+            Some(v) => match v.last() {
+                None => Err(Error::failed(format!("node has no scope: {}", id))),
+                Some(n) => Ok(&n),
+            }
+        }
+    }
 }
 
 fn path_to_stem_string<P: AsRef<::std::path::Path>>(path: P) -> ::capnp::Result<String> {
@@ -980,7 +991,7 @@ fn generate_node(gen: &GeneratorContext,
     let nested_nodes = try!(node_reader.get_nested_nodes());
     for nested_node in nested_nodes.iter() {
         let id = nested_node.get_id();
-        nested_output.push(try!(generate_node(gen, id, &gen.scope_map[&id].last().unwrap(), None)));
+        nested_output.push(try!(generate_node(gen, id, try!(gen.get_last_name(id)), None)));
     }
 
     match try!(node_reader.which()) {
@@ -1062,7 +1073,7 @@ fn generate_node(gen: &GeneratorContext,
                     Ok(field::Group(group)) => {
                         let id = group.get_type_id();
                         let text = try!(generate_node(gen, id,
-                                                      &gen.scope_map[&id].last().unwrap(), None));
+                                                      try!(gen.get_last_name(id)), None));
                         nested_output.push(text);
                     }
                     _ => { }
@@ -1324,7 +1335,7 @@ fn generate_node(gen: &GeneratorContext,
         }
 
         node::Enum(enum_reader) => {
-            let names = &gen.scope_map[&node_id];
+            let last_name = try!(gen.get_last_name(node_id));
             output.push(BlankLine);
 
             let mut members = Vec::new();
@@ -1333,26 +1344,27 @@ fn generate_node(gen: &GeneratorContext,
             for ii in 0..enumerants.len() {
                 let enumerant = capitalize_first_letter(try!(enumerants.get(ii).get_name()));
                 members.push(Line(format!("{} = {},", enumerant, ii)));
-                match_branches.push(Line(format!("{} => ::std::result::Result::Ok({}::{}),", ii, *names.last().unwrap(), enumerant)));
+                match_branches.push(
+                    Line(format!("{} => ::std::result::Result::Ok({}::{}),", ii, last_name, enumerant)));
             }
             match_branches.push(Line("n => ::std::result::Result::Err(::capnp::NotInSchema(n)),".to_string()));
 
             output.push(Branch(vec!(
                 Line("#[repr(u16)]".to_string()),
                 Line("#[derive(Clone, Copy, PartialEq)]".to_string()),
-                Line(format!("pub enum {} {{", *names.last().unwrap())),
+                Line(format!("pub enum {} {{", last_name)),
                 Indent(Box::new(Branch(members))),
                 Line("}".to_string()))));
 
             output.push(
                 Branch(vec!(
-                    Line(format!("impl ::capnp::traits::FromU16 for {} {{", *names.last().unwrap())),
+                    Line(format!("impl ::capnp::traits::FromU16 for {} {{", last_name)),
                     Indent(Box::new(Line("#[inline]".to_string()))),
                     Indent(
                         Box::new(Branch(vec![
                             Line(format!(
                                 "fn from_u16(value : u16) -> ::std::result::Result<{}, ::capnp::NotInSchema> {{",
-                                *names.last().unwrap())),
+                                last_name)),
                             Indent(
                                 Box::new(Branch(vec![
                                     Line("match value {".to_string()),
@@ -1361,7 +1373,7 @@ fn generate_node(gen: &GeneratorContext,
                                         ]))),
                             Line("}".to_string())]))),
                     Line("}".to_string()),
-                    Line(format!("impl ::capnp::traits::ToU16 for {} {{", *names.last().unwrap())),
+                    Line(format!("impl ::capnp::traits::ToU16 for {} {{", last_name)),
                     Indent(Box::new(Line("#[inline]".to_string()))),
                     Indent(
                         Box::new(Line("fn to_u16(self) -> u16 { self as u16 }".to_string()))),
@@ -1369,7 +1381,7 @@ fn generate_node(gen: &GeneratorContext,
 
             output.push(
                 Branch(vec!(
-                    Line(format!("impl ::capnp::traits::HasTypeId for {} {{", *names.last().unwrap())),
+                    Line(format!("impl ::capnp::traits::HasTypeId for {} {{", last_name)),
                     Indent(Box::new(Line("#[inline]".to_string()))),
                     Indent(
                         Box::new(Line(format!("fn type_id() -> u64 {{ {:#x}u64 }}", node_id).to_string()))),
@@ -1687,8 +1699,7 @@ fn generate_node(gen: &GeneratorContext,
         }
 
         node::Const(c) => {
-            let names = &gen.scope_map[&node_id];
-            let styled_name = snake_to_upper_case(&names.last().unwrap());
+            let styled_name = snake_to_upper_case(try!(gen.get_last_name(node_id)));
 
             let (typ, txt) = match (try!(try!(c.get_type()).which()), try!(try!(c.get_value()).which())) {
                 (type_::Void(()), value::Void(())) => ("()".to_string(), "()".to_string()),
