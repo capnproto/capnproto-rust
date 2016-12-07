@@ -34,7 +34,6 @@ pub struct GeneratorContext<'a> {
 }
 
 impl <'a> GeneratorContext<'a> {
-
     pub fn new(message:&'a capnp::message::Reader<capnp::serialize::OwnedSegments> )
             -> ::capnp::Result<GeneratorContext<'a>> {
 
@@ -79,19 +78,6 @@ fn path_to_stem_string<P: AsRef<::std::path::Path>>(path: P) -> ::capnp::Result<
             }
         }
     }
-}
-
-pub fn camel_to_upper_case(s: &str) -> String {
-    use std::ascii::*;
-    let mut result_chars : Vec<char> = Vec::new();
-    for c in s.chars() {
-        assert!(c.is_alphanumeric(), format!("not alphanumeric '{}'", c));
-        if c.is_uppercase() {
-            result_chars.push('_');
-        }
-        result_chars.push((c as u8).to_ascii_uppercase() as char);
-    }
-    return result_chars.into_iter().collect();
 }
 
 fn snake_to_upper_case(s: &str) -> String {
