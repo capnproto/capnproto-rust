@@ -54,20 +54,31 @@ impl <'a> GeneratorContext<'a> {
             let imports = try!(requested_file.get_imports());
             for import in imports.iter() {
                 let importpath = ::std::path::Path::new(try!(import.get_name()));
-                let root_name: String = format!("::{}_capnp",
-                                                importpath.file_stem().unwrap().to_owned()
-                                                .into_string().unwrap().replace("-", "_"));
+                let root_name: String = format!(
+                    "::{}_capnp",
+                    try!(path_to_stem_string(importpath)).replace("-", "_"));
                 try!(populate_scope_map(&gen.node_map, &mut gen.scope_map, vec!(root_name), import.get_id()));
             }
 
-            let root_name = ::std::path::PathBuf::from(try!(requested_file.get_filename()))
-                .file_stem().unwrap().to_owned().into_string().unwrap();
-            let root_mod = format!("::{}_capnp", root_name.to_owned().replace("-", "_"));
+            let root_name = try!(path_to_stem_string(try!(requested_file.get_filename())));
+            let root_mod = format!("::{}_capnp", root_name.replace("-", "_"));
             try!(populate_scope_map(&gen.node_map, &mut gen.scope_map, vec!(root_mod), id));
         }
         Ok(gen)
     }
 
+}
+
+fn path_to_stem_string<P: AsRef<::std::path::Path>>(path: P) -> ::capnp::Result<String> {
+    match path.as_ref().file_stem() {
+        None => Err(Error::failed(format!("file has no stem: {:?}", path.as_ref()))),
+        Some(stem) => {
+            match stem.to_owned().into_string() {
+                Err(os_string) => Err(Error::failed(format!("bad filename: {:?}", os_string))),
+                Ok(s) => Ok(s),
+            }
+        }
+    }
 }
 
 pub fn camel_to_upper_case(s: &str) -> String {
@@ -1764,7 +1775,6 @@ pub fn main<T>(mut inp: T, out_dir: &::std::path::Path) -> ::capnp::Result<()>
     where T : ::std::io::Read
 {
     use capnp::serialize;
-    use std::borrow::ToOwned;
     use std::io::Write;
 
     let message = try!(serialize::read_message(&mut inp, capnp::message::ReaderOptions::new()));
@@ -1780,7 +1790,7 @@ pub fn main<T>(mut inp: T, out_dir: &::std::path::Path) -> ::capnp::Result<()>
             filepath.push(parent);
         }
 
-        let root_name = requested.file_stem().unwrap().to_owned().into_string().unwrap().replace("-", "_");
+        let root_name = try!(path_to_stem_string(requested)).replace("-", "_");
         filepath.push(&format!("{}_capnp.rs", root_name));
 
         let lines = Branch(vec!(
