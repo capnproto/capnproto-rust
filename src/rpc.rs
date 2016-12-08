@@ -25,6 +25,7 @@ use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineO
                                  RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
 
 use futures::Future;
+use futures::sync::oneshot;
 
 use std::vec::Vec;
 use std::collections::hash_map::HashMap;
@@ -33,7 +34,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 use rpc_capnp::{message, return_, cap_descriptor};
-use broken;
+use {broken, Promise};
 
 /*
 struct Defer<F> where F: FnOnce() {
@@ -185,12 +186,12 @@ impl <VatId> Question<VatId> {
 struct QuestionRef<VatId> where VatId: 'static {
     connection_state: Rc<ConnectionState<VatId>>,
     id: QuestionId,
-    fulfiller: Option<PromiseFulfiller<Promise<Response<VatId>, Error>, Error>>,
+    fulfiller: Option<oneshot::Sender<Promise<Response<VatId>, Error>>>,
 }
 
 impl <VatId> QuestionRef<VatId> {
     fn new(state: Rc<ConnectionState<VatId>>, id: QuestionId,
-           fulfiller: ::gj::PromiseFulfiller<Promise<Response<VatId>, Error>, Error>)
+           fulfiller: oneshot::Sender<Promise<Response<VatId>, Error>>)
            -> QuestionRef<VatId>
     {
         QuestionRef { connection_state: state, id: id, fulfiller: Some(fulfiller) }
@@ -323,7 +324,7 @@ pub struct Import<VatId> where VatId: 'static {
     app_client: Option<WeakClient<VatId>>,
 
     // If non-null, the import is a promise.
-    promise_fulfiller: Option<::gj::PromiseFulfiller<Box<ClientHook>, Error>>,
+    promise_fulfiller: Option<oneshot::Sender<Box<ClientHook>>>,
 }
 
 impl <VatId> Import<VatId> {
@@ -337,11 +338,11 @@ impl <VatId> Import<VatId> {
 }
 
 struct Embargo {
-    fulfiller: Option<PromiseFulfiller<(), Error>>,
+    fulfiller: Option<oneshot::Sender<()>>,
 }
 
 impl Embargo {
-    fn new(fulfiller: PromiseFulfiller<(), Error>) -> Embargo {
+    fn new(fulfiller: oneshot::Sender<()>) -> Embargo {
         Embargo { fulfiller: Some(fulfiller) }
     }
 }
@@ -389,6 +390,7 @@ fn remote_exception_to_error(exception: ::rpc_capnp::exception::Reader) -> Error
     Error { description: format!("remote exception: {}", reason), kind: kind }
 }
 
+/*
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
     weak_state: ::std::rc::Weak<ConnectionState<VatId>>,
 }
@@ -407,6 +409,7 @@ impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<Vat
         }
     }
 }
+*/
 
 pub struct ConnectionState<VatId> where VatId: 'static {
     bootstrap_cap: Box<ClientHook>,

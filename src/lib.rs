@@ -265,7 +265,6 @@ impl ServerHook for Server {
 }
 
 
-
 /// Converts a promise for a client into a client that queues up any calls that arrive
 /// before the promise resolves.
 // TODO: figure out a better way to allow construction of promise clients.
@@ -273,4 +272,31 @@ pub fn new_promise_client<T>(client_promise: Promise<::capnp::capability::Client
     where T: ::capnp::capability::FromClientHook
 {
     T::new(Box::new(queued::Client::new(client_promise.map(|c| Ok(c.hook)))))
+}
+
+
+struct ForkedPromiseInner<F> where F: Future {
+    original_future: F,
+    state: ForkedPromiseState<F::Item, F::Error>,
+}
+
+enum ForkedPromiseState<T, E> {
+    Waiting(Vec<::futures::task::Task>),
+    Done(Result<T, E>),
+}
+
+#[derive(Clone)]
+struct ForkedPromise<F> where F: Future {
+    inner: Rc<RefCell<ForkedPromiseInner<F>>>,
+}
+
+impl <F> Future for ForkedPromise<F>
+    where F: Future, F::Item: Clone, F::Error: Clone,
+{
+    type Item = F::Item;
+    type Error = F::Error;
+
+    fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
+        unimplemented!()
+    }
 }

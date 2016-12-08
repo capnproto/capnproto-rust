@@ -29,10 +29,10 @@ use futures::Future;
 use std::cell::RefCell;
 use std::rc::{Rc};
 
-use {broken, local};
+use {broken, local, ForkedPromise, Promise};
 
 struct PipelineInner {
-    promise: ::gj::ForkedPromise<Box<PipelineHook>, Error>,
+    promise: ForkedPromise<Promise<Box<PipelineHook>, Error>>,
 
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<PipelineHook>>,
@@ -105,7 +105,7 @@ impl PipelineHook for Pipeline {
     }
 }
 
-type ClientHookPromiseFork = ::gj::ForkedPromise<Box<ClientHook>, Error>;
+type ClientHookPromiseFork = ForkedPromise<Promise<Box<ClientHook>, Error>>;
 
 struct ClientInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
@@ -232,7 +232,7 @@ impl ClientHook for Client {
         }
     }
 
-    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
+    fn when_more_resolved(&self) -> Option<Promise<Box<ClientHook>, Error>> {
         Some(self.inner.borrow_mut().promise_for_client_resolution.add_branch())
     }
 }
