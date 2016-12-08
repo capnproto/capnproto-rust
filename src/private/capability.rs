@@ -65,15 +65,18 @@ pub trait ClientHook {
     fn when_more_resolved(&self) -> Option<::capability::Promise<Box<ClientHook>, ::Error>>;
 
     /// Repeatedly calls whenMoreResolved() until it returns nullptr.
-    fn when_resolved(&self) -> ::capability::Promise<(), ::Error> {
+    #[cfg(feature = "rpc")]
+    fn when_resolved(&self) -> Box<::futures::Future<Item=(), Error=::Error>+ 'static> {
+        use futures::Future;
+
         match self.when_more_resolved() {
             Some(promise) => {
-                promise.then(|resolution|{
+                Box::new(promise.and_then(|resolution| {
                     resolution.when_resolved()
-                })
+                }))
             }
             None => {
-                Promise::ok(())
+                Box::new(::futures::future::ok(()))
             }
         }
     }
@@ -147,4 +150,3 @@ pub enum PipelineOp {
     Noop,
     GetPointerField(u16),
 }
-

@@ -27,32 +27,15 @@ use any_pointer;
 use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, ResultsHook};
 
 #[cfg(feature = "rpc")]
-pub type Promise<T,E> = ::gj::Promise<T,E>;
+use futures::Future;
+
+#[cfg(feature = "rpc")]
+pub type Promise<T,E> = Box<::futures::Future<Item=T,Error=E> + 'static>;
 
 /// This fake Promise struct is defined so that the generated code for interfaces
 /// can typecheck even if the "rpc" feature is not enabled.
 #[cfg(not(feature = "rpc"))]
 pub struct Promise<T,E>(::std::result::Result<T,E>);
-
-#[cfg(not(feature = "rpc"))]
-impl <T,E> Promise<T,E> {
-    pub fn ok(v: T) -> Promise<T,E> {
-        Promise(Ok(v))
-    }
-    pub fn err(e: E) -> Promise<T,E> {
-        Promise(Err(e))
-    }
-    pub fn map<F, R>(self, _func: F) -> Promise<R, E>
-        where F: FnOnce(T) -> Result<R, E>,
-    {
-        unimplemented!()
-    }
-    pub fn then<F, R>(self, _func: F) -> Promise<R, E>
-        where F: FnOnce(T) -> Promise<R, E>,
-    {
-        unimplemented!()
-    }
-}
 
 #[must_use]
 pub struct RemotePromise<Results> where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static {
@@ -104,10 +87,10 @@ where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static,
 {
     pub fn send(self) -> RemotePromise<Results> {
         let RemotePromise {promise, pipeline, ..} = self.hook.send();
-        let typed_promise = promise.map(|response| {
-            Ok(Response {hook: response.hook,
-                        marker: ::std::marker::PhantomData})
-        });
+        let typed_promise = Box::new(promise.map(|response| {
+            Response {hook: response.hook,
+                      marker: ::std::marker::PhantomData}
+        }));
         RemotePromise { promise: typed_promise,
                         pipeline: FromTypelessPipeline::new(pipeline)
                       }
@@ -185,6 +168,7 @@ impl Client {
     /// the capability promise is rejected).  This is mainly useful for error-checking in the case
     /// where no calls are being made.  There is no reason to wait for this before making calls; if
     /// the capability does not resolve, the call results will propagate the error.
+    #[cfg(feature = "rpc")]
     pub fn when_resolved(&self) -> Promise<(), ::Error> {
         self.hook.when_resolved()
     }

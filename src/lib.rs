@@ -40,7 +40,7 @@ extern crate byteorder;
 extern crate quickcheck;
 
 #[cfg(feature = "rpc")]
-extern crate gj;
+extern crate futures;
 
 /// Constructs a [`Word`](struct.Word.html) from its constituent bytes.
 /// This macro can be used to construct constants. In the future, when
@@ -281,13 +281,6 @@ impl ::std::error::Error for Error {
     }
     fn cause(&self) -> Option<&::std::error::Error> {
         None
-    }
-}
-
-#[cfg(feature = "rpc")]
-impl ::gj::FulfillerDropped for Error {
-    fn fulfiller_dropped() -> Error {
-        Error::failed("Promise fulfiller was dropped.".to_string())
     }
 }
 
