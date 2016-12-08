@@ -422,7 +422,7 @@ pub struct ConnectionState<VatId> where VatId: 'static {
 
     embargoes: RefCell<ExportTable<Embargo>>,
 
-    tasks: RefCell<Option<::gj::TaskSet<(), ::capnp::Error>>>,
+    tasks: RefCell<Option<::TaskSet<(), ::capnp::Error>>>,
     connection: RefCell<::std::result::Result<Box<::Connection<VatId>>, ::capnp::Error>>,
     disconnect_fulfiller: RefCell<Option<oneshot::Sender<Promise<(), Error>>>>,
 

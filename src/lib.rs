@@ -140,13 +140,6 @@ pub trait VatNetwork<VatId> {
     fn accept(&mut self) -> Promise<Box<Connection<VatId>>, ::capnp::Error>;
 }
 
-struct SystemTaskReaper;
-impl ::gj::TaskReaper<(), Error> for SystemTaskReaper {
-    fn task_failed(&mut self, error: Error) {
-        println!("ERROR: {}", error);
-    }
-}
-
 /// A portal to objects available on the network.
 ///
 /// The RPC implemententation sits on top of an implementation of `VatNetwork`, which
@@ -166,22 +159,29 @@ pub struct RpcSystem<VatId> where VatId: 'static {
     // to connection states.
     connection_state: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
 
-    tasks: Rc<RefCell<::gj::TaskSet<(), Error>>>,
+    spawner: tokio_core::reactor::Handle,
+    tasks: Rc<RefCell<TaskSet<(), Error>>>,
 }
 
 impl <VatId> RpcSystem <VatId> {
     /// Constructs a new `RpcSystem` with the given network and bootstrap capability.
-    pub fn new(network: Box<::VatNetwork<VatId>>,
-               bootstrap: Option<::capnp::capability::Client>) -> RpcSystem<VatId> {
+    pub fn new<S>(
+        network: Box<::VatNetwork<VatId>>,
+        bootstrap: Option<::capnp::capability::Client>,
+        spawner: tokio_core::reactor::Handle) -> RpcSystem<VatId>
+        where S: ::Spawn
+    {
         let bootstrap_cap = match bootstrap {
             Some(cap) => cap.hook,
             None => broken::new_cap(Error::failed("no bootstrap capabiity".to_string())),
         };
+        let tasks = TaskSet::new(Box::new(SystemTaskReaper), &spawner);
         let mut result = RpcSystem {
             network: network,
             bootstrap_cap: bootstrap_cap,
             connection_state: Rc::new(RefCell::new(None)),
-            tasks: Rc::new(RefCell::new(::gj::TaskSet::new(Box::new(SystemTaskReaper)))),
+            spawner: spawner,
+            tasks: Rc::new(RefCell::new(tasks)),
         };
         let accept_loop = result.accept_loop();
         result.tasks.borrow_mut().add(accept_loop);
@@ -298,5 +298,36 @@ impl <F> Future for ForkedPromise<F>
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
         unimplemented!()
+    }
+}
+
+
+struct TaskSet<T, E> {
+
+}
+
+impl<T, E> TaskSet<T, E> {
+    pub fn new(reaper: Box<TaskReaper<T, E>>, handle: &tokio_core::reactor::Handle)
+               -> TaskSet<T, E>
+    {
+        unimplemented!()
+    }
+
+    pub fn add(&mut self, promise: Promise<T, E>) {
+        unimplemented!()
+    }
+}
+
+
+trait TaskReaper<T, E> where T: 'static, E: 'static
+{
+    fn task_succeeded(&mut self, _value: T) {}
+    fn task_failed(&mut self, error: E);
+}
+
+struct SystemTaskReaper;
+impl TaskReaper<(), Error> for SystemTaskReaper {
+    fn task_failed(&mut self, error: Error) {
+        println!("ERROR: {}", error);
     }
 }
