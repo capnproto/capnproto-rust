@@ -24,6 +24,7 @@ use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
 
+use Promise;
 use futures::Future;
 
 use std::cell::RefCell;
@@ -71,11 +72,11 @@ type HeapMessage = ::capnp::message::Builder<::capnp::message::HeapAllocator>;
 
 struct Results {
     message: Option<HeapMessage>,
-    results_done_fulfiller: Option<PromiseFulfiller<Box<ResultsDoneHook>, Error>>,
+    results_done_fulfiller: Option<::futures::sync::oneshot::Sender<Box<ResultsDoneHook>>>,
 }
 
 impl Results {
-    fn new(fulfiller: PromiseFulfiller<Box<ResultsDoneHook>, Error>) -> Results {
+    fn new(fulfiller: ::futures::sync::oneshot::Sender<Box<ResultsDoneHook>>) -> Results {
         Results {
             message: Some(::capnp::message::Builder::new_default()),
             results_done_fulfiller: Some(fulfiller),
@@ -288,7 +289,7 @@ impl ClientHook for Client {
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>,
             results_done: Promise<Box<ResultsDoneHook>, Error>)
-        -> (::gj::Promise<(), Error>, Box<PipelineHook>)
+        -> (Promise<(), Error>, Box<PipelineHook>)
     {
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
@@ -329,7 +330,7 @@ impl ClientHook for Client {
         None
     }
 
-    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
+    fn when_more_resolved(&self) -> Option<Promise<Box<ClientHook>, Error>> {
         None
     }
 }
