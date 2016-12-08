@@ -124,7 +124,7 @@ impl ClientHook for Client {
             _results_done: Promise<Box<ResultsDoneHook>, Error>)
         -> (Promise<(), Error>, Box<PipelineHook>)
     {
-        (Promise::err(self.inner.error.clone()),
+        (Box::new(::futures::future::err(self.inner.error.clone())),
          Box::new(Pipeline::new(self.inner.error.clone())))
     }
 

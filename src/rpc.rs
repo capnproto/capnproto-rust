@@ -390,7 +390,7 @@ fn remote_exception_to_error(exception: ::rpc_capnp::exception::Reader) -> Error
     Error { description: format!("remote exception: {}", reason), kind: kind }
 }
 
-/*
+
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
     weak_state: ::std::rc::Weak<ConnectionState<VatId>>,
 }
@@ -401,7 +401,7 @@ impl <VatId> ConnectionErrorHandler<VatId> {
     }
 }
 
-impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<VatId> {
+impl <VatId> ::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<VatId> {
     fn task_failed(&mut self, error: ::capnp::Error) {
         match self.weak_state.upgrade() {
             Some(state) => state.disconnect(error),
@@ -409,7 +409,6 @@ impl <VatId> ::gj::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<Vat
         }
     }
 }
-*/
 
 pub struct ConnectionState<VatId> where VatId: 'static {
     bootstrap_cap: Box<ClientHook>,
@@ -430,11 +429,12 @@ pub struct ConnectionState<VatId> where VatId: 'static {
 }
 
 impl <VatId> ConnectionState<VatId> {
-    pub fn new(bootstrap_cap: Box<ClientHook>,
-           connection: Box<::Connection<VatId>>,
-           disconnect_fulfiller: oneshot::Sender<Promise<(), Error>>
-           )
-           -> Rc<ConnectionState<VatId>>
+    pub fn new(
+        bootstrap_cap: Box<ClientHook>,
+        connection: Box<::Connection<VatId>>,
+        disconnect_fulfiller: oneshot::Sender<Promise<(), Error>>,
+        spawner: ::tokio_core::reactor::Handle)
+        -> Rc<ConnectionState<VatId>>
     {
         let state = Rc::new(ConnectionState {
             bootstrap_cap: bootstrap_cap,
@@ -449,7 +449,7 @@ impl <VatId> ConnectionState<VatId> {
             disconnect_fulfiller: RefCell::new(Some(disconnect_fulfiller)),
             client_downcast_map: RefCell::new(HashMap::new()),
         });
-        let mut task_set = ::gj::TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))));
+        let mut task_set =::TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))), &spawner);
         task_set.add(ConnectionState::message_loop(Rc::downgrade(&state)));
         *state.tasks.borrow_mut() = Some(task_set);
         state

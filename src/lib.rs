@@ -66,6 +66,7 @@ extern crate tokio_core;
 extern crate capnp_futures;
 
 use futures::Future;
+use futures::sync::oneshot;
 use capnp::Error;
 use capnp::private::capability::{ClientHook, ServerHook};
 use std::cell::RefCell;
@@ -165,11 +166,10 @@ pub struct RpcSystem<VatId> where VatId: 'static {
 
 impl <VatId> RpcSystem <VatId> {
     /// Constructs a new `RpcSystem` with the given network and bootstrap capability.
-    pub fn new<S>(
+    pub fn new(
         network: Box<::VatNetwork<VatId>>,
         bootstrap: Option<::capnp::capability::Client>,
         spawner: tokio_core::reactor::Handle) -> RpcSystem<VatId>
-        where S: ::Spawn
     {
         let bootstrap_cap = match bootstrap {
             Some(cap) => cap.hook,
@@ -201,7 +201,7 @@ impl <VatId> RpcSystem <VatId> {
         let connection_state =
             RpcSystem::get_connection_state(self.connection_state.clone(),
                                             self.bootstrap_cap.clone(),
-                                            connection, self.tasks.clone());
+                                            connection, self.tasks.clone(), self.spawner.clone());
 
         let hook = rpc::ConnectionState::bootstrap(connection_state.clone());
         T::new(hook)
@@ -211,11 +211,13 @@ impl <VatId> RpcSystem <VatId> {
         let connection_state_ref = self.connection_state.clone();
         let tasks_ref = Rc::downgrade(&self.tasks);
         let bootstrap_cap = self.bootstrap_cap.clone();
+        let spawner = self.spawner.clone();
         self.network.accept().map(move |connection| {
             RpcSystem::get_connection_state(connection_state_ref,
                                             bootstrap_cap,
                                             connection,
-                                            tasks_ref.upgrade().expect("dangling reference to task set"));
+                                            tasks_ref.upgrade().expect("dangling reference to task set"),
+                                            spawner);
             Ok(())
         })
     }
@@ -223,7 +225,8 @@ impl <VatId> RpcSystem <VatId> {
     fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
                             bootstrap_cap: Box<ClientHook>,
                             connection: Box<::Connection<VatId>>,
-                            tasks: Rc<RefCell<::gj::TaskSet<(), Error>>>)
+                            tasks: Rc<RefCell<TaskSet<(), Error>>>,
+                            spawner: tokio_core::reactor::Handle)
                             -> Rc<rpc::ConnectionState<VatId>>
     {
 
@@ -234,13 +237,13 @@ impl <VatId> RpcSystem <VatId> {
                 return connection_state.clone()
             }
             &None => {
-                let (on_disconnect_promise, on_disconnect_fulfiller) = Promise::and_fulfiller();
+                let (on_disconnect_fulfiller, on_disconnect_promise) = oneshot::channel();
                 let connection_state_ref1 = connection_state_ref.clone();
                 tasks.borrow_mut().add(on_disconnect_promise.then(move |shutdown_promise| {
                     *connection_state_ref1.borrow_mut() = None;
                     shutdown_promise
                 }));
-                rpc::ConnectionState::new(bootstrap_cap, connection, on_disconnect_fulfiller)
+                rpc::ConnectionState::new(bootstrap_cap, connection, on_disconnect_fulfiller, spawner)
             }
         };
         *connection_state_ref.borrow_mut() = Some(result.clone());
@@ -271,7 +274,7 @@ impl ServerHook for Server {
 pub fn new_promise_client<T>(client_promise: Promise<::capnp::capability::Client, Error>) -> T
     where T: ::capnp::capability::FromClientHook
 {
-    T::new(Box::new(queued::Client::new(client_promise.map(|c| Ok(c.hook)))))
+    T::new(Box::new(queued::Client::new(Box::new(client_promise.map(|c| c.hook)))))
 }
 
 
@@ -303,7 +306,7 @@ impl <F> Future for ForkedPromise<F>
 
 
 struct TaskSet<T, E> {
-
+    a: (T,E), // XXX TODO
 }
 
 impl<T, E> TaskSet<T, E> {
@@ -313,7 +316,9 @@ impl<T, E> TaskSet<T, E> {
         unimplemented!()
     }
 
-    pub fn add(&mut self, promise: Promise<T, E>) {
+    pub fn add<F>(&mut self, promise: F)
+        where F: Future<Item=T, Error=E>
+    {
         unimplemented!()
     }
 }

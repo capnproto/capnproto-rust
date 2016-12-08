@@ -26,6 +26,7 @@ use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineO
 
 use Promise;
 use futures::Future;
+use futures::sync::oneshot;
 
 use std::cell::RefCell;
 use std::rc::{Rc};
@@ -87,7 +88,7 @@ impl Results {
 impl Drop for Results {
     fn drop(&mut self) {
         if let (Some(message), Some(fulfiller)) = (self.message.take(), self.results_done_fulfiller.take()) {
-            fulfiller.fulfill(Box::new(ResultsDone::new(message)));
+            fulfiller.complete(Box::new(ResultsDone::new(message)));
         } else {
             unreachable!()
         }
@@ -181,7 +182,7 @@ impl RequestHook for Request {
         let tmp = *self;
         let Request { message, interface_id, method_id, client } = tmp;
         let params = Params::new(message);
-        let (results_done_promise, results_done_fulfiller) = Promise::and_fulfiller();
+        let (results_done_fulfiller, results_done_promise) = oneshot::channel();
 
         let mut forked_results_done = results_done_promise.fork();
         let results = Results::new(results_done_fulfiller);
@@ -296,7 +297,7 @@ impl ClientHook for Client {
         // race conditions.
 
         let inner = self.inner.clone();
-        let promise = Promise::ok(()).then(move |()| {
+        let promise = ::futures::future::ok(()).and_then(move |()| {
             let server = &mut inner.borrow_mut().server;
             server.dispatch_call(interface_id, method_id,
                                  ::capnp::capability::Params::new(params),
