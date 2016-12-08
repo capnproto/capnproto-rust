@@ -120,7 +120,7 @@ impl <T, U> Connection<T, U> where T: ::std::io::Read, U: ::std::io::Write {
             inner: Rc::new(RefCell::new(
                 ConnectionInner {
                     input_stream: Rc::new(RefCell::new(Some(input_stream))),
-                    write_queue: Rc::new(RefCell::new(::gj::Promise::ok(output_stream))),
+                    write_queue: Rc::new(RefCell::new(Box::new(::futures::future::ok(output_stream)))),
                     side: side,
                     receive_options: receive_options,
                     on_disconnect_fulfiller: Some(on_disconnect_fulfiller),

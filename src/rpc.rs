@@ -34,7 +34,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 use rpc_capnp::{message, return_, cap_descriptor};
-use {broken, Promise};
+use {broken, Promise, ForkedPromise};
 
 /*
 struct Defer<F> where F: FnOnce() {
@@ -198,13 +198,13 @@ impl <VatId> QuestionRef<VatId> {
     }
     fn fulfill(&mut self, response: Promise<Response<VatId>, Error>) {
         if let Some(fulfiller) = self.fulfiller.take() {
-            fulfiller.fulfill(response);
+            fulfiller.complete(response);
         }
     }
 
     fn reject(&mut self, err: Error) {
         if let Some(fulfiller) = self.fulfiller.take() {
-            fulfiller.reject(err);
+            fulfiller.complete(Box::new(::futures::future::err(err)));
         }
     }
 }
@@ -615,7 +615,7 @@ impl <VatId> ConnectionState<VatId> {
         };
         let weak_state0 = weak_state.clone();
         let weak_state1 = weak_state.clone();
-        promise.map(move |message| {
+        Box::new(promise.and_then(move |message| {
             match message {
                 Some(m) => {
                     ConnectionState::handle_message(weak_state, m).map(|()| true)
@@ -626,13 +626,13 @@ impl <VatId> ConnectionState<VatId> {
                     Ok(false)
                 }
             }
-        }).then(move |keep_going| {
+        }).and_then(move |keep_going| {
             if keep_going {
                 ConnectionState::message_loop(weak_state1)
             } else {
-                ::gj::Promise::ok(())
+                Box::new(::futures::future::ok(()))
             }
-        })
+        }))
     }
 
     fn handle_message(weak_state: ::std::rc::Weak<ConnectionState<VatId>>,
@@ -1784,7 +1784,7 @@ enum PipelineVariant<VatId> where VatId: 'static {
 
 struct PipelineState<VatId> where VatId: 'static {
     variant: PipelineVariant<VatId>,
-    redirect_later: Option<RefCell<::gj::ForkedPromise<Response<VatId>, ::capnp::Error>>>,
+    redirect_later: Option<RefCell<ForkedPromise<Promise<Response<VatId>, ::capnp::Error>>>>,
     connection_state: Rc<ConnectionState<VatId>>,
 
     resolve_self_promise: Promise<(), Error>,
@@ -1797,7 +1797,7 @@ struct Pipeline<VatId> where VatId: 'static {
 impl <VatId> Pipeline<VatId> {
     fn new(connection_state: Rc<ConnectionState<VatId>>,
            question_ref: Rc<RefCell<QuestionRef<VatId>>>,
-           redirect_later: Option<::gj::Promise<Response<VatId>, ::capnp::Error>>)
+           redirect_later: Option<Promise<Response<VatId>, ::capnp::Error>>)
            -> Pipeline<VatId>
     {
         let state = Rc::new(RefCell::new(PipelineState {
@@ -1967,7 +1967,7 @@ impl <VatId> ResultsInner<VatId> where VatId: 'static {
 // This takes the place of both RpcCallContext and RpcServerResponse in capnproto-c++.
 pub struct Results<VatId> where VatId: 'static {
     inner: Option<ResultsInner<VatId>>,
-    results_done_fulfiller: Option<PromiseFulfiller<ResultsInner<VatId>, Error>>,
+    results_done_fulfiller: Option< oneshot::Sender<ResultsInner<VatId>>>,
 }
 
 
@@ -1975,7 +1975,7 @@ impl <VatId> Results<VatId> where VatId: 'static {
     fn new(connection_state: &Rc<ConnectionState<VatId>>,
            answer_id: AnswerId,
            redirect_results: bool,
-           fulfiller: PromiseFulfiller<ResultsInner<VatId>, Error>,
+           fulfiller: oneshot::Sender<ResultsInner<VatId>>,
            finish_received: Rc<Cell<bool>>,
            )
            -> Results<VatId>
@@ -2419,7 +2419,7 @@ struct PromiseClient<VatId> where VatId: 'static {
 impl <VatId> PromiseClient<VatId> {
     fn new(connection_state: &Rc<ConnectionState<VatId>>,
            initial: Box<ClientHook>,
-           eventual: ::gj::Promise<Box<ClientHook>, ::capnp::Error>,
+           eventual: Promise<Box<ClientHook>, ::capnp::Error>,
            import_id: Option<ImportId>) -> Rc<RefCell<PromiseClient<VatId>>> {
         let client = Rc::new(RefCell::new(PromiseClient {
             connection_state: connection_state.clone(),
