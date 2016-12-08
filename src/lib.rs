@@ -137,7 +137,7 @@ pub trait VatNetwork<VatId> {
     fn connect(&mut self, hostId: VatId) -> Option<Box<Connection<VatId>>>;
 
     /// Waits for the next incoming connection and return it.
-    fn accept(&mut self) -> ::gj::Promise<Box<Connection<VatId>>, ::capnp::Error>;
+    fn accept(&mut self) -> Promise<Box<Connection<VatId>>, ::capnp::Error>;
 }
 
 struct SystemTaskReaper;

@@ -424,7 +424,7 @@ pub struct ConnectionState<VatId> where VatId: 'static {
 
     tasks: RefCell<Option<::gj::TaskSet<(), ::capnp::Error>>>,
     connection: RefCell<::std::result::Result<Box<::Connection<VatId>>, ::capnp::Error>>,
-    disconnect_fulfiller: RefCell<Option<::gj::PromiseFulfiller<Promise<(), Error>, Error>>>,
+    disconnect_fulfiller: RefCell<Option<oneshot::Sender<Promise<(), Error>>>>,
 
     client_downcast_map: RefCell<HashMap<usize, WeakClient<VatId>>>,
 }
@@ -432,7 +432,7 @@ pub struct ConnectionState<VatId> where VatId: 'static {
 impl <VatId> ConnectionState<VatId> {
     pub fn new(bootstrap_cap: Box<ClientHook>,
            connection: Box<::Connection<VatId>>,
-           disconnect_fulfiller: ::gj::PromiseFulfiller<Promise<(), Error>, Error>
+           disconnect_fulfiller: oneshot::Sender<Promise<(), Error>>
            )
            -> Rc<ConnectionState<VatId>>
     {
@@ -607,10 +607,10 @@ impl <VatId> ConnectionState<VatId> {
         result
     }
 
-    fn message_loop(weak_state: ::std::rc::Weak<ConnectionState<VatId>>) -> ::gj::Promise<(), ::capnp::Error> {
+    fn message_loop(weak_state: ::std::rc::Weak<ConnectionState<VatId>>) -> Promise<(), ::capnp::Error> {
         let state = weak_state.upgrade().expect("dangling reference to connection state");
         let promise = match &mut *state.connection.borrow_mut() {
-            &mut Err(_) => return ::gj::Promise::ok(()),
+            &mut Err(_) => return Box::new(::futures::future::ok(())),
             &mut Ok(ref mut connection) => connection.receive_incoming_message(),
         };
         let weak_state0 = weak_state.clone();
@@ -1649,7 +1649,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
                      mut message: Box<::OutgoingMessage>,
                      mut cap_table: Vec<Option<Box<ClientHook>>>,
                      is_tail_call: bool)
-                     -> (Rc<RefCell<QuestionRef<VatId>>>, ::gj::Promise<Response<VatId>, Error>)
+                     -> (Rc<RefCell<QuestionRef<VatId>>>, Promise<Response<VatId>, Error>)
     {
         // Build the cap table.
         let exports = ConnectionState::write_descriptors(&connection_state, &mut cap_table,
@@ -1672,7 +1672,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         }
         let _ = message.send();
         // Make the result promise.
-        let (promise, fulfiller) = Promise::and_fulfiller();
+        let (fulfiller, promise) = oneshot::channel();
         let promise = promise.then(|response_promise| response_promise);
         let question_ref = Rc::new(RefCell::new(
             QuestionRef::new(connection_state.clone(), question_id, fulfiller)));
@@ -2411,8 +2411,8 @@ struct PromiseClient<VatId> where VatId: 'static {
     is_resolved: bool,
     cap: Box<ClientHook>,
     import_id: Option<ImportId>,
-    fork: ::gj::ForkedPromise<Box<ClientHook>, ::capnp::Error>,
-    resolve_self_promise: ::gj::Promise<(), ()>,
+    fork: ForkedPromise<Promise<Box<ClientHook>, ::capnp::Error>>,
+    resolve_self_promise: Promise<(), ()>,
     received_call: bool,
 }
 
@@ -2427,7 +2427,7 @@ impl <VatId> PromiseClient<VatId> {
             cap: initial,
             import_id: import_id,
             fork: eventual.fork(),
-            resolve_self_promise: ::gj::Promise::ok(()),
+            resolve_self_promise: Box::new(::futures::future::ok(())),
             received_call: false,
         }));
         let resolved = client.borrow_mut().fork.add_branch();

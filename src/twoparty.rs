@@ -23,18 +23,21 @@
 
 use capnp::message::ReaderOptions;
 use futures::Future;
+use futures::sync::oneshot;
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
+use {Promise, ForkedPromise};
+
 pub type VatId = ::rpc_twoparty_capnp::Side;
 
 struct IncomingMessage {
-    message: ::capnp::message::Reader<::capnp_gj::serialize::OwnedSegments>,
+    message: ::capnp::message::Reader<::capnp_futures::serialize::OwnedSegments>,
 }
 
 impl IncomingMessage {
-    pub fn new(message: ::capnp::message::Reader<::capnp_gj::serialize::OwnedSegments>) -> IncomingMessage {
+    pub fn new(message: ::capnp::message::Reader<::capnp_futures::serialize::OwnedSegments>) -> IncomingMessage {
         IncomingMessage { message: message }
     }
 }
@@ -45,12 +48,12 @@ impl ::IncomingMessage for IncomingMessage {
     }
 }
 
-struct OutgoingMessage<U> where U: ::gjio::AsyncWrite + 'static {
+struct OutgoingMessage<U> where U: ::std::io::Write + 'static {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    write_queue: Rc<RefCell<::gj::Promise<U, ::capnp::Error>>>,
+    write_queue: Rc<RefCell<Promise<U, ::capnp::Error>>>,
 }
 
-impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gjio::AsyncWrite {
+impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::std::io::Write {
     fn get_body<'a>(&'a mut self) -> ::capnp::Result<::capnp::any_pointer::Builder<'a>> {
         self.message.get_root()
     }
@@ -65,9 +68,9 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gjio::AsyncWrite {
         let tmp = *self;
         let OutgoingMessage {message, write_queue} = tmp;
         let queue = ::std::mem::replace(&mut *write_queue.borrow_mut(), Promise::never_done());
-        let (promise, fulfiller) = Promise::and_fulfiller();
+        let (fulfiller, promise) = oneshot::channel();
         *write_queue.borrow_mut() = queue.then(move |s| {
-            ::capnp_gj::serialize::write_message(s, message).map(move |(s, m)| {
+            ::capnp_futures::serialize::write_message(s, message).map(move |(s, m)| {
                 fulfiller.fulfill(m);
                 Ok(s)
             }).eagerly_evaluate()
@@ -82,19 +85,19 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::gjio::AsyncWrite {
     }
 }
 
-struct ConnectionInner<T, U> where T: ::gjio::AsyncRead + 'static, U: ::gjio::AsyncWrite + 'static {
+struct ConnectionInner<T, U> where T: ::std::io::Read + 'static, U: ::std::io::Write + 'static {
     input_stream: Rc<RefCell<Option<T>>>,
     write_queue: Rc<RefCell<Promise<U, ::capnp::Error>>>,
     side: ::rpc_twoparty_capnp::Side,
     receive_options: ReaderOptions,
-    on_disconnect_fulfiller: Option<PromiseFulfiller<(), ::capnp::Error>>,
+    on_disconnect_fulfiller: Option<oneshot::Sender<()>>,
 }
 
-struct Connection<T, U> where T: ::gjio::AsyncRead + 'static, U: ::gjio::AsyncWrite + 'static {
+struct Connection<T, U> where T: ::std::io::Read + 'static, U: ::std::io::Write + 'static {
     inner: Rc<RefCell<ConnectionInner<T, U>>>,
 }
 
-impl <T, U> Drop for ConnectionInner<T, U> where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite {
+impl <T, U> Drop for ConnectionInner<T, U> where T: ::std::io::Read, U: ::std::io::Write {
     fn drop(&mut self) {
         let maybe_fulfiller = ::std::mem::replace(&mut self.on_disconnect_fulfiller, None);
         match maybe_fulfiller {
@@ -106,12 +109,12 @@ impl <T, U> Drop for ConnectionInner<T, U> where T: ::gjio::AsyncRead, U: ::gjio
     }
 }
 
-impl <T, U> Connection<T, U> where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite {
+impl <T, U> Connection<T, U> where T: ::std::io::Read, U: ::std::io::Write {
     fn new(input_stream: T,
            output_stream: U,
            side: ::rpc_twoparty_capnp::Side,
            receive_options: ReaderOptions,
-           on_disconnect_fulfiller: PromiseFulfiller<(), ::capnp::Error>,
+           on_disconnect_fulfiller: oneshot::Sender<()>,
            ) -> Connection<T, U> {
         Connection {
             inner: Rc::new(RefCell::new(
@@ -127,7 +130,7 @@ impl <T, U> Connection<T, U> where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite {
 }
 
 impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
-    where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite
+    where T: ::std::io::Read, U: ::std::io::Write
 {
     fn get_peer_vat_id(&self) -> ::rpc_twoparty_capnp::Side {
         self.inner.borrow().side
@@ -146,7 +149,7 @@ impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
         let return_it_here = inner.input_stream.clone();
         match maybe_input_stream {
             Some(s) => {
-                ::capnp_gj::serialize::try_read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
+                ::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
                     *return_it_here.borrow_mut() = Some(s);
                     Ok(maybe_message.map(|message|
                                          Box::new(IncomingMessage::new(message)) as Box<::IncomingMessage>))
@@ -164,17 +167,17 @@ impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
 }
 
 /// A vat networks with two parties, the client and the server.
-pub struct VatNetwork<T, U> where T: ::gjio::AsyncRead + 'static, U: ::gjio::AsyncWrite + 'static {
-    connection: Option<Connection<T,U>>,
+pub struct VatNetwork<T, U> where T: ::std::io::Read + 'static, U: ::std::io::Write + 'static {
+    connection: Option<Connection<T, U>>,
 
     // HACK
     weak_connection_inner: Weak<RefCell<ConnectionInner<T, U>>>,
 
-    on_disconnect_promise: ForkedPromise<(), ::capnp::Error>,
+    on_disconnect_promise: ForkedPromise<Promise<(), ::capnp::Error>>,
     side: ::rpc_twoparty_capnp::Side,
 }
 
-impl <T, U> VatNetwork<T, U> where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite {
+impl <T, U> VatNetwork<T, U> where T: ::std::io::Read, U: ::std::io::Write {
     /// Creates a new two-party vat network that will receive data on `input_stream` and send data on
     /// `output_stream`. `side` indicates whether this is the client or the server side of the connection.
     /// The options in `receive_options` will be used when reading the messages that come in on `input_stream`.
@@ -183,7 +186,7 @@ impl <T, U> VatNetwork<T, U> where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite {
                side: ::rpc_twoparty_capnp::Side,
                receive_options: ReaderOptions) -> VatNetwork<T, U>
     {
-        let (promise, fulfiller) = Promise::and_fulfiller();
+        let (fulfiller, promise) = oneshot::channel();
         let connection = Connection::new(input_stream, output_stream, side, receive_options, fulfiller);
         let weak_inner = Rc::downgrade(&connection.inner);
         VatNetwork {
@@ -201,7 +204,7 @@ impl <T, U> VatNetwork<T, U> where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite {
 }
 
 impl <T, U> ::VatNetwork<VatId> for VatNetwork<T, U>
-    where T: ::gjio::AsyncRead, U: ::gjio::AsyncWrite
+    where T: ::std::io::Read, U: ::std::io::Write
 {
     fn connect(&mut self, host_id: VatId) -> Option<Box<::Connection<VatId>>> {
         if host_id == self.side {
@@ -228,8 +231,8 @@ impl <T, U> ::VatNetwork<VatId> for VatNetwork<T, U>
     fn accept(&mut self) -> Promise<Box<::Connection<VatId>>, ::capnp::Error> {
         let connection = ::std::mem::replace(&mut self.connection, None);
         match connection {
-            Some(c) => Promise::ok(Box::new(c) as Box<::Connection<VatId>>),
-            None => Promise::never_done(),
+            Some(c) => Box::new(::futures::future::ok(Box::new(c) as Box<::Connection<VatId>>)),
+            None => Box::new(::futures::future::empty()),
         }
     }
 }
