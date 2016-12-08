@@ -24,7 +24,7 @@ use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
 
-use gj::{Promise, PromiseFulfiller};
+use futures::Future;
 
 use std::vec::Vec;
 use std::collections::hash_map::HashMap;
@@ -2117,7 +2117,7 @@ impl ResultsDone {
                             Ok(ref mut connection) => {
                                 let mut message = connection.new_outgoing_message(50); // XXX size hint
                                 {
-                                    let root: message::Builder = pry!(pry!(message.get_body()).get_as());
+                                    let root: message::Builder = ftry!(ftry!(message.get_body()).get_as());
                                     let mut ret = root.init_return();
                                     ret.set_answer_id(answer_id);
                                     ret.set_release_param_caps(false);
@@ -2134,10 +2134,10 @@ impl ResultsDone {
                     }
                     (false, Ok(())) => {
                         let exports = {
-                            let root: message::Builder = pry!(pry!(message.get_body()).get_as());
-                            match pry!(root.which()) {
+                            let root: message::Builder = ftry!(ftry!(message.get_body()).get_as());
+                            match ftry!(root.which()) {
                                 message::Return(ret) => {
-                                    match pry!(pry!(ret).which()) {
+                                    match ftry!(ftry!(ret).which()) {
                                         ::rpc_capnp::return_::Results(Ok(payload)) => {
                                             ConnectionState::write_descriptors(&connection_state,
                                                                                &cap_table,
@@ -2167,7 +2167,7 @@ impl ResultsDone {
                             Ok(ref mut connection) => {
                                 let mut message = connection.new_outgoing_message(50); // XXX size hint
                                 {
-                                    let root: message::Builder = pry!(pry!(message.get_body()).get_as());
+                                    let root: message::Builder = ftry!(ftry!(message.get_body()).get_as());
                                     let mut ret = root.init_return();
                                     ret.set_answer_id(answer_id);
                                     ret.set_release_param_caps(false);

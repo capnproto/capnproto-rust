@@ -24,7 +24,8 @@ use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResultsHook, ResultsDoneHook};
 
-use gj::{Promise};
+use Promise;
+use futures::Future;
 
 use std::rc::{Rc};
 
@@ -73,7 +74,7 @@ impl RequestHook for Request {
     fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
         let pipeline = Pipeline::new(self.error.clone());
         ::capnp::capability::RemotePromise {
-            promise: Promise::err(self.error),
+            promise: Box::new(::futures::future::err(self.error)),
             pipeline: any_pointer::Pipeline::new(Box::new(pipeline)),
         }
     }
@@ -139,7 +140,7 @@ impl ClientHook for Client {
         None
     }
 
-    fn when_more_resolved(&self) -> Option<::gj::Promise<Box<ClientHook>, Error>> {
+    fn when_more_resolved(&self) -> Option<Promise<Box<ClientHook>, Error>> {
         None
     }
 }

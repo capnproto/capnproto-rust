@@ -24,7 +24,7 @@ use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
 
-use gj::{Promise, PromiseFulfiller};
+use futures::Future;
 
 use std::cell::RefCell;
 use std::rc::{Rc};

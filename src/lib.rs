@@ -60,13 +60,12 @@
 //! For a more complete example, see https://github.com/dwrensha/capnp-rpc-rust/tree/master/examples/calculator
 
 
-
 extern crate capnp;
 #[macro_use] extern crate futures;
 extern crate tokio_core;
 extern crate capnp_futures;
 
-use gj::Promise;
+use futures::Future;
 use capnp::Error;
 use capnp::private::capability::{ClientHook, ServerHook};
 use std::cell::RefCell;
@@ -84,11 +83,25 @@ pub mod rpc_twoparty_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_twoparty_capnp.rs"));
 }
 
+
+macro_rules! ftry {
+    ($expr:expr) => (
+        match $expr {
+            ::std::result::Result::Ok(val) => val,
+            ::std::result::Result::Err(err) => {
+                return Box::new(::futures::future::err(::std::convert::From::from(err)))
+            }
+        })
+}
+
 mod broken;
 mod local;
 mod queued;
 mod rpc;
 pub mod twoparty;
+
+// XXX migration from gj
+type Promise<T, E> = Box<Future<Item=T,Error=E> + 'static>;
 
 pub trait OutgoingMessage {
     fn get_body<'a>(&'a mut self) -> ::capnp::Result<::capnp::any_pointer::Builder<'a>>;

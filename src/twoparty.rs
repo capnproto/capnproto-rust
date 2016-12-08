@@ -22,7 +22,7 @@
 //! An implementation of `VatNetwork` for the common case of a client-server connection.
 
 use capnp::message::ReaderOptions;
-use gj::{ForkedPromise, Promise, PromiseFulfiller};
+use futures::Future;
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
