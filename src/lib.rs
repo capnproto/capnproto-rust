@@ -207,19 +207,19 @@ impl <VatId> RpcSystem <VatId> {
         T::new(hook)
     }
 
+    // not really a loop, because it doesn't need to be for the two party case
     fn accept_loop(&mut self) -> Promise<(), Error> {
         let connection_state_ref = self.connection_state.clone();
         let tasks_ref = Rc::downgrade(&self.tasks);
         let bootstrap_cap = self.bootstrap_cap.clone();
         let spawner = self.spawner.clone();
-        self.network.accept().map(move |connection| {
+        Box::new(self.network.accept().map(move |connection| {
             RpcSystem::get_connection_state(connection_state_ref,
                                             bootstrap_cap,
                                             connection,
                                             tasks_ref.upgrade().expect("dangling reference to task set"),
                                             spawner);
-            Ok(())
-        })
+        }))
     }
 
     fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
@@ -237,7 +237,8 @@ impl <VatId> RpcSystem <VatId> {
                 return connection_state.clone()
             }
             &None => {
-                let (on_disconnect_fulfiller, on_disconnect_promise) = oneshot::channel();
+                let (on_disconnect_fulfiller, on_disconnect_promise) =
+                    oneshot::channel::<Promise<(), Error>();
                 let connection_state_ref1 = connection_state_ref.clone();
                 tasks.borrow_mut().add(on_disconnect_promise.then(move |shutdown_promise| {
                     *connection_state_ref1.borrow_mut() = None;
@@ -291,6 +292,17 @@ enum ForkedPromiseState<T, E> {
 #[derive(Clone)]
 struct ForkedPromise<F> where F: Future {
     inner: Rc<RefCell<ForkedPromiseInner<F>>>,
+}
+
+impl ForkedPromise<F> where F: Future {
+    fn new(f: F) -> ForkedPromise<F> {
+        ForkedPromise {
+            inner: Rc::new(RefCell::new(ForkedPromiseInner {
+                original_future: f,
+                state: ForkedPromiseState::Waiting(Vec::new()),
+            }
+        }
+    }
 }
 
 impl <F> Future for ForkedPromise<F>

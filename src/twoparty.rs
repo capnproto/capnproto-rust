@@ -192,14 +192,14 @@ impl <T, U> VatNetwork<T, U> where T: ::std::io::Read, U: ::std::io::Write {
         VatNetwork {
             connection: Some(connection),
             weak_connection_inner: weak_inner,
-            on_disconnect_promise: promise.fork(),
+            on_disconnect_promise: ForkedPromise::new(promise),
             side: side,
         }
     }
 
     /// Returns a promise that resolves when the peer disconnects.
     pub fn on_disconnect(&mut self) -> Promise<(), ::capnp::Error> {
-        self.on_disconnect_promise.add_branch()
+        Box::new(self.on_disconnect_promise.clone())
     }
 }
 
