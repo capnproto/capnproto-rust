@@ -18,7 +18,11 @@ path = "src/lib.rs"
 capnpc = "0.7"
 
 [dependencies]
-gj = "0.2"
-gjio = "0.1"
+futures = "0.1"
+capnp-futures = "0.0.2"
+tokio-core = "0.1"
 capnp = {version = "0.7", features = ["rpc"]}
-capnp-gj = "0.2"
+
+[replace]
+"capnp:0.7.5" = { git = "https://github.com/dwrensha/capnproto-rust", branch = "futures" }
+"capnpc:0.7.5" = { git = "https://github.com/dwrensha/capnpc-rust", branch = "futures" }

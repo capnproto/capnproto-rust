@@ -62,9 +62,9 @@
 
 
 extern crate capnp;
-#[macro_use] extern crate gj;
-extern crate gjio;
-extern crate capnp_gj;
+#[macro_use] extern crate futures;
+extern crate tokio_core;
+extern crate capnp_futures;
 
 use gj::Promise;
 use capnp::Error;
