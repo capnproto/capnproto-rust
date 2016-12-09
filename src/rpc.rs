@@ -324,7 +324,7 @@ pub struct Import<VatId> where VatId: 'static {
     app_client: Option<WeakClient<VatId>>,
 
     // If non-null, the import is a promise.
-    promise_fulfiller: Option<oneshot::Sender<Box<ClientHook>>>,
+    promise_fulfiller: Option<oneshot::Sender<Result<Box<ClientHook>, Error>>>,
 }
 
 impl <VatId> Import<VatId> {
@@ -338,11 +338,11 @@ impl <VatId> Import<VatId> {
 }
 
 struct Embargo {
-    fulfiller: Option<oneshot::Sender<()>>,
+    fulfiller: Option<oneshot::Sender<Result<(), Error>>>,
 }
 
 impl Embargo {
-    fn new(fulfiller: oneshot::Sender<()>) -> Embargo {
+    fn new(fulfiller: oneshot::Sender<Result<(), Error>>) -> Embargo {
         Embargo { fulfiller: Some(fulfiller) }
     }
 }
@@ -507,7 +507,7 @@ impl <VatId> ConnectionState<VatId> {
             let ref mut import_slots = self.imports.borrow_mut().slots;
             for (_, ref mut import) in import_slots.iter_mut() {
                 if let Some(f) = import.promise_fulfiller.take() {
-                    f.reject(error.clone());
+                    f.complete(Err(error.clone()));
                 }
             }
         }
@@ -516,7 +516,7 @@ impl <VatId> ConnectionState<VatId> {
         for idx in 0..len {
             if let &mut Some(ref mut emb) = &mut self.embargoes.borrow_mut().slots[idx] {
                 if let Some(f) = emb.fulfiller.take() {
-                    f.reject(error.clone());
+                    f.complete(Err(error.clone()));
                 }
             }
         }
@@ -543,7 +543,7 @@ impl <VatId> ConnectionState<VatId> {
 
         match connection {
             Ok(mut c) => {
-                let promise = c.shutdown().map_else(|r| match r {
+                let promise = c.shutdown().then(|r| match r {
                     Ok(()) => Ok(()),
                     Err(e) => {
                         if e.kind != ::capnp::ErrorKind::Disconnected {
@@ -558,7 +558,7 @@ impl <VatId> ConnectionState<VatId> {
                 match maybe_fulfiller {
                     None => unreachable!(),
                     Some(fulfiller) => {
-                        fulfiller.fulfill(promise.attach(c));
+                        fulfiller.complete(Box::new(promise.attach(c)));
                     }
                 }
             }
@@ -580,8 +580,9 @@ impl <VatId> ConnectionState<VatId> {
     pub fn bootstrap(state: Rc<ConnectionState<VatId>>) -> Box<ClientHook> {
         let question_id = state.questions.borrow_mut().push(Question::new());
 
-        let (promise, fulfiller) = Promise::and_fulfiller();
-        let promise = promise.then(|response_promise| response_promise );
+        let (fulfiller, promise) = oneshot::channel();
+        let promise = promise.map_err(|e| e.into());
+        let promise = promise.and_then(|response_promise| response_promise );
         let question_ref = Rc::new(RefCell::new(QuestionRef::new(state.clone(), question_id, fulfiller)));
         let promise = promise.attach(question_ref.clone());
         match &mut state.questions.borrow_mut().slots[question_id as usize] {
@@ -602,7 +603,7 @@ impl <VatId> ConnectionState<VatId> {
             &mut Err(_) => panic!(),
         }
 
-        let pipeline = Pipeline::new(state, question_ref, Some(promise));
+        let pipeline = Pipeline::new(state, question_ref, Some(Box::new(promise)));
         let result = pipeline.get_pipelined_cap_move(Vec::new());
         result
     }
@@ -883,14 +884,7 @@ impl <VatId> ConnectionState<VatId> {
                     if let Some(ref mut import) = slots.get_mut(&resolve.get_promise_id()) {
                         match import.promise_fulfiller.take() {
                             Some(fulfiller) => {
-                                match replacement_or_error {
-                                    Ok(r) => {
-                                        fulfiller.complete(r);
-                                    }
-                                    Err(e) => {
-                                        fulfiller.reject(e);
-                                    }
-                                }
+                                fulfiller.complete(replacement_or_error);
                             }
                             None => {
                                 return Err(Error::failed(
@@ -929,7 +923,7 @@ impl <VatId> ConnectionState<VatId> {
 
                             let connection_state_ref = connection_state.clone();
                             let connection_state_ref1 = connection_state.clone();
-                            let task = Promise::ok(()).map(move |()| {
+                            let task = ::futures::future::ok(()).and_then(move |()| {
                                 if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
                                     let mut message = c.new_outgoing_message(100); // TODO estimate size
                                     {
@@ -953,7 +947,7 @@ impl <VatId> ConnectionState<VatId> {
                                 }
                                 Ok(())
                             });
-                            connection_state.add_task(task);
+                            connection_state.add_task(Box::new(task));
                             BorrowWorkaround::Done
                         }
                         ::rpc_capnp::disembargo::context::ReceiverLoopback(embargo_id) => {
@@ -961,7 +955,7 @@ impl <VatId> ConnectionState<VatId> {
                                 connection_state.embargoes.borrow_mut().find(embargo_id)
                             {
                                 let fulfiller = embargo.fulfiller.take().unwrap();
-                                fulfiller.complete(());
+                                fulfiller.complete(Ok(()));
                             } else {
                                 return Err(
                                     Error::failed(
@@ -1025,15 +1019,19 @@ impl <VatId> ConnectionState<VatId> {
 
                 let (redirected_results_done_promise, redirected_results_done_fulfiller) =
                     if redirect_results {
-                        let (p, f) = Promise::and_fulfiller();
+                        let (f, p) = oneshot::channel();
+                        let p = p.map_err(|e| e.into());
                         (Some(p), Some(f))
                     } else {
                         (None, None)
                     };
 
                 let (call_succeeded_fulfiller, call_succeeded_promise) = oneshot::channel::<Result<(), Error>>();
+                let call_succeeded_promise = call_succeeded_promise.map_err(|e| e.into()).and_then(|x| x);
 
-                let (box_results_done_promise, box_results_done_fulfiller) = Promise::and_fulfiller();
+                let (box_results_done_fulfiller, box_results_done_promise) =
+                    oneshot::channel::<Result<Box<ResultsDoneHook>, Error>>();
+                let box_results_done_promise = box_results_done_promise.map_err(|e| e.into()).and_then(|x| x);
                 connection_state.add_task(results_inner_promise.and_then(move |results_inner| {
                     call_succeeded_promise.and_then(move |v| {
                         ResultsDone::from_results_inner(results_inner, v)
@@ -1043,17 +1041,14 @@ impl <VatId> ConnectionState<VatId> {
                         Some(f) => {
                             match v {
                                 Ok(ref r) =>
-                                    f.fulfill(Response::redirected(r.clone())),
+                                    f.complete(Ok(Response::redirected(r.clone()))),
                                 Err(ref e) =>
-                                    f.reject(e.clone()),
+                                    f.complete(Err(e.clone())),
                                 }
                         }
                         None => (),
                     }
-                    match v {
-                        Ok(x) => box_results_done_fulfiller.fulfill(x),
-                        Err(e) => box_results_done_fulfiller.reject(e),
-                    }
+                    box_results_done_fulfiller.complete(v);
                     Ok(())
                 }));
 
@@ -1068,7 +1063,7 @@ impl <VatId> ConnectionState<VatId> {
 
                 let (promise, pipeline) = capability.call(interface_id, method_id,
                                                           Box::new(params), Box::new(results),
-                                                          box_results_done_promise);
+                                                          Box::new(box_results_done_promise));
 
                 let promise = promise.then(move |result| {
                     call_succeeded_fulfiller.complete(result);
