@@ -65,7 +65,7 @@ extern crate capnp;
 extern crate tokio_core;
 extern crate capnp_futures;
 
-use futures::Future;
+use futures::{Future, Stream};
 use futures::sync::oneshot;
 use capnp::Error;
 use capnp::private::capability::{ClientHook, ServerHook};
@@ -328,20 +328,38 @@ impl <F> Future for ForkedPromise<F>
 
 
 struct TaskSet<T, E> {
-    a: (T,E), // XXX TODO
+    sender: ::futures::sync::mpsc::UnboundedSender<Box<Future<Item=T,Error=E>>>,
+    canceler: ::futures::sync::oneshot::Sender<()>,
 }
 
 impl<T, E> TaskSet<T, E> {
     pub fn new(reaper: Box<TaskReaper<T, E>>, handle: &tokio_core::reactor::Handle)
                -> TaskSet<T, E>
+        where E: 'static, T: 'static, E: ::std::fmt::Debug,
     {
-        unimplemented!()
+        let (tx, rx) = ::futures::sync::mpsc::unbounded::<Box<Future<Item=T,Error=E>>>();
+        let stream = rx.map_err(|()| unreachable!())
+            .buffer_unordered(1000); // XXX hack that should basically work in small cases.
+
+        let (fulfiller, dropped) = oneshot::channel::<()>();
+        let dropped = dropped.map_err(|_| ());
+
+
+        let f = dropped.join(
+            stream.for_each(|_t| Ok(()) ).map_err(|e| { println!("error {:?}", e); ()})).map(|_|());
+
+        handle.spawn(f);
+
+        TaskSet {
+            sender: tx,
+            canceler: fulfiller,
+        }
     }
 
     pub fn add<F>(&mut self, promise: F)
-        where F: Future<Item=T, Error=E>
+        where F: Future<Item=T, Error=E> + 'static
     {
-        unimplemented!()
+        self.sender.send(Box::new(promise)).unwrap();
     }
 }
 

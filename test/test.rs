@@ -32,6 +32,8 @@ extern crate mio_uds;
 use capnp::Error;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
+use futures::Future;
+
 use tokio_core::reactor;
 use tokio_core::io::Io;
 
@@ -62,8 +64,6 @@ fn drop_rpc_system() {
     let rpc_system = RpcSystem::new(network, None, handle);
     drop(rpc_system);
 //        try!(Promise::<(),Error>::ok(()).wait(wait_scope, &mut event_port));
- //       Ok(())
- //   }).expect("top level error");
 }
 
 /*
