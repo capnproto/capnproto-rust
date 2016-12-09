@@ -1013,6 +1013,7 @@ impl <VatId> ConnectionState<VatId> {
                 let answer = Answer::new();
 
                 let (results_inner_fulfiller, results_inner_promise) = oneshot::channel();
+                let results_inner_promise = results_inner_promise.map_err(|e| e.into());
                 let results = Results::new(&connection_state, question_id, redirect_results,
                                            results_inner_fulfiller, answer.received_finish.clone());
 
@@ -1021,18 +1022,18 @@ impl <VatId> ConnectionState<VatId> {
                     if redirect_results {
                         let (f, p) = oneshot::channel();
                         let p = p.map_err(|e| e.into());
-                        (Some(p), Some(f))
+                        (Some(Box::new(p) as Box<Future<Item=Response<VatId>,Error=Error>>), Some(f))
                     } else {
                         (None, None)
                     };
 
                 let (call_succeeded_fulfiller, call_succeeded_promise) = oneshot::channel::<Result<(), Error>>();
-                let call_succeeded_promise = call_succeeded_promise.map_err(|e| e.into()).and_then(|x| x);
+                let call_succeeded_promise = call_succeeded_promise.map_err(|e| e.into());
 
                 let (box_results_done_fulfiller, box_results_done_promise) =
                     oneshot::channel::<Result<Box<ResultsDoneHook>, Error>>();
                 let box_results_done_promise = box_results_done_promise.map_err(|e| e.into()).and_then(|x| x);
-                connection_state.add_task(results_inner_promise.and_then(move |results_inner| {
+                connection_state.add_task(Box::new(results_inner_promise.and_then(move |results_inner| {
                     call_succeeded_promise.and_then(move |v| {
                         ResultsDone::from_results_inner(results_inner, v)
                     })
@@ -1050,7 +1051,7 @@ impl <VatId> ConnectionState<VatId> {
                     }
                     box_results_done_fulfiller.complete(v);
                     Ok(())
-                }));
+                })));
 
                 {
                     let ref mut slots = connection_state.answers.borrow_mut().slots;
@@ -2454,6 +2455,7 @@ impl <VatId> PromiseClient<VatId> {
             // a `Disembargo` to echo through the peer.
 
             let (fulfiller, promise) = oneshot::channel();
+            let promise = promise.map_err(|e| e.into()).and_then(|v| v);
             let embargo = Embargo::new(fulfiller);
             let embargo_id = connection_state.embargoes.borrow_mut().push(embargo);
 
@@ -2472,9 +2474,9 @@ impl <VatId> PromiseClient<VatId> {
             }
 
             // Make a promise which resolves to `replacement` as soon as the `Disembargo` comes back.
-            let embargo_promise = promise.map(move |()| {
-                replacement
-            }).map_err(|e| e.into());
+            let embargo_promise = promise.and_then(move |()| {
+                Ok(replacement)
+            });
 
             // We need to queue up calls in the meantime, so we'll resolve ourselves to a local promise
             // client instead.
