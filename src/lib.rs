@@ -238,7 +238,7 @@ impl <VatId> RpcSystem <VatId> {
             }
             &None => {
                 let (on_disconnect_fulfiller, on_disconnect_promise) =
-                    oneshot::channel::<Promise<(), Error>();
+                    oneshot::channel::<Promise<(), Error>>();
                 let connection_state_ref1 = connection_state_ref.clone();
                 tasks.borrow_mut().add(on_disconnect_promise.then(move |shutdown_promise| {
                     *connection_state_ref1.borrow_mut() = None;
@@ -294,13 +294,13 @@ struct ForkedPromise<F> where F: Future {
     inner: Rc<RefCell<ForkedPromiseInner<F>>>,
 }
 
-impl ForkedPromise<F> where F: Future {
+impl <F> ForkedPromise<F> where F: Future {
     fn new(f: F) -> ForkedPromise<F> {
         ForkedPromise {
             inner: Rc::new(RefCell::new(ForkedPromiseInner {
                 original_future: f,
                 state: ForkedPromiseState::Waiting(Vec::new()),
-            }
+            }))
         }
     }
 }
