@@ -182,7 +182,8 @@ impl RequestHook for Request {
         let tmp = *self;
         let Request { message, interface_id, method_id, client } = tmp;
         let params = Params::new(message);
-        let (results_done_fulfiller, results_done_promise) = oneshot::channel();
+        let (results_done_fulfiller, results_done_promise) = oneshot::channel::<Box<ResultsDoneHook>>();
+        let results_done_promise = results_done_promise.map_err(|e| e.into());
 
         let mut forked_results_done = ForkedPromise::new(results_done_promise);
         let results = Results::new(results_done_fulfiller);
@@ -194,19 +195,19 @@ impl RequestHook for Request {
         let results_done_branch2 = forked_results_done.clone();
 
         // Fork so that dropping just the returned promise doesn't cancel the call.
-        let mut forked = promise.fork();
+        let mut forked = ForkedPromise::new(promise);
 
-        let promise = forked.add_branch().then(move |()| {
-            results_done_branch2.map(|results_done_hook| {
+        let promise = forked.clone().and_then(move |()| {
+            results_done_branch2.and_then(|results_done_hook| {
                 Ok(::capnp::capability::Response::new(Box::new(Response::new(results_done_hook))))
             })
         });
 
-        let pipeline_promise = forked.add_branch().map(move |_| Ok(pipeline));
+        let pipeline_promise = Box::new(forked.clone().map(move |_| pipeline));
         let pipeline = any_pointer::Pipeline::new(Box::new(::queued::Pipeline::new(pipeline_promise)));
 
         ::capnp::capability::RemotePromise {
-            promise: promise,
+            promise: Box::new(promise),
             pipeline: pipeline,
         }
     }
@@ -304,19 +305,19 @@ impl ClientHook for Client {
                                  ::capnp::capability::Results::new(results))
         }).attach(self.add_ref());
 
-        let mut forked = promise.fork();
+        let mut forked = ForkedPromise::new(promise);
 
-        let branch = forked.add_branch();
-        let pipeline_promise = results_done.then(move |results_done_hook| {
+        let branch = forked.clone();
+        let pipeline_promise = results_done.and_then(move |results_done_hook| {
             branch.map(move |()| {
-                Ok(Box::new(Pipeline::new(results_done_hook)) as Box<PipelineHook>)
+                Box::new(Pipeline::new(results_done_hook)) as Box<PipelineHook>
             })
         });
 
-        let pipeline = Box::new(::queued::Pipeline::new(pipeline_promise));
-        let completion_promise = forked.add_branch();
+        let pipeline = Box::new(::queued::Pipeline::new(Box::new(pipeline_promise)));
+        let completion_promise = forked;
 
-        (completion_promise, pipeline)
+        (Box::new(completion_promise), pipeline)
     }
 
     fn get_ptr(&self) -> usize {

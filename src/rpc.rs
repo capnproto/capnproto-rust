@@ -1018,7 +1018,7 @@ impl <VatId> ConnectionState<VatId> {
 
                 let answer = Answer::new();
 
-                let (results_inner_promise, results_inner_fulfiller) = Promise::and_fulfiller();
+                let (results_inner_fulfiller, results_inner_promise) = oneshot::channel();
                 let results = Results::new(&connection_state, question_id, redirect_results,
                                            results_inner_fulfiller, answer.received_finish.clone());
 
@@ -1031,15 +1031,14 @@ impl <VatId> ConnectionState<VatId> {
                         (None, None)
                     };
 
-                let (call_succeeded_promise, call_succeeded_fulfiller) = Promise::and_fulfiller();
-
+                let (call_succeeded_fulfiller, call_succeeded_promise) = oneshot::channel::<Result<(), Error>>();
 
                 let (box_results_done_promise, box_results_done_fulfiller) = Promise::and_fulfiller();
-                connection_state.add_task(results_inner_promise.then(move |results_inner| {
-                    call_succeeded_promise.then_else(move |v| {
+                connection_state.add_task(results_inner_promise.and_then(move |results_inner| {
+                    call_succeeded_promise.and_then(move |v| {
                         ResultsDone::from_results_inner(results_inner, v)
                     })
-                }).map_else(move |v| {
+                }).then(move |v| {
                     match redirected_results_done_fulfiller {
                         Some(f) => {
                             match v {
@@ -1071,15 +1070,9 @@ impl <VatId> ConnectionState<VatId> {
                                                           Box::new(params), Box::new(results),
                                                           box_results_done_promise);
 
-                let promise = promise.map_else(move |result| match result {
-                    Ok(()) => {
-                        call_succeeded_fulfiller.fulfill(());
-                        Ok(())
-                    }
-                    Err(e) => {
-                        call_succeeded_fulfiller.reject(e.clone());
-                        Ok(())
-                    }
+                let promise = promise.then(move |result| {
+                    call_succeeded_fulfiller.complete(result);
+                    Ok(())
                 });
 
                 {
@@ -1092,7 +1085,7 @@ impl <VatId> ConnectionState<VatId> {
                                 // More to do here?
 
                             } else {
-                                answer.call_completion_promise = Some(promise.map(|_| Ok(())).eagerly_evaluate());
+                                answer.call_completion_promise = Some(Box::new(promise));
                             }
                         }
                         None => unreachable!()
@@ -1267,7 +1260,7 @@ impl <VatId> ConnectionState<VatId> {
                                 -> Promise<(), Error>
     {
         let weak_connection_state = Rc::downgrade(state);
-        promise.map_else(move |resolution_result| {
+        Box::new(promise.then(move |resolution_result| {
             let connection_state = weak_connection_state.upgrade().expect("dangling connection state?");
 
             match resolution_result {
@@ -1327,7 +1320,7 @@ impl <VatId> ConnectionState<VatId> {
                     Ok(())
                 }
             }
-        }).eagerly_evaluate()
+        }))
     }
 
     fn write_descriptor(state: &Rc<ConnectionState<VatId>>,
@@ -1450,9 +1443,9 @@ impl <VatId> ConnectionState<VatId> {
                             let client: Box<Client<VatId>> = Box::new(import_client.into());
                             let client: Box<ClientHook> = client;
                             // Make sure the import is not destroyed while this promise exists.
-                            let promise = promise.attach(client.add_ref());
+                            let promise = promise.attach(client.add_ref()).map_err(|e| e.into());
 
-                            let client = PromiseClient::new(&connection_state, client, promise,
+                            let client = PromiseClient::new(&connection_state, client, Box::new(promise),
                                                             Some(import_id));
                             let client: Box<Client<VatId>> = Box::new(client.into());
                             import.app_client = Some(client.downgrade());
@@ -1685,8 +1678,9 @@ impl <VatId> Request<VatId> where VatId: 'static {
         }
 
         let promise = promise.attach(question_ref.clone());
+        let promise1 = Box::new(promise.map_err(|e| e.into())) as Box<Future<Item=Response<VatId>, Error=Error>>;
 
-        (question_ref, promise)
+        (question_ref, promise1)
     }
 }
 
@@ -1722,11 +1716,11 @@ impl <VatId> RequestHook for Request<VatId> {
             None => {
                 let (question_ref, promise) =
                     Request::send_internal(connection_state.clone(), message, cap_table, false);
-                let mut forked_promise = promise.fork();
+                let mut forked_promise = ForkedPromise::new(promise);
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
                 let pipeline = Pipeline::new(connection_state, question_ref,
-                                             Some(forked_promise.add_branch()));
+                                             Some(Box::new(forked_promise.clone())));
 
                 let app_promise = Box::new(forked_promise.clone().map(|response| {
                     ::capnp::capability::Response::new(Box::new(response))
