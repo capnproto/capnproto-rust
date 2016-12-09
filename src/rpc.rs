@@ -1866,8 +1866,8 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                 match *redirect_later {
                     Some(ref r) => {
                         let resolution_promise = Box::new(r.borrow_mut().clone().and_then(move |response| {
-                           Ok(try!(response.get()).get_pipelined_cap(&ops))
-                        })) as Box<Future<Item=Box<ClientHook>, Error=Error>;
+                           try!(response.get()).get_pipelined_cap(&ops)
+                        })) as Box<Future<Item=Box<ClientHook>, Error=Error>>;
 
                         let client: Client<VatId> = pipeline_client.into();
                         let promise_client = PromiseClient::new(&connection_state,
