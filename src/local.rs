@@ -24,7 +24,7 @@ use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
 
-use {Promise, ForkedPromise};
+use {Promise, ForkedPromise, Attach};
 use futures::Future;
 use futures::sync::oneshot;
 

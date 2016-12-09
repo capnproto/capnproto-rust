@@ -34,7 +34,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 use rpc_capnp::{message, return_, cap_descriptor};
-use {broken, Promise, ForkedPromise};
+use {broken, Promise, ForkedPromise, Attach};
 
 /*
 struct Defer<F> where F: FnOnce() {
@@ -1728,11 +1728,11 @@ impl <VatId> RequestHook for Request<VatId> {
                 let pipeline = Pipeline::new(connection_state, question_ref,
                                              Some(forked_promise.add_branch()));
 
-                let app_promise = forked_promise.add_branch().map(|response| {
-                    Ok(::capnp::capability::Response::new(Box::new(response)))
-                });
+                let app_promise = Box::new(forked_promise.clone().map(|response| {
+                    ::capnp::capability::Response::new(Box::new(response))
+                })) as Promise<::capnp::capability::Response<any_pointer::Owned>, Error>;
                 ::capnp::capability::RemotePromise {
-                    promise: app_promise,
+                    promise: Box::new(app_promise),
                     pipeline: any_pointer::Pipeline::new(Box::new(pipeline))
                 }
             }
@@ -1772,7 +1772,7 @@ impl <VatId> RequestHook for Request<VatId> {
         let question_id = question_ref.borrow().id;
         let pipeline = Pipeline::never_done(connection_state, question_ref);
 
-        Some((question_id, promise, Box::new(pipeline)))
+        Some((question_id, Box::new(promise), Box::new(pipeline)))
     }
 }
 
@@ -1804,14 +1804,14 @@ impl <VatId> Pipeline<VatId> {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state: connection_state,
             redirect_later: None,
-            resolve_self_promise: Promise::never_done(),
+            resolve_self_promise: Box::new(::futures::future::empty()),
         }));
         match redirect_later {
             Some(redirect_later_promise) => {
-                let mut fork = redirect_later_promise.fork();
+                let mut fork = ForkedPromise::new(redirect_later_promise);
 
                 let this = Rc::downgrade(&state);
-                let resolve_self_promise = fork.add_branch().map_else(move |response| {
+                let resolve_self_promise = Box::new(fork.clone().then(move |response| {
                     let state = this.upgrade().expect("dangling reference to this");
                     let new_variant = match response {
                         Ok(r) =>  PipelineVariant::Resolved(r),
@@ -1819,7 +1819,7 @@ impl <VatId> Pipeline<VatId> {
                     };
                     let _old_variant = ::std::mem::replace(&mut state.borrow_mut().variant, new_variant);
                     Ok(())
-                }).eagerly_evaluate();
+                })) as Promise<(), Error>;
 
                 state.borrow_mut().resolve_self_promise = resolve_self_promise;
                 state.borrow_mut().redirect_later = Some(RefCell::new(fork));
@@ -1865,9 +1865,10 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
 
                 match *redirect_later {
                     Some(ref r) => {
-                        let resolution_promise = r.borrow_mut().add_branch().map(move |response| {
-                           try!(response.get()).get_pipelined_cap(&ops)
-                        });
+                        let resolution_promise = Box::new(r.borrow_mut().clone().and_then(move |response| {
+                           Ok(try!(response.get()).get_pipelined_cap(&ops))
+                        })) as Box<Future<Item=Box<ClientHook>, Error=Error>;
+
                         let client: Client<VatId> = pipeline_client.into();
                         let promise_client = PromiseClient::new(&connection_state,
                                                                 Box::new(client),

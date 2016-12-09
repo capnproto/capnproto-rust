@@ -358,3 +358,32 @@ impl TaskReaper<(), Error> for SystemTaskReaper {
         println!("ERROR: {}", error);
     }
 }
+
+struct AttachFuture<F, T> where F: Future {
+    original_future: F,
+    value: Option<T>,
+}
+
+impl <F, T> Future for AttachFuture<F, T>
+    where F: Future,
+{
+    type Item = F::Item;
+    type Error = F::Error;
+
+    fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
+        unimplemented!()
+    }
+}
+
+trait Attach : Future {
+    fn attach<T>(self, value: T) -> AttachFuture<Self, T>
+        where Self: Sized
+    {
+        AttachFuture {
+            original_future: self,
+            value: Some(value),
+        }
+    }
+}
+
+impl <F> Attach for F where F: Future {}
