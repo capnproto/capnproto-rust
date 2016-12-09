@@ -309,7 +309,7 @@ impl Export {
         Export {
             refcount: 1,
             client_hook: client_hook,
-            resolve_op: Promise::err(Error::failed("no resolve op".to_string())),
+            resolve_op: Box::new(::futures::future::err(Error::failed("no resolve op".to_string()))),
         }
     }
 }
@@ -885,7 +885,7 @@ impl <VatId> ConnectionState<VatId> {
                             Some(fulfiller) => {
                                 match replacement_or_error {
                                     Ok(r) => {
-                                        fulfiller.fulfill(r);
+                                        fulfiller.complete(r);
                                     }
                                     Err(e) => {
                                         fulfiller.reject(e);
@@ -961,7 +961,7 @@ impl <VatId> ConnectionState<VatId> {
                                 connection_state.embargoes.borrow_mut().find(embargo_id)
                             {
                                 let fulfiller = embargo.fulfiller.take().unwrap();
-                                fulfiller.fulfill(());
+                                fulfiller.complete(());
                             } else {
                                 return Err(
                                     Error::failed(
@@ -1103,7 +1103,7 @@ impl <VatId> ConnectionState<VatId> {
                 let response = Response::new(connection_state,
                                              question_ref.clone(),
                                              message, cap_table);
-                question_ref.borrow_mut().fulfill(Promise::ok(response));
+                question_ref.borrow_mut().fulfill(Box::new(::futures::future::ok(response)));
             }
             BorrowWorkaround::EraseQuestion(question_id) => {
                 connection_state.questions.borrow_mut().erase(question_id);
@@ -1445,7 +1445,7 @@ impl <VatId> ConnectionState<VatId> {
                         }
                         None => {
                             // Create a promise for this import's resolution.
-                            let (promise, fulfiller) = Promise::and_fulfiller();
+                            let (fulfiller, promise) = oneshot::channel();
                             import.promise_fulfiller = Some(fulfiller);
                             let client: Box<Client<VatId>> = Box::new(import_client.into());
                             let client: Box<ClientHook> = client;
@@ -1837,7 +1837,7 @@ impl <VatId> Pipeline<VatId> {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state: connection_state,
             redirect_later: None,
-            resolve_self_promise: Promise::never_done(),
+            resolve_self_promise: Box::new(::futures::future::empty()),
         }));
 
         Pipeline { state: state }
@@ -1997,7 +1997,7 @@ impl <VatId> Drop for Results<VatId> {
     fn drop(&mut self) {
         match (self.inner.take(), self.results_done_fulfiller.take()) {
             (Some(inner), Some(fulfiller)) => {
-                fulfiller.fulfill(inner)
+                fulfiller.complete(inner)
             }
             (None, None) => (),
             _ => unreachable!(),
@@ -2069,7 +2069,7 @@ impl <VatId> ResultsHook for Results<VatId> {
 
                     // TODO cleanupanswertable
 
-                    fulfiller.fulfill(inner); // ??
+                    fulfiller.complete(inner); // ??
                     return (promise, pipeline);
                 }
                 unimplemented!()
@@ -2132,8 +2132,8 @@ impl ResultsDone {
                         }
 
                         connection_state.answer_has_sent_return(answer_id, Vec::new());
-                        Promise::ok(Box::new(ResultsDone::rpc(message.take(), cap_table))
-                                    as Box<ResultsDoneHook>)
+                        Box::new(::futures::future::ok(Box::new(ResultsDone::rpc(message.take(), cap_table))
+                                    as Box<ResultsDoneHook>))
                     }
                     (false, Ok(())) => {
                         let exports = {
@@ -2714,24 +2714,24 @@ impl <VatId> ClientHook for Client<VatId> {
             Ok(request) => {
                 let ::capnp::capability::RemotePromise { promise, pipeline: _ } = request.send();
 
-                let promise = promise.map(move |response| {
+                let promise = promise.and_then(move |response| {
                     try!(try!(results.get()).set_as(try!(response.get())));
                     Ok(())
                 });
 
-                let mut forked = promise.fork();
-                let promise = forked.add_branch();
+                let mut forked = ForkedPromise::new(promise);
+                let promise = forked.clone();
 
-                let pipeline = ::queued::Pipeline::new(forked.add_branch().then(move |_| {
+                let pipeline = ::queued::Pipeline::new(Box::new(forked.and_then(move |_| {
                     results_done.map(move |results_done_hook| {
                         // TODO: why doesn't this work?
                         // Ok(pipeline.hook)
 
-                        Ok(Box::new(::local::Pipeline::new(results_done_hook)) as Box<PipelineHook>)
+                        Box::new(::local::Pipeline::new(results_done_hook)) as Box<PipelineHook>
                     })
-                }));
+                })));
 
-                (promise, Box::new(pipeline))
+                (Box::new(promise), Box::new(pipeline))
             }
         }
         // TODO implement this in terms of direct tail call.

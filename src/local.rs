@@ -24,7 +24,7 @@ use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
 
-use Promise;
+use {Promise, ForkedPromise};
 use futures::Future;
 use futures::sync::oneshot;
 
@@ -189,7 +189,7 @@ impl RequestHook for Request {
 
         let (promise, pipeline) = client.call(interface_id, method_id,
                                               Box::new(params), Box::new(results),
-                                              forked_results_done.clone());
+                                              Box::new(forked_results_done.clone()));
 
         let results_done_branch2 = forked_results_done.clone();
 

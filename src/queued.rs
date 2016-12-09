@@ -52,7 +52,7 @@ impl Pipeline {
         let inner = Rc::new(RefCell::new(PipelineInner {
             promise: promise,
             redirect: None,
-            self_resolution_op: Promise::ok(()),
+            self_resolution_op: Box::new(::futures::future::ok(())),
         }));
         let this = Rc::downgrade(&inner);
         let self_res = branch.map_else(move |result| {
@@ -149,7 +149,7 @@ impl Client {
         let inner = Rc::new(RefCell::new(ClientInner {
             redirect: None,
             _promise: promise,
-            self_resolution_op: Promise::never_done(),
+            self_resolution_op: Box::new(::futures::future::empty()),
             promise_for_call_forwarding: branch2.fork(),
             promise_for_client_resolution: branch3.fork(),
         }));
