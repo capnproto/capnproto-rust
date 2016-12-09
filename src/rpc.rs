@@ -2159,7 +2159,7 @@ impl ResultsDone {
                         let connection_state1 = connection_state.clone();
                         let promise = message.send().map(move |message| {
                             let _ = connection_state1;
-                            Ok(Box::new(ResultsDone::rpc(message, cap_table)) as Box<ResultsDoneHook>)
+                            Box::new(ResultsDone::rpc(message, cap_table)) as Box<ResultsDoneHook>
                         });
                         connection_state.answer_has_sent_return(answer_id, exports);
                         Box::new(promise)
@@ -2187,7 +2187,8 @@ impl ResultsDone {
                 }
             }
             Some(ResultsVariant::LocallyRedirected(results_done)) => {
-                Box::new(::futures::future::ok(Box::new(ResultsDone::redirected(results_done))))
+                Box::new(::futures::future::ok(
+                    Box::new(ResultsDone::redirected(results_done)) as Box<ResultsDoneHook>))
             }
         }
     }
