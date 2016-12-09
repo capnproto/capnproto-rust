@@ -67,15 +67,17 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::std::io::Write {
     {
         let tmp = *self;
         let OutgoingMessage {message, write_queue} = tmp;
-        let queue = ::std::mem::replace(&mut *write_queue.borrow_mut(), Promise::never_done());
+        let queue = ::std::mem::replace(
+            &mut *write_queue.borrow_mut(),
+            Box::new(::futures::future::empty()));
         let (fulfiller, promise) = oneshot::channel();
-        *write_queue.borrow_mut() = queue.then(move |s| {
+        *write_queue.borrow_mut() = Box::new(queue.and_then(move |s| {
             ::capnp_futures::serialize::write_message(s, message).map(move |(s, m)| {
                 fulfiller.complete(m);
-                Ok(s)
-            }).eagerly_evaluate()
-        });
-        Box::new(promise)
+                s
+            })
+        }));
+        Box::new(promise.map_err(|e| e.into()))
     }
 
     fn take(self: Box<Self>)
@@ -149,11 +151,11 @@ impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
         let return_it_here = inner.input_stream.clone();
         match maybe_input_stream {
             Some(s) => {
-                ::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
+                Box::new(::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
                     *return_it_here.borrow_mut() = Some(s);
-                    Ok(maybe_message.map(|message|
-                                         Box::new(IncomingMessage::new(message)) as Box<::IncomingMessage>))
-                })
+                    maybe_message.map(|message|
+                                      Box::new(IncomingMessage::new(message)) as Box<::IncomingMessage>)
+                }))
             }
             None => unreachable!(),
         }
@@ -161,8 +163,10 @@ impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
 
     fn shutdown(&mut self) -> Promise<(), ::capnp::Error> {
         let mut inner = self.inner.borrow_mut();
-        let write_queue = ::std::mem::replace(&mut *inner.write_queue.borrow_mut(), Promise::never_done());
-        write_queue.map(|_| Ok(()))
+        let write_queue = ::std::mem::replace(
+            &mut *inner.write_queue.borrow_mut(),
+            Box::new(::futures::future::empty()));
+        Box::new(write_queue.map(|_| ()))
     }
 }
 
@@ -199,7 +203,7 @@ impl <T, U> VatNetwork<T, U> where T: ::std::io::Read, U: ::std::io::Write {
 
     /// Returns a promise that resolves when the peer disconnects.
     pub fn on_disconnect(&mut self) -> Promise<(), ::capnp::Error> {
-        self.on_disconnect_promise.clone()
+        Box::new(self.on_disconnect_promise.clone())
     }
 }
 

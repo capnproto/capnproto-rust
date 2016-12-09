@@ -2426,13 +2426,13 @@ impl <VatId> PromiseClient<VatId> {
             is_resolved: false,
             cap: initial,
             import_id: import_id,
-            fork: eventual.fork(),
+            fork: ForkedPromise::new(eventual),
             resolve_self_promise: Box::new(::futures::future::ok(())),
             received_call: false,
         }));
-        let resolved = client.borrow_mut().fork.add_branch();
+        let resolved = client.borrow_mut().fork.clone();
         let weak_this = Rc::downgrade(&client);
-        let resolved1 = resolved.map_else(move |result| {
+        let resolved1 = Box::new(resolved.then(move |result| {
             let this = weak_this.upgrade().expect("impossible");
             match result {
                 Ok(v) => {
@@ -2444,7 +2444,7 @@ impl <VatId> PromiseClient<VatId> {
                     Err(())
                 }
             }
-        }).eagerly_evaluate();
+        }));
 
         client.borrow_mut().resolve_self_promise = resolved1;
         client
@@ -2482,12 +2482,12 @@ impl <VatId> PromiseClient<VatId> {
 
             // Make a promise which resolves to `replacement` as soon as the `Disembargo` comes back.
             let embargo_promise = promise.map(move |()| {
-                Ok(replacement)
-            });
+                replacement
+            }).map_err(|e| e.into());
 
             // We need to queue up calls in the meantime, so we'll resolve ourselves to a local promise
             // client instead.
-            replacement = Box::new(::queued::Client::new(embargo_promise));
+            replacement = Box::new(::queued::Client::new(Box::new(embargo_promise)));
 
             let _ = message.send();
         }
@@ -2793,7 +2793,7 @@ impl <VatId> ClientHook for Client<VatId> {
                 None
             }
             ClientVariant::Promise(ref promise_client) => {
-                Some(promise_client.borrow_mut().fork.add_branch())
+                Some(Box::new(promise_client.borrow_mut().fork.clone()))
             }
             _ => {
                 unimplemented!()

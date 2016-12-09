@@ -292,9 +292,16 @@ enum ForkedPromiseState<T, E> {
     Done(Result<T, E>),
 }
 
-#[derive(Clone)]
 struct ForkedPromise<F> where F: Future {
     inner: Rc<RefCell<ForkedPromiseInner<F>>>,
+}
+
+impl <F> Clone for ForkedPromise<F> where F: Future {
+    fn clone(&self) -> ForkedPromise<F> {
+        ForkedPromise {
+            inner: self.inner.clone()
+        }
+    }
 }
 
 impl <F> ForkedPromise<F> where F: Future {
