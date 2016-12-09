@@ -27,10 +27,13 @@ extern crate capnp_rpc;
 extern crate futures;
 extern crate tokio_core;
 
+extern crate mio_uds;
+
 use capnp::Error;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use tokio_core::reactor;
+use tokio_core::io::Io;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -47,17 +50,17 @@ fn drop_rpc_system() {
     let core = reactor::Core::new().unwrap();
     let handle = core.handle();
 
-//    EventLoop::top_level(|wait_scope| -> Result<(), ::capnp::Error> {
-//        let mut event_port = try!(gjio::EventPort::new());
-//        let network = event_port.get_network();
-//        let (instream, _outstream) = try!(network.new_socket_pair());
-//        let (reader, writer) = (instream.clone(), instream);
-//        let network =
-//            Box::new(twoparty::VatNetwork::new(reader, writer,
-//                                               rpc_twoparty_capnp::Side::Client,
-//                                               Default::default()));
-//        let rpc_system = RpcSystem::new(network, None);
- //       drop(rpc_system);
+    let (instream, _outstream) = ::mio_uds::UnixStream::pair().unwrap();
+
+    let instream = reactor::PollEvented::new(instream, &handle).unwrap();
+    let (reader, writer) = instream.split();
+
+    let network =
+        Box::new(twoparty::VatNetwork::new(reader, writer,
+                                           rpc_twoparty_capnp::Side::Client,
+                                           Default::default()));
+    let rpc_system = RpcSystem::new(network, None, handle);
+    drop(rpc_system);
 //        try!(Promise::<(),Error>::ok(()).wait(wait_scope, &mut event_port));
  //       Ok(())
  //   }).expect("top level error");
