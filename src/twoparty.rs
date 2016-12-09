@@ -71,11 +71,11 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::std::io::Write {
         let (fulfiller, promise) = oneshot::channel();
         *write_queue.borrow_mut() = queue.then(move |s| {
             ::capnp_futures::serialize::write_message(s, message).map(move |(s, m)| {
-                fulfiller.fulfill(m);
+                fulfiller.complete(m);
                 Ok(s)
             }).eagerly_evaluate()
         });
-        promise
+        Box::new(promise)
     }
 
     fn take(self: Box<Self>)
@@ -102,7 +102,7 @@ impl <T, U> Drop for ConnectionInner<T, U> where T: ::std::io::Read, U: ::std::i
         let maybe_fulfiller = ::std::mem::replace(&mut self.on_disconnect_fulfiller, None);
         match maybe_fulfiller {
             Some(fulfiller) => {
-                fulfiller.fulfill(());
+                fulfiller.complete(());
             }
             None => unreachable!(),
         }
@@ -192,14 +192,14 @@ impl <T, U> VatNetwork<T, U> where T: ::std::io::Read, U: ::std::io::Write {
         VatNetwork {
             connection: Some(connection),
             weak_connection_inner: weak_inner,
-            on_disconnect_promise: ForkedPromise::new(promise),
+            on_disconnect_promise: ForkedPromise::new(Box::new(promise.map_err(|e| e.into()))),
             side: side,
         }
     }
 
     /// Returns a promise that resolves when the peer disconnects.
     pub fn on_disconnect(&mut self) -> Promise<(), ::capnp::Error> {
-        Box::new(self.on_disconnect_promise.clone())
+        self.on_disconnect_promise.clone()
     }
 }
 

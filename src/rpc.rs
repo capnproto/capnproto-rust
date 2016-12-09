@@ -2162,7 +2162,7 @@ impl ResultsDone {
                             Ok(Box::new(ResultsDone::rpc(message, cap_table)) as Box<ResultsDoneHook>)
                         });
                         connection_state.answer_has_sent_return(answer_id, exports);
-                        promise
+                        Box::new(promise)
                     }
                     (false, Err(e)) => {
                         // Send an error return.
@@ -2182,12 +2182,12 @@ impl ResultsDone {
                             Err(_) => (),
                         }
                         connection_state.answer_has_sent_return(answer_id, Vec::new());
-                        Promise::err(e)
+                        Box::new(::futures::future::err(e))
                     }
                 }
             }
             Some(ResultsVariant::LocallyRedirected(results_done)) => {
-                Promise::ok(Box::new(ResultsDone::redirected(results_done)))
+                Box::new(::futures::future::ok(Box::new(ResultsDone::redirected(results_done))))
             }
         }
     }
@@ -2462,7 +2462,7 @@ impl <VatId> PromiseClient<VatId> {
             // calls to go directly to the local capability, so we need to set a local embargo and send
             // a `Disembargo` to echo through the peer.
 
-            let (promise, fulfiller) = Promise::and_fulfiller();
+            let (fulfiller, promise) = oneshot::channel();
             let embargo = Embargo::new(fulfiller);
             let embargo_id = connection_state.embargoes.borrow_mut().push(embargo);
 
@@ -2709,7 +2709,7 @@ impl <VatId> ClientHook for Client<VatId> {
         });
 
         match maybe_request {
-            Err(e) => return (Promise::err(e.clone()),
+            Err(e) => return (Box::new(::futures::future::err(e.clone())),
                               Box::new(broken::Pipeline::new(e))),
             Ok(request) => {
                 let ::capnp::capability::RemotePromise { promise, pipeline: _ } = request.send();

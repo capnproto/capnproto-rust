@@ -184,14 +184,14 @@ impl RequestHook for Request {
         let params = Params::new(message);
         let (results_done_fulfiller, results_done_promise) = oneshot::channel();
 
-        let mut forked_results_done = results_done_promise.fork();
+        let mut forked_results_done = ForkedPromise::new(results_done_promise);
         let results = Results::new(results_done_fulfiller);
 
         let (promise, pipeline) = client.call(interface_id, method_id,
                                               Box::new(params), Box::new(results),
-                                              forked_results_done.add_branch());
+                                              forked_results_done.clone());
 
-        let results_done_branch2 = forked_results_done.add_branch();
+        let results_done_branch2 = forked_results_done.clone();
 
         // Fork so that dropping just the returned promise doesn't cancel the call.
         let mut forked = promise.fork();

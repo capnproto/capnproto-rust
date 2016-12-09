@@ -242,7 +242,10 @@ impl <VatId> RpcSystem <VatId> {
                 let connection_state_ref1 = connection_state_ref.clone();
                 tasks.borrow_mut().add(on_disconnect_promise.then(move |shutdown_promise| {
                     *connection_state_ref1.borrow_mut() = None;
-                    shutdown_promise
+                    match shutdown_promise {
+                        Ok(s) => s,
+                        Err(e) => Box::new(::futures::future::err(Error::failed(format!("{}", e)))),
+                    }
                 }));
                 rpc::ConnectionState::new(bootstrap_cap, connection, on_disconnect_fulfiller, spawner)
             }
