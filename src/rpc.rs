@@ -1663,7 +1663,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         let _ = message.send();
         // Make the result promise.
         let (fulfiller, promise) = oneshot::channel::<Promise<Response<VatId>, Error>>();
-        let promise = promise.map_err(|e| e.into()).then(|x| x);
+        let promise = promise.map_err(|e| e.into()).and_then(|x| x);
         let question_ref = Rc::new(RefCell::new(
             QuestionRef::new(connection_state.clone(), question_id, fulfiller)));
 
