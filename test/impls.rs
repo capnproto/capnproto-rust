@@ -18,10 +18,11 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
+/*
 use test_capnp::{bootstrap, test_handle, test_interface, test_extends, test_pipeline,
                  test_call_order, test_more_stuff};
-use gj::{Promise, PromiseFulfiller};
+
+
 use capnp::Error;
 
 use std::cell::Cell;
@@ -569,3 +570,4 @@ impl test_interface::Server for TestCapDestructor {
     }
 
 }
+*/

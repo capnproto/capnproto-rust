@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-
+/*
 use test_capnp::{test_all_types, TestEnum};
 
 pub fn init_test_message(mut builder: test_all_types::Builder) {
@@ -228,3 +228,4 @@ check_test_message_impl(($typ:ident) => (
 check_test_message_impl!(Reader);
 
 check_test_message_impl!(Builder);
+*/

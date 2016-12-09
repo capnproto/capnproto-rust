@@ -18,6 +18,9 @@ path = "../"
 
 [dependencies]
 capnp = "0.7"
-gj = "0.2"
-gjio = "0.1"
+futures = "0.1"
+tokio-core = "0.1"
 
+[replace]
+"capnp:0.7.5" = { git = "https://github.com/dwrensha/capnproto-rust", branch = "futures" }
+"capnpc:0.7.5" = { git = "https://github.com/dwrensha/capnpc-rust", branch = "futures" }
