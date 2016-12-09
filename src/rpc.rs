@@ -1020,8 +1020,8 @@ impl <VatId> ConnectionState<VatId> {
 
                 let (redirected_results_done_promise, redirected_results_done_fulfiller) =
                     if redirect_results {
-                        let (f, p) = oneshot::channel();
-                        let p = p.map_err(|e| e.into());
+                        let (f, p) = oneshot::channel::<Result<Response<VatId>, Error>>();
+                        let p = p.map_err(|e| e.into()).and_then(|x| x);
                         (Some(Box::new(p) as Box<Future<Item=Response<VatId>,Error=Error>>), Some(f))
                     } else {
                         (None, None)
@@ -1434,12 +1434,13 @@ impl <VatId> ConnectionState<VatId> {
                         }
                         None => {
                             // Create a promise for this import's resolution.
-                            let (fulfiller, promise) = oneshot::channel();
+                            let (fulfiller, promise) = oneshot::channel::<Result<Box<ClientHook>, Error>>();
+                            let promise = promise.map_err(|e| e.into()).and_then(|x| x);
                             import.promise_fulfiller = Some(fulfiller);
                             let client: Box<Client<VatId>> = Box::new(import_client.into());
                             let client: Box<ClientHook> = client;
                             // Make sure the import is not destroyed while this promise exists.
-                            let promise = promise.attach(client.add_ref()).map_err(|e| e.into());
+                            let promise = promise.attach(client.add_ref());
 
                             let client = PromiseClient::new(&connection_state, client, Box::new(promise),
                                                             Some(import_id));
@@ -1661,8 +1662,8 @@ impl <VatId> Request<VatId> where VatId: 'static {
         }
         let _ = message.send();
         // Make the result promise.
-        let (fulfiller, promise) = oneshot::channel();
-        let promise = promise.then(|response_promise| response_promise);
+        let (fulfiller, promise) = oneshot::channel::<Promise<Response<VatId>, Error>>();
+        let promise = promise.map_err(|e| e.into()).then(|x| x);
         let question_ref = Rc::new(RefCell::new(
             QuestionRef::new(connection_state.clone(), question_id, fulfiller)));
 
@@ -1674,7 +1675,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         }
 
         let promise = promise.attach(question_ref.clone());
-        let promise1 = Box::new(promise.map_err(|e| e.into())) as Box<Future<Item=Response<VatId>, Error=Error>>;
+        let promise1 = Box::new(promise) as Box<Future<Item=Response<VatId>, Error=Error>>;
 
         (question_ref, promise1)
     }
