@@ -22,7 +22,8 @@ use std::io;
 use std::collections::VecDeque;
 use std::rc::Rc;
 use std::cell::RefCell;
-use futures::{self, task, Async, Future, Poll, Complete, Oneshot};
+use futures::{self, task, Async, Future, Poll};
+use futures::sync::oneshot;
 
 use capnp::{Error};
 
@@ -30,7 +31,7 @@ use serialize::{self, AsOutputSegments};
 
 
 enum State<W, M> where W: io::Write, M: AsOutputSegments {
-    Writing(serialize::Write<W, M>, Complete<M>),
+    Writing(serialize::Write<W, M>, oneshot::Sender<M>),
     BetweenWrites(W),
     Empty,
 }
@@ -42,7 +43,7 @@ pub struct WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
 }
 
 struct Inner<M> {
-    queue: VecDeque<(M, Complete<M>)>,
+    queue: VecDeque<(M, oneshot::Sender<M>)>,
     sender_count: usize,
     task: Option<task::Task>,
 }
@@ -86,7 +87,7 @@ pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
 
 impl <M> Sender<M> where M: AsOutputSegments {
     /// Enqueues a message to be written.
-    pub fn send(&mut self, message: M) -> Oneshot<M> {
+    pub fn send(&mut self, message: M) -> oneshot::Receiver<M> {
         let (complete, oneshot) = futures::oneshot();
         self.inner.borrow_mut().queue.push_back((message, complete));
 
@@ -106,7 +107,7 @@ impl <M> Sender<M> where M: AsOutputSegments {
 
 enum IntermediateState<W, M> where W: io::Write, M: AsOutputSegments {
     WriteDone(M, W),
-    StartWrite(M, Complete<M>),
+    StartWrite(M, oneshot::Sender<M>),
     Resolve,
 }
 
