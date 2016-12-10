@@ -29,13 +29,56 @@ use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, Res
 #[cfg(feature = "rpc")]
 use futures::Future;
 
-#[cfg(feature = "rpc")]
-pub type Promise<T,E> = Box<::futures::Future<Item=T,Error=E> + 'static>;
+pub struct Promise<T, E> {
+    #[allow(unused)]
+    inner: PromiseInner<T, E>,
+}
 
-/// This fake Promise struct is defined so that the generated code for interfaces
-/// can typecheck even if the "rpc" feature is not enabled.
-#[cfg(not(feature = "rpc"))]
-pub struct Promise<T,E>(::std::result::Result<T,E>);
+enum PromiseInner<T, E> {
+    Immediate(Result<T,E>),
+
+    #[cfg(feature = "rpc")]
+    Deferred(Box<Future<Item=T,Error=E> + 'static>),
+
+    #[cfg(feature = "rpc")]
+    Empty,
+}
+
+impl <T, E> Promise<T, E> {
+    pub fn ok(value: T) -> Promise<T, E> {
+        Promise { inner: PromiseInner::Immediate(Ok(value)) }
+    }
+
+    pub fn err(error: E) -> Promise<T, E> {
+        Promise { inner: PromiseInner::Immediate(Err(error)) }
+    }
+
+    #[cfg(feature = "rpc")]
+    pub fn deferred(f: Box<Future<Item=T,Error=E> + 'static>) -> Promise<T, E> {
+        Promise { inner: PromiseInner::Deferred(f) }
+    }
+}
+
+#[cfg(feature = "rpc")]
+impl <T, E> Future for Promise<T, E>
+{
+    type Item = T;
+    type Error = E;
+
+    fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
+        match self.inner {
+            PromiseInner::Empty => panic!("Promise polled after done."),
+            ref mut imm @ PromiseInner::Immediate(_) => {
+                match ::std::mem::replace(imm, PromiseInner::Empty) {
+                    PromiseInner::Immediate(Ok(v)) => Ok(::futures::Async::Ready(v)),
+                    PromiseInner::Immediate(Err(e)) => Err(e),
+                    _ => unreachable!(),
+                }
+            }
+            PromiseInner::Deferred(ref mut f) => f.poll(),
+        }
+    }
+}
 
 #[must_use]
 pub struct RemotePromise<Results> where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static {
@@ -87,10 +130,10 @@ where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static,
 {
     pub fn send(self) -> RemotePromise<Results> {
         let RemotePromise {promise, pipeline, ..} = self.hook.send();
-        let typed_promise = Box::new(promise.map(|response| {
+        let typed_promise = Promise::deferred(Box::new(promise.map(|response| {
             Response {hook: response.hook,
                       marker: ::std::marker::PhantomData}
-        }));
+        })));
         RemotePromise { promise: typed_promise,
                         pipeline: FromTypelessPipeline::new(pipeline)
                       }

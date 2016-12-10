@@ -66,17 +66,17 @@ pub trait ClientHook {
 
     /// Repeatedly calls whenMoreResolved() until it returns nullptr.
     #[cfg(feature = "rpc")]
-    fn when_resolved(&self) -> Box<::futures::Future<Item=(), Error=::Error>+ 'static> {
+    fn when_resolved(&self) -> Promise<(), ::Error> {
         use futures::Future;
 
         match self.when_more_resolved() {
             Some(promise) => {
-                Box::new(promise.and_then(|resolution| {
+                Promise::deferred(Box::new(promise.and_then(|resolution| {
                     resolution.when_resolved()
-                }))
+                })))
             }
             None => {
-                Box::new(::futures::future::ok(()))
+                Promise::ok(())
             }
         }
     }
