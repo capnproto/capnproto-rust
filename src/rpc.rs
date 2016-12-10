@@ -2735,7 +2735,7 @@ impl <VatId> ClientHook for Client<VatId> {
                     })
                 })));
 
-                (Promise::deferred(Box::new(promise)), Box::new(pipeline))
+                (Promise::from_future(promise), Box::new(pipeline))
             }
         }
         // TODO implement this in terms of direct tail call.
@@ -2797,7 +2797,7 @@ impl <VatId> ClientHook for Client<VatId> {
                 None
             }
             ClientVariant::Promise(ref promise_client) => {
-                Some(Promise::deferred(Box::new(promise_client.borrow_mut().fork.clone())))
+                Some(Promise::from_future(promise_client.borrow_mut().fork.clone()))
             }
             _ => {
                 unimplemented!()

@@ -191,7 +191,7 @@ impl RequestHook for Request {
 
         let (promise, pipeline) = client.call(interface_id, method_id,
                                               Box::new(params), Box::new(results),
-                                              Promise::deferred(Box::new(forked_results_done.clone())));
+                                              Promise::from_future(forked_results_done.clone()));
 
         let results_done_branch2 = forked_results_done.clone();
 
@@ -204,11 +204,11 @@ impl RequestHook for Request {
             })
         });
 
-        let pipeline_promise = Promise::deferred(Box::new(forked.clone().map(move |_| pipeline)));
+        let pipeline_promise = Promise::from_future(forked.clone().map(move |_| pipeline));
         let pipeline = any_pointer::Pipeline::new(Box::new(::queued::Pipeline::new(pipeline_promise)));
 
         ::capnp::capability::RemotePromise {
-            promise: Promise::deferred(Box::new(promise)),
+            promise: Promise::from_future(promise),
             pipeline: pipeline,
         }
     }
@@ -314,10 +314,10 @@ impl ClientHook for Client {
             })
         });
 
-        let pipeline = Box::new(::queued::Pipeline::new(Promise::deferred(Box::new(pipeline_promise))));
+        let pipeline = Box::new(::queued::Pipeline::new(Promise::from_future(pipeline_promise)));
         let completion_promise = forked;
 
-        (Promise::deferred(Box::new(completion_promise)), pipeline)
+        (Promise::from_future(completion_promise), pipeline)
     }
 
     fn get_ptr(&self) -> usize {

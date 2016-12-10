@@ -69,7 +69,7 @@ impl ::OutgoingMessage for OutgoingMessage {
         println!("writing outgoing message");
         let tmp = *self;
         let OutgoingMessage {message, mut sender} = tmp;
-        Promise::deferred(Box::new(sender.send(message).map_err(|e| e.into())))
+        Promise::from_future(sender.send(message).map_err(|e| e.into()))
     }
 
     fn take(self: Box<Self>)
@@ -149,11 +149,11 @@ impl <T> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T>
         let return_it_here = inner.input_stream.clone();
         match maybe_input_stream {
             Some(s) => {
-                Promise::deferred(Box::new(::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
+                Promise::from_future(::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
                     *return_it_here.borrow_mut() = Some(s);
                     maybe_message.map(|message|
                                       Box::new(IncomingMessage::new(message)) as Box<::IncomingMessage>)
-                })))
+                }))
             }
             None => unreachable!(),
         }
@@ -198,14 +198,14 @@ impl <T> VatNetwork<T> where T: ::std::io::Read {
         VatNetwork {
             connection: Some(connection),
             weak_connection_inner: weak_inner,
-            on_disconnect_promise: ForkedPromise::new(Promise::deferred(Box::new(promise.map_err(|e| e.into())))),
+            on_disconnect_promise: ForkedPromise::new(Promise::from_future(promise.map_err(|e| e.into()))),
             side: side,
         }
     }
 
     /// Returns a promise that resolves when the peer disconnects.
     pub fn on_disconnect(&mut self) -> Promise<(), ::capnp::Error> {
-        Promise::deferred(Box::new(self.on_disconnect_promise.clone()))
+        Promise::from_future(self.on_disconnect_promise.clone())
     }
 }
 
@@ -238,7 +238,7 @@ impl <T> ::VatNetwork<VatId> for VatNetwork<T>
         let connection = ::std::mem::replace(&mut self.connection, None);
         match connection {
             Some(c) => Promise::ok(Box::new(c) as Box<::Connection<VatId>>),
-            None => Promise::deferred(Box::new(::futures::future::empty())),
+            None => Promise::from_future(::futures::future::empty()),
         }
     }
 }

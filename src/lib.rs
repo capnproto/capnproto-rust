@@ -211,13 +211,13 @@ impl <VatId> RpcSystem <VatId> {
         let tasks_ref = Rc::downgrade(&self.tasks);
         let bootstrap_cap = self.bootstrap_cap.clone();
         let spawner = self.spawner.clone();
-        Promise::deferred(Box::new(self.network.accept().map(move |connection| {
+        Promise::from_future(self.network.accept().map(move |connection| {
             RpcSystem::get_connection_state(connection_state_ref,
                                             bootstrap_cap,
                                             connection,
                                             tasks_ref.upgrade().expect("dangling reference to task set"),
                                             spawner);
-        })))
+        }))
     }
 
     fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
@@ -276,7 +276,7 @@ impl ServerHook for Server {
 pub fn new_promise_client<T>(client_promise: Promise<::capnp::capability::Client, Error>) -> T
     where T: ::capnp::capability::FromClientHook
 {
-    T::new(Box::new(queued::Client::new(Promise::deferred(Box::new(client_promise.map(|c| c.hook))))))
+    T::new(Box::new(queued::Client::new(Promise::from_future(client_promise.map(|c| c.hook)))))
 }
 
 
