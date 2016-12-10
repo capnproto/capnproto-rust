@@ -68,6 +68,7 @@ extern crate capnp_futures;
 use futures::{Future, Stream};
 use futures::sync::oneshot;
 use capnp::Error;
+use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ServerHook};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -85,12 +86,12 @@ pub mod rpc_twoparty_capnp {
 }
 
 
-macro_rules! ftry {
+macro_rules! pry {
     ($expr:expr) => (
         match $expr {
             ::std::result::Result::Ok(val) => val,
             ::std::result::Result::Err(err) => {
-                return Box::new(::futures::future::err(::std::convert::From::from(err)))
+                return ::capnp::capability::Promise::err(::std::convert::From::from(err))
             }
         })
 }
@@ -100,9 +101,6 @@ mod local;
 mod queued;
 mod rpc;
 pub mod twoparty;
-
-// XXX migration from gj
-type Promise<T, E> = Box<Future<Item=T,Error=E> + 'static>;
 
 pub trait OutgoingMessage {
     fn get_body<'a>(&'a mut self) -> ::capnp::Result<::capnp::any_pointer::Builder<'a>>;
@@ -213,13 +211,13 @@ impl <VatId> RpcSystem <VatId> {
         let tasks_ref = Rc::downgrade(&self.tasks);
         let bootstrap_cap = self.bootstrap_cap.clone();
         let spawner = self.spawner.clone();
-        Box::new(self.network.accept().map(move |connection| {
+        Promise::deferred(Box::new(self.network.accept().map(move |connection| {
             RpcSystem::get_connection_state(connection_state_ref,
                                             bootstrap_cap,
                                             connection,
                                             tasks_ref.upgrade().expect("dangling reference to task set"),
                                             spawner);
-        }))
+        })))
     }
 
     fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
@@ -244,7 +242,7 @@ impl <VatId> RpcSystem <VatId> {
                     *connection_state_ref1.borrow_mut() = None;
                     match shutdown_promise {
                         Ok(s) => s,
-                        Err(e) => Box::new(::futures::future::err(Error::failed(format!("{}", e)))),
+                        Err(e) => Promise::err(Error::failed(format!("{}", e))),
                     }
                 }));
                 rpc::ConnectionState::new(bootstrap_cap, connection, on_disconnect_fulfiller, spawner)
@@ -278,7 +276,7 @@ impl ServerHook for Server {
 pub fn new_promise_client<T>(client_promise: Promise<::capnp::capability::Client, Error>) -> T
     where T: ::capnp::capability::FromClientHook
 {
-    T::new(Box::new(queued::Client::new(Box::new(client_promise.map(|c| c.hook)))))
+    T::new(Box::new(queued::Client::new(Promise::deferred(Box::new(client_promise.map(|c| c.hook))))))
 }
 
 

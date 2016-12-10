@@ -24,6 +24,7 @@ use test_capnp::{bootstrap, test_handle, test_interface, test_extends, test_pipe
 
 
 use capnp::Error;
+use capnp::capability::Promise;
 
 use futures::Future;
 
@@ -36,7 +37,7 @@ impl bootstrap::Server for Bootstrap {
     fn test_interface(&mut self,
                       _params: bootstrap::TestInterfaceParams,
                       mut results: bootstrap::TestInterfaceResults)
-                      -> Box<Future<Item=(), Error=Error>>
+                      -> Promise<(), Error>
     {
         unimplemented!()
 /*

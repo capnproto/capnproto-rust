@@ -52,7 +52,7 @@ impl Pipeline {
         let inner = Rc::new(RefCell::new(PipelineInner {
             promise: promise,
             redirect: None,
-            self_resolution_op: Box::new(::futures::future::ok(())),
+            self_resolution_op: Promise::ok(()),
         }));
         let this = Rc::downgrade(&inner);
         let self_res = branch.then(move |result| {
@@ -67,7 +67,7 @@ impl Pipeline {
             }
             Ok(())
         });
-        inner.borrow_mut().self_resolution_op = Box::new(self_res);
+        inner.borrow_mut().self_resolution_op = Promise::from_future(self_res);
         Pipeline { inner: inner }
     }
 }
@@ -101,7 +101,7 @@ impl PipelineHook for Pipeline {
             pipeline.get_pipelined_cap_move(ops)
         });
 
-        Box::new(Client::new(Box::new(client_promise)))
+        Box::new(Client::new(Promise::from_future(client_promise)))
     }
 }
 
@@ -149,9 +149,9 @@ impl Client {
         let inner = Rc::new(RefCell::new(ClientInner {
             redirect: None,
             _promise: promise,
-            self_resolution_op: Box::new(::futures::future::empty()),
-            promise_for_call_forwarding: ForkedPromise::new(Box::new(branch2)),
-            promise_for_client_resolution: ForkedPromise::new(Box::new(branch3)),
+            self_resolution_op: Promise::from_future(::futures::future::empty()),
+            promise_for_call_forwarding: ForkedPromise::new(Promise::from_future(branch2)),
+            promise_for_client_resolution: ForkedPromise::new(Promise::from_future(branch3)),
         }));
         let this = Rc::downgrade(&inner);
         let self_resolution_op = branch1.then(move |result| {
@@ -166,7 +166,7 @@ impl Client {
             }
             Ok(())
         });
-        inner.borrow_mut().self_resolution_op = Box::new(self_resolution_op);
+        inner.borrow_mut().self_resolution_op = Promise::from_future(self_resolution_op);
         Client {
             inner: inner
         }
@@ -208,13 +208,13 @@ impl ClientHook for Client {
         let pipeline_promise = call_result_promise.clone().and_then(|call_result| {
             Ok(call_result.borrow_mut().pipeline.take().expect("pipeline gone?"))
         });
-        let pipeline = Pipeline::new(Box::new(pipeline_promise));
+        let pipeline = Pipeline::new(Promise::from_future(pipeline_promise));
 
         let completion_promise = call_result_promise.clone().and_then(|call_result| {
             call_result.borrow_mut().promise.take().expect("promise gone?")
         });
 
-        (Box::new(completion_promise), Box::new(pipeline))
+        (Promise::from_future(completion_promise), Box::new(pipeline))
     }
 
     fn get_ptr(&self) -> usize {
@@ -233,6 +233,6 @@ impl ClientHook for Client {
     }
 
     fn when_more_resolved(&self) -> Option<Promise<Box<ClientHook>, Error>> {
-        Some(Box::new(self.inner.borrow_mut().promise_for_client_resolution.clone()))
+        Some(Promise::from_future(self.inner.borrow_mut().promise_for_client_resolution.clone()))
     }
 }

@@ -22,13 +22,14 @@
 //! An implementation of `VatNetwork` for the common case of a client-server connection.
 
 use capnp::message::ReaderOptions;
+use capnp::capability::Promise;
 use futures::Future;
 use futures::sync::oneshot;
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use {Promise, ForkedPromise};
+use {ForkedPromise};
 
 pub type VatId = ::rpc_twoparty_capnp::Side;
 
@@ -68,7 +69,7 @@ impl ::OutgoingMessage for OutgoingMessage {
         println!("writing outgoing message");
         let tmp = *self;
         let OutgoingMessage {message, mut sender} = tmp;
-        Box::new(sender.send(message).map_err(|e| e.into()))
+        Promise::deferred(Box::new(sender.send(message).map_err(|e| e.into())))
     }
 
     fn take(self: Box<Self>)
@@ -148,19 +149,19 @@ impl <T> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T>
         let return_it_here = inner.input_stream.clone();
         match maybe_input_stream {
             Some(s) => {
-                Box::new(::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
+                Promise::deferred(Box::new(::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
                     println!("got an incoming message");
                     *return_it_here.borrow_mut() = Some(s);
                     maybe_message.map(|message|
                                       Box::new(IncomingMessage::new(message)) as Box<::IncomingMessage>)
-                }))
+                })))
             }
             None => unreachable!(),
         }
     }
 
     fn shutdown(&mut self) -> Promise<(), ::capnp::Error> {
-        Box::new(::futures::future::ok(()))
+        Promise::ok(())
 //        let mut inner = self.inner.borrow_mut();
         // XXX TODO shut down write queue.
 //        let write_queue = ::std::mem::replace(
@@ -198,14 +199,14 @@ impl <T> VatNetwork<T> where T: ::std::io::Read {
         VatNetwork {
             connection: Some(connection),
             weak_connection_inner: weak_inner,
-            on_disconnect_promise: ForkedPromise::new(Box::new(promise.map_err(|e| e.into()))),
+            on_disconnect_promise: ForkedPromise::new(Promise::deferred(Box::new(promise.map_err(|e| e.into())))),
             side: side,
         }
     }
 
     /// Returns a promise that resolves when the peer disconnects.
     pub fn on_disconnect(&mut self) -> Promise<(), ::capnp::Error> {
-        Box::new(self.on_disconnect_promise.clone())
+        Promise::deferred(Box::new(self.on_disconnect_promise.clone()))
     }
 }
 
@@ -237,8 +238,8 @@ impl <T> ::VatNetwork<VatId> for VatNetwork<T>
     fn accept(&mut self) -> Promise<Box<::Connection<VatId>>, ::capnp::Error> {
         let connection = ::std::mem::replace(&mut self.connection, None);
         match connection {
-            Some(c) => Box::new(::futures::future::ok(Box::new(c) as Box<::Connection<VatId>>)),
-            None => Box::new(::futures::future::empty()),
+            Some(c) => Promise::ok(Box::new(c) as Box<::Connection<VatId>>),
+            None => Promise::deferred(Box::new(::futures::future::empty())),
         }
     }
 }

@@ -21,10 +21,11 @@
 
 use capnp::{any_pointer};
 use capnp::Error;
+use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
 
-use {Promise, ForkedPromise, Attach};
+use {ForkedPromise, Attach};
 use futures::Future;
 use futures::sync::oneshot;
 
@@ -190,7 +191,7 @@ impl RequestHook for Request {
 
         let (promise, pipeline) = client.call(interface_id, method_id,
                                               Box::new(params), Box::new(results),
-                                              Box::new(forked_results_done.clone()));
+                                              Promise::deferred(Box::new(forked_results_done.clone())));
 
         let results_done_branch2 = forked_results_done.clone();
 
@@ -203,11 +204,11 @@ impl RequestHook for Request {
             })
         });
 
-        let pipeline_promise = Box::new(forked.clone().map(move |_| pipeline));
+        let pipeline_promise = Promise::deferred(Box::new(forked.clone().map(move |_| pipeline)));
         let pipeline = any_pointer::Pipeline::new(Box::new(::queued::Pipeline::new(pipeline_promise)));
 
         ::capnp::capability::RemotePromise {
-            promise: Box::new(promise),
+            promise: Promise::deferred(Box::new(promise)),
             pipeline: pipeline,
         }
     }
@@ -314,10 +315,10 @@ impl ClientHook for Client {
             })
         });
 
-        let pipeline = Box::new(::queued::Pipeline::new(Box::new(pipeline_promise)));
+        let pipeline = Box::new(::queued::Pipeline::new(Promise::deferred(Box::new(pipeline_promise))));
         let completion_promise = forked;
 
-        (Box::new(completion_promise), pipeline)
+        (Promise::deferred(Box::new(completion_promise)), pipeline)
     }
 
     fn get_ptr(&self) -> usize {

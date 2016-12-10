@@ -204,7 +204,7 @@ impl <VatId> QuestionRef<VatId> {
 
     fn reject(&mut self, err: Error) {
         if let Some(fulfiller) = self.fulfiller.take() {
-            fulfiller.complete(Box::new(::futures::future::err(err)));
+            fulfiller.complete(Promise::err(err));
         }
     }
 }
@@ -309,7 +309,7 @@ impl Export {
         Export {
             refcount: 1,
             client_hook: client_hook,
-            resolve_op: Box::new(::futures::future::err(Error::failed("no resolve op".to_string()))),
+            resolve_op: Promise::err(Error::failed("no resolve op".to_string())),
         }
     }
 }
@@ -558,7 +558,7 @@ impl <VatId> ConnectionState<VatId> {
                 match maybe_fulfiller {
                     None => unreachable!(),
                     Some(fulfiller) => {
-                        fulfiller.complete(Box::new(promise.attach(c)));
+                        fulfiller.complete(Promise::from_future(promise.attach(c)));
                     }
                 }
             }
@@ -603,7 +603,7 @@ impl <VatId> ConnectionState<VatId> {
             &mut Err(_) => panic!(),
         }
 
-        let pipeline = Pipeline::new(state, question_ref, Some(Box::new(promise)));
+        let pipeline = Pipeline::new(state, question_ref, Some(Promise::from_future(promise)));
         let result = pipeline.get_pipelined_cap_move(Vec::new());
         result
     }
@@ -612,12 +612,12 @@ impl <VatId> ConnectionState<VatId> {
         println!("message loop");
         let state = weak_state.upgrade().expect("dangling reference to connection state");
         let promise = match &mut *state.connection.borrow_mut() {
-            &mut Err(_) => return Box::new(::futures::future::ok(())),
+            &mut Err(_) => return Promise::ok(()),
             &mut Ok(ref mut connection) => connection.receive_incoming_message(),
         };
         let weak_state0 = weak_state.clone();
         let weak_state1 = weak_state.clone();
-        Box::new(promise.and_then(move |message| {
+        Promise::from_future(promise.and_then(move |message| {
             println!("message!!!");
             match message {
                 Some(m) => {
@@ -633,7 +633,7 @@ impl <VatId> ConnectionState<VatId> {
             if keep_going {
                 ConnectionState::message_loop(weak_state1)
             } else {
-                Box::new(::futures::future::ok(()))
+                Promise::ok(())
             }
         }))
     }
@@ -949,7 +949,7 @@ impl <VatId> ConnectionState<VatId> {
                                 }
                                 Ok(())
                             });
-                            connection_state.add_task(Box::new(task));
+                            connection_state.add_task(Promise::from_future(task));
                             BorrowWorkaround::Done
                         }
                         ::rpc_capnp::disembargo::context::ReceiverLoopback(embargo_id) => {
@@ -1024,7 +1024,7 @@ impl <VatId> ConnectionState<VatId> {
                     if redirect_results {
                         let (f, p) = oneshot::channel::<Result<Response<VatId>, Error>>();
                         let p = p.map_err(|e| e.into()).and_then(|x| x);
-                        (Some(Box::new(p) as Box<Future<Item=Response<VatId>,Error=Error>>), Some(f))
+                        (Some(Promise::from_future(p)), Some(f))
                     } else {
                         (None, None)
                     };
@@ -1035,7 +1035,7 @@ impl <VatId> ConnectionState<VatId> {
                 let (box_results_done_fulfiller, box_results_done_promise) =
                     oneshot::channel::<Result<Box<ResultsDoneHook>, Error>>();
                 let box_results_done_promise = box_results_done_promise.map_err(|e| e.into()).and_then(|x| x);
-                connection_state.add_task(Box::new(results_inner_promise.and_then(move |results_inner| {
+                connection_state.add_task(Promise::from_future(results_inner_promise.and_then(move |results_inner| {
                     call_succeeded_promise.and_then(move |v| {
                         ResultsDone::from_results_inner(results_inner, v)
                     })
@@ -1066,7 +1066,7 @@ impl <VatId> ConnectionState<VatId> {
 
                 let (promise, pipeline) = capability.call(interface_id, method_id,
                                                           Box::new(params), Box::new(results),
-                                                          Box::new(box_results_done_promise));
+                                                          Promise::from_future(box_results_done_promise));
 
                 let promise = promise.then(move |result| {
                     call_succeeded_fulfiller.complete(result);
@@ -1083,7 +1083,7 @@ impl <VatId> ConnectionState<VatId> {
                                 // More to do here?
 
                             } else {
-                                answer.call_completion_promise = Some(Box::new(promise));
+                                answer.call_completion_promise = Some(Promise::from_future(promise));
                             }
                         }
                         None => unreachable!()
@@ -1094,7 +1094,7 @@ impl <VatId> ConnectionState<VatId> {
                 let response = Response::new(connection_state,
                                              question_ref.clone(),
                                              message, cap_table);
-                question_ref.borrow_mut().fulfill(Box::new(::futures::future::ok(response)));
+                question_ref.borrow_mut().fulfill(Promise::ok(response));
             }
             BorrowWorkaround::EraseQuestion(question_id) => {
                 connection_state.questions.borrow_mut().erase(question_id);
@@ -1258,7 +1258,7 @@ impl <VatId> ConnectionState<VatId> {
                                 -> Promise<(), Error>
     {
         let weak_connection_state = Rc::downgrade(state);
-        Box::new(promise.then(move |resolution_result| {
+        Promise::from_future(promise.then(move |resolution_result| {
             let connection_state = weak_connection_state.upgrade().expect("dangling connection state?");
 
             match resolution_result {
@@ -1444,7 +1444,8 @@ impl <VatId> ConnectionState<VatId> {
                             // Make sure the import is not destroyed while this promise exists.
                             let promise = promise.attach(client.add_ref());
 
-                            let client = PromiseClient::new(&connection_state, client, Box::new(promise),
+                            let client = PromiseClient::new(&connection_state, client,
+                                                            Promise::from_future(promise),
                                                             Some(import_id));
                             let client: Box<Client<VatId>> = Box::new(client.into());
                             import.app_client = Some(client.downgrade());
@@ -1677,7 +1678,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         }
 
         let promise = promise.attach(question_ref.clone());
-        let promise1 = Box::new(promise) as Box<Future<Item=Response<VatId>, Error=Error>>;
+        let promise1 = Promise::from_future(promise);
 
         (question_ref, promise1)
     }
@@ -1719,13 +1720,13 @@ impl <VatId> RequestHook for Request<VatId> {
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
                 let pipeline = Pipeline::new(connection_state, question_ref,
-                                             Some(Box::new(forked_promise.clone())));
+                                             Some(Promise::from_future(forked_promise.clone())));
 
-                let app_promise = Box::new(forked_promise.clone().map(|response| {
+                let app_promise = Promise::from_future(forked_promise.clone().map(|response| {
                     ::capnp::capability::Response::new(Box::new(response))
-                })) as Promise<::capnp::capability::Response<any_pointer::Owned>, Error>;
+                }));
                 ::capnp::capability::RemotePromise {
-                    promise: Box::new(app_promise),
+                    promise: app_promise,
                     pipeline: any_pointer::Pipeline::new(Box::new(pipeline))
                 }
             }
@@ -1765,7 +1766,7 @@ impl <VatId> RequestHook for Request<VatId> {
         let question_id = question_ref.borrow().id;
         let pipeline = Pipeline::never_done(connection_state, question_ref);
 
-        Some((question_id, Box::new(promise), Box::new(pipeline)))
+        Some((question_id, Promise::from_future(promise), Box::new(pipeline)))
     }
 }
 
@@ -1797,14 +1798,14 @@ impl <VatId> Pipeline<VatId> {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state: connection_state,
             redirect_later: None,
-            resolve_self_promise: Box::new(::futures::future::empty()),
+            resolve_self_promise: Promise::from_future(::futures::future::empty()),
         }));
         match redirect_later {
             Some(redirect_later_promise) => {
                 let fork = ForkedPromise::new(redirect_later_promise);
 
                 let this = Rc::downgrade(&state);
-                let resolve_self_promise = Box::new(fork.clone().then(move |response| {
+                let resolve_self_promise = Promise::from_future(fork.clone().then(move |response| {
                     let state = this.upgrade().expect("dangling reference to this");
                     let new_variant = match response {
                         Ok(r) =>  PipelineVariant::Resolved(r),
@@ -1812,7 +1813,7 @@ impl <VatId> Pipeline<VatId> {
                     };
                     let _old_variant = ::std::mem::replace(&mut state.borrow_mut().variant, new_variant);
                     Ok(())
-                })) as Promise<(), Error>;
+                }));
 
                 state.borrow_mut().resolve_self_promise = resolve_self_promise;
                 state.borrow_mut().redirect_later = Some(RefCell::new(fork));
@@ -1830,7 +1831,7 @@ impl <VatId> Pipeline<VatId> {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state: connection_state,
             redirect_later: None,
-            resolve_self_promise: Box::new(::futures::future::empty()),
+            resolve_self_promise: Promise::from_future(::futures::future::empty()),
         }));
 
         Pipeline { state: state }
@@ -1858,9 +1859,9 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
 
                 match *redirect_later {
                     Some(ref r) => {
-                        let resolution_promise = Box::new(r.borrow_mut().clone().and_then(move |response| {
+                        let resolution_promise = Promise::from_future(r.borrow_mut().clone().and_then(move |response| {
                            try!(response.get()).get_pipelined_cap(&ops)
-                        })) as Box<Future<Item=Box<ClientHook>, Error=Error>>;
+                        }));
 
                         let client: Client<VatId> = pipeline_client.into();
                         let promise_client = PromiseClient::new(&connection_state,
@@ -2114,7 +2115,7 @@ impl ResultsDone {
                             Ok(ref mut connection) => {
                                 let mut message = connection.new_outgoing_message(50); // XXX size hint
                                 {
-                                    let root: message::Builder = ftry!(ftry!(message.get_body()).get_as());
+                                    let root: message::Builder = pry!(pry!(message.get_body()).get_as());
                                     let mut ret = root.init_return();
                                     ret.set_answer_id(answer_id);
                                     ret.set_release_param_caps(false);
@@ -2126,15 +2127,15 @@ impl ResultsDone {
                         }
 
                         connection_state.answer_has_sent_return(answer_id, Vec::new());
-                        Box::new(::futures::future::ok(Box::new(ResultsDone::rpc(message.take(), cap_table))
-                                    as Box<ResultsDoneHook>))
+                        Promise::ok(Box::new(ResultsDone::rpc(message.take(), cap_table))
+                                    as Box<ResultsDoneHook>)
                     }
                     (false, Ok(())) => {
                         let exports = {
-                            let root: message::Builder = ftry!(ftry!(message.get_body()).get_as());
-                            match ftry!(root.which()) {
+                            let root: message::Builder = pry!(pry!(message.get_body()).get_as());
+                            match pry!(root.which()) {
                                 message::Return(ret) => {
-                                    match ftry!(ftry!(ret).which()) {
+                                    match pry!(pry!(ret).which()) {
                                         ::rpc_capnp::return_::Results(Ok(payload)) => {
                                             ConnectionState::write_descriptors(&connection_state,
                                                                                &cap_table,
@@ -2156,7 +2157,7 @@ impl ResultsDone {
                             Box::new(ResultsDone::rpc(message, cap_table)) as Box<ResultsDoneHook>
                         });
                         connection_state.answer_has_sent_return(answer_id, exports);
-                        Box::new(promise)
+                        Promise::from_future(promise)
                     }
                     (false, Err(e)) => {
                         // Send an error return.
@@ -2164,7 +2165,7 @@ impl ResultsDone {
                             Ok(ref mut connection) => {
                                 let mut message = connection.new_outgoing_message(50); // XXX size hint
                                 {
-                                    let root: message::Builder = ftry!(ftry!(message.get_body()).get_as());
+                                    let root: message::Builder = pry!(pry!(message.get_body()).get_as());
                                     let mut ret = root.init_return();
                                     ret.set_answer_id(answer_id);
                                     ret.set_release_param_caps(false);
@@ -2176,13 +2177,13 @@ impl ResultsDone {
                             Err(_) => (),
                         }
                         connection_state.answer_has_sent_return(answer_id, Vec::new());
-                        Box::new(::futures::future::err(e))
+                        Promise::err(e)
                     }
                 }
             }
             Some(ResultsVariant::LocallyRedirected(results_done)) => {
-                Box::new(::futures::future::ok(
-                    Box::new(ResultsDone::redirected(results_done)) as Box<ResultsDoneHook>))
+                Promise::ok(
+                    Box::new(ResultsDone::redirected(results_done)) as Box<ResultsDoneHook>)
             }
         }
     }
@@ -2422,12 +2423,12 @@ impl <VatId> PromiseClient<VatId> {
             cap: initial,
             import_id: import_id,
             fork: ForkedPromise::new(eventual),
-            resolve_self_promise: Box::new(::futures::future::ok(())),
+            resolve_self_promise: Promise::ok(()),
             received_call: false,
         }));
         let resolved = client.borrow_mut().fork.clone();
         let weak_this = Rc::downgrade(&client);
-        let resolved1 = Box::new(resolved.then(move |result| {
+        let resolved1 = Promise::from_future(resolved.then(move |result| {
             let this = weak_this.upgrade().expect("impossible");
             match result {
                 Ok(v) => {
@@ -2483,7 +2484,7 @@ impl <VatId> PromiseClient<VatId> {
 
             // We need to queue up calls in the meantime, so we'll resolve ourselves to a local promise
             // client instead.
-            replacement = Box::new(::queued::Client::new(Box::new(embargo_promise)));
+            replacement = Box::new(::queued::Client::new(Promise::from_future(embargo_promise)));
 
             let _ = message.send();
         }
@@ -2705,7 +2706,7 @@ impl <VatId> ClientHook for Client<VatId> {
         });
 
         match maybe_request {
-            Err(e) => return (Box::new(::futures::future::err(e.clone())),
+            Err(e) => return (Promise::err(e.clone()),
                               Box::new(broken::Pipeline::new(e))),
             Ok(request) => {
                 let ::capnp::capability::RemotePromise { promise, pipeline: _ } = request.send();
@@ -2718,7 +2719,7 @@ impl <VatId> ClientHook for Client<VatId> {
                 let forked = ForkedPromise::new(promise);
                 let promise = forked.clone();
 
-                let pipeline = ::queued::Pipeline::new(Box::new(forked.and_then(move |_| {
+                let pipeline = ::queued::Pipeline::new(Promise::from_future(forked.and_then(move |_| {
                     results_done.map(move |results_done_hook| {
                         // TODO: why doesn't this work?
                         // Ok(pipeline.hook)
@@ -2727,7 +2728,7 @@ impl <VatId> ClientHook for Client<VatId> {
                     })
                 })));
 
-                (Box::new(promise), Box::new(pipeline))
+                (Promise::deferred(Box::new(promise)), Box::new(pipeline))
             }
         }
         // TODO implement this in terms of direct tail call.
@@ -2789,7 +2790,7 @@ impl <VatId> ClientHook for Client<VatId> {
                 None
             }
             ClientVariant::Promise(ref promise_client) => {
-                Some(Box::new(promise_client.borrow_mut().fork.clone()))
+                Some(Promise::deferred(Box::new(promise_client.borrow_mut().fork.clone())))
             }
             _ => {
                 unimplemented!()
