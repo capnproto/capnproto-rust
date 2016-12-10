@@ -45,7 +45,7 @@ impl bootstrap::Server for Bootstrap {
         }
         Promise::ok(())
     }
-/*
+
     fn test_extends(&mut self,
                     _params: bootstrap::TestExtendsParams,
                     mut results: bootstrap::TestExtendsResults)
@@ -100,8 +100,6 @@ impl bootstrap::Server for Bootstrap {
         }
         Promise::ok(())
     }
-
-*/
 }
 
 pub struct TestInterface {
@@ -155,12 +153,12 @@ impl test_interface::Server for TestInterface {
            _results: test_interface::BazResults)
            -> Promise<(), Error>
     {
-//        self.increment_call_count();
-//        ::test_util::CheckTestMessage::check_test_message(pry!(pry!(params.get()).get_s()));
+        self.increment_call_count();
+        ::test_util::CheckTestMessage::check_test_message(pry!(pry!(params.get()).get_s()));
         Promise::ok(())
     }
 }
-/*
+
 struct TestExtends;
 
 impl test_interface::Server for TestExtends {
@@ -242,7 +240,7 @@ impl test_pipeline::Server for TestPipeline {
         let mut request = cap.foo_request();
         request.get().set_i(123);
         request.get().set_j(true);
-        request.send().promise.map(move |response| {
+        Promise::from_future(request.send().promise.and_then(move |response| {
             if try!(try!(response.get()).get_x()) != "foo" {
                 return Err(Error::failed("expected x to equal 'foo'".to_string()));
             }
@@ -256,7 +254,7 @@ impl test_pipeline::Server for TestPipeline {
                     test_extends::ToClient::new(TestExtends).from_server::<::capnp_rpc::Server>().client,
                 });
             Ok(())
-        })
+        }))
     }
 
     fn get_null_cap(&mut self,
@@ -338,13 +336,13 @@ impl test_more_stuff::Server for TestMoreStuff {
         request.get().set_i(123);
         request.get().set_j(true);
 
-        request.send().promise.map(move |response| {
+        Promise::from_future(request.send().promise.and_then(move |response| {
             if try!(try!(response.get()).get_x()) != "foo" {
                 return Err(Error::failed("expected x to equal 'foo'".to_string()));
             }
             results.get().set_s("bar");
             Ok(())
-        })
+        }))
     }
 
     fn call_foo_when_resolved(&mut self,
@@ -354,18 +352,18 @@ impl test_more_stuff::Server for TestMoreStuff {
     {
         self.call_count += 1;
         let cap = pry!(pry!(params.get()).get_cap());
-        cap.client.when_resolved().then(move |()| {
+        Promise::from_future(cap.client.when_resolved().and_then(move |()| {
             let mut request = cap.foo_request();
             request.get().set_i(123);
             request.get().set_j(true);
-            request.send().promise.map(move |response| {
+            request.send().promise.and_then(move |response| {
                 if try!(try!(response.get()).get_x()) != "foo" {
                     return Err(Error::failed("expected x to equal 'foo'".to_string()));
                 }
                 results.get().set_s("bar");
                 Ok(())
             })
-        })
+        }))
     }
 
     fn never_return(&mut self,
@@ -378,7 +376,10 @@ impl test_more_stuff::Server for TestMoreStuff {
         let cap = pry!(pry!(params.get()).get_cap());
 
         // Attach `cap` to the promise to make sure it is released.
-        let promise = Promise::never_done().attach(cap.clone());
+        let attached = cap.clone();
+        let promise = Promise::from_future(::futures::future::empty().map(|()| {
+            drop(attached);
+        }));
 
         // Also attach `cap` to the result struct so we can make sure that the results are released.
         results.get().set_cap_copy(cap);
@@ -421,14 +422,14 @@ impl test_more_stuff::Server for TestMoreStuff {
                     params.set_i(123);
                     params.set_j(true);
                 }
-                request.send().promise.map(move |response| {
+                Promise::from_future(request.send().promise.and_then(move |response| {
                     if try!(try!(response.get()).get_x()) != "foo" {
                         Err(Error::failed("expected X to equal 'foo'".to_string()))
                     } else {
                         results.get().set_s("bar");
                         Ok(())
                     }
-                })
+                }))
             }
         }
     }
@@ -525,7 +526,7 @@ impl Drop for Handle {
 }
 
 impl test_handle::Server for Handle {}
-
+/*
 pub struct TestCapDestructor {
     fulfiller: Option<PromiseFulfiller<(), Error>>,
     imp: TestInterface,
@@ -573,6 +574,5 @@ impl test_interface::Server for TestCapDestructor {
     {
         Promise::err(Error::unimplemented("bar is not implemented".to_string()))
     }
+}*/
 
-}
-*/

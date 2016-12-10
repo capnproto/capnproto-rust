@@ -123,7 +123,7 @@ fn rpc_top_level<F>(main: F)
     where F: FnOnce(::tokio_core::reactor::Core, test_capnp::bootstrap::Client) -> Result<(), Error>,
           F: Send + 'static
 {
-    let mut core = reactor::Core::new().unwrap();
+    let core = reactor::Core::new().unwrap();
     let handle = core.handle();
     let (client_stream, server_stream) = ::mio_uds::UnixStream::pair().unwrap();
 
@@ -212,11 +212,11 @@ fn basic() {
     });
 }
 
-/*
+
 #[test]
 fn pipelining() {
-    rpc_top_level(|wait_scope, mut event_port, client| {
-        let response = try!(client.test_pipeline_request().send().promise.wait(wait_scope, &mut event_port));
+    rpc_top_level(|mut core, client| {
+        let response = try!(core.run(client.test_pipeline_request().send().promise));
         let client = try!(try!(response.get()).get_cap());
 
         let mut request = client.get_cap_request();
@@ -245,18 +245,20 @@ fn pipelining() {
             return Err(Error::failed("expected chained_call_count to equal 0".to_string()));
         }
 
-        let response = try!(pipeline_promise.promise.wait(wait_scope, &mut event_port));
+        let response = try!(core.run(pipeline_promise.promise));
+
         if try!(try!(response.get()).get_x()) != "bar" {
             return Err(Error::failed("expected x to equal 'bar'".to_string()));
         }
 
-        let response2 = try!(pipeline_promise2.promise.wait(wait_scope, &mut event_port));
+        let response2 = try!(core.run(pipeline_promise2.promise));
         ::test_util::CheckTestMessage::check_test_message(try!(response2.get()));
         assert_eq!(chained_call_count.get(), 1);
+
         Ok(())
     });
 }
-
+/*
 #[test]
 fn pipelining_return_null() {
     rpc_top_level(|wait_scope, mut event_port, client| {
