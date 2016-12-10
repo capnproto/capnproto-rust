@@ -36,6 +36,7 @@ use capnp::capability::Promise;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use futures::Future;
+use futures::sync::oneshot;
 
 use tokio_core::reactor;
 use tokio_core::io::Io;
@@ -258,16 +259,16 @@ fn pipelining() {
         Ok(())
     });
 }
-/*
+
 #[test]
 fn pipelining_return_null() {
-    rpc_top_level(|wait_scope, mut event_port, client| {
-        let response = try!(client.test_pipeline_request().send().promise.wait(wait_scope, &mut event_port));
+    rpc_top_level(|mut core, client| {
+        let response = try!(core.run(client.test_pipeline_request().send().promise));
         let client = try!(try!(response.get()).get_cap());
 
         let request = client.get_null_cap_request();
         let cap = request.send().pipeline.get_cap();
-        match cap.foo_request().send().promise.wait(wait_scope, &mut event_port) {
+        match core.run(cap.foo_request().send().promise) {
             Err(ref e) => {
                 if e.description.contains("Message contains null capability pointer") {
                     Ok(())
@@ -282,6 +283,7 @@ fn pipelining_return_null() {
     });
 }
 
+
 #[test]
 fn null_capability() {
     let mut message = ::capnp::message::Builder::new_default();
@@ -293,38 +295,40 @@ fn null_capability() {
     assert!(root.get_interface_field().is_err());
 }
 
+
 #[test]
 fn release_simple() {
-    rpc_top_level(|wait_scope, mut event_port, client| {
-        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
+    rpc_top_level(|mut core, client| {
+        let response = try!(core.run(client.test_more_stuff_request().send().promise));
         let client = try!(try!(response.get()).get_cap());
 
         let handle1 = client.get_handle_request().send().promise;
         let ::capnp::capability::RemotePromise {promise, pipeline} = client.get_handle_request().send();
-        let handle2 = try!(try!(try!(promise.wait(wait_scope, &mut event_port)).get()).get_handle());
+        let handle2 = try!(try!(try!(core.run(promise)).get()).get_handle());
 
-        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope, &mut event_port));
+
+        let get_count_response = try!(core.run(client.get_handle_count_request().send().promise));
         if try!(get_count_response.get()).get_count() != 2 {
             return Err(Error::failed("expected handle count to equal 2".to_string()))
         }
 
         drop(handle1);
 
-        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope, &mut event_port));
+        let get_count_response = try!(core.run(client.get_handle_count_request().send().promise));
         if try!(get_count_response.get()).get_count() != 1 {
             return Err(Error::failed("expected handle count to equal 1".to_string()))
         }
 
         drop(handle2);
 
-        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope, &mut event_port));
+        let get_count_response = try!(core.run(client.get_handle_count_request().send().promise));
         if try!(get_count_response.get()).get_count() != 1 {
             return Err(Error::failed("expected handle count to equal 1".to_string()))
         }
 
         drop(pipeline);
 
-        let get_count_response = try!(client.get_handle_count_request().send().promise.wait(wait_scope, &mut event_port));
+        let get_count_response = try!(core.run(client.get_handle_count_request().send().promise));
         if try!(get_count_response.get()).get_count() != 0 {
             return Err(Error::failed("expected handle count to equal 0".to_string()))
         }
@@ -335,8 +339,8 @@ fn release_simple() {
 
 #[test]
 fn release_on_cancel() {
-    rpc_top_level(|wait_scope, mut event_port, client| {
-        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
+    rpc_top_level(|mut core, client| {
+        let response = try!(core.run(client.test_more_stuff_request().send().promise));
         let client = try!(try!(response.get()).get_cap());
 
         let promise = client.get_handle_request().send();
@@ -344,6 +348,8 @@ fn release_on_cancel() {
         // If the server receives cancellation too early, it won't even return a capability in the
         // results, it will just return "canceled". We want to emulate the case where the return message
         // and the cancel (finish) message cross paths.
+
+/*  XXX how is will this work?
 
         let _ = Promise::<(), ::std::io::Error>::ok(()).map(|()| Ok(())).wait(wait_scope, &mut event_port);
         let _ = Promise::<(), ::std::io::Error>::ok(()).map(|()| Ok(())).wait(wait_scope, &mut event_port);
@@ -358,23 +364,24 @@ fn release_on_cancel() {
         if handle_count != 0 {
             return Err(Error::failed(format!("handle count: expected 0, but got {}", handle_count)))
         }
-
+*/
         Ok(())
     });
 }
 
+
 #[test]
 fn promise_resolve() {
-    rpc_top_level(|wait_scope, mut event_port, client| {
-        let response = try!(client.test_more_stuff_request().send().promise.wait(wait_scope, &mut event_port));
+    rpc_top_level(|mut core, client| {
+        let response = try!(core.run(client.test_more_stuff_request().send().promise));
         let client = try!(try!(response.get()).get_cap());
 
         let mut request = client.call_foo_request();
         let mut request2 = client.call_foo_when_resolved_request();
 
-        let (paf_promise, paf_fulfiller) =
-            Promise::<::test_capnp::test_interface::Client, Error>::and_fulfiller();
+        let (paf_fulfiller, paf_promise) = oneshot::channel::<::test_capnp::test_interface::Client>();
 
+/* XXX need fork
         {
             let mut fork = paf_promise.fork();
             let cap1 = ::capnp_rpc::new_promise_client(fork.add_branch().map(|c| Ok(c.client)));
@@ -403,10 +410,12 @@ fn promise_resolve() {
         if try!(try!(response.get()).get_s()) != "bar" {
             return Err(Error::failed("expected s to equal 'bar'".to_string()));
         }
+*/
         Ok(())
     });
 }
 
+/*
 #[test]
 fn retain_and_release() {
     use std::cell::Cell;
