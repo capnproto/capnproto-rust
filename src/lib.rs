@@ -322,7 +322,34 @@ impl <F> Future for ForkedPromise<F>
     type Error = F::Error;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        unimplemented!()
+        let ForkedPromiseInner { ref mut original_future, ref mut state } = *self.inner.borrow_mut();
+        let done_val = match *state {
+            ForkedPromiseState::Waiting(ref mut waiters) => {
+                let done_val = match original_future.poll() {
+                    Ok(::futures::Async::NotReady) => {
+                        waiters.push(::futures::task::park());
+                        return Ok(::futures::Async::NotReady)
+                    }
+                    Ok(::futures::Async::Ready(v)) => {
+                        Ok(v)
+                    }
+                    Err(e) => {
+                        Err(e)
+                    }
+                };
+                for task in waiters {
+                    task.unpark();
+                }
+                done_val
+            }
+            ForkedPromiseState::Done(Ok(ref v)) => return Ok(::futures::Async::Ready(v.clone())),
+            ForkedPromiseState::Done(Err(ref e)) => return Err(e.clone()),
+        };
+        *state = ForkedPromiseState::Done(done_val.clone());
+        match done_val {
+            Ok(v) => Ok(::futures::Async::Ready(v)),
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -389,7 +416,11 @@ impl <F, T> Future for AttachFuture<F, T>
     type Error = F::Error;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        unimplemented!()
+        let result = self.original_future.poll();
+        if let Ok(::futures::Async::Ready(_)) = result {
+            self.value.take();
+        }
+        result
     }
 }
 

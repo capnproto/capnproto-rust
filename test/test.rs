@@ -96,7 +96,7 @@ fn drop_import_client_after_disconnect() {
     let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
 
-    client.test_interface_request().send().promise.wait().unwrap();
+//    client.test_interface_request().send().promise.wait().unwrap();
 /*
 
 
