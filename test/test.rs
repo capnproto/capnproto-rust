@@ -29,7 +29,7 @@ extern crate tokio_core;
 
 extern crate mio_uds;
 
-use capnp::Error;
+//use capnp::Error;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use futures::Future;
@@ -69,7 +69,7 @@ fn drop_rpc_system() {
 
 #[test]
 fn drop_import_client_after_disconnect() {
-    let core = reactor::Core::new().unwrap();
+    let mut core = reactor::Core::new().unwrap();
     let handle = core.handle();
     let (client_stream, server_stream) = ::mio_uds::UnixStream::pair().unwrap();
     let  (client_reader, client_writer) = reactor::PollEvented::new(client_stream, &handle).unwrap().split();
@@ -91,11 +91,11 @@ fn drop_import_client_after_disconnect() {
     let bootstrap =
         test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
 
-    let server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client), handle.clone());
+    let _server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client), handle.clone());
 
     let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-    //client.test_interface_request().send().promise.wait().unwrap();
+//    core.run(client.test_interface_request().send().promise).unwrap();
 /*
 
 

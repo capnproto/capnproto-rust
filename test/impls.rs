@@ -27,8 +27,8 @@ use capnp::Error;
 
 use futures::Future;
 
-use std::cell::Cell;
-use std::rc::Rc;
+//use std::cell::Cell;
+//use std::rc::Rc;
 
 pub struct Bootstrap;
 
