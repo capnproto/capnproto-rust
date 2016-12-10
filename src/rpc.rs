@@ -566,6 +566,12 @@ impl <VatId> ConnectionState<VatId> {
         }
     }
 
+    fn eagerly_evaluate(&self, task: Promise<(), Error>) -> Promise<(), Error> {
+        let (tx, rx) = oneshot::channel();
+        self.add_task(Promise::from_future(task.then(move |r| {tx.complete(r); Ok(())})));
+        Promise::from_future(rx.map_err(|e| e.into()).and_then(|v| v))
+    }
+
     fn add_task(&self, task: Promise<(), Error>) {
         match &mut *self.tasks.borrow_mut() {
             &mut Some(ref mut tasks) => {
@@ -1083,7 +1089,8 @@ impl <VatId> ConnectionState<VatId> {
                                 // More to do here?
 
                             } else {
-                                answer.call_completion_promise = Some(Promise::from_future(promise));
+                                answer.call_completion_promise = Some(
+                                    connection_state.eagerly_evaluate(Promise::from_future(promise)));
                             }
                         }
                         None => unreachable!()

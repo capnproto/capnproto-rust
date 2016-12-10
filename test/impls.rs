@@ -28,8 +28,8 @@ use capnp::capability::Promise;
 
 use futures::Future;
 
-//use std::cell::Cell;
-//use std::rc::Rc;
+use std::cell::Cell;
+use std::rc::Rc;
 
 pub struct Bootstrap;
 
@@ -39,13 +39,11 @@ impl bootstrap::Server for Bootstrap {
                       mut results: bootstrap::TestInterfaceResults)
                       -> Promise<(), Error>
     {
-        unimplemented!()
-/*
         {
             results.get().set_cap(
                 test_interface::ToClient::new(TestInterface::new()).from_server::<::capnp_rpc::Server>());
         }
-        Promise::ok(())*/
+        Promise::ok(())
     }
 /*
     fn test_extends(&mut self,
@@ -105,7 +103,7 @@ impl bootstrap::Server for Bootstrap {
 
 */
 }
-/*
+
 pub struct TestInterface {
     call_count: Rc<Cell<u64>>,
 }
@@ -157,12 +155,12 @@ impl test_interface::Server for TestInterface {
            _results: test_interface::BazResults)
            -> Promise<(), Error>
     {
-        self.increment_call_count();
-        ::test_util::CheckTestMessage::check_test_message(pry!(pry!(params.get()).get_s()));
+//        self.increment_call_count();
+//        ::test_util::CheckTestMessage::check_test_message(pry!(pry!(params.get()).get_s()));
         Promise::ok(())
     }
 }
-
+/*
 struct TestExtends;
 
 impl test_interface::Server for TestExtends {

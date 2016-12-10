@@ -297,7 +297,6 @@ impl ClientHook for Client {
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
-
         let inner = self.inner.clone();
         let promise = ::futures::future::ok(()).and_then(move |()| {
             let server = &mut inner.borrow_mut().server;

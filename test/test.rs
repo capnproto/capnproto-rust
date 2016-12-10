@@ -22,6 +22,8 @@
 #![cfg(test)]
 
 extern crate capnp;
+
+#[macro_use]
 extern crate capnp_rpc;
 
 extern crate futures;
@@ -91,16 +93,13 @@ fn drop_import_client_after_disconnect() {
     let bootstrap =
         test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
 
-    let _server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client), handle.clone());
+    let server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client), handle.clone());
 
     let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-//    core.run(client.test_interface_request().send().promise).unwrap();
+    core.run(client.test_interface_request().send().promise).unwrap();
+    drop(server_rpc_system);
 /*
-
-
-        drop(server_rpc_system);
-
         match client.test_interface_request().send().promise.wait(wait_scope, &mut event_port) {
             Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
             _ => panic!("Should have gotten a 'disconnected' error."),

@@ -85,7 +85,7 @@ pub mod rpc_twoparty_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_twoparty_capnp.rs"));
 }
 
-
+#[macro_export]
 macro_rules! pry {
     ($expr:expr) => (
         match $expr {

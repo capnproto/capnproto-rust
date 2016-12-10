@@ -150,7 +150,6 @@ impl <T> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T>
         match maybe_input_stream {
             Some(s) => {
                 Promise::deferred(Box::new(::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
-                    println!("got an incoming message");
                     *return_it_here.borrow_mut() = Some(s);
                     maybe_message.map(|message|
                                       Box::new(IncomingMessage::new(message)) as Box<::IncomingMessage>)
