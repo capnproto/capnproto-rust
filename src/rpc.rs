@@ -618,6 +618,7 @@ impl <VatId> ConnectionState<VatId> {
         let weak_state0 = weak_state.clone();
         let weak_state1 = weak_state.clone();
         Box::new(promise.and_then(move |message| {
+            println!("message!!!");
             match message {
                 Some(m) => {
                     ConnectionState::handle_message(weak_state, m).map(|()| true)

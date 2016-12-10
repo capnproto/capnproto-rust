@@ -25,3 +25,4 @@ mio-uds = "0.6"
 [replace]
 "capnp:0.7.5" = { git = "https://github.com/dwrensha/capnproto-rust", branch = "futures" }
 "capnpc:0.7.5" = { git = "https://github.com/dwrensha/capnpc-rust", branch = "futures" }
+"capnp-futures:0.0.2" = { git = "https://github.com/dwrensha/capnp-futures-rs" }

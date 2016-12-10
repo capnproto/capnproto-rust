@@ -58,7 +58,7 @@ fn drop_rpc_system() {
     let (reader, writer) = instream.split();
 
     let network =
-        Box::new(twoparty::VatNetwork::new(reader, writer,
+        Box::new(twoparty::VatNetwork::new(reader, writer, &handle,
                                            rpc_twoparty_capnp::Side::Client,
                                            Default::default()));
     let rpc_system = RpcSystem::new(network, None, handle);
@@ -75,7 +75,7 @@ fn drop_import_client_after_disconnect() {
     let  (client_reader, client_writer) = reactor::PollEvented::new(client_stream, &handle).unwrap().split();
 
     let client_network =
-        Box::new(twoparty::VatNetwork::new(client_reader, client_writer,
+        Box::new(twoparty::VatNetwork::new(client_reader, client_writer, &handle,
                                            rpc_twoparty_capnp::Side::Client,
                                            Default::default()));
 
@@ -84,7 +84,7 @@ fn drop_import_client_after_disconnect() {
     let (server_reader, server_writer) = reactor::PollEvented::new(server_stream, &handle).unwrap().split();
 
     let server_network =
-        Box::new(twoparty::VatNetwork::new(server_reader, server_writer,
+        Box::new(twoparty::VatNetwork::new(server_reader, server_writer, &handle,
                                            rpc_twoparty_capnp::Side::Server,
                                            Default::default()));
 

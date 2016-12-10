@@ -48,12 +48,12 @@ impl ::IncomingMessage for IncomingMessage {
     }
 }
 
-struct OutgoingMessage<U> where U: ::std::io::Write + 'static {
+struct OutgoingMessage {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    write_queue: Rc<RefCell<Promise<U, ::capnp::Error>>>,
+    sender: ::capnp_futures::Sender<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
 }
 
-impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::std::io::Write {
+impl ::OutgoingMessage for OutgoingMessage {
     fn get_body<'a>(&'a mut self) -> ::capnp::Result<::capnp::any_pointer::Builder<'a>> {
         self.message.get_root()
     }
@@ -67,18 +67,8 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::std::io::Write {
     {
         println!("writing outgoing message");
         let tmp = *self;
-        let OutgoingMessage {message, write_queue} = tmp;
-        let queue = ::std::mem::replace(
-            &mut *write_queue.borrow_mut(),
-            Box::new(::futures::future::empty()));
-        let (fulfiller, promise) = oneshot::channel();
-        *write_queue.borrow_mut() = Box::new(queue.and_then(move |s| {
-            ::capnp_futures::serialize::write_message(s, message).map(move |(s, m)| {
-                fulfiller.complete(m);
-                s
-            })
-        }));
-        Box::new(promise.map_err(|e| e.into()))
+        let OutgoingMessage {message, mut sender} = tmp;
+        Box::new(sender.send(message).map_err(|e| e.into()))
     }
 
     fn take(self: Box<Self>)
@@ -88,19 +78,19 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::std::io::Write {
     }
 }
 
-struct ConnectionInner<T, U> where T: ::std::io::Read + 'static, U: ::std::io::Write + 'static {
+struct ConnectionInner<T> where T: ::std::io::Read + 'static {
     input_stream: Rc<RefCell<Option<T>>>,
-    write_queue: Rc<RefCell<Promise<U, ::capnp::Error>>>,
+    sender: ::capnp_futures::Sender<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
     side: ::rpc_twoparty_capnp::Side,
     receive_options: ReaderOptions,
     on_disconnect_fulfiller: Option<oneshot::Sender<()>>,
 }
 
-struct Connection<T, U> where T: ::std::io::Read + 'static, U: ::std::io::Write + 'static {
-    inner: Rc<RefCell<ConnectionInner<T, U>>>,
+struct Connection<T> where T: ::std::io::Read + 'static {
+    inner: Rc<RefCell<ConnectionInner<T>>>,
 }
 
-impl <T, U> Drop for ConnectionInner<T, U> where T: ::std::io::Read, U: ::std::io::Write {
+impl <T> Drop for ConnectionInner<T> where T: ::std::io::Read {
     fn drop(&mut self) {
         let maybe_fulfiller = ::std::mem::replace(&mut self.on_disconnect_fulfiller, None);
         match maybe_fulfiller {
@@ -112,18 +102,24 @@ impl <T, U> Drop for ConnectionInner<T, U> where T: ::std::io::Read, U: ::std::i
     }
 }
 
-impl <T, U> Connection<T, U> where T: ::std::io::Read, U: ::std::io::Write {
-    fn new(input_stream: T,
+impl <T> Connection<T> where T: ::std::io::Read {
+    fn new<U>(input_stream: T,
            output_stream: U,
+           handle: &::tokio_core::reactor::Handle,
            side: ::rpc_twoparty_capnp::Side,
            receive_options: ReaderOptions,
            on_disconnect_fulfiller: oneshot::Sender<()>,
-           ) -> Connection<T, U> {
+           ) -> Connection<T>
+        where U: ::std::io::Write + 'static
+    {
+        let (tx, write_queue) = ::capnp_futures::write_queue(output_stream);
+        handle.spawn(write_queue.then(|_| Ok(())));
+
         Connection {
             inner: Rc::new(RefCell::new(
                 ConnectionInner {
                     input_stream: Rc::new(RefCell::new(Some(input_stream))),
-                    write_queue: Rc::new(RefCell::new(Box::new(::futures::future::ok(output_stream)))),
+                    sender: tx,
                     side: side,
                     receive_options: receive_options,
                     on_disconnect_fulfiller: Some(on_disconnect_fulfiller),
@@ -132,8 +128,8 @@ impl <T, U> Connection<T, U> where T: ::std::io::Read, U: ::std::io::Write {
     }
 }
 
-impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
-    where T: ::std::io::Read, U: ::std::io::Write
+impl <T> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T>
+    where T: ::std::io::Read
 {
     fn get_peer_vat_id(&self) -> ::rpc_twoparty_capnp::Side {
         self.inner.borrow().side
@@ -142,7 +138,7 @@ impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
     fn new_outgoing_message(&mut self, _first_segment_word_size: u32) -> Box<::OutgoingMessage> {
         Box::new(OutgoingMessage {
             message: ::capnp::message::Builder::new_default(),
-            write_queue: self.inner.borrow().write_queue.clone()
+            sender: self.inner.borrow().sender.clone(),
         })
     }
 
@@ -164,36 +160,40 @@ impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
     }
 
     fn shutdown(&mut self) -> Promise<(), ::capnp::Error> {
-        let mut inner = self.inner.borrow_mut();
-        let write_queue = ::std::mem::replace(
-            &mut *inner.write_queue.borrow_mut(),
-            Box::new(::futures::future::empty()));
-        Box::new(write_queue.map(|_| ()))
+        Box::new(::futures::future::ok(()))
+//        let mut inner = self.inner.borrow_mut();
+        // XXX TODO shut down write queue.
+//        let write_queue = ::std::mem::replace(
+//            &mut *inner.write_queue.borrow_mut(),
+//            Box::new(::futures::future::empty()));
+//        Box::new(write_queue.map(|_| ()))
     }
 }
 
 /// A vat networks with two parties, the client and the server.
-pub struct VatNetwork<T, U> where T: ::std::io::Read + 'static, U: ::std::io::Write + 'static {
-    connection: Option<Connection<T, U>>,
+pub struct VatNetwork<T> where T: ::std::io::Read + 'static {
+    connection: Option<Connection<T>>,
 
     // HACK
-    weak_connection_inner: Weak<RefCell<ConnectionInner<T, U>>>,
+    weak_connection_inner: Weak<RefCell<ConnectionInner<T>>>,
 
     on_disconnect_promise: ForkedPromise<Promise<(), ::capnp::Error>>,
     side: ::rpc_twoparty_capnp::Side,
 }
 
-impl <T, U> VatNetwork<T, U> where T: ::std::io::Read, U: ::std::io::Write {
+impl <T> VatNetwork<T> where T: ::std::io::Read {
     /// Creates a new two-party vat network that will receive data on `input_stream` and send data on
     /// `output_stream`. `side` indicates whether this is the client or the server side of the connection.
     /// The options in `receive_options` will be used when reading the messages that come in on `input_stream`.
-    pub fn new(input_stream: T,
+    pub fn new<U>(input_stream: T,
                output_stream: U,
+               handle: &::tokio_core::reactor::Handle,
                side: ::rpc_twoparty_capnp::Side,
-               receive_options: ReaderOptions) -> VatNetwork<T, U>
+               receive_options: ReaderOptions) -> VatNetwork<T>
+        where U: ::std::io::Write + 'static,
     {
         let (fulfiller, promise) = oneshot::channel();
-        let connection = Connection::new(input_stream, output_stream, side, receive_options, fulfiller);
+        let connection = Connection::new(input_stream, output_stream, handle, side, receive_options, fulfiller);
         let weak_inner = Rc::downgrade(&connection.inner);
         VatNetwork {
             connection: Some(connection),
@@ -209,8 +209,8 @@ impl <T, U> VatNetwork<T, U> where T: ::std::io::Read, U: ::std::io::Write {
     }
 }
 
-impl <T, U> ::VatNetwork<VatId> for VatNetwork<T, U>
-    where T: ::std::io::Read, U: ::std::io::Write
+impl <T> ::VatNetwork<VatId> for VatNetwork<T>
+    where T: ::std::io::Read
 {
     fn connect(&mut self, host_id: VatId) -> Option<Box<::Connection<VatId>>> {
         if host_id == self.side {
