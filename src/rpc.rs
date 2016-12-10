@@ -624,12 +624,13 @@ impl <VatId> ConnectionState<VatId> {
         let weak_state0 = weak_state.clone();
         let weak_state1 = weak_state.clone();
         Promise::from_future(promise.and_then(move |message| {
-            println!("message!!!");
             match message {
                 Some(m) => {
+                    println!("some message!");
                     ConnectionState::handle_message(weak_state, m).map(|()| true)
                 }
                 None => {
+                    println!("no message!");
                     weak_state0.upgrade().expect("message loop outlived connection state?")
                         .disconnect(Error::disconnected("Peer disconnected.".to_string()));
                     Ok(false)

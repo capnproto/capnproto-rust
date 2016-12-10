@@ -31,7 +31,8 @@ extern crate tokio_core;
 
 extern crate mio_uds;
 
-//use capnp::Error;
+use capnp::Error;
+use capnp::capability::Promise;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use futures::Future;
@@ -99,12 +100,13 @@ fn drop_import_client_after_disconnect() {
 
     core.run(client.test_interface_request().send().promise).unwrap();
     drop(server_rpc_system);
-/*
-        match client.test_interface_request().send().promise.wait(wait_scope, &mut event_port) {
-            Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
-            _ => panic!("Should have gotten a 'disconnected' error."),
-        }
 
+//    match core.run(client.test_interface_request().send().promise) {
+//        Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
+//        _ => panic!("Should have gotten a 'disconnected' error."),
+//    }
+
+/*
         // At one point, attempting to call again would cause a panic.
         match client.test_interface_request().send().promise.wait(wait_scope, &mut event_port) {
             Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
@@ -117,63 +119,61 @@ fn drop_import_client_after_disconnect() {
 */
 }
 
-/*
 fn rpc_top_level<F>(main: F)
-    where F: FnOnce(&::gj::WaitScope, ::gjio::EventPort, test_capnp::bootstrap::Client) -> Result<(), Error>,
+    where F: FnOnce(::tokio_core::reactor::Core, test_capnp::bootstrap::Client) -> Result<(), Error>,
           F: Send + 'static
 {
-    EventLoop::top_level(|wait_scope| -> Result<(), Box<::std::error::Error>> {
-        let event_port = try!(gjio::EventPort::new());
-        let network = event_port.get_network();
-        let (join_handle, stream) = try!(network.socket_spawn(|stream, wait_scope, mut event_port| {
+    let mut core = reactor::Core::new().unwrap();
+    let handle = core.handle();
+    let (client_stream, server_stream) = ::mio_uds::UnixStream::pair().unwrap();
 
-            let (reader, writer) = (stream.clone(), stream);
-            //let reader = ReadWrapper::new(reader,
-            //                             ::std::fs::File::create("/Users/dwrensha/Desktop/client.dat").unwrap());
-            //let writer = WriteWrapper::new(writer,
-            //                               ::std::fs::File::create("/Users/dwrensha/Desktop/server.dat").unwrap());
-            let mut network =
-                Box::new(twoparty::VatNetwork::new(reader, writer,
-                                                   rpc_twoparty_capnp::Side::Server,
-                                                   Default::default()));
-            let disconnect_promise = network.on_disconnect();
-            let bootstrap =
-                test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
 
-            let _rpc_system = RpcSystem::new(network, Some(bootstrap.client));
-            try!(disconnect_promise.wait(wait_scope, &mut event_port));
-            Ok(())
-        }));
+    let join_handle = ::std::thread::spawn(move || {
+        let mut core = reactor::Core::new().unwrap();
+        let handle = core.handle();
+        let (server_reader, server_writer) = reactor::PollEvented::new(server_stream, &handle).unwrap().split();
 
-        let (reader, writer) = (stream.clone(), stream);
-
-        let network =
-            Box::new(twoparty::VatNetwork::new(reader, writer,
-                                               rpc_twoparty_capnp::Side::Client,
+        let mut network =
+            Box::new(twoparty::VatNetwork::new(server_reader, server_writer, &handle,
+                                               rpc_twoparty_capnp::Side::Server,
                                                Default::default()));
 
-        let mut rpc_system = RpcSystem::new(network, None);
-        let client: test_capnp::bootstrap::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+        let disconnect_promise = network.on_disconnect();
+        let bootstrap =
+            test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
 
-        try!(main(wait_scope, event_port, client));
-        drop(rpc_system);
-        join_handle.join().expect("thread exited unsuccessfully");
-        Ok(())
-    }).expect("top level error");
+        let _rpc_system = RpcSystem::new(network, Some(bootstrap.client), handle);
+        core.run(disconnect_promise).unwrap();
+    });
+
+    let  (client_reader, client_writer) = reactor::PollEvented::new(client_stream, &handle).unwrap().split();
+
+    let network =
+        Box::new(twoparty::VatNetwork::new(client_reader, client_writer, &handle,
+                                           rpc_twoparty_capnp::Side::Client,
+                                           Default::default()));
+
+    let mut rpc_system = RpcSystem::new(network, None, handle);
+    let client: test_capnp::bootstrap::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+
+    main(core, client).unwrap();
+    drop(rpc_system);
+    join_handle.join().expect("thread exited unsuccessfully");
 }
 
 
 #[test]
 fn do_nothing() {
-    rpc_top_level(|_wait_scope, _event_port, _client| {
+    rpc_top_level(|_core, _client| {
         Ok(())
     });
 }
 
+
 #[test]
 fn basic() {
-    rpc_top_level(|wait_scope, mut event_port, client| {
-        let response = try!(client.test_interface_request().send().promise.wait(wait_scope, &mut event_port));
+    rpc_top_level(|mut core, client| {
+        let response = try!(core.run(client.test_interface_request().send().promise));
         let client = try!(try!(response.get()).get_cap());
 
         let mut request1 = client.foo_request();
@@ -181,8 +181,9 @@ fn basic() {
         request1.get().set_j(true);
         let promise1 = request1.send();
 
+
         let request3 = client.bar_request();
-        let promise3 = request3.send().promise.then_else(|result| {
+        let promise3 = request3.send().promise.then(|result| {
             // We expect this call to fail.
             match result {
                 Ok(_) => {
@@ -195,19 +196,23 @@ fn basic() {
         });
 
         let mut request2 = client.baz_request();
+
         ::test_util::init_test_message(try!(request2.get().get_s()));
         let promise2 = request2.send();
 
-        let response1 = try!(promise1.promise.wait(wait_scope, &mut event_port));
+        let response1 = try!(core.run(promise1.promise));
+
         if try!(try!(response1.get()).get_x()) != "foo" {
             return Err(Error::failed("expected X to equal 'foo'".to_string()));
         }
-        try!(promise2.promise.wait(wait_scope, &mut event_port));
-        try!(promise3.wait(wait_scope, &mut event_port));
+
+        try!(core.run(promise2.promise));
+        try!(core.run(promise3));
         Ok(())
     });
 }
 
+/*
 #[test]
 fn pipelining() {
     rpc_top_level(|wait_scope, mut event_port, client| {

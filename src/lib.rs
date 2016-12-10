@@ -369,9 +369,8 @@ impl<T, E> TaskSet<T, E> {
         let (fulfiller, dropped) = oneshot::channel::<()>();
         let dropped = dropped.map_err(|_| ());
 
-
         let f = dropped.join(
-            stream.for_each(|_t| Ok(()) ).map_err(|e| { println!("error {:?}", e); ()})).map(|_|());
+            stream.for_each(|_t| Ok(()) ).map_err(|e| { println!("error {:?}", e); ()})).map(|_| {println!("task set done"); ()});
 
         handle.spawn(f);
 
