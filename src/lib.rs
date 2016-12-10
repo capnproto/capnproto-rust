@@ -135,7 +135,7 @@ pub trait Connection<VatId> {
 
 pub trait VatNetwork<VatId> {
     /// Returns None if `hostId` refers to the local vat.
-    fn connect(&mut self, hostId: VatId) -> Option<Box<Connection<VatId>>>;
+    fn connect(&mut self, host_id: VatId) -> Option<Box<Connection<VatId>>>;
 
     /// Waits for the next incoming connection and return it.
     fn accept(&mut self) -> Promise<Box<Connection<VatId>>, ::capnp::Error>;
@@ -356,11 +356,11 @@ impl <F> Future for ForkedPromise<F>
 
 struct TaskSet<T, E> {
     sender: ::futures::sync::mpsc::UnboundedSender<Box<Future<Item=T,Error=E>>>,
-    canceler: ::futures::sync::oneshot::Sender<()>,
+    _canceler: ::futures::sync::oneshot::Sender<()>, // when dropped, the tasks get canceled
 }
 
 impl<T, E> TaskSet<T, E> {
-    pub fn new(reaper: Box<TaskReaper<T, E>>, handle: &tokio_core::reactor::Handle)
+    pub fn new(_reaper: Box<TaskReaper<T, E>>, handle: &tokio_core::reactor::Handle)
                -> TaskSet<T, E>
         where E: 'static, T: 'static, E: ::std::fmt::Debug,
     {
@@ -379,7 +379,7 @@ impl<T, E> TaskSet<T, E> {
 
         TaskSet {
             sender: tx,
-            canceler: fulfiller,
+            _canceler: fulfiller,
         }
     }
 

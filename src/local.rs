@@ -185,7 +185,7 @@ impl RequestHook for Request {
         let (results_done_fulfiller, results_done_promise) = oneshot::channel::<Box<ResultsDoneHook>>();
         let results_done_promise = results_done_promise.map_err(|e| e.into());
 
-        let mut forked_results_done = ForkedPromise::new(results_done_promise);
+        let forked_results_done = ForkedPromise::new(results_done_promise);
         let results = Results::new(results_done_fulfiller);
 
         let (promise, pipeline) = client.call(interface_id, method_id,
@@ -195,7 +195,7 @@ impl RequestHook for Request {
         let results_done_branch2 = forked_results_done.clone();
 
         // Fork so that dropping just the returned promise doesn't cancel the call.
-        let mut forked = ForkedPromise::new(promise);
+        let forked = ForkedPromise::new(promise);
 
         let promise = forked.clone().and_then(move |()| {
             results_done_branch2.and_then(|results_done_hook| {
@@ -305,7 +305,7 @@ impl ClientHook for Client {
                                  ::capnp::capability::Results::new(results))
         }).attach(self.add_ref());
 
-        let mut forked = ForkedPromise::new(promise);
+        let forked = ForkedPromise::new(promise);
 
         let branch = forked.clone();
         let pipeline_promise = results_done.and_then(move |results_done_hook| {

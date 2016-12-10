@@ -37,8 +37,8 @@ use futures::Future;
 use tokio_core::reactor;
 use tokio_core::io::Io;
 
-use std::cell::RefCell;
-use std::rc::Rc;
+//use std::cell::RefCell;
+//use std::rc::Rc;
 
 pub mod test_capnp {
   include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
@@ -95,8 +95,7 @@ fn drop_import_client_after_disconnect() {
 
     let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-
-//    client.test_interface_request().send().promise.wait().unwrap();
+    //client.test_interface_request().send().promise.wait().unwrap();
 /*
 
 

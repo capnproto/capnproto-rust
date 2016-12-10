@@ -47,7 +47,7 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(promise_param: Promise<Box<PipelineHook>, Error>) -> Pipeline {
-        let mut promise = ForkedPromise::new(promise_param);
+        let promise = ForkedPromise::new(promise_param);
         let branch = promise.clone();
         let inner = Rc::new(RefCell::new(PipelineInner {
             promise: promise,
@@ -142,7 +142,7 @@ impl Client {
     pub fn new(promise_param: Promise<Box<ClientHook>, Error>)
            -> Client
     {
-        let mut promise = ForkedPromise::new(promise_param);
+        let promise = ForkedPromise::new(promise_param);
         let branch1 = promise.clone();
         let branch2 = promise.clone();
         let branch3 = promise.clone();
@@ -196,7 +196,7 @@ impl ClientHook for Client {
             pipeline: Option<Box<PipelineHook>>,
         }
 
-        let mut call_result_promise =
+        let call_result_promise =
             ForkedPromise::new(Box::new(self.inner.borrow_mut().promise_for_call_forwarding.clone().and_then(move |client| {
                 let (promise, pipeline) = client.call(interface_id, method_id, params, results, results_done);
                 Ok(Rc::new(RefCell::new(CallResultHolder {

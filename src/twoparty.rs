@@ -65,6 +65,7 @@ impl <U> ::OutgoingMessage for OutgoingMessage<U> where U: ::std::io::Write {
     fn send(self: Box<Self>)
             -> Promise<::capnp::message::Builder<::capnp::message::HeapAllocator>, ::capnp::Error>
     {
+        println!("writing outgoing message");
         let tmp = *self;
         let OutgoingMessage {message, write_queue} = tmp;
         let queue = ::std::mem::replace(
@@ -152,6 +153,7 @@ impl <T, U> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T, U>
         match maybe_input_stream {
             Some(s) => {
                 Box::new(::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
+                    println!("got an incoming message");
                     *return_it_here.borrow_mut() = Some(s);
                     maybe_message.map(|message|
                                       Box::new(IncomingMessage::new(message)) as Box<::IncomingMessage>)

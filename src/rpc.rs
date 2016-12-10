@@ -609,6 +609,7 @@ impl <VatId> ConnectionState<VatId> {
     }
 
     fn message_loop(weak_state: ::std::rc::Weak<ConnectionState<VatId>>) -> Promise<(), ::capnp::Error> {
+        println!("message loop");
         let state = weak_state.upgrade().expect("dangling reference to connection state");
         let promise = match &mut *state.connection.borrow_mut() {
             &mut Err(_) => return Box::new(::futures::future::ok(())),
@@ -1713,7 +1714,7 @@ impl <VatId> RequestHook for Request<VatId> {
             None => {
                 let (question_ref, promise) =
                     Request::send_internal(connection_state.clone(), message, cap_table, false);
-                let mut forked_promise = ForkedPromise::new(promise);
+                let forked_promise = ForkedPromise::new(promise);
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
                 let pipeline = Pipeline::new(connection_state, question_ref,
@@ -1799,7 +1800,7 @@ impl <VatId> Pipeline<VatId> {
         }));
         match redirect_later {
             Some(redirect_later_promise) => {
-                let mut fork = ForkedPromise::new(redirect_later_promise);
+                let fork = ForkedPromise::new(redirect_later_promise);
 
                 let this = Rc::downgrade(&state);
                 let resolve_self_promise = Box::new(fork.clone().then(move |response| {
@@ -2713,7 +2714,7 @@ impl <VatId> ClientHook for Client<VatId> {
                     Ok(())
                 });
 
-                let mut forked = ForkedPromise::new(promise);
+                let forked = ForkedPromise::new(promise);
                 let promise = forked.clone();
 
                 let pipeline = ::queued::Pipeline::new(Box::new(forked.and_then(move |_| {

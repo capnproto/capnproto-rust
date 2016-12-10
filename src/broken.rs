@@ -25,7 +25,6 @@ use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineO
                                  RequestHook, ResultsHook, ResultsDoneHook};
 
 use Promise;
-use futures::Future;
 
 use std::rc::{Rc};
 
