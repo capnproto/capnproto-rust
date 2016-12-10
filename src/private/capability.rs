@@ -71,9 +71,9 @@ pub trait ClientHook {
 
         match self.when_more_resolved() {
             Some(promise) => {
-                Promise::deferred(Box::new(promise.and_then(|resolution| {
+                Promise::from_future(promise.and_then(|resolution| {
                     resolution.when_resolved()
-                })))
+                }))
             }
             None => {
                 Promise::ok(())

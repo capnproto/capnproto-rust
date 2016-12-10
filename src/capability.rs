@@ -30,7 +30,7 @@ use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, Res
 use futures::Future;
 
 pub struct Promise<T, E> {
-    #[allow(unused)]
+    #[allow(dead_code)]
     inner: PromiseInner<T, E>,
 }
 
@@ -51,6 +51,13 @@ impl <T, E> Promise<T, E> {
 
     pub fn err(error: E) -> Promise<T, E> {
         Promise { inner: PromiseInner::Immediate(Err(error)) }
+    }
+
+    #[cfg(feature = "rpc")]
+    pub fn from_future<F>(f: F) -> Promise<T, E>
+        where F: Future<Item=T,Error=E> + 'static
+    {
+        Promise { inner: PromiseInner::Deferred(Box::new(f)) }
     }
 
     #[cfg(feature = "rpc")]
@@ -130,10 +137,10 @@ where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static,
 {
     pub fn send(self) -> RemotePromise<Results> {
         let RemotePromise {promise, pipeline, ..} = self.hook.send();
-        let typed_promise = Promise::deferred(Box::new(promise.map(|response| {
+        let typed_promise = Promise::from_future(promise.map(|response| {
             Response {hook: response.hook,
                       marker: ::std::marker::PhantomData}
-        })));
+        }));
         RemotePromise { promise: typed_promise,
                         pipeline: FromTypelessPipeline::new(pipeline)
                       }
