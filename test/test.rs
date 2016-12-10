@@ -66,33 +66,39 @@ fn drop_rpc_system() {
 //        try!(Promise::<(),Error>::ok(()).wait(wait_scope, &mut event_port));
 }
 
-/*
+
 #[test]
 fn drop_import_client_after_disconnect() {
-    EventLoop::top_level(|wait_scope| -> Result<(), ::capnp::Error> {
-        let mut event_port = try!(gjio::EventPort::new());
-        let network = event_port.get_network();
-        let (client_stream, server_stream) = try!(network.new_socket_pair());
-        let (client_reader, client_writer) = (client_stream.clone(), client_stream);
-        let client_network =
-            Box::new(twoparty::VatNetwork::new(client_reader, client_writer,
-                                               rpc_twoparty_capnp::Side::Client,
-                                               Default::default()));
-        let mut client_rpc_system = RpcSystem::new(client_network, None);
+    let core = reactor::Core::new().unwrap();
+    let handle = core.handle();
+    let (client_stream, server_stream) = ::mio_uds::UnixStream::pair().unwrap();
+    let  (client_reader, client_writer) = reactor::PollEvented::new(client_stream, &handle).unwrap().split();
 
-        let (server_reader, server_writer) = (server_stream.clone(), server_stream);
-        let server_network =
-            Box::new(twoparty::VatNetwork::new(server_reader, server_writer,
-                                               rpc_twoparty_capnp::Side::Server,
-                                               Default::default()));
+    let client_network =
+        Box::new(twoparty::VatNetwork::new(client_reader, client_writer,
+                                           rpc_twoparty_capnp::Side::Client,
+                                           Default::default()));
 
-        let bootstrap =
-            test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
+    let mut client_rpc_system = RpcSystem::new(client_network, None, handle.clone());
 
-        let server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client));
+    let (server_reader, server_writer) = reactor::PollEvented::new(server_stream, &handle).unwrap().split();
 
-        let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-        try!(client.test_interface_request().send().promise.wait(wait_scope, &mut event_port));
+    let server_network =
+        Box::new(twoparty::VatNetwork::new(server_reader, server_writer,
+                                           rpc_twoparty_capnp::Side::Server,
+                                           Default::default()));
+
+    let bootstrap =
+        test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
+
+    let server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client), handle.clone());
+
+    let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+
+
+    client.test_interface_request().send().promise.wait().unwrap();
+/*
+
 
         drop(server_rpc_system);
 
@@ -110,8 +116,10 @@ fn drop_import_client_after_disconnect() {
         drop(client);
         Ok(())
     }).expect("top level error");
+*/
 }
 
+/*
 fn rpc_top_level<F>(main: F)
     where F: FnOnce(&::gj::WaitScope, ::gjio::EventPort, test_capnp::bootstrap::Client) -> Result<(), Error>,
           F: Send + 'static

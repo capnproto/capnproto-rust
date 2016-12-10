@@ -18,12 +18,14 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-/*
+
 use test_capnp::{bootstrap, test_handle, test_interface, test_extends, test_pipeline,
                  test_call_order, test_more_stuff};
 
 
 use capnp::Error;
+
+use futures::Future;
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -34,15 +36,17 @@ impl bootstrap::Server for Bootstrap {
     fn test_interface(&mut self,
                       _params: bootstrap::TestInterfaceParams,
                       mut results: bootstrap::TestInterfaceResults)
-                      -> Promise<(), Error>
+                      -> Box<Future<Item=(), Error=Error>>
     {
+        unimplemented!()
+/*
         {
             results.get().set_cap(
                 test_interface::ToClient::new(TestInterface::new()).from_server::<::capnp_rpc::Server>());
         }
-        Promise::ok(())
+        Promise::ok(())*/
     }
-
+/*
     fn test_extends(&mut self,
                     _params: bootstrap::TestExtendsParams,
                     mut results: bootstrap::TestExtendsResults)
@@ -97,8 +101,10 @@ impl bootstrap::Server for Bootstrap {
         }
         Promise::ok(())
     }
-}
 
+*/
+}
+/*
 pub struct TestInterface {
     call_count: Rc<Cell<u64>>,
 }
