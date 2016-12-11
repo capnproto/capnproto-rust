@@ -92,7 +92,7 @@ fn evaluate_impl(expression: calculator::expression::Reader,
                 request.send().promise.and_then(|result| {
                     Ok(try!(result.get()).get_value())
                 })
-            })) 
+            }))
         }
     }
 }
