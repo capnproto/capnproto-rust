@@ -26,7 +26,13 @@ use std::collections::HashMap;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use pubsub_capnp::{publisher, subscriber, subscription};
 
-use gj::{EventLoop, Promise, TaskReaper, TaskSet};
+use capnp::capability::Promise;
+use capnp::Error;
+
+use futures::{Future, Stream};
+
+use tokio_core::reactor;
+use tokio_core::io::Io;
 
 struct SubscriberHandle {
     client: subscriber::Client<::capnp::text::Owned>,
@@ -100,34 +106,8 @@ impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
     }
 }
 
-pub fn accept_loop(listener: ::gjio::SocketListener,
-                   task_set: Rc<RefCell<TaskSet<(), ::capnp::Error>>>,
-                   publisher: publisher::Client<::capnp::text::Owned>)
-                   -> Promise<(), ::std::io::Error>
-{
-    listener.accept().then(move |stream| {
-        let mut network =
-            twoparty::VatNetwork::new(stream.clone(), stream,
-                                      rpc_twoparty_capnp::Side::Server, Default::default());
-        let disconnect_promise = network.on_disconnect();
-
-        let rpc_system = RpcSystem::new(Box::new(network), Some(publisher.clone().client));
-
-        task_set.borrow_mut().add(disconnect_promise.attach(rpc_system));
-        accept_loop(listener, task_set, publisher)
-    })
-}
-
-struct Reaper;
-
-impl TaskReaper<(), ::capnp::Error> for Reaper {
-    fn task_failed(&mut self, error: ::capnp::Error) {
-        println!("Task failed: {}", error);
-    }
-}
-
+/*
 fn send_to_subscribers(subscribers: Rc<RefCell<SubscriberMap>>,
-                       timer: ::gjio::Timer,
                        task_set: Rc<RefCell<TaskSet<(), ::capnp::Error>>>)
                        -> Promise<(), ::capnp::Error>
 {
@@ -163,34 +143,80 @@ fn send_to_subscribers(subscribers: Rc<RefCell<SubscriberMap>>,
         send_to_subscribers(subscribers, timer, task_set)
     })
 }
+*/
 
 pub fn main() {
+    use std::net::ToSocketAddrs;
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} server HOST:PORT", args[0]);
         return;
     }
 
-    EventLoop::top_level(move |wait_scope| -> Result<(), Box<::std::error::Error>> {
-        use std::net::ToSocketAddrs;
-        let mut event_port = try!(::gjio::EventPort::new());
-        let network = event_port.get_network();
-        let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-        let mut address = network.get_tcp_address(addr);
-        let listener = try!(address.listen());
+    let mut core = reactor::Core::new().unwrap();
+    let handle = core.handle();
 
-        let (publisher_impl, subscribers) = PublisherImpl::new();
+    let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
+    let socket = ::tokio_core::net::TcpListener::bind(&addr, &handle).unwrap();
 
-        let publisher = publisher::ToClient::new(publisher_impl).from_server::<::capnp_rpc::Server>();
+    let (publisher_impl, subscribers) = PublisherImpl::new();
 
-        let task_set = Rc::new(RefCell::new(TaskSet::new(Box::new(Reaper))));
+    let publisher = publisher::ToClient::new(publisher_impl).from_server::<::capnp_rpc::Server>();
 
-        let task_set_clone = task_set.clone();
+    let handle1 = handle.clone();
+    let done = socket.incoming().for_each(move |(socket, addr)| {
+        let (reader, writer) = socket.split();
+        let handle = handle1.clone();
 
-        task_set.borrow_mut().add(send_to_subscribers(subscribers, event_port.get_timer(), task_set_clone));
+        let mut network =
+            twoparty::VatNetwork::new(reader, writer, &handle,
+                                      rpc_twoparty_capnp::Side::Server, Default::default());
+        let disconnect_promise = network.on_disconnect();
 
-        try!(accept_loop(listener, task_set, publisher).wait(wait_scope, &mut event_port));
+        let rpc_system = RpcSystem::new(Box::new(network), Some(publisher.clone().client), handle.clone());
+
+        handle.spawn(disconnect_promise.and_then(move |()| { drop(rpc_system); Ok(()) }).map_err(|_| ()));
 
         Ok(())
-    }).expect("top level error");
+    }).map_err(|e| e.into());
+
+
+    let infinite = ::futures::stream::iter(::std::iter::repeat(()).map(Ok::<(), Error>));
+    let send_to_subscribers = infinite.fold((handle, subscribers), move |(handle, subscribers), ()| -> Promise<(::tokio_core::reactor::Handle, Rc<RefCell<SubscriberMap>>), Error> {
+        {
+            let subscribers1 = subscribers.clone();
+            let subs = &mut subscribers.borrow_mut().subscribers;
+            for (&idx, mut subscriber) in subs.iter_mut() {
+                if subscriber.requests_in_flight < 5 {
+                    subscriber.requests_in_flight += 1;
+                    let mut request = subscriber.client.push_message_request();
+                    pry!(request.get().set_message(
+                        &format!("system time is: {:?}", ::std::time::SystemTime::now())[..]));
+
+                    let subscribers2 = subscribers1.clone();
+                    handle.spawn(request.send().promise.then(move |r| {
+                        match r {
+                            Ok(_) => {
+                                subscribers2.borrow_mut().subscribers.get_mut(&idx).map(|ref mut s| {
+                                    s.requests_in_flight -= 1;
+                                });
+                            }
+                            Err(e) => {
+                                println!("Got error: {:?}. Dropping subscriber.", e);
+                                subscribers2.borrow_mut().subscribers.remove(&idx);
+                            }
+                        }
+                        Ok::<(), Error>(())
+                    }).map_err(|_| unreachable!()));
+                }
+            }
+        }
+
+        let timeout = pry!(::tokio_core::reactor::Timeout::new(::std::time::Duration::from_secs(1), &handle));
+        let timeout = timeout.and_then(move |()| Ok((handle, subscribers))).map_err(|e| e.into());
+        Promise::from_future(timeout)
+    });
+
+    core.run(send_to_subscribers.join(done)).unwrap();
+
 }

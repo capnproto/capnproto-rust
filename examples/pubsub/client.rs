@@ -22,7 +22,10 @@
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use pubsub_capnp::{publisher, subscriber};
 
-use gj::{EventLoop, Promise};
+use capnp::capability::Promise;
+
+use tokio_core::reactor;
+use tokio_core::io::Io;
 
 struct SubscriberImpl;
 
@@ -38,39 +41,37 @@ impl subscriber::Server<::capnp::text::Owned> for SubscriberImpl {
 }
 
 pub fn main() {
+    use std::net::ToSocketAddrs;
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} client HOST:PORT", args[0]);
         return;
     }
 
-    EventLoop::top_level(move |wait_scope| -> Result<(), ::capnp::Error> {
-        use std::net::ToSocketAddrs;
-        let mut event_port = try!(::gjio::EventPort::new());
-        let network = event_port.get_network();
-        let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-        let address = network.get_tcp_address(addr);
-        let stream = try!(address.connect().wait(wait_scope, &mut event_port));
-        let mut rpc_network =
-            Box::new(twoparty::VatNetwork::new(stream.clone(), stream,
-                                               rpc_twoparty_capnp::Side::Client,
-                                               Default::default()));
+    let mut core = reactor::Core::new().unwrap();
+    let handle = core.handle();
 
-        let disconnect_promise = rpc_network.on_disconnect();
-        let mut rpc_system = RpcSystem::new(rpc_network, None);
-        let publisher: publisher::Client<::capnp::text::Owned> =
-            rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+    let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
+    let stream = core.run(::tokio_core::net::TcpStream::connect(&addr, &handle)).unwrap();
+    let (reader, writer) = stream.split();
 
-        let sub = subscriber::ToClient::new(SubscriberImpl).from_server::<::capnp_rpc::Server>();
+    let mut rpc_network =
+        Box::new(twoparty::VatNetwork::new(reader, writer, &handle,
+                                           rpc_twoparty_capnp::Side::Client,
+                                           Default::default()));
 
-        let mut request = publisher.subscribe_request();
-        request.get().set_subscriber(sub);
+    let disconnect_promise = rpc_network.on_disconnect();
+    let mut rpc_system = RpcSystem::new(rpc_network, None, handle);
+    let publisher: publisher::Client<::capnp::text::Owned> =
+        rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-        // Need to make sure not to drop the returned subscription object.
-        let _result = request.send().promise.wait(wait_scope, &mut event_port).unwrap();
+    let sub = subscriber::ToClient::new(SubscriberImpl).from_server::<::capnp_rpc::Server>();
 
-        disconnect_promise.wait(wait_scope, &mut event_port).unwrap();
-        Ok(())
+    let mut request = publisher.subscribe_request();
+    request.get().set_subscriber(sub);
 
-    }).expect("top level error");
+    // Need to make sure not to drop the returned subscription object.
+    let _result = core.run(request.send().promise).unwrap();
+
+    core.run(disconnect_promise).unwrap();
 }

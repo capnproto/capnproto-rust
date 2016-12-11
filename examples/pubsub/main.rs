@@ -20,9 +20,9 @@
 // THE SOFTWARE.
 
 extern crate capnp;
-extern crate capnp_rpc;
-#[macro_use] extern crate gj;
-extern crate gjio;
+#[macro_use] extern crate capnp_rpc;
+extern crate futures;
+extern crate tokio_core;
 
 pub mod pubsub_capnp {
   include!(concat!(env!("OUT_DIR"), "/pubsub_capnp.rs"));
@@ -32,7 +32,7 @@ pub mod client;
 pub mod server;
 
 pub fn main() {
-    let args : Vec<String> = ::std::env::args().collect();
+    let args: Vec<String> = ::std::env::args().collect();
     if args.len() >= 2 {
         match &args[1][..] {
             "client" => return client::main(),
