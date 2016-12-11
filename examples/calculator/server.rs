@@ -25,7 +25,10 @@ use capnp::primitive_list;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
 use calculator_capnp::calculator;
-use gj::{EventLoop, Promise, TaskReaper, TaskSet};
+use capnp::capability::Promise;
+
+use futures::{Future, Stream};
+use tokio_core::io::Io;
 
 struct ValueImpl {
     value: f64
@@ -57,9 +60,9 @@ fn evaluate_impl(expression: calculator::expression::Reader,
             Promise::ok(v)
         },
         calculator::expression::PreviousResult(p) => {
-            pry!(p).read_request().send().promise.map(|v| {
+            Promise::from_future(pry!(p).read_request().send().promise.and_then(|v| {
                 Ok(try!(v.get()).get_value())
-            })
+            }))
         }
         calculator::expression::Parameter(p) => {
             match params {
@@ -73,9 +76,11 @@ fn evaluate_impl(expression: calculator::expression::Reader,
         }
         calculator::expression::Call(call) => {
             let func = pry!(call.get_function());
-            let param_promises = pry!(call.get_params()).iter().map(|p| evaluate_impl(p, params));
+            let param_promises: Vec<Promise<f64, Error>> =
+                pry!(call.get_params()).iter().map(|p| evaluate_impl(p, params)).collect();
+            // XXX shouldn't need to collect()
 
-            Promise::all(param_promises).then(move |param_values| {
+            Promise::from_future(::futures::future::join_all(param_promises).and_then(move |param_values| {
                 let mut request = func.call_request();
                 {
                     let mut params = request.get().init_params(param_values.len() as u32);
@@ -83,10 +88,10 @@ fn evaluate_impl(expression: calculator::expression::Reader,
                         params.set(ii as u32, param_values[ii]);
                     }
                 }
-                request.send().promise.map(|result| {
+                request.send().promise.and_then(|result| {
                     Ok(try!(result.get()).get_value())
                 })
-            })
+            })) 
         }
     }
 }
@@ -118,12 +123,11 @@ impl calculator::function::Server for FunctionImpl {
             Promise::err(Error::failed(
                 format!("Expect {} parameters but got {}.", self.param_count, params.len())))
         } else {
-            evaluate_impl(
+            Promise::from_future(evaluate_impl(
                 pry!(self.body.get_root::<calculator::expression::Builder>()).as_reader(),
                 Some(params)).map(move |v| {
                     results.get().set_value(v);
-                    Ok(())
-                })
+                }))
         }
     }
 }
@@ -163,11 +167,10 @@ impl calculator::Server for CalculatorImpl {
                 mut results: calculator::EvaluateResults)
                 -> Promise<(), Error>
     {
-        evaluate_impl(pry!(pry!(params.get()).get_expression()), None).map(move |v| {
+        Promise::from_future(evaluate_impl(pry!(pry!(params.get()).get_expression()), None).map(move |v| {
             results.get().set_value(
                 calculator::value::ToClient::new(ValueImpl::new(v)).from_server::<::capnp_rpc::Server>());
-            Ok(())
-        })
+        }))
     }
     fn def_function(&mut self,
                     params: calculator::DefFunctionParams,
@@ -193,54 +196,38 @@ impl calculator::Server for CalculatorImpl {
     }
 }
 
-pub fn accept_loop(listener: ::gjio::SocketListener,
-                   mut task_set: TaskSet<(), ::capnp::Error>,
-                   calc: calculator::Client,
-                   )
-                   -> Promise<(), ::std::io::Error>
-{
-    listener.accept().then(move |stream| {
-        let mut network =
-            twoparty::VatNetwork::new(stream.clone(), stream,
-                                      rpc_twoparty_capnp::Side::Server, Default::default());
-        let disconnect_promise = network.on_disconnect();
-
-        let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
-
-        task_set.add(disconnect_promise.attach(rpc_system));
-        accept_loop(listener, task_set, calc)
-    })
-}
-
-struct Reaper;
-
-impl TaskReaper<(), ::capnp::Error> for Reaper {
-    fn task_failed(&mut self, error: ::capnp::Error) {
-        println!("Task failed: {}", error);
-    }
-}
-
 pub fn main() {
-    let args : Vec<String> = ::std::env::args().collect();
+    use std::net::ToSocketAddrs;
+    let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} server ADDRESS[:PORT]", args[0]);
         return;
     }
 
-    EventLoop::top_level(move |wait_scope| -> Result<(), ::capnp::Error> {
-        use std::net::ToSocketAddrs;
-        let mut event_port = try!(::gjio::EventPort::new());
-        let network = event_port.get_network();
-        let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-        let mut address = network.get_tcp_address(addr);
-        let listener = try!(address.listen());
+    let mut core = ::tokio_core::reactor::Core::new().unwrap();
+    let handle = core.handle();
 
-        let calc =
-            calculator::ToClient::new(CalculatorImpl).from_server::<::capnp_rpc::Server>();
+    let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
+    let socket = ::tokio_core::net::TcpListener::bind(&addr, &handle).unwrap();
 
-        let task_set = TaskSet::new(Box::new(Reaper));
-        try!(accept_loop(listener, task_set, calc).wait(wait_scope, &mut event_port));
+    let calc =
+        calculator::ToClient::new(CalculatorImpl).from_server::<::capnp_rpc::Server>();
+
+    let done = socket.incoming().for_each(move |(socket, _addr)| {
+        let (reader, writer) = socket.split();
+        let handle = handle.clone();
+
+        let mut network =
+            twoparty::VatNetwork::new(reader, writer, &handle,
+                                      rpc_twoparty_capnp::Side::Server, Default::default());
+        let disconnect_promise = network.on_disconnect();
+
+        let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client), handle.clone());
+
+        handle.spawn(disconnect_promise.and_then(move |()| { drop(rpc_system); Ok(()) }).map_err(|_| ()));
 
         Ok(())
-    }).expect("top level error");
+    });
+
+    core.run(done).unwrap();
 }

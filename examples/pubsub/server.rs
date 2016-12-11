@@ -164,7 +164,7 @@ pub fn main() {
     let publisher = publisher::ToClient::new(publisher_impl).from_server::<::capnp_rpc::Server>();
 
     let handle1 = handle.clone();
-    let done = socket.incoming().for_each(move |(socket, addr)| {
+    let done = socket.incoming().for_each(move |(socket, _addr)| {
         let (reader, writer) = socket.split();
         let handle = handle1.clone();
 
@@ -179,7 +179,6 @@ pub fn main() {
 
         Ok(())
     }).map_err(|e| e.into());
-
 
     let infinite = ::futures::stream::iter(::std::iter::repeat(()).map(Ok::<(), Error>));
     let send_to_subscribers = infinite.fold((handle, subscribers), move |(handle, subscribers), ()| -> Promise<(::tokio_core::reactor::Handle, Rc<RefCell<SubscriberMap>>), Error> {
@@ -218,5 +217,4 @@ pub fn main() {
     });
 
     core.run(send_to_subscribers.join(done)).unwrap();
-
 }
