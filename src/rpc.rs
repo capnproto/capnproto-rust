@@ -21,6 +21,7 @@
 
 use capnp::{any_pointer};
 use capnp::Error;
+use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
 
@@ -34,7 +35,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 use rpc_capnp::{message, return_, cap_descriptor};
-use {broken, Promise, ForkedPromise, Attach};
+use {broken, ForkedPromise, Attach};
 
 /*
 struct Defer<F> where F: FnOnce() {

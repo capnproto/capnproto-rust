@@ -21,6 +21,7 @@
 
 use capnp::{any_pointer};
 use capnp::Error;
+use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  ResultsHook, ResultsDoneHook};
 
@@ -29,7 +30,7 @@ use futures::Future;
 use std::cell::RefCell;
 use std::rc::{Rc};
 
-use {broken, local, ForkedPromise, Promise};
+use {broken, local, ForkedPromise};
 
 struct PipelineInner {
     promise: ForkedPromise<Promise<Box<PipelineHook>, Error>>,
