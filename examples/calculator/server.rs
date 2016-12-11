@@ -79,6 +79,7 @@ fn evaluate_impl(expression: calculator::expression::Reader,
             let param_promises: Vec<Promise<f64, Error>> =
                 pry!(call.get_params()).iter().map(|p| evaluate_impl(p, params)).collect();
             // XXX shouldn't need to collect()
+            // see https://github.com/alexcrichton/futures-rs/issues/285
 
             Promise::from_future(::futures::future::join_all(param_promises).and_then(move |param_values| {
                 let mut request = func.call_request();
