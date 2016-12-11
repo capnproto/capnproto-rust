@@ -105,46 +105,6 @@ impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
         Promise::ok(())
     }
 }
-
-/*
-fn send_to_subscribers(subscribers: Rc<RefCell<SubscriberMap>>,
-                       task_set: Rc<RefCell<TaskSet<(), ::capnp::Error>>>)
-                       -> Promise<(), ::capnp::Error>
-{
-    timer.after_delay(::std::time::Duration::new(1, 0)).lift().then(move |()| {
-        {
-            let subscribers1 = subscribers.clone();
-            let subs = &mut subscribers.borrow_mut().subscribers;
-            for (&idx, mut subscriber) in subs.iter_mut() {
-                if subscriber.requests_in_flight < 5 {
-                    subscriber.requests_in_flight += 1;
-                    let mut request = subscriber.client.push_message_request();
-                    pry!(request.get().set_message(
-                        &format!("system time is: {:?}", ::std::time::SystemTime::now())[..]));
-
-                    let subscribers2 = subscribers1.clone();
-                    task_set.borrow_mut().add(request.send().promise.map_else(move |r| {
-                        match r {
-                            Ok(_) => {
-                                subscribers2.borrow_mut().subscribers.get_mut(&idx).map(|ref mut s| {
-                                    s.requests_in_flight -= 1;
-                                });
-                            }
-                            Err(e) => {
-                                println!("Got error: {:?}. Dropping subscriber.", e);
-                                subscribers2.borrow_mut().subscribers.remove(&idx);
-                            }
-                        }
-                        Ok(())
-                    }));
-                }
-            }
-        }
-        send_to_subscribers(subscribers, timer, task_set)
-    })
-}
-*/
-
 pub fn main() {
     use std::net::ToSocketAddrs;
     let args: Vec<String> = ::std::env::args().collect();
