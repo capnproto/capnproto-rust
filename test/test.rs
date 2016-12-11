@@ -53,7 +53,7 @@ pub mod test_util;
 
 #[test]
 fn drop_rpc_system() {
-    let core = reactor::Core::new().unwrap();
+    let mut core = reactor::Core::new().unwrap();
     let handle = core.handle();
 
     let (instream, _outstream) = ::mio_uds::UnixStream::pair().unwrap();
@@ -67,9 +67,10 @@ fn drop_rpc_system() {
                                            Default::default()));
     let rpc_system = RpcSystem::new(network, None, handle);
     drop(rpc_system);
-//        try!(Promise::<(),Error>::ok(()).wait(wait_scope, &mut event_port));
+    core.turn(Some(::std::time::Duration::from_millis(1)));
+    core.turn(Some(::std::time::Duration::from_millis(1)));
+    core.turn(Some(::std::time::Duration::from_millis(1)));
 }
-
 
 #[test]
 fn drop_import_client_after_disconnect() {
