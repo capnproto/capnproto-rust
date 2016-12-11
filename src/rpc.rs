@@ -616,7 +616,6 @@ impl <VatId> ConnectionState<VatId> {
     }
 
     fn message_loop(weak_state: ::std::rc::Weak<ConnectionState<VatId>>) -> Promise<(), ::capnp::Error> {
-        println!("message loop");
         let state = weak_state.upgrade().expect("dangling reference to connection state");
         let promise = match &mut *state.connection.borrow_mut() {
             &mut Err(_) => return Promise::ok(()),
@@ -627,11 +626,9 @@ impl <VatId> ConnectionState<VatId> {
         Promise::from_future(promise.and_then(move |message| {
             match message {
                 Some(m) => {
-                    println!("some message!");
                     ConnectionState::handle_message(weak_state, m).map(|()| true)
                 }
                 None => {
-                    println!("no message!");
                     weak_state0.upgrade().expect("message loop outlived connection state?")
                         .disconnect(Error::disconnected("Peer disconnected.".to_string()));
                     Ok(false)

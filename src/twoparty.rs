@@ -66,7 +66,6 @@ impl ::OutgoingMessage for OutgoingMessage {
     fn send(self: Box<Self>)
             -> Promise<::capnp::message::Builder<::capnp::message::HeapAllocator>, ::capnp::Error>
     {
-        println!("writing outgoing message");
         let tmp = *self;
         let OutgoingMessage {message, mut sender} = tmp;
         Promise::from_future(sender.send(message).map_err(|e| e.into()))
