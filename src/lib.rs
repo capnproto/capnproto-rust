@@ -273,10 +273,11 @@ impl ServerHook for Server {
 /// Converts a promise for a client into a client that queues up any calls that arrive
 /// before the promise resolves.
 // TODO: figure out a better way to allow construction of promise clients.
-pub fn new_promise_client<T>(client_promise: Promise<::capnp::capability::Client, Error>) -> T
-    where T: ::capnp::capability::FromClientHook
+pub fn new_promise_client<T, F>(client_future: F) -> T
+    where T: ::capnp::capability::FromClientHook,
+          F: Future<Item=::capnp::capability::Client, Error=Error> + 'static,
 {
-    T::new(Box::new(queued::Client::new(Promise::from_future(client_promise.map(|c| c.hook)))))
+    T::new(Box::new(queued::Client::new(Promise::from_future(client_future.map(|c| c.hook)))))
 }
 
 

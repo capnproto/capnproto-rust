@@ -526,14 +526,14 @@ impl Drop for Handle {
 }
 
 impl test_handle::Server for Handle {}
-/*
+
 pub struct TestCapDestructor {
-    fulfiller: Option<PromiseFulfiller<(), Error>>,
+    fulfiller: Option<::futures::sync::oneshot::Sender<()>>,
     imp: TestInterface,
 }
 
 impl TestCapDestructor {
-    pub fn new(fulfiller: PromiseFulfiller<(), Error>) -> TestCapDestructor {
+    pub fn new(fulfiller: ::futures::sync::oneshot::Sender<()>) -> TestCapDestructor {
         TestCapDestructor {
             fulfiller: Some(fulfiller),
             imp: TestInterface::new(),
@@ -544,7 +544,7 @@ impl TestCapDestructor {
 impl Drop for TestCapDestructor {
     fn drop(&mut self) {
         match self.fulfiller.take() {
-            Some(f) => f.fulfill(()),
+            Some(f) => f.complete(()),
             None => (),
         }
     }
@@ -574,5 +574,5 @@ impl test_interface::Server for TestCapDestructor {
     {
         Promise::err(Error::unimplemented("bar is not implemented".to_string()))
     }
-}*/
+}
 
