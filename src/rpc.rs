@@ -624,6 +624,7 @@ impl <VatId> ConnectionState<VatId> {
         };
         let weak_state0 = weak_state.clone();
         let weak_state1 = weak_state.clone();
+        let weak_state2 = weak_state.clone();
         Promise::from_future(promise.and_then(move |message| {
             match message {
                 Some(m) => {
@@ -637,10 +638,10 @@ impl <VatId> ConnectionState<VatId> {
             }
         }).and_then(move |keep_going| {
             if keep_going {
-                ConnectionState::message_loop(weak_state1)
-            } else {
-                Promise::ok(())
+                weak_state2.upgrade().expect("message loop outlived connection state?")
+                    .add_task(ConnectionState::message_loop(weak_state1));
             }
+            Ok(())
         }))
     }
 
