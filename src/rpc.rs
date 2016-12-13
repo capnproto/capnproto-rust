@@ -36,6 +36,7 @@ use std::rc::{Rc, Weak};
 
 use rpc_capnp::{message, return_, cap_descriptor};
 use {broken, ForkedPromise, Attach};
+use task_set::TaskSet;
 
 /*
 struct Defer<F> where F: FnOnce() {
@@ -402,7 +403,7 @@ impl <VatId> ConnectionErrorHandler<VatId> {
     }
 }
 
-impl <VatId> ::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<VatId> {
+impl <VatId> ::task_set::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<VatId> {
     fn task_failed(&mut self, error: ::capnp::Error) {
         match self.weak_state.upgrade() {
             Some(state) => state.disconnect(error),
@@ -422,7 +423,7 @@ pub struct ConnectionState<VatId> where VatId: 'static {
 
     embargoes: RefCell<ExportTable<Embargo>>,
 
-    tasks: RefCell<Option<::TaskSet<(), ::capnp::Error>>>,
+    tasks: RefCell<Option<::task_set::TaskSet<(), ::capnp::Error>>>,
     connection: RefCell<::std::result::Result<Box<::Connection<VatId>>, ::capnp::Error>>,
     disconnect_fulfiller: RefCell<Option<oneshot::Sender<Promise<(), Error>>>>,
 
@@ -450,7 +451,7 @@ impl <VatId> ConnectionState<VatId> {
             disconnect_fulfiller: RefCell::new(Some(disconnect_fulfiller)),
             client_downcast_map: RefCell::new(HashMap::new()),
         });
-        let mut task_set =::TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))), &spawner);
+        let mut task_set = TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))), &spawner);
         task_set.add(ConnectionState::message_loop(Rc::downgrade(&state)));
         *state.tasks.borrow_mut() = Some(task_set);
         state

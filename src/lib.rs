@@ -65,13 +65,15 @@ extern crate capnp;
 extern crate tokio_core;
 extern crate capnp_futures;
 
-use futures::{Future, Stream};
+use futures::{Future};
 use futures::sync::oneshot;
 use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ServerHook};
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use task_set::TaskSet;
 
 /// Code generated from [rpc.capnp]
 /// (https://github.com/sandstorm-io/capnproto/blob/master/c%2B%2B/src/capnp/rpc.capnp).
@@ -100,6 +102,7 @@ mod broken;
 mod local;
 mod queued;
 mod rpc;
+mod task_set;
 pub mod twoparty;
 
 pub trait OutgoingMessage {
@@ -352,51 +355,8 @@ impl <F> Future for ForkedPromise<F>
     }
 }
 
-
-struct TaskSet<T, E> {
-    sender: ::futures::sync::mpsc::UnboundedSender<Box<Future<Item=T,Error=E>>>,
-    _canceler: ::futures::sync::oneshot::Sender<()>, // when dropped, the tasks get canceled
-}
-
-impl<T, E> TaskSet<T, E> {
-    pub fn new(_reaper: Box<TaskReaper<T, E>>, handle: &tokio_core::reactor::Handle)
-               -> TaskSet<T, E>
-        where E: 'static, T: 'static, E: ::std::fmt::Debug,
-    {
-        let (tx, rx) = ::futures::sync::mpsc::unbounded::<Box<Future<Item=T,Error=E>>>();
-        let stream = rx.map_err(|()| unreachable!())
-            .buffer_unordered(1000); // XXX hack that should basically work in small cases.
-
-        let (fulfiller, dropped) = oneshot::channel::<()>();
-        let dropped = dropped.map_err(|_| ());
-
-        let f = dropped.join(
-            stream.for_each(|_t| Ok(()) ).map_err(|e| { println!("error {:?}", e); ()})).map(|_| {println!("task set done"); ()});
-
-        handle.spawn(f);
-
-        TaskSet {
-            sender: tx,
-            _canceler: fulfiller,
-        }
-    }
-
-    pub fn add<F>(&mut self, promise: F)
-        where F: Future<Item=T, Error=E> + 'static
-    {
-        self.sender.send(Box::new(promise)).unwrap();
-    }
-}
-
-
-trait TaskReaper<T, E> where T: 'static, E: 'static
-{
-    fn task_succeeded(&mut self, _value: T) {}
-    fn task_failed(&mut self, error: E);
-}
-
 struct SystemTaskReaper;
-impl TaskReaper<(), Error> for SystemTaskReaper {
+impl ::task_set::TaskReaper<(), Error> for SystemTaskReaper {
     fn task_failed(&mut self, error: Error) {
         println!("ERROR: {}", error);
     }
