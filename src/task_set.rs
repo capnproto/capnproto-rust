@@ -59,11 +59,11 @@ struct Inner<T, E> {
     // The `next_future` field is the next slot in the `futures` array that's a
     // `Slot::Next` variant. If it points to the end of the array then the array
     // is full.
-    futures: Vec<Slot<Box<Future<Item=(), Error=()>>>>,
+    futures: Vec<Slot<Box<Future<Item=T, Error=E>>>>,
     next_future: usize,
 
     stack: Arc<Stack<usize>>,
-    reaper: Rc<RefCell<Box<TaskReaper<T, E>>>>,
+    reaper: Box<TaskReaper<T, E>>,
 
     terminate_with: Option<Result<T, E>>,
 }
@@ -83,7 +83,7 @@ impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
             futures: Vec::new(),
             next_future: 0,
             stack: Arc::new(Stack::new()),
-            reaper: Rc::new(RefCell::new(reaper)),
+            reaper: reaper,
             terminate_with: None,
         };
         TaskSet {
@@ -115,14 +115,7 @@ impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
         where F: Future<Item=T, Error=E> + 'static
     {
         let ref mut inner = *self.inner.borrow_mut();
-        let reaper = inner.reaper.clone();
-        let future = Box::new(promise.then(move |r| {
-            match r {
-                Ok(v) => reaper.borrow_mut().task_succeeded(v),
-                Err(e) => reaper.borrow_mut().task_failed(e),
-            }
-            Ok(())
-        }));
+        let future = Box::new(promise);
 
         if inner.next_future == inner.futures.len() {
             inner.futures.push(Slot::Data(future));
@@ -154,19 +147,30 @@ pub trait TaskReaper<T, E> where T: 'static, E: 'static
     fn task_failed(&mut self, error: E);
 }
 
-impl <T, E> Future for TaskSet<T, E> {
+impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
     type Item = ();
     type Error = ();
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-//        for idx in self.stack.drain() {
-//            match self.futures[idx] {
-//                Slot::Next(_) => unreachable!(),
-//                Slot::Data(ref mut f) => {
-                    // unpark event...
-//                }
-//            }
-//        }
+        let ref mut inner = *self.inner.borrow_mut();
+        for idx in inner.stack.drain() {
+            match inner.futures[idx] {
+                Slot::Next(_) => unreachable!(),
+                Slot::Data(ref mut f) => {
+                    let event = ::futures::task::UnparkEvent::new(inner.stack.clone(), idx);
+                    match ::futures::task::with_unpark_event(event, || f.poll()) {
+                        Ok(::futures::Async::NotReady) => continue,
+                        Ok(::futures::Async::Ready(v)) => {
+                            inner.reaper.task_succeeded(v);
+                        }
+                        Err(e) => {
+                            inner.reaper.task_failed(e);
+                        }
+                    }
+                    // now remove idx from the slab
+                }
+            }
+        }
         unimplemented!()
     }
 }
