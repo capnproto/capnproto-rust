@@ -45,7 +45,7 @@ struct Inner<T, E> {
     stack: Arc<Stack<usize>>,
     reaper: Box<TaskReaper<T, E>>,
 
-    terminate_with: Option<Result<T, E>>,
+    terminate_with: Option<Result<(), E>>,
 
     handle_count: usize,
     task: Option<::futures::task::Task>,
@@ -147,7 +147,7 @@ impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
         }
     }
 
-    pub fn terminate(&mut self, result: Result<T, E>) {
+    pub fn terminate(&mut self, result: Result<(), E>) {
         match self.inner.upgrade() {
             None => (),
             Some(rc_inner) => {
@@ -170,7 +170,7 @@ pub trait TaskReaper<T, E> where T: 'static, E: 'static
 }
 
 impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
-    type Item = T;
+    type Item = ();
     type Error = E;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
@@ -202,7 +202,11 @@ impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
             inner.next_future = idx;
         }
 
-        inner.task = Some(::futures::task::park());
-        Ok(::futures::Async::NotReady)
+        if inner.futures.len() == 0 && inner.handle_count == 0 {
+            Ok(::futures::Async::Ready(()))
+        } else {
+            inner.task = Some(::futures::task::park());
+            Ok(::futures::Async::NotReady)
+        }
     }
 }
