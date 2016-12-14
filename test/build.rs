@@ -1,5 +1,8 @@
 extern crate capnpc;
 
 fn main() {
-    ::capnpc::compile(".", &["addressbook.capnp"]).unwrap();
+    ::capnpc::CompilerCommand::new()
+        .file("addressbook.capnp")
+        .run()
+        .unwrap();
 }
