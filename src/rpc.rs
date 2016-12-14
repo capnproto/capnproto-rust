@@ -451,7 +451,7 @@ impl <VatId> ConnectionState<VatId> {
             disconnect_fulfiller: RefCell::new(Some(disconnect_fulfiller)),
             client_downcast_map: RefCell::new(HashMap::new()),
         });
-        let mut task_set = TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))), &spawner);
+        let mut task_set = TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))));
         task_set.add(ConnectionState::message_loop(Rc::downgrade(&state)));
         *state.tasks.borrow_mut() = Some(task_set);
         state

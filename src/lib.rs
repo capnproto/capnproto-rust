@@ -102,6 +102,7 @@ mod broken;
 mod local;
 mod queued;
 mod rpc;
+mod stack;
 mod task_set;
 pub mod twoparty;
 
@@ -176,7 +177,7 @@ impl <VatId> RpcSystem <VatId> {
             Some(cap) => cap.hook,
             None => broken::new_cap(Error::failed("no bootstrap capabiity".to_string())),
         };
-        let tasks = TaskSet::new(Box::new(SystemTaskReaper), &spawner);
+        let tasks = TaskSet::new(Box::new(SystemTaskReaper));
         let mut result = RpcSystem {
             network: network,
             bootstrap_cap: bootstrap_cap,
