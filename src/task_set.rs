@@ -121,6 +121,14 @@ impl <T, E> Future for TaskSet<T, E> {
     type Error = ();
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
+        for idx in self.stack.drain() {
+            match self.futures[idx] {
+                Slot::Next(_) => unreachable!(),
+                Slot::Data(ref mut f) => {
+                    // unpark event...
+                }
+            }
+        }
         unimplemented!()
     }
 }

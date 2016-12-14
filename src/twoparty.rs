@@ -159,13 +159,7 @@ impl <T> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T>
     }
 
     fn shutdown(&mut self) -> Promise<(), ::capnp::Error> {
-        Promise::ok(())
-//        let mut inner = self.inner.borrow_mut();
-        // XXX TODO shut down write queue.
-//        let write_queue = ::std::mem::replace(
-//            &mut *inner.write_queue.borrow_mut(),
-//            Box::new(::futures::future::empty()));
-//        Box::new(write_queue.map(|_| ()))
+        Promise::from_future(self.inner.borrow_mut().sender.end().map_err(|e| e.into()))
     }
 }
 
