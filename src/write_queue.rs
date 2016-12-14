@@ -46,6 +46,10 @@ struct Inner<M> {
     queue: VecDeque<(M, oneshot::Sender<M>)>,
     sender_count: usize,
     task: Option<task::Task>,
+
+    // If set, then the queue has been requested to end, and we should complete the oneshot once
+    // the queue has been emptied.
+    end_notifier: Option<oneshot::Sender<()>>
 }
 
 /// A handle that allows message to be sent to a `WriteQueue`.
@@ -73,6 +77,7 @@ pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
         queue: VecDeque::new(),
         task: None,
         sender_count: 1,
+        end_notifier: None,
     }));
 
     let queue = WriteQueue {
@@ -89,7 +94,12 @@ impl <M> Sender<M> where M: AsOutputSegments {
     /// Enqueues a message to be written.
     pub fn send(&mut self, message: M) -> oneshot::Receiver<M> {
         let (complete, oneshot) = futures::oneshot();
-        self.inner.borrow_mut().queue.push_back((message, complete));
+
+        if self.inner.borrow().end_notifier.is_some() {
+            drop(complete)
+        } else {
+            self.inner.borrow_mut().queue.push_back((message, complete));
+        }
 
         match self.inner.borrow_mut().task.take() {
             Some(t) => t.unpark(),
@@ -102,6 +112,16 @@ impl <M> Sender<M> where M: AsOutputSegments {
     /// Returns the number of messages queued to be written, not including any in-progress write.
     pub fn len(&mut self) -> usize {
         self.inner.borrow().queue.len()
+    }
+
+    /// Commands the queue to stop writing messages once it is empty. After this method has been called,
+    /// any new calls to `send()` will return a future that immediate resolves to an error.
+    pub fn end(&mut self) -> oneshot::Receiver<()> {
+        let (complete, receiver) = futures::oneshot();
+
+        // TODO: what if end_notifier is already full? Maybe it should be a vector?
+        self.inner.borrow_mut().end_notifier = Some(complete);
+        receiver
     }
 }
 
@@ -130,7 +150,8 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                         }
                         None => {
                             let count = self.inner.borrow().sender_count;
-                            if count == 0 {
+                            let ended = self.inner.borrow().end_notifier.is_some();
+                            if count == 0 || ended {
                                 IntermediateState::Resolve
                             } else {
                                 self.inner.borrow_mut().task = Some(task::park());
@@ -161,6 +182,11 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                     self.state = new_state;
                 }
                 IntermediateState::Resolve => {
+                    let ender = self.inner.borrow_mut().end_notifier.take();
+                    match ender {
+                        None => (),
+                        Some(complete) => complete.complete(()),
+                    }
                     match ::std::mem::replace(&mut self.state, State::Empty) {
                         State::BetweenWrites(w) => {
                             return Ok(Async::Ready(w))
