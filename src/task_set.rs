@@ -21,7 +21,7 @@
 use futures::{Future, Stream};
 
 use std::cell::{RefCell};
-use std::rc::{Rc};
+use std::rc::{Rc, Weak};
 use std::sync::Arc;
 
 use stack::Stack;
@@ -47,6 +47,7 @@ struct Inner<T, E> {
 
     terminate_with: Option<Result<T, E>>,
 
+    handle_count: usize,
     task: Option<::futures::task::Task>,
 }
 
@@ -58,37 +59,58 @@ pub struct TaskSet<T, E> {
 
 impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
     pub fn new(reaper: Box<TaskReaper<T, E>>)
-               -> TaskSet<T, E>
+               -> (TaskSetHandle<T, E>, TaskSet<T, E>)
         where E: 'static, T: 'static, E: ::std::fmt::Debug,
     {
-        let inner = Inner {
+        let inner = Rc::new(RefCell::new(Inner {
             futures: Vec::new(),
             next_future: 0,
             stack: Arc::new(Stack::new()),
             reaper: reaper,
             terminate_with: None,
+            handle_count: 1,
             task: None,
-        };
-        TaskSet {
-            inner: Rc::new(RefCell::new(inner)),
-        }
-    }
+        }));
 
-    pub fn handle(&self) -> TaskSetHandle<T, E> {
-        TaskSetHandle {
-            inner: self.inner.clone()
-        }
+        let weak_inner = Rc::downgrade(&inner);
+
+        let set = TaskSet {
+            inner: inner,
+        };
+
+        let handle = TaskSetHandle {
+            inner: weak_inner,
+        };
+
+        (handle, set)
     }
 }
 
 pub struct TaskSetHandle<T, E> {
-    inner: Rc<RefCell<Inner<T, E>>>,
+    inner: Weak<RefCell<Inner<T, E>>>,
 }
 
 impl<T, E> Clone for TaskSetHandle<T, E> {
     fn clone(&self) -> TaskSetHandle<T, E> {
+        match self.inner.upgrade() {
+            None => (),
+            Some(inner) => {
+                inner.borrow_mut().handle_count += 1;
+            }
+        }
         TaskSetHandle {
             inner: self.inner.clone()
+        }
+    }
+}
+
+impl <T, E> Drop for TaskSetHandle<T, E> {
+    fn drop(&mut self) {
+        match self.inner.upgrade() {
+            None => (),
+            Some(inner) => {
+                inner.borrow_mut().handle_count -= 1;
+            }
         }
     }
 }
@@ -97,36 +119,46 @@ impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
     pub fn add<F>(&mut self, promise: F)
         where F: Future<Item=T, Error=E> + 'static
     {
-        let ref mut inner = *self.inner.borrow_mut();
-        let future = Box::new(promise);
-
-        let added_idx = inner.next_future;
-        if inner.next_future == inner.futures.len() {
-            inner.futures.push(Slot::Data(future));
-            inner.next_future += 1;
-        } else {
-            match ::std::mem::replace(&mut inner.futures[inner.next_future],
-                                      Slot::Data(future)) {
-                Slot::Next(next) => inner.next_future = next,
-                Slot::Data(_) => unreachable!(),
-            }
-        }
-
-        inner.stack.push(added_idx);
-
-        match inner.task.take() {
-            Some(t) => t.unpark(),
+        match self.inner.upgrade() {
             None => (),
+            Some(rc_inner) => {
+                let ref mut inner = *rc_inner.borrow_mut();
+                let future = Box::new(promise);
+
+                let added_idx = inner.next_future;
+                if inner.next_future == inner.futures.len() {
+                    inner.futures.push(Slot::Data(future));
+                    inner.next_future += 1;
+                } else {
+                    match ::std::mem::replace(&mut inner.futures[inner.next_future],
+                                              Slot::Data(future)) {
+                        Slot::Next(next) => inner.next_future = next,
+                        Slot::Data(_) => unreachable!(),
+                    }
+                }
+
+                inner.stack.push(added_idx);
+
+                match inner.task.take() {
+                    Some(t) => t.unpark(),
+                    None => (),
+                }
+            }
         }
     }
 
     pub fn terminate(&mut self, result: Result<T, E>) {
-        let ref mut inner = *self.inner.borrow_mut();
-        inner.terminate_with = Some(result);
-
-        match inner.task.take() {
-            Some(t) => t.unpark(),
+        match self.inner.upgrade() {
             None => (),
+            Some(rc_inner) => {
+                let ref mut inner = *rc_inner.borrow_mut();
+                inner.terminate_with = Some(result);
+
+                match inner.task.take() {
+                    Some(t) => t.unpark(),
+                    None => (),
+                }
+            }
         }
     }
 }

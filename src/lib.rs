@@ -164,6 +164,7 @@ pub struct RpcSystem<VatId> where VatId: 'static {
 
     spawner: tokio_core::reactor::Handle,
     tasks: Rc<RefCell<TaskSet<(), Error>>>,
+    handle: ::task_set::TaskSetHandle<(), Error>
 }
 
 impl <VatId> RpcSystem <VatId> {
@@ -177,16 +178,16 @@ impl <VatId> RpcSystem <VatId> {
             Some(cap) => cap.hook,
             None => broken::new_cap(Error::failed("no bootstrap capabiity".to_string())),
         };
-        let tasks = TaskSet::new(Box::new(SystemTaskReaper));
+        let (mut handle, tasks) = TaskSet::new(Box::new(SystemTaskReaper));
         let mut result = RpcSystem {
             network: network,
             bootstrap_cap: bootstrap_cap,
             connection_state: Rc::new(RefCell::new(None)),
             spawner: spawner,
             tasks: Rc::new(RefCell::new(tasks)),
+            handle: handle.clone(),
         };
         let accept_loop = result.accept_loop();
-        let mut handle = result.tasks.borrow_mut().handle();
         handle.add(accept_loop);
         result
     }
@@ -204,7 +205,7 @@ impl <VatId> RpcSystem <VatId> {
         let connection_state =
             RpcSystem::get_connection_state(self.connection_state.clone(),
                                             self.bootstrap_cap.clone(),
-                                            connection, self.tasks.clone(), self.spawner.clone());
+                                            connection, self.handle.clone(), self.spawner.clone());
 
         let hook = rpc::ConnectionState::bootstrap(connection_state.clone());
         T::new(hook)
@@ -213,14 +214,14 @@ impl <VatId> RpcSystem <VatId> {
     // not really a loop, because it doesn't need to be for the two party case
     fn accept_loop(&mut self) -> Promise<(), Error> {
         let connection_state_ref = self.connection_state.clone();
-        let tasks_ref = Rc::downgrade(&self.tasks);
         let bootstrap_cap = self.bootstrap_cap.clone();
+        let handle = self.handle.clone();
         let spawner = self.spawner.clone();
         Promise::from_future(self.network.accept().map(move |connection| {
             RpcSystem::get_connection_state(connection_state_ref,
                                             bootstrap_cap,
                                             connection,
-                                            tasks_ref.upgrade().expect("dangling reference to task set"),
+                                            handle,
                                             spawner);
         }))
     }
@@ -228,7 +229,7 @@ impl <VatId> RpcSystem <VatId> {
     fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
                             bootstrap_cap: Box<ClientHook>,
                             connection: Box<::Connection<VatId>>,
-                            tasks: Rc<RefCell<TaskSet<(), Error>>>,
+                            mut handle: ::task_set::TaskSetHandle<(), Error>,
                             spawner: tokio_core::reactor::Handle)
                             -> Rc<rpc::ConnectionState<VatId>>
     {
@@ -243,7 +244,7 @@ impl <VatId> RpcSystem <VatId> {
                 let (on_disconnect_fulfiller, on_disconnect_promise) =
                     oneshot::channel::<Promise<(), Error>>();
                 let connection_state_ref1 = connection_state_ref.clone();
-                tasks.borrow_mut().handle().add(on_disconnect_promise.then(move |shutdown_promise| {
+                handle.add(on_disconnect_promise.then(move |shutdown_promise| {
                     *connection_state_ref1.borrow_mut() = None;
                     match shutdown_promise {
                         Ok(s) => s,
