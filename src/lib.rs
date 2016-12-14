@@ -163,7 +163,7 @@ pub struct RpcSystem<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
 
     spawner: tokio_core::reactor::Handle,
-    tasks: Rc<RefCell<TaskSet<(), Error>>>,
+//    tasks: TaskSet<(), Error>,
     handle: ::task_set::TaskSetHandle<(), Error>
 }
 
@@ -183,10 +183,13 @@ impl <VatId> RpcSystem <VatId> {
             network: network,
             bootstrap_cap: bootstrap_cap,
             connection_state: Rc::new(RefCell::new(None)),
-            spawner: spawner,
-            tasks: Rc::new(RefCell::new(tasks)),
+            spawner: spawner.clone(),
+
+//            tasks: tasks,
             handle: handle.clone(),
         };
+
+        spawner.spawn(tasks.map_err(|e| { println!("{}", e); ()}));
         let accept_loop = result.accept_loop();
         handle.add(accept_loop);
         result
