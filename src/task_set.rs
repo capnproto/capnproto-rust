@@ -50,12 +50,9 @@ impl <T> Slab<T> {
     }
 }
 
-// we need a set that impls EventSet. Let's just wrap ::std::collections::HashSet<>;
 
-#[must_use = "a TaskSet does nothing unless polled"]
-pub struct TaskSet<T, E> {
-
-    // A slab of futures that are being executed. Each slot in this vector is
+struct Inner<T, E> {
+   // A slab of futures that are being executed. Each slot in this vector is
     // either an active future or a pointer to the next empty slot. This is used
     // to get O(1) deallocation in the slab and O(1) allocation.
     //
@@ -67,6 +64,14 @@ pub struct TaskSet<T, E> {
 
     stack: Arc<Stack<usize>>,
     reaper: Rc<RefCell<Box<TaskReaper<T, E>>>>,
+
+    terminate_with: Option<Result<T, E>>,
+}
+
+
+#[must_use = "a TaskSet does nothing unless polled"]
+pub struct TaskSet<T, E> {
+    inner: Rc<RefCell<Inner<T, E>>>,
 }
 
 impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
@@ -74,18 +79,43 @@ impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
                -> TaskSet<T, E>
         where E: 'static, T: 'static, E: ::std::fmt::Debug,
     {
-        TaskSet {
+        let inner = Inner {
             futures: Vec::new(),
             next_future: 0,
             stack: Arc::new(Stack::new()),
             reaper: Rc::new(RefCell::new(reaper)),
+            terminate_with: None,
+        };
+        TaskSet {
+            inner: Rc::new(RefCell::new(inner)),
         }
     }
 
+    pub fn handle(&self) -> TaskSetHandle<T, E> {
+        TaskSetHandle {
+            inner: self.inner.clone()
+        }
+    }
+}
+
+pub struct TaskSetHandle<T, E> {
+    inner: Rc<RefCell<Inner<T, E>>>,
+}
+
+impl<T, E> Clone for TaskSetHandle<T, E> {
+    fn clone(&self) -> TaskSetHandle<T, E> {
+        TaskSetHandle {
+            inner: self.inner.clone()
+        }
+    }
+}
+
+impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
     pub fn add<F>(&mut self, promise: F)
         where F: Future<Item=T, Error=E> + 'static
     {
-        let reaper = self.reaper.clone();
+        let ref mut inner = *self.inner.borrow_mut();
+        let reaper = inner.reaper.clone();
         let future = Box::new(promise.then(move |r| {
             match r {
                 Ok(v) => reaper.borrow_mut().task_succeeded(v),
@@ -94,18 +124,26 @@ impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
             Ok(())
         }));
 
-        if self.next_future == self.futures.len() {
-            self.futures.push(Slot::Data(future));
-            self.next_future += 1;
+        if inner.next_future == inner.futures.len() {
+            inner.futures.push(Slot::Data(future));
+            inner.next_future += 1;
         } else {
-            match ::std::mem::replace(&mut self.futures[self.next_future],
+            match ::std::mem::replace(&mut inner.futures[inner.next_future],
                                       Slot::Data(future)) {
-                Slot::Next(next) => self.next_future = next,
+                Slot::Next(next) => inner.next_future = next,
                 Slot::Data(_) => unreachable!(),
             }
         }
 
         // maybe add the new thing to the event set?
+        unimplemented!()
+    }
+
+    pub fn terminate(&mut self, result: Result<T, E>) {
+        let ref mut inner = *self.inner.borrow_mut();
+        inner.terminate_with = Some(result);
+
+        // TODO unpark?
         unimplemented!()
     }
 }
@@ -121,14 +159,14 @@ impl <T, E> Future for TaskSet<T, E> {
     type Error = ();
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        for idx in self.stack.drain() {
-            match self.futures[idx] {
-                Slot::Next(_) => unreachable!(),
-                Slot::Data(ref mut f) => {
+//        for idx in self.stack.drain() {
+//            match self.futures[idx] {
+//                Slot::Next(_) => unreachable!(),
+//                Slot::Data(ref mut f) => {
                     // unpark event...
-                }
-            }
-        }
+//                }
+//            }
+//        }
         unimplemented!()
     }
 }

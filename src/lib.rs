@@ -186,7 +186,8 @@ impl <VatId> RpcSystem <VatId> {
             tasks: Rc::new(RefCell::new(tasks)),
         };
         let accept_loop = result.accept_loop();
-        result.tasks.borrow_mut().add(accept_loop);
+        let mut handle = result.tasks.borrow_mut().handle();
+        handle.add(accept_loop);
         result
     }
 
@@ -242,7 +243,7 @@ impl <VatId> RpcSystem <VatId> {
                 let (on_disconnect_fulfiller, on_disconnect_promise) =
                     oneshot::channel::<Promise<(), Error>>();
                 let connection_state_ref1 = connection_state_ref.clone();
-                tasks.borrow_mut().add(on_disconnect_promise.then(move |shutdown_promise| {
+                tasks.borrow_mut().handle().add(on_disconnect_promise.then(move |shutdown_promise| {
                     *connection_state_ref1.borrow_mut() = None;
                     match shutdown_promise {
                         Ok(s) => s,

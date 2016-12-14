@@ -423,7 +423,7 @@ pub struct ConnectionState<VatId> where VatId: 'static {
 
     embargoes: RefCell<ExportTable<Embargo>>,
 
-    tasks: RefCell<Option<::task_set::TaskSet<(), ::capnp::Error>>>,
+    tasks: RefCell<Option<::task_set::TaskSetHandle<(), ::capnp::Error>>>,
     connection: RefCell<::std::result::Result<Box<::Connection<VatId>>, ::capnp::Error>>,
     disconnect_fulfiller: RefCell<Option<oneshot::Sender<Promise<(), Error>>>>,
 
@@ -452,8 +452,9 @@ impl <VatId> ConnectionState<VatId> {
             client_downcast_map: RefCell::new(HashMap::new()),
         });
         let mut task_set = TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))));
-        task_set.add(ConnectionState::message_loop(Rc::downgrade(&state)));
-        *state.tasks.borrow_mut() = Some(task_set);
+        let mut handle = task_set.handle();
+        handle.add(ConnectionState::message_loop(Rc::downgrade(&state)));
+        *state.tasks.borrow_mut() = Some(handle);
         state
     }
 
