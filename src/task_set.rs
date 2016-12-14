@@ -19,7 +19,6 @@
 // THE SOFTWARE.
 
 use futures::{Future, Stream};
-use futures::sync::oneshot;
 
 use std::cell::{RefCell};
 use std::rc::{Rc};
@@ -27,29 +26,10 @@ use std::sync::Arc;
 
 use stack::Stack;
 
-struct Slab<T> {
-    slots: Vec<Slot<T>>,
-    next_free: usize,
-}
-
 enum Slot<T> {
     Next(usize),
     Data(T),
 }
-
-impl <T> Slab<T> {
-    fn new() -> Slab<T> {
-        Slab {
-            slots: Vec::new(),
-            next_free: 0,
-        }
-    }
-
-    fn push(value: T) -> usize {
-        unimplemented!()
-    }
-}
-
 
 struct Inner<T, E> {
    // A slab of futures that are being executed. Each slot in this vector is
@@ -66,6 +46,8 @@ struct Inner<T, E> {
     reaper: Box<TaskReaper<T, E>>,
 
     terminate_with: Option<Result<T, E>>,
+
+    task: Option<::futures::task::Task>,
 }
 
 
@@ -85,6 +67,7 @@ impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
             stack: Arc::new(Stack::new()),
             reaper: reaper,
             terminate_with: None,
+            task: None,
         };
         TaskSet {
             inner: Rc::new(RefCell::new(inner)),
@@ -117,6 +100,7 @@ impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
         let ref mut inner = *self.inner.borrow_mut();
         let future = Box::new(promise);
 
+        let added_idx = inner.next_future;
         if inner.next_future == inner.futures.len() {
             inner.futures.push(Slot::Data(future));
             inner.next_future += 1;
@@ -128,16 +112,22 @@ impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
             }
         }
 
-        // maybe add the new thing to the event set?
-        unimplemented!()
+        inner.stack.push(added_idx);
+
+        match inner.task.take() {
+            Some(t) => t.unpark(),
+            None => (),
+        }
     }
 
     pub fn terminate(&mut self, result: Result<T, E>) {
         let ref mut inner = *self.inner.borrow_mut();
         inner.terminate_with = Some(result);
 
-        // TODO unpark?
-        unimplemented!()
+        match inner.task.take() {
+            Some(t) => t.unpark(),
+            None => (),
+        }
     }
 }
 
@@ -148,11 +138,18 @@ pub trait TaskReaper<T, E> where T: 'static, E: 'static
 }
 
 impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
-    type Item = ();
-    type Error = ();
+    type Item = T;
+    type Error = E;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
         let ref mut inner = *self.inner.borrow_mut();
+
+        match inner.terminate_with.take() {
+            None => (),
+            Some(Ok(v)) => return Ok(::futures::Async::Ready(v)),
+            Some(Err(e)) => return Err(e),
+        }
+
         for idx in inner.stack.drain() {
             match inner.futures[idx] {
                 Slot::Next(_) => unreachable!(),
@@ -167,10 +164,13 @@ impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
                             inner.reaper.task_failed(e);
                         }
                     }
-                    // now remove idx from the slab
                 }
             }
+            inner.futures[idx] = Slot::Next(inner.next_future);
+            inner.next_future = idx;
         }
-        unimplemented!()
+
+        inner.task = Some(::futures::task::park());
+        Ok(::futures::Async::NotReady)
     }
 }
