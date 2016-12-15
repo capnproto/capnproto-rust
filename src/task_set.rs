@@ -209,7 +209,12 @@ impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
         if self.inner.futures.borrow().len() == 0 && self.inner.handle_count.get() == 0 {
             Ok(::futures::Async::Ready(()))
         } else {
-            *self.inner.task.borrow_mut() = Some(::futures::task::park());
+            let task = ::futures::task::park();
+            if self.inner.new_futures.borrow().len() > 0 {
+                // Some new futures got added when we called poll().
+                task.unpark();
+            }
+            *self.inner.task.borrow_mut() = Some(task);
             Ok(::futures::Async::NotReady)
         }
     }
