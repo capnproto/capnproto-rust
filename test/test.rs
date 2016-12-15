@@ -101,22 +101,18 @@ fn drop_import_client_after_disconnect() {
 
     drop(server_rpc_system);
 
-//    match core.run(client.test_interface_request().send().promise) {
-//        Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
-//        _ => panic!("Should have gotten a 'disconnected' error."),
-//    }
+    match core.run(client.test_interface_request().send().promise) {
+        Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
+        _ => panic!("Should have gotten a 'disconnected' error."),
+    }
 
-/*
-        // At one point, attempting to call again would cause a panic.
-        match client.test_interface_request().send().promise.wait(wait_scope, &mut event_port) {
-            Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
-            _ => panic!("Should have gotten a 'disconnected' error."),
-        }
+    // At one point, attempting to call again would cause a panic.
+    match core.run(client.test_interface_request().send().promise) {
+        Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
+        _ => panic!("Should have gotten a 'disconnected' error."),
+    }
 
-        drop(client);
-        Ok(())
-    }).expect("top level error");
-*/
+    drop(client);
 }
 
 fn rpc_top_level<F>(main: F)
