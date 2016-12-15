@@ -575,12 +575,13 @@ impl <VatId> ConnectionState<VatId> {
         let (tx, rx) = oneshot::channel();
         let (tx2, rx2) = oneshot::channel::<()>();
         self.add_task(
-            Promise::from_future(
-                task.then(move |r| {tx.complete(r); Ok(())}).join(rx2.then(|_| Ok(()))).map(|_| ())));
+            task.then(move |r| {tx.complete(r); Ok(())}).join(rx2.then(|_| Ok(()))).map(|_| ()));
         Promise::from_future(rx.map_err(|e| e.into()).and_then(|v| v).then(|_| { tx2.complete(()); Ok(())}))
     }
 
-    fn add_task(&self, task: Promise<(), Error>) {
+    fn add_task<F>(&self, task: F)
+        where F: Future<Item = (), Error=Error> + 'static
+    {
         match &mut *self.tasks.borrow_mut() {
             &mut Some(ref mut tasks) => {
                 tasks.add(task);
@@ -972,7 +973,7 @@ impl <VatId> ConnectionState<VatId> {
                                 }
                                 Ok(())
                             });
-                            connection_state.add_task(Promise::from_future(task));
+                            connection_state.add_task(task);
                             BorrowWorkaround::Done
                         }
                         ::rpc_capnp::disembargo::context::ReceiverLoopback(embargo_id) => {
@@ -1058,7 +1059,7 @@ impl <VatId> ConnectionState<VatId> {
                 let (box_results_done_fulfiller, box_results_done_promise) =
                     oneshot::channel::<Result<Box<ResultsDoneHook>, Error>>();
                 let box_results_done_promise = box_results_done_promise.map_err(|e| e.into()).and_then(|x| x);
-                connection_state.add_task(Promise::from_future(results_inner_promise.and_then(move |results_inner| {
+                connection_state.add_task(results_inner_promise.and_then(move |results_inner| {
                     call_succeeded_promise.and_then(move |v| {
                         ResultsDone::from_results_inner(results_inner, v)
                     })
@@ -1076,7 +1077,7 @@ impl <VatId> ConnectionState<VatId> {
                     }
                     box_results_done_fulfiller.complete(v);
                     Ok(())
-                })));
+                }));
 
                 {
                     let ref mut slots = connection_state.answers.borrow_mut().slots;
