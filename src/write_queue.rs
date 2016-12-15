@@ -20,7 +20,7 @@
 
 use std::io;
 use std::collections::VecDeque;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::cell::RefCell;
 use futures::{self, task, Async, Future, Poll};
 use futures::sync::oneshot;
@@ -54,19 +54,29 @@ struct Inner<M> {
 
 /// A handle that allows message to be sent to a `WriteQueue`.
 pub struct Sender<M> where M: AsOutputSegments {
-    inner: Rc<RefCell<Inner<M>>>,
+    inner: Weak<RefCell<Inner<M>>>,
 }
 
 impl <M> Clone for Sender<M> where M: AsOutputSegments {
     fn clone(&self) -> Sender<M> {
-        self.inner.borrow_mut().sender_count += 1;
+        match self.inner.upgrade() {
+            None => (),
+            Some(inner) => {
+                inner.borrow_mut().sender_count += 1;
+            }
+        }
         Sender { inner: self.inner.clone() }
     }
 }
 
 impl <M> Drop for Sender<M> where M: AsOutputSegments {
     fn drop(&mut self) {
-        self.inner.borrow_mut().sender_count -= 1;
+        match self.inner.upgrade() {
+            None => (),
+            Some(inner) => {
+                inner.borrow_mut().sender_count -= 1;
+            }
+        }
     }
 }
 
@@ -80,12 +90,12 @@ pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
         end_notifier: None,
     }));
 
+    let sender = Sender { inner: Rc::downgrade(&inner) };
+
     let queue = WriteQueue {
-        inner: inner.clone(),
+        inner: inner,
         state: State::BetweenWrites(writer),
     };
-
-    let sender = Sender { inner: inner };
 
     (sender, queue)
 }
@@ -95,15 +105,20 @@ impl <M> Sender<M> where M: AsOutputSegments {
     pub fn send(&mut self, message: M) -> oneshot::Receiver<M> {
         let (complete, oneshot) = futures::oneshot();
 
-        if self.inner.borrow().end_notifier.is_some() {
-            drop(complete)
-        } else {
-            self.inner.borrow_mut().queue.push_back((message, complete));
-        }
-
-        match self.inner.borrow_mut().task.take() {
-            Some(t) => t.unpark(),
+        match self.inner.upgrade() {
             None => (),
+            Some(rc_inner) => {
+                if rc_inner.borrow().end_notifier.is_some() {
+                    drop(complete)
+                } else {
+                    rc_inner.borrow_mut().queue.push_back((message, complete));
+                }
+
+                match rc_inner.borrow_mut().task.take() {
+                    Some(t) => t.unpark(),
+                    None => (),
+                }
+            }
         }
 
         oneshot
@@ -111,7 +126,11 @@ impl <M> Sender<M> where M: AsOutputSegments {
 
     /// Returns the number of messages queued to be written, not including any in-progress write.
     pub fn len(&mut self) -> usize {
-        self.inner.borrow().queue.len()
+        match self.inner.upgrade() {
+            None => 0,
+            Some(rc_inner) => rc_inner.borrow().queue.len(),
+        }
+
     }
 
     /// Commands the queue to stop writing messages once it is empty. After this method has been called,
@@ -119,12 +138,17 @@ impl <M> Sender<M> where M: AsOutputSegments {
     pub fn end(&mut self) -> oneshot::Receiver<()> {
         let (complete, receiver) = futures::oneshot();
 
-        // TODO: what if end_notifier is already full? Maybe it should be a vector?
-        self.inner.borrow_mut().end_notifier = Some(complete);
-
-        match self.inner.borrow_mut().task.take() {
-            Some(t) => t.unpark(),
+        match self.inner.upgrade() {
             None => (),
+            Some(rc_inner) => {
+                // TODO: what if end_notifier is already full? Maybe it should be a vector?
+                rc_inner.borrow_mut().end_notifier = Some(complete);
+
+                match rc_inner.borrow_mut().task.take() {
+                    Some(t) => t.unpark(),
+                    None => (),
+                }
+            }
         }
 
         receiver
