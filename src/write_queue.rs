@@ -100,9 +100,9 @@ pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
     (sender, queue)
 }
 
-impl <M> Sender<M> where M: AsOutputSegments {
+impl <M> Sender<M> where M: AsOutputSegments + 'static {
     /// Enqueues a message to be written.
-    pub fn send(&mut self, message: M) -> oneshot::Receiver<M> {
+    pub fn send(&mut self, message: M) -> Box<Future<Item=M, Error=Error>> {
         let (complete, oneshot) = futures::oneshot();
 
         match self.inner.upgrade() {
@@ -121,7 +121,9 @@ impl <M> Sender<M> where M: AsOutputSegments {
             }
         }
 
-        oneshot
+        Box::new(
+            oneshot.map_err(
+                |oneshot::Canceled| Error::disconnected("WriteQueue has terminated".into())))
     }
 
     /// Returns the number of messages queued to be written, not including any in-progress write.
@@ -135,7 +137,7 @@ impl <M> Sender<M> where M: AsOutputSegments {
 
     /// Commands the queue to stop writing messages once it is empty. After this method has been called,
     /// any new calls to `send()` will return a future that immediately resolves to an error.
-    pub fn end(&mut self) -> oneshot::Receiver<()> {
+    pub fn end(&mut self) -> Box<Future<Item=(), Error=Error>> {
         let (complete, receiver) = futures::oneshot();
 
         match self.inner.upgrade() {
@@ -151,7 +153,9 @@ impl <M> Sender<M> where M: AsOutputSegments {
             }
         }
 
-        receiver
+        Box::new(
+            receiver.map_err(
+                |oneshot::Canceled| Error::disconnected("WriteQueue has terminated".into())))
     }
 }
 
