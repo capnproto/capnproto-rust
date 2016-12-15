@@ -115,12 +115,18 @@ impl <M> Sender<M> where M: AsOutputSegments {
     }
 
     /// Commands the queue to stop writing messages once it is empty. After this method has been called,
-    /// any new calls to `send()` will return a future that immediate resolves to an error.
+    /// any new calls to `send()` will return a future that immediately resolves to an error.
     pub fn end(&mut self) -> oneshot::Receiver<()> {
         let (complete, receiver) = futures::oneshot();
 
         // TODO: what if end_notifier is already full? Maybe it should be a vector?
         self.inner.borrow_mut().end_notifier = Some(complete);
+
+        match self.inner.borrow_mut().task.take() {
+            Some(t) => t.unpark(),
+            None => (),
+        }
+
         receiver
     }
 }
