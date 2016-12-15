@@ -573,8 +573,11 @@ impl <VatId> ConnectionState<VatId> {
 
     fn eagerly_evaluate(&self, task: Promise<(), Error>) -> Promise<(), Error> {
         let (tx, rx) = oneshot::channel();
-        self.add_task(Promise::from_future(task.then(move |r| {tx.complete(r); Ok(())})));
-        Promise::from_future(rx.map_err(|e| e.into()).and_then(|v| v))
+        let (tx2, rx2) = oneshot::channel::<()>();
+        self.add_task(
+            Promise::from_future(
+                task.then(move |r| {tx.complete(r); Ok(())}).join(rx2.then(|_| Ok(()))).map(|_| ())));
+        Promise::from_future(rx.map_err(|e| e.into()).and_then(|v| v).then(|_| { tx2.complete(()); Ok(())}))
     }
 
     fn add_task(&self, task: Promise<(), Error>) {
@@ -1817,7 +1820,7 @@ impl <VatId> Pipeline<VatId> {
     {
         let state = Rc::new(RefCell::new(PipelineState {
             variant: PipelineVariant::Waiting(question_ref),
-            connection_state: connection_state,
+            connection_state: connection_state.clone(),
             redirect_later: None,
             resolve_self_promise: Promise::from_future(::futures::future::empty()),
         }));
@@ -1826,15 +1829,18 @@ impl <VatId> Pipeline<VatId> {
                 let fork = ForkedPromise::new(redirect_later_promise);
 
                 let this = Rc::downgrade(&state);
-                let resolve_self_promise = Promise::from_future(fork.clone().then(move |response| {
-                    let state = this.upgrade().expect("dangling reference to this");
+                let resolve_self_promise = connection_state.eagerly_evaluate(Promise::from_future(fork.clone().then(move |response| {
+                    let state = match this.upgrade() {
+                        Some(s) => s,
+                        None => return Err(Error::failed("dangling reference to this".into())),
+                    };
                     let new_variant = match response {
                         Ok(r) =>  PipelineVariant::Resolved(r),
                         Err(e) => PipelineVariant::Broken(e),
                     };
                     let _old_variant = ::std::mem::replace(&mut state.borrow_mut().variant, new_variant);
                     Ok(())
-                }));
+                })));
 
                 state.borrow_mut().resolve_self_promise = resolve_self_promise;
                 state.borrow_mut().redirect_later = Some(RefCell::new(fork));

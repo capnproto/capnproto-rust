@@ -167,7 +167,7 @@ fn do_nothing() {
 
 
 #[test]
-fn basic() {
+fn basic_rpc_calls() {
     rpc_top_level(|mut core, client| {
         let response = try!(core.run(client.test_interface_request().send().promise));
         let client = try!(try!(response.get()).get_cap());
@@ -210,7 +210,7 @@ fn basic() {
 
 
 #[test]
-fn pipelining() {
+fn basic_pipelining() {
     rpc_top_level(|mut core, client| {
         let response = try!(core.run(client.test_pipeline_request().send().promise));
         let client = try!(try!(response.get()).get_cap());
@@ -512,7 +512,7 @@ fn retain_and_release() {
 }
 
 #[test]
-fn cancel() {
+fn cancel_releases_params() {
     use std::rc::Rc;
     use std::cell::Cell;
 
@@ -531,7 +531,6 @@ fn cancel() {
             destroyed_done_sender.complete(());
             Ok(())
         }).map_err(|_| ()));
-
 
         {
             let mut request = client.never_return_request();
@@ -559,7 +558,8 @@ fn cancel() {
                 }
             }
         }
-// XXX currently hangs
+
+// XXX this currently hangs
 //        try!(core.run(destroyed_done_receiver));
 //        if !destroyed.get() {
 //            return Err(Error::failed("The cap should be released now.".to_string()));

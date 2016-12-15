@@ -158,7 +158,10 @@ impl <T> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T>
                                       Box::new(IncomingMessage::new(message)) as Box<::IncomingMessage>)
                 }))
             }
-            None => unreachable!(),
+            None => {
+                Promise::err(::capnp::Error::failed("this should not be possible".to_string()))
+             //   unreachable!(),
+            }
         }
     }
 
