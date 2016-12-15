@@ -188,7 +188,7 @@ impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
         let drain = self.inner.stack.drain();
         for idx in drain {
             match self.inner.futures.borrow_mut()[idx] {
-                Slot::Next(_) => unreachable!(),
+                Slot::Next(_) => continue,
                 Slot::Data(ref mut f) => {
                     let event = ::futures::task::UnparkEvent::new(self.inner.stack.clone(), idx);
                     match ::futures::task::with_unpark_event(event, || f.poll()) {
