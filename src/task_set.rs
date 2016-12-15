@@ -18,9 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use futures::{Future, Stream};
+use futures::{Future};
 
-use std::cell::{RefCell};
+use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
 
@@ -32,29 +32,31 @@ enum Slot<T> {
 }
 
 struct Inner<T, E> {
-   // A slab of futures that are being executed. Each slot in this vector is
+    // A slab of futures that are being executed. Each slot in this vector is
     // either an active future or a pointer to the next empty slot. This is used
     // to get O(1) deallocation in the slab and O(1) allocation.
     //
     // The `next_future` field is the next slot in the `futures` array that's a
     // `Slot::Next` variant. If it points to the end of the array then the array
     // is full.
-    futures: Vec<Slot<Box<Future<Item=T, Error=E>>>>,
-    next_future: usize,
+    futures: RefCell<Vec<Slot<Box<Future<Item=T, Error=E>>>>>,
+    next_future: Cell<usize>,
+
+    new_futures: RefCell<Vec<Box<Future<Item=T, Error=E>>>>,
 
     stack: Arc<Stack<usize>>,
-    reaper: Box<TaskReaper<T, E>>,
+    reaper: RefCell<Box<TaskReaper<T, E>>>,
 
-    terminate_with: Option<Result<(), E>>,
+    terminate_with: RefCell<Option<Result<(), E>>>,
 
-    handle_count: usize,
-    task: Option<::futures::task::Task>,
+    handle_count: Cell<usize>,
+    task: RefCell<Option<::futures::task::Task>>,
 }
 
 
 #[must_use = "a TaskSet does nothing unless polled"]
 pub struct TaskSet<T, E> {
-    inner: Rc<RefCell<Inner<T, E>>>,
+    inner: Rc<Inner<T, E>>,
 }
 
 impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
@@ -62,15 +64,16 @@ impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
                -> (TaskSetHandle<T, E>, TaskSet<T, E>)
         where E: 'static, T: 'static, E: ::std::fmt::Debug,
     {
-        let inner = Rc::new(RefCell::new(Inner {
-            futures: Vec::new(),
-            next_future: 0,
+        let inner = Rc::new(Inner {
+            futures: RefCell::new(Vec::new()),
+            next_future: Cell::new(0),
+            new_futures: RefCell::new(Vec::new()),
             stack: Arc::new(Stack::new()),
-            reaper: reaper,
-            terminate_with: None,
-            handle_count: 1,
-            task: None,
-        }));
+            reaper: RefCell::new(reaper),
+            terminate_with: RefCell::new(None),
+            handle_count: Cell::new(1),
+            task: RefCell::new(None),
+        });
 
         let weak_inner = Rc::downgrade(&inner);
 
@@ -87,7 +90,7 @@ impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
 }
 
 pub struct TaskSetHandle<T, E> {
-    inner: Weak<RefCell<Inner<T, E>>>,
+    inner: Weak<Inner<T, E>>,
 }
 
 impl<T, E> Clone for TaskSetHandle<T, E> {
@@ -95,7 +98,7 @@ impl<T, E> Clone for TaskSetHandle<T, E> {
         match self.inner.upgrade() {
             None => (),
             Some(inner) => {
-                inner.borrow_mut().handle_count += 1;
+                inner.handle_count.set(inner.handle_count.get() + 1);
             }
         }
         TaskSetHandle {
@@ -109,7 +112,7 @@ impl <T, E> Drop for TaskSetHandle<T, E> {
         match self.inner.upgrade() {
             None => (),
             Some(inner) => {
-                inner.borrow_mut().handle_count -= 1;
+                inner.handle_count.set(inner.handle_count.get() - 1);
             }
         }
     }
@@ -122,24 +125,9 @@ impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
         match self.inner.upgrade() {
             None => (),
             Some(rc_inner) => {
-                let ref mut inner = *rc_inner.borrow_mut();
-                let future = Box::new(promise);
+                rc_inner.new_futures.borrow_mut().push(Box::new(promise));
 
-                let added_idx = inner.next_future;
-                if inner.next_future == inner.futures.len() {
-                    inner.futures.push(Slot::Data(future));
-                    inner.next_future += 1;
-                } else {
-                    match ::std::mem::replace(&mut inner.futures[inner.next_future],
-                                              Slot::Data(future)) {
-                        Slot::Next(next) => inner.next_future = next,
-                        Slot::Data(_) => unreachable!(),
-                    }
-                }
-
-                inner.stack.push(added_idx);
-
-                match inner.task.take() {
+                match rc_inner.task.borrow_mut().take() {
                     Some(t) => t.unpark(),
                     None => (),
                 }
@@ -151,10 +139,9 @@ impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
         match self.inner.upgrade() {
             None => (),
             Some(rc_inner) => {
-                let ref mut inner = *rc_inner.borrow_mut();
-                inner.terminate_with = Some(result);
+                *rc_inner.terminate_with.borrow_mut() = Some(result);
 
-                match inner.task.take() {
+                match rc_inner.task.borrow_mut().take() {
                     Some(t) => t.unpark(),
                     None => (),
                 }
@@ -174,38 +161,55 @@ impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
     type Error = E;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        let ref mut inner = *self.inner.borrow_mut();
 
-        match inner.terminate_with.take() {
+        match self.inner.terminate_with.borrow_mut().take() {
             None => (),
             Some(Ok(v)) => return Ok(::futures::Async::Ready(v)),
             Some(Err(e)) => return Err(e),
         }
 
-        for idx in inner.stack.drain() {
-            match inner.futures[idx] {
+        let new_futures = ::std::mem::replace(&mut *self.inner.new_futures.borrow_mut(), Vec::new());
+        for future in new_futures {
+            let added_idx = self.inner.next_future.get();
+            if self.inner.next_future.get() == self.inner.futures.borrow().len() {
+                self.inner.futures.borrow_mut().push(Slot::Data(future));
+                self.inner.next_future.set(self.inner.next_future.get() + 1);
+            } else {
+                match ::std::mem::replace(&mut self.inner.futures.borrow_mut()[self.inner.next_future.get()],
+                                          Slot::Data(future)) {
+                    Slot::Next(next) => self.inner.next_future.set(next),
+                    Slot::Data(_) => unreachable!(),
+                }
+            }
+
+            self.inner.stack.push(added_idx);
+        }
+
+        let drain = self.inner.stack.drain();
+        for idx in drain {
+            match self.inner.futures.borrow_mut()[idx] {
                 Slot::Next(_) => unreachable!(),
                 Slot::Data(ref mut f) => {
-                    let event = ::futures::task::UnparkEvent::new(inner.stack.clone(), idx);
+                    let event = ::futures::task::UnparkEvent::new(self.inner.stack.clone(), idx);
                     match ::futures::task::with_unpark_event(event, || f.poll()) {
                         Ok(::futures::Async::NotReady) => continue,
                         Ok(::futures::Async::Ready(v)) => {
-                            inner.reaper.task_succeeded(v);
+                            self.inner.reaper.borrow_mut().task_succeeded(v);
                         }
                         Err(e) => {
-                            inner.reaper.task_failed(e);
+                            self.inner.reaper.borrow_mut().task_failed(e);
                         }
                     }
                 }
             }
-            inner.futures[idx] = Slot::Next(inner.next_future);
-            inner.next_future = idx;
+            self.inner.futures.borrow_mut()[idx] = Slot::Next(self.inner.next_future.get());
+            self.inner.next_future.set(idx);
         }
 
-        if inner.futures.len() == 0 && inner.handle_count == 0 {
+        if self.inner.futures.borrow().len() == 0 && self.inner.handle_count.get() == 0 {
             Ok(::futures::Async::Ready(()))
         } else {
-            inner.task = Some(::futures::task::park());
+            *self.inner.task.borrow_mut() = Some(::futures::task::park());
             Ok(::futures::Async::NotReady)
         }
     }
