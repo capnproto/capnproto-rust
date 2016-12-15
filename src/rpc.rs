@@ -620,7 +620,12 @@ impl <VatId> ConnectionState<VatId> {
     }
 
     fn message_loop(weak_state: ::std::rc::Weak<ConnectionState<VatId>>) -> Promise<(), ::capnp::Error> {
-        let state = weak_state.upgrade().expect("dangling reference to connection state");
+        let state = match weak_state.upgrade() {
+            None => return Promise::err(
+                Error::disconnected("message loop cannot continue without a connection".into())),
+            Some(c) => c,
+        };
+
         let promise = match &mut *state.connection.borrow_mut() {
             &mut Err(_) => return Promise::ok(()),
             &mut Ok(ref mut connection) => connection.receive_incoming_message(),
@@ -660,7 +665,12 @@ impl <VatId> ConnectionState<VatId> {
             Done,
         }
 
-        let connection_state = weak_state.upgrade().expect("dangling reference to connection state");
+        let connection_state = match weak_state.upgrade() {
+            None => return Err(
+                Error::disconnected("handle_message() cannot continue without a connection".into())),
+            Some(c) => c,
+        };
+
         let connection_state1 = connection_state.clone();
         let intermediate = {
             let reader = try!(try!(message.get_body()).get_as::<message::Reader>());

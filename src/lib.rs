@@ -163,6 +163,7 @@ pub struct RpcSystem<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
 
     spawner: tokio_core::reactor::Handle,
+    _spawn_canceller: oneshot::Sender<()>,
 //    tasks: TaskSet<(), Error>,
     handle: ::task_set::TaskSetHandle<(), Error>
 }
@@ -179,17 +180,22 @@ impl <VatId> RpcSystem <VatId> {
             None => broken::new_cap(Error::failed("no bootstrap capabiity".to_string())),
         };
         let (mut handle, tasks) = TaskSet::new(Box::new(SystemTaskReaper));
+
+        let (sender, receiver) = oneshot::channel();
+        let receiver = receiver.map_err(|e| e.into());
+
         let mut result = RpcSystem {
             network: network,
             bootstrap_cap: bootstrap_cap,
             connection_state: Rc::new(RefCell::new(None)),
             spawner: spawner.clone(),
+            _spawn_canceller: sender,
 
 //            tasks: tasks,
             handle: handle.clone(),
         };
 
-        spawner.spawn(tasks.map_err(|e| { println!("{}", e); ()}));
+        spawner.spawn(tasks.join(receiver).map_err(|e| { println!("{}", e); ()}).map(|_| ()));
         let accept_loop = result.accept_loop();
         handle.add(accept_loop);
         result

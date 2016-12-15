@@ -84,6 +84,7 @@ struct ConnectionInner<T> where T: ::std::io::Read + 'static {
     side: ::rpc_twoparty_capnp::Side,
     receive_options: ReaderOptions,
     on_disconnect_fulfiller: Option<oneshot::Sender<()>>,
+    _spawn_canceller: oneshot::Sender<()>,
 }
 
 struct Connection<T> where T: ::std::io::Read + 'static {
@@ -113,7 +114,9 @@ impl <T> Connection<T> where T: ::std::io::Read {
         where U: ::std::io::Write + 'static
     {
         let (tx, write_queue) = ::capnp_futures::write_queue(output_stream);
-        handle.spawn(write_queue.then(|_| Ok(())));
+        let (sender, receiver) = oneshot::channel();
+        let receiver = receiver.map_err(|e| e.into());
+        handle.spawn(write_queue.join(receiver).then(|_| Ok(())));
 
         Connection {
             inner: Rc::new(RefCell::new(
@@ -123,6 +126,7 @@ impl <T> Connection<T> where T: ::std::io::Read {
                     side: side,
                     receive_options: receive_options,
                     on_disconnect_fulfiller: Some(on_disconnect_fulfiller),
+                    _spawn_canceller: sender,
                 })),
         }
     }
