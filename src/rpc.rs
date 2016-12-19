@@ -213,6 +213,7 @@ impl <VatId> QuestionRef<VatId> {
 
 impl <VatId> Drop for QuestionRef<VatId> {
     fn drop(&mut self) {
+        println!("dropping QuestionRef. thread = {:?}", ::std::thread::current().name());
         enum BorrowWorkaround {
             EraseQuestion(QuestionId),
             Done,
@@ -240,10 +241,12 @@ impl <VatId> Drop for QuestionRef<VatId> {
                 }
 
                 if q.is_awaiting_return {
+                    println!("is awaiting return");
                     // Still waiting for return, so just remove the QuestionRef pointer from the table.
                     q.self_ref = None;
                     BorrowWorkaround::Done
                 } else {
+                    println!("call has already returned");
                     // Call has already returned, so we can now remove it from the table.
                     BorrowWorkaround::EraseQuestion(self.id)
                 }
@@ -571,12 +574,15 @@ impl <VatId> ConnectionState<VatId> {
         }
     }
 
-    fn eagerly_evaluate(&self, task: Promise<(), Error>) -> Promise<(), Error> {
+    fn eagerly_evaluate<T, F>(&self, task: F) -> Promise<T, Error>
+        where F: Future<Item=T, Error=Error> + 'static,
+              T: 'static
+    {
         let (tx, rx) = oneshot::channel();
         let (tx2, rx2) = oneshot::channel::<()>();
         self.add_task(
             task.then(move |r| {tx.complete(r); Ok(())}).join(rx2.then(|_| Ok(()))).map(|_| ()));
-        Promise::from_future(rx.map_err(|e| e.into()).and_then(|v| v).then(|_| { tx2.complete(()); Ok(())}))
+        Promise::from_future(rx.map_err(|e| e.into()).and_then(|v| v).then(|v| { tx2.complete(()); v}))
     }
 
     fn add_task<F>(&self, task: F)
@@ -718,6 +724,8 @@ impl <VatId> ConnectionState<VatId> {
                 Ok(message::Bootstrap(bootstrap)) => {
                     use ::capnp::traits::ImbueMut;
 
+                    println!("handle bootstrap. thread = {:?}", ::std::thread::current().name());
+
                     let bootstrap = try!(bootstrap);
                     let answer_id = bootstrap.get_question_id();
 
@@ -763,11 +771,13 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Call(call)) => {
+                    println!("handle call. thread = {:?}", ::std::thread::current().name());
                     let call = try!(call);
                     let t = try!(connection_state.get_message_target(try!(call.get_target())));
                     BorrowWorkaround::Call(t)
                 }
                 Ok(message::Return(oret)) => {
+                    println!("handle return. thread = {:?}", ::std::thread::current().name());
                     let ret = try!(oret);
                     let question_id = ret.get_answer_id();
                     match connection_state.questions.borrow_mut().slots[question_id as usize] {
@@ -841,6 +851,7 @@ impl <VatId> ConnectionState<VatId> {
                     }
                 }
                 Ok(message::Finish(finish)) => {
+                    println!("handle finish. thread = {:?}", ::std::thread::current().name());
                     let finish = try!(finish);
 
                     let mut exports_to_release = Vec::new();
@@ -855,7 +866,6 @@ impl <VatId> ConnectionState<VatId> {
                                 format!("Invalid question ID {} in Finish message.", answer_id)));
                         }
                         Some(ref mut answer) => {
-
                             if !answer.active {
                                 return Err(Error::failed(
                                     format!("'Finish' for invalid question ID {}.", answer_id)));
@@ -885,6 +895,7 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Resolve(resolve)) => {
+                    println!("handle resolve. thread = {:?}", ::std::thread::current().name());
                     let resolve = try!(resolve);
                     let replacement_or_error = match try!(resolve.which()) {
                         ::rpc_capnp::resolve::Cap(c) => {
@@ -921,6 +932,7 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Release(release)) => {
+                    println!("handle release. thread = {:?}", ::std::thread::current().name());
                     let release = try!(release);
                     try!(connection_state.release_export(release.get_id(), release.get_reference_count()));
                     BorrowWorkaround::Done
@@ -1108,7 +1120,7 @@ impl <VatId> ConnectionState<VatId> {
 
                             } else {
                                 answer.call_completion_promise = Some(
-                                    connection_state.eagerly_evaluate(Promise::from_future(promise)));
+                                    connection_state.eagerly_evaluate(promise));
                             }
                         }
                         None => unreachable!()
@@ -1703,9 +1715,9 @@ impl <VatId> Request<VatId> where VatId: 'static {
         }
 
         let promise = promise.attach(question_ref.clone());
-        let promise1 = Promise::from_future(promise);
+        let promise2 = connection_state.eagerly_evaluate(promise);
 
-        (question_ref, promise1)
+        (question_ref, promise2)
     }
 }
 
@@ -1747,7 +1759,7 @@ impl <VatId> RequestHook for Request<VatId> {
                 let pipeline = Pipeline::new(connection_state, question_ref,
                                              Some(Promise::from_future(forked_promise.clone())));
 
-                let app_promise = Promise::from_future(forked_promise.clone().map(|response| {
+                let app_promise = Promise::from_future(forked_promise.map(|response| {
                     ::capnp::capability::Response::new(Box::new(response))
                 }));
                 ::capnp::capability::RemotePromise {
@@ -1811,6 +1823,17 @@ struct PipelineState<VatId> where VatId: 'static {
 
 struct Pipeline<VatId> where VatId: 'static {
     state: Rc<RefCell<PipelineState<VatId>>>,
+}
+
+impl <VatId> Drop for Pipeline<VatId> where VatId: 'static {
+    fn drop(&mut self) {
+        println!("dropping rpc::Pipeline");
+        match self.state.borrow().variant {
+            PipelineVariant::Waiting(_) => println!("waiting"),
+            PipelineVariant::Resolved(_) => println!("resolved"),
+            PipelineVariant::Broken(_) => println!("broken"),
+        }
+    }
 }
 
 impl <VatId> Pipeline<VatId> {

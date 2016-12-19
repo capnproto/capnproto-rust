@@ -113,7 +113,7 @@ impl <T> Connection<T> where T: ::std::io::Read {
            ) -> Connection<T>
         where U: ::std::io::Write + 'static
     {
-        let (tx, write_queue) = ::capnp_futures::write_queue(output_stream);
+        let (tx, write_queue): (::capnp_futures::Sender<::capnp::message::Builder<::capnp::message::HeapAllocator>>, _) = ::capnp_futures::write_queue(output_stream);
         let (sender, receiver) = oneshot::channel();
         let receiver = receiver.map_err(|e| e.into());
         handle.spawn(write_queue.join(receiver).then(|_| Ok(())));

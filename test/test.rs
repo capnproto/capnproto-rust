@@ -560,10 +560,10 @@ fn cancel_releases_params() {
         }
 
 // XXX this currently hangs
-//        try!(core.run(destroyed_done_receiver));
-//        if !destroyed.get() {
-//            return Err(Error::failed("The cap should be released now.".to_string()));
-//        }
+        try!(core.run(destroyed_done_receiver));
+        if !destroyed.get() {
+            return Err(Error::failed("The cap should be released now.".to_string()));
+        }
 
         Ok(())
     });
