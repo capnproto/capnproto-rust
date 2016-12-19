@@ -241,7 +241,7 @@ impl <VatId> RpcSystem <VatId> {
 /// To use this, you need to do the following dance:
 ///
 /// ```ignore
-/// let client = foo:ToClient::new(FooImpl).from_server::<::capnp_rpc::Server>());
+/// let client = foo::ToClient::new(FooImpl).from_server::<::capnp_rpc::Server>());
 /// ```
 pub struct Server;
 
