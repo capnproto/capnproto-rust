@@ -48,7 +48,6 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(promise_param: Promise<Box<PipelineHook>, Error>) -> Pipeline {
-        println!("new queue pipeline");
         let promise = ForkedPromise::new(promise_param);
         let branch = promise.clone();
         let inner = Rc::new(RefCell::new(PipelineInner {
@@ -144,7 +143,6 @@ impl Client {
     pub fn new(promise_param: Promise<Box<ClientHook>, Error>)
            -> Client
     {
-        println!("new queue client");
         let promise = ForkedPromise::new(promise_param);
         let branch1 = promise.clone();
         let branch2 = promise.clone();
