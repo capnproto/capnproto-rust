@@ -59,11 +59,6 @@ impl <T, E> Promise<T, E> {
     {
         Promise { inner: PromiseInner::Deferred(Box::new(f)) }
     }
-
-    #[cfg(feature = "rpc")]
-    pub fn deferred(f: Box<Future<Item=T,Error=E> + 'static>) -> Promise<T, E> {
-        Promise { inner: PromiseInner::Deferred(f) }
-    }
 }
 
 #[cfg(feature = "rpc")]
