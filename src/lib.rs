@@ -331,7 +331,7 @@ impl <F> ForkedPromise<F> where F: Future {
 
 impl<F> Drop for ForkedPromise<F> where F: Future {
     fn drop(&mut self) {
-        let ForkedPromiseInner { ref mut original_future, ref mut state } = *self.inner.borrow_mut();
+        let ForkedPromiseInner { ref mut state, .. } = *self.inner.borrow_mut();
         match *state {
             ForkedPromiseState::Waiting(ref mut waiters) => {
                 for waiter in waiters {

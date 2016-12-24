@@ -1706,8 +1706,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         }
 
         let promise = promise.attach(question_ref.clone());
-        let promise2 = connection_state.eagerly_evaluate(promise);
-//        let promise2 = Promise::from_future(promise);
+        let promise2 = Promise::from_future(promise);
 
         (question_ref, promise2)
     }
@@ -1834,7 +1833,7 @@ impl <VatId> Pipeline<VatId> {
                 let fork = ForkedPromise::new(redirect_later_promise);
 
                 let this = Rc::downgrade(&state);
-                let resolve_self_promise = connection_state.eagerly_evaluate(Promise::from_future(fork.clone().then(move |response| {
+                let resolve_self_promise = connection_state.eagerly_evaluate(fork.clone().then(move |response| {
                     let state = match this.upgrade() {
                         Some(s) => s,
                         None => return Err(Error::failed("dangling reference to this".into())),
@@ -1845,7 +1844,7 @@ impl <VatId> Pipeline<VatId> {
                     };
                     let _old_variant = ::std::mem::replace(&mut state.borrow_mut().variant, new_variant);
                     Ok(())
-                })));
+                }));
 
                 state.borrow_mut().resolve_self_promise = resolve_self_promise;
                 state.borrow_mut().redirect_later = Some(RefCell::new(fork));
