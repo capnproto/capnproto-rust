@@ -449,7 +449,7 @@ fn retain_and_release() {
                 return Err(Error::failed("shouldn't be destroyed yet".to_string()))
             }
 
-/* XXX currently hangs
+
             // We can ask it to call the held capability.
             let response = try!(core.run(client.call_held_request().send().promise));
             if try!(try!(response.get()).get_s()) != "bar" {
@@ -501,13 +501,13 @@ fn retain_and_release() {
 
             if destroyed.get() {
                 return Err(Error::failed("haven't released it yet".to_string()))
-            } */
+            }
         }
 
-//        try!(core.run(destroyed_done_receiver));
-//        if !destroyed.get() {
-//            return Err(Error::failed("should be destroyed now".to_string()));
-//        }
+        try!(core.run(destroyed_done_receiver));
+        if !destroyed.get() {
+            return Err(Error::failed("should be destroyed now".to_string()));
+        }
 
         Ok(())
     });
