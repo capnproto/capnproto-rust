@@ -584,16 +584,14 @@ fn dont_hold() {
         let mut request = client.dont_hold_request();
         request.get().set_cap(cap.clone());
 
-        Ok(())
-// XXX currently hangs
-//        core.run(request.send().promise.and_then(move |_response| {
-//            let mut request = client.dont_hold_request();
-//            request.get().set_cap(cap.clone());
-//            request.send().promise.and_then(move |_| {
-//                drop(fulfiller);
-//                Promise::ok(())
-//            })
-//        }))
+        core.run(request.send().promise.and_then(move |_response| {
+            let mut request = client.dont_hold_request();
+            request.get().set_cap(cap.clone());
+            request.send().promise.and_then(move |_| {
+                drop(fulfiller);
+                Promise::ok(())
+            })
+        }))
     });
 }
 
