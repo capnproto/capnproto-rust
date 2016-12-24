@@ -636,9 +636,7 @@ fn embargo_success() {
         let call4 = get_call_sequence(&pipeline, 4);
         let call5 = get_call_sequence(&pipeline, 5);
 
-        Ok(())
-// XXX these currently hang
-/*        core.run(::futures::future::join_all(
+        core.run(::futures::future::join_all(
             vec![call0.promise,
                  call1.promise,
                  call2.promise,
@@ -654,7 +652,7 @@ fn embargo_success() {
                 counter += 1;
             }
             Ok(())
-        })) */
+        }))
     });
 }
 
@@ -703,14 +701,13 @@ fn embargo_error() {
         let call5 = get_call_sequence(&pipeline, 5);
 
         drop(fulfiller);
-// XXX these currently hang
 
-//        try!(expect_promise_throws(call0.promise, &mut core));
-//        try!(expect_promise_throws(call1.promise, &mut core));
-//        try!(expect_promise_throws(call2.promise, &mut core));
-//        try!(expect_promise_throws(call3.promise, &mut core));
-//        try!(expect_promise_throws(call4.promise, &mut core));
-//        try!(expect_promise_throws(call5.promise, &mut core));
+        try!(expect_promise_throws(call0.promise, &mut core));
+        try!(expect_promise_throws(call1.promise, &mut core));
+        try!(expect_promise_throws(call2.promise, &mut core));
+        try!(expect_promise_throws(call3.promise, &mut core));
+        try!(expect_promise_throws(call4.promise, &mut core));
+        try!(expect_promise_throws(call5.promise, &mut core));
         Ok(())
     });
 }
@@ -736,14 +733,12 @@ fn echo_destruction() {
 
         let pipeline = echo.pipeline.get_cap();
 
-        Ok(())
-// XXX currently hangs
-//        core.run(early_call.promise.and_then(move |_early_call_response| {
-//            let _ = get_call_sequence(&pipeline, 2);
-//            echo.promise.and_then(move |_echo_response| {
-//                drop(fulfiller);
-//                Promise::ok(())
-//            })
-//        }))
+        core.run(early_call.promise.and_then(move |_early_call_response| {
+            let _ = get_call_sequence(&pipeline, 2);
+            echo.promise.and_then(move |_echo_response| {
+                drop(fulfiller);
+                Promise::ok(())
+            })
+        }))
     })
 }
