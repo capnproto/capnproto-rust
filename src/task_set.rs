@@ -18,6 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+// Much of the details of this task_set implementation are borrowed from
+// the buffer_unordered() in futures-rs.
+
 use futures::{Future};
 
 use std::cell::{Cell, RefCell};
