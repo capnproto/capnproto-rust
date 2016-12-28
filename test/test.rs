@@ -392,7 +392,6 @@ fn promise_resolve() {
         paf_fulfiller.complete(
             ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>());
 
-/* XXX currently hangs
         let response = try!(core.run(promise));
         if try!(try!(response.get()).get_s()) != "bar" {
             return Err(Error::failed("expected s to equal 'bar'".to_string()));
@@ -401,7 +400,6 @@ fn promise_resolve() {
         if try!(try!(response.get()).get_s()) != "bar" {
             return Err(Error::failed("expected s to equal 'bar'".to_string()));
         }
-*/
         Ok(())
     });
 }
