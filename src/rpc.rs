@@ -1289,7 +1289,7 @@ impl <VatId> ConnectionState<VatId> {
                                 -> Promise<(), Error>
     {
         let weak_connection_state = Rc::downgrade(state);
-        Promise::from_future(promise.then(move |resolution_result| {
+        state.eagerly_evaluate(promise.then(move |resolution_result| {
             let connection_state = weak_connection_state.upgrade().expect("dangling connection state?");
 
             match resolution_result {
@@ -2441,7 +2441,7 @@ struct PromiseClient<VatId> where VatId: 'static {
     cap: Box<ClientHook>,
     import_id: Option<ImportId>,
     fork: ForkedPromise<Promise<Box<ClientHook>, ::capnp::Error>>,
-    resolve_self_promise: Promise<(), ()>,
+    resolve_self_promise: Promise<(), Error>,
     received_call: bool,
 }
 
@@ -2461,8 +2461,11 @@ impl <VatId> PromiseClient<VatId> {
         }));
         let resolved = client.borrow_mut().fork.clone();
         let weak_this = Rc::downgrade(&client);
-        let resolved1 = Promise::from_future(resolved.then(move |result| {
-            let this = weak_this.upgrade().expect("impossible");
+        let resolved1 = connection_state.eagerly_evaluate(resolved.then(move |result| {
+            let this = match weak_this.upgrade() {
+                Some(s) => s,
+                None => return Err(Error::failed("PromiseClient dangling self reference".into())),
+            };
             match result {
                 Ok(v) => {
                     this.borrow_mut().resolve(v, false);
@@ -2470,7 +2473,7 @@ impl <VatId> PromiseClient<VatId> {
                 }
                 Err(e) => {
                     this.borrow_mut().resolve(broken::new_cap(e), true);
-                    Err(())
+                    Err(Error::failed("promise client failed to resolve".into()))
                 }
             }
         }));
