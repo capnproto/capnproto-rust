@@ -87,11 +87,7 @@ impl PipelineHook for Pipeline {
         Box::new(self.clone())
     }
     fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
-        let mut cp = Vec::with_capacity(ops.len());
-        for &op in ops {
-            cp.push(op);
-        }
-        self.get_pipelined_cap_move(cp)
+        self.get_pipelined_cap_move(ops.into())
     }
 
     fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
