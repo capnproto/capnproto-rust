@@ -64,7 +64,6 @@ pub type QuestionId = u32;
 pub type AnswerId = QuestionId;
 pub type ExportId = u32;
 pub type ImportId = ExportId;
-pub type EmbargoId = u32;
 
 pub struct ImportTable<T> {
     slots: HashMap<u32, T>,
