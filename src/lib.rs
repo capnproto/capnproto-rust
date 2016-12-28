@@ -298,6 +298,8 @@ pub fn new_promise_client<T, F>(client_future: F) -> T
 
 
 struct ForkedPromiseInner<F> where F: Future {
+    next_id: u64,
+    poller: Option<u64>,
     original_future: F,
     state: ForkedPromiseState<F::Item, F::Error>,
 }
@@ -308,13 +310,17 @@ enum ForkedPromiseState<T, E> {
 }
 
 struct ForkedPromise<F> where F: Future {
+    id: u64,
     inner: Rc<RefCell<ForkedPromiseInner<F>>>,
 }
 
 impl <F> Clone for ForkedPromise<F> where F: Future {
     fn clone(&self) -> ForkedPromise<F> {
+        let id = self.inner.borrow().next_id;
+        self.inner.borrow_mut().next_id = id + 1;
         ForkedPromise {
-            inner: self.inner.clone()
+            id: id,
+            inner: self.inner.clone(),
         }
     }
 }
@@ -322,7 +328,10 @@ impl <F> Clone for ForkedPromise<F> where F: Future {
 impl <F> ForkedPromise<F> where F: Future {
     fn new(f: F) -> ForkedPromise<F> {
         ForkedPromise {
+            id: 0,
             inner: Rc::new(RefCell::new(ForkedPromiseInner {
+                next_id: 1,
+                poller: None,
                 original_future: f,
                 state: ForkedPromiseState::Waiting(Vec::new()),
             }))
@@ -332,7 +341,15 @@ impl <F> ForkedPromise<F> where F: Future {
 
 impl<F> Drop for ForkedPromise<F> where F: Future {
     fn drop(&mut self) {
-        let ForkedPromiseInner { ref mut state, .. } = *self.inner.borrow_mut();
+        let ForkedPromiseInner { ref mut state, ref mut poller, .. } = *self.inner.borrow_mut();
+
+        match *poller {
+            Some(id) if self.id == id => (),
+            _ => return,
+        }
+
+        poller.take();
+
         match *state {
             ForkedPromiseState::Waiting(ref mut waiters) => {
                 for waiter in waiters {
@@ -351,12 +368,21 @@ impl <F> Future for ForkedPromise<F>
     type Error = F::Error;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        let ForkedPromiseInner { ref mut original_future, ref mut state } = *self.inner.borrow_mut();
+        let ForkedPromiseInner { ref mut original_future, ref mut state, ref mut poller, .. } =
+            *self.inner.borrow_mut();
+
         let done_val = match *state {
             ForkedPromiseState::Waiting(ref mut waiters) => {
+                match *poller {
+                    Some(id) if self.id == id => (),
+                    None => *poller = Some(self.id),
+                    _ => {
+                        waiters.push(::futures::task::park());
+                        return Ok(::futures::Async::NotReady)
+                    }
+                }
                 let done_val = match original_future.poll() {
                     Ok(::futures::Async::NotReady) => {
-                        waiters.push(::futures::task::park());
                         return Ok(::futures::Async::NotReady)
                     }
                     Ok(::futures::Async::Ready(v)) => {
@@ -374,6 +400,7 @@ impl <F> Future for ForkedPromise<F>
             ForkedPromiseState::Done(Ok(ref v)) => return Ok(::futures::Async::Ready(v.clone())),
             ForkedPromiseState::Done(Err(ref e)) => return Err(e.clone()),
         };
+
         *state = ForkedPromiseState::Done(done_val.clone());
         match done_val {
             Ok(v) => Ok(::futures::Async::Ready(v)),
