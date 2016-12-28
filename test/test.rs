@@ -240,17 +240,16 @@ fn basic_pipelining() {
         if chained_call_count.get() != 0 {
             return Err(Error::failed("expected chained_call_count to equal 0".to_string()));
         }
-// XXX this currently hangs
-//        let response = try!(core.run(pipeline_promise.promise));
-//
-//        if try!(try!(response.get()).get_x()) != "bar" {
-//            return Err(Error::failed("expected x to equal 'bar'".to_string()));
-//        }
 
-//        let response2 = try!(core.run(pipeline_promise2.promise));
-//        ::test_util::CheckTestMessage::check_test_message(try!(response2.get()));
-//        assert_eq!(chained_call_count.get(), 1);
+        let response = try!(core.run(pipeline_promise.promise));
 
+        if try!(try!(response.get()).get_x()) != "bar" {
+            return Err(Error::failed("expected x to equal 'bar'".to_string()));
+        }
+
+        let response2 = try!(core.run(pipeline_promise2.promise));
+        ::test_util::CheckTestMessage::check_test_message(try!(response2.get()));
+        assert_eq!(chained_call_count.get(), 1);
         Ok(())
     });
 }

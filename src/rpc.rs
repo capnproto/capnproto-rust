@@ -57,7 +57,8 @@ impl <F> Drop for Defer<F> where F: FnOnce() {
             None => unreachable!(),
         }
     }
-}*/
+}
+*/
 
 pub type QuestionId = u32;
 pub type AnswerId = QuestionId;
@@ -848,7 +849,6 @@ impl <VatId> ConnectionState<VatId> {
                     let finish = try!(finish);
 
                     let mut exports_to_release = Vec::new();
-
                     let answer_id = finish.get_question_id();
 
                     let mut erase = false;
@@ -1042,7 +1042,7 @@ impl <VatId> ConnectionState<VatId> {
                 let answer = Answer::new();
 
                 let (results_inner_fulfiller, results_inner_promise) = oneshot::channel();
-                let results_inner_promise = results_inner_promise.map_err(|e| e.into());
+                let results_inner_promise = results_inner_promise.map_err(Into::into);
                 let results = Results::new(&connection_state, question_id, redirect_results,
                                            results_inner_fulfiller, answer.received_finish.clone());
 
@@ -1050,21 +1050,26 @@ impl <VatId> ConnectionState<VatId> {
                 let (redirected_results_done_promise, redirected_results_done_fulfiller) =
                     if redirect_results {
                         let (f, p) = oneshot::channel::<Result<Response<VatId>, Error>>();
-                        let p = p.map_err(|e| e.into()).and_then(|x| x);
+                        let p = p.map_err(Into::into).and_then(|x| x);
                         (Some(Promise::from_future(p)), Some(f))
                     } else {
                         (None, None)
                     };
 
                 let (call_succeeded_fulfiller, call_succeeded_promise) = oneshot::channel::<Result<(), Error>>();
-                let call_succeeded_promise = call_succeeded_promise.map_err(|e| e.into());
+                let call_succeeded_promise = call_succeeded_promise.then(|r| {
+                    match r {
+                        Ok(v) => v,
+                        Err(_) => Err(Error::failed("call canceled".into())),
+                    }
+                });
 
                 let (box_results_done_fulfiller, box_results_done_promise) =
                     oneshot::channel::<Result<Box<ResultsDoneHook>, Error>>();
                 let box_results_done_promise = box_results_done_promise.map_err(|e| e.into()).and_then(|x| x);
                 connection_state.add_task(results_inner_promise.and_then(move |results_inner| {
-                    call_succeeded_promise.and_then(move |v| {
-                        ResultsDone::from_results_inner(results_inner, v)
+                    call_succeeded_promise.then(move |r| {
+                        ResultsDone::from_results_inner(results_inner, r)
                     })
                 }).then(move |v| {
                     match redirected_results_done_fulfiller {
@@ -1108,7 +1113,6 @@ impl <VatId> ConnectionState<VatId> {
                             if redirect_results {
                                 answer.redirected_results = redirected_results_done_promise;
                                 // More to do here?
-
                             } else {
                                 answer.call_completion_promise = Some(
                                     connection_state.eagerly_evaluate(promise));
@@ -1733,7 +1737,6 @@ impl <VatId> RequestHook for Request<VatId> {
             Some(redirect) => {
                 // Whoops, this capability has been redirected while we were building the request!
                 // We'll have to make a new request and do a copy.  Ick.
-
                 let mut call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
                 let mut replacement = redirect.new_call(call_builder.borrow().get_interface_id(),
                                                         call_builder.borrow().get_method_id(), None);
@@ -1753,6 +1756,7 @@ impl <VatId> RequestHook for Request<VatId> {
                 let app_promise = Promise::from_future(forked_promise.map(|response| {
                     ::capnp::capability::Response::new(Box::new(response))
                 }));
+
                 ::capnp::capability::RemotePromise {
                     promise: app_promise,
                     pipeline: any_pointer::Pipeline::new(Box::new(pipeline))
@@ -1993,7 +1997,7 @@ impl <VatId> ResultsInner<VatId> where VatId: 'static {
 // This takes the place of both RpcCallContext and RpcServerResponse in capnproto-c++.
 pub struct Results<VatId> where VatId: 'static {
     inner: Option<ResultsInner<VatId>>,
-    results_done_fulfiller: Option< oneshot::Sender<ResultsInner<VatId>>>,
+    results_done_fulfiller: Option<oneshot::Sender<ResultsInner<VatId>>>,
 }
 
 
@@ -2135,7 +2139,6 @@ impl ResultsDone {
         results_inner.ensure_initialized();
         let ResultsInner { connection_state, variant,
                            redirect_results: _, answer_id, finish_received } = results_inner;
-
         match variant {
             None => unreachable!(),
             Some(ResultsVariant::Rpc(mut message, cap_table)) => {

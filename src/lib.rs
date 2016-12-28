@@ -175,6 +175,7 @@ impl <VatId> RpcSystem <VatId> {
         bootstrap: Option<::capnp::capability::Client>,
         spawner: tokio_core::reactor::Handle) -> RpcSystem<VatId>
     {
+        register_handle(spawner.clone());
         let bootstrap_cap = match bootstrap {
             Some(cap) => cap.hook,
             None => broken::new_cap(Error::failed("no bootstrap capabiity".to_string())),
@@ -420,3 +421,41 @@ trait Attach : Future {
 }
 
 impl <F> Attach for F where F: Future {}
+
+// ====
+
+thread_local!(pub static CORE_HANDLE: RefCell<Option<::tokio_core::reactor::Handle>> = RefCell::new(None));
+
+fn register_handle(handle: ::tokio_core::reactor::Handle) {
+    CORE_HANDLE.with(|cell| {
+        *cell.borrow_mut() = Some(handle);
+    });
+}
+
+fn add_task<F>(task: F) where F: Future + 'static {
+    CORE_HANDLE.with(|cell| {
+        match *cell.borrow_mut() {
+            Some(ref mut handle) => {
+                handle.spawn(
+                    task.map(|_| ()).map_err(|_| ()));
+            }
+            None => {
+                panic!("no registered handle");
+            }
+        }
+    });
+}
+
+
+fn eagerly_evaluate<T, F>(task: F) -> Promise<T, Error>
+    where F: Future<Item=T, Error=Error> + 'static,
+          T: 'static
+{
+    let (tx, rx) = oneshot::channel();
+    let (tx2, rx2) = oneshot::channel::<()>();
+    add_task(
+        task.then(move |r| {tx.complete(r); Ok::<(),()>(())}).select(rx2.then(|_| Ok(())))
+            .map(|_| ()).map_err(|e| e.0));
+    Promise::from_future(rx.map_err(|e| e.into()).and_then(|v| v).then(|v| { tx2.complete(()); v}))
+}
+

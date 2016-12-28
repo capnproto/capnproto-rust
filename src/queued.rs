@@ -56,8 +56,8 @@ impl Pipeline {
             self_resolution_op: Promise::ok(()),
         }));
         let this = Rc::downgrade(&inner);
-        let self_res = branch.then(move |result| {
-            let this = this.upgrade().expect("dangling reference?");
+        let self_res = ::eagerly_evaluate(branch.then(move |result| {
+            let this = this.upgrade().expect("dangling self reference?");
             match result {
                 Ok(pipeline_hook) => {
                     this.borrow_mut().redirect = Some(pipeline_hook);
@@ -67,8 +67,8 @@ impl Pipeline {
                 }
             }
             Ok(())
-        });
-        inner.borrow_mut().self_resolution_op = Promise::from_future(self_res);
+        }));
+        inner.borrow_mut().self_resolution_op = self_res;
         Pipeline { inner: inner }
     }
 }
@@ -155,7 +155,7 @@ impl Client {
             promise_for_client_resolution: ForkedPromise::new(Promise::from_future(branch3)),
         }));
         let this = Rc::downgrade(&inner);
-        let self_resolution_op = branch1.then(move |result| {
+        let self_resolution_op = ::eagerly_evaluate(branch1.then(move |result| {
             let state = this.upgrade().expect("dangling reference to QueuedClient");
             match result {
                 Ok(clienthook) => {
@@ -166,8 +166,8 @@ impl Client {
                 }
             }
             Ok(())
-        });
-        inner.borrow_mut().self_resolution_op = Promise::from_future(self_resolution_op);
+        }));
+        inner.borrow_mut().self_resolution_op = self_resolution_op;
         Client {
             inner: inner
         }
@@ -211,7 +211,7 @@ impl ClientHook for Client {
         });
         let pipeline = Pipeline::new(Promise::from_future(pipeline_promise));
 
-        let completion_promise = call_result_promise.clone().and_then(|call_result| {
+        let completion_promise = call_result_promise.and_then(|call_result| {
             call_result.borrow_mut().promise.take().expect("promise gone?")
         });
 
