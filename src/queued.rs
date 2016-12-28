@@ -57,7 +57,10 @@ impl Pipeline {
         }));
         let this = Rc::downgrade(&inner);
         let self_res = ::eagerly_evaluate(branch.then(move |result| {
-            let this = this.upgrade().expect("dangling self reference?");
+            let this = match this.upgrade(){
+                Some(v) => v,
+                None => return Err(Error::failed("dangling self reference in queued::Pipeline".into())),
+            };
             match result {
                 Ok(pipeline_hook) => {
                     this.borrow_mut().redirect = Some(pipeline_hook);
@@ -156,7 +159,10 @@ impl Client {
         }));
         let this = Rc::downgrade(&inner);
         let self_resolution_op = ::eagerly_evaluate(branch1.then(move |result| {
-            let state = this.upgrade().expect("dangling reference to QueuedClient");
+            let state = match this.upgrade() {
+                Some(s) => s,
+                None => return Err(Error::failed("dangling reference to QueuedClient".into())),
+            };
             match result {
                 Ok(clienthook) => {
                     state.borrow_mut().redirect = Some(clienthook);
