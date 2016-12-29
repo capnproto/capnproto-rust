@@ -1220,6 +1220,7 @@ impl <VatId> ConnectionState<VatId> {
     {
         match try!(target.which()) {
             ::rpc_capnp::message_target::ImportedCap(export_id) => {
+                println!("imported cap");
                 match self.exports.borrow().slots.get(export_id as usize) {
                     Some(&Some(ref exp)) => {
                         Ok(exp.client_hook.clone())
@@ -1232,6 +1233,8 @@ impl <VatId> ConnectionState<VatId> {
             ::rpc_capnp::message_target::PromisedAnswer(promised_answer) => {
                 let promised_answer = try!(promised_answer);
                 let question_id = promised_answer.get_question_id();
+                println!("promised answer. question id {}", question_id);
+
                 match self.answers.borrow().slots.get(&question_id) {
                     None => {
                         Err(Error::failed("PromisedAnswer.questionId is not a current question.".to_string()))

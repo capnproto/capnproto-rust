@@ -299,28 +299,30 @@ pub fn new_promise_client<T, F>(client_future: F) -> T
 
 struct ForkedPromiseInner<F> where F: Future {
     queued: bool,
-    next_id: u64,
-    poller: Option<u64>,
+    next_branch_id: u64,
+    next_clone_id: u64,
+    poller: Option<(u64, u64)>,
     original_future: F,
     state: ForkedPromiseState<F::Item, F::Error>,
 }
 
 enum ForkedPromiseState<T, E> {
-    Waiting(::std::collections::BTreeMap<u64, ::futures::task::Task>),
-    Done(Result<T, E>, ::std::collections::BTreeMap<u64, ::futures::task::Task>),
+    Waiting(::std::collections::BTreeMap<(u64,u64), ::futures::task::Task>),
+    Done(Result<T, E>, ::std::collections::BTreeMap<(u64, u64), ::futures::task::Task>),
 }
 
 struct ForkedPromise<F> where F: Future {
-    id: u64,
+    id: (u64, u64),
     inner: Rc<RefCell<ForkedPromiseInner<F>>>,
 }
 
 impl <F> Clone for ForkedPromise<F> where F: Future {
     fn clone(&self) -> ForkedPromise<F> {
-        let id = self.inner.borrow().next_id;
-        self.inner.borrow_mut().next_id = id + 1;
+        let branch_id = self.id.0;
+        let clone_id = self.inner.borrow().next_clone_id;
+        self.inner.borrow_mut().next_clone_id = clone_id + 1;
         ForkedPromise {
-            id: id,
+            id: (branch_id, clone_id),
             inner: self.inner.clone(),
         }
     }
@@ -329,10 +331,11 @@ impl <F> Clone for ForkedPromise<F> where F: Future {
 impl <F> ForkedPromise<F> where F: Future {
     fn new(f: F) -> ForkedPromise<F> {
         ForkedPromise {
-            id: 0,
+            id: (0, 0),
             inner: Rc::new(RefCell::new(ForkedPromiseInner {
                 queued: false,
-                next_id: 1,
+                next_branch_id: 1,
+                next_clone_id: 1,
                 poller: None,
                 original_future: f,
                 state: ForkedPromiseState::Waiting(::std::collections::BTreeMap::new()),
@@ -342,10 +345,11 @@ impl <F> ForkedPromise<F> where F: Future {
 
     fn new_queued(f: F) -> ForkedPromise<F> {
         ForkedPromise {
-            id: 0,
+            id: (0, 0),
             inner: Rc::new(RefCell::new(ForkedPromiseInner {
                 queued: true,
-                next_id: 1,
+                next_branch_id: 1,
+                next_clone_id: 1,
                 poller: None,
                 original_future: f,
                 state: ForkedPromiseState::Waiting(::std::collections::BTreeMap::new()),
@@ -353,6 +357,15 @@ impl <F> ForkedPromise<F> where F: Future {
         }
     }
 
+    fn add_branch(&self) -> ForkedPromise<F> {
+        let branch_id = self.inner.borrow().next_branch_id;
+        let clone_id = 0;
+        self.inner.borrow_mut().next_branch_id = branch_id + 1;
+        ForkedPromise {
+            id: (branch_id, clone_id),
+            inner: self.inner.clone(),
+        }
+    }
 }
 
 impl<F> Drop for ForkedPromise<F> where F: Future {

@@ -145,9 +145,9 @@ impl Client {
            -> Client
     {
         let promise = ForkedPromise::new_queued(promise_param);
-        let branch1 = promise.clone();
-        let branch2 = ForkedPromise::new(promise.clone());
-        let branch3 = ForkedPromise::new(promise.clone());
+        let branch1 = promise.add_branch();
+        let branch2 = promise.add_branch();
+        let branch3 = promise.add_branch();
         let inner = Rc::new(RefCell::new(ClientInner {
             redirect: None,
             _promise: promise,
@@ -227,6 +227,7 @@ impl ClientHook for Client {
     }
 
     fn get_brand(&self) -> usize {
+        println!("queued get_brand()");
         0
     }
 
