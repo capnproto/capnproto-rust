@@ -446,8 +446,15 @@ impl <F> Future for ForkedPromise<F>
                         Err(ref e) => return Err(e.clone()),
                     }
                 } else {
-                    waiters.insert(self.id, ::futures::task::park());
-                    return Ok(::futures::Async::NotReady)
+                    if poller.is_none() {
+                        match *r {
+                            Ok(ref v) => return Ok(::futures::Async::Ready(v.clone())),
+                            Err(ref e) => return Err(e.clone()),
+                        }
+                    } else {
+                        waiters.insert(self.id, ::futures::task::park());
+                        return Ok(::futures::Async::NotReady)
+                    }
                 }
             }
         };
