@@ -152,8 +152,8 @@ impl Client {
             redirect: None,
             _promise: promise,
             self_resolution_op: Promise::from_future(::futures::future::empty()),
-            promise_for_call_forwarding: ForkedPromise::new(Promise::from_future(branch2)),
-            promise_for_client_resolution: ForkedPromise::new(Promise::from_future(branch3)),
+            promise_for_call_forwarding: branch2,
+            promise_for_client_resolution: branch3,
         }));
         let this = Rc::downgrade(&inner);
         let self_resolution_op = ::eagerly_evaluate(branch1.then(move |result| {
