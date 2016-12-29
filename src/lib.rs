@@ -298,6 +298,7 @@ pub fn new_promise_client<T, F>(client_future: F) -> T
 
 
 struct ForkedPromiseInner<F> where F: Future {
+    queued: bool,
     next_id: u64,
     poller: Option<u64>,
     original_future: F,
@@ -306,7 +307,7 @@ struct ForkedPromiseInner<F> where F: Future {
 
 enum ForkedPromiseState<T, E> {
     Waiting(Vec<::futures::task::Task>),
-    Done(Result<T, E>),
+    Done(Result<T, E>, Vec<::futures::task::Task>),
 }
 
 struct ForkedPromise<F> where F: Future {
@@ -330,6 +331,7 @@ impl <F> ForkedPromise<F> where F: Future {
         ForkedPromise {
             id: 0,
             inner: Rc::new(RefCell::new(ForkedPromiseInner {
+                queued: false,
                 next_id: 1,
                 poller: None,
                 original_future: f,
@@ -337,6 +339,20 @@ impl <F> ForkedPromise<F> where F: Future {
             }))
         }
     }
+
+    fn new_queued(f: F) -> ForkedPromise<F> {
+        ForkedPromise {
+            id: 0,
+            inner: Rc::new(RefCell::new(ForkedPromiseInner {
+                queued: true,
+                next_id: 1,
+                poller: None,
+                original_future: f,
+                state: ForkedPromiseState::Waiting(Vec::new()),
+            }))
+        }
+    }
+
 }
 
 impl<F> Drop for ForkedPromise<F> where F: Future {
@@ -368,10 +384,10 @@ impl <F> Future for ForkedPromise<F>
     type Error = F::Error;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        let ForkedPromiseInner { ref mut original_future, ref mut state, ref mut poller, .. } =
+        let ForkedPromiseInner { ref mut original_future, ref mut state, ref mut poller, queued, .. } =
             *self.inner.borrow_mut();
 
-        let done_val = match *state {
+        let (done_val, mut waiters) = match *state {
             ForkedPromiseState::Waiting(ref mut waiters) => {
                 match *poller {
                     Some(id) if self.id == id => (),
@@ -392,16 +408,36 @@ impl <F> Future for ForkedPromise<F>
                         Err(e)
                     }
                 };
-                for task in waiters {
-                    task.unpark();
-                }
-                done_val
+                let waiters1 = if queued {
+                    waiters.reverse();
+                    ::std::mem::replace(waiters, Vec::new())
+                } else {
+                    for waiter in waiters {
+                        waiter.unpark();
+                    }
+                    Vec::new()
+                };
+                (done_val, waiters1)
             }
-            ForkedPromiseState::Done(Ok(ref v)) => return Ok(::futures::Async::Ready(v.clone())),
-            ForkedPromiseState::Done(Err(ref e)) => return Err(e.clone()),
+            ForkedPromiseState::Done(Ok(ref v), ref mut waiters) => {
+                if let Some(t) = waiters.pop() {
+                    t.unpark();
+                }
+                return Ok(::futures::Async::Ready(v.clone()))
+            }
+            ForkedPromiseState::Done(Err(ref e), ref mut waiters) => {
+                if let Some(t) = waiters.pop() {
+                    t.unpark();
+                }
+                return Err(e.clone())
+            }
         };
 
-        *state = ForkedPromiseState::Done(done_val.clone());
+        if let Some(t) = waiters.pop() {
+            t.unpark();
+        }
+
+        *state = ForkedPromiseState::Done(done_val.clone(), waiters);
         match done_val {
             Ok(v) => Ok(::futures::Async::Ready(v)),
             Err(e) => Err(e),

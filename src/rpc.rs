@@ -722,6 +722,7 @@ impl <VatId> ConnectionState<VatId> {
                 Ok(message::Bootstrap(bootstrap)) => {
                     use ::capnp::traits::ImbueMut;
 
+                    println!("handle Bootstrap. thread = {:?}", ::std::thread::current().name());
                     let bootstrap = try!(bootstrap);
                     let answer_id = bootstrap.get_question_id();
 
@@ -767,11 +768,13 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Call(call)) => {
+                    println!("handle Call. thread = {:?}", ::std::thread::current().name());
                     let call = try!(call);
                     let t = try!(connection_state.get_message_target(try!(call.get_target())));
                     BorrowWorkaround::Call(t)
                 }
                 Ok(message::Return(oret)) => {
+                    println!("handle Return. thread = {:?}", ::std::thread::current().name());
                     let ret = try!(oret);
                     let question_id = ret.get_answer_id();
                     match connection_state.questions.borrow_mut().slots[question_id as usize] {
@@ -845,6 +848,7 @@ impl <VatId> ConnectionState<VatId> {
                     }
                 }
                 Ok(message::Finish(finish)) => {
+                    println!("handle Finish. thread = {:?}", ::std::thread::current().name());
                     let finish = try!(finish);
 
                     let mut exports_to_release = Vec::new();
@@ -887,6 +891,7 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Resolve(resolve)) => {
+                    println!("handle Resolve. thread = {:?}", ::std::thread::current().name());
                     let resolve = try!(resolve);
                     let replacement_or_error = match try!(resolve.which()) {
                         ::rpc_capnp::resolve::Cap(c) => {
@@ -923,11 +928,13 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Release(release)) => {
+                    println!("handle Release. thread = {:?}", ::std::thread::current().name());
                     let release = try!(release);
                     try!(connection_state.release_export(release.get_id(), release.get_reference_count()));
                     BorrowWorkaround::Done
                 }
                 Ok(message::Disembargo(disembargo)) => {
+                    println!("handle Disembargo. thread = {:?}", ::std::thread::current().name());
                     let disembargo = try!(disembargo);
                     let context = disembargo.get_context();
                     match try!(context.which()) {
@@ -1030,6 +1037,8 @@ impl <VatId> ConnectionState<VatId> {
                                                         try!(payload.get_cap_table()))),
                      redirect_results)
                 };
+
+                println!("call question_id = {}", question_id);
 
                 if connection_state.answers.borrow().slots.contains_key(&question_id) {
                     return Err(Error::failed(
