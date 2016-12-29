@@ -1753,7 +1753,6 @@ impl <VatId> RequestHook for Request<VatId> {
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
                 let (tx, rx) = oneshot::channel::<()>();
-                let (tx2, rx2) = oneshot::channel::<()>();
                 let forked_promise1 = forked_promise1.then(|r| { tx.complete(()); r});
                 let forked_promise2 =
                         rx.then(|_| ::WaitNTicks::new(20).map_err(|_| Error::failed("impossible".into())))
