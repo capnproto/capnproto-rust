@@ -1877,11 +1877,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
         Box::new(Pipeline { state: self.state.clone() })
     }
     fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
-        let mut copy = Vec::new();
-        for &op in ops {
-            copy.push(op)
-        }
-        self.get_pipelined_cap_move(copy)
+        self.get_pipelined_cap_move(ops.into())
     }
     fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
         match *self.state.borrow() {
