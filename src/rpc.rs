@@ -1753,8 +1753,11 @@ impl <VatId> RequestHook for Request<VatId> {
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
                 let (tx, rx) = oneshot::channel::<()>();
+                let (tx2, rx2) = oneshot::channel::<()>();
                 let forked_promise1 = forked_promise1.then(|r| { tx.complete(()); r});
-                let forked_promise2 = rx.then(|_| forked_promise2);
+                let forked_promise2 =
+                        rx.then(|_| ::WaitNTicks::new(5).map_err(|_| Error::failed("impossible".into())))
+                        .and_then(|()| forked_promise2);
 
                 let pipeline = Pipeline::new(connection_state, question_ref,
                                              Some(Promise::from_future(forked_promise1)));
@@ -2458,7 +2461,7 @@ impl <VatId> PromiseClient<VatId> {
             is_resolved: false,
             cap: initial,
             import_id: import_id,
-            fork: ForkedPromise::new_queued(eventual),
+            fork: ForkedPromise::new(eventual),
             resolve_self_promise: Promise::ok(()),
             received_call: false,
         }));

@@ -528,6 +528,32 @@ trait Attach : Future {
 
 impl <F> Attach for F where F: Future {}
 
+struct WaitNTicks {
+    n: usize,
+}
+
+impl WaitNTicks {
+    fn new(n: usize) -> WaitNTicks {
+        WaitNTicks { n: n }
+    }
+}
+
+impl Future for WaitNTicks
+{
+    type Item = ();
+    type Error = ();
+
+    fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
+        if self.n == 0 {
+            Ok(::futures::Async::Ready(()))
+        } else {
+            self.n -= 1;
+            ::futures::task::park().unpark();
+            Ok(::futures::Async::NotReady)
+        }
+    }
+}
+
 // ====
 
 thread_local!(pub static CORE_HANDLE: RefCell<Option<::tokio_core::reactor::Handle>> = RefCell::new(None));

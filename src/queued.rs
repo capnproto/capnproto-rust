@@ -227,7 +227,6 @@ impl ClientHook for Client {
     }
 
     fn get_brand(&self) -> usize {
-        println!("queued get_brand()");
         0
     }
 
