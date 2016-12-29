@@ -724,8 +724,6 @@ impl <VatId> ConnectionState<VatId> {
 
                     let bootstrap = try!(bootstrap);
                     let answer_id = bootstrap.get_question_id();
-                    println!("handle Bootstrap. id = {},  thread = {:?}", answer_id, ::std::thread::current().name());
-
 
                     if connection_state.connection.borrow().is_err() {
                         // Disconnected; ignore.
@@ -769,7 +767,6 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Call(call)) => {
-                    println!("handle Call. thread = {:?}", ::std::thread::current().name());
                     let call = try!(call);
                     let t = try!(connection_state.get_message_target(try!(call.get_target())));
                     BorrowWorkaround::Call(t)
@@ -777,7 +774,6 @@ impl <VatId> ConnectionState<VatId> {
                 Ok(message::Return(oret)) => {
                     let ret = try!(oret);
                     let question_id = ret.get_answer_id();
-                    println!("handle Return. id = {}. thread = {:?}", question_id, ::std::thread::current().name());
 
                     match connection_state.questions.borrow_mut().slots[question_id as usize] {
                         Some(ref mut question) => {
@@ -850,7 +846,6 @@ impl <VatId> ConnectionState<VatId> {
                     }
                 }
                 Ok(message::Finish(finish)) => {
-                    println!("handle Finish. thread = {:?}", ::std::thread::current().name());
                     let finish = try!(finish);
 
                     let mut exports_to_release = Vec::new();
@@ -893,7 +888,6 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Resolve(resolve)) => {
-                    println!("handle Resolve. thread = {:?}", ::std::thread::current().name());
                     let resolve = try!(resolve);
                     let replacement_or_error = match try!(resolve.which()) {
                         ::rpc_capnp::resolve::Cap(c) => {
@@ -930,13 +924,11 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Release(release)) => {
-                    println!("handle Release. thread = {:?}", ::std::thread::current().name());
                     let release = try!(release);
                     try!(connection_state.release_export(release.get_id(), release.get_reference_count()));
                     BorrowWorkaround::Done
                 }
                 Ok(message::Disembargo(disembargo)) => {
-                    println!("handle Disembargo. thread = {:?}", ::std::thread::current().name());
                     let disembargo = try!(disembargo);
                     let context = disembargo.get_context();
                     match try!(context.which()) {
@@ -952,9 +944,6 @@ impl <VatId> ConnectionState<VatId> {
                                 }
                             }
 
-                            println!("target brand {:?}. connection brand {:?}",
-                                     target.get_brand(),
-                                     connection_state.get_brand());
                             if target.get_brand() != connection_state.get_brand() {
                                 return Err(Error::failed(
                                     "'Disembargo' of type 'senderLoopback' sent to an object that does not point \
@@ -1042,8 +1031,6 @@ impl <VatId> ConnectionState<VatId> {
                                                         try!(payload.get_cap_table()))),
                      redirect_results)
                 };
-
-                println!("call question_id = {}", question_id);
 
                 if connection_state.answers.borrow().slots.contains_key(&question_id) {
                     return Err(Error::failed(
@@ -1220,7 +1207,6 @@ impl <VatId> ConnectionState<VatId> {
     {
         match try!(target.which()) {
             ::rpc_capnp::message_target::ImportedCap(export_id) => {
-                println!("imported cap");
                 match self.exports.borrow().slots.get(export_id as usize) {
                     Some(&Some(ref exp)) => {
                         Ok(exp.client_hook.clone())
@@ -1233,7 +1219,6 @@ impl <VatId> ConnectionState<VatId> {
             ::rpc_capnp::message_target::PromisedAnswer(promised_answer) => {
                 let promised_answer = try!(promised_answer);
                 let question_id = promised_answer.get_question_id();
-                println!("promised answer. question id {}", question_id);
 
                 match self.answers.borrow().slots.get(&question_id) {
                     None => {
@@ -1763,13 +1748,18 @@ impl <VatId> RequestHook for Request<VatId> {
             None => {
                 let (question_ref, promise) =
                     Request::send_internal(connection_state.clone(), message, cap_table, false);
-                let forked_promise = ForkedPromise::new_queued(promise);
+                let forked_promise1 = ForkedPromise::new_queued(promise);
+                let forked_promise2 = forked_promise1.clone();
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
-                let pipeline = Pipeline::new(connection_state, question_ref,
-                                             Some(Promise::from_future(forked_promise.clone())));
+                let (tx, rx) = oneshot::channel::<()>();
+                let forked_promise1 = forked_promise1.then(|r| { tx.complete(()); r});
+                let forked_promise2 = rx.then(|_| forked_promise2);
 
-                let app_promise = Promise::from_future(forked_promise.map(|response| {
+                let pipeline = Pipeline::new(connection_state, question_ref,
+                                             Some(Promise::from_future(forked_promise1)));
+
+                let app_promise = Promise::from_future(forked_promise2.map(|response| {
                     ::capnp::capability::Response::new(Box::new(response))
                 }));
 
@@ -1867,7 +1857,7 @@ impl <VatId> Pipeline<VatId> {
                 }));
 
                 state.borrow_mut().resolve_self_promise = resolve_self_promise;
-                state.borrow_mut().redirect_later = Some(RefCell::new(fork));
+                state.borrow_mut().redirect_later = Some(RefCell::new(fork.clone()));
             }
             None => {}
         }

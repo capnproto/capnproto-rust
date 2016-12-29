@@ -629,24 +629,23 @@ fn embargo_success() {
 
         let _resolved = try!(core.run(echo.promise));
 
-//        let call3 = get_call_sequence(&pipeline, 3);
-//        let call4 = get_call_sequence(&pipeline, 4);
-//        let call5 = get_call_sequence(&pipeline, 5);
+        let call3 = get_call_sequence(&pipeline, 3);
+        let call4 = get_call_sequence(&pipeline, 4);
+        let call5 = get_call_sequence(&pipeline, 5);
 
         core.run(::futures::future::join_all(
             vec![call0.promise,
                  call1.promise,
                  call2.promise,
-//                 call3.promise,
-//                 call4.promise,
-//                 call5.promise
+                 call3.promise,
+                 call4.promise,
+                 call5.promise
             ]).and_then(|responses| {
             let mut counter = 0;
             for r in responses.into_iter() {
-                println!("n = {}", try!(r.get()).get_n());
                 if counter != try!(r.get()).get_n() {
-//                    return Err(Error::failed(
-//                        "calls arrived out of order".to_string()))
+                    return Err(Error::failed(
+                        "calls arrived out of order".to_string()))
                 }
                 counter += 1;
             }

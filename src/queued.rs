@@ -49,7 +49,7 @@ pub struct Pipeline {
 impl Pipeline {
     pub fn new(promise_param: Promise<Box<PipelineHook>, Error>) -> Pipeline {
         let promise = ForkedPromise::new_queued(promise_param);
-        let branch = promise.clone();
+        let branch = promise.add_branch();
         let inner = Rc::new(RefCell::new(PipelineInner {
             promise: promise,
             redirect: None,
