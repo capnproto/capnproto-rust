@@ -1756,7 +1756,7 @@ impl <VatId> RequestHook for Request<VatId> {
                 let (tx2, rx2) = oneshot::channel::<()>();
                 let forked_promise1 = forked_promise1.then(|r| { tx.complete(()); r});
                 let forked_promise2 =
-                        rx.then(|_| ::WaitNTicks::new(5).map_err(|_| Error::failed("impossible".into())))
+                        rx.then(|_| ::WaitNTicks::new(20).map_err(|_| Error::failed("impossible".into())))
                         .and_then(|()| forked_promise2);
 
                 let pipeline = Pipeline::new(connection_state, question_ref,
