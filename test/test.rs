@@ -610,7 +610,7 @@ fn embargo_success() {
 
         // ugh, we need upcasting.
         let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
-//        let early_call = client2.get_call_sequence_request().send();
+        let early_call = client2.get_call_sequence_request().send();
         drop(client2);
 
         let mut echo_request = client.echo_request();
@@ -623,23 +623,23 @@ fn embargo_success() {
         let call0 = get_call_sequence(&pipeline, 0);
         let call1 = get_call_sequence(&pipeline, 1);
 
-//        try!(core.run(early_call.promise));
+        try!(core.run(early_call.promise));
 
         let call2 = get_call_sequence(&pipeline, 2);
 
         let _resolved = try!(core.run(echo.promise));
 
-        let call3 = get_call_sequence(&pipeline, 3);
-        let call4 = get_call_sequence(&pipeline, 4);
-        let call5 = get_call_sequence(&pipeline, 5);
+//        let call3 = get_call_sequence(&pipeline, 3);
+//        let call4 = get_call_sequence(&pipeline, 4);
+//        let call5 = get_call_sequence(&pipeline, 5);
 
         core.run(::futures::future::join_all(
             vec![call0.promise,
                  call1.promise,
                  call2.promise,
-                 call3.promise,
-                 call4.promise,
-                 call5.promise
+//                 call3.promise,
+//                 call4.promise,
+//                 call5.promise
             ]).and_then(|responses| {
             let mut counter = 0;
             for r in responses.into_iter() {

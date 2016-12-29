@@ -99,12 +99,7 @@ impl PipelineHook for Pipeline {
             }
             &None => (),
         }
-        let ptr = self as *const _;
-        println!("get_pipelined_cap_move. inner = {:?},  {:?}",
-                 &*self.inner.borrow() as *const _,
-                 ptr);
         let client_promise = self.inner.borrow_mut().promise.clone().map(move |pipeline| {
-            println!("get_pipelined_cap_move more resolved now {:?}", ptr);
             pipeline.get_pipelined_cap_move(ops)
         });
 
@@ -151,8 +146,8 @@ impl Client {
     {
         let promise = ForkedPromise::new_queued(promise_param);
         let branch1 = promise.clone();
-        let branch2 = ForkedPromise::new_queued(promise.clone());
-        let branch3 = ForkedPromise::new_queued(promise.clone());
+        let branch2 = ForkedPromise::new(promise.clone());
+        let branch3 = ForkedPromise::new(promise.clone());
         let inner = Rc::new(RefCell::new(ClientInner {
             redirect: None,
             _promise: promise,
@@ -206,11 +201,8 @@ impl ClientHook for Client {
             pipeline: Option<Box<PipelineHook>>,
         }
 
-        let ptr = self as *const _;
-        println!("call queued client. ptr = {:?}, thread = {:?}", ptr, ::std::thread::current().name());
         let call_result_promise =
             ForkedPromise::new(Box::new(self.inner.borrow_mut().promise_for_call_forwarding.clone().and_then(move |client| {
-                println!("call queued client INNER. ptr = {:?}, thread = {:?}", ptr, ::std::thread::current().name());
                 let (promise, pipeline) = client.call(interface_id, method_id, params, results, results_done);
                 Ok(Rc::new(RefCell::new(CallResultHolder {
                     promise: Some(promise),

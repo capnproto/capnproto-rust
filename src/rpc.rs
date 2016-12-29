@@ -722,9 +722,10 @@ impl <VatId> ConnectionState<VatId> {
                 Ok(message::Bootstrap(bootstrap)) => {
                     use ::capnp::traits::ImbueMut;
 
-                    println!("handle Bootstrap. thread = {:?}", ::std::thread::current().name());
                     let bootstrap = try!(bootstrap);
                     let answer_id = bootstrap.get_question_id();
+                    println!("handle Bootstrap. id = {},  thread = {:?}", answer_id, ::std::thread::current().name());
+
 
                     if connection_state.connection.borrow().is_err() {
                         // Disconnected; ignore.
@@ -774,9 +775,10 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Call(t)
                 }
                 Ok(message::Return(oret)) => {
-                    println!("handle Return. thread = {:?}", ::std::thread::current().name());
                     let ret = try!(oret);
                     let question_id = ret.get_answer_id();
+                    println!("handle Return. id = {}. thread = {:?}", question_id, ::std::thread::current().name());
+
                     match connection_state.questions.borrow_mut().slots[question_id as usize] {
                         Some(ref mut question) => {
                             question.is_awaiting_return = false;
@@ -950,6 +952,9 @@ impl <VatId> ConnectionState<VatId> {
                                 }
                             }
 
+                            println!("target brand {:?}. connection brand {:?}",
+                                     target.get_brand(),
+                                     connection_state.get_brand());
                             if target.get_brand() != connection_state.get_brand() {
                                 return Err(Error::failed(
                                     "'Disembargo' of type 'senderLoopback' sent to an object that does not point \
@@ -1755,7 +1760,7 @@ impl <VatId> RequestHook for Request<VatId> {
             None => {
                 let (question_ref, promise) =
                     Request::send_internal(connection_state.clone(), message, cap_table, false);
-                let forked_promise = ForkedPromise::new(promise);
+                let forked_promise = ForkedPromise::new_queued(promise);
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
                 let pipeline = Pipeline::new(connection_state, question_ref,
@@ -1842,7 +1847,7 @@ impl <VatId> Pipeline<VatId> {
         }));
         match redirect_later {
             Some(redirect_later_promise) => {
-                let fork = ForkedPromise::new(redirect_later_promise);
+                let fork = ForkedPromise::new_queued(redirect_later_promise);
 
                 let this = Rc::downgrade(&state);
                 let resolve_self_promise = connection_state.eagerly_evaluate(fork.clone().then(move |response| {
@@ -2460,7 +2465,7 @@ impl <VatId> PromiseClient<VatId> {
             is_resolved: false,
             cap: initial,
             import_id: import_id,
-            fork: ForkedPromise::new(eventual),
+            fork: ForkedPromise::new_queued(eventual),
             resolve_self_promise: Promise::ok(()),
             received_call: false,
         }));

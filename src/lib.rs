@@ -306,8 +306,8 @@ struct ForkedPromiseInner<F> where F: Future {
 }
 
 enum ForkedPromiseState<T, E> {
-    Waiting(Vec<::futures::task::Task>),
-    Done(Result<T, E>, Vec<::futures::task::Task>),
+    Waiting(::std::collections::BTreeMap<u64, ::futures::task::Task>),
+    Done(Result<T, E>, ::std::collections::BTreeMap<u64, ::futures::task::Task>),
 }
 
 struct ForkedPromise<F> where F: Future {
@@ -335,7 +335,7 @@ impl <F> ForkedPromise<F> where F: Future {
                 next_id: 1,
                 poller: None,
                 original_future: f,
-                state: ForkedPromiseState::Waiting(Vec::new()),
+                state: ForkedPromiseState::Waiting(::std::collections::BTreeMap::new()),
             }))
         }
     }
@@ -348,7 +348,7 @@ impl <F> ForkedPromise<F> where F: Future {
                 next_id: 1,
                 poller: None,
                 original_future: f,
-                state: ForkedPromiseState::Waiting(Vec::new()),
+                state: ForkedPromiseState::Waiting(::std::collections::BTreeMap::new()),
             }))
         }
     }
@@ -358,22 +358,35 @@ impl <F> ForkedPromise<F> where F: Future {
 impl<F> Drop for ForkedPromise<F> where F: Future {
     fn drop(&mut self) {
         let ForkedPromiseInner { ref mut state, ref mut poller, .. } = *self.inner.borrow_mut();
-
-        match *poller {
-            Some(id) if self.id == id => (),
-            _ => return,
-        }
-
-        poller.take();
-
         match *state {
             ForkedPromiseState::Waiting(ref mut waiters) => {
-                for waiter in waiters {
-                    waiter.unpark();
+                match *poller {
+                    Some(id) => {
+                        if id == self.id {
+                            for (_id, waiter) in waiters {
+                                waiter.unpark();
+                            }
+                            poller.take();
+                        } else {
+                            waiters.remove(&self.id);
+                        }
+                    }
+                    None => (),
                 }
             }
-            _ => (),
-        };
+            ForkedPromiseState::Done(_, ref mut waiters) => {
+                waiters.remove(&self.id);
+                if Some(self.id) == *poller {
+                    let mk = waiters.keys().next().map(|&k| k);
+                    if let Some(k) = mk {
+                        *poller = Some(k);
+                        waiters.remove(&k).unwrap().unpark();
+                    } else {
+                        *poller = None;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -393,7 +406,7 @@ impl <F> Future for ForkedPromise<F>
                     Some(id) if self.id == id => (),
                     None => *poller = Some(self.id),
                     _ => {
-                        waiters.push(::futures::task::park());
+                        waiters.insert(self.id, ::futures::task::park());
                         return Ok(::futures::Async::NotReady)
                     }
                 }
@@ -409,32 +422,42 @@ impl <F> Future for ForkedPromise<F>
                     }
                 };
                 let waiters1 = if queued {
-                    waiters.reverse();
-                    ::std::mem::replace(waiters, Vec::new())
+                    ::std::mem::replace(waiters, ::std::collections::BTreeMap::new())
                 } else {
-                    for waiter in waiters {
+                    for (_id, waiter) in waiters {
                         waiter.unpark();
                     }
-                    Vec::new()
+                    ::std::collections::BTreeMap::new()
                 };
                 (done_val, waiters1)
             }
-            ForkedPromiseState::Done(Ok(ref v), ref mut waiters) => {
-                if let Some(t) = waiters.pop() {
-                    t.unpark();
+            ForkedPromiseState::Done(ref r, ref mut waiters) => {
+                if Some(self.id) == *poller {
+                    let mk = waiters.keys().next().map(|&k| k);
+                    if let Some(k) = mk {
+                        waiters.remove(&k).unwrap().unpark();
+                        *poller = Some(k);
+                    } else {
+                        *poller = None;
+                    }
+
+                    match *r {
+                        Ok(ref v) => return Ok(::futures::Async::Ready(v.clone())),
+                        Err(ref e) => return Err(e.clone()),
+                    }
+                } else {
+                    waiters.insert(self.id, ::futures::task::park());
+                    return Ok(::futures::Async::NotReady)
                 }
-                return Ok(::futures::Async::Ready(v.clone()))
-            }
-            ForkedPromiseState::Done(Err(ref e), ref mut waiters) => {
-                if let Some(t) = waiters.pop() {
-                    t.unpark();
-                }
-                return Err(e.clone())
             }
         };
 
-        if let Some(t) = waiters.pop() {
-            t.unpark();
+        let mk = waiters.keys().next().map(|&k| k);
+        if let Some(k) = mk {
+            waiters.remove(&k).unwrap().unpark();
+            *poller = Some(k);
+        } else {
+            *poller = None;
         }
 
         *state = ForkedPromiseState::Done(done_val.clone(), waiters);

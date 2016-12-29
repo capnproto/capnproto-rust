@@ -283,7 +283,7 @@ impl test_call_order::Server for TestCallOrder {
                          mut results: test_call_order::GetCallSequenceResults)
                          -> Promise<(), Error>
     {
-        println!("get_call_sequence(). expected = {}", _params.get().unwrap().get_expected());
+        println!("TestCallOrder::get_call_sequence(). expected = {}", _params.get().unwrap().get_expected());
         results.get().set_n(self.count);
         self.count += 1;
         Promise::ok(())
@@ -319,6 +319,7 @@ impl test_call_order::Server for TestMoreStuff {
                          mut results: test_call_order::GetCallSequenceResults)
                          -> Promise<(), Error>
     {
+        println!("TestMoreStuff::get_call_sequence(). expected = {}", _params.get().unwrap().get_expected());
         results.get().set_n(self.call_count);
         self.call_count += 1;
         Promise::ok(())
