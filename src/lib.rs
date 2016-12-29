@@ -329,11 +329,11 @@ impl <F> Clone for ForkedPromise<F> where F: Future {
 }
 
 impl <F> ForkedPromise<F> where F: Future {
-    fn new(f: F) -> ForkedPromise<F> {
+    fn new_internal(f: F, queued: bool) -> ForkedPromise<F> {
         ForkedPromise {
             id: (0, 0),
             inner: Rc::new(RefCell::new(ForkedPromiseInner {
-                queued: false,
+                queued: queued,
                 next_branch_id: 1,
                 next_clone_id: 1,
                 poller: None,
@@ -342,19 +342,12 @@ impl <F> ForkedPromise<F> where F: Future {
             }))
         }
     }
+    fn new(f: F) -> ForkedPromise<F> {
+        ForkedPromise::new_internal(f, false)
+    }
 
     fn new_queued(f: F) -> ForkedPromise<F> {
-        ForkedPromise {
-            id: (0, 0),
-            inner: Rc::new(RefCell::new(ForkedPromiseInner {
-                queued: true,
-                next_branch_id: 1,
-                next_clone_id: 1,
-                poller: None,
-                original_future: f,
-                state: ForkedPromiseState::Waiting(::std::collections::BTreeMap::new()),
-            }))
-        }
+        ForkedPromise::new_internal(f, true)
     }
 
     fn add_branch(&self) -> ForkedPromise<F> {
