@@ -1839,6 +1839,35 @@ struct PipelineState<VatId> where VatId: 'static {
     promise_clients_to_resolve: RefCell<Vec<(Rc<RefCell<PromiseClient<VatId>>>, Vec<PipelineOp>)>>,
 }
 
+impl <VatId> PipelineState<VatId> where VatId: 'static {
+    fn resolve(state: &Rc<RefCell<PipelineState<VatId>>>, response: Result<Response<VatId>, Error>) {
+        let to_resolve = {
+            let tmp = state.borrow();
+            let r = ::std::mem::replace(&mut *tmp.promise_clients_to_resolve.borrow_mut(), Vec::new());
+            r
+        };
+        for (c, ops) in to_resolve {
+            let resolved = match response.clone() {
+                Ok(v) => {
+                    match v.get() {
+                        Ok(x) => {
+                            x.get_pipelined_cap(&ops)
+                        }
+                        Err(e) => Err(e),
+                    }
+                }
+                Err(e) => Err(e),
+            };
+            c.borrow_mut().resolve(resolved);
+        }
+
+        let new_variant = match response {
+            Ok(r) =>  PipelineVariant::Resolved(r),
+            Err(e) => PipelineVariant::Broken(e),
+        };
+    }
+}
+
 struct Pipeline<VatId> where VatId: 'static {
     state: Rc<RefCell<PipelineState<VatId>>>,
 }
@@ -1865,32 +1894,7 @@ impl <VatId> Pipeline<VatId> {
                         Some(s) => s,
                         None => return Err(Error::failed("dangling reference to this".into())),
                     };
-
-                    let to_resolve = {
-                        let tmp = state.borrow();
-                        let r = ::std::mem::replace(&mut *tmp.promise_clients_to_resolve.borrow_mut(), Vec::new());
-                        r
-                    };
-                    for (c, ops) in to_resolve {
-                        let resolved = match response.clone() {
-                            Ok(v) => {
-                                match v.get() {
-                                    Ok(x) => {
-                                        x.get_pipelined_cap(&ops)
-                                    }
-                                    Err(e) => Err(e),
-                                }
-                            }
-                            Err(e) => Err(e),
-                        };
-                        c.borrow_mut().resolve(resolved);
-                    }
-
-                    let new_variant = match response {
-                        Ok(r) =>  PipelineVariant::Resolved(r),
-                        Err(e) => PipelineVariant::Broken(e),
-                    };
-                    let _old_variant = ::std::mem::replace(&mut state.borrow_mut().variant, new_variant);
+                    PipelineState::resolve(&state, response);
                     Ok(())
                 }));
 
