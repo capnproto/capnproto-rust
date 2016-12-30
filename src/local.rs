@@ -300,16 +300,16 @@ impl ClientHook for Client {
         let inner = self.inner.clone();
         let promise = ::futures::future::lazy(move || {
             let server = &mut inner.borrow_mut().server;
-            ::eagerly_evaluate(server.dispatch_call(interface_id, method_id,
+            server.dispatch_call(interface_id, method_id,
                                  ::capnp::capability::Params::new(params),
-                                 ::capnp::capability::Results::new(results)))
+                                 ::capnp::capability::Results::new(results))
         }).attach(self.add_ref());
 
         let forked = ForkedPromise::new(promise);
 
         let branch = forked.clone();
-        let pipeline_promise = results_done.and_then(move |results_done_hook| {
-            branch.map(move |()| {
+        let pipeline_promise = branch.and_then(move |()| {
+            results_done.map(move |results_done_hook| {
                 Box::new(Pipeline::new(results_done_hook)) as Box<PipelineHook>
             })
         });
