@@ -109,7 +109,7 @@ impl PipelineHook for Pipeline {
 
 type ClientHookPromiseFork = ForkedPromise<Promise<Box<ClientHook>, Error>>;
 
-struct ClientInner {
+pub struct ClientInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<ClientHook>>,
 
@@ -134,6 +134,19 @@ struct ClientInner {
     // resolves).  Luckily, we know that queued calls will involve, at the very least, an
     // eventLoop.evalLater.
     promise_for_client_resolution: ClientHookPromiseFork,
+}
+
+impl ClientInner {
+    pub fn resolve(state: &Rc<RefCell<ClientInner>>, result: Result<Box<ClientHook>, Error>) {
+        match result {
+            Ok(clienthook) => {
+                state.borrow_mut().redirect = Some(clienthook);
+            }
+            Err(e) => {
+                state.borrow_mut().redirect = Some(broken::new_cap(e));
+            }
+        }
+    }
 }
 
 pub struct Client {
@@ -161,14 +174,8 @@ impl Client {
                 Some(s) => s,
                 None => return Err(Error::failed("dangling reference to QueuedClient".into())),
             };
-            match result {
-                Ok(clienthook) => {
-                    state.borrow_mut().redirect = Some(clienthook);
-                }
-                Err(e) => {
-                    state.borrow_mut().redirect = Some(broken::new_cap(e));
-                }
-            }
+
+            ClientInner::resolve(&state, result);
             Ok(())
         }));
         inner.borrow_mut().self_resolution_op = self_resolution_op;
