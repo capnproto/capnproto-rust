@@ -1766,14 +1766,12 @@ impl <VatId> RequestHook for Request<VatId> {
                 let forked_promise2 = forked_promise1.clone();
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
-                let (tx, rx) = oneshot::channel::<()>();
-                let forked_promise1 = forked_promise1.then(|r| { tx.complete(()); r});
-                let forked_promise2 =
-                        rx.then(|_| ::WaitNTicks::new(10).map_err(|_| Error::failed("impossible".into())))
-                        .and_then(|()| forked_promise2);
-
                 let pipeline = Pipeline::new(connection_state, question_ref,
                                              Some(Promise::from_future(forked_promise1)));
+
+                let resolved = pipeline.when_resolved();
+
+                let forked_promise2 = resolved.then(|_| Ok(())).and_then(|()| forked_promise2);
 
                 let app_promise = Promise::from_future(forked_promise2.map(|response| {
                     ::capnp::capability::Response::new(Box::new(response))
@@ -1837,6 +1835,7 @@ struct PipelineState<VatId> where VatId: 'static {
 
     resolve_self_promise: Promise<(), Error>,
     promise_clients_to_resolve: RefCell<Vec<(Rc<RefCell<PromiseClient<VatId>>>, Vec<PipelineOp>)>>,
+    resolution_waiters: Vec<oneshot::Sender<()>>,
 }
 
 impl <VatId> PipelineState<VatId> where VatId: 'static {
@@ -1865,6 +1864,12 @@ impl <VatId> PipelineState<VatId> where VatId: 'static {
             Ok(r) =>  PipelineVariant::Resolved(r),
             Err(e) => PipelineVariant::Broken(e),
         };
+        let _old_variant = ::std::mem::replace(&mut state.borrow_mut().variant, new_variant);
+
+        let waiters = ::std::mem::replace(&mut state.borrow_mut().resolution_waiters, Vec::new());
+        for waiter in waiters {
+            waiter.complete(())
+        }
     }
 }
 
@@ -1884,6 +1889,7 @@ impl <VatId> Pipeline<VatId> {
             redirect_later: None,
             resolve_self_promise: Promise::from_future(::futures::future::empty()),
             promise_clients_to_resolve: RefCell::new(Vec::new()),
+            resolution_waiters: Vec::new(),
         }));
         match redirect_later {
             Some(redirect_later_promise) => {
@@ -1906,6 +1912,12 @@ impl <VatId> Pipeline<VatId> {
         Pipeline { state: state }
     }
 
+    fn when_resolved(&self) -> Promise<(), Error> {
+        let (tx, rx) = oneshot::channel::<()>();
+        self.state.borrow_mut().resolution_waiters.push(tx);
+        Promise::from_future(rx.map_err(|_| Error::failed("Pipeline never resolved.".into())))
+    }
+
     fn never_done(connection_state: Rc<ConnectionState<VatId>>,
                   question_ref: Rc<RefCell<QuestionRef<VatId>>>)
            -> Pipeline<VatId>
@@ -1916,6 +1928,7 @@ impl <VatId> Pipeline<VatId> {
             redirect_later: None,
             resolve_self_promise: Promise::from_future(::futures::future::empty()),
             promise_clients_to_resolve: RefCell::new(Vec::new()),
+            resolution_waiters: Vec::new(),
         }));
 
         Pipeline { state: state }
@@ -1938,7 +1951,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                     PipelineClient::new(&connection_state, question_ref.clone(), ops.clone());
 
                 match *redirect_later {
-                    Some(ref r) => {
+                    Some(ref _r) => {
                         let client: Client<VatId> = pipeline_client.into();
                         let promise_client = PromiseClient::new(
                             &connection_state,
