@@ -102,6 +102,7 @@ mod broken;
 mod local;
 mod queued;
 mod rpc;
+mod sender_queue;
 mod split;
 mod stack;
 mod task_set;
