@@ -510,14 +510,17 @@ impl <VatId> ConnectionState<VatId> {
         *self.exports.borrow_mut() = ExportTable::new();
 
         {
-// TODO?
-//            let ref mut import_slots = self.imports.borrow_mut().slots;
-//            for (_, ref mut import) in import_slots.iter_mut() {
-//
-//                if let Some(f) = import.promise_client_to_resolve.take() {
-//                    f.borrow_mut().resolve(Err(error.clone()));
-//                }
-//            }
+            let ref mut import_slots = self.imports.borrow_mut().slots;
+            for (_, ref mut import) in import_slots.iter_mut() {
+                if let Some(f) = import.promise_client_to_resolve.take() {
+                    match f.upgrade() {
+                        Some(promise_client) => {
+                            promise_client.borrow_mut().resolve(Err(error.clone()));
+                        }
+                        None => (),
+                    }
+                }
+            }
         }
 
         let len = self.embargoes.borrow().slots.len();
@@ -1766,7 +1769,7 @@ impl <VatId> RequestHook for Request<VatId> {
                 let (tx, rx) = oneshot::channel::<()>();
                 let forked_promise1 = forked_promise1.then(|r| { tx.complete(()); r});
                 let forked_promise2 =
-                        rx.then(|_| ::WaitNTicks::new(0).map_err(|_| Error::failed("impossible".into())))
+                        rx.then(|_| ::WaitNTicks::new(10).map_err(|_| Error::failed("impossible".into())))
                         .and_then(|()| forked_promise2);
 
                 let pipeline = Pipeline::new(connection_state, question_ref,
@@ -2851,6 +2854,7 @@ impl <VatId> ClientHook for Client<VatId> {
             }
             ClientVariant::Promise(ref promise_client) => {
                 unimplemented!()
+                // TODO
 //                Some(Promise::from_future(promise_client.borrow_mut().fork.clone()))
             }
             _ => {
