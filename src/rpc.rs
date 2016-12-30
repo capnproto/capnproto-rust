@@ -2542,7 +2542,13 @@ impl <VatId> PromiseClient<VatId> {
 
             let _ = message.send();
         }
-        self.cap = replacement;
+
+        let old_cap = ::std::mem::replace(&mut self.cap, replacement);
+        connection_state.add_task(::futures::future::lazy(move ||{
+            drop(old_cap);
+            Ok(())
+        }));
+
         self.is_resolved = true;
     }
 }
