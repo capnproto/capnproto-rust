@@ -194,32 +194,14 @@ impl ClientHook for Client {
             results_done: Promise<Box<ResultsDoneHook>, Error>)
         -> (Promise<(), Error>, Box<PipelineHook>)
     {
-        // The main reason this is complicated is that we don't want the call to get cancelled
-        // if the caller drops just the returned promise but not the pipeline.
-        struct CallResultHolder {
-            promise: Option<Promise<(), Error>>,
-            pipeline: Option<Box<PipelineHook>>,
-        }
 
-        let call_result_promise =
-            ForkedPromise::new(Box::new(self.inner.borrow_mut().promise_for_call_forwarding.clone().and_then(move |client| {
-                let (promise, pipeline) = client.call(interface_id, method_id, params, results, results_done);
-                Ok(Rc::new(RefCell::new(CallResultHolder {
-                    promise: Some(promise),
-                    pipeline: Some(pipeline),
-                })))
-            })));
-
-        let pipeline_promise = call_result_promise.clone().and_then(|call_result| {
-            Ok(call_result.borrow_mut().pipeline.take().expect("pipeline gone?"))
+        let promise_for_pair = self.inner.borrow_mut().promise_for_call_forwarding.clone().map(move |client| {
+            client.call(interface_id, method_id, params, results, results_done)
         });
+
+        let (promise_promise, pipeline_promise) = ::split::split(promise_for_pair);
         let pipeline = Pipeline::new(Promise::from_future(pipeline_promise));
-
-        let completion_promise = call_result_promise.and_then(|call_result| {
-            call_result.borrow_mut().promise.take().expect("promise gone?")
-        });
-
-        (Promise::from_future(completion_promise), Box::new(pipeline))
+        (Promise::from_future(promise_promise.flatten()), Box::new(pipeline))
     }
 
     fn get_ptr(&self) -> usize {
