@@ -623,8 +623,10 @@ fn embargo_success() {
         let call0 = get_call_sequence(&pipeline, 0);
         let call1 = get_call_sequence(&pipeline, 1);
 
+        println!("before early_call");
         try!(core.run(early_call.promise));
 
+        println!("before call2");
         let call2 = get_call_sequence(&pipeline, 2);
 
         let _resolved = try!(core.run(echo.promise));

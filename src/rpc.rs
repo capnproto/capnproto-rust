@@ -326,7 +326,8 @@ pub struct Import<VatId> where VatId: 'static {
     app_client: Option<WeakClient<VatId>>,
 
     // If non-null, the import is a promise.
-    promise_fulfiller: Option<oneshot::Sender<Result<Box<ClientHook>, Error>>>,
+    promise_client_to_resolve: Option<Weak<RefCell<PromiseClient<VatId>>>>,
+//    promise_fulfiller: Option<oneshot::Sender<Result<Box<ClientHook>, Error>>>,
 }
 
 impl <VatId> Import<VatId> {
@@ -334,7 +335,7 @@ impl <VatId> Import<VatId> {
         Import {
             import_client: None,
             app_client: None,
-            promise_fulfiller: None,
+            promise_client_to_resolve: None,
         }
     }
 }
@@ -509,12 +510,14 @@ impl <VatId> ConnectionState<VatId> {
         *self.exports.borrow_mut() = ExportTable::new();
 
         {
-            let ref mut import_slots = self.imports.borrow_mut().slots;
-            for (_, ref mut import) in import_slots.iter_mut() {
-                if let Some(f) = import.promise_fulfiller.take() {
-                    f.complete(Err(error.clone()));
-                }
-            }
+// TODO?
+//            let ref mut import_slots = self.imports.borrow_mut().slots;
+//            for (_, ref mut import) in import_slots.iter_mut() {
+//
+//                if let Some(f) = import.promise_client_to_resolve.take() {
+//                    f.borrow_mut().resolve(Err(error.clone()));
+//                }
+//            }
         }
 
         let len = self.embargoes.borrow().slots.len();
@@ -911,9 +914,16 @@ impl <VatId> ConnectionState<VatId> {
                     // If the import is in the table, fulfill it.
                     let ref mut slots = connection_state.imports.borrow_mut().slots;
                     if let Some(ref mut import) = slots.get_mut(&resolve.get_promise_id()) {
-                        match import.promise_fulfiller.take() {
-                            Some(fulfiller) => {
-                                fulfiller.complete(replacement_or_error);
+                        match import.promise_client_to_resolve.take() {
+                            Some(weak_promise_client) => {
+                                match weak_promise_client.upgrade() {
+                                    Some(promise_client) => {
+                                        promise_client.borrow_mut().resolve(replacement_or_error);
+                                    }
+                                    None => {
+                                        // ?
+                                    }
+                                }
                             }
                             None => {
                                 return Err(Error::failed(
@@ -1469,17 +1479,18 @@ impl <VatId> ConnectionState<VatId> {
                         }
                         None => {
                             // Create a promise for this import's resolution.
-                            let (fulfiller, promise) = oneshot::channel::<Result<Box<ClientHook>, Error>>();
-                            let promise = promise.map_err(|e| e.into()).and_then(|x| x);
-                            import.promise_fulfiller = Some(fulfiller);
+
                             let client: Box<Client<VatId>> = Box::new(import_client.into());
                             let client: Box<ClientHook> = client;
+
+                            // XXX do I need something like this?
                             // Make sure the import is not destroyed while this promise exists.
-                            let promise = promise.attach(client.add_ref());
+//                            let promise = promise.attach(client.add_ref());
 
                             let client = PromiseClient::new(&connection_state, client,
-                                                            Promise::from_future(promise),
                                                             Some(import_id));
+
+                            import.promise_client_to_resolve = Some(Rc::downgrade(&client));
                             let client: Box<Client<VatId>> = Box::new(client.into());
                             import.app_client = Some(client.downgrade());
                             client
@@ -1755,7 +1766,7 @@ impl <VatId> RequestHook for Request<VatId> {
                 let (tx, rx) = oneshot::channel::<()>();
                 let forked_promise1 = forked_promise1.then(|r| { tx.complete(()); r});
                 let forked_promise2 =
-                        rx.then(|_| ::WaitNTicks::new(20).map_err(|_| Error::failed("impossible".into())))
+                        rx.then(|_| ::WaitNTicks::new(0).map_err(|_| Error::failed("impossible".into())))
                         .and_then(|()| forked_promise2);
 
                 let pipeline = Pipeline::new(connection_state, question_ref,
@@ -1822,6 +1833,7 @@ struct PipelineState<VatId> where VatId: 'static {
     connection_state: Rc<ConnectionState<VatId>>,
 
     resolve_self_promise: Promise<(), Error>,
+    promise_clients_to_resolve: RefCell<Vec<(Rc<RefCell<PromiseClient<VatId>>>, Vec<PipelineOp>)>>,
 }
 
 struct Pipeline<VatId> where VatId: 'static {
@@ -1839,17 +1851,38 @@ impl <VatId> Pipeline<VatId> {
             connection_state: connection_state.clone(),
             redirect_later: None,
             resolve_self_promise: Promise::from_future(::futures::future::empty()),
+            promise_clients_to_resolve: RefCell::new(Vec::new()),
         }));
         match redirect_later {
             Some(redirect_later_promise) => {
                 let fork = ForkedPromise::new_queued(redirect_later_promise);
-
                 let this = Rc::downgrade(&state);
                 let resolve_self_promise = connection_state.eagerly_evaluate(fork.clone().then(move |response| {
                     let state = match this.upgrade() {
                         Some(s) => s,
                         None => return Err(Error::failed("dangling reference to this".into())),
                     };
+
+                    let to_resolve = {
+                        let tmp = state.borrow();
+                        let r = ::std::mem::replace(&mut *tmp.promise_clients_to_resolve.borrow_mut(), Vec::new());
+                        r
+                    };
+                    for (c, ops) in to_resolve {
+                        let resolved = match response.clone() {
+                            Ok(v) => {
+                                match v.get() {
+                                    Ok(x) => {
+                                        x.get_pipelined_cap(&ops)
+                                    }
+                                    Err(e) => Err(e),
+                                }
+                            }
+                            Err(e) => Err(e),
+                        };
+                        c.borrow_mut().resolve(resolved);
+                    }
+
                     let new_variant = match response {
                         Ok(r) =>  PipelineVariant::Resolved(r),
                         Err(e) => PipelineVariant::Broken(e),
@@ -1875,6 +1908,7 @@ impl <VatId> Pipeline<VatId> {
             connection_state: connection_state,
             redirect_later: None,
             resolve_self_promise: Promise::from_future(::futures::future::empty()),
+            promise_clients_to_resolve: RefCell::new(Vec::new()),
         }));
 
         Pipeline { state: state }
@@ -1891,21 +1925,19 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
     fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
         match *self.state.borrow() {
             PipelineState {variant: PipelineVariant::Waiting(ref question_ref),
-                            ref connection_state, ref redirect_later, ..} => {
+                            ref connection_state, ref redirect_later, ref promise_clients_to_resolve, ..} => {
                 // Wrap a PipelineClient in a PromiseClient.
                 let pipeline_client =
                     PipelineClient::new(&connection_state, question_ref.clone(), ops.clone());
 
                 match *redirect_later {
                     Some(ref r) => {
-                        let resolution_promise = Promise::from_future(r.borrow_mut().clone().and_then(move |response| {
-                           try!(response.get()).get_pipelined_cap(&ops)
-                        }));
-
                         let client: Client<VatId> = pipeline_client.into();
-                        let promise_client = PromiseClient::new(&connection_state,
-                                                                Box::new(client),
-                                                                resolution_promise, None);
+                        let promise_client = PromiseClient::new(
+                            &connection_state,
+                            Box::new(client),
+                            None);
+                        promise_clients_to_resolve.borrow_mut().push((promise_client.clone(), ops));
                         let result: Client<VatId> = promise_client.into();
                         Box::new(result)
                     }
@@ -2350,6 +2382,7 @@ struct ImportClient<VatId> where VatId: 'static {
 impl <VatId> Drop for ImportClient<VatId> {
     fn drop(&mut self) {
         let connection_state = self.connection_state.clone();
+
         connection_state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
 
         // Remove self from the import table, if the table is still pointing at us.
@@ -2361,6 +2394,7 @@ impl <VatId> Drop for ImportClient<VatId> {
                 }
             }
         }
+
         if remove {
             connection_state.imports.borrow_mut().slots.remove(&self.import_id);
         }
@@ -2445,53 +2479,32 @@ struct PromiseClient<VatId> where VatId: 'static {
     is_resolved: bool,
     cap: Box<ClientHook>,
     import_id: Option<ImportId>,
-    fork: ForkedPromise<Promise<Box<ClientHook>, ::capnp::Error>>,
-    resolve_self_promise: Promise<(), Error>,
     received_call: bool,
 }
 
 impl <VatId> PromiseClient<VatId> {
     fn new(connection_state: &Rc<ConnectionState<VatId>>,
            initial: Box<ClientHook>,
-           eventual: Promise<Box<ClientHook>, ::capnp::Error>,
            import_id: Option<ImportId>) -> Rc<RefCell<PromiseClient<VatId>>> {
         let client = Rc::new(RefCell::new(PromiseClient {
             connection_state: connection_state.clone(),
             is_resolved: false,
             cap: initial,
             import_id: import_id,
-            fork: ForkedPromise::new(eventual),
-            resolve_self_promise: Promise::ok(()),
             received_call: false,
         }));
-        let resolved = client.borrow_mut().fork.clone();
-        let weak_this = Rc::downgrade(&client);
-        let resolved1 = connection_state.eagerly_evaluate(resolved.then(move |result| {
-            let this = match weak_this.upgrade() {
-                Some(s) => s,
-                None => return Err(Error::failed("PromiseClient dangling self reference".into())),
-            };
-            match result {
-                Ok(v) => {
-                    this.borrow_mut().resolve(v, false);
-                    Ok(())
-                }
-                Err(e) => {
-                    this.borrow_mut().resolve(broken::new_cap(e), true);
-                    Err(Error::failed("promise client failed to resolve".into()))
-                }
-            }
-        }));
-
-        client.borrow_mut().resolve_self_promise = resolved1;
         client
     }
 
-    fn resolve(&mut self, mut replacement: Box<ClientHook>, is_error: bool) {
+    fn resolve(&mut self, replacement: Result<Box<ClientHook>, Error>) {
+        let (mut replacement, is_error) = match replacement {
+            Ok(v) => (v, false),
+            Err(e) => (broken::new_cap(e), true),
+        };
         let connection_state = self.connection_state.clone();
         let is_connected = connection_state.connection.borrow().is_ok();
         let replacement_brand = replacement.get_brand();
-        if  replacement_brand != connection_state.get_brand() &&
+        if replacement_brand != connection_state.get_brand() &&
             self.received_call && !is_error && is_connected
         {
             // The new capability is hosted locally, not on the remote machine.  And, we had made calls
@@ -2831,7 +2844,8 @@ impl <VatId> ClientHook for Client<VatId> {
                 None
             }
             ClientVariant::Promise(ref promise_client) => {
-                Some(Promise::from_future(promise_client.borrow_mut().fork.clone()))
+                unimplemented!()
+//                Some(Promise::from_future(promise_client.borrow_mut().fork.clone()))
             }
             _ => {
                 unimplemented!()
