@@ -30,7 +30,7 @@ use futures::Future;
 use std::cell::RefCell;
 use std::rc::{Rc};
 
-use {broken, local, ForkedPromise};
+use {broken, local, Attach, ForkedPromise};
 use sender_queue::SenderQueue;
 
 struct PipelineInner {
@@ -126,7 +126,6 @@ pub struct ClientInner {
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
     // previously-queued calls are delivered before any new calls made in response to the resolution.
-    promise_for_call_forwarding: ClientHookPromiseFork,
     call_forwarding_queue: SenderQueue<(u64, u16, Box<ParamsHook>, Box<ResultsHook>,
                                         Promise<Box<ResultsDoneHook>, Error>),
                                        (Promise<(), Error>, Box<PipelineHook>)>,
@@ -171,12 +170,10 @@ impl Client {
     {
         let promise = ForkedPromise::new_queued(promise_param);
         let branch1 = promise.add_branch();
-        let branch2 = promise.add_branch();
         let inner = Rc::new(RefCell::new(ClientInner {
             redirect: None,
             _promise: promise,
             self_resolution_op: Promise::from_future(::futures::future::empty()),
-            promise_for_call_forwarding: branch2,
             call_forwarding_queue: SenderQueue::new(),
             client_resolution_queue: SenderQueue::new(),
         }));
@@ -217,12 +214,10 @@ impl ClientHook for Client {
            return client.call(interface_id, method_id, params, results, results_done)
         }
 
-        let promise_for_pair = self.inner.borrow_mut().promise_for_call_forwarding.clone().map(move |client| {
-            client.call(interface_id, method_id, params, results, results_done)
-        });
+        let inner_clone = self.inner.clone();
 
-//        let promise_for_pair = self.inner.borrow_mut().call_forwarding_queue.push(
-//            (interface_id, method_id, params, results, results_done));
+        let promise_for_pair = self.inner.borrow_mut().call_forwarding_queue.push(
+            (interface_id, method_id, params, results, results_done)).attach(inner_clone);
 
         let (promise_promise, pipeline_promise) = ::split::split(promise_for_pair);
         let pipeline = Pipeline::new(Promise::from_future(pipeline_promise));
