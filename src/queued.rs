@@ -173,7 +173,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(promise_param: Promise<Box<ClientHook>, Error>) -> Client
+    pub fn new(promise: Promise<Box<ClientHook>, Error>) -> Client
     {
         let inner = Rc::new(RefCell::new(ClientInner {
             promise: promise,
