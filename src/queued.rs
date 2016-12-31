@@ -30,12 +30,10 @@ use futures::Future;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use {broken, local, Attach, ForkedPromise};
+use {broken, local, Attach};
 use sender_queue::SenderQueue;
 
 struct PipelineInner {
-    promise: ForkedPromise<Promise<Box<PipelineHook>, Error>>,
-
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<PipelineHook>>,
 
@@ -51,16 +49,13 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(promise_param: Promise<Box<PipelineHook>, Error>) -> Pipeline {
-        let promise = ForkedPromise::new_queued(promise_param);
-        let branch = promise.add_branch();
         let inner = Rc::new(RefCell::new(PipelineInner {
-            promise: promise,
             redirect: None,
             self_resolution_op: Promise::ok(()),
             clients_to_resolve: SenderQueue::new(),
         }));
         let this = Rc::downgrade(&inner);
-        let self_res = ::eagerly_evaluate(branch.then(move |result| {
+        let self_res = ::eagerly_evaluate(promise_param.then(move |result| {
 
             let this = match this.upgrade(){
                 Some(v) => v,
@@ -118,8 +113,6 @@ impl PipelineHook for Pipeline {
         Box::new(queued_client)
     }
 }
-
-type ClientHookPromiseFork = ForkedPromise<Promise<Box<ClientHook>, Error>>;
 
 pub struct ClientInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.

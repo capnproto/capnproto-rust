@@ -1780,7 +1780,7 @@ impl <VatId> RequestHook for Request<VatId> {
             None => {
                 let (question_ref, promise) =
                     Request::send_internal(connection_state.clone(), message, cap_table, false);
-                let forked_promise1 = ForkedPromise::new_queued(promise);
+                let forked_promise1 = ForkedPromise::new(promise);
                 let forked_promise2 = forked_promise1.clone();
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.

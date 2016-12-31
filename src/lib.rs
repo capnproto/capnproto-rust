@@ -377,16 +377,6 @@ impl <F> ForkedPromise<F> where F: Future {
     fn new_queued(f: F) -> ForkedPromise<F> {
         ForkedPromise::new_internal(f, true)
     }
-
-    fn add_branch(&self) -> ForkedPromise<F> {
-        let branch_id = self.inner.borrow().next_branch_id;
-        let clone_id = 0;
-        self.inner.borrow_mut().next_branch_id = branch_id + 1;
-        ForkedPromise {
-            id: (branch_id, clone_id),
-            inner: self.inner.clone(),
-        }
-    }
 }
 
 impl<F> Drop for ForkedPromise<F> where F: Future {

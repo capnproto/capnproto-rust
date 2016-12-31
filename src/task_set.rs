@@ -188,7 +188,7 @@ impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
             self.inner.stack.push(added_idx);
         }
 
-        let drain = self.inner.stack.drain();
+        let mut drain = self.inner.stack.drain();
         for idx in drain {
             match self.inner.futures.borrow_mut()[idx] {
                 Slot::Next(_) => continue,
