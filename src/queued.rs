@@ -31,6 +31,7 @@ use std::cell::RefCell;
 use std::rc::{Rc};
 
 use {broken, local, ForkedPromise};
+use sender_queue::SenderQueue;
 
 struct PipelineInner {
     promise: ForkedPromise<Promise<Box<PipelineHook>, Error>>,
@@ -126,6 +127,10 @@ pub struct ClientInner {
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
     // previously-queued calls are delivered before any new calls made in response to the resolution.
     promise_for_call_forwarding: ClientHookPromiseFork,
+    call_forwarding_queue: SenderQueue<(u64, u16, Box<ParamsHook>, Box<ResultsHook>,
+                                        Promise<Box<ResultsDoneHook>, Error>),
+                                       (Promise<(), Error>, Box<PipelineHook>)>,
+
 
     // whenMoreResolved() returns forks of this promise.  These must resolve *after* queued calls
     // have been initiated (so that any calls made in the whenMoreResolved() handler are correctly
@@ -133,18 +138,19 @@ pub struct ClientInner {
     // confuse the application if a queued call returns before the capability on which it was made
     // resolves).  Luckily, we know that queued calls will involve, at the very least, an
     // eventLoop.evalLater.
-    promise_for_client_resolution: ClientHookPromiseFork,
+    client_resolution_queue: SenderQueue<(), Box<ClientHook>>,
 }
 
 impl ClientInner {
     pub fn resolve(state: &Rc<RefCell<ClientInner>>, result: Result<Box<ClientHook>, Error>) {
-        match result {
-            Ok(clienthook) => {
-                state.borrow_mut().redirect = Some(clienthook);
-            }
-            Err(e) => {
-                state.borrow_mut().redirect = Some(broken::new_cap(e));
-            }
+        let client = match result {
+            Ok(clienthook) => clienthook,
+            Err(e) => broken::new_cap(e),
+        };
+        state.borrow_mut().redirect = Some(client.add_ref());
+
+        for ((), waiter) in state.borrow_mut().client_resolution_queue.drain() {
+            waiter.complete(client.add_ref());
         }
     }
 }
@@ -166,7 +172,8 @@ impl Client {
             _promise: promise,
             self_resolution_op: Promise::from_future(::futures::future::empty()),
             promise_for_call_forwarding: branch2,
-            promise_for_client_resolution: branch3,
+            call_forwarding_queue: SenderQueue::new(),
+            client_resolution_queue: SenderQueue::new(),
         }));
         let this = Rc::downgrade(&inner);
         let self_resolution_op = ::eagerly_evaluate(branch1.then(move |result| {
@@ -227,6 +234,6 @@ impl ClientHook for Client {
     }
 
     fn when_more_resolved(&self) -> Option<Promise<Box<ClientHook>, Error>> {
-        Some(Promise::from_future(self.inner.borrow_mut().promise_for_client_resolution.clone()))
+        Some(self.inner.borrow_mut().client_resolution_queue.push(()))
     }
 }
