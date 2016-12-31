@@ -298,20 +298,20 @@ impl ClientHook for Client {
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
         let inner = self.inner.clone();
-
+/*
         let promise = {
             let server = &mut inner.borrow_mut().server;
             server.dispatch_call(interface_id, method_id,
                                  ::capnp::capability::Params::new(params),
                                  ::capnp::capability::Results::new(results))
         };
-
-/*        let promise = ::futures::future::lazy(move || {
+*/
+        let promise = ::futures::future::lazy(move || {
             let server = &mut inner.borrow_mut().server;
             server.dispatch_call(interface_id, method_id,
                                  ::capnp::capability::Params::new(params),
                                  ::capnp::capability::Results::new(results))
-        }).attach(self.add_ref()); */
+        }).attach(self.add_ref());
 
         let forked = ForkedPromise::new(promise);
 

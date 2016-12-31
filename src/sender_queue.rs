@@ -94,7 +94,6 @@ impl <In, Out> SenderQueue<In, Out> where In: 'static, Out: 'static {
     }
 
     pub fn push_detach(&mut self, value: In) {
-        let weak_inner = Rc::downgrade(&self.inner);
         let Inner { ref mut next_id, ref mut map, .. } = *self.inner.borrow_mut();
         let (tx, _rx) = oneshot::channel();
         map.insert(*next_id, (value, tx));

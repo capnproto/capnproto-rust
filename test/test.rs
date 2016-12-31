@@ -737,11 +737,6 @@ fn echo_destruction() {
 
 #[test]
 fn local_client_call_not_immediate () {
-    // XXX shouldn't need tokio_core here
-    let core = reactor::Core::new().unwrap();
-    let handle = core.handle();
-    ::capnp_rpc::register_handle(handle);
-
     let server = ::impls::TestInterface::new();
     let call_count = server.get_call_count();
     assert_eq!(call_count.get(), 0);

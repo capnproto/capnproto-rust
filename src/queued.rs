@@ -38,7 +38,7 @@ pub struct PipelineInner {
     redirect: Option<Box<PipelineHook>>,
 
     // Represents the operation which will set `redirect` when possible.
-    self_resolution_op: Promise<(), Error>,
+    self_resolution_op: ForkedPromise<Promise<(), Error>>,
 
     clients_to_resolve: SenderQueue<(Weak<RefCell<ClientInner>>, Vec<PipelineOp>), ()>,
 }
@@ -70,19 +70,19 @@ impl Pipeline {
     pub fn new(promise_param: Promise<Box<PipelineHook>, Error>) -> Pipeline {
         let inner = Rc::new(RefCell::new(PipelineInner {
             redirect: None,
-            self_resolution_op: Promise::ok(()),
+            self_resolution_op: ForkedPromise::new(Promise::ok(())),
             clients_to_resolve: SenderQueue::new(),
         }));
 
         let this = Rc::downgrade(&inner);
-        let self_res = ::eagerly_evaluate(promise_param.then(move |result| {
+        let self_res = ForkedPromise::new(Promise::from_future(promise_param.then(move |result| {
             let this = match this.upgrade() {
                 Some(v) => v,
                 None => return Err(Error::failed("dangling self reference in queued::Pipeline".into())),
             };
             PipelineInner::resolve(&this, result);
             Ok(())
-        }));
+        })));
         inner.borrow_mut().self_resolution_op = self_res;
         Pipeline { inner: inner }
     }
@@ -146,13 +146,11 @@ pub struct ClientInner {
 impl ClientInner {
     pub fn resolve(state: &Rc<RefCell<ClientInner>>, result: Result<Box<ClientHook>, Error>) {
         assert!(!state.borrow().resolved);
-
         let client = match result {
             Ok(clienthook) => clienthook,
             Err(e) => broken::new_cap(e),
         };
         state.borrow_mut().redirect = Some(client.add_ref());
-
         for (args, waiter) in state.borrow_mut().call_forwarding_queue.drain() {
             let (interface_id, method_id, params, results, results_done) = args;
             let result_pair = client.call(interface_id, method_id, params, results, results_done);
@@ -162,7 +160,6 @@ impl ClientInner {
         for ((), waiter) in state.borrow_mut().client_resolution_queue.drain() {
             waiter.complete(client.add_ref());
         }
-
         state.borrow_mut().pipeline_inner.take();
         state.borrow_mut().resolved = true;
     }
@@ -210,8 +207,14 @@ impl ClientHook for Client {
 
         let inner_clone = self.inner.clone();
 
-        let promise_for_pair = self.inner.borrow_mut().call_forwarding_queue.push(
-            (interface_id, method_id, params, results, results_done)).attach(inner_clone);
+        let mut promise_for_pair = Promise::from_future(self.inner.borrow_mut().call_forwarding_queue.push(
+            (interface_id, method_id, params, results, results_done)).attach(inner_clone));
+
+
+        if let Some(ref pipeline_inner) = self.inner.borrow().pipeline_inner {
+            promise_for_pair = Promise::from_future(
+                pipeline_inner.borrow().self_resolution_op.clone().join(promise_for_pair).map(|v| v.1));
+        }
 
         let (promise_promise, pipeline_promise) = ::split::split(promise_for_pair);
         let pipeline = Pipeline::new(Promise::from_future(pipeline_promise));

@@ -70,7 +70,7 @@ use futures::sync::oneshot;
 use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ServerHook};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 use task_set::TaskSet;
@@ -177,7 +177,6 @@ impl <VatId> RpcSystem <VatId> {
         bootstrap: Option<::capnp::capability::Client>,
         spawner: tokio_core::reactor::Handle) -> RpcSystem<VatId>
     {
-        register_handle(spawner.clone());
         let bootstrap_cap = match bootstrap {
             Some(cap) => cap.hook,
             None => broken::new_cap(Error::failed("no bootstrap capabiity".to_string())),
@@ -326,10 +325,10 @@ pub fn new_promise_client<T>() -> (PromiseClientSender, T)
 }
 
 struct ForkedPromiseInner<F> where F: Future {
-    next_clone_id: u64,
-    poller: Option<u64>,
-    original_future: F,
-    state: ForkedPromiseState<F::Item, F::Error>,
+    next_clone_id: Cell<u64>,
+    poller: Cell<Option<u64>>,
+    original_future: RefCell<F>,
+    state: RefCell<ForkedPromiseState<F::Item, F::Error>>,
 }
 
 enum ForkedPromiseState<T, E> {
@@ -339,13 +338,13 @@ enum ForkedPromiseState<T, E> {
 
 struct ForkedPromise<F> where F: Future {
     id: u64,
-    inner: Rc<RefCell<ForkedPromiseInner<F>>>,
+    inner: Rc<ForkedPromiseInner<F>>,
 }
 
 impl <F> Clone for ForkedPromise<F> where F: Future {
     fn clone(&self) -> ForkedPromise<F> {
-        let clone_id = self.inner.borrow().next_clone_id;
-        self.inner.borrow_mut().next_clone_id = clone_id + 1;
+        let clone_id = self.inner.next_clone_id.get();
+        self.inner.next_clone_id.set(clone_id + 1);
         ForkedPromise {
             id: clone_id,
             inner: self.inner.clone(),
@@ -357,12 +356,12 @@ impl <F> ForkedPromise<F> where F: Future {
     fn new_internal(f: F, _queued: bool) -> ForkedPromise<F> {
         ForkedPromise {
             id: 0,
-            inner: Rc::new(RefCell::new(ForkedPromiseInner {
-                next_clone_id: 1,
-                poller: None,
-                original_future: f,
-                state: ForkedPromiseState::Waiting(::std::collections::BTreeMap::new()),
-            }))
+            inner: Rc::new(ForkedPromiseInner {
+                next_clone_id: Cell::new(1),
+                poller: Cell::new(None),
+                original_future: RefCell::new(f),
+                state: RefCell::new(ForkedPromiseState::Waiting(::std::collections::BTreeMap::new())),
+            })
         }
     }
     fn new(f: F) -> ForkedPromise<F> {
@@ -376,16 +375,15 @@ impl <F> ForkedPromise<F> where F: Future {
 
 impl<F> Drop for ForkedPromise<F> where F: Future {
     fn drop(&mut self) {
-        let ForkedPromiseInner { ref mut state, ref mut poller, .. } = *self.inner.borrow_mut();
-        match *state {
+        match *self.inner.state.borrow_mut() {
             ForkedPromiseState::Waiting(ref mut waiters) => {
-                match *poller {
+                match self.inner.poller.get() {
                     Some(id) => {
                         if id == self.id {
                             for (_id, waiter) in waiters {
                                 waiter.unpark();
                             }
-                            poller.take();
+                            self.inner.poller.set(None);
                         } else {
                             waiters.remove(&self.id);
                         }
@@ -405,36 +403,16 @@ impl <F> Future for ForkedPromise<F>
     type Error = F::Error;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        let ForkedPromiseInner { ref mut original_future, ref mut state, ref mut poller, .. } =
-            *self.inner.borrow_mut();
-
-        let done_val = match *state {
+        match *self.inner.state.borrow_mut() {
             ForkedPromiseState::Waiting(ref mut waiters) => {
-                match *poller {
+                match self.inner.poller.get() {
                     Some(id) if self.id == id => (),
-                    None => *poller = Some(self.id),
+                    None => self.inner.poller.set(Some(self.id)),
                     _ => {
                         waiters.insert(self.id, ::futures::task::park());
                         return Ok(::futures::Async::NotReady)
                     }
                 }
-                let done_val = match original_future.poll() {
-                    Ok(::futures::Async::NotReady) => {
-                        return Ok(::futures::Async::NotReady)
-                    }
-                    Ok(::futures::Async::Ready(v)) => {
-                        Ok(v)
-                    }
-                    Err(e) => {
-                        Err(e)
-                    }
-                };
-
-                for (_id, waiter) in waiters {
-                    waiter.unpark();
-                }
-
-                done_val
             }
             ForkedPromiseState::Done(ref r) => {
                 match *r {
@@ -444,7 +422,27 @@ impl <F> Future for ForkedPromise<F>
             }
         };
 
-        *state = ForkedPromiseState::Done(done_val.clone());
+        let done_val = match self.inner.original_future.borrow_mut().poll() {
+            Ok(::futures::Async::NotReady) => {
+                return Ok(::futures::Async::NotReady)
+            }
+            Ok(::futures::Async::Ready(v)) => {
+                Ok(v)
+            }
+            Err(e) => {
+                Err(e)
+            }
+        };
+
+        match ::std::mem::replace(&mut *self.inner.state.borrow_mut(),
+                                  ForkedPromiseState::Done(done_val.clone())) {
+            ForkedPromiseState::Waiting(ref mut waiters) => {
+                for (_id, waiter) in waiters {
+                    waiter.unpark();
+                }
+            }
+            _ => unreachable!(),
+        }
         match done_val {
             Ok(v) => Ok(::futures::Async::Ready(v)),
             Err(e) => Err(e),
@@ -491,42 +489,3 @@ trait Attach: Future {
 }
 
 impl <F> Attach for F where F: Future {}
-
-// ====
-
-thread_local!(pub static CORE_HANDLE: RefCell<Option<::tokio_core::reactor::Handle>> = RefCell::new(None));
-
-// This ought to not be necessary...
-pub fn register_handle(handle: ::tokio_core::reactor::Handle) {
-    CORE_HANDLE.with(|cell| {
-        *cell.borrow_mut() = Some(handle);
-    });
-}
-
-fn add_task<F>(task: F) where F: Future + 'static {
-    CORE_HANDLE.with(|cell| {
-        match *cell.borrow_mut() {
-            Some(ref mut handle) => {
-                handle.spawn(
-                    task.map(|_| ()).map_err(|_| ()));
-            }
-            None => {
-                panic!("no registered handle");
-            }
-        }
-    });
-}
-
-
-fn eagerly_evaluate<T, F>(task: F) -> Promise<T, Error>
-    where F: Future<Item=T, Error=Error> + 'static,
-          T: 'static
-{
-    let (tx, rx) = oneshot::channel();
-    let (tx2, rx2) = oneshot::channel::<()>();
-    add_task(
-        task.then(move |r| {tx.complete(r); Ok::<(),()>(())}).select(rx2.then(|_| Ok(())))
-            .map(|_| ()).map_err(|e| e.0));
-    Promise::from_future(rx.map_err(|e| e.into()).and_then(|v| v).then(|v| { tx2.complete(()); v}))
-}
-
