@@ -213,24 +213,20 @@ impl ClientHook for Client {
             results_done: Promise<Box<ResultsDoneHook>, Error>)
         -> (Promise<(), Error>, Box<PipelineHook>)
     {
+        if let Some(ref client) = self.inner.borrow().redirect {
+           return client.call(interface_id, method_id, params, results, results_done)
+        }
 
+        let promise_for_pair = self.inner.borrow_mut().promise_for_call_forwarding.clone().map(move |client| {
+            client.call(interface_id, method_id, params, results, results_done)
+        });
 
-//        if let Some(ref client) = self.inner.borrow().redirect {
-//           client.call(interface_id, method_id, params, results, results_done)
-//        } else {
+//        let promise_for_pair = self.inner.borrow_mut().call_forwarding_queue.push(
+//            (interface_id, method_id, params, results, results_done));
 
-            let promise_for_pair = self.inner.borrow_mut().promise_for_call_forwarding.clone().map(move |client| {
-                client.call(interface_id, method_id, params, results, results_done)
-            });
-
-
-//            let promise_for_pair = self.inner.borrow_mut().call_forwarding_queue.push(
-//                (interface_id, method_id, params, results, results_done));
-
-            let (promise_promise, pipeline_promise) = ::split::split(promise_for_pair);
-            let pipeline = Pipeline::new(Promise::from_future(pipeline_promise));
-            (Promise::from_future(promise_promise.flatten()), Box::new(pipeline))
-//        }
+        let (promise_promise, pipeline_promise) = ::split::split(promise_for_pair);
+        let pipeline = Pipeline::new(Promise::from_future(pipeline_promise));
+        (Promise::from_future(promise_promise.flatten()), Box::new(pipeline))
     }
 
     fn get_ptr(&self) -> usize {
@@ -249,7 +245,10 @@ impl ClientHook for Client {
     }
 
     fn when_more_resolved(&self) -> Option<Promise<Box<ClientHook>, Error>> {
-        // XXX TODO what if already resolved?
+        if let Some(ref client) = self.inner.borrow().redirect {
+            return Some(Promise::ok(client.add_ref()));
+        }
+
         Some(self.inner.borrow_mut().client_resolution_queue.push(()))
     }
 }
