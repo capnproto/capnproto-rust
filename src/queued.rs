@@ -122,7 +122,9 @@ pub struct ClientInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<ClientHook>>,
 
-    _pipeline_inner: Option<Rc<RefCell<PipelineInner>>>,
+    pipeline_inner: Option<Rc<RefCell<PipelineInner>>>,
+
+    resolved: bool,
 
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
@@ -143,6 +145,8 @@ pub struct ClientInner {
 
 impl ClientInner {
     pub fn resolve(state: &Rc<RefCell<ClientInner>>, result: Result<Box<ClientHook>, Error>) {
+        assert!(!state.borrow().resolved);
+
         let client = match result {
             Ok(clienthook) => clienthook,
             Err(e) => broken::new_cap(e),
@@ -158,6 +162,9 @@ impl ClientInner {
         for ((), waiter) in state.borrow_mut().client_resolution_queue.drain() {
             waiter.complete(client.add_ref());
         }
+
+        state.borrow_mut().pipeline_inner.take();
+        state.borrow_mut().resolved = true;
     }
 }
 
@@ -169,8 +176,9 @@ impl Client {
     pub fn new(pipeline_inner: Option<Rc<RefCell<PipelineInner>>>) -> Client
     {
         let inner = Rc::new(RefCell::new(ClientInner {
-            _pipeline_inner: pipeline_inner,
+            pipeline_inner: pipeline_inner,
             redirect: None,
+            resolved: false,
             call_forwarding_queue: SenderQueue::new(),
             client_resolution_queue: SenderQueue::new(),
         }));
