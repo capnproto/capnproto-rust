@@ -34,7 +34,6 @@ use {broken, local, Attach, ForkedPromise};
 use sender_queue::SenderQueue;
 
 pub struct PipelineInner {
-    promise: ForkedPromise<Promise<Box<PipelineHook>, Error>>,
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<PipelineHook>>,
 
@@ -69,18 +68,14 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(promise_param: Promise<Box<PipelineHook>, Error>) -> Pipeline {
-        let promise = ForkedPromise::new(promise_param);
-        let branch = promise.clone();
-
         let inner = Rc::new(RefCell::new(PipelineInner {
-            promise: promise.clone(),
             redirect: None,
             self_resolution_op: Promise::ok(()),
             clients_to_resolve: SenderQueue::new(),
         }));
 
         let this = Rc::downgrade(&inner);
-        let self_res = ::eagerly_evaluate(branch.then(move |result| {
+        let self_res = ::eagerly_evaluate(promise_param.then(move |result| {
             let this = match this.upgrade() {
                 Some(v) => v,
                 None => return Err(Error::failed("dangling self reference in queued::Pipeline".into())),
