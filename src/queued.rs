@@ -30,10 +30,11 @@ use futures::Future;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use {broken, local, Attach};
+use {broken, local, Attach, ForkedPromise};
 use sender_queue::SenderQueue;
 
 struct PipelineInner {
+    promise: ForkedPromise<Promise<Box<PipelineHook>, Error>>,
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<PipelineHook>>,
 
@@ -49,14 +50,19 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(promise_param: Promise<Box<PipelineHook>, Error>) -> Pipeline {
+        let promise = ForkedPromise::new(promise_param);
+        let branch = promise.clone();
+
         let inner = Rc::new(RefCell::new(PipelineInner {
+            promise: promise,
             redirect: None,
             self_resolution_op: Promise::ok(()),
             clients_to_resolve: SenderQueue::new(),
         }));
-        let this = Rc::downgrade(&inner);
-        let self_res = ::eagerly_evaluate(promise_param.then(move |result| {
 
+        let this = Rc::downgrade(&inner);
+        let self_res = ::eagerly_evaluate(branch.then(move |result| {
+            println!("PIPELINE IS RESOLVING. thread = {:?}", ::std::thread::current().name());
             let this = match this.upgrade(){
                 Some(v) => v,
                 None => return Err(Error::failed("dangling self reference in queued::Pipeline".into())),
@@ -106,7 +112,12 @@ impl PipelineHook for Pipeline {
             &None => (),
         }
 
-        let queued_client = Client::new();
+        let ops1 = ops.clone();
+        let client_promise = self.inner.borrow_mut().promise.clone().map(move |pipeline| {
+            pipeline.get_pipelined_cap_move(ops1)
+        });
+
+        let queued_client = Client::new(Promise::from_future(client_promise));
         let weak_queued = Rc::downgrade(&queued_client.inner);
         self.inner.borrow_mut().clients_to_resolve.push_detach((weak_queued, ops));
 
@@ -117,6 +128,8 @@ impl PipelineHook for Pipeline {
 pub struct ClientInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<ClientHook>>,
+
+    promise: Promise<Box<ClientHook>, Error>,
 
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
@@ -160,9 +173,10 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new() -> Client
+    pub fn new(promise_param: Promise<Box<ClientHook>, Error>) -> Client
     {
         let inner = Rc::new(RefCell::new(ClientInner {
+            promise: promise,
             redirect: None,
             call_forwarding_queue: SenderQueue::new(),
             client_resolution_queue: SenderQueue::new(),

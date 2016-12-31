@@ -228,12 +228,12 @@ fn basic_pipelining() {
         pipeline_request.get().set_i(321);
         let pipeline_promise = pipeline_request.send();
 
-        let pipeline_request2 = {
-            let extends_client =
-                ::test_capnp::test_extends::Client { client: promise.pipeline.get_out_box().get_cap().client };
-            extends_client.grault_request()
-        };
-        let pipeline_promise2 = pipeline_request2.send();
+//        let pipeline_request2 = {
+//            let extends_client =
+//                ::test_capnp::test_extends::Client { client: promise.pipeline.get_out_box().get_cap().client };
+//            extends_client.grault_request()
+//        };
+//        let pipeline_promise2 = pipeline_request2.send();
 
         drop(promise); // Just to be annoying, drop the original promise.
 
