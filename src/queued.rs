@@ -44,6 +44,25 @@ pub struct PipelineInner {
     clients_to_resolve: SenderQueue<(Weak<RefCell<ClientInner>>, Vec<PipelineOp>), ()>,
 }
 
+impl PipelineInner {
+    fn resolve(this: &Rc<RefCell<PipelineInner>>, result: Result<Box<PipelineHook>, Error>) {
+        let pipeline = match result {
+            Ok(pipeline_hook) => pipeline_hook,
+            Err(e) => Box::new(broken::Pipeline::new(e)),
+        };
+
+        this.borrow_mut().redirect = Some(pipeline.add_ref());
+
+        for ((weak_client, ops), waiter) in this.borrow_mut().clients_to_resolve.drain() {
+            if let Some(client) = weak_client.upgrade() {
+                let clienthook = pipeline.get_pipelined_cap_move(ops);
+                ClientInner::resolve(&client, Ok(clienthook));
+            }
+            waiter.complete(());
+        }
+    }
+}
+
 pub struct Pipeline {
     inner: Rc<RefCell<PipelineInner>>,
 }
@@ -66,22 +85,7 @@ impl Pipeline {
                 Some(v) => v,
                 None => return Err(Error::failed("dangling self reference in queued::Pipeline".into())),
             };
-
-            let pipeline = match result {
-                Ok(pipeline_hook) => pipeline_hook,
-                Err(e) => Box::new(broken::Pipeline::new(e)),
-            };
-
-            this.borrow_mut().redirect = Some(pipeline.add_ref());
-
-            for ((weak_client, ops), waiter) in this.borrow_mut().clients_to_resolve.drain() {
-                if let Some(client) = weak_client.upgrade() {
-                    let clienthook = pipeline.get_pipelined_cap_move(ops);
-                    ClientInner::resolve(&client, Ok(clienthook));
-                }
-                waiter.complete(());
-            }
-
+            PipelineInner::resolve(&this, result);
             Ok(())
         }));
         inner.borrow_mut().self_resolution_op = self_res;
