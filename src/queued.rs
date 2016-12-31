@@ -149,6 +149,12 @@ impl ClientInner {
         };
         state.borrow_mut().redirect = Some(client.add_ref());
 
+        for (args, waiter) in state.borrow_mut().call_forwarding_queue.drain() {
+            let (interface_id, method_id, params, results, results_done) = args;
+            let result_pair = client.call(interface_id, method_id, params, results, results_done);
+            waiter.complete(result_pair);
+        }
+
         for ((), waiter) in state.borrow_mut().client_resolution_queue.drain() {
             waiter.complete(client.add_ref());
         }
@@ -166,7 +172,6 @@ impl Client {
         let promise = ForkedPromise::new_queued(promise_param);
         let branch1 = promise.add_branch();
         let branch2 = promise.add_branch();
-        let branch3 = promise.add_branch();
         let inner = Rc::new(RefCell::new(ClientInner {
             redirect: None,
             _promise: promise,
@@ -209,13 +214,23 @@ impl ClientHook for Client {
         -> (Promise<(), Error>, Box<PipelineHook>)
     {
 
-        let promise_for_pair = self.inner.borrow_mut().promise_for_call_forwarding.clone().map(move |client| {
-            client.call(interface_id, method_id, params, results, results_done)
-        });
 
-        let (promise_promise, pipeline_promise) = ::split::split(promise_for_pair);
-        let pipeline = Pipeline::new(Promise::from_future(pipeline_promise));
-        (Promise::from_future(promise_promise.flatten()), Box::new(pipeline))
+//        if let Some(ref client) = self.inner.borrow().redirect {
+//           client.call(interface_id, method_id, params, results, results_done)
+//        } else {
+
+            let promise_for_pair = self.inner.borrow_mut().promise_for_call_forwarding.clone().map(move |client| {
+                client.call(interface_id, method_id, params, results, results_done)
+            });
+
+
+//            let promise_for_pair = self.inner.borrow_mut().call_forwarding_queue.push(
+//                (interface_id, method_id, params, results, results_done));
+
+            let (promise_promise, pipeline_promise) = ::split::split(promise_for_pair);
+            let pipeline = Pipeline::new(Promise::from_future(pipeline_promise));
+            (Promise::from_future(promise_promise.flatten()), Box::new(pipeline))
+//        }
     }
 
     fn get_ptr(&self) -> usize {
@@ -234,6 +249,7 @@ impl ClientHook for Client {
     }
 
     fn when_more_resolved(&self) -> Option<Promise<Box<ClientHook>, Error>> {
+        // XXX TODO what if already resolved?
         Some(self.inner.borrow_mut().client_resolution_queue.push(()))
     }
 }
