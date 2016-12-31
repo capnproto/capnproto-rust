@@ -71,7 +71,7 @@ use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ServerHook};
 use std::cell::RefCell;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 use task_set::TaskSet;
 
@@ -288,16 +288,42 @@ impl ServerHook for Server {
 }
 
 
+pub struct PromiseClientSender {
+    client: Option<Weak<RefCell<::queued::ClientInner>>>,
+}
+
+impl Drop for PromiseClientSender {
+    fn drop(&mut self) {
+        if let Some(weak_queued) = self.client.take() {
+            if let Some(client_inner) = weak_queued.upgrade() {
+                ::queued::ClientInner::resolve(
+                    &client_inner,
+                    Ok(::broken::new_cap(Error::failed("PromiseClientSender was canceled".into()))));
+            }
+        }
+    }
+}
+
+impl PromiseClientSender {
+    pub fn complete(mut self, client: ::capnp::capability::Client) {
+        if let Some(weak_queued) = self.client.take() {
+            if let Some(client_inner) = weak_queued.upgrade() {
+                ::queued::ClientInner::resolve(&client_inner, Ok(client.hook));
+            }
+        }
+    }
+}
+
 /// Converts a promise for a client into a client that queues up any calls that arrive
 /// before the promise resolves.
 // TODO: figure out a better way to allow construction of promise clients.
-pub fn new_promise_client<T, F>(client_future: F) -> T
-    where T: ::capnp::capability::FromClientHook,
-          F: Future<Item=::capnp::capability::Client, Error=Error> + 'static,
+pub fn new_promise_client<T>() -> (PromiseClientSender, T)
+    where T: ::capnp::capability::FromClientHook
 {
-    T::new(Box::new(queued::Client::new(Promise::from_future(client_future.map(|c| c.hook)))))
+    let queued_client = ::queued::Client::new();
+    let weak_queued = Rc::downgrade(&queued_client.inner);
+    (PromiseClientSender { client: Some(weak_queued) }, T::new(Box::new(queued_client)))
 }
-
 
 struct ForkedPromiseInner<F> where F: Future {
     queued: bool,
@@ -510,7 +536,7 @@ impl <F, T> Future for AttachFuture<F, T>
     }
 }
 
-trait Attach : Future {
+trait Attach: Future {
     fn attach<T>(self, value: T) -> AttachFuture<Self, T>
         where Self: Sized
     {

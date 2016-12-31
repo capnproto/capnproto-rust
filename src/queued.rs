@@ -28,7 +28,7 @@ use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineO
 use futures::Future;
 
 use std::cell::RefCell;
-use std::rc::{Rc};
+use std::rc::{Rc, Weak};
 
 use {broken, local, Attach, ForkedPromise};
 use sender_queue::SenderQueue;
@@ -41,6 +41,8 @@ struct PipelineInner {
 
     // Represents the operation which will set `redirect` when possible.
     self_resolution_op: Promise<(), Error>,
+
+    clients_to_resolve: SenderQueue<(Weak<RefCell<ClientInner>>, Vec<PipelineOp>), ()>,
 }
 
 pub struct Pipeline {
@@ -55,6 +57,7 @@ impl Pipeline {
             promise: promise,
             redirect: None,
             self_resolution_op: Promise::ok(()),
+            clients_to_resolve: SenderQueue::new(),
         }));
         let this = Rc::downgrade(&inner);
         let self_res = ::eagerly_evaluate(branch.then(move |result| {
@@ -64,14 +67,21 @@ impl Pipeline {
                 None => return Err(Error::failed("dangling self reference in queued::Pipeline".into())),
             };
 
-            match result {
-                Ok(pipeline_hook) => {
-                    this.borrow_mut().redirect = Some(pipeline_hook);
+            let pipeline = match result {
+                Ok(pipeline_hook) => pipeline_hook,
+                Err(e) => Box::new(broken::Pipeline::new(e)),
+            };
+
+            this.borrow_mut().redirect = Some(pipeline.add_ref());
+
+            for ((weak_client, ops), waiter) in this.borrow_mut().clients_to_resolve.drain() {
+                if let Some(client) = weak_client.upgrade() {
+                    let clienthook = pipeline.get_pipelined_cap_move(ops);
+                    ClientInner::resolve(&client, Ok(clienthook));
                 }
-                Err(e) => {
-                    this.borrow_mut().redirect = Some(Box::new(broken::Pipeline::new(e)));
-                }
+                waiter.complete(());
             }
+
             Ok(())
         }));
         inner.borrow_mut().self_resolution_op = self_res;
@@ -100,11 +110,12 @@ impl PipelineHook for Pipeline {
             }
             &None => (),
         }
-        let client_promise = self.inner.borrow_mut().promise.clone().map(move |pipeline| {
-            pipeline.get_pipelined_cap_move(ops)
-        });
 
-        Box::new(Client::new(Promise::from_future(client_promise)))
+        let queued_client = Client::new();
+        let weak_queued = Rc::downgrade(&queued_client.inner);
+        self.inner.borrow_mut().clients_to_resolve.push_detach((weak_queued, ops));
+
+        Box::new(queued_client)
     }
 }
 
@@ -113,15 +124,6 @@ type ClientHookPromiseFork = ForkedPromise<Promise<Box<ClientHook>, Error>>;
 pub struct ClientInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<ClientHook>>,
-
-    // Promise that resolves when we have a new ClientHook to forward to.
-    //
-    // This fork shall only have three branches:  `selfResolutionOp`, `promiseForCallForwarding`, and
-    // `promiseForClientResolution`, in that order.
-    _promise: ClientHookPromiseFork,
-
-    // Represents the operation which will set `redirect` when possible.
-    self_resolution_op: Promise<(), Error>,
 
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
@@ -161,33 +163,17 @@ impl ClientInner {
 }
 
 pub struct Client {
-    inner: Rc<RefCell<ClientInner>>,
+    pub inner: Rc<RefCell<ClientInner>>,
 }
 
 impl Client {
-    pub fn new(promise_param: Promise<Box<ClientHook>, Error>)
-           -> Client
+    pub fn new() -> Client
     {
-        let promise = ForkedPromise::new_queued(promise_param);
-        let branch1 = promise.add_branch();
         let inner = Rc::new(RefCell::new(ClientInner {
             redirect: None,
-            _promise: promise,
-            self_resolution_op: Promise::from_future(::futures::future::empty()),
             call_forwarding_queue: SenderQueue::new(),
             client_resolution_queue: SenderQueue::new(),
         }));
-        let this = Rc::downgrade(&inner);
-        let self_resolution_op = ::eagerly_evaluate(branch1.then(move |result| {
-            let state = match this.upgrade() {
-                Some(s) => s,
-                None => return Err(Error::failed("dangling reference to QueuedClient".into())),
-            };
-
-            ClientInner::resolve(&state, result);
-            Ok(())
-        }));
-        inner.borrow_mut().self_resolution_op = self_resolution_op;
         Client {
             inner: inner
         }

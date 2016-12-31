@@ -2574,9 +2574,19 @@ impl <VatId> PromiseClient<VatId> {
                 Ok(replacement)
             });
 
+            let queued_client = ::queued::Client::new();
+            let weak_queued = Rc::downgrade(&queued_client.inner);
+
+            connection_state.add_task(embargo_promise.then(move |r| {
+                if let Some(q) = weak_queued.upgrade() {
+                    ::queued::ClientInner::resolve(&q, r);
+                }
+                Ok(())
+            }));
+
             // We need to queue up calls in the meantime, so we'll resolve ourselves to a local promise
             // client instead.
-            replacement = Box::new(::queued::Client::new(Promise::from_future(embargo_promise)));
+            replacement = Box::new(queued_client);
 
             let _ = message.send();
         }
