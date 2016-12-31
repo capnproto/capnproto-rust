@@ -299,12 +299,19 @@ impl ClientHook for Client {
         // race conditions.
         let inner = self.inner.clone();
 
-        let promise = ::futures::future::lazy(move || {
+        let promise = {
             let server = &mut inner.borrow_mut().server;
             server.dispatch_call(interface_id, method_id,
                                  ::capnp::capability::Params::new(params),
                                  ::capnp::capability::Results::new(results))
-        }).attach(self.add_ref());
+        };
+
+/*        let promise = ::futures::future::lazy(move || {
+            let server = &mut inner.borrow_mut().server;
+            server.dispatch_call(interface_id, method_id,
+                                 ::capnp::capability::Params::new(params),
+                                 ::capnp::capability::Results::new(results))
+        }).attach(self.add_ref()); */
 
         let forked = ForkedPromise::new(promise);
 

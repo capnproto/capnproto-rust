@@ -496,7 +496,8 @@ impl <F> Attach for F where F: Future {}
 
 thread_local!(pub static CORE_HANDLE: RefCell<Option<::tokio_core::reactor::Handle>> = RefCell::new(None));
 
-fn register_handle(handle: ::tokio_core::reactor::Handle) {
+// This ought to not be necessary...
+pub fn register_handle(handle: ::tokio_core::reactor::Handle) {
     CORE_HANDLE.with(|cell| {
         *cell.borrow_mut() = Some(handle);
     });

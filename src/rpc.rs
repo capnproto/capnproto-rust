@@ -731,9 +731,9 @@ impl <VatId> ConnectionState<VatId> {
                     let bootstrap = try!(bootstrap);
                     let answer_id = bootstrap.get_question_id();
 
-                    println!("handle Bootstrap. id = {}, thread = {:?}",
-                             answer_id,
-                             ::std::thread::current().name());
+//                    println!("handle Bootstrap. id = {}, thread = {:?}",
+//                             answer_id,
+//                             ::std::thread::current().name());
 
                     if connection_state.connection.borrow().is_err() {
                         // Disconnected; ignore.
@@ -777,7 +777,7 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Call(call)) => {
-                    println!("handle Call. thread = {:?}", ::std::thread::current().name());
+//                    println!("handle Call. thread = {:?}", ::std::thread::current().name());
                     let call = try!(call);
                     let t = try!(connection_state.get_message_target(try!(call.get_target())));
                     BorrowWorkaround::Call(t)
@@ -786,9 +786,9 @@ impl <VatId> ConnectionState<VatId> {
                     let ret = try!(oret);
                     let question_id = ret.get_answer_id();
 
-                    println!("handle Return. id = {}, thread = {:?}",
-                             question_id,
-                             ::std::thread::current().name());
+//                    println!("handle Return. id = {}, thread = {:?}",
+//                             question_id,
+//                             ::std::thread::current().name());
 
                     match connection_state.questions.borrow_mut().slots[question_id as usize] {
                         Some(ref mut question) => {
@@ -866,9 +866,9 @@ impl <VatId> ConnectionState<VatId> {
                     let mut exports_to_release = Vec::new();
                     let answer_id = finish.get_question_id();
 
-                    println!("handle Finish. id = {}, thread = {:?}",
-                             answer_id,
-                             ::std::thread::current().name());
+//                    println!("handle Finish. id = {}, thread = {:?}",
+//                             answer_id,
+//                             ::std::thread::current().name());
 
                     let mut erase = false;
                     let answers_slots = &mut connection_state1.answers.borrow_mut().slots;
@@ -907,7 +907,7 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Resolve(resolve)) => {
-                    println!("handle Resolve. thread = {:?}", ::std::thread::current().name());
+//                    println!("handle Resolve. thread = {:?}", ::std::thread::current().name());
                     let resolve = try!(resolve);
                     let replacement_or_error = match try!(resolve.which()) {
                         ::rpc_capnp::resolve::Cap(c) => {
@@ -951,13 +951,13 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Release(release)) => {
-                    println!("handle Release. thread = {:?}", ::std::thread::current().name());
+//                    println!("handle Release. thread = {:?}", ::std::thread::current().name());
                     let release = try!(release);
                     try!(connection_state.release_export(release.get_id(), release.get_reference_count()));
                     BorrowWorkaround::Done
                 }
                 Ok(message::Disembargo(disembargo)) => {
-                    println!("handle Disembargo. thread = {:?}", ::std::thread::current().name());
+//                    println!("handle Disembargo. thread = {:?}", ::std::thread::current().name());
                     let disembargo = try!(disembargo);
                     let context = disembargo.get_context();
                     match try!(context.which()) {
@@ -1061,7 +1061,7 @@ impl <VatId> ConnectionState<VatId> {
                      redirect_results)
                 };
 
-                println!("call id {}", question_id);
+//                println!("call id {}", question_id);
 
                 if connection_state.answers.borrow().slots.contains_key(&question_id) {
                     return Err(Error::failed(
