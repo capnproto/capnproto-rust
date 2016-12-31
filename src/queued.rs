@@ -54,7 +54,7 @@ impl Pipeline {
         let branch = promise.clone();
 
         let inner = Rc::new(RefCell::new(PipelineInner {
-            promise: promise,
+            promise: promise.clone(),
             redirect: None,
             self_resolution_op: Promise::ok(()),
             clients_to_resolve: SenderQueue::new(),
@@ -63,7 +63,7 @@ impl Pipeline {
         let this = Rc::downgrade(&inner);
         let self_res = ::eagerly_evaluate(branch.then(move |result| {
             println!("PIPELINE IS RESOLVING. thread = {:?}", ::std::thread::current().name());
-            let this = match this.upgrade(){
+            let this = match this.upgrade() {
                 Some(v) => v,
                 None => return Err(Error::failed("dangling self reference in queued::Pipeline".into())),
             };
@@ -75,7 +75,9 @@ impl Pipeline {
 
             this.borrow_mut().redirect = Some(pipeline.add_ref());
 
+            println!("draining clients_to_resolve");
             for ((weak_client, ops), waiter) in this.borrow_mut().clients_to_resolve.drain() {
+                println!("client to resolve!");
                 if let Some(client) = weak_client.upgrade() {
                     let clienthook = pipeline.get_pipelined_cap_move(ops);
                     ClientInner::resolve(&client, Ok(clienthook));
@@ -129,7 +131,7 @@ pub struct ClientInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<ClientHook>>,
 
-    promise: Promise<Box<ClientHook>, Error>,
+//    promise: Promise<Box<ClientHook>, Error>,
 
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
@@ -150,6 +152,7 @@ pub struct ClientInner {
 
 impl ClientInner {
     pub fn resolve(state: &Rc<RefCell<ClientInner>>, result: Result<Box<ClientHook>, Error>) {
+        println!("resolving ClientInner. thread = {:?}", ::std::thread::current().name());
         let client = match result {
             Ok(clienthook) => clienthook,
             Err(e) => broken::new_cap(e),
@@ -175,8 +178,9 @@ pub struct Client {
 impl Client {
     pub fn new(promise: Promise<Box<ClientHook>, Error>) -> Client
     {
+        ::add_task(promise);
         let inner = Rc::new(RefCell::new(ClientInner {
-            promise: promise,
+//            promise: ::eagerly_evaluate(promise),
             redirect: None,
             call_forwarding_queue: SenderQueue::new(),
             client_resolution_queue: SenderQueue::new(),
@@ -203,10 +207,13 @@ impl ClientHook for Client {
             results_done: Promise<Box<ResultsDoneHook>, Error>)
         -> (Promise<(), Error>, Box<PipelineHook>)
     {
+        println!("queued::Client.call(). thread = {:?}", ::std::thread::current().name());
         if let Some(ref client) = self.inner.borrow().redirect {
+            println!("already redirected");
            return client.call(interface_id, method_id, params, results, results_done)
         }
 
+        println!("not redirected yet");
         let inner_clone = self.inner.clone();
 
         let promise_for_pair = self.inner.borrow_mut().call_forwarding_queue.push(

@@ -167,6 +167,7 @@ impl test_interface::Server for TestExtends {
            mut results: test_interface::FooResults)
            -> Promise<(), Error>
     {
+        println!("TestExtends::foo(). thread = {:?}", ::std::thread::current().name());
         let params = pry!(params.get());
         if params.get_i() != 321 {
             return Promise::err(Error::failed(format!("expected i to equal 321")));
@@ -237,6 +238,7 @@ impl test_pipeline::Server for TestPipeline {
         if pry!(params.get()).get_n() != 234 {
             return Promise::err(Error::failed("expected n to equal 234".to_string()));
         }
+/*
         let cap = pry!(pry!(params.get()).get_in_cap());
         let mut request = cap.foo_request();
         request.get().set_i(123);
@@ -260,6 +262,15 @@ impl test_pipeline::Server for TestPipeline {
             println!("foo_request() error: {:?}", e);
             e
         }))
+*/
+
+        results.get().init_out_box().set_cap(
+            test_interface::Client {
+                client:
+                test_extends::ToClient::new(TestExtends).from_server::<::capnp_rpc::Server>().client,
+            });
+        Promise::ok(())
+
     }
 
     fn get_null_cap(&mut self,

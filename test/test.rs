@@ -235,7 +235,7 @@ fn basic_pipelining() {
 //        };
 //        let pipeline_promise2 = pipeline_request2.send();
 
-        drop(promise); // Just to be annoying, drop the original promise.
+//        drop(promise); // Just to be annoying, drop the original promise.
 
 //        if chained_call_count.get() != 0 {
 //            return Err(Error::failed("expected chained_call_count to equal 0".to_string()));

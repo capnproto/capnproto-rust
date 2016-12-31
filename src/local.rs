@@ -294,6 +294,8 @@ impl ClientHook for Client {
             results_done: Promise<Box<ResultsDoneHook>, Error>)
         -> (Promise<(), Error>, Box<PipelineHook>)
     {
+        let ptr = self as *const _;
+//        println!("local::Client call(). ptr = {:?}", ptr as *const _);
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
@@ -310,8 +312,13 @@ impl ClientHook for Client {
 
         let branch = forked.clone();
         let pipeline_promise = branch.and_then(move |()| {
+            println!("branchandthen. thread = {:?}", ::std::thread::current().name());
             results_done.map(move |results_done_hook| {
+                println!("resultsdone. thread = {:?}", ::std::thread::current().name());
                 Box::new(Pipeline::new(results_done_hook)) as Box<PipelineHook>
+            }).map_err(|e| {
+                println!("resultsdone err {:?}. thread = {:?}", e, ::std::thread::current().name());
+                e
             })
         });
 

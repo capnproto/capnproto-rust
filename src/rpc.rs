@@ -1109,6 +1109,7 @@ impl <VatId> ConnectionState<VatId> {
                 let box_results_done_promise = box_results_done_promise.map_err(|e| e.into()).and_then(|x| x);
                 connection_state.add_task(results_inner_promise.and_then(move |results_inner| {
                     call_succeeded_promise.then(move |r| {
+                        println!("call succeeded! thread = {:?}", ::std::thread::current().name());
                         ResultsDone::from_results_inner(results_inner, r)
                     })
                 }).then(move |v| {
@@ -1123,6 +1124,7 @@ impl <VatId> ConnectionState<VatId> {
                         }
                         None => (),
                     }
+                    println!("gonna fulfill box_results_done. thread = {:?}", ::std::thread::current().name());
                     box_results_done_fulfiller.complete(v);
                     Ok(())
                 }));
@@ -2561,7 +2563,6 @@ impl <VatId> PromiseClient<VatId> {
             // to the promise.  We need to make sure those calls echo back to us before we allow new
             // calls to go directly to the local capability, so we need to set a local embargo and send
             // a `Disembargo` to echo through the peer.
-
             let (fulfiller, promise) = oneshot::channel();
             let promise = promise.map_err(|e| e.into()).and_then(|v| v);
             let embargo = Embargo::new(fulfiller);
