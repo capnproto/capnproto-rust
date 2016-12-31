@@ -1852,7 +1852,8 @@ struct PipelineState<VatId> where VatId: 'static {
     connection_state: Rc<ConnectionState<VatId>>,
 
     resolve_self_promise: Promise<(), Error>,
-    promise_clients_to_resolve: RefCell<Vec<(Rc<RefCell<PromiseClient<VatId>>>, Vec<PipelineOp>)>>,
+    promise_clients_to_resolve:
+         RefCell<::sender_queue::SenderQueue<(Rc<RefCell<PromiseClient<VatId>>>, Vec<PipelineOp>), ()>>,
     resolution_waiters: Vec<oneshot::Sender<()>>,
 }
 
@@ -1861,10 +1862,10 @@ impl <VatId> PipelineState<VatId> where VatId: 'static {
 //        println!("resolving pipeline {:?}", &*state.borrow() as *const _);
         let to_resolve = {
             let tmp = state.borrow();
-            let r = ::std::mem::replace(&mut *tmp.promise_clients_to_resolve.borrow_mut(), Vec::new());
+            let r = tmp.promise_clients_to_resolve.borrow_mut().drain();
             r
         };
-        for (c, ops) in to_resolve {
+        for ((c, ops), _) in to_resolve {
             let resolved = match response.clone() {
                 Ok(v) => {
                     match v.get() {
@@ -1907,7 +1908,7 @@ impl <VatId> Pipeline<VatId> {
             connection_state: connection_state.clone(),
             redirect_later: None,
             resolve_self_promise: Promise::from_future(::futures::future::empty()),
-            promise_clients_to_resolve: RefCell::new(Vec::new()),
+            promise_clients_to_resolve: RefCell::new(::sender_queue::SenderQueue::new()),
             resolution_waiters: Vec::new(),
         }));
         match redirect_later {
@@ -1946,7 +1947,7 @@ impl <VatId> Pipeline<VatId> {
             connection_state: connection_state,
             redirect_later: None,
             resolve_self_promise: Promise::from_future(::futures::future::empty()),
-            promise_clients_to_resolve: RefCell::new(Vec::new()),
+            promise_clients_to_resolve: RefCell::new(::sender_queue::SenderQueue::new()),
             resolution_waiters: Vec::new(),
         }));
 
@@ -1976,7 +1977,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                             &connection_state,
                             Box::new(client),
                             None);
-                        promise_clients_to_resolve.borrow_mut().push((promise_client.clone(), ops));
+                        promise_clients_to_resolve.borrow_mut().push_detach((promise_client.clone(), ops));
                         let result: Client<VatId> = promise_client.into();
                         Box::new(result)
                     }
