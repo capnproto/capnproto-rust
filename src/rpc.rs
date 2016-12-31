@@ -38,7 +38,7 @@ use rpc_capnp::{message, return_, cap_descriptor};
 use {broken, ForkedPromise, Attach};
 use task_set::TaskSet;
 
-
+/*
 struct Defer<F> where F: FnOnce() {
     deferred: Option<F>,
 }
@@ -58,7 +58,7 @@ impl <F> Drop for Defer<F> where F: FnOnce() {
         }
     }
 }
-
+*/
 
 pub type QuestionId = u32;
 pub type AnswerId = QuestionId;
@@ -199,9 +199,7 @@ impl <VatId> QuestionRef<VatId> {
         QuestionRef { connection_state: state, id: id, fulfiller: Some(fulfiller) }
     }
     fn fulfill(&mut self, response: Promise<Response<VatId>, Error>) {
-        println!("questionref fulfilling");
         if let Some(fulfiller) = self.fulfiller.take() {
-            println!("is some");
             fulfiller.complete(response);
         }
     }
@@ -219,7 +217,6 @@ impl <VatId> Drop for QuestionRef<VatId> {
             EraseQuestion(QuestionId),
             Done,
         }
-        println!("dropping question ref {}. thread = {:?}", self.id, ::std::thread::current().name());
         let bw = match &mut self.connection_state.questions.borrow_mut().slots[self.id as usize] {
             &mut Some(ref mut q) => {
                 match &mut *self.connection_state.connection.borrow_mut() {
@@ -795,13 +792,11 @@ impl <VatId> ConnectionState<VatId> {
 
                     match connection_state.questions.borrow_mut().slots[question_id as usize] {
                         Some(ref mut question) => {
-                            println!("the question exists");
                             question.is_awaiting_return = false;
                             match question.self_ref {
                                 Some(ref question_ref) => {
                                     match try!(ret.which()) {
                                         return_::Results(results) => {
-                                            println!("RESULTS");
                                             let cap_table =
                                                 ConnectionState::receive_caps(connection_state1,
                                                                               try!(try!(results).get_cap_table()));
@@ -810,13 +805,11 @@ impl <VatId> ConnectionState<VatId> {
                                                                             try!(cap_table))
                                         }
                                         return_::Exception(e) => {
-                                            println!("EXCEPTION");
                                             let tmp = question_ref.upgrade().expect("dangling question ref?");
                                             tmp.borrow_mut().reject(remote_exception_to_error(try!(e)));
                                             BorrowWorkaround::Done
                                         }
                                         return_::Canceled(_) => {
-                                            println!("CANCELED");
                                             unimplemented!()
                                         }
                                         return_::ResultsSentElsewhere(_) => {
@@ -847,8 +840,6 @@ impl <VatId> ConnectionState<VatId> {
                                     }
                                 }
                                 None => {
-                                    println!("the question self_ref is None");
-
                                     match try!(ret.which()) {
                                         return_::TakeFromOtherQuestion(_) => {
                                             unimplemented!()
@@ -1109,7 +1100,6 @@ impl <VatId> ConnectionState<VatId> {
                 let box_results_done_promise = box_results_done_promise.map_err(|e| e.into()).and_then(|x| x);
                 connection_state.add_task(results_inner_promise.and_then(move |results_inner| {
                     call_succeeded_promise.then(move |r| {
-                        println!("call succeeded! thread = {:?}", ::std::thread::current().name());
                         ResultsDone::from_results_inner(results_inner, r)
                     })
                 }).then(move |v| {
@@ -1124,7 +1114,6 @@ impl <VatId> ConnectionState<VatId> {
                         }
                         None => (),
                     }
-                    println!("gonna fulfill box_results_done. thread = {:?}", ::std::thread::current().name());
                     box_results_done_fulfiller.complete(v);
                     Ok(())
                 }));
@@ -1731,7 +1720,6 @@ impl <VatId> Request<VatId> where VatId: 'static {
         question.is_tail_call = is_tail_call;
 
         let question_id = connection_state.questions.borrow_mut().push(question);
-        println!("send_internal. id = {}. thread = {:?}", question_id, ::std::thread::current().name());
         {
             let mut call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
             // Finish and send.
@@ -1743,7 +1731,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         let _ = message.send();
         // Make the result promise.
         let (fulfiller, promise) = oneshot::channel::<Promise<Response<VatId>, Error>>();
-        let promise = promise.map_err(|e| e.into()).and_then(|x| {println!("OK GOT IT"); x});
+        let promise = promise.map_err(|e| e.into()).and_then(|x| x);
         let question_ref = Rc::new(RefCell::new(
             QuestionRef::new(connection_state.clone(), question_id, fulfiller)));
 
@@ -1802,12 +1790,10 @@ impl <VatId> RequestHook for Request<VatId> {
                 let resolved = pipeline.when_resolved();
 
                 let forked_promise2 = resolved.then(|_| Ok(())).and_then(|()| forked_promise2);
-                let d = Defer::new(|| println!("DROPPING app_promise"));
 
                 let app_promise = Promise::from_future(forked_promise2.map(|response| {
                     ::capnp::capability::Response::new(Box::new(response))
-                }).attach(d).attach(question_ref.clone()).map_err(|e| {println!("oh dear {:?}", e); e})
-                );
+                }));
 
                 ::capnp::capability::RemotePromise {
                     promise: app_promise,
@@ -2792,7 +2778,6 @@ impl <VatId> ClientHook for Client<VatId> {
                 size_hint: Option<::capnp::MessageSize>)
                 -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
     {
-        println!("rpc::Client::new_call(). thread = {:?}", ::std::thread::current());
         let request: Box<RequestHook> =
             match Request::new(self.connection_state.clone(), size_hint, self.clone())
         {
@@ -2817,7 +2802,6 @@ impl <VatId> ClientHook for Client<VatId> {
             results_done: Promise<Box<ResultsDoneHook>, Error>)
         -> (Promise<(), Error>, Box<PipelineHook>)
     {
-        println!("rpc::Client::call(). thread = {:?}", ::std::thread::current());
         // Implement call() by copying params and results messages.
 
         let maybe_request = params.get().and_then(|p| {

@@ -238,7 +238,6 @@ impl test_pipeline::Server for TestPipeline {
         if pry!(params.get()).get_n() != 234 {
             return Promise::err(Error::failed("expected n to equal 234".to_string()));
         }
-/*
         let cap = pry!(pry!(params.get()).get_in_cap());
         let mut request = cap.foo_request();
         request.get().set_i(123);
@@ -258,19 +257,7 @@ impl test_pipeline::Server for TestPipeline {
                     test_extends::ToClient::new(TestExtends).from_server::<::capnp_rpc::Server>().client,
                 });
             Ok(())
-        }).map_err(|e|{
-            println!("foo_request() error: {:?}", e);
-            e
         }))
-*/
-
-        results.get().init_out_box().set_cap(
-            test_interface::Client {
-                client:
-                test_extends::ToClient::new(TestExtends).from_server::<::capnp_rpc::Server>().client,
-            });
-        Promise::ok(())
-
     }
 
     fn get_null_cap(&mut self,

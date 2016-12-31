@@ -62,7 +62,6 @@ impl Pipeline {
 
         let this = Rc::downgrade(&inner);
         let self_res = ::eagerly_evaluate(branch.then(move |result| {
-            println!("PIPELINE IS RESOLVING. thread = {:?}", ::std::thread::current().name());
             let this = match this.upgrade() {
                 Some(v) => v,
                 None => return Err(Error::failed("dangling self reference in queued::Pipeline".into())),
@@ -75,9 +74,7 @@ impl Pipeline {
 
             this.borrow_mut().redirect = Some(pipeline.add_ref());
 
-            println!("draining clients_to_resolve");
             for ((weak_client, ops), waiter) in this.borrow_mut().clients_to_resolve.drain() {
-                println!("client to resolve!");
                 if let Some(client) = weak_client.upgrade() {
                     let clienthook = pipeline.get_pipelined_cap_move(ops);
                     ClientInner::resolve(&client, Ok(clienthook));
@@ -115,9 +112,10 @@ impl PipelineHook for Pipeline {
         }
 
         let ops1 = ops.clone();
+        let inner_clone = self.inner.clone();
         let client_promise = self.inner.borrow_mut().promise.clone().map(move |pipeline| {
             pipeline.get_pipelined_cap_move(ops1)
-        });
+        }).attach(inner_clone);
 
         let queued_client = Client::new(Promise::from_future(client_promise));
         let weak_queued = Rc::downgrade(&queued_client.inner);
@@ -152,7 +150,6 @@ pub struct ClientInner {
 
 impl ClientInner {
     pub fn resolve(state: &Rc<RefCell<ClientInner>>, result: Result<Box<ClientHook>, Error>) {
-        println!("resolving ClientInner. thread = {:?}", ::std::thread::current().name());
         let client = match result {
             Ok(clienthook) => clienthook,
             Err(e) => broken::new_cap(e),
@@ -207,13 +204,10 @@ impl ClientHook for Client {
             results_done: Promise<Box<ResultsDoneHook>, Error>)
         -> (Promise<(), Error>, Box<PipelineHook>)
     {
-        println!("queued::Client.call(). thread = {:?}", ::std::thread::current().name());
         if let Some(ref client) = self.inner.borrow().redirect {
-            println!("already redirected");
            return client.call(interface_id, method_id, params, results, results_done)
         }
 
-        println!("not redirected yet");
         let inner_clone = self.inner.clone();
 
         let promise_for_pair = self.inner.borrow_mut().call_forwarding_queue.push(

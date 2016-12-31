@@ -326,7 +326,6 @@ pub fn new_promise_client<T>() -> (PromiseClientSender, T)
 }
 
 struct ForkedPromiseInner<F> where F: Future {
-    queued: bool,
     next_clone_id: u64,
     poller: Option<u64>,
     original_future: F,
@@ -355,11 +354,10 @@ impl <F> Clone for ForkedPromise<F> where F: Future {
 }
 
 impl <F> ForkedPromise<F> where F: Future {
-    fn new_internal(f: F, queued: bool) -> ForkedPromise<F> {
+    fn new_internal(f: F, _queued: bool) -> ForkedPromise<F> {
         ForkedPromise {
             id: 0,
             inner: Rc::new(RefCell::new(ForkedPromiseInner {
-                queued: queued,
                 next_clone_id: 1,
                 poller: None,
                 original_future: f,
@@ -407,7 +405,7 @@ impl <F> Future for ForkedPromise<F>
     type Error = F::Error;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        let ForkedPromiseInner { ref mut original_future, ref mut state, ref mut poller, queued, .. } =
+        let ForkedPromiseInner { ref mut original_future, ref mut state, ref mut poller, .. } =
             *self.inner.borrow_mut();
 
         let done_val = match *state {
@@ -431,10 +429,8 @@ impl <F> Future for ForkedPromise<F>
                         Err(e)
                     }
                 };
-                println!("forked promise is done");
 
                 for (_id, waiter) in waiters {
-                    println!("unparking {:?}", _id);
                     waiter.unpark();
                 }
 

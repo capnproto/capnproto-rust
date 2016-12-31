@@ -294,31 +294,24 @@ impl ClientHook for Client {
             results_done: Promise<Box<ResultsDoneHook>, Error>)
         -> (Promise<(), Error>, Box<PipelineHook>)
     {
-        let ptr = self as *const _;
-//        println!("local::Client call(). ptr = {:?}", ptr as *const _);
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
         let inner = self.inner.clone();
 
-        let promise = ::eagerly_evaluate(::futures::future::lazy(move || {
+        let promise = ::futures::future::lazy(move || {
             let server = &mut inner.borrow_mut().server;
             server.dispatch_call(interface_id, method_id,
                                  ::capnp::capability::Params::new(params),
                                  ::capnp::capability::Results::new(results))
-        }).attach(self.add_ref()));
+        }).attach(self.add_ref());
 
         let forked = ForkedPromise::new(promise);
 
         let branch = forked.clone();
         let pipeline_promise = branch.and_then(move |()| {
-            println!("branchandthen. thread = {:?}", ::std::thread::current().name());
             results_done.map(move |results_done_hook| {
-                println!("resultsdone. thread = {:?}", ::std::thread::current().name());
                 Box::new(Pipeline::new(results_done_hook)) as Box<PipelineHook>
-            }).map_err(|e| {
-                println!("resultsdone err {:?}. thread = {:?}", e, ::std::thread::current().name());
-                e
             })
         });
 
