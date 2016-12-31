@@ -1854,7 +1854,7 @@ struct PipelineState<VatId> where VatId: 'static {
     resolve_self_promise: Promise<(), Error>,
     promise_clients_to_resolve:
          RefCell<::sender_queue::SenderQueue<(Rc<RefCell<PromiseClient<VatId>>>, Vec<PipelineOp>), ()>>,
-    resolution_waiters: Vec<oneshot::Sender<()>>,
+    resolution_waiters: ::sender_queue::SenderQueue<(), ()>,
 }
 
 impl <VatId> PipelineState<VatId> where VatId: 'static {
@@ -1886,8 +1886,8 @@ impl <VatId> PipelineState<VatId> where VatId: 'static {
         };
         let _old_variant = ::std::mem::replace(&mut state.borrow_mut().variant, new_variant);
 
-        let waiters = ::std::mem::replace(&mut state.borrow_mut().resolution_waiters, Vec::new());
-        for waiter in waiters {
+        let waiters = state.borrow_mut().resolution_waiters.drain();
+        for (_, waiter) in waiters {
             waiter.complete(())
         }
     }
@@ -1909,7 +1909,7 @@ impl <VatId> Pipeline<VatId> {
             redirect_later: None,
             resolve_self_promise: Promise::from_future(::futures::future::empty()),
             promise_clients_to_resolve: RefCell::new(::sender_queue::SenderQueue::new()),
-            resolution_waiters: Vec::new(),
+            resolution_waiters: ::sender_queue::SenderQueue::new(),
         }));
         match redirect_later {
             Some(redirect_later_promise) => {
@@ -1933,9 +1933,7 @@ impl <VatId> Pipeline<VatId> {
     }
 
     fn when_resolved(&self) -> Promise<(), Error> {
-        let (tx, rx) = oneshot::channel::<()>();
-        self.state.borrow_mut().resolution_waiters.push(tx);
-        Promise::from_future(rx.map_err(|_| Error::failed("Pipeline never resolved.".into())))
+        self.state.borrow_mut().resolution_waiters.push(())
     }
 
     fn never_done(connection_state: Rc<ConnectionState<VatId>>,
@@ -1948,7 +1946,7 @@ impl <VatId> Pipeline<VatId> {
             redirect_later: None,
             resolve_self_promise: Promise::from_future(::futures::future::empty()),
             promise_clients_to_resolve: RefCell::new(::sender_queue::SenderQueue::new()),
-            resolution_waiters: Vec::new(),
+            resolution_waiters: ::sender_queue::SenderQueue::new(),
         }));
 
         Pipeline { state: state }
