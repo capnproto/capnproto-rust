@@ -320,7 +320,7 @@ impl PromiseClientSender {
 pub fn new_promise_client<T>() -> (PromiseClientSender, T)
     where T: ::capnp::capability::FromClientHook
 {
-    let queued_client = ::queued::Client::new(Promise::from_future(::futures::future::empty()));
+    let queued_client = ::queued::Client::new(None);
     let weak_queued = Rc::downgrade(&queued_client.inner);
     (PromiseClientSender { client: Some(weak_queued) }, T::new(Box::new(queued_client)))
 }

@@ -2573,7 +2573,7 @@ impl <VatId> PromiseClient<VatId> {
                 Ok(replacement)
             });
 
-            let queued_client = ::queued::Client::new(Promise::from_future(::futures::future::empty()));
+            let queued_client = ::queued::Client::new(None);
             let weak_queued = Rc::downgrade(&queued_client.inner);
 
             connection_state.add_task(embargo_promise.then(move |r| {

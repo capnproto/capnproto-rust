@@ -33,7 +33,7 @@ use std::rc::{Rc, Weak};
 use {broken, local, Attach, ForkedPromise};
 use sender_queue::SenderQueue;
 
-struct PipelineInner {
+pub struct PipelineInner {
     promise: ForkedPromise<Promise<Box<PipelineHook>, Error>>,
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<PipelineHook>>,
@@ -111,13 +111,7 @@ impl PipelineHook for Pipeline {
             &None => (),
         }
 
-        let ops1 = ops.clone();
-        let inner_clone = self.inner.clone();
-        let client_promise = self.inner.borrow_mut().promise.clone().map(move |pipeline| {
-            pipeline.get_pipelined_cap_move(ops1)
-        }).attach(inner_clone);
-
-        let queued_client = Client::new(Promise::from_future(client_promise));
+        let queued_client = Client::new(Some(self.inner.clone()));
         let weak_queued = Rc::downgrade(&queued_client.inner);
         self.inner.borrow_mut().clients_to_resolve.push_detach((weak_queued, ops));
 
@@ -129,7 +123,7 @@ pub struct ClientInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<ClientHook>>,
 
-//    promise: Promise<Box<ClientHook>, Error>,
+    _pipeline_inner: Option<Rc<RefCell<PipelineInner>>>,
 
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
@@ -173,11 +167,10 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(promise: Promise<Box<ClientHook>, Error>) -> Client
+    pub fn new(pipeline_inner: Option<Rc<RefCell<PipelineInner>>>) -> Client
     {
-        ::add_task(promise);
         let inner = Rc::new(RefCell::new(ClientInner {
-//            promise: ::eagerly_evaluate(promise),
+            _pipeline_inner: pipeline_inner,
             redirect: None,
             call_forwarding_queue: SenderQueue::new(),
             client_resolution_queue: SenderQueue::new(),
