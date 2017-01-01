@@ -44,7 +44,6 @@ pub struct PipelineInner {
 
 impl PipelineInner {
     fn resolve(this: &Rc<RefCell<PipelineInner>>, result: Result<Box<PipelineHook>, Error>) {
-        println!("RESOLVING PIPELINE. thread = {:?}", ::std::thread::current().name());
         let pipeline = match result {
             Ok(pipeline_hook) => pipeline_hook,
             Err(e) => Box::new(broken::Pipeline::new(e)),
@@ -153,8 +152,7 @@ pub struct ClientInner {
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
     // previously-queued calls are delivered before any new calls made in response to the resolution.
-    call_forwarding_queue: SenderQueue<(u64, u16, Box<ParamsHook>, Box<ResultsHook>,
-                                        Promise<Box<ResultsDoneHook>, Error>),
+    call_forwarding_queue: SenderQueue<(u64, u16, Box<ParamsHook>, Box<ResultsHook>),
                                        (Promise<(), Error>)>,
 
 
@@ -176,7 +174,7 @@ impl ClientInner {
         };
         state.borrow_mut().redirect = Some(client.add_ref());
         for (args, waiter) in state.borrow_mut().call_forwarding_queue.drain() {
-            let (interface_id, method_id, params, results, results_done) = args;
+            let (interface_id, method_id, params, results) = args;
             let result_promise = client.call(interface_id, method_id, params, results);
             waiter.complete(result_promise);
         }
@@ -229,21 +227,15 @@ impl ClientHook for Client {
         }
 
         let inner_clone = self.inner.clone();
+        let mut promise = Promise::from_future(self.inner.borrow_mut().call_forwarding_queue.push(
+            (interface_id, method_id, params, results)).attach(inner_clone).flatten());
 
-        let (pipeline_sender, pipeline) = Pipeline::new();
-        unimplemented!()
+        if let Some(ref pipeline_inner) = self.inner.borrow().pipeline_inner {
+            promise = Promise::from_future(
+                pipeline_inner.borrow().promise_to_drive.clone().join(promise).map(|v| v.1));
+        }
 
-
-/*
-        let mut promise_for_pair = self.inner.borrow_mut().call_forwarding_queue.push(
-            (interface_id, method_id, params, results, results_done)).attach(inner_clone)
-            .and_then(move |(promise, pipeline)| {
-                pipeline_sender.complete(pipeline);
-                promise
-            });
-
-        (Promise::from_future(promise_promise.flatten()), Box::new(pipeline))
-*/
+        promise
     }
 
     fn get_ptr(&self) -> usize {
@@ -251,19 +243,15 @@ impl ClientHook for Client {
     }
 
     fn get_brand(&self) -> usize {
-        println!("queued get_brand");
         0
     }
 
     fn get_resolved(&self) -> Option<Box<ClientHook>> {
-        println!("queued::Client get_resolved()");
         match self.inner.borrow().redirect {
             Some(ref inner) => {
-                println!("Some");
                 Some(inner.clone())
             }
             None => {
-                println!("none");
                 None
             }
         }
@@ -274,6 +262,20 @@ impl ClientHook for Client {
             return Some(Promise::ok(client.add_ref()));
         }
 
-        Some(self.inner.borrow_mut().client_resolution_queue.push(()))
+        let maybe_resolution_op =
+            match self.inner.borrow().pipeline_inner {
+                Some(ref x) => Some(x.borrow().promise_to_drive.clone()),
+                None => None,
+            };
+
+       match maybe_resolution_op {
+            Some(res_op) => {
+                Some(Promise::from_future(
+                    res_op.join(self.inner.borrow_mut().client_resolution_queue.push(())).map(|v| v.1)))
+            }
+            None => {
+                Some(self.inner.borrow_mut().client_resolution_queue.push(()))
+            }
+        }
     }
 }
