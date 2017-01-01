@@ -241,6 +241,20 @@ impl ClientHook for Client {
             return Some(Promise::ok(client.add_ref()));
         }
 
-        Some(self.inner.borrow_mut().client_resolution_queue.push(()))
+        let maybe_resolution_op =
+            match self.inner.borrow().pipeline_inner {
+                Some(ref x) => Some(x.borrow().self_resolution_op.clone()),
+                None => None,
+            };
+
+        match maybe_resolution_op {
+            Some(res_op) => {
+                Some(Promise::from_future(
+                    res_op.join(self.inner.borrow_mut().client_resolution_queue.push(())).map(|v| v.1)))
+            }
+            None => {
+                Some(self.inner.borrow_mut().client_resolution_queue.push(()))
+            }
+        }
     }
 }
