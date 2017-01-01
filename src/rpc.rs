@@ -731,9 +731,9 @@ impl <VatId> ConnectionState<VatId> {
                     let bootstrap = try!(bootstrap);
                     let answer_id = bootstrap.get_question_id();
 
-//                    println!("handle Bootstrap. id = {}, thread = {:?}",
-//                             answer_id,
-//                             ::std::thread::current().name());
+                    println!("handle Bootstrap. id = {}, thread = {:?}",
+                             answer_id,
+                             ::std::thread::current().name());
 
                     if connection_state.connection.borrow().is_err() {
                         // Disconnected; ignore.
@@ -777,7 +777,7 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Call(call)) => {
-//                    println!("handle Call. thread = {:?}", ::std::thread::current().name());
+                    println!("handle Call. thread = {:?}", ::std::thread::current().name());
                     let call = try!(call);
                     let t = try!(connection_state.get_message_target(try!(call.get_target())));
                     BorrowWorkaround::Call(t)
@@ -786,9 +786,9 @@ impl <VatId> ConnectionState<VatId> {
                     let ret = try!(oret);
                     let question_id = ret.get_answer_id();
 
-//                    println!("handle Return. id = {}, thread = {:?}",
-//                             question_id,
-//                             ::std::thread::current().name());
+                    println!("handle Return. id = {}, thread = {:?}",
+                             question_id,
+                             ::std::thread::current().name());
 
                     match connection_state.questions.borrow_mut().slots[question_id as usize] {
                         Some(ref mut question) => {
@@ -866,9 +866,9 @@ impl <VatId> ConnectionState<VatId> {
                     let mut exports_to_release = Vec::new();
                     let answer_id = finish.get_question_id();
 
-//                    println!("handle Finish. id = {}, thread = {:?}",
-//                             answer_id,
-//                             ::std::thread::current().name());
+                    println!("handle Finish. id = {}, thread = {:?}",
+                             answer_id,
+                             ::std::thread::current().name());
 
                     let mut erase = false;
                     let answers_slots = &mut connection_state1.answers.borrow_mut().slots;
@@ -907,7 +907,7 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Resolve(resolve)) => {
-//                    println!("handle Resolve. thread = {:?}", ::std::thread::current().name());
+                    println!("handle Resolve. thread = {:?}", ::std::thread::current().name());
                     let resolve = try!(resolve);
                     let replacement_or_error = match try!(resolve.which()) {
                         ::rpc_capnp::resolve::Cap(c) => {
@@ -951,29 +951,35 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Release(release)) => {
-//                    println!("handle Release. thread = {:?}", ::std::thread::current().name());
+                    println!("handle Release. thread = {:?}", ::std::thread::current().name());
                     let release = try!(release);
                     try!(connection_state.release_export(release.get_id(), release.get_reference_count()));
                     BorrowWorkaround::Done
                 }
                 Ok(message::Disembargo(disembargo)) => {
-//                    println!("handle Disembargo. thread = {:?}", ::std::thread::current().name());
+                    println!("handle Disembargo. thread = {:?}", ::std::thread::current().name());
                     let disembargo = try!(disembargo);
                     let context = disembargo.get_context();
                     match try!(context.which()) {
                         ::rpc_capnp::disembargo::context::SenderLoopback(embargo_id) => {
                             let mut target =
                                 try!(connection_state.get_message_target(try!(disembargo.get_target())));
+                            println!("resolve time!");
                             loop {
                                 match target.get_resolved() {
                                     Some(resolved) => {
+                                        println!("resolved one step");
                                         target = resolved;
                                     }
                                     None => break,
                                 }
                             }
 
+                            println!("target brand {}, connection brand {}", target.get_brand(),
+                                connection_state.get_brand());
+
                             if target.get_brand() != connection_state.get_brand() {
+                                println!("oh no!");
                                 return Err(Error::failed(
                                     "'Disembargo' of type 'senderLoopback' sent to an object that does not point \
                                      back to the sender.".to_string()));
@@ -981,7 +987,7 @@ impl <VatId> ConnectionState<VatId> {
 
                             let connection_state_ref = connection_state.clone();
                             let connection_state_ref1 = connection_state.clone();
-                            let task = ::futures::future::ok(()).and_then(move |()| {
+                            let task = ::futures::future::lazy(move || {
                                 if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
                                     let mut message = c.new_outgoing_message(100); // TODO estimate size
                                     {
@@ -1061,7 +1067,7 @@ impl <VatId> ConnectionState<VatId> {
                      redirect_results)
                 };
 
-//                println!("call id {}", question_id);
+                println!("call id {}", question_id);
 
                 if connection_state.answers.borrow().slots.contains_key(&question_id) {
                     return Err(Error::failed(
@@ -1238,6 +1244,7 @@ impl <VatId> ConnectionState<VatId> {
     {
         match try!(target.which()) {
             ::rpc_capnp::message_target::ImportedCap(export_id) => {
+                println!("get_message_target(): imported cap {}", export_id);
                 match self.exports.borrow().slots.get(export_id as usize) {
                     Some(&Some(ref exp)) => {
                         Ok(exp.client_hook.clone())
@@ -1250,6 +1257,7 @@ impl <VatId> ConnectionState<VatId> {
             ::rpc_capnp::message_target::PromisedAnswer(promised_answer) => {
                 let promised_answer = try!(promised_answer);
                 let question_id = promised_answer.get_question_id();
+                println!("get_message_target(): promised answer {}", question_id);
 
                 match self.answers.borrow().slots.get(&question_id) {
                     None => {
@@ -2826,14 +2834,15 @@ impl <VatId> ClientHook for Client<VatId> {
                 let forked = ForkedPromise::new(promise);
                 let promise = forked.clone();
 
-                let pipeline = ::queued::Pipeline::new(Promise::from_future(forked.and_then(move |_| {
+                let (pipeline_sender, pipeline) = ::queued::Pipeline::new();
+/*                let pipeline = Promise::from_future(forked.and_then(move |_| {
                     results_done.map(move |results_done_hook| {
                         // TODO: why doesn't this work?
                         // Ok(pipeline.hook)
 
                         Box::new(::local::Pipeline::new(results_done_hook)) as Box<PipelineHook>
                     })
-                })));
+                })); */
 
                 (Promise::from_future(promise), Box::new(pipeline))
             }

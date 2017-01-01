@@ -37,14 +37,12 @@ pub struct PipelineInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<PipelineHook>>,
 
-    // Represents the operation which will set `redirect` when possible.
-    self_resolution_op: ForkedPromise<Promise<(), Error>>,
-
     clients_to_resolve: SenderQueue<(Weak<RefCell<ClientInner>>, Vec<PipelineOp>), ()>,
 }
 
 impl PipelineInner {
     fn resolve(this: &Rc<RefCell<PipelineInner>>, result: Result<Box<PipelineHook>, Error>) {
+        println!("RESOLVING PIPELINE. thread = {:?}", ::std::thread::current().name());
         let pipeline = match result {
             Ok(pipeline_hook) => pipeline_hook,
             Err(e) => Box::new(broken::Pipeline::new(e)),
@@ -62,29 +60,46 @@ impl PipelineInner {
     }
 }
 
+pub struct PipelineInnerSender {
+    inner: Option<Weak<RefCell<PipelineInner>>>,
+}
+
+impl Drop for PipelineInnerSender {
+    fn drop(&mut self) {
+        if let Some(weak_queued) = self.inner.take() {
+            if let Some(pipeline_inner) = weak_queued.upgrade() {
+                PipelineInner::resolve(
+                    &pipeline_inner,
+                    Ok(Box::new(
+                        ::broken::Pipeline::new(Error::failed("PipelineInnerSender was canceled".into())))));
+            }
+        }
+    }
+}
+
+impl PipelineInnerSender {
+    pub fn complete(mut self, pipeline: Box<PipelineHook>) {
+        if let Some(weak_queued) = self.inner.take() {
+            if let Some(pipeline_inner) = weak_queued.upgrade() {
+                ::queued::PipelineInner::resolve(&pipeline_inner, Ok(pipeline));
+            }
+        }
+    }
+}
+
 pub struct Pipeline {
     inner: Rc<RefCell<PipelineInner>>,
 }
 
 impl Pipeline {
-    pub fn new(promise_param: Promise<Box<PipelineHook>, Error>) -> Pipeline {
+    pub fn new() -> (PipelineInnerSender, Pipeline) {
         let inner = Rc::new(RefCell::new(PipelineInner {
             redirect: None,
-            self_resolution_op: ForkedPromise::new(Promise::ok(())),
             clients_to_resolve: SenderQueue::new(),
         }));
 
-        let this = Rc::downgrade(&inner);
-        let self_res = ForkedPromise::new(Promise::from_future(promise_param.then(move |result| {
-            let this = match this.upgrade() {
-                Some(v) => v,
-                None => return Err(Error::failed("dangling self reference in queued::Pipeline".into())),
-            };
-            PipelineInner::resolve(&this, result);
-            Ok(())
-        })));
-        inner.borrow_mut().self_resolution_op = self_res;
-        Pipeline { inner: inner }
+
+        (PipelineInnerSender { inner: Some(Rc::downgrade(&inner)) }, Pipeline { inner: inner })
     }
 }
 
@@ -207,17 +222,15 @@ impl ClientHook for Client {
 
         let inner_clone = self.inner.clone();
 
-        let mut promise_for_pair = Promise::from_future(self.inner.borrow_mut().call_forwarding_queue.push(
-            (interface_id, method_id, params, results, results_done)).attach(inner_clone));
+        let (pipeline_sender, pipeline) = Pipeline::new();
 
+        let mut promise_for_pair = self.inner.borrow_mut().call_forwarding_queue.push(
+            (interface_id, method_id, params, results, results_done)).attach(inner_clone)
+            .and_then(move |(promise, pipeline)| {
+                pipeline_sender.complete(pipeline);
+                promise
+            });
 
-        if let Some(ref pipeline_inner) = self.inner.borrow().pipeline_inner {
-            promise_for_pair = Promise::from_future(
-                pipeline_inner.borrow().self_resolution_op.clone().join(promise_for_pair).map(|v| v.1));
-        }
-
-        let (promise_promise, pipeline_promise) = ::split::split(promise_for_pair);
-        let pipeline = Pipeline::new(Promise::from_future(pipeline_promise));
         (Promise::from_future(promise_promise.flatten()), Box::new(pipeline))
     }
 
@@ -226,13 +239,21 @@ impl ClientHook for Client {
     }
 
     fn get_brand(&self) -> usize {
+        println!("queued get_brand");
         0
     }
 
     fn get_resolved(&self) -> Option<Box<ClientHook>> {
+        println!("queued::Client get_resolved()");
         match self.inner.borrow().redirect {
-            Some(ref inner) => Some(inner.clone()),
-            None => None,
+            Some(ref inner) => {
+                println!("Some");
+                Some(inner.clone())
+            }
+            None => {
+                println!("none");
+                None
+            }
         }
     }
 
@@ -241,20 +262,6 @@ impl ClientHook for Client {
             return Some(Promise::ok(client.add_ref()));
         }
 
-        let maybe_resolution_op =
-            match self.inner.borrow().pipeline_inner {
-                Some(ref x) => Some(x.borrow().self_resolution_op.clone()),
-                None => None,
-            };
-
-        match maybe_resolution_op {
-            Some(res_op) => {
-                Some(Promise::from_future(
-                    res_op.join(self.inner.borrow_mut().client_resolution_queue.push(())).map(|v| v.1)))
-            }
-            None => {
-                Some(self.inner.borrow_mut().client_resolution_queue.push(()))
-            }
-        }
+        Some(self.inner.borrow_mut().client_resolution_queue.push(()))
     }
 }

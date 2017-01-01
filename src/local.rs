@@ -205,7 +205,8 @@ impl RequestHook for Request {
         });
 
         let pipeline_promise = Promise::from_future(forked.clone().map(move |_| pipeline));
-        let pipeline = any_pointer::Pipeline::new(Box::new(::queued::Pipeline::new(pipeline_promise)));
+        let (pipeline_sender, pipeline) = ::queued::Pipeline::new();
+        let pipeline = any_pointer::Pipeline::new(Box::new(pipeline));
 
         ::capnp::capability::RemotePromise {
             promise: Promise::from_future(promise),
@@ -316,13 +317,17 @@ impl ClientHook for Client {
         let forked = ForkedPromise::new(promise);
 
         let branch = forked.clone();
+
+        let (pipeline_sender, pipeline) = ::queued::Pipeline::new();
+
         let pipeline_promise = branch.and_then(move |()| {
             results_done.map(move |results_done_hook| {
                 Box::new(Pipeline::new(results_done_hook)) as Box<PipelineHook>
             })
         });
 
-        let pipeline = Box::new(::queued::Pipeline::new(Promise::from_future(pipeline_promise)));
+
+        let pipeline = Box::new(pipeline);
         let completion_promise = forked;
 
         (Promise::from_future(completion_promise), pipeline)

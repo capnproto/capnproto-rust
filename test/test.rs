@@ -165,7 +165,7 @@ fn do_nothing() {
     });
 }
 
-
+/*
 #[test]
 fn basic_rpc_calls() {
     rpc_top_level(|mut core, client| {
@@ -585,7 +585,7 @@ fn dont_hold() {
         }))
     });
 }
-
+*/
 fn get_call_sequence(client: &::test_capnp::test_call_order::Client, expected: u32)
                      -> ::capnp::capability::RemotePromise<::test_capnp::test_call_order::get_call_sequence_results::Owned>
 {
@@ -626,18 +626,18 @@ fn embargo_success() {
         println!("before run(echo.promise)");
         let _resolved = try!(core.run(echo.promise));
 
-        let call3 = get_call_sequence(&pipeline, 3);
-        let call4 = get_call_sequence(&pipeline, 4);
-        let call5 = get_call_sequence(&pipeline, 5);
+//        let call3 = get_call_sequence(&pipeline, 3);
+//        let call4 = get_call_sequence(&pipeline, 4);
+//        let call5 = get_call_sequence(&pipeline, 5);
 
         println!("before run(join_all)");
         core.run(::futures::future::join_all(
             vec![call0.promise,
                  call1.promise,
                  call2.promise,
-                 call3.promise,
-                 call4.promise,
-                 call5.promise
+//                 call3.promise,
+//                 call4.promise,
+//                 call5.promise
             ]).and_then(|responses| {
             let mut counter = 0;
             for r in responses.into_iter() {
@@ -705,7 +705,7 @@ fn embargo_error() {
         Ok(())
     });
 }
-
+/*
 #[test]
 fn echo_destruction() {
     rpc_top_level(|mut core, client| {
@@ -747,8 +747,9 @@ fn local_client_call_not_immediate () {
     let remote_promise = req.send();
 
     // Hm... do we actually care about this?
-    //assert_eq!(call_count.get(), 0);
+    assert_eq!(call_count.get(), 0);
 
     let _ = remote_promise.promise.wait();
     assert_eq!(call_count.get(), 1);
 }
+*/
