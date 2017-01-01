@@ -118,12 +118,8 @@ impl <F> Future for ForkedPromise<F>
             Ok(::futures::Async::NotReady) => {
                 return Ok(::futures::Async::NotReady)
             }
-            Ok(::futures::Async::Ready(v)) => {
-                Ok(v)
-            }
-            Err(e) => {
-                Err(e)
-            }
+            Ok(::futures::Async::Ready(v)) => Ok(v),
+            Err(e) => Err(e),
         };
 
         match ::std::mem::replace(&mut *self.inner.state.borrow_mut(),

@@ -45,6 +45,7 @@ pub struct PipelineInner {
 
 impl PipelineInner {
     fn resolve(this: &Rc<RefCell<PipelineInner>>, result: Result<Box<PipelineHook>, Error>) {
+        assert!(this.borrow().redirect.is_none());
         let pipeline = match result {
             Ok(pipeline_hook) => pipeline_hook,
             Err(e) => Box::new(broken::Pipeline::new(e)),
@@ -148,8 +149,6 @@ pub struct ClientInner {
 
     pipeline_inner: Option<Rc<RefCell<PipelineInner>>>,
 
-    resolved: bool,
-
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
     // previously-queued calls are delivered before any new calls made in response to the resolution.
@@ -168,7 +167,7 @@ pub struct ClientInner {
 
 impl ClientInner {
     pub fn resolve(state: &Rc<RefCell<ClientInner>>, result: Result<Box<ClientHook>, Error>) {
-        assert!(!state.borrow().resolved);
+        assert!(state.borrow().redirect.is_none());
         let client = match result {
             Ok(clienthook) => clienthook,
             Err(e) => broken::new_cap(e),
@@ -184,7 +183,6 @@ impl ClientInner {
             waiter.complete(client.add_ref());
         }
         state.borrow_mut().pipeline_inner.take();
-        state.borrow_mut().resolved = true;
     }
 }
 
@@ -198,7 +196,6 @@ impl Client {
         let inner = Rc::new(RefCell::new(ClientInner {
             pipeline_inner: pipeline_inner,
             redirect: None,
-            resolved: false,
             call_forwarding_queue: SenderQueue::new(),
             client_resolution_queue: SenderQueue::new(),
         }));
