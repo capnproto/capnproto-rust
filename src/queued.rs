@@ -23,14 +23,15 @@ use capnp::{any_pointer};
 use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
-                                 ResultsHook, ResultsDoneHook};
+                                 ResultsHook};
 
 use futures::Future;
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use {broken, local, Attach, ForkedPromise};
+use {broken, local, Attach};
+use forked_promise::ForkedPromise;
 use sender_queue::SenderQueue;
 
 pub struct PipelineInner {

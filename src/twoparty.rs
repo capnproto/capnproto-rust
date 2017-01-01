@@ -29,7 +29,7 @@ use futures::sync::oneshot;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use {ForkedPromise};
+use forked_promise::ForkedPromise;
 
 pub type VatId = ::rpc_twoparty_capnp::Side;
 

@@ -22,7 +22,7 @@
 use capnp::{any_pointer};
 use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
-                                 RequestHook, ResultsHook, ResultsDoneHook};
+                                 RequestHook, ResultsHook};
 
 use capnp::capability::Promise;
 

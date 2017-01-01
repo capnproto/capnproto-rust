@@ -35,7 +35,8 @@ use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 use rpc_capnp::{message, return_, cap_descriptor};
-use {broken, ForkedPromise, Attach};
+use forked_promise::ForkedPromise;
+use {broken, Attach};
 use task_set::TaskSet;
 
 /*
@@ -1902,7 +1903,7 @@ impl <VatId> Pipeline<VatId> {
         }));
         match redirect_later {
             Some(redirect_later_promise) => {
-                let fork = ForkedPromise::new_queued(redirect_later_promise);
+                let fork = ForkedPromise::new(redirect_later_promise);
                 let this = Rc::downgrade(&state);
                 let resolve_self_promise = connection_state.eagerly_evaluate(fork.clone().then(move |response| {
                     let state = match this.upgrade() {
