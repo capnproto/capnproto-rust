@@ -36,7 +36,8 @@ use std::rc::{Rc, Weak};
 
 use rpc_capnp::{message, return_, cap_descriptor};
 use forked_promise::ForkedPromise;
-use {broken, Attach};
+use attach::Attach;
+use broken;
 use task_set::TaskSet;
 
 /*

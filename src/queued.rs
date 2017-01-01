@@ -30,7 +30,8 @@ use futures::Future;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use {broken, local, Attach};
+use {broken, local};
+use attach::Attach;
 use forked_promise::ForkedPromise;
 use sender_queue::SenderQueue;
 

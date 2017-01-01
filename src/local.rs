@@ -25,7 +25,7 @@ use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
 
-use {Attach};
+use attach::Attach;
 use futures::Future;
 use futures::sync::oneshot;
 
