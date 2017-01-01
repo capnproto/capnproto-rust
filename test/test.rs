@@ -165,7 +165,7 @@ fn do_nothing() {
     });
 }
 
-/*
+
 #[test]
 fn basic_rpc_calls() {
     rpc_top_level(|mut core, client| {
@@ -207,7 +207,7 @@ fn basic_rpc_calls() {
         Ok(())
     });
 }
-
+/*
 
 #[test]
 fn basic_pipelining() {
@@ -734,6 +734,7 @@ fn echo_destruction() {
         }))
     })
 }
+*/
 
 #[test]
 fn local_client_call_not_immediate () {
@@ -752,4 +753,4 @@ fn local_client_call_not_immediate () {
     let _ = remote_promise.promise.wait();
     assert_eq!(call_count.get(), 1);
 }
-*/
+

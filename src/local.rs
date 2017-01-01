@@ -183,33 +183,26 @@ impl RequestHook for Request {
         let tmp = *self;
         let Request { message, interface_id, method_id, client } = tmp;
         let params = Params::new(message);
+
         let (results_done_fulfiller, results_done_promise) = oneshot::channel::<Box<ResultsDoneHook>>();
         let results_done_promise = results_done_promise.map_err(|e| e.into());
-
-        let forked_results_done = ForkedPromise::new(results_done_promise);
         let results = Results::new(results_done_fulfiller);
+        let promise = client.call(interface_id, method_id, Box::new(params), Box::new(results));
 
-        let (promise, pipeline) = client.call(interface_id, method_id,
-                                              Box::new(params), Box::new(results),
-                                              Promise::from_future(forked_results_done.clone()));
+        let (pipeline_sender, mut pipeline) = ::queued::Pipeline::new();
 
-        let results_done_branch2 = forked_results_done.clone();
-
-        // Fork so that dropping just the returned promise doesn't cancel the call.
-        let forked = ForkedPromise::new(promise);
-
-        let promise = forked.clone().and_then(move |()| {
-            results_done_branch2.and_then(|results_done_hook| {
-                Ok(::capnp::capability::Response::new(Box::new(Response::new(results_done_hook))))
-            })
+        let p = promise.join(results_done_promise).and_then(move |((), results_done_hook)| {
+            pipeline_sender.complete(Box::new(Pipeline::new(results_done_hook.add_ref())) as Box<PipelineHook>);
+            Ok((::capnp::capability::Response::new(Box::new(Response::new(results_done_hook))), ()))
         });
 
-        let pipeline_promise = Promise::from_future(forked.clone().map(move |_| pipeline));
-        let (pipeline_sender, pipeline) = ::queued::Pipeline::new();
+        let (left, right) = ::split::split(p);
+
+        pipeline.drive(right);
         let pipeline = any_pointer::Pipeline::new(Box::new(pipeline));
 
         ::capnp::capability::RemotePromise {
-            promise: Promise::from_future(promise),
+            promise: Promise::from_future(left),
             pipeline: pipeline,
         }
     }
@@ -291,9 +284,8 @@ impl ClientHook for Client {
             Box::new(Request::new(interface_id, method_id, size_hint, self.add_ref())))
     }
 
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>,
-            results_done: Promise<Box<ResultsDoneHook>, Error>)
-        -> (Promise<(), Error>, Box<PipelineHook>)
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
+        -> Promise<(), Error>
     {
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
@@ -314,23 +306,7 @@ impl ClientHook for Client {
                                  ::capnp::capability::Results::new(results))
         }).attach(self.add_ref());
 
-        let forked = ForkedPromise::new(promise);
-
-        let branch = forked.clone();
-
-        let (pipeline_sender, pipeline) = ::queued::Pipeline::new();
-
-        let pipeline_promise = branch.and_then(move |()| {
-            results_done.map(move |results_done_hook| {
-                Box::new(Pipeline::new(results_done_hook)) as Box<PipelineHook>
-            })
-        });
-
-
-        let pipeline = Box::new(pipeline);
-        let completion_promise = forked;
-
-        (Promise::from_future(completion_promise), pipeline)
+        Promise::from_future(promise)
     }
 
     fn get_ptr(&self) -> usize {

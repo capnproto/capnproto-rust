@@ -37,6 +37,8 @@ pub struct PipelineInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<PipelineHook>>,
 
+    promise_to_drive: ForkedPromise<Promise<(), Error>>,
+
     clients_to_resolve: SenderQueue<(Weak<RefCell<ClientInner>>, Vec<PipelineOp>), ()>,
 }
 
@@ -95,11 +97,18 @@ impl Pipeline {
     pub fn new() -> (PipelineInnerSender, Pipeline) {
         let inner = Rc::new(RefCell::new(PipelineInner {
             redirect: None,
+            promise_to_drive: ForkedPromise::new(Promise::ok(())),
             clients_to_resolve: SenderQueue::new(),
         }));
 
 
         (PipelineInnerSender { inner: Some(Rc::downgrade(&inner)) }, Pipeline { inner: inner })
+    }
+
+    pub fn drive<F>(&mut self, promise: F)
+        where F: Future<Item=(), Error=Error> + 'static
+    {
+        self.inner.borrow_mut().promise_to_drive = ForkedPromise::new(Promise::from_future(promise));
     }
 }
 
@@ -146,7 +155,7 @@ pub struct ClientInner {
     // previously-queued calls are delivered before any new calls made in response to the resolution.
     call_forwarding_queue: SenderQueue<(u64, u16, Box<ParamsHook>, Box<ResultsHook>,
                                         Promise<Box<ResultsDoneHook>, Error>),
-                                       (Promise<(), Error>, Box<PipelineHook>)>,
+                                       (Promise<(), Error>)>,
 
 
     // whenMoreResolved() returns forks of this promise.  These must resolve *after* queued calls
@@ -168,8 +177,8 @@ impl ClientInner {
         state.borrow_mut().redirect = Some(client.add_ref());
         for (args, waiter) in state.borrow_mut().call_forwarding_queue.drain() {
             let (interface_id, method_id, params, results, results_done) = args;
-            let result_pair = client.call(interface_id, method_id, params, results, results_done);
-            waiter.complete(result_pair);
+            let result_promise = client.call(interface_id, method_id, params, results);
+            waiter.complete(result_promise);
         }
 
         for ((), waiter) in state.borrow_mut().client_resolution_queue.drain() {
@@ -212,18 +221,20 @@ impl ClientHook for Client {
             Box::new(local::Request::new(interface_id, method_id, size_hint, self.add_ref())))
     }
 
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>,
-            results_done: Promise<Box<ResultsDoneHook>, Error>)
-        -> (Promise<(), Error>, Box<PipelineHook>)
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
+        -> Promise<(), Error>
     {
         if let Some(ref client) = self.inner.borrow().redirect {
-           return client.call(interface_id, method_id, params, results, results_done)
+           return client.call(interface_id, method_id, params, results)
         }
 
         let inner_clone = self.inner.clone();
 
         let (pipeline_sender, pipeline) = Pipeline::new();
+        unimplemented!()
 
+
+/*
         let mut promise_for_pair = self.inner.borrow_mut().call_forwarding_queue.push(
             (interface_id, method_id, params, results, results_done)).attach(inner_clone)
             .and_then(move |(promise, pipeline)| {
@@ -232,6 +243,7 @@ impl ClientHook for Client {
             });
 
         (Promise::from_future(promise_promise.flatten()), Box::new(pipeline))
+*/
     }
 
     fn get_ptr(&self) -> usize {

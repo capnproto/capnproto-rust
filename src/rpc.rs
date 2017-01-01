@@ -1083,7 +1083,6 @@ impl <VatId> ConnectionState<VatId> {
                 let results = Results::new(&connection_state, question_id, redirect_results,
                                            results_inner_fulfiller, answer.received_finish.clone());
 
-
                 let (redirected_results_done_promise, redirected_results_done_fulfiller) =
                     if redirect_results {
                         let (f, p) = oneshot::channel::<Result<Response<VatId>, Error>>();
@@ -1133,9 +1132,9 @@ impl <VatId> ConnectionState<VatId> {
                     answer.active = true;
                 }
 
-                let (promise, pipeline) = capability.call(interface_id, method_id,
-                                                          Box::new(params), Box::new(results),
-                                                          Promise::from_future(box_results_done_promise));
+                let promise = capability.call(interface_id, method_id, Box::new(params), Box::new(results));
+
+                let pipeline = unimplemented!();
 
                 let promise = promise.then(move |result| {
                     call_succeeded_fulfiller.complete(result);
@@ -2806,9 +2805,8 @@ impl <VatId> ClientHook for Client<VatId> {
     }
 
     fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>,
-            mut results: Box<ResultsHook>,
-            results_done: Promise<Box<ResultsDoneHook>, Error>)
-        -> (Promise<(), Error>, Box<PipelineHook>)
+            mut results: Box<ResultsHook>)
+        -> Promise<(), Error>
     {
         // Implement call() by copying params and results messages.
 
@@ -2821,8 +2819,7 @@ impl <VatId> ClientHook for Client<VatId> {
         });
 
         match maybe_request {
-            Err(e) => return (Promise::err(e.clone()),
-                              Box::new(broken::Pipeline::new(e))),
+            Err(e) => Promise::err(e.clone()),
             Ok(request) => {
                 let ::capnp::capability::RemotePromise { promise, pipeline: _ } = request.send();
 
@@ -2844,7 +2841,7 @@ impl <VatId> ClientHook for Client<VatId> {
                     })
                 })); */
 
-                (Promise::from_future(promise), Box::new(pipeline))
+                Promise::from_future(promise)
             }
         }
         // TODO implement this in terms of direct tail call.
