@@ -44,9 +44,8 @@ pub trait ClientHook {
                 -> Request<any_pointer::Owned, any_pointer::Owned>;
 
     fn call(&self, interface_id: u64, method_id: u16,
-            params: Box<ParamsHook>, results: Box<ResultsHook>,
-            results_done: ::capability::Promise<Box<ResultsDoneHook>, ::Error>)
-            -> (::capability::Promise<(), ::Error>, Box<PipelineHook>);
+            params: Box<ParamsHook>, results: Box<ResultsHook>)
+            -> ::capability::Promise<(), ::Error>;
 
     fn get_brand(&self) -> usize;
     fn get_ptr(&self) -> usize;
