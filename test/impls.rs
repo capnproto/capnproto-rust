@@ -167,7 +167,6 @@ impl test_interface::Server for TestExtends {
            mut results: test_interface::FooResults)
            -> Promise<(), Error>
     {
-        println!("TestExtends::foo(). thread = {:?}", ::std::thread::current().name());
         let params = pry!(params.get());
         if params.get_i() != 321 {
             return Promise::err(Error::failed(format!("expected i to equal 321")));
@@ -234,7 +233,6 @@ impl test_pipeline::Server for TestPipeline {
                mut results: test_pipeline::GetCapResults)
                -> Promise<(), Error>
     {
-        println!("TestPipeline::get_cap(). thread = {:?}", ::std::thread::current().name());
         if pry!(params.get()).get_n() != 234 {
             return Promise::err(Error::failed("expected n to equal 234".to_string()));
         }
@@ -243,7 +241,6 @@ impl test_pipeline::Server for TestPipeline {
         request.get().set_i(123);
         request.get().set_j(true);
         Promise::from_future(request.send().promise.and_then(move |response| {
-            println!("TestPipeline::get_cap() after foo() call. thread = {:?}", ::std::thread::current().name());
             if try!(try!(response.get()).get_x()) != "foo" {
                 return Err(Error::failed("expected x to equal 'foo'".to_string()));
             }
@@ -286,7 +283,6 @@ impl test_call_order::Server for TestCallOrder {
                          mut results: test_call_order::GetCallSequenceResults)
                          -> Promise<(), Error>
     {
-        println!("TestCallOrder::get_call_sequence(). expected = {}", _params.get().unwrap().get_expected());
         results.get().set_n(self.count);
         self.count += 1;
         Promise::ok(())
@@ -322,7 +318,6 @@ impl test_call_order::Server for TestMoreStuff {
                          mut results: test_call_order::GetCallSequenceResults)
                          -> Promise<(), Error>
     {
-        println!("TestMoreStuff::get_call_sequence(). expected = {}", _params.get().unwrap().get_expected());
         results.get().set_n(self.call_count);
         self.call_count += 1;
         Promise::ok(())
