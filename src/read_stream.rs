@@ -23,6 +23,7 @@ use futures::{stream, Async, Future, Poll};
 
 use capnp::{Error, message};
 
+#[must_use = "streams do nothing unless polled"]
 pub struct ReadStream<R> where R: io::Read {
     options: message::ReaderOptions,
     read: ::serialize::Read<R>,
