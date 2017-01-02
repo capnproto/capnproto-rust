@@ -99,17 +99,6 @@ pub trait ResultsHook {
         (::capability::Promise<(), ::Error>, Box<PipelineHook>);
 }
 
-pub trait ResultsDoneHook {
-    fn add_ref(&self) -> Box<ResultsDoneHook>;
-    fn get<'a>(&'a self) -> ::Result<any_pointer::Reader<'a>>;
-}
-
-impl Clone for Box<ResultsDoneHook> {
-    fn clone(&self) -> Box<ResultsDoneHook> {
-        self.add_ref()
-    }
-}
-
 pub trait ParamsHook {
     fn get<'a>(&'a self) -> ::Result<any_pointer::Reader<'a>>;
 }
