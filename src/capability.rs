@@ -29,6 +29,9 @@ use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, Res
 #[cfg(feature = "rpc")]
 use futures::Future;
 
+/// A computation that might eventually resolve to a value of type `T` or to an error
+///  of type `E`. Dropping the promise cancels the computation.
+#[must_use = "futures do nothing unless polled"]
 pub struct Promise<T, E> {
     #[allow(dead_code)]
     inner: PromiseInner<T, E>,
