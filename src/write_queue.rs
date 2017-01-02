@@ -37,6 +37,7 @@ enum State<W, M> where W: io::Write, M: AsOutputSegments {
 }
 
 /// A queue of messages being written.
+#[must_use = "futures do nothing unless polled"]
 pub struct WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
     inner: Rc<RefCell<Inner<M>>>,
     state: State<W, M>,
@@ -80,6 +81,7 @@ impl <M> Drop for Sender<M> where M: AsOutputSegments {
     }
 }
 
+/// Creates a new WriteQueue that wraps the given writer.
 pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
     where W: io::Write, M: AsOutputSegments
 {
@@ -137,6 +139,7 @@ impl <M> Sender<M> where M: AsOutputSegments + 'static {
 
     /// Commands the queue to stop writing messages once it is empty. After this method has been called,
     /// any new calls to `send()` will return a future that immediately resolves to an error.
+    /// If the passed-in `result` is an error, then the `WriteQueue` will resolve to that error.
     pub fn terminate(&mut self, result: Result<(), Error>) -> Box<Future<Item=(), Error=Error>> {
         let (complete, receiver) = futures::oneshot();
 

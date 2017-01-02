@@ -1,0 +1,6 @@
+The following people have made large code contributions to this repository.
+Those contributions are copyright the respective authors and licensed by them
+under the same MIT license terms as the rest of the library.
+
+David Renshaw: Primary Author
+Dan Burkert: The [initial implementation](https://github.com/dwrensha/capnproto-rust/pull/42) of nonblocking reading and writing.
