@@ -437,6 +437,12 @@ impl <'a, A> AsOutputSegments for &'a message::Builder<A> where A: message::Allo
     }
 }
 
+impl <A> AsOutputSegments for ::std::rc::Rc<message::Builder<A>> where A: message::Allocator {
+    fn as_output_segments<'a>(&'a self) -> OutputSegments<'a> {
+        self.get_segments_for_output()
+    }
+}
+
 /// Begins an asynchronous write of provided message to `writer`.
 pub fn write_message<W, M>(writer: W, message: M) -> Write<W, M>
     where W: ::std::io::Write, M: AsOutputSegments
