@@ -49,7 +49,7 @@ struct Inner<M> {
 
     // If set, then the queue has been requested to end, and we should complete the oneshot once
     // the queue has been emptied.
-    end_notifier: Option<oneshot::Sender<()>>
+    end_notifier: Option<(Result<(), Error>, oneshot::Sender<()>)>
 }
 
 /// A handle that allows message to be sent to a `WriteQueue`.
@@ -137,14 +137,14 @@ impl <M> Sender<M> where M: AsOutputSegments + 'static {
 
     /// Commands the queue to stop writing messages once it is empty. After this method has been called,
     /// any new calls to `send()` will return a future that immediately resolves to an error.
-    pub fn end(&mut self) -> Box<Future<Item=(), Error=Error>> {
+    pub fn terminate(&mut self, result: Result<(), Error>) -> Box<Future<Item=(), Error=Error>> {
         let (complete, receiver) = futures::oneshot();
 
         match self.inner.upgrade() {
             None => (),
             Some(rc_inner) => {
                 // TODO: what if end_notifier is already full? Maybe it should be a vector?
-                rc_inner.borrow_mut().end_notifier = Some(complete);
+                rc_inner.borrow_mut().end_notifier = Some((result, complete));
 
                 match rc_inner.borrow_mut().task.take() {
                     Some(t) => t.unpark(),
@@ -216,10 +216,15 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                     self.state = new_state;
                 }
                 IntermediateState::Resolve => {
-                    let ender = self.inner.borrow_mut().end_notifier.take();
-                    match ender {
+                    let end_notifier = self.inner.borrow_mut().end_notifier.take();
+                    match end_notifier {
                         None => (),
-                        Some(complete) => complete.complete(()),
+                        Some((result, complete)) => {
+                            complete.complete(());
+                            if let Err(e) = result {
+                                return Err(e)
+                            }
+                        }
                     }
                     match ::std::mem::replace(&mut self.state, State::Empty) {
                         State::BetweenWrites(w) => {
