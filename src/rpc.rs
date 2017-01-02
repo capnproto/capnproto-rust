@@ -550,11 +550,11 @@ impl <VatId> ConnectionState<VatId> {
             &mut Err(_) => unreachable!(),
         }
 
-        let connection = ::std::mem::replace(&mut *self.connection.borrow_mut(), Err(error));
+        let connection = ::std::mem::replace(&mut *self.connection.borrow_mut(), Err(error.clone()));
 
         match connection {
             Ok(mut c) => {
-                let promise = c.shutdown().then(|r| match r {
+                let promise = c.shutdown(Err(error)).then(|r| match r {
                     Ok(()) => Ok(()),
                     Err(e) => {
                         if e.kind != ::capnp::ErrorKind::Disconnected {

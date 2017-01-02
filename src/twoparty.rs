@@ -160,8 +160,8 @@ impl <T> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T>
         }
     }
 
-    fn shutdown(&mut self) -> Promise<(), ::capnp::Error> {
-        Promise::from_future(self.inner.borrow_mut().sender.end().map_err(|e| e.into()))
+    fn shutdown(&mut self, result: ::capnp::Result<()>) -> Promise<(), ::capnp::Error> {
+        Promise::from_future(self.inner.borrow_mut().sender.terminate(result).map_err(|e| e.into()))
     }
 }
 

@@ -135,7 +135,7 @@ pub trait Connection<VatId> {
 
     // Waits until all outgoing messages have been sent, then shuts down the outgoing stream. The
     // returned promise resolves after shutdown is complete.
-    fn shutdown(&mut self) -> Promise<(), Error>;
+    fn shutdown(&mut self, result: ::capnp::Result<()>) -> Promise<(), Error>;
 }
 
 pub trait VatNetwork<VatId> {
