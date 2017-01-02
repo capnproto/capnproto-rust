@@ -1840,7 +1840,7 @@ struct PipelineState<VatId> where VatId: 'static {
 
     resolve_self_promise: Promise<(), Error>,
     promise_clients_to_resolve:
-         RefCell<::sender_queue::SenderQueue<(Rc<RefCell<PromiseClient<VatId>>>, Vec<PipelineOp>), ()>>,
+         RefCell<::sender_queue::SenderQueue<(Weak<RefCell<PromiseClient<VatId>>>, Vec<PipelineOp>), ()>>,
     resolution_waiters: ::sender_queue::SenderQueue<(), ()>,
 }
 
@@ -1863,7 +1863,9 @@ impl <VatId> PipelineState<VatId> where VatId: 'static {
                 }
                 Err(e) => Err(e),
             };
-            c.borrow_mut().resolve(resolved);
+            if let Some(c) = c.upgrade() {
+                c.borrow_mut().resolve(resolved);
+            }
         }
 
         let new_variant = match response {
@@ -1961,7 +1963,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
                             &connection_state,
                             Box::new(client),
                             None);
-                        promise_clients_to_resolve.borrow_mut().push_detach((promise_client.clone(), ops));
+                        promise_clients_to_resolve.borrow_mut().push_detach((Rc::downgrade(&promise_client), ops));
                         let result: Client<VatId> = promise_client.into();
                         Box::new(result)
                     }
