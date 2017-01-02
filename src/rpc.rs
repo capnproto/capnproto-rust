@@ -2174,10 +2174,6 @@ impl <VatId> ResultsHook for Results<VatId> {
     fn allow_cancellation(&self) {
         unimplemented!()
     }
-/*
-    fn send_return(self: Box<Self>) -> Promise<Box<ResultsDoneHook>, Error> {
-        let tmp = *self;
-    }*/
 }
 
 enum ResultsDoneVariant {
@@ -2190,7 +2186,7 @@ struct ResultsDone {
 }
 
 impl ResultsDone {
-    fn from_results_inner<VatId>(mut results_inner: Result<ResultsInner<VatId>, Error>,
+    fn from_results_inner<VatId>(results_inner: Result<ResultsInner<VatId>, Error>,
                                  call_status: Result<(), Error>,
                                  pipeline_sender: ::queued::PipelineInnerSender)
                                  -> Result<Box<ResultsDoneHook>, Error>
@@ -2236,7 +2232,6 @@ impl ResultsDone {
                             }
                             (false, Ok(())) => {
                                 let exports = {
-                                    // hmm.. these trys can screw prevent us from filling in the pipeline sender
                                     let root: message::Builder = try!(try!(message.get_body()).get_as());
                                     match try!(root.which()) {
                                         message::Return(ret) => {
@@ -2257,12 +2252,7 @@ impl ResultsDone {
                                     }
                                 };
 
-                                let connection_state1 = connection_state.clone();
                                 let (_promise, m) = message.send();
-//                                let promise = promise.map(move |message| {
-//                                    let _ = connection_state1;
-//                                    ()
-//                                });
                                 connection_state.answer_has_sent_return(answer_id, exports);
                                 let hook = Box::new(ResultsDone::rpc(m, cap_table)) as Box<ResultsDoneHook>;
                                 pipeline_sender.complete(Box::new(
