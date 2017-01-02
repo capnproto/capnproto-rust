@@ -116,7 +116,8 @@ pub trait OutgoingMessage {
     /// Sends the message. Returns a promise for the message that resolves once the send has completed.
     /// Dropping the returned promise does *not* cancel the send.
     fn send(self: Box<Self>)
-            -> Promise<::capnp::message::Builder<::capnp::message::HeapAllocator>, ::capnp::Error>;
+            -> (Promise<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>, ::capnp::Error>,
+                Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>);
 
     fn take(self: Box<Self>) -> ::capnp::message::Builder<::capnp::message::HeapAllocator>;
 }

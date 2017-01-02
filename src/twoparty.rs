@@ -51,7 +51,7 @@ impl ::IncomingMessage for IncomingMessage {
 
 struct OutgoingMessage {
     message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
-    sender: ::capnp_futures::Sender<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
+    sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
 }
 
 impl ::OutgoingMessage for OutgoingMessage {
@@ -64,11 +64,14 @@ impl ::OutgoingMessage for OutgoingMessage {
     }
 
     fn send(self: Box<Self>)
-            -> Promise<::capnp::message::Builder<::capnp::message::HeapAllocator>, ::capnp::Error>
+            ->
+        (Promise<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>, ::capnp::Error>,
+         Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>)
     {
         let tmp = *self;
         let OutgoingMessage {message, mut sender} = tmp;
-        Promise::from_future(sender.send(message).map_err(|e| e.into()))
+        let m = Rc::new(message);
+        (Promise::from_future(sender.send(m.clone()).map_err(|e| e.into())), m)
     }
 
     fn take(self: Box<Self>)
@@ -80,7 +83,7 @@ impl ::OutgoingMessage for OutgoingMessage {
 
 struct ConnectionInner<T> where T: ::std::io::Read + 'static {
     input_stream: Rc<RefCell<Option<T>>>,
-    sender: ::capnp_futures::Sender<::capnp::message::Builder<::capnp::message::HeapAllocator>>,
+    sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
     side: ::rpc_twoparty_capnp::Side,
     receive_options: ReaderOptions,
     on_disconnect_fulfiller: Option<oneshot::Sender<()>>,
