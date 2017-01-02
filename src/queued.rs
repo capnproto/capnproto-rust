@@ -61,6 +61,8 @@ impl PipelineInner {
             }
             waiter.complete(());
         }
+
+        this.borrow_mut().promise_to_drive = ForkedPromise::new(Promise::ok(()));
     }
 }
 
@@ -110,7 +112,9 @@ impl Pipeline {
     pub fn drive<F>(&mut self, promise: F)
         where F: Future<Item=(), Error=Error> + 'static
     {
-        self.inner.borrow_mut().promise_to_drive = ForkedPromise::new(Promise::from_future(promise));
+        let new = ForkedPromise::new(
+            Promise::from_future(self.inner.borrow_mut().promise_to_drive.clone().join(promise).map(|_|())));
+        self.inner.borrow_mut().promise_to_drive = new;
     }
 }
 
@@ -136,7 +140,8 @@ impl PipelineHook for Pipeline {
             &None => (),
         }
 
-        let queued_client = Client::new(Some(self.inner.clone()));
+        let mut queued_client = Client::new(Some(self.inner.clone()));
+        queued_client.drive(self.inner.borrow().promise_to_drive.clone());
         let weak_queued = Rc::downgrade(&queued_client.inner);
         self.inner.borrow_mut().clients_to_resolve.push_detach((weak_queued, ops));
 
@@ -148,14 +153,17 @@ pub struct ClientInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<ClientHook>>,
 
+    // The queued::PipelineInner that this client is derived from, if any. We need to hold on
+    // to a reference to it so that it doesn't get canceled before the client is resolved.
     pipeline_inner: Option<Rc<RefCell<PipelineInner>>>,
+
+    promise_to_drive: Option<ForkedPromise<Promise<(), Error>>>,
 
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
     // previously-queued calls are delivered before any new calls made in response to the resolution.
     call_forwarding_queue: SenderQueue<(u64, u16, Box<ParamsHook>, Box<ResultsHook>),
                                        (Promise<(), Error>)>,
-
 
     // whenMoreResolved() returns forks of this promise.  These must resolve *after* queued calls
     // have been initiated (so that any calls made in the whenMoreResolved() handler are correctly
@@ -183,6 +191,7 @@ impl ClientInner {
         for ((), waiter) in state.borrow_mut().client_resolution_queue.drain() {
             waiter.complete(client.add_ref());
         }
+        state.borrow_mut().promise_to_drive.take();
         state.borrow_mut().pipeline_inner.take();
     }
 }
@@ -195,6 +204,7 @@ impl Client {
     pub fn new(pipeline_inner: Option<Rc<RefCell<PipelineInner>>>) -> Client
     {
         let inner = Rc::new(RefCell::new(ClientInner {
+            promise_to_drive: None,
             pipeline_inner: pipeline_inner,
             redirect: None,
             call_forwarding_queue: SenderQueue::new(),
@@ -203,6 +213,13 @@ impl Client {
         Client {
             inner: inner
         }
+    }
+
+    pub fn drive<F>(&mut self, promise: F)
+        where F: Future<Item=(), Error=Error> + 'static
+    {
+        assert!(self.inner.borrow().promise_to_drive.is_none());
+        self.inner.borrow_mut().promise_to_drive = Some(ForkedPromise::new(Promise::from_future(promise)));
     }
 }
 
@@ -226,15 +243,13 @@ impl ClientHook for Client {
         }
 
         let inner_clone = self.inner.clone();
-        let mut promise = Promise::from_future(self.inner.borrow_mut().call_forwarding_queue.push(
-            (interface_id, method_id, params, results)).attach(inner_clone).flatten());
+        let promise = self.inner.borrow_mut().call_forwarding_queue.push(
+            (interface_id, method_id, params, results)).attach(inner_clone).flatten();
 
-        if let Some(ref pipeline_inner) = self.inner.borrow().pipeline_inner {
-            promise = Promise::from_future(
-                pipeline_inner.borrow().promise_to_drive.clone().join(promise).map(|v| v.1));
+        match self.inner.borrow().promise_to_drive {
+            Some(ref p) => Promise::from_future(p.clone().join(promise).map(|v| v.1)),
+            None => Promise::from_future(promise),
         }
-
-        promise
     }
 
     fn get_ptr(&self) -> usize {
@@ -261,20 +276,10 @@ impl ClientHook for Client {
             return Some(Promise::ok(client.add_ref()));
         }
 
-        let maybe_resolution_op =
-            match self.inner.borrow().pipeline_inner {
-                Some(ref x) => Some(x.borrow().promise_to_drive.clone()),
-                None => None,
-            };
-
-       match maybe_resolution_op {
-            Some(res_op) => {
-                Some(Promise::from_future(
-                    res_op.join(self.inner.borrow_mut().client_resolution_queue.push(())).map(|v| v.1)))
-            }
-            None => {
-                Some(self.inner.borrow_mut().client_resolution_queue.push(()))
-            }
+        let promise = self.inner.borrow_mut().client_resolution_queue.push(());
+        match self.inner.borrow().promise_to_drive {
+            Some(ref p) => Some(Promise::from_future(p.clone().join(promise).map(|v| v.1))),
+            None => Some(Promise::from_future(promise)),
         }
     }
 }
