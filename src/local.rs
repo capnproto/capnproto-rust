@@ -23,7 +23,7 @@ use capnp::{any_pointer};
 use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
-                                 RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
+                                 RequestHook, ResponseHook, ResultsHook};
 
 use attach::Attach;
 use futures::Future;
@@ -31,6 +31,18 @@ use futures::sync::oneshot;
 
 use std::cell::RefCell;
 use std::rc::{Rc};
+
+
+pub trait ResultsDoneHook {
+    fn add_ref(&self) -> Box<ResultsDoneHook>;
+    fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>>;
+}
+
+impl Clone for Box<ResultsDoneHook> {
+    fn clone(&self) -> Box<ResultsDoneHook> {
+        self.add_ref()
+    }
+}
 
 pub struct Response {
     results: Box<ResultsDoneHook>

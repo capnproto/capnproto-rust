@@ -23,7 +23,7 @@ use capnp::{any_pointer};
 use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
-                                 RequestHook, ResponseHook, ResultsHook, ResultsDoneHook};
+                                 RequestHook, ResponseHook, ResultsHook};
 
 use futures::Future;
 use futures::sync::oneshot;
@@ -38,6 +38,7 @@ use rpc_capnp::{message, return_, cap_descriptor};
 use forked_promise::ForkedPromise;
 use attach::Attach;
 use broken;
+use local::ResultsDoneHook;
 use task_set::TaskSet;
 
 /*
