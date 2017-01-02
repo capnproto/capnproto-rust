@@ -59,10 +59,10 @@ fn drop_rpc_system() {
     let (reader, writer) = instream.split();
 
     let network =
-        Box::new(twoparty::VatNetwork::new(reader, writer, &handle,
+        Box::new(twoparty::VatNetwork::new(reader, writer,
                                            rpc_twoparty_capnp::Side::Client,
                                            Default::default()));
-    let rpc_system = RpcSystem::new(network, None, handle);
+    let rpc_system = RpcSystem::new(network, None);
     drop(rpc_system);
     core.turn(Some(::std::time::Duration::from_millis(1)));
     core.turn(Some(::std::time::Duration::from_millis(1)));
@@ -77,29 +77,34 @@ fn drop_import_client_after_disconnect() {
     let  (client_reader, client_writer) = reactor::PollEvented::new(client_stream, &handle).unwrap().split();
 
     let client_network =
-        Box::new(twoparty::VatNetwork::new(client_reader, client_writer, &handle,
+        Box::new(twoparty::VatNetwork::new(client_reader, client_writer,
                                            rpc_twoparty_capnp::Side::Client,
                                            Default::default()));
 
-    let mut client_rpc_system = RpcSystem::new(client_network, None, handle.clone());
+    let mut client_rpc_system = RpcSystem::new(client_network, None);
 
     let (server_reader, server_writer) = reactor::PollEvented::new(server_stream, &handle).unwrap().split();
 
     let server_network =
-        Box::new(twoparty::VatNetwork::new(server_reader, server_writer, &handle,
+        Box::new(twoparty::VatNetwork::new(server_reader, server_writer,
                                            rpc_twoparty_capnp::Side::Server,
                                            Default::default()));
 
     let bootstrap =
         test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
 
-    let server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client), handle.clone());
+    let server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client));
 
     let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+    handle.spawn(client_rpc_system.map_err(|e| {println!("RpcSystem error: {:?}", e); ()}));
+
+    let (tx, rx) = oneshot::channel::<()>();
+    let rx = rx.map_err(|_| ());
+    handle.spawn(rx.join(server_rpc_system.map_err(|e| {println!("RpcSystem error: {:?}", e); ()})).map(|_| ()));
 
     core.run(client.test_interface_request().send().promise).unwrap();
 
-    drop(server_rpc_system);
+    drop(tx);
 
     match core.run(client.test_interface_request().send().promise) {
         Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
@@ -129,31 +134,32 @@ fn rpc_top_level<F>(main: F)
         let handle = core.handle();
         let (server_reader, server_writer) = reactor::PollEvented::new(server_stream, &handle).unwrap().split();
 
-        let mut network =
-            Box::new(twoparty::VatNetwork::new(server_reader, server_writer, &handle,
+        let network =
+            Box::new(twoparty::VatNetwork::new(server_reader, server_writer,
                                                rpc_twoparty_capnp::Side::Server,
                                                Default::default()));
 
-        let disconnect_promise = network.on_disconnect();
         let bootstrap =
             test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
 
-        let _rpc_system = RpcSystem::new(network, Some(bootstrap.client), handle);
-        core.run(disconnect_promise).unwrap();
+        let rpc_system = RpcSystem::new(network, Some(bootstrap.client));
+
+        core.run(rpc_system).unwrap();
     });
 
-    let  (client_reader, client_writer) = reactor::PollEvented::new(client_stream, &handle).unwrap().split();
+    let (client_reader, client_writer) = reactor::PollEvented::new(client_stream, &handle).unwrap().split();
 
     let network =
-        Box::new(twoparty::VatNetwork::new(client_reader, client_writer, &handle,
+        Box::new(twoparty::VatNetwork::new(client_reader, client_writer,
                                            rpc_twoparty_capnp::Side::Client,
                                            Default::default()));
 
-    let mut rpc_system = RpcSystem::new(network, None, handle);
+    let mut rpc_system = RpcSystem::new(network, None);
     let client: test_capnp::bootstrap::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
+    handle.spawn(rpc_system.map_err(|e| {println!("RpcSystem error: {:?}", e); ()}));
+
     main(core, client).unwrap();
-    drop(rpc_system);
     join_handle.join().expect("thread exited unsuccessfully");
 }
 
@@ -275,7 +281,6 @@ fn pipelining_return_null() {
         }
     });
 }
-
 
 #[test]
 fn null_capability() {
@@ -751,4 +756,3 @@ fn local_client_call_not_immediate () {
     let _ = remote_promise.promise.wait();
     assert_eq!(call_count.get(), 1);
 }
-

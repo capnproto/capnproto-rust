@@ -20,7 +20,6 @@ capnpc = "0.7"
 [dependencies]
 futures = "0.1"
 capnp-futures = "0.0.2"
-tokio-core = "0.1"
 capnp = {version = "0.7", features = ["rpc"]}
 
 [replace]

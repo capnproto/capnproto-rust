@@ -218,15 +218,12 @@ pub fn main() {
         let (reader, writer) = socket.split();
         let handle = handle.clone();
 
-        let mut network =
-            twoparty::VatNetwork::new(reader, writer, &handle,
+        let network =
+            twoparty::VatNetwork::new(reader, writer,
                                       rpc_twoparty_capnp::Side::Server, Default::default());
-        let disconnect_promise = network.on_disconnect();
 
-        let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client), handle.clone());
-
-        handle.spawn(disconnect_promise.and_then(move |()| { drop(rpc_system); Ok(()) }).map_err(|_| ()));
-
+        let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
+        handle.spawn(rpc_system.map_err(|e| println!("error: {:?}", e)));
         Ok(())
     });
 

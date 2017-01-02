@@ -644,6 +644,7 @@ impl <VatId> ConnectionState<VatId> {
             &mut Err(_) => return Promise::ok(()),
             &mut Ok(ref mut connection) => connection.receive_incoming_message(),
         };
+
         let weak_state0 = weak_state.clone();
         let weak_state1 = weak_state.clone();
         let weak_state2 = weak_state.clone();

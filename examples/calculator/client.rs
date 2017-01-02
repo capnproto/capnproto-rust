@@ -66,12 +66,12 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
     let (reader, writer) = stream.split();
 
     let network =
-        Box::new(twoparty::VatNetwork::new(reader, writer, &handle,
+        Box::new(twoparty::VatNetwork::new(reader, writer,
                                            rpc_twoparty_capnp::Side::Client,
                                            Default::default()));
-    let mut rpc_system = RpcSystem::new(network, None, handle);
-
+    let mut rpc_system = RpcSystem::new(network, None);
     let calculator: calculator::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+    handle.spawn(rpc_system.map_err(|_e| ()));
 
     {
         // Make a request that just evaluates the literal value 123.

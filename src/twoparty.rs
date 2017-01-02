@@ -87,7 +87,6 @@ struct ConnectionInner<T> where T: ::std::io::Read + 'static {
     side: ::rpc_twoparty_capnp::Side,
     receive_options: ReaderOptions,
     on_disconnect_fulfiller: Option<oneshot::Sender<()>>,
-    _spawn_canceller: oneshot::Sender<()>,
 }
 
 struct Connection<T> where T: ::std::io::Read + 'static {
@@ -107,29 +106,22 @@ impl <T> Drop for ConnectionInner<T> where T: ::std::io::Read {
 }
 
 impl <T> Connection<T> where T: ::std::io::Read {
-    fn new<U>(input_stream: T,
-           output_stream: U,
-           handle: &::tokio_core::reactor::Handle,
+    fn new(input_stream: T,
+           sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
            side: ::rpc_twoparty_capnp::Side,
            receive_options: ReaderOptions,
            on_disconnect_fulfiller: oneshot::Sender<()>,
            ) -> Connection<T>
-        where U: ::std::io::Write + 'static
     {
-        let (tx, write_queue) = ::capnp_futures::write_queue(output_stream);
-        let (sender, receiver) = oneshot::channel();
-        let receiver = receiver.map_err(|e| e.into());
-        handle.spawn(write_queue.join(receiver).then(|_| Ok(())));
 
         Connection {
             inner: Rc::new(RefCell::new(
                 ConnectionInner {
                     input_stream: Rc::new(RefCell::new(Some(input_stream))),
-                    sender: tx,
+                    sender: sender,
                     side: side,
                     receive_options: receive_options,
                     on_disconnect_fulfiller: Some(on_disconnect_fulfiller),
-                    _spawn_canceller: sender,
                 })),
         }
     }
@@ -180,7 +172,7 @@ pub struct VatNetwork<T> where T: ::std::io::Read + 'static {
     // HACK
     weak_connection_inner: Weak<RefCell<ConnectionInner<T>>>,
 
-    on_disconnect_promise: ForkedPromise<Promise<(), ::capnp::Error>>,
+    execution_driver: ForkedPromise<Promise<(), ::capnp::Error>>,
     side: ::rpc_twoparty_capnp::Side,
 }
 
@@ -190,25 +182,35 @@ impl <T> VatNetwork<T> where T: ::std::io::Read {
     /// The options in `receive_options` will be used when reading the messages that come in on `input_stream`.
     pub fn new<U>(input_stream: T,
                output_stream: U,
-               handle: &::tokio_core::reactor::Handle,
                side: ::rpc_twoparty_capnp::Side,
                receive_options: ReaderOptions) -> VatNetwork<T>
         where U: ::std::io::Write + 'static,
     {
-        let (fulfiller, promise) = oneshot::channel();
-        let connection = Connection::new(input_stream, output_stream, handle, side, receive_options, fulfiller);
+
+        let (fulfiller, disconnect_promise) = oneshot::channel();
+        let disconnect_promise = disconnect_promise
+            .map_err(|_| ::capnp::Error::disconnected("disconnected".into()));
+
+        let (execution_driver, sender) = {
+            let (tx, write_queue) = ::capnp_futures::write_queue(output_stream);
+
+            // Don't use `.join()` here because we need to make sure to wait for `disconnect_promise` to
+            // resolve even if `write_queue` resolves to an error.
+            (ForkedPromise::new(Promise::from_future(
+                write_queue
+                    .then(move |r| disconnect_promise.then(move |_| r).map(|_| ())))),
+             tx)
+        };
+
+
+        let connection = Connection::new(input_stream, sender, side, receive_options, fulfiller);
         let weak_inner = Rc::downgrade(&connection.inner);
         VatNetwork {
             connection: Some(connection),
             weak_connection_inner: weak_inner,
-            on_disconnect_promise: ForkedPromise::new(Promise::from_future(promise.map_err(|e| e.into()))),
+            execution_driver: execution_driver,
             side: side,
         }
-    }
-
-    /// Returns a promise that resolves when the peer disconnects.
-    pub fn on_disconnect(&mut self) -> Promise<(), ::capnp::Error> {
-        Promise::from_future(self.on_disconnect_promise.clone())
     }
 }
 
@@ -243,5 +245,9 @@ impl <T> ::VatNetwork<VatId> for VatNetwork<T>
             Some(c) => Promise::ok(Box::new(c) as Box<::Connection<VatId>>),
             None => Promise::from_future(::futures::future::empty()),
         }
+    }
+
+    fn drive_until_shutdown(&mut self) -> Promise<(), ::capnp::Error> {
+        Promise::from_future(self.execution_driver.clone())
     }
 }

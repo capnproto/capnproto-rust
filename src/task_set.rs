@@ -164,7 +164,6 @@ impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
     type Error = E;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-
         match self.inner.terminate_with.borrow_mut().take() {
             None => (),
             Some(Ok(v)) => return Ok(::futures::Async::Ready(v)),

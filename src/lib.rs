@@ -61,7 +61,6 @@
 
 extern crate capnp;
 #[macro_use] extern crate futures;
-extern crate tokio_core;
 extern crate capnp_futures;
 
 use futures::{Future};
@@ -145,6 +144,8 @@ pub trait VatNetwork<VatId> {
 
     /// Waits for the next incoming connection and return it.
     fn accept(&mut self) -> Promise<Box<Connection<VatId>>, ::capnp::Error>;
+
+    fn drive_until_shutdown(&mut self) -> Promise<(), Error>;
 }
 
 /// A portal to objects available on the network.
@@ -166,17 +167,15 @@ pub struct RpcSystem<VatId> where VatId: 'static {
     // to connection states.
     connection_state: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
 
-    _spawn_canceller: oneshot::Sender<()>,
-//    tasks: TaskSet<(), Error>,
+    tasks: TaskSet<(), Error>,
     handle: ::task_set::TaskSetHandle<(), Error>
 }
 
 impl <VatId> RpcSystem <VatId> {
     /// Constructs a new `RpcSystem` with the given network and bootstrap capability.
     pub fn new(
-        network: Box<::VatNetwork<VatId>>,
-        bootstrap: Option<::capnp::capability::Client>,
-        spawner: tokio_core::reactor::Handle) -> RpcSystem<VatId>
+        mut network: Box<::VatNetwork<VatId>>,
+        bootstrap: Option<::capnp::capability::Client>) -> RpcSystem<VatId>
     {
         let bootstrap_cap = match bootstrap {
             Some(cap) => cap.hook,
@@ -184,20 +183,34 @@ impl <VatId> RpcSystem <VatId> {
         };
         let (mut handle, tasks) = TaskSet::new(Box::new(SystemTaskReaper));
 
-        let (sender, receiver) = oneshot::channel();
-        let receiver = receiver.map_err(|e| e.into());
+        let mut handle1 = handle.clone();
+        handle.add(network.drive_until_shutdown().then(move |r| {
+            let r = match r {
+                Ok(()) => Ok(()),
+                Err(e) => {
+                    if e.kind != ::capnp::ErrorKind::Disconnected {
+                        // Don't report disconnects as an error.
+                        Err(e)
+                    } else {
+                        Ok(())
+                    }
+                }
+            };
+
+            handle1.terminate(r);
+            Ok(())
+        }));
 
         let mut result = RpcSystem {
             network: network,
             bootstrap_cap: bootstrap_cap,
             connection_state: Rc::new(RefCell::new(None)),
-            _spawn_canceller: sender,
 
-//            tasks: tasks,
+            tasks: tasks,
             handle: handle.clone(),
         };
 
-        spawner.spawn(tasks.join(receiver).map_err(|e| { println!("{}", e); ()}).map(|_| ()));
+
         let accept_loop = result.accept_loop();
         handle.add(accept_loop);
         result
@@ -252,16 +265,12 @@ impl <VatId> RpcSystem <VatId> {
                 let (on_disconnect_fulfiller, on_disconnect_promise) =
                     oneshot::channel::<Promise<(), Error>>();
                 let connection_state_ref1 = connection_state_ref.clone();
-                let mut handle1 = handle.clone();
                 handle.add(on_disconnect_promise.then(move |shutdown_promise| {
                     *connection_state_ref1.borrow_mut() = None;
                     match shutdown_promise {
                         Ok(s) => s,
                         Err(e) => Promise::err(Error::failed(format!("{}", e))),
                     }
-                }).then(move |r| {
-                    handle1.terminate(r);
-                    Ok(())
                 }));
                 rpc::ConnectionState::new(bootstrap_cap, connection, on_disconnect_fulfiller)
             }
@@ -269,6 +278,14 @@ impl <VatId> RpcSystem <VatId> {
         *connection_state_ref.borrow_mut() = Some(result.clone());
         handle.add(tasks);
         result
+    }
+}
+
+impl <VatId> Future for RpcSystem<VatId> where VatId: 'static {
+    type Item = ();
+    type Error = Error;
+    fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
+        self.tasks.poll()
     }
 }
 

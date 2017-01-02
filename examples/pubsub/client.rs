@@ -26,6 +26,7 @@ use capnp::capability::Promise;
 
 use tokio_core::reactor;
 use tokio_core::io::Io;
+use futures::Future;
 
 struct SubscriberImpl;
 
@@ -55,13 +56,12 @@ pub fn main() {
     let stream = core.run(::tokio_core::net::TcpStream::connect(&addr, &handle)).unwrap();
     let (reader, writer) = stream.split();
 
-    let mut rpc_network =
-        Box::new(twoparty::VatNetwork::new(reader, writer, &handle,
+    let rpc_network =
+        Box::new(twoparty::VatNetwork::new(reader, writer,
                                            rpc_twoparty_capnp::Side::Client,
                                            Default::default()));
 
-    let disconnect_promise = rpc_network.on_disconnect();
-    let mut rpc_system = RpcSystem::new(rpc_network, None, handle);
+    let mut rpc_system = RpcSystem::new(rpc_network, None);
     let publisher: publisher::Client<::capnp::text::Owned> =
         rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
@@ -71,7 +71,5 @@ pub fn main() {
     request.get().set_subscriber(sub);
 
     // Need to make sure not to drop the returned subscription object.
-    let _result = core.run(request.send().promise).unwrap();
-
-    core.run(disconnect_promise).unwrap();
+    let _result = core.run(rpc_system.join(request.send().promise)).unwrap();
 }
