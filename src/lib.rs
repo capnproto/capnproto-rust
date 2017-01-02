@@ -166,7 +166,6 @@ pub struct RpcSystem<VatId> where VatId: 'static {
     // to connection states.
     connection_state: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
 
-    spawner: tokio_core::reactor::Handle,
     _spawn_canceller: oneshot::Sender<()>,
 //    tasks: TaskSet<(), Error>,
     handle: ::task_set::TaskSetHandle<(), Error>
@@ -192,7 +191,6 @@ impl <VatId> RpcSystem <VatId> {
             network: network,
             bootstrap_cap: bootstrap_cap,
             connection_state: Rc::new(RefCell::new(None)),
-            spawner: spawner.clone(),
             _spawn_canceller: sender,
 
 //            tasks: tasks,
@@ -218,7 +216,7 @@ impl <VatId> RpcSystem <VatId> {
         let connection_state =
             RpcSystem::get_connection_state(self.connection_state.clone(),
                                             self.bootstrap_cap.clone(),
-                                            connection, self.handle.clone(), self.spawner.clone());
+                                            connection, self.handle.clone());
 
         let hook = rpc::ConnectionState::bootstrap(connection_state.clone());
         T::new(hook)
@@ -229,26 +227,23 @@ impl <VatId> RpcSystem <VatId> {
         let connection_state_ref = self.connection_state.clone();
         let bootstrap_cap = self.bootstrap_cap.clone();
         let handle = self.handle.clone();
-        let spawner = self.spawner.clone();
         Promise::from_future(self.network.accept().map(move |connection| {
             RpcSystem::get_connection_state(connection_state_ref,
                                             bootstrap_cap,
                                             connection,
-                                            handle,
-                                            spawner);
+                                            handle);
         }))
     }
 
     fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
                             bootstrap_cap: Box<ClientHook>,
                             connection: Box<::Connection<VatId>>,
-                            mut handle: ::task_set::TaskSetHandle<(), Error>,
-                            spawner: tokio_core::reactor::Handle)
+                            mut handle: ::task_set::TaskSetHandle<(), Error>)
                             -> Rc<rpc::ConnectionState<VatId>>
     {
 
         // TODO this needs to be updated once we allow more general VatNetworks.
-        let result = match &*connection_state_ref.borrow() {
+        let (tasks, result) = match &*connection_state_ref.borrow() {
             &Some(ref connection_state) => {
                 // return early.
                 return connection_state.clone()
@@ -257,17 +252,22 @@ impl <VatId> RpcSystem <VatId> {
                 let (on_disconnect_fulfiller, on_disconnect_promise) =
                     oneshot::channel::<Promise<(), Error>>();
                 let connection_state_ref1 = connection_state_ref.clone();
+                let mut handle1 = handle.clone();
                 handle.add(on_disconnect_promise.then(move |shutdown_promise| {
                     *connection_state_ref1.borrow_mut() = None;
                     match shutdown_promise {
                         Ok(s) => s,
                         Err(e) => Promise::err(Error::failed(format!("{}", e))),
                     }
+                }).then(move |r| {
+                    handle1.terminate(r);
+                    Ok(())
                 }));
-                rpc::ConnectionState::new(bootstrap_cap, connection, on_disconnect_fulfiller, spawner)
+                rpc::ConnectionState::new(bootstrap_cap, connection, on_disconnect_fulfiller)
             }
         };
         *connection_state_ref.borrow_mut() = Some(result.clone());
+        handle.add(tasks);
         result
     }
 }

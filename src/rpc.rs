@@ -438,9 +438,8 @@ impl <VatId> ConnectionState<VatId> {
     pub fn new(
         bootstrap_cap: Box<ClientHook>,
         connection: Box<::Connection<VatId>>,
-        disconnect_fulfiller: oneshot::Sender<Promise<(), Error>>,
-        spawner: ::tokio_core::reactor::Handle)
-        -> Rc<ConnectionState<VatId>>
+        disconnect_fulfiller: oneshot::Sender<Promise<(), Error>>)
+        -> (TaskSet<(), Error>, Rc<ConnectionState<VatId>>)
     {
         let state = Rc::new(ConnectionState {
             bootstrap_cap: bootstrap_cap,
@@ -457,11 +456,9 @@ impl <VatId> ConnectionState<VatId> {
         });
         let (mut handle, tasks) = TaskSet::new(Box::new(ConnectionErrorHandler::new(Rc::downgrade(&state))));
 
-        spawner.spawn(tasks.map_err(|e| { println!("taskset error {}", e); ()}));
-
         handle.add(ConnectionState::message_loop(Rc::downgrade(&state)));
         *state.tasks.borrow_mut() = Some(handle);
-        state
+        (tasks, state)
     }
 
     fn disconnect(&self, error: ::capnp::Error) {
