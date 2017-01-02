@@ -50,7 +50,7 @@
 //! // Rust client calling a remote implementation of Foo.
 //! let mut request = foo_client.identity_request();
 //! request.get().set_x(123);
-//! let promise = request.send().promise.map(|response| {
+//! let promise = request.send().promise.and_then(|response| {
 //!     println!("results = {}", try!(response.get()).get_y());
 //!     Ok(())
 //! });
@@ -85,6 +85,11 @@ pub mod rpc_twoparty_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_twoparty_capnp.rs"));
 }
 
+/// Like `try!()`, but for functions that return a [`Promise<T, E>`](struct.Promise.html) rather
+/// than a `Result<T, E>`.
+///
+/// Unwraps a `Result<T, E>`. In the case of an error `Err(e)`, immediately returns from the
+/// enclosing function with `Promise::err(e)`.
 #[macro_export]
 macro_rules! pry {
     ($expr:expr) => (
@@ -158,6 +163,7 @@ pub trait VatNetwork<VatId> {
 /// implementation of `VatNetwork` is `twoparty::VatNetwork`. However, eventually we
 /// will need to have more sophistocated `VatNetwork` implementations, in order to support
 /// [level 3](https://capnproto.org/rpc.html#protocol-features) features.
+#[must_use = "futures do nothing unless polled"]
 pub struct RpcSystem<VatId> where VatId: 'static {
     network: Box<::VatNetwork<VatId>>,
 
