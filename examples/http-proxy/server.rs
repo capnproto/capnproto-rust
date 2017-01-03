@@ -114,6 +114,16 @@ impl http_session::Server for HttpSession {
                 }).map_err(|()| unreachable!())
             }))
     }
+
+    fn post(
+        &mut self,
+        _params: http_session::PostParams,
+        _results: http_session::PostResults)
+        -> Promise<(), Error>
+    {
+        // TODO
+        Promise::err(Error::unimplemented(format!("post() is unimplemented")))
+    }
 }
 
 pub fn main() {
