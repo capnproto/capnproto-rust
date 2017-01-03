@@ -6,7 +6,7 @@ authors = ["David Renshaw <david@sandstorm.io>"]
 build = "build.rs"
 
 [[bin]]
-name = "main"
+name = "pubsub"
 path = "main.rs"
 
 [build-dependencies]

@@ -577,6 +577,8 @@ impl <VatId> ConnectionState<VatId> {
         }
     }
 
+    // Transform a future into a promise that gets executed even if it is never polled.
+    // Dropping the returned promise cancels the computation.
     fn eagerly_evaluate<T, F>(&self, task: F) -> Promise<T, Error>
         where F: Future<Item=T, Error=Error> + 'static,
               T: 'static
