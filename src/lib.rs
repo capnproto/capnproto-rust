@@ -260,7 +260,6 @@ impl <VatId> RpcSystem <VatId> {
                             mut handle: ::task_set::TaskSetHandle<(), Error>)
                             -> Rc<rpc::ConnectionState<VatId>>
     {
-
         // TODO this needs to be updated once we allow more general VatNetworks.
         let (tasks, result) = match &*connection_state_ref.borrow() {
             &Some(ref connection_state) => {

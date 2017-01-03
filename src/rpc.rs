@@ -1062,8 +1062,6 @@ impl <VatId> ConnectionState<VatId> {
                      redirect_results)
                 };
 
-//                println!("call id {}", question_id);
-
                 if connection_state.answers.borrow().slots.contains_key(&question_id) {
                     return Err(Error::failed(
                         format!("Received a new call on in-use question id {}", question_id)));
@@ -2212,7 +2210,7 @@ impl ResultsDone {
                                 pipeline_sender.complete(Box::new(
                                     ::local::Pipeline::new(hook.clone())));
 
-                                // Send a Cancelled return.
+                                // Send a Canceled return.
                                 match connection_state.connection.borrow_mut().as_mut() {
                                     Ok(ref mut connection) => {
                                         let mut message = connection.new_outgoing_message(50); // XXX size hint

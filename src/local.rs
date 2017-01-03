@@ -302,15 +302,10 @@ impl ClientHook for Client {
         // We don't want to actually dispatch the call synchronously, because we don't want the callee
         // to have any side effects before the promise is returned to the caller.  This helps avoid
         // race conditions.
+        //
+        // TODO: actually use some kind of queue here to guarantee that call order in maintained.
+        // This currently relies on the task scheduler being first-in-first-out.
         let inner = self.inner.clone();
-/*
-        let promise = {
-            let server = &mut inner.borrow_mut().server;
-            server.dispatch_call(interface_id, method_id,
-                                 ::capnp::capability::Params::new(params),
-                                 ::capnp::capability::Results::new(results))
-        };
-*/
         let promise = ::futures::future::lazy(move || {
             let server = &mut inner.borrow_mut().server;
             server.dispatch_call(interface_id, method_id,
