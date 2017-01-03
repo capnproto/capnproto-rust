@@ -1982,7 +1982,7 @@ impl <VatId> PipelineHook for Pipeline<VatId> {
     }
 }
 
-pub struct Params{
+pub struct Params {
     request: Box<::IncomingMessage>,
     cap_table: Vec<Option<Box<ClientHook>>>,
 }
@@ -2314,7 +2314,6 @@ impl ResultsDone {
     }
 }
 
-
 impl ResultsDoneHook for ResultsDone {
     fn add_ref(&self) -> Box<ResultsDoneHook> {
         Box::new(ResultsDone { inner: self.inner.clone() })
@@ -2518,6 +2517,7 @@ struct PromiseClient<VatId> where VatId: 'static {
     cap: Box<ClientHook>,
     import_id: Option<ImportId>,
     received_call: bool,
+    resolution_waiters: ::sender_queue::SenderQueue<(), Box<ClientHook>>,
 }
 
 impl <VatId> PromiseClient<VatId> {
@@ -2530,6 +2530,7 @@ impl <VatId> PromiseClient<VatId> {
             cap: initial,
             import_id: import_id,
             received_call: false,
+            resolution_waiters: ::sender_queue::SenderQueue::new(),
         }));
         client
     }
@@ -2588,6 +2589,10 @@ impl <VatId> PromiseClient<VatId> {
             replacement = Box::new(queued_client);
 
             let _ = message.send();
+        }
+
+        for ((), waiter) in self.resolution_waiters.drain() {
+            waiter.complete(replacement.clone());
         }
 
         let old_cap = ::std::mem::replace(&mut self.cap, replacement);
@@ -2883,9 +2888,7 @@ impl <VatId> ClientHook for Client<VatId> {
                 None
             }
             ClientVariant::Promise(ref promise_client) => {
-                unimplemented!()
-                // TODO
-//                Some(Promise::from_future(promise_client.borrow_mut().fork.clone()))
+                Some(promise_client.borrow_mut().resolution_waiters.push(()))
             }
             _ => {
                 unimplemented!()
