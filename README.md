@@ -106,17 +106,17 @@ and you can pass it in RPC method arguments and results.
 
 ## Async methods
 
-The return value of generated `Server` traits is `Promise<(), ::capnp::Error>`.
+The methods of the generated `Server` traits return
+a value of type `Promise<(), ::capnp::Error>`.
 A `Promise` is either an immediate value, constructed by `Promise::ok()` or
 `Promise::err()`, or it is a wrapper of a `Future`, constructed by
 `Promise::from_future()`.
-
-A Cap'n Proto method returns its results to its caller once two things have happened:
+The results will be sent back to the method's caller once two things have happened:
 
   1. The `Results` struct has been dropped.
   2. The returned `Promise` has resolved.
 
-Typically (1) will naturally happen before (2).
+Usually (1) happens before (2).
 
 Here's an example of a method implementation that does not return immediately:
 
