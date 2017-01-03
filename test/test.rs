@@ -377,7 +377,9 @@ fn promise_resolve() {
         let mut request = client.call_foo_request();
         let mut request2 = client.call_foo_when_resolved_request();
 
-        let (paf_fulfiller, cap): (_, ::test_capnp::test_interface::Client) = ::capnp_rpc::new_promise_client();
+        let (paf_fulfiller, paf_promise) = oneshot::channel();
+        let cap: ::test_capnp::test_interface::Client =
+            ::capnp_rpc::new_promise_client(paf_promise.map_err(|e| e.into()));
         request.get().set_cap(cap.clone());
         request2.get().set_cap(cap);
 
@@ -574,7 +576,9 @@ fn dont_hold() {
         let response = try!(core.run(client.test_more_stuff_request().send().promise));
         let client = try!(try!(response.get()).get_cap());
 
-        let (fulfiller, cap): (_, ::test_capnp::test_interface::Client) = ::capnp_rpc::new_promise_client();
+        let (fulfiller, promise) = oneshot::channel();
+        let cap: ::test_capnp::test_interface::Client =
+            ::capnp_rpc::new_promise_client(promise.map_err(|e| e.into()));
 
         let mut request = client.dont_hold_request();
         request.get().set_cap(cap.clone());
@@ -668,7 +672,9 @@ fn embargo_error() {
         let response = try!(core.run(client.test_more_stuff_request().send().promise));
         let client = try!(try!(response.get()).get_cap());
 
-        let (fulfiller, cap): (_, ::test_capnp::test_call_order::Client) = ::capnp_rpc::new_promise_client();
+        let (fulfiller, promise) = oneshot::channel();
+        let cap: ::test_capnp::test_call_order::Client =
+            ::capnp_rpc::new_promise_client(promise.map_err(|e| e.into()));
 
         // ugh, we need upcasting.
         let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
@@ -712,7 +718,9 @@ fn echo_destruction() {
         let response = try!(core.run(client.test_more_stuff_request().send().promise));
         let client = try!(try!(response.get()).get_cap());
 
-        let (fulfiller, cap): (_, ::test_capnp::test_call_order::Client) = ::capnp_rpc::new_promise_client();
+        let (fulfiller, promise) = oneshot::channel();
+        let cap: ::test_capnp::test_call_order::Client =
+            ::capnp_rpc::new_promise_client(promise.map_err(|e| e.into()));
 
         // ugh, we need upcasting.
         let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };

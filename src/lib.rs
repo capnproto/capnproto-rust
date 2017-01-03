@@ -69,7 +69,7 @@ use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ServerHook};
 use std::cell::{RefCell};
-use std::rc::{Rc, Weak};
+use std::rc::{Rc};
 
 use task_set::TaskSet;
 
@@ -311,42 +311,25 @@ impl ServerHook for Server {
     }
 }
 
-
-pub struct PromiseClientSender {
-    client: Option<Weak<RefCell<::queued::ClientInner>>>,
-}
-
-impl Drop for PromiseClientSender {
-    fn drop(&mut self) {
-        if let Some(weak_queued) = self.client.take() {
-            if let Some(client_inner) = weak_queued.upgrade() {
-                ::queued::ClientInner::resolve(
-                    &client_inner,
-                    Ok(::broken::new_cap(Error::failed("PromiseClientSender was canceled".into()))));
-            }
-        }
-    }
-}
-
-impl PromiseClientSender {
-    pub fn complete(mut self, client: ::capnp::capability::Client) {
-        if let Some(weak_queued) = self.client.take() {
-            if let Some(client_inner) = weak_queued.upgrade() {
-                ::queued::ClientInner::resolve(&client_inner, Ok(client.hook));
-            }
-        }
-    }
-}
-
 /// Converts a promise for a client into a client that queues up any calls that arrive
 /// before the promise resolves.
 // TODO: figure out a better way to allow construction of promise clients.
-pub fn new_promise_client<T>() -> (PromiseClientSender, T)
-    where T: ::capnp::capability::FromClientHook
+pub fn new_promise_client<T, F>(client_promise: F) -> T
+    where T: ::capnp::capability::FromClientHook,
+          F: ::futures::Future<Item=::capnp::capability::Client,Error=Error>,
+          F: 'static
 {
-    let queued_client = ::queued::Client::new(None);
-    let weak_queued = Rc::downgrade(&queued_client.inner);
-    (PromiseClientSender { client: Some(weak_queued) }, T::new(Box::new(queued_client)))
+    let mut queued_client = ::queued::Client::new(None);
+    let weak_client = Rc::downgrade(&queued_client.inner);
+
+    queued_client.drive(client_promise.then(move |r| {
+        if let Some(queued_inner) = weak_client.upgrade() {
+            ::queued::ClientInner::resolve(&queued_inner, r.map(|c| c.hook));
+        }
+        Ok(())
+    }));
+
+    T::new(Box::new(queued_client))
 }
 
 struct SystemTaskReaper;
