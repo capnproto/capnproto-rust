@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
-use http_capnp::{http_session, http_proxy};
+use http_capnp::{outgoing_http, http_session};
 
 use capnp::capability::Promise;
 use capnp::Error;
@@ -30,23 +30,23 @@ use futures::{Future, Stream};
 use tokio_core::reactor;
 use tokio_core::io::Io;
 
-struct HttpProxy {
+struct OutgoingHttp {
     handle: reactor::Handle,
 }
 
-impl HttpProxy {
-    fn new(handle: reactor::Handle) -> HttpProxy {
-        HttpProxy {
+impl OutgoingHttp {
+    fn new(handle: reactor::Handle) -> OutgoingHttp {
+        OutgoingHttp {
             handle: handle,
         }
     }
 }
 
-impl http_proxy::Server for HttpProxy {
+impl outgoing_http::Server for OutgoingHttp {
     fn new_session(
         &mut self,
-        params: http_proxy::NewSessionParams,
-        mut results: http_proxy::NewSessionResults)
+        params: outgoing_http::NewSessionParams,
+        mut results: outgoing_http::NewSessionResults)
         -> Promise<(), Error>
     {
         let session = HttpSession::new(
@@ -140,8 +140,8 @@ pub fn main() {
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
     let socket = ::tokio_core::net::TcpListener::bind(&addr, &handle).unwrap();
 
-    let proxy = http_proxy::ToClient::new(
-        HttpProxy::new(handle.clone())).from_server::<::capnp_rpc::Server>();
+    let proxy = outgoing_http::ToClient::new(
+        OutgoingHttp::new(handle.clone())).from_server::<::capnp_rpc::Server>();
 
     let handle1 = handle.clone();
     let done = socket.incoming().for_each(move |(socket, _addr)| {

@@ -1,6 +1,6 @@
 @0xf278bebf673978ed;
 
-interface HttpProxy {
+interface OutgoingHttp {
     newSession @0 (baseUrl :Text) -> (session :HttpSession);
 }
 

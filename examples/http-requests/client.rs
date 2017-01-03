@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
-use http_capnp::{http_proxy};
+use http_capnp::{outgoing_http};
 
 use tokio_core::reactor;
 use tokio_core::io::Io;
@@ -47,7 +47,7 @@ pub fn main() {
                                            Default::default()));
 
     let mut rpc_system = RpcSystem::new(rpc_network, None);
-    let proxy: http_proxy::Client =
+    let proxy: outgoing_http::Client =
         rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
     handle.spawn(rpc_system.map_err(|_e| ()));

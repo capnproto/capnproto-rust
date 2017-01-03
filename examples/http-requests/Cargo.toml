@@ -1,12 +1,12 @@
 [package]
-name = "http-proxy"
+name = "capnp-http-requests"
 version = "0.1.0"
 authors = ["David Renshaw <david@sandstorm.io>"]
 
 build = "build.rs"
 
 [[bin]]
-name = "http-proxy"
+name = "http-requests"
 path = "main.rs"
 
 [build-dependencies]

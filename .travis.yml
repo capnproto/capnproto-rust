@@ -41,3 +41,6 @@ script:
   - cd ..
   - cd pubsub
   - cargo build
+  - cd ..
+  - cd http-requests
+  - cargo build
