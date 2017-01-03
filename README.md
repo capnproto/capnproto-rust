@@ -1,21 +1,55 @@
-capnp-rpc-rust
-==============
+# capnp-rpc-rust
 
 [![Build Status](https://travis-ci.org/dwrensha/capnp-rpc-rust.svg?branch=master)](https://travis-ci.org/dwrensha/capnp-rpc-rust)
 [![crates.io](http://meritbadge.herokuapp.com/capnp-rpc)](https://crates.io/crates/capnp-rpc)
 
-This is an implementation of the Cap'n Proto remote procedure call protocol.
+[documentation](https://docs.capnproto-rust.org/capnp-rpc)
 
-It's a fairly literal translation of the original
-[C++ implementation](https://github.com/sandstorm-io/capnproto); any good ideas that you find
-here were probably first present there.
+This is a [level one](https://capnproto.org/rpc.html#protocol-features)
+implementation of the Cap'n Proto remote procedure call protocol.
+It is a fairly direct translation of the original
+[C++ implementation](https://github.com/sandstorm-io/capnproto).
 
-This library is dependent on
-the Cap'n Proto
-data encoding [runtime](https://github.com/dwrensha/capnproto-rust)
-and the [code generator](https://github.com/dwrensha/capnpc-rust).
+## Defining an interface
 
-Documentation
--------------
+First, make sure that the
+[`capnp` executable](https://capnproto.org/capnp-tool.html)
+is installed on your system,
+and that you have the [`capnpc`](https://crates.io/crates/capnpc) crate
+in the `build-dependencies` section of your `Cargo.toml`.
+Then, in a file named `foo.capnp`, define your interface:
 
-See <http://docs.capnproto-rust.org/> for full documentation.
+```capnp
+@0xa7ed6c5c8a98ca40;
+
+interface Bar {
+    baz @0 () -> ();
+}
+
+```
+
+Now you can invoke the schema compiler in a
+[`build.rs`](http://doc.crates.io/build-script.html) file, like this:
+
+```rust
+fn main() {
+    ::capnpc::CompilerCommand::new().file("foo.capnp").run().unwrap();
+}
+```
+
+and you can include the generated code in your project like this:
+
+```rust
+pub mod foo_capnp {
+  include!(concat!(env!("OUT_DIR"), "/foo_capnp.rs"));
+}
+```
+
+## Implementing an interface
+
+The generated code will contain a `Server` trait for each of your interfaces.
+
+## Calling methods on an object
+
+
+
