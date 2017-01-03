@@ -161,8 +161,11 @@ pub trait VatNetwork<VatId> {
 ///
 /// At the moment, this is all rather more general than it needs to be, because the only
 /// implementation of `VatNetwork` is `twoparty::VatNetwork`. However, eventually we
-/// will need to have more sophistocated `VatNetwork` implementations, in order to support
+/// will need to have more sophisticated `VatNetwork` implementations, in order to support
 /// [level 3](https://capnproto.org/rpc.html#protocol-features) features.
+///
+/// An `RpcSystem` is a `Future` and needs to be driven by a task executor. A common way
+/// accomplish that is to pass the `RpcSystem` to `tokio_core::reactor::Handle::spawn()`.
 #[must_use = "futures do nothing unless polled"]
 pub struct RpcSystem<VatId> where VatId: 'static {
     network: Box<::VatNetwork<VatId>>,
