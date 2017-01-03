@@ -178,7 +178,14 @@ pub struct VatNetwork<T> where T: ::std::io::Read + 'static {
 
 impl <T> VatNetwork<T> where T: ::std::io::Read {
     /// Creates a new two-party vat network that will receive data on `input_stream` and send data on
-    /// `output_stream`. `side` indicates whether this is the client or the server side of the connection.
+    /// `output_stream`. These streams must be futures-enabled, as discussed here:
+    /// https://github.com/tokio-rs/tokio-core/issues/61
+    ///
+    /// `side` indicates whether this is the client or the server side of the connection. This has no
+    /// effect on the data sent over the connection; it merely exists so that `RpcNetwork::bootstrap` knows
+    /// whether to return the local or the remote bootstrap capability. `VatId` parameters like this one
+    /// will make more sense once we have vat networks with more than two parties.
+    ///
     /// The options in `receive_options` will be used when reading the messages that come in on `input_stream`.
     pub fn new<U>(input_stream: T,
                output_stream: U,
