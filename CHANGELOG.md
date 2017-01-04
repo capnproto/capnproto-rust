@@ -1,5 +1,7 @@
 ### v0.8.0
 - Drop GJ dependency in favor of futures-rs.
+- Fix a bug that could in rare cases cause Disembargo messages to fail with a
+  "does not point back to sender" error.
 
 ### v0.7.4
 - Eliminate some calls to unwrap(), in favor of saner error handling.
