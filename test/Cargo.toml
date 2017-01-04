@@ -15,6 +15,6 @@ path = "test.rs"
 path = "../"
 
 [dependencies]
-capnp = "0.7"
+capnp = "0.8"
 
 

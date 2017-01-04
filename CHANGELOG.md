@@ -1,3 +1,6 @@
+### v.0.8.0
+- Remove deprecated `compile()` and `compile_with_src_prefixes()` functions.
+
 ### v0.7.5
 - Fix bug that prevented compilation of interfaces with generic superclasses.
 - More robust error handling.

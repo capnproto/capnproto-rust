@@ -80,32 +80,6 @@ fn run_command(mut command: ::std::process::Command) -> ::capnp::Result<()> {
     }
 }
 
-#[deprecated(since="0.7.4", note="please use `CompilerCommand` instead")]
-#[allow(deprecated)]
-pub fn compile<P1, P2>(src_prefix: P1, files: &[P2]) -> ::capnp::Result<()>
-    where P1: AsRef<Path>, P2: AsRef<Path>
-{
-    compile_with_src_prefixes(&[src_prefix], files)
-}
-
-// TODO(version bump): We should have only one `compile` function and it should allow
-// multiple --src-prefix flags to be set. Possibly we should use the "builder pattern".
-#[deprecated(since="0.7.4", note="please use `CompilerCommand` instead")]
-pub fn compile_with_src_prefixes<P1, P2>(src_prefixes: &[P1], files: &[P2]) -> ::capnp::Result<()>
-    where P1: AsRef<Path>, P2: AsRef<Path>
-{
-    let mut command = CompilerCommand::new();
-    for src_prefix in src_prefixes {
-        command.src_prefix(src_prefix);
-    }
-
-    for file in files {
-        command.file(file);
-    }
-
-    command.run()
-}
-
 /// A builder object for schema compiler commands.
 pub struct CompilerCommand {
     files: Vec<PathBuf>,
