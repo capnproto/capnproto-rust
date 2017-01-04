@@ -2420,7 +2420,8 @@ impl <VatId> Drop for ImportClient<VatId> {
     fn drop(&mut self) {
         let connection_state = self.connection_state.clone();
 
-        connection_state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
+        assert!(connection_state.client_downcast_map.borrow_mut()
+                .remove(&((self) as *const _ as usize)).is_some());
 
         // Remove self from the import table, if the table is still pointing at us.
         let mut remove = false;
@@ -2504,7 +2505,8 @@ impl <VatId> From<Rc<RefCell<PipelineClient<VatId>>>> for Client<VatId> {
 
 impl <VatId> Drop for PipelineClient<VatId> {
     fn drop(&mut self) {
-        self.connection_state.client_downcast_map.borrow_mut().remove(&((&self) as *const _ as usize));
+        assert!(self.connection_state.client_downcast_map.borrow_mut()
+                .remove(&((self) as *const _ as usize)).is_some());
     }
 }
 
@@ -2607,7 +2609,7 @@ impl <VatId> PromiseClient<VatId> {
 
 impl <VatId> Drop for PromiseClient<VatId> {
     fn drop(&mut self) {
-        let self_ptr = (&self) as *const _ as usize;
+        let self_ptr = (self) as *const _ as usize;
 
         if let Some(id) = self.import_id {
             // This object is representing an import promise.  That means the import table may still
@@ -2630,7 +2632,7 @@ impl <VatId> Drop for PromiseClient<VatId> {
             }
         }
 
-        self.connection_state.client_downcast_map.borrow_mut().remove(&self_ptr);
+        assert!(self.connection_state.client_downcast_map.borrow_mut().remove(&self_ptr).is_some());
     }
 }
 
