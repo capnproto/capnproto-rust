@@ -1,3 +1,8 @@
+## v0.8.0
+- Replace optional GJ dependency with futures-rs.
+- Remove `ResultsDoneHook` hack.
+- No breaking changes for non-RPC users.
+
 ## v0.7.5
 - Implement DoubleEndedIter for ListIter.
 - Implement From<std::str::Utf8Error> for ::capnp::Error.
