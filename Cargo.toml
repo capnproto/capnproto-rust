@@ -1,20 +1,21 @@
 [package]
 name = "capnp-futures"
-version = "0.0.2"
+version = "0.1.0"
 authors = [ "David Renshaw <david@sandstorm.io>" ]
 license = "MIT"
 
 description = "async serialization for Cap'n Proto messages"
 repository = "https://github.com/dwrensha/capnp-futures-rs"
+documentation = "https://docs.capnproto-rust.org/capnp_futures/"
 
 keywords = ["async"]
 
 [dependencies]
 
 byteorder = "0.5"
-capnp = "0.7"
+capnp = "0.8"
 futures = "0.1.1"
 
 [dev-dependencies]
-capnp = { version = "0.7", features = ["quickcheck"] }
+capnp = { version = "0.8", features = ["quickcheck"] }
 quickcheck = "0.2"
