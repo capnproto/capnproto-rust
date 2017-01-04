@@ -1,3 +1,6 @@
+### v0.8.0
+- Drop GJ dependency in favor of futures-rs.
+
 ### v0.7.4
 - Eliminate some calls to unwrap(), in favor of saner error handling.
 - Eliminate dependency on capnp/c++.capnp.

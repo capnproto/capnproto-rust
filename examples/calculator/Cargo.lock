@@ -2,9 +2,9 @@
 name = "calculator"
 version = "0.0.0"
 dependencies = [
- "capnp 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "capnp-rpc 0.7.4",
- "capnpc 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "capnp 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "capnp-rpc 0.8.0",
+ "capnpc 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -16,68 +16,50 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "byteorder"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "byteorder"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "byteorder"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "capnp"
-version = "0.7.5"
-source = "git+https://github.com/dwrensha/capnproto-rust?branch=futures#029c2bc72dc1d9275ca55267c4ca6f7a03808e06"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "capnp"
-version = "0.7.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "capnp 0.7.5 (git+https://github.com/dwrensha/capnproto-rust?branch=futures)"
-
-[[package]]
 name = "capnp-futures"
-version = "0.0.2"
-source = "git+https://github.com/dwrensha/capnp-futures-rs#68114c9141f28cd6f60acb929e36e234f4978cba"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "capnp 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "capnp 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
-[[package]]
-name = "capnp-futures"
-version = "0.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "capnp-futures 0.0.2 (git+https://github.com/dwrensha/capnp-futures-rs)"
 
 [[package]]
 name = "capnp-rpc"
-version = "0.7.4"
+version = "0.8.0"
 dependencies = [
- "capnp 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "capnp-futures 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "capnpc 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "capnp 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "capnp-futures 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "capnpc 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "capnpc"
-version = "0.7.5"
-source = "git+https://github.com/dwrensha/capnpc-rust?branch=futures#ad0c86cf6df07635489659d09b78b43d1a2a37b2"
-dependencies = [
- "capnp 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "capnpc"
-version = "0.7.5"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "capnpc 0.7.5 (git+https://github.com/dwrensha/capnpc-rust?branch=futures)"
+dependencies = [
+ "capnp 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "cfg-if"
@@ -229,14 +211,11 @@ dependencies = [
 
 [metadata]
 "checksum bitflags 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8dead7461c1127cf637931a1e50934eb6eee8bff2f74433ac7909e9afcee04a3"
-"checksum byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "96c8b41881888cc08af32d47ac4edd52bc7fa27fef774be47a92443756451304"
 "checksum byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"
-"checksum capnp 0.7.5 (git+https://github.com/dwrensha/capnproto-rust?branch=futures)" = "<none>"
-"checksum capnp 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)" = "b55264c94911026888bd2b0173e7685b7a20196fbcbcb8e685065c773a044b7e"
-"checksum capnp-futures 0.0.2 (git+https://github.com/dwrensha/capnp-futures-rs)" = "<none>"
-"checksum capnp-futures 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e040dbc0ac20641b848955e188359851b20d20d9d9ea433ce88ed925e3b6b49b"
-"checksum capnpc 0.7.5 (git+https://github.com/dwrensha/capnpc-rust?branch=futures)" = "<none>"
-"checksum capnpc 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)" = "343d08ea01272b44b1f50bac9ea918f299115113bb18b075f1f53a047f346b71"
+"checksum byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c40977b0ee6b9885c9013cd41d9feffdd22deb3bb4dc3a71d901cc7a77de18c8"
+"checksum capnp 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a21f6eae08bc436f7ed49fcf8908e203d872119b5d4a14017d9860fe39b48b1c"
+"checksum capnp-futures 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ec92a85a00f604b2d62c7c9d95f366a8973bd686d7e8aa4f56819d779d06567d"
+"checksum capnpc 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8149aee4db006c20f858ae97acb1abe2a5b2fc0a29f8fba32f8af7ac0289f85a"
 "checksum cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "de1e760d7b6535af4241fca8bd8adf68e2e7edacc6b29f5d399050c5e48cf88c"
 "checksum futures 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "177a82a61dd7e528022ce97f24e54b499dd2fee4d4646a0f283c5fb500dbfe20"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
