@@ -39,6 +39,7 @@ pub fn main() {
 
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
     let stream = core.run(::tokio_core::net::TcpStream::connect(&addr, &handle)).unwrap();
+    stream.set_nodelay(true).unwrap();
     let (reader, writer) = stream.split();
 
     let rpc_network =

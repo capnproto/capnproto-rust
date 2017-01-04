@@ -215,7 +215,9 @@ pub fn main() {
         calculator::ToClient::new(CalculatorImpl).from_server::<::capnp_rpc::Server>();
 
     let done = socket.incoming().for_each(move |(socket, _addr)| {
+        try!(socket.set_nodelay(true));
         let (reader, writer) = socket.split();
+
         let handle = handle.clone();
 
         let network =

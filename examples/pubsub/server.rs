@@ -125,6 +125,7 @@ pub fn main() {
 
     let handle1 = handle.clone();
     let done = socket.incoming().for_each(move |(socket, _addr)| {
+        try!(socket.set_nodelay(true));
         let (reader, writer) = socket.split();
         let handle = handle1.clone();
 

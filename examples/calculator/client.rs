@@ -63,6 +63,7 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
 
     let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
     let stream = core.run(::tokio_core::net::TcpStream::connect(&addr, &handle)).unwrap();
+    try!(stream.set_nodelay(true));
     let (reader, writer) = stream.split();
 
     let network =
