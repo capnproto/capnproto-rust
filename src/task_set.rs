@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 // Much of the details of this task_set implementation are borrowed from
-// the buffer_unordered() in futures-rs.
+// Stream::buffer_unordered() in futures-rs.
 
 use futures::{Future};
 
