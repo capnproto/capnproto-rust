@@ -46,7 +46,6 @@ pub mod test_capnp {
 }
 
 pub mod impls;
-pub mod moded_future;
 pub mod test_util;
 
 #[test]
@@ -761,69 +760,3 @@ fn local_client_call_not_immediate() {
     let _ = remote_promise.promise.wait();
     assert_eq!(call_count.get(), 1);
 }
-
-
-fn local_pipeline_forked_helper(spawn_moded_first: bool) {
-    use moded_future::{ModedFuture, Mode};
-
-    let mut core = ::tokio_core::reactor::Core::new().unwrap();
-    let handle = core.handle();
-
-    let (tx, rx) = oneshot::channel();
-    let server = ::impls::TestPipelineWait::new(rx);
-    let client = ::test_capnp::test_pipeline::ToClient::new(server).from_server::<::capnp_rpc::Server>();
-    let mut req = client.get_cap_request();
-    req.get().set_n(234);
-    let pipeline_cap = req.send().pipeline.get_out_box().get_cap();
-
-    let mut req = pipeline_cap.foo_request();
-    req.get().set_i(321);
-    req.get().set_j(false);
-    let promise0 = req.send().promise;
-
-    let mut req = pipeline_cap.foo_request();
-    req.get().set_i(321);
-    req.get().set_j(false);
-    let promise1 = req.send().promise;
-
-    let (mut mfh, mf) = ModedFuture::new(
-        Box::new(promise0.map(|_| ()).map_err(|_| ())) as Box<Future<Item=(), Error=()>>,
-        Box::new(::futures::future::empty()) as Box<Future<Item=(), Error=()>>,
-        Mode::Left);
-
-    let (tx3, rx3) = oneshot::channel::<()>();
-    let spawn1 = || {
-        handle.spawn(mf.map(|_| ()));
-    };
-
-    let spawn2 = || {
-        handle.spawn(promise1.map(|_| tx3.complete(())).map_err(|_| ()));
-    };
-
-    if spawn_moded_first {
-        (spawn1)();
-        core.turn(Some(::std::time::Duration::from_millis(1)));
-        (spawn2)();
-    } else {
-        (spawn2)();
-        core.turn(Some(::std::time::Duration::from_millis(1)));
-        (spawn1)();
-    }
-
-    core.turn(Some(::std::time::Duration::from_millis(1)));
-
-    mfh.switch_mode(Mode::Right);
-
-    tx.complete(());
-
-    core.run(rx3).unwrap();
-}
-
-#[test]
-fn local_pipeline_forked() {
-    // This currenty hangs forever. See https://github.com/alexcrichton/futures-rs/issues/330.
-    // local_pipeline_forked_helper(true);
-
-    local_pipeline_forked_helper(false);
-}
-

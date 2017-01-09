@@ -137,3 +137,143 @@ impl <F> Future for ForkedPromise<F>
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use futures::{Future, Poll};
+    use futures::sync::oneshot;
+    use std::rc::Rc;
+    use std::sync::Arc;
+    use std::cell::RefCell;
+    use super::ForkedPromise;
+
+    enum Mode { Left, Right }
+
+    struct ModedFutureInner<F> where F: Future {
+        mode: Mode,
+        left: F,
+        right: F,
+        task: Option<::futures::task::Task>,
+    }
+
+    struct ModedFuture<F> where F: Future {
+        inner: Rc<RefCell<ModedFutureInner<F>>>,
+    }
+
+    struct ModedFutureHandle<F> where F: Future {
+        inner: Rc<RefCell<ModedFutureInner<F>>>,
+    }
+
+    impl <F> ModedFuture<F> where F: Future {
+        pub fn new(left: F, right: F, mode: Mode) -> (ModedFutureHandle<F>, ModedFuture<F>) {
+            let inner = Rc::new(RefCell::new(ModedFutureInner {
+                left: left, right: right, mode: mode, task: None,
+            }));
+            (ModedFutureHandle { inner: inner.clone() }, ModedFuture { inner: inner })
+        }
+    }
+
+    impl <F> ModedFutureHandle<F> where F: Future {
+        pub fn switch_mode(&mut self, mode: Mode) {
+            self.inner.borrow_mut().mode = mode;
+            if let Some(t) = self.inner.borrow_mut().task.take() {
+                // The other future may have become ready while we were ignoring it.
+                t.unpark();
+            }
+        }
+    }
+
+    impl <F> Future for ModedFuture<F> where F: Future {
+        type Item = F::Item;
+        type Error = F::Error;
+        fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+            let ModedFutureInner { ref mut mode, ref mut left, ref mut right, ref mut task } =
+                *self.inner.borrow_mut();
+            *task = Some(::futures::task::park());
+            match *mode {
+                Mode::Left => left.poll(),
+                Mode::Right => right.poll(),
+            }
+        }
+    }
+
+    struct Reaper;
+    impl ::task_set::TaskReaper<(), ()> for Reaper {
+        fn task_failed(&mut self, _err: ()) {}
+    }
+
+    struct Unpark;
+    impl ::futures::executor::Unpark for Unpark {
+        fn unpark(&self) {}
+    }
+
+    fn forked_propagates_unpark_helper(spawn_moded_first: bool) {
+        let (handle, tasks) = ::task_set::TaskSet::<(), ()>::new(Box::new(Reaper));
+
+        let mut spawn = ::futures::executor::spawn(tasks);
+        let unpark: Arc<::futures::executor::Unpark> = Arc::new(Unpark);
+
+        let (tx, rx) = oneshot::channel::<u32>();
+        let f1 = ForkedPromise::new(rx);
+        let f2 = f1.clone();
+
+        let (mut mfh, mf) = ModedFuture::new(
+            Box::new(f1.map_err(|_| ())) as Box<Future<Item=u32, Error=()>>,
+            Box::new(::futures::future::empty()) as Box<Future<Item=u32, Error=()>>,
+            Mode::Left);
+
+
+        let mut handle0 = handle.clone();
+        let spawn_mf = move || {
+            handle0.add(mf.map(|_| ()));
+        };
+
+        let mut handle0 = handle.clone();
+        let spawn_f2 = move || {
+            let mut handle1 = handle0.clone();
+            handle0.add(f2.map(move |_| handle1.terminate(Ok(()))).map_err(|_|()));
+
+        };
+
+        if spawn_moded_first {
+            (spawn_mf)();
+            match spawn.poll_future(unpark.clone()) {
+                Ok(::futures::Async::NotReady) => (),
+                _ => panic!("should not be ready yet."),
+            }
+            (spawn_f2)();
+        } else {
+            (spawn_f2)();
+            match spawn.poll_future(unpark.clone()) {
+                Ok(::futures::Async::NotReady) => (),
+                _ => panic!("should not be ready yet."),
+            }
+            (spawn_mf)();
+        }
+
+        match spawn.poll_future(unpark.clone()) {
+            Ok(::futures::Async::NotReady) => (),
+            _ => panic!("should not be ready yet."),
+        }
+
+        mfh.switch_mode(Mode::Right);
+
+        tx.complete(11); // It seems like this ought to cause f2 and then rx3 to get resolved.
+
+        loop {
+            match spawn.poll_future(unpark.clone()) {
+                Ok(::futures::Async::NotReady) => (),
+                Ok(::futures::Async::Ready(_)) => break,
+                Err(e) => panic!("error: {:?}", e),
+            }
+        }
+    }
+
+    #[test]
+    fn forked_propagates_unpark() {
+        // This currenty hangs forever. See https://github.com/alexcrichton/futures-rs/issues/330.
+        // forked_propagates_unpark_helper(true);
+
+        forked_propagates_unpark_helper(false);
+    }
+}
