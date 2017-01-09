@@ -67,13 +67,12 @@ impl task::EventSet for Unparker {
 
 struct ForkedPromiseInner<F> where F: Future {
     next_clone_id: Cell<u64>,
-    unparker: Arc<Unparker>,
     original_future: RefCell<F>,
     state: RefCell<ForkedPromiseState<F::Item, F::Error>>,
 }
 
 enum ForkedPromiseState<T, E> {
-    Waiting,
+    Waiting(Arc<Unparker>),
     Done(Result<T, E>),
 }
 
@@ -99,9 +98,9 @@ impl <F> ForkedPromise<F> where F: Future {
             id: 0,
             inner: Rc::new(ForkedPromiseInner {
                 next_clone_id: Cell::new(1),
-                unparker: Arc::new(Unparker::new(AtomicBool::new(true))),
                 original_future: RefCell::new(f),
-                state: RefCell::new(ForkedPromiseState::Waiting),
+                state: RefCell::new(ForkedPromiseState::Waiting(
+                    Arc::new(Unparker::new(AtomicBool::new(true))))),
             })
         }
     }
@@ -110,8 +109,8 @@ impl <F> ForkedPromise<F> where F: Future {
 impl<F> Drop for ForkedPromise<F> where F: Future {
     fn drop(&mut self) {
         match *self.inner.state.borrow_mut() {
-            ForkedPromiseState::Waiting => {
-                self.inner.unparker.remove(self.id);
+            ForkedPromiseState::Waiting(ref unparker) => {
+                unparker.remove(self.id);
             }
             ForkedPromiseState::Done(_) => (),
         }
@@ -125,12 +124,13 @@ impl <F> Future for ForkedPromise<F>
     type Error = F::Error;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        match *self.inner.state.borrow_mut() {
-            ForkedPromiseState::Waiting => {
-                if !self.inner.unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
-                    self.inner.unparker.insert(self.id, task::park());
+        let event = match *self.inner.state.borrow_mut() {
+            ForkedPromiseState::Waiting(ref unparker) => {
+                if !unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
+                    unparker.insert(self.id, task::park());
                     return Ok(::futures::Async::NotReady)
                 }
+                task::UnparkEvent::new(unparker.clone(), 0)
             }
             ForkedPromiseState::Done(ref r) => {
                 match *r {
@@ -140,7 +140,6 @@ impl <F> Future for ForkedPromise<F>
             }
         };
 
-        let event = task::UnparkEvent::new(self.inner.unparker.clone(), 0);
         let done_val = match task::with_unpark_event(event, || self.inner.original_future.borrow_mut().poll()) {
             Ok(::futures::Async::NotReady) => {
                 return Ok(::futures::Async::NotReady)
@@ -149,10 +148,13 @@ impl <F> Future for ForkedPromise<F>
             Err(e) => Err(e),
         };
 
-        ::std::mem::replace(
+        match ::std::mem::replace(
             &mut *self.inner.state.borrow_mut(),
-            ForkedPromiseState::Done(done_val.clone()));
-        self.inner.unparker.unpark();
+            ForkedPromiseState::Done(done_val.clone()))
+        {
+            ForkedPromiseState::Waiting(ref unparker) => unparker.unpark(),
+            _ => unreachable!(),
+        }
 
         match done_val {
             Ok(v) => Ok(::futures::Async::Ready(v)),
