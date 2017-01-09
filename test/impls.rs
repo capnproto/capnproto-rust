@@ -264,7 +264,42 @@ impl test_pipeline::Server for TestPipeline {
     {
         Promise::ok(())
     }
+}
 
+/// TestPipline impl that waits to receive a value before responding to get_cap().
+pub struct TestPipelineWait {
+    rx: Option<::futures::sync::oneshot::Receiver<()>>,
+}
+
+impl TestPipelineWait {
+    pub fn new(rx: ::futures::sync::oneshot::Receiver<()>) -> TestPipelineWait {
+        TestPipelineWait {
+            rx: Some(rx),
+        }
+    }
+}
+
+impl test_pipeline::Server for TestPipelineWait {
+    fn get_cap(&mut self,
+               params: test_pipeline::GetCapParams,
+               mut results: test_pipeline::GetCapResults)
+               -> Promise<(), Error>
+    {
+        if pry!(params.get()).get_n() != 234 {
+            return Promise::err(Error::failed("expected n to equal 234".to_string()));
+        }
+        results.get().set_s("bar");
+        results.get().init_out_box().set_cap(
+            test_interface::Client {
+                client:
+                test_extends::ToClient::new(TestExtends).from_server::<::capnp_rpc::Server>().client,
+            });
+        match self.rx.take() {
+            Some(rx) => Promise::from_future(rx.map_err(Into::into)),
+            None => Promise::err(Error::failed(
+                "TestPipelineWait::get_cap() does not support being called more than once".into())),
+        }
+    }
 }
 
 pub struct TestCallOrder {
