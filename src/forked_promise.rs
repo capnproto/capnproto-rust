@@ -282,7 +282,7 @@ mod test {
 
         mfh.switch_mode(Mode::Right);
 
-        tx.complete(11); // This should cause `f2` and then eventually `spawn` to resolved.
+        tx.complete(11); // This should cause `f2` and then eventually `spawn` to resolve.
 
         loop {
             match spawn.poll_future(unpark.clone()) {
