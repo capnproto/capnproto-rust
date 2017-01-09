@@ -167,7 +167,7 @@ pub unsafe trait Allocator {
 
 /// A container used to build a message.
 ///
-/// The underlying implemention uses the `Allocator` as a trait object. However, we
+/// The underlying implementation uses the `Allocator` as a trait object. However, we
 /// need to include `A` as concrete type parameter so that the typechecker can
 /// correctly deduce appropriate bounds like `Send`.
 pub struct Builder<A> where A: Allocator {
