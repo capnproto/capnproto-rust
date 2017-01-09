@@ -27,7 +27,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::collections::HashMap;
 
 struct Unparker {
-    original_needs_poll: Arc<AtomicBool>,
+    original_needs_poll: AtomicBool,
 
     // It's sad that we need a mutex here, even though we know that the RPC
     // system is restricted to a single thread.
@@ -35,7 +35,7 @@ struct Unparker {
 }
 
 impl Unparker {
-    fn new(original_needs_poll: Arc<AtomicBool>) -> Unparker {
+    fn new(original_needs_poll: AtomicBool) -> Unparker {
         Unparker {
             original_needs_poll: original_needs_poll,
             tasks: Mutex::new(HashMap::new()),
@@ -73,7 +73,7 @@ struct ForkedPromiseInner<F> where F: Future {
 }
 
 enum ForkedPromiseState<T, E> {
-    Waiting(Arc<AtomicBool>),
+    Waiting,
     Done(Result<T, E>),
 }
 
@@ -95,14 +95,13 @@ impl <F> Clone for ForkedPromise<F> where F: Future {
 
 impl <F> ForkedPromise<F> where F: Future {
     pub fn new(f: F) -> ForkedPromise<F> {
-        let original_needs_poll = Arc::new(AtomicBool::new(true));
         ForkedPromise {
             id: 0,
             inner: Rc::new(ForkedPromiseInner {
                 next_clone_id: Cell::new(1),
-                unparker: Arc::new(Unparker::new(original_needs_poll.clone())),
+                unparker: Arc::new(Unparker::new(AtomicBool::new(true))),
                 original_future: RefCell::new(f),
-                state: RefCell::new(ForkedPromiseState::Waiting(original_needs_poll)),
+                state: RefCell::new(ForkedPromiseState::Waiting),
             })
         }
     }
@@ -111,7 +110,7 @@ impl <F> ForkedPromise<F> where F: Future {
 impl<F> Drop for ForkedPromise<F> where F: Future {
     fn drop(&mut self) {
         match *self.inner.state.borrow_mut() {
-            ForkedPromiseState::Waiting(_) => {
+            ForkedPromiseState::Waiting => {
                 self.inner.unparker.remove(self.id);
             }
             ForkedPromiseState::Done(_) => (),
@@ -127,8 +126,8 @@ impl <F> Future for ForkedPromise<F>
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
         match *self.inner.state.borrow_mut() {
-            ForkedPromiseState::Waiting(ref original_needs_poll) => {
-                if !original_needs_poll.swap(false, Ordering::SeqCst) {
+            ForkedPromiseState::Waiting => {
+                if !self.inner.unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
                     self.inner.unparker.insert(self.id, task::park());
                     return Ok(::futures::Async::NotReady)
                 }
