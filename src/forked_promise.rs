@@ -18,20 +18,62 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use futures::Future;
+use futures::{task, Future};
 
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::collections::HashMap;
+
+struct Unparker {
+    original_needs_poll: Arc<AtomicBool>,
+
+    // It's sad that we need a mutex here, even though we know that the RPC
+    // system is restricted to a single thread.
+    tasks: Mutex<HashMap<u64, task::Task>>,
+}
+
+impl Unparker {
+    fn new(original_needs_poll: Arc<AtomicBool>) -> Unparker {
+        Unparker {
+            original_needs_poll: original_needs_poll,
+            tasks: Mutex::new(HashMap::new()),
+        }
+    }
+
+    fn insert(&self, idx: u64, task: task::Task) {
+        self.tasks.lock().unwrap().insert(idx, task);
+    }
+
+    fn remove(&self, idx: u64) {
+        self.tasks.lock().unwrap().remove(&idx);
+    }
+
+    fn unpark(&self) {
+        self.original_needs_poll.store(true, Ordering::SeqCst);
+        let tasks = ::std::mem::replace(&mut *self.tasks.lock().unwrap(), HashMap::new());
+        for (_, task) in tasks {
+            task.unpark();
+        }
+    }
+}
+
+impl task::EventSet for Unparker {
+    fn insert(&self, _id: usize) {
+        self.unpark();
+    }
+}
 
 struct ForkedPromiseInner<F> where F: Future {
     next_clone_id: Cell<u64>,
-    poller: Cell<Option<u64>>,
+    unparker: Arc<Unparker>,
     original_future: RefCell<F>,
     state: RefCell<ForkedPromiseState<F::Item, F::Error>>,
 }
 
 enum ForkedPromiseState<T, E> {
-    Waiting(::std::collections::BTreeMap<u64, ::futures::task::Task>),
+    Waiting(Arc<AtomicBool>),
     Done(Result<T, E>),
 }
 
@@ -53,13 +95,14 @@ impl <F> Clone for ForkedPromise<F> where F: Future {
 
 impl <F> ForkedPromise<F> where F: Future {
     pub fn new(f: F) -> ForkedPromise<F> {
+        let original_needs_poll = Arc::new(AtomicBool::new(true));
         ForkedPromise {
             id: 0,
             inner: Rc::new(ForkedPromiseInner {
                 next_clone_id: Cell::new(1),
-                poller: Cell::new(None),
+                unparker: Arc::new(Unparker::new(original_needs_poll.clone())),
                 original_future: RefCell::new(f),
-                state: RefCell::new(ForkedPromiseState::Waiting(::std::collections::BTreeMap::new())),
+                state: RefCell::new(ForkedPromiseState::Waiting(original_needs_poll)),
             })
         }
     }
@@ -68,20 +111,8 @@ impl <F> ForkedPromise<F> where F: Future {
 impl<F> Drop for ForkedPromise<F> where F: Future {
     fn drop(&mut self) {
         match *self.inner.state.borrow_mut() {
-            ForkedPromiseState::Waiting(ref mut waiters) => {
-                match self.inner.poller.get() {
-                    Some(id) => {
-                        if id == self.id {
-                            for (_id, waiter) in waiters {
-                                waiter.unpark();
-                            }
-                            self.inner.poller.set(None);
-                        } else {
-                            waiters.remove(&self.id);
-                        }
-                    }
-                    None => (),
-                }
+            ForkedPromiseState::Waiting(_) => {
+                self.inner.unparker.remove(self.id);
             }
             ForkedPromiseState::Done(_) => (),
         }
@@ -96,14 +127,10 @@ impl <F> Future for ForkedPromise<F>
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
         match *self.inner.state.borrow_mut() {
-            ForkedPromiseState::Waiting(ref mut waiters) => {
-                match self.inner.poller.get() {
-                    Some(id) if self.id == id => (),
-                    None => self.inner.poller.set(Some(self.id)),
-                    _ => {
-                        waiters.insert(self.id, ::futures::task::park());
-                        return Ok(::futures::Async::NotReady)
-                    }
+            ForkedPromiseState::Waiting(ref original_needs_poll) => {
+                if !original_needs_poll.swap(false, Ordering::SeqCst) {
+                    self.inner.unparker.insert(self.id, task::park());
+                    return Ok(::futures::Async::NotReady)
                 }
             }
             ForkedPromiseState::Done(ref r) => {
@@ -114,7 +141,8 @@ impl <F> Future for ForkedPromise<F>
             }
         };
 
-        let done_val = match self.inner.original_future.borrow_mut().poll() {
+        let event = task::UnparkEvent::new(self.inner.unparker.clone(), 0);
+        let done_val = match task::with_unpark_event(event, || self.inner.original_future.borrow_mut().poll()) {
             Ok(::futures::Async::NotReady) => {
                 return Ok(::futures::Async::NotReady)
             }
@@ -122,15 +150,11 @@ impl <F> Future for ForkedPromise<F>
             Err(e) => Err(e),
         };
 
-        match ::std::mem::replace(&mut *self.inner.state.borrow_mut(),
-                                  ForkedPromiseState::Done(done_val.clone())) {
-            ForkedPromiseState::Waiting(ref mut waiters) => {
-                for (_id, waiter) in waiters {
-                    waiter.unpark();
-                }
-            }
-            _ => unreachable!(),
-        }
+        ::std::mem::replace(
+            &mut *self.inner.state.borrow_mut(),
+            ForkedPromiseState::Done(done_val.clone()));
+        self.inner.unparker.unpark();
+
         match done_val {
             Ok(v) => Ok(::futures::Async::Ready(v)),
             Err(e) => Err(e),
@@ -258,7 +282,7 @@ mod test {
 
         mfh.switch_mode(Mode::Right);
 
-        tx.complete(11); // It seems like this ought to cause f2 and then rx3 to get resolved.
+        tx.complete(11); // This should cause `f2` and then eventually `spawn` to resolved.
 
         loop {
             match spawn.poll_future(unpark.clone()) {
@@ -271,9 +295,7 @@ mod test {
 
     #[test]
     fn forked_propagates_unpark() {
-        // This currenty hangs forever. See https://github.com/alexcrichton/futures-rs/issues/330.
-        // forked_propagates_unpark_helper(true);
-
+        forked_propagates_unpark_helper(true);
         forked_propagates_unpark_helper(false);
     }
 }
