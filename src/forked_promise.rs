@@ -67,7 +67,14 @@ impl task::EventSet for Unparker {
 
 struct ForkedPromiseInner<F> where F: Future {
     next_clone_id: Cell<u64>,
-    original_future: RefCell<F>,
+
+    // Only ever `Some` when `state` is `Waiting`. You might think that it's a good idea
+    // to fold this field into the `State` enum, but then a double-borrow panic is possible:
+    // `state` would need to be mutably borrowed when we call `poll()` on the original future,
+    // polling the original future can cause clones of the `ForkedPromise` to get dropped,
+    // and `ForkedPromise::drop()` needs to borrow `state` again.
+    original_future: RefCell<Option<F>>,
+
     state: RefCell<ForkedPromiseState<F::Item, F::Error>>,
 }
 
@@ -98,7 +105,7 @@ impl <F> ForkedPromise<F> where F: Future {
             id: 0,
             inner: Rc::new(ForkedPromiseInner {
                 next_clone_id: Cell::new(1),
-                original_future: RefCell::new(f),
+                original_future: RefCell::new(Some(f)),
                 state: RefCell::new(ForkedPromiseState::Waiting(
                     Arc::new(Unparker::new(AtomicBool::new(true))))),
             })
@@ -108,7 +115,7 @@ impl <F> ForkedPromise<F> where F: Future {
 
 impl<F> Drop for ForkedPromise<F> where F: Future {
     fn drop(&mut self) {
-        match *self.inner.state.borrow_mut() {
+        match *self.inner.state.borrow() {
             ForkedPromiseState::Waiting(ref unparker) => {
                 unparker.remove(self.id);
             }
@@ -140,13 +147,21 @@ impl <F> Future for ForkedPromise<F>
             }
         };
 
-        let done_val = match task::with_unpark_event(event, || self.inner.original_future.borrow_mut().poll()) {
-            Ok(::futures::Async::NotReady) => {
-                return Ok(::futures::Async::NotReady)
+        let done_val = match *self.inner.original_future.borrow_mut() {
+            Some(ref mut original_future) => {
+                match task::with_unpark_event(event, || original_future.poll()) {
+                    Ok(::futures::Async::NotReady) => {
+                        return Ok(::futures::Async::NotReady)
+                    }
+                    Ok(::futures::Async::Ready(v)) => Ok(v),
+                    Err(e) => Err(e),
+                }
             }
-            Ok(::futures::Async::Ready(v)) => Ok(v),
-            Err(e) => Err(e),
+            None => unreachable!(),
         };
+
+        // No longer need to hold on to the original future.
+        self.inner.original_future.borrow_mut().take();
 
         match ::std::mem::replace(
             &mut *self.inner.state.borrow_mut(),
