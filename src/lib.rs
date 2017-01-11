@@ -85,8 +85,7 @@ pub mod rpc_twoparty_capnp {
   include!(concat!(env!("OUT_DIR"), "/rpc_twoparty_capnp.rs"));
 }
 
-/// Like `try!()`, but for functions that return a [`Promise<T, E>`](struct.Promise.html) rather
-/// than a `Result<T, E>`.
+/// Like `try!()`, but for functions that return a `Promise<T, E>` rather than a `Result<T, E>`.
 ///
 /// Unwraps a `Result<T, E>`. In the case of an error `Err(e)`, immediately returns from the
 /// enclosing function with `Promise::err(e)`.
