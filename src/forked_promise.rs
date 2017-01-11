@@ -187,6 +187,21 @@ mod test {
     use std::cell::RefCell;
     use super::ForkedPromise;
 
+
+    // This test was pilfered from a futures::future::Shared test.
+    #[test]
+    fn drop_in_poll() {
+        let slot = Rc::new(RefCell::new(None));
+        let slot2 = slot.clone();
+        let future = ForkedPromise::new(::futures::future::poll_fn(move || {
+            drop(slot2.borrow_mut().take().unwrap());
+            Ok::<_, u32>(1.into())
+        }));
+        let future2 = Box::new(future.clone()) as Box<Future<Item=_, Error=_>>;
+        *slot.borrow_mut() = Some(future2);
+        assert_eq!(future.wait().unwrap(), 1);
+    }
+
     enum Mode { Left, Right }
 
     struct ModedFutureInner<F> where F: Future {
