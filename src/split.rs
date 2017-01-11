@@ -205,3 +205,24 @@ impl <F, T1, T2, E> Future for SplitRight<F, T1, T2, E>
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use futures::{Future};
+    use std::cell::RefCell;
+    use std::rc::{Rc};
+    use super::split;
+
+    #[test]
+    fn drop_in_poll() {
+        let slot = Rc::new(RefCell::new(None));
+        let slot2 = slot.clone();
+        let (f1, f2) = split(::futures::future::lazy(move || {
+            drop(slot2.borrow_mut().take().unwrap());
+            Ok::<_,()>((11,"foo"))
+        }));
+        let future2 = Box::new(f2) as Box<Future<Item=_, Error=_>>;
+        *slot.borrow_mut() = Some(future2);
+        assert_eq!(f1.wait().unwrap(), 11);
+    }
+}

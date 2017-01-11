@@ -195,7 +195,7 @@ mod test {
         let slot2 = slot.clone();
         let future = ForkedPromise::new(::futures::future::poll_fn(move || {
             drop(slot2.borrow_mut().take().unwrap());
-            Ok::<_, u32>(1.into())
+            Ok::<_, ()>(1.into())
         }));
         let future2 = Box::new(future.clone()) as Box<Future<Item=_, Error=_>>;
         *slot.borrow_mut() = Some(future2);
