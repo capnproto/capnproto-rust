@@ -84,6 +84,8 @@ fn run_command(mut command: ::std::process::Command) -> ::capnp::Result<()> {
 pub struct CompilerCommand {
     files: Vec<PathBuf>,
     src_prefixes: Vec<PathBuf>,
+    import_paths: Vec<PathBuf>,
+    no_std_import: bool,
 }
 
 impl CompilerCommand {
@@ -92,6 +94,8 @@ impl CompilerCommand {
         CompilerCommand {
             files: Vec::new(),
             src_prefixes: Vec::new(),
+            import_paths: Vec::new(),
+            no_std_import: false,
         }
     }
 
@@ -112,10 +116,35 @@ impl CompilerCommand {
         self
     }
 
+    /// Adds an --import_path flag. Adds `dir` to the list of directories searched
+    /// for absolute imports.
+    pub fn import_path<'a, P>(&'a mut self, dir: P) -> &'a mut CompilerCommand
+        where P: AsRef<Path>,
+    {
+        self.import_paths.push(dir.as_ref().to_path_buf());
+        self
+    }
+
+    /// Adds the --no-std-import flag, indicating that the default import paths of
+    /// /usr/include and /usr/local/include should not bet included.
+    pub fn no_std_import<'a>(&'a mut self) -> &'a mut CompilerCommand {
+        self.no_std_import = true;
+        self
+    }
+
     /// Runs the command.
     pub fn run(&mut self) -> ::capnp::Result<()> {
         let mut command = ::std::process::Command::new("capnp");
         command.arg("compile").arg("-o").arg("-");
+
+        if self.no_std_import {
+            command.arg("--no-std-import");
+        }
+
+        for import_path in &self.import_paths {
+            command.arg(&format!("--import-path={}", import_path.display()));
+        }
+
         for src_prefix in &self.src_prefixes {
             command.arg(&format!("--src-prefix={}", src_prefix.display()));
         }
