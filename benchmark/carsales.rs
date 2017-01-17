@@ -21,7 +21,8 @@
 
 use rand::*;
 use common::*;
-use carsales_capnp::*;
+use carsales_capnp::{parking_lot, total_value, Color, car};
+use capnp::traits::Owned;
 
 trait CarValue {
     fn car_value(self) -> u64;
@@ -136,7 +137,7 @@ impl ::TestCase for CarSales {
     type Response = total_value::Owned;
     type Expectation = u64;
 
-    fn setup_request(rng: &mut FastRand, request: parking_lot::Builder) -> u64 {
+    fn setup_request(&self, rng: &mut FastRand, request: parking_lot::Builder) -> u64 {
         let mut result = 0;
         let mut cars = request.init_cars(rng.next_less_than(200));
         for ii in 0..cars.len() {
@@ -150,7 +151,7 @@ impl ::TestCase for CarSales {
         result
     }
 
-    fn handle_request(request: parking_lot::Reader, mut response: total_value::Builder) {
+    fn handle_request(&self, request: parking_lot::Reader, mut response: total_value::Builder) {
         let mut result = 0;
         for car in request.get_cars().unwrap().iter() {
             result += car.car_value();
@@ -158,7 +159,16 @@ impl ::TestCase for CarSales {
         response.set_amount(result);
     }
 
-    fn check_response(response: total_value::Reader, expected : u64) -> bool {
+    fn check_response(&self, response: total_value::Reader, expected : u64) -> bool {
         response.get_amount() == expected
+    }
+
+    fn request_as_reader<'a>(&self, builder: <Self::Request as Owned<'a>>::Builder)
+                             -> <Self::Request as Owned<'a>>::Reader {
+        builder.as_reader()
+    }
+    fn response_as_reader<'a>(&self, builder: <Self::Response as Owned<'a>>::Builder)
+                              -> <Self::Response as Owned<'a>>::Reader {
+        builder.as_reader()
     }
 }

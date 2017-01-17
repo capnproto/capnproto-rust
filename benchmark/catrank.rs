@@ -21,6 +21,7 @@
 
 use common::*;
 use catrank_capnp::*;
+use capnp::traits::Owned;
 
 #[derive(Clone, Copy)]
 pub struct ScoredResult<'a> {
@@ -37,7 +38,7 @@ impl ::TestCase for CatRank {
     type Response = search_result_list::Owned;
     type Expectation = i32;
 
-    fn setup_request(rng: &mut FastRand, request: search_result_list::Builder) -> i32 {
+    fn setup_request(&self, rng: &mut FastRand, request: search_result_list::Builder) -> i32 {
         let count = rng.next_less_than(1000);
         let mut good_count: i32 = 0;
 
@@ -84,7 +85,7 @@ impl ::TestCase for CatRank {
         good_count
     }
 
-    fn handle_request(request: search_result_list::Reader,
+    fn handle_request(&self, request: search_result_list::Reader,
                       response: search_result_list::Builder) {
         let mut scored_results: Vec<ScoredResult> = Vec::new();
 
@@ -116,7 +117,7 @@ impl ::TestCase for CatRank {
         }
     }
 
-    fn check_response(response: search_result_list::Reader, expected_good_count: i32) -> bool {
+    fn check_response(&self, response: search_result_list::Reader, expected_good_count: i32) -> bool {
         let mut good_count : i32 = 0;
         let results = response.get_results().unwrap();
         for result in results.iter() {
@@ -127,5 +128,14 @@ impl ::TestCase for CatRank {
             }
         }
         return good_count == expected_good_count;
+    }
+
+    fn request_as_reader<'a>(&self, builder: <Self::Request as Owned<'a>>::Builder)
+                             -> <Self::Request as Owned<'a>>::Reader {
+        builder.as_reader()
+    }
+    fn response_as_reader<'a>(&self, builder: <Self::Response as Owned<'a>>::Builder)
+                              -> <Self::Response as Owned<'a>>::Reader {
+        builder.as_reader()
     }
 }

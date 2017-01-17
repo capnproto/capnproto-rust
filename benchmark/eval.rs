@@ -19,13 +19,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std;
 use common::*;
-use eval_capnp::*;
+use eval_capnp::{expression, evaluation_result, Operation};
+use capnp::traits::Owned;
 
-fn make_expression(rng : &mut FastRand, mut exp : expression::Builder, depth : u32) -> i32 {
+fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth : u32) -> i32 {
     exp.set_op(unsafe {
-            std::mem::transmute(rng.next_less_than( Operation::Modulus as u32 + 1) as u16)});
+            ::std::mem::transmute(rng.next_less_than( Operation::Modulus as u32 + 1) as u16)});
 
     let left : i32 =
     if rng.next_less_than(8) < depth {
@@ -80,15 +80,24 @@ impl ::TestCase for Eval {
     type Response = evaluation_result::Owned;
     type Expectation = i32;
 
-    fn setup_request(rng: &mut FastRand, request: expression::Builder) -> i32 {
+    fn setup_request(&self, rng: &mut FastRand, request: expression::Builder) -> i32 {
         make_expression(rng, request, 0)
     }
 
-    fn handle_request(request: expression::Reader, mut response: evaluation_result::Builder) {
+    fn handle_request(&self, request: expression::Reader, mut response: evaluation_result::Builder) {
         response.set_value(evaluate_expression(request));
     }
 
-    fn check_response(response: evaluation_result::Reader, expected : i32) -> bool {
+    fn check_response(&self, response: evaluation_result::Reader, expected : i32) -> bool {
         response.get_value() == expected
+    }
+
+    fn request_as_reader<'a>(&self, builder: <Self::Request as Owned<'a>>::Builder)
+                             -> <Self::Request as Owned<'a>>::Reader {
+        builder.as_reader()
+    }
+    fn response_as_reader<'a>(&self, builder: <Self::Response as Owned<'a>>::Builder)
+                              -> <Self::Response as Owned<'a>>::Reader {
+        builder.as_reader()
     }
 }
