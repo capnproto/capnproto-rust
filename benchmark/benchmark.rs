@@ -50,7 +50,8 @@ trait TestCase {
     type Expectation;
 
     fn setup_request(&self, &mut common::FastRand, <Self::Request as Owned>::Builder) -> Self::Expectation;
-    fn handle_request(&self, <Self::Request as Owned>::Reader, <Self::Response as Owned>::Builder);
+    fn handle_request(&self, <Self::Request as Owned>::Reader, <Self::Response as Owned>::Builder)
+                      -> ::capnp::Result<()>;
     fn check_response(&self, <Self::Response as Owned>::Reader, Self::Expectation) -> bool;
 
     // HACK. The Builder::as_reader() method is not attached to Owned. Maybe it should be?
@@ -159,7 +160,7 @@ impl <'a> Scratch<'a> for UseScratch {
     }
 }
 
-fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64)
+fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64) -> ::capnp::Result<()>
     where S: for<'a> Scratch<'a>, T: TestCase,
 {
     let mut rng = common::FastRand::new();
@@ -170,9 +171,9 @@ fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64)
             &mut rng,
             message_req.init_root());
 
-        testcase.handle_request(
+        try!(testcase.handle_request(
             testcase.request_as_reader(message_req.get_root().unwrap()),
-            message_res.init_root());
+            message_res.init_root()));
 
         if !testcase.check_response(
             testcase.response_as_reader(message_res.get_root().unwrap()),
@@ -180,9 +181,10 @@ fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64)
             panic!("Incorrect response.");
         }
     }
+    Ok(())
 }
 
-fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
+fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64) -> ::capnp::Result<()>
     where C: Serialize, S: for<'a> Scratch<'a>, T: TestCase,
 {
     let mut request_bytes: ::std::vec::Vec<u8> =
@@ -212,7 +214,7 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
                 capnp::message::DEFAULT_READER_OPTIONS).unwrap();
 
             let request_reader = message_reader.get_root().unwrap();
-            testcase.handle_request(request_reader, response);
+            try!(testcase.handle_request(request_reader, response));
         }
 
         {
@@ -230,9 +232,11 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
             panic!("Incorrect response.");
         }
     }
+    Ok(())
 }
 
 fn server<C, S, T, R, W>(testcase: T, mut reuse: S, compression: C, iters: u64, mut input: R, mut output: W)
+                         -> ::capnp::Result<()>
     where C: Serialize, S: for<'a> Scratch<'a>, T: TestCase, R: ::std::io::Read, W: ::std::io::Write,
 {
     let mut out_buffered = ::std::io::BufWriter::new(&mut output);
@@ -243,19 +247,21 @@ fn server<C, S, T, R, W>(testcase: T, mut reuse: S, compression: C, iters: u64, 
 
         {
             let response = message_res.init_root();
-            let message_reader = compression.read_message(
+            let message_reader = try!(compression.read_message(
                 &mut in_buffered,
-                capnp::message::DEFAULT_READER_OPTIONS).unwrap();
-            let request_reader = message_reader.get_root().unwrap();
-            testcase.handle_request(request_reader, response);
+                capnp::message::DEFAULT_READER_OPTIONS));
+            let request_reader = try!(message_reader.get_root());
+            try!(testcase.handle_request(request_reader, response));
         }
 
-        compression.write_message(&mut out_buffered, &mut message_res).unwrap();
-        out_buffered.flush().unwrap();
+        try!(compression.write_message(&mut out_buffered, &mut message_res));
+        try!(out_buffered.flush());
     }
+    Ok(())
 }
 
 fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
+                        -> ::capnp::Result<()>
     where C: Serialize, S: for<'a> Scratch<'a>, T: TestCase,
 {
     let mut out_stream = ::fdstream::FdStream::new(1);
@@ -271,18 +277,19 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
             let request = message_req.init_root();
             testcase.setup_request(&mut rng, request)
         };
-        compression.write_message(&mut out_buffered, &mut message_req).unwrap();
-        out_buffered.flush().unwrap();
+        try!(compression.write_message(&mut out_buffered, &mut message_req));
+        try!(out_buffered.flush());
 
         let message_reader = compression.read_message(
             &mut in_buffered,
             capnp::message::DEFAULT_READER_OPTIONS).unwrap();
-        let response_reader = message_reader.get_root().unwrap();
+        let response_reader = try!(message_reader.get_root());
         assert!(testcase.check_response(response_reader, expected));
     }
+    Ok(())
 }
 
-fn pass_by_pipe<C, S, T>(testcase: T, reuse: S, compression: C, iters: u64)
+fn pass_by_pipe<C, S, T>(testcase: T, reuse: S, compression: C, iters: u64) -> ::capnp::Result<()>
     where C: Serialize, S: for<'a> Scratch<'a>, T: TestCase,
 {
     use std::process;
@@ -299,16 +306,18 @@ fn pass_by_pipe<C, S, T>(testcase: T, reuse: S, compression: C, iters: u64)
         Ok(ref mut p) => {
             let child_std_out = p.stdout.take().unwrap();
             let child_std_in = p.stdin.take().unwrap();
-            server(testcase, reuse, compression, iters, child_std_out, child_std_in);
+            try!(server(testcase, reuse, compression, iters, child_std_out, child_std_in));
             println!("{}", p.wait().unwrap());
+            Ok(())
         }
         Err(e) => {
             println!("could not start process: {}", e);
+            Ok(())
         }
     }
 }
 
-fn do_testcase<C, S, T>(testcase: T, mode: &str, reuse: S, compression: C, iters: u64)
+fn do_testcase<C, S, T>(testcase: T, mode: &str, reuse: S, compression: C, iters: u64) -> ::capnp::Result<()>
     where C: Serialize, S: for<'a> Scratch<'a>, T: TestCase,
 {
     match mode {
@@ -325,7 +334,7 @@ fn do_testcase<C, S, T>(testcase: T, mode: &str, reuse: S, compression: C, iters
     }
 }
 
-fn do_testcase1<C, S>(case: &str, mode: &str, scratch: S, compression: C, iters: u64)
+fn do_testcase1<C, S>(case: &str, mode: &str, scratch: S, compression: C, iters: u64) -> ::capnp::Result<()>
     where C: Serialize, S: for<'a> Scratch<'a>,
 {
     match case {
@@ -336,15 +345,14 @@ fn do_testcase1<C, S>(case: &str, mode: &str, scratch: S, compression: C, iters:
     }
 }
 
-fn do_testcase2<C>(case: &str, mode: &str, scratch: &str, compression: C, iters: u64)
+fn do_testcase2<C>(case: &str, mode: &str, scratch: &str, compression: C, iters: u64) -> ::capnp::Result<()>
     where C: Serialize,
 {
     match scratch {
         "no-reuse" => do_testcase1(case, mode, NoScratch, compression, iters),
         "reuse" => do_testcase1(case, mode, UseScratch::new(), compression, iters),
         s => panic!("unrecognized reuse option: {}", s),
-    };
-
+    }
 }
 
 pub fn main() {
@@ -361,9 +369,16 @@ pub fn main() {
         }
     };
 
-    match &*args[4] {
+    let result = match &*args[4] {
         "none" => do_testcase2(&*args[1], &*args[2], &*args[3], NoCompression, iters),
         "packed" => do_testcase2(&*args[1], &*args[2], &*args[3], Packed, iters),
         s => panic!("unrecognized compression: {}", s)
     };
+
+    match result {
+        Ok(()) => (),
+        Err(e) => {
+            panic!("error: {:?}", e);
+        }
+    }
 }

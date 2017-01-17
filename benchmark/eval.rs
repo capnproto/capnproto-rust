@@ -84,8 +84,11 @@ impl ::TestCase for Eval {
         make_expression(rng, request, 0)
     }
 
-    fn handle_request(&self, request: expression::Reader, mut response: evaluation_result::Builder) {
-        response.set_value(evaluate_expression(request).unwrap());
+    fn handle_request(&self, request: expression::Reader, mut response: evaluation_result::Builder)
+        -> ::capnp::Result<()>
+    {
+        response.set_value(try!(evaluate_expression(request)));
+        Ok(())
     }
 
     fn check_response(&self, response: evaluation_result::Reader, expected : i32) -> bool {

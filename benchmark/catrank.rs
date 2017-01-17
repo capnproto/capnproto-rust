@@ -86,14 +86,15 @@ impl ::TestCase for CatRank {
     }
 
     fn handle_request(&self, request: search_result_list::Reader,
-                      response: search_result_list::Builder) {
+                      response: search_result_list::Builder) -> ::capnp::Result<()>
+    {
         let mut scored_results: Vec<ScoredResult> = Vec::new();
 
-        let results = request.get_results().unwrap();
+        let results = try!(request.get_results());
         for i in 0..results.len() {
             let result = results.get(i);
             let mut score = result.get_score();
-            let snippet = result.get_snippet().unwrap();
+            let snippet = try!(result.get_snippet());
             if snippet.contains(" cat ") {
                 score *= 10000.0;
             }
@@ -112,9 +113,11 @@ impl ::TestCase for CatRank {
             let mut item = list.borrow().get(i);
             let result = scored_results[i as usize];
             item.set_score(result.score);
-            item.set_url(result.result.get_url().unwrap());
-            item.set_snippet(result.result.get_snippet().unwrap());
+            item.set_url(try!(result.result.get_url()));
+            item.set_snippet(try!(result.result.get_snippet()));
         }
+
+        Ok(())
     }
 
     fn check_response(&self, response: search_result_list::Reader, expected_good_count: i32) -> bool {
