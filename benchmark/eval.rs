@@ -23,12 +23,6 @@ use std;
 use common::*;
 use eval_capnp::*;
 
-pub type RequestBuilder<'a> = expression::Builder<'a>;
-pub type ResponseBuilder<'a> = evaluation_result::Builder<'a>;
-pub type Expectation = i32;
-pub type RequestReader<'a> = expression::Reader<'a>;
-pub type ResponseReader<'a> = evaluation_result::Reader<'a>;
-
 fn make_expression(rng : &mut FastRand, mut exp : expression::Builder, depth : u32) -> i32 {
     exp.set_op(unsafe {
             std::mem::transmute(rng.next_less_than( Operation::Modulus as u32 + 1) as u16)});
@@ -79,17 +73,22 @@ fn evaluate_expression(exp : expression::Reader) -> i32 {
     }
 }
 
-#[inline]
-pub fn setup_request(rng : &mut FastRand, request : expression::Builder) -> i32 {
-    make_expression(rng, request, 0)
-}
+pub struct Eval;
 
-#[inline]
-pub fn handle_request(request : expression::Reader, mut response : evaluation_result::Builder) {
-    response.set_value(evaluate_expression(request));
-}
+impl ::TestCase for Eval {
+    type Request = expression::Owned;
+    type Response = evaluation_result::Owned;
+    type Expectation = i32;
 
-#[inline]
-pub fn check_response(response : evaluation_result::Reader, expected : i32) -> bool {
-    response.get_value() == expected
+    fn setup_request(rng: &mut FastRand, request: expression::Builder) -> i32 {
+        make_expression(rng, request, 0)
+    }
+
+    fn handle_request(request: expression::Reader, mut response: evaluation_result::Builder) {
+        response.set_value(evaluate_expression(request));
+    }
+
+    fn check_response(response: evaluation_result::Reader, expected : i32) -> bool {
+        response.get_value() == expected
+    }
 }

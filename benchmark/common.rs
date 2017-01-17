@@ -24,10 +24,10 @@ use std::i32;
 
 #[derive(Clone, Copy)]
 pub struct FastRand {
-    x : u32,
-    y : u32,
-    z : u32,
-    w : u32,
+    x: u32,
+    y: u32,
+    z: u32,
+    w: u32,
 }
 
 impl Rng for FastRand {

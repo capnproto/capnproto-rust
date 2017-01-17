@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2014 Sandstorm Development Group, Inc. and contributors
+// Copyright (c) 2013-2017 Sandstorm Development Group, Inc. and contributors
 // Licensed under the MIT License:
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,6 +23,8 @@ extern crate capnp;
 extern crate fdstream;
 extern crate rand;
 
+use capnp::traits::Owned;
+
 pub mod common;
 
 pub mod carsales_capnp {
@@ -41,6 +43,16 @@ pub mod eval_capnp {
 
 pub mod eval;
 
+trait TestCase {
+    type Request: for<'a> Owned<'a>;
+    type Response: for<'a> Owned<'a>;
+    type Expectation;
+    fn setup_request(&mut common::FastRand, <Self::Request as Owned>::Builder) -> Self::Expectation;
+    fn handle_request(<Self::Request as Owned>::Reader, <Self::Response as Owned>::Builder);
+    fn check_response(<Self::Response as Owned>::Reader, Self::Expectation) -> bool;
+}
+
+
 mod uncompressed {
     pub use capnp::serialize::{read_message, write_message};
 }
@@ -49,7 +61,7 @@ mod packed {
     pub use capnp::serialize_packed::{read_message, write_message};
 }
 
-const SCRATCH_SIZE : usize = 128 * 1024;
+const SCRATCH_SIZE: usize = 128 * 1024;
 
 #[derive(Clone, Copy)]
 pub struct NoScratch;
@@ -90,20 +102,24 @@ impl UseScratch {
 
 
 macro_rules! pass_by_object(
-    ( $testcase:ident, $reuse:ident, $iters:expr ) => ({
+    ( $testcase:ty, $reuse:ident, $iters:expr ) => ({
             let mut rng = common::FastRand::new();
             for _ in 0..$iters {
                 let mut message_req = $reuse.new_builder(0);
                 let mut message_res = $reuse.new_builder(1);
 
-                let expected = $testcase::setup_request(&mut rng,
-                                                        message_req.init_root::<$testcase::RequestBuilder>());
+                let expected = <$testcase as TestCase>::setup_request(
+                    &mut rng,
+                    message_req.init_root());
 
-                $testcase::handle_request(message_req.get_root::<$testcase::RequestBuilder>().unwrap().as_reader(),
-                                          message_res.init_root::<$testcase::ResponseBuilder>());
+                <$testcase as TestCase>::handle_request(
+                    message_req.get_root::<<<$testcase as TestCase>::Request as Owned>::Builder>()
+                        .unwrap().as_reader(),
+                    message_res.init_root());
 
-                if !$testcase::check_response(
-                    message_res.get_root::<$testcase::ResponseBuilder>().unwrap().as_reader(),
+                if !<$testcase as TestCase>::check_response(
+                    message_res.get_root::<<<$testcase as TestCase>::Response as Owned>::Builder>()
+                        .unwrap().as_reader(),
                     expected) {
                     panic!("Incorrect response.");
                 }
@@ -113,7 +129,7 @@ macro_rules! pass_by_object(
 
 
 macro_rules! pass_by_bytes(
-    ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr ) => ({
+    ( $testcase:ty, $reuse:ident, $compression:ident, $iters:expr ) => ({
         let mut request_bytes : ::std::vec::Vec<u8> =
             ::std::iter::repeat(0u8).take(SCRATCH_SIZE * 8).collect();
         let mut response_bytes : ::std::vec::Vec<u8> =
@@ -124,39 +140,39 @@ macro_rules! pass_by_bytes(
             let mut message_res = $reuse.new_builder(1);
 
             let expected = {
-                let request = message_req.init_root::<$testcase::RequestBuilder>();
-                $testcase::setup_request(&mut rng, request)
+                let request = message_req.init_root();
+                <$testcase as TestCase>::setup_request(&mut rng, request)
             };
 
             {
-                let response = message_res.init_root::<$testcase::ResponseBuilder>();
+                let response = message_res.init_root();
 
                 {
-                    let mut writer : &mut[u8] = &mut request_bytes;
+                    let mut writer: &mut [u8] = &mut request_bytes;
                     $compression::write_message(&mut writer, &mut message_req).unwrap()
                 }
 
-                let mut request_bytes1 : &[u8] = &request_bytes;
+                let mut request_bytes1: &[u8] = &request_bytes;
                 let message_reader = $compression::read_message(
                     &mut request_bytes1,
                     capnp::message::DEFAULT_READER_OPTIONS).unwrap();
 
-                let request_reader : $testcase::RequestReader = message_reader.get_root().unwrap();
-                $testcase::handle_request(request_reader, response);
+                let request_reader = message_reader.get_root().unwrap();
+                <$testcase as TestCase>::handle_request(request_reader, response);
             }
 
             {
-                let mut writer : &mut [u8] = &mut response_bytes;
+                let mut writer: &mut [u8] = &mut response_bytes;
                 $compression::write_message(&mut writer, &mut message_res).unwrap()
             }
 
-            let mut response_bytes1 : &[u8] = &response_bytes;
+            let mut response_bytes1: &[u8] = &response_bytes;
             let message_reader = $compression::read_message(
                 &mut response_bytes1,
                 capnp::message::DEFAULT_READER_OPTIONS).unwrap();
 
-            let response_reader : $testcase::ResponseReader = message_reader.get_root().unwrap();
-            if !$testcase::check_response(response_reader, expected) {
+            let response_reader = message_reader.get_root().unwrap();
+            if !<$testcase as TestCase>::check_response(response_reader, expected) {
                 panic!("Incorrect response.");
             }
         }
@@ -164,19 +180,19 @@ macro_rules! pass_by_bytes(
     );
 
 macro_rules! server(
-    ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
+    ( $testcase:ty, $reuse:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
             let mut out_buffered = ::std::io::BufWriter::new(&mut $output);
             let mut in_buffered = ::std::io::BufReader::new(&mut $input);
             for _ in 0..$iters {
                 let mut message_res = $reuse.new_builder(0);
 
                 {
-                    let response = message_res.init_root::<$testcase::ResponseBuilder>();
+                    let response = message_res.init_root();
                     let message_reader = $compression::read_message(
                         &mut in_buffered,
                         capnp::message::DEFAULT_READER_OPTIONS).unwrap();
-                    let request_reader : $testcase::RequestReader = message_reader.get_root().unwrap();
-                    $testcase::handle_request(request_reader, response);
+                    let request_reader = message_reader.get_root().unwrap();
+                    <$testcase as TestCase>::handle_request(request_reader, response);
                 }
 
                 $compression::write_message(&mut out_buffered, &mut message_res).unwrap();
@@ -186,7 +202,7 @@ macro_rules! server(
     );
 
 macro_rules! sync_client(
-    ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
+    ( $testcase:ty, $reuse:ident, $compression:ident, $iters:expr) => ({
             let mut out_stream = ::fdstream::FdStream::new(1);
             let mut in_stream = ::fdstream::FdStream::new(0);
             let mut in_buffered = ::std::io::BufReader::new(&mut in_stream);
@@ -196,8 +212,8 @@ macro_rules! sync_client(
                 let mut message_req = $reuse.new_builder(0);
 
                 let expected = {
-                    let request = message_req.init_root::<$testcase::RequestBuilder>();
-                    $testcase::setup_request(&mut rng, request)
+                    let request = message_req.init_root();
+                    <$testcase as TestCase>::setup_request(&mut rng, request)
                 };
                 $compression::write_message(&mut out_buffered, &mut message_req).unwrap();
                 out_buffered.flush().unwrap();
@@ -205,8 +221,8 @@ macro_rules! sync_client(
                 let message_reader = $compression::read_message(
                     &mut in_buffered,
                     capnp::message::DEFAULT_READER_OPTIONS).unwrap();
-                let response_reader : $testcase::ResponseReader = message_reader.get_root().unwrap();
-                assert!($testcase::check_response(response_reader, expected));
+                let response_reader = message_reader.get_root().unwrap();
+                assert!(<$testcase as TestCase>::check_response(response_reader, expected));
 
             }
         });
@@ -214,7 +230,7 @@ macro_rules! sync_client(
 
 
 macro_rules! pass_by_pipe(
-    ( $testcase:ident, $reuse:ident, $compression:ident, $iters:expr) => ({
+    ( $testcase:ty, $reuse:ident, $compression:ident, $iters:expr) => ({
         use std::process;
 
         let mut args : Vec<String> = ::std::env::args().collect();
@@ -241,7 +257,7 @@ macro_rules! pass_by_pipe(
     );
 
 macro_rules! do_testcase(
-    ( $testcase:ident, $mode:expr, $reuse:ident, $compression:ident, $iters:expr ) => ({
+    ( $testcase:ty, $mode:expr, $reuse:ident, $compression:ident, $iters:expr ) => ({
             match &*$mode {
                 "object" => pass_by_object!($testcase, $reuse, $iters),
                 "bytes" => pass_by_bytes!($testcase, $reuse, $compression, $iters),
@@ -260,9 +276,9 @@ macro_rules! do_testcase(
 macro_rules! do_testcase1(
     ( $testcase:expr, $mode:expr, $reuse:ident, $compression:ident, $iters:expr) => ({
             match &*$testcase {
-                "carsales" => do_testcase!(carsales, $mode, $reuse, $compression, $iters),
-                "catrank" => do_testcase!(catrank, $mode, $reuse, $compression, $iters),
-                "eval" => do_testcase!(eval, $mode, $reuse, $compression, $iters),
+                "carsales" => do_testcase!(carsales::CarSales, $mode, $reuse, $compression, $iters),
+                "catrank" => do_testcase!(catrank::CatRank, $mode, $reuse, $compression, $iters),
+                "eval" => do_testcase!(eval::Eval, $mode, $reuse, $compression, $iters),
                 s => panic!("unrecognized test case: {}", s)
             }
         });

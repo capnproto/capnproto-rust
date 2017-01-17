@@ -23,12 +23,6 @@ use rand::*;
 use common::*;
 use carsales_capnp::*;
 
-pub type RequestBuilder<'a> = parking_lot::Builder<'a>;
-pub type RequestReader<'a> = parking_lot::Reader<'a>;
-pub type ResponseBuilder<'a> = total_value::Builder<'a>;
-pub type ResponseReader<'a> = total_value::Reader<'a>;
-pub type Expectation = u64;
-
 trait CarValue {
     fn car_value(self) -> u64;
 }
@@ -135,29 +129,36 @@ pub fn random_car(rng : &mut FastRand, mut car : car::Builder) {
     car.set_has_nav_system(rng.gen());
 }
 
-pub fn setup_request(rng : &mut FastRand, request : parking_lot::Builder) -> u64 {
-    let mut result = 0;
-    let mut cars = request.init_cars(rng.next_less_than(200));
-    for ii in 0..cars.len() {
-        {
-            let car = cars.borrow().get(ii);
-            random_car(rng, car);
+pub struct CarSales;
+
+impl ::TestCase for CarSales {
+    type Request = parking_lot::Owned;
+    type Response = total_value::Owned;
+    type Expectation = u64;
+
+    fn setup_request(rng: &mut FastRand, request: parking_lot::Builder) -> u64 {
+        let mut result = 0;
+        let mut cars = request.init_cars(rng.next_less_than(200));
+        for ii in 0..cars.len() {
+            {
+                let car = cars.borrow().get(ii);
+                random_car(rng, car);
+            }
+            result += cars.borrow().get(ii).car_value();
         }
-        result += cars.borrow().get(ii).car_value();
+
+        result
     }
 
-    result
-}
-
-pub fn handle_request(request : parking_lot::Reader, mut response : total_value::Builder) {
-    let mut result = 0;
-    for car in request.get_cars().unwrap().iter() {
-        result += car.car_value();
+    fn handle_request(request: parking_lot::Reader, mut response: total_value::Builder) {
+        let mut result = 0;
+        for car in request.get_cars().unwrap().iter() {
+            result += car.car_value();
+        }
+        response.set_amount(result);
     }
-    response.set_amount(result);
-}
 
-#[inline]
-pub fn check_response(response : total_value::Reader, expected : u64) -> bool {
-    response.get_amount() == expected
+    fn check_response(response: total_value::Reader, expected : u64) -> bool {
+        response.get_amount() == expected
+    }
 }
