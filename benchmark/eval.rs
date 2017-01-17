@@ -54,22 +54,22 @@ fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth : u32
     }
 }
 
-fn evaluate_expression(exp: expression::Reader) -> i32 {
-    let left = match exp.get_left().which().unwrap() {
+fn evaluate_expression(exp: expression::Reader) -> ::capnp::Result<i32> {
+    let left = match try!(exp.get_left().which()) {
         expression::left::Value(v) => v,
-        expression::left::Expression(e) => evaluate_expression(e.unwrap()),
+        expression::left::Expression(e) => try!(evaluate_expression(try!(e))),
     };
-    let right = match exp.get_right().which().unwrap() {
+    let right = match try!(exp.get_right().which()) {
         expression::right::Value(v) => v,
-        expression::right::Expression(e) => evaluate_expression(e.unwrap()),
+        expression::right::Expression(e) => try!(evaluate_expression(try!(e))),
     };
 
-    match exp.get_op().unwrap() {
-        Operation::Add => return left + right,
-        Operation::Subtract => return left - right,
-        Operation::Multiply => return left * right,
-        Operation::Divide => return div(left, right),
-        Operation::Modulus => return modulus(left, right),
+    match try!(exp.get_op()) {
+        Operation::Add => Ok(left + right),
+        Operation::Subtract => Ok(left - right),
+        Operation::Multiply => Ok(left * right),
+        Operation::Divide => Ok(div(left, right)),
+        Operation::Modulus => Ok(modulus(left, right)),
     }
 }
 
@@ -85,7 +85,7 @@ impl ::TestCase for Eval {
     }
 
     fn handle_request(&self, request: expression::Reader, mut response: evaluation_result::Builder) {
-        response.set_value(evaluate_expression(request));
+        response.set_value(evaluate_expression(request).unwrap());
     }
 
     fn check_response(&self, response: evaluation_result::Reader, expected : i32) -> bool {

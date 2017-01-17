@@ -83,7 +83,7 @@ car_value_impl!(Builder);
 const MAKES : [&'static str; 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
 const MODELS : [&'static str; 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
 
-pub fn random_car(rng : &mut FastRand, mut car : car::Builder) {
+pub fn random_car(rng: &mut FastRand, mut car: car::Builder) {
     use std::mem::transmute;
 
     car.set_make(MAKES[rng.next_less_than(MAKES.len() as u32) as usize]);
