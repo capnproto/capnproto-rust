@@ -120,9 +120,11 @@ impl ::TestCase for CatRank {
         Ok(())
     }
 
-    fn check_response(&self, response: search_result_list::Reader, expected_good_count: i32) -> bool {
+    fn check_response(&self, response: search_result_list::Reader, expected_good_count: i32)
+                      -> ::capnp::Result<()>
+    {
         let mut good_count : i32 = 0;
-        let results = response.get_results().unwrap();
+        let results = try!(response.get_results());
         for result in results.iter() {
             if result.get_score() > 1001.0 {
                 good_count += 1;
@@ -130,7 +132,13 @@ impl ::TestCase for CatRank {
                 break;
             }
         }
-        return good_count == expected_good_count;
+
+        if good_count == expected_good_count {
+            Ok(())
+        } else {
+            Err(::capnp::Error::failed(
+                format!("check_response() expected {} but got {}", expected_good_count, good_count)))
+        }
     }
 
     fn request_as_reader<'a>(&self, builder: <Self::Request as Owned<'a>>::Builder)

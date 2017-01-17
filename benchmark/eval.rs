@@ -91,8 +91,13 @@ impl ::TestCase for Eval {
         Ok(())
     }
 
-    fn check_response(&self, response: evaluation_result::Reader, expected : i32) -> bool {
-        response.get_value() == expected
+    fn check_response(&self, response: evaluation_result::Reader, expected : i32) -> ::capnp::Result<()> {
+        if response.get_value() == expected {
+            Ok(())
+        } else {
+            Err(::capnp::Error::failed(
+                format!("check_response() expected {} but got {}", expected, response.get_value())))
+        }
     }
 
     fn request_as_reader<'a>(&self, builder: <Self::Request as Owned<'a>>::Builder)

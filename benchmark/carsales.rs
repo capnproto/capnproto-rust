@@ -162,8 +162,13 @@ impl ::TestCase for CarSales {
         Ok(())
     }
 
-    fn check_response(&self, response: total_value::Reader, expected : u64) -> bool {
-        response.get_amount() == expected
+    fn check_response(&self, response: total_value::Reader, expected: u64) -> ::capnp::Result<()> {
+        if response.get_amount() == expected {
+            Ok(())
+        } else {
+            Err(::capnp::Error::failed(
+                format!("check_response() expected {} but got {}", expected, response.get_amount())))
+        }
     }
 
     fn request_as_reader<'a>(&self, builder: <Self::Request as Owned<'a>>::Builder)

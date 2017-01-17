@@ -52,7 +52,7 @@ trait TestCase {
     fn setup_request(&self, &mut common::FastRand, <Self::Request as Owned>::Builder) -> Self::Expectation;
     fn handle_request(&self, <Self::Request as Owned>::Reader, <Self::Response as Owned>::Builder)
                       -> ::capnp::Result<()>;
-    fn check_response(&self, <Self::Response as Owned>::Reader, Self::Expectation) -> bool;
+    fn check_response(&self, <Self::Response as Owned>::Reader, Self::Expectation) -> ::capnp::Result<()>;
 
     // HACK. The Builder::as_reader() method is not attached to Owned. Maybe it should be?
     fn request_as_reader<'a>(&self, <Self::Request as Owned<'a>>::Builder)
@@ -175,11 +175,9 @@ fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64) -> ::capnp::Resul
             testcase.request_as_reader(message_req.get_root().unwrap()),
             message_res.init_root()));
 
-        if !testcase.check_response(
-            testcase.response_as_reader(message_res.get_root().unwrap()),
-            expected) {
-            panic!("Incorrect response.");
-        }
+        try!(testcase.check_response(
+            testcase.response_as_reader(try!(message_res.get_root())),
+            expected));
     }
     Ok(())
 }
@@ -228,9 +226,7 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
             capnp::message::DEFAULT_READER_OPTIONS).unwrap();
 
         let response_reader = message_reader.get_root().unwrap();
-        if !testcase.check_response(response_reader, expected) {
-            panic!("Incorrect response.");
-        }
+        try!(testcase.check_response(response_reader, expected));
     }
     Ok(())
 }
@@ -284,7 +280,7 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
             &mut in_buffered,
             capnp::message::DEFAULT_READER_OPTIONS).unwrap();
         let response_reader = try!(message_reader.get_root());
-        assert!(testcase.check_response(response_reader, expected));
+        try!(testcase.check_response(response_reader, expected));
     }
     Ok(())
 }
