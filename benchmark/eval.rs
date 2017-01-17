@@ -54,7 +54,7 @@ fn make_expression(rng : &mut FastRand, mut exp : expression::Builder, depth : u
     }
 }
 
-fn evaluate_expression(exp : expression::Reader) -> i32 {
+fn evaluate_expression(exp: expression::Reader) -> i32 {
     let left = match exp.get_left().which().unwrap() {
         expression::left::Value(v) => v,
         expression::left::Expression(e) => evaluate_expression(e.unwrap()),

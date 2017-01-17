@@ -23,6 +23,7 @@ extern crate capnp;
 extern crate fdstream;
 extern crate rand;
 
+use capnp::{message, serialize, serialize_packed};
 use capnp::traits::Owned;
 
 pub mod common;
@@ -47,18 +48,56 @@ trait TestCase {
     type Request: for<'a> Owned<'a>;
     type Response: for<'a> Owned<'a>;
     type Expectation;
+
     fn setup_request(&mut common::FastRand, <Self::Request as Owned>::Builder) -> Self::Expectation;
     fn handle_request(<Self::Request as Owned>::Reader, <Self::Response as Owned>::Builder);
     fn check_response(<Self::Response as Owned>::Reader, Self::Expectation) -> bool;
 }
 
+trait Serialize {
+    fn read_message<R>(
+        &self,
+        read: &mut R,
+        options: message::ReaderOptions)
+                       -> ::capnp::Result<message::Reader<::capnp::serialize::OwnedSegments>>
+        where R: ::std::io::BufRead;
 
-mod uncompressed {
-    pub use capnp::serialize::{read_message, write_message};
+    fn write_message<W, A>(&self, write: &mut W, message: &message::Builder<A>) -> ::capnp::Result<()>
+        where W: ::std::io::Write, A: message::Allocator;
 }
 
-mod packed {
-    pub use capnp::serialize_packed::{read_message, write_message};
+struct NoCompression;
+
+impl Serialize for NoCompression {
+    fn read_message<R>(&self, read: &mut R,
+                       options: message::ReaderOptions)
+                       -> ::capnp::Result<message::Reader<::capnp::serialize::OwnedSegments>>
+        where R: ::std::io::BufRead
+    {
+        serialize::read_message(read, options)
+    }
+
+    fn write_message<W, A>(&self, write: &mut W, message: &message::Builder<A>) -> ::capnp::Result<()>
+        where W: ::std::io::Write, A: message::Allocator {
+        serialize::write_message(write, message).map_err(|e| e.into())
+    }
+}
+
+struct Packed;
+
+impl Serialize for Packed {
+    fn read_message<R>(&self, read: &mut R,
+                       options: message::ReaderOptions)
+                       -> ::capnp::Result<message::Reader<::capnp::serialize::OwnedSegments>>
+        where R: ::std::io::BufRead
+    {
+        serialize_packed::read_message(read, options)
+    }
+
+    fn write_message<W, A>(&self, write: &mut W, message: &message::Builder<A>) -> ::capnp::Result<()>
+        where W: ::std::io::Write, A: message::Allocator {
+        serialize_packed::write_message(write, message).map_err(|e| e.into())
+    }
 }
 
 const SCRATCH_SIZE: usize = 128 * 1024;
@@ -100,7 +139,6 @@ impl UseScratch {
     }
 }
 
-
 macro_rules! pass_by_object(
     ( $testcase:ty, $reuse:ident, $iters:expr ) => ({
             let mut rng = common::FastRand::new();
@@ -129,7 +167,7 @@ macro_rules! pass_by_object(
 
 
 macro_rules! pass_by_bytes(
-    ( $testcase:ty, $reuse:ident, $compression:ident, $iters:expr ) => ({
+    ( $testcase:ty, $reuse:ident, $compression:expr, $iters:expr ) => ({
         let mut request_bytes : ::std::vec::Vec<u8> =
             ::std::iter::repeat(0u8).take(SCRATCH_SIZE * 8).collect();
         let mut response_bytes : ::std::vec::Vec<u8> =
@@ -149,11 +187,11 @@ macro_rules! pass_by_bytes(
 
                 {
                     let mut writer: &mut [u8] = &mut request_bytes;
-                    $compression::write_message(&mut writer, &mut message_req).unwrap()
+                    $compression.write_message(&mut writer, &mut message_req).unwrap()
                 }
 
                 let mut request_bytes1: &[u8] = &request_bytes;
-                let message_reader = $compression::read_message(
+                let message_reader = $compression.read_message(
                     &mut request_bytes1,
                     capnp::message::DEFAULT_READER_OPTIONS).unwrap();
 
@@ -163,11 +201,11 @@ macro_rules! pass_by_bytes(
 
             {
                 let mut writer: &mut [u8] = &mut response_bytes;
-                $compression::write_message(&mut writer, &mut message_res).unwrap()
+                $compression.write_message(&mut writer, &mut message_res).unwrap()
             }
 
             let mut response_bytes1: &[u8] = &response_bytes;
-            let message_reader = $compression::read_message(
+            let message_reader = $compression.read_message(
                 &mut response_bytes1,
                 capnp::message::DEFAULT_READER_OPTIONS).unwrap();
 
@@ -180,45 +218,47 @@ macro_rules! pass_by_bytes(
     );
 
 macro_rules! server(
-    ( $testcase:ty, $reuse:ident, $compression:ident, $iters:expr, $input:expr, $output:expr) => ({
+    ( $testcase:ty, $reuse:ident, $compression:expr, $iters:expr, $input:expr, $output:expr) => ({
             let mut out_buffered = ::std::io::BufWriter::new(&mut $output);
             let mut in_buffered = ::std::io::BufReader::new(&mut $input);
             for _ in 0..$iters {
+                use std::io::Write;
                 let mut message_res = $reuse.new_builder(0);
 
                 {
                     let response = message_res.init_root();
-                    let message_reader = $compression::read_message(
+                    let message_reader = $compression.read_message(
                         &mut in_buffered,
                         capnp::message::DEFAULT_READER_OPTIONS).unwrap();
                     let request_reader = message_reader.get_root().unwrap();
                     <$testcase as TestCase>::handle_request(request_reader, response);
                 }
 
-                $compression::write_message(&mut out_buffered, &mut message_res).unwrap();
+                $compression.write_message(&mut out_buffered, &mut message_res).unwrap();
                 out_buffered.flush().unwrap();
             }
         });
     );
 
 macro_rules! sync_client(
-    ( $testcase:ty, $reuse:ident, $compression:ident, $iters:expr) => ({
+    ( $testcase:ty, $reuse:ident, $compression:expr, $iters:expr) => ({
             let mut out_stream = ::fdstream::FdStream::new(1);
             let mut in_stream = ::fdstream::FdStream::new(0);
             let mut in_buffered = ::std::io::BufReader::new(&mut in_stream);
             let mut out_buffered = ::std::io::BufWriter::new(&mut out_stream);
             let mut rng = common::FastRand::new();
             for _ in 0..$iters {
+                use std::io::Write;
                 let mut message_req = $reuse.new_builder(0);
 
                 let expected = {
                     let request = message_req.init_root();
                     <$testcase as TestCase>::setup_request(&mut rng, request)
                 };
-                $compression::write_message(&mut out_buffered, &mut message_req).unwrap();
+                $compression.write_message(&mut out_buffered, &mut message_req).unwrap();
                 out_buffered.flush().unwrap();
 
-                let message_reader = $compression::read_message(
+                let message_reader = $compression.read_message(
                     &mut in_buffered,
                     capnp::message::DEFAULT_READER_OPTIONS).unwrap();
                 let response_reader = message_reader.get_root().unwrap();
@@ -230,7 +270,7 @@ macro_rules! sync_client(
 
 
 macro_rules! pass_by_pipe(
-    ( $testcase:ty, $reuse:ident, $compression:ident, $iters:expr) => ({
+    ( $testcase:ty, $reuse:ident, $compression:expr, $iters:expr) => ({
         use std::process;
 
         let mut args : Vec<String> = ::std::env::args().collect();
@@ -257,7 +297,7 @@ macro_rules! pass_by_pipe(
     );
 
 macro_rules! do_testcase(
-    ( $testcase:ty, $mode:expr, $reuse:ident, $compression:ident, $iters:expr ) => ({
+    ( $testcase:ty, $mode:expr, $reuse:ident, $compression:expr, $iters:expr ) => ({
             match &*$mode {
                 "object" => pass_by_object!($testcase, $reuse, $iters),
                 "bytes" => pass_by_bytes!($testcase, $reuse, $compression, $iters),
@@ -274,7 +314,7 @@ macro_rules! do_testcase(
     );
 
 macro_rules! do_testcase1(
-    ( $testcase:expr, $mode:expr, $reuse:ident, $compression:ident, $iters:expr) => ({
+    ( $testcase:expr, $mode:expr, $reuse:ident, $compression:expr, $iters:expr) => ({
             match &*$testcase {
                 "carsales" => do_testcase!(carsales::CarSales, $mode, $reuse, $compression, $iters),
                 "catrank" => do_testcase!(catrank::CatRank, $mode, $reuse, $compression, $iters),
@@ -284,24 +324,25 @@ macro_rules! do_testcase1(
         });
     );
 
-macro_rules! do_testcase2(
-    ( $testcase:expr, $mode:expr, $reuse:expr, $compression:ident, $iters:expr) => ({
-            match &*$reuse {
-                "no-reuse" => {
-                    let mut scratch = NoScratch;
-                    do_testcase1!($testcase, $mode, scratch, $compression, $iters)
-                }
-                "reuse" => {
-                    let mut scratch = UseScratch::new();
-                    do_testcase1!($testcase, $mode, scratch, $compression, $iters)
-                }
-                s => panic!("unrecognized reuse option: {}", s)
-            }
-        });
-    );
+fn do_testcase2<C>(case: &str,
+                  mode: &str,
+                  scratch: &str,
+                  compression: C,
+                  iters: u64)
+    where C: Serialize,
+{
+    match scratch {
+        "no-reuse" => do_testcase1!(case, mode, NoScratch, compression, iters),
+        "reuse" => {
+            let mut scratch = UseScratch::new();
+            do_testcase1!(case, mode, scratch, compression, iters);
+        }
+        s => panic!("unrecognized reuse option: {}", s),
+    };
+
+}
 
 pub fn main() {
-    use ::std::io::{Write};
     let args: Vec<String> = ::std::env::args().collect();
 
     assert!(args.len() == 6,
@@ -316,8 +357,8 @@ pub fn main() {
     };
 
     match &*args[4] {
-        "none" => do_testcase2!(args[1], args[2],  args[3], uncompressed, iters),
-        "packed" => do_testcase2!(args[1], args[2], args[3], packed, iters),
+        "none" => do_testcase2(&*args[1], &*args[2], &*args[3], NoCompression, iters),
+        "packed" => do_testcase2(&*args[1], &*args[2], &*args[3], Packed, iters),
         s => panic!("unrecognized compression: {}", s)
-    }
+    };
 }
