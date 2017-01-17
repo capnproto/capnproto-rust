@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 
 extern crate capnp;
-extern crate fdstream;
 extern crate rand;
 
 use capnp::{message, serialize, serialize_packed};
@@ -260,8 +259,8 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
                         -> ::capnp::Result<()>
     where C: Serialize, S: for<'a> Scratch<'a>, T: TestCase,
 {
-    let mut out_stream = ::fdstream::FdStream::new(1);
-    let mut in_stream = ::fdstream::FdStream::new(0);
+    let mut out_stream: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(1) };
+    let mut in_stream: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(0) };
     let mut in_buffered = ::std::io::BufReader::new(&mut in_stream);
     let mut out_buffered = ::std::io::BufWriter::new(&mut out_stream);
     let mut rng = common::FastRand::new();
@@ -321,8 +320,8 @@ fn do_testcase<C, S, T>(testcase: T, mode: &str, reuse: S, compression: C, iters
         "bytes" => pass_by_bytes(testcase, reuse, compression, iters),
         "client" => sync_client(testcase, reuse, compression, iters),
         "server" => {
-            let input = ::fdstream::FdStream::new(0);
-            let output = ::fdstream::FdStream::new(1);
+            let input: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(1) };
+            let output: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(0) };
             server(testcase, reuse, compression, iters, input, output)
         }
         "pipe" => pass_by_pipe(testcase, reuse, compression, iters),
