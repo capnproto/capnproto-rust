@@ -660,7 +660,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
         Some(ref reader_type) => {
             let return_type = if return_result { "-> Result<()>" } else { "" };
             result.push(Line("#[inline]".to_string()));
-            result.push(Line(format!("pub fn set_{}{}(&mut self, {} : {}) {} {{",
+            result.push(Line(format!("pub fn set_{}{}(&mut self, {}: {}) {} {{",
                                      styled_name, setter_generic_param, setter_param,
                                      reader_type, return_type)));
             result.push(Indent(Box::new(Branch(setter_interior))));
@@ -693,7 +693,7 @@ fn generate_union(gen: &GeneratorContext,
 {
     use schema_capnp::*;
 
-    fn new_ty_param(ty_params : &mut Vec<String>) -> String {
+    fn new_ty_param(ty_params: &mut Vec<String>) -> String {
         let result = format!("A{}", ty_params.len());
         ty_params.push(result.clone());
         result
@@ -717,13 +717,13 @@ fn generate_union(gen: &GeneratorContext,
 
         let (ty, get) = try!(getter_text(gen, field, is_reader));
 
-        getter_interior.push(Branch(vec!(
-                    Line(format!("{} => {{", dvalue)),
-                    Indent(Box::new(Line(format!("return ::std::result::Result::Ok({}(", enumerant_name.clone())))),
-                    Indent(Box::new(Indent(Box::new(get)))),
-                    Indent(Box::new(Line("));".to_string()))),
-                    Line("}".to_string())
-                )));
+        getter_interior.push(Branch(vec![
+            Line(format!("{} => {{", dvalue)),
+            Indent(Box::new(Line(format!("return ::std::result::Result::Ok({}(", enumerant_name.clone())))),
+            Indent(Box::new(Indent(Box::new(get)))),
+            Indent(Box::new(Line("));".to_string()))),
+            Line("}".to_string())
+        ]));
 
         let ty1 = match field.which() {
             Ok(field::Group(_)) => {
@@ -1120,7 +1120,7 @@ fn generate_node(gen: &GeneratorContext,
                     "use capnp::private::layout;".to_string()));
             private_mod_interior.push(
                 Line(
-                    format!("pub const STRUCT_SIZE : layout::StructSize = layout::StructSize {{ data : {}, pointers : {} }};",
+                    format!("pub const STRUCT_SIZE: layout::StructSize = layout::StructSize {{ data: {}, pointers: {} }};",
                             data_size as usize, pointer_size as usize)));
             private_mod_interior.push(
                 Line(
@@ -1133,7 +1133,7 @@ fn generate_node(gen: &GeneratorContext,
                     Indent(
                         Box::new(
                             Branch(vec!(
-                                Line(format!("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size : u32) -> Builder<'a,{}> {{", params.params)),
+                                Line(format!("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Builder<'a,{}> {{", params.params)),
                                 Indent(Box::new(Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))".to_string()))),
                                 Line("}".to_string()),
                                 Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a,{}>> {{", params.params)),
@@ -1167,7 +1167,7 @@ fn generate_node(gen: &GeneratorContext,
                 BlankLine,
                 Line("#[derive(Clone, Copy)]".to_string()),
                 (if !is_generic {
-                    Line("pub struct Reader<'a> { reader : layout::StructReader<'a> }".to_string())
+                    Line("pub struct Reader<'a> { reader: layout::StructReader<'a> }".to_string())
                 } else {
                     Branch(vec!(
                         Line(format!("pub struct Reader<'a,{}> {} {{", params.params, params.where_clause)),
@@ -1190,7 +1190,7 @@ fn generate_node(gen: &GeneratorContext,
                 Indent(
                     Box::new(Branch(vec!(
                         Line(format!("fn new(reader: ::capnp::private::layout::StructReader<'a>) -> Reader<'a,{}> {{", params.params)),
-                        Indent(Box::new(Line(format!("Reader {{ reader : reader, {} }}", params.phantom_data)))),
+                        Indent(Box::new(Line(format!("Reader {{ reader: reader, {} }}", params.phantom_data)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
@@ -1226,13 +1226,13 @@ fn generate_node(gen: &GeneratorContext,
                 Line("}".to_string()),
                 BlankLine,
                 (if !is_generic {
-                    Line("pub struct Builder<'a> { builder : ::capnp::private::layout::StructBuilder<'a> }".to_string())
+                    Line("pub struct Builder<'a> { builder: ::capnp::private::layout::StructBuilder<'a> }".to_string())
                 } else {
                     Branch(vec!(
                         Line(format!("pub struct Builder<'a,{}> {} {{",
                                      params.params, params.where_clause)),
                         Indent(Box::new(Branch(vec!(
-                            Line("builder : ::capnp::private::layout::StructBuilder<'a>,".to_string()),
+                            Line("builder: ::capnp::private::layout::StructBuilder<'a>,".to_string()),
                             Line(format!("_phantom: PhantomData<({})>", params.params)),
                         )))),
                         Line("}".to_string())
@@ -1298,19 +1298,19 @@ fn generate_node(gen: &GeneratorContext,
                     Branch(vec![
                         Line(format!("pub struct Pipeline{} {{", bracketed_params)),
                         Indent(Box::new(Branch(vec![
-                            Line("_typeless : ::capnp::any_pointer::Pipeline,".to_string()),
+                            Line("_typeless: ::capnp::any_pointer::Pipeline,".to_string()),
                             Line(format!("_phantom: PhantomData<({})>", params.params)),
                         ]))),
                         Line("}".to_string())
                     ])
                 } else {
-                    Line("pub struct Pipeline { _typeless : ::capnp::any_pointer::Pipeline }".to_string())
+                    Line("pub struct Pipeline { _typeless: ::capnp::any_pointer::Pipeline }".to_string())
                 }),
                 Line(format!("impl{} FromTypelessPipeline for Pipeline{} {{", bracketed_params, bracketed_params)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line(format!("fn new(typeless : ::capnp::any_pointer::Pipeline) -> Pipeline{} {{", bracketed_params)),
-                        Indent(Box::new(Line(format!("Pipeline {{ _typeless : typeless, {} }}", params.phantom_data)))),
+                        Line(format!("fn new(typeless: ::capnp::any_pointer::Pipeline) -> Pipeline{} {{", bracketed_params)),
+                        Indent(Box::new(Line(format!("Pipeline {{ _typeless: typeless, {} }}", params.phantom_data)))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 Line(format!("impl{0} Pipeline{0} {1} {{", bracketed_params,
@@ -1357,7 +1357,7 @@ fn generate_node(gen: &GeneratorContext,
                     Indent(
                         Box::new(Branch(vec![
                             Line(format!(
-                                "fn from_u16(value : u16) -> ::std::result::Result<{}, ::capnp::NotInSchema> {{",
+                                "fn from_u16(value: u16) -> ::std::result::Result<{}, ::capnp::NotInSchema> {{",
                                 last_name)),
                             Indent(
                                 Box::new(Branch(vec![
@@ -1450,23 +1450,23 @@ fn generate_node(gen: &GeneratorContext,
 
                 dispatch_arms.push(
                     Line(format!(
-                            "{} => server.{}(::capnp::private::capability::internal_get_typed_params(params), ::capnp::private::capability::internal_get_typed_results(results)),",
-                            ordinal, module_name(name))));
+                        "{} => server.{}(::capnp::private::capability::internal_get_typed_params(params), ::capnp::private::capability::internal_get_typed_results(results)),",
+                        ordinal, module_name(name))));
                 mod_interior.push(
                     Line(format!(
-                            "pub type {}Params<{}> = capability::Params<{}>;",
-                            capitalize_first_letter(name), params_ty_params, param_type)));
+                        "pub type {}Params<{}> = capability::Params<{}>;",
+                        capitalize_first_letter(name), params_ty_params, param_type)));
                 mod_interior.push(
                     Line(format!(
-                            "pub type {}Results<{}> = capability::Results<{}>;",
-                            capitalize_first_letter(name), results_ty_params, result_type)));
+                        "pub type {}Results<{}> = capability::Results<{}>;",
+                        capitalize_first_letter(name), results_ty_params, result_type)));
                 server_interior.push(
                     Line(format!(
-                            "fn {}(&mut self, _: {}Params<{}>, _: {}Results<{}>) -> ::capnp::capability::Promise<(), ::capnp::Error> {{ ::capnp::capability::Promise::err(::capnp::Error::unimplemented(\"method not implemented\".to_string())) }}",
-                            module_name(name),
-                            capitalize_first_letter(name), params_ty_params,
-                            capitalize_first_letter(name), results_ty_params
-                            )));
+                        "fn {}(&mut self, _: {}Params<{}>, _: {}Results<{}>) -> ::capnp::capability::Promise<(), ::capnp::Error> {{ ::capnp::capability::Promise::err(::capnp::Error::unimplemented(\"method not implemented\".to_string())) }}",
+                        module_name(name),
+                        capitalize_first_letter(name), params_ty_params,
+                        capitalize_first_letter(name), results_ty_params
+                    )));
 
                 client_impl_interior.push(
                     Line(format!("pub fn {}_request(&self) -> Request<{},{}> {{",
@@ -1488,13 +1488,11 @@ fn generate_node(gen: &GeneratorContext,
                     let brand = try!(extends.get(ii).get_brand());
                     let the_mod = gen.scope_map[&type_id].join("::");
 
-                    base_dispatch_arms.push(
-                        Line(
-                            format!(
-                                "0x{:x} => {}::dispatch_call_internal(&mut *self.server, method_id, params, results),",
-                                type_id,
-                                try!(do_branding(
-                                    gen, type_id, brand, Leaf::ServerDispatch, the_mod.clone(), None)))));
+                    base_dispatch_arms.push(Line(format!(
+                        "0x{:x} => {}::dispatch_call_internal(&mut *self.server, method_id, params, results),",
+                        type_id,
+                        try!(do_branding(
+                            gen, type_id, brand, Leaf::ServerDispatch, the_mod.clone(), None)))));
                     base_traits.push(try!(
                         do_branding(gen, type_id, brand, Leaf::Server, the_mod, None)));
                 }
@@ -1504,7 +1502,7 @@ fn generate_node(gen: &GeneratorContext,
 
             mod_interior.push(BlankLine);
             mod_interior.push(Line(format!("pub struct Client{} {{", bracketed_params)));
-            mod_interior.push(Indent(Box::new(Line("pub client : ::capnp::capability::Client,".to_string()))));
+            mod_interior.push(Indent(Box::new(Line("pub client: ::capnp::capability::Client,".to_string()))));
             if is_generic {
                 mod_interior.push(Indent(Box::new(Line(format!("_phantom: PhantomData<({})>", params.params)))))
             }
@@ -1513,7 +1511,7 @@ fn generate_node(gen: &GeneratorContext,
                 Branch(vec!(
                     Line(format!("impl {} FromClientHook for Client{} {{", bracketed_params, bracketed_params)),
                     Indent(Box::new(Line(format!("fn new(hook: Box<ClientHook>) -> Client{} {{", bracketed_params)))),
-                    Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::capability::Client::new(hook), {} }}", params.phantom_data)))))),
+                    Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client: ::capnp::capability::Client::new(hook), {} }}", params.phantom_data)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
 
@@ -1552,7 +1550,7 @@ fn generate_node(gen: &GeneratorContext,
                 Indent(
                     Box::new(
                         Branch(vec![
-                            Line(format!("fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size : u32) -> Client<{}> {{", params.params)),
+                            Line(format!("fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Client<{}> {{", params.params)),
                             Indent(Box::new(Line("unimplemented!()".to_string()))),
                             Line("}".to_string()),
                             Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Client<{}>> {{", params.params)),
@@ -1600,7 +1598,7 @@ fn generate_node(gen: &GeneratorContext,
                     Indent(Box::new(Branch( vec!(
                         Line(format!("pub fn from_server<_T: ServerHook>(self) -> Client{} {{", bracketed_params)),
                         Indent(
-                            Box::new(Line(format!("Client {{ client : _T::new_client(::std::boxed::Box::new(ServerDispatch {{ server : ::std::boxed::Box::new(self.u), {} }})), {} }}", params.phantom_data, params.phantom_data)))),
+                            Box::new(Line(format!("Client {{ client: _T::new_client(::std::boxed::Box::new(ServerDispatch {{ server: ::std::boxed::Box::new(self.u), {} }})), {} }}", params.phantom_data, params.phantom_data)))),
                         Line("}".to_string()))))),
                     Line("}".to_string()))));
 
@@ -1617,7 +1615,7 @@ fn generate_node(gen: &GeneratorContext,
                 Branch(vec!(
                     Line(format!("impl {0} Clone for Client{0} {{", bracketed_params)),
                     Indent(Box::new(Line(format!("fn clone(&self) -> Client{} {{", bracketed_params)))),
-                    Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client : ::capnp::capability::Client::new(self.client.hook.add_ref()), {} }}", params.phantom_data)))))),
+                    Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client: ::capnp::capability::Client::new(self.client.hook.add_ref()), {} }}", params.phantom_data)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
 
@@ -1675,9 +1673,7 @@ fn generate_node(gen: &GeneratorContext,
                     Line("}".to_string()),
                     )));
 
-
             mod_interior.push(Branch(vec!(Branch(nested_output))));
-
 
             output.push(BlankLine);
             if is_generic {
@@ -1729,7 +1725,7 @@ fn generate_node(gen: &GeneratorContext,
             };
 
             output.push(
-                Line(format!("pub const {} : {} = {};", styled_name, typ, txt)));
+                Line(format!("pub const {}: {} = {};", styled_name, typ, txt)));
         }
 
         node::Annotation( annotation_reader ) => {
@@ -1752,7 +1748,7 @@ fn generate_node(gen: &GeneratorContext,
 
 /// Generates Rust code according to a `schema_capnp::code_generator_request` read from `inp`.
 pub fn main<T>(mut inp: T, out_dir: &::std::path::Path) -> ::capnp::Result<()>
-    where T : ::std::io::Read
+    where T: ::std::io::Read
 {
     use capnp::serialize;
     use std::io::Write;
