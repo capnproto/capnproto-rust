@@ -1586,7 +1586,9 @@ fn generate_node(gen: &GeneratorContext,
                             Line("}".to_string()),
                             Line(format!("impl <{0}, U: Server<{0}> + 'static> ToClient<U,{0}> {1} {{",
                                          params.params, params.where_clause_with_send)),
-                            Line(format!("pub fn new(u: U) -> ToClient<U, {}> {{ ToClient {{u: u, _phantom: PhantomData}} }}", params.params)),
+                            Indent(Box::new(Line(format!(
+                                "pub fn new(u: U) -> ToClient<U, {}> {{ ToClient {{u: u, _phantom: PhantomData}} }}",
+                                params.params)))),
                         ))
                     } else {
                         Branch(vec!(
