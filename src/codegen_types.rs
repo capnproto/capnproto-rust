@@ -108,11 +108,6 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 format!("{}: for<'c> ::capnp::traits::Owned<'c>", param)
             }).collect::<Vec<String>>().join(", ") + " ");
             let where_clause_with_send = "where ".to_string() + &*(params.iter().map(|param| {
-                //format!("{}Reader:Send+FromPointerReader<'a>", param)
-                format!("{}:Send+'static", param)
-            }).collect::<Vec<String>>().join(", ") + " ") + ", "
-                + &*(params.iter().map(|param| {
-                //format!("{}Builder:Send+FromPointerBuilder<'a>", param)
                 format!("{}:Send+'static", param)
             }).collect::<Vec<String>>().join(", ") + " ");
             let pipeline_where_clause = "where ".to_string() + &*(params.iter().map(|param| {
