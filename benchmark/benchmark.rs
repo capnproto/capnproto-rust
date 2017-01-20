@@ -52,12 +52,6 @@ trait TestCase {
     fn handle_request(&self, <Self::Request as Owned>::Reader, <Self::Response as Owned>::Builder)
                       -> ::capnp::Result<()>;
     fn check_response(&self, <Self::Response as Owned>::Reader, Self::Expectation) -> ::capnp::Result<()>;
-
-    // HACK. The Builder::as_reader() method is not attached to Owned. Maybe it should be?
-    fn request_as_reader<'a>(&self, <Self::Request as Owned<'a>>::Builder)
-                             -> <Self::Request as Owned<'a>>::Reader;
-    fn response_as_reader<'a>(&self, <Self::Response as Owned<'a>>::Builder)
-                              -> <Self::Response as Owned<'a>>::Reader;
 }
 
 trait Serialize {
@@ -171,11 +165,11 @@ fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64) -> ::capnp::Resul
             message_req.init_root());
 
         try!(testcase.handle_request(
-            testcase.request_as_reader(message_req.get_root().unwrap()),
+            try!(message_req.get_root_as_reader()),
             message_res.init_root()));
 
         try!(testcase.check_response(
-            testcase.response_as_reader(try!(message_res.get_root())),
+            try!(message_res.get_root_as_reader()),
             expected));
     }
     Ok(())

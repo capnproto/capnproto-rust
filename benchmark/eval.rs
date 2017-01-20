@@ -21,7 +21,6 @@
 
 use common::*;
 use eval_capnp::{expression, evaluation_result, Operation};
-use capnp::traits::Owned;
 
 fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth : u32) -> i32 {
     exp.set_op(unsafe {
@@ -98,14 +97,5 @@ impl ::TestCase for Eval {
             Err(::capnp::Error::failed(
                 format!("check_response() expected {} but got {}", expected, response.get_value())))
         }
-    }
-
-    fn request_as_reader<'a>(&self, builder: <Self::Request as Owned<'a>>::Builder)
-                             -> <Self::Request as Owned<'a>>::Reader {
-        builder.as_reader()
-    }
-    fn response_as_reader<'a>(&self, builder: <Self::Response as Owned<'a>>::Builder)
-                              -> <Self::Response as Owned<'a>>::Reader {
-        builder.as_reader()
     }
 }

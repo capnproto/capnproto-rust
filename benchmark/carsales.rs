@@ -22,7 +22,6 @@
 use rand::*;
 use common::*;
 use carsales_capnp::{parking_lot, total_value, Color, car};
-use capnp::traits::Owned;
 
 trait CarValue {
     fn car_value(self) -> ::capnp::Result<u64>;
@@ -169,14 +168,5 @@ impl ::TestCase for CarSales {
             Err(::capnp::Error::failed(
                 format!("check_response() expected {} but got {}", expected, response.get_amount())))
         }
-    }
-
-    fn request_as_reader<'a>(&self, builder: <Self::Request as Owned<'a>>::Builder)
-                             -> <Self::Request as Owned<'a>>::Reader {
-        builder.as_reader()
-    }
-    fn response_as_reader<'a>(&self, builder: <Self::Response as Owned<'a>>::Builder)
-                              -> <Self::Response as Owned<'a>>::Reader {
-        builder.as_reader()
     }
 }

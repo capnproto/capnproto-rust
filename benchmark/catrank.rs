@@ -21,7 +21,6 @@
 
 use common::*;
 use catrank_capnp::*;
-use capnp::traits::Owned;
 
 #[derive(Clone, Copy)]
 pub struct ScoredResult<'a> {
@@ -139,14 +138,5 @@ impl ::TestCase for CatRank {
             Err(::capnp::Error::failed(
                 format!("check_response() expected {} but got {}", expected_good_count, good_count)))
         }
-    }
-
-    fn request_as_reader<'a>(&self, builder: <Self::Request as Owned<'a>>::Builder)
-                             -> <Self::Request as Owned<'a>>::Reader {
-        builder.as_reader()
-    }
-    fn response_as_reader<'a>(&self, builder: <Self::Response as Owned<'a>>::Builder)
-                              -> <Self::Response as Owned<'a>>::Reader {
-        builder.as_reader()
     }
 }
