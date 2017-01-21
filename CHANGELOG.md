@@ -1,9 +1,9 @@
-### v.0.8.1
+### v0.8.1
 - Fix several formatting issues in generated code.
 - Remove some unneccesary trait bounds in generated code.
 - Add `import_path()` and `no_std_import()` options to `CompilerCommand`.
 
-### v.0.8.0
+### v0.8.0
 - Remove deprecated `compile()` and `compile_with_src_prefixes()` functions.
 
 ### v0.7.5
