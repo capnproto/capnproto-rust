@@ -85,7 +85,7 @@ pub struct CompilerCommand {
     files: Vec<PathBuf>,
     src_prefixes: Vec<PathBuf>,
     import_paths: Vec<PathBuf>,
-    no_std_import: bool,
+    no_standard_import: bool,
 }
 
 impl CompilerCommand {
@@ -95,7 +95,7 @@ impl CompilerCommand {
             files: Vec::new(),
             src_prefixes: Vec::new(),
             import_paths: Vec::new(),
-            no_std_import: false,
+            no_standard_import: false,
         }
     }
 
@@ -125,10 +125,10 @@ impl CompilerCommand {
         self
     }
 
-    /// Adds the --no-std-import flag, indicating that the default import paths of
+    /// Adds the --no-standard-import flag, indicating that the default import paths of
     /// /usr/include and /usr/local/include should not bet included.
-    pub fn no_std_import<'a>(&'a mut self) -> &'a mut CompilerCommand {
-        self.no_std_import = true;
+    pub fn no_standard_import<'a>(&'a mut self) -> &'a mut CompilerCommand {
+        self.no_standard_import = true;
         self
     }
 
@@ -137,8 +137,8 @@ impl CompilerCommand {
         let mut command = ::std::process::Command::new("capnp");
         command.arg("compile").arg("-o").arg("-");
 
-        if self.no_std_import {
-            command.arg("--no-std-import");
+        if self.no_standard_import {
+            command.arg("--no-standard-import");
         }
 
         for import_path in &self.import_paths {
