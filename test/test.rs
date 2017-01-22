@@ -793,15 +793,44 @@ mod tests {
     }
 
     #[test]
-    fn double_far_pointers() {
-        let _words: &[::capnp::Word] = &[
-            capnp_word!(2,0,0,0,1,0,0,0),
-            capnp_word!(2,0,0,0,1,0,0,0),
+    fn double_far_pointer() {
+        let segment0: &[::capnp::Word] = &[
+            capnp_word!(0,0,0,0,0,0,1,0),
+            // struct pointer, zero offset, zero data words, one pointer.
+
             capnp_word!(6,0,0,0,1,0,0,0),
+            // far pointer, two-word landing pad, offset 0, segment 1.
+        ];
+
+        let segment1: &[::capnp::Word] = &[
             capnp_word!(2,0,0,0,2,0,0,0),
-            capnp_word!(0,0,0,0,1,0,0,0),
-            capnp_word!(1,7,255,127,0,0,0,0)];
-        // ...
+            // landing pad start. offset 0, segment 2
+
+            capnp_word!(0,0,0,0,1,0,1,0),
+            // landing pad tag. struct pointer. One data word. One pointer.
+        ];
+
+        let segment2: &[::capnp::Word] = &[
+            capnp_word!(0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f),
+            // Data word.
+
+            capnp_word!(1,0,0,0,0x42,0,0,0),
+            // text pointer. offset zero. 1-byte elements. 8 total elements.
+
+            capnp_word!('h' as u8, 'e' as u8, 'l' as u8, 'l' as u8, 'o' as u8,
+                        '.' as u8, '\n' as u8, 0),
+        ];
+
+        let segment_array = &[segment0, segment1, segment2];
+
+        let message =
+            message::Reader::new(message::SegmentArray::new(segment_array), ReaderOptions::new());
+
+        let root: ::test_capnp::test_any_pointer::Reader = message.get_root().unwrap();
+        let s: ::test_capnp::test_all_types::Reader = root.get_any_pointer_field().get_as().unwrap();
+        assert_eq!(s.get_int8_field(), 0x1f);
+        assert_eq!(s.get_int16_field(), 0x1f1f);
+        assert_eq!(s.get_text_field().unwrap(), "hello.\n");
     }
 
     #[test]
@@ -811,7 +840,7 @@ mod tests {
         let mut message = message::Builder::new_default();
         {
             let mut root = message.init_root::<test_any_pointer::Builder>();
-            let _ : ::capnp::data::Builder = root.borrow().get_any_pointer_field().initn_as(0);
+            let _: ::capnp::data::Builder = root.borrow().get_any_pointer_field().initn_as(0);
 
             // No NUL terminator!
             let result = root.get_any_pointer_field().get_as::<::capnp::text::Builder>();
@@ -832,7 +861,7 @@ mod tests {
         let message =
             message::Reader::new(message::SegmentArray::new(segment_array), ReaderOptions::new());
 
-        let root : ::test_capnp::test_any_pointer::Reader = message.get_root().unwrap();
+        let root: ::test_capnp::test_any_pointer::Reader = message.get_root().unwrap();
         match root.total_size() {
             Err(e) =>
                 assert_eq!("InlineComposite list's elements overrun its word count.", e.description),
@@ -862,7 +891,7 @@ mod tests {
         let mut message = message::Builder::new_default();
         {
             let root = message.init_root::<test_any_pointer::Builder>();
-            let _ : ::capnp::primitive_list::Builder<()> =
+            let _: ::capnp::primitive_list::Builder<()> =
                 root.get_any_pointer_field().initn_as((1 << 29) - 1);
         }
         let segments = message.get_segments_for_output();
@@ -922,7 +951,7 @@ mod tests {
     // At one point this failed to typecheck, giving the error:
     // "no method named `get_any_pointer_field` found for type `test_capnp::test_any_pointer::Pipeline`"
     #[allow(unused)]
-    fn pipeline_any_pointer(foo : ::test_capnp::test_any_pointer::Pipeline) {
+    fn pipeline_any_pointer(foo: ::test_capnp::test_any_pointer::Pipeline) {
         let _ = foo.get_any_pointer_field();
     }
 
