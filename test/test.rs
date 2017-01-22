@@ -863,6 +863,36 @@ mod tests {
     }
 
     #[test]
+    fn double_far_pointer_out_of_bounds() {
+        let segment0: &[::capnp::Word] = &[
+            capnp_word!(6,0,0,0,1,0,0,0),
+            // far pointer, two-word landing pad, offset 0, segment 1.
+        ];
+
+        let segment1: &[::capnp::Word] = &[
+            capnp_word!(0xa,0,0,0,2,0,0,0),
+            // landing pad start. offset 1, segment 2
+
+            capnp_word!(0,0,0,0,1,0,1,0),
+            // landing pad tag. struct pointer. One data word. One pointer.
+        ];
+        let segment2: &[::capnp::Word] = &[
+            capnp_word!(0,0,0,0,0,0,0,0),
+        ];
+
+        let segment_array = &[segment0, segment1, segment2];
+        let message =
+            message::Reader::new(message::SegmentArray::new(segment_array), ReaderOptions::new());
+
+        match message.get_root::<::test_capnp::test_all_types::Reader>() {
+            Ok(_) => panic!("expected out-of-bounds error"),
+            Err(e) => {
+                assert_eq!(e.description, "Message contained out-of-bounds struct pointer.");
+            }
+        }
+    }
+
+    #[test]
     fn text_builder_int_underflow() {
         use test_capnp::{test_any_pointer};
 
