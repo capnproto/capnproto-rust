@@ -784,7 +784,7 @@ mod tests {
             let mut message2 = message::Builder::new(builder_options);
             let mut all_types2 = message2.init_root::<test_all_types::Builder>();
 
-            all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().unwrap().as_reader()).unwrap();
+            all_types2.set_struct_field(message.get_root_as_reader().unwrap()).unwrap();
             ::test_util::CheckTestMessage::check_test_message(all_types2.borrow().get_struct_field().unwrap());
 
             let reader = all_types2.as_reader().get_struct_field().unwrap();
