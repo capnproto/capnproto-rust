@@ -834,6 +834,35 @@ mod tests {
     }
 
     #[test]
+    fn double_far_pointer_truncated_pad() {
+        let segment0: &[::capnp::Word] = &[
+            capnp_word!(6,0,0,0,1,0,0,0),
+            // far pointer, two-word landing pad, offset 0, segment 1.
+        ];
+
+        let segment1: &[::capnp::Word] = &[
+            capnp_word!(2,0,0,0,2,0,0,0),
+            // landing pad start. offset 0, segment 2
+
+            // For this message to be valid, there would need to be another word here.
+        ];
+        let segment2: &[::capnp::Word] = &[
+            capnp_word!(0,0,0,0,0,0,0,0),
+        ];
+
+        let segment_array = &[segment0, segment1, segment2];
+        let message =
+            message::Reader::new(message::SegmentArray::new(segment_array), ReaderOptions::new());
+
+        match message.get_root::<::test_capnp::test_all_types::Reader>() {
+            Ok(_) => panic!("expected out-of-bounds error"),
+            Err(e) => {
+                assert_eq!(e.description, "Message contained out-of-bounds far pointer.");
+            }
+        }
+    }
+
+    #[test]
     fn text_builder_int_underflow() {
         use test_capnp::{test_any_pointer};
 
