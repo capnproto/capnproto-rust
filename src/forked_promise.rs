@@ -133,11 +133,12 @@ impl <F> Future for ForkedPromise<F>
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
         let event = match *self.inner.state.borrow_mut() {
             ForkedPromiseState::Waiting(ref unparker) => {
-                if !unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
+                if unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
+                    task::UnparkEvent::new(unparker.clone(), 0)
+                } else {
                     unparker.insert(self.id, task::park());
                     return Ok(::futures::Async::NotReady)
                 }
-                task::UnparkEvent::new(unparker.clone(), 0)
             }
             ForkedPromiseState::Done(ref r) => {
                 match *r {
