@@ -133,11 +133,16 @@ impl <F> Future for ForkedPromise<F>
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
         let event = match *self.inner.state.borrow_mut() {
             ForkedPromiseState::Waiting(ref unparker) => {
-                if self.inner.original_future.try_borrow().is_ok() &&
-                    unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
-                    task::UnparkEvent::new(unparker.clone(), 0)
+                if self.inner.original_future.try_borrow().is_ok() {
+                    if unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
+                        task::UnparkEvent::new(unparker.clone(), 0)
+                    } else {
+                        unparker.insert(self.id, task::park());
+                        return Ok(::futures::Async::NotReady)
+                    }
                 } else {
-                    unparker.insert(self.id, task::park());
+                    // This is recursive call to poll()! Try again later.
+                    task::park().unpark();
                     return Ok(::futures::Async::NotReady)
                 }
             }
