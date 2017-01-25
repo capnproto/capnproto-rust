@@ -133,7 +133,8 @@ impl <F> Future for ForkedPromise<F>
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
         let event = match *self.inner.state.borrow_mut() {
             ForkedPromiseState::Waiting(ref unparker) => {
-                if unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
+                if self.inner.original_future.try_borrow().is_ok() &&
+                    unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
                     task::UnparkEvent::new(unparker.clone(), 0)
                 } else {
                     unparker.insert(self.id, task::park());
@@ -329,5 +330,136 @@ mod test {
     fn forked_propagates_unpark() {
         forked_propagates_unpark_helper(true);
         forked_propagates_unpark_helper(false);
+    }
+
+    #[test]
+    fn recursive_poll() {
+        use futures::sync::mpsc;
+        use futures::{Stream, future, task};
+
+        let mut core = local_executor::Core::new();
+        let (tx0, rx0) = mpsc::unbounded::<Box<Future<Item=(),Error=()>>>();
+        let run_stream = rx0.for_each(|f| f);
+
+        let (tx1, rx1) = oneshot::channel::<()>();
+
+        let f1 = ForkedPromise::new(run_stream);
+        let f2 = f1.clone();
+        let f3 = f1.clone();
+        tx0.send(Box::new(future::lazy(move || {
+            task::park().unpark();
+            f1.map(|_|()).map_err(|_|())
+                .select(rx1.map_err(|_|()))
+                .map(|_| ()).map_err(|_|())
+        }))).unwrap();
+
+        core.spawn(f2.map(|_|()).map_err(|_|()));
+
+        // Call poll() on the spawned future. We want to be sure that this does not trigger a
+        // deadlock or panic due to a recursive lock() on a mutex.
+        core.run(future::ok::<(),()>(())).unwrap();
+
+        tx1.complete(()); // Break the cycle.
+        drop(tx0);
+        core.run(f3).unwrap();
+    }
+
+
+    mod local_executor {
+        //! (This module is borrowed from futures-rs/tests/support)
+        //!
+        //! Execution of futures on a single thread
+        //!
+        //! This module has no special handling of any blocking operations other than
+        //! futures-aware inter-thread communications, and should therefore probably not
+        //! be used to manage IO.
+
+        use std::sync::{Arc, Mutex, mpsc};
+        use std::collections::HashMap;
+        use std::collections::hash_map;
+        use std::boxed::Box;
+        use std::rc::Rc;
+        use std::cell::RefCell;
+
+        use futures::{Future, Async};
+
+        use futures::executor::{self, Spawn};
+
+        /// Main loop object
+        pub struct Core {
+            unpark_send: mpsc::Sender<u64>,
+            unpark: mpsc::Receiver<u64>,
+            live: HashMap<u64, Spawn<Box<Future<Item=(), Error=()>>>>,
+            next_id: u64,
+        }
+
+        impl Core {
+            /// Create a new `Core`.
+            pub fn new() -> Self {
+                let (send, recv) = mpsc::channel();
+                Core {
+                    unpark_send: send,
+                    unpark: recv,
+                    live: HashMap::new(),
+                    next_id: 0,
+                }
+            }
+
+            /// Spawn a future to be executed by a future call to `run`.
+            pub fn spawn<F>(&mut self, f: F)
+                where F: Future<Item=(), Error=()> + 'static
+            {
+                self.live.insert(self.next_id, executor::spawn(Box::new(f)));
+                self.unpark_send.send(self.next_id).unwrap();
+                self.next_id += 1;
+            }
+
+            /// Run the loop until all futures previously passed to `spawn` complete.
+            pub fn _wait(&mut self) {
+                while !self.live.is_empty() {
+                    self.turn();
+                }
+            }
+
+            /// Run the loop until the future `f` completes.
+            pub fn run<F>(&mut self, f: F) -> Result<F::Item, F::Error>
+                where F: Future + 'static,
+                      F::Item: 'static,
+                      F::Error: 'static,
+            {
+                let out = Rc::new(RefCell::new(None));
+                let out2 = out.clone();
+                self.spawn(f.then(move |x| { *out.borrow_mut() = Some(x); Ok(()) }));
+                loop {
+                    self.turn();
+                    if let Some(x) = out2.borrow_mut().take() {
+                        return x;
+                    }
+                }
+            }
+
+            fn turn(&mut self) {
+                let task = self.unpark.recv().unwrap(); // Safe to unwrap because self.unpark_send keeps the channel alive
+                let unpark = Arc::new(Unpark { task: task, send: Mutex::new(self.unpark_send.clone()), });
+                let mut task = if let hash_map::Entry::Occupied(x) = self.live.entry(task) { x } else { return };
+                let result = task.get_mut().poll_future(unpark);
+                match result {
+                    Ok(Async::Ready(())) => { task.remove(); }
+                    Err(()) => { task.remove(); }
+                    Ok(Async::NotReady) => {}
+                }
+            }
+        }
+
+        struct Unpark {
+            task: u64,
+            send: Mutex<mpsc::Sender<u64>>,
+        }
+
+        impl executor::Unpark for Unpark {
+            fn unpark(&self) {
+                let _ = self.send.lock().unwrap().send(self.task);
+            }
+        }
     }
 }
