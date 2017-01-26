@@ -131,7 +131,7 @@ impl <F> Future for ForkedPromise<F>
     type Error = F::Error;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        let event = match *self.inner.state.borrow_mut() {
+        let event = match *self.inner.state.borrow() {
             ForkedPromiseState::Waiting(ref unparker) => {
                 if self.inner.original_future.try_borrow().is_ok() {
                     if unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
