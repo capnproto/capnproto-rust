@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use futures::{task, Future};
+use futures::{task, Async, Future};
 
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc};
@@ -67,10 +67,10 @@ impl task::EventSet for Unparker {
 
 struct ForkedPromiseInner<F> where F: Future {
     next_clone_id: Cell<u64>,
-    state: RefCell<ForkedPromiseState<F>>,
+    state: RefCell<State<F>>,
 }
 
-enum ForkedPromiseState<F> where F: Future{
+enum State<F> where F: Future{
     Waiting(Arc<Unparker>, F),
     Polling(Arc<Unparker>),
     Done(Result<F::Item, F::Error>),
@@ -98,7 +98,7 @@ impl <F> ForkedPromise<F> where F: Future {
             id: 0,
             inner: Rc::new(ForkedPromiseInner {
                 next_clone_id: Cell::new(1),
-                state: RefCell::new(ForkedPromiseState::Waiting(
+                state: RefCell::new(State::Waiting(
                     Arc::new(Unparker::new(AtomicBool::new(true))), f)),
             })
         }
@@ -108,13 +108,13 @@ impl <F> ForkedPromise<F> where F: Future {
 impl<F> Drop for ForkedPromise<F> where F: Future {
     fn drop(&mut self) {
         match *self.inner.state.borrow() {
-            ForkedPromiseState::Waiting(ref unparker, _) => {
+            State::Waiting(ref unparker, _) => {
                 unparker.remove(self.id);
             }
-            ForkedPromiseState::Polling(ref unparker) => {
+            State::Polling(ref unparker) => {
                 unparker.remove(self.id);
             }
-            ForkedPromiseState::Done(_) => (),
+            State::Done(_) => (),
         }
     }
 }
@@ -127,32 +127,28 @@ impl <F> Future for ForkedPromise<F>
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
         let unparker = match *self.inner.state.borrow() {
-            ForkedPromiseState::Waiting(ref unparker, _) => {
+            State::Waiting(ref unparker, _) => {
                 if unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
                     unparker.clone()
                 } else {
                     unparker.insert(self.id, task::park());
-                    return Ok(::futures::Async::NotReady)
+                    return Ok(Async::NotReady)
                 }
             }
-            ForkedPromiseState::Polling(ref unparker) => {
+            State::Polling(ref unparker) => {
                 if unparker.original_needs_poll.load(Ordering::SeqCst) {
                     task::park().unpark();
                 } else {
                     unparker.insert(self.id, task::park());
                 }
-                return Ok(::futures::Async::NotReady)
+                return Ok(Async::NotReady)
             }
-            ForkedPromiseState::Done(ref r) => {
-                match *r {
-                    Ok(ref v) => return Ok(::futures::Async::Ready(v.clone())),
-                    Err(ref e) => return Err(e.clone()),
-                }
-            }
+            State::Done(Ok(ref v)) => return Ok(Async::Ready(v.clone())),
+            State::Done(Err(ref e)) => return Err(e.clone()),
         };
         let (unparker, mut original_future) = match ::std::mem::replace(
-            &mut *self.inner.state.borrow_mut(), ForkedPromiseState::Polling(unparker)) {
-            ForkedPromiseState::Waiting(unparker, original_future) => (unparker, original_future),
+            &mut *self.inner.state.borrow_mut(), State::Polling(unparker)) {
+            State::Waiting(unparker, original_future) => (unparker, original_future),
             _ => unreachable!(),
         };
 
@@ -160,7 +156,7 @@ impl <F> Future for ForkedPromise<F>
         let done_val = match task::with_unpark_event(event, || original_future.poll()) {
             Ok(::futures::Async::NotReady) => {
                 *self.inner.state.borrow_mut() =
-                    ForkedPromiseState::Waiting(unparker.clone(), original_future);
+                    State::Waiting(unparker.clone(), original_future);
                 return Ok(::futures::Async::NotReady)
             }
             Ok(::futures::Async::Ready(v)) => Ok(v),
@@ -169,9 +165,9 @@ impl <F> Future for ForkedPromise<F>
 
         match ::std::mem::replace(
             &mut *self.inner.state.borrow_mut(),
-            ForkedPromiseState::Done(done_val.clone()))
+            State::Done(done_val.clone()))
         {
-            ForkedPromiseState::Polling(ref unparker) => unparker.unpark(),
+            State::Polling(ref unparker) => unparker.unpark(),
             _ => unreachable!(),
         }
 
