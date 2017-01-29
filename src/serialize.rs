@@ -23,7 +23,7 @@
 
 use std::io::{self};
 
-use capnp::{message, Error, Result,  Word, OutputSegments};
+use capnp::{message, Error, Result, Word, OutputSegments};
 
 use byteorder::{ByteOrder, LittleEndian};
 use futures::{Async, AsyncSink, Future, Poll, Sink, StartSend, Stream};
