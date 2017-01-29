@@ -575,9 +575,9 @@ pub mod test {
 
     use capnp::{Word, message, Result, OutputSegments};
     use capnp::message::ReaderSegments;
+    use futures::Async;
 
     use super::{
-        Async,
         AsOutputSegments,
         read_message,
         parse_segment_table_first,
