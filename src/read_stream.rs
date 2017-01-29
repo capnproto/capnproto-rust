@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 use std::io;
-use futures::{stream, Async, Future, Poll};
+use futures::{Async, Future, Poll, Stream};
 
 use capnp::{Error, message};
 
@@ -38,7 +38,7 @@ impl <R> ReadStream<R> where R: io::Read {
     }
 }
 
-impl <R> stream::Stream for ReadStream<R> where R: io::Read {
+impl <R> Stream for ReadStream<R> where R: io::Read {
     type Item = message::Reader<::serialize::OwnedSegments>;
     type Error = Error;
 

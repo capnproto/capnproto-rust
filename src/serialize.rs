@@ -23,9 +23,10 @@
 
 use std::io::{self};
 
-use capnp::{message, Error, Result, Word, OutputSegments};
+use capnp::{message, Error, Result,  Word, OutputSegments};
 
 use byteorder::{ByteOrder, LittleEndian};
+use futures::{Async, AsyncSink, Future, Poll, Sink, StartSend, Stream};
 
 pub struct OwnedSegments {
     segment_slices: Vec<(usize, usize)>,
@@ -76,12 +77,6 @@ fn async_write_all<W>(write: &mut W, buf: &[u8]) -> io::Result<usize> where W: i
         }
     }
     return Ok(idx)
-}
-
-/// Value returned from `poll()`, indicating whether the I/O operation has completed yet.
-enum Async<T> {
-    Ready(T),
-    NotReady,
 }
 
 /// An in-progress read operation.
@@ -137,12 +132,16 @@ pub fn read_message<R>(reader: R, options: message::ReaderOptions) -> Read<R>
         state: ReadState::Reading {
             read: reader,
             options: options,
-            inner: InnerReadState::SegmentTableFirst { buf: [0; 8], idx: 0 },
+            inner: InnerReadState::new(),
         }
     }
 }
 
 impl InnerReadState {
+    fn new() -> Self {
+	InnerReadState::SegmentTableFirst { buf: [0; 8], idx: 0 }
+    }
+
     fn read_helper<R>(&mut self, read: &mut R, options: &message::ReaderOptions)
                       -> Result<Async<Option<(Vec<Word>, Vec<(usize, usize)>)>>>
         where R: ::std::io::Read
@@ -254,13 +253,13 @@ impl <R> Read<R> where R: ::std::io::Read {
     }
 }
 
-impl <R> ::futures::Future for Read<R> where R: ::std::io::Read {
+impl <R> Future for Read<R> where R: ::std::io::Read {
     type Item = (R, Option<message::Reader<OwnedSegments>>);
     type Error = Error;
-    fn poll(&mut self) -> ::futures::Poll<Self::Item, Error> {
+    fn poll(&mut self) -> Poll<Self::Item, Error> {
         match try!(Read::poll(self)) {
-            Async::Ready(v) => Ok(::futures::Async::Ready(v)),
-            Async::NotReady => Ok(::futures::Async::NotReady),
+            Async::Ready(v) => Ok(Async::Ready(v)),
+            Async::NotReady => Ok(Async::NotReady),
         }
     }
 }
@@ -364,6 +363,18 @@ enum InnerWriteState {
 }
 
 impl InnerWriteState {
+    fn new<M>(message: &M) -> Self where M: AsOutputSegments {
+        let segments = &*message.as_output_segments();
+        if segments.len() == 1 {
+            let mut buf = [0; 8];
+            <LittleEndian as ByteOrder>::write_u32(&mut buf[4..8], segments[0].len() as u32);
+            InnerWriteState::OneWordSegmentTable { buf: buf, idx: 0 }
+        } else {
+            let buf = construct_segment_table(segments);
+            InnerWriteState::MoreThanOneWordSegmentTable { buf: buf, idx: 0 }
+        }
+    }
+
     fn write_helper<W, M>(&mut self, writer: &mut W, message: &mut M)
                           -> io::Result<Async<()>>
         where W: ::std::io::Write, M: AsOutputSegments,
@@ -409,14 +420,11 @@ impl InnerWriteState {
     }
 }
 
-impl <W, M> ::futures::Future for Write<W, M> where W: ::std::io::Write, M: AsOutputSegments {
+impl <W, M> Future for Write<W, M> where W: ::std::io::Write, M: AsOutputSegments {
     type Item = (W, M);
     type Error = Error;
-    fn poll(&mut self) -> ::futures::Poll<(W, M), Error> {
-        match try!(Write::poll(self)) {
-            Async::Ready(v) => Ok(::futures::Async::Ready(v)),
-            Async::NotReady => Ok(::futures::Async::NotReady),
-        }
+    fn poll(&mut self) -> Poll<(W, M), Error> {
+        Write::poll(self)
     }
 }
 
@@ -447,18 +455,7 @@ impl <A> AsOutputSegments for ::std::rc::Rc<message::Builder<A>> where A: messag
 pub fn write_message<W, M>(writer: W, message: M) -> Write<W, M>
     where W: ::std::io::Write, M: AsOutputSegments
 {
-    let inner = {
-        let segments = &*message.as_output_segments();
-        if segments.len() == 1 {
-            let mut buf = [0; 8];
-            <LittleEndian as ByteOrder>::write_u32(&mut buf[4..8], segments[0].len() as u32);
-            InnerWriteState::OneWordSegmentTable { buf: buf, idx: 0 }
-        } else {
-            let buf = construct_segment_table(segments);
-            InnerWriteState::MoreThanOneWordSegmentTable { buf: buf, idx: 0 }
-        }
-    };
-
+    let inner = InnerWriteState::new(&message);
     Write {
         state: WriteState::Writing {
             writer: writer,
@@ -494,6 +491,79 @@ impl <W, M> Write<W, M> where W: ::std::io::Write, M: AsOutputSegments {
         }
     }
 }
+
+pub struct Transport<S, M> {
+    stream: S,
+    read_options: message::ReaderOptions,
+    read_state: InnerReadState,
+    write_state: Option<(M, InnerWriteState)>,
+}
+
+impl <S, M> Transport<S, M> {
+    pub fn new(stream: S, read_options: message::ReaderOptions) -> Self {
+        Transport {
+            stream: stream,
+            read_options: read_options,
+            read_state: InnerReadState::new(),
+            write_state: None,
+        }
+    }
+}
+
+impl <S, M> Stream for Transport<S, M> where S: io::Read {
+    type Item = message::Reader<OwnedSegments>;
+    type Error = Error;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Error> {
+        match try_ready!(self.read_state.read_helper(&mut self.stream, &self.read_options)) {
+            Some((words, slices))=> {
+                self.read_state = InnerReadState::new();
+                Ok(Async::Ready(Some(message::Reader::new(
+                    OwnedSegments {
+                        segment_slices: slices,
+                        owned_space: words,
+                    },
+                    self.read_options
+                ))))
+            }
+            None => Ok(Async::Ready(None)),
+        }
+    }
+}
+
+impl <S, M> Sink for Transport<S, M> where S: io::Write, M: AsOutputSegments {
+    type SinkItem = M;
+    type SinkError = Error;
+
+    fn start_send(&mut self, item: Self::SinkItem) -> StartSend<Self::SinkItem, Self::SinkError> {
+        match self.write_state {
+            Some((ref mut m, ref mut state)) => {
+                match try!(state.write_helper(&mut self.stream, m)) {
+                    Async::NotReady => return Ok(AsyncSink::NotReady(item)),
+                    Async::Ready(()) => (),
+                }
+            }
+            None => (),
+        }
+        let inner = InnerWriteState::new(&item);
+        self.write_state = Some((item, inner));
+        Ok(AsyncSink::Ready)
+    }
+
+    fn poll_complete(&mut self) -> Poll<(), Self::SinkError> {
+        let new_state = match self.write_state {
+            Some((ref mut m, ref mut state)) => {
+                try_ready!(state.write_helper(&mut self.stream, m));
+                None
+            }
+            None => return Ok(Async::Ready(())),
+        };
+
+        self.write_state = new_state;
+        Ok(Async::Ready(()))
+    }
+}
+
 
 #[cfg(test)]
 pub mod test {
