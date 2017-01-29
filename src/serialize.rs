@@ -228,10 +228,7 @@ impl <R> Read<R> where R: ::std::io::Read {
                 return Err(Error::failed("tried to read empty ReadState".to_string()))
             }
             &mut ReadState::Reading { ref mut read, ref options, ref mut inner } => {
-                match try!(inner.read_helper(read, options)) {
-                    Async::NotReady => return Ok(Async::NotReady),
-                    Async::Ready(v) => v,
-                }
+                try_ready!(inner.read_helper(read, options))
             }
         };
 
@@ -257,10 +254,7 @@ impl <R> Future for Read<R> where R: ::std::io::Read {
     type Item = (R, Option<message::Reader<OwnedSegments>>);
     type Error = Error;
     fn poll(&mut self) -> Poll<Self::Item, Error> {
-        match try!(Read::poll(self)) {
-            Async::Ready(v) => Ok(Async::Ready(v)),
-            Async::NotReady => Ok(Async::NotReady),
-        }
+        Read::poll(self)
     }
 }
 
@@ -475,10 +469,7 @@ impl <W, M> Write<W, M> where W: ::std::io::Write, M: AsOutputSegments {
                 return Err(Error::failed("tried to poll empty Write".to_string()))
             }
             WriteState::Writing { ref mut writer, ref mut message, ref mut inner } => {
-                match try!(inner.write_helper(writer, message)) {
-                    Async::NotReady => return Ok(Async::NotReady),
-                    Async::Ready(()) => (),
-                }
+                try_ready!(inner.write_helper(writer, message));
             }
         };
 
