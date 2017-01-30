@@ -2379,8 +2379,8 @@ impl <'a> StructBuilder<'a> {
                 marker: ::std::marker::PhantomData::<&'a ()>,
                 segment: segment_reader,
                 cap_table: self.cap_table.as_reader(),
-                data: self.data as *mut _,
-                pointers: self.pointers as *mut _,
+                data: self.data,
+                pointers: self.pointers,
                 data_size: self.data_size,
                 pointer_count: self.pointer_count,
                 nesting_limit: 0x7fffffff
