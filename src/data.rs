@@ -60,7 +60,7 @@ impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
 }
 
 impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer : PointerBuilder<'b>, value : Reader<'a>) -> Result<()> {
+    fn set_pointer_builder<'b>(pointer: PointerBuilder<'b>, value: Reader<'a>) -> Result<()> {
         pointer.set_data(value);
         Ok(())
     }

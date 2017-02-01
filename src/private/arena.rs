@@ -1,5 +1,4 @@
-// Copyright (c) 2013-2015 Sandstorm Development Group, Inc. and contributors
-// Licensed under the MIT License:
+// Copyright (c) 2013-2017 Sandstorm Development Group, Inc. and contributors
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,11 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::cell::Cell;
-use std::collections::HashMap;
-use std::mem;
-use std::rc::Rc;
-use std::slice;
+use std::cell::{Cell, RefCell};
 use std::u64;
 
 use private::units::*;
@@ -31,109 +26,7 @@ use message;
 use message::{Allocator, ReaderSegments};
 use {Error, OutputSegments, Result, Word};
 
-
-
 pub type SegmentId = u32;
-
-pub struct SegmentReader {
-    pub arena: ArenaPtr,
-    pub ptr: *const Word,
-    pub size: WordCount32,
-    pub read_limiter: Rc<ReadLimiter>,
-}
-
-impl SegmentReader {
-    #[inline]
-    pub unsafe fn get_start_ptr(&self) -> *const Word {
-        self.ptr.offset(0)
-    }
-
-    #[inline]
-    pub fn contains_interval(&self, from: *const Word, to: *const Word) -> bool {
-        let this_begin: usize = self.ptr as usize;
-        let this_end: usize = unsafe { self.ptr.offset(self.size as isize) as usize };
-        from as usize >= this_begin && to as usize <= this_end && from as usize <= to as usize &&
-            self.read_limiter.can_read((to as usize - from as usize) as u64 / BYTES_PER_WORD as u64)
-    }
-
-    #[inline]
-    pub fn amplified_read(&self, virtual_amount: u64) -> bool {
-        self.read_limiter.can_read(virtual_amount)
-    }
-}
-
-pub struct SegmentBuilder {
-    pub reader: SegmentReader,
-    pub id: SegmentId,
-    pos: *mut Word,
-}
-
-unsafe impl Send for SegmentBuilder {}
-
-impl SegmentBuilder {
-    pub fn new(arena: *mut BuilderArena,
-               limiter: Rc<ReadLimiter>,
-               id: SegmentId,
-               ptr: *mut Word,
-               size: WordCount32) -> SegmentBuilder {
-        SegmentBuilder {
-            reader: SegmentReader {
-                arena: ArenaPtr::Builder(arena),
-                ptr: unsafe {mem::transmute(ptr)},
-                size: size,
-                read_limiter: limiter,
-            },
-            id: id,
-            pos: ptr,
-        }
-    }
-
-    pub fn get_word_offset_to(&mut self, ptr: *mut Word) -> WordCount32 {
-        let this_addr: usize = self.reader.ptr as usize;
-        let ptr_addr: usize = ptr as usize;
-        assert!(ptr_addr >= this_addr);
-        let result = (ptr_addr - this_addr) / BYTES_PER_WORD;
-        result as u32
-    }
-
-    #[inline]
-    pub fn current_size(&self) -> WordCount32 {
-        ((self.pos as usize - self.reader.ptr as usize) / BYTES_PER_WORD) as u32
-    }
-
-    #[inline]
-    pub fn allocate(&mut self, amount: WordCount32) -> Option<*mut Word> {
-        if amount > self.reader.size - self.current_size() {
-            None
-        } else {
-            let result = self.pos;
-            self.pos = unsafe { self.pos.offset(amount as isize) };
-            Some(result)
-        }
-    }
-
-    #[inline]
-    pub fn get_ptr_unchecked(&self, offset: WordCount32) -> *mut Word {
-        unsafe {
-            mem::transmute(self.reader.ptr.offset(offset as isize))
-        }
-    }
-
-    #[inline]
-    pub fn get_segment_id(&self) -> SegmentId { self.id }
-
-    #[inline]
-    pub fn get_arena<'a> (&'a mut self) -> *mut BuilderArena {
-        match self.reader.arena {
-            ArenaPtr::Builder(b) => b,
-            _ => unreachable!()
-        }
-    }
-
-    pub fn currently_allocated<'a>(&'a self) -> &'a [Word] {
-        unsafe { slice::from_raw_parts(self.get_ptr_unchecked(0), self.current_size() as usize) }
-    }
-}
 
 pub struct ReadLimiter {
     pub limit: Cell<u64>,
@@ -145,197 +38,247 @@ impl ReadLimiter {
     }
 
     #[inline]
-    pub fn can_read(&self, amount: u64) -> bool {
+    pub fn can_read(&self, amount: u64) -> Result<()> {
         let current = self.limit.get();
         if amount > current {
-            // TODO arena->reportReadLimitReached()
-            false
+            Err(Error::failed(format!("read limit exceeded")))
         } else {
             self.limit.set(current - amount);
-            true
+            Ok(())
         }
     }
 }
 
-pub struct ReaderArena {
-    raw_segments: &'static ReaderSegments,
-    pub segment0: SegmentReader,
-    pub more_segments: HashMap<SegmentId, Box<SegmentReader>>,
-    pub read_limiter: Rc<ReadLimiter>,
+pub trait ReaderArena {
+    fn get_segment(&self, id: u32) -> Result<(*const Word, u32)>;
+    fn contains_interval(&self, segment_id: u32, from: *const Word, to: *const Word) -> Result<()>;
+    fn amplified_read(&self, virtual_amount: u64) -> Result<()>;
 }
 
-impl ReaderArena {
-    pub fn new(segments: &'static ReaderSegments,
+pub struct ReaderArenaImpl<S> {
+    segments: S,
+    read_limiter: ReadLimiter,
+}
+
+impl <S> ReaderArenaImpl <S> where S: ReaderSegments {
+    pub fn new(segments: S,
                options: message::ReaderOptions)
-               -> Box<ReaderArena> {
-
-        let limiter = Rc::new(ReadLimiter::new(options.traversal_limit_in_words));
-
-        let segment0 = segments.get_segment(0).expect("segment zero does not exist");
-
-        let segment0_reader =  SegmentReader {
-            arena: ArenaPtr::Null,
-            ptr: unsafe { segment0.get_unchecked(0) },
-            size: segment0.len() as u32,
-            read_limiter: limiter.clone(),
-        };
-
-        let mut arena = Box::new(ReaderArena {
-            raw_segments: segments,
-            segment0: segment0_reader,
-            more_segments: HashMap::new(),
-            read_limiter: limiter.clone(),
-        });
-
-        let arena_ptr = ArenaPtr::Reader(&mut *arena);
-        arena.segment0.arena = arena_ptr;
-        arena
+               -> Self
+    {
+        let limiter = ReadLimiter::new(options.traversal_limit_in_words);
+        ReaderArenaImpl {
+            segments: segments,
+            read_limiter: limiter,
+        }
     }
 
-    fn try_get_segment(&mut self, id: SegmentId) -> Result<*const SegmentReader> {
-        if id == 0 {
-            Ok(&self.segment0)
-        } else if self.more_segments.contains_key(&id) {
-            Ok(&*self.more_segments[&id])
-        } else {
-            let cloned_limiter = self.read_limiter.clone();
-            let new_segment = match self.raw_segments.get_segment(id) {
-                Some(s) => s,
-                None => {
-                    return Err(Error::failed(format!("Invalid segment id: {}", id)));
-                }
-            };
-            let new_segment_reader = SegmentReader {
-                arena: ArenaPtr::Reader(&mut *self),
-                ptr: unsafe { new_segment.get_unchecked(0) },
-                size: new_segment.len() as u32,
-                read_limiter: cloned_limiter
-            };
-            self.more_segments.insert(id, Box::new(new_segment_reader));
-            Ok(&*self.more_segments[&id])
-        }
+    pub fn into_segments(self) -> S {
+        self.segments
     }
 }
 
-pub struct BuilderArena {
-    allocator: &'static mut Allocator,
-    pub segment0: SegmentBuilder,
-    pub more_segments: Vec<Box<SegmentBuilder>>,
-    pub dummy_limiter: Rc<ReadLimiter>,
+impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
+    fn get_segment<'a>(&'a self, id: u32) -> Result<(*const Word, u32)> {
+        match self.segments.get_segment(id) {
+            Some(seg) => Ok((seg.as_ptr(), seg.len() as u32)),
+            None => Err(Error::failed(format!("Invalid segment id: {}", id))),
+        }
+    }
+
+    fn contains_interval(&self, id: u32, from: *const Word, to: *const Word) -> Result<()> {
+        let (segment_start, segment_len) = try!(self.get_segment(id));
+        let this_begin: usize = segment_start as usize;
+        let this_end: usize = this_begin + (segment_len as usize * 8);
+
+        if !(from as usize >= this_begin && to as usize <= this_end && from as usize <= to as usize) {
+            Err(Error::failed(format!("message contained out-of-bounds pointer")))
+        } else {
+            self.read_limiter.can_read((to as usize - from as usize) as u64 / BYTES_PER_WORD as u64)
+        }
+    }
+
+    fn amplified_read(&self, virtual_amount: u64) -> Result<()> {
+        self.read_limiter.can_read(virtual_amount)
+    }
 }
 
-impl BuilderArena  {
-    pub fn new(allocator: &'static mut Allocator) -> Box<BuilderArena> {
-        let limiter = Rc::new(ReadLimiter::new(u64::MAX));
-        let (first_segment, num_words) = allocator.allocate_segment(2);
+pub trait BuilderArena: ReaderArena {
+    fn allocate_segment(&self, minimum_size: u32) -> Result<()>;
+    fn allocate(&self, segment_id: u32, amount: WordCount32) -> Option<u32>;
+    fn allocate_anywhere(&self, amount: u32) -> (SegmentId, u32);
+    fn get_segment_mut(&self, id: u32) -> (*mut Word, u32);
+    fn as_reader<'a>(&'a self) -> &'a ReaderArena;
+}
 
-        let mut result = Box::new(BuilderArena {
-            allocator: allocator,
-            segment0: SegmentBuilder {
-                reader: SegmentReader {
-                    ptr: first_segment,
-                    size: num_words,
-                    arena: ArenaPtr::Null,
-                    read_limiter: limiter.clone()},
-                id: 0,
-                pos: first_segment,
-            },
-            more_segments: Vec::new(),
-            dummy_limiter: limiter,
-        });
+pub struct BuilderArenaImplInner<A> where A: Allocator {
+    allocator: A,
 
-        let arena_ptr = ArenaPtr::Builder(&mut *result);
-        result.segment0.reader.arena = arena_ptr;
-        result
-    }
+    // TODO(perf): use smallvec to avoid heap allocations in the single-segment case.
+    allocated: Vec<u32>, // number of words allocated for each segment.
+}
 
-    pub fn try_get_segment(&self, id: SegmentId) -> Result<*const SegmentReader> {
-        if id == 0 {
-            Ok(&self.segment0.reader)
-        } else if ((id - 1) as usize) < self.more_segments.len() {
-            Ok(&self.more_segments[(id - 1) as usize].reader)
-        } else {
-            Err(Error::failed(format!("Invalid segment id: {}", id)))
-        }
-    }
+pub struct BuilderArenaImpl<A> where A: Allocator {
+    inner: RefCell<BuilderArenaImplInner<A>>
+}
 
-    #[inline]
-    pub fn allocate(&mut self, amount: WordCount32) -> (*mut SegmentBuilder, *mut Word) {
-        unsafe {
-            match self.segment0.allocate(amount) {
-                Some(result) => { return (&mut self.segment0, result) }
-                None => {}
-            }
-
-            //# Need to fall back to additional segments.
-
-            let id = {
-                let len = self.more_segments.len();
-                if len == 0 { 1 }
-                else {
-                    let result_ptr: *mut SegmentBuilder = &mut *self.more_segments[len-1];
-                    match self.more_segments[len - 1].allocate(amount) {
-                        Some(result) => { return (result_ptr, result) }
-                        None => { len + 1 }
-                    }
-                }};
-
-            let (words, size) = self.allocator.allocate_segment(amount);
-            let mut new_builder = Box::new(SegmentBuilder::new(self, self.dummy_limiter.clone(),
-                                                               id as u32, words, size));
-            let builder_ptr: *mut SegmentBuilder = &mut *new_builder;
-
-            self.more_segments.push(new_builder);
-
-            (builder_ptr, (*builder_ptr).allocate(amount).unwrap() )
-        }
-    }
-
-    pub fn get_segment(&mut self, id: SegmentId) -> Result<*mut SegmentBuilder> {
-        if id == 0 {
-            Ok(&mut self.segment0)
-        } else if ((id - 1) as usize) < self.more_segments.len() {
-            Ok(&mut *self.more_segments[(id - 1) as usize])
-        } else {
-            Err(Error::failed(format!("Invalid segment id: {}", id)))
+impl <A> BuilderArenaImpl<A> where A: Allocator {
+    pub fn new(allocator: A) -> Self {
+        BuilderArenaImpl {
+            inner: RefCell::new(BuilderArenaImplInner {
+                allocator: allocator,
+                allocated: Vec::new(),
+            }),
         }
     }
 
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
-        if self.more_segments.len() == 0 {
-            OutputSegments::SingleSegment([self.segment0.currently_allocated()])
+        let reff = self.inner.borrow();
+        if reff.allocated.len() == 1 {
+            OutputSegments::SingleSegment(
+                unsafe {
+                    [::std::mem::transmute(&reff.allocator.get_segment(0)[..reff.allocated[0] as usize])]
+                })
         } else {
-            let mut v = Vec::new();
-            v.push(self.segment0.currently_allocated());
-            for seg in self.more_segments.iter() {
-                v.push(seg.currently_allocated());
+            let mut v = Vec::with_capacity(reff.allocated.len());
+            for idx in 0u32 ..reff.allocated.len() as u32{
+                v.push(
+                    unsafe {
+                        ::std::mem::transmute(
+                            &reff.allocator.get_segment(idx)[..reff.allocated[idx as usize] as usize])
+                    }
+                );
             }
             OutputSegments::MultiSegment(v)
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.inner.borrow().allocated.len()
+    }
 }
 
-#[derive(Clone, Copy)]
-pub enum ArenaPtr {
-    Reader(*mut ReaderArena),
-    Builder(*mut BuilderArena),
-    Null
+impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
+    fn get_segment(&self, id: u32) -> Result<(*const Word, u32)> {
+        let borrow = self.inner.borrow();
+        let seg = borrow.allocator.get_segment(id);
+        Ok((seg.as_ptr(), seg.len() as u32))
+    }
+
+    fn contains_interval(&self, _id: u32, _from: *const Word, _to: *const Word) -> Result<()> {
+        Ok(())
+    }
+
+    fn amplified_read(&self, _virtual_amount: u64) -> Result<()> {
+        Ok(())
+    }
 }
 
-impl ArenaPtr {
-    pub fn try_get_segment(&self, id: SegmentId) -> Result<*const SegmentReader> {
-        unsafe {
-            match self {
-                &ArenaPtr::Reader(reader) => {
-                    (&mut *reader).try_get_segment(id)
-                }
-                &ArenaPtr::Builder(builder) => {
-                    (&*builder).try_get_segment(id)
-                }
-                &ArenaPtr::Null => {
-                    Err(Error::failed("Null arena.".to_string()))
-                }
+impl <A> BuilderArenaImplInner<A> where A: Allocator {
+    fn allocate_segment(&mut self, minimum_size: WordCount32) -> Result<()> {
+        try!(self.allocator.allocate_segment(minimum_size));
+        self.allocated.push(0);
+        Ok(())
+    }
+
+    fn allocate(&mut self, segment_id: u32, amount: WordCount32) -> Option<u32> {
+        if amount > self.get_segment_mut(segment_id).1 as u32 - self.allocated[segment_id as usize] {
+            None
+        } else {
+            let result = self.allocated[segment_id as usize];
+            self.allocated[segment_id as usize] += amount;
+            Some(result)
+        }
+    }
+
+    fn allocate_anywhere(&mut self, amount: u32) -> (SegmentId, u32) {
+        // first try the existing segments, then try allocating a new segment.
+        let allocated_len = self.allocated.len() as u32;
+        for segment_id in 0.. allocated_len {
+            match self.allocate(segment_id, amount) {
+                Some(idx) => return (segment_id, idx),
+                None => (),
             }
+        }
+
+        // Need to allocate a new segment.
+
+        self.allocate_segment(amount).expect("allocate new segment");
+        (allocated_len,
+         self.allocate(allocated_len, amount).expect("use freshly-allocated segment"))
+    }
+
+    fn get_segment_mut(&mut self, id: u32) -> (*mut Word, u32) {
+        let seg = self.allocator.get_segment_mut(id);
+        (seg.as_mut_ptr(), seg.len() as u32)
+    }
+
+}
+
+impl <A> BuilderArena for BuilderArenaImpl<A> where A: Allocator {
+    fn allocate_segment(&self, minimum_size: WordCount32) -> Result<()> {
+        self.inner.borrow_mut().allocate_segment(minimum_size)
+    }
+
+    fn allocate(&self, segment_id: u32, amount: WordCount32) -> Option<u32> {
+        self.inner.borrow_mut().allocate(segment_id, amount)
+    }
+
+    fn allocate_anywhere(&self, amount: u32) -> (SegmentId, u32) {
+        self.inner.borrow_mut().allocate_anywhere(amount)
+    }
+
+    fn get_segment_mut(&self, id: u32) -> (*mut Word, u32) {
+        self.inner.borrow_mut().get_segment_mut(id)
+    }
+
+    fn as_reader<'a>(&'a self) -> &'a ReaderArena {
+        self
+    }
+}
+
+impl <A> Drop for BuilderArenaImplInner<A> where A: Allocator {
+    fn drop(&mut self) {
+        if self.allocated.len() > 0 {
+            self.allocator.pre_drop(self.allocated[0]);
         }
     }
 }
+
+pub struct NullArena;
+
+impl ReaderArena for NullArena {
+    fn get_segment(&self, _id: u32) -> Result<(*const Word, u32)> {
+        Err(Error::failed(format!("tried to read from null arena")))
+    }
+
+    fn contains_interval(&self, _id: u32, _from: *const Word, _to: *const Word) -> Result<()> {
+        Ok(())
+    }
+
+    fn amplified_read(&self, _virtual_amount: u64) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl BuilderArena for NullArena {
+    fn allocate_segment(&self, _minimum_size: WordCount32) -> Result<()> {
+        Err(Error::failed(format!("tried to allocate from null arena")))
+    }
+
+    fn allocate(&self, _segment_id: u32, _amount: WordCount32) -> Option<u32> {
+        None
+    }
+
+    fn allocate_anywhere(&self, _amount: u32) -> (SegmentId, u32) {
+        panic!("tried to allocate from a null arena")
+    }
+
+    fn get_segment_mut(&self, _id: u32) -> (*mut Word, u32) {
+        (::std::ptr::null_mut(), 0)
+    }
+
+    fn as_reader<'a>(&'a self) -> &'a ReaderArena {
+        self
+    }
+}
+

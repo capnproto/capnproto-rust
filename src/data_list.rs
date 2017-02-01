@@ -83,11 +83,11 @@ impl <'a> Builder<'a> {
 
     pub fn set(&mut self, index: u32, value: ::data::Reader) {
         assert!(index < self.len());
-        self.builder.get_pointer_element(index).set_data(value);
+        self.builder.borrow().get_pointer_element(index).set_data(value);
     }
 
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder {builder : self.builder}
+        Builder {builder: self.builder.borrow()}
     }
 }
 
@@ -114,8 +114,8 @@ impl <'a> Builder<'a> {
 
 
 impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
-                               value : Reader<'a>) -> Result<()> {
+    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
+                               value: Reader<'a>) -> Result<()> {
         try!(pointer.set_list(&value.reader));
         Ok(())
     }

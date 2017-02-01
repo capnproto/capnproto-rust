@@ -107,7 +107,7 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 
 impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     pub fn borrow<'b>(&'b mut self) -> Builder<'b, T> {
-        Builder {builder : self.builder, marker : ::std::marker::PhantomData}
+        Builder { builder: self.builder, marker: ::std::marker::PhantomData }
     }
 }
 
@@ -140,8 +140,8 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     where T: for<'b> ::traits::OwnedStruct<'b>
 {
-    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
-                               value : Reader<'a, T>) -> Result<()> {
+    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
+                               value: Reader<'a, T>) -> Result<()> {
         pointer.set_list(&value.reader)
     }
 }

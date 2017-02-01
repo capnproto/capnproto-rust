@@ -101,27 +101,27 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
 
 impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
     pub fn borrow<'b>(&'b mut self) -> Builder<'b, T> {
-        Builder {builder : self.builder, marker : ::std::marker::PhantomData}
+        Builder {builder: self.builder.borrow(), marker: ::std::marker::PhantomData}
     }
 }
 
 impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
     fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
         Builder {
-            marker : ::std::marker::PhantomData,
-            builder : builder.init_list(Pointer, size)
+            marker: ::std::marker::PhantomData,
+            builder: builder.init_list(Pointer, size)
         }
     }
     fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a, T>> {
         Ok(Builder {
-            marker : ::std::marker::PhantomData,
-            builder : try!(builder.get_list(Pointer, ::std::ptr::null()))
+            marker: ::std::marker::PhantomData,
+            builder: try!(builder.get_list(Pointer, ::std::ptr::null()))
         })
     }
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
-    pub fn get(self, index : u32) -> Result<<T as ::traits::Owned<'a>>::Builder> {
+    pub fn get(self, index: u32) -> Result<<T as ::traits::Owned<'a>>::Builder> {
         assert!(index < self.len());
         FromPointerBuilder::get_from_pointer(self.builder.get_pointer_element(index))
     }
@@ -130,8 +130,8 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
 impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     where T: for<'b> ::traits::Owned<'b>
 {
-    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
-                               value : Reader<'a, T>) -> Result<()> {
+    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
+                               value: Reader<'a, T>) -> Result<()> {
         pointer.set_list(&value.reader)
     }
 }

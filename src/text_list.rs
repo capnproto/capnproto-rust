@@ -81,39 +81,39 @@ impl <'a> Builder<'a> {
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
-    pub fn set(&mut self, index : u32, value : ::text::Reader) {
+    pub fn set(&mut self, index: u32, value: ::text::Reader) {
         assert!(index < self.len());
-        self.builder.get_pointer_element(index).set_text(value);
+        self.builder.borrow().get_pointer_element(index).set_text(value);
     }
 
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder::<'b> {builder : self.builder}
+        Builder::<'b> { builder: self.builder.borrow() }
     }
 }
 
 
 impl <'a> FromPointerBuilder<'a> for Builder<'a> {
-    fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a> {
+    fn init_pointer(builder: PointerBuilder<'a>, size: u32) -> Builder<'a> {
         Builder {
-            builder : builder.init_list(Pointer, size)
+            builder: builder.init_list(Pointer, size)
         }
     }
-    fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a>> {
         Ok(Builder {
-            builder : try!(builder.get_list(Pointer, ::std::ptr::null()))
+            builder: try!(builder.get_list(Pointer, ::std::ptr::null()))
         })
     }
 }
 
 impl <'a> Builder<'a> {
-    pub fn get(self, index : u32) -> Result<::text::Builder<'a>> {
+    pub fn get(self, index: u32) -> Result<::text::Builder<'a>> {
         self.builder.get_pointer_element(index).get_text(::std::ptr::null(), 0)
     }
 }
 
 impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer : ::private::layout::PointerBuilder<'b>,
-                               value : Reader<'a>) -> Result<()> {
+    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
+                               value: Reader<'a>) -> Result<()> {
         pointer.set_list(&value.reader)
     }
 }

@@ -22,11 +22,10 @@
 //! Untyped root container for a Cap'n Proto value.
 
 use any_pointer;
-use private::units::*;
-use private::arena::{BuilderArena, ReaderArena, SegmentBuilder, SegmentReader};
+use private::arena::{BuilderArenaImpl, ReaderArenaImpl, BuilderArena, ReaderArena};
 use private::layout;
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
-use {OutputSegments, Result, Word};
+use {Error, OutputSegments, Result, Word};
 
 /// Options controlling how data is read.
 #[derive(Clone, Copy, Debug)]
@@ -60,25 +59,25 @@ pub struct ReaderOptions {
     pub nesting_limit: i32,
 }
 
-pub const DEFAULT_READER_OPTIONS : ReaderOptions =
-    ReaderOptions { traversal_limit_in_words : 8 * 1024 * 1024, nesting_limit : 64 };
+pub const DEFAULT_READER_OPTIONS: ReaderOptions =
+    ReaderOptions { traversal_limit_in_words: 8 * 1024 * 1024, nesting_limit: 64 };
 
 
 impl Default for ReaderOptions {
     fn default() -> ReaderOptions {
-        ReaderOptions { traversal_limit_in_words : 8 * 1024 * 1024, nesting_limit : 64 }
+        DEFAULT_READER_OPTIONS
     }
 }
 
 impl ReaderOptions {
     pub fn new() -> ReaderOptions { DEFAULT_READER_OPTIONS }
 
-    pub fn nesting_limit<'a>(&'a mut self, value : i32) -> &'a mut ReaderOptions {
+    pub fn nesting_limit<'a>(&'a mut self, value: i32) -> &'a mut ReaderOptions {
         self.nesting_limit = value;
         return self;
     }
 
-    pub fn traversal_limit_in_words<'a>(&'a mut self, value : u64) -> &'a mut ReaderOptions {
+    pub fn traversal_limit_in_words<'a>(&'a mut self, value: u64) -> &'a mut ReaderOptions {
         self.traversal_limit_in_words = value;
         return self;
     }
@@ -109,147 +108,112 @@ impl <'b> ReaderSegments for SegmentArray<'b> {
 }
 
 /// A container used to read a message.
-///
-/// The underlying implemention uses the `ReaderSegments` as a trait object. However, we
-/// need to include `S` as concrete type parameter so that the typechecker can
-/// correctly deduce appropriate bounds like `Send`.
 pub struct Reader<S> where S: ReaderSegments {
-    arena: Box<ReaderArena>,
-    segments: Box<S>,
+    arena: ReaderArenaImpl<S>,
     options: ReaderOptions,
 }
 
-unsafe impl <S> Send for Reader<S> where S: Send + ReaderSegments {}
+// TODO assert that Reader<S> is Send when S is.
+//unsafe impl <S> Send for Reader<S> where S: Send + ReaderSegments {}
 
 impl <S> Reader<S> where S: ReaderSegments {
-    pub fn new(segments: S, options: ReaderOptions) -> Reader<S> {
-        let boxed_segments = Box::new(segments);
-        let boxed_segments_ref = {
-            let r :&S = &*boxed_segments;
-            unsafe { ::std::mem::transmute(r as &ReaderSegments) }
-        };
-        let arena = ReaderArena::new(boxed_segments_ref, options);
-        Reader { arena: arena, segments: boxed_segments, options: options }
-    }
-
-    fn get_root_internal(&self) -> Result<any_pointer::Reader> {
-        unsafe {
-            let segment : *const SegmentReader = &self.arena.segment0;
-
-            let pointer_reader = try!(layout::PointerReader::get_root(
-                segment, (*segment).get_start_ptr(), self.options.nesting_limit));
-
-            Ok(any_pointer::Reader::new(pointer_reader))
+    pub fn new(segments: S, options: ReaderOptions) -> Self {
+        Reader {
+            arena: ReaderArenaImpl::new(segments, options),
+            options: options,
         }
     }
 
+    fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a>> {
+        let (segment_start, _seg_len) = try!(self.arena.get_segment(0));
+        let pointer_reader = try!(layout::PointerReader::get_root(
+            &self.arena, 0, segment_start, self.options.nesting_limit));
+        Ok(any_pointer::Reader::new(pointer_reader))
+    }
+
     /// Gets the root of the message, interpreting it as the given type.
-    pub fn get_root<'a, T : FromPointerReader<'a>>(&'a self) -> Result<T> {
+    pub fn get_root<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
         try!(self.get_root_internal()).get_as()
     }
 
     pub fn into_segments(self) -> S {
-        *self.segments
+        self.arena.into_segments()
     }
 }
 
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
-pub unsafe trait Allocator {
-    /// Allocates memory for a new segment, returning a pointer to the start of the segment
-    /// and a u32 indicating the length of the segment.
-    ///
-    /// UNSAFETY ALERT: The callee is responsible for ensuring that the returned memory is valid
-    /// for the lifetime of the object and doesn't overlap with other allocated memory.
-    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32);
+pub trait Allocator {
+    /// Allocates memory for a new segment.
+    fn allocate_segment(&mut self, minimum_size: u32) -> Result<()>;
+
+    fn get_segment<'a>(&'a self, id: u32) -> &'a [Word];
+    fn get_segment_mut<'a>(&'a mut self, id: u32) -> &'a mut [Word];
 
     fn pre_drop(&mut self, _segment0_currently_allocated: u32) {}
 }
 
 /// A container used to build a message.
-///
-/// The underlying implementation uses the `Allocator` as a trait object. However, we
-/// need to include `A` as concrete type parameter so that the typechecker can
-/// correctly deduce appropriate bounds like `Send`.
 pub struct Builder<A> where A: Allocator {
-    arena: Box<BuilderArena>,
-    allocator: Box<A>,
+    arena: BuilderArenaImpl<A>,
     cap_table: Vec<Option<Box<::private::capability::ClientHook>>>,
 }
 
-unsafe impl <A> Send for Builder<A> where A: Send + Allocator {}
+// TODO assert Send for Builder<A> where A: Send
+//unsafe impl <A> Send for Builder<A> where A: Send + Allocator {}
 
 impl <A> Builder<A> where A: Allocator {
-    pub fn new(allocator: A) -> Builder<A> {
-        let mut boxed_allocator = Box::new(allocator);
-        let boxed_allocator_ref = {
-            let r: &mut A = &mut *boxed_allocator;
-            unsafe { ::std::mem::transmute(r as &mut Allocator) }
-        };
-        let arena = BuilderArena::new(boxed_allocator_ref);
+    pub fn new(allocator: A) -> Self {
         Builder {
-            arena: arena,
-            allocator: boxed_allocator,
+            arena: BuilderArenaImpl::new(allocator),
             cap_table: Vec::new(),
         }
     }
 
-    fn get_root_internal<'a>(&mut self) -> any_pointer::Builder<'a> {
-        let root_segment: *mut SegmentBuilder = &mut self.arena.segment0;
-
-        if self.arena.segment0.current_size() == 0 {
-            match self.arena.segment0.allocate(WORDS_PER_POINTER as u32) {
-                None => {panic!("could not allocate root pointer") }
-                Some(location) => {
-                    assert!(location == self.arena.segment0.get_ptr_unchecked(0),
-                            "First allocated word of new segment was not at offset 0");
-
-                    any_pointer::Builder::new(layout::PointerBuilder::get_root(root_segment, location))
-
-                }
-            }
-        } else {
-            any_pointer::Builder::new(
-                layout::PointerBuilder::get_root(root_segment,
-                                                 self.arena.segment0.get_ptr_unchecked(0)))
+    fn get_root_internal<'a>(&'a mut self) -> any_pointer::Builder<'a> {
+        use ::traits::ImbueMut;
+        if self.arena.len() == 0 {
+            self.arena.allocate_segment(1).expect("allocate root pointer");
+            self.arena.allocate(0, 1).expect("allocate root pointer");
         }
+        let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
+        let location: *mut Word = seg_start;
+        let Builder { ref mut arena, ref mut cap_table } = *self;
+
+        let mut result = any_pointer::Builder::new(
+            layout::PointerBuilder::get_root(arena, 0, location));
+        result.imbue_mut(cap_table);
+        result
     }
 
     /// Initializes the root as a value of the given type.
     pub fn init_root<'a, T: FromPointerBuilder<'a>>(&'a mut self) -> T {
-        use ::traits::ImbueMut;
-        let mut root = self.get_root_internal();
-        root.imbue_mut(&mut self.cap_table);
+        let root = self.get_root_internal();
         root.init_as()
     }
 
     /// Gets the root, interpreting it as the given type.
     pub fn get_root<'a, T: FromPointerBuilder<'a>>(&'a mut self) -> Result<T> {
-        use ::traits::ImbueMut;
-        let mut root = self.get_root_internal();
-        root.imbue_mut(&mut self.cap_table);
+        let root = self.get_root_internal();
         root.get_as()
     }
 
     pub fn get_root_as_reader<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
-        let root_segment: *const SegmentReader = &self.arena.segment0.reader;
-        if self.arena.segment0.current_size() == 0 {
+        if self.arena.len() == 0 {
             any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
         } else {
             use ::traits::Imbue;
-            let mut root = any_pointer::Reader::new(
-                try!(layout::PointerReader::get_root(root_segment,
-                                                     self.arena.segment0.get_ptr_unchecked(0),
-                                                     0x7fffffff)));
+            let (segment_start, _segment_len) = try!(self.arena.get_segment(0));
+            let pointer_reader = try!(layout::PointerReader::get_root(
+                self.arena.as_reader(), 0, segment_start, 0x7fffffff));
+            let mut root = any_pointer::Reader::new(pointer_reader);
             root.imbue(&self.cap_table);
             root.get_as()
         }
     }
 
     /// Sets the root to a deep copy of the given value.
-    pub fn set_root<To, From: SetPointerBuilder<To>>(&mut self, value : From) -> Result<()> {
-        use ::traits::ImbueMut;
-        let mut root = self.get_root_internal();
-        root.imbue_mut(&mut self.cap_table);
+    pub fn set_root<To, From: SetPointerBuilder<To>>(&mut self, value: From) -> Result<()> {
+        let root = self.get_root_internal();
         root.set_as(value)
     }
 
@@ -258,15 +222,9 @@ impl <A> Builder<A> where A: Allocator {
     }
 }
 
-impl <A> Drop for Builder<A> where A: Allocator {
-    fn drop(&mut self) {
-        self.allocator.pre_drop(self.arena.segment0.current_size());
-    }
-}
-
 #[derive(Debug)]
 pub struct HeapAllocator {
-    owned_memory : Vec<Vec<Word>>,
+    owned_memory: Vec<Vec<Word>>,
     next_size: u32,
     allocation_strategy: AllocationStrategy,
 }
@@ -298,18 +256,25 @@ impl HeapAllocator {
     }
 }
 
-unsafe impl Allocator for HeapAllocator {
-    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32) {
+impl Allocator for HeapAllocator {
+    fn allocate_segment(&mut self, minimum_size: u32) -> Result<()> {
         let size = ::std::cmp::max(minimum_size, self.next_size);
-        let mut new_words = Word::allocate_zeroed_vec(size as usize);
-        let ptr = new_words.as_mut_ptr();
+        let new_words = Word::allocate_zeroed_vec(size as usize);
         self.owned_memory.push(new_words);
 
         match self.allocation_strategy {
             AllocationStrategy::GrowHeuristically => { self.next_size += size; }
             _ => { }
         }
-        (ptr, size as u32)
+        Ok(())
+    }
+
+    fn get_segment<'a>(&'a self, id: u32) -> &'a [Word] {
+        &self.owned_memory[id as usize][..]
+    }
+
+    fn get_segment_mut<'a>(&'a mut self, id: u32) -> &'a mut [Word] {
+        &mut self.owned_memory[id as usize][..]
     }
 }
 
@@ -355,15 +320,36 @@ impl <'a, 'b: 'a> ScratchSpaceHeapAllocator<'a, 'b> {
 
 }
 
-unsafe impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
-    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32) {
+impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
+    fn allocate_segment(&mut self, minimum_size: u32) -> Result<()> {
         if !self.scratch_space.in_use {
             self.scratch_space.in_use = true;
-            (self.scratch_space.slice.as_mut_ptr(), self.scratch_space.slice.len() as u32)
+            if minimum_size <= self.scratch_space.slice.len() as u32 {
+                Ok(())
+            } else {
+                Err(Error::failed(format!("scratch space not large enough")))
+            }
         } else {
             self.allocator.allocate_segment(minimum_size)
         }
     }
+
+    fn get_segment_mut<'c>(&'c mut self, id: u32) -> &'c mut [Word] {
+        if id == 0 {
+            self.scratch_space.slice
+        } else {
+            self.allocator.get_segment_mut(id)
+        }
+    }
+
+    fn get_segment<'c>(&'c self, id: u32) -> &'c [Word] {
+        if id == 0 {
+            self.scratch_space.slice
+        } else {
+            self.allocator.get_segment(id)
+        }
+    }
+
 
     fn pre_drop(&mut self, segment0_currently_allocated: u32) {
         let ptr = self.scratch_space.slice.as_mut_ptr();
@@ -373,3 +359,4 @@ unsafe impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
         self.scratch_space.in_use = false;
     }
 }
+
