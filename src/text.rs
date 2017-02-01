@@ -21,6 +21,8 @@
 
 //! UTF-8 encoded text.
 
+use std::{convert, str, ops, ptr};
+
 use {Error, Result};
 
 #[derive(Copy, Clone)]
@@ -34,7 +36,7 @@ impl<'a> ::traits::Owned<'a> for Owned {
 pub type Reader<'a> = &'a str;
 
 pub fn new_reader<'a>(v : &'a [u8]) -> Result<Reader<'a>> {
-    match ::std::str::from_utf8(v) {
+    match str::from_utf8(v) {
         Ok(v) => Ok(v),
         Err(e) => Err(Error::failed(
             format!("Text contains non-utf8 data: {:?}", e))),
@@ -43,35 +45,34 @@ pub fn new_reader<'a>(v : &'a [u8]) -> Result<Reader<'a>> {
 
 impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader : &::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        reader.get_text(::std::ptr::null(), 0)
+        reader.get_text(ptr::null(), 0)
     }
 }
 
 pub struct Builder<'a> {
-    bytes : &'a mut [u8],
-    pos : usize,
+    bytes: &'a mut [u8],
+    pos: usize,
 }
 
 impl <'a> Builder <'a> {
-
-    pub fn new<'b>(bytes : &'b mut [u8], pos : u32) -> Result<Builder<'b>> {
+    pub fn new<'b>(bytes: &'b mut [u8], pos: u32) -> Result<Builder<'b>> {
         if pos != 0 {
-            match ::std::str::from_utf8(bytes) {
+            match str::from_utf8(bytes) {
                 Err(e) => return Err(Error::failed(
                     format!("Text contains non-utf8 data: {:?}", e))),
                 _ => {}
             }
         }
-        Ok(Builder { bytes : bytes, pos : pos as usize })
+        Ok(Builder { bytes: bytes, pos: pos as usize })
     }
 
-    pub fn push_ascii(&mut self, ascii : u8) {
+    pub fn push_ascii(&mut self, ascii: u8) {
         assert!(ascii < 128);
         self.bytes[self.pos] = ascii;
         self.pos += 1;
     }
 
-    pub fn push_str(&mut self, string : &str) {
+    pub fn push_str(&mut self, string: &str) {
         let bytes = string.as_bytes();
         for ii in 0..bytes.len() {
             self.bytes[self.pos + ii] = bytes[ii];
@@ -87,24 +88,26 @@ impl <'a> Builder <'a> {
     }
 }
 
-impl <'a> ::std::ops::Deref for Builder <'a> {
+impl <'a> ops::Deref for Builder <'a> {
     type Target = str;
     fn deref<'b>(&'b self) -> &'b str {
-        ::std::str::from_utf8(self.bytes).unwrap()
+        str::from_utf8(self.bytes)
+            .expect("text::Builder contents are checked for utf8-validity upon construction")
     }
 }
 
-impl <'a> ::std::convert::AsRef<str> for Builder<'a> {
+impl <'a> convert::AsRef<str> for Builder<'a> {
     fn as_ref<'b>(&'b self) -> &'b str {
-        ::std::str::from_utf8(self.bytes).unwrap()
+        str::from_utf8(self.bytes)
+            .expect("text::Builder contents are checked for utf8-validity upon construction")
     }
 }
 
 impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
-    fn init_pointer(builder : ::private::layout::PointerBuilder<'a>, size : u32) -> Builder<'a> {
+    fn init_pointer(builder: ::private::layout::PointerBuilder<'a>, size: u32) -> Builder<'a> {
         builder.init_text(size)
     }
-    fn get_from_pointer(builder : ::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
+    fn get_from_pointer(builder: ::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
         builder.get_text(::std::ptr::null(), 0)
     }
 }

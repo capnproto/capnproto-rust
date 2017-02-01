@@ -1295,7 +1295,8 @@ mod wire_helpers {
 
         return SegmentAnd {
             segment_id: segment_id,
-            value: text::Builder::new(slice::from_raw_parts_mut(ptr as *mut _, size as usize), 0).unwrap()
+            value: text::Builder::new(slice::from_raw_parts_mut(ptr as *mut _, size as usize), 0)
+                .expect("empty text builder should be valid utf-8")
         }
     }
 
