@@ -183,7 +183,6 @@ fn basic_rpc_calls() {
         request1.get().set_j(true);
         let promise1 = request1.send();
 
-
         let request3 = client.bar_request();
         let promise3 = request3.send().promise.then(|result| {
             // We expect this call to fail.
@@ -759,4 +758,18 @@ fn local_client_call_not_immediate() {
 
     let _ = remote_promise.promise.wait();
     assert_eq!(call_count.get(), 1);
+}
+
+#[test]
+fn local_client_return_cap() {
+    let server = ::impls::Bootstrap;
+    let client = ::test_capnp::bootstrap::ToClient::new(server).from_server::<::capnp_rpc::Server>();
+    let response = client.test_interface_request().send().promise.wait().unwrap();
+    let client1 = response.get().unwrap().get_cap().unwrap();
+
+    let mut request = client1.foo_request();
+    request.get().set_i(123);
+    request.get().set_j(true);
+    let response1 = request.send().promise.wait().unwrap();
+    assert_eq!(response1.get().unwrap().get_x().unwrap(), "foo");
 }
