@@ -108,21 +108,21 @@ impl <'b> ReaderSegments for SegmentArray<'b> {
 /// A container used to read a message.
 pub struct Reader<S> where S: ReaderSegments {
     arena: ReaderArenaImpl<S>,
-    options: ReaderOptions,
+    nesting_limit: i32,
 }
 
 impl <S> Reader<S> where S: ReaderSegments {
     pub fn new(segments: S, options: ReaderOptions) -> Self {
         Reader {
             arena: ReaderArenaImpl::new(segments, options),
-            options: options,
+            nesting_limit: options.nesting_limit,
         }
     }
 
     fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a>> {
         let (segment_start, _seg_len) = try!(self.arena.get_segment(0));
         let pointer_reader = try!(layout::PointerReader::get_root(
-            &self.arena, 0, segment_start, self.options.nesting_limit));
+            &self.arena, 0, segment_start, self.nesting_limit));
         Ok(any_pointer::Reader::new(pointer_reader))
     }
 

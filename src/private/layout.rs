@@ -1261,7 +1261,6 @@ mod wire_helpers {
                 ptr::write_bytes(old_ptr as *mut u8, 0,
                                  round_bits_up_to_bytes(old_step as u64 * element_count as u64) as usize);
 
-
                 Ok(ListBuilder {
                     arena: arena,
                     segment_id: new_segment_id,
