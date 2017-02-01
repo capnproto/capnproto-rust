@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 use std::cell::{Cell, RefCell};
+use std::slice;
 use std::u64;
 
 use private::units::*;
@@ -113,6 +114,8 @@ pub trait BuilderArena: ReaderArena {
 pub struct BuilderArenaImplInner<A> where A: Allocator {
     allocator: A,
 
+    segments: Vec<(*mut Word, u32)>,
+
     // TODO(perf): use smallvec to avoid heap allocations in the single-segment case.
     allocated: Vec<u32>, // number of words allocated for each segment.
 }
@@ -126,6 +129,7 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
         BuilderArenaImpl {
             inner: RefCell::new(BuilderArenaImplInner {
                 allocator: allocator,
+                segments: Vec::new(),
                 allocated: Vec::new(),
             }),
         }
@@ -134,19 +138,15 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
         let reff = self.inner.borrow();
         if reff.allocated.len() == 1 {
-            OutputSegments::SingleSegment(
-                unsafe {
-                    [::std::mem::transmute(&reff.allocator.get_segment(0)[..reff.allocated[0] as usize])]
-                })
+            let seg = reff.segments[0];
+            let slice = unsafe { slice::from_raw_parts(seg.0 as *const _, reff.allocated[0] as usize) };
+            OutputSegments::SingleSegment([slice])
         } else {
             let mut v = Vec::with_capacity(reff.allocated.len());
-            for idx in 0u32 ..reff.allocated.len() as u32{
-                v.push(
-                    unsafe {
-                        ::std::mem::transmute(
-                            &reff.allocator.get_segment(idx)[..reff.allocated[idx as usize] as usize])
-                    }
-                );
+            for idx in 0..reff.allocated.len() {
+                let seg = reff.segments[idx];
+                let slice = unsafe { slice::from_raw_parts(seg.0 as *const _, reff.allocated[idx] as usize) };
+                v.push(slice);
             }
             OutputSegments::MultiSegment(v)
         }
@@ -160,8 +160,8 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
 impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
     fn get_segment(&self, id: u32) -> Result<(*const Word, u32)> {
         let borrow = self.inner.borrow();
-        let seg = borrow.allocator.get_segment(id);
-        Ok((seg.as_ptr(), seg.len() as u32))
+        let seg = borrow.segments[id as usize];
+        Ok((seg.0 as *const _, seg.1))
     }
 
     fn contains_interval(&self, _id: u32, _from: *const Word, _to: *const Word) -> Result<()> {
@@ -175,7 +175,8 @@ impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
 
 impl <A> BuilderArenaImplInner<A> where A: Allocator {
     fn allocate_segment(&mut self, minimum_size: WordCount32) -> Result<()> {
-        try!(self.allocator.allocate_segment(minimum_size));
+        let seg = self.allocator.allocate_segment(minimum_size);
+        self.segments.push(seg);
         self.allocated.push(0);
         Ok(())
     }
@@ -208,8 +209,7 @@ impl <A> BuilderArenaImplInner<A> where A: Allocator {
     }
 
     fn get_segment_mut(&mut self, id: u32) -> (*mut Word, u32) {
-        let seg = self.allocator.get_segment_mut(id);
-        (seg.as_mut_ptr(), seg.len() as u32)
+        self.segments[id as usize]
     }
 
 }

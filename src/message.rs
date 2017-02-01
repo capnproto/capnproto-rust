@@ -25,7 +25,7 @@ use any_pointer;
 use private::arena::{BuilderArenaImpl, ReaderArenaImpl, BuilderArena, ReaderArena};
 use private::layout;
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
-use {Error, OutputSegments, Result, Word};
+use {OutputSegments, Result, Word};
 
 /// Options controlling how data is read.
 #[derive(Clone, Copy, Debug)]
@@ -142,6 +142,18 @@ impl <S> Reader<S> where S: ReaderSegments {
 }
 
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
+pub unsafe trait Allocator {
+    /// Allocates memory for a new segment, returning a pointer to the start of the segment
+    /// and a u32 indicating the length of the segment.
+    ///
+    /// UNSAFETY ALERT: The callee is responsible for ensuring that the returned memory is valid
+    /// for the lifetime of the object and doesn't overlap with other allocated memory.
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32);
+
+    fn pre_drop(&mut self, _segment0_currently_allocated: u32) {}
+}
+
+/* TODO(version 0.9): update to a more user-friendly trait here?
 pub trait Allocator {
     /// Allocates memory for a new segment.
     fn allocate_segment(&mut self, minimum_size: u32) -> Result<()>;
@@ -151,6 +163,7 @@ pub trait Allocator {
 
     fn pre_drop(&mut self, _segment0_currently_allocated: u32) {}
 }
+*/
 
 /// A container used to build a message.
 pub struct Builder<A> where A: Allocator {
@@ -256,25 +269,18 @@ impl HeapAllocator {
     }
 }
 
-impl Allocator for HeapAllocator {
-    fn allocate_segment(&mut self, minimum_size: u32) -> Result<()> {
+unsafe impl Allocator for HeapAllocator {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32) {
         let size = ::std::cmp::max(minimum_size, self.next_size);
-        let new_words = Word::allocate_zeroed_vec(size as usize);
+        let mut new_words = Word::allocate_zeroed_vec(size as usize);
+        let ptr = new_words.as_mut_ptr();
         self.owned_memory.push(new_words);
 
         match self.allocation_strategy {
             AllocationStrategy::GrowHeuristically => { self.next_size += size; }
             _ => { }
         }
-        Ok(())
-    }
-
-    fn get_segment<'a>(&'a self, id: u32) -> &'a [Word] {
-        &self.owned_memory[id as usize][..]
-    }
-
-    fn get_segment_mut<'a>(&'a mut self, id: u32) -> &'a mut [Word] {
-        &mut self.owned_memory[id as usize][..]
+        (ptr, size as u32)
     }
 }
 
@@ -320,36 +326,16 @@ impl <'a, 'b: 'a> ScratchSpaceHeapAllocator<'a, 'b> {
 
 }
 
-impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
-    fn allocate_segment(&mut self, minimum_size: u32) -> Result<()> {
+
+unsafe impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32) {
         if !self.scratch_space.in_use {
             self.scratch_space.in_use = true;
-            if minimum_size <= self.scratch_space.slice.len() as u32 {
-                Ok(())
-            } else {
-                Err(Error::failed(format!("scratch space not large enough")))
-            }
+            (self.scratch_space.slice.as_mut_ptr(), self.scratch_space.slice.len() as u32)
         } else {
             self.allocator.allocate_segment(minimum_size)
         }
     }
-
-    fn get_segment_mut<'c>(&'c mut self, id: u32) -> &'c mut [Word] {
-        if id == 0 {
-            self.scratch_space.slice
-        } else {
-            self.allocator.get_segment_mut(id)
-        }
-    }
-
-    fn get_segment<'c>(&'c self, id: u32) -> &'c [Word] {
-        if id == 0 {
-            self.scratch_space.slice
-        } else {
-            self.allocator.get_segment(id)
-        }
-    }
-
 
     fn pre_drop(&mut self, segment0_currently_allocated: u32) {
         let ptr = self.scratch_space.slice.as_mut_ptr();
