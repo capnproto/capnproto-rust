@@ -1,3 +1,7 @@
+# v0.1.1
+- Add `serialize::Transport`.
+- Update byteorder dependency.
+
 # v0.1.0
 - Add `WriteQueue`.
 
