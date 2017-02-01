@@ -2846,4 +2846,3 @@ impl PrimitiveElement for () {
     #[inline]
     fn set(_list: &ListBuilder, _index: ElementCount32, _value: ()) { }
 }
-

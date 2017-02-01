@@ -111,9 +111,6 @@ pub struct Reader<S> where S: ReaderSegments {
     options: ReaderOptions,
 }
 
-// TODO assert that Reader<S> is Send when S is.
-//unsafe impl <S> Send for Reader<S> where S: Send + ReaderSegments {}
-
 impl <S> Reader<S> where S: ReaderSegments {
     pub fn new(segments: S, options: ReaderOptions) -> Self {
         Reader {
@@ -169,8 +166,20 @@ pub struct Builder<A> where A: Allocator {
     cap_table: Vec<Option<Box<::private::capability::ClientHook>>>,
 }
 
-// TODO assert Send for Builder<A> where A: Send
-//unsafe impl <A> Send for Builder<A> where A: Send + Allocator {}
+// TODO(version 0.9): Consider removing this unsafe impl somwhow.
+//   As soon as a message::Builder has caps in its table, it is not
+//   in fact esafe to send to other threads.
+unsafe impl <A> Send for Builder<A> where A: Send + Allocator {}
+
+fn _assert_kinds() {
+    fn _assert_send<T: Send>() {}
+    fn _assert_reader<S: ReaderSegments + Send>() {
+        _assert_send::<Reader<S>>();
+    }
+//    fn _assert_builder<A: Allocator + Send>() {
+//        _assert_send::<Builder<A>>();
+//    }
+}
 
 impl <A> Builder<A> where A: Allocator {
     pub fn new(allocator: A) -> Self {

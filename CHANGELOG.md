@@ -1,3 +1,6 @@
+## v0.8.1
+- Redesign segment arenas to require less unsafe code.
+
 ## v0.8.0
 - Replace optional GJ dependency with futures-rs.
 - Remove `ResultsDoneHook` hack.
