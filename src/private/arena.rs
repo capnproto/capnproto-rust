@@ -54,6 +54,10 @@ pub trait ReaderArena {
     fn get_segment(&self, id: u32) -> Result<(*const Word, u32)>;
     fn contains_interval(&self, segment_id: u32, from: *const Word, to: *const Word) -> Result<()>;
     fn amplified_read(&self, virtual_amount: u64) -> Result<()>;
+
+    // TODO(version 0.9): Consider putting extract_cap(), inject_cap(), drop_cap() here
+    //   and on message::Reader. Then we could get rid of Imbue and ImbueMut, and
+    //   layout::StructReader, layout::ListReader, etc. could drop their `cap_table` fields.
 }
 
 pub struct ReaderArenaImpl<S> {
@@ -142,12 +146,18 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
         let reff = self.inner.borrow();
         if reff.allocated.len() == 1 {
             let seg = reff.segments[0];
+
+            // The user must mutably borrow the `message::Builder` to be able to modify segment memory.
+            // No such borrow will be possible while `self` is still immutably borrowed from this method,
+            // so returning this slice is safe.
             let slice = unsafe { slice::from_raw_parts(seg.0 as *const _, reff.allocated[0] as usize) };
             OutputSegments::SingleSegment([slice])
         } else {
             let mut v = Vec::with_capacity(reff.allocated.len());
             for idx in 0..reff.allocated.len() {
                 let seg = reff.segments[idx];
+
+                // See safety argument in above branch.
                 let slice = unsafe { slice::from_raw_parts(seg.0 as *const _, reff.allocated[idx] as usize) };
                 v.push(slice);
             }
