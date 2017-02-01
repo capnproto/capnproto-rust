@@ -139,12 +139,10 @@ impl ::TestCase for CarSales {
     fn setup_request(&self, rng: &mut FastRand, request: parking_lot::Builder) -> u64 {
         let mut result = 0;
         let mut cars = request.init_cars(rng.next_less_than(200));
-        for ii in 0..cars.len() {
-            {
-                let car = cars.borrow().get(ii);
-                random_car(rng, car);
-            }
-            result += cars.borrow().get(ii).car_value().unwrap();
+        for ii in 0.. cars.len() {
+            let mut car = cars.borrow().get(ii);
+            random_car(rng, car.borrow());
+            result += car.car_value().unwrap();
         }
 
         result

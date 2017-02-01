@@ -857,7 +857,7 @@ mod tests {
         match message.get_root::<::test_capnp::test_all_types::Reader>() {
             Ok(_) => panic!("expected out-of-bounds error"),
             Err(e) => {
-                assert_eq!(e.description, "Message contained out-of-bounds far pointer.");
+                assert_eq!(e.description, "message contained out-of-bounds pointer")
             }
         }
     }
@@ -887,7 +887,7 @@ mod tests {
         match message.get_root::<::test_capnp::test_all_types::Reader>() {
             Ok(_) => panic!("expected out-of-bounds error"),
             Err(e) => {
-                assert_eq!(e.description, "Message contained out-of-bounds struct pointer.");
+                assert_eq!(e.description, "message contained out-of-bounds pointer")
             }
         }
     }

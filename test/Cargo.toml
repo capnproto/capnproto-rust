@@ -16,5 +16,3 @@ path = "../"
 
 [dependencies]
 capnp = "0.8"
-
-
