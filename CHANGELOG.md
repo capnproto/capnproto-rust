@@ -1,3 +1,6 @@
+### v0.8.2
+- Prevent a double-borrow that could happen in rare situations with ForkedPromise.
+
 ### v0.8.1
 - Fix a possible deadlock.
 
