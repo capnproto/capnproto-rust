@@ -83,8 +83,6 @@ impl ReaderOptions {
     }
 }
 
-type SegmentId = u32;
-
 /// An object that manages the buffers underlying a Cap'n Proto message reader.
 pub trait ReaderSegments {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]>;

@@ -104,7 +104,6 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
 }
 
 pub trait BuilderArena: ReaderArena {
-    fn allocate_segment(&self, minimum_size: u32) -> Result<()>;
     fn allocate(&self, segment_id: u32, amount: WordCount32) -> Option<u32>;
     fn allocate_anywhere(&self, amount: u32) -> (SegmentId, u32);
     fn get_segment_mut(&self, id: u32) -> (*mut Word, u32);
@@ -133,6 +132,10 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
                 allocated: Vec::new(),
             }),
         }
+    }
+
+    pub fn allocate_segment(&self, minimum_size: u32) -> Result<()> {
+        self.inner.borrow_mut().allocate_segment(minimum_size)
     }
 
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
@@ -215,10 +218,6 @@ impl <A> BuilderArenaImplInner<A> where A: Allocator {
 }
 
 impl <A> BuilderArena for BuilderArenaImpl<A> where A: Allocator {
-    fn allocate_segment(&self, minimum_size: WordCount32) -> Result<()> {
-        self.inner.borrow_mut().allocate_segment(minimum_size)
-    }
-
     fn allocate(&self, segment_id: u32, amount: WordCount32) -> Option<u32> {
         self.inner.borrow_mut().allocate(segment_id, amount)
     }
@@ -261,10 +260,6 @@ impl ReaderArena for NullArena {
 }
 
 impl BuilderArena for NullArena {
-    fn allocate_segment(&self, _minimum_size: WordCount32) -> Result<()> {
-        Err(Error::failed(format!("tried to allocate from null arena")))
-    }
-
     fn allocate(&self, _segment_id: u32, _amount: WordCount32) -> Option<u32> {
         None
     }
