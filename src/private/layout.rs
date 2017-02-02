@@ -2067,7 +2067,10 @@ impl CapTableBuilder {
     pub fn inject_cap(&mut self, cap: Box<ClientHook>) -> usize {
         match self {
             &mut CapTableBuilder::Plain(hooks) => {
-                if hooks.is_null() { return 0 } // XXX maybe we shouldn't swallow this.
+                if hooks.is_null() {
+                    panic!("Called inject_cap() on a null capability table. You need \
+                            to call imbue_mut() on this message before adding capabilities.");
+                }
                 let hooks: &mut Vec<Option<Box<ClientHook>>> = unsafe { &mut *hooks };
                 hooks.push(Some(cap));
                 hooks.len() - 1
@@ -2078,7 +2081,10 @@ impl CapTableBuilder {
     pub fn drop_cap(&mut self, index: usize) {
         match self {
             &mut CapTableBuilder::Plain(hooks) => {
-                if hooks.is_null() { return } // XXX maybe we shouldn't swallow this.
+                if hooks.is_null() {
+                    panic!("Called drop_cap() on a null capability table. You need \
+                            to call imbue_mut() on this message before adding capabilities.");
+                }
                 let hooks: &mut Vec<Option<Box<ClientHook>>> = unsafe { &mut *hooks };
                 if index < hooks.len() { hooks[index] = None; }
             }

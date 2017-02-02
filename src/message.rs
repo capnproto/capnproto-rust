@@ -168,7 +168,9 @@ pub struct Builder<A> where A: Allocator {
 
 // TODO(version 0.9): Consider removing this unsafe impl somwhow.
 //   As soon as a message::Builder has caps in its table, it is not
-//   in fact esafe to send to other threads.
+//   in fact safe to send to other threads. Perhaps we should remove
+//   the Builder::cap_table field, requiring imbue_mut() to be called
+//   manually when the situation calls for it.
 unsafe impl <A> Send for Builder<A> where A: Send + Allocator {}
 
 fn _assert_kinds() {
