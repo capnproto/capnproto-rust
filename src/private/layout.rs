@@ -2007,15 +2007,18 @@ pub type CapTable = Vec<Option<Box<ClientHook>>>;
 
 #[derive(Copy, Clone)]
 pub enum CapTableReader {
-    Dummy,
+    // At one point, we had a `Dummy` variant here, but that ended up
+    // making values of this type take 16 bytes of memory. Now we instead
+    // represent a null CapTableReader with `Plain(ptr::null())`.
+
     Plain(*const Vec<Option<Box<ClientHook>>>),
 }
 
 impl CapTableReader {
     pub fn extract_cap(&self, index: usize) -> Option<Box<ClientHook>> {
         match self {
-            &CapTableReader::Dummy => None,
             &CapTableReader::Plain(hooks) => {
+                if hooks.is_null() { return None }
                 let hooks: &Vec<Option<Box<ClientHook>>> = unsafe { &*hooks };
                 if index >= hooks.len() { None }
                 else {
@@ -2031,22 +2034,24 @@ impl CapTableReader {
 
 #[derive(Copy, Clone)]
 pub enum CapTableBuilder {
-    Dummy,
+    // At one point, we had a `Dummy` variant here, but that ended up
+    // making values of this type take 16 bytes of memory. Now we instead
+    // represent a null CapTableBuilder with `Plain(ptr::null_mut())`.
+
     Plain(*mut Vec<Option<Box<ClientHook>>>),
 }
 
 impl CapTableBuilder {
     pub fn as_reader(self) -> CapTableReader {
         match self {
-            CapTableBuilder::Dummy => CapTableReader::Dummy,
             CapTableBuilder::Plain(hooks) => CapTableReader::Plain(hooks),
         }
     }
 
     pub fn extract_cap(&self, index: usize) -> Option<Box<ClientHook>> {
         match self {
-            &CapTableBuilder::Dummy => None,
             &CapTableBuilder::Plain(hooks) => {
+                if hooks.is_null() { return None }
                 let hooks: &Vec<Option<Box<ClientHook>>> = unsafe { &*hooks };
                 if index >= hooks.len() { None }
                 else {
@@ -2061,8 +2066,8 @@ impl CapTableBuilder {
 
     pub fn inject_cap(&mut self, cap: Box<ClientHook>) -> usize {
         match self {
-            &mut CapTableBuilder::Dummy => 0, // XXX maybe we shouldn't swallow this.
             &mut CapTableBuilder::Plain(hooks) => {
+                if hooks.is_null() { return 0 } // XXX maybe we shouldn't swallow this.
                 let hooks: &mut Vec<Option<Box<ClientHook>>> = unsafe { &mut *hooks };
                 hooks.push(Some(cap));
                 hooks.len() - 1
@@ -2072,8 +2077,8 @@ impl CapTableBuilder {
 
     pub fn drop_cap(&mut self, index: usize) {
         match self {
-            &mut CapTableBuilder::Dummy => (), // XXX maybe we shouldn't swallow this.
             &mut CapTableBuilder::Plain(hooks) => {
+                if hooks.is_null() { return } // XXX maybe we shouldn't swallow this.
                 let hooks: &mut Vec<Option<Box<ClientHook>>> = unsafe { &mut *hooks };
                 if index < hooks.len() { hooks[index] = None; }
             }
@@ -2096,7 +2101,7 @@ impl <'a> PointerReader<'a> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: CapTableReader::Dummy,
+            cap_table: CapTableReader::Plain(::std::ptr::null()),
             pointer: ::std::ptr::null(),
             nesting_limit: 0x7fffffff }
     }
@@ -2113,7 +2118,7 @@ impl <'a> PointerReader<'a> {
         Ok(PointerReader {
             arena: arena,
             segment_id: segment_id,
-            cap_table: CapTableReader::Dummy,
+            cap_table: CapTableReader::Plain(::std::ptr::null()),
             pointer: location as *const _,
             nesting_limit: nesting_limit,
         })
@@ -2127,7 +2132,7 @@ impl <'a> PointerReader<'a> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: CapTableReader::Dummy,
+            cap_table: CapTableReader::Plain(::std::ptr::null()),
             pointer: location as *mut _,
             nesting_limit: 0x7fffffff }
     }
@@ -2212,7 +2217,7 @@ impl <'a> PointerBuilder<'a> {
     {
         PointerBuilder {
             arena: arena,
-            cap_table: CapTableBuilder::Dummy,
+            cap_table: CapTableBuilder::Plain(::std::ptr::null_mut()),
             segment_id: segment_id,
             pointer: location as *mut _,
         }
@@ -2412,7 +2417,7 @@ impl <'a> StructReader<'a> {
         StructReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: CapTableReader::Dummy,
+            cap_table: CapTableReader::Plain(::std::ptr::null()),
             data: ::std::ptr::null(),
             pointers: ::std::ptr::null(),
             data_size: 0,
@@ -2622,8 +2627,8 @@ pub struct ListReader<'a> {
     element_count: ElementCount32,
     step: BitCount32,
     struct_data_size: BitCount32,
-    struct_pointer_count: WirePointerCount16,
     nesting_limit: i32,
+    struct_pointer_count: WirePointerCount16,
 }
 
 impl <'a> ListReader<'a> {
@@ -2631,7 +2636,7 @@ impl <'a> ListReader<'a> {
         ListReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: CapTableReader::Dummy,
+            cap_table: CapTableReader::Plain(::std::ptr::null()),
             ptr: ::std::ptr::null(),
             element_count: 0,
             step: 0,
@@ -2704,7 +2709,7 @@ impl <'a> ListBuilder<'a> {
         ListBuilder {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: CapTableBuilder::Dummy,
+            cap_table: CapTableBuilder::Plain(::std::ptr::null_mut()),
             ptr: ::std::ptr::null_mut(),
             element_count: 0,
             step: 0,
