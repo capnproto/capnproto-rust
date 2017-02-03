@@ -397,18 +397,18 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn allocate(
         arena: &BuilderArena,
-        reff: &mut *mut WirePointer,
+        reff: *mut WirePointer,
         segment_id: u32,
-        amount: WordCount32, kind: WirePointerKind) -> (*mut Word, u32)
+        amount: WordCount32, kind: WirePointerKind) -> (*mut Word, *mut WirePointer, u32)
     {
-        let is_null = (**reff).is_null();
+        let is_null = (*reff).is_null();
         if !is_null {
-            zero_object(arena, segment_id, *reff)
+            zero_object(arena, segment_id, reff)
         }
 
         if amount == 0 && kind == WirePointerKind::Struct {
-            (**reff).set_kind_and_target_for_empty_struct();
-            return (*reff as *mut _, segment_id);
+            (*reff).set_kind_and_target_for_empty_struct();
+            return (reff as *mut _, reff, segment_id);
         }
 
         match arena.allocate(segment_id, amount) {
@@ -425,22 +425,22 @@ mod wire_helpers {
 
                 //# Set up the original pointer to be a far pointer to
                 //# the new segment.
-                (**reff).set_far(false, word_idx);
-                (**reff).mut_far_ref().segment_id.set(segment_id);
+                (*reff).set_far(false, word_idx);
+                (*reff).mut_far_ref().segment_id.set(segment_id);
 
                 //# Initialize the landing pad to indicate that the
                 //# data immediately follows the pad.
-                *reff = ptr as *mut _;
+                let reff = ptr as *mut WirePointer;
 
                 let ptr1 = ptr.offset(POINTER_SIZE_IN_WORDS as isize);
-                (**reff).set_kind_and_target(kind, ptr1);
-                return (ptr1, segment_id);
+                (*reff).set_kind_and_target(kind, ptr1);
+                return (ptr1, reff, segment_id);
             }
             Some(idx) => {
                 let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
                 let ptr: *mut Word = seg_start.offset(idx as isize);
-                (**reff).set_kind_and_target(kind, ptr);
-                return (ptr, segment_id);
+                (*reff).set_kind_and_target(kind, ptr);
+                return (ptr, reff, segment_id);
             }
         }
     }
@@ -831,14 +831,14 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn init_struct_pointer<'a>(
         arena: &'a BuilderArena,
-        mut reff: *mut WirePointer,
+        reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
         size: StructSize) -> StructBuilder<'a>
     {
-        let (ptr, segment_id) = allocate(
+        let (ptr, reff, segment_id) = allocate(
             arena,
-            &mut reff,
+            reff,
             segment_id,
             size.total(),
             WirePointerKind::Struct);
@@ -858,7 +858,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn get_writable_struct_pointer<'a>(
         arena: &'a BuilderArena,
-        mut reff: *mut WirePointer,
+        reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
         size: StructSize,
@@ -898,7 +898,7 @@ mod wire_helpers {
             //# Don't let allocate() zero out the object just yet.
             try!(zero_pointer_and_fars(arena, segment_id, reff));
 
-            let (ptr, segment_id) = allocate(arena, &mut reff, segment_id, total_size, WirePointerKind::Struct);
+            let (ptr, reff, segment_id) = allocate(arena, reff, segment_id, total_size, WirePointerKind::Struct);
             (*reff).mut_struct_ref().set(new_data_size, new_pointer_count);
 
             // Copy data section.
@@ -939,7 +939,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn init_list_pointer<'a>(
         arena: &'a BuilderArena,
-        mut reff: *mut WirePointer,
+        reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
         element_count: ElementCount32,
@@ -952,7 +952,7 @@ mod wire_helpers {
         let pointer_count = pointers_per_element(element_size);
         let step = data_size + pointer_count * BITS_PER_POINTER as u32;
         let word_count = round_bits_up_to_words(element_count as ElementCount64 * (step as u64));
-        let (ptr, segment_id) = allocate(arena, &mut reff, segment_id, word_count, WirePointerKind::List);
+        let (ptr, reff, segment_id) = allocate(arena, reff, segment_id, word_count, WirePointerKind::List);
 
         (*reff).mut_list_ref().set(element_size, element_count);
 
@@ -971,7 +971,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn init_struct_list_pointer<'a>(
         arena: &'a BuilderArena,
-        mut reff: *mut WirePointer,
+        reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
         element_count: ElementCount32,
@@ -981,11 +981,11 @@ mod wire_helpers {
 
         //# Allocate the list, prefixed by a single WirePointer.
         let word_count: WordCount32 = element_count * words_per_element;
-        let (ptr, segment_id) = allocate(arena,
-                                         &mut reff,
-                                         segment_id,
-                                         POINTER_SIZE_IN_WORDS as u32 + word_count,
-                                         WirePointerKind::List);
+        let (ptr, reff, segment_id) = allocate(arena,
+                                               reff,
+                                               segment_id,
+                                               POINTER_SIZE_IN_WORDS as u32 + word_count,
+                                               WirePointerKind::List);
         let ptr = ptr as *mut WirePointer;
 
         //# Initialize the pointer.
@@ -1227,9 +1227,8 @@ mod wire_helpers {
                 // Don't let allocate() zero out the object just yet.
                 try!(zero_pointer_and_fars(arena, orig_segment_id, orig_ref));
 
-                let mut new_ref = orig_ref;
-                let (mut new_ptr, new_segment_id) =
-                    allocate(arena, &mut new_ref, orig_segment_id,
+                let (mut new_ptr, new_ref, new_segment_id) =
+                    allocate(arena, orig_ref, orig_segment_id,
                              total_words + POINTER_SIZE_IN_WORDS as u32, WirePointerKind::List);
                 (*new_ref).mut_list_ref().set_inline_composite(total_words);
 
@@ -1278,7 +1277,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn init_text_pointer<'a>(
         arena: &'a BuilderArena,
-        mut reff: *mut WirePointer,
+        reff: *mut WirePointer,
         segment_id: u32,
         size: ByteCount32) -> SegmentAnd<text::Builder<'a>>
     {
@@ -1286,8 +1285,8 @@ mod wire_helpers {
         let byte_size = size + 1;
 
         //# Allocate the space.
-        let (ptr, segment_id) =
-            allocate(arena, &mut reff, segment_id, round_bytes_up_to_words(byte_size), WirePointerKind::List);
+        let (ptr, reff, segment_id) =
+            allocate(arena, reff, segment_id, round_bytes_up_to_words(byte_size), WirePointerKind::List);
 
         //# Initialize the pointer.
         (*reff).mut_list_ref().set(Byte, byte_size);
@@ -1355,13 +1354,13 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn init_data_pointer<'a>(
         arena: &'a BuilderArena,
-        mut reff: *mut WirePointer,
+        reff: *mut WirePointer,
         segment_id: u32,
         size: ByteCount32) -> SegmentAnd<data::Builder<'a>>
     {
         //# Allocate the space.
-        let (ptr, segment_id) =
-            allocate(arena, &mut reff, segment_id, round_bytes_up_to_words(size), WirePointerKind::List);
+        let (ptr, reff, segment_id) =
+            allocate(arena, reff, segment_id, round_bytes_up_to_words(size), WirePointerKind::List);
 
         //# Initialize the pointer.
         (*reff).mut_list_ref().set(Byte, size);
@@ -1420,14 +1419,14 @@ mod wire_helpers {
         arena: &BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
-        mut reff: *mut WirePointer,
+        reff: *mut WirePointer,
         value: StructReader) -> Result<SegmentAnd<*mut Word>>
     {
         let data_size: WordCount32 = round_bits_up_to_words(value.data_size as u64);
         let total_size: WordCount32 = data_size + value.pointer_count as u32 * WORDS_PER_POINTER as u32;
 
-        let (ptr, segment_id) =
-            allocate(arena, &mut reff, segment_id, total_size, WirePointerKind::Struct);
+        let (ptr, reff, segment_id) =
+            allocate(arena, reff, segment_id, total_size, WirePointerKind::Struct);
         (*reff).mut_struct_ref().set(data_size as u16, value.pointer_count);
 
         if value.data_size == 1 {
@@ -1463,15 +1462,15 @@ mod wire_helpers {
         arena: &'a BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
-        mut reff: *mut WirePointer,
+        reff: *mut WirePointer,
         value: ListReader) -> Result<SegmentAnd<*mut Word>>
     {
         let total_size = round_bits_up_to_words((value.element_count * value.step) as u64);
 
         if value.step <= BITS_PER_WORD as u32 {
             //# List of non-structs.
-            let (ptr, segment_id) =
-                allocate(arena, &mut reff, segment_id, total_size, WirePointerKind::List);
+            let (ptr, reff, segment_id) =
+                allocate(arena, reff, segment_id, total_size, WirePointerKind::List);
 
             if value.struct_pointer_count == 1 {
                 //# List of pointers.
@@ -1503,8 +1502,8 @@ mod wire_helpers {
             Ok(SegmentAnd { segment_id: segment_id, value: ptr })
         } else {
             //# List of structs.
-            let (ptr, segment_id) =
-                allocate(arena, &mut reff, segment_id,
+            let (ptr, reff, segment_id) =
+                allocate(arena, reff, segment_id,
                          total_size + POINTER_SIZE_IN_WORDS as u32, WirePointerKind::List);
             (*reff).mut_list_ref().set_inline_composite(total_size);
 
