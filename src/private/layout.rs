@@ -467,15 +467,17 @@ mod wire_helpers {
             let pad: *mut WirePointer =
                 seg_start.offset((*reff).far_position_in_segment() as isize) as *mut _;
             if !(*reff).is_double_far() {
-                return Ok(((*pad).mut_target(), pad, segment_id));
+                Ok(((*pad).mut_target(), pad, segment_id))
+            } else {
+                //# Landing pad is another far pointer. It is followed by a
+                //# tag describing the pointed-to object.
+                let reff = pad.offset(1);
+
+                let segment_id = (*pad).far_ref().segment_id.get();
+                let (segment_start, _segment_len) = arena.get_segment_mut(segment_id);
+                let ptr = segment_start.offset((*pad).far_position_in_segment() as isize);
+                Ok((ptr, reff, segment_id))
             }
-            unimplemented!()
-            /*
-            //# Landing pad is another far pointer. It is followed by a
-            //# tag describing the pointed-to object.
-            *reff = pad.offset(1);
-            *segment = try!((*(**segment).get_arena()).get_segment((*pad).far_ref().segment_id.get()));
-            return Ok((**segment).get_ptr_unchecked((*pad).far_position_in_segment())); */
         } else {
             Ok((ref_target, reff, segment_id))
         }
