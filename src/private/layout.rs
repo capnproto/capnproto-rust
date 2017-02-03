@@ -448,9 +448,9 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn follow_builder_fars(
         arena: &BuilderArena,
-        reff: &mut *mut WirePointer,
+        reff: *mut WirePointer,
         ref_target: *mut Word,
-        segment_id: u32) -> Result<(*mut Word, u32)>
+        segment_id: u32) -> Result<(*mut Word, *mut WirePointer, u32)>
     {
         // If `ref` is a far pointer, follow it. On return, `ref` will have been updated to point at
         // a WirePointer that contains the type information about the target object, and a pointer
@@ -461,14 +461,13 @@ mod wire_helpers {
         // If `ref` is not a far pointer, this simply returns `ref_target`. Usually, `ref_target`
         // should be the same as `ref->target()`, but may not be in cases where `ref` is only a tag.
 
-        if (**reff).kind() == WirePointerKind::Far {
-            let segment_id = (**reff).far_ref().segment_id.get();
+        if (*reff).kind() == WirePointerKind::Far {
+            let segment_id = (*reff).far_ref().segment_id.get();
             let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
             let pad: *mut WirePointer =
-                seg_start.offset((**reff).far_position_in_segment() as isize) as *mut _;
-            if !(**reff).is_double_far() {
-                *reff = pad;
-                return Ok(((*pad).mut_target(), segment_id));
+                seg_start.offset((*reff).far_position_in_segment() as isize) as *mut _;
+            if !(*reff).is_double_far() {
+                return Ok(((*pad).mut_target(), pad, segment_id));
             }
             unimplemented!()
             /*
@@ -478,46 +477,45 @@ mod wire_helpers {
             *segment = try!((*(**segment).get_arena()).get_segment((*pad).far_ref().segment_id.get()));
             return Ok((**segment).get_ptr_unchecked((*pad).far_position_in_segment())); */
         } else {
-            Ok((ref_target, segment_id))
+            Ok((ref_target, reff, segment_id))
         }
     }
 
     #[inline]
     pub unsafe fn follow_fars(
         arena: &ReaderArena,
-        reff: &mut *const WirePointer,
+        reff: *const WirePointer,
         ref_target: *const Word,
         mut segment_id: u32)
-        -> Result<(*const Word, u32)>
+        -> Result<(*const Word, *const WirePointer, u32)>
     {
-        if (**reff).kind() == WirePointerKind::Far {
-            segment_id = (**reff).far_ref().segment_id.get();
+        if (*reff).kind() == WirePointerKind::Far {
+            segment_id = (*reff).far_ref().segment_id.get();
 
             let (seg_start, _seg_len) = try!(arena.get_segment(segment_id));
-            let ptr: *const Word = seg_start.offset((**reff).far_position_in_segment() as isize);
+            let ptr: *const Word = seg_start.offset((*reff).far_position_in_segment() as isize);
 
-            let pad_words: isize = if (**reff).is_double_far() { 2 } else { 1 };
+            let pad_words: isize = if (*reff).is_double_far() { 2 } else { 1 };
             try!(bounds_check(arena, segment_id, ptr, ptr.offset(pad_words), WirePointerKind::Far));
 
             let pad: *const WirePointer = ptr as *const _;
 
-            if !(**reff).is_double_far() {
-                *reff = pad;
-                return Ok(((*pad).target(), segment_id));
+            if !(*reff).is_double_far() {
+                Ok(((*pad).target(), pad, segment_id))
             } else {
                 //# Landing pad is another far pointer. It is
                 //# followed by a tag describing the pointed-to
                 //# object.
 
-                *reff = pad.offset(1);
+                let reff = pad.offset(1);
 
                 let segment_id = (*pad).far_ref().segment_id.get();
                 let (segment_start, _segment_len) = try!(arena.get_segment(segment_id));
                 let ptr = segment_start.offset((*pad).far_position_in_segment() as isize);
-                Ok((ptr, segment_id))
+                Ok((ptr, reff, segment_id))
             }
         } else {
-            return Ok((ref_target, segment_id));
+            Ok((ref_target, reff, segment_id))
         }
     }
 
@@ -645,7 +643,7 @@ mod wire_helpers {
     pub unsafe fn total_size(
         arena: &ReaderArena,
         segment_id: u32,
-        mut reff: *const WirePointer,
+        reff: *const WirePointer,
         mut nesting_limit: i32) -> Result<MessageSize>
     {
         let mut result = MessageSize { word_count: 0, cap_count: 0};
@@ -658,7 +656,7 @@ mod wire_helpers {
 
         nesting_limit -= 1;
 
-        let (ptr, segment_id) = try!(follow_fars(arena, &mut reff, (*reff).target(), segment_id));
+        let (ptr, reff, segment_id) = try!(follow_fars(arena, reff, (*reff).target(), segment_id));
 
         match (*reff).kind() {
             WirePointerKind::Struct => {
@@ -873,8 +871,7 @@ mod wire_helpers {
             unimplemented!()
         }
 
-        let mut old_ref = reff;
-        let (old_ptr, old_segment_id) = try!(follow_builder_fars(arena, &mut old_ref, ref_target, segment_id));
+        let (old_ptr, old_ref, old_segment_id) = try!(follow_builder_fars(arena, reff, ref_target, segment_id));
         if (*old_ref).kind() != WirePointerKind::Struct {
             return Err(Error::failed(
                 "Message contains non-struct pointer where struct pointer was expected.".to_string()));
@@ -1033,9 +1030,8 @@ mod wire_helpers {
         // method is called only for non-struct lists, and there is no allowed upgrade path *to* a
         // non-struct list, only *from* them.
 
-        let mut reff = orig_ref;
-        let (mut ptr, segment_id) =
-            try!(follow_builder_fars(arena, &mut reff, orig_ref_target, orig_segment_id));
+        let (mut ptr, reff, segment_id) =
+            try!(follow_builder_fars(arena, orig_ref, orig_ref_target, orig_segment_id));
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::failed(
@@ -1145,10 +1141,8 @@ mod wire_helpers {
 
         // We must verify that the pointer has the right size and potentially upgrade it if not.
 
-        let mut old_ref = orig_ref;
-
-        let (mut old_ptr, old_segment_id) =
-            try!(follow_builder_fars(arena, &mut old_ref, orig_ref_target, orig_segment_id));
+        let (mut old_ptr, old_ref, old_segment_id) =
+            try!(follow_builder_fars(arena, orig_ref, orig_ref_target, orig_segment_id));
 
         if (*old_ref).kind() != WirePointerKind::List {
             return Err(Error::failed(
@@ -1315,7 +1309,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn get_writable_text_pointer<'a>(
         arena: &'a BuilderArena,
-        mut reff: *mut WirePointer,
+        reff: *mut WirePointer,
         segment_id: u32,
         _default_value: *const Word,
         default_size: ByteCount32) -> Result<text::Builder<'a>>
@@ -1329,7 +1323,7 @@ mod wire_helpers {
             }
         }
         let ref_target = (*reff).mut_target();
-        let (ptr, _segment_id) = try!(follow_builder_fars(arena, &mut reff, ref_target, segment_id));
+        let (ptr, reff, _segment_id) = try!(follow_builder_fars(arena, reff, ref_target, segment_id));
         let cptr: *mut u8 = ptr as *mut _;
 
         if (*reff).kind() != WirePointerKind::List {
@@ -1384,7 +1378,7 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn get_writable_data_pointer<'a>(
         arena: &'a BuilderArena,
-        mut reff: *mut WirePointer,
+        reff: *mut WirePointer,
         segment_id: u32,
         default_value: *const Word,
         default_size: ByteCount32) -> Result<data::Builder<'a>>
@@ -1401,7 +1395,7 @@ mod wire_helpers {
             }
         }
         let ref_target = (*reff).mut_target();
-        let (ptr, _segment_id) = try!(follow_builder_fars(arena, &mut reff, ref_target, segment_id));
+        let (ptr, reff, _segment_id) = try!(follow_builder_fars(arena, reff, ref_target, segment_id));
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::failed(
@@ -1540,7 +1534,7 @@ mod wire_helpers {
         dst: *mut WirePointer,
         src_arena: &ReaderArena,
         src_segment_id: u32, src_cap_table: CapTableReader,
-        mut src: *const WirePointer,
+        src: *const WirePointer,
         nesting_limit: i32) -> Result<SegmentAnd<*mut Word>>
     {
         let src_target = (*src).target();
@@ -1550,8 +1544,8 @@ mod wire_helpers {
             return Ok(SegmentAnd { segment_id: dst_segment_id, value: ::std::ptr::null_mut() });
         }
 
-        let (mut ptr, src_segment_id) =
-            try!(follow_fars(src_arena, &mut src, src_target, src_segment_id));
+        let (mut ptr, src, src_segment_id) =
+            try!(follow_fars(src_arena, src, src_target, src_segment_id));
 
         match (*src).kind() {
             WirePointerKind::Struct => {
@@ -1686,7 +1680,7 @@ mod wire_helpers {
         arena: &'a ReaderArena,
         segment_id: u32,
         cap_table: CapTableReader,
-        mut reff: *const WirePointer,
+        reff: *const WirePointer,
         default_value: *const Word,
         nesting_limit: i32) -> Result<StructReader<'a>>
     {
@@ -1705,7 +1699,7 @@ mod wire_helpers {
             return Err(Error::failed("Message is too deeply-nested or contains cycles.".to_string()));
         }
 
-        let (ptr, segment_id) = try!(follow_fars(arena, &mut reff, ref_target, segment_id));
+        let (ptr, reff, segment_id) = try!(follow_fars(arena, reff, ref_target, segment_id));
 
         let data_size_words = (*reff).struct_ref().data_size.get();
 
@@ -1761,7 +1755,7 @@ mod wire_helpers {
         arena: &'a ReaderArena,
         segment_id: u32,
         cap_table: CapTableReader,
-        mut reff: *const WirePointer,
+        reff: *const WirePointer,
         default_value: *const Word,
         expected_element_size: ElementSize,
         nesting_limit: i32) -> Result<ListReader<'a>>
@@ -1779,7 +1773,7 @@ mod wire_helpers {
             return Err(Error::failed("nesting limit exceeded".to_string()));
         }
 
-        let (mut ptr, segment_id) = try!(follow_fars(arena, &mut reff, ref_target, segment_id));
+        let (mut ptr, reff, segment_id) = try!(follow_fars(arena, reff, ref_target, segment_id));
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::failed(
@@ -1916,7 +1910,7 @@ mod wire_helpers {
     pub unsafe fn read_text_pointer<'a>(
         arena: &'a ReaderArena,
         segment_id: u32,
-        mut reff: *const WirePointer,
+        reff: *const WirePointer,
         default_value: *const Word,
         default_size: ByteCount32) -> Result<text::Reader<'a>>
     {
@@ -1927,7 +1921,7 @@ mod wire_helpers {
         }
 
         let ref_target = (*reff).target();
-        let (ptr, segment_id) = try!(follow_fars(arena, &mut reff, ref_target, segment_id));
+        let (ptr, reff, segment_id) = try!(follow_fars(arena, reff, ref_target, segment_id));
         let list_ref = (*reff).list_ref();
         let size = list_ref.element_count();
 
@@ -1963,7 +1957,7 @@ mod wire_helpers {
     pub unsafe fn read_data_pointer<'a>(
         arena: &'a ReaderArena,
         segment_id: u32,
-        mut reff: *const WirePointer,
+        reff: *const WirePointer,
         default_value: *const Word,
         default_size: ByteCount32) -> Result<data::Reader<'a>>
     {
@@ -1973,7 +1967,7 @@ mod wire_helpers {
 
         let ref_target = (*reff).target();
 
-        let (ptr, segment_id) = try!(follow_fars(arena, &mut reff, ref_target, segment_id));
+        let (ptr, reff, segment_id) = try!(follow_fars(arena, reff, ref_target, segment_id));
 
         let list_ref = (*reff).list_ref();
 
