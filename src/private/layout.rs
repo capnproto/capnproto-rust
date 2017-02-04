@@ -2759,30 +2759,27 @@ impl <'a> ListBuilder<'a> {
 pub trait PrimitiveElement: Endian {
     #[inline]
     fn get(list_reader: &ListReader, index: ElementCount32) -> Self {
+        let offset = (index as u64 * list_reader.step as u64 / BITS_PER_BYTE as u64) as u32;
         unsafe {
-            let ptr: *const u8 =
-                list_reader.ptr.offset(
-                    (index as ElementCount * list_reader.step as usize / BITS_PER_BYTE) as isize);
+            let ptr: *const u8 = list_reader.ptr.offset(offset as isize);
             (*(ptr as *const WireValue<Self>)).get()
         }
     }
 
     #[inline]
     fn get_from_builder(list_builder: &ListBuilder, index: ElementCount32) -> Self {
+        let offset = (index as u64 * list_builder.step as u64 / BITS_PER_BYTE as u64) as u32;
         unsafe {
-            let ptr: *mut WireValue<Self> =
-                list_builder.ptr.offset(
-                    (index as ElementCount * list_builder.step as usize / BITS_PER_BYTE) as isize) as *mut _;
+            let ptr: *mut WireValue<Self> = list_builder.ptr.offset(offset as isize) as *mut _;
             (*ptr).get()
         }
     }
 
     #[inline]
     fn set(list_builder: &ListBuilder, index: ElementCount32, value: Self) {
+        let offset = (index as u64 * list_builder.step as u64 / BITS_PER_BYTE as u64) as u32;
         unsafe {
-            let ptr: *mut WireValue<Self> =
-                list_builder.ptr.offset(
-                    (index as ElementCount * list_builder.step as usize / BITS_PER_BYTE) as isize) as *mut _;
+            let ptr: *mut WireValue<Self> = list_builder.ptr.offset(offset as isize) as *mut _;
             (*ptr).set(value);
         }
     }
@@ -2813,24 +2810,24 @@ impl PrimitiveElement for f64 { }
 impl PrimitiveElement for bool {
     #[inline]
     fn get(list: &ListReader, index: ElementCount32) -> bool {
-        let bindex: BitCount0 = index as ElementCount * list.step as usize;
+        let bindex = index as u64 * list.step as u64;
         unsafe {
-            let b: *const u8 = list.ptr.offset((bindex / BITS_PER_BYTE) as isize);
-            ((*b) & (1 << (bindex % BITS_PER_BYTE))) != 0
+            let b: *const u8 = list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize);
+            ((*b) & (1 << (bindex % BITS_PER_BYTE as u64))) != 0
         }
     }
     #[inline]
     fn get_from_builder(list: &ListBuilder, index: ElementCount32) -> bool {
-        let bindex: BitCount0 = index as ElementCount * list.step as usize;
-        let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE) as isize) };
-        unsafe { ((*b) & (1 << (bindex % BITS_PER_BYTE ))) != 0 }
+        let bindex = index as u64 * list.step as u64;
+        let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
+        unsafe { ((*b) & (1 << (bindex % BITS_PER_BYTE as u64 ))) != 0 }
     }
     #[inline]
     fn set(list: &ListBuilder, index: ElementCount32, value: bool) {
-        let bindex: BitCount0 = index as ElementCount * list.step as usize;
-        let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE) as isize) };
+        let bindex = index as u64 * list.step as u64;
+        let b = unsafe { list.ptr.offset((bindex / BITS_PER_BYTE as u64) as isize) };
 
-        let bitnum = bindex % BITS_PER_BYTE;
+        let bitnum = bindex % BITS_PER_BYTE as u64;
         unsafe { (*b) = ((*b) & !(1 << bitnum)) | ((value as u8) << bitnum) }
     }
     fn element_size() -> ElementSize { Bit }
