@@ -2675,13 +2675,12 @@ impl <'a> ListReader<'a> {
 
     #[inline]
     pub fn get_pointer_element(self, index: ElementCount32) -> PointerReader<'a> {
+        let offset = (index as u64 * self.step as u64 / BITS_PER_BYTE as u64) as u32;
         PointerReader {
             arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table,
-            pointer: unsafe {
-                self.ptr.offset((index * self.step / BITS_PER_BYTE as u32) as isize) as *mut _
-            },
+            pointer: unsafe { self.ptr.offset(offset as isize) as *mut _ },
             nesting_limit: self.nesting_limit
         }
     }
@@ -2746,13 +2745,12 @@ impl <'a> ListBuilder<'a> {
 
     #[inline]
     pub fn get_pointer_element(self, index: ElementCount32) -> PointerBuilder<'a> {
+        let offset = (index as u64 * self.step as u64 / BITS_PER_BYTE as u64) as u32;
         PointerBuilder {
             arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table,
-            pointer: unsafe {
-                self.ptr.offset((index * self.step / BITS_PER_BYTE as u32) as isize) as *mut _
-            }
+            pointer: unsafe { self.ptr.offset(offset as isize) } as *mut _,
         }
     }
 }
