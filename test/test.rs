@@ -944,6 +944,35 @@ mod tests {
     }
 
     #[test]
+    fn long_struct_list() {
+        use test_capnp::{test_lists};
+
+        let length: u32 = 1 << 27;
+        let step_exponent = 12;
+
+        let mut message = message::Builder::new_default();
+        {
+            let root: test_lists::Builder = message.init_root();
+            let mut list = root.init_list64(length);
+            for ii in 0..(length >> step_exponent) {
+                let jj = ii << step_exponent;
+                list.borrow().get(jj).set_f(jj as u64);
+            }
+            for ii in 0..(length >> step_exponent) {
+                let jj = ii << step_exponent;
+                assert_eq!(list.borrow().get(jj).get_f(), jj as u64);
+            }
+        }
+
+        let root: test_lists::Reader = message.get_root_as_reader().unwrap();
+        let list = root.get_list64().unwrap();
+        for ii in 0..(length >> step_exponent) {
+            let jj = ii << step_exponent;
+            assert_eq!(list.get(jj).get_f(), jj as u64);
+        }
+    }
+
+    #[test]
     fn traversal_limit_exceeded() {
         use test_capnp::{test_all_types};
 
