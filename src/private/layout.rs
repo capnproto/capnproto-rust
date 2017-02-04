@@ -25,7 +25,7 @@ use std::ptr;
 use data;
 use text;
 use private::capability::{ClientHook};
-use private::arena::*;
+use private::arena::{BuilderArena, ReaderArena, NullArena, SegmentId};
 use private::endian::{WireValue, Endian};
 use private::mask::*;
 use private::units::*;
@@ -336,9 +336,7 @@ impl WirePointer {
 }
 
 mod wire_helpers {
-
-    use std::ptr;
-    use std::slice;
+    use std::{mem, ptr, slice};
 
     use private::capability::ClientHook;
     use private::arena::*;
@@ -613,8 +611,8 @@ mod wire_helpers {
                                 pos = pos.offset(1);
                             }
                         }
-                        ::std::ptr::write_bytes(ptr, 0u8,
-                                                ((*element_tag).struct_ref().word_size() * count + 1) as usize);
+                        ptr::write_bytes(ptr, 0u8,
+                                         ((*element_tag).struct_ref().word_size() * count + 1) as usize);
                     }
                 }
             }
@@ -636,9 +634,9 @@ mod wire_helpers {
             let (seg_start, _seg_len) = arena.get_segment_mut(far_segment_id);
             let pad: *mut Word = seg_start.offset((*reff).far_position_in_segment() as isize);
             let num_elements = if (*reff).is_double_far() { 2 } else { 1 };
-            ::std::ptr::write_bytes(pad, 0, num_elements);
+            ptr::write_bytes(pad, 0, num_elements);
         }
-        ::std::ptr::write_bytes(reff, 0, 1);
+        ptr::write_bytes(reff, 0, 1);
         Ok(())
     }
 
@@ -776,9 +774,9 @@ mod wire_helpers {
         // We expect the caller to ensure the target is already null so won't leak.
 
         if (*src).is_null() {
-            ::std::ptr::write_bytes(dst, 0, 1);
+            ptr::write_bytes(dst, 0, 1);
         } else if (*src).kind() == WirePointerKind::Far {
-            ::std::ptr::copy_nonoverlapping(src, dst, 1);
+            ptr::copy_nonoverlapping(src, dst, 1);
         } else {
             transfer_pointer_split(arena, dst_segment_id, dst, src_segment_id, src, (*src).mut_target());
         }
@@ -802,7 +800,7 @@ mod wire_helpers {
                 (*dst).set_kind_and_target((*src_tag).kind(), src_ptr);
             }
             // We can just copy the upper 32 bits. (Use memcpy() to comply with aliasing rules.)
-            ::std::ptr::copy_nonoverlapping(&(*src_tag).upper32bits, &mut (*dst).upper32bits, 1);
+            ptr::copy_nonoverlapping(&(*src_tag).upper32bits, &mut (*dst).upper32bits, 1);
         } else {
             // Need to create a far pointer. Try to allocate it in the same segment as the source,
             // so that it doesn't need to be a double-far.
@@ -818,8 +816,8 @@ mod wire_helpers {
                     assert!(landing_pad_word < seg_len);
                     let landing_pad: *mut WirePointer = seg_start.offset(landing_pad_word as isize) as *mut _;
                     (*landing_pad).set_kind_and_target((*src_tag).kind(), src_ptr);
-                    ::std::ptr::copy_nonoverlapping(&(*src_tag).upper32bits,
-                                                    &mut (*landing_pad).upper32bits, 1);
+                    ptr::copy_nonoverlapping(&(*src_tag).upper32bits,
+                                             &mut (*landing_pad).upper32bits, 1);
 
                     (*dst).set_far(false, landing_pad_word);
                     (*dst).mut_far_ref().set(src_segment_id);
@@ -902,7 +900,7 @@ mod wire_helpers {
 
             // Copy data section.
             // Note: copy_nonoverlapping's third argument is an element count, not a byte count.
-            ::std::ptr::copy_nonoverlapping(old_ptr, ptr, old_data_size as usize);
+            ptr::copy_nonoverlapping(old_ptr, ptr, old_data_size as usize);
 
             //# Copy pointer section.
             let new_pointer_section: *mut WirePointer = ptr.offset(new_data_size as isize) as *mut _;
@@ -911,7 +909,7 @@ mod wire_helpers {
                                  old_segment_id, old_pointer_section.offset(i));
             }
 
-            ::std::ptr::write_bytes(old_ptr, 0, old_data_size as usize + old_pointer_count as usize);
+            ptr::write_bytes(old_ptr, 0, old_data_size as usize + old_pointer_count as usize);
 
             Ok(StructBuilder {
                 arena: arena,
@@ -1387,12 +1385,12 @@ mod wire_helpers {
     {
         if (*reff).is_null() {
             if default_size == 0 {
-                return Ok(data::new_builder(::std::ptr::null_mut(), 0));
+                return Ok(data::new_builder(ptr::null_mut(), 0));
             } else {
                 let builder = init_data_pointer(arena, reff, segment_id, default_size).value;
-                ::std::ptr::copy_nonoverlapping(default_value as *const _,
-                                                builder.as_mut_ptr() as *mut _,
-                                                default_size as usize);
+                ptr::copy_nonoverlapping(default_value as *const _,
+                                         builder.as_mut_ptr() as *mut _,
+                                         default_size as usize);
                 return Ok(builder);
             }
         }
@@ -1492,7 +1490,7 @@ mod wire_helpers {
                 };
 
                 (*reff).mut_list_ref().set(element_size, value.element_count);
-                ::std::ptr::copy_nonoverlapping(value.ptr as *const Word, ptr, total_size as usize);
+                ptr::copy_nonoverlapping(value.ptr as *const Word, ptr, total_size as usize);
             }
 
             Ok(SegmentAnd { segment_id: segment_id, value: ptr })
@@ -1513,8 +1511,8 @@ mod wire_helpers {
 
             let mut src: *const Word = value.ptr as *const _;
             for _ in 0.. value.element_count {
-                ::std::ptr::copy_nonoverlapping(src, dst,
-                                                value.struct_data_size as usize / BITS_PER_WORD);
+                ptr::copy_nonoverlapping(src, dst,
+                                         value.struct_data_size as usize / BITS_PER_WORD);
                 dst = dst.offset(data_size as isize);
                 src = src.offset(data_size as isize);
 
@@ -1543,7 +1541,7 @@ mod wire_helpers {
 
         if (*src).is_null() {
             ptr::write_bytes(dst, 0, 1);
-            return Ok(SegmentAnd { segment_id: dst_segment_id, value: ::std::ptr::null_mut() });
+            return Ok(SegmentAnd { segment_id: dst_segment_id, value: ptr::null_mut() });
         }
 
         let (mut ptr, src, src_segment_id) =
@@ -1666,7 +1664,7 @@ mod wire_helpers {
                 match src_cap_table.extract_cap((*src).cap_ref().index.get() as usize) {
                     Some(cap) => {
                         set_capability_pointer(dst_arena, dst_segment_id, dst_cap_table, dst, cap);
-                        return Ok(SegmentAnd { segment_id: dst_segment_id, value: ::std::ptr::null_mut() });
+                        return Ok(SegmentAnd { segment_id: dst_segment_id, value: ptr::null_mut() });
                     }
                     None => {
                         return Err(Error::failed(
@@ -1789,7 +1787,7 @@ mod wire_helpers {
             InlineComposite => {
                 let word_count = list_ref.inline_composite_word_count();
 
-                let tag: *const WirePointer = ::std::mem::transmute(ptr);
+                let tag: *const WirePointer = mem::transmute(ptr);
 
                 ptr = ptr.offset(1);
 
@@ -1852,7 +1850,7 @@ mod wire_helpers {
                     arena: arena,
                     segment_id: segment_id,
                     cap_table: cap_table,
-                    ptr: ::std::mem::transmute(ptr),
+                    ptr: ptr as *const _,
                     element_count: size,
                     step: words_per_element * BITS_PER_WORD as u32,
                     struct_data_size: struct_ref.data_size.get() as u32 * (BITS_PER_WORD as u32),
@@ -1897,7 +1895,7 @@ mod wire_helpers {
                     arena: arena,
                     segment_id: segment_id,
                     cap_table: cap_table,
-                    ptr: ::std::mem::transmute(ptr),
+                    ptr: ptr as *const _,
                     element_count: list_ref.element_count(),
                     step: step,
                     struct_data_size: data_size,
@@ -1919,7 +1917,7 @@ mod wire_helpers {
         if (*reff).is_null() {
             //   TODO?       if default_value.is_null() { default_value = &"" }
             return text::new_reader(
-                slice::from_raw_parts(::std::mem::transmute(default_value), default_size as usize));
+                slice::from_raw_parts(mem::transmute(default_value), default_size as usize));
         }
 
         let ref_target = (*reff).target();
@@ -1989,7 +1987,7 @@ mod wire_helpers {
                           ptr.offset(round_bytes_up_to_words(size) as isize),
                           WirePointerKind::List));
 
-        Ok(data::new_reader(::std::mem::transmute(ptr), size))
+        Ok(data::new_reader(ptr as *const _, size))
     }
 }
 
@@ -2102,8 +2100,8 @@ impl <'a> PointerReader<'a> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: CapTableReader::Plain(::std::ptr::null()),
-            pointer: ::std::ptr::null(),
+            cap_table: CapTableReader::Plain(ptr::null()),
+            pointer: ptr::null(),
             nesting_limit: 0x7fffffff }
     }
 
@@ -2119,7 +2117,7 @@ impl <'a> PointerReader<'a> {
         Ok(PointerReader {
             arena: arena,
             segment_id: segment_id,
-            cap_table: CapTableReader::Plain(::std::ptr::null()),
+            cap_table: CapTableReader::Plain(ptr::null()),
             pointer: location as *const _,
             nesting_limit: nesting_limit,
         })
@@ -2133,7 +2131,7 @@ impl <'a> PointerReader<'a> {
         PointerReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: CapTableReader::Plain(::std::ptr::null()),
+            cap_table: CapTableReader::Plain(ptr::null()),
             pointer: location as *mut _,
             nesting_limit: 0x7fffffff }
     }
@@ -2218,7 +2216,7 @@ impl <'a> PointerBuilder<'a> {
     {
         PointerBuilder {
             arena: arena,
-            cap_table: CapTableBuilder::Plain(::std::ptr::null_mut()),
+            cap_table: CapTableBuilder::Plain(ptr::null_mut()),
             segment_id: segment_id,
             pointer: location as *mut _,
         }
@@ -2369,7 +2367,7 @@ impl <'a> PointerBuilder<'a> {
             if !self.pointer.is_null() {
                 unsafe {
                     wire_helpers::zero_object(self.arena, self.segment_id, self.pointer);
-                    *self.pointer = ::std::mem::zeroed();
+                    *self.pointer = mem::zeroed();
                 }
             }
         } else {
@@ -2418,9 +2416,9 @@ impl <'a> StructReader<'a> {
         StructReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: CapTableReader::Plain(::std::ptr::null()),
-            data: ::std::ptr::null(),
-            pointers: ::std::ptr::null(),
+            cap_table: CapTableReader::Plain(ptr::null()),
+            data: ptr::null(),
+            pointers: ptr::null(),
             data_size: 0,
             pointer_count: 0,
             nesting_limit: 0x7fffffff}
@@ -2637,8 +2635,8 @@ impl <'a> ListReader<'a> {
         ListReader {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: CapTableReader::Plain(::std::ptr::null()),
-            ptr: ::std::ptr::null(),
+            cap_table: CapTableReader::Plain(ptr::null()),
+            ptr: ptr::null(),
             element_count: 0,
             step: 0,
             struct_data_size: 0,
@@ -2710,8 +2708,8 @@ impl <'a> ListBuilder<'a> {
         ListBuilder {
             arena: &NULL_ARENA,
             segment_id: 0,
-            cap_table: CapTableBuilder::Plain(::std::ptr::null_mut()),
-            ptr: ::std::ptr::null_mut(),
+            cap_table: CapTableBuilder::Plain(ptr::null_mut()),
+            ptr: ptr::null_mut(),
             element_count: 0,
             step: 0,
             struct_data_size: 0,
@@ -2794,7 +2792,7 @@ pub trait PrimitiveElement: Endian {
     }
 
     fn element_size() -> ElementSize {
-        match ::std::mem::size_of::<Self>() {
+        match mem::size_of::<Self>() {
             0 => Void,
             1 => Byte,
             2 => TwoBytes,
