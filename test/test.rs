@@ -944,11 +944,40 @@ mod tests {
     }
 
     #[test]
+    fn long_u64_list() {
+        use test_capnp::{test_all_types};
+
+        let length: u32 = 1 << 27;
+        let step_exponent = 18;
+
+        let mut message = message::Builder::new_default();
+        {
+            let root: test_all_types::Builder = message.init_root();
+            let mut list = root.init_u_int64_list(length);
+            for ii in 0..(length >> step_exponent) {
+                let jj = ii << step_exponent;
+                list.set(jj, jj as u64);
+            }
+            for ii in 0..(length >> step_exponent) {
+                let jj = ii << step_exponent;
+                assert_eq!(list.get(jj), jj as u64);
+            }
+        }
+
+        let root: test_all_types::Reader = message.get_root_as_reader().unwrap();
+        let list = root.get_u_int64_list().unwrap();
+        for ii in 0..(length >> step_exponent) {
+            let jj = ii << step_exponent;
+            assert_eq!(list.get(jj), jj as u64);
+        }
+    }
+
+    #[test]
     fn long_struct_list() {
         use test_capnp::{test_lists};
 
         let length: u32 = 1 << 27;
-        let step_exponent = 12;
+        let step_exponent = 18;
 
         let mut message = message::Builder::new_default();
         {
@@ -969,6 +998,39 @@ mod tests {
         for ii in 0..(length >> step_exponent) {
             let jj = ii << step_exponent;
             assert_eq!(list.get(jj).get_f(), jj as u64);
+        }
+    }
+
+    #[test]
+    fn long_list_list() {
+        use test_capnp::{test_lists};
+
+        let length: u32 = 1 << 27;
+        let step_exponent = 18;
+
+        let mut message = message::Builder::new_default();
+        {
+            let root: test_lists::Builder = message.init_root();
+            let mut list = root.init_int32_list_list(length);
+            for ii in 0..(length >> step_exponent) {
+                let jj = ii << step_exponent;
+                list.borrow().init(jj, 1).set(0, jj as i32);
+            }
+            for ii in 0..(length >> step_exponent) {
+                let jj = ii << step_exponent;
+                let elem = list.borrow().get(jj).unwrap();
+                assert_eq!(elem.len(), 1);
+                assert_eq!(elem.get(0), jj as i32);
+            }
+        }
+
+        let root: test_lists::Reader = message.get_root_as_reader().unwrap();
+        let list = root.get_int32_list_list().unwrap();
+        for ii in 0..(length >> step_exponent) {
+            let jj = ii << step_exponent;
+            let elem = list.get(jj).unwrap();
+            assert_eq!(elem.len(), 1);
+            assert_eq!(elem.get(0), jj as i32);
         }
     }
 
