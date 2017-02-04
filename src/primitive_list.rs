@@ -21,6 +21,8 @@
 
 //! List of primitives.
 
+use std::{marker, ptr};
+
 use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                       PrimitiveElement};
@@ -28,7 +30,7 @@ use Result;
 
 #[derive(Clone, Copy)]
 pub struct Owned<T> {
-    marker: ::std::marker::PhantomData<T>,
+    marker: marker::PhantomData<T>,
 }
 
 impl <'a, T> ::traits::Owned<'a> for Owned<T> where T: PrimitiveElement {
@@ -38,13 +40,13 @@ impl <'a, T> ::traits::Owned<'a> for Owned<T> where T: PrimitiveElement {
 
 #[derive(Clone, Copy)]
 pub struct Reader<'a, T> where T: PrimitiveElement {
-    marker : ::std::marker::PhantomData<T>,
-    reader : ListReader<'a>
+    marker: marker::PhantomData<T>,
+    reader: ListReader<'a>
 }
 
-impl <'a, T : PrimitiveElement> Reader<'a, T> {
-    pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader : reader, marker : ::std::marker::PhantomData }
+impl <'a, T: PrimitiveElement> Reader<'a, T> {
+    pub fn new<'b>(reader: ListReader<'b>) -> Reader<'b, T> {
+        Reader::<'b, T> { reader: reader, marker: marker::PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
@@ -55,56 +57,56 @@ impl <'a, T : PrimitiveElement> Reader<'a, T> {
     }
 }
 
-impl <'a, T : PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
-    fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
-        Ok(Reader { reader : try!(reader.get_list(T::element_size(), ::std::ptr::null())),
-                    marker : ::std::marker::PhantomData })
+impl <'a, T: PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
+    fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a, T>> {
+        Ok(Reader { reader: try!(reader.get_list(T::element_size(), ptr::null())),
+                    marker: marker::PhantomData })
     }
 }
 
 impl <'a, T: PrimitiveElement>  IndexMove<u32, T> for Reader<'a, T>{
-    fn index_move(&self, index : u32) -> T {
+    fn index_move(&self, index: u32) -> T {
         self.get(index)
     }
 }
 
-impl <'a, T : PrimitiveElement> Reader<'a, T> {
-    pub fn get(&self, index : u32) -> T {
+impl <'a, T: PrimitiveElement> Reader<'a, T> {
+    pub fn get(&self, index: u32) -> T {
         assert!(index < self.len());
         PrimitiveElement::get(&self.reader, index)
     }
 }
 
 pub struct Builder<'a, T> where T: PrimitiveElement {
-    marker : ::std::marker::PhantomData<T>,
-    builder : ListBuilder<'a>
+    marker: marker::PhantomData<T>,
+    builder: ListBuilder<'a>
 }
 
 impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
-    pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder : builder, marker : ::std::marker::PhantomData }
+    pub fn new(builder: ListBuilder<'a>) -> Builder<'a, T> {
+        Builder { builder: builder, marker: marker::PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
-    pub fn set(&mut self, index : u32, value : T) {
+    pub fn set(&mut self, index: u32, value: T) {
         PrimitiveElement::set(&self.builder, index, value);
     }
 }
 
 impl <'a, T: PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
-    fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
-        Builder { builder : builder.init_list(T::element_size(), size),
-                  marker : ::std::marker::PhantomData }
+    fn init_pointer(builder: PointerBuilder<'a>, size: u32) -> Builder<'a, T> {
+        Builder { builder: builder.init_list(T::element_size(), size),
+                  marker: marker::PhantomData }
     }
-    fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a, T>> {
-        Ok(Builder { builder : try!(builder.get_list(T::element_size(), ::std::ptr::null())),
-                     marker : ::std::marker::PhantomData })
+    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a, T>> {
+        Ok(Builder { builder: try!(builder.get_list(T::element_size(), ptr::null())),
+                     marker: marker::PhantomData })
     }
 }
 
 impl <'a, T : PrimitiveElement> Builder<'a, T> {
-    pub fn get(&self, index : u32) -> T {
+    pub fn get(&self, index: u32) -> T {
         assert!(index < self.len());
         PrimitiveElement::get_from_builder(&self.builder, index)
     }
@@ -113,7 +115,7 @@ impl <'a, T : PrimitiveElement> Builder<'a, T> {
 impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     where T: PrimitiveElement
 {
-    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
+    fn set_pointer_builder<'b>(pointer: PointerBuilder<'b>,
                                value: Reader<'a, T>) -> Result<()> {
         pointer.set_list(&value.reader)
     }
