@@ -1441,7 +1441,7 @@ mod wire_helpers {
         Ok(SegmentAnd { segment_id: segment_id, value: ptr })
     }
 
-    pub unsafe fn set_capability_pointer(
+    pub fn set_capability_pointer(
         _arena: &BuilderArena,
         _segment_id: u32,
         mut cap_table: CapTableBuilder,
@@ -1449,7 +1449,7 @@ mod wire_helpers {
         cap: Box<ClientHook>)
     {
         // TODO if ref is not null, zero object.
-        (*reff).set_cap(cap_table.inject_cap(cap) as u32);
+        unsafe { (*reff).set_cap(cap_table.inject_cap(cap) as u32); }
     }
 
     pub unsafe fn set_list_pointer<'a>(
@@ -2356,10 +2356,8 @@ impl <'a> PointerBuilder<'a> {
     }
 
     pub fn set_capability(&self, cap: Box<ClientHook>) {
-        unsafe {
-            wire_helpers::set_capability_pointer(
-                self.arena, self.segment_id, self.cap_table, self.pointer, cap);
-        }
+        wire_helpers::set_capability_pointer(
+            self.arena, self.segment_id, self.cap_table, self.pointer, cap);
     }
 
     pub fn copy_from(&mut self, other: PointerReader) -> Result<()> {
