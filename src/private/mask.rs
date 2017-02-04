@@ -19,9 +19,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use std::mem;
+
 pub trait Mask {
     type T;
-    fn mask(value : Self, mask : Self::T) -> Self;
+    fn mask(value: Self, mask: Self::T) -> Self;
 }
 
 macro_rules! int_mask(
@@ -29,7 +31,7 @@ macro_rules! int_mask(
         impl Mask for $t {
             type T = $t;
             #[inline]
-            fn mask(value : $t, mask : $t) -> $t {
+            fn mask(value: $t, mask: $t) -> $t {
                 value ^ mask
             }
         }
@@ -48,10 +50,10 @@ int_mask!(u64);
 impl Mask for f32 {
     type T = u32;
     #[inline]
-    fn mask(value : f32, mask : u32) -> f32 {
+    fn mask(value: f32, mask: u32) -> f32 {
         unsafe {
-            let v : u32 = ::std::mem::transmute(value);
-            ::std::mem::transmute(v ^ mask)
+            let v: u32 = mem::transmute(value);
+            mem::transmute(v ^ mask)
         }
     }
 }
@@ -59,10 +61,10 @@ impl Mask for f32 {
 impl Mask for f64 {
     type T = u64;
     #[inline]
-    fn mask(value : f64, mask : u64) -> f64 {
+    fn mask(value: f64, mask: u64) -> f64 {
         unsafe {
-            let v : u64 = ::std::mem::transmute(value);
-            ::std::mem::transmute(v ^ mask)
+            let v: u64 = mem::transmute(value);
+            mem::transmute(v ^ mask)
         }
     }
 }

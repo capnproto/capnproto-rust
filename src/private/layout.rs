@@ -27,7 +27,7 @@ use text;
 use private::capability::{ClientHook};
 use private::arena::{BuilderArena, ReaderArena, NullArena, SegmentId};
 use private::endian::{WireValue, Endian};
-use private::mask::*;
+use private::mask::Mask;
 use private::units::*;
 use private::zero;
 use {MessageSize, Result, Word};
