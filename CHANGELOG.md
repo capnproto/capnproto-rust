@@ -1,3 +1,7 @@
+## v0.8.2
+- Shave some bytes off the representation of StructReader and friends.
+- Fix some potential integer overflows.
+
 ## v0.8.1
 - Redesign segment arenas to require less unsafe code.
 
