@@ -2728,8 +2728,8 @@ impl <'a> ListBuilder<'a> {
 
     #[inline]
     pub fn get_struct_element(self, index: ElementCount32) -> StructBuilder<'a> {
-        let index_bit = index * self.step;
-        let struct_data = unsafe{ self.ptr.offset((index_bit / BITS_PER_BYTE as u32) as isize)};
+        let index_byte = ((index as u64 * self.step as u64) / BITS_PER_BYTE as u64) as u32;
+        let struct_data = unsafe{ self.ptr.offset(index_byte as isize)};
         let struct_pointers = unsafe {
             struct_data.offset(((self.struct_data_size as usize) / BITS_PER_BYTE) as isize) as *mut _
         };
