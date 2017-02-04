@@ -123,9 +123,8 @@ pub trait BuilderArena: ReaderArena {
 pub struct BuilderArenaImplInner<A> where A: Allocator {
     allocator: A,
 
+    // TODO(perf): Try using smallvec to avoid heap allocations in the single-segment case?
     segments: Vec<(*mut Word, u32)>,
-
-    // TODO(perf): use smallvec to avoid heap allocations in the single-segment case.
     allocated: Vec<u32>, // number of words allocated for each segment.
 }
 
