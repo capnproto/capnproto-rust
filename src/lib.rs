@@ -46,8 +46,8 @@ extern crate futures;
 /// This macro can be used to construct constants. In the future, when
 /// Rust supports [constant functions](https://github.com/rust-lang/rust/issues/24111),
 ///  this macro will be replaced by such a function.
-#[macro_export]
 #[cfg(target_endian = "little")]
+#[macro_export]
 macro_rules! capnp_word {
   ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
    $b4:expr, $b5:expr, $b6:expr, $b7:expr) => (
@@ -59,7 +59,9 @@ macro_rules! capnp_word {
     }
   )
 }
+
 #[cfg(target_endian = "big")]
+#[macro_export]
 macro_rules! capnp_word {
   ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
    $b4:expr, $b5:expr, $b6:expr, $b7:expr) => (
