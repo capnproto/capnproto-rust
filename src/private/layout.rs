@@ -2652,10 +2652,10 @@ impl <'a> ListReader<'a> {
 
     #[inline]
     pub fn get_struct_element(&self, index: ElementCount32) -> StructReader<'a> {
-        let index_bit: BitCount64 = index as ElementCount64 * (self.step as BitCount64);
+        let index_byte: ByteCount32 =
+            ((index as ElementCount64 * (self.step as BitCount64)) / BITS_PER_BYTE as u64) as u32;
 
-        let struct_data: *const u8 = unsafe {
-            self.ptr.offset((index_bit as usize / BITS_PER_BYTE) as isize) };
+        let struct_data: *const u8 = unsafe { self.ptr.offset(index_byte as isize) };
 
         let struct_pointers: *const WirePointer = unsafe {
             struct_data.offset((self.struct_data_size as usize / BITS_PER_BYTE) as isize) as *const _
