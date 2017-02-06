@@ -1,3 +1,7 @@
+## v0.8.3
+- Prevent integer overflow possible with very long struct lists on 32-bit systems.
+- Fix bug where the capnp_word!() macro was not exported for big endian targets.
+
 ## v0.8.2
 - Shave some bytes off the representation of StructReader and friends.
 - Fix some potential integer overflows.
