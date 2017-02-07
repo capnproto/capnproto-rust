@@ -24,7 +24,7 @@ use capnp::Error;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResultsHook};
 
-use capnp::capability::Promise;
+use capnp::capability::{Promise, RemotePromise};
 
 use std::rc::{Rc};
 
@@ -70,9 +70,9 @@ impl RequestHook for Request {
     fn get_brand(&self) -> usize {
         0
     }
-    fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
+    fn send<'a>(self: Box<Self>) -> RemotePromise<any_pointer::Owned> {
         let pipeline = Pipeline::new(self.error.clone());
-        ::capnp::capability::RemotePromise {
+        RemotePromise {
             promise: Promise::err(self.error),
             pipeline: any_pointer::Pipeline::new(Box::new(pipeline)),
         }

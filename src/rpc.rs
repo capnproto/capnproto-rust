@@ -331,7 +331,6 @@ pub struct Import<VatId> where VatId: 'static {
 
     // If non-null, the import is a promise.
     promise_client_to_resolve: Option<Weak<RefCell<PromiseClient<VatId>>>>,
-//    promise_fulfiller: Option<oneshot::Sender<Result<Box<ClientHook>, Error>>>,
 }
 
 impl <VatId> Import<VatId> {

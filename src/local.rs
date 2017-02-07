@@ -20,7 +20,7 @@
 
 use capnp::{any_pointer};
 use capnp::Error;
-use capnp::capability::Promise;
+use capnp::capability::{self, Promise};
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook};
 
@@ -85,11 +85,11 @@ type HeapMessage = ::capnp::message::Builder<::capnp::message::HeapAllocator>;
 
 struct Results {
     message: Option<HeapMessage>,
-    results_done_fulfiller: Option<::futures::sync::oneshot::Sender<Box<ResultsDoneHook>>>,
+    results_done_fulfiller: Option<oneshot::Sender<Box<ResultsDoneHook>>>,
 }
 
 impl Results {
-    fn new(fulfiller: ::futures::sync::oneshot::Sender<Box<ResultsDoneHook>>) -> Results {
+    fn new(fulfiller: oneshot::Sender<Box<ResultsDoneHook>>) -> Results {
         Results {
             message: Some(::capnp::message::Builder::new_default()),
             results_done_fulfiller: Some(fulfiller),
@@ -190,7 +190,7 @@ impl RequestHook for Request {
     fn get_brand(&self) -> usize {
         0
     }
-    fn send<'a>(self: Box<Self>) -> ::capnp::capability::RemotePromise<any_pointer::Owned> {
+    fn send<'a>(self: Box<Self>) -> capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
         let Request { message, interface_id, method_id, client } = tmp;
         let params = Params::new(message);
@@ -204,7 +204,7 @@ impl RequestHook for Request {
 
         let p = promise.join(results_done_promise).and_then(move |((), results_done_hook)| {
             pipeline_sender.complete(Box::new(Pipeline::new(results_done_hook.add_ref())) as Box<PipelineHook>);
-            Ok((::capnp::capability::Response::new(Box::new(Response::new(results_done_hook))), ()))
+            Ok((capability::Response::new(Box::new(Response::new(results_done_hook))), ()))
         });
 
         let (left, right) = ::split::split(p);
@@ -212,7 +212,7 @@ impl RequestHook for Request {
         pipeline.drive(right);
         let pipeline = any_pointer::Pipeline::new(Box::new(pipeline));
 
-        ::capnp::capability::RemotePromise {
+        capability::RemotePromise {
             promise: Promise::from_future(left),
             pipeline: pipeline,
         }
@@ -262,7 +262,7 @@ impl PipelineHook for Pipeline {
 }
 
 struct ClientInner {
-    server: Box<::capnp::capability::Server>,
+    server: Box<capability::Server>,
 }
 
 pub struct Client {
@@ -270,7 +270,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(server: Box<::capnp::capability::Server>) -> Client {
+    pub fn new(server: Box<capability::Server>) -> Client {
         Client {
             inner: Rc::new(RefCell::new(ClientInner { server: server }))
         }
@@ -289,9 +289,9 @@ impl ClientHook for Client {
     }
     fn new_call(&self, interface_id: u64, method_id: u16,
                 size_hint: Option<::capnp::MessageSize>)
-                -> ::capnp::capability::Request<any_pointer::Owned, any_pointer::Owned>
+                -> capability::Request<any_pointer::Owned, any_pointer::Owned>
     {
-        ::capnp::capability::Request::new(
+        capability::Request::new(
             Box::new(Request::new(interface_id, method_id, size_hint, self.add_ref())))
     }
 
