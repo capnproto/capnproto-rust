@@ -60,7 +60,7 @@
 
 
 extern crate capnp;
-#[macro_use] extern crate futures;
+extern crate futures;
 extern crate capnp_futures;
 
 use futures::{Future};

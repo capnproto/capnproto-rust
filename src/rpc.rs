@@ -34,7 +34,8 @@ use std::collections::binary_heap::BinaryHeap;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
 
-use rpc_capnp::{message, return_, cap_descriptor};
+use rpc_capnp::{call, cap_descriptor, disembargo, exception,
+                message, message_target, payload, resolve, return_, promised_answer};
 use forked_promise::ForkedPromise;
 use attach::Attach;
 use broken;
@@ -353,16 +354,16 @@ impl Embargo {
     }
 }
 
-fn to_pipeline_ops(ops: ::capnp::struct_list::Reader<::rpc_capnp::promised_answer::op::Owned>)
+fn to_pipeline_ops(ops: ::capnp::struct_list::Reader<promised_answer::op::Owned>)
                    -> ::capnp::Result<Vec<PipelineOp>>
 {
     let mut result = Vec::new();
     for op in ops.iter() {
         match try!(op.which()) {
-            ::rpc_capnp::promised_answer::op::Noop(()) => {
+            promised_answer::op::Noop(()) => {
                 result.push(PipelineOp::Noop);
             }
-            ::rpc_capnp::promised_answer::op::GetPointerField(idx) => {
+            promised_answer::op::GetPointerField(idx) => {
                 result.push(PipelineOp::GetPointerField(idx));
             }
         }
@@ -370,26 +371,26 @@ fn to_pipeline_ops(ops: ::capnp::struct_list::Reader<::rpc_capnp::promised_answe
     Ok(result)
 }
 
-fn from_error(error: &Error, mut builder: ::rpc_capnp::exception::Builder) {
+fn from_error(error: &Error, mut builder: exception::Builder) {
     builder.set_reason(&error.description);
     let typ = match error.kind {
-        ::capnp::ErrorKind::Failed => ::rpc_capnp::exception::Type::Failed,
-        ::capnp::ErrorKind::Overloaded => ::rpc_capnp::exception::Type::Overloaded,
-        ::capnp::ErrorKind::Disconnected => ::rpc_capnp::exception::Type::Disconnected,
-        ::capnp::ErrorKind::Unimplemented => ::rpc_capnp::exception::Type::Unimplemented,
+        ::capnp::ErrorKind::Failed => exception::Type::Failed,
+        ::capnp::ErrorKind::Overloaded => exception::Type::Overloaded,
+        ::capnp::ErrorKind::Disconnected => exception::Type::Disconnected,
+        ::capnp::ErrorKind::Unimplemented => exception::Type::Unimplemented,
     };
     builder.set_type(typ);
 }
 
-fn remote_exception_to_error(exception: ::rpc_capnp::exception::Reader) -> Error {
+fn remote_exception_to_error(exception: exception::Reader) -> Error {
     let (kind, reason) = match (exception.get_type(), exception.get_reason()) {
-        (Ok(::rpc_capnp::exception::Type::Failed), Ok(reason)) =>
+        (Ok(exception::Type::Failed), Ok(reason)) =>
             (::capnp::ErrorKind::Failed, reason),
-        (Ok(::rpc_capnp::exception::Type::Overloaded), Ok(reason)) =>
+        (Ok(exception::Type::Overloaded), Ok(reason)) =>
             (::capnp::ErrorKind::Overloaded, reason),
-        (Ok(::rpc_capnp::exception::Type::Disconnected), Ok(reason)) =>
+        (Ok(exception::Type::Disconnected), Ok(reason)) =>
             (::capnp::ErrorKind::Disconnected, reason),
-        (Ok(::rpc_capnp::exception::Type::Unimplemented), Ok(reason)) =>
+        (Ok(exception::Type::Unimplemented), Ok(reason)) =>
             (::capnp::ErrorKind::Unimplemented, reason),
         _ => (::capnp::ErrorKind::Failed, "(malformed error)"),
     };
@@ -695,27 +696,27 @@ impl <VatId> ConnectionState<VatId> {
                 Ok(message::Unimplemented(message)) => {
                     let message = try!(message);
                     match try!(message.which()) {
-                        ::rpc_capnp::message::Resolve(resolve) => {
+                        message::Resolve(resolve) => {
                             let resolve = try!(resolve);
                             match try!(resolve.which()) {
-                                ::rpc_capnp::resolve::Cap(c) => {
+                                resolve::Cap(c) => {
                                     match try!(try!(c).which()) {
-                                        ::rpc_capnp::cap_descriptor::None(()) => (),
-                                        ::rpc_capnp::cap_descriptor::SenderHosted(export_id) => {
+                                        cap_descriptor::None(()) => (),
+                                        cap_descriptor::SenderHosted(export_id) => {
                                             try!(connection_state.release_export(export_id, 1));
                                         }
-                                        ::rpc_capnp::cap_descriptor::SenderPromise(export_id) => {
+                                        cap_descriptor::SenderPromise(export_id) => {
                                             try!(connection_state.release_export(export_id, 1));
                                         }
-                                        ::rpc_capnp::cap_descriptor::ReceiverAnswer(_) |
-                                        ::rpc_capnp::cap_descriptor::ReceiverHosted(_) => (),
-                                        ::rpc_capnp::cap_descriptor::ThirdPartyHosted(_) => {
+                                        cap_descriptor::ReceiverAnswer(_) |
+                                        cap_descriptor::ReceiverHosted(_) => (),
+                                        cap_descriptor::ThirdPartyHosted(_) => {
                                             return Err(Error::failed(
                                                 "Peer claims we resolved a ThirdPartyHosted cap.".to_string()));
                                         },
                                     }
                                 }
-                                ::rpc_capnp::resolve::Exception(_) => (),
+                                resolve::Exception(_) => (),
                             }
                             BorrowWorkaround::Done
                         }
@@ -733,10 +734,6 @@ impl <VatId> ConnectionState<VatId> {
 
                     let bootstrap = try!(bootstrap);
                     let answer_id = bootstrap.get_question_id();
-
-//                    println!("handle Bootstrap. id = {}, thread = {:?}",
-//                             answer_id,
-//                             ::std::thread::current().name());
 
                     if connection_state.connection.borrow().is_err() {
                         // Disconnected; ignore.
@@ -780,7 +777,6 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Call(call)) => {
-//                    println!("handle Call. thread = {:?}", ::std::thread::current().name());
                     let call = try!(call);
                     let t = try!(connection_state.get_message_target(try!(call.get_target())));
                     BorrowWorkaround::Call(t)
@@ -788,10 +784,6 @@ impl <VatId> ConnectionState<VatId> {
                 Ok(message::Return(oret)) => {
                     let ret = try!(oret);
                     let question_id = ret.get_answer_id();
-
-//                    println!("handle Return. id = {}, thread = {:?}",
-//                             question_id,
-//                             ::std::thread::current().name());
 
                     match connection_state.questions.borrow_mut().slots[question_id as usize] {
                         Some(ref mut question) => {
@@ -869,10 +861,6 @@ impl <VatId> ConnectionState<VatId> {
                     let mut exports_to_release = Vec::new();
                     let answer_id = finish.get_question_id();
 
-//                    println!("handle Finish. id = {}, thread = {:?}",
-//                             answer_id,
-//                             ::std::thread::current().name());
-
                     let mut erase = false;
                     let answers_slots = &mut connection_state1.answers.borrow_mut().slots;
                     match answers_slots.get_mut(&answer_id) {
@@ -910,10 +898,9 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Resolve(resolve)) => {
-//                    println!("handle Resolve. thread = {:?}", ::std::thread::current().name());
                     let resolve = try!(resolve);
                     let replacement_or_error = match try!(resolve.which()) {
-                        ::rpc_capnp::resolve::Cap(c) => {
+                        resolve::Cap(c) => {
                             match try!(ConnectionState::receive_cap(connection_state.clone(), try!(c))) {
                                 Some(cap) => Ok(cap),
                                 None => {
@@ -922,7 +909,7 @@ impl <VatId> ConnectionState<VatId> {
                                 }
                             }
                         }
-                        ::rpc_capnp::resolve::Exception(e) => {
+                        resolve::Exception(e) => {
                             // We can't set `replacement` to a new broken cap here because this will
                             // confuse PromiseClient::Resolve() into thinking that the remote
                             // promise resolved to a local capability and therefore a Disembargo is
@@ -954,17 +941,15 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Release(release)) => {
-//                    println!("handle Release. thread = {:?}", ::std::thread::current().name());
                     let release = try!(release);
                     try!(connection_state.release_export(release.get_id(), release.get_reference_count()));
                     BorrowWorkaround::Done
                 }
                 Ok(message::Disembargo(disembargo)) => {
-//                    println!("handle Disembargo. thread = {:?}", ::std::thread::current().name());
                     let disembargo = try!(disembargo);
                     let context = disembargo.get_context();
                     match try!(context.which()) {
-                        ::rpc_capnp::disembargo::context::SenderLoopback(embargo_id) => {
+                        disembargo::context::SenderLoopback(embargo_id) => {
                             let mut target =
                                 try!(connection_state.get_message_target(try!(disembargo.get_target())));
                             loop {
@@ -1011,7 +996,7 @@ impl <VatId> ConnectionState<VatId> {
                             connection_state.add_task(task);
                             BorrowWorkaround::Done
                         }
-                        ::rpc_capnp::disembargo::context::ReceiverLoopback(embargo_id) => {
+                        disembargo::context::ReceiverLoopback(embargo_id) => {
                             if let Some(ref mut embargo) =
                                 connection_state.embargoes.borrow_mut().find(embargo_id)
                             {
@@ -1025,8 +1010,8 @@ impl <VatId> ConnectionState<VatId> {
                             connection_state.embargoes.borrow_mut().erase(embargo_id);
                             BorrowWorkaround::Done
                         }
-                        ::rpc_capnp::disembargo::context::Accept(_) |
-                        ::rpc_capnp::disembargo::context::Provide(_) => {
+                        disembargo::context::Accept(_) |
+                        disembargo::context::Provide(_) => {
                             return Err(
                                 Error::unimplemented(
                                     "Disembargo::Context::Provide/Accept not implemented".to_string()));
@@ -1051,9 +1036,9 @@ impl <VatId> ConnectionState<VatId> {
                         }
                     };
                     let redirect_results = match try!(call.get_send_results_to().which()) {
-                        ::rpc_capnp::call::send_results_to::Caller(()) => false,
-                        ::rpc_capnp::call::send_results_to::Yourself(()) => true,
-                        ::rpc_capnp::call::send_results_to::ThirdParty(_) =>
+                        call::send_results_to::Caller(()) => false,
+                        call::send_results_to::Yourself(()) => true,
+                        call::send_results_to::ThirdParty(_) =>
                             return Err(Error::failed("Unsupported `Call.sendResultsTo`.".to_string())),
                     };
                     let payload = try!(call.get_params());
@@ -1218,11 +1203,11 @@ impl <VatId> ConnectionState<VatId> {
         self as * const _ as usize
     }
 
-    fn get_message_target(&self, target: ::rpc_capnp::message_target::Reader)
+    fn get_message_target(&self, target: message_target::Reader)
                           -> ::capnp::Result<Box<ClientHook>>
     {
         match try!(target.which()) {
-            ::rpc_capnp::message_target::ImportedCap(export_id) => {
+            message_target::ImportedCap(export_id) => {
                 match self.exports.borrow().slots.get(export_id as usize) {
                     Some(&Some(ref exp)) => {
                         Ok(exp.client_hook.clone())
@@ -1232,7 +1217,7 @@ impl <VatId> ConnectionState<VatId> {
                     }
                 }
             }
-            ::rpc_capnp::message_target::PromisedAnswer(promised_answer) => {
+            message_target::PromisedAnswer(promised_answer) => {
                 let promised_answer = try!(promised_answer);
                 let question_id = promised_answer.get_question_id();
 
@@ -1264,7 +1249,7 @@ impl <VatId> ConnectionState<VatId> {
     /// resolved, and so the request may have been built on the assumption that it would be sent over
     /// this network connection, but then the promise resolved to point somewhere else before the
     /// request was sent.  Now the request has to be redirected to the new target instead.
-    fn write_target(&self, cap: &ClientHook, target: ::rpc_capnp::message_target::Builder)
+    fn write_target(&self, cap: &ClientHook, target: message_target::Builder)
         -> Option<Box<ClientHook>>
     {
         if cap.get_brand() == self.get_brand() {
@@ -1430,7 +1415,7 @@ impl <VatId> ConnectionState<VatId> {
 
     fn write_descriptors(state: &Rc<ConnectionState<VatId>>,
                          cap_table: &[Option<Box<ClientHook>>],
-                         payload: ::rpc_capnp::payload::Builder)
+                         payload: payload::Builder)
                          -> Vec<ExportId>
     {
         let mut cap_table_builder = payload.init_cap_table(cap_table.len() as u32);
@@ -1653,7 +1638,7 @@ struct Request<VatId> where VatId: 'static {
 }
 
 fn get_call<'a>(message: &'a mut Box<::OutgoingMessage>)
-                -> ::capnp::Result<::rpc_capnp::call::Builder<'a>>
+                -> ::capnp::Result<call::Builder<'a>>
 {
     let message_root: message::Builder = try!(try!(message.get_body()).get_as());
     match try!(message_root.which()) {
@@ -1683,7 +1668,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         })
     }
 
-    fn init_call<'a>(&'a mut self) -> ::rpc_capnp::call::Builder<'a> {
+    fn init_call<'a>(&'a mut self) -> call::Builder<'a> {
         let message_root: message::Builder = self.message.get_body().unwrap().get_as().unwrap();
         message_root.init_call()
     }
@@ -1706,7 +1691,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
 
         let question_id = connection_state.questions.borrow_mut().push(question);
         {
-            let mut call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
+            let mut call_builder: call::Builder = get_call(&mut message).unwrap();
             // Finish and send.
             call_builder.borrow().set_question_id(question_id);
             if is_tail_call {
@@ -1748,14 +1733,14 @@ impl <VatId> RequestHook for Request<VatId> {
         let tmp = *self;
         let Request { connection_state, target, mut message, cap_table } = tmp;
         let write_target_result = {
-            let call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
+            let call_builder: call::Builder = get_call(&mut message).unwrap();
             target.write_target(call_builder.get_target().unwrap())
         };
         match write_target_result {
             Some(redirect) => {
                 // Whoops, this capability has been redirected while we were building the request!
                 // We'll have to make a new request and do a copy.  Ick.
-                let mut call_builder: ::rpc_capnp::call::Builder = get_call(&mut message).unwrap();
+                let mut call_builder: call::Builder = get_call(&mut message).unwrap();
                 let mut replacement = redirect.new_call(call_builder.borrow().get_interface_id(),
                                                         call_builder.borrow().get_method_id(), None);
 
@@ -2106,7 +2091,7 @@ impl <VatId> ResultsHook for Results<VatId> {
                     match try!(root.which()) {
                         message::Return(ret) => {
                             match try!(try!(ret).which()) {
-                                ::rpc_capnp::return_::Results(payload) => {
+                                return_::Results(payload) => {
                                     use ::capnp::traits::ImbueMut;
                                     let mut content = try!(payload).get_content();
                                     content.imbue_mut(cap_table);
