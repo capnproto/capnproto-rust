@@ -251,9 +251,6 @@ impl PipelineHook for Pipeline {
         Box::new(self.clone())
     }
     fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
-        // Do I need to call imbue() here?
-        // yeah, probably.
-
         match self.inner.borrow_mut().results.get().unwrap().get_pipelined_cap(ops) {
             Ok(v) => v,
             Err(e) => Box::new(::broken::Client::new(e, true, 0)) as Box<ClientHook>,
