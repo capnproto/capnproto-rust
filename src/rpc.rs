@@ -33,12 +33,13 @@ use std::collections::hash_map::HashMap;
 use std::collections::binary_heap::BinaryHeap;
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
+use std::{cmp, mem};
 
 use rpc_capnp::{call, cap_descriptor, disembargo, exception,
                 message, message_target, payload, resolve, return_, promised_answer};
 use forked_promise::ForkedPromise;
 use attach::Attach;
-use broken;
+use {broken, local, queued};
 use local::ResultsDoneHook;
 use task_set::TaskSet;
 
@@ -82,16 +83,16 @@ impl <T> ImportTable<T> {
 #[derive(PartialEq, Eq)]
 struct ReverseU32 { val: u32 }
 
-impl ::std::cmp::Ord for ReverseU32 {
-    fn cmp(&self, other: &ReverseU32) -> ::std::cmp::Ordering {
-        if self.val > other.val { ::std::cmp::Ordering::Less }
-        else if self.val < other.val { ::std::cmp::Ordering::Greater }
-        else { ::std::cmp::Ordering::Equal }
+impl cmp::Ord for ReverseU32 {
+    fn cmp(&self, other: &ReverseU32) -> cmp::Ordering {
+        if self.val > other.val { cmp::Ordering::Less }
+        else if self.val < other.val { cmp::Ordering::Greater }
+        else { cmp::Ordering::Equal }
     }
 }
 
-impl ::std::cmp::PartialOrd for ReverseU32 {
-    fn partial_cmp(&self, other: &ReverseU32) -> Option<::std::cmp::Ordering> {
+impl cmp::PartialOrd for ReverseU32 {
+    fn partial_cmp(&self, other: &ReverseU32) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -398,11 +399,11 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
 
 
 pub struct ConnectionErrorHandler<VatId> where VatId: 'static {
-    weak_state: ::std::rc::Weak<ConnectionState<VatId>>,
+    weak_state: Weak<ConnectionState<VatId>>,
 }
 
 impl <VatId> ConnectionErrorHandler<VatId> {
-    fn new(weak_state: ::std::rc::Weak<ConnectionState<VatId>>) -> ConnectionErrorHandler<VatId> {
+    fn new(weak_state: Weak<ConnectionState<VatId>>) -> ConnectionErrorHandler<VatId> {
         ConnectionErrorHandler { weak_state: weak_state }
     }
 }
@@ -550,7 +551,7 @@ impl <VatId> ConnectionState<VatId> {
             &mut Err(_) => unreachable!(),
         }
 
-        let connection = ::std::mem::replace(&mut *self.connection.borrow_mut(), Err(error.clone()));
+        let connection = mem::replace(&mut *self.connection.borrow_mut(), Err(error.clone()));
 
         match connection {
             Ok(mut c) => {
@@ -565,7 +566,7 @@ impl <VatId> ConnectionState<VatId> {
                         }
                     }
                 });
-                let maybe_fulfiller = ::std::mem::replace(&mut *self.disconnect_fulfiller.borrow_mut(), None);
+                let maybe_fulfiller = mem::replace(&mut *self.disconnect_fulfiller.borrow_mut(), None);
                 match maybe_fulfiller {
                     None => unreachable!(),
                     Some(fulfiller) => {
@@ -635,7 +636,7 @@ impl <VatId> ConnectionState<VatId> {
         result
     }
 
-    fn message_loop(weak_state: ::std::rc::Weak<ConnectionState<VatId>>) -> Promise<(), ::capnp::Error> {
+    fn message_loop(weak_state: Weak<ConnectionState<VatId>>) -> Promise<(), ::capnp::Error> {
         let state = match weak_state.upgrade() {
             None => return Promise::err(
                 Error::disconnected("message loop cannot continue without a connection".into())),
@@ -670,7 +671,7 @@ impl <VatId> ConnectionState<VatId> {
         }))
     }
 
-    fn handle_message(weak_state: ::std::rc::Weak<ConnectionState<VatId>>,
+    fn handle_message(weak_state: Weak<ConnectionState<VatId>>,
                       message: Box<::IncomingMessage>) -> ::capnp::Result<()> {
 
         // Someday Rust will have non-lexical borrows and this thing won't be needed.
@@ -875,7 +876,7 @@ impl <VatId> ConnectionState<VatId> {
                             answer.received_finish.set(true);
 
                             if finish.get_release_result_caps() {
-                                exports_to_release = ::std::mem::replace(&mut answer.result_exports, Vec::new());
+                                exports_to_release = mem::replace(&mut answer.result_exports, Vec::new());
                             }
 
                             // If the pipeline has not been cloned, the following two lines cancel the call.
@@ -1081,7 +1082,7 @@ impl <VatId> ConnectionState<VatId> {
                 }
 
                 let call_promise = capability.call(interface_id, method_id, Box::new(params), Box::new(results));
-                let (pipeline_sender, mut pipeline) = ::queued::Pipeline::new();
+                let (pipeline_sender, mut pipeline) = queued::Pipeline::new();
 
                 let promise = call_promise.then(move |call_result| {
                     results_inner_promise.then(move |result| {
@@ -1854,7 +1855,7 @@ impl <VatId> PipelineState<VatId> where VatId: 'static {
             Ok(r) =>  PipelineVariant::Resolved(r),
             Err(e) => PipelineVariant::Broken(e),
         };
-        let _old_variant = ::std::mem::replace(&mut state.borrow_mut().variant, new_variant);
+        let _old_variant = mem::replace(&mut state.borrow_mut().variant, new_variant);
 
         let waiters = state.borrow_mut().resolution_waiters.drain();
         for (_, waiter) in waiters {
@@ -2173,7 +2174,7 @@ struct ResultsDone {
 impl ResultsDone {
     fn from_results_inner<VatId>(results_inner: Result<ResultsInner<VatId>, Error>,
                                  call_status: Result<(), Error>,
-                                 pipeline_sender: ::queued::PipelineInnerSender)
+                                 pipeline_sender: queued::PipelineInnerSender)
                                  -> Result<Box<ResultsDoneHook>, Error>
         where VatId: 'static
     {
@@ -2194,7 +2195,7 @@ impl ResultsDone {
                                 let hook = Box::new(ResultsDone::rpc(Rc::new(message.take()), cap_table))
                                     as Box<ResultsDoneHook>;
                                 pipeline_sender.complete(Box::new(
-                                    ::local::Pipeline::new(hook.clone())));
+                                    local::Pipeline::new(hook.clone())));
 
                                 // Send a Canceled return.
                                 match connection_state.connection.borrow_mut().as_mut() {
@@ -2241,7 +2242,7 @@ impl ResultsDone {
                                 connection_state.answer_has_sent_return(answer_id, exports);
                                 let hook = Box::new(ResultsDone::rpc(m, cap_table)) as Box<ResultsDoneHook>;
                                 pipeline_sender.complete(Box::new(
-                                    ::local::Pipeline::new(hook.clone())));
+                                    local::Pipeline::new(hook.clone())));
                                 Ok(hook)
                             }
                             (false, Err(e)) => {
@@ -2560,12 +2561,12 @@ impl <VatId> PromiseClient<VatId> {
                 Ok(replacement)
             });
 
-            let mut queued_client = ::queued::Client::new(None);
+            let mut queued_client = queued::Client::new(None);
             let weak_queued = Rc::downgrade(&queued_client.inner);
 
             queued_client.drive(embargo_promise.then(move |r| {
                 if let Some(q) = weak_queued.upgrade() {
-                    ::queued::ClientInner::resolve(&q, r);
+                    queued::ClientInner::resolve(&q, r);
                 }
                 Ok(())
             }));
@@ -2581,7 +2582,7 @@ impl <VatId> PromiseClient<VatId> {
             waiter.complete(replacement.clone());
         }
 
-        let old_cap = ::std::mem::replace(&mut self.cap, replacement);
+        let old_cap = mem::replace(&mut self.cap, replacement);
         connection_state.add_task(future::lazy(move || {
             drop(old_cap);
             Ok(())
