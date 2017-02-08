@@ -25,7 +25,7 @@ use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook};
 
-use futures::Future;
+use futures::{future, Future};
 use futures::sync::oneshot;
 
 use std::vec::Vec;
@@ -968,7 +968,7 @@ impl <VatId> ConnectionState<VatId> {
 
                             let connection_state_ref = connection_state.clone();
                             let connection_state_ref1 = connection_state.clone();
-                            let task = ::futures::future::lazy(move || {
+                            let task = future::lazy(move || {
                                 if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
                                     let mut message = c.new_outgoing_message(100); // TODO estimate size
                                     {
@@ -1877,7 +1877,7 @@ impl <VatId> Pipeline<VatId> {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state: connection_state.clone(),
             redirect_later: None,
-            resolve_self_promise: Promise::from_future(::futures::future::empty()),
+            resolve_self_promise: Promise::from_future(future::empty()),
             promise_clients_to_resolve: RefCell::new(::sender_queue::SenderQueue::new()),
             resolution_waiters: ::sender_queue::SenderQueue::new(),
         }));
@@ -1914,7 +1914,7 @@ impl <VatId> Pipeline<VatId> {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state: connection_state,
             redirect_later: None,
-            resolve_self_promise: Promise::from_future(::futures::future::empty()),
+            resolve_self_promise: Promise::from_future(future::empty()),
             promise_clients_to_resolve: RefCell::new(::sender_queue::SenderQueue::new()),
             resolution_waiters: ::sender_queue::SenderQueue::new(),
         }));
@@ -2582,7 +2582,7 @@ impl <VatId> PromiseClient<VatId> {
         }
 
         let old_cap = ::std::mem::replace(&mut self.cap, replacement);
-        connection_state.add_task(::futures::future::lazy(move ||{
+        connection_state.add_task(future::lazy(move || {
             drop(old_cap);
             Ok(())
         }));
