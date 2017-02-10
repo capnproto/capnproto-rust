@@ -2003,7 +2003,7 @@ impl ParamsHook for Params {
 
 enum ResultsVariant {
     Rpc(Box<::OutgoingMessage>, Vec<Option<Box<ClientHook>>>),
-    LocallyRedirected(::capnp::message::Builder<::capnp::message::HeapAllocator>),
+    LocallyRedirected(::capnp::message::Builder<::capnp::message::HeapAllocator>, Vec<Option<Box<ClientHook>>>),
 }
 
 struct ResultsInner<VatId> where VatId: 'static {
@@ -2032,7 +2032,9 @@ impl <VatId> ResultsInner<VatId> where VatId: 'static {
                 }
                 _ => {
                     self.variant =
-                        Some(ResultsVariant::LocallyRedirected(::capnp::message::Builder::new_default()));
+                        Some(ResultsVariant::LocallyRedirected(
+                            ::capnp::message::Builder::new_default(),
+                            Vec::new()));
                 }
             }
         }
@@ -2082,6 +2084,7 @@ impl <VatId> Drop for Results<VatId> {
 
 impl <VatId> ResultsHook for Results<VatId> {
     fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
+        use ::capnp::traits::ImbueMut;
         if let Some(ref mut inner) = self.inner {
             inner.ensure_initialized();
             match inner.variant {
@@ -2092,7 +2095,6 @@ impl <VatId> ResultsHook for Results<VatId> {
                         message::Return(ret) => {
                             match try!(try!(ret).which()) {
                                 return_::Results(payload) => {
-                                    use ::capnp::traits::ImbueMut;
                                     let mut content = try!(payload).get_content();
                                     content.imbue_mut(cap_table);
                                     Ok(content)
@@ -2107,8 +2109,10 @@ impl <VatId> ResultsHook for Results<VatId> {
                         }
                     }
                 }
-                Some(ResultsVariant::LocallyRedirected(ref mut message)) => {
-                    message.get_root()
+                Some(ResultsVariant::LocallyRedirected(ref mut message, ref mut cap_table)) => {
+                    let mut result: any_pointer::Builder = try!(message.get_root());
+                    result.imbue_mut(cap_table);
+                    Ok(result)
                 }
             }
         } else {
@@ -2164,7 +2168,7 @@ impl <VatId> ResultsHook for Results<VatId> {
 
 enum ResultsDoneVariant {
     Rpc(Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>, Vec<Option<Box<ClientHook>>>),
-    LocallyRedirected(::capnp::message::Builder<::capnp::message::HeapAllocator>),
+    LocallyRedirected(::capnp::message::Builder<::capnp::message::HeapAllocator>, Vec<Option<Box<ClientHook>>>),
 }
 
 struct ResultsDone {
@@ -2271,8 +2275,9 @@ impl ResultsDone {
                             }
                         }
                     }
-                    Some(ResultsVariant::LocallyRedirected(results_done)) => {
-                        let hook = Box::new(ResultsDone::redirected(results_done)) as Box<ResultsDoneHook>;
+                    Some(ResultsVariant::LocallyRedirected(results_done, cap_table)) => {
+                        let hook = Box::new(ResultsDone::redirected(results_done, cap_table))
+                            as Box<ResultsDoneHook>;
                         pipeline_sender.complete(Box::new(::local::Pipeline::new(hook.clone())));
                         Ok(hook)
                     }
@@ -2290,11 +2295,12 @@ impl ResultsDone {
         }
     }
 
-    fn redirected(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>)
+    fn redirected(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+                  cap_table: Vec<Option<Box<ClientHook>>>)
                   -> ResultsDone
     {
         ResultsDone {
-            inner: Rc::new(ResultsDoneVariant::LocallyRedirected(message)),
+            inner: Rc::new(ResultsDoneVariant::LocallyRedirected(message, cap_table)),
         }
     }
 }
@@ -2304,6 +2310,7 @@ impl ResultsDoneHook for ResultsDone {
         Box::new(ResultsDone { inner: self.inner.clone() })
     }
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
+        use ::capnp::traits::Imbue;
         match *self.inner {
             ResultsDoneVariant::Rpc(ref message, ref cap_table) => {
                 let root: message::Reader = try!(message.get_root_as_reader());
@@ -2311,7 +2318,6 @@ impl ResultsDoneHook for ResultsDone {
                     message::Return(ret) => {
                         match try!(try!(ret).which()) {
                             ::rpc_capnp::return_::Results(payload) => {
-                                use ::capnp::traits::Imbue;
                                 let mut content = try!(payload).get_content();
                                 content.imbue(cap_table);
                                 Ok(content)
@@ -2326,8 +2332,10 @@ impl ResultsDoneHook for ResultsDone {
                     }
                 }
             }
-            ResultsDoneVariant::LocallyRedirected(ref r) => {
-                r.get_root_as_reader()
+            ResultsDoneVariant::LocallyRedirected(ref message, ref cap_table) => {
+                let mut result: any_pointer::Reader = try!(message.get_root_as_reader());
+                result.imbue(cap_table);
+                Ok(result)
             }
         }
     }
