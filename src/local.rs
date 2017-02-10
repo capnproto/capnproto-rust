@@ -63,22 +63,27 @@ impl ResponseHook for Response {
 }
 
 struct Params {
-    request: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    request: message::Builder<message::HeapAllocator>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
 }
 
 impl Params {
-    fn new(request: ::capnp::message::Builder<::capnp::message::HeapAllocator>)
+    fn new(request: message::Builder<message::HeapAllocator>,
+           cap_table: Vec<Option<Box<ClientHook>>>)
            -> Params
     {
         Params {
             request: request,
+            cap_table: cap_table,
         }
     }
 }
 
 impl ParamsHook for Params {
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        Ok(try!(self.request.get_root_as_reader()))
+        let mut result: any_pointer::Reader = try!(self.request.get_root_as_reader());
+        result.imbue(&self.cap_table);
+        Ok(result)
     }
 }
 
@@ -174,6 +179,7 @@ impl ResultsDoneHook for ResultsDone {
 
 pub struct Request {
     message: message::Builder<::capnp::message::HeapAllocator>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
     interface_id: u64,
     method_id: u16,
     client: Box<ClientHook>,
@@ -187,6 +193,7 @@ impl Request {
     {
         Request {
             message: message::Builder::new_default(),
+            cap_table: Vec::new(),
             interface_id: interface_id,
             method_id: method_id,
             client: client,
@@ -196,15 +203,17 @@ impl Request {
 
 impl RequestHook for Request {
     fn get<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        self.message.get_root().unwrap()
+        let mut result: any_pointer::Builder = self.message.get_root().unwrap();
+        result.imbue_mut(&mut self.cap_table);
+        result
     }
     fn get_brand(&self) -> usize {
         0
     }
     fn send<'a>(self: Box<Self>) -> capability::RemotePromise<any_pointer::Owned> {
         let tmp = *self;
-        let Request { message, interface_id, method_id, client } = tmp;
-        let params = Params::new(message);
+        let Request { message, cap_table, interface_id, method_id, client } = tmp;
+        let params = Params::new(message, cap_table);
 
         let (results_done_fulfiller, results_done_promise) = oneshot::channel::<Box<ResultsDoneHook>>();
         let results_done_promise = results_done_promise.map_err(|e| e.into());

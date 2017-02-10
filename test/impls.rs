@@ -288,7 +288,7 @@ impl test_call_order::Server for TestCallOrder {
     }
 }
 
-struct TestMoreStuff {
+pub struct TestMoreStuff {
     call_count: u32,
     handle_count: Rc<Cell<i64>>,
     client_to_hold: Option<test_interface::Client>,

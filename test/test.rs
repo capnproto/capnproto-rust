@@ -761,6 +761,19 @@ fn local_client_call_not_immediate() {
 }
 
 #[test]
+fn local_client_send_cap() {
+    let server1 = ::impls::TestMoreStuff::new();
+    let server2 = ::impls::TestInterface::new();
+    let client1 = ::test_capnp::test_more_stuff::ToClient::new(server1).from_server::<::capnp_rpc::Server>();
+    let client2 = ::test_capnp::test_interface::ToClient::new(server2).from_server::<::capnp_rpc::Server>();
+
+    let mut req = client1.call_foo_request();
+    req.get().set_cap(client2);
+    let response = req.send().promise.wait().unwrap();
+    assert_eq!(response.get().unwrap().get_s().unwrap(), "bar");
+}
+
+#[test]
 fn local_client_return_cap() {
     let server = ::impls::Bootstrap;
     let client = ::test_capnp::bootstrap::ToClient::new(server).from_server::<::capnp_rpc::Server>();
