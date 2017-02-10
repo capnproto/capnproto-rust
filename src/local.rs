@@ -18,8 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capnp::{any_pointer};
+use capnp::{any_pointer, message};
 use capnp::Error;
+use capnp::traits::{Imbue, ImbueMut};
 use capnp::capability::{self, Promise};
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook};
@@ -30,7 +31,7 @@ use futures::sync::oneshot;
 
 use std::cell::RefCell;
 use std::rc::{Rc};
-
+use std::mem;
 
 pub trait ResultsDoneHook {
     fn add_ref(&self) -> Box<ResultsDoneHook>;
@@ -81,10 +82,9 @@ impl ParamsHook for Params {
     }
 }
 
-type HeapMessage = ::capnp::message::Builder<::capnp::message::HeapAllocator>;
-
 struct Results {
-    message: Option<HeapMessage>,
+    message: Option<message::Builder<message::HeapAllocator>>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
     results_done_fulfiller: Option<oneshot::Sender<Box<ResultsDoneHook>>>,
 }
 
@@ -92,6 +92,7 @@ impl Results {
     fn new(fulfiller: oneshot::Sender<Box<ResultsDoneHook>>) -> Results {
         Results {
             message: Some(::capnp::message::Builder::new_default()),
+            cap_table: Vec::new(),
             results_done_fulfiller: Some(fulfiller),
         }
     }
@@ -100,7 +101,8 @@ impl Results {
 impl Drop for Results {
     fn drop(&mut self) {
         if let (Some(message), Some(fulfiller)) = (self.message.take(), self.results_done_fulfiller.take()) {
-            fulfiller.complete(Box::new(ResultsDone::new(message)));
+            let cap_table = mem::replace(&mut self.cap_table, Vec::new());
+            fulfiller.complete(Box::new(ResultsDone::new(message, cap_table)));
         } else {
             unreachable!()
         }
@@ -109,10 +111,13 @@ impl Drop for Results {
 
 impl ResultsHook for Results {
     fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
-        if let Some(ref mut message) = self.message {
-            Ok(try!(message.get_root()))
-        } else {
-            unreachable!()
+        match *self {
+            Results { message: Some(ref mut message), ref mut cap_table, .. } => {
+                let mut result: any_pointer::Builder = try!(message.get_root());
+                result.imbue_mut(cap_table);
+                Ok(result)
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -132,7 +137,8 @@ impl ResultsHook for Results {
 }
 
 struct ResultsDoneInner {
-    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>
+    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    cap_table: Vec<Option<Box<ClientHook>>>,
 }
 
 struct ResultsDone {
@@ -140,12 +146,15 @@ struct ResultsDone {
 }
 
 impl ResultsDone {
-    fn new(message: ::capnp::message::Builder<::capnp::message::HeapAllocator>)
+    fn new(message: message::Builder<message::HeapAllocator>,
+           cap_table: Vec<Option<Box<ClientHook>>>,
+    )
         -> ResultsDone
     {
         ResultsDone {
             inner: Rc::new(ResultsDoneInner {
                 message: message,
+                cap_table: cap_table,
             }),
         }
     }
@@ -156,13 +165,15 @@ impl ResultsDoneHook for ResultsDone {
         Box::new(ResultsDone { inner: self.inner.clone() })
     }
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        Ok(try!(self.inner.message.get_root_as_reader()))
+        let mut result: any_pointer::Reader = try!(self.inner.message.get_root_as_reader());
+        result.imbue(&self.inner.cap_table);
+        Ok(result)
     }
 }
 
 
 pub struct Request {
-    message: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    message: message::Builder<::capnp::message::HeapAllocator>,
     interface_id: u64,
     method_id: u16,
     client: Box<ClientHook>,
@@ -175,7 +186,7 @@ impl Request {
            -> Request
     {
         Request {
-            message: ::capnp::message::Builder::new_default(),
+            message: message::Builder::new_default(),
             interface_id: interface_id,
             method_id: method_id,
             client: client,
