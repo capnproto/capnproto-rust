@@ -139,7 +139,7 @@ fn test_camel_to_snake_case() {
     assert_eq!(camel_to_snake_case("uint32Id"), "uint32_id".to_string());
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum FormattedText {
     Indent(Box<FormattedText>),
     Branch(Vec<FormattedText>),
@@ -485,6 +485,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
     let mut setter_interior = Vec::new();
     let mut setter_param = "value".to_string();
     let mut initter_interior = Vec::new();
+    let mut initn_interior = Vec::new();
     let mut initter_params = Vec::new();
 
     let discriminant_value = field.get_discriminant_value();
@@ -493,10 +494,11 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
             Line(format!("self.builder.set_data_field::<u16>({}, {});",
                          discriminant_offset as usize,
                          discriminant_value as usize)));
-        initter_interior.push(
-            Line(format!("self.builder.set_data_field::<u16>({}, {});",
-                         discriminant_offset as usize,
-                         discriminant_value as usize)));
+        let init_discrim = Line(format!("self.builder.set_data_field::<u16>({}, {});",
+                                        discriminant_offset as usize,
+                                        discriminant_value as usize));
+        initter_interior.push(init_discrim.clone());
+        initn_interior.push(init_discrim);
     }
 
     let mut setter_generic_param = String::new();
@@ -554,7 +556,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                                                       offset)));
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_text(size)",
                                                        offset)));
-                    initter_params.push("size : u32");
+                    initter_params.push("size: u32");
                     (Some("text::Reader".to_string()), Some("text::Builder<'a>".to_string()))
                 }
                 type_::Data(()) => {
@@ -562,7 +564,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                                                       offset)));
                     initter_interior.push(Line(format!("self.builder.get_pointer_field({}).init_data(size)",
                                                        offset)));
-                    initter_params.push("size : u32");
+                    initter_params.push("size: u32");
                     (Some("data::Reader".to_string()), Some("data::Builder<'a>".to_string()))
                 }
                 type_::List(ot1) => {
@@ -571,7 +573,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                         Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)",
                                      offset)));
 
-                    initter_params.push("size : u32");
+                    initter_params.push("size: u32");
                     initter_interior.push(
                         Line(format!("::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({}), size)", offset)));
 
@@ -631,12 +633,12 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                         setter_interior.push(Line(format!("SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value)", offset)));
                         return_result = true;
 
-
                         let builder_type = try!(typ.type_string(gen, Leaf::Builder("'a")));
 
                         result.push(Line("#[inline]".to_string()));
                         result.push(Line(format!("pub fn initn_{}(self, length: u32) -> {} {{",
                                                  styled_name, builder_type)));
+                        result.push(Indent(Box::new(Branch(initn_interior))));
                         result.push(Indent(Box::new(
                             Line(format!("::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({})).initn_as(length)", offset)))));
                         result.push(Line("}".to_string()));

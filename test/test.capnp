@@ -331,6 +331,7 @@ struct TestGenericsUnion(Foo, Bar) {
   union {
     foo1 @0 :Foo;
     bar1 @1 :Bar;
+    foo2 @2 :Foo;
   }
 }
 
