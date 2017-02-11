@@ -9,7 +9,7 @@
 
 ## About
 
-[Cap'n Proto](http://kentonv.github.io/capnproto/) is an
+[Cap'n Proto](https://capnproto.org) is an
 extremely efficient protocol
 for sharing data and capabilities.
 
