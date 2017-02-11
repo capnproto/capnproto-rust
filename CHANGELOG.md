@@ -1,3 +1,6 @@
+### v0.8.2
+- Fix bug where `initn_*()` methods of generic unions failed to set the discriminant.
+
 ### v0.8.1
 - Fix several formatting issues in generated code.
 - Remove some unneccesary trait bounds in generated code.
