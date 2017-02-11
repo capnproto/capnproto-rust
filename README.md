@@ -3,6 +3,8 @@
 [![Build Status](https://travis-ci.org/dwrensha/capnproto-rust.svg?branch=master)](https://travis-ci.org/dwrensha/capnproto-rust)
 [![crates.io](http://meritbadge.herokuapp.com/capnp)](https://crates.io/crates/capnp)
 
+[documentation](https://docs.capnproto-rust.org)
+
 ## About
 
 [Cap'n Proto](http://kentonv.github.io/capnproto/) is an
@@ -18,10 +20,6 @@ has a code generator plugin.
 See [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust)
 for an implementation of
 remote procedure calls built on top of this.
-
-## Documentation
-
-Hosted [here](https://docs.capnproto-rust.org).
 
 ## Examples
 
