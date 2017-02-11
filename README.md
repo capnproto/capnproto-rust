@@ -4,6 +4,7 @@
 [![crates.io](http://meritbadge.herokuapp.com/capnp)](https://crates.io/crates/capnp)
 
 [documentation](https://docs.capnproto-rust.org)
+
 [blog](https://dwrensha.github.io/capnproto-rust)
 
 ## About
