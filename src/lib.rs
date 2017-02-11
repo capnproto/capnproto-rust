@@ -32,7 +32,7 @@
 //!   build = "build.rs"
 //!
 //!   [build-dependencies]
-//!   capnpc = "*"
+//!   capnpc = "0.8"
 //! ```
 //!
 //! In your build.rs:
@@ -41,7 +41,7 @@
 //! extern crate capnpc;
 //!
 //! fn main() {
-//!     ::capnpc::CompilerCommand::new()
+//!     capnpc::CompilerCommand::new()
 //!         .src_prefix("schema")
 //!         .file("schema/foo.capnp")
 //!         .file("schema/bar.capnp")

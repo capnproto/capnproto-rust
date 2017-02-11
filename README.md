@@ -1,4 +1,4 @@
-# Cap'n Proto code generation for Rust.
+# Cap'n Proto code generation for Rust
 
 [![Build Status](https://travis-ci.org/dwrensha/capnpc-rust.svg?branch=master)](https://travis-ci.org/dwrensha/capnpc-rust)
 [![crates.io](http://meritbadge.herokuapp.com/capnpc)](https://crates.io/crates/capnpc)
