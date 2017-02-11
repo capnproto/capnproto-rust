@@ -4,6 +4,7 @@
 [![crates.io](http://meritbadge.herokuapp.com/capnp)](https://crates.io/crates/capnp)
 
 [documentation](https://docs.capnproto-rust.org)
+[blog](https://dwrensha.github.io/capnproto-rust)
 
 ## About
 
@@ -26,9 +27,6 @@ remote procedure calls built on top of this.
 [addressbook serialization](https://github.com/dwrensha/capnpc-rust/tree/master/example/addressbook),
 [RPC](https://github.com/dwrensha/capnp-rpc-rust/tree/master/examples)
 
-## Status
-
-See updates [here](https://dwrensha.github.io/capnproto-rust).
 
 
 
