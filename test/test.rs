@@ -1164,21 +1164,4 @@ mod tests {
     fn pipeline_any_pointer(foo: ::test_capnp::test_any_pointer::Pipeline) {
         let _ = foo.get_any_pointer_field();
     }
-
-    #[test]
-    fn threads() {
-        use test_capnp::{test_all_types};
-        {
-            let mut message = message::Builder::new_default();
-            let mut root = message.init_root::<test_all_types::Builder>();
-            ::test_util::init_test_message(root.borrow());
-            {
-                let _root_reader = root.as_reader();
-                // TODO
-                //::std::thread::scoped(|| {
-                //    let root_reader1 = root_reader;
-                //});
-            }
-        }
-    }
 }
