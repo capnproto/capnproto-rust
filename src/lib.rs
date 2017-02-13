@@ -192,14 +192,16 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 /// Describes an arbitrary error that prevented an operation from completing.
 #[derive(Debug, Clone)]
 pub struct Error {
-    /// The type of the error. The purpose of this enum is not to describe the error itself, but
-    /// rather to describe how the client might want to respond to the error.
+    /// The general kind of the error. Code that decides how to respond to an error
+    /// should read only this field in making its decision.
     pub kind: ErrorKind,
 
     /// Human-readable failure description.
     pub description: String,
 }
 
+/// The type of the error. The purpose of this enum is not to describe the error itself, but
+/// rather to describe how the client might want to respond to the error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
     /// Something went wrong. This is the usual error kind. It includes decoding errors.
