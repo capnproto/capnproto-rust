@@ -192,8 +192,8 @@ pub struct Error {
     pub description: String,
 }
 
-/// The type of an error. The purpose of this enum is not to describe the error itself, but
-/// rather to describe how the client might want to respond to the error.
+/// The general nature of an error. The purpose of this enum is not to describe the error itself,
+/// but rather to describe how the client might want to respond to the error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
     /// Something went wrong. This is the usual error kind. It includes decoding errors.

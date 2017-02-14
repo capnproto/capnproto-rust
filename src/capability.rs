@@ -29,7 +29,7 @@ use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, Res
 #[cfg(feature = "rpc")]
 use futures::Future;
 
-use std::{marker, mem};
+use std::{marker};
 
 /// A computation that might eventually resolve to a value of type `T` or to an error
 ///  of type `E`. Dropping the promise cancels the computation.
@@ -76,7 +76,7 @@ impl <T, E> Future for Promise<T, E>
         match self.inner {
             PromiseInner::Empty => panic!("Promise polled after done."),
             ref mut imm @ PromiseInner::Immediate(_) => {
-                match mem::replace(imm, PromiseInner::Empty) {
+                match ::std::mem::replace(imm, PromiseInner::Empty) {
                     PromiseInner::Immediate(Ok(v)) => Ok(::futures::Async::Ready(v)),
                     PromiseInner::Immediate(Err(e)) => Err(e),
                     _ => unreachable!(),
@@ -87,18 +87,19 @@ impl <T, E> Future for Promise<T, E>
     }
 }
 
+/// A promise for a result from a method call.
 #[must_use]
 pub struct RemotePromise<Results> where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static {
     pub promise: Promise<Response<Results>, ::Error>,
     pub pipeline: Results::Pipeline,
 }
 
+/// A response from a method call, as seen by the client.
 pub struct Response<Results> {
     pub marker: marker::PhantomData<Results>,
     pub hook: Box<ResponseHook>,
 }
 
-/// A response from a method call, as seen by the client.
 impl <Results> Response<Results>
     where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a>
 {
