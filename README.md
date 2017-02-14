@@ -28,7 +28,7 @@ interface PointTracker {
 ```
 
 You can then use the [capnp tool](https://capnproto.org/capnp-tool.html#compiling-schemas)
-to generate code in a variety programming languages.
+to generate code in a [variety of programming languages](https://capnproto.org/otherlang.html).
 The generated code lets you produce and consume values of the
 types you've defined in your schema.
 
