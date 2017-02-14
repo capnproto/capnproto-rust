@@ -29,6 +29,8 @@ use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, Res
 #[cfg(feature = "rpc")]
 use futures::Future;
 
+use std::{marker, mem};
+
 /// A computation that might eventually resolve to a value of type `T` or to an error
 ///  of type `E`. Dropping the promise cancels the computation.
 #[must_use = "futures do nothing unless polled"]
@@ -74,7 +76,7 @@ impl <T, E> Future for Promise<T, E>
         match self.inner {
             PromiseInner::Empty => panic!("Promise polled after done."),
             ref mut imm @ PromiseInner::Immediate(_) => {
-                match ::std::mem::replace(imm, PromiseInner::Empty) {
+                match mem::replace(imm, PromiseInner::Empty) {
                     PromiseInner::Immediate(Ok(v)) => Ok(::futures::Async::Ready(v)),
                     PromiseInner::Immediate(Err(e)) => Err(e),
                     _ => unreachable!(),
@@ -92,23 +94,25 @@ pub struct RemotePromise<Results> where Results: ::traits::Pipelined + for<'a> :
 }
 
 pub struct Response<Results> {
-    pub marker: ::std::marker::PhantomData<Results>,
+    pub marker: marker::PhantomData<Results>,
     pub hook: Box<ResponseHook>,
 }
 
+/// A response from a method call, as seen by the client.
 impl <Results> Response<Results>
     where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a>
 {
     pub fn new(hook: Box<ResponseHook>) -> Response<Results> {
-        Response { marker: ::std::marker::PhantomData, hook: hook }
+        Response { marker: marker::PhantomData, hook: hook }
     }
     pub fn get<'a>(&'a self) -> ::Result<<Results as ::traits::Owned<'a>>::Reader> {
         try!(self.hook.get()).get_as()
     }
 }
 
+/// A method call that has not been sent yet.
 pub struct Request<Params, Results> {
-    pub marker: ::std::marker::PhantomData<(Params, Results)>,
+    pub marker: marker::PhantomData<(Params, Results)>,
     pub hook: Box<RequestHook>
 }
 
@@ -116,7 +120,7 @@ impl <Params, Results> Request <Params, Results>
     where Params: for<'a> ::traits::Owned<'a>
 {
     pub fn new(hook: Box<RequestHook>) -> Request <Params, Results> {
-        Request { hook: hook, marker: ::std::marker::PhantomData }
+        Request { hook: hook, marker: marker::PhantomData }
     }
 
     pub fn get<'a>(&'a mut self) -> <Params as ::traits::Owned<'a>>::Builder {
@@ -137,7 +141,7 @@ where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static,
         let RemotePromise {promise, pipeline, ..} = self.hook.send();
         let typed_promise = Promise::from_future(promise.map(|response| {
             Response {hook: response.hook,
-                      marker: ::std::marker::PhantomData}
+                      marker: marker::PhantomData}
         }));
         RemotePromise { promise: typed_promise,
                         pipeline: FromTypelessPipeline::new(pipeline)
@@ -145,14 +149,15 @@ where Results: ::traits::Pipelined + for<'a> ::traits::Owned<'a> + 'static,
     }
 }
 
+/// The values of the parameters passed to a method call, as seen by the server.
 pub struct Params<T> {
-    pub marker: ::std::marker::PhantomData<T>,
+    pub marker: marker::PhantomData<T>,
     pub hook: Box<ParamsHook>,
 }
 
 impl <T> Params <T> {
     pub fn new(hook: Box<ParamsHook>) -> Params<T> {
-        Params { marker: ::std::marker::PhantomData, hook: hook }
+        Params { marker: marker::PhantomData, hook: hook }
     }
     pub fn get<'a>(&'a self) -> ::Result<<T as ::traits::Owned<'a>>::Reader>
         where T: ::traits::Owned<'a>
@@ -161,8 +166,9 @@ impl <T> Params <T> {
     }
 }
 
+/// The return values of a method, written in-place by the method body.
 pub struct Results<T> {
-    pub marker: ::std::marker::PhantomData<T>,
+    pub marker: marker::PhantomData<T>,
     pub hook: Box<ResultsHook>,
 }
 
@@ -170,7 +176,7 @@ impl <T> Results<T>
     where T: for<'a> ::traits::Owned<'a>
 {
     pub fn new(hook: Box<ResultsHook>) -> Results<T> {
-        Results { marker: ::std::marker::PhantomData, hook: hook }
+        Results { marker: marker::PhantomData, hook: hook }
     }
 
     pub fn get<'a>(&'a mut self) -> <T as ::traits::Owned<'a>>::Builder {
@@ -184,7 +190,6 @@ impl <T> Results<T>
 
 }
 
-
 pub trait FromTypelessPipeline {
     fn new (typeless: any_pointer::Pipeline) -> Self;
 }
@@ -193,6 +198,7 @@ pub trait FromClientHook {
     fn new(Box<ClientHook>) -> Self;
 }
 
+/// An untyped client.
 pub struct Client {
     pub hook: Box<ClientHook>
 }
@@ -208,7 +214,7 @@ impl Client {
                                      size_hint : Option<::MessageSize>)
                                      -> Request<Params, Results> {
         let typeless = self.hook.new_call(interface_id, method_id, size_hint);
-        Request { hook: typeless.hook, marker: ::std::marker::PhantomData }
+        Request { hook: typeless.hook, marker: marker::PhantomData }
     }
 
     /// If the capability is actually only a promise, the returned promise resolves once the
@@ -222,6 +228,7 @@ impl Client {
     }
 }
 
+/// An untyped server.
 pub trait Server {
     fn dispatch_call(&mut self, interface_id: u64, method_id: u16,
                      params: Params<any_pointer::Owned>,
