@@ -47,7 +47,7 @@ The generated code also includes
 a `point_tracker::Server` trait with an `add_point()` method,
 and a `point_tracker::Client` struct with an `add_point_request()` method.
 The former can be implemented to create a network-accessible object,
-and the latter can be used to invoke a possible-remote instance of a `PointTracker`.
+and the latter can be used to invoke a possibly-remote instance of a `PointTracker`.
 
 ## related repositories
 - [capnproto-rust](https://github.com/dwrensha/capnproto-rust) (the repo you're looking at right now):
