@@ -7,7 +7,7 @@
 
 [blog](https://dwrensha.github.io/capnproto-rust)
 
-## Intro
+## introduction
 
 [Cap'n Proto](https://capnproto.org) is a type system for distributed systems.
 
@@ -38,7 +38,7 @@ and a `point::Builder<'a>` struct with `set_x()` and `set_y()` methods.
 The lifetime variable `'a` in these generated struct types
 is a formal reminder that they contain borrowed references to
 the raw buffers of bytes that make up the underlying Cap'n Proto messages.
-Those underlying raw buffers are never actually parsed into
+Those underlying buffers are never actually parsed into
 separate data structures -- Cap'n Proto's wire format also serves as its in-memory format.
 That is, there is no encode or decode step!
 It's in this sense that Cap'n Proto is "infinitely faster" than alternatives like Protocol Buffers.
