@@ -11,7 +11,7 @@
 
 [Cap'n Proto](https://capnproto.org) is a type system for distributed systems.
 
-With Cap'n Proto, you statically describe your data and interfaces
+With Cap'n Proto, you describe your data and interfaces
 in a schema file, like this:
 
 ```capnp
