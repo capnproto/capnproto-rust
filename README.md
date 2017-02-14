@@ -2,10 +2,12 @@
 
 [![Build Status](https://travis-ci.org/dwrensha/capnproto-rust.svg?branch=master)](https://travis-ci.org/dwrensha/capnproto-rust)
 [![crates.io](http://meritbadge.herokuapp.com/capnp)](https://crates.io/crates/capnp)
-&#124;
+
 [documentation](https://docs.capnproto-rust.org)
-&#124;
+
 [blog](https://dwrensha.github.io/capnproto-rust)
+
+## Intro
 
 [Cap'n Proto](https://capnproto.org) is a type system for distributed systems.
 
