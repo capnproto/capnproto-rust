@@ -6,7 +6,7 @@ authors = [ "David Renshaw <david@sandstorm.io>" ]
 license = "MIT"
 description = "runtime library for Cap'n Proto data encoding"
 repository = "https://github.com/dwrensha/capnproto-rust"
-documentation = "http://docs.capnproto-rust.org"
+documentation = "https://docs.capnproto-rust.org/capnp/"
 
 readme = "README.md"
 

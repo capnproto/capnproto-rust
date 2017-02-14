@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/dwrensha/capnproto-rust.svg?branch=master)](https://travis-ci.org/dwrensha/capnproto-rust)
 [![crates.io](http://meritbadge.herokuapp.com/capnp)](https://crates.io/crates/capnp)
 
-[documentation](https://docs.capnproto-rust.org)
+[documentation](https://docs.capnproto-rust.org/capnp/)
 
 [blog](https://dwrensha.github.io/capnproto-rust)
 
