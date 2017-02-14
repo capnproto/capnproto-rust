@@ -2,9 +2,9 @@
 
 [![Build Status](https://travis-ci.org/dwrensha/capnproto-rust.svg?branch=master)](https://travis-ci.org/dwrensha/capnproto-rust)
 [![crates.io](http://meritbadge.herokuapp.com/capnp)](https://crates.io/crates/capnp)
-
+&#124;
 [documentation](https://docs.capnproto-rust.org)
-
+&#124;
 [blog](https://dwrensha.github.io/capnproto-rust)
 
 [Cap'n Proto](https://capnproto.org) is a type system for distributed systems.
@@ -64,7 +64,7 @@ and the latter can be used to invoke a possible-remote instance of a `PointTrack
 
 ## who's using capnproto-rust?
 
-- Sandstorm's [example app](https://github.com/dwrensha/sandstorm-rawapi-example-rust) and
+- Sandstorm's [raw API example app](https://github.com/dwrensha/sandstorm-rawapi-example-rust) and
   [collections app](https://github.com/sandstorm-io/collections-app)
 - [leaf](https://github.com/autumnai/leaf)
 - [fractalide](https://github.com/fractalide/fractalide)
