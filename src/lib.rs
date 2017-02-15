@@ -28,11 +28,11 @@
 //! In your Cargo.toml:
 //!
 //! ```ignore
-//!   [package]
-//!   build = "build.rs"
+//! [package]
+//! build = "build.rs"
 //!
-//!   [build-dependencies]
-//!   capnpc = "0.8"
+//! [build-dependencies]
+//! capnpc = "0.8"
 //! ```
 //!
 //! In your build.rs:
