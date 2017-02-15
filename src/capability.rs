@@ -189,7 +189,6 @@ impl <T> Results<T>
     {
         self.hook.get().unwrap().set_as(other)
     }
-
 }
 
 pub trait FromTypelessPipeline {
