@@ -35,7 +35,7 @@ types you've defined in your schema.
 In Rust, the generated code for the example above includes
 a `point::Reader<'a>` struct with `get_x()` and `get_y()` methods,
 and a `point::Builder<'a>` struct with `set_x()` and `set_y()` methods.
-The lifetime variable `'a` in these generated struct types
+The lifetime parameter `'a` in these generated struct types
 is a formal reminder that they contain borrowed references to
 the raw buffers of bytes that make up the underlying Cap'n Proto messages.
 Those underlying buffers are never actually parsed into
