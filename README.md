@@ -41,7 +41,9 @@ the raw buffers of bytes that make up the underlying Cap'n Proto messages.
 Those underlying buffers are never actually parsed into
 separate data structures -- Cap'n Proto's wire format also serves as its in-memory format.
 That is, there is no encode or decode step!
-It's in this sense that Cap'n Proto is "infinitely faster" than alternatives like Protocol Buffers.
+It's in this sense that Cap'n Proto is
+["infinity times faster"](https://capnproto.org/news/2013-04-01-announcing-capn-proto.html)
+than alternatives like Protocol Buffers.
 
 The generated code also includes
 a `point_tracker::Server` trait with an `add_point()` method,
