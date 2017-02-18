@@ -12,7 +12,7 @@
 [Cap'n Proto](https://capnproto.org) is a type system for distributed systems.
 
 With Cap'n Proto, you describe your data and interfaces
-in a schema file, like this:
+in a [schema file](https://capnproto.org/language.html), like this:
 
 ```capnp
 @0x986b3393db1396c9;
