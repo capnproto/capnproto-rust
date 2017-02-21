@@ -178,9 +178,9 @@ fn _assert_kinds() {
     fn _assert_reader<S: ReaderSegments + Send>() {
         _assert_send::<Reader<S>>();
     }
-//    fn _assert_builder<A: Allocator + Send>() {
-//        _assert_send::<Builder<A>>();
-//    }
+    fn _assert_builder<A: Allocator + Send>() {
+        _assert_send::<Builder<A>>();
+    }
 }
 
 impl <A> Builder<A> where A: Allocator {
