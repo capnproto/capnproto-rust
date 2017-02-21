@@ -41,8 +41,8 @@ pub struct Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
 }
 
 impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
-    pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader : reader, marker : ::std::marker::PhantomData }
+    pub fn new<'b>(reader: ListReader<'b>) -> Reader<'b, T> {
+        Reader::<'b, T> { reader: reader, marker: ::std::marker::PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
@@ -68,8 +68,8 @@ where T: for<'b> ::traits::Owned<'b> {
 
 impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
-        Ok(Reader { reader : try!(reader.get_list(Pointer, ::std::ptr::null())),
-                    marker : ::std::marker::PhantomData })
+        Ok(Reader { reader: try!(reader.get_list(Pointer, ::std::ptr::null())),
+                    marker: ::std::marker::PhantomData })
     }
 }
 
@@ -81,13 +81,13 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
 }
 
 pub struct Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
-    marker : ::std::marker::PhantomData<T>,
-    builder : ListBuilder<'a>
+    marker: ::std::marker::PhantomData<T>,
+    builder: ListBuilder<'a>
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
     pub fn new(builder: ListBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder : builder, marker : ::std::marker::PhantomData }
+        Builder { builder: builder, marker: ::std::marker::PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.builder.len() }
@@ -106,13 +106,13 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
 }
 
 impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
-    fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
+    fn init_pointer(builder: PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
         Builder {
             marker: ::std::marker::PhantomData,
             builder: builder.init_list(Pointer, size)
         }
     }
-    fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a, T>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a, T>> {
         Ok(Builder {
             marker: ::std::marker::PhantomData,
             builder: try!(builder.get_list(Pointer, ::std::ptr::null()))

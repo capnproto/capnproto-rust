@@ -41,13 +41,13 @@ impl ::traits::Pipelined for Owned {
 
 #[derive(Copy, Clone)]
 pub struct Reader<'a> {
-    reader : PointerReader<'a>
+    reader: PointerReader<'a>
 }
 
 impl <'a> Reader<'a> {
     #[inline]
-    pub fn new<'b>(reader : PointerReader<'b>) -> Reader<'b> {
-        Reader { reader : reader }
+    pub fn new<'b>(reader: PointerReader<'b>) -> Reader<'b> {
+        Reader { reader: reader }
     }
 
     #[inline]
@@ -112,8 +112,8 @@ pub struct Builder<'a> {
 
 impl <'a> Builder<'a> {
     #[inline]
-    pub fn new<'b>(builder : PointerBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
+    pub fn new<'b>(builder: PointerBuilder<'a>) -> Builder<'a> {
+        Builder { builder: builder }
     }
 
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
@@ -141,7 +141,7 @@ impl <'a> Builder<'a> {
         FromPointerBuilder::init_pointer(self.builder, size)
     }
 
-    pub fn set_as<To, From : SetPointerBuilder<To>>(self, value : From) -> Result<()> {
+    pub fn set_as<To, From : SetPointerBuilder<To>>(self, value: From) -> Result<()> {
         SetPointerBuilder::<To>::set_pointer_builder(self.builder, value)
     }
 
@@ -157,7 +157,7 @@ impl <'a> Builder<'a> {
 
     #[inline]
     pub fn as_reader(self) -> Reader<'a> {
-        Reader { reader : self.builder.as_reader() }
+        Reader { reader: self.builder.as_reader() }
     }
 }
 
@@ -189,7 +189,7 @@ impl Pipeline {
     }
 
     pub fn noop(&self) -> Pipeline {
-        Pipeline { hook : self.hook.add_ref(), ops : self.ops.clone() }
+        Pipeline { hook: self.hook.add_ref(), ops: self.ops.clone() }
     }
 
     pub fn get_pointer_field(&self, pointer_index: u16) -> Pipeline {

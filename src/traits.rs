@@ -22,6 +22,8 @@
 use {Word, Result};
 use private::layout::{CapTable, StructReader, StructBuilder, StructSize, PointerBuilder, PointerReader};
 
+use std::marker::PhantomData;
+
 pub trait FromStructReader<'a> {
     fn new(reader : StructReader<'a>) -> Self;
 }
@@ -64,7 +66,7 @@ pub trait Pipelined {
 }
 
 pub trait FromPointerReaderRefDefault<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default_value : *const Word) -> Self;
+    fn get_from_pointer(reader: &PointerReader<'a>, default_value: *const Word) -> Self;
 }
 
 pub trait FromPointerBuilder<'a> : Sized {
@@ -105,15 +107,15 @@ pub trait IndexMove<I, T> {
 }
 
 pub struct ListIter<T, U> {
-    marker : ::std::marker::PhantomData<U>,
-    list : T,
-    index : u32,
-    size : u32,
+    marker: PhantomData<U>,
+    list: T,
+    index: u32,
+    size: u32,
 }
 
 impl <T, U> ListIter<T, U>{
-    pub fn new(list : T, size : u32) -> ListIter<T, U> {
-        ListIter { list : list, index : 0, size : size, marker : ::std::marker::PhantomData }
+    pub fn new(list: T, size: u32) -> ListIter<T, U> {
+        ListIter { list: list, index: 0, size: size, marker: PhantomData }
     }
 }
 
