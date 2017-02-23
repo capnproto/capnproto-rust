@@ -604,11 +604,13 @@ mod wire_helpers {
                         let pointer_count = (*element_tag).struct_ref().ptr_count.get();
                         let mut pos: *mut Word = ptr.offset(1);
                         let count = (*element_tag).inline_composite_list_element_count();
-                        for _ in 0..count {
-                            pos = pos.offset(data_size as isize);
-                            for _ in 0..pointer_count {
-                                zero_object(arena, segment_id, pos as *mut WirePointer);
-                                pos = pos.offset(1);
+                        if data_size > 0 || pointer_count > 0 {
+                            for _ in 0..count {
+                                pos = pos.offset(data_size as isize);
+                                for _ in 0..pointer_count {
+                                    zero_object(arena, segment_id, pos as *mut WirePointer);
+                                    pos = pos.offset(1);
+                                }
                             }
                         }
                         ptr::write_bytes(ptr, 0u8,
