@@ -111,8 +111,6 @@ fn bool_list() {
 
 #[test]
 fn struct_size() {
-    use traits::FromPointerReader;
-
     let data: &[Word] = &[
         capnp_word!(0x00, 0x00, 0x00, 0x00, 0x2, 0x00, 0x01, 0x00),
         capnp_word!(0x0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
@@ -129,8 +127,6 @@ fn struct_size() {
 
 #[test]
 fn struct_list_size() {
-    use traits::FromPointerReader;
-
     let data: &[Word] = &[
         capnp_word!(0x01, 0, 0, 0, 0x1f, 0, 0, 0), // inline-composite list. 4 words long.
         capnp_word!(0x4, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00), // 1 element long

@@ -1,3 +1,6 @@
+## v0.8.5
+- Eliminate possible void-list-amplification in total_size().
+
 ## v0.8.4
 - Eliminate panics in total_size() and set_root().
 - Eliminate possible void-list-amplification in zero_object_helper().
