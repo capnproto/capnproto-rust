@@ -1,3 +1,7 @@
+## v0.8.4
+- Eliminate panics in total_size() and set_root().
+- Eliminate possible void-list-amplification in zero_object_helper().
+
 ## v0.8.3
 - Prevent integer overflow possible with very long struct lists on 32-bit systems.
 - Fix bug where the capnp_word!() macro was not exported for big endian targets.
