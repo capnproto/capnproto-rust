@@ -706,8 +706,6 @@ mod wire_helpers {
                                           ptr.offset(word_count as isize + POINTER_SIZE_IN_WORDS as isize),
                                           WirePointerKind::List));
 
-                        result.word_count += word_count as u64 + POINTER_SIZE_IN_WORDS as u64;
-
                         if word_count == 0 {
                             return Ok(result);
                         }
@@ -720,23 +718,30 @@ mod wire_helpers {
                                 "Don't know how to handle non-STRUCT inline composite.".to_string()));
                         }
 
-                        if (*element_tag).struct_ref().word_size() as u64 * count as u64 > word_count as u64 {
+                        let actual_size = (*element_tag).struct_ref().word_size() as u64 * count as u64;
+                        if actual_size > word_count as u64 {
                             return Err(Error::failed(
                                 "InlineComposite list's elements overrun its word count.".to_string()));
                         }
 
+                        // Count the actual size rather than the claimed word count because
+                        // that's what we end up with if we make a copy.
+                        result.word_count += actual_size as u64 + POINTER_SIZE_IN_WORDS as u64;
+
                         let data_size = (*element_tag).struct_ref().data_size.get();
                         let pointer_count = (*element_tag).struct_ref().ptr_count.get();
 
-                        let mut pos: *const Word = ptr.offset(POINTER_SIZE_IN_WORDS as isize);
-                        for _ in 0..count {
-                            pos = pos.offset(data_size as isize);
+                        if pointer_count > 0 {
+                            let mut pos: *const Word = ptr.offset(POINTER_SIZE_IN_WORDS as isize);
+                            for _ in 0..count {
+                                pos = pos.offset(data_size as isize);
 
-                            for _ in 0..pointer_count {
-                                result.plus_eq(
-                                    try!(total_size(arena, segment_id,
-                                                    pos as *const WirePointer, nesting_limit)));
-                                pos = pos.offset(POINTER_SIZE_IN_WORDS as isize);
+                                for _ in 0..pointer_count {
+                                    result.plus_eq(
+                                        try!(total_size(arena, segment_id,
+                                                        pos as *const WirePointer, nesting_limit)));
+                                    pos = pos.offset(POINTER_SIZE_IN_WORDS as isize);
+                                }
                             }
                         }
                     }
