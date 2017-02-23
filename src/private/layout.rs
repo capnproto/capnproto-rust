@@ -741,7 +741,7 @@ mod wire_helpers {
                 }
             }
             WirePointerKind::Far => {
-                panic!("Unexpected FAR pointer.");
+                return Err(Error::failed("Malformed double-far pointer.".to_string()));
             }
             WirePointerKind::Other => {
                 if (*reff).is_capability() {
@@ -1655,7 +1655,7 @@ mod wire_helpers {
                 }
             }
             WirePointerKind::Far => {
-                panic!("Far pointer should have been handled above");
+                Err(Error::failed("Malformed double-far pointer.".to_string()))
             }
             WirePointerKind::Other => {
                 if !(*src).is_capability() {
