@@ -1163,6 +1163,28 @@ mod tests {
     }
 
     #[test]
+    fn total_size_struct_list_amplification() {
+        use test_capnp::test_any_pointer;
+
+        let words: &[::capnp::Word] =
+            &[capnp_word!(0,0,0,0, 0,0,1,0), // struct, one pointers
+              capnp_word!(1,0,0,0, 0xf,0,0,0), // list, inline composite, one word
+              capnp_word!(0,0x80,0xc2,0xff, 0,0,0,0), // large struct, but zero of them
+              capnp_word!(0,0,0x20,0, 0,0,0x22,0),
+            ];
+        let segment_array = &[words];
+
+        let message_reader =
+            message::Reader::new(message::SegmentArray::new(segment_array), ReaderOptions::new());
+
+        let reader = message_reader.get_root::<test_any_pointer::Reader>().unwrap();
+        reader.total_size().unwrap();
+
+        let mut builder = ::capnp::message::Builder::new_default();
+        assert!(builder.set_root(reader).is_err()); // read limit exceeded
+    }
+
+    #[test]
     fn null_struct_fields() {
         use test_capnp::{test_all_types};
         let mut message = message::Builder::new_default();
