@@ -937,6 +937,25 @@ mod tests {
     }
 
     #[test]
+    fn far_pointer_pointing_at_self() {
+        use test_capnp::test_all_types;
+
+        let words: &[::capnp::Word] =
+            &[capnp_word!(0,0,0,0,0,0,1,0), // struct, one pointer
+              capnp_word!(0xa,0,0,0,0,0,0,0)]; // far pointer, points to self
+        let segment_array = &[words];
+
+        let message_reader =
+            message::Reader::new(message::SegmentArray::new(segment_array), ReaderOptions::new());
+
+        let reader = message_reader.get_root::<test_all_types::Reader>().unwrap();
+        assert!(reader.total_size().is_err());
+        let mut builder = ::capnp::message::Builder::new_default();
+        assert!(builder.set_root(reader).is_err());
+    }
+
+
+    #[test]
     fn text_builder_int_underflow() {
         use test_capnp::{test_any_pointer};
 
@@ -1125,16 +1144,22 @@ mod tests {
             let _ : ::capnp::struct_list::Builder<test_empty_struct::Owned> =
                 root.get_any_pointer_field().initn_as((1 << 29) - 1);
         }
-        let segments = message.get_segments_for_output();
-        assert_eq!(segments.len(), 1);
-        assert_eq!(segments[0].len(), 3);
+        {
+            let segments = message.get_segments_for_output();
+            assert_eq!(segments.len(), 1);
+            assert_eq!(segments[0].len(), 3);
 
-        let reader =
-            message::Reader::new(message::SegmentArray::new(&segments),
-                                 ReaderOptions::new());
-        let root = reader.get_root::<test_any_pointer::Reader>().unwrap();
-        let result = root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Owned>>();
-        assert!(result.is_err());
+            let reader =
+                message::Reader::new(message::SegmentArray::new(&segments),
+                                     ReaderOptions::new());
+            let root = reader.get_root::<test_any_pointer::Reader>().unwrap();
+            let result = root.get_any_pointer_field().get_as::<::capnp::struct_list::Reader<test_all_types::Owned>>();
+            assert!(result.is_err());
+        }
+
+        // At one point this took a long time because zero_object_helper() would iterate through
+        // the whole list, even though its elements were void.
+        message.init_root::<test_any_pointer::Builder>();
     }
 
     #[test]
