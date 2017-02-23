@@ -19,10 +19,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use Word;
 
 #[test]
 fn simple_raw_data_struct() {
-    let data: &[::Word] = &[
+    let data: &[Word] = &[
         capnp_word!(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00),
         capnp_word!(0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef)];
 
@@ -70,7 +71,7 @@ fn bool_list() {
     //  true, true, true, false,
     //  false, true]
 
-    let data: &[::Word] = &[
+    let data: &[Word] = &[
         capnp_word!(0x01, 0x00, 0x00, 0x00, 0x51, 0x00, 0x00, 0x00),
         capnp_word!(0x75, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)];
 
@@ -106,4 +107,45 @@ fn bool_list() {
     assert_eq!(reader.get(7), false);
     assert_eq!(reader.get(8), false);
     assert_eq!(reader.get(9), true);
+}
+
+#[test]
+fn struct_size() {
+    use traits::FromPointerReader;
+
+    let data: &[Word] = &[
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x2, 0x00, 0x01, 0x00),
+        capnp_word!(0x0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+        capnp_word!(0x0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+        capnp_word!(0x0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ];
+
+    let pointer_reader =
+        ::private::layout::PointerReader::get_root_unchecked(data.as_ptr());
+
+    assert_eq!(pointer_reader.total_size().unwrap().word_count, 3);
+}
+
+
+#[test]
+fn struct_list_size() {
+    use traits::FromPointerReader;
+
+    let data: &[Word] = &[
+        capnp_word!(0x01, 0, 0, 0, 0x1f, 0, 0, 0), // inline-composite list. 4 words long.
+        capnp_word!(0x4, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00), // 1 element long
+        capnp_word!(0x0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+        capnp_word!(0x0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+        capnp_word!(0x0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ];
+
+    // The list pointer claims that the list consumes four words, but the struct
+    // tag says there is only one element and it has a size of one word.
+    // So there is an inconsistency! total_size() should report the value computed from
+    // the struct tag, because that's what is relevent when the data is copied.
+
+    let pointer_reader =
+        ::private::layout::PointerReader::get_root_unchecked(data.as_ptr());
+
+    assert_eq!(pointer_reader.total_size().unwrap().word_count, 2);
 }
