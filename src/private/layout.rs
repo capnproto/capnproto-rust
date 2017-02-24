@@ -1190,7 +1190,56 @@ mod wire_helpers {
             // The structs in this list are smaller than expected, probably written using an older
             // version of the protocol. We need to make a copy and expand them.
 
-            unimplemented!();
+            let new_data_size = ::std::cmp::max(old_data_size, element_size.data);
+            let new_pointer_count = ::std::cmp::max(old_pointer_count, element_size.pointers);
+            let new_step = new_data_size as u32 + new_pointer_count as u32 * WORDS_PER_POINTER as u32;
+            let total_size = new_step * element_count;
+
+            // Don't let allocate() zero out the object just yet.
+            try!(zero_pointer_and_fars(arena, orig_segment_id, orig_ref));
+
+            let (mut new_ptr, new_ref, new_segment_id) =
+                allocate(arena, orig_ref, orig_segment_id,
+                         total_size + POINTER_SIZE_IN_WORDS as u32, WirePointerKind::List);
+            (*new_ref).mut_list_ref().set_inline_composite(total_size);
+
+            let new_tag: *mut WirePointer = new_ptr as *mut _;
+            (*new_tag).set_kind_and_inline_composite_list_element_count(WirePointerKind::Struct, element_count);
+            (*new_tag).mut_struct_ref().set(new_data_size, new_pointer_count);
+            new_ptr = new_ptr.offset(POINTER_SIZE_IN_WORDS as isize);
+
+            let mut src: *mut Word = old_ptr as *mut _;
+            let mut dst: *mut Word = new_ptr;
+            for _ in 0..element_count {
+                // Copy data section.
+                ptr::copy_nonoverlapping(src, dst, old_data_size as usize);
+
+                // Copy pointer section
+                let new_pointer_section: *mut WirePointer = dst.offset(new_data_size as isize) as *mut _;
+                let old_pointer_section: *mut WirePointer = src.offset(old_data_size as isize) as *mut _;
+                for jj in 0..(old_pointer_count as isize) {
+                    transfer_pointer(arena, new_segment_id,
+                                     new_pointer_section.offset(jj),
+                                     old_segment_id, old_pointer_section.offset(jj));
+                }
+
+                dst = dst.offset(new_step as isize);
+                src = src.offset(old_step as isize);
+            }
+
+            ptr::write_bytes(old_ptr as *mut u8, 0,
+                             (old_step as u64 * element_count as u64) as usize);
+
+            Ok(ListBuilder {
+                arena: arena,
+                segment_id: new_segment_id,
+                cap_table: cap_table,
+                ptr: new_ptr as *mut _,
+                element_count: element_count,
+                step: new_step * BITS_PER_WORD as u32,
+                struct_data_size: new_data_size as u32 * BITS_PER_WORD as u32,
+                struct_pointer_count: new_pointer_count,
+            })
         } else {
             // We're upgrading from a non-struct list.
 
