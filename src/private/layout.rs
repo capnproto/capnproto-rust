@@ -815,7 +815,25 @@ mod wire_helpers {
             match arena.allocate(src_segment_id, 1) {
                 None => {
                     //# Darn, need a double-far.
-                    panic!("unimplemented");
+                    let (far_segment_id, word_idx) = arena.allocate_anywhere(2);
+                    let (seg_start, _seg_len) = arena.get_segment_mut(far_segment_id);
+                    let landing_pad: *mut WirePointer = seg_start.offset(word_idx as isize) as *mut _;
+
+                    let (src_seg_start, _seg_len) = arena.get_segment_mut(src_segment_id);
+
+                    (*landing_pad).set_far(false, (src_ptr as usize - src_seg_start as usize) as u32);
+                    (*landing_pad).mut_far_ref().segment_id.set(src_segment_id);
+
+                    let landing_pad1 = landing_pad.offset(1);
+                    (*landing_pad1).set_kind_with_zero_offset((*src_tag).kind());
+
+                    ptr::copy_nonoverlapping(
+                        &(*src_tag).upper32bits,
+                        &mut (*landing_pad1).upper32bits,
+                        1);
+
+                    (*dst).set_far(false, word_idx);
+                    (*dst).mut_far_ref().set(far_segment_id);
                 }
                 Some(landing_pad_word) => {
                     //# Simple landing pad is just a pointer.
