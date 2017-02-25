@@ -821,7 +821,9 @@ mod wire_helpers {
 
                     let (src_seg_start, _seg_len) = arena.get_segment_mut(src_segment_id);
 
-                    (*landing_pad).set_far(false, (src_ptr as usize - src_seg_start as usize) as u32);
+                    (*landing_pad).set_far(
+                        false,
+                        ((src_ptr as usize - src_seg_start as usize) / BYTES_PER_WORD) as u32);
                     (*landing_pad).mut_far_ref().segment_id.set(src_segment_id);
 
                     let landing_pad1 = landing_pad.offset(1);
