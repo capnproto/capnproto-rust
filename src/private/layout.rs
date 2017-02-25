@@ -839,7 +839,7 @@ mod wire_helpers {
                         &mut (*landing_pad1).upper32bits,
                         1);
 
-                    (*dst).set_far(false, word_idx);
+                    (*dst).set_far(true, word_idx);
                     (*dst).mut_far_ref().set(far_segment_id);
                 }
                 Some(landing_pad_word) => {
