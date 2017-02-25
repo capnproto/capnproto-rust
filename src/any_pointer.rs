@@ -162,7 +162,10 @@ impl <'a> Builder<'a> {
 }
 
 impl <'a> FromPointerBuilder<'a> for Builder<'a> {
-    fn init_pointer(builder: PointerBuilder<'a>, _len: u32) -> Builder<'a> {
+    fn init_pointer(mut builder: PointerBuilder<'a>, _len: u32) -> Builder<'a> {
+        if !builder.is_null() {
+            builder.clear();
+        }
         Builder { builder: builder }
     }
     fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a>> {
@@ -209,5 +212,30 @@ impl Pipeline {
 impl ::capability::FromTypelessPipeline for Pipeline {
     fn new(typeless: Pipeline) -> Pipeline {
         typeless
+    }
+}
+
+#[test]
+fn init_clears_value() {
+    let mut message = ::message::Builder::new_default();
+    {
+        let root: ::any_pointer::Builder = message.init_root();
+        let mut list: ::primitive_list::Builder<u16> = root.initn_as(10);
+        for idx in 0..10 {
+            list.set(idx, idx as u16);
+        }
+    }
+
+    {
+        let root: ::any_pointer::Builder = message.init_root();
+        assert!(root.is_null());
+    }
+
+    let mut output: Vec<u8> = Vec::new();
+    ::serialize::write_message(&mut output, &mut message).unwrap();
+    assert_eq!(output.len(), 40);
+    for byte in &output[8..] {
+        // Everything not in the message header is zero.
+        assert_eq!(*byte, 0u8);
     }
 }
