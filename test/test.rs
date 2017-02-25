@@ -764,7 +764,7 @@ mod tests {
                 assert_eq!(3, l.len());
                 assert_eq!("foo", &*l.borrow().get(0).get_f().unwrap());
                 assert_eq!("bar", &*l.borrow().get(1).get_f().unwrap());
-//                assert_eq!("baz", l.borrow().get(2).get_f());
+                assert_eq!("baz", &*l.borrow().get(2).get_f().unwrap());
             }
         }
 
