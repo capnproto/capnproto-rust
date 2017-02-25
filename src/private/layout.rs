@@ -1252,7 +1252,7 @@ mod wire_helpers {
                 src = src.offset(old_step as isize);
             }
 
-            ptr::write_bytes(old_ptr as *mut u8, 0,
+            ptr::write_bytes(old_ptr.offset(-1), 0,
                              (old_step as u64 * element_count as u64) as usize);
 
             Ok(ListBuilder {

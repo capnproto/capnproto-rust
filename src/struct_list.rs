@@ -112,18 +112,18 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 }
 
 impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
-    fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
+    fn init_pointer(builder: PointerBuilder<'a>, size: u32) -> Builder<'a, T> {
         Builder {
-            marker : ::std::marker::PhantomData,
-            builder : builder.init_struct_list(
+            marker: ::std::marker::PhantomData,
+            builder: builder.init_struct_list(
                 size,
                 <<T as ::traits::OwnedStruct>::Builder as HasStructSize>::struct_size())
         }
     }
-    fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a, T>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a, T>> {
         Ok(Builder {
-            marker : ::std::marker::PhantomData,
-            builder :
+            marker: ::std::marker::PhantomData,
+            builder:
             try!(builder.get_struct_list(<<T as ::traits::OwnedStruct>::Builder as HasStructSize>::struct_size(),
                                          ::std::ptr::null()))
         })
