@@ -211,6 +211,11 @@ impl WirePointer {
     }
 
     #[inline]
+    pub fn is_positional(&self) -> bool {
+        (self.offset_and_kind.get() & 2) == 0 // match Struct and List but not Far and Other.
+    }
+
+    #[inline]
     pub fn is_capability(&self) -> bool {
         self.offset_and_kind.get() == WirePointerKind::Other as u32
     }
@@ -782,10 +787,10 @@ mod wire_helpers {
 
         if (*src).is_null() {
             ptr::write_bytes(dst, 0, 1);
-        } else if (*src).kind() == WirePointerKind::Far {
-            ptr::copy_nonoverlapping(src, dst, 1);
-        } else {
+        } else if (*src).is_positional() {
             transfer_pointer_split(arena, dst_segment_id, dst, src_segment_id, src, (*src).mut_target());
+        } else {
+            ptr::copy_nonoverlapping(src, dst, 1);
         }
     }
 
