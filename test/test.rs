@@ -767,6 +767,58 @@ mod tests {
                 assert_eq!("baz", &*l.borrow().get(2).get_f().unwrap());
             }
         }
+    }
+
+    #[test]
+    fn upgrade_struct_list() {
+        use capnp::struct_list;
+        use test_capnp::{test_old_version, test_new_version};
+
+        let segment0: &[::capnp::Word] = &[
+            capnp_word!(1,0,0,0,0x1f,0,0,0), // list, inline composite, 3 words
+            capnp_word!(4, 0, 0, 0, 1, 0, 2, 0), // struct tag. 1 element, 1 word data, 2 pointers.
+            capnp_word!(0xab,0,0,0,0,0,0,0),
+            capnp_word!(0x05,0,0,0, 0x42,0,0,0), // list pointer, offset 1, type = BYTE, length 8.
+            capnp_word!(0,0,0,0,0,0,0,0),
+            capnp_word!(0x68,0x65,0x6c,0x6c,0x6f,0x21,0x21,0), // "hello!!"
+        ];
+
+        let segment_array = &[segment0];
+        let message_reader =
+            message::Reader::new(message::SegmentArray::new(segment_array), ReaderOptions::new());
+
+        let old_version: struct_list::Reader<test_old_version::Owned> = message_reader.get_root().unwrap();
+        assert_eq!(old_version.len(), 1);
+        assert_eq!(old_version.get(0).get_old1(), 0xab);
+        assert_eq!(old_version.get(0).get_old2().unwrap(), "hello!!");
+
+        // Make the first segment exactly large enough to fit the original message.
+        // This leaves no room for a far pointer landing pad in the first segment.
+        let allocator = message::HeapAllocator::new().first_segment_words(6);
+
+        let mut message = message::Builder::new(allocator);
+        message.set_root(old_version).unwrap();
+        {
+            let segments = message.get_segments_for_output();
+            assert_eq!(segments.len(), 1);
+            assert_eq!(segments[0].len(), 6);
+        }
+
+        {
+            let mut new_version: struct_list::Builder<test_new_version::Owned> = message.get_root().unwrap();
+            assert_eq!(new_version.len(), 1);
+            assert_eq!(new_version.borrow().get(0).get_old1(), 0xab);
+            assert_eq!(&*new_version.borrow().get(0).get_old2().unwrap(), "hello!!");
+        }
+
+        let mut f = ::std::fs::File::create("/Users/dwrensha/Desktop/newversion.dat").unwrap();
+        ::capnp::serialize::write_message(&mut f, &mut message).unwrap();
+
+        {
+            let segments = message.get_segments_for_output();
+            // Check the the old list, including the tag, was zeroed.
+            assert_eq!(::capnp::Word::words_to_bytes(&segments[0][1..5]), &[0; 32][..]);
+        }
 
     }
 
@@ -779,7 +831,6 @@ mod tests {
         ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().unwrap());
         ::test_util::CheckTestMessage::check_test_message(
             message.get_root::<test_all_types::Builder>().unwrap().as_reader());
-
     }
 
     #[test]
@@ -1211,4 +1262,5 @@ mod tests {
     fn pipeline_any_pointer(foo: ::test_capnp::test_any_pointer::Pipeline) {
         let _ = foo.get_any_pointer_field();
     }
+
 }
