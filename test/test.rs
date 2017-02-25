@@ -811,9 +811,6 @@ mod tests {
             assert_eq!(&*new_version.borrow().get(0).get_old2().unwrap(), "hello!!");
         }
 
-        let mut f = ::std::fs::File::create("/Users/dwrensha/Desktop/newversion.dat").unwrap();
-        ::capnp::serialize::write_message(&mut f, &mut message).unwrap();
-
         {
             let segments = message.get_segments_for_output();
             // Check the the old list, including the tag, was zeroed.
