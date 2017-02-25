@@ -1,3 +1,7 @@
+## v0.8.6
+- Implement struct list upgrades.
+- Fix bug where `message.init_root::<any_pointer::Builder>()` did not clear the old value.
+
 ## v0.8.5
 - Eliminate possible void-list-amplification in total_size().
 
