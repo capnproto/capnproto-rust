@@ -89,6 +89,13 @@ impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
+    pub fn as_reader(self) -> Reader<'a, T> {
+        Reader {
+            marker: marker::PhantomData,
+            reader: self.builder.as_reader(),
+        }
+    }
+
     pub fn set(&mut self, index: u32, value: T) {
         PrimitiveElement::set(&self.builder, index, value);
     }

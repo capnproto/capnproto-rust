@@ -86,6 +86,10 @@ impl <'a> Builder<'a> {
         self.builder.borrow().get_pointer_element(index).set_text(value);
     }
 
+    pub fn as_reader(self) -> Reader<'a> {
+        Reader { reader: self.builder.as_reader() }
+    }
+
     pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
         Builder::<'b> { builder: self.builder.borrow() }
     }

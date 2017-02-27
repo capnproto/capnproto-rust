@@ -91,6 +91,10 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
     }
 
     pub fn len(&self) -> u32 { self.builder.len() }
+
+    pub fn as_reader(self) -> Reader<'a, T> {
+        Reader { reader: self.builder.as_reader(), marker: ::std::marker::PhantomData }
+    }
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {

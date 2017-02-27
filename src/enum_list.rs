@@ -90,6 +90,10 @@ impl <'a, T : ToU16 + FromU16> Builder<'a, T> {
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
+    pub fn as_reader(self) -> Reader<'a, T> {
+        Reader { reader: self.builder.as_reader(), marker: PhantomData, }
+    }
+
     pub fn set(&mut self, index: u32, value: T) {
         assert!(index < self.len());
         PrimitiveElement::set(&self.builder, index, value.to_u16());
