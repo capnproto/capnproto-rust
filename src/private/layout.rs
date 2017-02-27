@@ -2795,6 +2795,20 @@ impl <'a> ListBuilder<'a> {
         }
     }
 
+    pub fn as_reader(self) -> ListReader<'a> {
+        ListReader {
+            arena: self.arena.as_reader(),
+            segment_id: self.segment_id,
+            cap_table: self.cap_table.as_reader(),
+            ptr: self.ptr as *const _,
+            element_count: self.element_count,
+            step: self.step,
+            struct_data_size: self.struct_data_size,
+            struct_pointer_count: self.struct_pointer_count,
+            nesting_limit: 0x7fffffff,
+        }
+    }
+
     pub fn borrow<'b>(&'b mut self) -> ListBuilder<'b> {
         ListBuilder { arena: self.arena, ..*self }
     }

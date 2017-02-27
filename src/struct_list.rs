@@ -21,6 +21,8 @@
 
 //! List of structs.
 
+use std::marker::PhantomData;
+
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, InlineComposite};
 use traits::{FromPointerReader, FromPointerBuilder,
              FromStructBuilder, FromStructReader, HasStructSize,
@@ -29,7 +31,7 @@ use Result;
 
 #[derive(Copy, Clone)]
 pub struct Owned<T> where T: for<'a> ::traits::OwnedStruct<'a> {
-    marker: ::std::marker::PhantomData<T>,
+    marker: PhantomData<T>,
 }
 
 impl<'a, T> ::traits::Owned<'a> for Owned<T> where T: for<'b> ::traits::OwnedStruct<'b> {
@@ -38,7 +40,7 @@ impl<'a, T> ::traits::Owned<'a> for Owned<T> where T: for<'b> ::traits::OwnedStr
 }
 
 pub struct Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
-    marker: ::std::marker::PhantomData<T>,
+    marker: PhantomData<T>,
     reader: ListReader<'a>
 }
 
@@ -51,7 +53,7 @@ impl <'a, T> Copy for Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 
 impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader : reader, marker : ::std::marker::PhantomData }
+        Reader::<'b, T> { reader : reader, marker : PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
@@ -63,20 +65,20 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 
 impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     pub fn borrow<'b>(&'b self) -> Reader<'b, T>  {
-        Reader {reader : self.reader, marker : ::std::marker::PhantomData}
+        Reader { reader: self.reader, marker: PhantomData }
     }
 }
 
 impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
-    fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
-        Ok(Reader { reader : try!(reader.get_list(InlineComposite, ::std::ptr::null())),
-                    marker : ::std::marker::PhantomData })
+    fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a, T>> {
+        Ok(Reader { reader: try!(reader.get_list(InlineComposite, ::std::ptr::null())),
+                    marker: PhantomData })
     }
 }
 
 impl <'a, T>  IndexMove<u32, <T as ::traits::OwnedStruct<'a>>::Reader> for Reader<'a, T>
 where T: for<'b> ::traits::OwnedStruct<'b> {
-    fn index_move(&self, index : u32) -> <T as ::traits::OwnedStruct<'a>>::Reader {
+    fn index_move(&self, index: u32) -> <T as ::traits::OwnedStruct<'a>>::Reader {
         self.get(index)
     }
 }
@@ -89,32 +91,38 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 }
 
 pub struct Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
-    marker : ::std::marker::PhantomData<T>,
-    builder : ListBuilder<'a>
+    marker: PhantomData<T>,
+    builder: ListBuilder<'a>
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     pub fn new(builder : ListBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder : builder, marker : ::std::marker::PhantomData }
+        Builder { builder: builder, marker: PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
-    //        pub fn set(&self, index : uint, value : T) {
-    //        }
+    pub fn as_reader(self) -> Reader<'a, T> {
+        Reader {
+            marker: PhantomData,
+            reader: self.builder.as_reader(),
+        }
+    }
 
+    //        pub fn set_with_caveats(&self, index : uint, value : T) {
+    //        }
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     pub fn borrow<'b>(&'b mut self) -> Builder<'b, T> {
-        Builder { builder: self.builder, marker: ::std::marker::PhantomData }
+        Builder { builder: self.builder, marker: PhantomData }
     }
 }
 
 impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     fn init_pointer(builder: PointerBuilder<'a>, size: u32) -> Builder<'a, T> {
         Builder {
-            marker: ::std::marker::PhantomData,
+            marker: PhantomData,
             builder: builder.init_struct_list(
                 size,
                 <<T as ::traits::OwnedStruct>::Builder as HasStructSize>::struct_size())
@@ -122,7 +130,7 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> ::traits
     }
     fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a, T>> {
         Ok(Builder {
-            marker: ::std::marker::PhantomData,
+            marker: PhantomData,
             builder:
             try!(builder.get_struct_list(<<T as ::traits::OwnedStruct>::Builder as HasStructSize>::struct_size(),
                                          ::std::ptr::null()))
