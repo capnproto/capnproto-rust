@@ -36,4 +36,4 @@ script:
   - cd ../..
   - cd benchmark
   - cargo build --release
-  - ./run_all.bash
+  - ./target/release/run_all target/release/benchmark

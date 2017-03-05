@@ -10,6 +10,10 @@ build = "build.rs"
 name = "benchmark"
 path = "benchmark.rs"
 
+[[bin]]
+
+name = "run_all"
+path = "run_all.rs"
 
 [build-dependencies.capnpc]
 path = "../"
