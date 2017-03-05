@@ -22,6 +22,8 @@
 extern crate capnp;
 extern crate rand;
 
+use std::{mem, io};
+
 use capnp::{message, serialize, serialize_packed};
 use capnp::traits::Owned;
 
@@ -60,10 +62,10 @@ trait Serialize {
         read: &mut R,
         options: message::ReaderOptions)
                        -> ::capnp::Result<message::Reader<::capnp::serialize::OwnedSegments>>
-        where R: ::std::io::BufRead;
+        where R: io::BufRead;
 
     fn write_message<W, A>(&self, write: &mut W, message: &message::Builder<A>) -> ::capnp::Result<()>
-        where W: ::std::io::Write, A: message::Allocator;
+        where W: io::Write, A: message::Allocator;
 }
 
 struct NoCompression;
@@ -72,13 +74,13 @@ impl Serialize for NoCompression {
     fn read_message<R>(&self, read: &mut R,
                        options: message::ReaderOptions)
                        -> ::capnp::Result<message::Reader<::capnp::serialize::OwnedSegments>>
-        where R: ::std::io::BufRead
+        where R: io::BufRead
     {
         serialize::read_message(read, options)
     }
 
     fn write_message<W, A>(&self, write: &mut W, message: &message::Builder<A>) -> ::capnp::Result<()>
-        where W: ::std::io::Write, A: message::Allocator {
+        where W: io::Write, A: message::Allocator {
         serialize::write_message(write, message).map_err(|e| e.into())
     }
 }
@@ -89,13 +91,13 @@ impl Serialize for Packed {
     fn read_message<R>(&self, read: &mut R,
                        options: message::ReaderOptions)
                        -> ::capnp::Result<message::Reader<::capnp::serialize::OwnedSegments>>
-        where R: ::std::io::BufRead
+        where R: io::BufRead
     {
         serialize_packed::read_message(read, options)
     }
 
     fn write_message<W, A>(&self, write: &mut W, message: &message::Builder<A>) -> ::capnp::Result<()>
-        where W: ::std::io::Write, A: message::Allocator {
+        where W: io::Write, A: message::Allocator {
         serialize_packed::write_message(write, message).map_err(|e| e.into())
     }
 }
@@ -115,13 +117,13 @@ impl <'a> Scratch<'a> for NoScratch {
     type Allocator = message::HeapAllocator;
 
     fn get_builders(&'a mut self) -> (message::Builder<Self::Allocator>, message::Builder<Self::Allocator>) {
-        (capnp::message::Builder::new_default(), capnp::message::Builder::new_default())
+        (message::Builder::new_default(), message::Builder::new_default())
     }
 }
 
 pub struct UseScratch {
     _owned_space: ::std::vec::Vec<::std::vec::Vec<capnp::Word>>,
-    scratch_space: ::std::vec::Vec<::capnp::message::ScratchSpace<'static>>,
+    scratch_space: ::std::vec::Vec<message::ScratchSpace<'static>>,
 }
 
 impl UseScratch {
@@ -130,8 +132,8 @@ impl UseScratch {
         let mut scratch = Vec::new();
         for _ in 0..6 {
             let mut words = ::capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE);
-            scratch.push(::capnp::message::ScratchSpace::new(
-                unsafe {::std::mem::transmute(&mut words[..])}));
+            scratch.push(message::ScratchSpace::new(
+                unsafe { mem::transmute(&mut words[..]) }));
             owned.push(words);
         }
         UseScratch {
@@ -142,13 +144,13 @@ impl UseScratch {
 }
 
 impl <'a> Scratch<'a> for UseScratch {
-    type Allocator = capnp::message::ScratchSpaceHeapAllocator<'a, 'a>;
+    type Allocator = message::ScratchSpaceHeapAllocator<'a, 'a>;
 
     fn get_builders(&'a mut self) -> (message::Builder<Self::Allocator>, message::Builder<Self::Allocator>) {
-        (capnp::message::Builder::new(::capnp::message::ScratchSpaceHeapAllocator::new(
-            unsafe{::std::mem::transmute(&mut self.scratch_space[0])})),
-         capnp::message::Builder::new(::capnp::message::ScratchSpaceHeapAllocator::new(
-             unsafe{::std::mem::transmute(&mut self.scratch_space[1])})))
+        (message::Builder::new(message::ScratchSpaceHeapAllocator::new(
+            unsafe { mem::transmute(&mut self.scratch_space[0]) })),
+         message::Builder::new(message::ScratchSpaceHeapAllocator::new(
+             unsafe { mem::transmute(&mut self.scratch_space[1]) })))
 
     }
 }
@@ -202,7 +204,7 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
             let mut request_bytes1: &[u8] = &request_bytes;
             let message_reader = compression.read_message(
                 &mut request_bytes1,
-                capnp::message::DEFAULT_READER_OPTIONS).unwrap();
+                Default::default()).unwrap();
 
             let request_reader = message_reader.get_root().unwrap();
             try!(testcase.handle_request(request_reader, response));
@@ -216,7 +218,7 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
         let mut response_bytes1: &[u8] = &response_bytes;
         let message_reader = compression.read_message(
             &mut response_bytes1,
-            capnp::message::DEFAULT_READER_OPTIONS).unwrap();
+            Default::default()).unwrap();
 
         let response_reader = message_reader.get_root().unwrap();
         try!(testcase.check_response(response_reader, expected));
@@ -226,10 +228,10 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
 
 fn server<C, S, T, R, W>(testcase: T, mut reuse: S, compression: C, iters: u64, mut input: R, mut output: W)
                          -> ::capnp::Result<()>
-    where C: Serialize, S: for<'a> Scratch<'a>, T: TestCase, R: ::std::io::Read, W: ::std::io::Write,
+    where C: Serialize, S: for<'a> Scratch<'a>, T: TestCase, R: io::Read, W: io::Write,
 {
-    let mut out_buffered = ::std::io::BufWriter::new(&mut output);
-    let mut in_buffered = ::std::io::BufReader::new(&mut input);
+    let mut out_buffered = io::BufWriter::new(&mut output);
+    let mut in_buffered = io::BufReader::new(&mut input);
     for _ in 0..iters {
         use std::io::Write;
         let (mut message_res, _) = reuse.get_builders();
@@ -255,8 +257,8 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
 {
     let mut out_stream: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(1) };
     let mut in_stream: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(0) };
-    let mut in_buffered = ::std::io::BufReader::new(&mut in_stream);
-    let mut out_buffered = ::std::io::BufWriter::new(&mut out_stream);
+    let mut in_buffered = io::BufReader::new(&mut in_stream);
+    let mut out_buffered = io::BufWriter::new(&mut out_stream);
     let mut rng = common::FastRand::new();
     for _ in 0..iters {
         use std::io::Write;
@@ -271,7 +273,7 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
 
         let message_reader = compression.read_message(
             &mut in_buffered,
-            capnp::message::DEFAULT_READER_OPTIONS).unwrap();
+            Default::default()).unwrap();
         let response_reader = try!(message_reader.get_root());
         try!(testcase.check_response(response_reader, expected));
     }
@@ -281,9 +283,9 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
 fn pass_by_pipe<C, S, T>(testcase: T, reuse: S, compression: C, iters: u64) -> ::capnp::Result<()>
     where C: Serialize, S: for<'a> Scratch<'a>, T: TestCase,
 {
-    use std::process;
+    use std::{process, env};
 
-    let mut args: Vec<String> = ::std::env::args().collect();
+    let mut args: Vec<String> = env::args().collect();
     args[2] = "client".to_string();
 
     let mut command = process::Command::new(&args[0]);
@@ -306,24 +308,44 @@ fn pass_by_pipe<C, S, T>(testcase: T, reuse: S, compression: C, iters: u64) -> :
     }
 }
 
-fn do_testcase<C, S, T>(testcase: T, mode: &str, reuse: S, compression: C, iters: u64) -> ::capnp::Result<()>
+pub enum Mode {
+    Object,
+    Bytes,
+    Client,
+    Server,
+    Pipe,
+}
+
+impl Mode {
+    pub fn parse(s: &str) -> ::capnp::Result<Mode> {
+        match s {
+            "object" => Ok(Mode::Object),
+            "bytes" => Ok(Mode::Bytes),
+            "client" => Ok(Mode::Client),
+            "server" => Ok(Mode::Server),
+            "pipe" => Ok(Mode::Pipe),
+            s => Err(::capnp::Error::failed(format!("unrecognized mode: {}", s)))
+        }
+    }
+}
+
+fn do_testcase<C, S, T>(testcase: T, mode: Mode, reuse: S, compression: C, iters: u64) -> ::capnp::Result<()>
     where C: Serialize, S: for<'a> Scratch<'a>, T: TestCase,
 {
     match mode {
-        "object" => pass_by_object(testcase, reuse, iters),
-        "bytes" => pass_by_bytes(testcase, reuse, compression, iters),
-        "client" => sync_client(testcase, reuse, compression, iters),
-        "server" => {
+        Mode::Object => pass_by_object(testcase, reuse, iters),
+        Mode::Bytes => pass_by_bytes(testcase, reuse, compression, iters),
+        Mode::Client => sync_client(testcase, reuse, compression, iters),
+        Mode::Server => {
             let input: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(1) };
             let output: ::std::fs::File = unsafe { ::std::os::unix::io::FromRawFd::from_raw_fd(0) };
             server(testcase, reuse, compression, iters, input, output)
         }
-        "pipe" => pass_by_pipe(testcase, reuse, compression, iters),
-        s => panic!("unrecognized mode: {}", s)
+        Mode::Pipe => pass_by_pipe(testcase, reuse, compression, iters),
     }
 }
 
-fn do_testcase1<C, S>(case: &str, mode: &str, scratch: S, compression: C, iters: u64) -> ::capnp::Result<()>
+fn do_testcase1<C, S>(case: &str, mode: Mode, scratch: S, compression: C, iters: u64) -> ::capnp::Result<()>
     where C: Serialize, S: for<'a> Scratch<'a>,
 {
     match case {
@@ -334,7 +356,7 @@ fn do_testcase1<C, S>(case: &str, mode: &str, scratch: S, compression: C, iters:
     }
 }
 
-fn do_testcase2<C>(case: &str, mode: &str, scratch: &str, compression: C, iters: u64) -> ::capnp::Result<()>
+fn do_testcase2<C>(case: &str, mode: Mode, scratch: &str, compression: C, iters: u64) -> ::capnp::Result<()>
     where C: Serialize,
 {
     match scratch {
@@ -358,9 +380,11 @@ pub fn main() {
         }
     };
 
+    let mode = Mode::parse(&*args[2]).unwrap();
+
     let result = match &*args[4] {
-        "none" => do_testcase2(&*args[1], &*args[2], &*args[3], NoCompression, iters),
-        "packed" => do_testcase2(&*args[1], &*args[2], &*args[3], Packed, iters),
+        "none" => do_testcase2(&*args[1], mode, &*args[3], NoCompression, iters),
+        "packed" => do_testcase2(&*args[1], mode, &*args[3], Packed, iters),
         s => panic!("unrecognized compression: {}", s)
     };
 
