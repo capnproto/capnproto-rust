@@ -198,29 +198,29 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
 
             {
                 let mut writer: &mut [u8] = &mut request_bytes;
-                compression.write_message(&mut writer, &mut message_req).unwrap()
+                try!(compression.write_message(&mut writer, &mut message_req));
             }
 
             let mut request_bytes1: &[u8] = &request_bytes;
-            let message_reader = compression.read_message(
+            let message_reader = try!(compression.read_message(
                 &mut request_bytes1,
-                Default::default()).unwrap();
+                Default::default()));
 
-            let request_reader = message_reader.get_root().unwrap();
+            let request_reader = try!(message_reader.get_root());
             try!(testcase.handle_request(request_reader, response));
         }
 
         {
             let mut writer: &mut [u8] = &mut response_bytes;
-            compression.write_message(&mut writer, &mut message_res).unwrap()
+            try!(compression.write_message(&mut writer, &mut message_res));
         }
 
         let mut response_bytes1: &[u8] = &response_bytes;
-        let message_reader = compression.read_message(
+        let message_reader = try!(compression.read_message(
             &mut response_bytes1,
-            Default::default()).unwrap();
+            Default::default()));
 
-        let response_reader = message_reader.get_root().unwrap();
+        let response_reader = try!(message_reader.get_root());
         try!(testcase.check_response(response_reader, expected));
     }
     Ok(())
@@ -271,9 +271,9 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
         try!(compression.write_message(&mut out_buffered, &mut message_req));
         try!(out_buffered.flush());
 
-        let message_reader = compression.read_message(
+        let message_reader = try!(compression.read_message(
             &mut in_buffered,
-            Default::default()).unwrap();
+            Default::default()));
         let response_reader = try!(message_reader.get_root());
         try!(testcase.check_response(response_reader, expected));
     }
@@ -324,7 +324,7 @@ impl Mode {
             "client" => Ok(Mode::Client),
             "server" => Ok(Mode::Server),
             "pipe" => Ok(Mode::Pipe),
-            s => Err(::capnp::Error::failed(format!("unrecognized mode: {}", s)))
+            s => Err(::capnp::Error::failed(format!("unrecognized mode: {}", s))),
         }
     }
 }
@@ -352,7 +352,7 @@ fn do_testcase1<C, S>(case: &str, mode: Mode, scratch: S, compression: C, iters:
         "carsales" => do_testcase(carsales::CarSales, mode, scratch, compression, iters),
         "catrank" => do_testcase(catrank::CatRank, mode, scratch, compression, iters),
         "eval" => do_testcase(eval::Eval, mode, scratch, compression, iters),
-        s => panic!("unrecognized test case: {}", s)
+        s => Err(::capnp::Error::failed(format!("unrecognized test case: {}", s))),
     }
 }
 
@@ -362,11 +362,11 @@ fn do_testcase2<C>(case: &str, mode: Mode, scratch: &str, compression: C, iters:
     match scratch {
         "no-reuse" => do_testcase1(case, mode, NoScratch, compression, iters),
         "reuse" => do_testcase1(case, mode, UseScratch::new(), compression, iters),
-        s => panic!("unrecognized reuse option: {}", s),
+        s => Err(::capnp::Error::failed(format!("unrecognized reuse option: {}", s))),
     }
 }
 
-pub fn main() {
+fn try_main() -> ::capnp::Result<()> {
     let args: Vec<String> = ::std::env::args().collect();
 
     assert!(args.len() == 6,
@@ -375,20 +375,21 @@ pub fn main() {
 
     let iters = match args[5].parse::<u64>() {
         Ok(n) => n,
-        Err(_) => {
-            panic!("Could not parse a u64 from: {}", args[5]);
-        }
+        Err(_) =>
+            return Err(::capnp::Error::failed(format!("Could not parse a u64 from: {}", args[5]))),
     };
 
-    let mode = Mode::parse(&*args[2]).unwrap();
+    let mode = try!(Mode::parse(&*args[2]));
 
-    let result = match &*args[4] {
+    match &*args[4] {
         "none" => do_testcase2(&*args[1], mode, &*args[3], NoCompression, iters),
         "packed" => do_testcase2(&*args[1], mode, &*args[3], Packed, iters),
-        s => panic!("unrecognized compression: {}", s)
-    };
+        s => Err(::capnp::Error::failed(format!("unrecognized compression: {}", s))),
+    }
+}
 
-    match result {
+pub fn main() {
+    match try_main() {
         Ok(()) => (),
         Err(e) => {
             panic!("error: {:?}", e);
