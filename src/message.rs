@@ -24,6 +24,7 @@
 use any_pointer;
 use private::arena::{BuilderArenaImpl, ReaderArenaImpl, BuilderArena, ReaderArena};
 use private::layout;
+use private::units::BYTES_PER_WORD;
 use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
 use {OutputSegments, Result, Word};
 
@@ -133,6 +134,19 @@ impl <S> Reader<S> where S: ReaderSegments {
 
     pub fn into_segments(self) -> S {
         self.arena.into_segments()
+    }
+
+    /// Checks whether the message is [canonical](https://capnproto.org/encoding.html#canonicalization).
+    pub fn is_canonical(&self) -> Result<bool> {
+        let (segment_start, seg_len) = try!(self.arena.get_segment(0));
+        let pointer_reader = try!(layout::PointerReader::get_root(
+            &self.arena, 0, segment_start, self.nesting_limit));
+        let read_head = ::std::rc::Rc::new(::std::cell::Cell::new(
+            unsafe {segment_start.offset(1)}));
+        let root_is_canonical = try!(pointer_reader.is_canonical(&read_head));
+        let all_words_consumed =
+            (read_head.get() as usize - segment_start as usize) / BYTES_PER_WORD == seg_len as usize;
+        Ok(root_is_canonical && all_words_consumed)
     }
 }
 
