@@ -25,6 +25,93 @@ extern crate capnp;
 use capnp::{Word, message};
 
 #[test]
+fn canonicalize_succeeds_on_null_message() {
+    let segment: &[Word] = &[
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ];
+
+    let segments = &[segment];
+    let segment_array = message::SegmentArray::new(segments);
+    let message = message::Reader::new(segment_array, Default::default());
+    assert!(message.is_canonical().unwrap());
+
+    let canonical_words = message.canonicalize().unwrap();
+    assert_eq!(&canonical_words[..], segment);
+}
+
+#[test]
+fn dont_truncate_struct_too_far() {
+    let segment: &[Word] = &[
+        // Struct pointer, body immediately follows, three data words
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00),
+
+        // First data word
+        capnp_word!(0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11),
+
+        // Second data word, all zero except most significant bit
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80),
+
+        // Third data word, all zero
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ];
+
+    let segments = &[segment];
+    let segment_array = message::SegmentArray::new(segments);
+    let message = message::Reader::new(segment_array, Default::default());
+    assert!(!message.is_canonical().unwrap());
+
+    let canonicalized = message.canonicalize().unwrap();
+
+    let canonical_segment: &[Word] = &[
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00),
+        capnp_word!(0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11),
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80),
+    ];
+
+    assert_eq!(&canonicalized[..], canonical_segment);
+}
+
+#[test]
+fn dont_truncate_struct_list_too_far() {
+    let segment: &[Word] = &[
+        // Struct pointer, body immediately follows, one pointer
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00),
+
+        // List pointer, no offset, inline composite, three words long
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x1f, 0x00, 0x00, 0x00),
+
+        // Tag word, list has one element with three data words and no pointers
+        capnp_word!(0x04, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00),
+
+        // First data word
+        capnp_word!(0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22),
+
+        // Second data word, all zero except most significant bit
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80),
+
+        // Third data word, all zero
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ];
+
+    let segments = &[segment];
+    let segment_array = message::SegmentArray::new(segments);
+    let message = message::Reader::new(segment_array, Default::default());
+    assert!(!message.is_canonical().unwrap());
+
+    let canonicalized = message.canonicalize().unwrap();
+
+    let canonical_segment: &[Word] = &[
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00),
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00),
+        capnp_word!(0x04, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00),
+        capnp_word!(0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22),
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80),
+    ];
+
+    assert_eq!(&canonicalized[..], canonical_segment);
+}
+
+#[test]
 fn canonical_non_null_empty_struct_field() {
     let segment: &[Word] = &[
         // Struct pointer, body immediately follows, two pointer fields, no data.
@@ -114,7 +201,7 @@ fn is_canonical_requires_dense_packing() {
 }
 
 #[test]
-fn is_canonical_rejects_multisegment_messages() {
+fn simple_multisegment_message() {
     let segment0: &[Word] = &[
         //Far pointer to next segment
         capnp_word!(0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00),
@@ -132,6 +219,14 @@ fn is_canonical_rejects_multisegment_messages() {
     let segment_array = message::SegmentArray::new(segments);
     let message = message::Reader::new(segment_array, Default::default());
     assert!(!message.is_canonical().unwrap());
+
+    let canonicalized = message.canonicalize().unwrap();
+    let canonical_segment: &[Word] = &[
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00),
+        capnp_word!(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07),
+    ];
+
+    assert_eq!(&canonicalized[..], canonical_segment);
 }
 
 #[test]

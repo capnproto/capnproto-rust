@@ -148,6 +148,28 @@ impl <S> Reader<S> where S: ReaderSegments {
             (read_head.get() as usize - segment_start as usize) / BYTES_PER_WORD == seg_len as usize;
         Ok(root_is_canonical && all_words_consumed)
     }
+
+    /// Gets the [canonical](https://capnproto.org/encoding.html#canonicalization) form
+    /// of this message.
+    // TODO: Once we've updated code generation so that all generated types implement
+    // the new version of SetPointerBuilder, it will probably make sense for this function
+    // to live somewhere else and be parameterized by `S: SetPointerBuilder`.
+    pub fn canonicalize(&self) -> Result<Vec<Word>> {
+        let root = try!(self.get_root_internal());
+        let size = try!(root.target_size()).word_count + 1;
+        let mut message = Builder::new(HeapAllocator::new().first_segment_words(size as u32));
+        try!(message.set_root_canonical(root));
+        let output = message.get_segments_for_output()[0];
+        assert!(output.len() as u64 <= size);
+        let mut result = Word::allocate_zeroed_vec(output.len());
+
+        // TODO(perf): I'm sure there's a faster way to do this.
+        for idx in 0..output.len() {
+            result[idx] = output[idx];
+        }
+
+        Ok(result)
+    }
 }
 
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
@@ -251,6 +273,16 @@ impl <A> Builder<A> where A: Allocator {
     pub fn set_root<To, From: SetPointerBuilder<To>>(&mut self, value: From) -> Result<()> {
         let root = self.get_root_internal();
         root.set_as(value)
+    }
+
+    fn set_root_canonical<To, From: SetPointerBuilder<To>>(&mut self, value: From) -> Result<()> {
+        if self.arena.len() == 0 {
+            self.arena.allocate_segment(1).expect("allocate root pointer");
+            self.arena.allocate(0, 1).expect("allocate root pointer");
+        }
+        let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
+        let pointer = layout::PointerBuilder::get_root(&self.arena, 0, seg_start);
+        SetPointerBuilder::set_pointer_canonical(pointer, value)
     }
 
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {

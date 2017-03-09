@@ -1504,28 +1504,67 @@ mod wire_helpers {
         segment_id: u32,
         cap_table: CapTableBuilder,
         reff: *mut WirePointer,
-        value: StructReader) -> Result<SegmentAnd<*mut Word>>
+        value: StructReader,
+        canonicalize: bool) -> Result<SegmentAnd<*mut Word>>
     {
-        let data_size: WordCount32 = round_bits_up_to_words(value.data_size as u64);
-        let total_size: WordCount32 = data_size + value.pointer_count as u32 * WORDS_PER_POINTER as u32;
+        let mut data_size: ByteCount32 = round_bits_up_to_bytes(value.data_size as u64);
+        let mut ptr_count = value.pointer_count;
+
+        if canonicalize {
+            // StructReaders should not have bitwidths other than 1, but let's be safe
+            if !(value.data_size == 1 || value.data_size % BITS_PER_BYTE as u32 == 0) {
+                return Err(Error::failed("struct reader had bitwidth other than 1".to_string()))
+            }
+
+            if value.data_size == 1 {
+                if !value.get_bool_field(0) {
+                    data_size = 0;
+                }
+            } else {
+                'chop: while data_size != 0 {
+                    let end = data_size;
+                    let mut window = data_size % BYTES_PER_WORD as u32;
+                    if window == 0 {
+                        window = BYTES_PER_WORD as u32;
+                    }
+                    let start = end - window;
+                    let last_word = &value.get_data_section_as_blob()[start as usize..end as usize];
+                    if last_word == &[0; 8] {
+                        data_size -= window;
+                    } else {
+                        break 'chop
+                    }
+                }
+            }
+
+            while ptr_count != 0 && value.get_pointer_field(ptr_count as usize - 1).is_null() {
+                ptr_count -= 1;
+            }
+        }
+
+        let data_words = round_bytes_up_to_words(data_size);
+        let total_size: WordCount32 = data_words + ptr_count as u32 * WORDS_PER_POINTER as u32;
 
         let (ptr, reff, segment_id) =
             allocate(arena, reff, segment_id, total_size, WirePointerKind::Struct);
-        (*reff).mut_struct_ref().set(data_size as u16, value.pointer_count);
+        (*reff).mut_struct_ref().set(data_words as u16, ptr_count);
 
         if value.data_size == 1 {
-            *(ptr as *mut u8) = value.get_bool_field(0) as u8
+            // Data size could be made 0 by truncation
+            if data_size != 0 {
+                *(ptr as *mut u8) = value.get_bool_field(0) as u8
+            }
         } else {
-            ptr::copy_nonoverlapping::<Word>(value.data as *const _, ptr,
-                                             value.data_size as usize / BITS_PER_WORD);
+            ptr::copy_nonoverlapping::<u8>(value.data, ptr as *mut u8, data_size as usize);
         }
 
-        let pointer_section: *mut WirePointer = ptr.offset(data_size as isize) as *mut _;
-        for i in 0..value.pointer_count as isize {
+        let pointer_section: *mut WirePointer = ptr.offset(data_words as isize) as *mut _;
+        for i in 0..ptr_count as isize {
             try!(copy_pointer(arena, segment_id, cap_table, pointer_section.offset(i),
                               value.arena,
                               value.segment_id, value.cap_table, value.pointers.offset(i),
-                              value.nesting_limit));
+                              value.nesting_limit,
+                              canonicalize));
         }
 
         Ok(SegmentAnd { segment_id: segment_id, value: ptr })
@@ -1547,7 +1586,8 @@ mod wire_helpers {
         segment_id: u32,
         cap_table: CapTableBuilder,
         reff: *mut WirePointer,
-        value: ListReader) -> Result<SegmentAnd<*mut Word>>
+        value: ListReader,
+        canonicalize: bool) -> Result<SegmentAnd<*mut Word>>
     {
         let total_size = round_bits_up_to_words((value.element_count * value.step) as u64);
 
@@ -1565,7 +1605,8 @@ mod wire_helpers {
                                       value.arena,
                                       value.segment_id, value.cap_table,
                                       (value.ptr as *const _).offset(i),
-                                      value.nesting_limit));
+                                      value.nesting_limit,
+                                      canonicalize));
                 }
             } else {
                 //# List of data.
@@ -1586,17 +1627,51 @@ mod wire_helpers {
             Ok(SegmentAnd { segment_id: segment_id, value: ptr })
         } else {
             //# List of structs.
+
+            let decl_data_size = value.struct_data_size as u32 / BITS_PER_WORD as u32;
+            let decl_pointer_count = value.struct_pointer_count;
+
+            let mut data_size = 0;
+            let mut ptr_count = 0;
+            let mut total_size = total_size;
+
+            if canonicalize {
+                for ec in 0..value.element_count {
+                    let se = value.get_struct_element(ec);
+                    let mut local_data_size = decl_data_size;
+                    'data_chop: while local_data_size != 0 {
+                        let end = local_data_size * BYTES_PER_WORD as u32;
+                        let window = BYTES_PER_WORD as u32;
+                        let start = end - window;
+                        let last_word = &se.get_data_section_as_blob()[start as usize..end as usize];
+                        if last_word != &[0; 8] {
+                            break 'data_chop
+                        } else {
+                            local_data_size -= 1;
+                        }
+                    }
+                    if local_data_size > data_size {
+                        data_size = local_data_size;
+                    }
+                    let mut local_ptr_count = decl_pointer_count;
+                    while local_ptr_count != 0 && se.get_pointer_field(local_ptr_count as usize - 1).is_null() {
+                        local_ptr_count -= 1;
+                    }
+                }
+                total_size = (data_size as u32 + ptr_count as u32) * value.element_count as u32;
+            } else {
+                data_size = decl_data_size;
+                ptr_count = decl_pointer_count;
+            }
+
             let (ptr, reff, segment_id) =
                 allocate(arena, reff, segment_id,
                          total_size + POINTER_SIZE_IN_WORDS as u32, WirePointerKind::List);
             (*reff).mut_list_ref().set_inline_composite(total_size);
 
-            let data_size = round_bits_up_to_words(value.struct_data_size as u64);
-            let pointer_count = value.struct_pointer_count;
-
             let tag: *mut WirePointer = ptr as *mut _;
             (*tag).set_kind_and_inline_composite_list_element_count(WirePointerKind::Struct, value.element_count);
-            (*tag).mut_struct_ref().set(data_size as u16, pointer_count);
+            (*tag).mut_struct_ref().set(data_size as u16, ptr_count);
             let mut dst = ptr.offset(POINTER_SIZE_IN_WORDS as isize);
 
             let mut src: *const Word = value.ptr as *const _;
@@ -1606,10 +1681,10 @@ mod wire_helpers {
                 dst = dst.offset(data_size as isize);
                 src = src.offset(data_size as isize);
 
-                for _ in 0..pointer_count {
+                for _ in 0..ptr_count {
                     try!(copy_pointer(arena, segment_id, cap_table, dst as *mut _,
                                       value.arena, value.segment_id, value.cap_table, src as *const _,
-                                      value.nesting_limit));
+                                      value.nesting_limit, canonicalize));
                     dst = dst.offset(POINTER_SIZE_IN_WORDS as isize);
                     src = src.offset(POINTER_SIZE_IN_WORDS as isize);
                 }
@@ -1625,7 +1700,8 @@ mod wire_helpers {
         src_arena: &ReaderArena,
         src_segment_id: u32, src_cap_table: CapTableReader,
         src: *const WirePointer,
-        nesting_limit: i32) -> Result<SegmentAnd<*mut Word>>
+        nesting_limit: i32,
+        canonicalize: bool) -> Result<SegmentAnd<*mut Word>>
     {
         let src_target = (*src).target();
 
@@ -1660,7 +1736,8 @@ mod wire_helpers {
                         data_size: (*src).struct_ref().data_size.get() as u32 * BITS_PER_WORD as u32,
                         pointer_count: (*src).struct_ref().ptr_count.get(),
                         nesting_limit: nesting_limit - 1
-                    });
+                    },
+                    canonicalize);
             }
             WirePointerKind::List => {
                 let element_size = (*src).list_ref().element_size();
@@ -1710,7 +1787,8 @@ mod wire_helpers {
                             struct_data_size: (*tag).struct_ref().data_size.get() as u32 * BITS_PER_WORD as u32,
                             struct_pointer_count: (*tag).struct_ref().ptr_count.get(),
                             nesting_limit: nesting_limit - 1
-                        })
+                        },
+                        canonicalize)
                 } else {
                     let data_size = data_bits_per_element(element_size);
                     let pointer_count = pointers_per_element(element_size);
@@ -1741,7 +1819,8 @@ mod wire_helpers {
                             struct_data_size: data_size,
                             struct_pointer_count: pointer_count as u16,
                             nesting_limit: nesting_limit - 1
-                        })
+                        },
+                        canonicalize)
                 }
             }
             WirePointerKind::Far => {
@@ -1750,6 +1829,9 @@ mod wire_helpers {
             WirePointerKind::Other => {
                 if !(*src).is_capability() {
                     return Err(Error::failed("Unknown pointer type.".to_string()));
+                }
+                if canonicalize {
+                    return Err(Error::failed("Cannot create a canonical message with a capability".to_string()));
                 }
                 match src_cap_table.extract_cap((*src).cap_ref().index.get() as usize) {
                     Some(cap) => {
@@ -2489,7 +2571,7 @@ impl <'a> PointerBuilder<'a> {
         unsafe {
             try!(wire_helpers::set_struct_pointer(
                 self.arena,
-                self.segment_id, self.cap_table, self.pointer, *value));
+                self.segment_id, self.cap_table, self.pointer, *value, false));
             Ok(())
         }
     }
@@ -2497,7 +2579,7 @@ impl <'a> PointerBuilder<'a> {
     pub fn set_list(&self, value: &ListReader) -> Result<()> {
         unsafe {
             try!(wire_helpers::set_list_pointer(self.arena, self.segment_id,
-                                                self.cap_table, self.pointer, *value));
+                                                self.cap_table, self.pointer, *value, false));
             Ok(())
         }
     }
@@ -2519,7 +2601,7 @@ impl <'a> PointerBuilder<'a> {
             self.arena, self.segment_id, self.cap_table, self.pointer, cap);
     }
 
-    pub fn copy_from(&mut self, other: PointerReader) -> Result<()> {
+    pub fn copy_from(&mut self, other: PointerReader, canonicalize: bool) -> Result<()> {
         if other.pointer.is_null()  {
             if !self.pointer.is_null() {
                 unsafe {
@@ -2532,7 +2614,7 @@ impl <'a> PointerBuilder<'a> {
                 try!(wire_helpers::copy_pointer(self.arena, self.segment_id, self.cap_table, self.pointer,
                                                 other.arena,
                                                 other.segment_id, other.cap_table, other.pointer,
-                                                other.nesting_limit));
+                                                other.nesting_limit, canonicalize));
             }
         }
         Ok(())
@@ -2589,7 +2671,11 @@ impl <'a> StructReader<'a> {
 
     pub fn get_pointer_section_size(&self) -> WirePointerCount16 { self.pointer_count }
 
-    pub fn get_data_section_as_blob(&self) -> usize { panic!("unimplemented") }
+    pub fn get_data_section_as_blob(&self) -> &'a [u8] {
+        unsafe {
+            ::std::slice::from_raw_parts(self.data, self.data_size as usize / BITS_PER_BYTE)
+        }
+    }
 
     #[inline]
     pub fn get_data_field<T: Endian + zero::Zero>(&self, offset: ElementCount) -> T {

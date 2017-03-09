@@ -56,6 +56,11 @@ impl <'a> Reader<'a> {
     }
 
     /// Gets the total size of the target and all of its children. Does not count far pointer overhead.
+    pub fn target_size(&self) -> Result<::MessageSize> {
+        self.reader.total_size()
+    }
+
+    #[deprecated(since = "0.8.7", note = "use target_size() instead")]
     pub fn total_size(&self) -> Result<::MessageSize> {
         self.reader.total_size()
     }
@@ -96,7 +101,11 @@ impl <'a> FromPointerReader<'a> for Reader<'a> {
 impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(mut pointer: ::private::layout::PointerBuilder<'b>,
                                value: Reader<'a>) -> Result<()> {
-        pointer.copy_from(value.reader)
+        pointer.copy_from(value.reader, false)
+    }
+
+    fn set_pointer_canonical<'b>(mut pointer: PointerBuilder<'b>, value: Reader<'a>) -> Result<()> {
+        pointer.copy_from(value.reader, true)
     }
 }
 
