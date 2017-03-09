@@ -230,6 +230,32 @@ fn simple_multisegment_message() {
 }
 
 #[test]
+fn multisegment_only_first_segment_used() {
+    // A segment with a canonicalized struct.
+    let segment0: &[Word] = &[
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00),
+        capnp_word!(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07),
+    ];
+
+    let segment1: &[Word] = &[
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00),
+    ];
+
+    let segments = &[segment0, segment1];
+    let segment_array = message::SegmentArray::new(segments);
+    let message = message::Reader::new(segment_array, Default::default());
+    assert!(!message.is_canonical().unwrap());
+
+    let canonicalized = message.canonicalize().unwrap();
+    let canonical_segment: &[Word] = &[
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00),
+        capnp_word!(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07),
+    ];
+
+    assert_eq!(&canonicalized[..], canonical_segment);
+}
+
+#[test]
 fn is_canonical_requires_truncation_of_0_valued_struct_fields() {
     let segment: &[Word] = &[
         //Struct pointer, data immediately follows

@@ -139,6 +139,15 @@ impl <S> Reader<S> where S: ReaderSegments {
     /// Checks whether the message is [canonical](https://capnproto.org/encoding.html#canonicalization).
     pub fn is_canonical(&self) -> Result<bool> {
         let (segment_start, seg_len) = try!(self.arena.get_segment(0));
+
+        if let Ok(_) = self.arena.get_segment(1) {
+            // TODO(cleanup, apibump): should there be a nicer way to ask the arena how many
+            // segments there are?
+
+            // There is more than one segment, so the message cannot be canonical.
+            return Ok(false)
+        }
+
         let pointer_reader = try!(layout::PointerReader::get_root(
             &self.arena, 0, segment_start, self.nesting_limit));
         let read_head = ::std::rc::Rc::new(::std::cell::Cell::new(
