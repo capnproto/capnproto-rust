@@ -313,6 +313,28 @@ fn empty_inline_composite_list_of_0_sized_structs() {
 }
 
 #[test]
+fn inline_composite_list_with_void_list() {
+    let segment: &[Word] = &[
+        // List, inline composite
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00),
+
+        // One element, one pointer
+        capnp_word!(0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00),
+
+        // List of 1 VOID
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00),
+    ];
+
+    let segments = &[segment];
+    let segment_array = message::SegmentArray::new(segments);
+    let message = message::Reader::new(segment_array, Default::default());
+    assert!(message.is_canonical().unwrap());
+
+    let canonical_words = message.canonicalize().unwrap();
+    assert_eq!(Word::words_to_bytes(segment), Word::words_to_bytes(&canonical_words));
+}
+
+#[test]
 fn is_canonical_rejects_inline_composite_list_with_inaccurate_word_length() {
     let segment: &[Word] = &[
         // Struct pointer, no offset, pointer section has two entries

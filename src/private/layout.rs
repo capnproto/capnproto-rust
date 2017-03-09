@@ -1660,6 +1660,9 @@ mod wire_helpers {
                     while local_ptr_count != 0 && se.get_pointer_field(local_ptr_count as usize - 1).is_null() {
                         local_ptr_count -= 1;
                     }
+                    if local_ptr_count > ptr_count {
+                        ptr_count = local_ptr_count;
+                    }
                 }
                 total_size = (data_size as u32 + ptr_count as u32) * value.element_count as u32;
             } else {
