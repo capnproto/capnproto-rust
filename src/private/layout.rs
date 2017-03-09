@@ -720,10 +720,6 @@ mod wire_helpers {
                                           ptr.offset(word_count as isize + POINTER_SIZE_IN_WORDS as isize),
                                           WirePointerKind::List));
 
-                        if word_count == 0 {
-                            return Ok(result);
-                        }
-
                         let element_tag: *const WirePointer = ptr as *const _;
                         let count = (*element_tag).inline_composite_list_element_count();
 
@@ -1001,6 +997,7 @@ mod wire_helpers {
             ptr: ptr as *mut _,
             step: step,
             element_count: element_count,
+            element_size: element_size,
             struct_data_size: data_size,
             struct_pointer_count: pointer_count as u16
         }
@@ -1040,6 +1037,7 @@ mod wire_helpers {
             ptr: ptr1 as *mut _,
             step: words_per_element * BITS_PER_WORD as u32,
             element_count: element_count,
+            element_size: ElementSize::InlineComposite,
             struct_data_size: element_size.data as u32 * (BITS_PER_WORD as u32),
             struct_pointer_count: element_size.pointers
         }
@@ -1133,6 +1131,7 @@ mod wire_helpers {
                 cap_table: cap_table,
                 ptr: ptr as *mut _,
                 element_count: (*tag).inline_composite_list_element_count(),
+                element_size: ElementSize::InlineComposite,
                 step: (*tag).struct_ref().word_size() * BITS_PER_WORD as u32,
                 struct_data_size: data_size as u32 * BITS_PER_WORD as u32,
                 struct_pointer_count: pointer_count
@@ -1156,6 +1155,7 @@ mod wire_helpers {
                 ptr: ptr as *mut _,
                 step: step,
                 element_count: (*reff).list_ref().element_count(),
+                element_size: old_size,
                 struct_data_size: data_size,
                 struct_pointer_count: pointer_count as u16
             })
@@ -1215,6 +1215,7 @@ mod wire_helpers {
                     cap_table: cap_table,
                     ptr: old_ptr as *mut _,
                     element_count: element_count,
+                    element_size: ElementSize::InlineComposite,
                     step: old_step * BITS_PER_WORD as u32,
                     struct_data_size: old_data_size as u32 * BITS_PER_WORD as u32,
                     struct_pointer_count: old_pointer_count
@@ -1270,6 +1271,7 @@ mod wire_helpers {
                 cap_table: cap_table,
                 ptr: new_ptr as *mut _,
                 element_count: element_count,
+                element_size: ElementSize::InlineComposite,
                 step: new_step * BITS_PER_WORD as u32,
                 struct_data_size: new_data_size as u32 * BITS_PER_WORD as u32,
                 struct_pointer_count: new_pointer_count,
@@ -1350,6 +1352,7 @@ mod wire_helpers {
                     cap_table: cap_table,
                     ptr: new_ptr as *mut _,
                     element_count: element_count,
+                    element_size: ElementSize::InlineComposite,
                     step: new_step * BITS_PER_WORD as u32,
                     struct_data_size: new_data_size as u32 * BITS_PER_WORD as u32,
                     struct_pointer_count: new_pointer_count
@@ -1591,7 +1594,7 @@ mod wire_helpers {
     {
         let total_size = round_bits_up_to_words((value.element_count * value.step) as u64);
 
-        if value.step <= BITS_PER_WORD as u32 {
+        if value.element_size != ElementSize::InlineComposite {
             //# List of non-structs.
             let (ptr, reff, segment_id) =
                 allocate(arena, reff, segment_id, total_size, WirePointerKind::List);
@@ -1783,6 +1786,7 @@ mod wire_helpers {
                             cap_table: src_cap_table,
                             ptr: ptr as *mut _,
                             element_count: element_count,
+                            element_size: element_size,
                             step: words_per_element * BITS_PER_WORD as u32,
                             struct_data_size: (*tag).struct_ref().data_size.get() as u32 * BITS_PER_WORD as u32,
                             struct_pointer_count: (*tag).struct_ref().ptr_count.get(),
@@ -1815,6 +1819,7 @@ mod wire_helpers {
                             cap_table : src_cap_table,
                             ptr: ptr as *mut _,
                             element_count: element_count,
+                            element_size: element_size,
                             step: step,
                             struct_data_size: data_size,
                             struct_pointer_count: pointer_count as u16,
@@ -2025,6 +2030,7 @@ mod wire_helpers {
                     cap_table: cap_table,
                     ptr: ptr as *const _,
                     element_count: size,
+                    element_size: element_size,
                     step: words_per_element * BITS_PER_WORD as u32,
                     struct_data_size: struct_ref.data_size.get() as u32 * (BITS_PER_WORD as u32),
                     struct_pointer_count: struct_ref.ptr_count.get(),
@@ -2078,6 +2084,7 @@ mod wire_helpers {
                     cap_table: cap_table,
                     ptr: ptr as *const _,
                     element_count: list_ref.element_count(),
+                    element_size: element_size,
                     step: step,
                     struct_data_size: data_size,
                     struct_pointer_count: pointer_count as u16,
@@ -2920,6 +2927,7 @@ pub struct ListReader<'a> {
     struct_data_size: BitCount32,
     nesting_limit: i32,
     struct_pointer_count: WirePointerCount16,
+    element_size: ElementSize,
 }
 
 impl <'a> ListReader<'a> {
@@ -2930,6 +2938,7 @@ impl <'a> ListReader<'a> {
             cap_table: CapTableReader::Plain(ptr::null()),
             ptr: ptr::null(),
             element_count: 0,
+            element_size: ElementSize::Void,
             step: 0,
             struct_data_size: 0,
             struct_pointer_count: 0,
@@ -3063,7 +3072,8 @@ pub struct ListBuilder<'a> {
     element_count: ElementCount32,
     step: BitCount32,
     struct_data_size: BitCount32,
-    struct_pointer_count: WirePointerCount16
+    struct_pointer_count: WirePointerCount16,
+    element_size: ElementSize,
 }
 
 impl <'a> ListBuilder<'a> {
@@ -3076,6 +3086,7 @@ impl <'a> ListBuilder<'a> {
             cap_table: CapTableBuilder::Plain(ptr::null_mut()),
             ptr: ptr::null_mut(),
             element_count: 0,
+            element_size: ElementSize::Void,
             step: 0,
             struct_data_size: 0,
             struct_pointer_count: 0,
@@ -3089,6 +3100,7 @@ impl <'a> ListBuilder<'a> {
             cap_table: self.cap_table.as_reader(),
             ptr: self.ptr as *const _,
             element_count: self.element_count,
+            element_size: self.element_size,
             step: self.step,
             struct_data_size: self.struct_data_size,
             struct_pointer_count: self.struct_pointer_count,

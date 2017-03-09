@@ -145,3 +145,22 @@ fn struct_list_size() {
 
     assert_eq!(pointer_reader.total_size().unwrap().word_count, 2);
 }
+
+#[test]
+fn empty_struct_list_size() {
+    let data: &[Word] = &[
+        // Struct, one pointer
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00),
+
+        // Inline-composite list, zero words long
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00),
+
+        // Tag
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ];
+
+    let pointer_reader =
+        ::private::layout::PointerReader::get_root_unchecked(data.as_ptr());
+
+    assert_eq!(2, pointer_reader.total_size().unwrap().word_count);
+}

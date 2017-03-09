@@ -159,7 +159,9 @@ impl <S> Reader<S> where S: ReaderSegments {
         let size = try!(root.target_size()).word_count + 1;
         let mut message = Builder::new(HeapAllocator::new().first_segment_words(size as u32));
         try!(message.set_root_canonical(root));
-        let output = message.get_segments_for_output()[0];
+        let output_segments = message.get_segments_for_output();
+        assert_eq!(1, output_segments.len());
+        let output = output_segments[0];
         assert!(output.len() as u64 <= size);
         let mut result = Word::allocate_zeroed_vec(output.len());
 

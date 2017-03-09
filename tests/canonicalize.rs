@@ -265,7 +265,7 @@ fn is_canonical_rejects_unused_trailing_words() {
 }
 
 #[test]
-fn is_canonical_accepts_empty_inline_composite_list_of_0_sized_structs() {
+fn empty_inline_composite_list_of_0_sized_structs() {
     let segment: &[Word] = &[
         // Struct pointer, pointer in next word
         capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00),
@@ -281,6 +281,9 @@ fn is_canonical_accepts_empty_inline_composite_list_of_0_sized_structs() {
     let segment_array = message::SegmentArray::new(segments);
     let message = message::Reader::new(segment_array, Default::default());
     assert!(message.is_canonical().unwrap());
+
+    let canonical_words = message.canonicalize().unwrap();
+    assert_eq!(Word::words_to_bytes(segment), Word::words_to_bytes(&canonical_words));
 }
 
 #[test]
