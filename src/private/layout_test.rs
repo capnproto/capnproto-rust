@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use std::ptr;
+
 use Word;
 
 #[test]
@@ -28,14 +30,20 @@ fn simple_raw_data_struct() {
         capnp_word!(0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef)];
 
     let reader = ::private::layout::PointerReader::get_root_unchecked(data.as_ptr())
-        .get_struct(::std::ptr::null()).unwrap();
+        .get_struct(ptr::null()).unwrap();
 
     assert_eq!(0xefcdab8967452301u64, reader.get_data_field::<u64>(0));
-    assert_eq!(0, reader.get_data_field::<u64>(1));
+    assert_eq!(0, reader.get_data_field::<u64>(1)); // past end of struct --> default value
+
     assert_eq!(0x67452301u32, reader.get_data_field::<u32>(0));
     assert_eq!(0xefcdab89u32, reader.get_data_field::<u32>(1));
-    assert_eq!(0, reader.get_data_field::<u32>(2));
+    assert_eq!(0, reader.get_data_field::<u32>(2)); // past end of struct --> default value
+
     assert_eq!(0x2301u16, reader.get_data_field::<u16>(0));
+    assert_eq!(0x6745u16, reader.get_data_field::<u16>(1));
+    assert_eq!(0xab89u16, reader.get_data_field::<u16>(2));
+    assert_eq!(0xefcdu16, reader.get_data_field::<u16>(3));
+    assert_eq!(0u16, reader.get_data_field::<u16>(4)); // past end of struct --> default value
     // TODO the rest of uints.
 
     // Bits.
@@ -58,7 +66,7 @@ fn simple_raw_data_struct() {
     assert_eq!(reader.get_bool_field(15), false);
 
     assert_eq!(reader.get_bool_field(63), true);
-    assert_eq!(reader.get_bool_field(64), false);
+    assert_eq!(reader.get_bool_field(64), false); // past end of struct --> default value
 }
 
 
@@ -79,7 +87,7 @@ fn bool_list() {
     let pointer_reader =
         ::private::layout::PointerReader::get_root_unchecked(data.as_ptr());
 
-    let reader = pointer_reader.get_list(::private::layout::ElementSize::Bit, ::std::ptr::null()).unwrap();
+    let reader = pointer_reader.get_list(::private::layout::ElementSize::Bit, ptr::null()).unwrap();
 
     assert_eq!(reader.len(), 10);
     assert_eq!(bool::get(&reader, 0), true);
