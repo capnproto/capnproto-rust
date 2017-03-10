@@ -32,18 +32,20 @@ to generate code in a [variety of programming languages](https://capnproto.org/o
 The generated code lets you produce and consume values of the
 types you've defined in your schema.
 
-In Rust, the generated code for the example above includes
-a `point::Reader<'a>` struct with `get_x()` and `get_y()` methods,
-and a `point::Builder<'a>` struct with `set_x()` and `set_y()` methods.
-The lifetime parameter `'a` in these generated struct types
-is a formal reminder that they contain borrowed references to
-the raw buffers of bytes that make up the underlying Cap'n Proto messages.
-Those underlying buffers are never actually parsed into
-separate data structures -- Cap'n Proto's wire format also serves as its in-memory format.
-That is, there is no encode or decode step!
+Values are encoded in [format](https://capnproto.org/encoding.html) that
+is suitable not only for transmission over a network and persistence to disk,
+but also for zero-copy in-memory traversal.
+That is, you can completely skip serialization and deserialization!
 It's in this sense that Cap'n Proto is
 ["infinity times faster"](https://capnproto.org/news/2013-04-01-announcing-capn-proto.html)
 than alternatives like Protocol Buffers.
+
+In Rust, the generated code for the example above includes
+a `point::Reader<'a>` struct with `get_x()` and `get_y()` methods,
+and a `point::Builder<'a>` struct with `set_x()` and `set_y()` methods.
+The lifetime parameter `'a` is a formal reminder that `Reader<'a>` and `Builder<'a>`
+contain borrowed references to the raw buffers of bytes that make up the underlying Cap'n Proto messages.
+Those underlying buffers are never actually copied into separate data structures.
 
 The generated code also includes
 a `point_tracker::Server` trait with an `add_point()` method,
@@ -60,6 +62,14 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
   of Cap'n Proto messages.
 - [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust): Object-capability remote procedure call
   system.
+
+## features
+
+- [tagged unions](https://capnproto.org/language.html#unions)
+- [generics](https://capnproto.org/language.html#generic-types)
+- [protocol evolvability](https://capnproto.org/language.html#evolving-your-protocol)
+- [canonicalization](https://capnproto.org/encoding.html#canonicalization)
+- ...
 
 ## examples
 
