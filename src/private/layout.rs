@@ -2997,7 +2997,7 @@ impl <'a> ListReader<'a> {
         reff: *const WirePointer)
         -> Result<bool>
     {
-        match unsafe { (*reff).list_ref().element_size() } {
+        match self.element_size {
             ElementSize::InlineComposite => {
                 read_head.set(unsafe { read_head.get().offset(1) }); // tag word
                 if self.ptr as *const _ != read_head.get() {
