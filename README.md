@@ -43,7 +43,8 @@ than alternatives like Protocol Buffers.
 In Rust, the generated code for the example above includes
 a `point::Reader<'a>` struct with `get_x()` and `get_y()` methods,
 and a `point::Builder<'a>` struct with `set_x()` and `set_y()` methods.
-The lifetime parameter `'a` is a formal reminder that `Reader<'a>` and `Builder<'a>`
+The lifetime parameter `'a` is a formal reminder
+that `point::Reader<'a>` and `point::Builder<'a>`
 contain borrowed references to the raw buffers of bytes that make up the underlying Cap'n Proto messages.
 Those underlying buffers are never actually copied into separate data structures.
 
