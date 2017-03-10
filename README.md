@@ -32,7 +32,7 @@ to generate code in a [variety of programming languages](https://capnproto.org/o
 The generated code lets you produce and consume values of the
 types you've defined in your schema.
 
-Values are encoded in [format](https://capnproto.org/encoding.html) that
+Values are encoded in [a format](https://capnproto.org/encoding.html) that
 is suitable not only for transmission over a network and persistence to disk,
 but also for zero-copy in-memory traversal.
 That is, you can completely skip serialization and deserialization!
@@ -53,6 +53,13 @@ and a `point_tracker::Client` struct with an `add_point_request()` method.
 The former can be implemented to create a network-accessible object,
 and the latter can be used to invoke a possibly-remote instance of a `PointTracker`.
 
+## features
+
+- [tagged unions](https://capnproto.org/language.html#unions)
+- [generics](https://capnproto.org/language.html#generic-types)
+- [protocol evolvability](https://capnproto.org/language.html#evolving-your-protocol)
+- [canonicalization](https://capnproto.org/encoding.html#canonicalization)
+
 ## related repositories
 - [capnproto-rust](https://github.com/dwrensha/capnproto-rust) (the repo you're looking at right now):
   Runtime library for dealing with Cap'n Proto messages.
@@ -62,14 +69,6 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
   of Cap'n Proto messages.
 - [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust): Object-capability remote procedure call
   system.
-
-## features
-
-- [tagged unions](https://capnproto.org/language.html#unions)
-- [generics](https://capnproto.org/language.html#generic-types)
-- [protocol evolvability](https://capnproto.org/language.html#evolving-your-protocol)
-- [canonicalization](https://capnproto.org/encoding.html#canonicalization)
-- ...
 
 ## examples
 
@@ -86,8 +85,8 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
 
 ## unimplemented / future work
 
-- [Orphans](https://capnproto.org/cxx.html#orphans)
-- [Dynamic reflection](https://capnproto.org/cxx.html#dynamic-reflection)
-- Pointer constants and defaults
+- [orphans](https://capnproto.org/cxx.html#orphans)
+- [dynamic reflection](https://capnproto.org/cxx.html#dynamic-reflection)
+- pointer constants and defaults
 
 
