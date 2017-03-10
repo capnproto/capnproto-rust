@@ -59,6 +59,7 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
 - [generics](https://capnproto.org/language.html#generic-types)
 - [protocol evolvability](https://capnproto.org/language.html#evolving-your-protocol)
 - [canonicalization](https://capnproto.org/encoding.html#canonicalization)
+- [`Result`-based error handling](https://dwrensha.github.io/capnproto-rust/2015/03/21/error-handling-revisited.html)
 
 ## related repositories
 - [capnproto-rust](https://github.com/dwrensha/capnproto-rust) (the repo you're looking at right now):

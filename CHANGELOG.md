@@ -1,3 +1,8 @@
+## v0.8.7
+- Implement `as_reader()` for lists.
+- Implement `canonicalize()` and `is_canonical()`.
+- Fix bug where `total_size()` returned wrong answer on empty struct lists.
+
 ## v0.8.6
 - Implement struct list upgrades.
 - Fix bug where `message.init_root::<any_pointer::Builder>()` did not clear the old value.
