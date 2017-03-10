@@ -173,12 +173,7 @@ impl <S> Reader<S> where S: ReaderSegments {
         let output = output_segments[0];
         assert!(output.len() as u64 <= size);
         let mut result = Word::allocate_zeroed_vec(output.len());
-
-        // TODO(perf): I'm sure there's a faster way to do this.
-        for idx in 0..output.len() {
-            result[idx] = output[idx];
-        }
-
+        result.copy_from_slice(output);
         Ok(result)
     }
 }
