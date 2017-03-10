@@ -78,10 +78,10 @@ pub mod addressbook {
             println!("{}: {}", try!(person.get_name()), try!(person.get_email()));
             for phone in try!(person.get_phones()).iter() {
                 let type_name = match phone.get_type() {
-                    Ok(person::phone_number::Type::Mobile) => {"mobile"}
-                    Ok(person::phone_number::Type::Home) => {"home"}
-                    Ok(person::phone_number::Type::Work) => {"work"}
-                    Err(::capnp::NotInSchema(_)) => {"UNKNOWN"}
+                    Ok(person::phone_number::Type::Mobile) => "mobile",
+                    Ok(person::phone_number::Type::Home) => "home",
+                    Ok(person::phone_number::Type::Work) => "work",
+                    Err(::capnp::NotInSchema(_)) => "UNKNOWN",
                 };
                 println!("  {} phone: {}", type_name, try!(phone.get_number()));
             }
