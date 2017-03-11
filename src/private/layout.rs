@@ -1693,6 +1693,8 @@ mod wire_helpers {
                     dst = dst.offset(POINTER_SIZE_IN_WORDS as isize);
                     src = src.offset(POINTER_SIZE_IN_WORDS as isize);
                 }
+
+                src = src.offset((decl_pointer_count - ptr_count) as isize);
             }
             Ok(SegmentAnd { segment_id: segment_id, value: ptr })
         }
