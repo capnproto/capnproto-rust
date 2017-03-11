@@ -363,3 +363,27 @@ fn is_canonical_rejects_inline_composite_list_with_inaccurate_word_length() {
     let message = message::Reader::new(segment_array, Default::default());
     assert!(!message.is_canonical().unwrap());
 }
+
+#[test]
+fn truncate_data_section_inline_composite() {
+    let segment: &[Word] = &[
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00),
+        capnp_word!(0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00),
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x00),
+        capnp_word!(0x35, 0x35, 0x35, 0x2d, 0x31, 0x32, 0x31, 0x32),
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ];
+
+    let segments = &[segment];
+    let segment_array = message::SegmentArray::new(segments);
+    let message = message::Reader::new(segment_array, Default::default());
+    assert!(!message.is_canonical().unwrap());
+
+    let canonical_words = message.canonicalize().unwrap();
+
+    let canonical_segments = &[&canonical_words[..]];
+    let canonical_segment_array = message::SegmentArray::new(canonical_segments);
+    let canonical_message = message::Reader::new(canonical_segment_array, Default::default());
+    assert!(canonical_message.is_canonical().unwrap());
+}

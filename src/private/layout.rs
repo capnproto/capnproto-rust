@@ -1682,10 +1682,9 @@ mod wire_helpers {
 
             let mut src: *const Word = value.ptr as *const _;
             for _ in 0.. value.element_count {
-                ptr::copy_nonoverlapping(src, dst,
-                                         value.struct_data_size as usize / BITS_PER_WORD);
+                ptr::copy_nonoverlapping(src, dst, data_size as usize);
                 dst = dst.offset(data_size as isize);
-                src = src.offset(data_size as isize);
+                src = src.offset(decl_data_size as isize);
 
                 for _ in 0..ptr_count {
                     try!(copy_pointer(arena, segment_id, cap_table, dst as *mut _,
