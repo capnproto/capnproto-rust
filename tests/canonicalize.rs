@@ -410,4 +410,14 @@ fn truncate_pointer_section_inline_composite() {
     let canonical_segment_array = message::SegmentArray::new(canonical_segments);
     let canonical_message = message::Reader::new(canonical_segment_array, Default::default());
     assert!(canonical_message.is_canonical().unwrap());
+
+    let expected_canonical_words: &[Word] = &[
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00),
+        capnp_word!(0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00),
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+        capnp_word!(0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa),
+    ];
+
+    assert_eq!(Word::words_to_bytes(expected_canonical_words),
+               Word::words_to_bytes(&canonical_words[..]));
 }
