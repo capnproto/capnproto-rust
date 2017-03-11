@@ -20,3 +20,7 @@ members = ["."]
 [[bin]]
 name = "canonicalize"
 path = "fuzzers/canonicalize.rs"
+
+[[bin]]
+name = "test_all_types"
+path = "fuzzers/test_all_types.rs"
