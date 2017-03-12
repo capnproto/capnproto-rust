@@ -421,3 +421,59 @@ fn truncate_pointer_section_inline_composite() {
     assert_eq!(Word::words_to_bytes(expected_canonical_words),
                Word::words_to_bytes(&canonical_words[..]));
 }
+
+#[test]
+fn list_padding_must_be_zero() {
+    let segment: &[Word] = &[
+        // List of three single-byte elements
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x1a, 0x00, 0x00, 0x00),
+
+        // Fourth byte is also nonzero, so this list is not canonical
+        capnp_word!(0x01, 0x02, 0x03, 0x01, 0x00, 0x00, 0x00, 0x00),
+    ];
+
+    let segments = &[segment];
+    let segment_array = message::SegmentArray::new(segments);
+    let message = message::Reader::new(segment_array, Default::default());
+    assert!(!message.is_canonical().unwrap());
+
+    let canonical_words = message.canonicalize().unwrap();
+
+    let canonical_segments = &[&canonical_words[..]];
+    let canonical_segment_array = message::SegmentArray::new(canonical_segments);
+    let canonical_message = message::Reader::new(canonical_segment_array, Default::default());
+    assert!(canonical_message.is_canonical().unwrap());
+}
+
+
+#[test]
+fn bit_list_padding_must_be_zero() {
+    let segment: &[Word] = &[
+        // List of element single-bit elements
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x59, 0x00, 0x00, 0x00),
+
+        // Twelfth bit is nonzero, so list is not canonical
+        capnp_word!(0xee, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ];
+
+    let segments = &[segment];
+    let segment_array = message::SegmentArray::new(segments);
+    let message = message::Reader::new(segment_array, Default::default());
+    assert!(!message.is_canonical().unwrap());
+
+    let canonical_words = message.canonicalize().unwrap();
+
+    let canonical_segments = &[&canonical_words[..]];
+    let canonical_segment_array = message::SegmentArray::new(canonical_segments);
+    let canonical_message = message::Reader::new(canonical_segment_array, Default::default());
+    assert!(canonical_message.is_canonical().unwrap());
+
+
+    let expected_canonical_words: &[Word] = &[
+        capnp_word!(0x01, 0x00, 0x00, 0x00, 0x59, 0x00, 0x00, 0x00),
+        capnp_word!(0xee, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+    ];
+
+    assert_eq!(Word::words_to_bytes(expected_canonical_words),
+               Word::words_to_bytes(&canonical_words[..]));
+}

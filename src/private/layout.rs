@@ -1624,7 +1624,25 @@ mod wire_helpers {
                 };
 
                 (*reff).mut_list_ref().set(element_size, value.element_count);
-                ptr::copy_nonoverlapping(value.ptr as *const Word, ptr, total_size as usize);
+
+                // Be careful to avoid coping any bytes past the end of the list.
+                // TODO(perf) Is ptr::copy_nonoverlapping faster if word-aligned?
+                // If so, then perhaps we should only drop to the byte-index level
+                // in the canonicalize=true case.
+                let whole_byte_size = value.element_count as u64 * value.step as u64 / BITS_PER_BYTE as u64;
+                ptr::copy_nonoverlapping(value.ptr as *const u8,
+                                         ptr as *mut u8,
+                                         whole_byte_size as usize);
+                let leftover_bits = value.element_count as u64 * value.step as u64 % BITS_PER_BYTE as u64;
+                if leftover_bits > 0 {
+                    let mut mask: u8 = 0;
+                    for idx in 0..leftover_bits as u8 {
+                        mask |= 1 << idx;
+                    }
+
+                    *(ptr as *mut u8).offset(whole_byte_size as isize) =
+                        mask & (*(value.ptr as *const u8).offset(whole_byte_size as isize))
+                }
             }
 
             Ok(SegmentAnd { segment_id: segment_id, value: ptr })
@@ -3060,7 +3078,35 @@ impl <'a> ListReader<'a> {
                     word_size += 1
                 }
 
-                read_head.set(unsafe { read_head.get().offset(word_size as isize) });
+                let byte_size = bit_size / BITS_PER_BYTE as u64;
+                let mut byte_read_head: *const u8 = read_head.get() as *const u8;
+                byte_read_head = unsafe { byte_read_head.offset(byte_size as isize) };
+                let read_head_end = unsafe { read_head.get().offset(word_size as isize) };
+
+                let leftover_bits = bit_size % BITS_PER_BYTE as u64;
+                if leftover_bits > 0 {
+                    let mut unmask: u8 = 0;
+                    for idx in 0..leftover_bits as u8 {
+                        unmask |= 1 << idx;
+                    }
+
+                    let mask = !unmask;
+                    let partial_byte = unsafe { *byte_read_head };
+
+                    if partial_byte & mask != 0 {
+                        return Ok(false)
+                    }
+                    byte_read_head = unsafe { byte_read_head.offset(1 as isize) };
+                }
+
+                while byte_read_head != read_head_end as *const u8 {
+                    if unsafe { *byte_read_head } != 0 {
+                        return Ok(false)
+                    }
+                    byte_read_head = unsafe { byte_read_head.offset(1 as isize) };
+                }
+
+                read_head.set(read_head_end);
                 Ok(true)
             }
         }
