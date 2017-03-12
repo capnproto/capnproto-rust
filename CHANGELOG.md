@@ -1,3 +1,6 @@
+## v0.8.8
+- Fix some canonicalization bugs.
+
 ## v0.8.7
 - Implement `as_reader()` for lists.
 - Implement `canonicalize()` and `is_canonical()`.
