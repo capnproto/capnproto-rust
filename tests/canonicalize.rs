@@ -449,7 +449,7 @@ fn list_padding_must_be_zero() {
 #[test]
 fn bit_list_padding_must_be_zero() {
     let segment: &[Word] = &[
-        // List of element single-bit elements
+        // List of eleven single-bit elements
         capnp_word!(0x01, 0x00, 0x00, 0x00, 0x59, 0x00, 0x00, 0x00),
 
         // Twelfth bit is nonzero, so list is not canonical
