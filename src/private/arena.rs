@@ -52,7 +52,7 @@ impl ReadLimiter {
 
 pub trait ReaderArena {
     fn get_segment(&self, id: u32) -> Result<(*const Word, u32)>;
-    fn contains_interval(&self, segment_id: u32, from: *const Word, to: *const Word) -> Result<()>;
+    fn contains_interval(&self, segment_id: u32, start: *const Word, size: usize) -> Result<()>;
     fn amplified_read(&self, virtual_amount: u64) -> Result<()>;
 
     // TODO(version 0.9): Consider putting extract_cap(), inject_cap(), drop_cap() here
@@ -90,15 +90,17 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
         }
     }
 
-    fn contains_interval(&self, id: u32, from: *const Word, to: *const Word) -> Result<()> {
+    fn contains_interval(&self, id: u32, start: *const Word, size_in_words: usize) -> Result<()> {
         let (segment_start, segment_len) = try!(self.get_segment(id));
-        let this_begin: usize = segment_start as usize;
-        let this_end: usize = this_begin + (segment_len as usize * 8);
+        let this_start: usize = segment_start as usize;
+        let this_size: usize = segment_len as usize * 8;
+        let start_usize = start as usize;
+        let size = size_in_words * BYTES_PER_WORD;
 
-        if !(from as usize >= this_begin && to as usize <= this_end && from as usize <= to as usize) {
+        if !(start_usize >= this_start && start_usize - this_start + size <= this_size) {
             Err(Error::failed(format!("message contained out-of-bounds pointer")))
         } else {
-            self.read_limiter.can_read((to as usize - from as usize) as u64 / BYTES_PER_WORD as u64)
+            self.read_limiter.can_read(size_in_words as u64)
         }
     }
 
@@ -182,7 +184,7 @@ impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
         Ok((seg.0 as *const _, seg.1))
     }
 
-    fn contains_interval(&self, _id: u32, _from: *const Word, _to: *const Word) -> Result<()> {
+    fn contains_interval(&self, _id: u32, _start: *const Word, _size: usize) -> Result<()> {
         Ok(())
     }
 
@@ -265,7 +267,7 @@ impl ReaderArena for NullArena {
         Err(Error::failed(format!("tried to read from null arena")))
     }
 
-    fn contains_interval(&self, _id: u32, _from: *const Word, _to: *const Word) -> Result<()> {
+    fn contains_interval(&self, _id: u32, _start: *const Word, _size: usize) -> Result<()> {
         Ok(())
     }
 

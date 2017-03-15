@@ -395,9 +395,9 @@ mod wire_helpers {
     #[inline]
     pub fn bounds_check(arena: &ReaderArena,
                         segment_id: u32,
-                        start: *const Word, end: *const Word,
+                        start: *const Word, size_in_words: usize,
                         _kind: WirePointerKind) -> Result<()> {
-        arena.contains_interval(segment_id, start, end)
+        arena.contains_interval(segment_id, start, size_in_words)
     }
 
     #[inline]
@@ -509,8 +509,8 @@ mod wire_helpers {
             let (seg_start, _seg_len) = try!(arena.get_segment(segment_id));
             let ptr: *const Word = seg_start.offset((*reff).far_position_in_segment() as isize);
 
-            let pad_words: isize = if (*reff).is_double_far() { 2 } else { 1 };
-            try!(bounds_check(arena, segment_id, ptr, ptr.offset(pad_words), WirePointerKind::Far));
+            let pad_words: usize = if (*reff).is_double_far() { 2 } else { 1 };
+            try!(bounds_check(arena, segment_id, ptr, pad_words, WirePointerKind::Far));
 
             let pad: *const WirePointer = ptr as *const _;
 
@@ -677,7 +677,7 @@ mod wire_helpers {
         match (*reff).kind() {
             WirePointerKind::Struct => {
                 try!(bounds_check(arena, segment_id,
-                                  ptr, ptr.offset((*reff).struct_ref().word_size() as isize),
+                                  ptr, (*reff).struct_ref().word_size() as usize,
                                   WirePointerKind::Struct));
                 result.word_count += (*reff).struct_ref().word_size() as u64;
 
@@ -696,13 +696,13 @@ mod wire_helpers {
                             (*reff).list_ref().element_count() as u64 *
                                 data_bits_per_element((*reff).list_ref().element_size()) as u64);
                         try!(bounds_check(
-                            arena, segment_id, ptr, ptr.offset(total_words as isize), WirePointerKind::List));
+                            arena, segment_id, ptr, total_words as usize, WirePointerKind::List));
                         result.word_count += total_words as u64;
                     }
                     Pointer => {
                         let count = (*reff).list_ref().element_count();
                         try!(bounds_check(
-                            arena, segment_id, ptr, ptr.offset((count * WORDS_PER_POINTER as u32) as isize),
+                            arena, segment_id, ptr, count as usize * WORDS_PER_POINTER,
                             WirePointerKind::List));
 
                         result.word_count += count as u64 * WORDS_PER_POINTER as u64;
@@ -717,7 +717,7 @@ mod wire_helpers {
                     InlineComposite => {
                         let word_count = (*reff).list_ref().inline_composite_word_count();
                         try!(bounds_check(arena, segment_id, ptr,
-                                          ptr.offset(word_count as isize + POINTER_SIZE_IN_WORDS as isize),
+                                          word_count as usize + POINTER_SIZE_IN_WORDS,
                                           WirePointerKind::List));
 
                         let element_tag: *const WirePointer = ptr as *const _;
@@ -1746,7 +1746,7 @@ mod wire_helpers {
                 }
 
                 try!(bounds_check(src_arena, src_segment_id,
-                                  ptr, ptr.offset((*src).struct_ref().word_size() as isize),
+                                  ptr, (*src).struct_ref().word_size() as usize,
                                   WirePointerKind::Struct));
 
                 return set_struct_pointer(
@@ -1777,7 +1777,7 @@ mod wire_helpers {
                     ptr = ptr.offset(POINTER_SIZE_IN_WORDS as isize);
 
                     try!(bounds_check(
-                        src_arena, src_segment_id, ptr.offset(-1), ptr.offset(word_count as isize),
+                        src_arena, src_segment_id, ptr.offset(-1), word_count as usize + 1,
                         WirePointerKind::List));
 
                     if (*tag).kind() != WirePointerKind::Struct {
@@ -1824,7 +1824,7 @@ mod wire_helpers {
 
                     try!(bounds_check(src_arena,
                                       src_segment_id, ptr,
-                                      ptr.offset(word_count as isize), WirePointerKind::List));
+                                      word_count as usize, WirePointerKind::List));
 
                     if element_size == Void {
                         // Watch out for lists of void, which can claim to be arbitrarily large
@@ -1908,7 +1908,7 @@ mod wire_helpers {
         }
 
         try!(bounds_check(arena, segment_id, ptr,
-                          ptr.offset((*reff).struct_ref().word_size() as isize),
+                          (*reff).struct_ref().word_size() as usize,
                           WirePointerKind::Struct));
 
         Ok(StructReader {
@@ -1991,7 +1991,7 @@ mod wire_helpers {
                 ptr = ptr.offset(1);
 
                 try!(bounds_check(arena, segment_id, ptr.offset(-1),
-                                  ptr.offset(word_count as isize),
+                                  word_count as usize + 1,
                                   WirePointerKind::List));
 
                 if (*tag).kind() != WirePointerKind::Struct {
@@ -2070,7 +2070,7 @@ mod wire_helpers {
 
                 let word_count = round_bits_up_to_words(list_ref.element_count() as u64 * step as u64);
                 try!(bounds_check(
-                    arena, segment_id, ptr, ptr.offset(word_count as isize), WirePointerKind::List));
+                    arena, segment_id, ptr, word_count as usize, WirePointerKind::List));
 
                 if element_size == Void {
                     // Watch out for lists of void, which can claim to be arbitrarily large
@@ -2146,7 +2146,7 @@ mod wire_helpers {
         }
 
         try!(bounds_check(arena, segment_id, ptr,
-                          ptr.offset(round_bytes_up_to_words(size) as isize),
+                          round_bytes_up_to_words(size) as usize,
                           WirePointerKind::List));
 
         if size <= 0 {
@@ -2194,7 +2194,7 @@ mod wire_helpers {
         }
 
         try!(bounds_check(arena, segment_id, ptr,
-                          ptr.offset(round_bytes_up_to_words(size) as isize),
+                          round_bytes_up_to_words(size) as usize,
                           WirePointerKind::List));
 
         Ok(data::new_reader(ptr as *const _, size))
@@ -2321,7 +2321,7 @@ impl <'a> PointerReader<'a> {
                     nesting_limit: i32) -> Result<Self>
     {
         try!(wire_helpers::bounds_check(arena, segment_id, location,
-                                        unsafe { location.offset(POINTER_SIZE_IN_WORDS as isize) },
+                                        POINTER_SIZE_IN_WORDS,
                                         WirePointerKind::Struct));
 
         Ok(PointerReader {
