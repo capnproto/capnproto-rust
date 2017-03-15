@@ -543,7 +543,7 @@ impl TestCapDestructor {
 impl Drop for TestCapDestructor {
     fn drop(&mut self) {
         match self.fulfiller.take() {
-            Some(f) => f.complete(()),
+            Some(f) => { let _ = f.send(()); }
             None => (),
         }
     }

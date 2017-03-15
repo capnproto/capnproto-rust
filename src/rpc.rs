@@ -205,13 +205,13 @@ impl <VatId> QuestionRef<VatId> {
     }
     fn fulfill(&mut self, response: Promise<Response<VatId>, Error>) {
         if let Some(fulfiller) = self.fulfiller.take() {
-            fulfiller.complete(response);
+            let _ = fulfiller.send(response);
         }
     }
 
     fn reject(&mut self, err: Error) {
         if let Some(fulfiller) = self.fulfiller.take() {
-            fulfiller.complete(Promise::err(err));
+            let _ = fulfiller.send(Promise::err(err));
         }
     }
 }
@@ -528,7 +528,7 @@ impl <VatId> ConnectionState<VatId> {
         for idx in 0..len {
             if let &mut Some(ref mut emb) = &mut self.embargoes.borrow_mut().slots[idx] {
                 if let Some(f) = emb.fulfiller.take() {
-                    f.complete(Err(error.clone()));
+                    let _ = f.send(Err(error.clone()));
                 }
             }
         }
@@ -570,7 +570,7 @@ impl <VatId> ConnectionState<VatId> {
                 match maybe_fulfiller {
                     None => unreachable!(),
                     Some(fulfiller) => {
-                        fulfiller.complete(Promise::from_future(promise.attach(c)));
+                        let _ = fulfiller.send(Promise::from_future(promise.attach(c)));
                     }
                 }
             }
@@ -587,9 +587,9 @@ impl <VatId> ConnectionState<VatId> {
         let (tx, rx) = oneshot::channel();
         let (tx2, rx2) = oneshot::channel::<()>();
         self.add_task(
-            task.then(move |r| {tx.complete(r); Ok(())}).select(rx2.then(|_| Ok(())))
+            task.then(move |r| { let _ = tx.send(r); Ok(())}).select(rx2.then(|_| Ok(())))
                 .map(|_| ()).map_err(|e| e.0));
-        Promise::from_future(rx.map_err(|e| e.into()).and_then(|v| v).then(|v| { tx2.complete(()); v}))
+        Promise::from_future(rx.map_err(|e| e.into()).and_then(|v| v).then(|v| { let _ = tx2.send(()); v}))
     }
 
     fn add_task<F>(&self, task: F)
@@ -1001,7 +1001,7 @@ impl <VatId> ConnectionState<VatId> {
                                 connection_state.embargoes.borrow_mut().find(embargo_id)
                             {
                                 let fulfiller = embargo.fulfiller.take().unwrap();
-                                fulfiller.complete(Ok(()));
+                                let _ = fulfiller.send(Ok(()));
                             } else {
                                 return Err(
                                     Error::failed(
@@ -1092,11 +1092,13 @@ impl <VatId> ConnectionState<VatId> {
                     match redirected_results_done_fulfiller {
                         Some(f) => {
                             match v {
-                                Ok(ref r) =>
-                                    f.complete(Ok(Response::redirected(r.clone()))),
-                                Err(ref e) =>
-                                    f.complete(Err(e.clone())),
+                                Ok(ref r) => {
+                                    let _ = f.send(Ok(Response::redirected(r.clone())));
                                 }
+                                Err(ref e) => {
+                                    let _ = f.send(Err(e.clone()));
+                                }
+                            }
                         }
                         None => (),
                     }
@@ -1859,7 +1861,7 @@ impl <VatId> PipelineState<VatId> where VatId: 'static {
 
         let waiters = state.borrow_mut().resolution_waiters.drain();
         for (_, waiter) in waiters {
-            waiter.complete(())
+            let _ = waiter.send(());
         }
     }
 }
@@ -2074,7 +2076,7 @@ impl <VatId> Drop for Results<VatId> {
     fn drop(&mut self) {
         match (self.inner.take(), self.results_done_fulfiller.take()) {
             (Some(inner), Some(fulfiller)) => {
-                fulfiller.complete(inner)
+                let _ = fulfiller.send(inner);
             }
             (None, None) => (),
             _ => unreachable!(),
@@ -2148,7 +2150,7 @@ impl <VatId> ResultsHook for Results<VatId> {
 
                     // TODO cleanupanswertable
 
-                    fulfiller.complete(inner); // ??
+                    let _ = fulfiller.send(inner); // ??
                     return (promise, pipeline);
                 }
                 unimplemented!()
@@ -2587,7 +2589,7 @@ impl <VatId> PromiseClient<VatId> {
         }
 
         for ((), waiter) in self.resolution_waiters.drain() {
-            waiter.complete(replacement.clone());
+            let _ = waiter.send(replacement.clone());
         }
 
         let old_cap = mem::replace(&mut self.cap, replacement);
@@ -2804,7 +2806,7 @@ impl <VatId> ClientHook for Client<VatId> {
         // Implement call() by copying params and results messages.
 
         let maybe_request = params.get().and_then(|p| {
-            let mut request = try!(p.total_size().and_then(|s| {
+            let mut request = try!(p.target_size().and_then(|s| {
                 Ok(self.new_call(interface_id, method_id, Some(s)))
             }));
             try!(request.get().set_as(p));

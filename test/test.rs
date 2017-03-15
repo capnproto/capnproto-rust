@@ -391,7 +391,7 @@ fn promise_resolve() {
         let _response = try!(core.run(client2.get_call_sequence_request().send().promise));
 
         let server = impls::TestInterface::new();
-        paf_fulfiller.complete(
+        let _ = paf_fulfiller.send(
             ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>().client);
 
         let response = try!(core.run(promise));
@@ -420,7 +420,7 @@ fn retain_and_release() {
         let destroyed1 = destroyed.clone();
         core.handle().spawn(promise.and_then(move |()| {
             destroyed1.set(true);
-            destroyed_done_sender.complete(());
+            let _ = destroyed_done_sender.send(());
             Ok(())
         }).map_err(|_| ()));
 
@@ -529,7 +529,7 @@ fn cancel_releases_params() {
         let destroyed1 = destroyed.clone();
         core.handle().spawn(promise.and_then(move |()| {
             destroyed1.set(true);
-            destroyed_done_sender.complete(());
+            let _ = destroyed_done_sender.send(());
             Ok(())
         }).map_err(|_| ()));
 

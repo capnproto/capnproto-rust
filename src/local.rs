@@ -107,7 +107,7 @@ impl Drop for Results {
     fn drop(&mut self) {
         if let (Some(message), Some(fulfiller)) = (self.message.take(), self.results_done_fulfiller.take()) {
             let cap_table = mem::replace(&mut self.cap_table, Vec::new());
-            fulfiller.complete(Box::new(ResultsDone::new(message, cap_table)));
+            let _ = fulfiller.send(Box::new(ResultsDone::new(message, cap_table)));
         } else {
             unreachable!()
         }

@@ -98,7 +98,7 @@ impl <T> Drop for ConnectionInner<T> where T: ::std::io::Read {
         let maybe_fulfiller = ::std::mem::replace(&mut self.on_disconnect_fulfiller, None);
         match maybe_fulfiller {
             Some(fulfiller) => {
-                fulfiller.complete(());
+                let _ = fulfiller.send(());
             }
             None => unreachable!(),
         }

@@ -313,7 +313,7 @@ mod test {
 
         mfh.switch_mode(Mode::Right);
 
-        tx.complete(11); // This should cause `f2` and then eventually `spawn` to resolve.
+        tx.send(11).unwrap(); // This should cause `f2` and then eventually `spawn` to resolve.
 
         loop {
             match spawn.poll_future(unpark.clone()) {
@@ -357,7 +357,7 @@ mod test {
         // deadlock or panic due to a recursive lock() on a mutex.
         core.run(future::ok::<(),()>(())).unwrap();
 
-        tx1.complete(()); // Break the cycle.
+        tx1.send(()).unwrap(); // Break the cycle.
         drop(tx0);
         core.run(f3).unwrap();
     }

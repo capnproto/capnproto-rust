@@ -59,7 +59,7 @@ impl PipelineInner {
                 let clienthook = pipeline.get_pipelined_cap_move(ops);
                 ClientInner::resolve(&client, Ok(clienthook));
             }
-            waiter.complete(());
+            let _ = waiter.send(());
         }
 
         this.borrow_mut().promise_to_drive = ForkedPromise::new(Promise::ok(()));
@@ -185,11 +185,11 @@ impl ClientInner {
         for (args, waiter) in state.borrow_mut().call_forwarding_queue.drain() {
             let (interface_id, method_id, params, results) = args;
             let result_promise = client.call(interface_id, method_id, params, results);
-            waiter.complete(result_promise);
+            let _ = waiter.send(result_promise);
         }
 
         for ((), waiter) in state.borrow_mut().client_resolution_queue.drain() {
-            waiter.complete(client.add_ref());
+            let _ = waiter.send(client.add_ref());
         }
         state.borrow_mut().promise_to_drive.take();
         state.borrow_mut().pipeline_inner.take();
