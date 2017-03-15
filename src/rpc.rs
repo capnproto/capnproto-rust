@@ -1092,12 +1092,10 @@ impl <VatId> ConnectionState<VatId> {
                     match redirected_results_done_fulfiller {
                         Some(f) => {
                             match v {
-                                Ok(ref r) => {
-                                    let _ = f.send(Ok(Response::redirected(r.clone())));
-                                }
-                                Err(ref e) => {
-                                    let _ = f.send(Err(e.clone()));
-                                }
+                                Ok(ref r) =>
+                                    drop(f.send(Ok(Response::redirected(r.clone())))),
+                                Err(ref e) =>
+                                    drop(f.send(Err(e.clone()))),
                             }
                         }
                         None => (),
