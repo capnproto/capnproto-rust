@@ -93,11 +93,11 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
     fn contains_interval(&self, id: u32, start: *const Word, size_in_words: usize) -> Result<()> {
         let (segment_start, segment_len) = try!(self.get_segment(id));
         let this_start: usize = segment_start as usize;
-        let this_size: usize = segment_len as usize * 8;
-        let start_usize = start as usize;
+        let this_size: usize = segment_len as usize * BYTES_PER_WORD;
+        let start = start as usize;
         let size = size_in_words * BYTES_PER_WORD;
 
-        if !(start_usize >= this_start && start_usize - this_start + size <= this_size) {
+        if !(start >= this_start && start - this_start + size <= this_size) {
             Err(Error::failed(format!("message contained out-of-bounds pointer")))
         } else {
             self.read_limiter.can_read(size_in_words as u64)
