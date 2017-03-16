@@ -1,3 +1,7 @@
+## v0.8.9
+- In canonicalization, account the possibility of nonzero padding in primitive lists.
+- Do bounds-checking by (ptr, size) pairs rather than (ptr, end_ptr) pairs.
+
 ## v0.8.8
 - Fix some canonicalization bugs.
 
