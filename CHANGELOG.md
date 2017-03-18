@@ -1,3 +1,6 @@
+### v0.8.3
+- Fix bug where schemas with non-trivial relative filesystem paths could fail to compile.
+
 ### v0.8.2
 - Fix bug where `initn_*()` methods of generic unions failed to set the discriminant.
 
