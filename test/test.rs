@@ -23,7 +23,16 @@
 extern crate capnp;
 
 pub mod test_capnp {
-  include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
+    include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
+}
+
+pub mod test_in_dir_capnp {
+    include!(concat!(env!("OUT_DIR"), "/schema/test_in_dir_capnp.rs"));
+}
+
+pub mod test_in_src_prefix_dir_capnp {
+  // The src_prefix gets stripped away, so the generated code ends up directly in OUT_DIR.
+  include!(concat!(env!("OUT_DIR"), "/test_in_src_prefix_dir_capnp.rs"));
 }
 
 #[cfg(test)]
