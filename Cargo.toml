@@ -4,7 +4,7 @@ name = "capnpc"
 version = "0.8.3"
 authors = [ "David Renshaw <david@sandstorm.io>" ]
 license = "MIT"
-description = "Cap'n Proto schema compiler plugin"
+description = "Cap'n Proto code generation"
 repository = "https://github.com/dwrensha/capnpc-rust"
 documentation = "http://docs.capnproto-rust.org/capnpc"
 
