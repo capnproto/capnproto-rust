@@ -193,7 +193,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                     type_::Data(()) => {
                         Ok(format!("data_list::{}", module))
                     },
-                    type_::Interface(_) => Err(Error::failed(("List(Interfcae) is unsupported".to_string()))),
+                    type_::Interface(_) => Err(Error::failed(("List(Interface) is unsupported".to_string()))),
                     type_::AnyPointer(_) => Err(Error::failed("List(AnyPointer) is unsupported".to_string())),
                     _ => {
                         let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
