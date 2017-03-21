@@ -23,6 +23,7 @@ extern crate capnp;
 #[macro_use] extern crate capnp_rpc;
 extern crate futures;
 extern crate tokio_core;
+extern crate tokio_io;
 
 pub mod pubsub_capnp {
   include!(concat!(env!("OUT_DIR"), "/pubsub_capnp.rs"));

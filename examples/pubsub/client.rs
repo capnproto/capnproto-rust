@@ -25,7 +25,7 @@ use pubsub_capnp::{publisher, subscriber};
 use capnp::capability::Promise;
 
 use tokio_core::reactor;
-use tokio_core::io::Io;
+use tokio_io::AsyncRead;
 use futures::Future;
 
 struct SubscriberImpl;

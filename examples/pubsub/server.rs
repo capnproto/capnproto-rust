@@ -32,7 +32,7 @@ use capnp::Error;
 use futures::{Future, Stream};
 
 use tokio_core::reactor;
-use tokio_core::io::Io;
+use tokio_io::AsyncRead;
 
 struct SubscriberHandle {
     client: subscriber::Client<::capnp::text::Owned>,
