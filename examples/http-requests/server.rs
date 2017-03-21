@@ -28,7 +28,7 @@ use capnp::Error;
 use futures::{Future, Stream};
 
 use tokio_core::reactor;
-use tokio_core::io::Io;
+use tokio_io::AsyncRead;
 
 struct OutgoingHttp {
     handle: reactor::Handle,
@@ -95,7 +95,7 @@ impl http_session::Server for HttpSession {
         pry!(easy.get(true).map_err(from_curl_error));
 
         // We need this channel to work around the `Send` bound required by write_function().
-        let (mut tx, stream) = ::futures::sync::mpsc::unbounded::<Vec<u8>>();
+        let (tx, stream) = ::futures::sync::mpsc::unbounded::<Vec<u8>>();
         pry!(easy.write_function(move |data| {
             // Error case should only happen if this request has been canceled.
             let _ = tx.send(data.into());

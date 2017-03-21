@@ -23,7 +23,7 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use http_capnp::{outgoing_http};
 
 use tokio_core::reactor;
-use tokio_core::io::Io;
+use tokio_io::AsyncRead;
 use futures::Future;
 
 pub fn main() {
