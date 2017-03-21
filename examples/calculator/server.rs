@@ -28,7 +28,7 @@ use calculator_capnp::calculator;
 use capnp::capability::Promise;
 
 use futures::{Future, Stream};
-use tokio_core::io::Io;
+use tokio_io::{AsyncRead};
 
 struct ValueImpl {
     value: f64

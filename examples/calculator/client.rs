@@ -24,7 +24,7 @@ use calculator_capnp::calculator;
 use capnp::capability::Promise;
 
 use futures::Future;
-use tokio_core::io::Io;
+use tokio_io::{AsyncRead};
 
 #[derive(Clone, Copy)]
 pub struct PowerFunction;
