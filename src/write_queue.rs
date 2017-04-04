@@ -205,7 +205,7 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                 IntermediateState::WriteDone(m, w) => {
                     match ::std::mem::replace(&mut self.state, State::BetweenWrites(w)) {
                         State::Writing(_, complete) => {
-                            complete.send(m)
+                            complete.send(m).unwrap_or(());
                         }
                         _ => unreachable!(),
                     }
@@ -224,7 +224,7 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                     match end_notifier {
                         None => (),
                         Some((result, complete)) => {
-                            complete.send(());
+                            complete.send(()).unwrap_or(());
                             if let Err(e) = result {
                                 return Err(e)
                             }
