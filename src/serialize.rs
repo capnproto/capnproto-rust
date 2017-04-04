@@ -378,9 +378,9 @@ pub mod test {
 
         let mut buf = vec![];
 
-        let segment_0 = [Word::from(0); 0];
-        let segment_1 = [Word::from(1); 1];
-        let segment_199 = [Word::from(199); 199];
+        let segment_0 = [capnp_word!(0,0,0,0,0,0,0,0); 0];
+        let segment_1 = [capnp_word!(1,1,1,1,1,1,1,1); 1];
+        let segment_199 = [capnp_word!(201,202,203,204,205,206,207,208); 199];
 
         write_segment_table(&mut buf, &[&segment_0]).unwrap();
         assert_eq!(&[0,0,0,0,  // 1 segments
