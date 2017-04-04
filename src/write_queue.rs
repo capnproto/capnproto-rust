@@ -22,7 +22,8 @@ use std::io;
 use std::collections::VecDeque;
 use std::rc::{Rc, Weak};
 use std::cell::RefCell;
-use futures::{self, task, Async, Future, Poll};
+use futures::{self, task, Async, Poll};
+use futures::future::Future;
 use futures::sync::oneshot;
 
 use capnp::{Error};
@@ -204,7 +205,7 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                 IntermediateState::WriteDone(m, w) => {
                     match ::std::mem::replace(&mut self.state, State::BetweenWrites(w)) {
                         State::Writing(_, complete) => {
-                            complete.complete(m)
+                            complete.send(m)
                         }
                         _ => unreachable!(),
                     }
@@ -223,7 +224,7 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                     match end_notifier {
                         None => (),
                         Some((result, complete)) => {
-                            complete.complete(());
+                            complete.send(());
                             if let Err(e) = result {
                                 return Err(e)
                             }
