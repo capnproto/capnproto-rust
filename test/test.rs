@@ -676,6 +676,9 @@ mod tests {
         assert_eq!(test_constants::UINT64_CONST, 12345678901234567890);
         assert_eq!(test_constants::FLOAT32_CONST, 1234.5);
         assert_eq!(test_constants::FLOAT64_CONST, -123e45);
+        assert_eq!(test_constants::TEXT_CONST, "foo");
+        assert_eq!(test_constants::COMPLEX_TEXT_CONST, "foo\"☺\'$$$");
+        assert_eq!(test_constants::DATA_CONST, b"bar");
     }
 
     #[test]

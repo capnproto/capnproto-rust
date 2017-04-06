@@ -1707,12 +1707,8 @@ fn generate_node(gen: &GeneratorContext,
                 (type_::Float32(()), value::Float32(f)) => ("f32".to_string(),format!("{:e}f32", f)),
                 (type_::Float64(()), value::Float64(f)) => ("f64".to_string(), format!("{:e}f64", f)),
 
-                (type_::Text(()), value::Text(_t)) => {
-                    return Err(Error::unimplemented(format!("text constants")));
-                }
-                (type_::Data(()), value::Data(_d)) => {
-                    return Err(Error::unimplemented(format!("data constants")));
-                }
+                (type_::Text(()), value::Text(t)) => ("&'static str".into(), format!("{:?}", try!(t))),
+                (type_::Data(()), value::Data(d)) => ("&'static [u8]".into(), format!("&{:?}", try!(d))),
                 (type_::List(_t), value::List(_p)) => {
                     return Err(Error::unimplemented(format!("list constants")));
                 }
