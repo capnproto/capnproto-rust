@@ -25,4 +25,3 @@ path = "src/main.rs"
 [dependencies]
 capnp = "0.8"
 
-

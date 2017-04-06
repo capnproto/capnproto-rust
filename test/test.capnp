@@ -393,6 +393,68 @@ struct TestConstants {
    const textConst     :Text    = "foo";
    const complexTextConst :Text    = "foo\"☺\'$$$";
    const dataConst      :Data    = "bar";
+   const structConst    :TestAllTypes = (
+      voidField      = void,
+      boolField      = true,
+      int8Field      = -12,
+      int16Field     = 3456,
+      int32Field     = -78901234,
+      int64Field     = 56789012345678,
+      uInt8Field     = 90,
+      uInt16Field    = 1234,
+      uInt32Field    = 56789012,
+      uInt64Field    = 345678901234567890,
+      float32Field   = -1.25e-10,
+      float64Field   = 345,
+      textField      = "baz",
+      dataField      = "qux",
+      structField    = (
+          textField = "nested",
+          structField = (textField = "really nested")),
+      enumField      = baz,
+
+      voidList      = [void, void, void],
+      boolList      = [false, true, false, true, true],
+      int8List      = [12, -34, -0x80, 0x7f],
+      int16List     = [1234, -5678, -0x8000, 0x7fff],
+      int32List     = [12345678, -90123456, -0x80000000, 0x7fffffff],
+      int64List     = [123456789012345, -678901234567890, -0x8000000000000000, 0x7fffffffffffffff],
+      uInt8List     = [12, 34, 0, 0xff],
+      uInt16List    = [1234, 5678, 0, 0xffff],
+      uInt32List    = [12345678, 90123456, 0, 0xffffffff],
+      uInt64List    = [123456789012345, 678901234567890, 0, 0xffffffffffffffff],
+      float32List   = [0, 1234567, 1e37, -1e37, 1e-37, -1e-37],
+      float64List   = [0, 123456789012345, 1e306, -1e306, 1e-306, -1e-306],
+      textList      = ["quux", "corge", "grault"],
+      dataList      = ["garply", "waldo", "fred"],
+      structList    = [
+          (textField = "x structlist 1"),
+          (textField = "x structlist 2"),
+          (textField = "x structlist 3")],
+      enumList      = [qux, bar, grault]
+      );
+
+   #const enumConst      :TestEnum = corge;
+
+   const voidListConst      :List(Void)    = [void, void, void, void, void, void];
+   const boolListConst      :List(Bool)    = [true, false, false, true];
+   const int8ListConst      :List(Int8)    = [111, -111];
+   const int16ListConst     :List(Int16)   = [11111, -11111];
+   const int32ListConst     :List(Int32)   = [111111111, -111111111];
+   const int64ListConst     :List(Int64)   = [1111111111111111111, -1111111111111111111];
+   const uint8ListConst     :List(UInt8)   = [111, 222] ;
+   const uint16ListConst    :List(UInt16)  = [33333, 44444];
+   const uint32ListConst    :List(UInt32)  = [3333333333];
+   const uint64ListConst    :List(UInt64)  = [11111111111111111111];
+   const float32ListConst   :List(Float32) = [5555.5, inf, -inf, nan];
+   const float64ListConst   :List(Float64) = [7777.75, inf, -inf, nan];
+   const textListConst      :List(Text)    = ["plugh", "xyzzy", "thud"];
+   const dataListConst      :List(Data)    = ["oops", "exhausted", "rfc3092"];
+   const structListConst    :List(TestAllTypes) = [
+       (textField = "structlist 1"),
+       (textField = "structlist 2"),
+       (textField = "structlist 3")];
+   const enumListConst      :List(TestEnum) = [foo, garply];
 }
 
 const globalInt :UInt32 = 12345;

@@ -19,10 +19,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capnp;
-use capnp::Error;
 use std::collections;
 use std::collections::HashSet;
+
+use capnp;
+use capnp::Error;
+
+use pointer_constants::generate_pointer_constant;
 use schema_capnp;
 use codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
@@ -1692,40 +1695,48 @@ fn generate_node(gen: &GeneratorContext,
         node::Const(c) => {
             let styled_name = snake_to_upper_case(try!(gen.get_last_name(node_id)));
 
-            let (typ, txt) = match (try!(try!(c.get_type()).which()), try!(try!(c.get_value()).which())) {
-                (type_::Void(()), value::Void(())) => ("()".to_string(), "()".to_string()),
-                (type_::Bool(()), value::Bool(b)) => ("bool".to_string(), b.to_string()),
-                (type_::Int8(()), value::Int8(i)) => ("i8".to_string(), i.to_string()),
-                (type_::Int16(()), value::Int16(i)) => ("i16".to_string(), i.to_string()),
-                (type_::Int32(()), value::Int32(i)) => ("i32".to_string(), i.to_string()),
-                (type_::Int64(()), value::Int64(i)) => ("i64".to_string(), i.to_string()),
-                (type_::Uint8(()), value::Uint8(i)) => ("u8".to_string(), i.to_string()),
-                (type_::Uint16(()), value::Uint16(i)) => ("u16".to_string(), i.to_string()),
-                (type_::Uint32(()), value::Uint32(i)) => ("u32".to_string(), i.to_string()),
-                (type_::Uint64(()), value::Uint64(i)) => ("u64".to_string(), i.to_string()),
+            let typ = try!(c.get_type());
+            let formatted_text = match (try!(typ.which()), try!(try!(c.get_value()).which())) {
+                (type_::Void(()), value::Void(())) => Line(format!("pub const {}: () = ();", styled_name)),
+                (type_::Bool(()), value::Bool(b)) => Line(format!("pub const {}: bool = {};", styled_name, b)),
+                (type_::Int8(()), value::Int8(i)) => Line(format!("pub const {}: i8 = {};", styled_name, i)),
+                (type_::Int16(()), value::Int16(i)) => Line(format!("pub const {}: i16 = {};", styled_name, i)),
+                (type_::Int32(()), value::Int32(i)) => Line(format!("pub const {}: i32 = {};", styled_name, i)),
+                (type_::Int64(()), value::Int64(i)) => Line(format!("pub const {}: i64 = {};", styled_name, i)),
+                (type_::Uint8(()), value::Uint8(i)) => Line(format!("pub const {}: u8 = {};", styled_name, i)),
+                (type_::Uint16(()), value::Uint16(i)) => Line(format!("pub const {}: u16 = {};", styled_name, i)),
+                (type_::Uint32(()), value::Uint32(i)) => Line(format!("pub const {}: u32 = {};", styled_name, i)),
+                (type_::Uint64(()), value::Uint64(i)) => Line(format!("pub const {}: u64 = {};", styled_name, i)),
 
-                (type_::Float32(()), value::Float32(f)) => ("f32".to_string(),format!("{:e}f32", f)),
-                (type_::Float64(()), value::Float64(f)) => ("f64".to_string(), format!("{:e}f64", f)),
+                (type_::Float32(()), value::Float32(f)) =>
+                    Line(format!("pub const {}: f32 = {:e}f32;", styled_name, f)),
 
-                (type_::Text(()), value::Text(t)) => ("&'static str".into(), format!("{:?}", try!(t))),
-                (type_::Data(()), value::Data(d)) => ("&'static [u8]".into(), format!("&{:?}", try!(d))),
-                (type_::List(_t), value::List(_p)) => {
-                    return Err(Error::unimplemented(format!("list constants")));
+                (type_::Float64(()), value::Float64(f)) =>
+                    Line(format!("pub const {}: f64 = {:e}f64;", styled_name, f)),
+
+                (type_::Enum(_), value::Enum(_v)) => {
+                    return Err(Error::unimplemented(format!("enum constants")));
                 }
-                (type_::Struct(_t), value::Struct(_p)) => {
-                    return Err(Error::unimplemented(format!("struct constants")));
-                }
+
+                (type_::Text(()), value::Text(t)) =>
+                    Line(format!("pub const {}: &'static str = {:?};", styled_name, try!(t))),
+                (type_::Data(()), value::Data(d)) =>
+                    Line(format!("pub const {}: &'static [u8] = &{:?};", styled_name, try!(d))),
+
+                (type_::List(_), value::List(v)) => try!(generate_pointer_constant(gen, &styled_name, typ, v)),
+                (type_::Struct(_), value::Struct(v)) => try!(generate_pointer_constant(gen, &styled_name, typ, v)),
+
                 (type_::Interface(_t), value::Interface(())) => {
                     return Err(Error::unimplemented(format!("interface constants")));
                 }
                 (type_::AnyPointer(_), value::AnyPointer(_pr)) => {
                     return Err(Error::unimplemented(format!("anypointer constants")));
                 }
+
                 _ => { return Err(Error::failed(format!("type does not match value"))); }
             };
 
-            output.push(
-                Line(format!("pub const {}: {} = {};", styled_name, typ, txt)));
+            output.push(formatted_text);
         }
 
         node::Annotation( annotation_reader ) => {
@@ -1793,4 +1804,3 @@ pub fn main<T>(mut inp: T, out_dir: &::std::path::Path) -> ::capnp::Result<()>
     }
     Ok(())
 }
-

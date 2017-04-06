@@ -679,6 +679,58 @@ mod tests {
         assert_eq!(test_constants::TEXT_CONST, "foo");
         assert_eq!(test_constants::COMPLEX_TEXT_CONST, "foo\"☺\'$$$");
         assert_eq!(test_constants::DATA_CONST, b"bar");
+        {
+            let struct_const = test_constants::STRUCT_CONST;
+            let struct_const_root = struct_const.get().unwrap();
+            assert_eq!(struct_const_root.get_bool_field(), true);
+            assert_eq!(struct_const_root.get_int8_field(), -12);
+            assert_eq!(struct_const_root.get_int16_field(), 3456);
+            assert_eq!(struct_const_root.get_int32_field(), -78901234);
+            // ...
+            assert_eq!(struct_const_root.get_text_field().unwrap(), "baz");
+            assert_eq!(struct_const_root.get_data_field().unwrap(), b"qux");
+            {
+                let sub_reader = struct_const_root.get_struct_field().unwrap();
+                assert_eq!(sub_reader.get_text_field().unwrap(), "nested");
+                assert_eq!(sub_reader.get_struct_field().unwrap().get_text_field().unwrap(), "really nested");
+            }
+            // ...
+        }
+
+        let void_list = test_constants::VOID_LIST_CONST;
+        assert_eq!(void_list.get().unwrap().len(), 6);
+
+        let bool_list_const = test_constants::BOOL_LIST_CONST;
+        let bool_list = bool_list_const.get().unwrap();
+        assert_eq!(bool_list.len(), 4);
+        assert_eq!(bool_list.get(0), true);
+        assert_eq!(bool_list.get(1), false);
+        assert_eq!(bool_list.get(2), false);
+        assert_eq!(bool_list.get(3), true);
+
+        let int8_list_const = test_constants::INT8_LIST_CONST;
+        let int8_list = int8_list_const.get().unwrap();
+        assert_eq!(int8_list.len(), 2);
+        assert_eq!(int8_list.get(0), 111);
+        assert_eq!(int8_list.get(1), -111);
+
+        // ...
+
+        let text_list_const = test_constants::TEXT_LIST_CONST;
+        let text_list = text_list_const.get().unwrap();
+        assert_eq!(text_list.len(), 3);
+        assert_eq!(text_list.get(0).unwrap(), "plugh");
+        assert_eq!(text_list.get(1).unwrap(), "xyzzy");
+        assert_eq!(text_list.get(2).unwrap(), "thud");
+
+        // TODO: DATA_LIST_CONST
+
+        let struct_list_const = test_constants::STRUCT_LIST_CONST;
+        let struct_list = struct_list_const.get().unwrap();
+        assert_eq!(struct_list.len(), 3);
+        assert_eq!(struct_list.get(0).get_text_field().unwrap(), "structlist 1");
+        assert_eq!(struct_list.get(1).get_text_field().unwrap(), "structlist 2");
+        assert_eq!(struct_list.get(2).get_text_field().unwrap(), "structlist 3");
     }
 
     #[test]

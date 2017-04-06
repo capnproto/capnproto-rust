@@ -66,6 +66,7 @@ pub mod schema_capnp;
 
 pub mod codegen;
 pub mod codegen_types;
+mod pointer_constants;
 pub mod schema;
 
 use std::path::{Path, PathBuf};
