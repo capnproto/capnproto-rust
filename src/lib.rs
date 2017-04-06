@@ -68,6 +68,7 @@ macro_rules! capnp_word {
 
 pub mod any_pointer;
 pub mod capability;
+pub mod constant;
 pub mod data;
 pub mod data_list;
 pub mod enum_list;
