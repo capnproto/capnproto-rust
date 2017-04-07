@@ -680,8 +680,7 @@ mod tests {
         assert_eq!(test_constants::COMPLEX_TEXT_CONST, "foo\"☺\'$$$");
         assert_eq!(test_constants::DATA_CONST, b"bar");
         {
-            let struct_const = test_constants::STRUCT_CONST;
-            let struct_const_root = struct_const.get().unwrap();
+            let struct_const_root = test_constants::STRUCT_CONST.get().unwrap();
             assert_eq!(struct_const_root.get_bool_field(), true);
             assert_eq!(struct_const_root.get_int8_field(), -12);
             assert_eq!(struct_const_root.get_int16_field(), 3456);

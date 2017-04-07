@@ -47,13 +47,18 @@ pub fn generate_pointer_constant(
                     bytes[4], bytes[5], bytes[6], bytes[7])));
     }
     Ok(Branch(vec![
-        Line(format!("pub const {}: ::capnp::constant::Reader<{}> = ::capnp::constant::Reader {{",
+        Line(format!("pub static {}: ::capnp::constant::Reader<{}> = {{",
                      styled_name, try!(typ.type_string(gen, Leaf::Owned)))),
         Indent(Box::new(Branch(vec![
-            Line("phantom: ::std::marker::PhantomData,".into()),
-            Line("words: &[".into()),
+            Line(format!("static WORDS: [::capnp::Word; {}] = [", words.len())),
             Indent(Box::new(Branch(words_lines))),
-            Line("],".to_string()),
+            Line("];".to_string()),
+            Line("::capnp::constant::Reader {".into()),
+            Indent(Box::new(Branch(vec![
+                Line("phantom: ::std::marker::PhantomData,".into()),
+                Line("words: &WORDS,".into()),
+            ]))),
+            Line("}".into()),
         ]))),
         Line("};".to_string())
     ]))
