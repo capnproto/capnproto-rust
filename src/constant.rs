@@ -30,6 +30,7 @@ use private::layout::PointerReader;
 use traits::Owned;
 use {Result, Word};
 
+#[derive(Copy, Clone)]
 pub struct Reader<T> {
     #[doc(hidden)]
     pub phantom: PhantomData<T>,
@@ -40,7 +41,7 @@ pub struct Reader<T> {
 
 impl <T> Reader<T> where T: for<'a> Owned<'a> {
     /// Retrieve the value.
-    pub fn get<'a>(&'a self) -> Result<<T as Owned<'a>>::Reader> {
+    pub fn get(&self) -> Result<<T as Owned<'static>>::Reader> {
         any_pointer::Reader::new(PointerReader::get_root_unchecked(&self.words[0] as *const Word)).get_as()
     }
 }
