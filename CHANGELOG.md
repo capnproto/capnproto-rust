@@ -1,3 +1,7 @@
+## v0.8.10
+- Deprecate Word::from() in favor of capnp_word!().
+- Add constant::Reader to support struct and list constants.
+
 ## v0.8.9
 - In canonicalization, account the possibility of nonzero padding in primitive lists.
 - Do bounds-checking by (ptr, size) pairs rather than (ptr, end_ptr) pairs.
