@@ -434,7 +434,7 @@ struct TestConstants {
       enumList      = [qux, bar, grault]
       );
 
-   #const enumConst      :TestEnum = corge;
+   const enumConst      :TestEnum = corge;
 
    const voidListConst      :List(Void)    = [void, void, void, void, void, void];
    const boolListConst      :List(Bool)    = [true, false, false, true];

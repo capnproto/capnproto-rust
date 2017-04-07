@@ -1718,8 +1718,31 @@ fn generate_node(gen: &GeneratorContext,
                 (type_::Float64(()), value::Float64(f)) =>
                     Line(format!("pub const {}: f64 = {:e}f64;", styled_name, f)),
 
-                (type_::Enum(_), value::Enum(_v)) => {
-                    return Err(Error::unimplemented(format!("enum constants")));
+                (type_::Enum(e), value::Enum(v)) => {
+                    if let Some(node) = gen.node_map.get(&e.get_type_id()) {
+                        match try!(node.which()) {
+                            node::Enum(e) => {
+                                let enumerants = try!(e.get_enumerants());
+                                if (v as u32) < enumerants.len() {
+                                    let variant =
+                                        capitalize_first_letter(try!(enumerants.get(v as u32).get_name()));
+                                    let type_string = try!(typ.type_string(gen, Leaf::Owned));
+                                    Line(format!("pub const {}: {} = {}::{};",
+                                                 styled_name,
+                                                 &type_string,
+                                                 &type_string,
+                                                 variant))
+                                } else {
+                                    return Err(Error::failed(format!("enumerant out of range: {}", v)));
+                                }
+                            }
+                            _ => {
+                                return Err(Error::failed(format!("bad enum type ID: {}", e.get_type_id())));
+                            }
+                        }
+                    } else {
+                        return Err(Error::failed(format!("bad enum type ID: {}", e.get_type_id())));
+                    }
                 }
 
                 (type_::Text(()), value::Text(t)) =>
