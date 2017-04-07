@@ -1,3 +1,6 @@
+### v0.8.4
+- Implement struct, list, and enum constants.
+
 ### v0.8.3
 - Fix bug where schemas with non-trivial relative filesystem paths could fail to compile.
 

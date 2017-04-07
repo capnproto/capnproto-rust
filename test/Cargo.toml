@@ -16,6 +16,3 @@ path = "../"
 
 [dependencies]
 capnp = "0.8"
-
-[replace]
-"capnp:0.8.9" = { git = "https://github.com/dwrensha/capnproto-rust" }
