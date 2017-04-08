@@ -83,7 +83,7 @@ mod tests {
         use mio_uds::UnixStream;
         use capnp;
         use capnp_futures;
-        use futures::{Future};
+        use futures::future::Future;
         use futures::stream::Stream;
 
         use std::cell::Cell;
