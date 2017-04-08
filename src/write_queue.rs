@@ -22,7 +22,7 @@ use std::io;
 use std::collections::VecDeque;
 use std::rc::{Rc, Weak};
 use std::cell::RefCell;
-use futures::{self, task, Async, Poll};
+use futures::{task, Async, Poll};
 use futures::future::Future;
 use futures::sync::oneshot;
 
@@ -106,7 +106,7 @@ pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
 impl <M> Sender<M> where M: AsOutputSegments + 'static {
     /// Enqueues a message to be written.
     pub fn send(&mut self, message: M) -> Box<Future<Item=M, Error=Error>> {
-        let (complete, oneshot) = futures::oneshot();
+        let (complete, oneshot) = oneshot::channel();
 
         match self.inner.upgrade() {
             None => (),
@@ -142,7 +142,7 @@ impl <M> Sender<M> where M: AsOutputSegments + 'static {
     /// any new calls to `send()` will return a future that immediately resolves to an error.
     /// If the passed-in `result` is an error, then the `WriteQueue` will resolve to that error.
     pub fn terminate(&mut self, result: Result<(), Error>) -> Box<Future<Item=(), Error=Error>> {
-        let (complete, receiver) = futures::oneshot();
+        let (complete, receiver) = oneshot::channel();
 
         match self.inner.upgrade() {
             None => (),
