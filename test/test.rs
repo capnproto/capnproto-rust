@@ -27,6 +27,7 @@ extern crate capnp;
 extern crate capnp_rpc;
 
 extern crate futures;
+extern crate tokio_io;
 extern crate tokio_core;
 
 extern crate mio_uds;
@@ -39,7 +40,7 @@ use futures::Future;
 use futures::sync::oneshot;
 
 use tokio_core::reactor;
-use tokio_core::io::Io;
+use tokio_io::AsyncRead;
 
 pub mod test_capnp {
   include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
