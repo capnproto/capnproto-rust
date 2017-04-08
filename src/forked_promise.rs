@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use futures::{task, Async, Future};
+use futures::{executor, task, Async, Future};
+use futures::executor::Unpark;
 
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc};
@@ -49,7 +50,9 @@ impl Unparker {
     fn remove(&self, idx: u64) {
         self.tasks.lock().unwrap().remove(&idx);
     }
+}
 
+impl executor::Unpark for Unparker {
     fn unpark(&self) {
         self.original_needs_poll.store(true, Ordering::SeqCst);
         let tasks = ::std::mem::replace(&mut *self.tasks.lock().unwrap(), HashMap::new());
@@ -59,19 +62,13 @@ impl Unparker {
     }
 }
 
-impl task::EventSet for Unparker {
-    fn insert(&self, _id: usize) {
-        self.unpark();
-    }
-}
-
 struct ForkedPromiseInner<F> where F: Future {
     next_clone_id: Cell<u64>,
     state: RefCell<State<F>>,
 }
 
 enum State<F> where F: Future{
-    Waiting(Arc<Unparker>, F),
+    Waiting(Arc<Unparker>, executor::Spawn<F>),
     Polling(Arc<Unparker>),
     Done(Result<F::Item, F::Error>),
 }
@@ -99,7 +96,7 @@ impl <F> ForkedPromise<F> where F: Future {
             inner: Rc::new(ForkedPromiseInner {
                 next_clone_id: Cell::new(1),
                 state: RefCell::new(State::Waiting(
-                    Arc::new(Unparker::new(AtomicBool::new(true))), f)),
+                    Arc::new(Unparker::new(AtomicBool::new(true))), executor::spawn(f))),
             })
         }
     }
@@ -128,10 +125,10 @@ impl <F> Future for ForkedPromise<F>
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
         let unparker = match *self.inner.state.borrow() {
             State::Waiting(ref unparker, _) => {
+                unparker.insert(self.id, task::park());
                 if unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
                     unparker.clone()
                 } else {
-                    unparker.insert(self.id, task::park());
                     return Ok(Async::NotReady)
                 }
             }
@@ -152,14 +149,13 @@ impl <F> Future for ForkedPromise<F>
             _ => unreachable!(),
         };
 
-        let event = task::UnparkEvent::new(unparker.clone(), 0);
-        let done_val = match task::with_unpark_event(event, || original_future.poll()) {
-            Ok(::futures::Async::NotReady) => {
+        let done_val = match original_future.poll_future(unparker.clone()) {
+            Ok(Async::NotReady) => {
                 *self.inner.state.borrow_mut() =
                     State::Waiting(unparker.clone(), original_future);
-                return Ok(::futures::Async::NotReady)
+                return Ok(Async::NotReady)
             }
-            Ok(::futures::Async::Ready(v)) => Ok(v),
+            Ok(Async::Ready(v)) => Ok(v),
             Err(e) => Err(e),
         };
 
@@ -172,7 +168,7 @@ impl <F> Future for ForkedPromise<F>
         }
 
         match done_val {
-            Ok(v) => Ok(::futures::Async::Ready(v)),
+            Ok(v) => Ok(Async::Ready(v)),
             Err(e) => Err(e),
         }
     }
