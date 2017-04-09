@@ -373,7 +373,7 @@ mod tests {
 
     #[test]
     fn test_defaults() {
-        use test_capnp::test_defaults;
+        use test_capnp::{test_defaults, TestEnum};
 
         let mut message = message::Builder::new_default();
 
@@ -393,6 +393,7 @@ mod tests {
             assert_eq!(test_defaults.borrow().get_uint64_field(), 12345678901234567890u64);
             assert_eq!(test_defaults.borrow().get_float32_field(), 1234.5);
             assert_eq!(test_defaults.borrow().get_float64_field(), -123e45);
+            assert!(test_defaults.borrow().get_enum_field().unwrap() == TestEnum::Corge);
         }
 
         {
@@ -410,6 +411,7 @@ mod tests {
             assert_eq!(test_defaults.borrow().get_uint64_field(), 12345678901234567890u64);
             assert_eq!(test_defaults.borrow().get_float32_field(), 1234.5);
             assert_eq!(test_defaults.borrow().get_float64_field(), -123e45);
+            assert!(test_defaults.borrow().get_enum_field().unwrap() == TestEnum::Corge);
         }
 
         {
@@ -663,7 +665,7 @@ mod tests {
 
     #[test]
     fn test_constants() {
-        use test_capnp::test_constants;
+        use test_capnp::{test_constants, TestEnum};
         assert_eq!(test_constants::VOID_CONST, ());
         assert_eq!(test_constants::BOOL_CONST, true);
         assert_eq!(test_constants::INT8_CONST, -123);
@@ -695,6 +697,8 @@ mod tests {
             }
             // ...
         }
+
+        assert!(test_constants::ENUM_CONST == TestEnum::Corge);
 
         let void_list = test_constants::VOID_LIST_CONST;
         assert_eq!(void_list.get().unwrap().len(), 6);
