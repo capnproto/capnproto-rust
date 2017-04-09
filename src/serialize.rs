@@ -26,7 +26,10 @@ use std::io::{self};
 use capnp::{message, Error, Result, Word, OutputSegments};
 
 use byteorder::{ByteOrder, LittleEndian};
-use futures::{Async, AsyncSink, Future, Poll, Sink, StartSend, Stream};
+use futures::future::Future;
+use futures::sink::Sink;
+use futures::stream::Stream;
+use futures::{Async, AsyncSink, Poll, StartSend};
 
 pub struct OwnedSegments {
     segment_slices: Vec<(usize, usize)>,

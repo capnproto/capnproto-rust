@@ -19,7 +19,9 @@
 // THE SOFTWARE.
 
 use std::io;
-use futures::{Async, Future, Poll, Stream};
+use futures::future::Future;
+use futures::stream::Stream;
+use futures::{Async, Poll};
 
 use capnp::{Error, message};
 
