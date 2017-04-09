@@ -353,9 +353,10 @@ pub fn do_branding(gen: &GeneratorContext,
     }
 
     accumulator.reverse();
+    let accumulated = accumulator.concat();
 
-    let arguments = if accumulator.len() > 0 {
-        format!("<{}>", accumulator.concat().join(","))
+    let arguments = if accumulated.len() > 0 {
+        format!("<{}>", accumulated.join(","))
     } else {
         "".to_string()
     };
@@ -395,5 +396,5 @@ pub fn get_type_parameters(gen: &GeneratorContext,
     }
 
     accumulator.reverse();
-    return accumulator.concat();
+    accumulator.concat()
 }
