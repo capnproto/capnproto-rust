@@ -1,3 +1,7 @@
+### v0.8.5
+- Implement enum defaults.
+- Emit "UNIMPLEMENTED" warnings on struct and list defaults.
+
 ### v0.8.4
 - Implement struct, list, and enum constants.
 
