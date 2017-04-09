@@ -330,7 +330,8 @@ pub fn getter_text(gen: &GeneratorContext,
 
             let raw_type = try!(reg_field.get_type());
             let typ = try!(raw_type.type_string(gen, module));
-            let default = try!(try!(reg_field.get_default_value()).which());
+            let default_value = try!(reg_field.get_default_value());
+            let default = try!(default_value.which());
 
             let result_type = match try!(raw_type.which()) {
                 type_::Enum(_) => format!("::std::result::Result<{},::capnp::NotInSchema>", typ),
@@ -364,13 +365,42 @@ pub fn getter_text(gen: &GeneratorContext,
                     primitive_case(&*typ, member, offset, unsafe { ::std::mem::transmute::<f32, u32>(f) }, 0),
                 (type_::Float64(()), value::Float64(f)) =>
                     primitive_case(&*typ, member, offset, (unsafe { ::std::mem::transmute::<f64, u64>(f) }), 0),
-                (type_::Text(()), _) => {
+                (type_::Enum(_), value::Enum(d)) => {
+                    if d == 0 {
+                        Line(format!("::capnp::traits::FromU16::from_u16(self.{}.get_data_field::<u16>({}))",
+                                     member, offset))
+                    } else {
+                        Line(
+                            format!(
+                                "::capnp::traits::FromU16::from_u16(self.{}.get_data_field_mask::<u16>({}, {}))",
+                                member, offset, d))
+                    }
+                }
+
+                (type_::Text(()), value::Text(t)) => {
+                    if default_value.has_text() && is_reader {
+                        println!("cargo:warning=[UNSUPPORTED] Ignoring default value {:?} for text field {}. \
+                                  See https://github.com/dwrensha/capnpc-rust/issues/38",
+                                 try!(t), try!(field.get_name()));
+                    }
                     Line(format!("self.{}.get_pointer_field({}).get_text(::std::ptr::null(), 0)", member, offset))
                 }
-                (type_::Data(()), _) => {
+                (type_::Data(()), value::Data(d)) => {
+                    if default_value.has_data() && is_reader {
+                        println!("cargo:warning=[UNSUPPORTED] Ignoring default value {:?} for data field {}. \
+                                  See https://github.com/dwrensha/capnpc-rust/issues/38",
+                                 try!(d), try!(field.get_name()));
+                    }
+
                     Line(format!("self.{}.get_pointer_field({}).get_data(::std::ptr::null(), 0)", member, offset))
                 }
-                (type_::List(_), _) => {
+                (type_::List(_), value::List(_)) => {
+                    if default_value.has_list() && is_reader {
+                        println!("cargo:warning=[UNSUPPORTED] Ignoring non-null default for list field {}. \
+                                  See https://github.com/dwrensha/capnpc-rust/issues/38",
+                                 try!(field.get_name()));
+                    }
+
                     if is_reader {
                         Line(format!(
                             "::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}))",
@@ -381,12 +411,13 @@ pub fn getter_text(gen: &GeneratorContext,
 
                     }
                 }
-                (type_::Enum(_), _) => {
-                    Branch(vec!(
-                       Line(format!("::capnp::traits::FromU16::from_u16(self.{}.get_data_field::<u16>({}))",
-                                   member, offset))))
-                }
-                (type_::Struct(_), _) => {
+                (type_::Struct(_), value::Struct(_)) => {
+                    if default_value.has_struct() && is_reader {
+                        println!("cargo:warning=[UNSUPPORTED] Ignoring non-null default for struct field {}. \
+                                  See https://github.com/dwrensha/capnpc-rust/issues/38",
+                                 try!(field.get_name()));
+                    }
+
                     if is_reader {
                         Line(format!("::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}))",
                                      member, offset))
@@ -395,11 +426,11 @@ pub fn getter_text(gen: &GeneratorContext,
                                      member, offset))
                     }
                 }
-                (type_::Interface(_), _) => {
+                (type_::Interface(_), value::Interface(_)) => {
                     Line(format!("match self.{}.get_pointer_field({}).get_capability() {{ ::std::result::Result::Ok(c) => ::std::result::Result::Ok(FromClientHook::new(c)), ::std::result::Result::Err(e) => ::std::result::Result::Err(e)}}",
                                  member, offset))
                 }
-                (type_::AnyPointer(_), _) => {
+                (type_::AnyPointer(_), value::AnyPointer(_)) => {
                     if !try!(raw_type.is_parameter()) {
                         Line(format!("::capnp::any_pointer::{}::new(self.{}.get_pointer_field({}))", module_string, member, offset))
                     } else {
