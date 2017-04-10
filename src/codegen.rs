@@ -378,7 +378,7 @@ pub fn getter_text(gen: &GeneratorContext,
                 }
 
                 (type_::Text(()), value::Text(t)) => {
-                    if default_value.has_text() && is_reader {
+                    if default_value.has_text() && try!(t).len() > 0 && is_reader {
                         println!("cargo:warning=[UNSUPPORTED] Ignoring default value {:?} for text field {}. \
                                   See https://github.com/dwrensha/capnpc-rust/issues/38",
                                  try!(t), try!(field.get_name()));
@@ -386,7 +386,7 @@ pub fn getter_text(gen: &GeneratorContext,
                     Line(format!("self.{}.get_pointer_field({}).get_text(::std::ptr::null(), 0)", member, offset))
                 }
                 (type_::Data(()), value::Data(d)) => {
-                    if default_value.has_data() && is_reader {
+                    if default_value.has_data() && try!(d).len() > 0 && is_reader {
                         println!("cargo:warning=[UNSUPPORTED] Ignoring default value {:?} for data field {}. \
                                   See https://github.com/dwrensha/capnpc-rust/issues/38",
                                  try!(d), try!(field.get_name()));
@@ -396,7 +396,8 @@ pub fn getter_text(gen: &GeneratorContext,
                 }
                 (type_::List(_), value::List(_)) => {
                     if default_value.has_list() && is_reader {
-                        println!("cargo:warning=[UNSUPPORTED] Ignoring non-null default for list field {}. \
+                        // TODO: Don't emit warning if the list if of length zero.
+                        println!("cargo:warning=[UNSUPPORTED] Ignoring default for list field {}. \
                                   See https://github.com/dwrensha/capnpc-rust/issues/38",
                                  try!(field.get_name()));
                     }
@@ -413,7 +414,8 @@ pub fn getter_text(gen: &GeneratorContext,
                 }
                 (type_::Struct(_), value::Struct(_)) => {
                     if default_value.has_struct() && is_reader {
-                        println!("cargo:warning=[UNSUPPORTED] Ignoring non-null default for struct field {}. \
+                        // TODO: Don't emit warning if the struct is zero-sized.
+                        println!("cargo:warning=[UNSUPPORTED] Ignoring default for struct field {}. \
                                   See https://github.com/dwrensha/capnpc-rust/issues/38",
                                  try!(field.get_name()));
                     }
