@@ -1635,10 +1635,7 @@ mod wire_helpers {
                                          whole_byte_size as usize);
                 let leftover_bits = value.element_count as u64 * value.step as u64 % BITS_PER_BYTE as u64;
                 if leftover_bits > 0 {
-                    let mut mask: u8 = 0;
-                    for idx in 0..leftover_bits as u8 {
-                        mask |= 1 << idx;
-                    }
+                    let mask: u8 = (1 << leftover_bits as u8) - 1;
 
                     *(ptr as *mut u8).offset(whole_byte_size as isize) =
                         mask & (*(value.ptr as *const u8).offset(whole_byte_size as isize))
@@ -3085,12 +3082,7 @@ impl <'a> ListReader<'a> {
 
                 let leftover_bits = bit_size % BITS_PER_BYTE as u64;
                 if leftover_bits > 0 {
-                    let mut unmask: u8 = 0;
-                    for idx in 0..leftover_bits as u8 {
-                        unmask |= 1 << idx;
-                    }
-
-                    let mask = !unmask;
+                    let mask: u8 = !((1 << leftover_bits as u8) - 1);
                     let partial_byte = unsafe { *byte_read_head };
 
                     if partial_byte & mask != 0 {
