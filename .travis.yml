@@ -9,6 +9,6 @@ script:
   - cargo test
   - cargo doc
   - cargo clean
-  - cargo build --features rpc
-  - cargo test --features rpc
-  - cargo doc --features rpc
+  - cargo build --features "rpc futures"
+  - cargo test --features "rpc futures"
+  - cargo doc --features "rpc futures"

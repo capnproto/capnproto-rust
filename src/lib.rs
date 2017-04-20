@@ -31,6 +31,9 @@ extern crate byteorder;
 #[cfg(any(feature="quickcheck", test))]
 extern crate quickcheck;
 
+#[cfg(feature="futures")]
+extern crate futures;
+
 #[cfg(feature = "rpc")]
 extern crate futures;
 
@@ -77,6 +80,7 @@ pub mod message;
 pub mod primitive_list;
 pub mod private;
 pub mod serialize;
+pub mod serialize_async;
 pub mod serialize_packed;
 pub mod struct_list;
 pub mod text;
