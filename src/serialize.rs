@@ -180,7 +180,7 @@ fn flatten_segments(segments: &[&[Word]]) -> Vec<Word> {
     }
     {
         let mut bytes = ::Word::words_to_bytes_mut(&mut result[..]);
-        write_segment_table(&mut bytes, &*segments).ok().expect("Failed to write segment table.");
+        write_segment_table(&mut bytes, &*segments).expect("Failed to write segment table.");
     }
     for segment in &*segments {
         for idx in 0..segment.len() {

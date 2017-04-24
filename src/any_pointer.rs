@@ -79,10 +79,10 @@ impl <'a> Reader<'a> {
     pub fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Result<Box<ClientHook>> {
         let mut pointer = self.reader;
 
-        for op in ops.iter() {
-            match op {
-                &PipelineOp::Noop =>  { }
-                &PipelineOp::GetPointerField(idx) => {
+        for op in ops {
+            match *op {
+                PipelineOp::Noop =>  { }
+                PipelineOp::GetPointerField(idx) => {
                     pointer = try!(pointer.get_struct(::std::ptr::null())).get_pointer_field(idx as usize);
                 }
             }
@@ -211,8 +211,8 @@ impl Pipeline {
 
     pub fn get_pointer_field(&self, pointer_index: u16) -> Pipeline {
         let mut new_ops = Vec::with_capacity(self.ops.len() + 1);
-        for &op in self.ops.iter() {
-            new_ops.push(op)
+        for op in &self.ops {
+            new_ops.push(*op)
         }
         new_ops.push(PipelineOp::GetPointerField(pointer_index));
         Pipeline { hook : self.hook.add_ref(), ops: new_ops }

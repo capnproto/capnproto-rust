@@ -446,13 +446,13 @@ mod wire_helpers {
 
                 let ptr1 = ptr.offset(POINTER_SIZE_IN_WORDS as isize);
                 (*reff).set_kind_and_target(kind, ptr1);
-                return (ptr1, reff, segment_id);
+                (ptr1, reff, segment_id)
             }
             Some(idx) => {
                 let (seg_start, _seg_len) = arena.get_segment_mut(segment_id);
                 let ptr: *mut Word = seg_start.offset(idx as isize);
                 (*reff).set_kind_and_target(kind, ptr);
-                return (ptr, reff, segment_id);
+                (ptr, reff, segment_id)
             }
         }
     }
@@ -1053,7 +1053,7 @@ mod wire_helpers {
         default_value: *const Word) -> Result<ListBuilder<'a>>
     {
         assert!(element_size != InlineComposite,
-                "Use get_struct_list_{element,field}() for structs");
+                "Use get_struct_list_pointer() for structs");
 
         let orig_ref_target = (*orig_ref).mut_target();
 
@@ -1074,7 +1074,7 @@ mod wire_helpers {
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::failed(
-                "Called get_list_{{field,element}}() but existing pointer is not a list.".to_string()));
+                "Called get_writable_list_pointer() but existing pointer is not a list.".to_string()));
         }
 
         let old_size = (*reff).list_ref().element_size();
@@ -1286,8 +1286,8 @@ mod wire_helpers {
 
             if old_size == ElementSize::Void {
                 // Nothing to copy, just allocate a new list.
-                return Ok(init_struct_list_pointer(
-                    arena, orig_ref, orig_segment_id, cap_table, element_count, element_size));
+                Ok(init_struct_list_pointer(
+                    arena, orig_ref, orig_segment_id, cap_table, element_count, element_size))
             } else {
                 // Upgrade to an inline composite list.
 
@@ -1378,7 +1378,7 @@ mod wire_helpers {
         //# Initialize the pointer.
         (*reff).mut_list_ref().set(Byte, byte_size);
 
-        return SegmentAnd {
+        SegmentAnd {
             segment_id: segment_id,
             value: text::Builder::new(slice::from_raw_parts_mut(ptr as *mut _, size as usize), 0)
                 .expect("empty text builder should be valid utf-8")
@@ -1435,7 +1435,7 @@ mod wire_helpers {
         }
 
         // Subtract 1 from the size for the NUL terminator.
-        return text::Builder::new(slice::from_raw_parts_mut(cptr, (count - 1) as usize), count - 1);
+        text::Builder::new(slice::from_raw_parts_mut(cptr, (count - 1) as usize), count - 1)
     }
 
     #[inline]
@@ -1502,7 +1502,7 @@ mod wire_helpers {
         Ok(data::new_builder(ptr as *mut _, (*reff).list_ref().element_count()))
     }
 
-    pub unsafe fn set_struct_pointer<'a>(
+    pub unsafe fn set_struct_pointer(
         arena: &BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1746,7 +1746,7 @@ mod wire_helpers {
                                   ptr, (*src).struct_ref().word_size() as usize,
                                   WirePointerKind::Struct));
 
-                return set_struct_pointer(
+                set_struct_pointer(
                     dst_arena,
                     dst_segment_id, dst_cap_table, dst,
                     StructReader {
@@ -1759,7 +1759,7 @@ mod wire_helpers {
                         pointer_count: (*src).struct_ref().ptr_count.get(),
                         nesting_limit: nesting_limit - 1
                     },
-                    canonicalize);
+                    canonicalize)
             }
             WirePointerKind::List => {
                 let element_size = (*src).list_ref().element_size();
@@ -1796,7 +1796,7 @@ mod wire_helpers {
                         try!(amplified_read(src_arena, element_count as u64));
                     }
 
-                    return set_list_pointer(
+                    set_list_pointer(
                         dst_arena,
                         dst_segment_id, dst_cap_table, dst,
                         ListReader {
@@ -1829,7 +1829,7 @@ mod wire_helpers {
                         try!(amplified_read(src_arena, element_count as u64));
                     }
 
-                    return set_list_pointer(
+                    set_list_pointer(
                         dst_arena,
                         dst_segment_id, dst_cap_table, dst,
                         ListReader {
@@ -1860,11 +1860,11 @@ mod wire_helpers {
                 match src_cap_table.extract_cap((*src).cap_ref().index.get() as usize) {
                     Some(cap) => {
                         set_capability_pointer(dst_arena, dst_segment_id, dst_cap_table, dst, cap);
-                        return Ok(SegmentAnd { segment_id: dst_segment_id, value: ptr::null_mut() });
+                        Ok(SegmentAnd { segment_id: dst_segment_id, value: ptr::null_mut() })
                     }
                     None => {
-                        return Err(Error::failed(
-                            "Message contained invalid capability pointer.".to_string()));
+                        Err(Error::failed(
+                            "Message contained invalid capability pointer.".to_string()))
                     }
                 }
             }
@@ -2018,14 +2018,13 @@ mod wire_helpers {
 
                 // Check whether the size is compatible.
                 match expected_element_size {
-                    None => (),
-                    Some(Void) => (),
+                    None | Some(Void) | Some(InlineComposite) => (),
                     Some(Bit) => {
                         return Err(Error::failed(
                             "Found struct list where bit list was expected.".to_string()));
                     }
                     Some(Byte) | Some(TwoBytes) | Some(FourBytes) | Some(EightBytes) => {
-                        if struct_ref.data_size.get() <= 0 {
+                        if struct_ref.data_size.get() == 0 {
                             return Err(Error::failed(
                                 "Expected a primitive list, but got a list of pointer-only structs".to_string()));
                         }
@@ -2040,7 +2039,6 @@ mod wire_helpers {
                                 "Expected a pointer list, but got a list of data-only structs".to_string()));
                         }
                     }
-                    Some(InlineComposite) => (),
                 }
 
                 Ok(ListReader {
@@ -2216,8 +2214,8 @@ pub enum CapTableReader {
 
 impl CapTableReader {
     pub fn extract_cap(&self, index: usize) -> Option<Box<ClientHook>> {
-        match self {
-            &CapTableReader::Plain(hooks) => {
+        match *self {
+            CapTableReader::Plain(hooks) => {
                 if hooks.is_null() { return None }
                 let hooks: &Vec<Option<Box<ClientHook>>> = unsafe { &*hooks };
                 if index >= hooks.len() { None }
@@ -2249,8 +2247,8 @@ impl CapTableBuilder {
     }
 
     pub fn extract_cap(&self, index: usize) -> Option<Box<ClientHook>> {
-        match self {
-            &CapTableBuilder::Plain(hooks) => {
+        match *self {
+            CapTableBuilder::Plain(hooks) => {
                 if hooks.is_null() { return None }
                 let hooks: &Vec<Option<Box<ClientHook>>> = unsafe { &*hooks };
                 if index >= hooks.len() { None }
@@ -2265,8 +2263,8 @@ impl CapTableBuilder {
     }
 
     pub fn inject_cap(&mut self, cap: Box<ClientHook>) -> usize {
-        match self {
-            &mut CapTableBuilder::Plain(hooks) => {
+        match *self {
+            CapTableBuilder::Plain(hooks) => {
                 if hooks.is_null() {
                     panic!("Called inject_cap() on a null capability table. You need \
                             to call imbue_mut() on this message before adding capabilities.");
@@ -2279,8 +2277,8 @@ impl CapTableBuilder {
     }
 
     pub fn drop_cap(&mut self, index: usize) {
-        match self {
-            &mut CapTableBuilder::Plain(hooks) => {
+        match *self {
+            CapTableBuilder::Plain(hooks) => {
                 if hooks.is_null() {
                     panic!("Called drop_cap() on a null capability table. You need \
                             to call imbue_mut() on this message before adding capabilities.");
@@ -2714,7 +2712,7 @@ impl <'a> StructReader<'a> {
                 (*dwv.offset(offset as isize)).get()
             }
         } else {
-            return T::zero();
+            T::zero()
         }
     }
 
@@ -2820,7 +2818,7 @@ impl <'a> StructReader<'a> {
             unsafe { (read_head.get()).offset(data_size as isize + self.pointer_count as isize) });
 
         for ptr_idx in 0..self.pointer_count {
-            if !try!(self.get_pointer_field(ptr_idx as usize).is_canonical(&ptr_head)) {
+            if !try!(self.get_pointer_field(ptr_idx as usize).is_canonical(ptr_head)) {
                 return Ok(false)
             }
         }

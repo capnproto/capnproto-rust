@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-/// Since ::std::num::Zero isn't stable, we have our own version.
+/// Since `::std::num::Zero` isn't stable, we have our own version.
 pub trait Zero {
     fn zero() -> Self;
 }

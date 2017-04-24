@@ -57,10 +57,9 @@ pub struct Builder<'a> {
 impl <'a> Builder <'a> {
     pub fn new<'b>(bytes: &'b mut [u8], pos: u32) -> Result<Builder<'b>> {
         if pos != 0 {
-            match str::from_utf8(bytes) {
-                Err(e) => return Err(Error::failed(
-                    format!("Text contains non-utf8 data: {:?}", e))),
-                _ => {}
+            if let Err(e) = str::from_utf8(bytes) {
+                return Err(Error::failed(
+                    format!("Text contains non-utf8 data: {:?}", e)))
             }
         }
         Ok(Builder { bytes: bytes, pos: pos as usize })

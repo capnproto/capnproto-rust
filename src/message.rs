@@ -75,12 +75,12 @@ impl ReaderOptions {
 
     pub fn nesting_limit<'a>(&'a mut self, value: i32) -> &'a mut ReaderOptions {
         self.nesting_limit = value;
-        return self;
+        self
     }
 
     pub fn traversal_limit_in_words<'a>(&'a mut self, value: u64) -> &'a mut ReaderOptions {
         self.traversal_limit_in_words = value;
-        return self;
+        self
     }
 }
 
@@ -140,7 +140,7 @@ impl <S> Reader<S> where S: ReaderSegments {
     pub fn is_canonical(&self) -> Result<bool> {
         let (segment_start, seg_len) = try!(self.arena.get_segment(0));
 
-        if let Ok(_) = self.arena.get_segment(1) {
+        if self.arena.get_segment(1).is_ok() {
             // TODO(cleanup, apibump): should there be a nicer way to ask the arena how many
             // segments there are?
 

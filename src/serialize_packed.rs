@@ -46,7 +46,7 @@ impl <R> PackedRead<R> where R: BufRead {
 
 #[inline]
 fn ptr_sub<T>(p1: *const T, p2: *const T) -> usize {
-    return (p1 as usize - p2 as usize) / mem::size_of::<T>();
+    (p1 as usize - p2 as usize) / mem::size_of::<T>()
 }
 
 macro_rules! refresh_buffer(
@@ -91,8 +91,8 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
                 let tag: u8;
 
-                assert!(ptr_sub(out, out_buf.as_mut_ptr()) % 8 == 0,
-                        "Output pointer should always be aligned here.");
+                assert_eq!(ptr_sub(out, out_buf.as_mut_ptr()) % 8, 0,
+                           "Output pointer should always be aligned here.");
 
                 if ptr_sub(in_end, in_ptr) < 10 {
                     if out >= out_end {

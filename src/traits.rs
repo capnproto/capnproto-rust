@@ -130,9 +130,9 @@ impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator for ListIter<T, U> {
         if self.index < self.size {
             let result = self.list.index_move(self.index);
             self.index += 1;
-            return Some(result);
+            Some(result)
         } else {
-            return None;
+            None
         }
     }
 
@@ -144,7 +144,7 @@ impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator for ListIter<T, U> {
         if p < self.size as usize {
             self.index = p as u32;
             let result = self.list.index_move(self.index);
-            return Some(result)
+            Some(result)
         } else {
             None
         }
