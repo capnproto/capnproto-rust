@@ -1053,7 +1053,7 @@ mod wire_helpers {
         default_value: *const Word) -> Result<ListBuilder<'a>>
     {
         assert!(element_size != InlineComposite,
-                "Use get_struct_list_pointer() for structs");
+                "Use get_writable_struct_list_pointer() for struct lists");
 
         let orig_ref_target = (*orig_ref).mut_target();
 
@@ -1187,7 +1187,7 @@ mod wire_helpers {
 
         if (*old_ref).kind() != WirePointerKind::List {
             return Err(Error::failed(
-                "Called getList{{Field,Element}} but existing pointer is not a list.".to_string()));
+                "Called get_writable_struct_list_pointer() but existing pointer is not a list.".to_string()));
         }
 
         let old_size = (*old_ref).list_ref().element_size();
@@ -1421,11 +1421,11 @@ mod wire_helpers {
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::failed(
-                "Called getText{{Field,Element}}() but existing pointer is not a list.".to_string()));
+                "Called get_writable_text_pointer() but existing pointer is not a list.".to_string()));
         }
         if (*reff).list_ref().element_size() != Byte {
             return Err(Error::failed(
-                "Called getText{{Field,Element}}() but existing list pointer is not byte-sized.".to_string()));
+                "Called get_writable_text_pointer() but existing list pointer is not byte-sized.".to_string()));
         }
 
         let count = (*reff).list_ref().element_count();
@@ -1492,11 +1492,11 @@ mod wire_helpers {
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::failed(
-                "Called getData{{Field,Element}}() but existing pointer is not a list.".to_string()));
+                "Called get_writable_data_pointer() but existing pointer is not a list.".to_string()));
         }
         if (*reff).list_ref().element_size() != Byte {
             return Err(Error::failed(
-                "Called getData{{Field,Element}}() but existing list pointer is not byte-sized.".to_string()));
+                "Called get_writable_data_pointer() but existing list pointer is not byte-sized.".to_string()));
         }
 
         Ok(data::new_builder(ptr as *mut _, (*reff).list_ref().element_count()))
