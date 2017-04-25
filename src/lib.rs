@@ -263,12 +263,12 @@ impl <VatId> RpcSystem <VatId> {
                             -> Rc<rpc::ConnectionState<VatId>>
     {
         // TODO this needs to be updated once we allow more general VatNetworks.
-        let (tasks, result) = match &*connection_state_ref.borrow() {
-            &Some(ref connection_state) => {
+        let (tasks, result) = match *connection_state_ref.borrow() {
+            Some(ref connection_state) => {
                 // return early.
                 return connection_state.clone()
             }
-            &None => {
+            None => {
                 let (on_disconnect_fulfiller, on_disconnect_promise) =
                     oneshot::channel::<Promise<(), Error>>();
                 let connection_state_ref1 = connection_state_ref.clone();

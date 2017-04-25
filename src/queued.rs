@@ -133,11 +133,8 @@ impl PipelineHook for Pipeline {
     }
 
     fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
-        match &self.inner.borrow().redirect {
-            &Some(ref p) => {
-                return p.get_pipelined_cap_move(ops)
-            }
-            &None => (),
+        if let Some(ref p) = self.inner.borrow().redirect {
+            return p.get_pipelined_cap_move(ops)
         }
 
         let mut queued_client = Client::new(Some(self.inner.clone()));

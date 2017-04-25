@@ -105,10 +105,7 @@ impl <F> ForkedPromise<F> where F: Future {
 impl<F> Drop for ForkedPromise<F> where F: Future {
     fn drop(&mut self) {
         match *self.inner.state.borrow() {
-            State::Waiting(ref unparker, _) => {
-                unparker.remove(self.id);
-            }
-            State::Polling(ref unparker) => {
+            State::Waiting(ref unparker, _) | State::Polling(ref unparker) => {
                 unparker.remove(self.id);
             }
             State::Done(_) => (),

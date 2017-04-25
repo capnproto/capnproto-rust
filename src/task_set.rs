@@ -130,9 +130,8 @@ impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
             Some(rc_inner) => {
                 rc_inner.new_futures.borrow_mut().push(Box::new(promise));
 
-                match rc_inner.task.borrow_mut().take() {
-                    Some(t) => t.unpark(),
-                    None => (),
+                if let Some(t) = rc_inner.task.borrow_mut().take() {
+                    t.unpark()
                 }
             }
         }

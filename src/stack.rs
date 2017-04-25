@@ -71,7 +71,7 @@ impl<T> Iterator for Drain<T> {
         unsafe {
             let node = Box::from_raw(self.head);
             self.head = node.next;
-            return Some(node.data)
+            Some(node.data)
         }
     }
 }
