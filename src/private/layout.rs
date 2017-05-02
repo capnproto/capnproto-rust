@@ -1960,9 +1960,9 @@ mod wire_helpers {
 
         if (*reff).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                    return Ok(ListReader::new_default());
-                }
-            panic!("list default values unimplemented");
+                return Ok(ListReader::new_default());
+            }
+            unimplemented!()
         }
 
         if nesting_limit <= 0 {
