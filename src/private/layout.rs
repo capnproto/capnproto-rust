@@ -21,7 +21,6 @@
 
 use std::mem;
 use std::ptr;
-use std::rc::Rc;
 use std::cell::Cell;
 
 use data;
@@ -2390,7 +2389,7 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-    pub fn is_canonical(&self, read_head: &Rc<Cell<*const Word>>) -> Result<bool> {
+    pub fn is_canonical(&self, read_head: &Cell<*const Word>) -> Result<bool> {
         match try!(self.get_pointer_type()) {
             PointerType::Null => Ok(true),
             PointerType::Struct => {
@@ -2400,8 +2399,7 @@ impl <'a> PointerReader<'a> {
                 if st.get_data_section_size() == 0 && st.get_pointer_section_size() == 0 {
                     Ok(self.pointer as *const _ == st.get_location())
                 } else {
-                    let ptr_head = read_head.clone();
-                    let result = try!(st.is_canonical(read_head, &ptr_head, &mut data_trunc, &mut ptr_trunc));
+                    let result = try!(st.is_canonical(read_head, read_head, &mut data_trunc, &mut ptr_trunc));
                     Ok(result && data_trunc && ptr_trunc)
                 }
             }
@@ -2733,8 +2731,8 @@ impl <'a> StructReader<'a> {
 
     pub fn is_canonical(
         &self,
-        read_head: &Rc<Cell<*const Word>>,
-        ptr_head: &Rc<Cell<*const Word>>,
+        read_head: &Cell<*const Word>,
+        ptr_head: &Cell<*const Word>,
         data_trunc: &mut bool,
         ptr_trunc: &mut bool,
     )
@@ -2957,7 +2955,7 @@ impl <'a> ListReader<'a> {
 
     pub fn is_canonical(
         &self,
-        read_head: &Rc<Cell<*const Word>>,
+        read_head: &Cell<*const Word>,
         reff: *const WirePointer)
         -> Result<bool>
     {
@@ -2981,7 +2979,7 @@ impl <'a> ListReader<'a> {
                 }
                 let list_end =
                     unsafe { read_head.get().offset((self.element_count * struct_size) as isize) };
-                let pointer_head = Rc::new(Cell::new(list_end));
+                let pointer_head = Cell::new(list_end);
                 let mut list_data_trunc = false;
                 let mut list_ptr_trunc = false;
                 for idx in 0..self.element_count {
