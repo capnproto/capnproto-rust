@@ -150,8 +150,8 @@ impl <S> Reader<S> where S: ReaderSegments {
 
         let pointer_reader = try!(layout::PointerReader::get_root(
             &self.arena, 0, segment_start, self.nesting_limit));
-        let read_head = ::std::rc::Rc::new(::std::cell::Cell::new(
-            unsafe {segment_start.offset(1)}));
+        let read_head = ::std::cell::Cell::new(
+            unsafe {segment_start.offset(1)});
         let root_is_canonical = try!(pointer_reader.is_canonical(&read_head));
         let all_words_consumed =
             (read_head.get() as usize - segment_start as usize) / BYTES_PER_WORD == seg_len as usize;
