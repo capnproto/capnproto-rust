@@ -131,7 +131,7 @@ impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
                 rc_inner.new_futures.borrow_mut().push(Box::new(promise));
 
                 if let Some(t) = rc_inner.task.borrow_mut().take() {
-                    t.unpark()
+                    t.notify()
                 }
             }
         }
@@ -144,7 +144,7 @@ impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
                 *rc_inner.terminate_with.borrow_mut() = Some(result);
 
                 match rc_inner.task.borrow_mut().take() {
-                    Some(t) => t.unpark(),
+                    Some(t) => t.notify(),
                     None => (),
                 }
             }
@@ -210,10 +210,10 @@ impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
         if self.inner.futures.borrow().len() == 0 && self.inner.handle_count.get() == 0 {
             Ok(::futures::Async::Ready(()))
         } else {
-            let task = ::futures::task::park();
+            let task = ::futures::task::current();
             if self.inner.new_futures.borrow().len() > 0 {
                 // Some new futures got added when we called poll().
-                task.unpark();
+                task.notify();
             }
             *self.inner.task.borrow_mut() = Some(task);
             Ok(::futures::Async::NotReady)

@@ -57,7 +57,7 @@ impl executor::Unpark for Unparker {
         self.original_needs_poll.store(true, Ordering::SeqCst);
         let tasks = ::std::mem::replace(&mut *self.tasks.lock().unwrap(), HashMap::new());
         for (_, task) in tasks {
-            task.unpark();
+            task.notify();
         }
     }
 }
@@ -122,7 +122,7 @@ impl <F> Future for ForkedPromise<F>
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
         let unparker = match *self.inner.state.borrow() {
             State::Waiting(ref unparker, _) => {
-                unparker.insert(self.id, task::park());
+                unparker.insert(self.id, task::current());
                 if unparker.original_needs_poll.swap(false, Ordering::SeqCst) {
                     unparker.clone()
                 } else {
@@ -131,9 +131,9 @@ impl <F> Future for ForkedPromise<F>
             }
             State::Polling(ref unparker) => {
                 if unparker.original_needs_poll.load(Ordering::SeqCst) {
-                    task::park().unpark();
+                    task::current().notify();
                 } else {
-                    unparker.insert(self.id, task::park());
+                    unparker.insert(self.id, task::current());
                 }
                 return Ok(Async::NotReady)
             }

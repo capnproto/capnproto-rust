@@ -73,7 +73,7 @@ impl <F, T1, T2, E> Drop for SplitLeft<F, T1, T2, E>
         match *self.inner.state.borrow_mut() {
             State::NotReady(_, ref mut right_task) => {
                 if let Some(t) = right_task.take() {
-                    t.unpark()
+                    t.notify()
                 }
             }
             _ => ()
@@ -89,7 +89,7 @@ impl <F, T1, T2, E> Drop for SplitRight<F, T1, T2, E>
         match *self.inner.state.borrow_mut() {
             State::NotReady(ref mut left_task, _) => {
                 if let Some(t) = left_task.take() {
-                    t.unpark()
+                    t.notify()
                 }
             }
             _ => ()
@@ -121,7 +121,7 @@ impl <F, T1, T2, E> Future for SplitLeft<F, T1, T2, E>
             Ok(::futures::Async::NotReady) => {
                 match *self.inner.state.borrow_mut() {
                     State::NotReady(ref mut left_task, _) => {
-                        *left_task = Some(task::park());
+                        *left_task = Some(task::current());
                     }
                     _ => unreachable!()
                 }
@@ -133,7 +133,7 @@ impl <F, T1, T2, E> Future for SplitLeft<F, T1, T2, E>
         match *self.inner.state.borrow_mut() {
             State::NotReady(_, ref mut right_task) => {
                 if let Some(t) = right_task.take() {
-                    t.unpark()
+                    t.notify()
                 }
             }
             _ => unreachable!()
@@ -175,7 +175,7 @@ impl <F, T1, T2, E> Future for SplitRight<F, T1, T2, E>
             Ok(::futures::Async::NotReady) => {
                 match *self.inner.state.borrow_mut() {
                     State::NotReady(_, ref mut right_task) => {
-                        *right_task = Some(task::park());
+                        *right_task = Some(task::current());
                     }
                     _ => unreachable!()
                 }
@@ -187,7 +187,7 @@ impl <F, T1, T2, E> Future for SplitRight<F, T1, T2, E>
         match *self.inner.state.borrow_mut() {
             State::NotReady(ref mut left_task, _) => {
                 if let Some(t) = left_task.take() {
-                    t.unpark()
+                    t.notify()
                 }
             }
             _ => unreachable!()
