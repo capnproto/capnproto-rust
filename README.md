@@ -48,7 +48,7 @@ that `point::Reader<'a>` and `point::Builder<'a>`
 contain borrowed references to the raw buffers that contain the encoded messages.
 Those underlying buffers are never actually copied into separate data structures.
 
-The generated code for example above also includes
+The generated code for the example above also includes
 a `point_tracker::Server` trait with an `add_point()` method,
 and a `point_tracker::Client` struct with an `add_point_request()` method.
 The former can be implemented to create a network-accessible object,
