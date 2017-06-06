@@ -45,7 +45,7 @@ a `point::Reader<'a>` struct with `get_x()` and `get_y()` methods,
 and a `point::Builder<'a>` struct with `set_x()` and `set_y()` methods.
 The lifetime parameter `'a` is a formal reminder
 that `point::Reader<'a>` and `point::Builder<'a>`
-contain borrowed references to the raw buffers of bytes that represent the encoded messages.
+contain borrowed references to the raw buffers that contain the encoded messages.
 Those underlying buffers are never actually copied into separate data structures.
 
 The generated code for example above also includes
