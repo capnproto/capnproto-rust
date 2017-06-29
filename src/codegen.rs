@@ -100,7 +100,9 @@ fn snake_to_upper_case(s: &str) -> String {
         if c == '_' {
             result_chars.push('_');
         } else {
-            assert!(c.is_alphanumeric(), format!("not alphanumeric '{}'", c));
+            assert!(c.is_alphanumeric(),
+                    format!("non-alphanumeric character '{}', i.e. {} in identifier '{}'",
+                            c, c as usize, s));
             result_chars.push((c as u8).to_ascii_uppercase() as char);
         }
     }
@@ -113,7 +115,8 @@ fn camel_to_snake_case(s: &str) -> String {
     let mut first_char = true;
     for c in s.chars() {
         assert!(c.is_alphanumeric(),
-                format!("not alphanumeric '{}', i.e. {}", c, c as usize));
+                format!("non-alphanumeric character '{}', i.e. {} in identifier '{}'",
+                        c, c as usize, s));
         if c.is_uppercase() && !first_char {
             result_chars.push('_');
         }
