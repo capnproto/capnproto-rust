@@ -1,6 +1,6 @@
 # Cap'n Proto for Rust
 
-[![Build Status](https://travis-ci.org/dwrensha/capnproto-rust.svg?branch=master)](https://travis-ci.org/dwrensha/capnproto-rust)
+[![Build Status](https://travis-ci.org/capnproto/capnproto-rust.svg?branch=master)](https://travis-ci.org/capnproto/capnproto-rust)
 [![crates.io](http://meritbadge.herokuapp.com/capnp)](https://crates.io/crates/capnp)
 
 [documentation](https://docs.capnproto-rust.org/capnp/)
