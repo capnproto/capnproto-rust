@@ -1,0 +1,31 @@
+---
+layout: default
+title: Cap'n Proto for Rust
+---
+
+<h1>
+ <a href="https://www.github.com/dwrensha/capnproto-rust">
+Cap'n Proto for Rust
+</a>
+</h1>
+
+<div>
+ <a href="http://docs.capnproto-rust.org/capnp/index.html">
+Documentation
+</a>
+</div>
+
+<div id="home">
+<ul class="posts">
+{% for post in site.posts %}
+<li>{{post.date | date_to_string}} : <a href="{{site.baseurl}}{{post.url}}">{{post.title}}</a></li>
+{% endfor %}
+</ul>
+</div>
+
+<a href="{{site.baseurl}}/feed.xml">
+<img src="{{site.baseurl}}/assets/rss.png"
+     width="14"/>
+</a>
+
+

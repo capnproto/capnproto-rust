@@ -1,0 +1,32 @@
+---
+layout: default
+---
+
+
+<p>
+{{ page.date | date_to_string }}
+<p>
+
+{{content}}
+
+<p class="author">
+  -- posted by <a href="https://github.com/{{ page.author }}">{{ page.author }}</a>
+</p>
+
+<div>
+ <a href="https://www.github.com/dwrensha/capnproto-rust">
+   capnproto-rust on github
+ </a>
+</div>
+
+<div>
+ <a href="{{site.baseurl}}/index.html">
+   more posts
+ </a>
+</div>
+
+<a href="{{site.baseurl}}/feed.xml">
+<img src="{{site.baseurl}}/assets/rss.png"
+     width="14"/>
+</a>
+

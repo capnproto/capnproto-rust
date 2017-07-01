@@ -1,0 +1,6 @@
+name: Cap'n Proto for Rust
+description: updates on capnproto-rust
+markdown: kramdown
+highlighter: rouge
+baseurl: /capnproto-rust
+url: http://dwrensha.github.io/capnproto-rust
