@@ -279,8 +279,7 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
         value::Bool(false) |
         value::Int8(0) | value::Int16(0) | value::Int32(0) |
         value::Int64(0) | value::Uint8(0) | value::Uint16(0) |
-        value::Uint32(0) | value::Uint64(0) | value::Float32(0.0) |
-        value::Float64(0.0) => Ok(None),
+        value::Uint32(0) | value::Uint64(0) => Ok(None),
 
         value::Bool(true) => Ok(Some(format!("true"))),
         value::Int8(i) => Ok(Some(i.to_string())),
@@ -292,9 +291,15 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
         value::Uint32(i) => Ok(Some(i.to_string())),
         value::Uint64(i) => Ok(Some(i.to_string())),
         value::Float32(f) =>
-            Ok(Some(format!("{}u32", unsafe {::std::mem::transmute::<f32, u32>(f)}.to_string()))),
+            match f.classify() {
+                ::std::num::FpCategory::Zero => Ok(None),
+                _ => Ok(Some(format!("{}u32", unsafe {::std::mem::transmute::<f32, u32>(f)}.to_string())))
+            },
         value::Float64(f) =>
-            Ok(Some(format!("{}u64", unsafe {::std::mem::transmute::<f64, u64>(f)}.to_string()))),
+            match f.classify() {
+                ::std::num::FpCategory::Zero => Ok(None),
+                _ => Ok(Some(format!("{}u64", unsafe {::std::mem::transmute::<f64, u64>(f)}.to_string())))
+            },
         _ => Err(Error::failed("Non-primitive value found where primitive was expected.".to_string())),
     }
 }
