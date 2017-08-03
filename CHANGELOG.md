@@ -1,3 +1,7 @@
+### v0.8.6
+- Improve error message for snake_case method names.
+- Eliminate floating point literals in match statements.
+
 ### v0.8.5
 - Implement enum defaults.
 - Emit "UNIMPLEMENTED" warnings on struct and list defaults.
