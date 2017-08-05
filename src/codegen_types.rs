@@ -113,7 +113,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             let pipeline_where_clause = "where ".to_string() + &*(params.iter().map(|param| {
                 format!("{}: ::capnp::traits::Pipelined, <{} as ::capnp::traits::Pipelined>::Pipeline: ::capnp::capability::FromTypelessPipeline", param, param)
             }).collect::<Vec<String>>().join(", ") + " ");
-            let phantom_data = "_phantom: PhantomData,".to_string();
+            let phantom_data = "_phantom: ::std::marker::PhantomData,".to_string();
 
             TypeParameterTexts {
                 expanded_list: params,
@@ -163,8 +163,8 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Uint64(()) => Ok("u64".to_string()),
             type_::Float32(()) => Ok("f32".to_string()),
             type_::Float64(()) => Ok("f64".to_string()),
-            type_::Text(()) => Ok(format!("text::{}", module)),
-            type_::Data(()) => Ok(format!("data::{}", module)),
+            type_::Text(()) => Ok(format!("::capnp::text::{}", module)),
+            type_::Data(()) => Ok(format!("::capnp::data::{}", module)),
             type_::Struct(st) => {
                 do_branding(gen, st.get_type_id(), try!(st.get_brand()), module,
                             gen.scope_map[&st.get_type_id()].join("::"), None)
@@ -177,27 +177,27 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                 match try!(try!(ot1.get_element_type()).which()) {
                     type_::Struct(_) => {
                         let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
-                        Ok(format!("struct_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
+                        Ok(format!("::capnp::struct_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                     type_::Enum(_) => {
                         let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
-                        Ok(format!("enum_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
+                        Ok(format!("::capnp::enum_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                     type_::List(_) => {
                         let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
-                        Ok(format!("list_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
+                        Ok(format!("::capnp::list_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                     type_::Text(()) => {
-                        Ok(format!("text_list::{}", module))
+                        Ok(format!("::capnp::text_list::{}", module))
                     },
                     type_::Data(()) => {
-                        Ok(format!("data_list::{}", module))
+                        Ok(format!("::capnp::data_list::{}", module))
                     },
                     type_::Interface(_) => Err(Error::failed(("List(Interface) is unsupported".to_string()))),
                     type_::AnyPointer(_) => Err(Error::failed("List(AnyPointer) is unsupported".to_string())),
                     _ => {
                         let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
-                        Ok(format!("primitive_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
+                        Ok(format!("::capnp::primitive_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                 }
             },

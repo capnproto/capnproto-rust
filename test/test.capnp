@@ -563,6 +563,53 @@ struct TestKeywords {
   struct While{}
 }
 
+struct Issue77 {
+  data :union {
+     a @0 :UInt16;
+     b @1 :UInt8;
+  }
+
+  text :union {
+    c @2 :Bool;
+    d @3 :Int32;
+  }
+
+  layout :union {
+    e @4 :Void;
+    f @5 :Void;
+  }
+
+  structList :union {
+    g @6 :Void;
+    h @7 :Void;
+  }
+
+  enumList :union {
+    i @8 :Void;
+    j @9 :Void;
+  }
+
+  primitiveList :union {
+    k @10 :Void;
+    l @11 :Void;
+  }
+
+  dataList :union {
+    m @12 :Void;
+    n @13 :Void;
+  }
+
+  textList :union {
+    o @14 :Void;
+    p @15 :Void;
+  }
+
+  listList :union {
+    q @16 :Void;
+    r @17 :Void;
+  }
+}
+
 struct GenericOnce(Foo) {
     genericField @0 : Foo;
 }
