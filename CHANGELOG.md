@@ -1,3 +1,6 @@
+### v0.8.7
+- Eliminate `use` statements in generated code to avoid naming conflicts.
+
 ### v0.8.6
 - Improve error message for snake_case method names.
 - Eliminate floating point literals in match statements.
