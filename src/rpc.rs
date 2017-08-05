@@ -1518,6 +1518,75 @@ impl <VatId> ConnectionState<VatId> {
     }
 }
 
+enum DisconnectorState
+{
+    Connected,
+    Disconnecting,
+    Disconnected
+}
+
+pub struct Disconnector<VatId> where VatId: 'static {
+    connection_state: Rc<RefCell<Option<Rc<ConnectionState<VatId>>>>>,
+    state:  DisconnectorState,
+}
+
+impl <VatId> Disconnector<VatId> {
+    pub fn new(connection_state: Rc<RefCell<Option<Rc<ConnectionState<VatId>>>>>) -> Disconnector<VatId> {
+        let state = match *(connection_state.borrow()) {
+            Some(_) => {
+                DisconnectorState::Connected
+            },
+            None => {
+                DisconnectorState::Disconnected
+            }
+        };
+        Disconnector {
+            connection_state: connection_state,
+            state: state,
+        }
+    }
+    fn disconnect(&self) {
+        if let Some(ref state) = *(self.connection_state.borrow()) {
+            state.disconnect(::capnp::Error::disconnected("client requested disconnect".to_owned()));
+        }
+    }
+}
+
+impl <VatId> Future for Disconnector<VatId>
+where
+    VatId: 'static,
+{
+    type Item = ();
+    type Error = ::capnp::Error;
+
+    fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
+        self.state = match self.state {
+            DisconnectorState::Connected => {
+                self.disconnect();
+                DisconnectorState::Disconnecting
+            },
+            DisconnectorState::Disconnecting => {
+                if let Some(_) = *(self.connection_state.borrow()) {
+                    DisconnectorState::Disconnecting
+                } else {
+                    DisconnectorState::Disconnected
+                }
+            },
+            DisconnectorState::Disconnected => {
+                DisconnectorState::Disconnected
+            }
+        };
+        match self.state {
+            DisconnectorState::Connected => unreachable!(),
+            DisconnectorState::Disconnecting => {
+                ::futures::task::current().notify();
+                Ok(::futures::Async::NotReady)
+            },
+            DisconnectorState::Disconnected => Ok(::futures::Async::Ready(())),
+        }
+    }
+}
+
 struct ResponseState<VatId> where VatId: 'static {
     _connection_state: Rc<ConnectionState<VatId>>,
     message: Box<::IncomingMessage>,

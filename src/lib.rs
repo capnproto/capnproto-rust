@@ -286,6 +286,10 @@ impl <VatId> RpcSystem <VatId> {
         handle.add(tasks);
         result
     }
+
+    pub fn get_disconnector(&self) -> rpc::Disconnector<VatId> {
+        rpc::Disconnector::new(self.connection_state.clone())
+    }
 }
 
 impl <VatId> Future for RpcSystem<VatId> where VatId: 'static {
