@@ -37,6 +37,7 @@ use capnp::capability::Promise;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, twoparty};
 
 use futures::Future;
+use futures::future::Either;
 use futures::sync::oneshot;
 
 use tokio_core::reactor;
@@ -70,10 +71,7 @@ fn drop_rpc_system() {
     core.turn(Some(::std::time::Duration::from_millis(1)));
 }
 
-#[test]
-fn drop_import_client_after_disconnect() {
-    let mut core = reactor::Core::new().unwrap();
-    let handle = core.handle();
+fn disconnector_setup(handle : &tokio_core::reactor::Handle) -> ( RpcSystem<capnp_rpc::rpc_twoparty_capnp::Side>, RpcSystem<capnp_rpc::rpc_twoparty_capnp::Side> ) {
     let (client_stream, server_stream) = ::mio_uds::UnixStream::pair().unwrap();
     let  (client_reader, client_writer) = reactor::PollEvented::new(client_stream, &handle).unwrap().split();
 
@@ -82,7 +80,7 @@ fn drop_import_client_after_disconnect() {
                                            rpc_twoparty_capnp::Side::Client,
                                            Default::default()));
 
-    let mut client_rpc_system = RpcSystem::new(client_network, None);
+    let client_rpc_system = RpcSystem::new(client_network, None);
 
     let (server_reader, server_writer) = reactor::PollEvented::new(server_stream, &handle).unwrap().split();
 
@@ -95,6 +93,16 @@ fn drop_import_client_after_disconnect() {
         test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
 
     let server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client));
+
+    ( client_rpc_system, server_rpc_system )
+}
+
+#[test]
+fn drop_import_client_after_disconnect() {
+    let mut core = reactor::Core::new().unwrap();
+    let handle = core.handle();
+
+    let (mut client_rpc_system, server_rpc_system) = disconnector_setup(&handle);
 
     let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
     handle.spawn(client_rpc_system.map_err(|e| {println!("RpcSystem error: {:?}", e); ()}));
@@ -119,6 +127,43 @@ fn drop_import_client_after_disconnect() {
     }
 
     drop(client);
+}
+
+#[test]
+fn disconnector_disconnects() {
+    let mut core = reactor::Core::new().unwrap();
+    let handle = core.handle();
+
+    let (mut client_rpc_system, server_rpc_system) = disconnector_setup(&handle);
+
+    let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+    let disconnector = client_rpc_system.get_disconnector();
+
+    handle.spawn(client_rpc_system.map_err(|e| {println!("RpcSystem error: {:?}", e); ()}));
+
+    let (tx, rx) = oneshot::channel::<()>();
+    //send on tx when server_rpc_system exits
+    handle.spawn(server_rpc_system.map_err(|e| {println!("RpcSystem error: {:?}", e); e}).then(|_| {tx.send(())}));
+
+    //make sure we can make an RPC system call
+    core.run(client.test_interface_request().send().promise).unwrap();
+
+    //disconnect from the server; comment this next line out to see the test fail
+    core.run(disconnector).unwrap();
+
+    let timeout = tokio_core::reactor::Timeout::new(std::time::Duration::from_secs(1), &handle).unwrap();
+    //wait one second for server_rpc_system to exit
+    match core.run(rx.select2(timeout)) {
+       Ok(Either::B(_)) => panic!("timeout while waiting for server_rpc_system to exit."),
+       Err(_) => panic!("an error occurred while waiting for server_rpc_system to exit."),
+       _ => ()
+    }
+
+    //make sure we can't use client any more (because the server is disconnected)
+    match core.run(client.test_interface_request().send().promise) {
+        Err(ref e) if e.kind == ::capnp::ErrorKind::Disconnected => (),
+        _ => panic!("Should have gotten a 'disconnected' error."),
+    }
 }
 
 fn rpc_top_level<F>(main: F)

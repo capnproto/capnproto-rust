@@ -1525,6 +1525,7 @@ enum DisconnectorState
     Disconnected
 }
 
+/// A `Future` that can be run to disconnect an `RpcSystem`'s ConnectionState and wait for it to be closed.
 pub struct Disconnector<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<Option<Rc<ConnectionState<VatId>>>>>,
     state:  DisconnectorState,
