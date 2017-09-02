@@ -373,13 +373,13 @@ impl <'a, 'b: 'a> ScratchSpaceHeapAllocator<'a, 'b> {
                                     allocator: HeapAllocator::new()}
     }
 
-    pub fn second_segment_words(mut self, value: u32) -> ScratchSpaceHeapAllocator<'a, 'b> {
+    pub fn second_segment_words(self, value: u32) -> ScratchSpaceHeapAllocator<'a, 'b> {
         ScratchSpaceHeapAllocator { scratch_space: self.scratch_space,
                                     allocator: self.allocator.first_segment_words(value) }
 
     }
 
-    pub fn allocation_strategy(mut self, value: AllocationStrategy) -> ScratchSpaceHeapAllocator<'a, 'b> {
+    pub fn allocation_strategy(self, value: AllocationStrategy) -> ScratchSpaceHeapAllocator<'a, 'b> {
         ScratchSpaceHeapAllocator { scratch_space: self.scratch_space,
                                     allocator: self.allocator.allocation_strategy(value) }
     }
