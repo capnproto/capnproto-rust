@@ -486,3 +486,29 @@ fn bit_list_padding_must_be_zero() {
     assert_eq!(Word::words_to_bytes(expected_canonical_words),
                Word::words_to_bytes(&canonical_words[..]));
 }
+
+#[test]
+fn out_of_bounds_zero_sized_list_returns_error() {
+    let segment: &[Word] = &[
+        // List pointer, offset out of bounds, elements are byte-sized, zero elements.
+        capnp_word!(0x01, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00),
+    ];
+
+    let segments = &[segment];
+    let segment_array = message::SegmentArray::new(segments);
+    let message = message::Reader::new(segment_array, Default::default());
+    assert!(message.is_canonical().is_err());
+}
+
+#[test]
+fn out_of_bounds_zero_sized_void_list_returns_error() {
+    let segment: &[Word] = &[
+        // List pointer, offset out of bounds, elements have size zero, two elements.
+        capnp_word!(0x01, 0x00, 0x00, 0x01, 0x10, 0x00, 0x00, 0x00),
+    ];
+
+    let segments = &[segment];
+    let segment_array = message::SegmentArray::new(segments);
+    let message = message::Reader::new(segment_array, Default::default());
+    assert!(message.is_canonical().is_err());
+}
