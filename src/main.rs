@@ -27,7 +27,6 @@
 
 #![crate_type = "bin"]
 
-extern crate capnp;
 extern crate capnpc;
 
 pub fn main() {
