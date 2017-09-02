@@ -1,3 +1,6 @@
+## v0.8.11
+- Avoid some situations where we would construct (but not dereference) out-of-bounds pointers.
+
 ## v0.8.10
 - Deprecate Word::from() in favor of capnp_word!().
 - Add constant::Reader to support struct and list constants.
