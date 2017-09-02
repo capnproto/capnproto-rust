@@ -14,7 +14,9 @@ fn try_go() -> ::capnp::Result<()> {
 
     // At one point, this failed with:
     // error: pointer computed at offset 33554448, outside bounds of allocation Runtime(702) which has size 16
-    try!(root.target_size());
+    let result = root.target_size();
+
+    assert!(result.is_err()); // pointer out-of-bounds error
 
     Ok(())
 }
