@@ -1,0 +1,11 @@
+[package]
+name = "capnp-miri-tests"
+version = "0.1.0"
+authors = ["David Renshaw"]
+
+[dependencies]
+capnp = { path = "../" }
+
+[[bin]]
+name = "total_size"
+path = "total_size.rs"

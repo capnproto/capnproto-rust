@@ -156,6 +156,13 @@ impl WirePointer {
     }
 
     #[inline]
+    pub fn target_from_segment(&self, arena: &ReaderArena, segment_id: u32) -> Result<*const Word> {
+        let this_addr: *const Word = self as *const _ as *const _;
+        let offset = 1 + ((self.offset_and_kind.get() as i32) >> 2);
+        arena.check_offset(segment_id, this_addr, offset)
+    }
+
+    #[inline]
     pub fn mut_target(&mut self) -> *mut Word {
         let this_addr: *mut Word = self as *mut _ as *mut _;
         unsafe { this_addr.offset((1 + ((self.offset_and_kind.get() as i32) >> 2)) as isize) }
@@ -452,7 +459,7 @@ mod wire_helpers {
     pub unsafe fn follow_fars(
         arena: &ReaderArena,
         reff: *const WirePointer,
-        ref_target: *const Word,
+        ref_target: Result<*const Word>,
         mut segment_id: u32)
         -> Result<(*const Word, *const WirePointer, u32)>
     {
@@ -468,7 +475,7 @@ mod wire_helpers {
             let pad: *const WirePointer = ptr as *const _;
 
             if !(*reff).is_double_far() {
-                Ok(((*pad).target(), pad, segment_id))
+                Ok((try!((*pad).target_from_segment(arena, segment_id)), pad, segment_id))
             } else {
                 //# Landing pad is another far pointer. It is
                 //# followed by a tag describing the pointed-to
@@ -482,7 +489,7 @@ mod wire_helpers {
                 Ok((ptr, reff, segment_id))
             }
         } else {
-            Ok((ref_target, reff, segment_id))
+            Ok((try!(ref_target), reff, segment_id))
         }
     }
 
@@ -625,7 +632,8 @@ mod wire_helpers {
 
         nesting_limit -= 1;
 
-        let (ptr, reff, segment_id) = try!(follow_fars(arena, reff, (*reff).target(), segment_id));
+        let (ptr, reff, segment_id) =
+            try!(follow_fars(arena, reff, (*reff).target_from_segment(arena, segment_id), segment_id));
 
         match (*reff).kind() {
             WirePointerKind::Struct => {
@@ -1678,7 +1686,7 @@ mod wire_helpers {
         nesting_limit: i32,
         canonicalize: bool) -> Result<SegmentAnd<*mut Word>>
     {
-        let src_target = (*src).target();
+        let src_target = (*src).target_from_segment(src_arena, src_segment_id);
 
         if (*src).is_null() {
             ptr::write_bytes(dst, 0, 1);
@@ -1833,7 +1841,7 @@ mod wire_helpers {
         default_value: *const Word,
         nesting_limit: i32) -> Result<StructReader<'a>>
     {
-        let ref_target: *const Word = (*reff).target();
+        let ref_target = (*reff).target_from_segment(arena, segment_id);
 
         if (*reff).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
@@ -1909,7 +1917,7 @@ mod wire_helpers {
         expected_element_size: Option<ElementSize>,
         nesting_limit: i32) -> Result<ListReader<'a>>
     {
-        let ref_target: *const Word = (*reff).target();
+        let ref_target: Result<*const Word> = (*reff).target_from_segment(arena, segment_id);
 
         if (*reff).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
@@ -2077,7 +2085,7 @@ mod wire_helpers {
                 slice::from_raw_parts(mem::transmute(default_value), default_size as usize));
         }
 
-        let ref_target = (*reff).target();
+        let ref_target = (*reff).target_from_segment(arena, segment_id);
         let (ptr, reff, segment_id) = try!(follow_fars(arena, reff, ref_target, segment_id));
         let size = (*reff).list_element_count();
 
@@ -2121,7 +2129,7 @@ mod wire_helpers {
             return Ok(data::new_reader(default_value as *const _, default_size));
         }
 
-        let ref_target = (*reff).target();
+        let ref_target = (*reff).target_from_segment(arena, segment_id);
 
         let (ptr, reff, segment_id) = try!(follow_fars(arena, reff, ref_target, segment_id));
 
@@ -2370,7 +2378,8 @@ impl <'a> PointerReader<'a> {
         } else {
             let (_, reff, _) = unsafe {
                 try!(wire_helpers::follow_fars(
-                    self.arena, self.pointer, (*self.pointer).target(), self.segment_id))
+                    self.arena, self.pointer,
+                    (*self.pointer).target_from_segment(self.arena, self.segment_id), self.segment_id))
             };
 
             match unsafe { (*reff).kind() } {

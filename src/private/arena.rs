@@ -52,6 +52,7 @@ impl ReadLimiter {
 
 pub trait ReaderArena {
     fn get_segment(&self, id: u32) -> Result<(*const Word, u32)>;
+    fn check_offset(&self, segment_id: u32, start: *const Word, offset_in_words: i32) -> Result<*const Word>;
     fn contains_interval(&self, segment_id: u32, start: *const Word, size: usize) -> Result<()>;
     fn amplified_read(&self, virtual_amount: u64) -> Result<()>;
 
@@ -87,6 +88,19 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
         match self.segments.get_segment(id) {
             Some(seg) => Ok((seg.as_ptr(), seg.len() as u32)),
             None => Err(Error::failed(format!("Invalid segment id: {}", id))),
+        }
+    }
+
+    fn check_offset(&self, segment_id: u32, start: *const Word, offset_in_words: i32) -> Result<*const Word> {
+        let (segment_start, segment_len) = try!(self.get_segment(segment_id));
+        let this_start: usize = segment_start as usize;
+        let this_size: usize = segment_len as usize * BYTES_PER_WORD;
+        let offset: i64 = offset_in_words as i64 * BYTES_PER_WORD as i64;
+        let start_idx = start as usize;
+        if start_idx < this_start || ((start_idx - this_start) as i64 + offset) as usize > this_size {
+            Err(Error::failed(format!("message contained out-of-bounds pointer")))
+        } else {
+            unsafe { Ok(start.offset(offset_in_words as isize)) }
         }
     }
 
@@ -184,6 +198,10 @@ impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
         Ok((seg.0 as *const _, seg.1))
     }
 
+    fn check_offset(&self, _segment_id: u32, start: *const Word, offset_in_words: i32) -> Result<*const Word> {
+        unsafe { Ok(start.offset(offset_in_words as isize)) }
+    }
+
     fn contains_interval(&self, _id: u32, _start: *const Word, _size: usize) -> Result<()> {
         Ok(())
     }
@@ -265,6 +283,10 @@ pub struct NullArena;
 impl ReaderArena for NullArena {
     fn get_segment(&self, _id: u32) -> Result<(*const Word, u32)> {
         Err(Error::failed(format!("tried to read from null arena")))
+    }
+
+    fn check_offset(&self, _segment_id: u32, start: *const Word, offset_in_words: i32) -> Result<*const Word> {
+        unsafe { Ok(start.offset(offset_in_words as isize)) }
     }
 
     fn contains_interval(&self, _id: u32, _start: *const Word, _size: usize) -> Result<()> {
