@@ -1402,8 +1402,8 @@ impl <VatId> ConnectionState<VatId> {
         let connection_state = state.clone();
 
         let import_client = {
-            let mut slots = &mut state.imports.borrow_mut().slots;
-            let mut v = slots.entry(import_id).or_insert_with(Import::new);
+            let slots = &mut state.imports.borrow_mut().slots;
+            let v = slots.entry(import_id).or_insert_with(Import::new);
             if v.import_client.is_some() {
                 v.import_client.as_ref().unwrap().0.upgrade().expect("dangling ref to import client?").clone()
             } else {

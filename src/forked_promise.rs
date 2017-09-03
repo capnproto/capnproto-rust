@@ -226,7 +226,7 @@ mod test {
             self.inner.borrow_mut().mode = mode;
             if let Some(t) = self.inner.borrow_mut().task.take() {
                 // The other future may have become ready while we were ignoring it.
-                t.unpark();
+                t.notify();
             }
         }
     }
@@ -237,7 +237,7 @@ mod test {
         fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
             let ModedFutureInner { ref mut mode, ref mut left, ref mut right, ref mut task } =
                 *self.inner.borrow_mut();
-            *task = Some(::futures::task::park());
+            *task = Some(::futures::task::current());
             match *mode {
                 Mode::Left => left.poll(),
                 Mode::Right => right.poll(),
@@ -337,8 +337,8 @@ mod test {
         let f1 = ForkedPromise::new(run_stream);
         let f2 = f1.clone();
         let f3 = f1.clone();
-        tx0.send(Box::new(future::lazy(move || {
-            task::park().unpark();
+        tx0.unbounded_send(Box::new(future::lazy(move || {
+            task::current().notify();
             f1.map(|_|()).map_err(|_|())
                 .select(rx1.map_err(|_|()))
                 .map(|_| ()).map_err(|_|())
