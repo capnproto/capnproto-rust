@@ -118,7 +118,7 @@ impl <M> Sender<M> where M: AsOutputSegments + 'static {
                 }
 
                 match rc_inner.borrow_mut().task.take() {
-                    Some(t) => t.unpark(),
+                    Some(t) => t.notify(),
                     None => (),
                 }
             }
@@ -151,7 +151,7 @@ impl <M> Sender<M> where M: AsOutputSegments + 'static {
                 rc_inner.borrow_mut().end_notifier = Some((result, complete));
 
                 match rc_inner.borrow_mut().task.take() {
-                    Some(t) => t.unpark(),
+                    Some(t) => t.notify(),
                     None => (),
                 }
             }
@@ -192,7 +192,7 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                             if count == 0 || ended {
                                 IntermediateState::Resolve
                             } else {
-                                self.inner.borrow_mut().task = Some(task::park());
+                                self.inner.borrow_mut().task = Some(task::current());
                                 return Ok(Async::NotReady)
                             }
                         }

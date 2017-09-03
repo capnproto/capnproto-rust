@@ -203,7 +203,7 @@ impl InnerReadState {
 
                 InnerReadState::Segments { ref mut segment_slices, ref mut owned_space, ref mut idx } => {
                     let len = {
-                        let mut bytes = Word::words_to_bytes_mut(owned_space);
+                        let bytes = Word::words_to_bytes_mut(owned_space);
                         *idx += try!(async_read_all(read, &mut bytes[*idx..]));
                         bytes.len()
                     };
