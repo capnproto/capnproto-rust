@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 use futures::{executor, task, Async, Future};
-use futures::executor::Unpark;
+use futures::executor::Notify;
 
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc};
@@ -52,8 +52,8 @@ impl Unparker {
     }
 }
 
-impl executor::Unpark for Unparker {
-    fn unpark(&self) {
+impl executor::Notify for Unparker {
+    fn notify(&self, _id: usize) {
         self.original_needs_poll.store(true, Ordering::SeqCst);
         let tasks = ::std::mem::replace(&mut *self.tasks.lock().unwrap(), HashMap::new());
         for (_, task) in tasks {
@@ -146,7 +146,7 @@ impl <F> Future for ForkedPromise<F>
             _ => unreachable!(),
         };
 
-        let done_val = match original_future.poll_future(unparker.clone()) {
+        let done_val = match original_future.poll_future_notify(&unparker, 0) {
             Ok(Async::NotReady) => {
                 *self.inner.state.borrow_mut() =
                     State::Waiting(unparker.clone(), original_future);
@@ -160,7 +160,7 @@ impl <F> Future for ForkedPromise<F>
             &mut *self.inner.state.borrow_mut(),
             State::Done(done_val.clone()))
         {
-            State::Polling(ref unparker) => unparker.unpark(),
+            State::Polling(ref unparker) => unparker.notify(0),
             _ => unreachable!(),
         }
 
@@ -251,15 +251,15 @@ mod test {
     }
 
     struct Unpark;
-    impl ::futures::executor::Unpark for Unpark {
-        fn unpark(&self) {}
+    impl ::futures::executor::Notify for Unpark {
+        fn notify(&self, _id: usize) {}
     }
 
     fn forked_propagates_unpark_helper(spawn_moded_first: bool) {
         let (handle, tasks) = ::task_set::TaskSet::<(), ()>::new(Box::new(Reaper));
 
         let mut spawn = ::futures::executor::spawn(tasks);
-        let unpark: Arc<::futures::executor::Unpark> = Arc::new(Unpark);
+        let unpark = Arc::new(Unpark);
 
         let (tx, rx) = oneshot::channel::<u32>();
         let f1 = ForkedPromise::new(rx);
@@ -285,21 +285,21 @@ mod test {
 
         if spawn_moded_first {
             (spawn_mf)();
-            match spawn.poll_future(unpark.clone()) {
+            match spawn.poll_future_notify(&unpark, 0) {
                 Ok(::futures::Async::NotReady) => (),
                 _ => panic!("should not be ready yet."),
             }
             (spawn_f2)();
         } else {
             (spawn_f2)();
-            match spawn.poll_future(unpark.clone()) {
+            match spawn.poll_future_notify(&unpark, 0) {
                 Ok(::futures::Async::NotReady) => (),
                 _ => panic!("should not be ready yet."),
             }
             (spawn_mf)();
         }
 
-        match spawn.poll_future(unpark.clone()) {
+        match spawn.poll_future_notify(&unpark, 0) {
             Ok(::futures::Async::NotReady) => (),
             _ => panic!("should not be ready yet."),
         }
@@ -309,7 +309,7 @@ mod test {
         tx.send(11).unwrap(); // This should cause `f2` and then eventually `spawn` to resolve.
 
         loop {
-            match spawn.poll_future(unpark.clone()) {
+            match spawn.poll_future_notify(&unpark, 0) {
                 Ok(::futures::Async::NotReady) => (),
                 Ok(::futures::Async::Ready(_)) => break,
                 Err(e) => panic!("error: {:?}", e),
@@ -433,7 +433,7 @@ mod test {
                 let task = self.unpark.recv().unwrap(); // Safe to unwrap because self.unpark_send keeps the channel alive
                 let unpark = Arc::new(Unpark { task: task, send: Mutex::new(self.unpark_send.clone()), });
                 let mut task = if let hash_map::Entry::Occupied(x) = self.live.entry(task) { x } else { return };
-                let result = task.get_mut().poll_future(unpark);
+                let result = task.get_mut().poll_future_notify(&unpark, 0);
                 match result {
                     Ok(Async::Ready(())) => { task.remove(); }
                     Err(()) => { task.remove(); }
@@ -447,8 +447,8 @@ mod test {
             send: Mutex<mpsc::Sender<u64>>,
         }
 
-        impl executor::Unpark for Unpark {
-            fn unpark(&self) {
+        impl executor::Notify for Unpark {
+            fn notify(&self, _id: usize) {
                 let _ = self.send.lock().unwrap().send(self.task);
             }
         }
