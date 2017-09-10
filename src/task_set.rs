@@ -18,48 +18,53 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// Much of the details of this task_set implementation are borrowed from
-// Stream::buffer_unordered() in futures-rs.
+use futures::{Async, Future, Stream};
+use futures::stream::FuturesUnordered;
+use futures::unsync::mpsc;
 
-use futures::{Future};
+use std::cell::{RefCell};
+use std::rc::Rc;
 
-use std::cell::{Cell, RefCell};
-use std::rc::{Rc, Weak};
-use std::sync::Arc;
-
-use stack::Stack;
-
-enum Slot<T> {
-    Next(usize),
-    Data(T),
+enum EnqueuedTask<T,E> {
+    Task(Box<Future<Item=T, Error=E>>),
+    Terminate(Result<(), E>),
 }
 
-struct Inner<T, E> {
-    // A slab of futures that are being executed. Each slot in this vector is
-    // either an active future or a pointer to the next empty slot. This is used
-    // to get O(1) deallocation in the slab and O(1) allocation.
-    //
-    // The `next_future` field is the next slot in the `futures` array that's a
-    // `Slot::Next` variant. If it points to the end of the array then the array
-    // is full.
-    futures: RefCell<Vec<Slot<Box<Future<Item=T, Error=E>>>>>,
-    next_future: Cell<usize>,
-
-    new_futures: RefCell<Vec<Box<Future<Item=T, Error=E>>>>,
-
-    stack: Arc<Stack<usize>>,
-    reaper: RefCell<Box<TaskReaper<T, E>>>,
-
-    terminate_with: RefCell<Option<Result<(), E>>>,
-
-    handle_count: Cell<usize>,
-    task: RefCell<Option<::futures::task::Task>>,
+enum TaskInProgress<E> {
+    Task(Box<Future<Item=(), Error=()>>),
+    Terminate(Option<Result<(), E>>),
 }
 
+enum TaskDone<E> {
+    Continue,
+    Terminate(Result<(), E>),
+}
+
+impl <E> Future for TaskInProgress<E> {
+    type Item = TaskDone<E>;
+    type Error = ();
+
+    fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
+        match *self {
+            TaskInProgress::Terminate(ref mut r) =>
+                Ok(::futures::Async::Ready(TaskDone::Terminate(r.take().unwrap()))),
+            TaskInProgress::Task(ref mut f) => {
+                match f.poll() {
+                    Ok(::futures::Async::Ready(())) => Ok(::futures::Async::Ready(TaskDone::Continue)),
+                    Ok(::futures::Async::NotReady) => Ok(::futures::Async::NotReady),
+                    Err(_e) => unreachable!(),
+                }
+            }
+
+        }
+    }
+}
 
 #[must_use = "a TaskSet does nothing unless polled"]
 pub struct TaskSet<T, E> {
-    inner: Rc<Inner<T, E>>,
+    enqueued: Option<mpsc::UnboundedReceiver<EnqueuedTask<T, E>>>,
+    in_progress: FuturesUnordered<TaskInProgress<E>>,
+    reaper: Rc<RefCell<Box<TaskReaper<T, E>>>>,
 }
 
 impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
@@ -67,88 +72,40 @@ impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
                -> (TaskSetHandle<T, E>, TaskSet<T, E>)
         where E: 'static, T: 'static, E: ::std::fmt::Debug,
     {
-        let inner = Rc::new(Inner {
-            futures: RefCell::new(Vec::new()),
-            next_future: Cell::new(0),
-            new_futures: RefCell::new(Vec::new()),
-            stack: Arc::new(Stack::new()),
-            reaper: RefCell::new(reaper),
-            terminate_with: RefCell::new(None),
-            handle_count: Cell::new(1),
-            task: RefCell::new(None),
-        });
+        let (sender, receiver) = mpsc::unbounded();
 
-        let weak_inner = Rc::downgrade(&inner);
-
-        let set = TaskSet {
-            inner: inner,
+        let mut set = TaskSet {
+            enqueued: Some(receiver),
+            in_progress: FuturesUnordered::new(),
+            reaper: Rc::new(RefCell::new(reaper)),
         };
 
+        // If the FuturesUnordered ever gets empty, its stream will terminate, which
+        // is not what we want. So we make sure there is always at least one future in it.
+        set.in_progress.push(TaskInProgress::Task(Box::new(::futures::future::empty())));
+
         let handle = TaskSetHandle {
-            inner: weak_inner,
+            sender: sender,
         };
 
         (handle, set)
     }
 }
 
+#[derive(Clone)]
 pub struct TaskSetHandle<T, E> {
-    inner: Weak<Inner<T, E>>,
-}
-
-impl<T, E> Clone for TaskSetHandle<T, E> {
-    fn clone(&self) -> TaskSetHandle<T, E> {
-        match self.inner.upgrade() {
-            None => (),
-            Some(inner) => {
-                inner.handle_count.set(inner.handle_count.get() + 1);
-            }
-        }
-        TaskSetHandle {
-            inner: self.inner.clone()
-        }
-    }
-}
-
-impl <T, E> Drop for TaskSetHandle<T, E> {
-    fn drop(&mut self) {
-        match self.inner.upgrade() {
-            None => (),
-            Some(inner) => {
-                inner.handle_count.set(inner.handle_count.get() - 1);
-            }
-        }
-    }
+    sender: mpsc::UnboundedSender<EnqueuedTask<T,E>>
 }
 
 impl <T, E> TaskSetHandle<T, E> where T: 'static, E: 'static {
-    pub fn add<F>(&mut self, promise: F)
+    pub fn add<F>(&mut self, f: F)
         where F: Future<Item=T, Error=E> + 'static
     {
-        match self.inner.upgrade() {
-            None => (),
-            Some(rc_inner) => {
-                rc_inner.new_futures.borrow_mut().push(Box::new(promise));
-
-                if let Some(t) = rc_inner.task.borrow_mut().take() {
-                    t.notify()
-                }
-            }
-        }
+        let _ = self.sender.unbounded_send(EnqueuedTask::Task(Box::new(f)));
     }
 
     pub fn terminate(&mut self, result: Result<(), E>) {
-        match self.inner.upgrade() {
-            None => (),
-            Some(rc_inner) => {
-                *rc_inner.terminate_with.borrow_mut() = Some(result);
-
-                match rc_inner.task.borrow_mut().take() {
-                    Some(t) => t.notify(),
-                    None => (),
-                }
-            }
-        }
+        let _ = self.sender.unbounded_send(EnqueuedTask::Terminate(result));
     }
 }
 
@@ -163,60 +120,57 @@ impl <T, E> Future for TaskSet<T, E> where T: 'static, E: 'static {
     type Error = E;
 
     fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        match self.inner.terminate_with.borrow_mut().take() {
-            None => (),
-            Some(Ok(v)) => return Ok(::futures::Async::Ready(v)),
-            Some(Err(e)) => return Err(e),
-        }
-
-        let new_futures = ::std::mem::replace(&mut *self.inner.new_futures.borrow_mut(), Vec::new());
-        for future in new_futures {
-            let added_idx = self.inner.next_future.get();
-            if self.inner.next_future.get() == self.inner.futures.borrow().len() {
-                self.inner.futures.borrow_mut().push(Slot::Data(future));
-                self.inner.next_future.set(self.inner.next_future.get() + 1);
-            } else {
-                match ::std::mem::replace(&mut self.inner.futures.borrow_mut()[self.inner.next_future.get()],
-                                          Slot::Data(future)) {
-                    Slot::Next(next) => self.inner.next_future.set(next),
-                    Slot::Data(_) => unreachable!(),
-                }
-            }
-
-            self.inner.stack.push(added_idx);
-        }
-
-        let drain = self.inner.stack.drain();
-        for idx in drain {
-            match self.inner.futures.borrow_mut()[idx] {
-                Slot::Next(_) => continue,
-                Slot::Data(ref mut f) => {
-                    let event = ::futures::task::UnparkEvent::new(self.inner.stack.clone(), idx);
-                    match ::futures::task::with_unpark_event(event, || f.poll()) {
-                        Ok(::futures::Async::NotReady) => continue,
-                        Ok(::futures::Async::Ready(v)) => {
-                            self.inner.reaper.borrow_mut().task_succeeded(v);
-                        }
-                        Err(e) => {
-                            self.inner.reaper.borrow_mut().task_failed(e);
-                        }
+        let mut enqueued_stream_complete = false;
+        if let Some(ref mut enqueued) = self.enqueued {
+            loop {
+                match enqueued.poll() {
+                    Err(_) => unreachable!(),
+                    Ok(Async::NotReady) => break,
+                    Ok(Async::Ready(None)) => {
+                        enqueued_stream_complete = true;
+                        break;
+                    }
+                    Ok(Async::Ready(Some(EnqueuedTask::Terminate(r)))) => {
+                        self.in_progress.push(TaskInProgress::Terminate(Some(r)));
+                    }
+                    Ok(Async::Ready(Some(EnqueuedTask::Task(f)))) => {
+                        let reaper = Rc::downgrade(&self.reaper);
+                        self.in_progress.push(
+                            TaskInProgress::Task(Box::new(
+                                f.then(move |r| {
+                                    match reaper.upgrade() {
+                                        None => Ok(()), // TaskSet must have been dropped.
+                                        Some(rc_reaper) => {
+                                            match r {
+                                                Ok(v) => rc_reaper.borrow_mut().task_succeeded(v),
+                                                Err(e) => rc_reaper.borrow_mut().task_failed(e),
+                                            }
+                                            Ok(())
+                                        }
+                                    }
+                                }))));
                     }
                 }
             }
-            self.inner.futures.borrow_mut()[idx] = Slot::Next(self.inner.next_future.get());
-            self.inner.next_future.set(idx);
+        }
+        if enqueued_stream_complete {
+            drop(self.enqueued.take());
         }
 
-        if self.inner.futures.borrow().len() == 0 && self.inner.handle_count.get() == 0 {
-            Ok(::futures::Async::Ready(()))
-        } else {
-            let task = ::futures::task::current();
-            if self.inner.new_futures.borrow().len() > 0 {
-                // Some new futures got added when we called poll().
-                task.notify();
+        loop {
+            match self.in_progress.poll() {
+                Ok(Async::NotReady) => return Ok(Async::NotReady),
+                Err(_) => unreachable!(),
+                Ok(Async::Ready(v)) => {
+                    match v {
+                        None => return Ok(Async::Ready(())),
+                        Some(TaskDone::Continue) => (),
+                        Some(TaskDone::Terminate(Ok(()))) =>
+                            return Ok(Async::Ready(())),
+                        Some(TaskDone::Terminate(Err(e))) => return Err(e),
+                    }
+                }
             }
-            *self.inner.task.borrow_mut() = Some(task);
-            Ok(::futures::Async::NotReady)
         }
     }
 }

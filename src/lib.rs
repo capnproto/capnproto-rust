@@ -60,8 +60,8 @@
 
 
 extern crate capnp;
-extern crate futures;
 extern crate capnp_futures;
+extern crate futures;
 
 use futures::{Future};
 use futures::sync::oneshot;
@@ -108,7 +108,6 @@ mod attach;
 mod forked_promise;
 mod sender_queue;
 mod split;
-mod stack;
 mod task_set;
 pub mod twoparty;
 
