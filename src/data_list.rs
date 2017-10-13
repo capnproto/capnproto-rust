@@ -126,3 +126,11 @@ impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     }
 }
 
+impl <'a> ::std::iter::IntoIterator for Reader<'a> {
+    type Item = Result<::data::Reader<'a>>;
+    type IntoIter = ListIter<Reader<'a>, Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}

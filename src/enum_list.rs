@@ -126,4 +126,11 @@ impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
     }
 }
 
+impl <'a, T: FromU16> ::std::iter::IntoIterator for Reader<'a, T> {
+    type Item = ::std::result::Result<T, NotInSchema>;
+    type IntoIter = ListIter<Reader<'a, T>, Self::Item>;
 
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
