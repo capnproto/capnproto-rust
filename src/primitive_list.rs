@@ -128,3 +128,13 @@ impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     }
 }
 
+impl <'a, T> ::std::iter::IntoIterator for Reader<'a, T>
+    where T: PrimitiveElement
+{
+    type Item = T;
+    type IntoIter = ListIter<Reader<'a, T>, Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}

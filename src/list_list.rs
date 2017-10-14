@@ -140,3 +140,13 @@ impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     }
 }
 
+impl <'a, T> ::std::iter::IntoIterator for Reader<'a, T>
+    where T: for<'b> ::traits::Owned<'b>
+{
+    type Item = Result<<T as ::traits::Owned<'a>>::Reader>;
+    type IntoIter = ListIter<Reader<'a, T>, Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
