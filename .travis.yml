@@ -29,6 +29,7 @@ script:
   - cargo doc
   - cd test
   - cargo test
+  - cargo test --release
   - cd ..
   - cd example/addressbook
   - cargo build
