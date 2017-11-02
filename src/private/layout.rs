@@ -1370,7 +1370,7 @@ mod wire_helpers {
     {
         if (*reff).is_null() {
             if default_size == 0 {
-                return text::Builder::new(slice::from_raw_parts_mut(ptr::null_mut(), 0), 0);
+                return text::Builder::new(&mut [], 0);
             } else {
                 let _builder = init_text_pointer(arena, reff, segment_id, default_size).value;
                 unimplemented!()
@@ -1439,7 +1439,7 @@ mod wire_helpers {
     {
         if (*reff).is_null() {
             if default_size == 0 {
-                return Ok(data::new_builder(ptr::null_mut(), 0));
+                return Ok(&mut[]);
             } else {
                 let builder = init_data_pointer(arena, reff, segment_id, default_size).value;
                 ptr::copy_nonoverlapping(default_value as *const _,
@@ -2077,12 +2077,14 @@ mod wire_helpers {
         segment_id: u32,
         reff: *const WirePointer,
         default_value: *const Word,
-        default_size: ByteCount32) -> Result<text::Reader<'a>>
+        _default_size: ByteCount32) -> Result<text::Reader<'a>>
     {
         if (*reff).is_null() {
-            //   TODO?       if default_value.is_null() { default_value = &"" }
-            return text::new_reader(
-                slice::from_raw_parts(mem::transmute(default_value), default_size as usize));
+            if default_value.is_null() {
+                return Ok(&"");
+            } else {
+                unimplemented!()
+            }
         }
 
         let ref_target = (*reff).target_from_segment(arena, segment_id);
@@ -2123,10 +2125,14 @@ mod wire_helpers {
         segment_id: u32,
         reff: *const WirePointer,
         default_value: *const Word,
-        default_size: ByteCount32) -> Result<data::Reader<'a>>
+        _default_size: ByteCount32) -> Result<data::Reader<'a>>
     {
         if (*reff).is_null() {
-            return Ok(data::new_reader(default_value as *const _, default_size));
+            if default_value.is_null() {
+                return Ok(&[]);
+            } else {
+                unimplemented!()
+            }
         }
 
         let ref_target = (*reff).target_from_segment(arena, segment_id);
