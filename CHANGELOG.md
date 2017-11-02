@@ -1,3 +1,8 @@
+## v0.8.12
+- Avoid constructing (zero-length) slices from null pointers, as it seems to be a possible
+  source of undefined behavior.
+- Add some IntoIterator implementations.
+
 ## v0.8.11
 - Avoid some situations where we would construct (but not dereference) out-of-bounds pointers.
 
