@@ -56,7 +56,7 @@
 //! });
 //! ```
 //!
-//! For a more complete example, see https://github.com/dwrensha/capnp-rpc-rust/tree/master/examples/calculator
+//! For a more complete example, see https://github.com/dwrensha/capnp-rpc-rust/tree/master/example/calculator
 
 
 extern crate capnp;

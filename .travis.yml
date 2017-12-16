@@ -34,7 +34,7 @@ script:
   - cd test
   - cargo test
   - cd ..
-  - cd examples/calculator
+  - cd example/calculator
   - ./test_client_and_server.bash
   - cd ..
   - cd pubsub
