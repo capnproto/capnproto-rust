@@ -1,3 +1,6 @@
+### v0.8.8
+- Support List(Interface).
+
 ### v0.8.7
 - Eliminate `use` statements in generated code to avoid naming conflicts.
 
