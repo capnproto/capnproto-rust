@@ -534,11 +534,14 @@ interface TestInterface {
    bazz @3 (s : TestBigStruct) -> (r : TestBigStruct);
 }
 
-
 interface TestExtends extends(TestInterface) {
    qux @0 ();
    corge @1 TestBigStruct -> ();
    grault @2 () -> TestBigStruct;
+}
+
+struct TestCapabilityList {
+   foo @0 :List(TestInterface);
 }
 
 interface EmptyInterface {}

@@ -23,5 +23,5 @@ name = "capnpc-rust"
 path = "src/main.rs"
 
 [dependencies]
-capnp = "0.8"
+capnp = "0.8.13"
 

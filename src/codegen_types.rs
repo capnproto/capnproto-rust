@@ -174,17 +174,18 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                             gen.scope_map[&interface.get_type_id()].join("::"), None)
             }
             type_::List(ot1) => {
-                match try!(try!(ot1.get_element_type()).which()) {
+                let element_type = try!(ot1.get_element_type());
+                match try!(element_type.which()) {
                     type_::Struct(_) => {
-                        let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
+                        let inner = try!(element_type.type_string(gen, Leaf::Owned));
                         Ok(format!("::capnp::struct_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                     type_::Enum(_) => {
-                        let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
+                        let inner = try!(element_type.type_string(gen, Leaf::Owned));
                         Ok(format!("::capnp::enum_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                     type_::List(_) => {
-                        let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
+                        let inner = try!(element_type.type_string(gen, Leaf::Owned));
                         Ok(format!("::capnp::list_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                     type_::Text(()) => {
@@ -193,10 +194,13 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                     type_::Data(()) => {
                         Ok(format!("::capnp::data_list::{}", module))
                     },
-                    type_::Interface(_) => Err(Error::failed(("List(Interface) is unsupported".to_string()))),
+                    type_::Interface(_) => {
+                        let inner = try!(element_type.type_string(gen, Leaf::Client));
+                        Ok(format!("::capnp::capability_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
+                    }
                     type_::AnyPointer(_) => Err(Error::failed("List(AnyPointer) is unsupported".to_string())),
                     _ => {
-                        let inner = try!(try!(ot1.get_element_type()).type_string(gen, Leaf::Owned));
+                        let inner = try!(element_type.type_string(gen, Leaf::Owned));
                         Ok(format!("::capnp::primitive_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                 }
