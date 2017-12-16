@@ -1,3 +1,6 @@
+## v0.8.13
+- Implement capability_list, to support List(Interface).
+
 ## v0.8.12
 - Avoid constructing (zero-length) slices from null pointers, as it seems to be a possible
   source of undefined behavior.
