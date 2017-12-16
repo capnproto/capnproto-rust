@@ -11,13 +11,13 @@ name = "capnp_rpc_test"
 path = "test.rs"
 
 [build-dependencies]
-capnpc = "0.8"
+capnpc = "0.8.8"
 
 [dependencies.capnp-rpc]
 path = "../"
 
 [dependencies]
-capnp = "0.8"
+capnp = "0.8.13"
 futures = "0.1"
 tokio-io = "0.1"
 tokio-core = "0.1"

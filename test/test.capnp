@@ -97,7 +97,7 @@ interface TestExtends2 extends(TestExtends) {}
 interface TestPipeline {
   getCap @0 (n: UInt32, inCap :TestInterface) -> (s: Text, outBox :Box);
   getNullCap @1 () -> (cap :TestInterface);
- # testPointers @1 (cap :TestInterface, obj :AnyPointer, list :List(TestInterface)) -> ();
+  testPointers @2 (cap :TestInterface, obj :AnyPointer, list :List(TestInterface)) -> ();
 
   struct Box {
     cap @0 :TestInterface;
@@ -166,5 +166,8 @@ interface TestMoreStuff extends(TestCallOrder) {
   getHandleCount @11 () -> (count: Int64);
 
   dontHold @12 (cap :TestInterface) -> ();
-  #Returns immediately and does not hold on to the capability.
+  # Returns immediately and does not hold on to the capability.
+
+  callEachCapability @13 (caps :List(TestInterface)) -> ();
+  # Calls TestInterface::foo(123, true) on each cap.
 }

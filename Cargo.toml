@@ -16,9 +16,9 @@ name = "capnp_rpc"
 path = "src/lib.rs"
 
 [build-dependencies]
-capnpc = "0.8"
+capnpc = "0.8.8"
 
 [dependencies]
 futures = "0.1.15"
 capnp-futures = "0.1"
-capnp = {version = "0.8", features = ["rpc"]}
+capnp = {version = "0.8.13", features = ["rpc"]}

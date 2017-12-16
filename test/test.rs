@@ -832,3 +832,32 @@ fn local_client_return_cap() {
     let response1 = request.send().promise.wait().unwrap();
     assert_eq!(response1.get().unwrap().get_x().unwrap(), "foo");
 }
+
+#[test]
+fn capability_list() {
+    rpc_top_level(|mut core, client| {
+        let response = try!(core.run(client.test_more_stuff_request().send().promise));
+        let client = try!(try!(response.get()).get_cap());
+
+        let server1 = ::impls::TestInterface::new();
+        let call_count1 = server1.get_call_count();
+        assert_eq!(call_count1.get(), 0);
+        let client1 = ::test_capnp::test_interface::ToClient::new(server1).from_server::<::capnp_rpc::Server>();
+
+        let server2 = ::impls::TestInterface::new();
+        let call_count2 = server2.get_call_count();
+        assert_eq!(call_count2.get(), 0);
+        let client2 = ::test_capnp::test_interface::ToClient::new(server2).from_server::<::capnp_rpc::Server>();
+
+        let mut request = client.call_each_capability_request();
+        {
+            let mut caps = request.get().init_caps(2);
+            caps.set(0, client1.client.hook);
+            caps.set(1, client2.client.hook);
+        }
+        try!(core.run(request.send().promise));
+        assert_eq!(call_count1.get(), 1);
+        assert_eq!(call_count2.get(), 1);
+        Ok(())
+    })
+}

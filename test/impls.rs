@@ -504,6 +504,21 @@ impl test_more_stuff::Server for TestMoreStuff {
         unimplemented!()
     }
 
+    fn call_each_capability(&mut self,
+                            params: test_more_stuff::CallEachCapabilityParams,
+                            _results: test_more_stuff::CallEachCapabilityResults)
+                            -> Promise<(), Error>
+    {
+        let mut results = Vec::new();
+        for cap in pry!(pry!(params.get()).get_caps()) {
+            let mut request = pry!(cap).foo_request();
+            request.get().set_i(123);
+            request.get().set_j(true);
+            results.push(request.send().promise);
+        }
+
+        Promise::from_future(::futures::future::join_all(results).map(|_| ()))
+    }
 }
 
 struct Handle {
