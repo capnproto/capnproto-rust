@@ -7,7 +7,7 @@ build = "build.rs"
 
 [[bin]]
 name = "http-requests"
-path = "main.rs"
+path = "src/main.rs"
 
 [build-dependencies]
 capnpc = "0.8"

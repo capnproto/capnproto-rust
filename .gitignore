@@ -1,4 +1,4 @@
 /Cargo.lock
 /test/Cargo.lock
 target/
-example/calculator/target/
+examples/calculator/target/
