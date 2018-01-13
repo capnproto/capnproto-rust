@@ -98,7 +98,7 @@ impl http_session::Server for HttpSession {
         let (tx, stream) = ::futures::sync::mpsc::unbounded::<Vec<u8>>();
         pry!(easy.write_function(move |data| {
             // Error case should only happen if this request has been canceled.
-            let _ = tx.send(data.into());
+            let _ = tx.unbounded_send(data.into());
             Ok(data.len())
         }).map_err(from_curl_error));
 
