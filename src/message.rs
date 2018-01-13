@@ -177,6 +177,26 @@ impl <S> Reader<S> where S: ReaderSegments {
     }
 }
 
+/// A reader object that owns the underlying data in the message
+pub struct OwnedReader<S, T>
+    where S: ReaderSegments,
+          T: for<'a> ::capnp::traits::Owned<'a> {
+    marker: ::std::marker::PhantomData<T>,
+    message: ::capnp::message::Reader<S>,
+}
+
+impl <S, T> OwnedReader<S, T>
+    where S: ReaderSegments,
+          T : for<'a> ::capnp::traits::Owned<'a> {
+
+    pub fn new(message: ::capnp::message::Reader<::capnp::serialize::OwnedSegments>) -> Self {
+        OwnedReader {
+            marker: ::std::marker::PhantomData,
+            message: message,
+        }
+    }
+}
+
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
 pub unsafe trait Allocator {
     /// Allocates memory for a new segment, returning a pointer to the start of the segment
