@@ -1565,10 +1565,10 @@ mod wire_helpers {
                 (*reff).set_list_size_and_count(Pointer, value.element_count);
                 for i in 0.. value.element_count as isize {
                     try!(copy_pointer(arena, segment_id, cap_table,
-                                      (ptr as *mut _).offset(i),
+                                      (ptr as *mut WirePointer).offset(i),
                                       value.arena,
                                       value.segment_id, value.cap_table,
-                                      (value.ptr as *const _).offset(i),
+                                      (value.ptr as *const WirePointer).offset(i),
                                       value.nesting_limit,
                                       canonicalize));
                 }
