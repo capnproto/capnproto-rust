@@ -25,7 +25,7 @@ use any_pointer;
 use private::arena::{BuilderArenaImpl, ReaderArenaImpl, BuilderArena, ReaderArena};
 use private::layout;
 use private::units::BYTES_PER_WORD;
-use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
+use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder, Owned};
 use {OutputSegments, Result, Word};
 
 /// Options controlling how data is read.
@@ -174,6 +174,30 @@ impl <S> Reader<S> where S: ReaderSegments {
         let mut result = Word::allocate_zeroed_vec(output.len());
         result.copy_from_slice(output);
         Ok(result)
+    }
+}
+
+/// A reader object that owns the underlying data in the message
+pub struct OwnedReader<S, T>
+    where S: ReaderSegments,
+          T: for<'a> Owned<'a> {
+    marker: ::std::marker::PhantomData<T>,
+    message: Reader<S>,
+}
+
+impl <S, T> OwnedReader<S, T>
+    where S: ReaderSegments,
+          T : for<'a> Owned<'a> {
+
+    pub fn new(message: Reader<S>) -> Self {
+        OwnedReader {
+            marker: ::std::marker::PhantomData,
+            message: message,
+        }
+    }
+
+    pub fn get<'a> (&'a self) -> Result<<T as Owned<'a>>::Reader> {
+        self.message.get_root()
     }
 }
 
