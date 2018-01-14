@@ -177,20 +177,20 @@ impl <S> Reader<S> where S: ReaderSegments {
     }
 }
 
-/// A reader object that owns the underlying data in the message
-pub struct OwnedReader<S, T>
+/// A message reader whose value is known to be of type `T`.
+pub struct TypedReader<S, T>
     where S: ReaderSegments,
           T: for<'a> Owned<'a> {
     marker: ::std::marker::PhantomData<T>,
     message: Reader<S>,
 }
 
-impl <S, T> OwnedReader<S, T>
+impl <S, T> TypedReader<S, T>
     where S: ReaderSegments,
           T : for<'a> Owned<'a> {
 
     pub fn new(message: Reader<S>) -> Self {
-        OwnedReader {
+        TypedReader {
             marker: ::std::marker::PhantomData,
             message: message,
         }
