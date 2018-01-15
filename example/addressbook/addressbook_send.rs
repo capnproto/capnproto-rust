@@ -100,11 +100,5 @@ pub fn main() {
 
     tx_book.send(book).unwrap();
     let first_id = rx_id.recv().unwrap();
-    let exit_code = if first_id == 123 {
-        0
-    } else {
-        1
-    };
-
-    std::process::exit(exit_code);
+    assert_eq!(first_id, 123);
 }
