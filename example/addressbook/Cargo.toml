@@ -10,6 +10,11 @@ build = "build.rs"
 name = "addressbook"
 path = "addressbook.rs"
 
+[[bin]]
+
+name = "addressbook_send"
+path = "addressbook_send.rs"
+
 
 [build-dependencies.capnpc]
 path = "../../"
