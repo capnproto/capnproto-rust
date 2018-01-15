@@ -1,3 +1,7 @@
+## v0.8.14
+- Add message::TypedReader.
+- Appease new "tyvar_behind_raw_pointer" lint (see https://github.com/rust-lang/rust/issues/46906).
+
 ## v0.8.13
 - Implement capability_list, to support List(Interface).
 
