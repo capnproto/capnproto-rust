@@ -317,6 +317,18 @@ impl <A> Builder<A> where A: Allocator {
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
         self.arena.get_segments_for_output()
     }
+    
+    pub fn into_typed<T: for<'a> Owned<'a>>(self) -> TypedReader<Builder<A>, T> {
+        let reader = Reader::new(self, ReaderOptions::new());
+
+        TypedReader::new(reader)
+    }
+}
+
+impl <A> ReaderSegments for Builder<A> where A: Allocator {
+    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
+        self.get_segments_for_output().get(id as usize).map(|x| *x)
+    }
 }
 
 #[derive(Debug)]
