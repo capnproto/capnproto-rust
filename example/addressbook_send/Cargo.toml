@@ -15,4 +15,4 @@ path = "addressbook_send.rs"
 path = "../../"
 
 [dependencies]
-capnp = { git = "https://github.com/capnproto/capnproto-rust", rev = "21f74aa1a204d8353b5eefa4c17ef11a6835f653" }
+capnp = "0.8"
