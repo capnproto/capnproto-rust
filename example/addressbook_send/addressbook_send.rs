@@ -68,7 +68,16 @@ pub mod addressbook {
             }
         }
 
-        message.into_typed()
+        // There are two ways to get a TypedReader from our `message`:
+        //
+        // Option 1: Go through the full process manually
+        //  message.into_reader::<address_book::Owned>().into_typed()
+        //
+        //  Option 2: Use the "Into" trait defined on the builder
+        //   message.into()
+        //
+        // Option 3: Use the "From" trait defined on the builder
+        TypedReader::from(message)
     }
 }
 
