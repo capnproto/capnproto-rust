@@ -225,8 +225,7 @@ impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
           T: for<'a> Owned<'a> {
 
     fn from(message: Builder<A>) -> TypedReader<Builder<A>, T> {
-        let reader = message.into_reader::<T>();
-
+        let reader = message.into_reader();
         reader.into_typed()
     }
 }
@@ -348,7 +347,7 @@ impl <A> Builder<A> where A: Allocator {
         self.arena.get_segments_for_output()
     }
 
-    pub fn into_reader<T: for<'a> Owned<'a>>(self) -> Reader<Builder<A>> {
+    pub fn into_reader(self) -> Reader<Builder<A>> {
         Reader::new(self, ReaderOptions {
             traversal_limit_in_words: u64::max_value(),
             nesting_limit: i32::max_value()
