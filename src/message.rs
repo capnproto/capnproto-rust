@@ -21,6 +21,8 @@
 
 //! Untyped root container for a Cap'n Proto value.
 
+use std::convert::From;
+
 use any_pointer;
 use private::arena::{BuilderArenaImpl, ReaderArenaImpl, BuilderArena, ReaderArena};
 use private::layout;
@@ -175,6 +177,10 @@ impl <S> Reader<S> where S: ReaderSegments {
         result.copy_from_slice(output);
         Ok(result)
     }
+
+    pub fn into_typed<T: for<'a> Owned<'a>>(self) -> TypedReader<S, T> {
+        TypedReader::new(self)
+    }
 }
 
 /// A message reader whose value is known to be of type `T`.
@@ -198,6 +204,30 @@ impl <S, T> TypedReader<S, T>
 
     pub fn get<'a> (&'a self) -> Result<<T as Owned<'a>>::Reader> {
         self.message.get_root()
+    }
+
+    pub fn into_inner(self) -> Reader<S> {
+        self.message
+    }
+}
+
+impl <S, T> From<Reader<S>> for TypedReader<S, T>
+    where S: ReaderSegments,
+          T: for<'a> Owned<'a> {
+
+    fn from(message: Reader<S>) -> TypedReader<S, T> {
+        TypedReader::new(message)
+    }
+}
+
+impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
+    where A: Allocator,
+          T: for<'a> Owned<'a> {
+
+    fn from(message: Builder<A>) -> TypedReader<Builder<A>, T> {
+        let reader = message.into_reader::<T>();
+
+        reader.into_typed()
     }
 }
 
@@ -317,6 +347,19 @@ impl <A> Builder<A> where A: Allocator {
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
         self.arena.get_segments_for_output()
     }
+
+    pub fn into_reader<T: for<'a> Owned<'a>>(self) -> Reader<Builder<A>> {
+        Reader::new(self, ReaderOptions {
+            traversal_limit_in_words: u64::max_value(),
+            nesting_limit: i32::max_value()
+        })
+    }
+}
+
+impl <A> ReaderSegments for Builder<A> where A: Allocator {
+    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
+        self.get_segments_for_output().get(id as usize).map(|x| *x)
+    }
 }
 
 #[derive(Debug)]
@@ -429,4 +472,3 @@ unsafe impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
         self.scratch_space.in_use = false;
     }
 }
-
