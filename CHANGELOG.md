@@ -1,4 +1,4 @@
-## v0.8.14
+## v0.8.15
 - Add message::Builder::into_reader() and message::Reader::into_typed().
 
 ## v0.8.14
