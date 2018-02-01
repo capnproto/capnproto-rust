@@ -1,4 +1,7 @@
 ## v0.8.14
+- Add message::Builder::into_reader() and message::Reader::into_typed().
+
+## v0.8.14
 - Add message::TypedReader.
 - Appease new "tyvar_behind_raw_pointer" lint (see https://github.com/rust-lang/rust/issues/46906).
 
