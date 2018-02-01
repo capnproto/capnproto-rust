@@ -24,18 +24,16 @@ pub mod addressbook_capnp {
   include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
 }
 
-use capnp::message::TypedReader;
-use capnp::serialize::OwnedSegments;
+use capnp::message::{Builder, HeapAllocator, TypedReader};
 use std::sync::mpsc;
 use std::thread;
 
 pub mod addressbook {
     use addressbook_capnp::{address_book, person};
-    use capnp::{serialize};
-    use capnp::message::TypedReader;
+    use capnp::message::{Builder, HeapAllocator, TypedReader};
 
-    pub fn build_address_book() -> TypedReader<serialize::OwnedSegments, address_book::Owned> {
-        let mut message = ::capnp::message::Builder::new_default();
+    pub fn build_address_book() -> TypedReader<Builder<HeapAllocator>, address_book::Owned> {
+        let mut message = Builder::new_default();
         {
             let address_book = message.init_root::<address_book::Builder>();
 
@@ -70,16 +68,16 @@ pub mod addressbook {
             }
         }
 
-        let mut buffer = Vec::new();
-        ::capnp::serialize::write_message(&mut buffer, &message).unwrap();
-
-        // Unwrap here is safe because we just created the message above
-        let message_reader = ::capnp::serialize::read_message(
-            &mut buffer.as_slice(),
-            ::capnp::message::ReaderOptions::new()
-        ).unwrap();
-
-        TypedReader::new(message_reader)
+        // There are two ways to get a TypedReader from our `message`:
+        //
+        // Option 1: Go through the full process manually
+        //  message.into_reader::<address_book::Owned>().into_typed()
+        //
+        //  Option 2: Use the "Into" trait defined on the builder
+        //   message.into()
+        //
+        // Option 3: Use the "From" trait defined on the builder
+        TypedReader::from(message)
     }
 }
 
@@ -87,7 +85,7 @@ pub fn main() {
 
     let book = addressbook::build_address_book();
 
-    let (tx_book, rx_book) = mpsc::channel::<TypedReader<OwnedSegments, addressbook_capnp::address_book::Owned>>();
+    let (tx_book, rx_book) = mpsc::channel::<TypedReader<Builder<HeapAllocator>, addressbook_capnp::address_book::Owned>>();
     let (tx_id, rx_id) = mpsc::channel::<u32>();
 
     thread::spawn(move || {
