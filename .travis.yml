@@ -1,9 +1,12 @@
 sudo: false
 language: rust
-rust:
-  - nightly
-  - beta
-  - stable
+matrix:
+  include:
+    - rust: stable
+    - rust: beta
+    - rust: nightly
+    - rust: 1.16.0
+      script: cargo test # OK if RPC feature uses newer rustc features
 script:
   - cargo build
   - cargo test
