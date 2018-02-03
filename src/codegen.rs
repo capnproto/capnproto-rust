@@ -94,7 +94,6 @@ fn path_to_stem_string<P: AsRef<::std::path::Path>>(path: P) -> ::capnp::Result<
 }
 
 fn snake_to_upper_case(s: &str) -> String {
-    use std::ascii::*;
     let mut result_chars: Vec<char> = Vec::new();
     for c in s.chars() {
         if c == '_' {
@@ -103,14 +102,13 @@ fn snake_to_upper_case(s: &str) -> String {
             assert!(c.is_alphanumeric(),
                     format!("non-alphanumeric character '{}', i.e. {} in identifier '{}'",
                             c, c as usize, s));
-            result_chars.push((c as u8).to_ascii_uppercase() as char);
+            result_chars.push(::std::ascii::AsciiExt::to_ascii_uppercase(&c));
         }
     }
     return result_chars.into_iter().collect();
 }
 
 fn camel_to_snake_case(s: &str) -> String {
-    use std::ascii::*;
     let mut result_chars: Vec<char> = Vec::new();
     let mut first_char = true;
     for c in s.chars() {
@@ -120,17 +118,16 @@ fn camel_to_snake_case(s: &str) -> String {
         if c.is_uppercase() && !first_char {
             result_chars.push('_');
         }
-        result_chars.push((c as u8).to_ascii_lowercase() as char);
+        result_chars.push(::std::ascii::AsciiExt::to_ascii_lowercase(&c));
         first_char = false;
     }
     return result_chars.into_iter().collect();
 }
 
 fn capitalize_first_letter(s: &str) -> String {
-    use std::ascii::*;
     let mut result_chars: Vec<char> = Vec::new();
     for c in s.chars() { result_chars.push(c) }
-    result_chars[0] = (result_chars[0] as u8).to_ascii_uppercase() as char;
+    result_chars[0] = ::std::ascii::AsciiExt::to_ascii_uppercase(&result_chars[0]);
     return result_chars.into_iter().collect();
 }
 

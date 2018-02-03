@@ -5,6 +5,7 @@ rust:
   - nightly
   - beta
   - stable
+  - 1.15.0
 env:
   global:
     - export PATH="$PATH:$HOME/bin"
