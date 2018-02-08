@@ -108,6 +108,12 @@ impl <'b> ReaderSegments for SegmentArray<'b> {
     }
 }
 
+impl <'b> ReaderSegments for [&'b [Word]] {
+    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a[Word]> {
+        self.get(id as usize).map(|slice| *slice)
+    }
+}
+
 /// A container used to read a message.
 pub struct Reader<S> where S: ReaderSegments {
     arena: ReaderArenaImpl<S>,
