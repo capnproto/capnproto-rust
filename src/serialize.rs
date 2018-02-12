@@ -179,7 +179,7 @@ pub fn write_message_segments_to_words<R>(message: &R) -> Vec<Word>
 
 fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<Word> {
     let word_count = compute_serialized_size(segments);
-    let segment_count = get_reader_segment_count(segments);
+    let segment_count = segments.len();
     let table_size = segment_count / 2 + 1;
     let mut result = Vec::with_capacity(word_count);
     for _ in 0..table_size {
@@ -215,16 +215,6 @@ pub fn write_message_segments<W, R>(write: &mut W, segments: &R) -> ::std::io::R
     write_segments(write, segments)
 }
 
-fn get_reader_segment_count<R: message::ReaderSegments + ?Sized>(segments: &R) -> usize {
-    for i in 0.. {
-        let segment = segments.get_segment(i as u32);
-        if segment.is_none() {
-            return i;
-        }
-    }
-    0
-}
-
 fn write_segment_table<W>(write: &mut W, segments: &[&[Word]]) -> ::std::io::Result<()>
 where W: Write {
     write_segment_table_internal(write, segments)
@@ -236,7 +226,7 @@ where W: Write {
 fn write_segment_table_internal<W, R>(write: &mut W, segments: &R) -> ::std::io::Result<()>
 where W: Write, R: message::ReaderSegments + ?Sized {
     let mut buf: [u8; 8] = [0; 8];
-    let segment_count = get_reader_segment_count(segments);
+    let segment_count = segments.len();
 
     // write the first Word, which contains segment_count and the 1st segment length
     <LittleEndian as ByteOrder>::write_u32(&mut buf[0..4], segment_count as u32 - 1);
@@ -283,7 +273,7 @@ where W: Write {
 
 fn compute_serialized_size<R: message::ReaderSegments + ?Sized>(segments: &R) -> usize {
     // Table size
-    let len = get_reader_segment_count(segments);
+    let len = segments.len();
     let mut size = (len / 2) + 1;
     for i in 0..len {
         let segment = segments.get_segment(i as u32).unwrap();
