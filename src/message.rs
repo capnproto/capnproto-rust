@@ -260,6 +260,8 @@ pub unsafe trait Allocator {
     /// Allocates memory for a new segment, returning a pointer to the start of the segment
     /// and a u32 indicating the length of the segment.
     ///
+    /// The allocated memory MUST be initialized to all zeroes.
+    ///
     /// UNSAFETY ALERT: The callee is responsible for ensuring that the returned memory is valid
     /// for the lifetime of the object and doesn't overlap with other allocated memory.
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32);
