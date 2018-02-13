@@ -88,15 +88,17 @@ impl ReaderOptions {
 
 /// An object that manages the buffers underlying a Cap'n Proto message reader.
 pub trait ReaderSegments {
-    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]>;
+    /// Gets the segment with index `idx`. Returns `None` if `idx` is out of range.
+    fn get_segment<'a>(&'a self, idx: u32) -> Option<&'a [Word]>;
+
+    /// Gets the number of segments.
     fn len(&self) -> usize {
         for i in 0.. {
-            let segment = self.get_segment(i as u32);
-            if segment.is_none() {
+            if self.get_segment(i as u32).is_none() {
                 return i;
             }
         }
-        0
+        unreachable!()
     }
 }
 

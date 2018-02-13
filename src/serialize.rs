@@ -45,6 +45,10 @@ impl <'a> message::ReaderSegments for SliceSegments<'a> {
             None
         }
     }
+
+    fn len(&self) -> usize {
+        self.segment_slices.len()
+    }
 }
 
 /// Reads a serialized message from a slice of words.
@@ -77,6 +81,10 @@ impl ::message::ReaderSegments for OwnedSegments {
         } else {
             None
         }
+    }
+
+    fn len(&self) -> usize {
+        self.segment_slices.len()
     }
 }
 
