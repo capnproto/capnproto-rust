@@ -311,3 +311,16 @@ impl <'a> ::std::ops::Deref for OutputSegments<'a> {
         }
     }
 }
+
+impl<'s> message::ReaderSegments for OutputSegments<'s> {
+    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
+        match *self {
+            OutputSegments::SingleSegment(ref s) => {
+                s.get(id as usize).map(|slice| *slice)
+            }
+            OutputSegments::MultiSegment(ref v) => {
+                v.get(id as usize).map(|slice| *slice)
+            }
+        }
+    }
+}

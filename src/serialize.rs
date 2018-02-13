@@ -171,18 +171,26 @@ pub fn write_message_to_words<A>(message: &message::Builder<A>) -> Vec<Word>
     flatten_segments(&*message.get_segments_for_output())
 }
 
-fn flatten_segments(segments: &[&[Word]]) -> Vec<Word> {
-    let word_count = compute_serialized_size(&*segments);
-    let table_size = segments.len() / 2 + 1;
+pub fn write_message_segments_to_words<R>(message: &R) -> Vec<Word>
+    where R: message::ReaderSegments
+{
+    flatten_segments(message)
+}
+
+fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<Word> {
+    let word_count = compute_serialized_size(segments);
+    let segment_count = segments.len();
+    let table_size = segment_count / 2 + 1;
     let mut result = Vec::with_capacity(word_count);
     for _ in 0..table_size {
         result.push(Word { raw_content: 0 });
     }
     {
         let mut bytes = ::Word::words_to_bytes_mut(&mut result[..]);
-        write_segment_table(&mut bytes, &*segments).expect("Failed to write segment table.");
+        write_segment_table_internal(&mut bytes, segments).expect("Failed to write segment table.");
     }
-    for segment in &*segments {
+    for i in 0..segment_count {
+        let segment = segments.get_segment(i as u32).unwrap();
         for idx in 0..segment.len() {
             result.push(segment[idx]);
         }
@@ -195,30 +203,41 @@ fn flatten_segments(segments: &[&[Word]]) -> Vec<Word> {
 /// For optimal performance, `write` should be a buffered writer. `flush` will not be called on
 /// the writer.
 pub fn write_message<W, A>(write: &mut W, message: &message::Builder<A>) -> ::std::io::Result<()>
-where W: Write, A: message::Allocator {
+ where W: Write, A: message::Allocator {
     let segments = message.get_segments_for_output();
-    try!(write_segment_table(write, &*segments));
-    write_segments(write, &*segments)
+    try!(write_segment_table(write, &segments));
+    write_segments(write, &segments)
+}
+
+pub fn write_message_segments<W, R>(write: &mut W, segments: &R) -> ::std::io::Result<()>
+ where W: Write, R: message::ReaderSegments {
+    try!(write_segment_table_internal(write, segments));
+    write_segments(write, segments)
+}
+
+fn write_segment_table<W>(write: &mut W, segments: &[&[Word]]) -> ::std::io::Result<()>
+where W: Write {
+    write_segment_table_internal(write, segments)
 }
 
 /// Writes a segment table to `write`.
 ///
 /// `segments` must contain at least one segment.
-fn write_segment_table<W>(write: &mut W, segments: &[&[Word]]) -> ::std::io::Result<()>
-where W: Write {
+fn write_segment_table_internal<W, R>(write: &mut W, segments: &R) -> ::std::io::Result<()>
+where W: Write, R: message::ReaderSegments + ?Sized {
     let mut buf: [u8; 8] = [0; 8];
     let segment_count = segments.len();
 
     // write the first Word, which contains segment_count and the 1st segment length
     <LittleEndian as ByteOrder>::write_u32(&mut buf[0..4], segment_count as u32 - 1);
-    <LittleEndian as ByteOrder>::write_u32(&mut buf[4..8], segments[0].len() as u32);
+    <LittleEndian as ByteOrder>::write_u32(&mut buf[4..8], segments.get_segment(0).unwrap().len() as u32);
     try!(write.write_all(&buf));
 
     if segment_count > 1 {
         if segment_count < 4 {
             for idx in 1..segment_count {
                 <LittleEndian as ByteOrder>::write_u32(
-                    &mut buf[(idx - 1) * 4..idx * 4], segments[idx].len() as u32);
+                    &mut buf[(idx - 1) * 4..idx * 4], segments.get_segment(idx as u32).unwrap().len() as u32);
             }
             if segment_count == 2 {
                 for idx in 4..8 { buf[idx] = 0 }
@@ -228,7 +247,7 @@ where W: Write {
             let mut buf = vec![0; (segment_count & !1) * 4];
             for idx in 1..segment_count {
                 <LittleEndian as ByteOrder>::write_u32(
-                    &mut buf[(idx - 1) * 4..idx * 4], segments[idx].len() as u32);
+                    &mut buf[(idx - 1) * 4..idx * 4], segments.get_segment(idx as u32).unwrap().len() as u32);
             }
             if segment_count % 2 == 0 {
                 for idx in (buf.len() - 4)..(buf.len()) { buf[idx] = 0 }
@@ -240,18 +259,24 @@ where W: Write {
 }
 
 /// Writes segments to `write`.
-fn write_segments<W>(write: &mut W, segments: &[&[Word]]) -> ::std::io::Result<()>
+fn write_segments<W, R: message::ReaderSegments + ?Sized>(write: &mut W, segments: &R) -> ::std::io::Result<()>
 where W: Write {
-    for segment in segments {
-        try!(write.write_all(Word::words_to_bytes(segment)));
+    for i in 0.. {
+        if let Some(segment) = segments.get_segment(i) {
+            try!(write.write_all(Word::words_to_bytes(segment)));
+        } else {
+            break;
+        }
     }
     Ok(())
 }
 
-fn compute_serialized_size(segments: &[&[Word]]) -> usize {
+fn compute_serialized_size<R: message::ReaderSegments + ?Sized>(segments: &R) -> usize {
     // Table size
-    let mut size = (segments.len() / 2) + 1;
-    for segment in &*segments {
+    let len = segments.len();
+    let mut size = (len / 2) + 1;
+    for i in 0..len {
+        let segment = segments.get_segment(i as u32).unwrap();
         size += segment.len();
     }
     size
@@ -261,7 +286,7 @@ fn compute_serialized_size(segments: &[&[Word]]) -> usize {
 pub fn compute_serialized_size_in_words<A>(message: &::message::Builder<A>) -> usize
     where A: ::message::Allocator
 {
-    compute_serialized_size(&*message.get_segments_for_output())
+    compute_serialized_size(&message.get_segments_for_output())
 }
 
 #[cfg(test)]
@@ -458,7 +483,7 @@ pub mod test {
             let borrowed_segments: &[&[Word]] = &segments.iter()
                                                      .map(|segment| &segment[..])
                                                      .collect::<Vec<_>>()[..];
-            let words = flatten_segments(&borrowed_segments);
+            let words = flatten_segments(borrowed_segments);
             let message = read_message_from_words(&words[..], message::ReaderOptions::new()).unwrap();
             let result_segments = message.into_segments();
 

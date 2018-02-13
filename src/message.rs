@@ -89,6 +89,15 @@ impl ReaderOptions {
 /// An object that manages the buffers underlying a Cap'n Proto message reader.
 pub trait ReaderSegments {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]>;
+    fn len(&self) -> usize {
+        for i in 0.. {
+            let segment = self.get_segment(i as u32);
+            if segment.is_none() {
+                return i;
+            }
+        }
+        0
+    }
 }
 
 /// An array of segments.
@@ -105,6 +114,20 @@ impl <'a> SegmentArray<'a> {
 impl <'b> ReaderSegments for SegmentArray<'b> {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
         self.segments.get(id as usize).map(|slice| *slice)
+    }
+
+    fn len(&self) -> usize {
+        self.segments.len()
+    }
+}
+
+impl <'b> ReaderSegments for [&'b [Word]] {
+    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a[Word]> {
+        self.get(id as usize).map(|slice| *slice)
+    }
+
+    fn len(&self) -> usize {
+        self.len()
     }
 }
 
@@ -358,6 +381,10 @@ impl <A> Builder<A> where A: Allocator {
 impl <A> ReaderSegments for Builder<A> where A: Allocator {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
         self.get_segments_for_output().get(id as usize).map(|x| *x)
+    }
+
+    fn len(&self) -> usize {
+        self.get_segments_for_output().len()
     }
 }
 
