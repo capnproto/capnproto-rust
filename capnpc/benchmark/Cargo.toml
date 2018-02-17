@@ -1,0 +1,23 @@
+[package]
+
+name = "benchmark"
+version = "0.0.0"
+authors = [ "David Renshaw <dwrenshaw@sandstorm.io>"  ]
+build = "build.rs"
+
+[[bin]]
+
+name = "benchmark"
+path = "benchmark.rs"
+
+[[bin]]
+
+name = "run_all"
+path = "run_all.rs"
+
+[build-dependencies.capnpc]
+path = "../"
+
+[dependencies]
+rand = "0.3.11"
+capnp = "0.8"

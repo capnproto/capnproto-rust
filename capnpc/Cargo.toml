@@ -1,0 +1,27 @@
+[package]
+
+name = "capnpc"
+version = "0.8.8"
+authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
+license = "MIT"
+description = "Cap'n Proto code generation"
+repository = "https://github.com/capnproto/capnpc-rust"
+documentation = "http://docs.capnproto-rust.org/capnpc"
+
+readme = "README.md"
+
+keywords = ["encoding", "protocol", "serialization"]
+
+[lib]
+
+name = "capnpc"
+path = "src/lib.rs"
+
+[[bin]]
+
+name = "capnpc-rust"
+path = "src/main.rs"
+
+[dependencies]
+capnp = "0.8.13"
+
