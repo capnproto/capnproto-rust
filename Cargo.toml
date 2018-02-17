@@ -2,4 +2,5 @@
 members = [
     "capnp",
     "capnpc",
+    "capnp-futures",
 ]
