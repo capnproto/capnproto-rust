@@ -12,7 +12,7 @@ path = "benchmark.rs"
 
 [[bin]]
 
-name = "run_all"
+name = "run_all_benchmarks"
 path = "run_all.rs"
 
 [build-dependencies]

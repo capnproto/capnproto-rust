@@ -5,7 +5,7 @@ version = "0.8.8"
 authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
 license = "MIT"
 description = "Cap'n Proto code generation"
-repository = "https://github.com/capnproto/capnpc-rust"
+repository = "https://github.com/capnproto/capnproto-rust"
 documentation = "http://docs.capnproto-rust.org/capnpc"
 
 readme = "README.md"
