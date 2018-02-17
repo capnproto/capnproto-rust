@@ -351,7 +351,7 @@ pub fn getter_text(gen: &GeneratorContext,
                 (type_::Float32(()), value::Float32(f)) =>
                     primitive_case(&*typ, member, offset, unsafe { ::std::mem::transmute::<f32, u32>(f) }, 0),
                 (type_::Float64(()), value::Float64(f)) =>
-                    primitive_case(&*typ, member, offset, (unsafe { ::std::mem::transmute::<f64, u64>(f) }), 0),
+                    primitive_case(&*typ, member, offset, unsafe { ::std::mem::transmute::<f64, u64>(f) }, 0),
                 (type_::Enum(_), value::Enum(d)) => {
                     if d == 0 {
                         Line(format!("::capnp::traits::FromU16::from_u16(self.{}.get_data_field::<u16>({}))",

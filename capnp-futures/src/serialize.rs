@@ -327,7 +327,7 @@ enum WriteState<W, M> where W: ::std::io::Write, M: AsOutputSegments, {
 }
 
 fn construct_segment_table(segments: &[&[Word]]) -> Vec<u8> {
-    let mut buf = vec![0u8; (((segments.len() + 2) & !1) * 4)];
+    let mut buf = vec![0u8; ((segments.len() + 2) & !1) * 4];
     <LittleEndian as ByteOrder>::write_u32(&mut buf[0..4], segments.len() as u32 - 1);
     for idx in 0..segments.len() {
         <LittleEndian as ByteOrder>::write_u32(
