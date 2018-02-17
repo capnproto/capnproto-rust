@@ -147,11 +147,10 @@ as they were called.
 
 ## Further reading
 
-  * The [calculator example](https://github.com/dwrensha/capnp-rpc-rust/tree/master/examples/calculator)
+  * The [calculator example](examples/calculator)
     demonstrates how to use [promise pipelining](https://capnproto.org/rpc.html#time-travel-promise-pipelining).
-  * The [pubsub example](https://github.com/dwrensha/capnp-rpc-rust/tree/master/examples/pubsub)
-    shows how even an interface with no methods can be useful.
-  * The [http example](https://github.com/dwrensha/capnp-rpc-rust/tree/master/examples/http-requests)
+  * The [pubsub example](examples/pubsub) shows how even an interface with no methods can be useful.
+  * The [http example](examples/http-requests)
     shows how implementations of Cap'n Proto interfaces can interoperate with another tokio-enabled library.
   * The [Sandstorm raw API example app](https://github.com/dwrensha/sandstorm-rawapi-example-rust)
     shows how Sandstorm lets you write web apps using Cap'n Proto instead of HTTP.

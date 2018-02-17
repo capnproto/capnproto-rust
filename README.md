@@ -1,13 +1,12 @@
 # Cap'n Proto for Rust
 
 [![Build Status](https://travis-ci.org/capnproto/capnproto-rust.svg?branch=master)](https://travis-ci.org/capnproto/capnproto-rust)
-[![crates.io](http://meritbadge.herokuapp.com/capnp)](https://crates.io/crates/capnp)
 
 [documentation](https://docs.capnproto-rust.org/capnp/)
 
 [blog](https://dwrensha.github.io/capnproto-rust)
 
-## introduction
+## Introduction
 
 [Cap'n Proto](https://capnproto.org) is a type system for distributed systems.
 
@@ -54,7 +53,7 @@ and a `point_tracker::Client` struct with an `add_point_request()` method.
 The former can be implemented to create a network-accessible object,
 and the latter can be used to invoke a possibly-remote instance of a `PointTracker`.
 
-## features
+## Features
 
 - [tagged unions](https://capnproto.org/language.html#unions)
 - [generics](https://capnproto.org/language.html#generic-types)
@@ -62,23 +61,21 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
 - [canonicalization](https://capnproto.org/encoding.html#canonicalization)
 - [`Result`-based error handling](https://dwrensha.github.io/capnproto-rust/2015/03/21/error-handling-revisited.html)
 
-## related repositories
-- [capnproto-rust](https://github.com/dwrensha/capnproto-rust) (the repo you're looking at right now):
-  Runtime library for dealing with Cap'n Proto messages.
-- [capnpc-rust](https://github.com/dwrensha/capnpc-rust): The Rust code generator
-  [plugin](https://capnproto.org/otherlang.html#how-to-write-compiler-plugins),
-  including support for hooking into a `build.rs` file in a `cargo` build.
-- [capnp-futures](https://github.com/dwrensha/capnp-futures-rs): Support for asynchronous reading and writing
-  of Cap'n Proto messages.
-- [capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust): Object-capability remote procedure call
-  system.
+## Crates
 
-## examples
+|  |  |  |
+| ----- | ---- | ---- |
+| [capnp](/capnp) | Runtime library for dealing with Cap'n Proto messages. | [![crates.io](http://meritbadge.herokuapp.com/capnp)](https://crates.io/crates/capnp) |
+| [capnpc](/capnpc) | Rust code generator [plugin](https://capnproto.org/otherlang.html#how-to-write-compiler-plugins), including support for hooking into a `build.rs` file in a `cargo` build. | [![crates.io](http://meritbadge.herokuapp.com/capnpc)](https://crates.io/crates/capnpc) |
+| [capnp-futures](/capnp-futures) | Support for asynchronous reading and writing of Cap'n Proto messages. | [![crates.io](http://meritbadge.herokuapp.com/capnp-futures)](https://crates.io/crates/capnp-futures) |
+| [capnp-rpc](/capnp-rpc) | Object-capability remote procedure call system. | [![crates.io](http://meritbadge.herokuapp.com/capnp-rpc)](https://crates.io/crates/capnp-rpc) |
 
-[addressbook serialization](https://github.com/dwrensha/capnpc-rust/tree/master/example/addressbook),
-[RPC](https://github.com/dwrensha/capnp-rpc-rust/tree/master/examples)
+## Examples
 
-## who's using capnproto-rust?
+[addressbook serialization](/example/addressbook),
+[RPC](/capnp-rpc/examples)
+
+## Who is using capnproto-rust?
 
 - Sandstorm's [raw API example app](https://github.com/dwrensha/sandstorm-rawapi-example-rust) and
   [collections app](https://github.com/sandstorm-io/collections-app)
@@ -86,7 +83,7 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
 - [fractalide](https://github.com/fractalide/fractalide)
 - [combustion-engine](https://github.com/combustion-engine/combustion/tree/master/combustion_protocols)
 
-## unimplemented / future work
+## Unimplemented / Future Work
 
 - [orphans](https://capnproto.org/cxx.html#orphans)
 - [dynamic reflection](https://capnproto.org/cxx.html#dynamic-reflection)

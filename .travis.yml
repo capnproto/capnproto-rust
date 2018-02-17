@@ -6,10 +6,11 @@ matrix:
     - rust: stable
     - rust: beta
     - rust: nightly
-    - rust: 1.16.0
+    - rust: 1.15.0
       script: # OK if RPC feature uses newer rustc features
-        - cargo test -p capnp
+        - cargo build -p capnp
         - cargo test -p capnpc
+        - cargo test -p capnpc-test
 env:
   global:
     - export PATH="$PATH:$HOME/bin"

@@ -1,6 +1,6 @@
 [package]
 
-name = "capnpc-rust-test"
+name = "capnpc-test"
 version = "0.0.0"
 authors = [ "David Renshaw <dwrenshaw@sandstorm.io>"  ]
 build = "build.rs"
