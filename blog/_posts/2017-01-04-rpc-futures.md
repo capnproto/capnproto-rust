@@ -5,7 +5,7 @@ author: dwrensha
 ---
 
 The concurrency story of
-[capnp-rpc-rust](https://github.com/dwrensha/capnp-rpc-rust)
+[capnp-rpc-rust](https://crates.io/crates/capnp-rpc)
 gets a major update in today's version 0.8 release.
 Previously, the remote procedure call system was built
 on top of [GJ](https://github.com/dwrensha/gj),
