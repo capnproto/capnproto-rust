@@ -1,6 +1,5 @@
 # capnp-rpc-rust
 
-[![Build Status](https://travis-ci.org/capnproto/capnp-rpc-rust.svg?branch=master)](https://travis-ci.org/capnproto/capnp-rpc-rust)
 [![crates.io](http://meritbadge.herokuapp.com/capnp-rpc)](https://crates.io/crates/capnp-rpc)
 
 [documentation](https://docs.capnproto-rust.org/capnp_rpc/)

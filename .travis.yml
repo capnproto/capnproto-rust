@@ -7,7 +7,9 @@ matrix:
     - rust: beta
     - rust: nightly
     - rust: 1.16.0
-      script: cargo test # OK if RPC feature uses newer rustc features
+      script: # OK if RPC feature uses newer rustc features
+        - cargo test -p capnp
+        - cargo test -p capnpc
 env:
   global:
     - export PATH="$PATH:$HOME/bin"
@@ -29,12 +31,12 @@ install:
 script:
   - cargo build
   - cargo test
-  - cargo doc
   - cargo clean
   - cargo build --all
   - cargo test --all
-  - cargo doc --all
   - ./target/debug/addressbook write | ./target/debug/addressbook read
-  - cargo build --release
+  - cargo clean
+  - cargo build --all --release
   - ./target/release/run_all_benchmarks target/release/benchmark
+  - cargo test --all --release
 
