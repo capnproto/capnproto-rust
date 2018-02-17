@@ -1317,7 +1317,8 @@ mod tests {
         assert_eq!(nested.get_float64_list().unwrap().len(), 0);
         assert_eq!(nested.get_struct_list().unwrap().len(), 0);
         assert_eq!(nested.get_text_field().unwrap(), "");
-        assert_eq!(nested.get_data_field().unwrap(), &[]);
+        let empty_slice: &[u8] = &[];
+        assert_eq!(nested.get_data_field().unwrap(), empty_slice);
     }
 
     // At one point this failed to typecheck, giving the error:

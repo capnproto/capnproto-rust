@@ -1,10 +1,23 @@
 [workspace]
 members = [
+    # main crates, published on crates.io
     "capnp",
     "capnpc",
     "capnp-futures",
     "capnp-rpc",
 
+    # testing and examples
+    "benchmark",
     "capnpc/test",
-    "example/*",
+    "capnp-futures/test",
+    "capnp-rpc/examples/calculator",
+    "capnp-rpc/examples/http-requests",
+    "capnp-rpc/examples/pubsub",
+    "capnp-rpc/test",
+    "example/addressbook",
+    "example/addressbook_send",
+]
+default-members = [
+    "capnp",
+    "capnpc",
 ]

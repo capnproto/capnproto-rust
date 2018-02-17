@@ -16,12 +16,12 @@ name = "capnp_rpc"
 path = "src/lib.rs"
 
 [build-dependencies]
-capnpc = "0.8.8"
+capnpc = { version = "0.8.8", path = "../capnpc" }
 
 [dependencies]
 futures = "0.1.15"
-capnp-futures = "0.1"
-capnp = {version = "0.8.13", features = ["rpc"]}
+capnp-futures = { version = "0.1", path = "../capnp-futures" }
+capnp = {version = "0.8.13", path = "../capnp",  features = ["rpc"]}
 
 [[example]]
 # prevent 'cargo test' from trying to build the examples

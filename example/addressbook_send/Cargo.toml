@@ -12,7 +12,7 @@ path = "addressbook_send.rs"
 
 
 [build-dependencies]
-capnpc = "0.8"
+capnpc = { path = "../../capnpc" }
 
 [dependencies]
-capnp = "0.8"
+capnp = { path = "../../capnp" }

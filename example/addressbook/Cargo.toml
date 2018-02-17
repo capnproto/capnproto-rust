@@ -11,9 +11,7 @@ name = "addressbook"
 path = "addressbook.rs"
 
 [build-dependencies.capnpc]
-version = "0.8"
 path = "../../capnpc"
 
 [dependencies.capnp]
-version = "0.8"
 path = "../../capnp"

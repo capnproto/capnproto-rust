@@ -10,10 +10,10 @@ name = "http-requests"
 path = "src/main.rs"
 
 [build-dependencies]
-capnpc = "0.8"
+capnpc = { path = "../../../capnpc" }
 
 [dependencies]
-capnp = "0.8"
+capnp = { path = "../../../capnp" }
 futures = "0.1"
 tokio-io = "0.1"
 tokio-core = "0.1"

@@ -2,7 +2,7 @@
 
 name = "capnp-futures-test"
 version = "0.0.0"
-authors = [ "David Renshaw <dwrenshaw@sandstorm.io>"  ]
+authors = [ "David Renshaw <dwrenshaw@gmail.com>"  ]
 build = "build.rs"
 
 [lib]
@@ -11,11 +11,11 @@ name = "capnp_futures_test"
 path = "test.rs"
 
 [build-dependencies]
-capnpc = "0.8"
+capnpc = { path = "../../capnpc" }
 
 [dependencies]
 capnp-futures = {path = "./../"}
-capnp = "0.8"
+capnp = { path = "../../capnp" }
 futures = "0.1"
 tokio-core = "0.1"
 mio-uds = "0.6"
