@@ -1,3 +1,7 @@
+## v0.8.3
+- Add RpcSystem::get_disconnector() method.
+- Migrate away from some deprecated futures-rs functionality.
+
 ### v0.8.2
 - Prevent a double-borrow that could happen in rare situations with ForkedPromise.
 
