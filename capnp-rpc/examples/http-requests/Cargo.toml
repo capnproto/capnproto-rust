@@ -1,0 +1,24 @@
+[package]
+name = "capnp-http-requests"
+version = "0.1.0"
+authors = ["David Renshaw <david@sandstorm.io>"]
+
+build = "build.rs"
+
+[[bin]]
+name = "http-requests"
+path = "src/main.rs"
+
+[build-dependencies]
+capnpc = "0.8"
+
+[dependencies]
+capnp = "0.8"
+futures = "0.1"
+tokio-io = "0.1"
+tokio-core = "0.1"
+tokio-curl = "0.1"
+curl = "0.4"
+
+[dependencies.capnp-rpc]
+path = "../.."
