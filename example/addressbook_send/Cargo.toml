@@ -1,8 +1,8 @@
 [package]
 
-name = "addressbook"
+name = "addressbook_send"
 version = "0.0.0"
-authors = [ "David Renshaw <dwrenshaw@sandstorm.io>"  ]
+authors = [ "David Renshaw <dwrenshaw@gmail.com>"  ]
 build = "build.rs"
 
 [[bin]]
@@ -11,8 +11,8 @@ name = "addressbook_send"
 path = "addressbook_send.rs"
 
 
-[build-dependencies.capnpc]
-path = "../../"
+[build-dependencies]
+capnpc = "0.8"
 
 [dependencies]
 capnp = "0.8"

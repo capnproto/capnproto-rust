@@ -10,9 +10,8 @@ build = "build.rs"
 name = "capnpc_test"
 path = "test.rs"
 
-
-[build-dependencies.capnpc]
-path = "../"
+[build-dependencies]
+capnpc = { version = "0.8", path = "../" }
 
 [dependencies]
-capnp = "0.8"
+capnp = { version = "0.8", path = "../../capnp" }
