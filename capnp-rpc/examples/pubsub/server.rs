@@ -139,7 +139,7 @@ pub fn main() {
         Ok(())
     }).map_err(|e| e.into());
 
-    let infinite = ::futures::stream::iter(::std::iter::repeat(()).map(Ok::<(), Error>));
+    let infinite = ::futures::stream::iter_ok::<_, Error>(::std::iter::repeat(()));
     let send_to_subscribers = infinite.fold((handle, subscribers), move |(handle, subscribers), ()| -> Promise<(::tokio_core::reactor::Handle, Rc<RefCell<SubscriberMap>>), Error> {
         {
             let subscribers1 = subscribers.clone();
