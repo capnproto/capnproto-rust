@@ -179,18 +179,18 @@ fn stringify(ft : & FormattedText) -> String {
     return result.to_string();
 }
 
-const RUST_KEYWORDS : [&'static str; 51] =
-    ["abstract", "alignof", "as", "be", "box",
-     "break", "const", "continue", "crate", "do",
-     "else", "enum", "extern", "false", "final",
-     "fn", "for", "if", "impl", "in",
-     "let", "loop", "match", "mod", "move",
-     "mut", "offsetof", "once", "override", "priv",
-     "proc", "pub", "pure", "ref", "return",
-     "sizeof", "static", "self", "struct", "super",
-     "true", "trait", "type", "typeof", "unsafe",
-     "unsized", "use", "virtual", "where", "while",
-     "yield"];
+const RUST_KEYWORDS : [&'static str; 53] =
+    ["abstract", "alignof", "as", "be", "become",
+     "box", "break", "const", "continue", "crate",
+     "do", "else", "enum", "extern", "false",
+     "final", "fn", "for", "if", "impl",
+     "in", "let", "loop", "macro", "match",
+     "mod", "move", "mut", "offsetof", "once",
+     "override", "priv", "proc", "pub", "pure",
+     "ref", "return", "self", "sizeof", "static",
+     "struct", "super", "trait", "true", "type",
+     "typeof", "unsafe", "unsized", "use", "virtual",
+     "where", "while", "yield"];
 
 fn module_name(camel_case : &str) -> String {
     let mut name = camel_to_snake_case(camel_case);
