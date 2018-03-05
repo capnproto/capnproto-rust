@@ -105,7 +105,7 @@ fn snake_to_upper_case(s: &str) -> String {
             result_chars.push(::std::ascii::AsciiExt::to_ascii_uppercase(&c));
         }
     }
-    return result_chars.into_iter().collect();
+    result_chars.into_iter().collect()
 }
 
 fn camel_to_snake_case(s: &str) -> String {
@@ -121,14 +121,14 @@ fn camel_to_snake_case(s: &str) -> String {
         result_chars.push(::std::ascii::AsciiExt::to_ascii_lowercase(&c));
         first_char = false;
     }
-    return result_chars.into_iter().collect();
+    result_chars.into_iter().collect()
 }
 
 fn capitalize_first_letter(s: &str) -> String {
     let mut result_chars: Vec<char> = Vec::new();
     for c in s.chars() { result_chars.push(c) }
     result_chars[0] = ::std::ascii::AsciiExt::to_ascii_uppercase(&result_chars[0]);
-    return result_chars.into_iter().collect();
+    result_chars.into_iter().collect()
 }
 
 #[test]
@@ -173,10 +173,10 @@ fn to_lines(ft : &FormattedText, indent : usize) -> Vec<String> {
     }
 }
 
-fn stringify(ft : & FormattedText) -> String {
+fn stringify(ft: &FormattedText) -> String {
     let mut result = to_lines(ft, 0).join("\n");
     result.push_str("\n");
-    return result.to_string();
+    result.to_string()
 }
 
 const RUST_KEYWORDS : [&'static str; 53] =
@@ -197,7 +197,7 @@ fn module_name(camel_case : &str) -> String {
     if RUST_KEYWORDS.contains(&&*name) {
         name.push('_');
     }
-    return name;
+    name
 }
 
 fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
