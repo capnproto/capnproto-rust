@@ -2405,6 +2405,10 @@ impl <'a> PointerReader<'a> {
     }
 
     pub fn is_canonical(&self, read_head: &Cell<*const Word>) -> Result<bool> {
+        if self.pointer.is_null() || unsafe { !(*self.pointer).is_positional() } {
+            return Ok(false)
+        }
+
         match try!(self.get_pointer_type()) {
             PointerType::Null => Ok(true),
             PointerType::Struct => {

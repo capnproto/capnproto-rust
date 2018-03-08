@@ -512,3 +512,22 @@ fn out_of_bounds_zero_sized_void_list_returns_error() {
     let message = message::Reader::new(segment_array, Default::default());
     assert!(message.is_canonical().is_err());
 }
+
+#[test]
+fn far_pointer_to_same_segment() {
+    let segment: &[Word] = &[
+        // Far pointer to this same segment. Landing pad is two words, offset of one.
+        capnp_word!(0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+
+        // Landing pad. Again, points back to this same segment.
+        capnp_word!(0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+
+        // Tag word, describing struct with 2-word data section.
+        capnp_word!(0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00),
+    ];
+
+    let segments = &[segment];
+    let segment_array = message::SegmentArray::new(segments);
+    let message = message::Reader::new(segment_array, Default::default());
+    assert!(!message.is_canonical().unwrap());
+}
