@@ -1,3 +1,7 @@
+## v0.8.16
+- Add serialize::write_message_segments().
+- Fix bug where is_canonical() could sometimes erroneously return true.
+
 ## v0.8.15
 - Add message::Builder::into_reader() and message::Reader::into_typed().
 
