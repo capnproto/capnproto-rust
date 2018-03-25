@@ -33,28 +33,28 @@ macro_rules! car_value_impl(
                 fn car_value (mut self) -> ::capnp::Result<u64> {
                     #![allow(unused_mut)]
                     let mut result : u64 = 0;
-                    result += self.borrow().get_seats() as u64 * 200;
-                    result += self.borrow().get_doors() as u64 * 350;
+                    result += self.reborrow().get_seats() as u64 * 200;
+                    result += self.reborrow().get_doors() as u64 * 350;
 
                     // Using an iterator here slows things down considerably.
                     // TODO: investigate why.
                     {
-                        let mut wheels = try!(self.borrow().get_wheels());
+                        let mut wheels = try!(self.reborrow().get_wheels());
                         for ii in 0..wheels.len() {
-                            let mut wheel = wheels.borrow().get(ii);
-                            result += wheel.borrow().get_diameter() as u64 * wheel.borrow().get_diameter() as u64;
-                            result += if wheel.borrow().get_snow_tires() { 100 } else { 0 };
+                            let mut wheel = wheels.reborrow().get(ii);
+                            result += wheel.reborrow().get_diameter() as u64 * wheel.reborrow().get_diameter() as u64;
+                            result += if wheel.reborrow().get_snow_tires() { 100 } else { 0 };
                         }
                     }
 
-                    result += self.borrow().get_length() as u64 *
-                        self.borrow().get_width() as u64 * self.borrow().get_height() as u64 / 50;
+                    result += self.reborrow().get_length() as u64 *
+                        self.reborrow().get_width() as u64 * self.reborrow().get_height() as u64 / 50;
 
                     {
-                        let mut engine = try!(self.borrow().get_engine());
-                        result += engine.borrow().get_horsepower() as u64 * 40;
-                        if engine.borrow().get_uses_electric() {
-                            if engine.borrow().get_uses_gas() {
+                        let mut engine = try!(self.reborrow().get_engine());
+                        result += engine.reborrow().get_horsepower() as u64 * 40;
+                        if engine.reborrow().get_uses_electric() {
+                            if engine.reborrow().get_uses_gas() {
                                 //# hybrid
                                 result += 5000;
                             } else {
@@ -63,12 +63,12 @@ macro_rules! car_value_impl(
                         }
                     }
 
-                    result += if self.borrow().get_has_power_windows() { 100 } else { 0 };
-                    result += if self.borrow().get_has_power_steering() { 200 } else { 0 };
-                    result += if self.borrow().get_has_cruise_control() { 400 } else { 0 };
-                    result += if self.borrow().get_has_nav_system() { 2000 } else { 0 };
+                    result += if self.reborrow().get_has_power_windows() { 100 } else { 0 };
+                    result += if self.reborrow().get_has_power_steering() { 200 } else { 0 };
+                    result += if self.reborrow().get_has_cruise_control() { 400 } else { 0 };
+                    result += if self.reborrow().get_has_nav_system() { 2000 } else { 0 };
 
-                    result += self.borrow().get_cup_holders() as u64 * 25;
+                    result += self.reborrow().get_cup_holders() as u64 * 25;
 
                     Ok(result)
                 }
@@ -93,9 +93,9 @@ pub fn random_car(rng: &mut FastRand, mut car: car::Builder) {
     car.set_doors(2 + rng.next_less_than(3) as u8);
 
     {
-        let mut wheels = car.borrow().init_wheels(4);
+        let mut wheels = car.reborrow().init_wheels(4);
         for ii in 0..wheels.len() {
-            let mut wheel = wheels.borrow().get(ii);
+            let mut wheel = wheels.reborrow().get(ii);
             wheel.set_diameter(25 + rng.next_less_than(15) as u16);
             wheel.set_air_pressure((30.0 + rng.next_double(20.0)) as f32);
             wheel.set_snow_tires(rng.next_less_than(16) == 0);
@@ -111,7 +111,7 @@ pub fn random_car(rng: &mut FastRand, mut car: car::Builder) {
     car.set_weight(length as u32 * width as u32 * height as u32 / 200);
 
     {
-        let mut engine = car.borrow().init_engine();
+        let mut engine = car.reborrow().init_engine();
         engine.set_horsepower(100 * rng.next_less_than(400) as u16);
         engine.set_cylinders(4 + 2 * rng.next_less_than(3) as u8);
         engine.set_cc(800 + rng.next_less_than(10000));
@@ -140,8 +140,8 @@ impl ::TestCase for CarSales {
         let mut result = 0;
         let mut cars = request.init_cars(rng.next_less_than(200));
         for ii in 0.. cars.len() {
-            let mut car = cars.borrow().get(ii);
-            random_car(rng, car.borrow());
+            let mut car = cars.reborrow().get(ii);
+            random_car(rng, car.reborrow());
             result += car.car_value().unwrap();
         }
 

@@ -44,13 +44,13 @@ impl ::TestCase for CatRank {
         let mut list = request.init_results(count);
 
         for i in 0..count {
-            let mut result = list.borrow().get(i);
+            let mut result = list.reborrow().get(i);
             result.set_score(1000.0 - i as f64);
             let url_size = rng.next_less_than(100);
 
             let url_prefix_length = URL_PREFIX.as_bytes().len();
             {
-                let mut url = result.borrow().init_url(url_size + url_prefix_length as u32);
+                let mut url = result.reborrow().init_url(url_size + url_prefix_length as u32);
 
                 url.push_str(URL_PREFIX);
                 for _ in 0..url_size {
@@ -109,7 +109,7 @@ impl ::TestCase for CatRank {
 
         let mut list = response.init_results(scored_results.len() as u32);
         for i in 0..list.len() {
-            let mut item = list.borrow().get(i);
+            let mut item = list.reborrow().get(i);
             let result = scored_results[i as usize];
             item.set_score(result.score);
             item.set_url(try!(result.result.get_url()));

@@ -29,19 +29,19 @@ fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth : u32
     let left : i32 =
     if rng.next_less_than(8) < depth {
         let tmp = (rng.next_less_than(128) + 1) as i32;
-        exp.borrow().get_left().set_value(tmp);
+        exp.reborrow().get_left().set_value(tmp);
         tmp
     } else {
-        make_expression(rng, exp.borrow().get_left().init_expression(), depth + 1)
+        make_expression(rng, exp.reborrow().get_left().init_expression(), depth + 1)
     };
 
     let right : i32 =
     if rng.next_less_than(8) < depth {
         let tmp = (rng.next_less_than(128) + 1) as i32;
-        exp.borrow().get_right().set_value(tmp);
+        exp.reborrow().get_right().set_value(tmp);
         tmp
     } else {
-        make_expression(rng, exp.borrow().get_right().init_expression(), depth + 1)
+        make_expression(rng, exp.reborrow().get_right().init_expression(), depth + 1)
     };
 
     match exp.get_op().unwrap() {

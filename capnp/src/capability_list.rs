@@ -64,7 +64,12 @@ impl <'a, T> Reader<'a, T> where T: FromClientHook {
 
 
 impl <'a, T> Reader<'a, T> where T: FromClientHook {
+    #[deprecated(since = "0.8.17", note = "use reborrow() instead")]
     pub fn borrow<'b>(&'b self) -> Reader<'b, T>  {
+        Reader { reader: self.reader, marker: PhantomData }
+    }
+
+    pub fn reborrow<'b>(&'b self) -> Reader<'b, T>  {
         Reader { reader: self.reader, marker: PhantomData }
     }
 }
@@ -115,7 +120,12 @@ impl <'a, T> Builder<'a, T> where T: FromClientHook {
 }
 
 impl <'a, T> Builder<'a, T> where T: FromClientHook {
+    #[deprecated(since = "0.8.17", note = "use reborrow() instead")]
     pub fn borrow<'b>(&'b mut self) -> Builder<'b, T> {
+        Builder { builder: self.builder, marker: PhantomData }
+    }
+
+    pub fn reborrow<'b>(&'b mut self) -> Builder<'b, T> {
         Builder { builder: self.builder, marker: PhantomData }
     }
 }

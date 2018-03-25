@@ -56,21 +56,21 @@ mod tests {
         assert_eq!(test_prim_list.has_void_list(), false);
         {
             {
-                let mut uint8_list = test_prim_list.borrow().init_uint8_list(100);
+                let mut uint8_list = test_prim_list.reborrow().init_uint8_list(100);
                 for i in 0..uint8_list.len() {
                     uint8_list.set(i, i as u8);
                 }
             }
 
             {
-                let mut uint64_list = test_prim_list.borrow().init_uint64_list(20);
+                let mut uint64_list = test_prim_list.reborrow().init_uint64_list(20);
                 for i in 0..uint64_list.len() {
                     uint64_list.set(i, i as u64);
                 }
             }
 
             {
-                let mut bool_list = test_prim_list.borrow().init_bool_list(65);
+                let mut bool_list = test_prim_list.reborrow().init_bool_list(65);
 
                 bool_list.set(0, true);
                 bool_list.set(1, true);
@@ -87,7 +87,7 @@ mod tests {
                 assert!(bool_list.get(64));
             }
 
-            let mut void_list = test_prim_list.borrow().init_void_list(1025);
+            let mut void_list = test_prim_list.reborrow().init_void_list(1025);
             void_list.set(257, ());
         }
         assert_eq!(test_prim_list.has_bool_list(), true);
@@ -134,9 +134,9 @@ mod tests {
 
         let mut test_struct_list = message.init_root::<test_struct_list::Builder>();
 
-        test_struct_list.borrow().init_struct_list(4);
+        test_struct_list.reborrow().init_struct_list(4);
         {
-            let struct_list = test_struct_list.borrow().get_struct_list().unwrap();
+            let struct_list = test_struct_list.reborrow().get_struct_list().unwrap();
             struct_list.get(0).init_uint8_list(1).set(0, 5u8);
         }
 
@@ -162,7 +162,7 @@ mod tests {
         assert_eq!(test_blob.has_data_field(), true);
 
         {
-            let test_blob_reader = test_blob.borrow_as_reader();
+            let test_blob_reader = test_blob.reborrow_as_reader();
 
             assert_eq!(test_blob_reader.has_text_field(), true);
             assert_eq!(test_blob_reader.has_data_field(), true);
@@ -172,27 +172,27 @@ mod tests {
         }
 
         {
-            let mut text = test_blob.borrow().init_text_field(10);
+            let mut text = test_blob.reborrow().init_text_field(10);
             assert_eq!(&*text,"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
             text.push_str("aabbccddee");
         }
 
-        test_blob.borrow().init_data_field(7);
-        assert!(test_blob.borrow().as_reader().get_data_field().unwrap() ==
+        test_blob.reborrow().init_data_field(7);
+        assert!(test_blob.reborrow().as_reader().get_data_field().unwrap() ==
                 [0u8,0u8,0u8,0u8,0u8,0u8,0u8]);
         {
-            let data_builder = test_blob.borrow().get_data_field().unwrap();
+            let data_builder = test_blob.reborrow().get_data_field().unwrap();
             for c in data_builder.iter_mut() {
                 *c = 5;
             }
             data_builder[0] = 4u8;
         }
 
-        assert_eq!(test_blob.borrow().as_reader().get_text_field().unwrap(), "aabbccddee");
-        assert!(test_blob.borrow().as_reader().get_data_field().unwrap() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
+        assert_eq!(test_blob.reborrow().as_reader().get_text_field().unwrap(), "aabbccddee");
+        assert!(test_blob.reborrow().as_reader().get_data_field().unwrap() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
 
         {
-            test_blob.borrow().get_data_field().unwrap()[2] = 10;
+            test_blob.reborrow().get_data_field().unwrap()[2] = 10;
         }
         assert!(test_blob.as_reader().get_data_field().unwrap() == [4u8,5u8,10u8,5u8,5u8,5u8,5u8]);
     }
@@ -213,10 +213,10 @@ mod tests {
         big_struct.set_int32_field(1009);
 
         assert_eq!(big_struct.has_struct_field(), false);
-        big_struct.borrow().init_struct_field();
+        big_struct.reborrow().init_struct_field();
         assert_eq!(big_struct.has_struct_field(), true);
         {
-            let mut inner = big_struct.borrow().get_struct_field().unwrap();
+            let mut inner = big_struct.reborrow().get_struct_field().unwrap();
             inner.set_float64_field(0.1234567);
             inner.set_bool_field_b(true);
         }
@@ -245,7 +245,7 @@ mod tests {
 
         {
             {
-                let mut enum_list = test_complex_list.borrow().init_enum_list(100);
+                let mut enum_list = test_complex_list.reborrow().init_enum_list(100);
                 for i in 0..10 {
                     enum_list.set(i, AnEnum::Qux);
                 }
@@ -255,21 +255,21 @@ mod tests {
             }
 
             {
-                let mut text_list = test_complex_list.borrow().init_text_list(2);
+                let mut text_list = test_complex_list.reborrow().init_text_list(2);
                 text_list.set(0, "garply");
                 text_list.set(1, "foo");
             }
 
             {
-                let mut data_list = test_complex_list.borrow().init_data_list(2);
+                let mut data_list = test_complex_list.reborrow().init_data_list(2);
                 data_list.set(0, &[0u8, 1u8, 2u8]);
                 data_list.set(1, &[255u8, 254u8, 253u8]);
             }
 
             {
-                let mut prim_list_list = test_complex_list.borrow().init_prim_list_list(2);
+                let mut prim_list_list = test_complex_list.reborrow().init_prim_list_list(2);
                 {
-                    let mut prim_list = prim_list_list.borrow().init(0, 3);
+                    let mut prim_list = prim_list_list.reborrow().init(0, 3);
                     prim_list.set(0, 5);
                     prim_list.set(1, 6);
                     prim_list.set(2, 7);
@@ -280,11 +280,11 @@ mod tests {
             }
 
             {
-                let mut prim_list_list_list = test_complex_list.borrow().init_prim_list_list_list(2);
+                let mut prim_list_list_list = test_complex_list.reborrow().init_prim_list_list_list(2);
                 {
-                    let mut prim_list_list = prim_list_list_list.borrow().init(0, 2);
+                    let mut prim_list_list = prim_list_list_list.reborrow().init(0, 2);
                     {
-                        let mut prim_list = prim_list_list.borrow().init(0, 2);
+                        let mut prim_list = prim_list_list.reborrow().init(0, 2);
                         prim_list.set(0, 0);
                         prim_list.set(1, 1);
                     }
@@ -299,9 +299,9 @@ mod tests {
             }
 
             {
-                let mut enum_list_list = test_complex_list.borrow().init_enum_list_list(2);
+                let mut enum_list_list = test_complex_list.reborrow().init_enum_list_list(2);
                 {
-                    let mut enum_list = enum_list_list.borrow().init(0, 1);
+                    let mut enum_list = enum_list_list.reborrow().init(0, 1);
                     enum_list.set(0, AnEnum::Bar);
                 }
                 let mut enum_list = enum_list_list.init(1, 2);
@@ -310,17 +310,17 @@ mod tests {
             }
 
             {
-                let text_list_list = test_complex_list.borrow().init_text_list_list(1);
+                let text_list_list = test_complex_list.reborrow().init_text_list_list(1);
                 text_list_list.init(0,1).set(0, "abc");
             }
 
             {
-                let data_list_list = test_complex_list.borrow().init_data_list_list(1);
+                let data_list_list = test_complex_list.reborrow().init_data_list_list(1);
                 data_list_list.init(0,1).set(0, &[255, 254, 253]);
             }
 
             {
-                let struct_list_list = test_complex_list.borrow().init_struct_list_list(1);
+                let struct_list_list = test_complex_list.reborrow().init_struct_list_list(1);
                 struct_list_list.init(0,1).get(0).set_int8_field(-1);
             }
         }
@@ -381,37 +381,37 @@ mod tests {
             let test_defaults = message.get_root_as_reader::<test_defaults::Reader>()
                 .expect("get_root_as_reader()");
 
-            assert_eq!(test_defaults.borrow().get_void_field(), ());
-            assert_eq!(test_defaults.borrow().get_bool_field(), true);
-            assert_eq!(test_defaults.borrow().get_int8_field(), -123);
-            assert_eq!(test_defaults.borrow().get_int16_field(), -12345);
-            assert_eq!(test_defaults.borrow().get_int32_field(), -12345678);
-            assert_eq!(test_defaults.borrow().get_int64_field(), -123456789012345);
-            assert_eq!(test_defaults.borrow().get_uint8_field(), 234u8);
-            assert_eq!(test_defaults.borrow().get_uint16_field(), 45678u16);
-            assert_eq!(test_defaults.borrow().get_uint32_field(), 3456789012u32);
-            assert_eq!(test_defaults.borrow().get_uint64_field(), 12345678901234567890u64);
-            assert_eq!(test_defaults.borrow().get_float32_field(), 1234.5);
-            assert_eq!(test_defaults.borrow().get_float64_field(), -123e45);
-            assert!(test_defaults.borrow().get_enum_field().unwrap() == TestEnum::Corge);
+            assert_eq!(test_defaults.reborrow().get_void_field(), ());
+            assert_eq!(test_defaults.reborrow().get_bool_field(), true);
+            assert_eq!(test_defaults.reborrow().get_int8_field(), -123);
+            assert_eq!(test_defaults.reborrow().get_int16_field(), -12345);
+            assert_eq!(test_defaults.reborrow().get_int32_field(), -12345678);
+            assert_eq!(test_defaults.reborrow().get_int64_field(), -123456789012345);
+            assert_eq!(test_defaults.reborrow().get_uint8_field(), 234u8);
+            assert_eq!(test_defaults.reborrow().get_uint16_field(), 45678u16);
+            assert_eq!(test_defaults.reborrow().get_uint32_field(), 3456789012u32);
+            assert_eq!(test_defaults.reborrow().get_uint64_field(), 12345678901234567890u64);
+            assert_eq!(test_defaults.reborrow().get_float32_field(), 1234.5);
+            assert_eq!(test_defaults.reborrow().get_float64_field(), -123e45);
+            assert!(test_defaults.reborrow().get_enum_field().unwrap() == TestEnum::Corge);
         }
 
         {
             let mut test_defaults = message.init_root::<test_defaults::Builder>();
 
-            assert_eq!(test_defaults.borrow().get_void_field(), ());
-            assert_eq!(test_defaults.borrow().get_bool_field(), true);
-            assert_eq!(test_defaults.borrow().get_int8_field(), -123);
-            assert_eq!(test_defaults.borrow().get_int16_field(), -12345);
-            assert_eq!(test_defaults.borrow().get_int32_field(), -12345678);
-            assert_eq!(test_defaults.borrow().get_int64_field(), -123456789012345);
-            assert_eq!(test_defaults.borrow().get_uint8_field(), 234u8);
-            assert_eq!(test_defaults.borrow().get_uint16_field(), 45678u16);
-            assert_eq!(test_defaults.borrow().get_uint32_field(), 3456789012u32);
-            assert_eq!(test_defaults.borrow().get_uint64_field(), 12345678901234567890u64);
-            assert_eq!(test_defaults.borrow().get_float32_field(), 1234.5);
-            assert_eq!(test_defaults.borrow().get_float64_field(), -123e45);
-            assert!(test_defaults.borrow().get_enum_field().unwrap() == TestEnum::Corge);
+            assert_eq!(test_defaults.reborrow().get_void_field(), ());
+            assert_eq!(test_defaults.reborrow().get_bool_field(), true);
+            assert_eq!(test_defaults.reborrow().get_int8_field(), -123);
+            assert_eq!(test_defaults.reborrow().get_int16_field(), -12345);
+            assert_eq!(test_defaults.reborrow().get_int32_field(), -12345678);
+            assert_eq!(test_defaults.reborrow().get_int64_field(), -123456789012345);
+            assert_eq!(test_defaults.reborrow().get_uint8_field(), 234u8);
+            assert_eq!(test_defaults.reborrow().get_uint16_field(), 45678u16);
+            assert_eq!(test_defaults.reborrow().get_uint32_field(), 3456789012u32);
+            assert_eq!(test_defaults.reborrow().get_uint64_field(), 12345678901234567890u64);
+            assert_eq!(test_defaults.reborrow().get_float32_field(), 1234.5);
+            assert_eq!(test_defaults.reborrow().get_float64_field(), -123e45);
+            assert!(test_defaults.reborrow().get_enum_field().unwrap() == TestEnum::Corge);
         }
 
         {
@@ -429,17 +429,17 @@ mod tests {
             test_defaults.set_float32_field(7890.123);
             test_defaults.set_float64_field(5e55);
 
-            assert_eq!(test_defaults.borrow().get_bool_field(), false);
-            assert_eq!(test_defaults.borrow().get_int8_field(), 63);
-            assert_eq!(test_defaults.borrow().get_int16_field(), -1123);
-            assert_eq!(test_defaults.borrow().get_int32_field(),  445678);
-            assert_eq!(test_defaults.borrow().get_int64_field(), -990123456789);
-            assert_eq!(test_defaults.borrow().get_uint8_field(), 234);
-            assert_eq!(test_defaults.borrow().get_uint16_field(), 56789);
-            assert_eq!(test_defaults.borrow().get_uint32_field(),  123456789);
-            assert_eq!(test_defaults.borrow().get_uint64_field(),  123456789012345);
-            assert_eq!(test_defaults.borrow().get_float32_field(), 7890.123);
-            assert_eq!(test_defaults.borrow().get_float64_field(), 5e55);
+            assert_eq!(test_defaults.reborrow().get_bool_field(), false);
+            assert_eq!(test_defaults.reborrow().get_int8_field(), 63);
+            assert_eq!(test_defaults.reborrow().get_int16_field(), -1123);
+            assert_eq!(test_defaults.reborrow().get_int32_field(),  445678);
+            assert_eq!(test_defaults.reborrow().get_int64_field(), -990123456789);
+            assert_eq!(test_defaults.reborrow().get_uint8_field(), 234);
+            assert_eq!(test_defaults.reborrow().get_uint16_field(), 56789);
+            assert_eq!(test_defaults.reborrow().get_uint32_field(),  123456789);
+            assert_eq!(test_defaults.reborrow().get_uint64_field(),  123456789012345);
+            assert_eq!(test_defaults.reborrow().get_float32_field(), 7890.123);
+            assert_eq!(test_defaults.reborrow().get_float64_field(), 5e55);
         }
     }
 
@@ -450,18 +450,18 @@ mod tests {
         let mut message = message::Builder::new_default();
         let mut test_any_pointer = message.init_root::<test_any_pointer::Builder>();
 
-        test_any_pointer.borrow().init_any_pointer_field().set_as("xyzzy").unwrap();
+        test_any_pointer.reborrow().init_any_pointer_field().set_as("xyzzy").unwrap();
 
         {
-            let reader = test_any_pointer.borrow().as_reader();
+            let reader = test_any_pointer.reborrow().as_reader();
             assert_eq!(reader.get_any_pointer_field().get_as::<::capnp::text::Reader>().unwrap(), "xyzzy");
         }
 
-        test_any_pointer.borrow().get_any_pointer_field().init_as::<test_empty_struct::Builder>();
-        test_any_pointer.borrow().get_any_pointer_field().get_as::<test_empty_struct::Builder>().unwrap();
+        test_any_pointer.reborrow().get_any_pointer_field().init_as::<test_empty_struct::Builder>();
+        test_any_pointer.reborrow().get_any_pointer_field().get_as::<test_empty_struct::Builder>().unwrap();
 
         {
-            let reader = test_any_pointer.borrow().as_reader();
+            let reader = test_any_pointer.reborrow().as_reader();
             reader.get_any_pointer_field().get_as::<test_empty_struct::Reader>().unwrap();
         }
 
@@ -469,7 +469,7 @@ mod tests {
             let mut message = message::Builder::new_default();
             let mut test_big_struct = message.init_root::<test_big_struct::Builder>();
             test_big_struct.set_int32_field(-12345);
-            test_any_pointer.get_any_pointer_field().set_as(test_big_struct.borrow().as_reader()).unwrap();
+            test_any_pointer.get_any_pointer_field().set_as(test_big_struct.reborrow().as_reader()).unwrap();
         }
 
         fn _test_lifetimes(body : test_big_struct::Reader) {
@@ -489,39 +489,39 @@ mod tests {
 
         let neg_seven : u64 = (-7i64) as u64;
         {
-            let mut struct_field = big_struct.borrow().init_struct_field();
-            assert_eq!(struct_field.borrow().get_uint64_field(), 0);
+            let mut struct_field = big_struct.reborrow().init_struct_field();
+            assert_eq!(struct_field.reborrow().get_uint64_field(), 0);
 
             struct_field.set_uint64_field(neg_seven);
             assert_eq!(struct_field.get_uint64_field(), neg_seven);
         }
-        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint64_field(), neg_seven);
+        assert_eq!(big_struct.reborrow().get_struct_field().unwrap().get_uint64_field(), neg_seven);
         {
-            let mut struct_field = big_struct.borrow().init_struct_field();
-            assert_eq!(struct_field.borrow().get_uint64_field(), 0);
+            let mut struct_field = big_struct.reborrow().init_struct_field();
+            assert_eq!(struct_field.reborrow().get_uint64_field(), 0);
             assert_eq!(struct_field.get_uint32_field(), 0);
         }
 
         {
             // getting before init is the same as init
-            assert_eq!(big_struct.borrow().get_another_struct_field().unwrap().get_uint64_field(), 0);
-            big_struct.borrow().get_another_struct_field().unwrap().set_uint32_field(4294967265);
+            assert_eq!(big_struct.reborrow().get_another_struct_field().unwrap().get_uint64_field(), 0);
+            big_struct.reborrow().get_another_struct_field().unwrap().set_uint32_field(4294967265);
 
-            // Alas, we need to make a copy to appease the borrow checker.
+            // Alas, we need to make a copy to appease the reborrow checker.
             let mut other_message = message::Builder::new_default();
-            other_message.set_root(big_struct.borrow().get_another_struct_field().unwrap().as_reader()).unwrap();
+            other_message.set_root(big_struct.reborrow().get_another_struct_field().unwrap().as_reader()).unwrap();
             big_struct.set_struct_field(
                 other_message.get_root::<test_big_struct::inner::Builder>().unwrap().as_reader()).unwrap();
         }
 
-        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint32_field(), 4294967265);
+        assert_eq!(big_struct.reborrow().get_struct_field().unwrap().get_uint32_field(), 4294967265);
         {
-            let mut other_struct_field = big_struct.borrow().get_another_struct_field().unwrap();
-            assert_eq!(other_struct_field.borrow().get_uint32_field(), 4294967265);
+            let mut other_struct_field = big_struct.reborrow().get_another_struct_field().unwrap();
+            assert_eq!(other_struct_field.reborrow().get_uint32_field(), 4294967265);
             other_struct_field.set_uint32_field(42);
             assert_eq!(other_struct_field.get_uint32_field(), 42);
         }
-        assert_eq!(big_struct.borrow().get_struct_field().unwrap().get_uint32_field(), 4294967265);
+        assert_eq!(big_struct.reborrow().get_struct_field().unwrap().get_uint32_field(), 4294967265);
         assert_eq!(big_struct.get_another_struct_field().unwrap().get_uint32_field(), 42);
     }
 
@@ -532,7 +532,7 @@ mod tests {
         let mut message_for_brand = message::Builder::new_default();
         let mut branded = message_for_brand.init_root::<brand_once::Builder>();
         {
-            let branded_field = branded.borrow().init_branded_field();
+            let branded_field = branded.reborrow().init_branded_field();
             let mut foo = branded_field.init_generic_field();
             foo.set_text_field("blah");
         }
@@ -548,7 +548,7 @@ mod tests {
         let mut message_for_brand = message::Builder::new_default();
         let mut branded = message_for_brand.init_root::<brand_twice::Builder>();
         {
-            let mut baz = branded.borrow().init_baz_field();
+            let mut baz = branded.reborrow().init_baz_field();
             baz.set_foo_field("blah").unwrap();
             let mut bar = baz.init_bar_field();
             bar.set_text_field("some text");
@@ -567,23 +567,23 @@ mod tests {
         use test_capnp::{test_generics, test_all_types};
         let mut message = message::Builder::new_default();
         let mut root: test_generics::Builder<test_all_types::Owned, text::Owned> = message.init_root();
-        ::test_util::init_test_message(root.borrow().get_foo().unwrap());
-        root.borrow().get_dub().unwrap().set_foo("Hello").unwrap();
+        ::test_util::init_test_message(root.reborrow().get_foo().unwrap());
+        root.reborrow().get_dub().unwrap().set_foo("Hello").unwrap();
         {
-            let mut bar: ::capnp::primitive_list::Builder<u8> = root.borrow().get_dub().unwrap().initn_bar(1);
+            let mut bar: ::capnp::primitive_list::Builder<u8> = root.reborrow().get_dub().unwrap().initn_bar(1);
             bar.set(0, 11);
         }
         {
-            let mut rev_bar = root.borrow().get_rev().unwrap().get_bar().unwrap();
+            let mut rev_bar = root.reborrow().get_rev().unwrap().get_bar().unwrap();
             rev_bar.set_int8_field(111);
             let mut bool_list = rev_bar.init_bool_list(2);
             bool_list.set(0, false);
             bool_list.set(1, true);
         }
 
-        ::test_util::CheckTestMessage::check_test_message(root.borrow().get_foo().unwrap());
+        ::test_util::CheckTestMessage::check_test_message(root.reborrow().get_foo().unwrap());
         let root_reader = root.as_reader();
-        ::test_util::CheckTestMessage::check_test_message(root_reader.borrow().get_foo().unwrap());
+        ::test_util::CheckTestMessage::check_test_message(root_reader.reborrow().get_foo().unwrap());
         let dub_reader = root_reader.get_dub().unwrap();
         assert_eq!("Hello", dub_reader.get_foo().unwrap());
         let bar_reader = dub_reader.get_bar().unwrap();
@@ -600,14 +600,14 @@ mod tests {
             let mut root: test_generics_union::Builder<test_all_types::Owned, primitive_list::Owned<u32>>
                 = message.init_root();
             {
-                let mut bar = root.borrow().initn_bar1(10);
+                let mut bar = root.reborrow().initn_bar1(10);
                 bar.set(5, 100);
             }
             assert!(!root.has_foo1());
             assert!(root.has_bar1());
             assert!(!root.has_foo2());
 
-            match root.borrow().which().unwrap() {
+            match root.reborrow().which().unwrap() {
                 test_generics_union::Bar1(Ok(bar)) => {
                     assert_eq!(bar.len(), 10);
                     assert_eq!(bar.get(0), 0);
@@ -618,7 +618,7 @@ mod tests {
             }
 
             {
-                let mut foo = root.borrow().init_foo2();
+                let mut foo = root.reborrow().init_foo2();
                 foo.set_int32_field(37);
             }
 
@@ -626,7 +626,7 @@ mod tests {
             assert!(!root.has_bar1());
             assert!(root.has_foo2());
 
-            match root.borrow().which().unwrap() {
+            match root.reborrow().which().unwrap() {
                 test_generics_union::Foo2(Ok(foo)) => {
                     assert_eq!(foo.get_int32_field(), 37);
                 }
@@ -642,24 +642,24 @@ mod tests {
         let mut message = message::Builder::new_default();
         let mut union_struct = message.init_root::<test_union::Builder>();
 
-        union_struct.borrow().get_union0().set_u0f0s0(());
-        match union_struct.borrow().get_union0().which() {
+        union_struct.reborrow().get_union0().set_u0f0s0(());
+        match union_struct.reborrow().get_union0().which() {
             Ok(test_union::union0::U0f0s0(())) => {}
             _ => panic!()
         }
-        union_struct.borrow().init_union0().set_u0f0s1(true);
-        match union_struct.borrow().get_union0().which() {
+        union_struct.reborrow().init_union0().set_u0f0s1(true);
+        match union_struct.reborrow().get_union0().which() {
             Ok(test_union::union0::U0f0s1(true)) => {}
             _ => panic!()
         }
-        union_struct.borrow().init_union0().set_u0f0s8(127);
-        match union_struct.borrow().get_union0().which() {
+        union_struct.reborrow().init_union0().set_u0f0s8(127);
+        match union_struct.reborrow().get_union0().which() {
             Ok(test_union::union0::U0f0s8(127)) => {}
             _ => panic!()
         }
 
-        assert_eq!(union_struct.borrow().get_union0().has_u0f0sp(), false);
-        union_struct.borrow().init_union0().set_u0f0sp("abcdef");
+        assert_eq!(union_struct.reborrow().get_union0().has_u0f0sp(), false);
+        union_struct.reborrow().init_union0().set_u0f0sp("abcdef");
         assert_eq!(union_struct.get_union0().has_u0f0sp(), true);
     }
 
@@ -761,7 +761,7 @@ mod tests {
         }
         {
             let mut new_version = message.get_root::<test_new_version::Builder>().unwrap();
-            new_version.borrow().get_new2().unwrap();
+            new_version.reborrow().get_new2().unwrap();
             assert_eq!(new_version.get_new3().unwrap().get_int8_field(), -123);
         }
     }
@@ -799,7 +799,7 @@ mod tests {
             let mut builder = message::Builder::new_default();
             let mut root = builder.init_root::<test_any_pointer::Builder>();
             {
-                let mut list = root.borrow()
+                let mut list = root.reborrow()
                     .get_any_pointer_field().initn_as::<::capnp::primitive_list::Builder<u8>>(3);
                 list.set(0, 12);
                 list.set(1, 34);
@@ -809,9 +809,9 @@ mod tests {
                 let mut l = root.get_any_pointer_field()
                     .get_as::<::capnp::struct_list::Builder<test_lists::struct8::Owned>>().unwrap();
                 assert_eq!(3, l.len());
-                assert_eq!(12, l.borrow().get(0).get_f());
-                assert_eq!(34, l.borrow().get(1).get_f());
-                assert_eq!(56, l.borrow().get(2).get_f());
+                assert_eq!(12, l.reborrow().get(0).get_f());
+                assert_eq!(34, l.reborrow().get(1).get_f());
+                assert_eq!(56, l.reborrow().get(2).get_f());
             }
         }
 
@@ -819,7 +819,7 @@ mod tests {
             let mut builder = message::Builder::new_default();
             let mut root = builder.init_root::<test_any_pointer::Builder>();
             {
-                let mut list = root.borrow()
+                let mut list = root.reborrow()
                     .get_any_pointer_field().initn_as::<::capnp::text_list::Builder>(3);
                 list.set(0, "foo");
                 list.set(1, "bar");
@@ -829,9 +829,9 @@ mod tests {
                 let mut l = root.get_any_pointer_field()
                     .get_as::<::capnp::struct_list::Builder<test_lists::struct_p::Owned>>().unwrap();
                 assert_eq!(3, l.len());
-                assert_eq!("foo", &*l.borrow().get(0).get_f().unwrap());
-                assert_eq!("bar", &*l.borrow().get(1).get_f().unwrap());
-                assert_eq!("baz", &*l.borrow().get(2).get_f().unwrap());
+                assert_eq!("foo", &*l.reborrow().get(0).get_f().unwrap());
+                assert_eq!("bar", &*l.reborrow().get(1).get_f().unwrap());
+                assert_eq!("baz", &*l.reborrow().get(2).get_f().unwrap());
             }
         }
     }
@@ -874,8 +874,8 @@ mod tests {
         {
             let mut new_version: struct_list::Builder<test_new_version::Owned> = message.get_root().unwrap();
             assert_eq!(new_version.len(), 1);
-            assert_eq!(new_version.borrow().get(0).get_old1(), 0xab);
-            assert_eq!(&*new_version.borrow().get(0).get_old2().unwrap(), "hello!!");
+            assert_eq!(new_version.reborrow().get(0).get_old1(), 0xab);
+            assert_eq!(&*new_version.reborrow().get(0).get_old2().unwrap(), "hello!!");
         }
 
         {
@@ -923,7 +923,7 @@ mod tests {
             let mut all_types2 = message2.init_root::<test_all_types::Builder>();
 
             all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().unwrap().as_reader()).unwrap();
-            ::test_util::CheckTestMessage::check_test_message(all_types2.borrow().get_struct_field().unwrap());
+            ::test_util::CheckTestMessage::check_test_message(all_types2.reborrow().get_struct_field().unwrap());
 
             let reader = all_types2.as_reader().get_struct_field().unwrap();
             ::test_util::CheckTestMessage::check_test_message(reader);
@@ -944,7 +944,7 @@ mod tests {
             let mut all_types2 = message2.init_root::<test_all_types::Builder>();
 
             all_types2.set_struct_field(message.get_root_as_reader().unwrap()).unwrap();
-            ::test_util::CheckTestMessage::check_test_message(all_types2.borrow().get_struct_field().unwrap());
+            ::test_util::CheckTestMessage::check_test_message(all_types2.reborrow().get_struct_field().unwrap());
 
             let reader = all_types2.as_reader().get_struct_field().unwrap();
             ::test_util::CheckTestMessage::check_test_message(reader);
@@ -1077,7 +1077,7 @@ mod tests {
         let mut message = message::Builder::new_default();
         {
             let mut root = message.init_root::<test_any_pointer::Builder>();
-            let _: ::capnp::data::Builder = root.borrow().get_any_pointer_field().initn_as(0);
+            let _: ::capnp::data::Builder = root.reborrow().get_any_pointer_field().initn_as(0);
 
             // No NUL terminator!
             let result = root.get_any_pointer_field().get_as::<::capnp::text::Builder>();
@@ -1163,11 +1163,11 @@ mod tests {
             let mut list = root.init_list64(length);
             for ii in 0..(length >> step_exponent) {
                 let jj = ii << step_exponent;
-                list.borrow().get(jj).set_f(jj as u64);
+                list.reborrow().get(jj).set_f(jj as u64);
             }
             for ii in 0..(length >> step_exponent) {
                 let jj = ii << step_exponent;
-                assert_eq!(list.borrow().get(jj).get_f(), jj as u64);
+                assert_eq!(list.reborrow().get(jj).get_f(), jj as u64);
             }
         }
 
@@ -1192,11 +1192,11 @@ mod tests {
             let mut list = root.init_int32_list_list(length);
             for ii in 0..(length >> step_exponent) {
                 let jj = ii << step_exponent;
-                list.borrow().init(jj, 1).set(0, jj as i32);
+                list.reborrow().init(jj, 1).set(0, jj as i32);
             }
             for ii in 0..(length >> step_exponent) {
                 let jj = ii << step_exponent;
-                let elem = list.borrow().get(jj).unwrap();
+                let elem = list.reborrow().get(jj).unwrap();
                 assert_eq!(elem.len(), 1);
                 assert_eq!(elem.get(0), jj as i32);
             }
