@@ -181,3 +181,7 @@ fn init_field_and_return_slice<'a>(bar : bar::Builder<'a>) -> &'a mut [u8] {
 If `init_blob()` instead took a `&mut self` parameter, this function would fail to typecheck
 because the `foo::Builder` returned by `bar.init_one_foo()` does not live long enough.
 
+#### update (26 March 2018) <a name="update"></a>
+The `borrow()` method has been [renamed](https://github.com/capnproto/capnproto-rust/pull/91/commits/aafa9514c7ff37b0702d45b42bd129d6e39e99c8)
+to `reborrow()`.
+
