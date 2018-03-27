@@ -117,6 +117,10 @@ impl <'a, T : ToU16 + FromU16>  Builder<'a, T> {
         let result: u16 = PrimitiveElement::get_from_builder(&self.builder, index);
         FromU16::from_u16(result)
     }
+
+    pub fn reborrow<'b>(&'b self) -> Builder<'b, T> {
+        Builder { .. *self }
+    }
 }
 
 impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {

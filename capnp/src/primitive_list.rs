@@ -117,6 +117,10 @@ impl <'a, T : PrimitiveElement> Builder<'a, T> {
         assert!(index < self.len());
         PrimitiveElement::get_from_builder(&self.builder, index)
     }
+
+    pub fn reborrow<'b>(&'b self) -> Builder<'b, T> {
+        Builder { .. *self }
+    }
 }
 
 impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>

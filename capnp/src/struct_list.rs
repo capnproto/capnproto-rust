@@ -64,7 +64,12 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 }
 
 impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
+    #[deprecated(since = "0.8.17", note = "use reborrow() instead")]
     pub fn borrow<'b>(&'b self) -> Reader<'b, T>  {
+        self.reborrow()
+    }
+
+    pub fn reborrow<'b>(&'b self) -> Reader<'b, T>  {
         Reader { reader: self.reader, marker: PhantomData }
     }
 }
@@ -114,9 +119,15 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
+    #[deprecated(since = "0.8.17", note = "use reborrow() instead")]
     pub fn borrow<'b>(&'b mut self) -> Builder<'b, T> {
+        self.reborrow()
+    }
+
+    pub fn reborrow<'b>(&'b mut self) -> Builder<'b, T> {
         Builder { builder: self.builder, marker: PhantomData }
     }
+
 }
 
 impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {

@@ -724,7 +724,7 @@ impl <VatId> ConnectionState<VatId> {
                         let mut cap_table = Vec::new();
                         let mut payload = ret.init_results();
                         {
-                            let mut content = payload.borrow().get_content();
+                            let mut content = payload.reborrow().get_content();
                             content.imbue_mut(&mut cap_table);
                             content.set_as_capability(cap);
                         }
@@ -943,7 +943,7 @@ impl <VatId> ConnectionState<VatId> {
                                     {
                                         let root: message::Builder = try!(message.get_body()).init_as();
                                         let mut disembargo = root.init_disembargo();
-                                        disembargo.borrow().init_context().set_receiver_loopback(embargo_id);
+                                        disembargo.reborrow().init_context().set_receiver_loopback(embargo_id);
 
                                         let redirect = match Client::from_ptr(target.get_ptr(),
                                                                               &connection_state_ref1) {
@@ -1382,7 +1382,7 @@ impl <VatId> ConnectionState<VatId> {
             match cap_table[idx] {
                 Some(ref cap) => {
                     match ConnectionState::write_descriptor(state, cap,
-                                                            cap_table_builder.borrow().get(idx as u32)).unwrap() {
+                                                            cap_table_builder.reborrow().get(idx as u32)).unwrap() {
                         Some(export_id) => {
                             exports.push(export_id);
                         }
@@ -1390,7 +1390,7 @@ impl <VatId> ConnectionState<VatId> {
                     }
                 }
                 None => {
-                    cap_table_builder.borrow().get(idx as u32).set_none(());
+                    cap_table_builder.reborrow().get(idx as u32).set_none(());
                 }
             }
         }
@@ -1721,7 +1721,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         {
             let mut call_builder: call::Builder = get_call(&mut message).unwrap();
             // Finish and send.
-            call_builder.borrow().set_question_id(question_id);
+            call_builder.reborrow().set_question_id(question_id);
             if is_tail_call {
                 call_builder.get_send_results_to().set_yourself(());
             }
@@ -1769,8 +1769,8 @@ impl <VatId> RequestHook for Request<VatId> {
                 // Whoops, this capability has been redirected while we were building the request!
                 // We'll have to make a new request and do a copy.  Ick.
                 let mut call_builder: call::Builder = get_call(&mut message).unwrap();
-                let mut replacement = redirect.new_call(call_builder.borrow().get_interface_id(),
-                                                        call_builder.borrow().get_method_id(), None);
+                let mut replacement = redirect.new_call(call_builder.reborrow().get_interface_id(),
+                                                        call_builder.reborrow().get_method_id(), None);
 
                 replacement.set(call_builder.get_params().unwrap().get_content().as_reader()).unwrap();
                 replacement.send()
@@ -2288,7 +2288,7 @@ impl ResultsDone {
                                             ret.set_answer_id(answer_id);
                                             ret.set_release_param_caps(false);
                                             let mut exc = ret.init_exception();
-                                            from_error(&e, exc.borrow());
+                                            from_error(&e, exc.reborrow());
                                         }
                                         let _ = message.send();
                                     }
@@ -2582,7 +2582,7 @@ impl <VatId> PromiseClient<VatId> {
             {
                 let root: message::Builder = message.get_body().unwrap().init_as();
                 let mut disembargo = root.init_disembargo();
-                disembargo.borrow().init_context().set_sender_loopback(embargo_id);
+                disembargo.reborrow().init_context().set_sender_loopback(embargo_id);
                 let target = disembargo.init_target();
 
                 let redirect = connection_state.write_target(&*self.cap, target);
@@ -2723,7 +2723,7 @@ impl <VatId> Client<VatId> {
                 for idx in 0 .. pipeline_client.borrow().ops.len() {
                     match pipeline_client.borrow().ops[idx] {
                         ::capnp::private::capability::PipelineOp::GetPointerField(ordinal) => {
-                            transform.borrow().get(idx as u32).set_get_pointer_field(ordinal);
+                            transform.reborrow().get(idx as u32).set_get_pointer_field(ordinal);
                         }
                         _ => {}
                     }
@@ -2755,7 +2755,7 @@ impl <VatId> Client<VatId> {
                 for idx in 0 .. pipeline_client.borrow().ops.len() {
                     match pipeline_client.borrow().ops[idx] {
                         ::capnp::private::capability::PipelineOp::GetPointerField(ordinal) => {
-                            transform.borrow().get(idx as u32).set_get_pointer_field(ordinal);
+                            transform.reborrow().get(idx as u32).set_get_pointer_field(ordinal);
                         }
                         _ => {}
                     }
