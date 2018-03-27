@@ -1,3 +1,6 @@
+### v0.8.9
+- Deprecate borrow() in favor of reborrow().
+
 ### v0.8.8
 - Support List(Interface).
 

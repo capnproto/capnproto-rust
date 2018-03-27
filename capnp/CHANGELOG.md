@@ -1,3 +1,6 @@
+## v0.8.17
+- Deprecate borrow() in favor of reborrow().
+
 ## v0.8.16
 - Add serialize::write_message_segments().
 - Fix bug where is_canonical() could sometimes erroneously return true.
