@@ -102,7 +102,7 @@ fn snake_to_upper_case(s: &str) -> String {
             assert!(c.is_alphanumeric(),
                     format!("non-alphanumeric character '{}', i.e. {} in identifier '{}'",
                             c, c as usize, s));
-            result_chars.push(::std::ascii::AsciiExt::to_ascii_uppercase(&c));
+            result_chars.push(c.to_ascii_uppercase());
         }
     }
     result_chars.into_iter().collect()
@@ -118,7 +118,7 @@ fn camel_to_snake_case(s: &str) -> String {
         if c.is_uppercase() && !first_char {
             result_chars.push('_');
         }
-        result_chars.push(::std::ascii::AsciiExt::to_ascii_lowercase(&c));
+        result_chars.push(c.to_ascii_lowercase());
         first_char = false;
     }
     result_chars.into_iter().collect()
@@ -127,7 +127,7 @@ fn camel_to_snake_case(s: &str) -> String {
 fn capitalize_first_letter(s: &str) -> String {
     let mut result_chars: Vec<char> = Vec::new();
     for c in s.chars() { result_chars.push(c) }
-    result_chars[0] = ::std::ascii::AsciiExt::to_ascii_uppercase(&result_chars[0]);
+    result_chars[0] = result_chars[0].to_ascii_uppercase();
     result_chars.into_iter().collect()
 }
 
