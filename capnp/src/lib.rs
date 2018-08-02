@@ -1,4 +1,3 @@
-#![warn(bare_trait_objects)]
 // Copyright (c) 2013-2015 Sandstorm Development Group, Inc. and contributors
 // Licensed under the MIT License:
 //
