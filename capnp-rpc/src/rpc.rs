@@ -386,7 +386,7 @@ fn remote_exception_to_error(exception: exception::Reader) -> Error {
             (::capnp::ErrorKind::Unimplemented, reason),
         _ => (::capnp::ErrorKind::Failed, "(malformed error)"),
     };
-    Error { description: format!("remote exception: {}", reason), kind: kind }
+    Error { description: format!("remote exception: {}", reason), kind }
 }
 
 

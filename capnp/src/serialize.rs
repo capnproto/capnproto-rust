@@ -168,7 +168,7 @@ fn read_segments<R>(read: &mut R,
 where R: Read {
     let mut owned_space: Vec<Word> = Word::allocate_zeroed_vec(total_words);
     try!(read_exact(read, Word::words_to_bytes_mut(&mut owned_space[..])));
-    let segments = OwnedSegments {segment_slices: segment_slices, owned_space: owned_space};
+    let segments = OwnedSegments {segment_slices, owned_space};
     Ok(::message::Reader::new(segments, options))
 }
 

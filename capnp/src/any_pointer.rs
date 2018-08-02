@@ -121,16 +121,16 @@ pub struct Builder<'a> {
 
 impl <'a> Builder<'a> {
     #[inline]
-    pub fn new<'b>(builder: PointerBuilder<'a>) -> Builder<'a> {
-        Builder { builder: builder }
+    pub fn new(builder: PointerBuilder<'a>) -> Builder<'a> {
+        Builder { builder }
     }
 
     #[deprecated(since = "0.8.17", note = "use reborrow() instead")]
-    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
+    pub fn borrow(&mut self) -> Builder {
         Builder { builder: self.builder.borrow() }
     }
 
-    pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
+    pub fn reborrow(&mut self) -> Builder {
         Builder { builder: self.builder.borrow() }
     }
 

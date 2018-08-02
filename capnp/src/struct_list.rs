@@ -53,7 +53,7 @@ impl <'a, T> Copy for Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 
 impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader : reader, marker : PhantomData }
+        Reader::<'b, T> { reader, marker : PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }

@@ -40,7 +40,7 @@ pub struct Reader<'a> {
 
 impl <'a> Reader<'a> {
     pub fn new<'b>(reader : ListReader<'b>) -> Reader<'b> {
-        Reader::<'b> { reader : reader }
+        Reader::<'b> { reader }
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
@@ -76,7 +76,7 @@ pub struct Builder<'a> {
 
 impl <'a> Builder<'a> {
     pub fn new(builder : ListBuilder<'a>) -> Builder<'a> {
-        Builder { builder : builder }
+        Builder { builder }
     }
 
     pub fn len(&self) -> u32 { self.builder.len() }

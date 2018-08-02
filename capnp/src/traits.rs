@@ -120,7 +120,7 @@ pub struct ListIter<T, U> {
 
 impl <T, U> ListIter<T, U>{
     pub fn new(list: T, size: u32) -> ListIter<T, U> {
-        ListIter { list: list, index: 0, size: size, marker: PhantomData }
+        ListIter { list, index: 0, size, marker: PhantomData }
     }
 }
 
