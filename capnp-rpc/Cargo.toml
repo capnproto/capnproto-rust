@@ -9,6 +9,7 @@ description = "implementation of the Cap'n Proto remote procedure call protocol"
 repository = "https://github.com/dwrensha/capnproto-rust"
 documentation = "http://docs.capnproto-rust.org/capnp_rpc/"
 categories = ["network-programming"]
+autoexamples = false
 
 readme = "README.md"
 
@@ -24,8 +25,3 @@ capnpc = { version = "0.8.8", path = "../capnpc" }
 futures = "0.1.15"
 capnp-futures = { version = "0.1", path = "../capnp-futures" }
 capnp = {version = "0.8.13", path = "../capnp",  features = ["rpc"]}
-
-[[example]]
-# prevent 'cargo test' from trying to build the examples
-name = "dummy"
-path = "examples/dummy.rs"
