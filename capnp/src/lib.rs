@@ -28,7 +28,7 @@
 
 extern crate byteorder;
 
-#[cfg(any(feature="quickcheck", test))]
+#[cfg(any(feature = "quickcheck", test))]
 extern crate quickcheck;
 
 #[cfg(feature = "rpc")]
@@ -41,29 +41,35 @@ extern crate futures;
 #[cfg(target_endian = "little")]
 #[macro_export]
 macro_rules! capnp_word {
-  ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
-   $b4:expr, $b5:expr, $b6:expr, $b7:expr) => (
-    $crate::Word {
-        raw_content: (($b0 as u64) << 0) + (($b1 as u64) << 8) +
-                     (($b2 as u64) << 16) + (($b3 as u64) << 24) +
-                     (($b4 as u64) << 32) + (($b5 as u64) << 40) +
-                     (($b6 as u64) << 48) + (($b7 as u64) << 56)
-    }
-  )
+    ($b0:expr, $b1:expr, $b2:expr, $b3:expr, $b4:expr, $b5:expr, $b6:expr, $b7:expr) => {
+        $crate::Word {
+            raw_content: (($b0 as u64) << 0)
+                + (($b1 as u64) << 8)
+                + (($b2 as u64) << 16)
+                + (($b3 as u64) << 24)
+                + (($b4 as u64) << 32)
+                + (($b5 as u64) << 40)
+                + (($b6 as u64) << 48)
+                + (($b7 as u64) << 56),
+        }
+    };
 }
 
 #[cfg(target_endian = "big")]
 #[macro_export]
 macro_rules! capnp_word {
-  ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
-   $b4:expr, $b5:expr, $b6:expr, $b7:expr) => (
-     $crate::Word {
-         raw_content: (($b7 as u64) << 0) + (($b6 as u64) << 8) +
-                      (($b5 as u64) << 16) + (($b4 as u64) << 24) +
-                      (($b3 as u64) << 32) + (($b2 as u64) << 40) +
-                      (($b1 as u64) << 48) + (($b0 as u64) << 56)
-     }
-  )
+    ($b0:expr, $b1:expr, $b2:expr, $b3:expr, $b4:expr, $b5:expr, $b6:expr, $b7:expr) => {
+        $crate::Word {
+            raw_content: (($b7 as u64) << 0)
+                + (($b6 as u64) << 8)
+                + (($b5 as u64) << 16)
+                + (($b4 as u64) << 24)
+                + (($b3 as u64) << 32)
+                + (($b2 as u64) << 40)
+                + (($b1 as u64) << 48)
+                + (($b0 as u64) << 56),
+        }
+    };
 }
 
 pub mod any_pointer;
@@ -101,37 +107,29 @@ impl Word {
     /// Does this, but faster:
     /// `::std::iter::repeat(Word(0)).take(length).collect()`
     pub fn allocate_zeroed_vec(length: usize) -> Vec<Word> {
-        let mut result : Vec<Word> = Vec::with_capacity(length);
+        let mut result: Vec<Word> = Vec::with_capacity(length);
         unsafe {
             result.set_len(length);
-            let p : *mut u8 = result.as_mut_ptr() as *mut u8;
+            let p: *mut u8 = result.as_mut_ptr() as *mut u8;
             ::std::ptr::write_bytes(p, 0u8, length * ::std::mem::size_of::<Word>());
         }
         result
     }
 
     pub fn bytes_to_words(bytes: &[u8]) -> &[Word] {
-        unsafe {
-            ::std::slice::from_raw_parts(bytes.as_ptr() as *const Word, bytes.len() / 8)
-        }
+        unsafe { ::std::slice::from_raw_parts(bytes.as_ptr() as *const Word, bytes.len() / 8) }
     }
 
     pub fn bytes_to_words_mut(bytes: &mut [u8]) -> &mut [Word] {
-        unsafe {
-            ::std::slice::from_raw_parts_mut(bytes.as_ptr() as *mut Word, bytes.len() / 8)
-        }
+        unsafe { ::std::slice::from_raw_parts_mut(bytes.as_ptr() as *mut Word, bytes.len() / 8) }
     }
 
     pub fn words_to_bytes(words: &[Word]) -> &[u8] {
-        unsafe {
-            ::std::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 8)
-        }
+        unsafe { ::std::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 8) }
     }
 
     pub fn words_to_bytes_mut(words: &mut [Word]) -> &mut [u8] {
-        unsafe {
-            ::std::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, words.len() * 8)
-        }
+        unsafe { ::std::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, words.len() * 8) }
     }
 
     #[cfg(test)]
@@ -141,10 +139,12 @@ impl Word {
     }
 }
 
-#[cfg(any(feature="quickcheck", test))]
+#[cfg(any(feature = "quickcheck", test))]
 impl quickcheck::Arbitrary for Word {
     fn arbitrary<G: quickcheck::Gen>(g: &mut G) -> Word {
-        Word { raw_content: quickcheck::Arbitrary::arbitrary(g) }
+        Word {
+            raw_content: quickcheck::Arbitrary::arbitrary(g),
+        }
     }
 }
 
@@ -154,11 +154,11 @@ pub struct MessageSize {
     pub word_count: u64,
 
     /// Size of the capability table.
-    pub cap_count: u32
+    pub cap_count: u32,
 }
 
 impl MessageSize {
-    pub fn plus_eq(&mut self, other : MessageSize) {
+    pub fn plus_eq(&mut self, other: MessageSize) {
         self.word_count += other.word_count;
         self.cap_count += other.cap_count;
     }
@@ -170,7 +170,11 @@ pub struct NotInSchema(pub u16);
 
 impl ::std::fmt::Display for NotInSchema {
     fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
-        write!(fmt, "Enum value or union discriminant {} was not present in the schema.", self.0)
+        write!(
+            fmt,
+            "Enum value or union discriminant {} was not present in the schema.",
+            self.0
+        )
     }
 }
 
@@ -221,16 +225,28 @@ pub enum ErrorKind {
 
 impl Error {
     pub fn failed(description: String) -> Error {
-        Error { description, kind: ErrorKind::Failed }
+        Error {
+            description,
+            kind: ErrorKind::Failed,
+        }
     }
     pub fn overloaded(description: String) -> Error {
-        Error { description, kind: ErrorKind::Overloaded }
+        Error {
+            description,
+            kind: ErrorKind::Overloaded,
+        }
     }
     pub fn disconnected(description: String) -> Error {
-        Error { description, kind: ErrorKind::Disconnected }
+        Error {
+            description,
+            kind: ErrorKind::Disconnected,
+        }
     }
     pub fn unimplemented(description: String) -> Error {
-        Error { description, kind: ErrorKind::Unimplemented }
+        Error {
+            description,
+            kind: ErrorKind::Unimplemented,
+        }
     }
 }
 
@@ -239,14 +255,17 @@ impl ::std::convert::From<::std::io::Error> for Error {
         use std::io;
         let kind = match err.kind() {
             io::ErrorKind::TimedOut => ErrorKind::Overloaded,
-            io::ErrorKind::BrokenPipe |
-            io::ErrorKind::ConnectionRefused |
-            io::ErrorKind::ConnectionReset |
-            io::ErrorKind::ConnectionAborted |
-            io::ErrorKind::NotConnected  => ErrorKind::Disconnected,
+            io::ErrorKind::BrokenPipe
+            | io::ErrorKind::ConnectionRefused
+            | io::ErrorKind::ConnectionReset
+            | io::ErrorKind::ConnectionAborted
+            | io::ErrorKind::NotConnected => ErrorKind::Disconnected,
             _ => ErrorKind::Failed,
         };
-        Error { description: format!("{}", err), kind }
+        Error {
+            description: format!("{}", err),
+            kind,
+        }
     }
 }
 
@@ -262,7 +281,6 @@ impl ::std::convert::From<::std::str::Utf8Error> for Error {
     }
 }
 
-
 #[cfg(feature = "rpc")]
 impl ::std::convert::From<futures::sync::oneshot::Canceled> for Error {
     fn from(_e: futures::sync::oneshot::Canceled) -> Error {
@@ -272,7 +290,10 @@ impl ::std::convert::From<futures::sync::oneshot::Canceled> for Error {
 
 impl ::std::convert::From<NotInSchema> for Error {
     fn from(e: NotInSchema) -> Error {
-        Error::failed(format!("Enum value or union discriminant {} was not present in schema.", e.0))
+        Error::failed(format!(
+            "Enum value or union discriminant {} was not present in schema.",
+            e.0
+        ))
     }
 }
 
@@ -298,16 +319,12 @@ pub enum OutputSegments<'a> {
     MultiSegment(Vec<&'a [Word]>),
 }
 
-impl <'a> ::std::ops::Deref for OutputSegments<'a> {
+impl<'a> ::std::ops::Deref for OutputSegments<'a> {
     type Target = [&'a [Word]];
     fn deref<'b>(&'b self) -> &'b [&'a [Word]] {
         match *self {
-            OutputSegments::SingleSegment(ref s) => {
-                s
-            }
-            OutputSegments::MultiSegment(ref v) => {
-                &*v
-            }
+            OutputSegments::SingleSegment(ref s) => s,
+            OutputSegments::MultiSegment(ref v) => &*v,
         }
     }
 }
@@ -315,12 +332,8 @@ impl <'a> ::std::ops::Deref for OutputSegments<'a> {
 impl<'s> message::ReaderSegments for OutputSegments<'s> {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
         match *self {
-            OutputSegments::SingleSegment(ref s) => {
-                s.get(id as usize).map(|slice| *slice)
-            }
-            OutputSegments::MultiSegment(ref v) => {
-                v.get(id as usize).map(|slice| *slice)
-            }
+            OutputSegments::SingleSegment(ref s) => s.get(id as usize).map(|slice| *slice),
+            OutputSegments::MultiSegment(ref v) => v.get(id as usize).map(|slice| *slice),
         }
     }
 }
