@@ -60,11 +60,6 @@ impl <'a> Reader<'a> {
         self.reader.total_size()
     }
 
-    #[deprecated(since = "0.8.7", note = "use target_size() instead")]
-    pub fn total_size(&self) -> Result<::MessageSize> {
-        self.reader.total_size()
-    }
-
     #[inline]
     pub fn get_as<T: FromPointerReader<'a>>(&self) -> Result<T> {
         FromPointerReader::get_from_pointer(&self.reader)
@@ -123,11 +118,6 @@ impl <'a> Builder<'a> {
     #[inline]
     pub fn new<'b>(builder: PointerBuilder<'a>) -> Builder<'a> {
         Builder { builder: builder }
-    }
-
-    #[deprecated(since = "0.8.17", note = "use reborrow() instead")]
-    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder { builder: self.builder.borrow() }
     }
 
     pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {

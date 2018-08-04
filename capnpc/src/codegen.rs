@@ -102,7 +102,7 @@ fn snake_to_upper_case(s: &str) -> String {
             assert!(c.is_alphanumeric(),
                     format!("non-alphanumeric character '{}', i.e. {} in identifier '{}'",
                             c, c as usize, s));
-            result_chars.push(::std::ascii::AsciiExt::to_ascii_uppercase(&c));
+            result_chars.push(c.to_ascii_uppercase());
         }
     }
     result_chars.into_iter().collect()
@@ -118,7 +118,7 @@ fn camel_to_snake_case(s: &str) -> String {
         if c.is_uppercase() && !first_char {
             result_chars.push('_');
         }
-        result_chars.push(::std::ascii::AsciiExt::to_ascii_lowercase(&c));
+        result_chars.push(c.to_ascii_lowercase());
         first_char = false;
     }
     result_chars.into_iter().collect()
@@ -127,7 +127,7 @@ fn camel_to_snake_case(s: &str) -> String {
 fn capitalize_first_letter(s: &str) -> String {
     let mut result_chars: Vec<char> = Vec::new();
     for c in s.chars() { result_chars.push(c) }
-    result_chars[0] = ::std::ascii::AsciiExt::to_ascii_uppercase(&result_chars[0]);
+    result_chars[0] = result_chars[0].to_ascii_uppercase();
     result_chars.into_iter().collect()
 }
 
@@ -1234,11 +1234,6 @@ fn generate_node(gen: &GeneratorContext,
                 Line(format!("impl <'a,{0}> Reader<'a,{0}> {1} {{", params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
-                        Line("#[deprecated(since = \"0.8.9\", note = \"use reborrow() instead\")]".to_string()),
-                        Line(format!("pub fn borrow<'b>(&'b self) -> Reader<'b,{}> {{",params.params)),
-                        Indent(Box::new(Line("Reader { .. *self }".to_string()))),
-                        Line("}".to_string()),
-                        BlankLine,
                         Line(format!("pub fn reborrow<'b>(&'b self) -> Reader<'b,{}> {{",params.params)),
                         Indent(Box::new(Line("Reader { .. *self }".to_string()))),
                         Line("}".to_string()),
@@ -1303,16 +1298,8 @@ fn generate_node(gen: &GeneratorContext,
                         Line(format!("pub fn as_reader(self) -> Reader<'a,{}> {{", params.params)),
                         Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string()))),
                         Line("}".to_string()),
-                        Line("#[deprecated(since = \"0.8.9\", note = \"use reborrow() instead\")]".to_string()),
-                        Line(format!("pub fn borrow<'b>(&'b mut self) -> Builder<'b,{}> {{", params.params)),
-                        Indent(Box::new(Line("Builder { .. *self }".to_string()))),
-                        Line("}".to_string()),
                         Line(format!("pub fn reborrow<'b>(&'b mut self) -> Builder<'b,{}> {{", params.params)),
                         Indent(Box::new(Line("Builder { .. *self }".to_string()))),
-                        Line("}".to_string()),
-                        Line("#[deprecated(since = \"0.8.9\", note = \"use reborrow_as_reader() instead\")]".to_string()),
-                        Line(format!("pub fn borrow_as_reader<'b>(&'b self) -> Reader<'b,{}> {{", params.params)),
-                        Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string()))),
                         Line("}".to_string()),
                         Line(format!("pub fn reborrow_as_reader<'b>(&'b self) -> Reader<'b,{}> {{", params.params)),
                         Indent(Box::new(Line("::capnp::traits::FromStructReader::new(self.builder.as_reader())".to_string()))),
