@@ -3041,7 +3041,7 @@ impl<'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn set_struct(&self, value: &StructReader) -> Result<()> {
+    pub fn set_struct(&self, value: &StructReader, canonicalize: bool) -> Result<()> {
         unsafe {
             try!(wire_helpers::set_struct_pointer(
                 self.arena,
@@ -3049,13 +3049,13 @@ impl<'a> PointerBuilder<'a> {
                 self.cap_table,
                 self.pointer,
                 *value,
-                false
+                canonicalize
             ));
             Ok(())
         }
     }
 
-    pub fn set_list(&self, value: &ListReader) -> Result<()> {
+    pub fn set_list(&self, value: &ListReader, canonicalize: bool) -> Result<()> {
         unsafe {
             try!(wire_helpers::set_list_pointer(
                 self.arena,
@@ -3063,7 +3063,7 @@ impl<'a> PointerBuilder<'a> {
                 self.cap_table,
                 self.pointer,
                 *value,
-                false
+                canonicalize
             ));
             Ok(())
         }

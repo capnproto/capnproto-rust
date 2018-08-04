@@ -1,7 +1,7 @@
 [package]
 
 name = "capnp-rpc"
-version = "0.8.3"
+version = "0.9.0"
 authors = [ "David Renshaw <dwrenshaw@sandstorm.io>" ]
 build = "build.rs"
 license = "MIT"
@@ -19,12 +19,12 @@ name = "capnp_rpc"
 path = "src/lib.rs"
 
 [build-dependencies]
-capnpc = { version = "0.8.8", path = "../capnpc" }
+capnpc = { version = "0.9.0", path = "../capnpc" }
 
 [dependencies]
 futures = "0.1.15"
-capnp-futures = { version = "0.1", path = "../capnp-futures" }
-capnp = {version = "0.8.13", path = "../capnp",  features = ["rpc"]}
+capnp-futures = { version = "0.9.0", path = "../capnp-futures" }
+capnp = {version = "0.9.0", path = "../capnp",  features = ["rpc"]}
 
 [[example]]
 # prevent 'cargo test' from trying to build the examples

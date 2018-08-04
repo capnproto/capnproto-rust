@@ -397,7 +397,7 @@ where
         root.set_as(value)
     }
 
-    fn set_root_canonical<To, From: SetPointerBuilder<To>>(&mut self, value: From) -> Result<()> {
+    pub fn set_root_canonical<To, From: SetPointerBuilder<To>>(&mut self, value: From) -> Result<()> {
         if self.arena.len() == 0 {
             self.arena
                 .allocate_segment(1)
@@ -406,7 +406,9 @@ where
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
         let pointer = layout::PointerBuilder::get_root(&self.arena, 0, seg_start);
-        SetPointerBuilder::set_pointer_canonical(pointer, value)
+        SetPointerBuilder::set_pointer_builder(pointer, value, true)?;
+        assert_eq!(self.get_segments_for_output().len(), 1);
+        Ok(())
     }
 
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {

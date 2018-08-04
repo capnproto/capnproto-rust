@@ -1,7 +1,7 @@
 [package]
 
 name = "capnpc"
-version = "0.8.9"
+version = "0.9.0"
 authors = [ "David Renshaw <dwrenshaw@gmail.com>" ]
 license = "MIT"
 description = "Cap'n Proto code generation"
@@ -23,5 +23,5 @@ name = "capnpc-rust"
 path = "src/main.rs"
 
 [dependencies]
-capnp = { version = "0.8", path = "../capnp" }
+capnp = { version = "0.9", path = "../capnp" }
 

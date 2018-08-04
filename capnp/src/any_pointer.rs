@@ -60,11 +60,6 @@ impl<'a> Reader<'a> {
         self.reader.total_size()
     }
 
-    #[deprecated(since = "0.8.7", note = "use target_size() instead")]
-    pub fn total_size(&self) -> Result<::MessageSize> {
-        self.reader.total_size()
-    }
-
     #[inline]
     pub fn get_as<T: FromPointerReader<'a>>(&self) -> Result<T> {
         FromPointerReader::get_from_pointer(&self.reader)
@@ -103,12 +98,9 @@ impl<'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(
         mut pointer: ::private::layout::PointerBuilder<'b>,
         value: Reader<'a>,
+        canonicalize: bool,
     ) -> Result<()> {
-        pointer.copy_from(value.reader, false)
-    }
-
-    fn set_pointer_canonical<'b>(mut pointer: PointerBuilder<'b>, value: Reader<'a>) -> Result<()> {
-        pointer.copy_from(value.reader, true)
+        pointer.copy_from(value.reader, canonicalize)
     }
 }
 
@@ -129,14 +121,7 @@ impl<'a> Builder<'a> {
         Builder { builder }
     }
 
-    #[deprecated(since = "0.8.17", note = "use reborrow() instead")]
-    pub fn borrow(&mut self) -> Builder {
-        Builder {
-            builder: self.builder.borrow(),
-        }
-    }
-
-    pub fn reborrow(&mut self) -> Builder {
+    pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
         Builder {
             builder: self.builder.borrow(),
         }
@@ -169,7 +154,7 @@ impl<'a> Builder<'a> {
     }
 
     pub fn set_as<To, From: SetPointerBuilder<To>>(self, value: From) -> Result<()> {
-        SetPointerBuilder::<To>::set_pointer_builder(self.builder, value)
+        SetPointerBuilder::<To>::set_pointer_builder(self.builder, value, false)
     }
 
     // XXX value should be a user client.

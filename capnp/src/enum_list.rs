@@ -150,8 +150,9 @@ impl<'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
     fn set_pointer_builder<'b>(
         pointer: ::private::layout::PointerBuilder<'b>,
         value: Reader<'a, T>,
+        canonicalize: bool,
     ) -> Result<()> {
-        pointer.set_list(&value.reader)
+        pointer.set_list(&value.reader, canonicalize)
     }
 }
 
