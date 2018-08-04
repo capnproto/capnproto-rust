@@ -3,6 +3,10 @@ name = "capnp-miri-tests"
 version = "0.1.0"
 authors = ["David Renshaw"]
 
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
 [dependencies]
 capnp = { path = "../" }
 

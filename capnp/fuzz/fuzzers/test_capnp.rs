@@ -315,7 +315,7 @@ pub mod test_all_types {
   }
 
   impl <'a,> ::capnp::traits::SetPointerBuilder<Builder<'a,>> for Reader<'a,>  {
-    fn set_pointer_builder<'b>(pointer: ::capnp::private::layout::PointerBuilder<'b>, value: Reader<'a,>) -> Result<()> { pointer.set_struct(&value.reader) }
+    fn set_pointer_builder<'b>(pointer: ::capnp::private::layout::PointerBuilder<'b>, value: Reader<'a,>, canonicalize: bool) -> Result<()> { pointer.set_struct(&value.reader, canonicalize) }
   }
 
   impl <'a,> Builder<'a,>  {
@@ -463,7 +463,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_struct_field<'b>(&mut self, value: ::test_capnp::test_all_types::Reader<'b>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(2), value, false)
     }
     #[inline]
     pub fn init_struct_field(self, ) -> ::test_capnp::test_all_types::Builder<'a> {
@@ -493,7 +493,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_void_list(&mut self, value: primitive_list::Reader<'a,()>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(3), value, false)
     }
     #[inline]
     pub fn init_void_list(self, size: u32) -> primitive_list::Builder<'a,()> {
@@ -508,7 +508,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_bool_list(&mut self, value: primitive_list::Reader<'a,bool>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(4), value, false)
     }
     #[inline]
     pub fn init_bool_list(self, size: u32) -> primitive_list::Builder<'a,bool> {
@@ -523,7 +523,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_int8_list(&mut self, value: primitive_list::Reader<'a,i8>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(5), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(5), value, false)
     }
     #[inline]
     pub fn init_int8_list(self, size: u32) -> primitive_list::Builder<'a,i8> {
@@ -538,7 +538,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_int16_list(&mut self, value: primitive_list::Reader<'a,i16>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(6), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(6), value, false)
     }
     #[inline]
     pub fn init_int16_list(self, size: u32) -> primitive_list::Builder<'a,i16> {
@@ -553,7 +553,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_int32_list(&mut self, value: primitive_list::Reader<'a,i32>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(7), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(7), value, false)
     }
     #[inline]
     pub fn init_int32_list(self, size: u32) -> primitive_list::Builder<'a,i32> {
@@ -568,7 +568,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_int64_list(&mut self, value: primitive_list::Reader<'a,i64>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(8), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(8), value, false)
     }
     #[inline]
     pub fn init_int64_list(self, size: u32) -> primitive_list::Builder<'a,i64> {
@@ -583,7 +583,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_u_int8_list(&mut self, value: primitive_list::Reader<'a,u8>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(9), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(9), value, false)
     }
     #[inline]
     pub fn init_u_int8_list(self, size: u32) -> primitive_list::Builder<'a,u8> {
@@ -598,7 +598,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_u_int16_list(&mut self, value: primitive_list::Reader<'a,u16>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(10), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(10), value, false)
     }
     #[inline]
     pub fn init_u_int16_list(self, size: u32) -> primitive_list::Builder<'a,u16> {
@@ -613,7 +613,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_u_int32_list(&mut self, value: primitive_list::Reader<'a,u32>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(11), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(11), value, false)
     }
     #[inline]
     pub fn init_u_int32_list(self, size: u32) -> primitive_list::Builder<'a,u32> {
@@ -628,7 +628,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_u_int64_list(&mut self, value: primitive_list::Reader<'a,u64>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(12), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(12), value, false)
     }
     #[inline]
     pub fn init_u_int64_list(self, size: u32) -> primitive_list::Builder<'a,u64> {
@@ -643,7 +643,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_float32_list(&mut self, value: primitive_list::Reader<'a,f32>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(13), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(13), value, false)
     }
     #[inline]
     pub fn init_float32_list(self, size: u32) -> primitive_list::Builder<'a,f32> {
@@ -658,7 +658,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_float64_list(&mut self, value: primitive_list::Reader<'a,f64>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(14), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(14), value, false)
     }
     #[inline]
     pub fn init_float64_list(self, size: u32) -> primitive_list::Builder<'a,f64> {
@@ -673,7 +673,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_text_list(&mut self, value: text_list::Reader<'a>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(15), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(15), value, false)
     }
     #[inline]
     pub fn init_text_list(self, size: u32) -> text_list::Builder<'a> {
@@ -688,7 +688,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_data_list(&mut self, value: data_list::Reader<'a>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(16), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(16), value, false)
     }
     #[inline]
     pub fn init_data_list(self, size: u32) -> data_list::Builder<'a> {
@@ -703,7 +703,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_struct_list(&mut self, value: struct_list::Reader<'a,::test_capnp::test_all_types::Owned<>>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(17), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(17), value, false)
     }
     #[inline]
     pub fn init_struct_list(self, size: u32) -> struct_list::Builder<'a,::test_capnp::test_all_types::Owned<>> {
@@ -718,7 +718,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_enum_list(&mut self, value: enum_list::Reader<'a,::test_capnp::TestEnum>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(18), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(18), value, false)
     }
     #[inline]
     pub fn init_enum_list(self, size: u32) -> enum_list::Builder<'a,::test_capnp::TestEnum> {
@@ -733,7 +733,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn set_interface_list(&mut self, value: primitive_list::Reader<'a,()>) -> Result<()> {
-      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(19), value)
+      ::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field(19), value, false)
     }
     #[inline]
     pub fn init_interface_list(self, size: u32) -> primitive_list::Builder<'a,()> {
