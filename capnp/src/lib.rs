@@ -116,12 +116,20 @@ impl Word {
         result
     }
 
-    pub fn bytes_to_words(bytes: &[u8]) -> &[Word] {
-        unsafe { ::std::slice::from_raw_parts(bytes.as_ptr() as *const Word, bytes.len() / 8) }
+    /// Converts a byte slice into a `Word` slice. Unsafe due to possible alignment issues.
+    /// Only call this if you know that either
+    ///    1. `bytes.to_ptr()` falls on an eight-byte boundary, or
+    ///    2. your processor is okay with unaligned reads.
+    pub unsafe fn bytes_to_words(bytes: &[u8]) -> &[Word] {
+        ::std::slice::from_raw_parts(bytes.as_ptr() as *const Word, bytes.len() / 8)
     }
 
-    pub fn bytes_to_words_mut(bytes: &mut [u8]) -> &mut [Word] {
-        unsafe { ::std::slice::from_raw_parts_mut(bytes.as_ptr() as *mut Word, bytes.len() / 8) }
+    /// Converts a mutable byte slice into a mutable `Word` slice. Unsafe due to possible
+    /// alignment issues. Only call this if you know that either
+    ///    1. `bytes.to_ptr()` falls on an eight-byte boundary, or
+    ///    2. your processor is okay with unaligned reads and writes
+    pub unsafe fn bytes_to_words_mut(bytes: &mut [u8]) -> &mut [Word] {
+        ::std::slice::from_raw_parts_mut(bytes.as_ptr() as *mut Word, bytes.len() / 8)
     }
 
     pub fn words_to_bytes(words: &[Word]) -> &[u8] {
