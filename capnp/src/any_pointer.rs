@@ -95,12 +95,9 @@ impl <'a> FromPointerReader<'a> for Reader<'a> {
 
 impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(mut pointer: ::private::layout::PointerBuilder<'b>,
-                               value: Reader<'a>) -> Result<()> {
-        pointer.copy_from(value.reader, false)
-    }
-
-    fn set_pointer_canonical<'b>(mut pointer: PointerBuilder<'b>, value: Reader<'a>) -> Result<()> {
-        pointer.copy_from(value.reader, true)
+                               value: Reader<'a>,
+                               canonicalize: bool) -> Result<()> {
+        pointer.copy_from(value.reader, canonicalize)
     }
 }
 
@@ -151,7 +148,7 @@ impl <'a> Builder<'a> {
     }
 
     pub fn set_as<To, From : SetPointerBuilder<To>>(self, value: From) -> Result<()> {
-        SetPointerBuilder::<To>::set_pointer_builder(self.builder, value)
+        SetPointerBuilder::<To>::set_pointer_builder(self.builder, value, false)
     }
 
     // XXX value should be a user client.

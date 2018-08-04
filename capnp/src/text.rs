@@ -112,7 +112,9 @@ impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
 }
 
 impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>, value: Reader<'a>)
+    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
+                               value: Reader<'a>,
+                               _canonicalize: bool)
                                -> Result<()>
     {
         pointer.set_text(value);

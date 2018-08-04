@@ -79,12 +79,7 @@ pub trait FromPointerBuilderRefDefault<'a> {
 }
 
 pub trait SetPointerBuilder<To> {
-    fn set_pointer_builder<'a>(PointerBuilder<'a>, Self) -> Result<()>;
-
-    // TODO(apibump): fold this into set_pointer_builder by adding a bool parameter.
-    fn set_pointer_canonical<'a>(PointerBuilder<'a>, Self) -> Result<()> where Self: Sized {
-        unimplemented!()
-    }
+    fn set_pointer_builder<'a>(PointerBuilder<'a>, Self, canonicalize: bool) -> Result<()>;
 }
 
 pub trait Imbue<'a> {

@@ -156,8 +156,9 @@ impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     where T: FromClientHook
 {
     fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
-                               value: Reader<'a, T>) -> Result<()> {
-        pointer.set_list(&value.reader)
+                               value: Reader<'a, T>,
+                               canonicalize: bool) -> Result<()> {
+        pointer.set_list(&value.reader, canonicalize)
     }
 }
 
