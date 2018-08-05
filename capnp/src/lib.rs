@@ -137,12 +137,6 @@ impl Word {
             ::std::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, words.len() * 8)
         }
     }
-
-    #[cfg(test)]
-    #[deprecated(since = "0.8.10", note = "use capnp_word!() instead")]
-    pub fn from(n: u64) -> Word {
-        Word { raw_content: n }
-    }
 }
 
 #[cfg(any(feature="quickcheck", test))]

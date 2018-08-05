@@ -130,11 +130,6 @@ impl <'a> Builder<'a> {
         self.builder.as_reader().total_size()
     }
 
-    #[deprecated(since = "0.8.10", note = "use target_size() instead")]
-    pub fn total_size(&self) -> Result<::MessageSize> {
-        self.builder.as_reader().total_size()
-    }
-
     pub fn get_as<T : FromPointerBuilder<'a>>(self) -> Result<T> {
         FromPointerBuilder::get_from_pointer(self.builder)
     }

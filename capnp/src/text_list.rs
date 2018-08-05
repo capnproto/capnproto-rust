@@ -90,11 +90,6 @@ impl <'a> Builder<'a> {
         Reader { reader: self.builder.as_reader() }
     }
 
-    #[deprecated(since = "0.8.17", note = "use reborrow() instead")]
-    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder::<'b> { builder: self.builder.borrow() }
-    }
-
     pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
         Builder::<'b> { builder: self.builder.borrow() }
     }

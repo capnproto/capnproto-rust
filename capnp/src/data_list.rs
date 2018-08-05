@@ -90,11 +90,6 @@ impl <'a> Builder<'a> {
         self.builder.borrow().get_pointer_element(index).set_data(value);
     }
 
-    #[deprecated(since = "0.8.17", note = "use reborrow() instead")]
-    pub fn borrow<'b>(&'b mut self) -> Builder<'b> {
-        Builder {builder: self.builder.borrow()}
-    }
-
     pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {
         Builder {builder: self.builder.borrow()}
     }

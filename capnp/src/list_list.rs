@@ -104,11 +104,6 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
-    #[deprecated(since = "0.8.17", note = "use reborrow() instead")]
-    pub fn borrow<'b>(&'b mut self) -> Builder<'b, T> {
-        Builder {builder: self.builder.borrow(), marker: ::std::marker::PhantomData}
-    }
-
     pub fn reborrow<'b>(&'b mut self) -> Builder<'b, T> {
         Builder {builder: self.builder.borrow(), marker: ::std::marker::PhantomData}
     }
