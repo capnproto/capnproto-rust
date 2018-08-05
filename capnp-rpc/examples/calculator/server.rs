@@ -99,14 +99,14 @@ fn evaluate_impl(expression: calculator::expression::Reader,
 
 struct FunctionImpl {
     param_count: u32,
-    body: ::capnp::message::Builder<::capnp::message::HeapAllocator>,
+    body: ::capnp_rpc::ImbuedMessageBuilder<::capnp::message::HeapAllocator>,
 }
 
 impl FunctionImpl {
     fn new(param_count: u32, body: calculator::expression::Reader) -> ::capnp::Result<FunctionImpl> {
         let mut result = FunctionImpl {
             param_count: param_count,
-            body: ::capnp::message::Builder::new_default(),
+            body: ::capnp_rpc::ImbuedMessageBuilder::new(::capnp::message::HeapAllocator::new()),
         };
         try!(result.body.set_root(body));
         Ok(result)

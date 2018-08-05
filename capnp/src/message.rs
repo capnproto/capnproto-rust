@@ -282,14 +282,8 @@ pub trait Allocator {
 /// A container used to build a message.
 pub struct Builder<A> where A: Allocator {
     arena: BuilderArenaImpl<A>,
-    cap_table: Vec<Option<Box<::private::capability::ClientHook>>>,
 }
 
-// TODO(version 0.9): Consider removing this unsafe impl somwhow.
-//   As soon as a message::Builder has caps in its table, it is not
-//   in fact safe to send to other threads. Perhaps we should remove
-//   the Builder::cap_table field, requiring imbue_mut() to be called
-//   manually when the situation calls for it.
 unsafe impl <A> Send for Builder<A> where A: Send + Allocator {}
 
 fn _assert_kinds() {
@@ -306,24 +300,20 @@ impl <A> Builder<A> where A: Allocator {
     pub fn new(allocator: A) -> Self {
         Builder {
             arena: BuilderArenaImpl::new(allocator),
-            cap_table: Vec::new(),
         }
     }
 
     fn get_root_internal<'a>(&'a mut self) -> any_pointer::Builder<'a> {
-        use ::traits::ImbueMut;
         if self.arena.len() == 0 {
             self.arena.allocate_segment(1).expect("allocate root pointer");
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
         let location: *mut Word = seg_start;
-        let Builder { ref mut arena, ref mut cap_table } = *self;
+        let Builder { ref mut arena } = *self;
 
-        let mut result = any_pointer::Builder::new(
-            layout::PointerBuilder::get_root(arena, 0, location));
-        result.imbue_mut(cap_table);
-        result
+        any_pointer::Builder::new(
+            layout::PointerBuilder::get_root(arena, 0, location))
     }
 
     /// Initializes the root as a value of the given type.
@@ -342,12 +332,10 @@ impl <A> Builder<A> where A: Allocator {
         if self.arena.len() == 0 {
             any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
         } else {
-            use ::traits::Imbue;
             let (segment_start, _segment_len) = try!(self.arena.get_segment(0));
             let pointer_reader = try!(layout::PointerReader::get_root(
                 self.arena.as_reader(), 0, segment_start, 0x7fffffff));
-            let mut root = any_pointer::Reader::new(pointer_reader);
-            root.imbue(&self.cap_table);
+            let root = any_pointer::Reader::new(pointer_reader);
             root.get_as()
         }
     }
@@ -485,7 +473,6 @@ impl <'a, 'b: 'a> ScratchSpaceHeapAllocator<'a, 'b> {
     }
 
 }
-
 
 unsafe impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32) {

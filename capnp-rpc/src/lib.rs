@@ -344,3 +344,36 @@ impl ::task_set::TaskReaper<(), Error> for SystemTaskReaper {
         println!("ERROR: {}", error);
     }
 }
+
+pub struct ImbuedMessageBuilder<A> where A: ::capnp::message::Allocator {
+    builder: ::capnp::message::Builder<A>,
+    cap_table: Vec<Option<Box<::capnp::private::capability::ClientHook>>>,
+}
+
+impl <A> ImbuedMessageBuilder<A> where A: ::capnp::message::Allocator {
+    pub fn new(allocator: A) -> Self {
+        ImbuedMessageBuilder {
+            builder: ::capnp::message::Builder::new(allocator),
+            cap_table: Vec::new(),
+        }
+    }
+
+    pub fn get_root<'a, T>(&'a mut self) -> ::capnp::Result<T>
+        where T: ::capnp::traits::FromPointerBuilder<'a>
+    {
+        use capnp::traits::ImbueMut;
+        let mut root: ::capnp::any_pointer::Builder = self.builder.get_root()?;
+        root.imbue_mut(&mut self.cap_table);
+        root.get_as()
+    }
+
+    pub fn set_root<To, From>(&mut self, value: From) -> ::capnp::Result<()>
+        where From: ::capnp::traits::SetPointerBuilder<To>
+    {
+        use capnp::traits::ImbueMut;
+        let mut root: ::capnp::any_pointer::Builder = self.builder.get_root()?;
+        root.imbue_mut(&mut self.cap_table);
+        root.set_as(value)
+    }
+}
+
