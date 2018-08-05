@@ -185,10 +185,8 @@ impl <S> Reader<S> where S: ReaderSegments {
     }
 
     /// Gets the [canonical](https://capnproto.org/encoding.html#canonicalization) form
-    /// of this message.
-    // TODO: Once we've updated code generation so that all generated types implement
-    // the new version of SetPointerBuilder, it will probably make sense for this function
-    // to live somewhere else and be parameterized by `S: SetPointerBuilder`.
+    /// of this message. Works by copying the message twice. For a canonicalization
+    /// method that only requires one copy, see `message::Builder::set_root_canonical()`.
     pub fn canonicalize(&self) -> Result<Vec<Word>> {
         let root = try!(self.get_root_internal());
         let size = try!(root.target_size()).word_count + 1;
@@ -360,6 +358,9 @@ impl <A> Builder<A> where A: Allocator {
         root.set_as(value)
     }
 
+    /// Sets the root to a canonicalized version of `value`. If this was the first action taken
+    /// on this `Builder`, then a subsequence call to `get_segments_for_output()` should return
+    /// a single segment, containing the full canonicalized message.
     pub fn set_root_canonical<To, From: SetPointerBuilder<To>>(&mut self, value: From) -> Result<()> {
         if self.arena.len() == 0 {
             self.arena.allocate_segment(1).expect("allocate root pointer");
