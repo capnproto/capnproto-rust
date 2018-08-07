@@ -203,7 +203,7 @@ pub enum ErrorKind {
     /// The call failed because of a temporary lack of resources. This could be space resources
     /// (out of memory, out of disk space) or time resources (request queue overflow, operation
     /// timed out).
-    //
+    ///
     /// The operation might work if tried again, but it should NOT be repeated immediately as this
     /// may simply exacerbate the problem.
     Overloaded,
