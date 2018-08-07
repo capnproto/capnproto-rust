@@ -304,7 +304,7 @@ impl <'a> ::std::ops::Deref for OutputSegments<'a> {
                 s
             }
             OutputSegments::MultiSegment(ref v) => {
-                &*v
+                v
             }
         }
     }
