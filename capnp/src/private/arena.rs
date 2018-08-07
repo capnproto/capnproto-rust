@@ -128,7 +128,7 @@ pub trait BuilderArena: ReaderArena {
     // would need a `&'a mut BuilderArena` and `StructBuilder::borrow()` would
     // have lifetime issues. (If `'a: 'b`, then a `&'a (BuilderArena + 'a)` can be
     // converted to a `&'b (BuilderArena + 'b)`, but a `&'a mut (BuilderArena + 'a)`
-    // *cannot* be converted to a `&'b (BuilderArena + 'b)`. See some discussion here:
+    // *cannot* be converted to a `&'b mut (BuilderArena + 'b)`. See some discussion here:
     // https://botbot.me/mozilla/rust/2017-01-31/?msg=80228117&page=19 .)
     fn allocate(&self, segment_id: u32, amount: WordCount32) -> Option<u32>;
     fn allocate_anywhere(&self, amount: u32) -> (SegmentId, u32);
