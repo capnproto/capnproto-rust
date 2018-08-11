@@ -84,8 +84,6 @@ pub mod text;
 pub mod text_list;
 pub mod traits;
 
-mod util;
-
 /// Eight bytes of memory with opaque interior. Use [`capnp_word!()`](macro.capnp_word!.html)
 /// to construct one of these.
 ///

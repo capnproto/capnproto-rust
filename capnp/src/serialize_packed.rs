@@ -28,7 +28,6 @@ use std::io::{Read, BufRead, Write};
 use serialize;
 use Result;
 use message;
-use util::read_exact;
 
 struct PackedRead<R> where R: BufRead {
     inner: R,
@@ -183,7 +182,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                         self.inner.consume(size);
                         {
                             let buf = slice::from_raw_parts_mut::<u8>(out, run_length);
-                            try!(read_exact(&mut self.inner, buf));
+                            self.inner.read_exact(buf)?;
                         }
 
                         out = out.offset(run_length as isize);
@@ -383,13 +382,12 @@ mod tests {
     use serialize::test::write_message_segments;
     use serialize_packed::{PackedRead, PackedWrite};
     use super::read_message;
-    use util::read_exact;
 
     pub fn check_unpacks_to(packed: &[u8], unpacked: &[u8]) {
         let mut packed_read = PackedRead { inner: packed };
 
         let mut bytes: Vec<u8> = iter::repeat(0u8).take(unpacked.len()).collect();
-        read_exact(&mut packed_read, &mut bytes[..]).unwrap();
+        packed_read.read_exact(&mut bytes[..]).unwrap();
 
         let mut buf = [0; 8];
         assert_eq!(packed_read.read(&mut buf).unwrap(), 0); // EOF
@@ -475,7 +473,7 @@ mod tests {
 
             let mut out_buffer: Vec<u8> = vec![0; len * 8];
 
-            let _ = read_exact(&mut packed_read, &mut out_buffer);
+            let _ = packed_read.read_exact(&mut out_buffer);
             TestResult::from_bool(true)
         }
 
@@ -488,7 +486,7 @@ mod tests {
         let mut packed_read = PackedRead {inner: &packed[..]};
 
         let mut bytes: Vec<u8> = vec![0; 200];
-        match read_exact(&mut packed_read, &mut bytes[..]) {
+        match packed_read.read_exact(&mut bytes[..]) {
             Ok(_) => panic!("should have been an error"),
             Err(e) => {
                 assert_eq!(::std::error::Error::description(&e),
@@ -503,7 +501,7 @@ mod tests {
             let mut packed_read = PackedRead {inner: packed};
 
             let mut bytes: Vec<u8> = vec![0; 200];
-            match read_exact(&mut packed_read, &mut bytes[..]) {
+            match packed_read.read_exact(&mut bytes[..]) {
                 Ok(_) => panic!("should have been an error"),
                 Err(e) => {
                     assert_eq!(::std::error::Error::description(&e), "Premature end of packed input.");

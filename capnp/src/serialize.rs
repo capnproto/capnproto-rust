@@ -25,7 +25,6 @@
 use std::io::{Read, Write};
 
 use message;
-use util::read_exact;
 use {Error, Result, Word};
 
 use byteorder::{ByteOrder, LittleEndian};
@@ -110,7 +109,7 @@ fn read_segment_table<R>(read: &mut R,
     let mut buf: [u8; 8] = [0; 8];
 
     // read the first Word, which contains segment_count and the 1st segment length
-    try!(read_exact(read, &mut buf));
+    read.read_exact(&mut buf)?;
     let segment_count = <LittleEndian as ByteOrder>::read_u32(&buf[0..4])
                                                    .wrapping_add(1) as usize;
 
@@ -126,7 +125,7 @@ fn read_segment_table<R>(read: &mut R,
 
     if segment_count > 1 {
         if segment_count < 4 {
-            try!(read_exact(read, &mut buf));
+            read.read_exact(&mut buf)?;
             for idx in 0..(segment_count - 1) {
                 let segment_len =
                     <LittleEndian as ByteOrder>::read_u32(&buf[(idx * 4)..(idx + 1) * 4]) as usize;
@@ -136,7 +135,7 @@ fn read_segment_table<R>(read: &mut R,
             }
         } else {
             let mut segment_sizes = vec![0u8; (segment_count & !1) * 4];
-            try!(read_exact(read, &mut segment_sizes[..]));
+            read.read_exact(&mut segment_sizes[..])?;
             for idx in 0..(segment_count - 1) {
                 let segment_len =
                     <LittleEndian as ByteOrder>::read_u32(&segment_sizes[(idx * 4)..(idx + 1) * 4]) as usize;
@@ -167,7 +166,7 @@ fn read_segments<R>(read: &mut R,
                     -> Result<message::Reader<OwnedSegments>>
 where R: Read {
     let mut owned_space: Vec<Word> = Word::allocate_zeroed_vec(total_words);
-    try!(read_exact(read, Word::words_to_bytes_mut(&mut owned_space[..])));
+    read.read_exact(Word::words_to_bytes_mut(&mut owned_space[..]))?;
     let segments = OwnedSegments {segment_slices: segment_slices, owned_space: owned_space};
     Ok(::message::Reader::new(segments, options))
 }
