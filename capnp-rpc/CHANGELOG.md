@@ -1,3 +1,8 @@
+### v0.9.0
+- Remove deprecated items.
+- Add ImbuedMessageBuilder to provide functionality that was previously automatically provided
+  by capnp::message::Builder.
+
 ## v0.8.3
 - Add RpcSystem::get_disconnector() method.
 - Migrate away from some deprecated futures-rs functionality.

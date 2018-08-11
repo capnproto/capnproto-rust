@@ -1,3 +1,6 @@
+### v0.9.0
+- Remove deprecated items.
+
 ### v0.8.9
 - Deprecate borrow() in favor of reborrow().
 

@@ -1,3 +1,12 @@
+## v.0.9.0
+- Add message::Builder::set_root_canonical() method. Relies on a new signature for SetPointerBuilder.
+- Mark bytes_to_words() and bytes_to_words_mut() as unsafe, due to possible alignment issues. Please
+  refer to https://github.com/capnproto/capnproto-rust/issues/101 for discussion.
+- Delete deprecated items.
+- Drop support for automatically imbuing message builders with capabilities (was unsafe). You should
+  use capnp_rpc::ImbuedMessageBuilder now if you want that functionality. See the calculator example.
+- Bump minimum supported rustc version to 1.26.0.
+
 ## v0.8.17
 - Deprecate borrow() in favor of reborrow().
 

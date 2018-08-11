@@ -1,3 +1,6 @@
+# v0.9.0
+- No changes -- just a version bump to match the rest of the capnp crates.
+
 # v0.1.1
 - Add `serialize::Transport`.
 - Update byteorder dependency.
