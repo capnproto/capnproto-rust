@@ -27,7 +27,7 @@ use Result;
 
 #[derive(Clone, Copy)]
 pub struct Owned<T> where T: for<'a> ::traits::Owned<'a> {
-    marker: ::std::marker::PhantomData<<T as ::traits::Owned<'static>>::Reader>,
+    marker: ::std::marker::PhantomData<T>,
 }
 
 impl<'a, T> ::traits::Owned<'a> for Owned<T> where T: for<'b> ::traits::Owned<'b> {
