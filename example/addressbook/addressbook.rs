@@ -70,30 +70,30 @@ pub mod addressbook {
     pub fn print_address_book() -> ::capnp::Result<()> {
 
         let stdin = ::std::io::stdin();
-        let message_reader = try!(serialize_packed::read_message(&mut stdin.lock(),
-                                                                 ::capnp::message::ReaderOptions::new()));
-        let address_book = try!(message_reader.get_root::<address_book::Reader>());
+        let message_reader = serialize_packed::read_message(&mut stdin.lock(),
+                                                            ::capnp::message::ReaderOptions::new())?;
+        let address_book = message_reader.get_root::<address_book::Reader>()?;
 
-        for person in try!(address_book.get_people()).iter() {
-            println!("{}: {}", try!(person.get_name()), try!(person.get_email()));
-            for phone in try!(person.get_phones()).iter() {
+        for person in address_book.get_people()?.iter() {
+            println!("{}: {}", person.get_name()?, person.get_email()?);
+            for phone in person.get_phones()?.iter() {
                 let type_name = match phone.get_type() {
                     Ok(person::phone_number::Type::Mobile) => "mobile",
                     Ok(person::phone_number::Type::Home) => "home",
                     Ok(person::phone_number::Type::Work) => "work",
                     Err(::capnp::NotInSchema(_)) => "UNKNOWN",
                 };
-                println!("  {} phone: {}", type_name, try!(phone.get_number()));
+                println!("  {} phone: {}", type_name, phone.get_number()?);
             }
             match person.get_employment().which() {
                 Ok(person::employment::Unemployed(())) => {
                     println!("  unemployed");
                 }
                 Ok(person::employment::Employer(employer)) => {
-                    println!("  employer: {}", try!(employer));
+                    println!("  employer: {}", employer?);
                 }
                 Ok(person::employment::School(school)) => {
-                    println!("  student at: {}", try!(school));
+                    println!("  student at: {}", school?);
                 }
                 Ok(person::employment::SelfEmployed(())) => {
                     println!("  self-employed");
