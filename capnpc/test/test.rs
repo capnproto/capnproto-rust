@@ -766,11 +766,6 @@ mod tests {
         }
     }
 
-    /*
-    This test is for a problem in the schema compiler that was fixed in this commit:
-    https://github.com/sandstorm-io/capnproto/commit/db7ca960a677de7d5088ceb2fef355f39bb84365
-    TODO: Uncomment this test once the fix makes it into a released version of capnproto-c++.
-          Not yet, as of release 0.5.3.
     #[test]
     fn upgrade_union() {
         use test_capnp::{test_old_union_version, test_new_union_version};
@@ -789,7 +784,6 @@ mod tests {
             }
         }
     }
-    */
 
     #[test]
     fn upgrade_list() {
