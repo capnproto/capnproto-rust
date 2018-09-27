@@ -62,7 +62,7 @@ fn evaluate_impl(expression: calculator::expression::Reader,
         },
         calculator::expression::PreviousResult(p) => {
             Promise::from_future(pry!(p).read_request().send().promise.and_then(|v| {
-                Ok(try!(v.get()).get_value())
+                Ok(v.get()?.get_value())
             }))
         }
         calculator::expression::Parameter(p) => {
@@ -91,7 +91,7 @@ fn evaluate_impl(expression: calculator::expression::Reader,
                     }
                 }
                 request.send().promise.and_then(|result| {
-                    Ok(try!(result.get()).get_value())
+                    Ok(result.get()?.get_value())
                 })
             }))
         }
@@ -109,7 +109,7 @@ impl FunctionImpl {
             param_count: param_count,
             body: ::capnp_rpc::ImbuedMessageBuilder::new(::capnp::message::HeapAllocator::new()),
         };
-        try!(result.body.set_root(body));
+        result.body.set_root(body)?;
         Ok(result)
     }
 }
@@ -213,7 +213,7 @@ pub fn main() {
         calculator::ToClient::new(CalculatorImpl).from_server::<::capnp_rpc::Server>();
 
     let done = socket.incoming().for_each(move |socket| {
-        try!(socket.set_nodelay(true));
+        socket.set_nodelay(true)?;
         let (reader, writer) = socket.split();
 
         let network =
