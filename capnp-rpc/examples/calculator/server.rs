@@ -28,7 +28,8 @@ use calculator_capnp::calculator;
 use capnp::capability::Promise;
 
 use futures::{Future, Stream};
-use tokio_io::{AsyncRead};
+use tokio::io::{AsyncRead};
+use tokio::runtime::current_thread;
 
 struct ValueImpl {
     value: f64
@@ -205,29 +206,24 @@ pub fn main() {
         return;
     }
 
-    let mut core = ::tokio_core::reactor::Core::new().unwrap();
-    let handle = core.handle();
-
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
-    let socket = ::tokio_core::net::TcpListener::bind(&addr, &handle).unwrap();
+    let socket = ::tokio::net::TcpListener::bind(&addr).unwrap();
 
     let calc =
         calculator::ToClient::new(CalculatorImpl).from_server::<::capnp_rpc::Server>();
 
-    let done = socket.incoming().for_each(move |(socket, _addr)| {
+    let done = socket.incoming().for_each(move |socket| {
         try!(socket.set_nodelay(true));
         let (reader, writer) = socket.split();
-
-        let handle = handle.clone();
 
         let network =
             twoparty::VatNetwork::new(reader, writer,
                                       rpc_twoparty_capnp::Side::Server, Default::default());
 
         let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
-        handle.spawn(rpc_system.map_err(|e| println!("error: {:?}", e)));
+        current_thread::spawn(rpc_system.map_err(|e| println!("error: {:?}", e)));
         Ok(())
     });
 
-    core.run(done).unwrap();
+    current_thread::block_on_all(done).unwrap();
 }
