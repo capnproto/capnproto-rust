@@ -459,37 +459,35 @@ mod wire_helpers {
     pub unsafe fn follow_fars(
         arena: &ReaderArena,
         reff: *const WirePointer,
-        ref_target: Result<*const Word>,
-        mut segment_id: u32)
+        segment_id: u32)
         -> Result<(*const Word, *const WirePointer, u32)>
     {
         if (*reff).kind() == WirePointerKind::Far {
-            segment_id = (*reff).far_segment_id();
+            let far_segment_id = (*reff).far_segment_id();
 
-            let (seg_start, _seg_len) = try!(arena.get_segment(segment_id));
+            let (seg_start, _seg_len) = try!(arena.get_segment(far_segment_id));
             let ptr: *const Word = seg_start.offset((*reff).far_position_in_segment() as isize);
 
             let pad_words: usize = if (*reff).is_double_far() { 2 } else { 1 };
-            try!(bounds_check(arena, segment_id, ptr, pad_words, WirePointerKind::Far));
+            try!(bounds_check(arena, far_segment_id, ptr, pad_words, WirePointerKind::Far));
 
             let pad: *const WirePointer = ptr as *const _;
 
             if !(*reff).is_double_far() {
-                Ok((try!((*pad).target_from_segment(arena, segment_id)), pad, segment_id))
+                Ok((try!((*pad).target_from_segment(arena, far_segment_id)), pad, far_segment_id))
             } else {
                 //# Landing pad is another far pointer. It is
                 //# followed by a tag describing the pointed-to
                 //# object.
 
                 let reff = pad.offset(1);
-
-                let segment_id = (*pad).far_segment_id();
-                let (segment_start, _segment_len) = try!(arena.get_segment(segment_id));
+                let double_far_segment_id = (*pad).far_segment_id();
+                let (segment_start, _segment_len) = arena.get_segment(double_far_segment_id)?;
                 let ptr = segment_start.offset((*pad).far_position_in_segment() as isize);
-                Ok((ptr, reff, segment_id))
+                Ok((ptr, reff, double_far_segment_id))
             }
         } else {
-            Ok((try!(ref_target), reff, segment_id))
+            Ok(((*reff).target_from_segment(arena, segment_id)?, reff, segment_id))
         }
     }
 
@@ -632,8 +630,7 @@ mod wire_helpers {
 
         nesting_limit -= 1;
 
-        let (ptr, reff, segment_id) =
-            try!(follow_fars(arena, reff, (*reff).target_from_segment(arena, segment_id), segment_id));
+        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
 
         match (*reff).kind() {
             WirePointerKind::Struct => {
@@ -1686,15 +1683,12 @@ mod wire_helpers {
         nesting_limit: i32,
         canonicalize: bool) -> Result<SegmentAnd<*mut Word>>
     {
-        let src_target = (*src).target_from_segment(src_arena, src_segment_id);
-
         if (*src).is_null() {
             ptr::write_bytes(dst, 0, 1);
             return Ok(SegmentAnd { segment_id: dst_segment_id, value: ptr::null_mut() });
         }
 
-        let (mut ptr, src, src_segment_id) =
-            try!(follow_fars(src_arena, src, src_target, src_segment_id));
+        let (mut ptr, src, src_segment_id) = follow_fars(src_arena, src, src_segment_id)?;
 
         match (*src).kind() {
             WirePointerKind::Struct => {
@@ -1841,8 +1835,6 @@ mod wire_helpers {
         default_value: *const Word,
         nesting_limit: i32) -> Result<StructReader<'a>>
     {
-        let ref_target = (*reff).target_from_segment(arena, segment_id);
-
         if (*reff).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
                     return Ok(StructReader::new_default());
@@ -1856,7 +1848,7 @@ mod wire_helpers {
             return Err(Error::failed("Message is too deeply-nested or contains cycles.".to_string()));
         }
 
-        let (ptr, reff, segment_id) = try!(follow_fars(arena, reff, ref_target, segment_id));
+        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
 
         let data_size_words = (*reff).struct_data_size();
 
@@ -1917,8 +1909,6 @@ mod wire_helpers {
         expected_element_size: Option<ElementSize>,
         nesting_limit: i32) -> Result<ListReader<'a>>
     {
-        let ref_target: Result<*const Word> = (*reff).target_from_segment(arena, segment_id);
-
         if (*reff).is_null() {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
                 return Ok(ListReader::new_default());
@@ -1929,8 +1919,7 @@ mod wire_helpers {
         if nesting_limit <= 0 {
             return Err(Error::failed("nesting limit exceeded".to_string()));
         }
-
-        let (mut ptr, reff, segment_id) = try!(follow_fars(arena, reff, ref_target, segment_id));
+        let (mut ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
 
         if (*reff).kind() != WirePointerKind::List {
             return Err(Error::failed(
@@ -2087,8 +2076,7 @@ mod wire_helpers {
             }
         }
 
-        let ref_target = (*reff).target_from_segment(arena, segment_id);
-        let (ptr, reff, segment_id) = try!(follow_fars(arena, reff, ref_target, segment_id));
+        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
         let size = (*reff).list_element_count();
 
         if (*reff).kind() != WirePointerKind::List {
@@ -2135,9 +2123,7 @@ mod wire_helpers {
             }
         }
 
-        let ref_target = (*reff).target_from_segment(arena, segment_id);
-
-        let (ptr, reff, segment_id) = try!(follow_fars(arena, reff, ref_target, segment_id));
+        let (ptr, reff, segment_id) = follow_fars(arena, reff, segment_id)?;
 
         let size: u32 = (*reff).list_element_count();
 
@@ -2383,9 +2369,7 @@ impl <'a> PointerReader<'a> {
             Ok(PointerType::Null)
         } else {
             let (_, reff, _) = unsafe {
-                try!(wire_helpers::follow_fars(
-                    self.arena, self.pointer,
-                    (*self.pointer).target_from_segment(self.arena, self.segment_id), self.segment_id))
+                wire_helpers::follow_fars(self.arena, self.pointer, self.segment_id)?
             };
 
             match unsafe { (*reff).kind() } {
