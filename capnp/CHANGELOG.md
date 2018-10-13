@@ -1,3 +1,6 @@
+## v.0.9.1
+- Avoid some unnecessary heap allocation that could occur when reading multisegment messages.
+
 ## v.0.9.0
 - Add message::Builder::set_root_canonical() method. Relies on a new signature for SetPointerBuilder.
 - Mark bytes_to_words() and bytes_to_words_mut() as unsafe, due to possible alignment issues. Please
