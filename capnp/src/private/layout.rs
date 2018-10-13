@@ -455,6 +455,10 @@ mod wire_helpers {
         }
     }
 
+    /// Follows a WirePointer to get a triple containing:
+    ///   - the pointed-to object
+    ///   - the resolved WirePointer, whose kind is something other than WirePointerKind::Far
+    ///   - the segment on which the pointed-to object lives
     #[inline]
     pub unsafe fn follow_fars(
         arena: &ReaderArena,
@@ -465,26 +469,25 @@ mod wire_helpers {
         if (*reff).kind() == WirePointerKind::Far {
             let far_segment_id = (*reff).far_segment_id();
 
-            let (seg_start, _seg_len) = try!(arena.get_segment(far_segment_id));
+            let (seg_start, _seg_len) = arena.get_segment(far_segment_id)?;
             let ptr: *const Word = seg_start.offset((*reff).far_position_in_segment() as isize);
 
             let pad_words: usize = if (*reff).is_double_far() { 2 } else { 1 };
-            try!(bounds_check(arena, far_segment_id, ptr, pad_words, WirePointerKind::Far));
+            bounds_check(arena, far_segment_id, ptr, pad_words, WirePointerKind::Far)?;
 
             let pad: *const WirePointer = ptr as *const _;
 
             if !(*reff).is_double_far() {
-                Ok((try!((*pad).target_from_segment(arena, far_segment_id)), pad, far_segment_id))
+                Ok(((*pad).target_from_segment(arena, far_segment_id)?, pad, far_segment_id))
             } else {
-                //# Landing pad is another far pointer. It is
-                //# followed by a tag describing the pointed-to
-                //# object.
+                // Landing pad is another far pointer. It is followed by a tag describing the
+                // pointed-to object.
 
-                let reff = pad.offset(1);
+                let tag = pad.offset(1);
                 let double_far_segment_id = (*pad).far_segment_id();
                 let (segment_start, _segment_len) = arena.get_segment(double_far_segment_id)?;
                 let ptr = segment_start.offset((*pad).far_position_in_segment() as isize);
-                Ok((ptr, reff, double_far_segment_id))
+                Ok((ptr, tag, double_far_segment_id))
             }
         } else {
             Ok(((*reff).target_from_segment(arena, segment_id)?, reff, segment_id))
