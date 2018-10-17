@@ -24,7 +24,7 @@ use calculator_capnp::calculator;
 use capnp::capability::Promise;
 
 use futures::Future;
-use tokio_io::{AsyncRead};
+use tokio::io::{AsyncRead};
 
 #[derive(Clone, Copy)]
 pub struct PowerFunction;
@@ -58,12 +58,11 @@ pub fn main() {
 fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
     use std::net::ToSocketAddrs;
 
-    let mut core = try!(::tokio_core::reactor::Core::new());
-    let handle = core.handle();
+    let mut runtime = ::tokio::runtime::current_thread::Runtime::new().unwrap();
 
-    let addr = try!(args[2].to_socket_addrs()).next().expect("could not parse address");
-    let stream = core.run(::tokio_core::net::TcpStream::connect(&addr, &handle)).unwrap();
-    try!(stream.set_nodelay(true));
+    let addr = args[2].to_socket_addrs()?.next().expect("could not parse address");
+    let stream = runtime.block_on(::tokio::net::TcpStream::connect(&addr)).unwrap();
+    stream.set_nodelay(true)?;
     let (reader, writer) = stream.split();
 
     let network =
@@ -72,7 +71,7 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
                                            Default::default()));
     let mut rpc_system = RpcSystem::new(network, None);
     let calculator: calculator::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-    handle.spawn(rpc_system.map_err(|_e| ()));
+    runtime.spawn(rpc_system.map_err(|_e| ()));
 
     {
         // Make a request that just evaluates the literal value 123.
@@ -90,10 +89,10 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         request.get().init_expression().set_literal(123.0);
         let value = request.send().pipeline.get_value();
         let request = value.read_request();
-        try!(core.run(request.send().promise.and_then(|response| {
+        runtime.block_on(request.send().promise.and_then(|response| {
             assert_eq!(pry!(response.get()).get_value(), 123.0);
             Promise::ok(())
-        })));
+        }))?;
         println!("PASS");
     }
 
@@ -143,8 +142,8 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         let eval_promise = request.send();
         let read_promise = eval_promise.pipeline.get_value().read_request().send();
 
-        let response = try!(core.run(read_promise.promise));
-        assert_eq!(try!(response.get()).get_value(), 101.0);
+        let response = runtime.block_on(read_promise.promise)?;
+        assert_eq!(response.get()?.get_value(), 101.0);
 
         println!("PASS");
     }
@@ -211,8 +210,8 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         let add5_promise = add5_request.send().pipeline.get_value().read_request().send();
 
         // Now wait for the results.
-        assert!(try!(try!(core.run(add3_promise.promise)).get()).get_value() == 27.0);
-        assert!(try!(try!(core.run(add5_promise.promise)).get()).get_value() == 29.0);
+        assert!(runtime.block_on(add3_promise.promise)?.get()?.get_value() == 27.0);
+        assert!(runtime.block_on(add5_promise.promise)?.get()?.get_value() == 29.0);
 
         println!("PASS")
     }
@@ -307,8 +306,8 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         }
         let g_eval_promise = g_eval_request.send().pipeline.get_value().read_request().send();
 
-        assert!(try!(try!(core.run(f_eval_promise.promise)).get()).get_value() == 1234.0);
-        assert!(try!(try!(core.run(g_eval_promise.promise)).get()).get_value() == 4244.0);
+        assert!(runtime.block_on(f_eval_promise.promise)?.get()?.get_value() == 1234.0);
+        assert!(runtime.block_on(g_eval_promise.promise)?.get()?.get_value() == 4244.0);
 
         println!("PASS")
     }
@@ -353,7 +352,7 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
 
         let response_promise = request.send().pipeline.get_value().read_request().send();
 
-        assert!(try!(try!(core.run(response_promise.promise)).get()).get_value() == 512.0);
+        assert!(runtime.block_on(response_promise.promise)?.get()?.get_value() == 512.0);
 
         println!("PASS");
     }

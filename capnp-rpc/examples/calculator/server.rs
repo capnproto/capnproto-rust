@@ -28,7 +28,8 @@ use calculator_capnp::calculator;
 use capnp::capability::Promise;
 
 use futures::{Future, Stream};
-use tokio_io::{AsyncRead};
+use tokio::io::{AsyncRead};
+use tokio::runtime::current_thread;
 
 struct ValueImpl {
     value: f64
@@ -61,7 +62,7 @@ fn evaluate_impl(expression: calculator::expression::Reader,
         },
         calculator::expression::PreviousResult(p) => {
             Promise::from_future(pry!(p).read_request().send().promise.and_then(|v| {
-                Ok(try!(v.get()).get_value())
+                Ok(v.get()?.get_value())
             }))
         }
         calculator::expression::Parameter(p) => {
@@ -90,7 +91,7 @@ fn evaluate_impl(expression: calculator::expression::Reader,
                     }
                 }
                 request.send().promise.and_then(|result| {
-                    Ok(try!(result.get()).get_value())
+                    Ok(result.get()?.get_value())
                 })
             }))
         }
@@ -108,7 +109,7 @@ impl FunctionImpl {
             param_count: param_count,
             body: ::capnp_rpc::ImbuedMessageBuilder::new(::capnp::message::HeapAllocator::new()),
         };
-        try!(result.body.set_root(body));
+        result.body.set_root(body)?;
         Ok(result)
     }
 }
@@ -205,29 +206,24 @@ pub fn main() {
         return;
     }
 
-    let mut core = ::tokio_core::reactor::Core::new().unwrap();
-    let handle = core.handle();
-
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
-    let socket = ::tokio_core::net::TcpListener::bind(&addr, &handle).unwrap();
+    let socket = ::tokio::net::TcpListener::bind(&addr).unwrap();
 
     let calc =
         calculator::ToClient::new(CalculatorImpl).from_server::<::capnp_rpc::Server>();
 
-    let done = socket.incoming().for_each(move |(socket, _addr)| {
-        try!(socket.set_nodelay(true));
+    let done = socket.incoming().for_each(move |socket| {
+        socket.set_nodelay(true)?;
         let (reader, writer) = socket.split();
-
-        let handle = handle.clone();
 
         let network =
             twoparty::VatNetwork::new(reader, writer,
                                       rpc_twoparty_capnp::Side::Server, Default::default());
 
         let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
-        handle.spawn(rpc_system.map_err(|e| println!("error: {:?}", e)));
+        current_thread::spawn(rpc_system.map_err(|e| println!("error: {:?}", e)));
         Ok(())
     });
 
-    core.run(done).unwrap();
+    current_thread::block_on_all(done).unwrap();
 }

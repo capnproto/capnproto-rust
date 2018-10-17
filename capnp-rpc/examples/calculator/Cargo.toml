@@ -16,8 +16,7 @@ capnpc = { path = "../../../capnpc" }
 [dependencies]
 capnp = { path = "../../../capnp" }
 futures = "0.1"
-tokio-core = "0.1"
-tokio-io = "0.1"
+tokio = "0.1"
 
 [dependencies.capnp-rpc]
 path = "../.."
