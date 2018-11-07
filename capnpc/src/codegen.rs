@@ -1603,7 +1603,9 @@ fn generate_node(gen: &GeneratorContext,
                             Line(format!("fn set_pointer_builder<'a>(pointer: ::capnp::private::layout::PointerBuilder<'a>, from: Client<{}>, _canonicalize: bool) -> ::capnp::Result<()> {{",
                                          params.params)),
                             Indent(Box::new(Line(
-                                "::std::result::Result::Ok(pointer.set_capability(from.client.hook))".to_string()))),
+                                "pointer.set_capability(from.client.hook);".to_string()))),
+                            Indent(Box::new(Line(
+                                "::std::result::Result::Ok(())".to_string()))),
                             Line("}".to_string())]))),
                 Line("}".to_string())]));
 
