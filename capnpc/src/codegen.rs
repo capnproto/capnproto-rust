@@ -767,7 +767,7 @@ fn generate_union(gen: &GeneratorContext,
 
         getter_interior.push(Branch(vec![
             Line(format!("{} => {{", dvalue)),
-            Indent(Box::new(Line(format!("return ::std::result::Result::Ok({}(", enumerant_name.clone())))),
+            Indent(Box::new(Line(format!("::std::result::Result::Ok({}(", enumerant_name.clone())))),
             Indent(Box::new(Indent(Box::new(get)))),
             Indent(Box::new(Line("));".to_string()))),
             Line("}".to_string())
