@@ -491,7 +491,7 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
                             type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) |
                             type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
                                 let line = Line(format!(
-                                    "self.builder.set_data_field::<{0}>({1}, 0u8 as {0});",
+                                    "self.builder.set_data_field::<{0}>({1}, {0}::from(0u8));",
                                     try!(try!(slot.get_type()).type_string(gen, Leaf::Builder("'a"))),
                                     slot.get_offset()));
                                 // PERF could dedup more efficiently
