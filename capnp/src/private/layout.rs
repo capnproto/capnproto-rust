@@ -2192,7 +2192,12 @@ pub enum CapTableBuilder {
 }
 
 impl CapTableBuilder {
+    #[deprecated]
     pub fn as_reader(self) -> CapTableReader {
+        self.into_reader()
+    }
+
+    pub fn into_reader(self) -> CapTableReader {
         match self {
             CapTableBuilder::Plain(hooks) => CapTableReader::Plain(hooks),
         }
@@ -2505,8 +2510,8 @@ impl <'a> PointerBuilder<'a> {
     pub fn get_capability(&self) -> Result<Box<ClientHook>> {
         unsafe {
             wire_helpers::read_capability_pointer(
-                self.arena.as_reader(),
-                self.segment_id, self.cap_table.as_reader(), self.pointer, ::std::i32::MAX)
+                self.arena.into_reader(),
+                self.segment_id, self.cap_table.into_reader(), self.pointer, ::std::i32::MAX)
         }
     }
 
@@ -2605,11 +2610,16 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
+    #[deprecated]
     pub fn as_reader(self) -> PointerReader<'a> {
+        self.into_reader()
+    }
+
+    pub fn into_reader(self) -> PointerReader<'a> {
         PointerReader {
-            arena: self.arena.as_reader(),
+            arena: self.arena.into_reader(),
             segment_id: self.segment_id,
-            cap_table: self.cap_table.as_reader(),
+            cap_table: self.cap_table.into_reader(),
             pointer: self.pointer,
             nesting_limit: 0x7fffffff
         }
@@ -2793,10 +2803,15 @@ pub struct StructBuilder<'a> {
 }
 
 impl <'a> StructBuilder<'a> {
+    #[deprecated]
     pub fn as_reader(self) -> StructReader<'a> {
+        self.into_reader()
+    }
+
+    pub fn into_reader(self) -> StructReader<'a> {
         StructReader {
-            arena: self.arena.as_reader(),
-            cap_table: self.cap_table.as_reader(),
+            arena: self.arena.into_reader(),
+            cap_table: self.cap_table.into_reader(),
             data: self.data,
             pointers: self.pointers,
             pointer_count: self.pointer_count,
@@ -3087,11 +3102,16 @@ impl <'a> ListBuilder<'a> {
         }
     }
 
+    #[deprecated]
     pub fn as_reader(self) -> ListReader<'a> {
+        self.into_reader()
+    }
+
+    pub fn into_reader(self) -> ListReader<'a> {
         ListReader {
-            arena: self.arena.as_reader(),
+            arena: self.arena.into_reader(),
             segment_id: self.segment_id,
-            cap_table: self.cap_table.as_reader(),
+            cap_table: self.cap_table.into_reader(),
             ptr: self.ptr as *const _,
             element_count: self.element_count,
             element_size: self.element_size,

@@ -89,10 +89,15 @@ impl <'a, T> Builder<'a, T> where T: PrimitiveElement {
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
+    #[deprecated]
     pub fn as_reader(self) -> Reader<'a, T> {
+        self.into_reader()
+    }
+
+    pub fn into_reader(self) -> Reader<'a, T> {
         Reader {
             marker: marker::PhantomData,
-            reader: self.builder.as_reader(),
+            reader: self.builder.into_reader(),
         }
     }
 

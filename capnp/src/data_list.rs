@@ -81,8 +81,13 @@ impl <'a> Builder<'a> {
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
+    #[deprecated]
     pub fn as_reader(self) -> Reader<'a> {
-        Reader { reader: self.builder.as_reader() }
+        self.into_reader()
+    }
+
+    pub fn into_reader(self) -> Reader<'a> {
+        Reader { reader: self.builder.into_reader() }
     }
 
     pub fn set(&mut self, index: u32, value: ::data::Reader) {

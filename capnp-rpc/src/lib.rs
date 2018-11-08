@@ -307,7 +307,7 @@ impl <VatId> Future for RpcSystem<VatId> where VatId: 'static {
 /// To use this, you need to do the following dance:
 ///
 /// ```ignore
-/// let client = foo::ToClient::new(FooImpl).from_server::<::capnp_rpc::Server>());
+/// let client = foo::ToClient::new(FooImpl).into_client::<::capnp_rpc::Server>());
 /// ```
 pub struct Server;
 

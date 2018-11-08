@@ -90,7 +90,7 @@ fn disconnector_setup(handle : &tokio_core::reactor::Handle) -> ( RpcSystem<capn
                                            Default::default()));
 
     let bootstrap =
-        test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
+        test_capnp::bootstrap::ToClient::new(impls::Bootstrap).into_client::<::capnp_rpc::Server>();
 
     let server_rpc_system = RpcSystem::new(server_network, Some(bootstrap.client));
 
@@ -186,7 +186,7 @@ fn rpc_top_level<F>(main: F)
                                                Default::default()));
 
         let bootstrap =
-            test_capnp::bootstrap::ToClient::new(impls::Bootstrap).from_server::<::capnp_rpc::Server>();
+            test_capnp::bootstrap::ToClient::new(impls::Bootstrap).into_client::<::capnp_rpc::Server>();
 
         let rpc_system = RpcSystem::new(network, Some(bootstrap.client));
 
@@ -270,7 +270,7 @@ fn basic_pipelining() {
         let server = impls::TestInterface::new();
         let chained_call_count = server.get_call_count();
         request.get().set_in_cap(
-            ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>());
+            ::test_capnp::test_interface::ToClient::new(server).into_client::<::capnp_rpc::Server>());
 
         let promise = request.send();
 
@@ -438,7 +438,7 @@ fn promise_resolve() {
 
         let server = impls::TestInterface::new();
         let _ = paf_fulfiller.send(
-            ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>().client);
+            ::test_capnp::test_interface::ToClient::new(server).into_client::<::capnp_rpc::Server>().client);
 
         let response = try!(core.run(promise));
         if try!(try!(response.get()).get_s()) != "bar" {
@@ -478,7 +478,7 @@ fn retain_and_release() {
                 let mut request = client.hold_request();
                 request.get().set_cap(
                     ::test_capnp::test_interface::ToClient::new(impls::TestCapDestructor::new(fulfiller))
-                        .from_server::<::capnp_rpc::Server>());
+                        .into_client::<::capnp_rpc::Server>());
                 try!(core.run(request.send().promise));
             }
 
@@ -583,7 +583,7 @@ fn cancel_releases_params() {
             let mut request = client.never_return_request();
             request.get().set_cap(
                 ::test_capnp::test_interface::ToClient::new(impls::TestCapDestructor::new(fulfiller))
-                    .from_server::<::capnp_rpc::Server>());
+                    .into_client::<::capnp_rpc::Server>());
 
             {
                 let _response_promise = request.send();
@@ -662,7 +662,7 @@ fn embargo_success() {
 
         let mut echo_request = client.echo_request();
         echo_request.get().set_cap(
-            ::test_capnp::test_call_order::ToClient::new(server).from_server::<::capnp_rpc::Server>());
+            ::test_capnp::test_call_order::ToClient::new(server).into_client::<::capnp_rpc::Server>());
         let echo = echo_request.send();
 
         let pipeline = echo.pipeline.get_cap();
@@ -793,7 +793,7 @@ fn local_client_call_not_immediate() {
     let server = ::impls::TestInterface::new();
     let call_count = server.get_call_count();
     assert_eq!(call_count.get(), 0);
-    let client = ::test_capnp::test_interface::ToClient::new(server).from_server::<::capnp_rpc::Server>();
+    let client = ::test_capnp::test_interface::ToClient::new(server).into_client::<::capnp_rpc::Server>();
     let mut req = client.foo_request();
     req.get().set_i(123);
     req.get().set_j(true);
@@ -810,8 +810,8 @@ fn local_client_call_not_immediate() {
 fn local_client_send_cap() {
     let server1 = ::impls::TestMoreStuff::new();
     let server2 = ::impls::TestInterface::new();
-    let client1 = ::test_capnp::test_more_stuff::ToClient::new(server1).from_server::<::capnp_rpc::Server>();
-    let client2 = ::test_capnp::test_interface::ToClient::new(server2).from_server::<::capnp_rpc::Server>();
+    let client1 = ::test_capnp::test_more_stuff::ToClient::new(server1).into_client::<::capnp_rpc::Server>();
+    let client2 = ::test_capnp::test_interface::ToClient::new(server2).into_client::<::capnp_rpc::Server>();
 
     let mut req = client1.call_foo_request();
     req.get().set_cap(client2);
@@ -822,7 +822,7 @@ fn local_client_send_cap() {
 #[test]
 fn local_client_return_cap() {
     let server = ::impls::Bootstrap;
-    let client = ::test_capnp::bootstrap::ToClient::new(server).from_server::<::capnp_rpc::Server>();
+    let client = ::test_capnp::bootstrap::ToClient::new(server).into_client::<::capnp_rpc::Server>();
     let response = client.test_interface_request().send().promise.wait().unwrap();
     let client1 = response.get().unwrap().get_cap().unwrap();
 
@@ -842,12 +842,12 @@ fn capability_list() {
         let server1 = ::impls::TestInterface::new();
         let call_count1 = server1.get_call_count();
         assert_eq!(call_count1.get(), 0);
-        let client1 = ::test_capnp::test_interface::ToClient::new(server1).from_server::<::capnp_rpc::Server>();
+        let client1 = ::test_capnp::test_interface::ToClient::new(server1).into_client::<::capnp_rpc::Server>();
 
         let server2 = ::impls::TestInterface::new();
         let call_count2 = server2.get_call_count();
         assert_eq!(call_count2.get(), 0);
-        let client2 = ::test_capnp::test_interface::ToClient::new(server2).from_server::<::capnp_rpc::Server>();
+        let client2 = ::test_capnp::test_interface::ToClient::new(server2).into_client::<::capnp_rpc::Server>();
 
         let mut request = client.call_each_capability_request();
         {

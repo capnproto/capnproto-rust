@@ -56,7 +56,7 @@ fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
     {
         let root_builder = message.get_root::<test_all_types::Builder>()?;
         root_builder.total_size()?;
-        traverse(root_builder.as_reader())?;
+        traverse(root_builder.into_reader())?;
     }
 
     // init_root() will zero the previous value
