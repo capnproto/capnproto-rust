@@ -1420,7 +1420,7 @@ fn generate_node(gen: &GeneratorContext,
                     Line(format!("impl ::capnp::traits::HasTypeId for {} {{", last_name)),
                     Indent(Box::new(Line("#[inline]".to_string()))),
                     Indent(
-                        Box::new(Line(format!("fn type_id() -> u64 {{ {:#x}u64 }}", node_id).to_string()))),
+                        Box::new(Line(format!("fn type_id() -> u64 {{ {}u64 }}", format_u64(node_id)).to_string()))),
                     Line("}".to_string()))));
         }
 
