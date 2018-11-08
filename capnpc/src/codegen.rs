@@ -1600,7 +1600,7 @@ fn generate_node(gen: &GeneratorContext,
                 Indent(
                     Box::new(
                         Branch(vec![
-                            Line(format!("fn set_pointer_builder<'a>(pointer: ::capnp::private::layout::PointerBuilder<'a>, from: Client<{}>, _canonicalize: bool) -> ::capnp::Result<()> {{",
+                            Line(format!("fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Client<{}>, _canonicalize: bool) -> ::capnp::Result<()> {{",
                                          params.params)),
                             Indent(Box::new(Line(
                                 "pointer.set_capability(from.client.hook);".to_string()))),
