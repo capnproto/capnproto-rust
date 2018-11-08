@@ -769,7 +769,7 @@ fn generate_union(gen: &GeneratorContext,
             Line(format!("{} => {{", dvalue)),
             Indent(Box::new(Line(format!("::std::result::Result::Ok({}(", enumerant_name.clone())))),
             Indent(Box::new(Indent(Box::new(get)))),
-            Indent(Box::new(Line("));".to_string()))),
+            Indent(Box::new(Line("))".to_string()))),
             Line("}".to_string())
         ]));
 
@@ -803,7 +803,7 @@ fn generate_union(gen: &GeneratorContext,
                             else {"".to_string()} );
 
 
-    getter_interior.push(Line("x => return ::std::result::Result::Err(::capnp::NotInSchema(x))".to_string()));
+    getter_interior.push(Line("x => ::std::result::Result::Err(::capnp::NotInSchema(x))".to_string()));
 
     interior.push(
         Branch(vec!(Line(format!("pub enum {} {{", enum_name)),
