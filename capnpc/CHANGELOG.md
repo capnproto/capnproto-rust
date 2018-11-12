@@ -1,3 +1,7 @@
+### v0.9.1
+- Add support for Rust 2018.
+- Fix a bunch of clippy warnings.
+
 ### v0.9.0
 - Remove deprecated items.
 
