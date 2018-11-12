@@ -143,6 +143,7 @@ impl CompilerCommand {
         self
     }
 
+    /// Sets the Rust edition of the generated code.
     pub fn edition(&mut self, rust_edition: RustEdition) -> &mut Self {
         self.rust_edition = rust_edition;
         self
