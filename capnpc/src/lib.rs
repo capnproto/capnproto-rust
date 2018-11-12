@@ -71,11 +71,17 @@ pub mod schema;
 
 use std::path::{Path, PathBuf};
 
-fn run_command(mut command: ::std::process::Command) -> ::capnp::Result<()> {
-    let mut p = try!(command.spawn());
-    try!(::codegen::main(p.stdout.take().unwrap(),
-                         ::std::path::Path::new(&::std::env::var("OUT_DIR").unwrap())));
-    let exit_status = try!(p.wait());
+#[derive(Copy, Clone)]
+pub enum RustEdition {
+    Rust2015,
+    Rust2018
+}
+
+fn run_command(mut command: ::std::process::Command, edition: RustEdition) -> ::capnp::Result<()> {
+    let mut p = command.spawn()?;
+    ::codegen::generate_code(p.stdout.take().unwrap(),
+                         ::std::path::Path::new(&::std::env::var("OUT_DIR").unwrap()), edition)?;
+    let exit_status = p.wait()?;
     if !exit_status.success() {
         Err(::capnp::Error::failed(format!("Non-success exit status: {}", exit_status)))
     } else {
@@ -89,6 +95,7 @@ pub struct CompilerCommand {
     src_prefixes: Vec<PathBuf>,
     import_paths: Vec<PathBuf>,
     no_standard_import: bool,
+    rust_edition: RustEdition,
 }
 
 impl CompilerCommand {
@@ -99,6 +106,7 @@ impl CompilerCommand {
             src_prefixes: Vec::new(),
             import_paths: Vec::new(),
             no_standard_import: false,
+            rust_edition: RustEdition::Rust2015,
         }
     }
 
@@ -135,6 +143,11 @@ impl CompilerCommand {
         self
     }
 
+    pub fn edition(&mut self, rust_edition: RustEdition) -> &mut Self {
+        self.rust_edition = rust_edition;
+        self
+    }
+
     /// Runs the command.
     pub fn run(&mut self) -> ::capnp::Result<()> {
         let mut command = ::std::process::Command::new("capnp");
@@ -159,7 +172,7 @@ impl CompilerCommand {
         command.stdout(::std::process::Stdio::piped());
         command.stderr(::std::process::Stdio::inherit());
 
-        run_command(command).map_err(|error| {
+        run_command(command, self.rust_edition).map_err(|error| {
             ::capnp::Error::failed(format!(
                 "Error while trying to execute `capnp compile`: {}.  \
                  Please verify that version 0.5.2 or higher of the capnp executable \
