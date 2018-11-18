@@ -96,7 +96,7 @@ impl ::foo_capnp::bar::Server for MyBar {
 Then you can convert your object into a capability client like this:
 
 ```rust
-let client = ::foo_capnp::bar::ToClient::new(MyBar {})).from_server::<::capnp_rpc::Server>();
+let client = ::foo_capnp::bar::ToClient::new(MyBar {})).into_client::<::capnp_rpc::Server>();
 ```
 
 This new `client` can now be sent across the network.

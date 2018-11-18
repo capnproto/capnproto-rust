@@ -53,7 +53,7 @@ impl outgoing_http::Server for OutgoingHttp {
             ::tokio_curl::Session::new(self.handle.clone()),
             pry!(pry!(params.get()).get_base_url()).to_string());
         results.get().set_session(
-            http_session::ToClient::new(session).from_server::<::capnp_rpc::Server>());
+            http_session::ToClient::new(session).into_client::<::capnp_rpc::Server>());
         Promise::ok(())
     }
 }
@@ -141,7 +141,7 @@ pub fn main() {
     let socket = ::tokio_core::net::TcpListener::bind(&addr, &handle).unwrap();
 
     let proxy = outgoing_http::ToClient::new(
-        OutgoingHttp::new(handle.clone())).from_server::<::capnp_rpc::Server>();
+        OutgoingHttp::new(handle.clone())).into_client::<::capnp_rpc::Server>();
 
     let handle1 = handle.clone();
     let done = socket.incoming().for_each(move |(socket, _addr)| {

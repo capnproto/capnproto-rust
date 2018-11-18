@@ -99,7 +99,7 @@ impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
 
         results.get().set_subscription(
             subscription::ToClient::new(SubscriptionImpl::new(self.next_id, self.subscribers.clone()))
-                .from_server::<::capnp_rpc::Server>());
+                .into_client::<::capnp_rpc::Server>());
 
         self.next_id += 1;
         Promise::ok(())
@@ -121,7 +121,7 @@ pub fn main() {
 
     let (publisher_impl, subscribers) = PublisherImpl::new();
 
-    let publisher = publisher::ToClient::new(publisher_impl).from_server::<::capnp_rpc::Server>();
+    let publisher = publisher::ToClient::new(publisher_impl).into_client::<::capnp_rpc::Server>();
 
     let handle1 = handle.clone();
     let done = socket.incoming().for_each(move |(socket, _addr)| {

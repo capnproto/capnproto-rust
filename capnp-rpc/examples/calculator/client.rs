@@ -339,7 +339,7 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         {
             let mut pow_call = request.get().init_expression().init_call();
             pow_call.set_function(
-                calculator::function::ToClient::new(PowerFunction).from_server::<::capnp_rpc::Server>());
+                calculator::function::ToClient::new(PowerFunction).into_client::<::capnp_rpc::Server>());
             let mut pow_params = pow_call.init_params(2);
             pow_params.reborrow().get(0).set_literal(2.0);
 

@@ -1772,7 +1772,7 @@ impl <VatId> RequestHook for Request<VatId> {
                 let mut replacement = redirect.new_call(call_builder.reborrow().get_interface_id(),
                                                         call_builder.reborrow().get_method_id(), None);
 
-                replacement.set(call_builder.get_params().unwrap().get_content().as_reader()).unwrap();
+                replacement.set(call_builder.get_params().unwrap().get_content().into_reader()).unwrap();
                 replacement.send()
             }
             None => {

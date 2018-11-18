@@ -126,7 +126,7 @@ impl calculator::function::Server for FunctionImpl {
                 format!("Expect {} parameters but got {}.", self.param_count, params.len())))
         } else {
             Promise::from_future(evaluate_impl(
-                pry!(self.body.get_root::<calculator::expression::Builder>()).as_reader(),
+                pry!(self.body.get_root::<calculator::expression::Builder>()).into_reader(),
                 Some(params)).map(move |v| {
                     results.get().set_value(v);
                 }))
@@ -171,7 +171,7 @@ impl calculator::Server for CalculatorImpl {
     {
         Promise::from_future(evaluate_impl(pry!(pry!(params.get()).get_expression()), None).map(move |v| {
             results.get().set_value(
-                calculator::value::ToClient::new(ValueImpl::new(v)).from_server::<::capnp_rpc::Server>());
+                calculator::value::ToClient::new(ValueImpl::new(v)).into_client::<::capnp_rpc::Server>());
         }))
     }
     fn def_function(&mut self,
@@ -183,7 +183,7 @@ impl calculator::Server for CalculatorImpl {
             calculator::function::ToClient::new(
                 pry!(FunctionImpl::new(pry!(params.get()).get_param_count() as u32,
                                        pry!(pry!(params.get()).get_body()))))
-                .from_server::<::capnp_rpc::Server>());
+                .into_client::<::capnp_rpc::Server>());
         Promise::ok(())
     }
     fn get_operator(&mut self,
@@ -193,7 +193,7 @@ impl calculator::Server for CalculatorImpl {
     {
         let op = pry!(pry!(params.get()).get_op());
         results.get().set_func(
-            calculator::function::ToClient::new(OperatorImpl {op : op}).from_server::<::capnp_rpc::Server>());
+            calculator::function::ToClient::new(OperatorImpl {op : op}).into_client::<::capnp_rpc::Server>());
         Promise::ok(())
     }
 }
@@ -210,7 +210,7 @@ pub fn main() {
     let socket = ::tokio::net::TcpListener::bind(&addr).unwrap();
 
     let calc =
-        calculator::ToClient::new(CalculatorImpl).from_server::<::capnp_rpc::Server>();
+        calculator::ToClient::new(CalculatorImpl).into_client::<::capnp_rpc::Server>();
 
     let done = socket.incoming().for_each(move |socket| {
         socket.set_nodelay(true)?;

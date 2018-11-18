@@ -86,8 +86,13 @@ impl <'a> Builder<'a> {
         self.builder.borrow().get_pointer_element(index).set_text(value);
     }
 
+    #[deprecated]
     pub fn as_reader(self) -> Reader<'a> {
-        Reader { reader: self.builder.as_reader() }
+        self.into_reader()
+    }
+
+    pub fn into_reader(self) -> Reader<'a> {
+        Reader { reader: self.builder.into_reader() }
     }
 
     pub fn reborrow<'b>(&'b mut self) -> Builder<'b> {

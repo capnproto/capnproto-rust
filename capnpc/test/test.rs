@@ -93,7 +93,7 @@ mod tests {
         assert_eq!(test_prim_list.has_bool_list(), true);
         assert_eq!(test_prim_list.has_void_list(), true);
 
-        let test_prim_list_reader = test_prim_list.as_reader();
+        let test_prim_list_reader = test_prim_list.into_reader();
         let uint8_list = test_prim_list_reader.get_uint8_list().unwrap();
         for i in 0..uint8_list.len() {
             assert_eq!(uint8_list.get(i), i as u8);
@@ -141,7 +141,7 @@ mod tests {
         }
 
         {
-            let reader = test_struct_list.as_reader();
+            let reader = test_struct_list.into_reader();
             assert_eq!(reader.get_struct_list().unwrap().get(0).get_uint8_list().unwrap().get(0), 5u8);
         }
     }
@@ -178,7 +178,7 @@ mod tests {
         }
 
         test_blob.reborrow().init_data_field(7);
-        assert!(test_blob.reborrow().as_reader().get_data_field().unwrap() ==
+        assert!(test_blob.reborrow().into_reader().get_data_field().unwrap() ==
                 [0u8,0u8,0u8,0u8,0u8,0u8,0u8]);
         {
             let data_builder = test_blob.reborrow().get_data_field().unwrap();
@@ -188,13 +188,13 @@ mod tests {
             data_builder[0] = 4u8;
         }
 
-        assert_eq!(test_blob.reborrow().as_reader().get_text_field().unwrap(), "aabbccddee");
-        assert!(test_blob.reborrow().as_reader().get_data_field().unwrap() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
+        assert_eq!(test_blob.reborrow().into_reader().get_text_field().unwrap(), "aabbccddee");
+        assert!(test_blob.reborrow().into_reader().get_data_field().unwrap() == [4u8,5u8,5u8,5u8,5u8,5u8,5u8]);
 
         {
             test_blob.reborrow().get_data_field().unwrap()[2] = 10;
         }
-        assert!(test_blob.as_reader().get_data_field().unwrap() == [4u8,5u8,10u8,5u8,5u8,5u8,5u8]);
+        assert!(test_blob.into_reader().get_data_field().unwrap() == [4u8,5u8,10u8,5u8,5u8,5u8,5u8]);
     }
 
 
@@ -224,7 +224,7 @@ mod tests {
         big_struct.set_bool_field(true);
 
 
-        let big_struct_reader = big_struct.as_reader();
+        let big_struct_reader = big_struct.into_reader();
         assert_eq!(big_struct_reader.has_struct_field(), true);
         assert_eq!(big_struct_reader.get_int8_field(), -128);
         assert_eq!(big_struct_reader.get_int32_field(), 1009);
@@ -325,7 +325,7 @@ mod tests {
             }
         }
 
-        let complex_list_reader = test_complex_list.as_reader();
+        let complex_list_reader = test_complex_list.into_reader();
         let enum_list_reader = complex_list_reader.get_enum_list().unwrap();
         for i in 0..10 {
             assert!(enum_list_reader.get(i) == Ok(AnEnum::Qux));
@@ -453,7 +453,7 @@ mod tests {
         test_any_pointer.reborrow().init_any_pointer_field().set_as("xyzzy").unwrap();
 
         {
-            let reader = test_any_pointer.reborrow().as_reader();
+            let reader = test_any_pointer.reborrow().into_reader();
             assert_eq!(reader.get_any_pointer_field().get_as::<::capnp::text::Reader>().unwrap(), "xyzzy");
         }
 
@@ -461,7 +461,7 @@ mod tests {
         test_any_pointer.reborrow().get_any_pointer_field().get_as::<test_empty_struct::Builder>().unwrap();
 
         {
-            let reader = test_any_pointer.reborrow().as_reader();
+            let reader = test_any_pointer.reborrow().into_reader();
             reader.get_any_pointer_field().get_as::<test_empty_struct::Reader>().unwrap();
         }
 
@@ -469,7 +469,7 @@ mod tests {
             let mut message = message::Builder::new_default();
             let mut test_big_struct = message.init_root::<test_big_struct::Builder>();
             test_big_struct.set_int32_field(-12345);
-            test_any_pointer.get_any_pointer_field().set_as(test_big_struct.reborrow().as_reader()).unwrap();
+            test_any_pointer.get_any_pointer_field().set_as(test_big_struct.reborrow().into_reader()).unwrap();
         }
 
         fn _test_lifetimes(body : test_big_struct::Reader) {
@@ -509,9 +509,9 @@ mod tests {
 
             // Alas, we need to make a copy to appease the reborrow checker.
             let mut other_message = message::Builder::new_default();
-            other_message.set_root(big_struct.reborrow().get_another_struct_field().unwrap().as_reader()).unwrap();
+            other_message.set_root(big_struct.reborrow().get_another_struct_field().unwrap().into_reader()).unwrap();
             big_struct.set_struct_field(
-                other_message.get_root::<test_big_struct::inner::Builder>().unwrap().as_reader()).unwrap();
+                other_message.get_root::<test_big_struct::inner::Builder>().unwrap().into_reader()).unwrap();
         }
 
         assert_eq!(big_struct.reborrow().get_struct_field().unwrap().get_uint32_field(), 4294967265);
@@ -537,7 +537,7 @@ mod tests {
             foo.set_text_field("blah");
         }
 
-        let reader = branded.as_reader();
+        let reader = branded.into_reader();
         assert_eq!("blah", reader.get_branded_field().unwrap().get_generic_field().unwrap().get_text_field().unwrap());
     }
 
@@ -555,7 +555,7 @@ mod tests {
             bar.set_data_field("some data".as_bytes());
         }
 
-        let reader = branded.as_reader();
+        let reader = branded.into_reader();
         assert_eq!("blah", reader.get_baz_field().unwrap().get_foo_field().unwrap());
         assert_eq!("some text", reader.get_baz_field().unwrap().get_bar_field().unwrap().get_text_field().unwrap());
         assert_eq!("some data".as_bytes(), reader.get_baz_field().unwrap().get_bar_field().unwrap().get_data_field().unwrap());
@@ -582,7 +582,7 @@ mod tests {
         }
 
         ::test_util::CheckTestMessage::check_test_message(root.reborrow().get_foo().unwrap());
-        let root_reader = root.as_reader();
+        let root_reader = root.into_reader();
         ::test_util::CheckTestMessage::check_test_message(root_reader.reborrow().get_foo().unwrap());
         let dub_reader = root_reader.get_dub().unwrap();
         assert_eq!("Hello", dub_reader.get_foo().unwrap());
@@ -744,7 +744,7 @@ mod tests {
         let mut message2 = message::Builder::new_default();
         let mut struct1 = message1.init_root::<test_big_struct::Builder>();
         struct1.set_uint8_field(3);
-        message2.set_root(struct1.as_reader()).unwrap();
+        message2.set_root(struct1.into_reader()).unwrap();
         let struct2 = message2.get_root::<test_big_struct::Builder>().unwrap();
 
         assert_eq!(struct2.get_uint8_field(), 3u8);
@@ -888,7 +888,7 @@ mod tests {
         ::test_util::init_test_message(message.init_root());
         ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().unwrap());
         ::test_util::CheckTestMessage::check_test_message(
-            message.get_root::<test_all_types::Builder>().unwrap().as_reader());
+            message.get_root::<test_all_types::Builder>().unwrap().into_reader());
     }
 
     #[test]
@@ -901,7 +901,7 @@ mod tests {
         ::test_util::init_test_message(message.init_root());
         ::test_util::CheckTestMessage::check_test_message(message.get_root::<test_all_types::Builder>().unwrap());
         ::test_util::CheckTestMessage::check_test_message(
-            message.get_root::<test_all_types::Builder>().unwrap().as_reader());
+            message.get_root::<test_all_types::Builder>().unwrap().into_reader());
     }
 
     #[test]
@@ -916,10 +916,10 @@ mod tests {
             let mut message2 = message::Builder::new_default();
             let mut all_types2 = message2.init_root::<test_all_types::Builder>();
 
-            all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().unwrap().as_reader()).unwrap();
+            all_types2.set_struct_field(message.get_root::<test_all_types::Builder>().unwrap().into_reader()).unwrap();
             ::test_util::CheckTestMessage::check_test_message(all_types2.reborrow().get_struct_field().unwrap());
 
-            let reader = all_types2.as_reader().get_struct_field().unwrap();
+            let reader = all_types2.into_reader().get_struct_field().unwrap();
             ::test_util::CheckTestMessage::check_test_message(reader);
         }
 
@@ -940,7 +940,7 @@ mod tests {
             all_types2.set_struct_field(message.get_root_as_reader().unwrap()).unwrap();
             ::test_util::CheckTestMessage::check_test_message(all_types2.reborrow().get_struct_field().unwrap());
 
-            let reader = all_types2.as_reader().get_struct_field().unwrap();
+            let reader = all_types2.into_reader().get_struct_field().unwrap();
             ::test_util::CheckTestMessage::check_test_message(reader);
         }
     }
@@ -1301,7 +1301,7 @@ mod tests {
 	    let mut test = message.init_root::<test_all_types::Builder>();
 	    test.set_text_field("Hello");
         }
-        let reader = message.get_root::<test_all_types::Builder>().unwrap().as_reader();
+        let reader = message.get_root::<test_all_types::Builder>().unwrap().into_reader();
         assert_eq!(reader.get_text_field().unwrap(), "Hello");
         assert_eq!(reader.has_struct_field(), false);
         let nested = reader.get_struct_field().unwrap();
