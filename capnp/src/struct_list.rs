@@ -102,7 +102,7 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
-    #[deprecated(since="capnpc-v0.9.2", note="use into_reader()")]
+    #[deprecated(since="0.9.2", note="use into_reader()")]
     pub fn as_reader(self) -> Reader<'a, T> {
         self.into_reader()
     }

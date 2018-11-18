@@ -2192,7 +2192,7 @@ pub enum CapTableBuilder {
 }
 
 impl CapTableBuilder {
-    #[deprecated(since="capnpc-v0.9.2", note="use into_reader()")]
+    #[deprecated(since="0.9.2", note="use into_reader()")]
     pub fn as_reader(self) -> CapTableReader {
         self.into_reader()
     }
@@ -2610,7 +2610,7 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    #[deprecated(since="capnpc-v0.9.2", note="use into_reader()")]
+    #[deprecated(since="0.9.2", note="use into_reader()")]
     pub fn as_reader(self) -> PointerReader<'a> {
         self.into_reader()
     }
@@ -2803,7 +2803,7 @@ pub struct StructBuilder<'a> {
 }
 
 impl <'a> StructBuilder<'a> {
-    #[deprecated(since="capnpc-v0.9.2", note="use into_reader()")]
+    #[deprecated(since="0.9.2", note="use into_reader()")]
     pub fn as_reader(self) -> StructReader<'a> {
         self.into_reader()
     }
@@ -3102,7 +3102,7 @@ impl <'a> ListBuilder<'a> {
         }
     }
 
-    #[deprecated(since="capnpc-v0.9.2", note="use into_reader()")]
+    #[deprecated(since="0.9.2", note="use into_reader()")]
     pub fn as_reader(self) -> ListReader<'a> {
         self.into_reader()
     }
