@@ -1345,7 +1345,7 @@ fn generate_node(gen: &GeneratorContext,
                 Line(format!("impl <'a,{0}> Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
-                        Line("#[deprecated]".to_string()),
+                        Line("#[deprecated(since=\"capnpc-v0.9.2\", note=\"use into_reader()\")]".to_string()),
                         Line(format!("pub fn as_reader(self) -> Reader<'a,{}> {{", params.params)),
                         Indent(Box::new(Line("self.into_reader()".to_string()))),
                         Line("}".to_string()),
@@ -1665,7 +1665,7 @@ fn generate_node(gen: &GeneratorContext,
                         ))
                     }),
                     Indent(Box::new(Branch( vec!(
-                        Line("#[deprecated]".to_string()),
+                        Line("#[deprecated(since=\"capnpc-v0.9.2\", note=\"use into_client()\")]".to_string()),
                         Line(format!("pub fn from_server<_T: ::capnp::private::capability::ServerHook>(self) -> Client{} {{", bracketed_params)),
                         Indent(
                             Box::new(Line("self.into_client::<_T>()".to_string()))),

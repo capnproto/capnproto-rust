@@ -157,7 +157,7 @@ impl <'a> Builder<'a> {
     }
 
     #[inline]
-    #[deprecated]
+    #[deprecated(since="capnpc-v0.9.2", note="use into_reader()")]
     pub fn as_reader(self) -> Reader<'a> {
         self.into_reader()
     }

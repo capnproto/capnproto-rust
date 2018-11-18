@@ -134,12 +134,7 @@ pub trait BuilderArena: ReaderArena {
     fn allocate_anywhere(&self, amount: u32) -> (SegmentId, u32);
     fn get_segment_mut(&self, id: u32) -> (*mut Word, u32);
 
-    #[deprecated]
-    fn as_reader<'a>(&'a self) -> &'a ReaderArena {
-        self.into_reader()
-    }
-
-    fn into_reader<'a>(&'a self) -> &'a ReaderArena;
+    fn as_reader<'a>(&'a self) -> &'a ReaderArena;
 }
 
 pub struct BuilderArenaImplInner<A> where A: Allocator {
@@ -271,7 +266,7 @@ impl <A> BuilderArena for BuilderArenaImpl<A> where A: Allocator {
         self.inner.borrow_mut().get_segment_mut(id)
     }
 
-    fn into_reader<'a>(&'a self) -> &'a ReaderArena {
+    fn as_reader<'a>(&'a self) -> &'a ReaderArena {
         self
     }
 }
@@ -317,7 +312,7 @@ impl BuilderArena for NullArena {
         (::std::ptr::null_mut(), 0)
     }
 
-    fn into_reader<'a>(&'a self) -> &'a ReaderArena {
+    fn as_reader<'a>(&'a self) -> &'a ReaderArena {
         self
     }
 }
