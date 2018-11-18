@@ -1,3 +1,6 @@
+### v0.9.2
+- Rename a bunch of as_reader() methods to into_reader(), to satisfy clippy.
+
 ### v0.9.1
 - Add support for Rust 2018.
 - Fix a bunch of clippy warnings.

@@ -1,7 +1,10 @@
-## v.0.9.1
+## v0.9.2
+- Rename a bunch of as_reader() methods to into_reader(), to satisfy clippy.
+
+## v0.9.1
 - Avoid some unnecessary heap allocation that could occur when reading multisegment messages.
 
-## v.0.9.0
+## v0.9.0
 - Add message::Builder::set_root_canonical() method. Relies on a new signature for SetPointerBuilder.
 - Mark bytes_to_words() and bytes_to_words_mut() as unsafe, due to possible alignment issues. Please
   refer to https://github.com/capnproto/capnproto-rust/issues/101 for discussion.
