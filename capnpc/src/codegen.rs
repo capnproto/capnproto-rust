@@ -335,7 +335,8 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
 
 pub fn getter_text(gen: &GeneratorContext,
                    field: &schema_capnp::field::Reader,
-                   is_reader: bool)
+                   is_reader: bool,
+                   is_fn: bool)
                    -> ::capnp::Result<(String, FormattedText)> {
     use schema_capnp::*;
 
@@ -381,8 +382,24 @@ pub fn getter_text(gen: &GeneratorContext,
                 _ => format!("::capnp::Result<{}>", typ),
             };
 
+            let result_type = if is_fn {
+                if result_type == "()" {
+                    "".to_string()
+                } else {
+                    format!("-> {}", result_type)
+                }
+            } else {
+                result_type
+            };
+
             let getter_code = match (try!(raw_type.which()), default) {
-                (type_::Void(()), value::Void(())) => Line("()".to_string()),
+                (type_::Void(()), value::Void(())) => {
+                    if is_fn {
+                        Line("".to_string())
+                    } else {
+                        Line("()".to_string())
+                    }
+                },
                 (type_::Bool(()), value::Bool(b)) => {
                     if b {
                         Line(format!("self.{}.get_bool_field_mask({}, true)", member, offset))
@@ -790,7 +807,7 @@ fn generate_union(gen: &GeneratorContext,
         let field_name = try!(field.get_name());
         let enumerant_name = capitalize_first_letter(field_name);
 
-        let (ty, get) = try!(getter_text(gen, field, is_reader));
+        let (ty, get) = try!(getter_text(gen, field, is_reader, false));
 
         getter_interior.push(Branch(vec![
             Line(format!("{} => {{", dvalue)),
@@ -1109,20 +1126,19 @@ fn generate_node(gen: &GeneratorContext,
 
                 if !is_union_field {
                     pipeline_impl_interior.push(try!(generate_pipeline_getter(gen, field)));
-                    let (ty, get) = try!(getter_text(gen, &field, true));
+                    let (ty, get) = try!(getter_text(gen, &field, true, true));
                     reader_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(self) -> {} {{", styled_name, ty)),
+                            Line(format!("pub fn get_{}(self) {} {{", styled_name, ty)),
                             Indent(Box::new(get)),
                             Line("}".to_string()))));
 
-                    let (ty_b, get_b) = try!(getter_text(gen, &field, false));
-
+                    let (ty_b, get_b) = try!(getter_text(gen, &field, false, true));
                     builder_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(self) -> {} {{", styled_name, ty_b)),
+                            Line(format!("pub fn get_{}(self) {} {{", styled_name, ty_b)),
                             Indent(Box::new(get_b)),
                             Line("}".to_string()))));
 
