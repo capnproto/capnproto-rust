@@ -319,18 +319,18 @@ pub mod test_all_types {
   }
 
   impl <'a,> Builder<'a,>  {
-    pub fn as_reader(self) -> Reader<'a,> {
-      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
+    pub fn into_reader(self) -> Reader<'a,> {
+      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
     pub fn borrow<'b>(&'b mut self) -> Builder<'b,> {
       Builder { .. *self }
     }
     pub fn borrow_as_reader<'b>(&'b self) -> Reader<'b,> {
-      ::capnp::traits::FromStructReader::new(self.builder.as_reader())
+      ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
 
     pub fn total_size(&self) -> Result<::capnp::MessageSize> {
-      self.builder.as_reader().total_size()
+      self.builder.into_reader().total_size()
     }
     #[inline]
     pub fn get_void_field(self) -> () {
