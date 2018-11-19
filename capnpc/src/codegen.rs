@@ -335,20 +335,32 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
 
 pub fn getter_text(gen: &GeneratorContext,
                    field: &schema_capnp::field::Reader,
-                   is_reader: bool)
+                   is_reader: bool,
+                   is_fn: bool)
                    -> ::capnp::Result<(String, FormattedText)> {
     use schema_capnp::*;
 
     match try!(field.which()) {
         field::Group(group) => {
             let the_mod = gen.scope_map[&group.get_type_id()].join("::");
-            if is_reader {
-                Ok((format!("{}::Reader<'a>", the_mod),
-                    Line("::capnp::traits::FromStructReader::new(self.reader)".to_string())))
+
+            let mut result_type = if is_reader {
+                format!("{}::Reader<'a>", the_mod)
             } else {
-                Ok((format!("{}::Builder<'a>", the_mod),
-                    Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string())))
+                format!("{}::Builder<'a>", the_mod)
+            };
+
+            if is_fn {
+                result_type = format!("-> {}", result_type);
             }
+
+            let getter_code = if is_reader {
+                Line("::capnp::traits::FromStructReader::new(self.reader)".to_string())
+            } else {
+                Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string())
+            };
+
+            Ok((result_type, getter_code))
         }
         field::Slot(reg_field) => {
             let offset = reg_field.get_offset() as usize;
@@ -370,7 +382,7 @@ pub fn getter_text(gen: &GeneratorContext,
             let default_value = try!(reg_field.get_default_value());
             let default = try!(default_value.which());
 
-            let result_type = match try!(raw_type.which()) {
+            let mut result_type = match try!(raw_type.which()) {
                 type_::Enum(_) => format!("::std::result::Result<{},::capnp::NotInSchema>", typ),
                 type_::AnyPointer(_) if !try!(raw_type.is_parameter()) => typ.clone(),
                 type_::Interface(_) => {
@@ -381,8 +393,22 @@ pub fn getter_text(gen: &GeneratorContext,
                 _ => format!("::capnp::Result<{}>", typ),
             };
 
+            if is_fn {
+                result_type = if result_type == "()" {
+                    "".to_string()
+                } else {
+                    format!("-> {}", result_type)
+                }
+            }
+
             let getter_code = match (try!(raw_type.which()), default) {
-                (type_::Void(()), value::Void(())) => Line("()".to_string()),
+                (type_::Void(()), value::Void(())) => {
+                    if is_fn {
+                        Line("".to_string())
+                    } else {
+                        Line("()".to_string())
+                    }
+                },
                 (type_::Bool(()), value::Bool(b)) => {
                     if b {
                         Line(format!("self.{}.get_bool_field_mask({}, true)", member, offset))
@@ -790,7 +816,7 @@ fn generate_union(gen: &GeneratorContext,
         let field_name = try!(field.get_name());
         let enumerant_name = capitalize_first_letter(field_name);
 
-        let (ty, get) = try!(getter_text(gen, field, is_reader));
+        let (ty, get) = try!(getter_text(gen, field, is_reader, false));
 
         getter_interior.push(Branch(vec![
             Line(format!("{} => {{", dvalue)),
@@ -1109,20 +1135,19 @@ fn generate_node(gen: &GeneratorContext,
 
                 if !is_union_field {
                     pipeline_impl_interior.push(try!(generate_pipeline_getter(gen, field)));
-                    let (ty, get) = try!(getter_text(gen, &field, true));
+                    let (ty, get) = try!(getter_text(gen, &field, true, true));
                     reader_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(self) -> {} {{", styled_name, ty)),
+                            Line(format!("pub fn get_{}(self) {} {{", styled_name, ty)),
                             Indent(Box::new(get)),
                             Line("}".to_string()))));
 
-                    let (ty_b, get_b) = try!(getter_text(gen, &field, false));
-
+                    let (ty_b, get_b) = try!(getter_text(gen, &field, false, true));
                     builder_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
-                            Line(format!("pub fn get_{}(self) -> {} {{", styled_name, ty_b)),
+                            Line(format!("pub fn get_{}(self) {} {{", styled_name, ty_b)),
                             Indent(Box::new(get_b)),
                             Line("}".to_string()))));
 
@@ -1345,7 +1370,7 @@ fn generate_node(gen: &GeneratorContext,
                 Line(format!("impl <'a,{0}> Builder<'a,{0}> {1} {{", params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
-                        Line("#[deprecated(since=\"capnpc-v0.9.2\", note=\"use into_reader()\")]".to_string()),
+                        Line("#[deprecated(since=\"0.9.2\", note=\"use into_reader()\")]".to_string()),
                         Line(format!("pub fn as_reader(self) -> Reader<'a,{}> {{", params.params)),
                         Indent(Box::new(Line("self.into_reader()".to_string()))),
                         Line("}".to_string()),
@@ -1665,7 +1690,7 @@ fn generate_node(gen: &GeneratorContext,
                         ))
                     }),
                     Indent(Box::new(Branch( vec!(
-                        Line("#[deprecated(since=\"capnpc-v0.9.2\", note=\"use into_client()\")]".to_string()),
+                        Line("#[deprecated(since=\"0.9.2\", note=\"use into_client()\")]".to_string()),
                         Line(format!("pub fn from_server<_T: ::capnp::private::capability::ServerHook>(self) -> Client{} {{", bracketed_params)),
                         Indent(
                             Box::new(Line("self.into_client::<_T>()".to_string()))),

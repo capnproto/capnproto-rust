@@ -86,7 +86,7 @@ impl <'a> Builder<'a> {
         self.builder.borrow().get_pointer_element(index).set_text(value);
     }
 
-    #[deprecated(since="capnpc-v0.9.2", note="use into_reader()")]
+    #[deprecated(since="0.9.2", note="use into_reader()")]
     pub fn as_reader(self) -> Reader<'a> {
         self.into_reader()
     }
