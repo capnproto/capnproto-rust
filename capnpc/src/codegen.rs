@@ -343,13 +343,24 @@ pub fn getter_text(gen: &GeneratorContext,
     match try!(field.which()) {
         field::Group(group) => {
             let the_mod = gen.scope_map[&group.get_type_id()].join("::");
-            if is_reader {
-                Ok((format!("{}::Reader<'a>", the_mod),
-                    Line("::capnp::traits::FromStructReader::new(self.reader)".to_string())))
+
+            let mut result_type = if is_reader {
+                format!("{}::Reader<'a>", the_mod)
             } else {
-                Ok((format!("{}::Builder<'a>", the_mod),
-                    Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string())))
+                format!("{}::Builder<'a>", the_mod)
+            };
+
+            if is_fn {
+                result_type = format!("-> {}", result_type);
             }
+
+            let getter_code = if is_reader {
+                Line("::capnp::traits::FromStructReader::new(self.reader)".to_string())
+            } else {
+                Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string())
+            };
+
+            Ok((result_type, getter_code))
         }
         field::Slot(reg_field) => {
             let offset = reg_field.get_offset() as usize;
@@ -371,7 +382,7 @@ pub fn getter_text(gen: &GeneratorContext,
             let default_value = try!(reg_field.get_default_value());
             let default = try!(default_value.which());
 
-            let result_type = match try!(raw_type.which()) {
+            let mut result_type = match try!(raw_type.which()) {
                 type_::Enum(_) => format!("::std::result::Result<{},::capnp::NotInSchema>", typ),
                 type_::AnyPointer(_) if !try!(raw_type.is_parameter()) => typ.clone(),
                 type_::Interface(_) => {
@@ -382,15 +393,13 @@ pub fn getter_text(gen: &GeneratorContext,
                 _ => format!("::capnp::Result<{}>", typ),
             };
 
-            let result_type = if is_fn {
-                if result_type == "()" {
+            if is_fn {
+                result_type = if result_type == "()" {
                     "".to_string()
                 } else {
                     format!("-> {}", result_type)
                 }
-            } else {
-                result_type
-            };
+            }
 
             let getter_code = match (try!(raw_type.which()), default) {
                 (type_::Void(()), value::Void(())) => {
