@@ -1371,7 +1371,6 @@ fn generate_node(gen: &GeneratorContext,
                 Indent(
                     Box::new(Branch(vec![
                         Line("#[deprecated(since=\"0.9.2\", note=\"use into_reader()\")]".to_string()),
-                        Line("#[allow(clippy::wrong_self_convention)]".to_string()),
                         Line(format!("pub fn as_reader(self) -> Reader<'a,{}> {{", params.params)),
                         Indent(Box::new(Line("self.into_reader()".to_string()))),
                         Line("}".to_string()),
@@ -1692,7 +1691,6 @@ fn generate_node(gen: &GeneratorContext,
                     }),
                     Indent(Box::new(Branch( vec!(
                         Line("#[deprecated(since=\"0.9.2\", note=\"use into_client()\")]".to_string()),
-                        Line("#[allow(clippy::wrong_self_convention)]".to_string()),
                         Line(format!("pub fn from_server<_T: ::capnp::private::capability::ServerHook>(self) -> Client{} {{", bracketed_params)),
                         Indent(
                             Box::new(Line("self.into_client::<_T>()".to_string()))),
