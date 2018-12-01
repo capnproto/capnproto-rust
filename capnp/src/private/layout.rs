@@ -2899,8 +2899,8 @@ impl <'a> StructBuilder<'a> {
             pointer: unsafe { self.pointers.offset(ptr_index as isize) }
         }
     }
-    
-    pub fn copy_content_from(&mut self, other: &StructReader, canonicalize: bool) -> Result<()> {
+
+    pub fn copy_content_from(&mut self, other: &StructReader) -> Result<()> {
         use std::cmp::min;
         // Determine the amount of data the builders have in common.
         let shared_data_size = min(self.data_size, other.data_size);
@@ -2940,15 +2940,21 @@ impl <'a> StructBuilder<'a> {
 
             // Zero out all pointers in the target.
             for i in 0..self.pointer_count as isize {
-                wire_helpers::zero_object(self.arena, self.segment_id, self.pointers.offset(i * _BYTES_PER_POINTER as isize) as *mut _);
+                wire_helpers::zero_object(self.arena, self.segment_id, self.pointers.offset(i) as *mut _);
             }
-            ptr::write_bytes(self.pointers, 0u8, self.pointer_count as usize * _BYTES_PER_POINTER);
+            ptr::write_bytes(self.pointers, 0u8, self.pointer_count as usize);
 
             for i in 0..shared_pointer_count as isize {
-                try!(wire_helpers::copy_pointer(self.arena, self.segment_id, self.cap_table, self.pointers.offset(i * _BYTES_PER_POINTER as isize),
-                                                other.arena,
-                                                other.segment_id, other.cap_table, other.pointers.offset(i * _BYTES_PER_POINTER as isize),
-                                                other.nesting_limit, canonicalize));
+                wire_helpers::copy_pointer(self.arena,
+                                           self.segment_id,
+                                           self.cap_table,
+                                           self.pointers.offset(i),
+                                           other.arena,
+                                           other.segment_id,
+                                           other.cap_table,
+                                           other.pointers.offset(i),
+                                           other.nesting_limit,
+                                           false)?;
             }
         }
 

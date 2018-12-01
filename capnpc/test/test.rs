@@ -1322,4 +1322,27 @@ mod tests {
         let _ = foo.get_any_pointer_field();
     }
 
+    #[test]
+    fn set_with_caveats() {
+        use test_capnp::test_all_types;
+        let mut message = message::Builder::new_default();
+        let root: test_all_types::Builder = message.init_root();
+        let list = root.init_struct_list(2);
+        {
+            let mut message1 = message::Builder::new_default();
+            let mut root1: test_all_types::Builder = message1.init_root();
+            root1.set_int8_field(11);
+            list.set_with_caveats(0, root1.into_reader()).unwrap();
+        }
+        {
+            let mut message2 = message::Builder::new_default();
+            let mut root2: test_all_types::Builder = message2.init_root();
+            ::test_util::init_test_message(root2.reborrow());
+            list.set_with_caveats(1, root2.into_reader()).unwrap();
+        }
+
+        let list_reader = list.into_reader();
+        assert_eq!(11, list_reader.get(0).get_int8_field());
+        ::test_util::CheckTestMessage::check_test_message(list_reader.get(1));
+    }
 }

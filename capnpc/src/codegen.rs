@@ -676,8 +676,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     initter_interior.push(
                         Line(format!("::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({}), size)", offset)));
 
-                    let element_type = try!(ot1.get_element_type());
-                    let (reader_type, builder_type) = match try!(element_type.which()) {
+                    match try!(try!(ot1.get_element_type()).which()) {
                         type_::List(_) => {
                             setter_generic_param = "<'b>".to_string();
                             (Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'b")))),
@@ -686,20 +685,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                         _ =>
                             (Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'a")))),
                              Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a")))))
-                    };
-                    if let type_::Struct(_) = try!(element_type.which()) {
-                        let reader_type = try!(element_type.type_string(gen, Leaf::Reader("'a")));
-                        let return_type = "-> ::capnp::Result<()>";
-                        result.push(Line("#[inline]".to_string()));
-                        result.push(Line(format!("pub fn set_{}_element_with_caveats{}(&mut self, idx: u32, {}: {}, canonicalize: bool) {} {{",
-                                                styled_name, setter_generic_param, setter_param,
-                                                reader_type, return_type)));
-                        let getter = format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field({}))?", offset);
-                        result.push(Indent(Box::new(Line(format!("let element: {} = {};", builder_type.as_ref().unwrap(), getter)))));
-                        result.push(Indent(Box::new(Line(format!("element.set_with_caveats(idx, &value.reader, canonicalize)")))));
-                        result.push(Line("}".to_string()));
                     }
-                    (reader_type, builder_type)
                 }
                 type_::Enum(e) => {
                     let id = e.get_type_id();
@@ -1275,12 +1261,12 @@ fn generate_node(gen: &GeneratorContext,
                 BlankLine,
                 Line("#[derive(Clone, Copy)]".to_string()),
                 (if !is_generic {
-                    Line("pub struct Reader<'a> { pub(crate) reader: ::capnp::private::layout::StructReader<'a> }".to_string())
+                    Line("pub struct Reader<'a> { reader: ::capnp::private::layout::StructReader<'a> }".to_string())
                 } else {
                     Branch(vec!(
                         Line(format!("pub struct Reader<'a,{}> {} {{", params.params, params.where_clause)),
                         Indent(Box::new(Branch(vec!(
-                            Line("pub(crate) reader: ::capnp::private::layout::StructReader<'a>,".to_string()),
+                            Line("reader: ::capnp::private::layout::StructReader<'a>,".to_string()),
                             Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params)),
                         )))),
                         Line("}".to_string())
@@ -1308,6 +1294,15 @@ fn generate_node(gen: &GeneratorContext,
                     Box::new(Branch(vec!(
                         Line(format!("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,{}>> {{",params.params)),
                         Indent(Box::new(Line("::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))".to_string()))),
+                        Line("}".to_string()))))),
+                Line("}".to_string()),
+                BlankLine,
+                Line(format!("impl <'a,{0}> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,{0}> {1} {{",
+                            params.params, params.where_clause)),
+                Indent(
+                    Box::new(Branch(vec!(
+                        Line("fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {".to_string()),
+                        Indent(Box::new(Line("self.reader".to_string()))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,

@@ -32,6 +32,11 @@ pub trait HasStructSize {
     fn struct_size() -> StructSize;
 }
 
+// TODO(apibump) It probably makes sense to add this as a bound on OwnedStruct::Reader.
+pub trait IntoInternalStructReader<'a> {
+    fn into_internal_struct_reader(self) -> StructReader<'a>;
+}
+
 pub trait FromStructBuilder<'a> {
     fn new(struct_builder: StructBuilder<'a>) -> Self;
 }
