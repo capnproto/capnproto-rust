@@ -2899,7 +2899,60 @@ impl <'a> StructBuilder<'a> {
             pointer: unsafe { self.pointers.offset(ptr_index as isize) }
         }
     }
+    
+    pub fn copy_content_from(&mut self, other: &StructReader, canonicalize: bool) -> Result<()> {
+        use std::cmp::min;
+        // Determine the amount of data the builders have in common.
+        let shared_data_size = min(self.data_size, other.data_size);
+        let shared_pointer_count = min(self.pointer_count, other.pointer_count);
 
+        if (shared_data_size > 0 && other.data == self.data) ||
+            (shared_pointer_count > 0 && other.pointers == self.pointers) {
+            // At least one of the section pointers is pointing to ourself. Verify that the other is too
+            // (but ignore empty sections).
+            if (shared_data_size == 0 || other.data == self.data) &&
+                (shared_pointer_count == 0 || other.pointers == self.pointers) {
+                return Err(::Error::failed(format!("Only one of the section pointers is pointing to ourself")))
+            }
+
+            // So `other` appears to be a reader for this same struct. No copying is needed.
+            return Ok(())
+        }
+
+        unsafe {
+            if self.data_size > shared_data_size {
+                // Since the target is larger than the source, make sure to zero out the extra bits that the
+                // source doesn't have.
+                if self.data_size == 1 {
+                    self.set_bool_field(0, false);
+                } else {
+                    let unshared = self.data.offset((shared_data_size / BITS_PER_BYTE as u32) as isize);
+                    ptr::write_bytes(unshared, 0, ((self.data_size - shared_data_size) / BITS_PER_BYTE as u32) as usize);
+                }
+            }
+
+            // Copy over the shared part.
+            if shared_data_size == 1 {
+                self.set_bool_field(0, other.get_bool_field(0));
+            } else {
+                ptr::copy_nonoverlapping(other.data, self.data, (shared_data_size / BITS_PER_BYTE as u32) as usize);
+            }
+
+            // Zero out all pointers in the target.
+            for i in 0..self.pointer_count as isize {
+                wire_helpers::zero_object(self.arena, self.segment_id, self.pointers.offset(i) as *mut _);
+            }
+
+            for i in 0..shared_pointer_count as isize {
+                try!(wire_helpers::copy_pointer(self.arena, self.segment_id, self.cap_table, self.pointers.offset(i),
+                                                other.arena,
+                                                other.segment_id, other.cap_table, other.pointers.offset(i),
+                                                other.nesting_limit, canonicalize));
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Clone, Copy)]

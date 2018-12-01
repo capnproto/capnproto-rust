@@ -23,8 +23,8 @@
 
 use std::marker::PhantomData;
 
-use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, InlineComposite};
-use traits::{FromPointerReader, FromPointerBuilder,
+use private::layout::{ListReader, ListBuilder, PointerReader, StructReader, PointerBuilder, InlineComposite};
+use traits::{FromPointerReader, FromPointerBuilder, 
              FromStructBuilder, FromStructReader, HasStructSize,
              IndexMove, ListIter};
 use Result;
@@ -114,8 +114,9 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
         }
     }
 
-    //        pub fn set_with_caveats(&self, index : uint, value : T) {
-    //        }
+    pub fn set_with_caveats(&self, index: u32, value: &StructReader, canonicalize: bool) -> Result<()> {
+        self.builder.get_struct_element(index).copy_content_from(value, canonicalize)
+    }
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {

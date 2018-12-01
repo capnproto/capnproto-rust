@@ -140,9 +140,29 @@ mod tests {
             struct_list.get(0).init_uint8_list(1).set(0, 5u8);
         }
 
+        let mut message_copy = message::Builder::new_default();
+
+        let mut struct_list_copy = message_copy.init_root::<test_struct_list::Builder>();
+
         {
             let reader = test_struct_list.into_reader();
             assert_eq!(reader.get_struct_list().unwrap().get(0).get_uint8_list().unwrap().get(0), 5u8);
+
+            {
+                let other_list = reader.get_struct_list().unwrap();
+                struct_list_copy.reborrow().init_struct_list(other_list.len());
+                {
+                    for (idx, value) in other_list.iter().enumerate() {
+                        struct_list_copy.set_struct_list_element_with_caveats(idx as u32, value, false).unwrap();
+                    }
+                }
+            }
+        }
+
+        {
+            let mut struct_list = struct_list_copy.reborrow().get_struct_list().unwrap();
+            assert_eq!(4, struct_list.len());
+            assert_eq!(5u8, struct_list.reborrow().get(0).get_uint8_list().unwrap().get(0));
         }
     }
 
