@@ -29,6 +29,8 @@ use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, Res
 
 #[cfg(feature = "rpc")]
 use futures::Future;
+#[cfg(feature = "rpc_try")]
+use std::ops::Try;
 
 use std::marker::PhantomData;
 
@@ -85,6 +87,27 @@ impl <T, E> Future for Promise<T, E>
             }
             PromiseInner::Deferred(ref mut f) => f.poll(),
         }
+    }
+}
+
+#[cfg(feature = "rpc_try")]
+impl<T> Try for Promise<T, crate::Error> {
+    type Ok = T;
+    type Error = crate::Error;
+
+    fn into_result(mut self) -> Result<Self::Ok, Self::Error> {
+        match self.poll() {
+            Ok(::futures::Async::Ready(v)) => Ok(v),
+            Ok(::futures::Async::NotReady) => Err(crate::Error::unimplemented("not ready".to_string())),
+            Err(e) => Err(e)
+        }
+    }
+
+    fn from_error(v: Self::Error) -> Self {
+        Promise::err(v)
+    }
+    fn from_ok(v: Self::Ok) -> Self {
+        Promise::ok(v)
     }
 }
 
