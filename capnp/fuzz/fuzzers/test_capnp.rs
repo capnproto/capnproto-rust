@@ -72,6 +72,12 @@ pub mod test_all_types {
     }
   }
 
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,> {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
+    }
+  }
+
   impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
     fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
       self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -79,7 +85,7 @@ pub mod test_all_types {
   }
 
   impl <'a,> Reader<'a,>  {
-    pub fn borrow<'b>(&'b self) -> Reader<'b,> {
+    pub fn reborrow<'b>(&'b self) -> Reader<'b,> {
       Reader { .. *self }
     }
 
@@ -322,7 +328,7 @@ pub mod test_all_types {
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
-    pub fn borrow<'b>(&'b mut self) -> Builder<'b,> {
+    pub fn reborrow<'b>(&'b mut self) -> Builder<'b,> {
       Builder { .. *self }
     }
     pub fn borrow_as_reader<'b>(&'b self) -> Reader<'b,> {

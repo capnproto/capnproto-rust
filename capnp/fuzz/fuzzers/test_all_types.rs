@@ -54,15 +54,23 @@ fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
     let mut message = message::Builder::new_default();
     message.set_root(root)?;
     {
-        let root_builder = message.get_root::<test_all_types::Builder>()?;
+        let mut root_builder = message.get_root::<test_all_types::Builder>()?;
         root_builder.total_size()?;
+
+        root_builder.set_struct_field(root)?;
+        {
+            let list = root_builder.reborrow().init_struct_list(2);
+            list.set_with_caveats(0,  root)?;
+            list.set_with_caveats(1,  root)?;
+        }
+
         traverse(root_builder.into_reader())?;
     }
 
     // init_root() will zero the previous value
     let mut new_root = message.init_root::<test_all_types::Builder>();
-
     new_root.set_struct_field(root)?;
+
     Ok(())
 }
 
