@@ -24,7 +24,7 @@
 use std::marker::PhantomData;
 
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, InlineComposite};
-use traits::{FromPointerReader, FromPointerBuilder, 
+use traits::{FromPointerReader, FromPointerBuilder,
              FromStructBuilder, FromStructReader, HasStructSize,
              IndexMove, ListIter};
 use Result;
@@ -114,10 +114,10 @@ impl <'a, T> Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
         }
     }
 
-    /// Sets the list element, with following limitation based on the fact that structs in a struct
-    /// list are allocated inline: if the source struct is larger than the target struct (as can
-    /// happen if it was created with a newer version of the schema), then it will be truncated,
-    /// losing fields.
+    /// Sets the list element, with the following limitation based on the fact that structs in a
+    /// struct list are allocated inline: if the source struct is larger than the target struct
+    /// (as can happen if it was created with a newer version of the schema), then it will be
+    /// truncated, losing fields.
     pub fn set_with_caveats<'b>(&self, index: u32, value: <T as ::traits::OwnedStruct<'b>>::Reader)
                -> Result<()>
         where <T as ::traits::OwnedStruct<'b>>::Reader : ::traits::IntoInternalStructReader<'b>
