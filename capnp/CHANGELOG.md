@@ -1,3 +1,7 @@
+## v0.9.3
+- Add IntoInternalStructReader trait and struct_list::Builder::set_with_caveats() method.
+- Update deprecation attributes, to satisfy clippy.
+
 ## v0.9.2
 - Rename a bunch of as_reader() methods to into_reader(), to satisfy clippy.
 
