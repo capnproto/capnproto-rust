@@ -96,11 +96,7 @@ impl<T> Try for Promise<T, crate::Error> {
     type Error = crate::Error;
 
     fn into_result(mut self) -> Result<Self::Ok, Self::Error> {
-        match self.poll() {
-            Ok(::futures::Async::Ready(v)) => Ok(v),
-            Ok(::futures::Async::NotReady) => Err(crate::Error::unimplemented("not ready".to_string())),
-            Err(e) => Err(e)
-        }
+        unimplemented!();
     }
 
     fn from_error(v: Self::Error) -> Self {
