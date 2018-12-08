@@ -20,7 +20,12 @@ path = "src/lib.rs"
 [[bin]]
 
 name = "capnpc-rust"
-path = "src/main.rs"
+path = "src/capnpc-rust.rs"
+
+[[bin]]
+
+name = "capnpc-rust2018"
+path = "src/capnpc-rust2018.rs"
 
 [dependencies]
 capnp = { version = "0.9.3", path = "../capnp" }

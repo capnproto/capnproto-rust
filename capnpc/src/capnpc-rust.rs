@@ -19,18 +19,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-//! # Cap'n Proto Schema Compiler Plugin Executable
+//! # Cap'n Proto Schema Compiler Plugin Executable for Rust 2015
 //!
 //! [See this.](https://capnproto.org/otherlang.html#how-to-write-compiler-plugins)
 //!
 //!
 
-#![crate_type = "bin"]
-
 extern crate capnpc;
 
 pub fn main() {
-    //! Generate Rust code according to a `schema_capnp::code_generator_request` read from stdin.
+    //! Generates Rust code according to a `schema_capnp::code_generator_request` read from stdin.
 
-    ::capnpc::codegen::main(::std::io::stdin(), ::std::path::Path::new(".")).unwrap();
+    ::capnpc::codegen::generate_code(
+        ::std::io::stdin(),
+        ::std::path::Path::new("."),
+        capnpc::RustEdition::Rust2015)
+        .expect("failed to generate code");
 }
