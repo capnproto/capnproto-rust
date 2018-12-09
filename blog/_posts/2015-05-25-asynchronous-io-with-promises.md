@@ -67,10 +67,10 @@ pub fn connect_then_write(addr: gj::io::NetworkAddress)
        // The connection has succeeded. Let's write some data.
        return Ok(stream.write(vec![1,2,3]));
     }).then(|(stream, _)| {
-       // The the first write has succeeded. Let's write some more.
+       // The first write has succeeded. Let's write some more.
        return Ok(stream.write(vec![4,5,6]));
     }).then(|(stream, _)| {
-       // The the second write has succeeded. Let's just return;
+       // The second write has succeeded. Let's just return;
        return Ok(gj::Promise::fulfilled(()));
     });
 }

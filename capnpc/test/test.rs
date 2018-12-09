@@ -874,7 +874,7 @@ mod tests {
 
         {
             let segments = message.get_segments_for_output();
-            // Check the the old list, including the tag, was zeroed.
+            // Check the old list, including the tag, was zeroed.
             assert_eq!(::capnp::Word::words_to_bytes(&segments[0][1..5]), &[0; 32][..]);
         }
 

@@ -92,5 +92,5 @@ we can easily accomplish that using the `try!()` macro:
 A year ago when I wrote the previous post on error handling,
 the main reason that I decided not to go with return-value-based
 error handling was that I thought it felt too heavyweight.
-My sense now is that the the `try!()` macro and `FromError` trait
+My sense now is that the `try!()` macro and `FromError` trait
 can make things quite usable.
