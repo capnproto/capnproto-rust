@@ -26,6 +26,7 @@ quickcheck = "0.2"
 
 [features]
 rpc = ["futures"]
+rpc_try = []
 
 [dependencies.futures]
 version = "0.1"
