@@ -45,7 +45,6 @@ mod tests {
 
     #[test]
     fn test_prim_list () {
-
         use test_capnp::test_prim_list;
 
         // Make the first segment small to force allocation of a second segment.
@@ -127,7 +126,6 @@ mod tests {
 
     #[test]
     fn test_struct_list () {
-
         use test_capnp::test_struct_list;
 
         let mut message = message::Builder::new(message::HeapAllocator::new());
@@ -1344,5 +1342,51 @@ mod tests {
         let list_reader = list.into_reader();
         assert_eq!(11, list_reader.get(0).get_int8_field());
         ::test_util::CheckTestMessage::check_test_message(list_reader.get(1));
+    }
+
+    #[test]
+    fn get_raw_struct_data() {
+        use capnp::traits::HasStructSize;
+        use test_capnp::test_all_types;
+        let mut message = message::Builder::new_default();
+        let mut root: test_all_types::Builder = message.init_root();
+        root.set_int8_field(3);
+        root.set_int16_field(0x0abb);
+        let struct_size = <test_all_types::Builder as HasStructSize>::struct_size();
+        {
+            let raw_bytes =
+                ::capnp::raw::get_struct_data_section(root.reborrow().into_reader());
+            assert_eq!(raw_bytes.len(), (struct_size.data * 8) as usize);
+            assert_eq!(raw_bytes[0], 0); // boolField
+            assert_eq!(raw_bytes[1], 3); // int8Field
+            assert_eq!(raw_bytes[2], 0xbb); // int16Field less significant byte
+            assert_eq!(raw_bytes[3], 0x0a); // int16Field more significant byte
+        }
+    }
+
+    #[test]
+    fn get_raw_list_data() {
+        use test_capnp::test_all_types;
+        let mut message = message::Builder::new_default();
+        let mut root: test_all_types::Builder = message.init_root();
+        {
+            let mut uint16_list = root.reborrow().init_u_int16_list(5);
+            uint16_list.set(0, 10);
+            uint16_list.set(1, 11);
+            uint16_list.set(2, 12);
+            uint16_list.set(3, 13);
+            uint16_list.set(4, 14);
+            assert_eq!(
+                ::capnp::raw::get_list_element_size(uint16_list.reborrow().into_reader()),
+                ::capnp::private::layout::ElementSize::TwoBytes);
+
+            assert_eq!(
+                ::capnp::raw::get_list_step_size_in_bits(uint16_list.reborrow().into_reader()),
+                16);
+
+            assert_eq!(
+                ::capnp::raw::get_list_bytes(uint16_list.reborrow().into_reader()),
+                &[10, 0, 11, 0, 12, 0, 13, 0, 14, 0]);
+        }
     }
 }

@@ -77,6 +77,12 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
     }
 }
 
+impl <'a, T> ::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: PrimitiveElement {
+    fn into_internal_list_reader(self) -> ListReader<'a> {
+        self.reader
+    }
+}
+
 pub struct Builder<'a, T> where T: PrimitiveElement {
     marker: marker::PhantomData<T>,
     builder: ListBuilder<'a>

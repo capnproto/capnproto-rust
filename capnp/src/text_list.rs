@@ -70,6 +70,12 @@ impl <'a> Reader<'a> {
     }
 }
 
+impl <'a> ::traits::IntoInternalListReader<'a> for Reader<'a> {
+    fn into_internal_list_reader(self) -> ListReader<'a> {
+        self.reader
+    }
+}
+
 pub struct Builder<'a> {
     builder: ListBuilder<'a>
 }

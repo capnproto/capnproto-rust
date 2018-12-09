@@ -90,6 +90,12 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     }
 }
 
+impl <'a, T> ::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
+    fn into_internal_list_reader(self) -> ListReader<'a> {
+        self.reader
+    }
+}
+
 pub struct Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     marker: PhantomData<T>,
     builder: ListBuilder<'a>

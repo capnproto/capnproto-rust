@@ -20,7 +20,8 @@
 // THE SOFTWARE.
 
 use {Word, Result};
-use private::layout::{CapTable, StructReader, StructBuilder, StructSize, PointerBuilder, PointerReader};
+use private::layout::{CapTable, ListReader, StructReader, StructBuilder, StructSize,
+                      PointerBuilder, PointerReader};
 
 use std::marker::PhantomData;
 
@@ -39,6 +40,10 @@ pub trait IntoInternalStructReader<'a> {
 
 pub trait FromStructBuilder<'a> {
     fn new(struct_builder: StructBuilder<'a>) -> Self;
+}
+
+pub trait IntoInternalListReader<'a> {
+    fn into_internal_list_reader(self) -> ListReader<'a>;
 }
 
 pub trait FromPointerReader<'a> : Sized {

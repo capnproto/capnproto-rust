@@ -36,7 +36,7 @@ use {MessageSize, Result, Word};
 pub use self::ElementSize::{Void, Bit, Byte, TwoBytes, FourBytes, EightBytes, Pointer, InlineComposite};
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ElementSize {
     Void = 0,
     Bit = 1,
@@ -2998,6 +2998,28 @@ impl <'a> ListReader<'a> {
 
     #[inline]
     pub fn len(&self) -> ElementCount32 { self.element_count }
+
+    pub(crate) fn get_step_size_in_bits(&self) -> u32 {
+        self.step
+    }
+
+    pub(crate) fn get_element_size(&self) -> ElementSize {
+        self.element_size
+    }
+
+    pub(crate) fn into_raw_bytes(self) -> &'a [u8] {
+        if self.element_count == 0 {
+            // Explictly handle this case to avoid forming a slice to a null pointer,
+            // which would be undefined behavior.
+            &[]
+        } else {
+            let num_bytes = wire_helpers::round_bits_up_to_bytes(
+                self.step as u64 * self.element_count as u64) as usize;
+            unsafe {
+                ::std::slice::from_raw_parts(self.ptr, num_bytes)
+            }
+        }
+    }
 
     #[inline]
     pub fn get_struct_element(&self, index: ElementCount32) -> StructReader<'a> {
