@@ -29,6 +29,3 @@ capnp = {version = "0.9.0", path = "../capnp",  features = ["rpc"]}
 # prevent 'cargo test' from trying to build the examples
 name = "dummy"
 path = "examples/dummy.rs"
-
-[features]
-rpc_try = ["capnp/rpc_try"]
