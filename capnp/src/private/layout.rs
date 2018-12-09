@@ -2660,8 +2660,14 @@ impl <'a> StructReader<'a> {
     pub fn get_pointer_section_size(&self) -> WirePointerCount16 { self.pointer_count }
 
     pub fn get_data_section_as_blob(&self) -> &'a [u8] {
-        unsafe {
-            ::std::slice::from_raw_parts(self.data, self.data_size as usize / BITS_PER_BYTE)
+        if self.data_size == 0 {
+            // Explictly handle this case to avoid forming a slice to a null pointer,
+            // which would be undefined behavior.
+            &[]
+        } else {
+            unsafe {
+                ::std::slice::from_raw_parts(self.data, self.data_size as usize / BITS_PER_BYTE)
+            }
         }
     }
 
