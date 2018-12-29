@@ -162,7 +162,7 @@ impl InnerReadState {
                     if *idx < buf.len() {
                         return Ok(Async::NotReady)
                     } else {
-                        let (segment_count, first_segment_length) = try!(parse_segment_table_first(buf));
+                        let (segment_count, first_segment_length) = parse_segment_table_first(buf)?;
                         if segment_count == 1 {
                             InnerReadState::Segments {
                                 segment_slices: vec![(0, first_segment_length as usize)],
@@ -186,13 +186,13 @@ impl InnerReadState {
                     ref mut segment_size_buf,
                     ref mut idx,
                 } => {
-                    *idx += try!(async_read_all(read, &mut segment_size_buf[*idx..]));
+                    *idx += async_read_all(read, &mut segment_size_buf[*idx..])?;
                     if *idx < segment_size_buf.len() {
                         return Ok(Async::NotReady)
                     } else {
                         let (word_count, segment_slices) =
-                            try!(parse_segment_table_rest(
-                                options, segment_count, first_segment_length, segment_size_buf));
+                            parse_segment_table_rest(
+                                options, segment_count, first_segment_length, segment_size_buf)?;
                         InnerReadState::Segments {
                             segment_slices: segment_slices,
                             owned_space: Word::allocate_zeroed_vec(word_count),
@@ -204,7 +204,7 @@ impl InnerReadState {
                 InnerReadState::Segments { ref mut segment_slices, ref mut owned_space, ref mut idx } => {
                     let len = {
                         let bytes = Word::words_to_bytes_mut(owned_space);
-                        *idx += try!(async_read_all(read, &mut bytes[*idx..]));
+                        *idx += async_read_all(read, &mut bytes[*idx..])?;
                         bytes.len()
                     };
                     if *idx < len {
@@ -379,7 +379,7 @@ impl InnerWriteState {
         loop {
             let new_state = match *self {
                 InnerWriteState::OneWordSegmentTable { ref mut buf, ref mut idx } => {
-                    *idx += try!(async_write_all(writer, &buf[*idx..]));
+                    *idx += async_write_all(writer, &buf[*idx..])?;
                     if *idx < 8 {
                         return Ok(Async::NotReady)
                     } else {
@@ -387,7 +387,7 @@ impl InnerWriteState {
                     }
                 }
                 InnerWriteState::MoreThanOneWordSegmentTable { ref mut buf, ref mut idx } => {
-                    *idx += try!(async_write_all(writer, &buf[*idx..]));
+                    *idx += async_write_all(writer, &buf[*idx..])?;
                     if *idx < buf.len() {
                         return Ok(Async::NotReady)
                     } else {
@@ -399,7 +399,7 @@ impl InnerWriteState {
                     while *segment_idx < segments.len() {
                         let segment = segments[*segment_idx];
                         let buf = Word::words_to_bytes(segment);
-                        *idx += try!(async_write_all(writer, &buf[*idx..]));
+                        *idx += async_write_all(writer, &buf[*idx..])?;
                         if *idx < buf.len() {
                             return Ok(Async::NotReady)
                         } else {
@@ -532,7 +532,7 @@ impl <S, M> Sink for Transport<S, M> where S: io::Write, M: AsOutputSegments {
     fn start_send(&mut self, item: Self::SinkItem) -> StartSend<Self::SinkItem, Self::SinkError> {
         match self.write_state {
             Some((ref mut m, ref mut state)) => {
-                match try!(state.write_helper(&mut self.stream, m)) {
+                match state.write_helper(&mut self.stream, m)? {
                     Async::NotReady => return Ok(AsyncSink::NotReady(item)),
                     Async::Ready(()) => (),
                 }
@@ -585,11 +585,11 @@ pub mod test {
                                  -> Result<(usize, Vec<(usize, usize)>)>
     where R: Read {
         let mut firstbuf = [0; 8];
-        try!(read.read_exact(&mut firstbuf));
-        let (segment_count, first_segment_len) = try!(parse_segment_table_first(&firstbuf[..]));
+        read.read_exact(&mut firstbuf)?;
+        let (segment_count, first_segment_len) = parse_segment_table_first(&firstbuf[..])?;
 
         let mut rest_buf = vec![0; 4*(segment_count as usize & !1)];
-        try!(read.read_exact(&mut rest_buf));
+        read.read_exact(&mut rest_buf)?;
 
         parse_segment_table_rest(&options, segment_count, first_segment_len, &rest_buf[..])
     }
@@ -769,7 +769,7 @@ pub mod test {
                 Err(io::Error::new(io::ErrorKind::WouldBlock, "BlockingRead"))
             } else {
                 let len = cmp::min(self.idx, buf.len());
-                let bytes_read = try!(self.read.read(&mut buf[..len]));
+                let bytes_read = self.read.read(&mut buf[..len])?;
                 self.idx -= bytes_read;
                 Ok(bytes_read)
             }
@@ -804,7 +804,7 @@ pub mod test {
                 Err(io::Error::new(io::ErrorKind::WouldBlock, "BlockingWrite"))
             } else {
                 let len = cmp::min(self.idx, buf.len());
-                let bytes_written = try!(self.writer.write(&buf[..len]));
+                let bytes_written = self.writer.write(&buf[..len])?;
                 self.idx -= bytes_written;
                 Ok(bytes_written)
             }
