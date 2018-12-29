@@ -19,5 +19,5 @@ path = "run_all.rs"
 capnpc = { version = "0.9", path = "../capnpc" }
 
 [dependencies]
-rand = "0.3.11"
+rand = "0.4"
 capnp = { version = "0.9", path = "../capnp" }
