@@ -166,13 +166,13 @@ fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64) -> ::capnp::Resul
             &mut rng,
             message_req.init_root());
 
-        try!(testcase.handle_request(
-            try!(message_req.get_root_as_reader()),
-            message_res.init_root()));
+        testcase.handle_request(
+            message_req.get_root_as_reader()?,
+            message_res.init_root())?;
 
-        try!(testcase.check_response(
-            try!(message_res.get_root_as_reader()),
-            expected));
+        testcase.check_response(
+            message_res.get_root_as_reader()?,
+            expected)?;
     }
     Ok(())
 }
@@ -198,30 +198,30 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
 
             {
                 let mut writer: &mut [u8] = &mut request_bytes;
-                try!(compression.write_message(&mut writer, &mut message_req));
+                compression.write_message(&mut writer, &mut message_req)?;
             }
 
             let mut request_bytes1: &[u8] = &request_bytes;
-            let message_reader = try!(compression.read_message(
+            let message_reader = compression.read_message(
                 &mut request_bytes1,
-                Default::default()));
+                Default::default())?;
 
-            let request_reader = try!(message_reader.get_root());
-            try!(testcase.handle_request(request_reader, response));
+            let request_reader = message_reader.get_root()?;
+            testcase.handle_request(request_reader, response)?;
         }
 
         {
             let mut writer: &mut [u8] = &mut response_bytes;
-            try!(compression.write_message(&mut writer, &mut message_res));
+            compression.write_message(&mut writer, &mut message_res)?;
         }
 
         let mut response_bytes1: &[u8] = &response_bytes;
-        let message_reader = try!(compression.read_message(
+        let message_reader = compression.read_message(
             &mut response_bytes1,
-            Default::default()));
+            Default::default())?;
 
-        let response_reader = try!(message_reader.get_root());
-        try!(testcase.check_response(response_reader, expected));
+        let response_reader = message_reader.get_root()?;
+        testcase.check_response(response_reader, expected)?;
     }
     Ok(())
 }
@@ -238,15 +238,15 @@ fn server<C, S, T, R, W>(testcase: T, mut reuse: S, compression: C, iters: u64, 
 
         {
             let response = message_res.init_root();
-            let message_reader = try!(compression.read_message(
+            let message_reader = compression.read_message(
                 &mut in_buffered,
-                capnp::message::DEFAULT_READER_OPTIONS));
-            let request_reader = try!(message_reader.get_root());
-            try!(testcase.handle_request(request_reader, response));
+                capnp::message::DEFAULT_READER_OPTIONS)?;
+            let request_reader = message_reader.get_root()?;
+            testcase.handle_request(request_reader, response)?;
         }
 
-        try!(compression.write_message(&mut out_buffered, &mut message_res));
-        try!(out_buffered.flush());
+        compression.write_message(&mut out_buffered, &mut message_res)?;
+        out_buffered.flush()?;
     }
     Ok(())
 }
@@ -268,14 +268,14 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
             let request = message_req.init_root();
             testcase.setup_request(&mut rng, request)
         };
-        try!(compression.write_message(&mut out_buffered, &mut message_req));
-        try!(out_buffered.flush());
+        compression.write_message(&mut out_buffered, &mut message_req)?;
+        out_buffered.flush()?;
 
-        let message_reader = try!(compression.read_message(
+        let message_reader = compression.read_message(
             &mut in_buffered,
-            Default::default()));
-        let response_reader = try!(message_reader.get_root());
-        try!(testcase.check_response(response_reader, expected));
+            Default::default())?;
+        let response_reader = message_reader.get_root()?;
+        testcase.check_response(response_reader, expected)?;
     }
     Ok(())
 }
@@ -297,7 +297,7 @@ fn pass_by_pipe<C, S, T>(testcase: T, reuse: S, compression: C, iters: u64) -> :
         Ok(ref mut p) => {
             let child_std_out = p.stdout.take().unwrap();
             let child_std_in = p.stdin.take().unwrap();
-            try!(server(testcase, reuse, compression, iters, child_std_out, child_std_in));
+            server(testcase, reuse, compression, iters, child_std_out, child_std_in)?;
             println!("{}", p.wait().unwrap());
             Ok(())
         }
@@ -379,7 +379,7 @@ fn try_main() -> ::capnp::Result<()> {
             return Err(::capnp::Error::failed(format!("Could not parse a u64 from: {}", args[5]))),
     };
 
-    let mode = try!(Mode::parse(&*args[2]));
+    let mode = Mode::parse(&*args[2])?;
 
     match &*args[4] {
         "none" => do_testcase2(&*args[1], mode, &*args[3], NoCompression, iters),

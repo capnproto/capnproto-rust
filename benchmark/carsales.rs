@@ -39,7 +39,7 @@ macro_rules! car_value_impl(
                     // Using an iterator here slows things down considerably.
                     // TODO: investigate why.
                     {
-                        let mut wheels = try!(self.reborrow().get_wheels());
+                        let mut wheels = self.reborrow().get_wheels()?;
                         for ii in 0..wheels.len() {
                             let mut wheel = wheels.reborrow().get(ii);
                             result += wheel.reborrow().get_diameter() as u64 * wheel.reborrow().get_diameter() as u64;
@@ -51,7 +51,7 @@ macro_rules! car_value_impl(
                         self.reborrow().get_width() as u64 * self.reborrow().get_height() as u64 / 50;
 
                     {
-                        let mut engine = try!(self.reborrow().get_engine());
+                        let mut engine = self.reborrow().get_engine()?;
                         result += engine.reborrow().get_horsepower() as u64 * 40;
                         if engine.reborrow().get_uses_electric() {
                             if engine.reborrow().get_uses_gas() {
@@ -152,8 +152,8 @@ impl ::TestCase for CarSales {
                       -> ::capnp::Result<()>
     {
         let mut result = 0;
-        for car in try!(request.get_cars()).iter() {
-            result += try!(car.car_value());
+        for car in request.get_cars()?.iter() {
+            result += car.car_value()?;
         }
         response.set_amount(result);
         Ok(())
