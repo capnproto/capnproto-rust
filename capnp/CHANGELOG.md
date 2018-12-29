@@ -1,3 +1,9 @@
+## v0.9.4
+- Add optional rpc_try feature, impelemnting std::ops::Try for Promise.
+- Add 'raw' module with get_struct_data_section(), get_list_bytes(), and other functions.
+- Avoid potential undefined behavior in canonicalizaion.
+- Update a bunch of internal usages of `try!()` to `?`.
+
 ## v0.9.3
 - Add IntoInternalStructReader trait and struct_list::Builder::set_with_caveats() method.
 - Update deprecation attributes, to satisfy clippy.
