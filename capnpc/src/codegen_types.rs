@@ -150,7 +150,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             format!("{},", local_lifetime)
         };
 
-        match try!(self.which()) {
+        match self.which()? {
             type_::Void(()) => Ok("()".to_string()),
             type_::Bool(()) => Ok("bool".to_string()),
             type_::Int8(()) => Ok("i8".to_string()),
@@ -166,26 +166,26 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
             type_::Text(()) => Ok(format!("::capnp::text::{}", module)),
             type_::Data(()) => Ok(format!("::capnp::data::{}", module)),
             type_::Struct(st) => {
-                do_branding(gen, st.get_type_id(), try!(st.get_brand()), module,
+                do_branding(gen, st.get_type_id(), st.get_brand()?, module,
                             gen.scope_map[&st.get_type_id()].join("::"), None)
             }
             type_::Interface(interface) => {
-                do_branding(gen, interface.get_type_id(), try!(interface.get_brand()), module,
+                do_branding(gen, interface.get_type_id(), interface.get_brand()?, module,
                             gen.scope_map[&interface.get_type_id()].join("::"), None)
             }
             type_::List(ot1) => {
-                let element_type = try!(ot1.get_element_type());
-                match try!(element_type.which()) {
+                let element_type = ot1.get_element_type()?;
+                match element_type.which()? {
                     type_::Struct(_) => {
-                        let inner = try!(element_type.type_string(gen, Leaf::Owned));
+                        let inner = element_type.type_string(gen, Leaf::Owned)?;
                         Ok(format!("::capnp::struct_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                     type_::Enum(_) => {
-                        let inner = try!(element_type.type_string(gen, Leaf::Owned));
+                        let inner = element_type.type_string(gen, Leaf::Owned)?;
                         Ok(format!("::capnp::enum_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                     type_::List(_) => {
-                        let inner = try!(element_type.type_string(gen, Leaf::Owned));
+                        let inner = element_type.type_string(gen, Leaf::Owned)?;
                         Ok(format!("::capnp::list_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                     type_::Text(()) => {
@@ -195,12 +195,12 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                         Ok(format!("::capnp::data_list::{}", module))
                     },
                     type_::Interface(_) => {
-                        let inner = try!(element_type.type_string(gen, Leaf::Client));
+                        let inner = element_type.type_string(gen, Leaf::Client)?;
                         Ok(format!("::capnp::capability_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     }
                     type_::AnyPointer(_) => Err(Error::failed("List(AnyPointer) is unsupported".to_string())),
                     _ => {
-                        let inner = try!(element_type.type_string(gen, Leaf::Owned));
+                        let inner = element_type.type_string(gen, Leaf::Owned)?;
                         Ok(format!("::capnp::primitive_list::{}<{}{}>", module.bare_name(), lifetime_comma, inner))
                     },
                 }
@@ -210,12 +210,12 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
                 Ok(scope.join("::").to_string())
             },
             type_::AnyPointer(pointer) => {
-                match try!(pointer.which()) {
+                match pointer.which()? {
                     type_::any_pointer::Parameter(def) => {
                         let the_struct = &gen.node_map[&def.get_scope_id()];
-                        let parameters = try!(the_struct.get_parameters());
+                        let parameters = the_struct.get_parameters()?;
                         let parameter = parameters.get(def.get_parameter_index() as u32);
-                        let parameter_name = try!(parameter.get_name());
+                        let parameter_name = parameter.get_name()?;
                         match module {
                             Leaf::Owned => Ok(parameter_name.to_string()),
                             Leaf::Reader(lifetime) => {
@@ -253,9 +253,9 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
     }
 
     fn is_parameter(&self) -> Result<bool, Error> {
-        match try!(self.which()) {
+        match self.which()? {
             type_::AnyPointer(pointer) => {
-                match try!(pointer.which()) {
+                match pointer.which()? {
                     type_::any_pointer::Parameter(_) => Ok(true),
                     _ => Ok(false),
                 }
@@ -265,10 +265,10 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
     }
 
     fn is_branded(&self) -> Result<bool, Error> {
-        match try!(self.which()) {
+        match self.which()? {
             type_::Struct(st) => {
-                let brand = try!(st.get_brand());
-                let scopes = try!(brand.get_scopes());
+                let brand = st.get_brand()?;
+                let scopes = brand.get_scopes()?;
                 Ok(scopes.len() > 0)
             }
             _ => Ok(false)
@@ -277,7 +277,7 @@ impl <'a> RustTypeInfo for type_::Reader<'a> {
 
     #[inline(always)]
     fn is_prim(&self) -> Result<bool, Error> {
-        match try!(self.which()) {
+        match self.which()? {
             type_::Int8(()) | type_::Int16(()) | type_::Int32(()) | type_::Int64(()) |
             type_::Uint8(()) | type_::Uint16(()) | type_::Uint32(()) | type_::Uint64(()) |
             type_::Float32(()) | type_::Float64(()) | type_::Void(()) | type_::Bool(()) => Ok(true),
@@ -294,7 +294,7 @@ pub fn do_branding(gen: &GeneratorContext,
                    leaf: Leaf,
                    the_mod: String,
                    mut parent_scope_id: Option<u64>) -> Result<String, Error> {
-    let scopes = try!(brand.get_scopes());
+    let scopes = brand.get_scopes()?;
     let mut brand_scopes = HashMap::new();
     for scope in scopes.iter() {
         brand_scopes.insert(scope.get_scope_id(), scope);
@@ -307,7 +307,7 @@ pub fn do_branding(gen: &GeneratorContext,
             None => break,
             Some(node) => node,
         };
-        let params = try!(current_node.get_parameters());
+        let params = current_node.get_parameters()?;
         let mut arguments: Vec<String> = Vec::new();
         match brand_scopes.get(&current_node_id) {
             None => {
@@ -316,22 +316,22 @@ pub fn do_branding(gen: &GeneratorContext,
                 }
             },
             Some(scope) => {
-                match try!(scope.which()) {
+                match scope.which()? {
                     brand::scope::Inherit(()) => {
                         for param in params.iter() {
-                            arguments.push(try!(param.get_name()).to_string());
+                            arguments.push(param.get_name()?.to_string());
                         }
                     }
                     brand::scope::Bind(bindings_list_opt) => {
-                        let bindings_list = try!(bindings_list_opt);
+                        let bindings_list = bindings_list_opt?;
                         assert_eq!(bindings_list.len(), params.len());
                         for binding in bindings_list.iter() {
-                            match try!(binding.which()) {
+                            match binding.which()? {
                                 brand::binding::Unbound(()) => {
                                     arguments.push("::capnp::any_pointer::Owned".to_string());
                                 }
                                 brand::binding::Type(t) => {
-                                    arguments.push(try!(try!(t).type_string(gen, Leaf::Owned)));
+                                    arguments.push(t?.type_string(gen, Leaf::Owned)?);
                                 }
                             }
                         }

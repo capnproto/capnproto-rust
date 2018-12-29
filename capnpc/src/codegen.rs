@@ -62,31 +62,31 @@ impl <'a> GeneratorContext<'a> {
     {
 
         let mut gen = GeneratorContext {
-            request : try!(message.get_root()),
+            request : message.get_root()?,
             node_map: collections::hash_map::HashMap::<u64, schema_capnp::node::Reader<'a>>::new(),
             scope_map: collections::hash_map::HashMap::<u64, Vec<String>>::new(),
         };
 
-        for node in try!(gen.request.get_nodes()).iter() {
+        for node in gen.request.get_nodes()?.iter() {
             gen.node_map.insert(node.get_id(), node);
         }
 
-        for requested_file in try!(gen.request.get_requested_files()).iter() {
+        for requested_file in gen.request.get_requested_files()?.iter() {
              let id = requested_file.get_id();
 
-            let imports = try!(requested_file.get_imports());
+            let imports = requested_file.get_imports()?;
             for import in imports.iter() {
-                let importpath = ::std::path::Path::new(try!(import.get_name()));
+                let importpath = ::std::path::Path::new(import.get_name()?);
                 let root_name: String = format!(
                     "{}_capnp",
-                    try!(path_to_stem_string(importpath)).replace("-", "_"));
-                try!(populate_scope_map(&gen.node_map,
-                                        &mut gen.scope_map,
-                                        root_scope(rust_edition, root_name),
-                                        import.get_id()));
+                    path_to_stem_string(importpath)?.replace("-", "_"));
+                populate_scope_map(&gen.node_map,
+                                   &mut gen.scope_map,
+                                   root_scope(rust_edition, root_name),
+                                   import.get_id())?;
             }
 
-            let root_name = try!(path_to_stem_string(try!(requested_file.get_filename())));
+            let root_name = path_to_stem_string(requested_file.get_filename()?)?;
             let root_mod = format!("{}_capnp", root_name.replace("-", "_"));
             populate_scope_map(&gen.node_map,
                                &mut gen.scope_map,
@@ -260,7 +260,7 @@ fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capn
     // unused nodes in imported files might be omitted from the node map
     let node_reader = match node_map.get(&node_id) { Some(node) => node, None => return Ok(()), };
 
-    let nested_nodes = try!(node_reader.get_nested_nodes());
+    let nested_nodes = node_reader.get_nested_nodes()?;
     for nested_node in nested_nodes.iter(){
         let mut scope_names = scope_names.clone();
         let nested_node_id = nested_node.get_id();
@@ -269,13 +269,12 @@ fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capn
             Some(node_reader) => {
                 match node_reader.which() {
                     Ok(schema_capnp::node::Enum(_enum_reader)) => {
-                        scope_names.push(try!(nested_node.get_name()).to_string());
-                        try!(populate_scope_map(node_map, scope_map, scope_names, nested_node_id));
+                        scope_names.push(nested_node.get_name()?.to_string());
+                        populate_scope_map(node_map, scope_map, scope_names, nested_node_id)?;
                     }
                     _ => {
-                        scope_names.push(module_name(try!(nested_node.get_name())));
-                        try!(populate_scope_map(node_map, scope_map, scope_names, nested_node_id));
-
+                        scope_names.push(module_name(nested_node.get_name()?));
+                       populate_scope_map(node_map, scope_map, scope_names, nested_node_id)?;
                     }
                 }
             }
@@ -284,14 +283,14 @@ fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capn
 
     match node_reader.which() {
         Ok(schema_capnp::node::Struct(struct_reader)) => {
-            let fields = try!(struct_reader.get_fields());
+            let fields = struct_reader.get_fields()?;
             for field in fields.iter() {
                 match field.which() {
                     Ok(schema_capnp::field::Group(group)) => {
-                        let name = module_name(try!(field.get_name()));
+                        let name = module_name(field.get_name()?);
                         let mut scope_names = scope_names.clone();
                         scope_names.push(name);
-                        try!(populate_scope_map(node_map, scope_map, scope_names, group.get_type_id()));
+                        populate_scope_map(node_map, scope_map, scope_names, group.get_type_id())?;
                     }
                     _ => {}
                 }
@@ -304,7 +303,7 @@ fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capn
 
 fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<String>> {
     use schema_capnp::value;
-    match try!(value.which()) {
+    match value.which()? {
         value::Bool(false) |
         value::Int8(0) | value::Int16(0) | value::Int32(0) |
         value::Int64(0) | value::Uint8(0) | value::Uint16(0) |
@@ -340,7 +339,7 @@ pub fn getter_text(gen: &GeneratorContext,
                    -> ::capnp::Result<(String, FormattedText)> {
     use schema_capnp::*;
 
-    match try!(field.which()) {
+    match field.which()? {
         field::Group(group) => {
             let the_mod = gen.scope_map[&group.get_type_id()].join("::");
 
@@ -377,19 +376,18 @@ pub fn getter_text(gen: &GeneratorContext,
                 }
             }
 
-            let raw_type = try!(reg_field.get_type());
-            let typ = try!(raw_type.type_string(gen, module));
-            let default_value = try!(reg_field.get_default_value());
-            let default = try!(default_value.which());
+            let raw_type = reg_field.get_type()?;
+            let typ = raw_type.type_string(gen, module)?;
+            let default_value = reg_field.get_default_value()?;
+            let default = default_value.which()?;
 
-            let mut result_type = match try!(raw_type.which()) {
+            let mut result_type = match raw_type.which()? {
                 type_::Enum(_) => format!("::std::result::Result<{},::capnp::NotInSchema>", typ),
-                type_::AnyPointer(_) if !try!(raw_type.is_parameter()) => typ.clone(),
+                type_::AnyPointer(_) if !raw_type.is_parameter()? => typ.clone(),
                 type_::Interface(_) => {
-                    format!("::capnp::Result<{}>",
-                            try!(raw_type.type_string(gen, Leaf::Client)))
+                    format!("::capnp::Result<{}>", raw_type.type_string(gen, Leaf::Client)?)
                 }
-                _ if try!(raw_type.is_prim()) => typ.clone(),
+                _ if raw_type.is_prim()? => typ.clone(),
                 _ => format!("::capnp::Result<{}>", typ),
             };
 
@@ -401,7 +399,7 @@ pub fn getter_text(gen: &GeneratorContext,
                 }
             }
 
-            let getter_code = match (try!(raw_type.which()), default) {
+            let getter_code = match (raw_type.which()?, default) {
                 (type_::Void(()), value::Void(())) => {
                     if is_fn {
                         Line("".to_string())
@@ -441,18 +439,20 @@ pub fn getter_text(gen: &GeneratorContext,
                 }
 
                 (type_::Text(()), value::Text(t)) => {
-                    if default_value.has_text() && try!(t).len() > 0 && is_reader {
+                    let t = t?;
+                    if default_value.has_text() && t.len() > 0 && is_reader {
                         println!("cargo:warning=[UNSUPPORTED] Ignoring default value {:?} for text field {}. \
                                   See https://github.com/dwrensha/capnpc-rust/issues/38",
-                                 try!(t), try!(field.get_name()));
+                                 t, field.get_name()?);
                     }
                     Line(format!("self.{}.get_pointer_field({}).get_text(::std::ptr::null(), 0)", member, offset))
                 }
                 (type_::Data(()), value::Data(d)) => {
-                    if default_value.has_data() && try!(d).len() > 0 && is_reader {
+                    let d = d?;
+                    if default_value.has_data() && d.len() > 0 && is_reader {
                         println!("cargo:warning=[UNSUPPORTED] Ignoring default value {:?} for data field {}. \
                                   See https://github.com/dwrensha/capnpc-rust/issues/38",
-                                 try!(d), try!(field.get_name()));
+                                 d, field.get_name()?);
                     }
 
                     Line(format!("self.{}.get_pointer_field({}).get_data(::std::ptr::null(), 0)", member, offset))
@@ -462,7 +462,7 @@ pub fn getter_text(gen: &GeneratorContext,
                         // TODO: Don't emit warning if the list if of length zero.
                         println!("cargo:warning=[UNSUPPORTED] Ignoring default for list field {}. \
                                   See https://github.com/dwrensha/capnpc-rust/issues/38",
-                                 try!(field.get_name()));
+                                 field.get_name()?);
                     }
 
                     if is_reader {
@@ -480,7 +480,7 @@ pub fn getter_text(gen: &GeneratorContext,
                         // TODO: Don't emit warning if the struct is zero-sized.
                         println!("cargo:warning=[UNSUPPORTED] Ignoring default for struct field {}. \
                                   See https://github.com/dwrensha/capnpc-rust/issues/38",
-                                 try!(field.get_name()));
+                                 field.get_name()?);
                     }
 
                     if is_reader {
@@ -496,7 +496,7 @@ pub fn getter_text(gen: &GeneratorContext,
                                  member, offset))
                 }
                 (type_::AnyPointer(_), value::AnyPointer(_)) => {
-                    if !try!(raw_type.is_parameter()) {
+                    if !raw_type.is_parameter()? {
                         Line(format!("::capnp::any_pointer::{}::new(self.{}.get_pointer_field({}))", module_string, member, offset))
                     } else {
                         if is_reader {
@@ -515,7 +515,7 @@ pub fn getter_text(gen: &GeneratorContext,
 
 fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result<FormattedText> {
     use schema_capnp::{node, field, type_};
-    match try!(gen.node_map[&node_id].which()) {
+    match gen.node_map[&node_id].which()? {
         node::Struct(st) => {
             let mut result = Vec::new();
             if st.get_discriminant_count() != 0 {
@@ -523,14 +523,14 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
                     Line(format!("self.builder.set_data_field::<u16>({}, 0);",
                                  st.get_discriminant_offset())));
             }
-            let fields = try!(st.get_fields());
+            let fields = st.get_fields()?;
             for field in fields.iter() {
-                match try!(field.which()) {
+                match field.which()? {
                     field::Group(group) => {
-                        result.push(try!(zero_fields_of_group(gen, group.get_type_id())));
+                        result.push(zero_fields_of_group(gen, group.get_type_id())?);
                     }
                     field::Slot(slot) => {
-                        let typ = try!(try!(slot.get_type()).which());
+                        let typ = slot.get_type()?.which()?;
                         match typ {
                             type_::Void(()) => {}
                             type_::Bool(()) => {
@@ -545,7 +545,7 @@ fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result
                             type_::Uint64(()) | type_::Float32(()) | type_::Float64(()) => {
                                 let line = Line(format!(
                                     "self.builder.set_data_field::<{0}>({1}, 0{0});",
-                                    try!(try!(slot.get_type()).type_string(gen, Leaf::Builder("'a"))),
+                                    slot.get_type()?.type_string(gen, Leaf::Builder("'a"))?,
                                     slot.get_offset()));
                                 // PERF could dedup more efficiently
                                 if !result.contains(&line) { result.push(line) }
@@ -604,12 +604,12 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
     let mut return_result = false;
     let mut result = Vec::new();
 
-    let (maybe_reader_type, maybe_builder_type) : (Option<String>, Option<String>) = match try!(field.which()) {
+    let (maybe_reader_type, maybe_builder_type) : (Option<String>, Option<String>) = match field.which()? {
         field::Group(group) => {
             let scope = &gen.scope_map[&group.get_type_id()];
             let the_mod = scope.join("::");
 
-            initter_interior.push(try!(zero_fields_of_group(gen, group.get_type_id())));
+            initter_interior.push(zero_fields_of_group(gen, group.get_type_id())?);
 
             initter_interior.push(Line(format!("::capnp::traits::FromStructBuilder::new(self.builder)")));
 
@@ -617,14 +617,14 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
         }
         field::Slot(reg_field) => {
             let offset = reg_field.get_offset() as usize;
-            let typ = try!(reg_field.get_type());
+            let typ = reg_field.get_type()?;
             match typ.which().ok().expect("unrecognized type") {
                 type_::Void(()) => {
                     setter_param = "_value".to_string();
                     (Some("()".to_string()), None)
                 }
                 type_::Bool(()) => {
-                    match try!(prim_default(&try!(reg_field.get_default_value()))) {
+                    match prim_default(&reg_field.get_default_value()?)? {
                         None => {
                             setter_interior.push(Line(format!("self.builder.set_bool_field({}, value);", offset)));
                         }
@@ -635,9 +635,9 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     }
                     (Some("bool".to_string()), None)
                 }
-                _ if try!(typ.is_prim()) => {
-                    let tstr = try!(typ.type_string(gen, Leaf::Reader("'a")));
-                    match try!(prim_default(&try!(reg_field.get_default_value()))) {
+                _ if typ.is_prim()? => {
+                    let tstr = typ.type_string(gen, Leaf::Reader("'a"))?;
+                    match prim_default(&reg_field.get_default_value()?)? {
                         None => {
                             setter_interior.push(Line(format!("self.builder.set_data_field::<{}>({}, value);",
                                                               tstr, offset)));
@@ -676,15 +676,15 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     initter_interior.push(
                         Line(format!("::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({}), size)", offset)));
 
-                    match try!(try!(ot1.get_element_type()).which()) {
+                    match ot1.get_element_type()?.which()? {
                         type_::List(_) => {
                             setter_generic_param = "<'b>".to_string();
-                            (Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'b")))),
-                             Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a")))))
+                            (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'b"))?),
+                             Some(reg_field.get_type()?.type_string(gen, Leaf::Builder("'a"))?))
                         }
                         _ =>
-                            (Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'a")))),
-                             Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a")))))
+                            (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'a"))?),
+                             Some(reg_field.get_type()?.type_string(gen, Leaf::Builder("'a"))?))
                     }
                 }
                 type_::Enum(e) => {
@@ -701,38 +701,38 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                     initter_interior.push(
                       Line(format!("::capnp::traits::FromPointerBuilder::init_pointer(self.builder.get_pointer_field({}), 0)",
                                    offset)));
-                    if try!(typ.is_branded()) {
+                    if typ.is_branded()? {
                         setter_interior.push(
                             Line(format!(
                                 "<{} as ::capnp::traits::SetPointerBuilder<{}>>::set_pointer_builder(self.builder.get_pointer_field({}), value, false)",
-                                try!(typ.type_string(gen, Leaf::Reader("'b"))),
-                                try!(typ.type_string(gen, Leaf::Builder("'b"))),
+                                typ.type_string(gen, Leaf::Reader("'b"))?,
+                                typ.type_string(gen, Leaf::Builder("'b"))?,
                                 offset)));
-                        (Some(try!(typ.type_string(gen, Leaf::Reader("'b")))),
-                         Some(try!(typ.type_string(gen, Leaf::Builder("'a")))))
+                        (Some(typ.type_string(gen, Leaf::Reader("'b"))?),
+                         Some(typ.type_string(gen, Leaf::Builder("'a"))?))
                     } else {
                         setter_interior.push(
                             Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value, false)", offset)));
-                        (Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Reader("'b")))),
-                         Some(try!(try!(reg_field.get_type()).type_string(gen, Leaf::Builder("'a")))))
+                        (Some(reg_field.get_type()?.type_string(gen, Leaf::Reader("'b"))?),
+                         Some(reg_field.get_type()?.type_string(gen, Leaf::Builder("'a"))?))
                     }
                 }
                 type_::Interface(_) => {
                     setter_interior.push(
                         Line(format!("self.builder.get_pointer_field({}).set_capability(value.client.hook);",
                                      offset)));
-                    (Some(try!(typ.type_string(gen, Leaf::Client))), None)
+                    (Some(typ.type_string(gen, Leaf::Client)?), None)
                 }
                 type_::AnyPointer(_) => {
-                    if try!(typ.is_parameter()) {
+                    if typ.is_parameter()? {
                         initter_interior.push(Line(format!("::capnp::any_pointer::Builder::new(self.builder.get_pointer_field({})).init_as()", offset)));
                         setter_generic_param = format!(
                             "<SPB: ::capnp::traits::SetPointerBuilder<{}>>",
-                            try!(typ.type_string(gen, Leaf::Builder("'a"))));
+                            typ.type_string(gen, Leaf::Builder("'a"))?);
                         setter_interior.push(Line(format!("::capnp::traits::SetPointerBuilder::set_pointer_builder(self.builder.get_pointer_field({}), value, false)", offset)));
                         return_result = true;
 
-                        let builder_type = try!(typ.type_string(gen, Leaf::Builder("'a")));
+                        let builder_type = typ.type_string(gen, Leaf::Builder("'a"))?;
 
                         result.push(Line("#[inline]".to_string()));
                         result.push(Line(format!("pub fn initn_{}(self, length: u32) -> {} {{",
@@ -813,10 +813,10 @@ fn generate_union(gen: &GeneratorContext,
 
         let dvalue = field.get_discriminant_value() as usize;
 
-        let field_name = try!(field.get_name());
+        let field_name = field.get_name()?;
         let enumerant_name = capitalize_first_letter(field_name);
 
-        let (ty, get) = try!(getter_text(gen, field, is_reader, false));
+        let (ty, get) = getter_text(gen, field, is_reader, false)?;
 
         getter_interior.push(Branch(vec![
             Line(format!("{} => {{", dvalue)),
@@ -832,7 +832,7 @@ fn generate_union(gen: &GeneratorContext,
                 new_ty_param(&mut ty_params)
             }
             Ok(field::Slot(reg_field)) => {
-                match try!(reg_field.get_type()).which() {
+                match reg_field.get_type()?.which() {
                     Ok(type_::Text(())) | Ok(type_::Data(())) |
                     Ok(type_::List(_)) | Ok(type_::Struct(_)) |
                     Ok(type_::AnyPointer(_)) => {
@@ -914,7 +914,7 @@ fn generate_haser(discriminant_offset: u32,
     match field.which() {
         Err(_) | Ok(field::Group(_)) => {},
         Ok(field::Slot(reg_field)) => {
-            match try!(try!(reg_field.get_type()).which()) {
+            match reg_field.get_type()?.which()? {
                 type_::Text(()) | type_::Data(()) |
                 type_::List(_) | type_::Struct(_) |
                 type_::AnyPointer(_) => {
@@ -939,9 +939,9 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
                             field: schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
     use schema_capnp::{field, type_};
 
-    let name = try!(field.get_name());
+    let name = field.get_name()?;
 
-    match try!(field.which()) {
+    match field.which()? {
         field::Group(group) => {
             let the_mod = gen.scope_map[&group.get_type_id()].join("::");
             Ok(Branch(vec!(
@@ -953,13 +953,13 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
                 Line("}".to_string()))))
         }
         field::Slot(reg_field) => {
-            let typ = try!(reg_field.get_type());
-            match try!(typ.which()) {
+            let typ = reg_field.get_type()?;
+            match typ.which()? {
                 type_::Struct(_) | type_::AnyPointer(_) => {
                     Ok(Branch(vec!(
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
-                                     try!(typ.type_string(gen, Leaf::Pipeline)))),
+                                     typ.type_string(gen, Leaf::Pipeline)?)),
                         Indent(Box::new(Line(
                             format!("::capnp::capability::FromTypelessPipeline::new(self._typeless.get_pointer_field({}))",
                                     reg_field.get_offset())))),
@@ -969,7 +969,7 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
                     Ok(Branch(vec!(
                         Line(format!("pub fn get_{}(&self) -> {} {{",
                                      camel_to_snake_case(name),
-                                     try!(typ.type_string(gen, Leaf::Client)))),
+                                     typ.type_string(gen, Leaf::Client)?)),
                         Indent(Box::new(Line(
                             format!("::capnp::capability::FromClientHook::new(self._typeless.get_pointer_field({}).as_cap())",
                                     reg_field.get_offset())))),
@@ -989,12 +989,12 @@ fn get_ty_params_of_brand(gen: &GeneratorContext,
                           brand: ::schema_capnp::brand::Reader<>) -> ::capnp::Result<String>
 {
     let mut acc = HashSet::new();
-    try!(get_ty_params_of_brand_helper(gen, &mut acc, brand));
+    get_ty_params_of_brand_helper(gen, &mut acc, brand)?;
     let mut result = String::new();
     for (scope_id, parameter_index) in acc.into_iter() {
         let node = gen.node_map[&scope_id];
-        let p = try!(node.get_parameters()).get(parameter_index as u32);
-        result.push_str(try!(p.get_name()));
+        let p = node.get_parameters()?.get(parameter_index as u32);
+        result.push_str(p.get_name()?);
         result.push_str(",");
     }
 
@@ -1007,7 +1007,7 @@ fn get_ty_params_of_type_helper(gen: &GeneratorContext,
     -> ::capnp::Result<()>
 {
     use schema_capnp::type_;
-    match try!(typ.which()) {
+    match typ.which()? {
         type_::Void(()) | type_::Bool(()) |
         type_::Int8(()) | type_::Int16(()) |
         type_::Int32(()) | type_::Int64(()) |
@@ -1016,7 +1016,7 @@ fn get_ty_params_of_type_helper(gen: &GeneratorContext,
         type_::Float32(()) | type_::Float64(()) |
         type_::Text(_) | type_::Data(_) => {}
         type_::AnyPointer(p) => {
-            match try!(p.which()) {
+            match p.which()? {
                 type_::any_pointer::Unconstrained(_) => (),
                 type_::any_pointer::Parameter(p) => {
                     accumulator.insert((p.get_scope_id(), p.get_parameter_index()));
@@ -1027,21 +1027,21 @@ fn get_ty_params_of_type_helper(gen: &GeneratorContext,
             }
         }
         type_::List(list) => {
-            try!(get_ty_params_of_type_helper(
+            get_ty_params_of_type_helper(
                 gen, accumulator,
-                try!(list.get_element_type())))
+                list.get_element_type()?)?
         }
         type_::Enum(e) => {
-            try!(get_ty_params_of_brand_helper(gen, accumulator,
-                                               try!(e.get_brand())));
+            get_ty_params_of_brand_helper(gen, accumulator,
+                                          e.get_brand()?)?;
         }
         type_::Struct(s) => {
-            try!(get_ty_params_of_brand_helper(gen, accumulator,
-                                               try!(s.get_brand())));
+            get_ty_params_of_brand_helper(gen, accumulator,
+                                          s.get_brand()?)?;
         }
         type_::Interface(interf) => {
-            try!(get_ty_params_of_brand_helper(gen, accumulator,
-                                               try!(interf.get_brand())));
+            get_ty_params_of_brand_helper(gen, accumulator,
+                                          interf.get_brand()?)?;
         }
     }
     Ok(())
@@ -1052,21 +1052,21 @@ fn get_ty_params_of_brand_helper(gen: &GeneratorContext,
                          brand: ::schema_capnp::brand::Reader<>)
                          -> ::capnp::Result<()>
 {
-    for scope in try!(brand.get_scopes()).iter() {
+    for scope in brand.get_scopes()?.iter() {
         let scope_id = scope.get_scope_id();
-        match try!(scope.which()) {
+        match scope.which()? {
             ::schema_capnp::brand::scope::Bind(bind) => {
-                for binding in try!(bind).iter() {
-                    match try!(binding.which()) {
+                for binding in bind?.iter() {
+                    match binding.which()? {
                         ::schema_capnp::brand::binding::Unbound(()) => {}
                         ::schema_capnp::brand::binding::Type(t) => {
-                            try!(get_ty_params_of_type_helper(gen, accumulator, try!(t)))
+                            get_ty_params_of_type_helper(gen, accumulator, t?)?
                         }
                     }
                 }
             }
             ::schema_capnp::brand::scope::Inherit(()) => {
-                let parameters = try!(gen.node_map[&scope_id].get_parameters());;
+                let parameters = gen.node_map[&scope_id].get_parameters()?;
                 for idx in 0..parameters.len() {
                     accumulator.insert((scope_id, idx as u16));
                 }
@@ -1089,14 +1089,13 @@ fn generate_node(gen: &GeneratorContext,
     let mut nested_output: Vec<FormattedText> = Vec::new();
 
     let node_reader = &gen.node_map[&node_id];
-    let nested_nodes = try!(node_reader.get_nested_nodes());
+    let nested_nodes = node_reader.get_nested_nodes()?;
     for nested_node in nested_nodes.iter() {
         let id = nested_node.get_id();
-        nested_output.push(try!(generate_node(gen, id, try!(gen.get_last_name(id)), None)));
+        nested_output.push(generate_node(gen, id, gen.get_last_name(id)?, None)?);
     }
 
-    match try!(node_reader.which()) {
-
+    match node_reader.which()? {
         node::File(()) => {
             output.push(Branch(nested_output));
         }
@@ -1125,17 +1124,17 @@ fn generate_node(gen: &GeneratorContext,
             let discriminant_count = struct_reader.get_discriminant_count();
             let discriminant_offset = struct_reader.get_discriminant_offset();
 
-            let fields = try!(struct_reader.get_fields());
+            let fields = struct_reader.get_fields()?;
             for field in fields.iter() {
-                let name = try!(field.get_name());
+                let name = field.get_name()?;
                 let styled_name = camel_to_snake_case(name);
 
                 let discriminant_value = field.get_discriminant_value();
                 let is_union_field = discriminant_value != field::NO_DISCRIMINANT;
 
                 if !is_union_field {
-                    pipeline_impl_interior.push(try!(generate_pipeline_getter(gen, field)));
-                    let (ty, get) = try!(getter_text(gen, &field, true, true));
+                    pipeline_impl_interior.push(generate_pipeline_getter(gen, field)?);
+                    let (ty, get) = getter_text(gen, &field, true, true)?;
                     reader_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
@@ -1143,7 +1142,7 @@ fn generate_node(gen: &GeneratorContext,
                             Indent(Box::new(get)),
                             Line("}".to_string()))));
 
-                    let (ty_b, get_b) = try!(getter_text(gen, &field, false, true));
+                    let (ty_b, get_b) = getter_text(gen, &field, false, true)?;
                     builder_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
@@ -1155,33 +1154,32 @@ fn generate_node(gen: &GeneratorContext,
                     union_fields.push(field);
                 }
 
-                builder_members.push(try!(generate_setter(gen, discriminant_offset,
-                                                          &styled_name, &field)));
+                builder_members.push(generate_setter(gen, discriminant_offset,
+                                                     &styled_name, &field)?);
 
-                reader_members.push(try!(generate_haser(discriminant_offset, &styled_name, &field, true)));
-                builder_members.push(try!(generate_haser(discriminant_offset, &styled_name, &field, false)));
+                reader_members.push(generate_haser(discriminant_offset, &styled_name, &field, true)?);
+                builder_members.push(generate_haser(discriminant_offset, &styled_name, &field, false)?);
 
                 match field.which() {
                     Ok(field::Group(group)) => {
                         let id = group.get_type_id();
-                        let text = try!(generate_node(gen, id,
-                                                      try!(gen.get_last_name(id)), None));
+                        let text = generate_node(gen, id,
+                                                 gen.get_last_name(id)?, None)?;
                         nested_output.push(text);
                     }
                     _ => { }
                 }
-
             }
 
             if discriminant_count > 0 {
                 let (which_enums1, union_getter, typedef) =
-                    try!(generate_union(gen, discriminant_offset, &union_fields, true, &params));
+                    generate_union(gen, discriminant_offset, &union_fields, true, &params)?;
                 which_enums.push(which_enums1);
                 which_enums.push(typedef);
                 reader_members.push(union_getter);
 
                 let (_, union_getter, typedef) =
-                    try!(generate_union(gen, discriminant_offset, &union_fields, false, &params));
+                    generate_union(gen, discriminant_offset, &union_fields, false, &params)?;
                 which_enums.push(typedef);
                 builder_members.push(union_getter);
 
@@ -1189,7 +1187,7 @@ fn generate_node(gen: &GeneratorContext,
                 reexports.push_str("pub use self::Which::{");
                 let mut whichs = Vec::new();
                 for f in union_fields.iter(){
-                    whichs.push(capitalize_first_letter(try!(f.get_name())));
+                    whichs.push(capitalize_first_letter(f.get_name()?));
                 }
                 reexports.push_str(&whichs.join(","));
                 reexports.push_str("};");
@@ -1436,14 +1434,14 @@ fn generate_node(gen: &GeneratorContext,
         }
 
         node::Enum(enum_reader) => {
-            let last_name = try!(gen.get_last_name(node_id));
+            let last_name = gen.get_last_name(node_id)?;
             output.push(BlankLine);
 
             let mut members = Vec::new();
             let mut match_branches = Vec::new();
-            let enumerants = try!(enum_reader.get_enumerants());
+            let enumerants = enum_reader.get_enumerants()?;
             for ii in 0..enumerants.len() {
-                let enumerant = capitalize_first_letter(try!(enumerants.get(ii).get_name()));
+                let enumerant = capitalize_first_letter(enumerants.get(ii).get_name()?);
                 members.push(Line(format!("{} = {},", enumerant, ii)));
                 match_branches.push(
                     Line(format!("{} => ::std::result::Result::Ok({}::{}),", ii, last_name, enumerant)));
@@ -1508,10 +1506,10 @@ fn generate_node(gen: &GeneratorContext,
 
             mod_interior.push(Line ("#![allow(unused_variables)]".to_string()));
 
-            let methods = try!(interface.get_methods());
+            let methods = interface.get_methods()?;
             for ordinal in 0..methods.len() {
                 let method = methods.get(ordinal);
-                let name = try!(method.get_name());
+                let name = method.get_name()?;
 
                 method.get_code_order();
                 let param_id = method.get_param_struct_type();
@@ -1519,31 +1517,30 @@ fn generate_node(gen: &GeneratorContext,
                 let (param_scopes, params_ty_params) = if param_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Params", name));
-                    nested_output.push(try!(generate_node(gen, param_id, &*local_name, Some(node_id))));
+                    nested_output.push(generate_node(gen, param_id, &*local_name, Some(node_id))?);
                     names.push(local_name);
                     (names, params.params.clone())
                 } else {
                     (gen.scope_map[&param_node.get_id()].clone(),
-                     try!(get_ty_params_of_brand(gen, try!(method.get_param_brand()))))
+                     get_ty_params_of_brand(gen, method.get_param_brand()?)?)
                 };
-                let param_type = try!(do_branding(&gen, param_id, try!(method.get_param_brand()),
-                                                  Leaf::Owned, param_scopes.join("::"), Some(node_id)));
-
+                let param_type = do_branding(&gen, param_id, method.get_param_brand()?,
+                                             Leaf::Owned, param_scopes.join("::"), Some(node_id))?;
 
                 let result_id = method.get_result_struct_type();
                 let result_node = &gen.node_map[&result_id];
                 let (result_scopes, results_ty_params) = if result_node.get_scope_id() == 0 {
                     let mut names = names.clone();
                     let local_name = module_name(&format!("{}Results", name));
-                    nested_output.push(try!(generate_node(gen, result_id, &*local_name, Some(node_id))));
+                    nested_output.push(generate_node(gen, result_id, &*local_name, Some(node_id))?);
                     names.push(local_name);
                     (names, params.params.clone())
                 } else {
                     (gen.scope_map[&result_node.get_id()].clone(),
-                     try!(get_ty_params_of_brand(gen, try!(method.get_result_brand()))))
+                     get_ty_params_of_brand(gen, method.get_result_brand()?)?)
                 };
-                let result_type = try!(do_branding(&gen, result_id, try!(method.get_result_brand()),
-                                                   Leaf::Owned, result_scopes.join("::"), Some(node_id)));
+                let result_type = do_branding(&gen, result_id, method.get_result_brand()?,
+                                              Leaf::Owned, result_scopes.join("::"), Some(node_id))?;
 
                 dispatch_arms.push(
                     Line(format!(
@@ -1573,25 +1570,25 @@ fn generate_node(gen: &GeneratorContext,
                     Box::new(Line(format!("self.client.new_call(_private::TYPE_ID, {}, None)", ordinal)))));
                 client_impl_interior.push(Line("}".to_string()));
 
-                try!(method.get_annotations());
+                method.get_annotations()?;
             }
 
             let mut base_dispatch_arms = Vec::new();
             let server_base = {
                 let mut base_traits = Vec::new();
-                let extends = try!(interface.get_superclasses());
+                let extends = interface.get_superclasses()?;
                 for ii in 0..extends.len() {
                     let type_id = extends.get(ii).get_id();
-                    let brand = try!(extends.get(ii).get_brand());
+                    let brand = extends.get(ii).get_brand()?;
                     let the_mod = gen.scope_map[&type_id].join("::");
 
                     base_dispatch_arms.push(Line(format!(
                         "0x{:x} => {}::dispatch_call_internal(&mut *self.server, method_id, params, results),",
                         type_id,
-                        try!(do_branding(
-                            gen, type_id, brand, Leaf::ServerDispatch, the_mod.clone(), None)))));
-                    base_traits.push(try!(
-                        do_branding(gen, type_id, brand, Leaf::Server, the_mod, None)));
+                        do_branding(
+                            gen, type_id, brand, Leaf::ServerDispatch, the_mod.clone(), None)?)));
+                    base_traits.push(
+                        do_branding(gen, type_id, brand, Leaf::Server, the_mod, None)?);
                 }
                 if extends.len() > 0 { format!(": {}", base_traits.join(" + ")) }
                 else { "".to_string() }
@@ -1795,10 +1792,10 @@ fn generate_node(gen: &GeneratorContext,
         }
 
         node::Const(c) => {
-            let styled_name = snake_to_upper_case(try!(gen.get_last_name(node_id)));
+            let styled_name = snake_to_upper_case(gen.get_last_name(node_id)?);
 
-            let typ = try!(c.get_type());
-            let formatted_text = match (try!(typ.which()), try!(try!(c.get_value()).which())) {
+            let typ = c.get_type()?;
+            let formatted_text = match (typ.which()?, c.get_value()?.which()?) {
                 (type_::Void(()), value::Void(())) => Line(format!("pub const {}: () = ();", styled_name)),
                 (type_::Bool(()), value::Bool(b)) => Line(format!("pub const {}: bool = {};", styled_name, b)),
                 (type_::Int8(()), value::Int8(i)) => Line(format!("pub const {}: i8 = {};", styled_name, i)),
@@ -1818,13 +1815,13 @@ fn generate_node(gen: &GeneratorContext,
 
                 (type_::Enum(e), value::Enum(v)) => {
                     if let Some(node) = gen.node_map.get(&e.get_type_id()) {
-                        match try!(node.which()) {
+                        match node.which()? {
                             node::Enum(e) => {
-                                let enumerants = try!(e.get_enumerants());
+                                let enumerants = e.get_enumerants()?;
                                 if (v as u32) < enumerants.len() {
                                     let variant =
-                                        capitalize_first_letter(try!(enumerants.get(v as u32).get_name()));
-                                    let type_string = try!(typ.type_string(gen, Leaf::Owned));
+                                        capitalize_first_letter(enumerants.get(v as u32).get_name()?);
+                                    let type_string = typ.type_string(gen, Leaf::Owned)?;
                                     Line(format!("pub const {}: {} = {}::{};",
                                                  styled_name,
                                                  &type_string,
@@ -1844,12 +1841,12 @@ fn generate_node(gen: &GeneratorContext,
                 }
 
                 (type_::Text(()), value::Text(t)) =>
-                    Line(format!("pub const {}: &'static str = {:?};", styled_name, try!(t))),
+                    Line(format!("pub const {}: &'static str = {:?};", styled_name, t?)),
                 (type_::Data(()), value::Data(d)) =>
-                    Line(format!("pub const {}: &'static [u8] = &{:?};", styled_name, try!(d))),
+                    Line(format!("pub const {}: &'static [u8] = &{:?};", styled_name, d?)),
 
-                (type_::List(_), value::List(v)) => try!(generate_pointer_constant(gen, &styled_name, typ, v)),
-                (type_::Struct(_), value::Struct(v)) => try!(generate_pointer_constant(gen, &styled_name, typ, v)),
+                (type_::List(_), value::List(v)) => generate_pointer_constant(gen, &styled_name, typ, v)?,
+                (type_::Struct(_), value::Struct(v)) => generate_pointer_constant(gen, &styled_name, typ, v)?,
 
                 (type_::Interface(_t), value::Interface(())) => {
                     return Err(Error::unimplemented(format!("interface constants")));
@@ -1921,7 +1918,7 @@ pub fn generate_code<T>(mut inp: T, out_dir: &::std::path::Path, edition: RustEd
 
         let text = stringify(&lines);
 
-        // It would be simpler to use try! instead of a pattern match, but then the error message
+        // It would be simpler to use the ? operator instead of a pattern match, but then the error message
         // would not include `filepath`.
         match ::std::fs::File::create(&filepath) {
             Ok(ref mut writer) => {

@@ -33,9 +33,9 @@ pub fn generate_pointer_constant(
     -> ::capnp::Result<FormattedText>
 {
     let allocator = message::HeapAllocator::new()
-        .first_segment_words(try!(value.target_size()).word_count as u32 + 1);
+        .first_segment_words(value.target_size()?.word_count as u32 + 1);
     let mut message = message::Builder::new(allocator);
-    try!(message.set_root(value));
+    message.set_root(value)?;
     let mut words_lines = Vec::new();
     let words = message.get_segments_for_output()[0];
     for &word in words {
@@ -48,7 +48,7 @@ pub fn generate_pointer_constant(
     }
     Ok(Branch(vec![
         Line(format!("pub static {}: ::capnp::constant::Reader<{}> = {{",
-                     styled_name, try!(typ.type_string(gen, Leaf::Owned)))),
+                     styled_name, typ.type_string(gen, Leaf::Owned)?)),
         Indent(Box::new(Branch(vec![
             Line(format!("static WORDS: [::capnp::Word; {}] = [", words.len())),
             Indent(Box::new(Branch(words_lines))),
