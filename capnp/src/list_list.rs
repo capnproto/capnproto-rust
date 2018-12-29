@@ -68,7 +68,7 @@ where T: for<'b> ::traits::Owned<'b> {
 
 impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
-        Ok(Reader { reader: try!(reader.get_list(Pointer, ::std::ptr::null())),
+        Ok(Reader { reader: reader.get_list(Pointer, ::std::ptr::null())?,
                     marker: ::std::marker::PhantomData })
     }
 }
@@ -124,7 +124,7 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> ::traits
     fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a, T>> {
         Ok(Builder {
             marker: ::std::marker::PhantomData,
-            builder: try!(builder.get_list(Pointer, ::std::ptr::null()))
+            builder: builder.get_list(Pointer, ::std::ptr::null())?
         })
     }
 }

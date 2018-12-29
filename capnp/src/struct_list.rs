@@ -71,7 +71,7 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 
 impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
     fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a, T>> {
-        Ok(Reader { reader: try!(reader.get_list(InlineComposite, ::std::ptr::null())),
+        Ok(Reader { reader: reader.get_list(InlineComposite, ::std::ptr::null())?,
                     marker: PhantomData })
     }
 }
@@ -153,8 +153,8 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> ::traits
         Ok(Builder {
             marker: PhantomData,
             builder:
-            try!(builder.get_struct_list(<<T as ::traits::OwnedStruct>::Builder as HasStructSize>::struct_size(),
-                                         ::std::ptr::null()))
+            builder.get_struct_list(<<T as ::traits::OwnedStruct>::Builder as HasStructSize>::struct_size(),
+                                    ::std::ptr::null())?
         })
     }
 }

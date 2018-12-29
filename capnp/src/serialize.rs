@@ -56,7 +56,7 @@ pub fn read_message_from_words<'a>(slice: &'a [Word],
                                    -> Result<message::Reader<SliceSegments<'a>>>
 {
     let mut bytes = ::Word::words_to_bytes(slice);
-    let (num_words, offsets) = try!(read_segment_table(&mut bytes, options));
+    let (num_words, offsets) = read_segment_table(&mut bytes, options)?;
     let words = unsafe { ::Word::bytes_to_words(bytes) };
     if num_words != words.len() {
         Err(Error::failed(
@@ -92,7 +92,7 @@ impl ::message::ReaderSegments for OwnedSegments {
 /// For optimal performance, `read` should be a buffered reader type.
 pub fn read_message<R>(read: &mut R, options: message::ReaderOptions) -> Result<message::Reader<OwnedSegments>>
 where R: Read {
-    let (total_words, segment_slices) = try!(read_segment_table(read, options));
+    let (total_words, segment_slices) = read_segment_table(read, options)?;
     read_segments(read, total_words, segment_slices, options)
 }
 
@@ -212,13 +212,13 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<Wo
 pub fn write_message<W, A>(write: &mut W, message: &message::Builder<A>) -> ::std::io::Result<()>
  where W: Write, A: message::Allocator {
     let segments = message.get_segments_for_output();
-    try!(write_segment_table(write, &segments));
+    write_segment_table(write, &segments)?;
     write_segments(write, &segments)
 }
 
 pub fn write_message_segments<W, R>(write: &mut W, segments: &R) -> ::std::io::Result<()>
  where W: Write, R: message::ReaderSegments {
-    try!(write_segment_table_internal(write, segments));
+    write_segment_table_internal(write, segments)?;
     write_segments(write, segments)
 }
 
@@ -238,7 +238,7 @@ where W: Write, R: message::ReaderSegments + ?Sized {
     // write the first Word, which contains segment_count and the 1st segment length
     <LittleEndian as ByteOrder>::write_u32(&mut buf[0..4], segment_count as u32 - 1);
     <LittleEndian as ByteOrder>::write_u32(&mut buf[4..8], segments.get_segment(0).unwrap().len() as u32);
-    try!(write.write_all(&buf));
+    write.write_all(&buf)?;
 
     if segment_count > 1 {
         if segment_count < 4 {
@@ -249,7 +249,7 @@ where W: Write, R: message::ReaderSegments + ?Sized {
             if segment_count == 2 {
                 for idx in 4..8 { buf[idx] = 0 }
             }
-            try!(write.write_all(&buf));
+            write.write_all(&buf)?;
         } else {
             let mut buf = vec![0; (segment_count & !1) * 4];
             for idx in 1..segment_count {
@@ -259,7 +259,7 @@ where W: Write, R: message::ReaderSegments + ?Sized {
             if segment_count % 2 == 0 {
                 for idx in (buf.len() - 4)..(buf.len()) { buf[idx] = 0 }
             }
-            try!(write.write_all(&buf));
+            write.write_all(&buf)?;
         }
     }
     Ok(())
@@ -270,7 +270,7 @@ fn write_segments<W, R: message::ReaderSegments + ?Sized>(write: &mut W, segment
 where W: Write {
     for i in 0.. {
         if let Some(segment) = segments.get_segment(i) {
-            try!(write.write_all(Word::words_to_bytes(segment)));
+            write.write_all(Word::words_to_bytes(segment))?;
         } else {
             break;
         }

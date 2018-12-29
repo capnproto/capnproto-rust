@@ -127,7 +127,7 @@ impl <Results> Response<Results>
         Response { marker: PhantomData, hook: hook }
     }
     pub fn get<'a>(&'a self) -> ::Result<<Results as Owned<'a>>::Reader> {
-        try!(self.hook.get()).get_as()
+        self.hook.get()?.get_as()
     }
 }
 
@@ -183,7 +183,7 @@ impl <T> Params <T> {
     pub fn get<'a>(&'a self) -> ::Result<<T as Owned<'a>>::Reader>
         where T: Owned<'a>
     {
-        Ok(try!(try!(self.hook.get()).get_as()))
+        Ok(self.hook.get()?.get_as()?)
     }
 }
 

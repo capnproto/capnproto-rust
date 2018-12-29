@@ -36,7 +36,7 @@ struct PackedRead<R> where R: BufRead {
 impl <R> PackedRead<R> where R: BufRead {
 
     fn get_read_buffer(&mut self) -> io::Result<(*const u8, *const u8)> {
-        let buf = try!(self.inner.fill_buf());
+        let buf = self.inner.fill_buf()?;
         unsafe {
             Ok((buf.as_ptr(), buf.get_unchecked(buf.len())))
         }
@@ -53,7 +53,7 @@ macro_rules! refresh_buffer(
      $outBuf:ident, $buffer_begin:ident) => (
         {
             $this.inner.consume($size);
-            let (b, e) = try!($this.get_read_buffer());
+            let (b, e) = $this.get_read_buffer()?;
             $in_ptr = b;
             $in_end = e;
             $size = ptr_sub($in_end, $in_ptr);
@@ -79,7 +79,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
             let mut out = out_buf.as_mut_ptr();
             let out_end: *mut u8 = out_buf.get_unchecked_mut(len);
 
-            let (mut in_ptr, mut in_end) = try!(self.get_read_buffer());
+            let (mut in_ptr, mut in_end) = self.get_read_buffer()?;
             let mut buffer_begin = in_ptr;
             let mut size = ptr_sub(in_end, in_ptr);
             if size == 0 {
@@ -190,7 +190,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                         if out == out_end {
                             return Ok(len);
                         } else {
-                            let (b, e) = try!(self.get_read_buffer());
+                            let (b, e) = self.get_read_buffer()?;
                             in_ptr = b;
                             in_end = e;
                             size = ptr_sub(e, b);
@@ -240,7 +240,7 @@ impl <W> Write for PackedWrite<W> where W: Write {
                     //# Oops, we're out of space. We need at least 10
                     //# bytes for the fast path, since we don't
                     //# bounds-check on every byte.
-                    try!(self.inner.write_all(&buf[..buf_idx]));
+                    self.inner.write_all(&buf[..buf_idx])?;
                     buf_idx = 0;
                 }
 
@@ -346,13 +346,13 @@ impl <W> Write for PackedWrite<W> where W: Write {
                     *buf.get_unchecked_mut(buf_idx) = (count / 8) as u8;
                     buf_idx += 1;
 
-                    try!(self.inner.write_all(&buf[..buf_idx]));
+                    self.inner.write_all(&buf[..buf_idx])?;
                     buf_idx = 0;
-                    try!(self.inner.write_all(slice::from_raw_parts::<u8>(run_start, count)));
+                    self.inner.write_all(slice::from_raw_parts::<u8>(run_start, count))?;
                 }
             }
 
-            try!(self.inner.write_all(&buf[..buf_idx]));
+            self.inner.write_all(&buf[..buf_idx])?;
             Ok(in_buf.len())
         }
     }

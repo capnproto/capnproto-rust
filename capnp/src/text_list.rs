@@ -53,7 +53,7 @@ impl <'a> Reader<'a> {
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(Reader { reader : try!(reader.get_list(Pointer, ::std::ptr::null())) })
+        Ok(Reader { reader : reader.get_list(Pointer, ::std::ptr::null())? })
     }
 }
 
@@ -115,7 +115,7 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
     }
     fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a>> {
         Ok(Builder {
-            builder: try!(builder.get_list(Pointer, ::std::ptr::null()))
+            builder: builder.get_list(Pointer, ::std::ptr::null())?
         })
     }
 }

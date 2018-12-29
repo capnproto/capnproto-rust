@@ -92,7 +92,7 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
     }
 
     fn check_offset(&self, segment_id: u32, start: *const Word, offset_in_words: i32) -> Result<*const Word> {
-        let (segment_start, segment_len) = try!(self.get_segment(segment_id));
+        let (segment_start, segment_len) = self.get_segment(segment_id)?;
         let this_start: usize = segment_start as usize;
         let this_size: usize = segment_len as usize * BYTES_PER_WORD;
         let offset: i64 = offset_in_words as i64 * BYTES_PER_WORD as i64;
@@ -105,7 +105,7 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
     }
 
     fn contains_interval(&self, id: u32, start: *const Word, size_in_words: usize) -> Result<()> {
-        let (segment_start, segment_len) = try!(self.get_segment(id));
+        let (segment_start, segment_len) = self.get_segment(id)?;
         let this_start: usize = segment_start as usize;
         let this_size: usize = segment_len as usize * BYTES_PER_WORD;
         let start = start as usize;

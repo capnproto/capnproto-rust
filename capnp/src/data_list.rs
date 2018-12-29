@@ -53,7 +53,7 @@ impl <'a> Reader<'a> {
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(Reader { reader: try!(reader.get_list(Pointer, ::std::ptr::null())) })
+        Ok(Reader { reader: reader.get_list(Pointer, ::std::ptr::null())? })
     }
 }
 
@@ -116,7 +116,7 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
 
     fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a>> {
         Ok(Builder {
-            builder: try!(builder.get_list(Pointer, ::std::ptr::null()))
+            builder: builder.get_list(Pointer, ::std::ptr::null())?
         })
     }
 }
@@ -133,7 +133,7 @@ impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
                                value: Reader<'a>,
                                canonicalize: bool) -> Result<()> {
-        try!(pointer.set_list(&value.reader, canonicalize));
+        pointer.set_list(&value.reader, canonicalize)?;
         Ok(())
     }
 }

@@ -59,7 +59,7 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
 
 impl <'a, T: PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
     fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a, T>> {
-        Ok(Reader { reader: try!(reader.get_list(T::element_size(), ptr::null())),
+        Ok(Reader { reader: reader.get_list(T::element_size(), ptr::null())?,
                     marker: marker::PhantomData })
     }
 }
@@ -118,7 +118,7 @@ impl <'a, T: PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
                   marker: marker::PhantomData }
     }
     fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a, T>> {
-        Ok(Builder { builder: try!(builder.get_list(T::element_size(), ptr::null())),
+        Ok(Builder { builder: builder.get_list(T::element_size(), ptr::null())?,
                      marker: marker::PhantomData })
     }
 }

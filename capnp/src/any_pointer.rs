@@ -66,7 +66,7 @@ impl <'a> Reader<'a> {
     }
 
     pub fn get_as_capability<T: FromClientHook>(&self) -> Result<T> {
-        Ok(FromClientHook::new(try!(self.reader.get_capability())))
+        Ok(FromClientHook::new(self.reader.get_capability()?))
     }
 
     //# Used by RPC system to implement pipelining. Applications
@@ -78,7 +78,7 @@ impl <'a> Reader<'a> {
             match *op {
                 PipelineOp::Noop =>  { }
                 PipelineOp::GetPointerField(idx) => {
-                    pointer = try!(pointer.get_struct(::std::ptr::null())).get_pointer_field(idx as usize);
+                    pointer = pointer.get_struct(::std::ptr::null())?.get_pointer_field(idx as usize);
                 }
             }
         }

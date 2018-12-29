@@ -148,15 +148,15 @@ impl <S> Reader<S> where S: ReaderSegments {
     }
 
     fn get_root_internal<'a>(&'a self) -> Result<any_pointer::Reader<'a>> {
-        let (segment_start, _seg_len) = try!(self.arena.get_segment(0));
-        let pointer_reader = try!(layout::PointerReader::get_root(
-            &self.arena, 0, segment_start, self.nesting_limit));
+        let (segment_start, _seg_len) = self.arena.get_segment(0)?;
+        let pointer_reader = layout::PointerReader::get_root(
+            &self.arena, 0, segment_start, self.nesting_limit)?;
         Ok(any_pointer::Reader::new(pointer_reader))
     }
 
     /// Gets the root of the message, interpreting it as the given type.
     pub fn get_root<'a, T: FromPointerReader<'a>>(&'a self) -> Result<T> {
-        try!(self.get_root_internal()).get_as()
+        self.get_root_internal()?.get_as()
     }
 
     pub fn into_segments(self) -> S {
@@ -165,7 +165,7 @@ impl <S> Reader<S> where S: ReaderSegments {
 
     /// Checks whether the message is [canonical](https://capnproto.org/encoding.html#canonicalization).
     pub fn is_canonical(&self) -> Result<bool> {
-        let (segment_start, seg_len) = try!(self.arena.get_segment(0));
+        let (segment_start, seg_len) = self.arena.get_segment(0)?;
 
         if self.arena.get_segment(1).is_ok() {
             // TODO(cleanup, apibump): should there be a nicer way to ask the arena how many
@@ -175,10 +175,10 @@ impl <S> Reader<S> where S: ReaderSegments {
             return Ok(false)
         }
 
-        let pointer_reader = try!(layout::PointerReader::get_root(
-            &self.arena, 0, segment_start, self.nesting_limit));
+        let pointer_reader = layout::PointerReader::get_root(
+            &self.arena, 0, segment_start, self.nesting_limit)?;
         let read_head = ::std::cell::Cell::new(unsafe {segment_start.offset(1)});
-        let root_is_canonical = try!(pointer_reader.is_canonical(&read_head));
+        let root_is_canonical = pointer_reader.is_canonical(&read_head)?;
         let all_words_consumed =
             (read_head.get() as usize - segment_start as usize) / BYTES_PER_WORD == seg_len as usize;
         Ok(root_is_canonical && all_words_consumed)
@@ -188,10 +188,10 @@ impl <S> Reader<S> where S: ReaderSegments {
     /// of this message. Works by copying the message twice. For a canonicalization
     /// method that only requires one copy, see `message::Builder::set_root_canonical()`.
     pub fn canonicalize(&self) -> Result<Vec<Word>> {
-        let root = try!(self.get_root_internal());
-        let size = try!(root.target_size()).word_count + 1;
+        let root = self.get_root_internal()?;
+        let size = root.target_size()?.word_count + 1;
         let mut message = Builder::new(HeapAllocator::new().first_segment_words(size as u32));
-        try!(message.set_root_canonical(root));
+        message.set_root_canonical(root)?;
         let output_segments = message.get_segments_for_output();
         assert_eq!(1, output_segments.len());
         let output = output_segments[0];
@@ -332,9 +332,9 @@ impl <A> Builder<A> where A: Allocator {
         if self.arena.len() == 0 {
             any_pointer::Reader::new(layout::PointerReader::new_default()).get_as()
         } else {
-            let (segment_start, _segment_len) = try!(self.arena.get_segment(0));
-            let pointer_reader = try!(layout::PointerReader::get_root(
-                self.arena.as_reader(), 0, segment_start, 0x7fffffff));
+            let (segment_start, _segment_len) = self.arena.get_segment(0)?;
+            let pointer_reader = layout::PointerReader::get_root(
+                self.arena.as_reader(), 0, segment_start, 0x7fffffff)?;
             let root = any_pointer::Reader::new(pointer_reader);
             root.get_as()
         }
