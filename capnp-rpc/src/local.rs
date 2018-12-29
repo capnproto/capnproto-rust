@@ -81,7 +81,7 @@ impl Params {
 
 impl ParamsHook for Params {
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        let mut result: any_pointer::Reader = try!(self.request.get_root_as_reader());
+        let mut result: any_pointer::Reader = self.request.get_root_as_reader()?;
         result.imbue(&self.cap_table);
         Ok(result)
     }
@@ -118,7 +118,7 @@ impl ResultsHook for Results {
     fn get<'a>(&'a mut self) -> ::capnp::Result<any_pointer::Builder<'a>> {
         match *self {
             Results { message: Some(ref mut message), ref mut cap_table, .. } => {
-                let mut result: any_pointer::Builder = try!(message.get_root());
+                let mut result: any_pointer::Builder = message.get_root()?;
                 result.imbue_mut(cap_table);
                 Ok(result)
             }
@@ -170,7 +170,7 @@ impl ResultsDoneHook for ResultsDone {
         Box::new(ResultsDone { inner: self.inner.clone() })
     }
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        let mut result: any_pointer::Reader = try!(self.inner.message.get_root_as_reader());
+        let mut result: any_pointer::Reader = self.inner.message.get_root_as_reader()?;
         result.imbue(&self.inner.cap_table);
         Ok(result)
     }

@@ -221,8 +221,8 @@ fn do_nothing() {
 #[test]
 fn basic_rpc_calls() {
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_interface_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_interface_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let mut request1 = client.foo_request();
         request1.get().set_i(123);
@@ -244,17 +244,17 @@ fn basic_rpc_calls() {
 
         let mut request2 = client.baz_request();
 
-        ::test_util::init_test_message(try!(request2.get().get_s()));
+        ::test_util::init_test_message(request2.get().get_s()?);
         let promise2 = request2.send();
 
-        let response1 = try!(core.run(promise1.promise));
+        let response1 = core.run(promise1.promise)?;
 
-        if try!(try!(response1.get()).get_x()) != "foo" {
+        if response1.get()?.get_x()? != "foo" {
             return Err(Error::failed("expected X to equal 'foo'".to_string()));
         }
 
-        try!(core.run(promise2.promise));
-        try!(core.run(promise3));
+        core.run(promise2.promise)?;
+        core.run(promise3)?;
         Ok(())
     });
 }
@@ -262,8 +262,8 @@ fn basic_rpc_calls() {
 #[test]
 fn basic_pipelining() {
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_pipeline_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_pipeline_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let mut request = client.get_cap_request();
         request.get().set_n(234);
@@ -291,14 +291,14 @@ fn basic_pipelining() {
             return Err(Error::failed("expected chained_call_count to equal 0".to_string()));
         }
 
-        let response = try!(core.run(pipeline_promise.promise));
+        let response = core.run(pipeline_promise.promise)?;
 
-        if try!(try!(response.get()).get_x()) != "bar" {
+        if response.get()?.get_x()? != "bar" {
             return Err(Error::failed("expected x to equal 'bar'".to_string()));
         }
 
-        let response2 = try!(core.run(pipeline_promise2.promise));
-        ::test_util::CheckTestMessage::check_test_message(try!(response2.get()));
+        let response2 = core.run(pipeline_promise2.promise)?;
+        ::test_util::CheckTestMessage::check_test_message(response2.get()?);
         assert_eq!(chained_call_count.get(), 1);
         Ok(())
     });
@@ -307,8 +307,8 @@ fn basic_pipelining() {
 #[test]
 fn pipelining_return_null() {
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_pipeline_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_pipeline_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let request = client.get_null_cap_request();
         let cap = request.send().pipeline.get_cap();
@@ -342,37 +342,36 @@ fn null_capability() {
 #[test]
 fn release_simple() {
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_more_stuff_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_more_stuff_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let handle1 = client.get_handle_request().send().promise;
         let ::capnp::capability::RemotePromise {promise, pipeline} = client.get_handle_request().send();
-        let handle2 = try!(try!(try!(core.run(promise)).get()).get_handle());
+        let handle2 = core.run(promise)?.get()?.get_handle()?;
 
-
-        let get_count_response = try!(core.run(client.get_handle_count_request().send().promise));
-        if try!(get_count_response.get()).get_count() != 2 {
+        let get_count_response = core.run(client.get_handle_count_request().send().promise)?;
+        if get_count_response.get()?.get_count() != 2 {
             return Err(Error::failed("expected handle count to equal 2".to_string()))
         }
 
         drop(handle1);
 
-        let get_count_response = try!(core.run(client.get_handle_count_request().send().promise));
-        if try!(get_count_response.get()).get_count() != 1 {
+        let get_count_response = core.run(client.get_handle_count_request().send().promise)?;
+        if get_count_response.get()?.get_count() != 1 {
             return Err(Error::failed("expected handle count to equal 1".to_string()))
         }
 
         drop(handle2);
 
-        let get_count_response = try!(core.run(client.get_handle_count_request().send().promise));
-        if try!(get_count_response.get()).get_count() != 1 {
+        let get_count_response = core.run(client.get_handle_count_request().send().promise)?;
+        if get_count_response.get()?.get_count() != 1 {
             return Err(Error::failed("expected handle count to equal 1".to_string()))
         }
 
         drop(pipeline);
 
-        let get_count_response = try!(core.run(client.get_handle_count_request().send().promise));
-        if try!(get_count_response.get()).get_count() != 0 {
+        let get_count_response = core.run(client.get_handle_count_request().send().promise)?;
+        if get_count_response.get()?.get_count() != 0 {
             return Err(Error::failed("expected handle count to equal 0".to_string()))
         }
 
@@ -383,8 +382,8 @@ fn release_simple() {
 #[test]
 fn release_on_cancel() {
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_more_stuff_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_more_stuff_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let promise = client.get_handle_request().send();
 
@@ -403,8 +402,8 @@ fn release_on_cancel() {
             core.turn(Some(::std::time::Duration::from_millis(1)));
         }
 
-        let get_count_response = try!(core.run(client.get_handle_count_request().send().promise));
-        let handle_count = try!(get_count_response.get()).get_count();
+        let get_count_response = core.run(client.get_handle_count_request().send().promise)?;
+        let handle_count = get_count_response.get()?.get_count();
         if handle_count != 0 {
             return Err(Error::failed(format!("handle count: expected 0, but got {}", handle_count)))
         }
@@ -416,8 +415,8 @@ fn release_on_cancel() {
 #[test]
 fn promise_resolve() {
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_more_stuff_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_more_stuff_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let mut request = client.call_foo_request();
         let mut request2 = client.call_foo_when_resolved_request();
@@ -434,18 +433,18 @@ fn promise_resolve() {
         // Make sure getCap() has been called on the server side by sending another call and waiting
         // for it.
         let client2 = ::test_capnp::test_call_order::Client { client: client.clone().client };
-        let _response = try!(core.run(client2.get_call_sequence_request().send().promise));
+        let _response = core.run(client2.get_call_sequence_request().send().promise)?;
 
         let server = impls::TestInterface::new();
         let _ = paf_fulfiller.send(
             ::test_capnp::test_interface::ToClient::new(server).into_client::<::capnp_rpc::Server>().client);
 
-        let response = try!(core.run(promise));
-        if try!(try!(response.get()).get_s()) != "bar" {
+        let response = core.run(promise)?;
+        if response.get()?.get_s()? != "bar" {
             return Err(Error::failed("expected s to equal 'bar'".to_string()));
         }
-        let response = try!(core.run(promise2));
-        if try!(try!(response.get()).get_s()) != "bar" {
+        let response = core.run(promise2)?;
+        if response.get()?.get_s()? != "bar" {
             return Err(Error::failed("expected s to equal 'bar'".to_string()));
         }
         Ok(())
@@ -471,22 +470,22 @@ fn retain_and_release() {
         }).map_err(|_| ()));
 
         {
-            let response = try!(core.run(client.test_more_stuff_request().send().promise));
-            let client = try!(try!(response.get()).get_cap());
+            let response = core.run(client.test_more_stuff_request().send().promise)?;
+            let client = response.get()?.get_cap()?;
 
             {
                 let mut request = client.hold_request();
                 request.get().set_cap(
                     ::test_capnp::test_interface::ToClient::new(impls::TestCapDestructor::new(fulfiller))
                         .into_client::<::capnp_rpc::Server>());
-                try!(core.run(request.send().promise));
+                core.run(request.send().promise)?;
             }
 
             // Do some other call to add a round trip.
             // ugh, we need upcasting.
             let client1 = ::test_capnp::test_call_order::Client { client: client.clone().client };
-            let response = try!(core.run(client1.get_call_sequence_request().send().promise));
-            if try!(response.get()).get_n() != 1 {
+            let response = core.run(client1.get_call_sequence_request().send().promise)?;
+            if response.get()?.get_n() != 1 {
                 return Err(Error::failed("N should equal 1".to_string()))
             }
 
@@ -496,16 +495,15 @@ fn retain_and_release() {
 
 
             // We can ask it to call the held capability.
-            let response = try!(core.run(client.call_held_request().send().promise));
-            if try!(try!(response.get()).get_s()) != "bar" {
+            let response = core.run(client.call_held_request().send().promise)?;
+            if response.get()?.get_s()? != "bar" {
                 return Err(Error::failed("S should equal 'bar'".to_string()))
             }
 
-
             {
                 // we can get the cap back from it.
-                let response = try!(core.run(client.get_held_request().send().promise));
-                let cap_copy = try!(try!(response.get()).get_cap());
+                let response = core.run(client.get_held_request().send().promise)?;
+                let cap_copy = response.get()?.get_cap()?;
 
                 // And call it, without any network communications.
                 // (TODO: verify that no network communications happen here)
@@ -513,8 +511,8 @@ fn retain_and_release() {
                     let mut request = cap_copy.foo_request();
                     request.get().set_i(123);
                     request.get().set_j(true);
-                    let response = try!(core.run(request.send().promise));
-                    if try!(try!(response.get()).get_x()) != "foo" {
+                    let response = core.run(request.send().promise)?;
+                    if response.get()?.get_x()? != "foo" {
                         return Err(Error::failed("X should equal 'foo'.".to_string()));
                     }
                 }
@@ -523,24 +521,24 @@ fn retain_and_release() {
                     // We can send another copy of the same cap to another method, and it works.
                     let mut request = client.call_foo_request();
                     request.get().set_cap(cap_copy);
-                    let response = try!(core.run(request.send().promise));
-                    if try!(try!(response.get()).get_s()) != "bar" {
+                    let response = core.run(request.send().promise)?;
+                    if response.get()?.get_s()? != "bar" {
                         return Err(Error::failed("S should equal 'bar'.".to_string()));
                     }
                 }
             }
 
             // Give some time to settle.
-            let response = try!(core.run(client1.get_call_sequence_request().send().promise));
-            if try!(response.get()).get_n() != 5 {
+            let response = core.run(client1.get_call_sequence_request().send().promise)?;
+            if response.get()?.get_n() != 5 {
                 return Err(Error::failed("N should equal 5.".to_string()));
             }
-            let response = try!(core.run(client1.get_call_sequence_request().send().promise));
-            if try!(response.get()).get_n() != 6 {
+            let response = core.run(client1.get_call_sequence_request().send().promise)?;
+            if response.get()?.get_n() != 6 {
                 return Err(Error::failed("N should equal 6.".to_string()));
             }
-            let response = try!(core.run(client1.get_call_sequence_request().send().promise));
-            if try!(response.get()).get_n() != 7 {
+            let response = core.run(client1.get_call_sequence_request().send().promise)?;
+            if response.get()?.get_n() != 7 {
                 return Err(Error::failed("N should equal 7.".to_string()));
             }
 
@@ -549,7 +547,7 @@ fn retain_and_release() {
             }
         }
 
-        try!(core.run(destroyed_done_receiver));
+        core.run(destroyed_done_receiver)?;
         if !destroyed.get() {
             return Err(Error::failed("should be destroyed now".to_string()));
         }
@@ -564,8 +562,8 @@ fn cancel_releases_params() {
     use std::cell::Cell;
 
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_more_stuff_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_more_stuff_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let (fulfiller, promise) = oneshot::channel::<()>();
         let destroyed = Rc::new(Cell::new(false));
@@ -592,12 +590,12 @@ fn cancel_releases_params() {
 
                 // ugh, we need upcasting.
                 let client = ::test_capnp::test_call_order::Client { client: client.client };
-                let response = try!(core.run(client.get_call_sequence_request().send().promise));
-                if try!(response.get()).get_n() != 1 {
+                let response = core.run(client.get_call_sequence_request().send().promise)?;
+                if response.get()?.get_n() != 1 {
                     return Err(Error::failed("N should equal 1.".to_string()));
                 }
-                let response = try!(core.run(client.get_call_sequence_request().send().promise));
-                if try!(response.get()).get_n() != 2 {
+                let response = core.run(client.get_call_sequence_request().send().promise)?;
+                if response.get()?.get_n() != 2 {
                     return Err(Error::failed("N should equal 2.".to_string()));
                 }
                 if destroyed.get() {
@@ -606,7 +604,7 @@ fn cancel_releases_params() {
             }
         }
 
-        try!(core.run(destroyed_done_receiver));
+        core.run(destroyed_done_receiver)?;
         if !destroyed.get() {
             return Err(Error::failed("The cap should be released now.".to_string()));
         }
@@ -618,8 +616,8 @@ fn cancel_releases_params() {
 #[test]
 fn dont_hold() {
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_more_stuff_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_more_stuff_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let (fulfiller, promise) = oneshot::channel();
         let cap: ::test_capnp::test_interface::Client =
@@ -650,8 +648,8 @@ fn get_call_sequence(client: &::test_capnp::test_call_order::Client, expected: u
 #[test]
 fn embargo_success() {
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_more_stuff_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_more_stuff_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let server = ::impls::TestCallOrder::new();
 
@@ -670,11 +668,11 @@ fn embargo_success() {
         let call0 = get_call_sequence(&pipeline, 0);
         let call1 = get_call_sequence(&pipeline, 1);
 
-        try!(core.run(early_call.promise));
+        core.run(early_call.promise)?;
 
         let call2 = get_call_sequence(&pipeline, 2);
 
-        let _resolved = try!(core.run(echo.promise));
+        let _resolved = core.run(echo.promise)?;
 
         let call3 = get_call_sequence(&pipeline, 3);
         let call4 = get_call_sequence(&pipeline, 4);
@@ -690,7 +688,7 @@ fn embargo_success() {
             ]).and_then(|responses| {
             let mut counter = 0;
             for r in responses.into_iter() {
-                if counter != try!(r.get()).get_n() {
+                if counter != r.get()?.get_n() {
                     return Err(Error::failed(
                         "calls arrived out of order".to_string()))
                 }
@@ -714,8 +712,8 @@ fn expect_promise_throws<T>(promise: Promise<T, Error>, core: &mut ::tokio_core:
 #[test]
 fn embargo_error() {
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_more_stuff_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_more_stuff_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let (fulfiller, promise) = oneshot::channel();
         let cap: ::test_capnp::test_call_order::Client =
@@ -735,7 +733,7 @@ fn embargo_error() {
         let call0 = get_call_sequence(&pipeline, 0);
         let call1 = get_call_sequence(&pipeline, 1);
 
-        try!(core.run(early_call.promise));
+        core.run(early_call.promise)?;
 
         let call2 = get_call_sequence(&pipeline, 2);
 
@@ -747,12 +745,12 @@ fn embargo_error() {
 
         drop(fulfiller);
 
-        try!(expect_promise_throws(call0.promise, &mut core));
-        try!(expect_promise_throws(call1.promise, &mut core));
-        try!(expect_promise_throws(call2.promise, &mut core));
-        try!(expect_promise_throws(call3.promise, &mut core));
-        try!(expect_promise_throws(call4.promise, &mut core));
-        try!(expect_promise_throws(call5.promise, &mut core));
+        expect_promise_throws(call0.promise, &mut core)?;
+        expect_promise_throws(call1.promise, &mut core)?;
+        expect_promise_throws(call2.promise, &mut core)?;
+        expect_promise_throws(call3.promise, &mut core)?;
+        expect_promise_throws(call4.promise, &mut core)?;
+        expect_promise_throws(call5.promise, &mut core)?;
         Ok(())
     });
 }
@@ -760,8 +758,8 @@ fn embargo_error() {
 #[test]
 fn echo_destruction() {
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_more_stuff_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_more_stuff_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let (fulfiller, promise) = oneshot::channel();
         let cap: ::test_capnp::test_call_order::Client =
@@ -836,8 +834,8 @@ fn local_client_return_cap() {
 #[test]
 fn capability_list() {
     rpc_top_level(|mut core, client| {
-        let response = try!(core.run(client.test_more_stuff_request().send().promise));
-        let client = try!(try!(response.get()).get_cap());
+        let response = core.run(client.test_more_stuff_request().send().promise)?;
+        let client = response.get()?.get_cap()?;
 
         let server1 = ::impls::TestInterface::new();
         let call_count1 = server1.get_call_count();
@@ -855,7 +853,7 @@ fn capability_list() {
             caps.set(0, client1.client.hook);
             caps.set(1, client2.client.hook);
         }
-        try!(core.run(request.send().promise));
+        core.run(request.send().promise)?;
         assert_eq!(call_count1.get(), 1);
         assert_eq!(call_count2.get(), 1);
         Ok(())

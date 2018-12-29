@@ -61,7 +61,7 @@ fn call_bar(client: ::foo_capnp::bar::Client)
     let mut req = client.baz_request();
     req.get().set_x(11);
     Box::new(req.send().promise.and_then(|response| {
-         Ok(try!(response.get()).get_y())
+         Ok(response.get()?.get_y())
     }))
 }
 ```
@@ -134,7 +134,7 @@ impl ::foo_capnp::qux::Server for MyQux {
          let mut req = bar_client.baz_request();
          req.get().set_x(42);
          Promise::from_future(req.send().promise.and_then(move |response| {
-             results.get().set_y(try!(response.get()).get_y());
+             results.get().set_y(response.get()?.get_y());
              Ok(())
          }))
      }

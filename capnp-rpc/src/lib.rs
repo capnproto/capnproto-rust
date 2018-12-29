@@ -51,7 +51,7 @@
 //! let mut request = foo_client.identity_request();
 //! request.get().set_x(123);
 //! let promise = request.send().promise.and_then(|response| {
-//!     println!("results = {}", try!(response.get()).get_y());
+//!     println!("results = {}", response.get()?.get_y());
 //!     Ok(())
 //! });
 //! ```

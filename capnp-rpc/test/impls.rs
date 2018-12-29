@@ -241,7 +241,7 @@ impl test_pipeline::Server for TestPipeline {
         request.get().set_i(123);
         request.get().set_j(true);
         Promise::from_future(request.send().promise.and_then(move |response| {
-            if try!(try!(response.get()).get_x()) != "foo" {
+            if response.get()?.get_x()? != "foo" {
                 return Err(Error::failed("expected x to equal 'foo'".to_string()));
             }
 
@@ -336,7 +336,7 @@ impl test_more_stuff::Server for TestMoreStuff {
         request.get().set_j(true);
 
         Promise::from_future(request.send().promise.and_then(move |response| {
-            if try!(try!(response.get()).get_x()) != "foo" {
+            if response.get()?.get_x()? != "foo" {
                 return Err(Error::failed("expected x to equal 'foo'".to_string()));
             }
             results.get().set_s("bar");
@@ -356,7 +356,7 @@ impl test_more_stuff::Server for TestMoreStuff {
             request.get().set_i(123);
             request.get().set_j(true);
             request.send().promise.and_then(move |response| {
-                if try!(try!(response.get()).get_x()) != "foo" {
+                if response.get()?.get_x()? != "foo" {
                     return Err(Error::failed("expected x to equal 'foo'".to_string()));
                 }
                 results.get().set_s("bar");
@@ -422,7 +422,7 @@ impl test_more_stuff::Server for TestMoreStuff {
                     params.set_j(true);
                 }
                 Promise::from_future(request.send().promise.and_then(move |response| {
-                    if try!(try!(response.get()).get_x()) != "foo" {
+                    if response.get()?.get_x()? != "foo" {
                         Err(Error::failed("expected X to equal 'foo'".to_string()))
                     } else {
                         results.get().set_s("bar");

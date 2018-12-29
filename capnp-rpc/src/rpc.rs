@@ -351,7 +351,7 @@ fn to_pipeline_ops(ops: ::capnp::struct_list::Reader<promised_answer::op::Owned>
 {
     let mut result = Vec::new();
     for op in ops.iter() {
-        match try!(op.which()) {
+        match op.which()? {
             promised_answer::op::Noop(()) => {
                 result.push(PipelineOp::Noop);
             }
@@ -664,22 +664,22 @@ impl <VatId> ConnectionState<VatId> {
 
         let connection_state1 = connection_state.clone();
         let intermediate = {
-            let reader = try!(try!(message.get_body()).get_as::<message::Reader>());
+            let reader = message.get_body()?.get_as::<message::Reader>()?;
             match reader.which() {
                 Ok(message::Unimplemented(message)) => {
-                    let message = try!(message);
-                    match try!(message.which()) {
+                    let message = message?;
+                    match message.which()? {
                         message::Resolve(resolve) => {
-                            let resolve = try!(resolve);
-                            match try!(resolve.which()) {
+                            let resolve = resolve?;
+                            match resolve.which()? {
                                 resolve::Cap(c) => {
-                                    match try!(try!(c).which()) {
+                                    match c?.which()? {
                                         cap_descriptor::None(()) => (),
                                         cap_descriptor::SenderHosted(export_id) => {
-                                            try!(connection_state.release_export(export_id, 1));
+                                            connection_state.release_export(export_id, 1)?;
                                         }
                                         cap_descriptor::SenderPromise(export_id) => {
-                                            try!(connection_state.release_export(export_id, 1));
+                                            connection_state.release_export(export_id, 1)?;
                                         }
                                         cap_descriptor::ReceiverAnswer(_) |
                                         cap_descriptor::ReceiverHosted(_) => (),
@@ -700,12 +700,12 @@ impl <VatId> ConnectionState<VatId> {
                     }
                 }
                 Ok(message::Abort(abort)) => {
-                    return Err(remote_exception_to_error(try!(abort)))
+                    return Err(remote_exception_to_error(abort?))
                 }
                 Ok(message::Bootstrap(bootstrap)) => {
                     use ::capnp::traits::ImbueMut;
 
-                    let bootstrap = try!(bootstrap);
+                    let bootstrap = bootstrap?;
                     let answer_id = bootstrap.get_question_id();
 
                     if connection_state.connection.borrow().is_err() {
@@ -717,7 +717,7 @@ impl <VatId> ConnectionState<VatId> {
                         .new_outgoing_message(50); // XXX size hint
 
                     let result_exports = {
-                        let mut ret = try!(response.get_body()).init_as::<message::Builder>().init_return();
+                        let mut ret = response.get_body()?.init_as::<message::Builder>().init_return();
                         ret.set_answer_id(answer_id);
 
                         let cap = connection_state1.bootstrap_cap.clone();
@@ -737,7 +737,7 @@ impl <VatId> ConnectionState<VatId> {
                     let slots = &mut connection_state1.answers.borrow_mut().slots;
                     let answer = slots.entry(answer_id).or_insert_with(Answer::new);
                     if answer.active {
-                        try!(connection_state1.release_exports(&result_exports));
+                        connection_state1.release_exports(&result_exports)?;
                         return Err(Error::failed("questionId is already in use".to_string()));
                     }
                     answer.active = true;
@@ -750,12 +750,11 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Call(call)) => {
-                    let call = try!(call);
-                    let t = try!(connection_state.get_message_target(try!(call.get_target())));
+                    let t = connection_state.get_message_target(call?.get_target()?)?;
                     BorrowWorkaround::Call(t)
                 }
                 Ok(message::Return(oret)) => {
-                    let ret = try!(oret);
+                    let ret = oret?;
                     let question_id = ret.get_answer_id();
 
                     match connection_state.questions.borrow_mut().slots[question_id as usize] {
@@ -763,18 +762,18 @@ impl <VatId> ConnectionState<VatId> {
                             question.is_awaiting_return = false;
                             match question.self_ref {
                                 Some(ref question_ref) => {
-                                    match try!(ret.which()) {
+                                    match ret.which()? {
                                         return_::Results(results) => {
                                             let cap_table =
                                                 ConnectionState::receive_caps(connection_state1,
-                                                                              try!(try!(results).get_cap_table()));
+                                                                              results?.get_cap_table()?);
                                             BorrowWorkaround::ReturnResults(question_ref.upgrade()
                                                                             .expect("dangling question ref?"),
-                                                                            try!(cap_table))
+                                                                            cap_table?)
                                         }
                                         return_::Exception(e) => {
                                             let tmp = question_ref.upgrade().expect("dangling question ref?");
-                                            tmp.borrow_mut().reject(remote_exception_to_error(try!(e)));
+                                            tmp.borrow_mut().reject(remote_exception_to_error(e?));
                                             BorrowWorkaround::Done
                                         }
                                         return_::Canceled(_) => {
@@ -808,7 +807,7 @@ impl <VatId> ConnectionState<VatId> {
                                     }
                                 }
                                 None => {
-                                    match try!(ret.which()) {
+                                    match ret.which()? {
                                         return_::TakeFromOtherQuestion(_) => {
                                             unimplemented!()
                                         }
@@ -829,7 +828,7 @@ impl <VatId> ConnectionState<VatId> {
                     }
                 }
                 Ok(message::Finish(finish)) => {
-                    let finish = try!(finish);
+                    let finish = finish?;
 
                     let mut exports_to_release = Vec::new();
                     let answer_id = finish.get_question_id();
@@ -866,15 +865,15 @@ impl <VatId> ConnectionState<VatId> {
                         answers_slots.remove(&answer_id);
                     }
 
-                    try!(connection_state1.release_exports(&exports_to_release));
+                    connection_state1.release_exports(&exports_to_release)?;
 
                     BorrowWorkaround::Done
                 }
                 Ok(message::Resolve(resolve)) => {
-                    let resolve = try!(resolve);
-                    let replacement_or_error = match try!(resolve.which()) {
+                    let resolve = resolve?;
+                    let replacement_or_error = match resolve.which()? {
                         resolve::Cap(c) => {
-                            match try!(ConnectionState::receive_cap(connection_state.clone(), try!(c))) {
+                            match ConnectionState::receive_cap(connection_state.clone(), c?)? {
                                 Some(cap) => Ok(cap),
                                 None => {
                                     return Err(Error::failed(
@@ -887,7 +886,7 @@ impl <VatId> ConnectionState<VatId> {
                             // confuse PromiseClient::Resolve() into thinking that the remote
                             // promise resolved to a local capability and therefore a Disembargo is
                             // needed. We must actually reject the promise.
-                            Err(remote_exception_to_error(try!(e)))
+                            Err(remote_exception_to_error(e?))
                         }
                     };
 
@@ -914,17 +913,17 @@ impl <VatId> ConnectionState<VatId> {
                     BorrowWorkaround::Done
                 }
                 Ok(message::Release(release)) => {
-                    let release = try!(release);
-                    try!(connection_state.release_export(release.get_id(), release.get_reference_count()));
+                    let release = release?;
+                    connection_state.release_export(release.get_id(), release.get_reference_count())?;
                     BorrowWorkaround::Done
                 }
                 Ok(message::Disembargo(disembargo)) => {
-                    let disembargo = try!(disembargo);
+                    let disembargo = disembargo?;
                     let context = disembargo.get_context();
-                    match try!(context.which()) {
+                    match context.which()? {
                         disembargo::context::SenderLoopback(embargo_id) => {
                             let mut target =
-                                try!(connection_state.get_message_target(try!(disembargo.get_target())));
+                                connection_state.get_message_target(disembargo.get_target()?)?;
                             while let Some(resolved) = target.get_resolved() {
                                 target = resolved;
                             }
@@ -941,7 +940,7 @@ impl <VatId> ConnectionState<VatId> {
                                 if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
                                     let mut message = c.new_outgoing_message(100); // TODO estimate size
                                     {
-                                        let root: message::Builder = try!(message.get_body()).init_as();
+                                        let root: message::Builder = message.get_body()?.init_as();
                                         let mut disembargo = root.init_disembargo();
                                         disembargo.reborrow().init_context().set_receiver_loopback(embargo_id);
 
@@ -996,24 +995,24 @@ impl <VatId> ConnectionState<VatId> {
         match intermediate {
             BorrowWorkaround::Call(capability) => {
                 let (interface_id, method_id, question_id, cap_table_array, redirect_results) = {
-                    let call = match try!(try!(try!(message.get_body()).get_as::<message::Reader>()).which()) {
-                        message::Call(call) => try!(call),
+                    let call = match message.get_body()?.get_as::<message::Reader>()?.which()? {
+                        message::Call(call) => call?,
                         _ => {
                             // exception already reported?
                             unreachable!()
                         }
                     };
-                    let redirect_results = match try!(call.get_send_results_to().which()) {
+                    let redirect_results = match call.get_send_results_to().which()? {
                         call::send_results_to::Caller(()) => false,
                         call::send_results_to::Yourself(()) => true,
                         call::send_results_to::ThirdParty(_) =>
                             return Err(Error::failed("Unsupported `Call.sendResultsTo`.".to_string())),
                     };
-                    let payload = try!(call.get_params());
+                    let payload = call.get_params()?;
 
                     (call.get_interface_id(), call.get_method_id(), call.get_question_id(),
-                     try!(ConnectionState::receive_caps(connection_state.clone(),
-                                                        try!(payload.get_cap_table()))),
+                     ConnectionState::receive_caps(connection_state.clone(),
+                                                   payload.get_cap_table()?)?,
                      redirect_results)
                 };
 
@@ -1105,8 +1104,8 @@ impl <VatId> ConnectionState<VatId> {
                     .expect("no connection?")
                     .new_outgoing_message(50); // XXX size hint
                 {
-                    let mut root: message::Builder = try!(try!(out_message.get_body()).get_as());
-                    try!(root.set_unimplemented(try!(try!(message.get_body()).get_as())));
+                    let mut root: message::Builder = out_message.get_body()?.get_as()?;
+                    root.set_unimplemented(message.get_body()?.get_as()?)?;
                 }
                 let _ = out_message.send();
             }
@@ -1162,7 +1161,7 @@ impl <VatId> ConnectionState<VatId> {
 
     fn release_exports(&self, exports: &[ExportId]) -> ::capnp::Result<()> {
         for &export_id in exports {
-            try!(self.release_export(export_id, 1));
+            self.release_export(export_id, 1)?;
         }
         Ok(())
     }
@@ -1174,7 +1173,7 @@ impl <VatId> ConnectionState<VatId> {
     fn get_message_target(&self, target: message_target::Reader)
                           -> ::capnp::Result<Box<ClientHook>>
     {
-        match try!(target.which()) {
+        match target.which()? {
             message_target::ImportedCap(export_id) => {
                 match self.exports.borrow().slots.get(export_id as usize) {
                     Some(&Some(ref exp)) => {
@@ -1186,7 +1185,7 @@ impl <VatId> ConnectionState<VatId> {
                 }
             }
             message_target::PromisedAnswer(promised_answer) => {
-                let promised_answer = try!(promised_answer);
+                let promised_answer = promised_answer?;
                 let question_id = promised_answer.get_question_id();
 
                 match self.answers.borrow().slots.get(&question_id) {
@@ -1200,7 +1199,7 @@ impl <VatId> ConnectionState<VatId> {
                                 "Pipeline call on a request that returned not capabilities or was \
                                  already closed.".to_string()))) as Box<PipelineHook>,
                         };
-                        let ops = try!(to_pipeline_ops(try!(promised_answer.get_transform())));
+                        let ops = to_pipeline_ops(promised_answer.get_transform()?)?;
                         Ok(pipeline.get_pipelined_cap(&ops))
                     }
                 }
@@ -1292,11 +1291,11 @@ impl <VatId> ConnectionState<VatId> {
                     let mut message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
                         .new_outgoing_message(100); // XXX size hint?
                     {
-                        let root: message::Builder = try!(try!(message.get_body()).get_as());
+                        let root: message::Builder = message.get_body()?.get_as()?;
                         let mut resolve = root.init_resolve();
                         resolve.set_promise_id(export_id);
-                        let _export = try!(ConnectionState::write_descriptor(&connection_state, &resolution,
-                                                                             resolve.init_cap()));
+                        let _export = ConnectionState::write_descriptor(&connection_state, &resolution,
+                                                                        resolve.init_cap())?;
                     }
                     let _ = message.send();
                     Ok(())
@@ -1306,7 +1305,7 @@ impl <VatId> ConnectionState<VatId> {
                     let mut message = connection_state.connection.borrow_mut().as_mut().expect("not connected?")
                         .new_outgoing_message(100); // XXX size hint?
                     {
-                        let root: message::Builder = try!(try!(message.get_body()).get_as());
+                        let root: message::Builder = message.get_body()?.get_as()?;
                         let mut resolve = root.init_resolve();
                         resolve.set_promise_id(export_id);
                         from_error(&e, resolve.init_exception());
@@ -1464,7 +1463,7 @@ impl <VatId> ConnectionState<VatId> {
     fn receive_cap(state: Rc<ConnectionState<VatId>>, descriptor: cap_descriptor::Reader)
                    -> ::capnp::Result<Option<Box<ClientHook>>>
     {
-        match try!(descriptor.which()) {
+        match descriptor.which()? {
             cap_descriptor::None(()) => {
                 Ok(None)
             }
@@ -1482,14 +1481,14 @@ impl <VatId> ConnectionState<VatId> {
                 }
             }
             cap_descriptor::ReceiverAnswer(receiver_answer) => {
-                let promised_answer = try!(receiver_answer);
+                let promised_answer = receiver_answer?;
                 let question_id = promised_answer.get_question_id();
                 match state.answers.borrow().slots.get(&question_id) {
                     Some(answer) => {
                         if answer.active {
                             match answer.pipeline {
                                 Some(ref pipeline) => {
-                                    let ops = try!(to_pipeline_ops(try!(promised_answer.get_transform())));
+                                    let ops = to_pipeline_ops(promised_answer.get_transform()?)?;
                                     return Ok(Some(pipeline.get_pipelined_cap(&ops)));
                                 }
                                 None => (),
@@ -1512,7 +1511,7 @@ impl <VatId> ConnectionState<VatId> {
     {
         let mut result = Vec::new();
         for idx in 0..cap_table.len() {
-            result.push(try!(ConnectionState::receive_cap(state.clone(), cap_table.get(idx))));
+            result.push(ConnectionState::receive_cap(state.clone(), cap_table.get(idx))?);
         }
         Ok(result)
     }
@@ -1637,9 +1636,9 @@ impl <VatId> ResponseHook for Response<VatId> {
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
         match *self.variant {
             ResponseVariant::Rpc(ref state) => {
-                match try!(try!(try!(state.message.get_body()).get_as::<message::Reader>()).which()) {
+                match state.message.get_body()?.get_as::<message::Reader>()?.which()? {
                     message::Return(Ok(ret)) => {
-                        match try!(ret.which()) {
+                        match ret.which()? {
                             return_::Results(Ok(mut payload)) => {
                                 use ::capnp::traits::Imbue;
                                 payload.imbue(&state.cap_table);
@@ -1668,8 +1667,8 @@ struct Request<VatId> where VatId: 'static {
 fn get_call<'a>(message: &'a mut Box<::OutgoingMessage>)
                 -> ::capnp::Result<call::Builder<'a>>
 {
-    let message_root: message::Builder = try!(try!(message.get_body()).get_as());
-    match try!(message_root.which()) {
+    let message_root: message::Builder = message.get_body()?.get_as()?;
+    match message_root.which()? {
         message::Call(call) => {
             call
         }
@@ -2014,11 +2013,11 @@ impl Params {
 
 impl ParamsHook for Params {
     fn get<'a>(&'a self) -> ::capnp::Result<any_pointer::Reader<'a>> {
-        let root: message::Reader = try!(try!(self.request.get_body()).get_as());
-        match try!(root.which()) {
+        let root: message::Reader = self.request.get_body()?.get_as()?;
+        match root.which()? {
             message::Call(call) => {
                 use ::capnp::traits::Imbue;
-                let mut content = try!(try!(call).get_params()).get_content();
+                let mut content = call?.get_params()?.get_content();
                 content.imbue(&self.cap_table);
                 Ok(content)
             }
@@ -2118,12 +2117,12 @@ impl <VatId> ResultsHook for Results<VatId> {
             match inner.variant {
                 None => unreachable!(),
                 Some(ResultsVariant::Rpc(ref mut message, ref mut cap_table)) => {
-                    let root: message::Builder = try!(try!(message.get_body()).get_as());
-                    match try!(root.which()) {
+                    let root: message::Builder = message.get_body()?.get_as()?;
+                    match root.which()? {
                         message::Return(ret) => {
-                            match try!(try!(ret).which()) {
+                            match ret?.which()? {
                                 return_::Results(payload) => {
-                                    let mut content = try!(payload).get_content();
+                                    let mut content = payload?.get_content();
                                     content.imbue_mut(cap_table);
                                     Ok(content)
                                 }
@@ -2138,7 +2137,7 @@ impl <VatId> ResultsHook for Results<VatId> {
                     }
                 }
                 Some(ResultsVariant::LocallyRedirected(ref mut message, ref mut cap_table)) => {
-                    let mut result: any_pointer::Builder = try!(message.get_root());
+                    let mut result: any_pointer::Builder = message.get_root()?;
                     result.imbue_mut(cap_table);
                     Ok(result)
                 }
@@ -2234,7 +2233,7 @@ impl ResultsDone {
                                     Ok(ref mut connection) => {
                                         let mut message = connection.new_outgoing_message(50); // XXX size hint
                                         {
-                                            let root: message::Builder = try!(try!(message.get_body()).get_as());
+                                            let root: message::Builder = message.get_body()?.get_as()?;
                                             let mut ret = root.init_return();
                                             ret.set_answer_id(answer_id);
                                             ret.set_release_param_caps(false);
@@ -2250,10 +2249,10 @@ impl ResultsDone {
                             }
                             (false, Ok(())) => {
                                 let exports = {
-                                    let root: message::Builder = try!(try!(message.get_body()).get_as());
-                                    match try!(root.which()) {
+                                    let root: message::Builder = message.get_body()?.get_as()?;
+                                    match root.which()? {
                                         message::Return(ret) => {
-                                            match try!(try!(ret).which()) {
+                                            match ret?.which()? {
                                                 ::rpc_capnp::return_::Results(Ok(payload)) => {
                                                     ConnectionState::write_descriptors(&connection_state,
                                                                                        &cap_table,
@@ -2283,7 +2282,7 @@ impl ResultsDone {
                                     Ok(ref mut connection) => {
                                         let mut message = connection.new_outgoing_message(50); // XXX size hint
                                         {
-                                            let root: message::Builder = try!(try!(message.get_body()).get_as());
+                                            let root: message::Builder = message.get_body()?.get_as()?;
                                             let mut ret = root.init_return();
                                             ret.set_answer_id(answer_id);
                                             ret.set_release_param_caps(false);
@@ -2341,12 +2340,12 @@ impl ResultsDoneHook for ResultsDone {
         use ::capnp::traits::Imbue;
         match *self.inner {
             ResultsDoneVariant::Rpc(ref message, ref cap_table) => {
-                let root: message::Reader = try!(message.get_root_as_reader());
-                match try!(root.which()) {
+                let root: message::Reader = message.get_root_as_reader()?;
+                match root.which()? {
                     message::Return(ret) => {
-                        match try!(try!(ret).which()) {
+                        match ret?.which()? {
                             ::rpc_capnp::return_::Results(payload) => {
-                                let mut content = try!(payload).get_content();
+                                let mut content = payload?.get_content();
                                 content.imbue(cap_table);
                                 Ok(content)
                             }
@@ -2361,7 +2360,7 @@ impl ResultsDoneHook for ResultsDone {
                 }
             }
             ResultsDoneVariant::LocallyRedirected(ref message, ref cap_table) => {
-                let mut result: any_pointer::Reader = try!(message.get_root_as_reader());
+                let mut result: any_pointer::Reader = message.get_root_as_reader()?;
                 result.imbue(cap_table);
                 Ok(result)
             }
@@ -2831,10 +2830,10 @@ impl <VatId> ClientHook for Client<VatId> {
         // Implement call() by copying params and results messages.
 
         let maybe_request = params.get().and_then(|p| {
-            let mut request = try!(p.target_size().and_then(|s| {
+            let mut request = p.target_size().and_then(|s| {
                 Ok(self.new_call(interface_id, method_id, Some(s)))
-            }));
-            try!(request.get().set_as(p));
+            })?;
+            request.get().set_as(p)?;
             Ok(request)
         });
 
@@ -2844,7 +2843,7 @@ impl <VatId> ClientHook for Client<VatId> {
                 let ::capnp::capability::RemotePromise { promise, .. } = request.send();
 
                 let promise = promise.and_then(move |response| {
-                    try!(try!(results.get()).set_as(try!(response.get())));
+                    results.get()?.set_as(response.get()?)?;
                     Ok(())
                 });
 
