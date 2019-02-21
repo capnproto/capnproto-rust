@@ -217,7 +217,7 @@ pub fn main() {
         let (reader, writer) = socket.split();
 
         let network =
-            twoparty::VatNetwork::new(reader, writer,
+            twoparty::VatNetwork::new(reader, std::io::BufWriter::new(writer),
                                       rpc_twoparty_capnp::Side::Server, Default::default());
 
         let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
