@@ -66,7 +66,7 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
     let (reader, writer) = stream.split();
 
     let network =
-        Box::new(twoparty::VatNetwork::new(reader, writer,
+        Box::new(twoparty::VatNetwork::new(reader, std::io::BufWriter::new(writer),
                                            rpc_twoparty_capnp::Side::Client,
                                            Default::default()));
     let mut rpc_system = RpcSystem::new(network, None);
