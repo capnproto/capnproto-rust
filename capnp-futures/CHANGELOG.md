@@ -1,3 +1,6 @@
+# v0.9.1
+- Call flush() after writing each message, to allow usage with a std::io::BufWriter wrapper.
+
 # v0.9.0
 - No changes -- just a version bump to match the rest of the capnp crates.
 
