@@ -23,6 +23,7 @@
 //! Note: this cannot be used for a list of structs, since such lists are not encoded
 //! as pointer lists.
 
+use core;
 use crate::traits::{FromPointerReader, FromPointerBuilder, ListIter, IndexMove};
 use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
 use crate::Result;
@@ -124,7 +125,7 @@ impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     }
 }
 
-impl <'a> ::std::iter::IntoIterator for Reader<'a> {
+impl <'a> core::iter::IntoIterator for Reader<'a> {
     type Item = Result<crate::any_pointer::Reader<'a>>;
     type IntoIter = ListIter<Reader<'a>, Self::Item>;
 

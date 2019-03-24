@@ -21,6 +21,7 @@
 
 //! List of sequences of bytes.
 
+use core;
 use crate::traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
 use crate::private::layout::*;
 use crate::Result;
@@ -133,7 +134,7 @@ impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     }
 }
 
-impl <'a> ::std::iter::IntoIterator for Reader<'a> {
+impl <'a> core::iter::IntoIterator for Reader<'a> {
     type Item = Result<crate::data::Reader<'a>>;
     type IntoIter = ListIter<Reader<'a>, Self::Item>;
 

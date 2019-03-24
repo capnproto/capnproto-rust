@@ -21,6 +21,9 @@
 
 //! Dynamically typed value.
 
+#[cfg(feature = "no_std")]
+use crate::io::prelude::*;
+
 use crate::capability::FromClientHook;
 use crate::private::capability::{ClientHook, PipelineHook, PipelineOp};
 use crate::private::layout::{PointerReader, PointerBuilder};

@@ -21,6 +21,7 @@
 
 //! List of strings containing UTF-8 encoded text.
 
+use core;
 use crate::traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
 use crate::private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 use crate::Result;
@@ -129,7 +130,7 @@ impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
     }
 }
 
-impl <'a> ::std::iter::IntoIterator for Reader<'a> {
+impl <'a> core::iter::IntoIterator for Reader<'a> {
     type Item = Result<crate::text::Reader<'a>>;
     type IntoIter = ListIter<Reader<'a>, Self::Item>;
 

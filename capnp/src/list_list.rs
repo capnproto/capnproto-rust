@@ -21,13 +21,14 @@
 
 //! List of lists.
 
+use core;
 use crate::traits::{FromPointerReader, FromPointerBuilder, ListIter, IndexMove};
 use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
 use crate::Result;
 
 #[derive(Clone, Copy)]
 pub struct Owned<T> where T: for<'a> crate::traits::Owned<'a> {
-    marker: ::std::marker::PhantomData<T>,
+    marker: core::marker::PhantomData<T>,
 }
 
 impl<'a, T> crate::traits::Owned<'a> for Owned<T> where T: for<'b> crate::traits::Owned<'b> {
@@ -36,13 +37,13 @@ impl<'a, T> crate::traits::Owned<'a> for Owned<T> where T: for<'b> crate::traits
 }
 
 pub struct Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {
-    marker: ::std::marker::PhantomData<<T as crate::traits::Owned<'a>>::Reader>,
+    marker: core::marker::PhantomData<<T as crate::traits::Owned<'a>>::Reader>,
     reader: ListReader<'a>
 }
 
 impl <'a, T> Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {
     pub fn new<'b>(reader: ListReader<'b>) -> Reader<'b, T> {
-        Reader::<'b, T> { reader: reader, marker: ::std::marker::PhantomData }
+        Reader::<'b, T> { reader: reader, marker: core::marker::PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.reader.len() }
@@ -69,7 +70,7 @@ where T: for<'b> crate::traits::Owned<'b> {
 impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {
     fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader: reader.get_list(Pointer, default)?,
-                    marker: ::std::marker::PhantomData })
+                    marker: core::marker::PhantomData })
     }
 }
 
@@ -81,19 +82,19 @@ impl <'a, T> Reader<'a, T> where T: for<'b> crate::traits::Owned<'b> {
 }
 
 pub struct Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
-    marker: ::std::marker::PhantomData<T>,
+    marker: core::marker::PhantomData<T>,
     builder: ListBuilder<'a>
 }
 
 impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
     pub fn new(builder: ListBuilder<'a>) -> Builder<'a, T> {
-        Builder { builder: builder, marker: ::std::marker::PhantomData }
+        Builder { builder: builder, marker: core::marker::PhantomData }
     }
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
     pub fn into_reader(self) -> Reader<'a, T> {
-        Reader { reader: self.builder.into_reader(), marker: ::std::marker::PhantomData }
+        Reader { reader: self.builder.into_reader(), marker: core::marker::PhantomData }
     }
 }
 
@@ -105,20 +106,20 @@ impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
 
 impl <'a, T> Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
     pub fn reborrow<'b>(&'b mut self) -> Builder<'b, T> {
-        Builder {builder: self.builder.borrow(), marker: ::std::marker::PhantomData}
+        Builder {builder: self.builder.borrow(), marker: core::marker::PhantomData}
     }
 }
 
 impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> crate::traits::Owned<'b> {
     fn init_pointer(builder: PointerBuilder<'a>, size : u32) -> Builder<'a, T> {
         Builder {
-            marker: ::std::marker::PhantomData,
+            marker: core::marker::PhantomData,
             builder: builder.init_list(Pointer, size)
         }
     }
     fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a, T>> {
         Ok(Builder {
-            marker: ::std::marker::PhantomData,
+            marker: core::marker::PhantomData,
             builder: builder.get_list(Pointer, default)?
         })
     }
@@ -141,7 +142,7 @@ impl <'a, T> crate::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     }
 }
 
-impl <'a, T> ::std::iter::IntoIterator for Reader<'a, T>
+impl <'a, T> core::iter::IntoIterator for Reader<'a, T>
     where T: for<'b> crate::traits::Owned<'b>
 {
     type Item = Result<<T as crate::traits::Owned<'a>>::Reader>;

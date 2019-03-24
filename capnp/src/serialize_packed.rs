@@ -22,8 +22,8 @@
 //! Reading and writing of messages using the
 //! [packed stream encoding](https://capnproto.org/encoding.html#packing).
 
-use std::{io, mem, ptr, slice};
-use std::io::{Read, BufRead, Write};
+use core::{mem, ptr, slice};
+use crate::io::{self, prelude::*};
 
 use crate::serialize;
 use crate::Result;
@@ -370,9 +370,8 @@ pub fn write_message<W, A>(write: &mut W, message: &crate::message::Builder<A>) 
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Write, Read};
+    use crate::io::{Write, Read, Cursor};
 
-    use std::io::Cursor;
     use quickcheck::{quickcheck, TestResult};
 
     use crate::{Word};

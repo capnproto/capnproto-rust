@@ -27,11 +27,70 @@
 //! [capnpc-rust](https://github.com/capnproto/capnproto-rust/capnpc) crate.
 #![cfg_attr(feature = "rpc_try", feature(try_trait))]
 
+#![cfg_attr(feature = "no_std", no_std)]
+
 #[cfg(any(feature="quickcheck", test))]
 extern crate quickcheck;
 
 #[cfg(feature = "rpc")]
 extern crate futures;
+
+#[cfg(feature = "no_std")]
+#[macro_use]
+extern crate alloc;
+
+#[cfg(feature = "no_std")]
+extern crate core_io;
+
+#[cfg(not(feature = "no_std"))]
+use std as core;
+
+#[cfg(feature = "no_std")]
+use core_io as io;
+#[cfg(not(feature = "no_std"))]
+use std::io as io;
+
+#[cfg(feature = "no_std")]
+use alloc::string as string;
+#[cfg(not(feature = "no_std"))]
+use std::string as string;
+
+#[cfg(feature = "no_std")]
+use alloc::str as str;
+#[cfg(not(feature = "no_std"))]
+use std::str as str;
+
+/// Constructs a [`Word`](struct.Word.html) from its constituent bytes, accounting
+/// for endianness. This macro can be used to construct constants. In the future, once
+/// Rust supports [constant functions](https://github.com/rust-lang/rust/issues/24111),
+/// this macro will be replaced by such a function.
+#[cfg(target_endian = "little")]
+#[macro_export]
+macro_rules! capnp_word {
+  ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
+   $b4:expr, $b5:expr, $b6:expr, $b7:expr) => (
+    $crate::Word {
+        raw_content: (($b0 as u64) << 0) + (($b1 as u64) << 8) +
+                     (($b2 as u64) << 16) + (($b3 as u64) << 24) +
+                     (($b4 as u64) << 32) + (($b5 as u64) << 40) +
+                     (($b6 as u64) << 48) + (($b7 as u64) << 56)
+    }
+  )
+}
+
+#[cfg(target_endian = "big")]
+#[macro_export]
+macro_rules! capnp_word {
+  ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
+   $b4:expr, $b5:expr, $b6:expr, $b7:expr) => (
+     $crate::Word {
+         raw_content: (($b7 as u64) << 0) + (($b6 as u64) << 8) +
+                      (($b5 as u64) << 16) + (($b4 as u64) << 24) +
+                      (($b3 as u64) << 32) + (($b2 as u64) << 40) +
+                      (($b1 as u64) << 48) + (($b0 as u64) << 56)
+     }
+  )
+}
 
 pub mod any_pointer;
 pub mod any_pointer_list;
@@ -53,7 +112,13 @@ pub mod text;
 pub mod text_list;
 pub mod traits;
 
-/// Eight bytes of memory with opaque interior.
+#[cfg(feature = "no_std")]
+use alloc::string::String;
+#[cfg(feature = "no_std")]
+use io::prelude::*;
+
+/// Eight bytes of memory with opaque interior. Use [`capnp_word!()`](macro.capnp_word!.html)
+/// to construct one of these.
 ///
 /// This type is used to ensure that the data of a message is properly aligned.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -77,7 +142,7 @@ impl Word {
         unsafe {
             result.set_len(length);
             let p : *mut u8 = result.as_mut_ptr() as *mut u8;
-            ::std::ptr::write_bytes(p, 0u8, length * ::std::mem::size_of::<Word>());
+            core::ptr::write_bytes(p, 0u8, length * core::mem::size_of::<Word>());
         }
         result
     }
@@ -87,7 +152,7 @@ impl Word {
     ///    1. `bytes.to_ptr()` falls on an eight-byte boundary, or
     ///    2. your processor is okay with unaligned reads.
     pub unsafe fn bytes_to_words<'a>(bytes: &'a [u8]) -> &'a [Word] {
-        ::std::slice::from_raw_parts(bytes.as_ptr() as *const Word, bytes.len() / 8)
+        core::slice::from_raw_parts(bytes.as_ptr() as *const Word, bytes.len() / 8)
     }
 
     /// Converts a mutable byte slice into a mutable `Word` slice. Unsafe due to possible
@@ -95,18 +160,18 @@ impl Word {
     ///    1. `bytes.to_ptr()` falls on an eight-byte boundary, or
     ///    2. your processor is okay with unaligned reads and writes
     pub unsafe fn bytes_to_words_mut<'a>(bytes: &'a mut [u8]) -> &'a mut [Word] {
-        ::std::slice::from_raw_parts_mut(bytes.as_ptr() as *mut Word, bytes.len() / 8)
+        core::slice::from_raw_parts_mut(bytes.as_ptr() as *mut Word, bytes.len() / 8)
     }
 
     pub fn words_to_bytes<'a>(words: &'a [Word]) -> &'a [u8] {
         unsafe {
-            ::std::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 8)
+            core::slice::from_raw_parts(words.as_ptr() as *const u8, words.len() * 8)
         }
     }
 
     pub fn words_to_bytes_mut<'a>(words: &'a mut [Word]) -> &'a mut [u8] {
         unsafe {
-            ::std::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, words.len() * 8)
+            core::slice::from_raw_parts_mut(words.as_mut_ptr() as *mut u8, words.len() * 8)
         }
     }
 }
@@ -145,12 +210,13 @@ impl MessageSize {
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub struct NotInSchema(pub u16);
 
-impl ::std::fmt::Display for NotInSchema {
-    fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
+impl core::fmt::Display for NotInSchema {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
         write!(fmt, "Enum value or union discriminant {} was not present in the schema.", self.0)
     }
 }
 
+#[cfg(feature = "std")]
 impl ::std::error::Error for NotInSchema {
     fn description<'a>(&'a self) -> &'a str {
         "Enum value or union disriminant was not present in schema."
@@ -159,7 +225,7 @@ impl ::std::error::Error for NotInSchema {
 
 /// Because messages are lazily validated, the return type of any method that reads a pointer field
 /// must be wrapped in a Result.
-pub type Result<T> = ::std::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, Error>;
 
 /// Describes an arbitrary error that prevented an operation from completing.
 #[derive(Debug, Clone)]
@@ -211,9 +277,8 @@ impl Error {
     }
 }
 
-impl ::std::convert::From<::std::io::Error> for Error {
-    fn from(err: ::std::io::Error) -> Error {
-        use std::io;
+impl core::convert::From<io::Error> for Error {
+    fn from(err: io::Error) -> Error {
         let kind = match err.kind() {
             io::ErrorKind::TimedOut => ErrorKind::Overloaded,
             io::ErrorKind::BrokenPipe |
@@ -227,38 +292,50 @@ impl ::std::convert::From<::std::io::Error> for Error {
     }
 }
 
-impl ::std::convert::From<::std::string::FromUtf8Error> for Error {
-    fn from(err: ::std::string::FromUtf8Error) -> Error {
+impl core::convert::From<string::FromUtf8Error> for Error {
+    fn from(err: string::FromUtf8Error) -> Error {
         Error::failed(format!("{}", err))
     }
 }
 
-impl ::std::convert::From<::std::str::Utf8Error> for Error {
-    fn from(err: ::std::str::Utf8Error) -> Error {
+//impl core::convert::From<::alloc::string::FromUtf8Error> for Error {
+//    fn from(err: ::alloc::string::FromUtf8Error) -> Error {
+//        Error::failed(format!("{}", err))
+//    }
+//}
+
+impl core::convert::From<str::Utf8Error> for Error {
+    fn from(err: str::Utf8Error) -> Error {
         Error::failed(format!("{}", err))
     }
 }
-
 
 #[cfg(feature = "rpc")]
-impl ::std::convert::From<futures::sync::oneshot::Canceled> for Error {
+impl core::convert::From<futures::sync::oneshot::Canceled> for Error {
     fn from(_e: futures::sync::oneshot::Canceled) -> Error {
         Error::failed(format!("oneshot was canceled"))
     }
 }
 
-impl ::std::convert::From<NotInSchema> for Error {
+impl core::convert::From<NotInSchema> for Error {
     fn from(e: NotInSchema) -> Error {
         Error::failed(format!("Enum value or union discriminant {} was not present in schema.", e.0))
     }
 }
 
-impl ::std::fmt::Display for Error {
-    fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
+//impl core::convert::From<NotInSchema> for Error {
+//    fn from(e: NotInSchema) -> Error {
+//        Error::failed(format!("Enum value or union discriminant {} was not present in schema.", e.0))
+//    }
+//}
+
+impl core::fmt::Display for Error {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
         write!(fmt, "{:?}: {}", self.kind, self.description)
     }
 }
 
+#[cfg(feature = "std")]
 impl ::std::error::Error for Error {
     fn description(&self) -> &str {
         &self.description
@@ -275,7 +352,7 @@ pub enum OutputSegments<'a> {
     MultiSegment(Vec<&'a [Word]>),
 }
 
-impl <'a> ::std::ops::Deref for OutputSegments<'a> {
+impl <'a> core::ops::Deref for OutputSegments<'a> {
     type Target = [&'a [Word]];
     fn deref<'b>(&'b self) -> &'b [&'a [Word]] {
         match *self {

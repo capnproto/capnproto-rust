@@ -23,6 +23,10 @@
 //!
 //! Roughly corresponds to capability.h in the C++ implementation.
 
+#[cfg(feature = "no_std")]
+use crate::io::prelude::*;
+use core::marker::PhantomData;
+
 use crate::{any_pointer, Error, MessageSize};
 use crate::traits::{Pipelined, Owned};
 use crate::private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, ResultsHook};
@@ -31,8 +35,6 @@ use crate::private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHo
 use futures::Future;
 #[cfg(feature = "rpc_try")]
 use std::ops::Try;
-
-use std::marker::PhantomData;
 
 /// A computation that might eventually resolve to a value of type `T` or to an error
 ///  of type `E`. Dropping the promise cancels the computation.

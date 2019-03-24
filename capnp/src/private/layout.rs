@@ -19,9 +19,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::mem;
-use std::ptr;
-use std::cell::Cell;
+#[cfg(feature = "no_std")]
+use crate::io::prelude::*;
+
+use core::{self, mem, ptr, cell::Cell};
 
 use crate::data;
 use crate::text;
@@ -310,7 +311,11 @@ impl WirePointer {
 }
 
 mod wire_helpers {
-    use std::{mem, ptr, slice};
+    #[cfg(feature = "no_std")]
+    use crate::io::prelude::*;
+
+    use core::{self, mem, ptr, slice};
+    use crate::string::ToString;
 
     use crate::private::capability::ClientHook;
     use crate::private::arena::*;
@@ -1022,8 +1027,8 @@ mod wire_helpers {
             //# handle writes? Instead, we have to copy the struct to a
             //# new space now.
 
-            let new_data_size = ::std::cmp::max(old_data_size, size.data);
-            let new_pointer_count = ::std::cmp::max(old_pointer_count, size.pointers);
+            let new_data_size = core::cmp::max(old_data_size, size.data);
+            let new_pointer_count = core::cmp::max(old_pointer_count, size.pointers);
             let total_size = new_data_size as u32 + new_pointer_count as u32 * WORDS_PER_POINTER as u32;
 
             //# Don't let allocate() zero out the object just yet.
@@ -1330,8 +1335,8 @@ mod wire_helpers {
             // The structs in this list are smaller than expected, probably written using an older
             // version of the protocol. We need to make a copy and expand them.
 
-            let new_data_size = ::std::cmp::max(old_data_size, element_size.data);
-            let new_pointer_count = ::std::cmp::max(old_pointer_count, element_size.pointers);
+            let new_data_size = core::cmp::max(old_data_size, element_size.data);
+            let new_pointer_count = core::cmp::max(old_pointer_count, element_size.pointers);
             let new_step = new_data_size as u32 + new_pointer_count as u32 * WORDS_PER_POINTER as u32;
             let total_size = new_step * element_count;
 
@@ -1406,10 +1411,10 @@ mod wire_helpers {
                 let mut new_pointer_count = element_size.pointers;
 
                 if old_size == ElementSize::Pointer {
-                    new_pointer_count = ::std::cmp::max(new_pointer_count, 1);
+                    new_pointer_count = core::cmp::max(new_pointer_count, 1);
                 } else {
                     // Old list contains data elements, so we need at least one word of data.
-                    new_data_size = ::std::cmp::max(new_data_size, 1);
+                    new_data_size = core::cmp::max(new_data_size, 1);
                 }
 
                 let new_step = new_data_size as u32 + new_pointer_count as u32 * WORDS_PER_POINTER as u32;
@@ -1516,7 +1521,7 @@ mod wire_helpers {
                 None => return text::Builder::new(&mut [], 0),
                 Some(d) => {
                     let (new_ref_target, new_reff, new_segment_id) =
-                        copy_message(arena, segment_id, CapTableBuilder::Plain(::std::ptr::null_mut()), reff, d.as_ptr() as *const _);
+                        copy_message(arena, segment_id, CapTableBuilder::Plain(core::ptr::null_mut()), reff, d.as_ptr() as *const _);
                     reff = new_reff;
                     segment_id = new_segment_id;
                     new_ref_target
@@ -1590,7 +1595,7 @@ mod wire_helpers {
                 None => return Ok(&mut []),
                 Some(d) => {
                     let (new_ref_target, new_reff, new_segment_id) =
-                        copy_message(arena, segment_id, CapTableBuilder::Plain(::std::ptr::null_mut()), reff, d.as_ptr() as *const _);
+                        copy_message(arena, segment_id, CapTableBuilder::Plain(core::ptr::null_mut()), reff, d.as_ptr() as *const _);
                     reff = new_reff;
                     segment_id = new_segment_id;
                     new_ref_target
@@ -2481,7 +2486,7 @@ impl <'a> PointerReader<'a> {
 
     pub fn get_list(self, expected_element_size: ElementSize,
                     default: Option<&'a [Word]>) -> Result<ListReader<'a>> {
-        let default_value: *const Word = match default { None => std::ptr::null(), Some(d) => d.as_ptr() };
+        let default_value: *const Word = match default { None => core::ptr::null(), Some(d) => d.as_ptr() };
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_list_pointer(
@@ -2630,7 +2635,7 @@ impl <'a> PointerBuilder<'a> {
     pub fn get_list(self, element_size: ElementSize, default: Option<&'a [Word]>)
                     -> Result<ListBuilder<'a>>
     {
-        let default_value: *const Word = match default { None => std::ptr::null(), Some(d) => d.as_ptr() };
+        let default_value: *const Word = match default { None => core::ptr::null(), Some(d) => d.as_ptr() };
         unsafe {
             wire_helpers::get_writable_list_pointer(
                 self.arena, self.pointer, self.segment_id, self.cap_table, element_size, default_value)
@@ -2640,7 +2645,7 @@ impl <'a> PointerBuilder<'a> {
     pub fn get_struct_list(self, element_size: StructSize,
                            default: Option<&'a [Word]>) -> Result<ListBuilder<'a>>
     {
-        let default_value: *const Word = match default { None => std::ptr::null(), Some(d) => d.as_ptr() };
+        let default_value: *const Word = match default { None => core::ptr::null(), Some(d) => d.as_ptr() };
         unsafe {
             wire_helpers::get_writable_struct_list_pointer(
                 self.arena, self.pointer, self.segment_id, self.cap_table, element_size, default_value)
@@ -2669,7 +2674,7 @@ impl <'a> PointerBuilder<'a> {
         unsafe {
             wire_helpers::read_capability_pointer(
                 self.arena.as_reader(),
-                self.segment_id, self.cap_table.into_reader(), self.pointer, ::std::i32::MAX)
+                self.segment_id, self.cap_table.into_reader(), self.pointer, core::i32::MAX)
         }
     }
 
@@ -2834,7 +2839,7 @@ impl <'a> StructReader<'a> {
             &[]
         } else {
             unsafe {
-                ::std::slice::from_raw_parts(self.data, self.data_size as usize / BITS_PER_BYTE)
+                core::slice::from_raw_parts(self.data, self.data_size as usize / BITS_PER_BYTE)
             }
         }
     }
@@ -3070,7 +3075,7 @@ impl <'a> StructBuilder<'a> {
     }
 
     pub fn copy_content_from(&mut self, other: &StructReader) -> Result<()> {
-        use std::cmp::min;
+        use core::cmp::min;
         // Determine the amount of data the builders have in common.
         let shared_data_size = min(self.data_size, other.data_size);
         let shared_pointer_count = min(self.pointer_count, other.pointer_count);
@@ -3185,7 +3190,7 @@ impl <'a> ListReader<'a> {
             let num_bytes = wire_helpers::round_bits_up_to_bytes(
                 self.step as u64 * self.element_count as u64) as usize;
             unsafe {
-                ::std::slice::from_raw_parts(self.ptr, num_bytes)
+                core::slice::from_raw_parts(self.ptr, num_bytes)
             }
         }
     }
