@@ -347,7 +347,7 @@ impl <A> Builder<A> where A: Allocator {
     }
 
     /// Sets the root to a canonicalized version of `value`. If this was the first action taken
-    /// on this `Builder`, then a subsequence call to `get_segments_for_output()` should return
+    /// on this `Builder`, then a subsequent call to `get_segments_for_output()` should return
     /// a single segment, containing the full canonicalized message.
     pub fn set_root_canonical<To, From: SetPointerBuilder<To>>(&mut self, value: From) -> Result<()> {
         if self.arena.len() == 0 {
