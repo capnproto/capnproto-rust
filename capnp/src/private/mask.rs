@@ -51,10 +51,7 @@ impl Mask for f32 {
     type T = u32;
     #[inline]
     fn mask(value: f32, mask: u32) -> f32 {
-        unsafe {
-            let v: u32 = mem::transmute(value);
-            mem::transmute(v ^ mask)
-        }
+        f32::from_bits(value.to_bits() ^ mask)
     }
 }
 
@@ -62,9 +59,6 @@ impl Mask for f64 {
     type T = u64;
     #[inline]
     fn mask(value: f64, mask: u64) -> f64 {
-        unsafe {
-            let v: u64 = mem::transmute(value);
-            mem::transmute(v ^ mask)
-        }
+        f64::from_bits(value.to_bits() ^ mask)
     }
 }

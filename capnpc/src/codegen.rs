@@ -321,12 +321,12 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
         value::Float32(f) =>
             match f.classify() {
                 ::std::num::FpCategory::Zero => Ok(None),
-                _ => Ok(Some(format!("{}u32", unsafe {::std::mem::transmute::<f32, u32>(f)}.to_string())))
+                _ => Ok(Some(format!("{}u32", f.to_bits().to_string())))
             },
         value::Float64(f) =>
             match f.classify() {
                 ::std::num::FpCategory::Zero => Ok(None),
-                _ => Ok(Some(format!("{}u64", unsafe {::std::mem::transmute::<f64, u64>(f)}.to_string())))
+                _ => Ok(Some(format!("{}u64", f.to_bits().to_string())))
             },
         _ => Err(Error::failed("Non-primitive value found where primitive was expected.".to_string())),
     }
@@ -423,9 +423,9 @@ pub fn getter_text(gen: &GeneratorContext,
                 (type_::Uint32(()), value::Uint32(i)) => primitive_case(&*typ, member, offset, i, 0),
                 (type_::Uint64(()), value::Uint64(i)) => primitive_case(&*typ, member, offset, i, 0),
                 (type_::Float32(()), value::Float32(f)) =>
-                    primitive_case(&*typ, member, offset, unsafe { ::std::mem::transmute::<f32, u32>(f) }, 0),
+                    primitive_case(&*typ, member, offset, f.to_bits(), 0),
                 (type_::Float64(()), value::Float64(f)) =>
-                    primitive_case(&*typ, member, offset, unsafe { ::std::mem::transmute::<f64, u64>(f) }, 0),
+                    primitive_case(&*typ, member, offset, f.to_bits(), 0),
                 (type_::Enum(_), value::Enum(d)) => {
                     if d == 0 {
                         Line(format!("::capnp::traits::FromU16::from_u16(self.{}.get_data_field::<u16>({}))",
