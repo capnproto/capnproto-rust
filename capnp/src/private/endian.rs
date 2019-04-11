@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::mem;
-
 /// A value casted directly from a little-endian byte buffer. On big-endian
 /// processors, the bytes of the value need to be swapped upon reading and writing.
 #[repr(C)]

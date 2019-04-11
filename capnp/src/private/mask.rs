@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::mem;
-
 pub trait Mask {
     type T;
     fn mask(value: Self, mask: Self::T) -> Self;
