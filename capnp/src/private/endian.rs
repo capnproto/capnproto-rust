@@ -84,18 +84,18 @@ endian_impl!(i64, to_le);
 
 impl Endian for f32 {
     fn get(&self) -> f32 {
-        unsafe { mem::transmute(mem::transmute::<f32, u32>(*self).to_le()) }
+        f32::from_bits(self.to_bits().to_le())
     }
     fn set(&mut self, value : f32) {
-        *self = unsafe { mem::transmute(mem::transmute::<f32, u32>(value).to_le()) };
+        *self = f32::from_bits(value.to_bits().to_le());
     }
 }
 
 impl Endian for f64 {
     fn get(&self) -> f64 {
-        unsafe { mem::transmute(mem::transmute::<f64, u64>(*self).to_le()) }
+        f64::from_bits(self.to_bits().to_le())
     }
     fn set(&mut self, value : f64) {
-        *self = unsafe { mem::transmute(mem::transmute::<f64, u64>(value).to_le()) };
+        *self = f64::from_bits(value.to_bits().to_le());
     }
 }
