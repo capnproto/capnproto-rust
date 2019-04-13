@@ -31,6 +31,12 @@ pub mod node {
     }
   }
 
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
+    }
+  }
+
   impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
     fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
       self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -413,6 +419,12 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
+      }
+    }
+
     impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
       fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
         self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -543,6 +555,12 @@ pub mod node {
     impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
         ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+      }
+    }
+
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
       }
     }
 
@@ -688,6 +706,12 @@ pub mod node {
     impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
         ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+      }
+    }
+
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
       }
     }
 
@@ -857,6 +881,12 @@ pub mod node {
         }
       }
 
+      impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+        fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+          self.reader
+        }
+      }
+
       impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
         fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
           self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -988,6 +1018,12 @@ pub mod node {
     impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
         ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+      }
+    }
+
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
       }
     }
 
@@ -1196,6 +1232,12 @@ pub mod node {
       }
     }
 
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
+      }
+    }
+
     impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
       fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
         self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -1326,6 +1368,12 @@ pub mod node {
     impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
         ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+      }
+    }
+
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
       }
     }
 
@@ -1481,6 +1529,12 @@ pub mod node {
     impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
         ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+      }
+    }
+
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
       }
     }
 
@@ -1642,6 +1696,12 @@ pub mod node {
     impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
         ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+      }
+    }
+
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
       }
     }
 
@@ -1928,6 +1988,12 @@ pub mod field {
     }
   }
 
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
+    }
+  }
+
   impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
     fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
       self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -2177,6 +2243,12 @@ pub mod field {
       }
     }
 
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
+      }
+    }
+
     impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
       fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
         self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -2362,6 +2434,12 @@ pub mod field {
       }
     }
 
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
+      }
+    }
+
     impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
       fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
         self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -2484,6 +2562,12 @@ pub mod field {
     impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
         ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+      }
+    }
+
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
       }
     }
 
@@ -2643,6 +2727,12 @@ pub mod enumerant {
   impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
       ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+    }
+  }
+
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
     }
   }
 
@@ -2813,6 +2903,12 @@ pub mod superclass {
     }
   }
 
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
+    }
+  }
+
   impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
     fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
       self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -2958,6 +3054,12 @@ pub mod method {
   impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
       ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+    }
+  }
+
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
     }
   }
 
@@ -3223,6 +3325,12 @@ pub mod type_ {
   impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
       ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+    }
+  }
+
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
     }
   }
 
@@ -3654,6 +3762,12 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
+      }
+    }
+
     impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
       fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
         self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -3787,6 +3901,12 @@ pub mod type_ {
     impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
         ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+      }
+    }
+
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
       }
     }
 
@@ -3938,6 +4058,12 @@ pub mod type_ {
       }
     }
 
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
+      }
+    }
+
     impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
       fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
         self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -4083,6 +4209,12 @@ pub mod type_ {
     impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
         ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+      }
+    }
+
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
       }
     }
 
@@ -4233,6 +4365,12 @@ pub mod type_ {
     impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
         ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+      }
+    }
+
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
       }
     }
 
@@ -4413,6 +4551,12 @@ pub mod type_ {
       impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
         fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
           ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+        }
+      }
+
+      impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+        fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+          self.reader
         }
       }
 
@@ -4603,6 +4747,12 @@ pub mod type_ {
         }
       }
 
+      impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+        fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+          self.reader
+        }
+      }
+
       impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
         fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
           self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -4738,6 +4888,12 @@ pub mod type_ {
         }
       }
 
+      impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+        fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+          self.reader
+        }
+      }
+
       impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
         fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
           self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -4860,6 +5016,12 @@ pub mod brand {
   impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
       ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+    }
+  }
+
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
     }
   }
 
@@ -4994,6 +5156,12 @@ pub mod brand {
     impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
       fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
         ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+      }
+    }
+
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
       }
     }
 
@@ -5182,6 +5350,12 @@ pub mod brand {
       }
     }
 
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
+      }
+    }
+
     impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
       fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
         self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -5353,6 +5527,12 @@ pub mod value {
   impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
       ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+    }
+  }
+
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
     }
   }
 
@@ -5841,6 +6021,12 @@ pub mod annotation {
     }
   }
 
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
+    }
+  }
+
   impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
     fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
       self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -6051,6 +6237,12 @@ pub mod capnp_version {
     }
   }
 
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
+    }
+  }
+
   impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
     fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
       self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -6195,6 +6387,12 @@ pub mod code_generator_request {
   impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
     fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
       ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+    }
+  }
+
+  impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+    fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+      self.reader
     }
   }
 
@@ -6399,6 +6597,12 @@ pub mod code_generator_request {
       }
     }
 
+    impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+      fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+        self.reader
+      }
+    }
+
     impl <'a,> ::capnp::traits::Imbue<'a> for Reader<'a,>  {
       fn imbue(&mut self, cap_table: &'a ::capnp::private::layout::CapTable) {
         self.reader.imbue(::capnp::private::layout::CapTableReader::Plain(cap_table))
@@ -6562,6 +6766,12 @@ pub mod code_generator_request {
       impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
         fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,>> {
           ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))
+        }
+      }
+
+      impl <'a,> ::capnp::traits::IntoInternalStructReader<'a> for Reader<'a,>  {
+        fn into_internal_struct_reader(self) -> ::capnp::private::layout::StructReader<'a> {
+          self.reader
         }
       }
 
