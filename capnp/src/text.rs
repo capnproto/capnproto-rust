@@ -95,6 +95,13 @@ impl <'a> ops::Deref for Builder <'a> {
     }
 }
 
+impl <'a> ops::DerefMut for Builder <'a> {
+    fn deref_mut<'b>(&'b mut self) -> &'b mut str {
+        str::from_utf8_mut(self.bytes)
+            .expect("text::Builder contents are checked for utf8-validity upon construction")
+    }
+}
+
 impl <'a> convert::AsRef<str> for Builder<'a> {
     fn as_ref<'b>(&'b self) -> &'b str {
         str::from_utf8(self.bytes)
