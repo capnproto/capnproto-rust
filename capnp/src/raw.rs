@@ -29,7 +29,13 @@ pub fn get_struct_data_section<'a, T>(value: T) -> &'a [u8]
     value.into_internal_struct_reader().get_data_section_as_blob()
 }
 
-// TODO: get_struct_pointer_section()
+/// Gets the pointer section as a list.
+pub fn get_struct_pointer_section<'a, T>(value: T) -> ::any_pointer_list::Reader<'a>
+    where T: IntoInternalStructReader<'a>
+{
+    ::any_pointer_list::Reader::new(
+        value.into_internal_struct_reader().get_pointer_section_as_list())
+}
 
 /// Gets the size of the elements in a list.
 pub fn get_list_element_size<'a, T>(value: T) -> ::private::layout::ElementSize

@@ -2659,6 +2659,21 @@ impl <'a> StructReader<'a> {
 
     pub fn get_pointer_section_size(&self) -> WirePointerCount16 { self.pointer_count }
 
+    pub fn get_pointer_section_as_list(&self) -> ListReader<'a> {
+        ListReader {
+            arena: self.arena,
+            segment_id: self.segment_id,
+            cap_table: self.cap_table,
+            ptr: self.pointers as *const _,
+            element_count: self.pointer_count as ElementCount32,
+            element_size: ElementSize::Pointer,
+            step: 1 * BITS_PER_WORD as BitCount32,
+            struct_data_size: 0,
+            struct_pointer_count: 0,
+            nesting_limit: self.nesting_limit,
+        }
+    }
+
     pub fn get_data_section_as_blob(&self) -> &'a [u8] {
         if self.data_size == 0 {
             // Explictly handle this case to avoid forming a slice to a null pointer,

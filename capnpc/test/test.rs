@@ -474,7 +474,6 @@ mod tests {
             let mut message = message::Builder::new_default();
             message.set_root(body).unwrap();
         }
-
     }
 
     #[test]
@@ -1388,5 +1387,16 @@ mod tests {
                 ::capnp::raw::get_list_bytes(uint16_list.reborrow().into_reader()),
                 &[10, 0, 11, 0, 12, 0, 13, 0, 14, 0]);
         }
+    }
+
+    #[test]
+    fn get_struct_pointer_section() {
+        use test_capnp::test_all_types;
+        let mut message = message::Builder::new_default();
+        let mut root: test_all_types::Builder = message.init_root();
+        ::test_util::init_test_message(root.reborrow().init_struct_field());
+        let pointers = ::capnp::raw::get_struct_pointer_section(root.into_reader());
+        let substruct: test_all_types::Reader = pointers.get(2).get_as().unwrap();
+        ::test_util::CheckTestMessage::check_test_message(substruct.get_struct_field());
     }
 }
