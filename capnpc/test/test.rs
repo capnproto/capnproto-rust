@@ -1397,6 +1397,6 @@ mod tests {
         ::test_util::init_test_message(root.reborrow().init_struct_field());
         let pointers = ::capnp::raw::get_struct_pointer_section(root.into_reader());
         let substruct: test_all_types::Reader = pointers.get(2).get_as().unwrap();
-        ::test_util::CheckTestMessage::check_test_message(substruct.get_struct_field());
+        ::test_util::CheckTestMessage::check_test_message(substruct);
     }
 }
