@@ -149,10 +149,10 @@ struct TestDefaults {
    int16Field    @3  :Int16     = -12345;
    int32Field    @4  :Int32     = -12345678;
    int64Field    @5  :Int64     = -123456789012345;
-   uint8Field    @6  :UInt8     = 234;
-   uint16Field   @7  :UInt16    = 45678;
-   uint32Field   @8  :UInt32    = 3456789012;
-   uint64Field   @9  :UInt64    = 12345678901234567890;
+   uInt8Field    @6  :UInt8     = 234;
+   uInt16Field   @7  :UInt16    = 45678;
+   uInt32Field   @8  :UInt32    = 3456789012;
+   uInt64Field   @9  :UInt64    = 12345678901234567890;
    float32Field  @10 :Float32   = 1234.5;
    float64Field  @11 :Float64   = -123e45;
    textField     @12 :Text      = "foo";
@@ -230,15 +230,96 @@ struct TestAnyPointer {
 }
 
 struct TestUnion {
-   union0 :union {
-     u0f0s0  @0 :Void;
-     u0f0s1  @1 :Bool;
-     u0f0s8  @2 :Int8;
-     u0f0s16 @3 :Int16;
-     u0f0s32 @4 :Int32;
-     u0f0s64 @5 :Int64;
-     u0f0sp  @6 :Text;
-   }
+  union0 @0! :union {
+    # Pack union 0 under ideal conditions: there is no unused padding space prior to it.
+    u0f0s0  @4: Void;
+    u0f0s1  @5: Bool;
+    u0f0s8  @6: Int8;
+    u0f0s16 @7: Int16;
+    u0f0s32 @8: Int32;
+    u0f0s64 @9: Int64;
+    u0f0sp  @10: Text;
+
+    # Pack more stuff into union0 -- should go in same space.
+    u0f1s0  @11: Void;
+    u0f1s1  @12: Bool;
+    u0f1s8  @13: Int8;
+    u0f1s16 @14: Int16;
+    u0f1s32 @15: Int32;
+    u0f1s64 @16: Int64;
+    u0f1sp  @17: Text;
+  }
+
+  # Pack one bit in order to make pathological situation for union1.
+  bit0 @18: Bool;
+
+  union1 @1! :union {
+    # Pack pathologically bad case.  Each field takes up new space.
+    u1f0s0  @19: Void;
+    u1f0s1  @20: Bool;
+    u1f1s1  @21: Bool;
+    u1f0s8  @22: Int8;
+    u1f1s8  @23: Int8;
+    u1f0s16 @24: Int16;
+    u1f1s16 @25: Int16;
+    u1f0s32 @26: Int32;
+    u1f1s32 @27: Int32;
+    u1f0s64 @28: Int64;
+    u1f1s64 @29: Int64;
+    u1f0sp  @30: Text;
+    u1f1sp  @31: Text;
+
+    # Pack more stuff into union1 -- each should go into the same space as corresponding u1f0s*.
+    u1f2s0  @32: Void;
+    u1f2s1  @33: Bool;
+    u1f2s8  @34: Int8;
+    u1f2s16 @35: Int16;
+    u1f2s32 @36: Int32;
+    u1f2s64 @37: Int64;
+    u1f2sp  @38: Text;
+  }
+
+  # Fill in the rest of that bitfield from earlier.
+  bit2 @39: Bool;
+  bit3 @40: Bool;
+  bit4 @41: Bool;
+  bit5 @42: Bool;
+  bit6 @43: Bool;
+  bit7 @44: Bool;
+
+  # Interleave two unions to be really annoying.
+  # Also declare in reverse order to make sure union discriminant values are sorted by field number
+  # and not by declaration order.
+  union2 @2! :union {
+    u2f0s64 @54: Int64;
+    u2f0s32 @52: Int32;
+    u2f0s16 @50: Int16;
+    u2f0s8 @47: Int8;
+    u2f0s1 @45: Bool;
+  }
+
+  union3 @3! :union {
+    u3f0s64 @55: Int64;
+    u3f0s32 @53: Int32;
+    u3f0s16 @51: Int16;
+    u3f0s8 @48: Int8;
+    u3f0s1 @46: Bool;
+  }
+
+  byte0 @49: UInt8;
+}
+
+struct TestUnnamedUnion {
+  before @0 :Text;
+
+  union {
+    foo @1 :UInt16;
+    bar @3 :UInt32;
+  }
+
+  middle @2 :UInt16;
+
+  after @4 :Text;
 }
 
 struct TestGroups {
@@ -260,6 +341,28 @@ struct TestGroups {
       quz @9 :Float64;
       anEnum @10 :TestEnum;
     }
+  }
+}
+
+struct TestUnionDefaults {
+  s16s8s64s8Set @0 :TestUnion =
+      (union0 = (u0f0s16 = 321), union1 = (u1f0s8 = 123), union2 = (u2f0s64 = 12345678901234567),
+       union3 = (u3f0s8 = 55));
+  s0sps1s32Set @1 :TestUnion =
+      (union0 = (u0f1s0 = void), union1 = (u1f0sp = "foo"), union2 = (u2f0s1 = true),
+       union3 = (u3f0s32 = 12345678));
+
+  unnamed1 @2 :TestUnnamedUnion = (foo = 123);
+  unnamed2 @3 :TestUnnamedUnion = (bar = 321, before = "foo", after = "bar");
+
+  inner1 :union {
+    a @4 :UInt8 = 17;
+    b @5 :Text = "foobar";
+  }
+
+  inner2 :union {
+    c @6 :Text = "grault";
+    d @7 :UInt8 = 19;
   }
 }
 

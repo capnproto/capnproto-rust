@@ -21,7 +21,9 @@
 
 //! List of sequences of bytes.
 
-use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
+use traits::{FromPointerReader, FromPointerReaderRefDefault,
+             FromPointerBuilder, FromPointerBuilderRefDefault,
+             IndexMove, ListIter};
 use private::layout::*;
 use Result;
 
@@ -56,6 +58,13 @@ impl <'a> FromPointerReader<'a> for Reader<'a> {
         Ok(Reader { reader: reader.get_list(Pointer, ::std::ptr::null())? })
     }
 }
+
+impl <'a> FromPointerReaderRefDefault<'a> for Reader<'a> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: *const ::Word) -> Result<Reader<'a>> {
+        Ok(Reader { reader : reader.get_list(Pointer, default)? })
+    }
+}
+
 
 impl <'a> IndexMove<u32, Result<::data::Reader<'a>>> for Reader<'a>{
     fn index_move(&self, index: u32) -> Result<::data::Reader<'a>> {
@@ -117,6 +126,14 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
     fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a>> {
         Ok(Builder {
             builder: builder.get_list(Pointer, ::std::ptr::null())?
+        })
+    }
+}
+
+impl <'a> FromPointerBuilderRefDefault<'a> for Builder<'a> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: *const ::Word) -> Result<Builder<'a>> {
+        Ok(Builder {
+            builder: builder.get_list(Pointer, default)?
         })
     }
 }

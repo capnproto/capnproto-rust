@@ -21,6 +21,7 @@
 
 #![cfg(test)]
 
+#[macro_use]
 extern crate capnp;
 
 #[macro_use]

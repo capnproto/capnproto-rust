@@ -26,7 +26,7 @@ use private::layout::{CapTable, ListReader, StructReader, StructBuilder, StructS
 use std::marker::PhantomData;
 
 pub trait FromStructReader<'a> {
-    fn new(reader : StructReader<'a>) -> Self;
+    fn new(reader: StructReader<'a>) -> Self;
 }
 
 pub trait HasStructSize {
@@ -75,8 +75,8 @@ pub trait Pipelined {
     type Pipeline;
 }
 
-pub trait FromPointerReaderRefDefault<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default_value: *const Word) -> Self;
+pub trait FromPointerReaderRefDefault<'a> : Sized {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: *const Word) -> Result<Self>;
 }
 
 pub trait FromPointerBuilder<'a> : Sized {
@@ -84,8 +84,8 @@ pub trait FromPointerBuilder<'a> : Sized {
     fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Self>;
 }
 
-pub trait FromPointerBuilderRefDefault<'a> {
-    fn get_from_pointer(builder: PointerBuilder<'a>, default_value: *const Word) -> Self;
+pub trait FromPointerBuilderRefDefault<'a> : Sized {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default_value: *const Word) -> Result<Self>;
 }
 
 pub trait SetPointerBuilder<To> {

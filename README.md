@@ -87,6 +87,3 @@ and the latter can be used to invoke a possibly-remote instance of a `PointTrack
 
 - [orphans](https://capnproto.org/cxx.html#orphans)
 - [dynamic reflection](https://capnproto.org/cxx.html#dynamic-reflection)
-- default values for pointer fields
-
-

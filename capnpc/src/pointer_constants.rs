@@ -25,19 +25,21 @@ use codegen::FormattedText::{Indent, Line, Branch};
 use codegen_types::{ Leaf, RustTypeInfo };
 use schema_capnp::{type_};
 
-pub fn generate_pointer_constant(
-    gen: &GeneratorContext,
-    styled_name: &str,
-    typ: type_::Reader,
-    value: any_pointer::Reader)
-    -> ::capnp::Result<FormattedText>
-{
+pub struct WordArrayDeclarationOptions {
+    pub public: bool,
+    pub omit_first_word: bool,
+}
+
+pub fn word_array_declaration(name: &str,
+                              value: any_pointer::Reader,
+                              options: WordArrayDeclarationOptions) -> ::capnp::Result<FormattedText> {
     let allocator = message::HeapAllocator::new()
         .first_segment_words(value.target_size()?.word_count as u32 + 1);
     let mut message = message::Builder::new(allocator);
     message.set_root(value)?;
+    let mut words = message.get_segments_for_output()[0];
+    if options.omit_first_word { words = &words[1..] }
     let mut words_lines = Vec::new();
-    let words = message.get_segments_for_output()[0];
     for &word in words {
         let tmp = &[word];
         let bytes = Word::words_to_bytes(tmp);
@@ -46,13 +48,27 @@ pub fn generate_pointer_constant(
                     bytes[0], bytes[1], bytes[2], bytes[3],
                     bytes[4], bytes[5], bytes[6], bytes[7])));
     }
+
+    let vis = if options.public { "pub " } else { "" };
+    Ok(Branch(vec![
+        Line(format!("{}static {}: [::capnp::Word; {}] = [", vis, name, words.len())),
+        Indent(Box::new(Branch(words_lines))),
+        Line("];".to_string())
+    ]))
+}
+
+pub fn generate_pointer_constant(
+    gen: &GeneratorContext,
+    styled_name: &str,
+    typ: type_::Reader,
+    value: any_pointer::Reader)
+    -> ::capnp::Result<FormattedText>
+{
     Ok(Branch(vec![
         Line(format!("pub static {}: ::capnp::constant::Reader<{}> = {{",
                      styled_name, typ.type_string(gen, Leaf::Owned)?)),
         Indent(Box::new(Branch(vec![
-            Line(format!("static WORDS: [::capnp::Word; {}] = [", words.len())),
-            Indent(Box::new(Branch(words_lines))),
-            Line("];".to_string()),
+            word_array_declaration("WORDS", value, WordArrayDeclarationOptions { public: false, omit_first_word: false })?,
             Line("::capnp::constant::Reader {".into()),
             Indent(Box::new(Branch(vec![
                 Line("phantom: ::std::marker::PhantomData,".into()),

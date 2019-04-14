@@ -25,7 +25,9 @@ use std::marker::PhantomData;
 use capability::{FromClientHook};
 use private::capability::ClientHook;
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
-use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
+use traits::{FromPointerReader, FromPointerReaderRefDefault,
+             FromPointerBuilder, FromPointerBuilderRefDefault,
+             IndexMove, ListIter};
 use Result;
 
 #[derive(Copy, Clone)]
@@ -72,6 +74,13 @@ impl <'a, T> Reader<'a, T> where T: FromClientHook {
 impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: FromClientHook {
     fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader: reader.get_list(Pointer, ::std::ptr::null())?,
+                    marker: PhantomData })
+    }
+}
+
+impl <'a, T> FromPointerReaderRefDefault<'a> for Reader<'a, T> where T: FromClientHook {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: *const ::Word) -> Result<Reader<'a, T>> {
+        Ok(Reader { reader: reader.get_list(Pointer, default)?,
                     marker: PhantomData })
     }
 }
@@ -136,6 +145,15 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: FromClientHook {
         Ok(Builder {
             marker: PhantomData,
             builder: builder.get_list(Pointer, ::std::ptr::null())?
+        })
+    }
+}
+
+impl <'a, T> FromPointerBuilderRefDefault<'a> for Builder<'a, T> where T: FromClientHook {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: *const ::Word) -> Result<Builder<'a, T>> {
+        Ok(Builder {
+            marker: PhantomData,
+            builder: builder.get_list(Pointer, default)?
         })
     }
 }

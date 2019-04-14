@@ -192,6 +192,8 @@ fn test_camel_to_snake_case() {
     assert_eq!(camel_to_snake_case("uint32Id"), "uint32_id".to_string());
 }
 
+
+
 #[derive(PartialEq, Clone)]
 pub enum FormattedText {
     Indent(Box<FormattedText>),
@@ -332,11 +334,14 @@ fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<S
     }
 }
 
+//
+// Returns (type, getter body, default_decl)
+//
 pub fn getter_text(gen: &GeneratorContext,
                    field: &schema_capnp::field::Reader,
                    is_reader: bool,
                    is_fn: bool)
-                   -> ::capnp::Result<(String, FormattedText)> {
+                   -> ::capnp::Result<(String, FormattedText, Option<FormattedText>)> {
     use schema_capnp::*;
 
     match field.which()? {
@@ -359,9 +364,10 @@ pub fn getter_text(gen: &GeneratorContext,
                 Line("::capnp::traits::FromStructBuilder::new(self.builder)".to_string())
             };
 
-            Ok((result_type, getter_code))
+            Ok((result_type, getter_code, None))
         }
         field::Slot(reg_field) => {
+            let mut default_decl = None;
             let offset = reg_field.get_offset() as usize;
             let module_string = if is_reader { "Reader" } else { "Builder" };
             let module = if is_reader { Leaf::Reader("'a") } else { Leaf::Builder("'a") };
@@ -380,6 +386,7 @@ pub fn getter_text(gen: &GeneratorContext,
             let typ = raw_type.type_string(gen, module)?;
             let default_value = reg_field.get_default_value()?;
             let default = default_value.which()?;
+            let default_name = format!("DEFAULT_{}", snake_to_upper_case(&camel_to_snake_case(field.get_name()?)));
 
             let mut result_type = match raw_type.which()? {
                 type_::Enum(_) => format!("::std::result::Result<{},::capnp::NotInSchema>", typ),
@@ -439,56 +446,68 @@ pub fn getter_text(gen: &GeneratorContext,
                 }
 
                 (type_::Text(()), value::Text(t)) => {
-                    let t = t?;
-                    if default_value.has_text() && t.len() > 0 && is_reader {
-                        println!("cargo:warning=[UNSUPPORTED] Ignoring default value {:?} for text field {}. \
-                                  See https://github.com/dwrensha/capnpc-rust/issues/38",
-                                 t, field.get_name()?);
-                    }
-                    Line(format!("self.{}.get_pointer_field({}).get_text(::std::ptr::null(), 0)", member, offset))
+                    let (default_ptr, default_size) = if default_value.has_text() {
+                        default_decl = Some(::pointer_constants::word_array_declaration(
+                            &default_name,
+                            ::capnp::raw::get_struct_pointer_section(default_value).get(0),
+                            ::pointer_constants::WordArrayDeclarationOptions {public: true, omit_first_word: true})?);
+                        (format!("_private::{}.as_ptr()", default_name), t?.len())
+                    } else {
+                        ("::std::ptr::null()".to_string(), 0)
+                    };
+                    Line(format!("self.{}.get_pointer_field({}).get_text({}, {})",
+                                 member, offset, default_ptr, default_size))
                 }
                 (type_::Data(()), value::Data(d)) => {
-                    let d = d?;
-                    if default_value.has_data() && d.len() > 0 && is_reader {
-                        println!("cargo:warning=[UNSUPPORTED] Ignoring default value {:?} for data field {}. \
-                                  See https://github.com/dwrensha/capnpc-rust/issues/38",
-                                 d, field.get_name()?);
-                    }
+                    let default_ptr = if default_value.has_data() {
+                        default_decl = Some(::pointer_constants::word_array_declaration(
+                            &default_name,
+                            ::capnp::raw::get_struct_pointer_section(default_value).get(0),
+                            ::pointer_constants::WordArrayDeclarationOptions {public: true, omit_first_word: true})?);
+                        format!("_private::{}.as_ptr()", default_name)
+                    } else {
+                        "::std::ptr::null()".to_string()
+                    };
 
-                    Line(format!("self.{}.get_pointer_field({}).get_data(::std::ptr::null(), 0)", member, offset))
+                    Line(format!("self.{}.get_pointer_field({}).get_data({}, {})",
+                                 member, offset, default_ptr, d?.len()))
                 }
-                (type_::List(_), value::List(_)) => {
-                    if default_value.has_list() && is_reader {
-                        // TODO: Don't emit warning if the list if of length zero.
-                        println!("cargo:warning=[UNSUPPORTED] Ignoring default for list field {}. \
-                                  See https://github.com/dwrensha/capnpc-rust/issues/38",
-                                 field.get_name()?);
-                    }
+                (type_::List(_), value::List(lst)) => {
+                    let default_ptr = if default_value.has_list() {
+                        default_decl = Some(::pointer_constants::word_array_declaration(
+                            &default_name, lst,
+                            ::pointer_constants::WordArrayDeclarationOptions {public: true, omit_first_word: false})?);
+                        format!("_private::{}.as_ptr()", default_name)
+                    } else {
+                        "::std::ptr::null()".to_string()
+                    };
 
                     if is_reader {
                         Line(format!(
-                            "::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}))",
-                            member, offset))
+                            "::capnp::traits::FromPointerReaderRefDefault::get_from_pointer(&self.{}.get_pointer_field({}), {})",
+                            member, offset, default_ptr))
                     } else {
-                        Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}))",
-                                     member, offset))
+                        Line(format!("::capnp::traits::FromPointerBuilderRefDefault::get_from_pointer(self.{}.get_pointer_field({}), {})",
+                                     member, offset, default_ptr))
 
                     }
                 }
-                (type_::Struct(_), value::Struct(_)) => {
-                    if default_value.has_struct() && is_reader {
-                        // TODO: Don't emit warning if the struct is zero-sized.
-                        println!("cargo:warning=[UNSUPPORTED] Ignoring default for struct field {}. \
-                                  See https://github.com/dwrensha/capnpc-rust/issues/38",
-                                 field.get_name()?);
-                    }
+                (type_::Struct(_), value::Struct(s)) => {
+                    let default_ptr = if default_value.has_struct() {
+                        default_decl = Some(::pointer_constants::word_array_declaration(
+                            &default_name, s,
+                            ::pointer_constants::WordArrayDeclarationOptions {public: true, omit_first_word: false})?);
+                        format!("_private::{}.as_ptr()", default_name)
+                    } else {
+                        "::std::ptr::null()".to_string()
+                    };
 
                     if is_reader {
-                        Line(format!("::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}))",
-                                     member, offset))
+                        Line(format!("self.{}.get_pointer_field({}).get_struct({}).map(|sr| ::capnp::traits::FromStructReader::new(sr))",
+                                     member, offset, default_ptr))
                     } else {
-                        Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}))",
-                                     member, offset))
+                        Line(format!("self.{}.get_pointer_field({}).get_struct(<{} as ::capnp::traits::HasStructSize>::struct_size(),{}).map(|sb| ::capnp::traits::FromStructBuilder::new(sb))",
+                                     member, offset, typ, default_ptr))
                     }
                 }
                 (type_::Interface(_), value::Interface(_)) => {
@@ -508,7 +527,7 @@ pub fn getter_text(gen: &GeneratorContext,
                 }
                 _ => return Err(Error::failed(format!("default value was of wrong type"))),
             };
-            Ok((result_type, getter_code))
+            Ok((result_type, getter_code, default_decl))
         }
     }
 }
@@ -784,13 +803,13 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
 }
 
 
-// return (the 'Which' enum, the 'which()' accessor, typedef)
+// return (the 'Which' enum, the 'which()' accessor, typedef, default_decls)
 fn generate_union(gen: &GeneratorContext,
                   discriminant_offset: u32,
                   fields: &[schema_capnp::field::Reader],
                   is_reader: bool,
                   params: &TypeParameterTexts)
-                  -> ::capnp::Result<(FormattedText, FormattedText, FormattedText)>
+                  -> ::capnp::Result<(FormattedText, FormattedText, FormattedText, Vec<FormattedText>)>
 {
     use schema_capnp::*;
 
@@ -803,6 +822,7 @@ fn generate_union(gen: &GeneratorContext,
     let mut getter_interior = Vec::new();
     let mut interior = Vec::new();
     let mut enum_interior = Vec::new();
+    let mut default_decls = Vec::new();
 
     let mut ty_params = Vec::new();
     let mut ty_args = Vec::new();
@@ -816,7 +836,10 @@ fn generate_union(gen: &GeneratorContext,
         let field_name = field.get_name()?;
         let enumerant_name = capitalize_first_letter(field_name);
 
-        let (ty, get) = getter_text(gen, field, is_reader, false)?;
+        let (ty, get, maybe_default_decl) = getter_text(gen, field, is_reader, false)?;
+        if let Some(default_decl) = maybe_default_decl {
+            default_decls.push(default_decl)
+        }
 
         getter_interior.push(Branch(vec![
             Line(format!("{} => {{", dvalue)),
@@ -890,7 +913,7 @@ fn generate_union(gen: &GeneratorContext,
 
     // TODO set_which() for builders?
 
-    Ok((result, getter_result, typedef))
+    Ok((result, getter_result, typedef, default_decls))
 }
 
 fn generate_haser(discriminant_offset: u32,
@@ -1134,7 +1157,10 @@ fn generate_node(gen: &GeneratorContext,
 
                 if !is_union_field {
                     pipeline_impl_interior.push(generate_pipeline_getter(gen, field)?);
-                    let (ty, get) = getter_text(gen, &field, true, true)?;
+                    let (ty, get, default_decl) = getter_text(gen, &field, true, true)?;
+                    if let Some(default) = default_decl {
+                        private_mod_interior.push(default.clone());
+                    }
                     reader_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
@@ -1142,7 +1168,7 @@ fn generate_node(gen: &GeneratorContext,
                             Indent(Box::new(get)),
                             Line("}".to_string()))));
 
-                    let (ty_b, get_b) = getter_text(gen, &field, false, true)?;
+                    let (ty_b, get_b, _) = getter_text(gen, &field, false, true)?;
                     builder_members.push(
                         Branch(vec!(
                             Line("#[inline]".to_string()),
@@ -1172,13 +1198,15 @@ fn generate_node(gen: &GeneratorContext,
             }
 
             if discriminant_count > 0 {
-                let (which_enums1, union_getter, typedef) =
+                let (which_enums1, union_getter, typedef, mut default_decls) =
                     generate_union(gen, discriminant_offset, &union_fields, true, &params)?;
                 which_enums.push(which_enums1);
                 which_enums.push(typedef);
                 reader_members.push(union_getter);
 
-                let (_, union_getter, typedef) =
+                private_mod_interior.append(&mut default_decls);
+
+                let (_, union_getter, typedef, _) =
                     generate_union(gen, discriminant_offset, &union_fields, false, &params)?;
                 which_enums.push(typedef);
                 builder_members.push(union_getter);

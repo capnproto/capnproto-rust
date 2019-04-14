@@ -23,7 +23,9 @@
 
 use std::{marker, ptr};
 
-use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
+use traits::{FromPointerReader, FromPointerReaderRefDefault,
+             FromPointerBuilder, FromPointerBuilderRefDefault,
+             IndexMove, ListIter};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                       PrimitiveElement};
 use Result;
@@ -60,6 +62,13 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
 impl <'a, T: PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
     fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader: reader.get_list(T::element_size(), ptr::null())?,
+                    marker: marker::PhantomData })
+    }
+}
+
+impl <'a, T: PrimitiveElement> FromPointerReaderRefDefault<'a> for Reader<'a, T> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: *const ::Word) -> Result<Reader<'a, T>> {
+        Ok(Reader { reader: reader.get_list(T::element_size(), default)?,
                     marker: marker::PhantomData })
     }
 }
@@ -119,6 +128,13 @@ impl <'a, T: PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
     }
     fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a, T>> {
         Ok(Builder { builder: builder.get_list(T::element_size(), ptr::null())?,
+                     marker: marker::PhantomData })
+    }
+}
+
+impl <'a, T: PrimitiveElement> FromPointerBuilderRefDefault<'a> for Builder<'a, T> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: *const ::Word) -> Result<Builder<'a, T>> {
+        Ok(Builder { builder: builder.get_list(T::element_size(), default)?,
                      marker: marker::PhantomData })
     }
 }

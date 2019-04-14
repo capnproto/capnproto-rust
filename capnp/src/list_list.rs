@@ -21,7 +21,9 @@
 
 //! List of lists.
 
-use traits::{FromPointerReader, FromPointerBuilder, ListIter, IndexMove};
+use traits::{FromPointerReader, FromPointerReaderRefDefault,
+             FromPointerBuilder, FromPointerBuilderRefDefault,
+             ListIter, IndexMove};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
 use Result;
 
@@ -69,6 +71,13 @@ where T: for<'b> ::traits::Owned<'b> {
 impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
     fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader: reader.get_list(Pointer, ::std::ptr::null())?,
+                    marker: ::std::marker::PhantomData })
+    }
+}
+
+impl <'a, T> FromPointerReaderRefDefault<'a> for Reader<'a, T> where T: for<'b> ::traits::Owned<'b> {
+    fn get_from_pointer(reader : &PointerReader<'a>, default: *const ::Word) -> Result<Reader<'a, T>> {
+        Ok(Reader { reader: reader.get_list(Pointer, default)?,
                     marker: ::std::marker::PhantomData })
     }
 }
@@ -125,6 +134,15 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> ::traits
         Ok(Builder {
             marker: ::std::marker::PhantomData,
             builder: builder.get_list(Pointer, ::std::ptr::null())?
+        })
+    }
+}
+
+impl <'a, T> FromPointerBuilderRefDefault<'a> for Builder<'a, T> where T: for<'b> ::traits::Owned<'b> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: *const ::Word) -> Result<Builder<'a, T>> {
+        Ok(Builder {
+            marker: ::std::marker::PhantomData,
+            builder: builder.get_list(Pointer, default)?
         })
     }
 }

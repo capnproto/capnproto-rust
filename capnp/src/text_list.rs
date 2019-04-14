@@ -21,7 +21,9 @@
 
 //! List of strings containing UTF-8 encoded text.
 
-use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
+use traits::{FromPointerReader, FromPointerReaderRefDefault,
+             FromPointerBuilder, FromPointerBuilderRefDefault,
+             IndexMove, ListIter};
 use private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 use Result;
 
@@ -54,6 +56,12 @@ impl <'a> Reader<'a> {
 impl <'a> FromPointerReader<'a> for Reader<'a> {
     fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a>> {
         Ok(Reader { reader : reader.get_list(Pointer, ::std::ptr::null())? })
+    }
+}
+
+impl <'a> FromPointerReaderRefDefault<'a> for Reader<'a> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: *const ::Word) -> Result<Reader<'a>> {
+        Ok(Reader { reader : reader.get_list(Pointer, default)? })
     }
 }
 
@@ -116,6 +124,14 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
     fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a>> {
         Ok(Builder {
             builder: builder.get_list(Pointer, ::std::ptr::null())?
+        })
+    }
+}
+
+impl <'a> FromPointerBuilderRefDefault<'a> for Builder<'a> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: *const ::Word) -> Result<Builder<'a>> {
+        Ok(Builder {
+            builder: builder.get_list(Pointer, default)?
         })
     }
 }

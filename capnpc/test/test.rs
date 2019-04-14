@@ -371,48 +371,23 @@ mod tests {
 
     #[test]
     fn test_defaults() {
-        use test_capnp::{test_defaults, TestEnum};
-
-        let mut message = message::Builder::new_default();
+        use test_capnp::test_defaults;
 
         {
+            let message = message::Builder::new_default();
             let test_defaults = message.get_root_as_reader::<test_defaults::Reader>()
                 .expect("get_root_as_reader()");
-
-            assert_eq!(test_defaults.reborrow().get_void_field(), ());
-            assert_eq!(test_defaults.reborrow().get_bool_field(), true);
-            assert_eq!(test_defaults.reborrow().get_int8_field(), -123);
-            assert_eq!(test_defaults.reborrow().get_int16_field(), -12345);
-            assert_eq!(test_defaults.reborrow().get_int32_field(), -12345678);
-            assert_eq!(test_defaults.reborrow().get_int64_field(), -123456789012345);
-            assert_eq!(test_defaults.reborrow().get_uint8_field(), 234u8);
-            assert_eq!(test_defaults.reborrow().get_uint16_field(), 45678u16);
-            assert_eq!(test_defaults.reborrow().get_uint32_field(), 3456789012u32);
-            assert_eq!(test_defaults.reborrow().get_uint64_field(), 12345678901234567890u64);
-            assert_eq!(test_defaults.reborrow().get_float32_field(), 1234.5);
-            assert_eq!(test_defaults.reborrow().get_float64_field(), -123e45);
-            assert!(test_defaults.reborrow().get_enum_field().unwrap() == TestEnum::Corge);
+            ::test_util::CheckTestMessage::check_test_message(test_defaults);
         }
 
         {
-            let mut test_defaults = message.init_root::<test_defaults::Builder>();
-
-            assert_eq!(test_defaults.reborrow().get_void_field(), ());
-            assert_eq!(test_defaults.reborrow().get_bool_field(), true);
-            assert_eq!(test_defaults.reborrow().get_int8_field(), -123);
-            assert_eq!(test_defaults.reborrow().get_int16_field(), -12345);
-            assert_eq!(test_defaults.reborrow().get_int32_field(), -12345678);
-            assert_eq!(test_defaults.reborrow().get_int64_field(), -123456789012345);
-            assert_eq!(test_defaults.reborrow().get_uint8_field(), 234u8);
-            assert_eq!(test_defaults.reborrow().get_uint16_field(), 45678u16);
-            assert_eq!(test_defaults.reborrow().get_uint32_field(), 3456789012u32);
-            assert_eq!(test_defaults.reborrow().get_uint64_field(), 12345678901234567890u64);
-            assert_eq!(test_defaults.reborrow().get_float32_field(), 1234.5);
-            assert_eq!(test_defaults.reborrow().get_float64_field(), -123e45);
-            assert!(test_defaults.reborrow().get_enum_field().unwrap() == TestEnum::Corge);
+            let mut message = message::Builder::new_default();
+            let test_defaults = message.init_root::<test_defaults::Builder>();
+            ::test_util::CheckTestMessage::check_test_message(test_defaults);
         }
 
         {
+            let mut message = message::Builder::new_default();
             let mut test_defaults = message.get_root::<test_defaults::Builder>()
                 .expect("get_root()");
             test_defaults.set_bool_field(false);
@@ -420,25 +395,45 @@ mod tests {
             test_defaults.set_int16_field(-1123);
             test_defaults.set_int32_field(445678);
             test_defaults.set_int64_field(-990123456789);
-            test_defaults.set_uint8_field(234);
-            test_defaults.set_uint16_field(56789);
-            test_defaults.set_uint32_field(123456789);
-            test_defaults.set_uint64_field(123456789012345);
+            test_defaults.set_u_int8_field(234);
+            test_defaults.set_u_int16_field(56789);
+            test_defaults.set_u_int32_field(123456789);
+            test_defaults.set_u_int64_field(123456789012345);
             test_defaults.set_float32_field(7890.123);
             test_defaults.set_float64_field(5e55);
+
+            {
+                let mut sub_builder = test_defaults.reborrow().get_struct_field().unwrap();
+                sub_builder.set_text_field("garply");
+            }
 
             assert_eq!(test_defaults.reborrow().get_bool_field(), false);
             assert_eq!(test_defaults.reborrow().get_int8_field(), 63);
             assert_eq!(test_defaults.reborrow().get_int16_field(), -1123);
             assert_eq!(test_defaults.reborrow().get_int32_field(),  445678);
             assert_eq!(test_defaults.reborrow().get_int64_field(), -990123456789);
-            assert_eq!(test_defaults.reborrow().get_uint8_field(), 234);
-            assert_eq!(test_defaults.reborrow().get_uint16_field(), 56789);
-            assert_eq!(test_defaults.reborrow().get_uint32_field(),  123456789);
-            assert_eq!(test_defaults.reborrow().get_uint64_field(),  123456789012345);
+            assert_eq!(test_defaults.reborrow().get_u_int8_field(), 234);
+            assert_eq!(test_defaults.reborrow().get_u_int16_field(), 56789);
+            assert_eq!(test_defaults.reborrow().get_u_int32_field(),  123456789);
+            assert_eq!(test_defaults.reborrow().get_u_int64_field(),  123456789012345);
             assert_eq!(test_defaults.reborrow().get_float32_field(), 7890.123);
             assert_eq!(test_defaults.reborrow().get_float64_field(), 5e55);
+
+            {
+                let sub_builder = test_defaults.reborrow().get_struct_field().unwrap();
+                assert_eq!("garply", &*sub_builder.get_text_field().unwrap());
+            }
         }
+    }
+
+    #[test]
+    fn test_default_initialization_multi_segment() {
+        use test_capnp::test_defaults;
+        let builder_options = message::HeapAllocator::new()
+            .first_segment_words(1).allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
+        let mut message = message::Builder::new(builder_options);
+        let test_defaults = message.init_root::<test_defaults::Builder>();
+        ::test_util::CheckTestMessage::check_test_message(test_defaults);
     }
 
     #[test]
@@ -658,6 +653,29 @@ mod tests {
         assert_eq!(union_struct.reborrow().get_union0().has_u0f0sp(), false);
         union_struct.reborrow().init_union0().set_u0f0sp("abcdef");
         assert_eq!(union_struct.get_union0().has_u0f0sp(), true);
+    }
+
+    #[test]
+    fn test_union_defaults() {
+        use test_capnp::{test_union, test_union_defaults};
+
+        {
+            let message = message::Builder::new_default();
+            let reader = message.get_root_as_reader::<test_union_defaults::Reader>()
+                .expect("get_root_as_reader()");
+            let field = reader.get_s16s8s64s8_set().unwrap();
+            if let test_union::union0::U0f0s16(_) = field.get_union0().which().unwrap() {} else {
+                panic!("expected U0f0s16");
+            }
+
+            if let test_union_defaults::inner1::A(17) = reader.get_inner1().which().unwrap() {} else {
+                panic!("")
+            }
+
+            if let test_union_defaults::inner2::C(Ok("grault")) = reader.get_inner2().which().unwrap() {} else {
+                panic!("")
+            }
+        }
     }
 
     #[test]

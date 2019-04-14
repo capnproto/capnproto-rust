@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 
-use test_capnp::{test_all_types, TestEnum};
+use test_capnp::{test_all_types, test_defaults, TestEnum};
 
 pub fn init_test_message(mut builder : test_all_types::Builder) {
     builder.set_void_field(());
@@ -98,6 +98,14 @@ pub fn init_test_message(mut builder : test_all_types::Builder) {
             int64_list.set(3, 0x7fffffffffffffff);
         }
 
+        {
+            let mut uint8_list = sub_builder.reborrow().init_u_int8_list(4);
+            uint8_list.set(0, 12);
+            uint8_list.set(1, 34);
+            uint8_list.set(2, 0);
+            uint8_list.set(3, 0xff);
+        }
+
         // ...
         {
             let mut struct_list = sub_builder.reborrow().init_struct_list(3);
@@ -113,7 +121,24 @@ pub fn init_test_message(mut builder : test_all_types::Builder) {
     }
     builder.set_enum_field(TestEnum::Corge);
 
-    builder.init_void_list(6);
+    builder.reborrow().init_void_list(6);
+
+    {
+        let mut bool_list = builder.reborrow().init_bool_list(4);
+        bool_list.set(0, true);
+        bool_list.set(1, false);
+        bool_list.set(2, false);
+        bool_list.set(3, true);
+    }
+
+    // ...
+
+    {
+        let mut struct_list = builder.reborrow().init_struct_list(3);
+        struct_list.reborrow().get(0).set_text_field("structlist 1");
+        struct_list.reborrow().get(1).set_text_field("structlist 2");
+        struct_list.reborrow().get(2).set_text_field("structlist 3");
+    }
 
     // ...
 }
@@ -123,9 +148,9 @@ pub trait CheckTestMessage {
 }
 
 macro_rules!
-check_test_message_impl(($typ:ident) => (
-    impl <'a> CheckTestMessage for test_all_types::$typ<'a> {
-        fn check_test_message(mut reader : test_all_types::$typ<'a>) {
+check_test_message_impl(($mod:ident::$typ:ident) => (
+    impl <'a> CheckTestMessage for $mod::$typ<'a> {
+        fn check_test_message(mut reader : $mod::$typ<'a>) {
             #![allow(unused_mut)]
             reader.reborrow().get_void_field();
             assert_eq!(true, reader.reborrow().get_bool_field());
@@ -142,7 +167,7 @@ check_test_message_impl(($typ:ident) => (
             assert_eq!("foo", &*reader.reborrow().get_text_field().unwrap());
             assert_eq!(b"bar", &*reader.reborrow().get_data_field().unwrap());
             {
-                let mut sub_reader = reader.get_struct_field().unwrap();
+                let mut sub_reader = reader.reborrow().get_struct_field().unwrap();
                 assert_eq!((), sub_reader.reborrow().get_void_field());
                 assert_eq!(true, sub_reader.reborrow().get_bool_field());
                 assert_eq!(-12, sub_reader.reborrow().get_int8_field());
@@ -203,6 +228,25 @@ check_test_message_impl(($typ:ident) => (
                     assert_eq!(0x7fffffff, int32_list.get(3));
                 }
 
+                {
+                    let int64_list = sub_reader.reborrow().get_int64_list().unwrap();
+                    assert_eq!(4, int64_list.len());
+                    assert_eq!(123456789012345, int64_list.get(0));
+                    assert_eq!(-678901234567890, int64_list.get(1));
+                    assert_eq!(-0x8000000000000000, int64_list.get(2));
+                    assert_eq!(0x7fffffffffffffff, int64_list.get(3));
+                }
+
+                {
+                    let uint8_list = sub_reader.reborrow().get_u_int8_list().unwrap();
+                    assert_eq!(4, uint8_list.len());
+                    assert_eq!(12, uint8_list.get(0));
+                    assert_eq!(34, uint8_list.get(1));
+                    assert_eq!(0, uint8_list.get(2));
+                    assert_eq!(0xff, uint8_list.get(3));
+                }
+
+
                 // ...
 
                 {
@@ -221,10 +265,36 @@ check_test_message_impl(($typ:ident) => (
                     assert!(Ok(TestEnum::Grault) == enum_list.get(2));
                 }
             }
+
+            assert!(Ok(TestEnum::Corge) == reader.reborrow().get_enum_field());
+            assert_eq!(6, reader.reborrow().get_void_list().unwrap().len());
+
+            {
+                let bool_list = reader.reborrow().get_bool_list().unwrap();
+                assert_eq!(4, bool_list.len());
+                assert_eq!(true, bool_list.get(0));
+                assert_eq!(false, bool_list.get(1));
+                assert_eq!(false, bool_list.get(2));
+                assert_eq!(true, bool_list.get(3));
+            }
+
+            // ...
+
+            {
+                let mut struct_list = reader.reborrow().get_struct_list().unwrap();
+                assert_eq!(3, struct_list.len());
+                assert_eq!("structlist 1", &*struct_list.reborrow().get(0).get_text_field().unwrap());
+                assert_eq!("structlist 2", &*struct_list.reborrow().get(1).get_text_field().unwrap());
+                assert_eq!("structlist 3", &*struct_list.reborrow().get(2).get_text_field().unwrap());
+
+            }
+
+            // ...
         }
     }
 ));
 
-check_test_message_impl!(Reader);
-
-check_test_message_impl!(Builder);
+check_test_message_impl!(test_all_types::Reader);
+check_test_message_impl!(test_all_types::Builder);
+check_test_message_impl!(test_defaults::Reader);
+check_test_message_impl!(test_defaults::Builder);
