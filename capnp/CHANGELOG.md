@@ -1,3 +1,8 @@
+## v0.9.5
+- Implement DerefMut for text::Builder
+- Add any_pointer_list and raw::get_struct_pointer_section().
+- Add support for point field defaults.
+
 ## v0.9.4
 - Add optional rpc_try feature, impelemnting std::ops::Try for Promise.
 - Add 'raw' module with get_struct_data_section(), get_list_bytes(), and other functions.

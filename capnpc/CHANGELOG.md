@@ -1,3 +1,6 @@
+### v0.9.4
+- Add support for pointer field defaults.
+
 ### v0.9.3
 - Generate impls of new IntoInternalStructReader trait, to support set_with_caveats.
 - Update deprecation attributes, to satisfy clippy.
