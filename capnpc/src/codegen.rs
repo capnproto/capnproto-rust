@@ -1704,14 +1704,14 @@ fn generate_node(gen: &GeneratorContext,
                 Branch(vec!(
                     (if is_generic {
                         Branch(vec!(
-                            Line(format!("pub struct ToClient<U,{}> {{", params.params)),
+                            Line(format!("pub struct ToClient<U,{}> {} {{", params.params, params.where_clause)),
                             Indent(Box::new(Branch(vec!(
                                 Line("pub u: U,".to_string()),
                                 Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params))
                             )))),
                             Line("}".to_string()),
-                            Line(format!("impl <{0}, U: Server<{0}> + 'static> ToClient<U,{0}> {1} {{",
-                                         params.params, params.where_clause_with_send)),
+                            Line(format!("impl <{0}, U: Server<{0}> + 'static> ToClient<U,{0}> {1}, {2} {{",
+                                         params.params, params.where_clause_with_send, params.where_clause.trim_start_matches("where "))),
                             Indent(Box::new(Line(format!(
                                 "pub fn new(u: U) -> ToClient<U, {}> {{ ToClient {{u: u, _phantom: ::std::marker::PhantomData}} }}",
                                 params.params)))),
@@ -1758,7 +1758,7 @@ fn generate_node(gen: &GeneratorContext,
                             Indent(Box::new(Branch(client_impl_interior))),
                             Line("}".to_string()))));
 
-            mod_interior.push(Branch(vec!(Line(format!("pub trait Server<{}> {} {{", params.params, server_base)),
+            mod_interior.push(Branch(vec!(Line(format!("pub trait Server<{}> {} {} {{", params.params, server_base, params.where_clause)),
                                           Indent(Box::new(Branch(server_interior))),
                                           Line("}".to_string()))));
 
@@ -1771,7 +1771,7 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(
                 Branch(vec!(
                     (if is_generic {
-                        Line(format!("impl <{}, _T: Server{}> ::capnp::capability::Server for ServerDispatch<_T,{}> {{", params.params, bracketed_params, params.params))
+                        Line(format!("impl <{}, _T: Server{}> ::capnp::capability::Server for ServerDispatch<_T,{}> {} {{", params.params, bracketed_params, params.params, params.where_clause))
                     } else {
                         Line("impl <_T: Server> ::capnp::capability::Server for ServerDispatch<_T> {".to_string())
                     }),
@@ -1788,7 +1788,7 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(
                 Branch(vec!(
                     (if is_generic {
-                        Line(format!("impl <{}, _T: Server{}> ServerDispatch<_T,{}> {{", params.params, bracketed_params, params.params))
+                        Line(format!("impl <{}, _T: Server{}> ServerDispatch<_T,{}> {} {{", params.params, bracketed_params, params.params, params.where_clause))
                     } else {
                         Line("impl <_T :Server> ServerDispatch<_T> {".to_string())
                     }),
