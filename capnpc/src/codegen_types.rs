@@ -76,7 +76,7 @@ pub struct TypeParameterTexts {
     pub expanded_list: Vec<String>,
     pub params: String,
     pub where_clause: String,
-    pub where_clause_with_send: String,
+    pub where_clause_with_static: String,
     pub pipeline_where_clause: String,
     pub phantom_data: String
 }
@@ -107,8 +107,8 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             let where_clause = "where ".to_string() + &*(params.iter().map(|param| {
                 format!("{}: for<'c> ::capnp::traits::Owned<'c>", param)
             }).collect::<Vec<String>>().join(", ") + " ");
-            let where_clause_with_send = "where ".to_string() + &*(params.iter().map(|param| {
-                format!("{}:'static", param)
+            let where_clause_with_static = "where ".to_string() + &*(params.iter().map(|param| {
+                format!("{}:'static + for<'c> ::capnp::traits::Owned<'c>", param)
             }).collect::<Vec<String>>().join(", ") + " ");
             let pipeline_where_clause = "where ".to_string() + &*(params.iter().map(|param| {
                 format!("{}: ::capnp::traits::Pipelined, <{} as ::capnp::traits::Pipelined>::Pipeline: ::capnp::capability::FromTypelessPipeline", param, param)
@@ -119,7 +119,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 expanded_list: params,
                 params: type_parameters,
                 where_clause: where_clause,
-                where_clause_with_send: where_clause_with_send,
+                where_clause_with_static: where_clause_with_static,
                 pipeline_where_clause: pipeline_where_clause,
                 phantom_data: phantom_data
             }
@@ -128,7 +128,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
                 expanded_list: vec!(),
                 params: "".to_string(),
                 where_clause: "".to_string(),
-                where_clause_with_send: "".to_string(),
+                where_clause_with_static: "".to_string(),
                 pipeline_where_clause: "".to_string(),
                 phantom_data: "".to_string(),
             }

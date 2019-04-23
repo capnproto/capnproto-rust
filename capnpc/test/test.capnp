@@ -743,3 +743,4 @@ struct Map(Key, Value) {
 
 interface GenericBase(T) {}
 interface GenericExtend extends(GenericBase(Data)) {}
+interface GenericExtend2 extends (GenericBase(GenericBase(Data))) {}

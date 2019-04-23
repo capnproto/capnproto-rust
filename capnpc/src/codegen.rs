@@ -1710,8 +1710,8 @@ fn generate_node(gen: &GeneratorContext,
                                 Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params))
                             )))),
                             Line("}".to_string()),
-                            Line(format!("impl <{0}, U: Server<{0}> + 'static> ToClient<U,{0}> {1}, {2} {{",
-                                         params.params, params.where_clause_with_send, params.where_clause.trim_start_matches("where "))),
+                            Line(format!("impl <{0}, U: Server<{0}> + 'static> ToClient<U,{0}> {1} {{",
+                                         params.params, params.where_clause_with_static)),
                             Indent(Box::new(Line(format!(
                                 "pub fn new(u: U) -> ToClient<U, {}> {{ ToClient {{u: u, _phantom: ::std::marker::PhantomData}} }}",
                                 params.params)))),
