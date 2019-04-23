@@ -30,3 +30,5 @@ path = "src/capnpc-rust2018.rs"
 [dependencies]
 capnp = { version = "0.9.5", path = "../capnp" }
 
+[build-dependencies]
+rustc_version = "0.2"

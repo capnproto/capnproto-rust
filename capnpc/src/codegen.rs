@@ -1703,6 +1703,10 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(
                 Branch(vec!(
                     (if is_generic {
+                        #[cfg(rustc_at_least_1_30)]
+                        let where_clause_trimmed = params.where_clause.trim_start_matches("where ");
+                        #[cfg(not(rustc_at_least_1_30))]
+                        let where_clause_trimmed = params.where_clause.trim_left_matches("where ");
                         Branch(vec!(
                             Line(format!("pub struct ToClient<U,{}> {} {{", params.params, params.where_clause)),
                             Indent(Box::new(Branch(vec!(
@@ -1711,7 +1715,7 @@ fn generate_node(gen: &GeneratorContext,
                             )))),
                             Line("}".to_string()),
                             Line(format!("impl <{0}, U: Server<{0}> + 'static> ToClient<U,{0}> {1}, {2} {{",
-                                         params.params, params.where_clause_with_send, params.where_clause.trim_start_matches("where "))),
+                                         params.params, params.where_clause_with_send, where_clause_trimmed)),
                             Indent(Box::new(Line(format!(
                                 "pub fn new(u: U) -> ToClient<U, {}> {{ ToClient {{u: u, _phantom: ::std::marker::PhantomData}} }}",
                                 params.params)))),
