@@ -1,3 +1,6 @@
+### v0.9.5
+- Fix bug in code generation for generic interfaces.
+
 ### v0.9.4
 - Add support for pointer field defaults.
 
