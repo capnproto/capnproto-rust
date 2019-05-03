@@ -238,6 +238,7 @@ impl ::std::convert::From<::std::io::Error> for Error {
         use std::io;
         let kind = match err.kind() {
             io::ErrorKind::TimedOut => ErrorKind::Overloaded,
+            io::ErrorKind::UnexpectedEof |
             io::ErrorKind::BrokenPipe |
             io::ErrorKind::ConnectionRefused |
             io::ErrorKind::ConnectionReset |
