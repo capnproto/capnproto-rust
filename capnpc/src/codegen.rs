@@ -1704,23 +1704,23 @@ fn generate_node(gen: &GeneratorContext,
                 Branch(vec!(
                     (if is_generic {
                         Branch(vec!(
-                            Line(format!("pub struct ToClient<U,{}> {} {{", params.params, params.where_clause)),
+                            Line(format!("pub struct ToClient<_U,{}> {} {{", params.params, params.where_clause)),
                             Indent(Box::new(Branch(vec!(
-                                Line("pub u: U,".to_string()),
+                                Line("pub u: _U,".to_string()),
                                 Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params))
                             )))),
                             Line("}".to_string()),
-                            Line(format!("impl <{0}, U: Server<{0}> + 'static> ToClient<U,{0}> {1} {{",
+                            Line(format!("impl <{0}, _U: Server<{0}> + 'static> ToClient<_U,{0}> {1} {{",
                                          params.params, params.where_clause_with_static)),
                             Indent(Box::new(Line(format!(
-                                "pub fn new(u: U) -> ToClient<U, {}> {{ ToClient {{u: u, _phantom: ::std::marker::PhantomData}} }}",
+                                "pub fn new(u: _U) -> ToClient<_U, {}> {{ ToClient {{u, _phantom: ::std::marker::PhantomData}} }}",
                                 params.params)))),
                         ))
                     } else {
                         Branch(vec!(
-                            Line("pub struct ToClient<U>{pub u: U}".to_string()),
-                            Line("impl <U: Server + 'static> ToClient<U> {".to_string()),
-                            Line("pub fn new(u: U) -> ToClient<U> { ToClient {u: u} }".to_string()),
+                            Line("pub struct ToClient<_U>{pub u: _U}".to_string()),
+                            Line("impl <_U: Server + 'static> ToClient<_U> {".to_string()),
+                            Line("pub fn new(u: _U) -> ToClient<_U> { ToClient {u} }".to_string()),
                         ))
                     }),
                     Indent(Box::new(Branch( vec!(
