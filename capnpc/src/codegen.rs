@@ -1632,7 +1632,7 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(
                 Branch(vec!(
                     Line(format!("impl {} ::capnp::capability::FromClientHook for Client{} {{", bracketed_params, bracketed_params)),
-                    Indent(Box::new(Line(format!("fn new(hook: Box<dyn ::capnp::private::capability::ClientHook>) -> Client{} {{", bracketed_params)))),
+                    Indent(Box::new(Line(format!("fn new(hook: Box<dyn (::capnp::private::capability::ClientHook)>) -> Client{} {{", bracketed_params)))),
                     Indent(Box::new(Indent(Box::new(Line(format!("Client {{ client: ::capnp::capability::Client::new(hook), {} }}", params.phantom_data)))))),
                     Indent(Box::new(Line("}".to_string()))),
                     Line("}".to_string()))));
