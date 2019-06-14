@@ -96,11 +96,6 @@ impl <'a> Builder<'a> {
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a> {
-        self.into_reader()
-    }
-
     pub fn into_reader(self) -> Reader<'a> {
         Reader { reader: self.builder.into_reader() }
     }

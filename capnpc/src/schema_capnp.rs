@@ -168,10 +168,6 @@ pub mod node {
   }
 
   impl <'a,> Builder<'a,>  {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a,> {
-      self.into_reader()
-    }
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
@@ -483,10 +479,6 @@ pub mod node {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -626,10 +618,6 @@ pub mod node {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -784,10 +772,6 @@ pub mod node {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -945,10 +929,6 @@ pub mod node {
       }
 
       impl <'a,> Builder<'a,>  {
-        #[deprecated(since="0.9.2", note="use into_reader()")]
-        pub fn as_reader(self) -> Reader<'a,> {
-          self.into_reader()
-        }
         pub fn into_reader(self) -> Reader<'a,> {
           ::capnp::traits::FromStructReader::new(self.builder.into_reader())
         }
@@ -1109,10 +1089,6 @@ pub mod node {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -1296,10 +1272,6 @@ pub mod node {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -1442,10 +1414,6 @@ pub mod node {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -1603,10 +1571,6 @@ pub mod node {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -1811,10 +1775,6 @@ pub mod node {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -2087,10 +2047,6 @@ pub mod field {
   }
 
   impl <'a,> Builder<'a,>  {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a,> {
-      self.into_reader()
-    }
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
@@ -2322,10 +2278,6 @@ pub mod field {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -2495,10 +2447,6 @@ pub mod field {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -2638,10 +2586,6 @@ pub mod field {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -2805,10 +2749,6 @@ pub mod enumerant {
   }
 
   impl <'a,> Builder<'a,>  {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a,> {
-      self.into_reader()
-    }
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
@@ -2971,10 +2911,6 @@ pub mod superclass {
   }
 
   impl <'a,> Builder<'a,>  {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a,> {
-      self.into_reader()
-    }
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
@@ -3161,10 +3097,6 @@ pub mod method {
   }
 
   impl <'a,> Builder<'a,>  {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a,> {
-      self.into_reader()
-    }
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
@@ -3486,10 +3418,6 @@ pub mod type_ {
   }
 
   impl <'a,> Builder<'a,>  {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a,> {
-      self.into_reader()
-    }
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
@@ -3826,10 +3754,6 @@ pub mod type_ {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -3972,10 +3896,6 @@ pub mod type_ {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -4126,10 +4046,6 @@ pub mod type_ {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -4280,10 +4196,6 @@ pub mod type_ {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -4446,10 +4358,6 @@ pub mod type_ {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -4637,10 +4545,6 @@ pub mod type_ {
       }
 
       impl <'a,> Builder<'a,>  {
-        #[deprecated(since="0.9.2", note="use into_reader()")]
-        pub fn as_reader(self) -> Reader<'a,> {
-          self.into_reader()
-        }
         pub fn into_reader(self) -> Reader<'a,> {
           ::capnp::traits::FromStructReader::new(self.builder.into_reader())
         }
@@ -4812,10 +4716,6 @@ pub mod type_ {
       }
 
       impl <'a,> Builder<'a,>  {
-        #[deprecated(since="0.9.2", note="use into_reader()")]
-        pub fn as_reader(self) -> Reader<'a,> {
-          self.into_reader()
-        }
         pub fn into_reader(self) -> Reader<'a,> {
           ::capnp::traits::FromStructReader::new(self.builder.into_reader())
         }
@@ -4949,10 +4849,6 @@ pub mod type_ {
       }
 
       impl <'a,> Builder<'a,>  {
-        #[deprecated(since="0.9.2", note="use into_reader()")]
-        pub fn as_reader(self) -> Reader<'a,> {
-          self.into_reader()
-        }
         pub fn into_reader(self) -> Reader<'a,> {
           ::capnp::traits::FromStructReader::new(self.builder.into_reader())
         }
@@ -5083,10 +4979,6 @@ pub mod brand {
   }
 
   impl <'a,> Builder<'a,>  {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a,> {
-      self.into_reader()
-    }
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
@@ -5240,10 +5132,6 @@ pub mod brand {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -5427,10 +5315,6 @@ pub mod brand {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -5708,10 +5592,6 @@ pub mod value {
   }
 
   impl <'a,> Builder<'a,>  {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a,> {
-      self.into_reader()
-    }
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
@@ -6096,10 +5976,6 @@ pub mod annotation {
   }
 
   impl <'a,> Builder<'a,>  {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a,> {
-      self.into_reader()
-    }
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
@@ -6306,10 +6182,6 @@ pub mod capnp_version {
   }
 
   impl <'a,> Builder<'a,>  {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a,> {
-      self.into_reader()
-    }
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
@@ -6475,10 +6347,6 @@ pub mod code_generator_request {
   }
 
   impl <'a,> Builder<'a,>  {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a,> {
-      self.into_reader()
-    }
     pub fn into_reader(self) -> Reader<'a,> {
       ::capnp::traits::FromStructReader::new(self.builder.into_reader())
     }
@@ -6672,10 +6540,6 @@ pub mod code_generator_request {
     }
 
     impl <'a,> Builder<'a,>  {
-      #[deprecated(since="0.9.2", note="use into_reader()")]
-      pub fn as_reader(self) -> Reader<'a,> {
-        self.into_reader()
-      }
       pub fn into_reader(self) -> Reader<'a,> {
         ::capnp::traits::FromStructReader::new(self.builder.into_reader())
       }
@@ -6837,10 +6701,6 @@ pub mod code_generator_request {
       }
 
       impl <'a,> Builder<'a,>  {
-        #[deprecated(since="0.9.2", note="use into_reader()")]
-        pub fn as_reader(self) -> Reader<'a,> {
-          self.into_reader()
-        }
         pub fn into_reader(self) -> Reader<'a,> {
           ::capnp::traits::FromStructReader::new(self.builder.into_reader())
         }

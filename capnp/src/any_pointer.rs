@@ -156,13 +156,6 @@ impl <'a> Builder<'a> {
         self.builder.clear()
     }
 
-    #[inline]
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a> {
-        self.into_reader()
-    }
-
-    #[inline]
     pub fn into_reader(self) -> Reader<'a> {
         Reader { reader: self.builder.into_reader() }
     }

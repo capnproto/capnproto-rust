@@ -2337,11 +2337,6 @@ pub enum CapTableBuilder {
 }
 
 impl CapTableBuilder {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> CapTableReader {
-        self.into_reader()
-    }
-
     pub fn into_reader(self) -> CapTableReader {
         match self {
             CapTableBuilder::Plain(hooks) => CapTableReader::Plain(hooks),
@@ -2755,11 +2750,6 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> PointerReader<'a> {
-        self.into_reader()
-    }
-
     pub fn into_reader(self) -> PointerReader<'a> {
         PointerReader {
             arena: self.arena.as_reader(),
@@ -2969,11 +2959,6 @@ pub struct StructBuilder<'a> {
 }
 
 impl <'a> StructBuilder<'a> {
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> StructReader<'a> {
-        self.into_reader()
-    }
-
     pub fn into_reader(self) -> StructReader<'a> {
         StructReader {
             arena: self.arena.as_reader(),
@@ -3348,11 +3333,6 @@ impl <'a> ListBuilder<'a> {
             struct_data_size: 0,
             struct_pointer_count: 0,
         }
-    }
-
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> ListReader<'a> {
-        self.into_reader()
     }
 
     pub fn into_reader(self) -> ListReader<'a> {

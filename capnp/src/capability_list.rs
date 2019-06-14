@@ -110,11 +110,6 @@ impl <'a, T> Builder<'a, T> where T: FromClientHook {
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a, T> {
-        self.into_reader()
-    }
-
     pub fn into_reader(self) -> Reader<'a, T> {
         Reader {
             marker: PhantomData,

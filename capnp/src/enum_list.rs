@@ -105,11 +105,6 @@ impl <'a, T : ToU16 + FromU16> Builder<'a, T> {
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
-    #[deprecated(since="0.9.2", note="use into_reader()")]
-    pub fn as_reader(self) -> Reader<'a, T> {
-        self.into_reader()
-    }
-
     pub fn into_reader(self) -> Reader<'a, T> {
         Reader { reader: self.builder.into_reader(), marker: PhantomData, }
     }
