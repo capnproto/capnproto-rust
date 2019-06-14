@@ -6,7 +6,7 @@ matrix:
     - rust: stable
     - rust: beta
     - rust: nightly
-    - rust: 1.26.0
+    - rust: 1.35.0
       script: # OK if RPC feature uses newer rustc features
         - cargo build -p capnp
         - cargo test -p capnpc
