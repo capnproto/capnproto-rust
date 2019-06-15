@@ -21,9 +21,7 @@
 
 //! List of strings containing UTF-8 encoded text.
 
-use traits::{FromPointerReader, FromPointerReaderRefDefault,
-             FromPointerBuilder, FromPointerBuilderRefDefault,
-             IndexMove, ListIter};
+use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
 use private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
 use Result;
 
@@ -54,13 +52,7 @@ impl <'a> Reader<'a> {
 }
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(Reader { reader : reader.get_list(Pointer, ::std::ptr::null())? })
-    }
-}
-
-impl <'a> FromPointerReaderRefDefault<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: *const ::Word) -> Result<Reader<'a>> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [::Word]>) -> Result<Reader<'a>> {
         Ok(Reader { reader : reader.get_list(Pointer, default)? })
     }
 }
@@ -74,7 +66,7 @@ impl <'a>  IndexMove<u32, Result<::text::Reader<'a>>> for Reader<'a>{
 impl <'a> Reader<'a> {
     pub fn get(self, index : u32) -> Result<::text::Reader<'a>> {
         assert!(index <  self.len());
-        self.reader.get_pointer_element(index).get_text(::std::ptr::null(), 0)
+        self.reader.get_pointer_element(index).get_text(None)
     }
 }
 
@@ -116,15 +108,7 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
             builder: builder.init_list(Pointer, size)
         }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a>> {
-        Ok(Builder {
-            builder: builder.get_list(Pointer, ::std::ptr::null())?
-        })
-    }
-}
-
-impl <'a> FromPointerBuilderRefDefault<'a> for Builder<'a> {
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: *const ::Word) -> Result<Builder<'a>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a>> {
         Ok(Builder {
             builder: builder.get_list(Pointer, default)?
         })
@@ -133,7 +117,7 @@ impl <'a> FromPointerBuilderRefDefault<'a> for Builder<'a> {
 
 impl <'a> Builder<'a> {
     pub fn get(self, index: u32) -> Result<::text::Builder<'a>> {
-        self.builder.get_pointer_element(index).get_text(::std::ptr::null(), 0)
+        self.builder.get_pointer_element(index).get_text(None)
     }
 }
 

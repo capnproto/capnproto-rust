@@ -24,8 +24,7 @@
 use std::marker::PhantomData;
 
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, InlineComposite};
-use traits::{FromPointerReader, FromPointerReaderRefDefault,
-             FromPointerBuilder, FromPointerBuilderRefDefault,
+use traits::{FromPointerReader, FromPointerBuilder,
              FromStructBuilder, FromStructReader, HasStructSize,
              IndexMove, ListIter};
 use Result;
@@ -71,14 +70,7 @@ impl <'a, T> Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
 }
 
 impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
-    fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a, T>> {
-        Ok(Reader { reader: reader.get_list(InlineComposite, ::std::ptr::null())?,
-                    marker: PhantomData })
-    }
-}
-
-impl <'a, T> FromPointerReaderRefDefault<'a> for Reader<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: *const ::Word) -> Result<Reader<'a, T>> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [::Word]>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader: reader.get_list(InlineComposite, default)?,
                     marker: PhantomData })
     }
@@ -152,18 +144,7 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: for<'b> ::traits
                 <<T as ::traits::OwnedStruct>::Builder as HasStructSize>::struct_size())
         }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a, T>> {
-        Ok(Builder {
-            marker: PhantomData,
-            builder:
-            builder.get_struct_list(<<T as ::traits::OwnedStruct>::Builder as HasStructSize>::struct_size(),
-                                    ::std::ptr::null())?
-        })
-    }
-}
-
-impl <'a, T> FromPointerBuilderRefDefault<'a> for Builder<'a, T> where T: for<'b> ::traits::OwnedStruct<'b> {
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: *const ::Word) -> Result<Builder<'a, T>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a, T>> {
         Ok(Builder {
             marker: PhantomData,
             builder:

@@ -21,9 +21,7 @@
 
 //! List of sequences of bytes.
 
-use traits::{FromPointerReader, FromPointerReaderRefDefault,
-             FromPointerBuilder, FromPointerBuilderRefDefault,
-             IndexMove, ListIter};
+use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
 use private::layout::*;
 use Result;
 
@@ -54,17 +52,10 @@ impl <'a> Reader<'a> {
 }
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a>> {
-        Ok(Reader { reader: reader.get_list(Pointer, ::std::ptr::null())? })
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [::Word]>) -> Result<Reader<'a>> {
+        Ok(Reader { reader: reader.get_list(Pointer, default)? })
     }
 }
-
-impl <'a> FromPointerReaderRefDefault<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: *const ::Word) -> Result<Reader<'a>> {
-        Ok(Reader { reader : reader.get_list(Pointer, default)? })
-    }
-}
-
 
 impl <'a> IndexMove<u32, Result<::data::Reader<'a>>> for Reader<'a>{
     fn index_move(&self, index: u32) -> Result<::data::Reader<'a>> {
@@ -75,7 +66,7 @@ impl <'a> IndexMove<u32, Result<::data::Reader<'a>>> for Reader<'a>{
 impl <'a> Reader<'a> {
     pub fn get(self, index : u32) -> Result<::data::Reader<'a>> {
         assert!(index <  self.len());
-        self.reader.get_pointer_element(index).get_data(::std::ptr::null(), 0)
+        self.reader.get_pointer_element(index).get_data(None)
     }
 }
 
@@ -118,15 +109,7 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
         }
     }
 
-    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a>> {
-        Ok(Builder {
-            builder: builder.get_list(Pointer, ::std::ptr::null())?
-        })
-    }
-}
-
-impl <'a> FromPointerBuilderRefDefault<'a> for Builder<'a> {
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: *const ::Word) -> Result<Builder<'a>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a>> {
         Ok(Builder {
             builder: builder.get_list(Pointer, default)?
         })
@@ -136,7 +119,7 @@ impl <'a> FromPointerBuilderRefDefault<'a> for Builder<'a> {
 impl <'a> Builder<'a> {
     pub fn get(self, index: u32) -> Result<::data::Builder<'a>> {
         assert!(index < self.len());
-        self.builder.get_pointer_element(index).get_data(::std::ptr::null(), 0)
+        self.builder.get_pointer_element(index).get_data(None)
     }
 }
 

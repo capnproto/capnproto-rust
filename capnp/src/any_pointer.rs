@@ -62,7 +62,7 @@ impl <'a> Reader<'a> {
 
     #[inline]
     pub fn get_as<T: FromPointerReader<'a>>(&self) -> Result<T> {
-        FromPointerReader::get_from_pointer(&self.reader)
+        FromPointerReader::get_from_pointer(&self.reader, None)
     }
 
     pub fn get_as_capability<T: FromClientHook>(&self) -> Result<T> {
@@ -78,7 +78,7 @@ impl <'a> Reader<'a> {
             match *op {
                 PipelineOp::Noop =>  { }
                 PipelineOp::GetPointerField(idx) => {
-                    pointer = pointer.get_struct(::std::ptr::null())?.get_pointer_field(idx as usize);
+                    pointer = pointer.get_struct(None)?.get_pointer_field(idx as usize);
                 }
             }
         }
@@ -88,7 +88,10 @@ impl <'a> Reader<'a> {
 }
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a>> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a[::Word]>) -> Result<Reader<'a>> {
+        if default.is_some() {
+            panic!("Unsupported: any_pointer with a default value.");
+        }
         Ok(Reader { reader: *reader })
     }
 }
@@ -131,7 +134,7 @@ impl <'a> Builder<'a> {
     }
 
     pub fn get_as<T : FromPointerBuilder<'a>>(self) -> Result<T> {
-        FromPointerBuilder::get_from_pointer(self.builder)
+        FromPointerBuilder::get_from_pointer(self.builder, None)
     }
 
     pub fn init_as<T : FromPointerBuilder<'a>>(self) -> T {
@@ -168,7 +171,10 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
         }
         Builder { builder: builder }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a>> {
+        if default.is_some() {
+            panic!("AnyPointer defaults are unsupported")
+        }
         Ok(Builder { builder: builder })
     }
 }

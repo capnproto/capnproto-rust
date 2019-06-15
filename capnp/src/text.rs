@@ -21,7 +21,7 @@
 
 //! UTF-8 encoded text.
 
-use std::{convert, str, ops, ptr};
+use std::{convert, str, ops};
 
 use {Error, Result};
 
@@ -44,8 +44,8 @@ pub fn new_reader<'a>(v : &'a [u8]) -> Result<Reader<'a>> {
 }
 
 impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader : &::private::layout::PointerReader<'a>) -> Result<Reader<'a>> {
-        reader.get_text(ptr::null(), 0)
+    fn get_from_pointer(reader: &::private::layout::PointerReader<'a>, default: Option<&'a [::Word]>) -> Result<Reader<'a>> {
+        reader.get_text(default)
     }
 }
 
@@ -113,8 +113,8 @@ impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
     fn init_pointer(builder: ::private::layout::PointerBuilder<'a>, size: u32) -> Builder<'a> {
         builder.init_text(size)
     }
-    fn get_from_pointer(builder: ::private::layout::PointerBuilder<'a>) -> Result<Builder<'a>> {
-        builder.get_text(::std::ptr::null(), 0)
+    fn get_from_pointer(builder: ::private::layout::PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a>> {
+        builder.get_text(default)
     }
 }
 

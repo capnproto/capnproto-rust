@@ -445,71 +445,31 @@ pub fn getter_text(gen: &GeneratorContext,
                     }
                 }
 
-                (type_::Text(()), value::Text(t)) => {
-                    let (default_ptr, default_size) = if default_value.has_text() {
+                (type_::Text(()), value::Text(_)) |
+                (type_::Data(()), value::Data(_)) |
+                (type_::List(_), value::List(_)) |
+                (type_::Struct(_), value::Struct(_)) => {
+                    let default = if reg_field.get_had_explicit_default() {
                         default_decl = Some(::pointer_constants::word_array_declaration(
                             &default_name,
                             ::capnp::raw::get_struct_pointer_section(default_value).get(0),
-                            ::pointer_constants::WordArrayDeclarationOptions {public: true, omit_first_word: true})?);
-                        (format!("_private::{}.as_ptr()", default_name), t?.len())
-                    } else {
-                        ("::std::ptr::null()".to_string(), 0)
-                    };
-                    Line(format!("self.{}.get_pointer_field({}).get_text({}, {})",
-                                 member, offset, default_ptr, default_size))
-                }
-                (type_::Data(()), value::Data(d)) => {
-                    let default_ptr = if default_value.has_data() {
-                        default_decl = Some(::pointer_constants::word_array_declaration(
-                            &default_name,
-                            ::capnp::raw::get_struct_pointer_section(default_value).get(0),
-                            ::pointer_constants::WordArrayDeclarationOptions {public: true, omit_first_word: true})?);
-                        format!("_private::{}.as_ptr()", default_name)
-                    } else {
-                        "::std::ptr::null()".to_string()
-                    };
-
-                    Line(format!("self.{}.get_pointer_field({}).get_data({}, {})",
-                                 member, offset, default_ptr, d?.len()))
-                }
-                (type_::List(_), value::List(lst)) => {
-                    let default_ptr = if default_value.has_list() {
-                        default_decl = Some(::pointer_constants::word_array_declaration(
-                            &default_name, lst,
                             ::pointer_constants::WordArrayDeclarationOptions {public: true, omit_first_word: false})?);
-                        format!("_private::{}.as_ptr()", default_name)
+                        format!("Some(&_private::{}[..])", default_name)
                     } else {
-                        "::std::ptr::null()".to_string()
+                        "::std::option::Option::None".to_string()
                     };
 
                     if is_reader {
                         Line(format!(
-                            "::capnp::traits::FromPointerReaderRefDefault::get_from_pointer(&self.{}.get_pointer_field({}), {})",
-                            member, offset, default_ptr))
+                            "::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}), {})",
+                            member, offset, default))
                     } else {
-                        Line(format!("::capnp::traits::FromPointerBuilderRefDefault::get_from_pointer(self.{}.get_pointer_field({}), {})",
-                                     member, offset, default_ptr))
+                        Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}), {})",
+                                     member, offset, default))
 
                     }
                 }
-                (type_::Struct(_), value::Struct(s)) => {
-                    let default_ptr = if default_value.has_struct() {
-                        default_decl = Some(::pointer_constants::word_array_declaration(
-                            &default_name, s,
-                            ::pointer_constants::WordArrayDeclarationOptions {public: true, omit_first_word: false})?);
-                        format!("_private::{}.as_ptr()", default_name)
-                    } else {
-                        "::std::ptr::null()".to_string()
-                    };
 
-                    if is_reader {
-                        Line(format!("self.{}.get_pointer_field({}).get_struct({}).map(|sr| ::capnp::traits::FromStructReader::new(sr))",
-                                     member, offset, default_ptr))
-                    } else {
-                        Line(format!("self.{}.get_pointer_field({}).get_struct(<{} as ::capnp::traits::HasStructSize>::struct_size(),{}).map(|sb| ::capnp::traits::FromStructBuilder::new(sb))",
-                                     member, offset, typ, default_ptr))
-                    }
-                }
                 (type_::Interface(_), value::Interface(_)) => {
                     Line(format!("match self.{}.get_pointer_field({}).get_capability() {{ ::std::result::Result::Ok(c) => ::std::result::Result::Ok(::capnp::capability::FromClientHook::new(c)), ::std::result::Result::Err(e) => ::std::result::Result::Err(e)}}",
                                  member, offset))
@@ -519,9 +479,9 @@ pub fn getter_text(gen: &GeneratorContext,
                         Line(format!("::capnp::any_pointer::{}::new(self.{}.get_pointer_field({}))", module_string, member, offset))
                     } else {
                         if is_reader {
-                            Line(format!("::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}))", member, offset))
+                            Line(format!("::capnp::traits::FromPointerReader::get_from_pointer(&self.{}.get_pointer_field({}), ::std::option::Option::None)", member, offset))
                         } else {
-                            Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}))", member, offset))
+                            Line(format!("::capnp::traits::FromPointerBuilder::get_from_pointer(self.{}.get_pointer_field({}), ::std::option::Option::None)", member, offset))
                         }
                     }
                 }
@@ -1254,8 +1214,8 @@ fn generate_node(gen: &GeneratorContext,
                                 Line(format!("fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Builder<'a,{}> {{", params.params)),
                                 Indent(Box::new(Line("::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))".to_string()))),
                                 Line("}".to_string()),
-                                Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> ::capnp::Result<Builder<'a,{}>> {{", params.params)),
-                                Indent(Box::new(Line("::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null())?))".to_string()))),
+                                Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::std::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Builder<'a,{}>> {{", params.params)),
+                                Indent(Box::new(Line("::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(builder.get_struct(_private::STRUCT_SIZE, default)?))".to_string()))),
                                 Line("}".to_string()))))),
                     Line("}".to_string()),
                     BlankLine]);
@@ -1318,8 +1278,8 @@ fn generate_node(gen: &GeneratorContext,
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec!(
-                        Line(format!("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Reader<'a,{}>> {{",params.params)),
-                        Indent(Box::new(Line("::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(::std::ptr::null())?))".to_string()))),
+                        Line(format!("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::std::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Reader<'a,{}>> {{",params.params)),
+                        Indent(Box::new(Line("::std::result::Result::Ok(::capnp::traits::FromStructReader::new(reader.get_struct(default)?))".to_string()))),
                         Line("}".to_string()))))),
                 Line("}".to_string()),
                 BlankLine,
@@ -1659,7 +1619,7 @@ fn generate_node(gen: &GeneratorContext,
                     params.params, params.where_clause)),
                 Indent(
                     Box::new(Branch(vec![
-                        Line(format!("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> ::capnp::Result<Client<{}>> {{",params.params)),
+                        Line(format!("fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::std::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Client<{}>> {{",params.params)),
                         Indent(Box::new(Line(format!("::std::result::Result::Ok(::capnp::capability::FromClientHook::new(reader.get_capability()?))")))),
                         Line("}".to_string())]))),
                 Line("}".to_string()))));
@@ -1673,7 +1633,7 @@ fn generate_node(gen: &GeneratorContext,
                             Line(format!("fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Client<{}> {{", params.params)),
                             Indent(Box::new(Line("unimplemented!()".to_string()))),
                             Line("}".to_string()),
-                            Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> ::capnp::Result<Client<{}>> {{", params.params)),
+                            Line(format!("fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::std::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Client<{}>> {{", params.params)),
                             Indent(Box::new(Line("::std::result::Result::Ok(::capnp::capability::FromClientHook::new(builder.get_capability()?))".to_string()))),
                             Line("}".to_string())]))),
                 Line("}".to_string()),

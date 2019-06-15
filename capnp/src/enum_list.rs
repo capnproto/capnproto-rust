@@ -21,8 +21,7 @@
 
 //! List of enums.
 
-use traits::{FromPointerReader, FromPointerReaderRefDefault,
-             FromPointerBuilder, FromPointerBuilderRefDefault,
+use traits::{FromPointerReader, FromPointerBuilder,
              ToU16, FromU16, ListIter, IndexMove};
 use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
                       TwoBytes, PrimitiveElement};
@@ -60,14 +59,7 @@ impl <'a, T: FromU16> Reader<'a, T> {
 }
 
 impl <'a, T : FromU16> FromPointerReader<'a> for Reader<'a, T> {
-    fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Reader<'a, T>> {
-        Ok(Reader { reader: reader.get_list(TwoBytes, ::std::ptr::null())?,
-                    marker: PhantomData })
-    }
-}
-
-impl <'a, T : FromU16> FromPointerReaderRefDefault<'a> for Reader<'a, T> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: *const ::Word) -> Result<Reader<'a, T>> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [::Word]>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader: reader.get_list(TwoBytes, default)?,
                     marker: PhantomData })
     }
@@ -120,14 +112,7 @@ impl <'a, T : FromU16> FromPointerBuilder<'a> for Builder<'a, T> {
         Builder { builder: builder.init_list(TwoBytes, size),
                   marker: PhantomData }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Builder<'a, T>> {
-        Ok(Builder { builder: builder.get_list(TwoBytes, ::std::ptr::null())?,
-                     marker: PhantomData })
-    }
-}
-
-impl <'a, T : FromU16> FromPointerBuilderRefDefault<'a> for Builder<'a, T> {
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: *const ::Word) -> Result<Builder<'a, T>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a, T>> {
         Ok(Builder { builder: builder.get_list(TwoBytes, default)?,
                      marker: PhantomData })
     }

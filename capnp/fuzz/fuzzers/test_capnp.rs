@@ -67,8 +67,8 @@ pub mod test_all_types {
   }
 
   impl <'a,> ::capnp::traits::FromPointerReader<'a> for Reader<'a,>  {
-    fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>) -> Result<Reader<'a,>> {
-      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(::std::ptr::null()))))
+    fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: Option<&'a [::capnp::Word]>) -> Result<Reader<'a,>> {
+      ::std::result::Result::Ok(::capnp::traits::FromStructReader::new(try!(reader.get_struct(default))))
     }
   }
 
@@ -142,21 +142,21 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_text_field(self) -> Result<text::Reader<'a>> {
-      self.reader.get_pointer_field(0).get_text(::std::ptr::null(), 0)
+      self.reader.get_pointer_field(0).get_text(None)
     }
     pub fn has_text_field(&self) -> bool {
       !self.reader.get_pointer_field(0).is_null()
     }
     #[inline]
     pub fn get_data_field(self) -> Result<data::Reader<'a>> {
-      self.reader.get_pointer_field(1).get_data(::std::ptr::null(), 0)
+      self.reader.get_pointer_field(1).get_data(None)
     }
     pub fn has_data_field(&self) -> bool {
       !self.reader.get_pointer_field(1).is_null()
     }
     #[inline]
     pub fn get_struct_field(self) -> Result<::test_capnp::test_all_types::Reader<'a>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(2), None)
     }
     pub fn has_struct_field(&self) -> bool {
       !self.reader.get_pointer_field(2).is_null()
@@ -171,119 +171,119 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_void_list(self) -> Result<primitive_list::Reader<'a,()>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(3), None)
     }
     pub fn has_void_list(&self) -> bool {
       !self.reader.get_pointer_field(3).is_null()
     }
     #[inline]
     pub fn get_bool_list(self) -> Result<primitive_list::Reader<'a,bool>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(4))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(4), None)
     }
     pub fn has_bool_list(&self) -> bool {
       !self.reader.get_pointer_field(4).is_null()
     }
     #[inline]
     pub fn get_int8_list(self) -> Result<primitive_list::Reader<'a,i8>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(5))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(5), None)
     }
     pub fn has_int8_list(&self) -> bool {
       !self.reader.get_pointer_field(5).is_null()
     }
     #[inline]
     pub fn get_int16_list(self) -> Result<primitive_list::Reader<'a,i16>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(6))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(6), None)
     }
     pub fn has_int16_list(&self) -> bool {
       !self.reader.get_pointer_field(6).is_null()
     }
     #[inline]
     pub fn get_int32_list(self) -> Result<primitive_list::Reader<'a,i32>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(7))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(7), None)
     }
     pub fn has_int32_list(&self) -> bool {
       !self.reader.get_pointer_field(7).is_null()
     }
     #[inline]
     pub fn get_int64_list(self) -> Result<primitive_list::Reader<'a,i64>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(8))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(8), None)
     }
     pub fn has_int64_list(&self) -> bool {
       !self.reader.get_pointer_field(8).is_null()
     }
     #[inline]
     pub fn get_u_int8_list(self) -> Result<primitive_list::Reader<'a,u8>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(9))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(9), None)
     }
     pub fn has_u_int8_list(&self) -> bool {
       !self.reader.get_pointer_field(9).is_null()
     }
     #[inline]
     pub fn get_u_int16_list(self) -> Result<primitive_list::Reader<'a,u16>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(10))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(10), None)
     }
     pub fn has_u_int16_list(&self) -> bool {
       !self.reader.get_pointer_field(10).is_null()
     }
     #[inline]
     pub fn get_u_int32_list(self) -> Result<primitive_list::Reader<'a,u32>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(11))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(11), None)
     }
     pub fn has_u_int32_list(&self) -> bool {
       !self.reader.get_pointer_field(11).is_null()
     }
     #[inline]
     pub fn get_u_int64_list(self) -> Result<primitive_list::Reader<'a,u64>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(12))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(12), None)
     }
     pub fn has_u_int64_list(&self) -> bool {
       !self.reader.get_pointer_field(12).is_null()
     }
     #[inline]
     pub fn get_float32_list(self) -> Result<primitive_list::Reader<'a,f32>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(13))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(13), None)
     }
     pub fn has_float32_list(&self) -> bool {
       !self.reader.get_pointer_field(13).is_null()
     }
     #[inline]
     pub fn get_float64_list(self) -> Result<primitive_list::Reader<'a,f64>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(14))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(14), None)
     }
     pub fn has_float64_list(&self) -> bool {
       !self.reader.get_pointer_field(14).is_null()
     }
     #[inline]
     pub fn get_text_list(self) -> Result<text_list::Reader<'a>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(15))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(15), None)
     }
     pub fn has_text_list(&self) -> bool {
       !self.reader.get_pointer_field(15).is_null()
     }
     #[inline]
     pub fn get_data_list(self) -> Result<data_list::Reader<'a>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(16))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(16), None)
     }
     pub fn has_data_list(&self) -> bool {
       !self.reader.get_pointer_field(16).is_null()
     }
     #[inline]
     pub fn get_struct_list(self) -> Result<struct_list::Reader<'a,::test_capnp::test_all_types::Owned<>>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(17))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(17), None)
     }
     pub fn has_struct_list(&self) -> bool {
       !self.reader.get_pointer_field(17).is_null()
     }
     #[inline]
     pub fn get_enum_list(self) -> Result<enum_list::Reader<'a,::test_capnp::TestEnum>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(18))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(18), None)
     }
     pub fn has_enum_list(&self) -> bool {
       !self.reader.get_pointer_field(18).is_null()
     }
     #[inline]
     pub fn get_interface_list(self) -> Result<primitive_list::Reader<'a,()>> {
-      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(19))
+      ::capnp::traits::FromPointerReader::get_from_pointer(&self.reader.get_pointer_field(19), None)
     }
     pub fn has_interface_list(&self) -> bool {
       !self.reader.get_pointer_field(19).is_null()
@@ -315,8 +315,8 @@ pub mod test_all_types {
     fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Builder<'a,> {
       ::capnp::traits::FromStructBuilder::new(builder.init_struct(_private::STRUCT_SIZE))
     }
-    fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>) -> Result<Builder<'a,>> {
-      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(try!(builder.get_struct(_private::STRUCT_SIZE, ::std::ptr::null()))))
+    fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: Option<&'a [::capnp::Word]>) -> Result<Builder<'a,>> {
+      ::std::result::Result::Ok(::capnp::traits::FromStructBuilder::new(builder.get_struct(_private::STRUCT_SIZE, default)?))
     }
   }
 
@@ -435,7 +435,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_text_field(self) -> Result<text::Builder<'a>> {
-      self.builder.get_pointer_field(0).get_text(::std::ptr::null(), 0)
+      self.builder.get_pointer_field(0).get_text(None)
     }
     #[inline]
     pub fn set_text_field(&mut self, value: text::Reader)  {
@@ -450,7 +450,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_data_field(self) -> Result<data::Builder<'a>> {
-      self.builder.get_pointer_field(1).get_data(::std::ptr::null(), 0)
+      self.builder.get_pointer_field(1).get_data(None)
     }
     #[inline]
     pub fn set_data_field(&mut self, value: data::Reader)  {
@@ -465,7 +465,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_struct_field(self) -> Result<::test_capnp::test_all_types::Builder<'a>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(2))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(2), None)
     }
     #[inline]
     pub fn set_struct_field<'b>(&mut self, value: ::test_capnp::test_all_types::Reader<'b>) -> Result<()> {
@@ -495,7 +495,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_void_list(self) -> Result<primitive_list::Builder<'a,()>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(3), None)
     }
     #[inline]
     pub fn set_void_list(&mut self, value: primitive_list::Reader<'a,()>) -> Result<()> {
@@ -510,7 +510,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_bool_list(self) -> Result<primitive_list::Builder<'a,bool>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(4))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(4), None)
     }
     #[inline]
     pub fn set_bool_list(&mut self, value: primitive_list::Reader<'a,bool>) -> Result<()> {
@@ -525,7 +525,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_int8_list(self) -> Result<primitive_list::Builder<'a,i8>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(5))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(5), None)
     }
     #[inline]
     pub fn set_int8_list(&mut self, value: primitive_list::Reader<'a,i8>) -> Result<()> {
@@ -540,7 +540,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_int16_list(self) -> Result<primitive_list::Builder<'a,i16>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(6))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(6), None)
     }
     #[inline]
     pub fn set_int16_list(&mut self, value: primitive_list::Reader<'a,i16>) -> Result<()> {
@@ -555,7 +555,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_int32_list(self) -> Result<primitive_list::Builder<'a,i32>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(7))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(7), None)
     }
     #[inline]
     pub fn set_int32_list(&mut self, value: primitive_list::Reader<'a,i32>) -> Result<()> {
@@ -570,7 +570,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_int64_list(self) -> Result<primitive_list::Builder<'a,i64>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(8))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(8), None)
     }
     #[inline]
     pub fn set_int64_list(&mut self, value: primitive_list::Reader<'a,i64>) -> Result<()> {
@@ -585,7 +585,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_u_int8_list(self) -> Result<primitive_list::Builder<'a,u8>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(9))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(9), None)
     }
     #[inline]
     pub fn set_u_int8_list(&mut self, value: primitive_list::Reader<'a,u8>) -> Result<()> {
@@ -600,7 +600,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_u_int16_list(self) -> Result<primitive_list::Builder<'a,u16>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(10))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(10), None)
     }
     #[inline]
     pub fn set_u_int16_list(&mut self, value: primitive_list::Reader<'a,u16>) -> Result<()> {
@@ -615,7 +615,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_u_int32_list(self) -> Result<primitive_list::Builder<'a,u32>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(11))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(11), None)
     }
     #[inline]
     pub fn set_u_int32_list(&mut self, value: primitive_list::Reader<'a,u32>) -> Result<()> {
@@ -630,7 +630,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_u_int64_list(self) -> Result<primitive_list::Builder<'a,u64>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(12))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(12), None)
     }
     #[inline]
     pub fn set_u_int64_list(&mut self, value: primitive_list::Reader<'a,u64>) -> Result<()> {
@@ -645,7 +645,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_float32_list(self) -> Result<primitive_list::Builder<'a,f32>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(13))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(13), None)
     }
     #[inline]
     pub fn set_float32_list(&mut self, value: primitive_list::Reader<'a,f32>) -> Result<()> {
@@ -660,7 +660,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_float64_list(self) -> Result<primitive_list::Builder<'a,f64>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(14))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(14), None)
     }
     #[inline]
     pub fn set_float64_list(&mut self, value: primitive_list::Reader<'a,f64>) -> Result<()> {
@@ -675,7 +675,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_text_list(self) -> Result<text_list::Builder<'a>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(15))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(15), None)
     }
     #[inline]
     pub fn set_text_list(&mut self, value: text_list::Reader<'a>) -> Result<()> {
@@ -690,7 +690,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_data_list(self) -> Result<data_list::Builder<'a>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(16))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(16), None)
     }
     #[inline]
     pub fn set_data_list(&mut self, value: data_list::Reader<'a>) -> Result<()> {
@@ -705,7 +705,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_struct_list(self) -> Result<struct_list::Builder<'a,::test_capnp::test_all_types::Owned<>>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(17))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(17), None)
     }
     #[inline]
     pub fn set_struct_list(&mut self, value: struct_list::Reader<'a,::test_capnp::test_all_types::Owned<>>) -> Result<()> {
@@ -720,7 +720,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_enum_list(self) -> Result<enum_list::Builder<'a,::test_capnp::TestEnum>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(18))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(18), None)
     }
     #[inline]
     pub fn set_enum_list(&mut self, value: enum_list::Reader<'a,::test_capnp::TestEnum>) -> Result<()> {
@@ -735,7 +735,7 @@ pub mod test_all_types {
     }
     #[inline]
     pub fn get_interface_list(self) -> Result<primitive_list::Builder<'a,()>> {
-      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(19))
+      ::capnp::traits::FromPointerBuilder::get_from_pointer(self.builder.get_pointer_field(19), None)
     }
     #[inline]
     pub fn set_interface_list(&mut self, value: primitive_list::Reader<'a,()>) -> Result<()> {

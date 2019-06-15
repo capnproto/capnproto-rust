@@ -39,8 +39,8 @@ pub fn new_reader<'a>(p : *const u8, len : u32) -> Reader<'a> {
 }
 
 impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader : &PointerReader<'a>) -> Result<Reader<'a>> {
-        reader.get_data(::std::ptr::null(), 0)
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [::Word]>) -> Result<Reader<'a>> {
+        reader.get_data(default)
     }
 }
 
@@ -54,8 +54,8 @@ impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
     fn init_pointer(builder : PointerBuilder<'a>, size : u32) -> Builder<'a> {
         builder.init_data(size)
     }
-    fn get_from_pointer(builder : PointerBuilder<'a>) -> Result<Builder<'a>> {
-        builder.get_data(::std::ptr::null(), 0)
+    fn get_from_pointer(builder :PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a>> {
+        builder.get_data(default)
     }
 }
 

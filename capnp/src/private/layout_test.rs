@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::ptr;
-
 use Word;
 
 #[test]
@@ -30,7 +28,7 @@ fn simple_raw_data_struct() {
         capnp_word!(0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef)];
 
     let reader = ::private::layout::PointerReader::get_root_unchecked(data.as_ptr())
-        .get_struct(ptr::null()).unwrap();
+        .get_struct(None).unwrap();
 
     assert_eq!(0xefcdab8967452301u64, reader.get_data_field::<u64>(0));
     assert_eq!(0, reader.get_data_field::<u64>(1)); // past end of struct --> default value
@@ -87,7 +85,7 @@ fn bool_list() {
     let pointer_reader =
         ::private::layout::PointerReader::get_root_unchecked(data.as_ptr());
 
-    let reader = pointer_reader.get_list(::private::layout::ElementSize::Bit, ptr::null()).unwrap();
+    let reader = pointer_reader.get_list(::private::layout::ElementSize::Bit, None).unwrap();
 
     assert_eq!(reader.len(), 10);
     assert_eq!(bool::get(&reader, 0), true);
@@ -102,7 +100,7 @@ fn bool_list() {
     assert_eq!(bool::get(&reader, 9), true);
 
 
-    let reader = ::primitive_list::Reader::<bool>::get_from_pointer(&pointer_reader).unwrap();
+    let reader = ::primitive_list::Reader::<bool>::get_from_pointer(&pointer_reader, None).unwrap();
 
     assert_eq!(reader.len(), 10);
     assert_eq!(reader.get(0), true);

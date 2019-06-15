@@ -986,19 +986,23 @@ mod wire_helpers {
         mut segment_id: u32,
         cap_table: CapTableBuilder,
         size: StructSize,
-        default_value: *const Word) -> Result<StructBuilder<'a>>
+        default: Option<&'a [Word]>) -> Result<StructBuilder<'a>>
     {
         let mut ref_target = (*reff).mut_target();
 
         if (*reff).is_null() {
-            if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                return Ok(init_struct_pointer(arena, reff, segment_id, cap_table, size));
+            match default {
+                None => return Ok(init_struct_pointer(arena, reff, segment_id, cap_table, size)),
+                Some(d) if (*(d.as_ptr() as *const WirePointer)).is_null() =>
+                    return Ok(init_struct_pointer(arena, reff, segment_id, cap_table, size)),
+                Some(d) => {
+                    let (new_ref_target, new_reff, new_segment_id) =
+                        copy_message(arena, segment_id, cap_table, reff, mem::transmute(d.as_ptr()));
+                    reff = new_reff;
+                    segment_id = new_segment_id;
+                    ref_target = new_ref_target;
+                }
             }
-            let (new_ref_target, new_reff, new_segment_id) =
-                copy_message(arena, segment_id, cap_table, reff, mem::transmute(default_value));
-            reff = new_reff;
-            segment_id = new_segment_id;
-            ref_target = new_ref_target;
         }
 
         let (old_ptr, old_ref, old_segment_id) = follow_builder_fars(arena, reff, ref_target, segment_id)?;
@@ -1503,23 +1507,25 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn get_writable_text_pointer<'a>(
         arena: &'a BuilderArena,
-        reff: *mut WirePointer,
-        segment_id: u32,
-        default_value: *const Word,
-        default_size: ByteCount32) -> Result<text::Builder<'a>>
+        mut reff: *mut WirePointer,
+        mut segment_id: u32,
+        default: Option<&'a [Word]>) -> Result<text::Builder<'a>>
     {
-        if (*reff).is_null() {
-            if default_size == 0 {
-                return text::Builder::new(&mut [], 0);
-            } else {
-                let mut builder = init_text_pointer(arena, reff, segment_id, default_size).value;
-                ptr::copy_nonoverlapping(default_value as *const u8,
-                                         builder.as_bytes_mut().as_mut_ptr(),
-                                         default_size as usize);
-                return Ok(builder);
+        let ref_target = if (*reff).is_null() {
+            match default {
+                None => return text::Builder::new(&mut [], 0),
+                Some(d) => {
+                    let (new_ref_target, new_reff, new_segment_id) =
+                        copy_message(arena, segment_id, CapTableBuilder::Plain(::std::ptr::null_mut()), reff, d.as_ptr() as *const _);
+                    reff = new_reff;
+                    segment_id = new_segment_id;
+                    new_ref_target
+                }
             }
-        }
-        let ref_target = (*reff).mut_target();
+        } else {
+            (*reff).mut_target()
+        };
+
         let (ptr, reff, _segment_id) = follow_builder_fars(arena, reff, ref_target, segment_id)?;
         let cptr: *mut u8 = ptr as *mut _;
 
@@ -1575,23 +1581,25 @@ mod wire_helpers {
     #[inline]
     pub unsafe fn get_writable_data_pointer<'a>(
         arena: &'a BuilderArena,
-        reff: *mut WirePointer,
-        segment_id: u32,
-        default_value: *const Word,
-        default_size: ByteCount32) -> Result<data::Builder<'a>>
+        mut reff: *mut WirePointer,
+        mut segment_id: u32,
+        default: Option<&'a [Word]>) -> Result<data::Builder<'a>>
     {
-        if (*reff).is_null() {
-            if default_size == 0 {
-                return Ok(&mut[]);
-            } else {
-                let builder = init_data_pointer(arena, reff, segment_id, default_size).value;
-                ptr::copy_nonoverlapping(default_value as *const u8,
-                                         builder.as_mut_ptr() as *mut u8,
-                                         default_size as usize);
-                return Ok(builder);
+        let ref_target = if (*reff).is_null() {
+            match default {
+                None => return Ok(&mut []),
+                Some(d) => {
+                    let (new_ref_target, new_reff, new_segment_id) =
+                        copy_message(arena, segment_id, CapTableBuilder::Plain(::std::ptr::null_mut()), reff, d.as_ptr() as *const _);
+                    reff = new_reff;
+                    segment_id = new_segment_id;
+                    new_ref_target
+                }
             }
-        }
-        let ref_target = (*reff).mut_target();
+        } else {
+            (*reff).mut_target()
+        };
+
         let (ptr, reff, _segment_id) = follow_builder_fars(arena, reff, ref_target, segment_id)?;
 
         if (*reff).kind() != WirePointerKind::List {
@@ -1978,16 +1986,20 @@ mod wire_helpers {
         mut segment_id: u32,
         cap_table: CapTableReader,
         mut reff: *const WirePointer,
-        default_value: *const Word,
+        default: Option<&'a [Word]>,
         nesting_limit: i32) -> Result<StructReader<'a>>
     {
         if (*reff).is_null() {
-            if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
-                    return Ok(StructReader::new_default());
+            match default {
+                None => return Ok(StructReader::new_default()),
+                Some(d) if (*(d.as_ptr() as *const WirePointer)).is_null() =>
+                    return Ok(StructReader::new_default()),
+                Some(d) => {
+                    reff = d.as_ptr() as *const _;
+                    arena = &super::NULL_ARENA;
+                    segment_id = 0;
+                }
             }
-            reff = mem::transmute(default_value);
-            arena = &super::NULL_ARENA;
-            segment_id = 0;
         }
 
         if nesting_limit <= 0 {
@@ -2059,7 +2071,7 @@ mod wire_helpers {
             if default_value.is_null() || (*(default_value as *const WirePointer)).is_null() {
                 return Ok(ListReader::new_default());
             }
-            reff = mem::transmute(default_value);
+            reff = default_value as *const _;
             arena = &super::NULL_ARENA;
             segment_id = 0;
         }
@@ -2210,17 +2222,19 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_text_pointer<'a>(
-        arena: &'a ReaderArena,
-        segment_id: u32,
-        reff: *const WirePointer,
-        default_value: *const Word,
-        default_size: ByteCount32) -> Result<text::Reader<'a>>
+        mut arena: &'a ReaderArena,
+        mut segment_id: u32,
+        mut reff: *const WirePointer,
+        default: Option<&[Word]>) -> Result<text::Reader<'a>>
     {
         if (*reff).is_null() {
-            if default_value.is_null() {
-                return Ok(&"");
-            } else {
-                return text::new_reader(slice::from_raw_parts(default_value as *const u8, default_size as usize));
+            match default {
+                None => return Ok(&""),
+                Some(d) => {
+                    reff = d.as_ptr() as *const _;
+                    arena = &super::NULL_ARENA;
+                    segment_id = 0;
+                }
             }
         }
 
@@ -2257,17 +2271,19 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_data_pointer<'a>(
-        arena: &'a ReaderArena,
-        segment_id: u32,
-        reff: *const WirePointer,
-        default_value: *const Word,
-        default_size: ByteCount32) -> Result<data::Reader<'a>>
+        mut arena: &'a ReaderArena,
+        mut segment_id: u32,
+        mut reff: *const WirePointer,
+        default: Option<&'a[Word]>) -> Result<data::Reader<'a>>
     {
         if (*reff).is_null() {
-            if default_value.is_null() {
-                return Ok(&[]);
-            } else {
-                return Ok(data::new_reader(default_value as *const u8, default_size));
+            match default {
+                None => return Ok(&[]),
+                Some(d) => {
+                    reff = d.as_ptr() as *const _;
+                    arena = &super::NULL_ARENA;
+                    segment_id = 0;
+                }
             }
         }
 
@@ -2454,17 +2470,18 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_struct(self, default_value: *const Word) -> Result<StructReader<'a>> {
+    pub fn get_struct(self, default: Option<&'a [Word]>) -> Result<StructReader<'a>> {
         let reff: *const WirePointer = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_struct_pointer(self.arena,
                                               self.segment_id, self.cap_table, reff,
-                                              default_value, self.nesting_limit)
+                                              default, self.nesting_limit)
         }
     }
 
     pub fn get_list(self, expected_element_size: ElementSize,
-                    default_value: *const Word) -> Result<ListReader<'a>> {
+                    default: Option<&'a [Word]>) -> Result<ListReader<'a>> {
+        let default_value: *const Word = match default { None => std::ptr::null(), Some(d) => d.as_ptr() };
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_list_pointer(
@@ -2490,17 +2507,17 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_text(self, default_value: *const Word, default_size: ByteCount32) -> Result<text::Reader<'a>> {
+    pub fn get_text(self, default: Option<&[Word]>) -> Result<text::Reader<'a>> {
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
-            wire_helpers::read_text_pointer(self.arena, self.segment_id, reff, default_value, default_size)
+            wire_helpers::read_text_pointer(self.arena, self.segment_id, reff, default)
         }
     }
 
-    pub fn get_data(&self, default_value: *const Word, default_size: ByteCount32) -> Result<data::Reader<'a>> {
+    pub fn get_data(&self, default: Option<&'a [Word]>) -> Result<data::Reader<'a>> {
         let reff = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
-            wire_helpers::read_data_pointer(self.arena, self.segment_id, reff, default_value, default_size)
+            wire_helpers::read_data_pointer(self.arena, self.segment_id, reff, default)
         }
     }
 
@@ -2546,7 +2563,7 @@ impl <'a> PointerReader<'a> {
             PointerType::Struct => {
                 let mut data_trunc = false;
                 let mut ptr_trunc = false;
-                let st = self.get_struct(ptr::null())?;
+                let st = self.get_struct(None)?;
                 if st.get_data_section_size() == 0 && st.get_pointer_section_size() == 0 {
                     Ok(self.pointer as *const _ == st.get_location())
                 } else {
@@ -2598,7 +2615,7 @@ impl <'a> PointerBuilder<'a> {
         unsafe { (*self.pointer).is_null() }
     }
 
-    pub fn get_struct(self, size: StructSize, default_value: *const Word) -> Result<StructBuilder<'a>> {
+    pub fn get_struct(self, size: StructSize, default: Option<&'a [Word]>) -> Result<StructBuilder<'a>> {
         unsafe {
             wire_helpers::get_writable_struct_pointer(
                 self.arena,
@@ -2606,13 +2623,14 @@ impl <'a> PointerBuilder<'a> {
                 self.segment_id,
                 self.cap_table,
                 size,
-                default_value)
+                default)
         }
     }
 
-    pub fn get_list(self, element_size: ElementSize, default_value: *const Word)
+    pub fn get_list(self, element_size: ElementSize, default: Option<&'a [Word]>)
                     -> Result<ListBuilder<'a>>
     {
+        let default_value: *const Word = match default { None => std::ptr::null(), Some(d) => d.as_ptr() };
         unsafe {
             wire_helpers::get_writable_list_pointer(
                 self.arena, self.pointer, self.segment_id, self.cap_table, element_size, default_value)
@@ -2620,30 +2638,30 @@ impl <'a> PointerBuilder<'a> {
     }
 
     pub fn get_struct_list(self, element_size: StructSize,
-                           default_value: *const Word) -> Result<ListBuilder<'a>>
+                           default: Option<&'a [Word]>) -> Result<ListBuilder<'a>>
     {
+        let default_value: *const Word = match default { None => std::ptr::null(), Some(d) => d.as_ptr() };
         unsafe {
             wire_helpers::get_writable_struct_list_pointer(
                 self.arena, self.pointer, self.segment_id, self.cap_table, element_size, default_value)
         }
     }
 
-    pub fn get_text(self, default_value: *const Word, default_size: ByteCount32)
-                    -> Result<text::Builder<'a>>
+    pub fn get_text(self, default: Option<&'a [Word]>) -> Result<text::Builder<'a>>
     {
         unsafe {
             wire_helpers::get_writable_text_pointer(
                 self.arena,
-                self.pointer, self.segment_id, default_value, default_size)
+                self.pointer, self.segment_id, default)
         }
     }
 
-    pub fn get_data(self, default_value: *const Word, default_size: ByteCount32)
+    pub fn get_data(self, default: Option<&'a [Word]>)
                     -> Result<data::Builder<'a>>
     {
         unsafe {
             wire_helpers::get_writable_data_pointer(
-                self.arena, self.pointer, self.segment_id, default_value, default_size)
+                self.arena, self.pointer, self.segment_id, default)
         }
     }
 

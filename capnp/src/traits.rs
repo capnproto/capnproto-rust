@@ -47,7 +47,7 @@ pub trait IntoInternalListReader<'a> {
 }
 
 pub trait FromPointerReader<'a> : Sized {
-    fn get_from_pointer(reader: &PointerReader<'a>) -> Result<Self>;
+    fn get_from_pointer(reader: &PointerReader<'a>, Option<&'a [Word]>) -> Result<Self>;
 }
 
 /// Associated types hackery that allows us to reason about Cap'n Proto types
@@ -75,17 +75,9 @@ pub trait Pipelined {
     type Pipeline;
 }
 
-pub trait FromPointerReaderRefDefault<'a> : Sized {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: *const Word) -> Result<Self>;
-}
-
 pub trait FromPointerBuilder<'a> : Sized {
     fn init_pointer(PointerBuilder<'a>, u32) -> Self;
-    fn get_from_pointer(builder: PointerBuilder<'a>) -> Result<Self>;
-}
-
-pub trait FromPointerBuilderRefDefault<'a> : Sized {
-    fn get_from_pointer(builder: PointerBuilder<'a>, default_value: *const Word) -> Result<Self>;
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [Word]>) -> Result<Self>;
 }
 
 pub trait SetPointerBuilder<To> {
