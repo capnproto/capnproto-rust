@@ -29,17 +29,9 @@ use crate::pointer_constants::generate_pointer_constant;
 use crate::schema_capnp;
 use crate::codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
-use crate::RustEdition;
 
-fn root_scope(rust_edition: RustEdition, root_name: String) -> Vec<String> {
-    match rust_edition {
-        RustEdition::Rust2015 => {
-            vec![format!("::{}", root_name)]
-        }
-        RustEdition::Rust2018 => {
-            vec!["crate".into(), root_name]
-        }
-    }
+fn root_scope(root_name: String) -> Vec<String> {
+    vec!["crate".into(), root_name]
 }
 
 pub struct GeneratorContext<'a> {
@@ -49,15 +41,8 @@ pub struct GeneratorContext<'a> {
 }
 
 impl <'a> GeneratorContext<'a> {
-    pub fn new(message: &'a capnp::message::Reader<capnp::serialize::OwnedSegments>)
-        -> ::capnp::Result<GeneratorContext<'a>>
-    {
-        Self::new_with_edition(message, RustEdition::Rust2015)
-    }
-
-    pub fn new_with_edition(
-        message:&'a capnp::message::Reader<capnp::serialize::OwnedSegments>,
-        rust_edition: RustEdition)
+    pub fn new(
+        message:&'a capnp::message::Reader<capnp::serialize::OwnedSegments>)
         -> ::capnp::Result<GeneratorContext<'a>>
     {
 
@@ -82,7 +67,7 @@ impl <'a> GeneratorContext<'a> {
                     path_to_stem_string(importpath)?.replace("-", "_"));
                 populate_scope_map(&gen.node_map,
                                    &mut gen.scope_map,
-                                   root_scope(rust_edition, root_name),
+                                   root_scope(root_name),
                                    import.get_id())?;
             }
 
@@ -90,7 +75,7 @@ impl <'a> GeneratorContext<'a> {
             let root_mod = format!("{}_capnp", root_name.replace("-", "_"));
             populate_scope_map(&gen.node_map,
                                &mut gen.scope_map,
-                               root_scope(rust_edition, root_mod),
+                               root_scope(root_mod),
                                id)?;
         }
         Ok(gen)
@@ -1858,14 +1843,7 @@ fn generate_node(gen: &GeneratorContext,
 }
 
 /// Generates Rust code according to a `schema_capnp::code_generator_request` read from `inp`.
-pub fn main<T>(inp: T, out_dir: &::std::path::Path) -> ::capnp::Result<()>
-    where T: ::std::io::Read
-{
-    generate_code(inp, out_dir, RustEdition::Rust2015)
-}
-
-/// Generates Rust code according to a `schema_capnp::code_generator_request` read from `inp`. Supports rust edition specification.
-pub fn generate_code<T>(mut inp: T, out_dir: &::std::path::Path, edition: RustEdition) -> ::capnp::Result<()>
+pub fn generate_code<T>(mut inp: T, out_dir: &::std::path::Path) -> ::capnp::Result<()>
     where T: ::std::io::Read
 {
     use capnp::serialize;
@@ -1873,7 +1851,7 @@ pub fn generate_code<T>(mut inp: T, out_dir: &::std::path::Path, edition: RustEd
 
     let message = serialize::read_message(&mut inp, capnp::message::ReaderOptions::new())?;
 
-    let gen = GeneratorContext::new_with_edition(&message, edition)?;
+    let gen = GeneratorContext::new(&message)?;
 
     for requested_file in gen.request.get_requested_files()?.iter() {
         let id = requested_file.get_id();

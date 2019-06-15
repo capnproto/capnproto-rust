@@ -79,11 +79,10 @@ pub enum RustEdition {
 
 fn run_command(
     mut command: ::std::process::Command,
-    edition: RustEdition,
     path: &PathBuf,
 ) -> ::capnp::Result<()> {
     let mut p = command.spawn()?;
-    crate::codegen::generate_code(p.stdout.take().unwrap(), path.as_path(), edition)?;
+    crate::codegen::generate_code(p.stdout.take().unwrap(), path.as_path())?;
     let exit_status = p.wait()?;
     if !exit_status.success() {
         Err(::capnp::Error::failed(format!(
@@ -102,7 +101,6 @@ pub struct CompilerCommand {
     import_paths: Vec<PathBuf>,
     no_standard_import: bool,
     output_path: PathBuf,
-    rust_edition: RustEdition,
 }
 
 impl CompilerCommand {
@@ -114,7 +112,6 @@ impl CompilerCommand {
             import_paths: Vec::new(),
             no_standard_import: false,
             output_path: PathBuf::from(&::std::env::var("OUT_DIR").unwrap()),
-            rust_edition: RustEdition::Rust2015,
         }
     }
 
@@ -155,8 +152,8 @@ impl CompilerCommand {
     }
 
     /// Sets the Rust edition of the generated code.
-    pub fn edition(&mut self, rust_edition: RustEdition) -> &mut Self {
-        self.rust_edition = rust_edition;
+    #[deprecated(since = "0.10.0", note = "no longer need to specify rust edition")]
+    pub fn edition(&mut self, _rust_edition: RustEdition) -> &mut Self {
         self
     }
 
@@ -193,7 +190,7 @@ impl CompilerCommand {
         command.stdout(::std::process::Stdio::piped());
         command.stderr(::std::process::Stdio::inherit());
 
-        run_command(command, self.rust_edition, &self.output_path).map_err(|error| {
+        run_command(command, &self.output_path).map_err(|error| {
             ::capnp::Error::failed(format!(
                 "Error while trying to execute `capnp compile`: {}.  \
                  Please verify that version 0.5.2 or higher of the capnp executable \

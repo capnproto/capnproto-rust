@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-//! # Cap'n Proto Schema Compiler Plugin Executable for Rust 2015
+//! # Cap'n Proto Schema Compiler Plugin Executable
 //!
 //! [See this.](https://capnproto.org/otherlang.html#how-to-write-compiler-plugins)
 //!
@@ -32,7 +32,6 @@ pub fn main() {
 
     ::capnpc::codegen::generate_code(
         ::std::io::stdin(),
-        ::std::path::Path::new("."),
-        capnpc::RustEdition::Rust2015)
+        ::std::path::Path::new("."))
         .expect("failed to generate code");
 }
