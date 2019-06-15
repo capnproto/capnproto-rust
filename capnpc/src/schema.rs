@@ -56,7 +56,7 @@ impl <'a> SchemaLoader<'a> {
         }
     }
 
-    pub fn load(&mut self, reader : ::schema_capnp::node::Reader) {
+    pub fn load(&mut self, reader : crate::schema_capnp::node::Reader) {
         let id = reader.get_id();
         let num_words = reader.total_size().unwrap().word_count;
         self.schemas.get(&id);

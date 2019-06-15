@@ -83,7 +83,7 @@ fn run_command(
     path: &PathBuf,
 ) -> ::capnp::Result<()> {
     let mut p = command.spawn()?;
-    ::codegen::generate_code(p.stdout.take().unwrap(), path.as_path(), edition)?;
+    crate::codegen::generate_code(p.stdout.take().unwrap(), path.as_path(), edition)?;
     let exit_status = p.wait()?;
     if !exit_status.success() {
         Err(::capnp::Error::failed(format!(

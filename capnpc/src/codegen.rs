@@ -25,11 +25,11 @@ use std::collections::HashSet;
 use capnp;
 use capnp::Error;
 
-use pointer_constants::generate_pointer_constant;
-use schema_capnp;
-use codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
+use crate::pointer_constants::generate_pointer_constant;
+use crate::schema_capnp;
+use crate::codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
-use RustEdition;
+use crate::RustEdition;
 
 fn root_scope(rust_edition: RustEdition, root_name: String) -> Vec<String> {
     match rust_edition {
@@ -304,7 +304,7 @@ fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capn
 }
 
 fn prim_default(value: &schema_capnp::value::Reader) -> ::capnp::Result<Option<String>> {
-    use schema_capnp::value;
+    use crate::schema_capnp::value;
     match value.which()? {
         value::Bool(false) |
         value::Int8(0) | value::Int16(0) | value::Int32(0) |
@@ -342,7 +342,7 @@ pub fn getter_text(gen: &GeneratorContext,
                    is_reader: bool,
                    is_fn: bool)
                    -> ::capnp::Result<(String, FormattedText, Option<FormattedText>)> {
-    use schema_capnp::*;
+    use crate::schema_capnp::*;
 
     match field.which()? {
         field::Group(group) => {
@@ -450,10 +450,10 @@ pub fn getter_text(gen: &GeneratorContext,
                 (type_::List(_), value::List(_)) |
                 (type_::Struct(_), value::Struct(_)) => {
                     let default = if reg_field.get_had_explicit_default() {
-                        default_decl = Some(::pointer_constants::word_array_declaration(
+                        default_decl = Some(crate::pointer_constants::word_array_declaration(
                             &default_name,
                             ::capnp::raw::get_struct_pointer_section(default_value).get(0),
-                            ::pointer_constants::WordArrayDeclarationOptions {public: true, omit_first_word: false})?);
+                            crate::pointer_constants::WordArrayDeclarationOptions {public: true, omit_first_word: false})?);
                         format!("Some(&_private::{}[..])", default_name)
                     } else {
                         "::std::option::Option::None".to_string()
@@ -493,7 +493,7 @@ pub fn getter_text(gen: &GeneratorContext,
 }
 
 fn zero_fields_of_group(gen: &GeneratorContext, node_id: u64) -> ::capnp::Result<FormattedText> {
-    use schema_capnp::{node, field, type_};
+    use crate::schema_capnp::{node, field, type_};
     match gen.node_map[&node_id].which()? {
         node::Struct(st) => {
             let mut result = Vec::new();
@@ -558,7 +558,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
                    styled_name: &str,
                    field: &schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
 
-    use schema_capnp::*;
+    use crate::schema_capnp::*;
 
     let mut setter_interior = Vec::new();
     let mut setter_param = "value".to_string();
@@ -771,7 +771,7 @@ fn generate_union(gen: &GeneratorContext,
                   params: &TypeParameterTexts)
                   -> ::capnp::Result<(FormattedText, FormattedText, FormattedText, Vec<FormattedText>)>
 {
-    use schema_capnp::*;
+    use crate::schema_capnp::*;
 
     fn new_ty_param(ty_params: &mut Vec<String>) -> String {
         let result = format!("A{}", ty_params.len());
@@ -880,7 +880,7 @@ fn generate_haser(discriminant_offset: u32,
                   styled_name: &str,
                   field: &schema_capnp::field::Reader,
                   is_reader: bool) -> ::capnp::Result<FormattedText> {
-    use schema_capnp::*;
+    use crate::schema_capnp::*;
 
     let mut result = Vec::new();
     let mut interior = Vec::new();
@@ -920,7 +920,7 @@ fn generate_haser(discriminant_offset: u32,
 
 fn generate_pipeline_getter(gen: &GeneratorContext,
                             field: schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
-    use schema_capnp::{field, type_};
+    use crate::schema_capnp::{field, type_};
 
     let name = field.get_name()?;
 
@@ -969,7 +969,7 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
 // We need this to work around the fact that Rust does not allow typedefs
 // with unused type parameters.
 fn get_ty_params_of_brand(gen: &GeneratorContext,
-                          brand: ::schema_capnp::brand::Reader<>) -> ::capnp::Result<String>
+                          brand: crate::schema_capnp::brand::Reader<>) -> ::capnp::Result<String>
 {
     let mut acc = HashSet::new();
     get_ty_params_of_brand_helper(gen, &mut acc, brand)?;
@@ -986,10 +986,10 @@ fn get_ty_params_of_brand(gen: &GeneratorContext,
 
 fn get_ty_params_of_type_helper(gen: &GeneratorContext,
                                 accumulator: &mut HashSet<(u64, u16)>,
-                                typ: ::schema_capnp::type_::Reader<>)
+                                typ: crate::schema_capnp::type_::Reader<>)
     -> ::capnp::Result<()>
 {
-    use schema_capnp::type_;
+    use crate::schema_capnp::type_;
     match typ.which()? {
         type_::Void(()) | type_::Bool(()) |
         type_::Int8(()) | type_::Int16(()) |
@@ -1032,23 +1032,23 @@ fn get_ty_params_of_type_helper(gen: &GeneratorContext,
 
 fn get_ty_params_of_brand_helper(gen: &GeneratorContext,
                          accumulator: &mut HashSet<(u64, u16)>,
-                         brand: ::schema_capnp::brand::Reader<>)
+                         brand: crate::schema_capnp::brand::Reader<>)
                          -> ::capnp::Result<()>
 {
     for scope in brand.get_scopes()?.iter() {
         let scope_id = scope.get_scope_id();
         match scope.which()? {
-            ::schema_capnp::brand::scope::Bind(bind) => {
+            crate::schema_capnp::brand::scope::Bind(bind) => {
                 for binding in bind?.iter() {
                     match binding.which()? {
-                        ::schema_capnp::brand::binding::Unbound(()) => {}
-                        ::schema_capnp::brand::binding::Type(t) => {
+                        crate::schema_capnp::brand::binding::Unbound(()) => {}
+                        crate::schema_capnp::brand::binding::Type(t) => {
                             get_ty_params_of_type_helper(gen, accumulator, t?)?
                         }
                     }
                 }
             }
-            ::schema_capnp::brand::scope::Inherit(()) => {
+            crate::schema_capnp::brand::scope::Inherit(()) => {
                 let parameters = gen.node_map[&scope_id].get_parameters()?;
                 for idx in 0..parameters.len() {
                     accumulator.insert((scope_id, idx as u16));
@@ -1066,7 +1066,7 @@ fn generate_node(gen: &GeneratorContext,
                  // structs that go with RPC methods.
                  parent_node_id: Option<u64>,
                  ) -> ::capnp::Result<FormattedText> {
-    use schema_capnp::*;
+    use crate::schema_capnp::*;
 
     let mut output: Vec<FormattedText> = Vec::new();
     let mut nested_output: Vec<FormattedText> = Vec::new();

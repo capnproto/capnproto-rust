@@ -20,10 +20,10 @@
 
 use capnp::{any_pointer, message, Word};
 
-use codegen::{FormattedText, GeneratorContext};
-use codegen::FormattedText::{Indent, Line, Branch};
-use codegen_types::{ Leaf, RustTypeInfo };
-use schema_capnp::{type_};
+use crate::codegen::{FormattedText, GeneratorContext};
+use crate::codegen::FormattedText::{Indent, Line, Branch};
+use crate::codegen_types::{ Leaf, RustTypeInfo };
+use crate::schema_capnp::{type_};
 
 pub struct WordArrayDeclarationOptions {
     pub public: bool,

@@ -7,6 +7,7 @@ license = "MIT"
 description = "Cap'n Proto code generation"
 repository = "https://github.com/capnproto/capnproto-rust"
 documentation = "http://docs.capnproto-rust.org/capnpc"
+edition = "2018"
 
 readme = "README.md"
 
