@@ -105,7 +105,7 @@ pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
 
 impl <M> Sender<M> where M: AsOutputSegments + 'static {
     /// Enqueues a message to be written.
-    pub fn send(&mut self, message: M) -> Box<Future<Item=M, Error=Error>> {
+    pub fn send(&mut self, message: M) -> Box<dyn Future<Item=M, Error=Error>> {
         let (complete, oneshot) = oneshot::channel();
 
         match self.inner.upgrade() {
@@ -141,7 +141,7 @@ impl <M> Sender<M> where M: AsOutputSegments + 'static {
     /// Commands the queue to stop writing messages once it is empty. After this method has been called,
     /// any new calls to `send()` will return a future that immediately resolves to an error.
     /// If the passed-in `result` is an error, then the `WriteQueue` will resolve to that error.
-    pub fn terminate(&mut self, result: Result<(), Error>) -> Box<Future<Item=(), Error=Error>> {
+    pub fn terminate(&mut self, result: Result<(), Error>) -> Box<dyn Future<Item=(), Error=Error>> {
         let (complete, receiver) = oneshot::channel();
 
         match self.inner.upgrade() {

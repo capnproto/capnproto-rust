@@ -37,7 +37,7 @@ use crate::sender_queue::SenderQueue;
 
 pub struct PipelineInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
-    redirect: Option<Box<PipelineHook>>,
+    redirect: Option<Box<dyn PipelineHook>>,
 
     promise_to_drive: ForkedPromise<Promise<(), Error>>,
 
@@ -45,7 +45,7 @@ pub struct PipelineInner {
 }
 
 impl PipelineInner {
-    fn resolve(this: &Rc<RefCell<PipelineInner>>, result: Result<Box<PipelineHook>, Error>) {
+    fn resolve(this: &Rc<RefCell<PipelineInner>>, result: Result<Box<dyn PipelineHook>, Error>) {
         assert!(this.borrow().redirect.is_none());
         let pipeline = match result {
             Ok(pipeline_hook) => pipeline_hook,
@@ -84,7 +84,7 @@ impl Drop for PipelineInnerSender {
 }
 
 impl PipelineInnerSender {
-    pub fn complete(mut self, pipeline: Box<PipelineHook>) {
+    pub fn complete(mut self, pipeline: Box<dyn PipelineHook>) {
         if let Some(weak_queued) = self.inner.take() {
             if let Some(pipeline_inner) = weak_queued.upgrade() {
                 crate::queued::PipelineInner::resolve(&pipeline_inner, Ok(pipeline));
@@ -125,14 +125,14 @@ impl Clone for Pipeline {
 }
 
 impl PipelineHook for Pipeline {
-    fn add_ref(&self) -> Box<PipelineHook> {
+    fn add_ref(&self) -> Box<dyn PipelineHook> {
         Box::new(self.clone())
     }
-    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
+    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<dyn ClientHook> {
         self.get_pipelined_cap_move(ops.into())
     }
 
-    fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
+    fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<dyn ClientHook> {
         if let Some(ref p) = self.inner.borrow().redirect {
             return p.get_pipelined_cap_move(ops)
         }
@@ -148,7 +148,7 @@ impl PipelineHook for Pipeline {
 
 pub struct ClientInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
-    redirect: Option<Box<ClientHook>>,
+    redirect: Option<Box<dyn ClientHook>>,
 
     // The queued::PipelineInner that this client is derived from, if any. We need to hold on
     // to a reference to it so that it doesn't get canceled before the client is resolved.
@@ -159,7 +159,7 @@ pub struct ClientInner {
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
     // previously-queued calls are delivered before any new calls made in response to the resolution.
-    call_forwarding_queue: SenderQueue<(u64, u16, Box<ParamsHook>, Box<ResultsHook>),
+    call_forwarding_queue: SenderQueue<(u64, u16, Box<dyn ParamsHook>, Box<dyn ResultsHook>),
                                        (Promise<(), Error>)>,
 
     // whenMoreResolved() returns forks of this promise.  These must resolve *after* queued calls
@@ -168,11 +168,11 @@ pub struct ClientInner {
     // confuse the application if a queued call returns before the capability on which it was made
     // resolves).  Luckily, we know that queued calls will involve, at the very least, an
     // eventLoop.evalLater.
-    client_resolution_queue: SenderQueue<(), Box<ClientHook>>,
+    client_resolution_queue: SenderQueue<(), Box<dyn ClientHook>>,
 }
 
 impl ClientInner {
-    pub fn resolve(state: &Rc<RefCell<ClientInner>>, result: Result<Box<ClientHook>, Error>) {
+    pub fn resolve(state: &Rc<RefCell<ClientInner>>, result: Result<Box<dyn ClientHook>, Error>) {
         assert!(state.borrow().redirect.is_none());
         let client = match result {
             Ok(clienthook) => clienthook,
@@ -221,7 +221,7 @@ impl Client {
 }
 
 impl ClientHook for Client {
-    fn add_ref(&self) -> Box<ClientHook> {
+    fn add_ref(&self) -> Box<dyn ClientHook> {
         Box::new(Client {inner: self.inner.clone()})
     }
     fn new_call(&self, interface_id: u64, method_id: u16,
@@ -232,7 +232,7 @@ impl ClientHook for Client {
             Box::new(local::Request::new(interface_id, method_id, size_hint, self.add_ref())))
     }
 
-    fn call(&self, interface_id: u64, method_id: u16, params: Box<ParamsHook>, results: Box<ResultsHook>)
+    fn call(&self, interface_id: u64, method_id: u16, params: Box<dyn ParamsHook>, results: Box<dyn ResultsHook>)
         -> Promise<(), Error>
     {
         if let Some(ref client) = self.inner.borrow().redirect {
@@ -257,7 +257,7 @@ impl ClientHook for Client {
         0
     }
 
-    fn get_resolved(&self) -> Option<Box<ClientHook>> {
+    fn get_resolved(&self) -> Option<Box<dyn ClientHook>> {
         match self.inner.borrow().redirect {
             Some(ref inner) => {
                 Some(inner.clone())
@@ -268,7 +268,7 @@ impl ClientHook for Client {
         }
     }
 
-    fn when_more_resolved(&self) -> Option<Promise<Box<ClientHook>, Error>> {
+    fn when_more_resolved(&self) -> Option<Promise<Box<dyn ClientHook>, Error>> {
         if let Some(ref client) = self.inner.borrow().redirect {
             return Some(Promise::ok(client.add_ref()));
         }

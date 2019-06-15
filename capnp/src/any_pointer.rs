@@ -71,7 +71,7 @@ impl <'a> Reader<'a> {
 
     //# Used by RPC system to implement pipelining. Applications
     //# generally shouldn't use this directly.
-    pub fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Result<Box<ClientHook>> {
+    pub fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Result<Box<dyn ClientHook>> {
         let mut pointer = self.reader;
 
         for op in ops {
@@ -150,7 +150,7 @@ impl <'a> Builder<'a> {
     }
 
     // XXX value should be a user client.
-    pub fn set_as_capability(&mut self, value: Box<ClientHook>) {
+    pub fn set_as_capability(&mut self, value: Box<dyn ClientHook>) {
         self.builder.set_capability(value);
     }
 
@@ -187,13 +187,13 @@ impl <'a> crate::traits::ImbueMut<'a> for Builder<'a> {
 
 pub struct Pipeline {
     // XXX this should not be public
-    pub hook: Box<PipelineHook>,
+    pub hook: Box<dyn PipelineHook>,
 
     ops: Vec<PipelineOp>,
 }
 
 impl Pipeline {
-    pub fn new(hook: Box<PipelineHook>) -> Pipeline {
+    pub fn new(hook: Box<dyn PipelineHook>) -> Pipeline {
         Pipeline { hook: hook, ops: Vec::new() }
     }
 
@@ -210,7 +210,7 @@ impl Pipeline {
         Pipeline { hook : self.hook.add_ref(), ops: new_ops }
     }
 
-    pub fn as_cap(&self) -> Box<ClientHook> {
+    pub fn as_cap(&self) -> Box<dyn ClientHook> {
         self.hook.get_pipelined_cap(&self.ops)
     }
 }

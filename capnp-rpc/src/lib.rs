@@ -130,11 +130,11 @@ pub trait IncomingMessage {
 
 pub trait Connection<VatId> {
     fn get_peer_vat_id(&self) -> VatId;
-    fn new_outgoing_message(&mut self, first_segment_word_size: u32) -> Box<OutgoingMessage>;
+    fn new_outgoing_message(&mut self, first_segment_word_size: u32) -> Box<dyn OutgoingMessage>;
 
     /// Waits for a message to be received and returns it.  If the read stream cleanly terminates,
     /// returns None. If any other problem occurs, returns an Error.
-    fn receive_incoming_message(&mut self) -> Promise<Option<Box<IncomingMessage>>, Error>;
+    fn receive_incoming_message(&mut self) -> Promise<Option<Box<dyn IncomingMessage>>, Error>;
 
     // Waits until all outgoing messages have been sent, then shuts down the outgoing stream. The
     // returned promise resolves after shutdown is complete.
@@ -143,10 +143,10 @@ pub trait Connection<VatId> {
 
 pub trait VatNetwork<VatId> {
     /// Returns None if `hostId` refers to the local vat.
-    fn connect(&mut self, host_id: VatId) -> Option<Box<Connection<VatId>>>;
+    fn connect(&mut self, host_id: VatId) -> Option<Box<dyn Connection<VatId>>>;
 
     /// Waits for the next incoming connection and return it.
-    fn accept(&mut self) -> Promise<Box<Connection<VatId>>, ::capnp::Error>;
+    fn accept(&mut self) -> Promise<Box<dyn Connection<VatId>>, ::capnp::Error>;
 
     fn drive_until_shutdown(&mut self) -> Promise<(), Error>;
 }
@@ -166,9 +166,9 @@ pub trait VatNetwork<VatId> {
 /// accomplish that is to pass the `RpcSystem` to `tokio_core::reactor::Handle::spawn()`.
 #[must_use = "futures do nothing unless polled"]
 pub struct RpcSystem<VatId> where VatId: 'static {
-    network: Box<crate::VatNetwork<VatId>>,
+    network: Box<dyn crate::VatNetwork<VatId>>,
 
-    bootstrap_cap: Box<ClientHook>,
+    bootstrap_cap: Box<dyn ClientHook>,
 
     // XXX To handle three or more party networks, this should be a map from connection pointers
     // to connection states.
@@ -181,7 +181,7 @@ pub struct RpcSystem<VatId> where VatId: 'static {
 impl <VatId> RpcSystem <VatId> {
     /// Constructs a new `RpcSystem` with the given network and bootstrap capability.
     pub fn new(
-        mut network: Box<crate::VatNetwork<VatId>>,
+        mut network: Box<dyn crate::VatNetwork<VatId>>,
         bootstrap: Option<::capnp::capability::Client>) -> RpcSystem<VatId>
     {
         let bootstrap_cap = match bootstrap {
@@ -256,8 +256,8 @@ impl <VatId> RpcSystem <VatId> {
     }
 
     fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
-                            bootstrap_cap: Box<ClientHook>,
-                            connection: Box<crate::Connection<VatId>>,
+                            bootstrap_cap: Box<dyn ClientHook>,
+                            connection: Box<dyn crate::Connection<VatId>>,
                             mut handle: crate::task_set::TaskSetHandle<(), Error>)
                             -> Rc<rpc::ConnectionState<VatId>>
     {
@@ -312,7 +312,7 @@ impl <VatId> Future for RpcSystem<VatId> where VatId: 'static {
 pub struct Server;
 
 impl ServerHook for Server {
-    fn new_client(server: Box<::capnp::capability::Server>) -> ::capnp::capability::Client {
+    fn new_client(server: Box<dyn (::capnp::capability::Server)>) -> ::capnp::capability::Client {
         ::capnp::capability::Client::new(Box::new(local::Client::new(server)))
     }
 }
@@ -347,7 +347,7 @@ impl crate::task_set::TaskReaper<(), Error> for SystemTaskReaper {
 
 pub struct ImbuedMessageBuilder<A> where A: ::capnp::message::Allocator {
     builder: ::capnp::message::Builder<A>,
-    cap_table: Vec<Option<Box<::capnp::private::capability::ClientHook>>>,
+    cap_table: Vec<Option<Box<dyn (::capnp::private::capability::ClientHook)>>>,
 }
 
 impl <A> ImbuedMessageBuilder<A> where A: ::capnp::message::Allocator {

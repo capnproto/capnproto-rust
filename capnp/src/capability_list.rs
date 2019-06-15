@@ -108,7 +108,7 @@ impl <'a, T> Builder<'a, T> where T: FromClientHook {
         }
     }
 
-    pub fn set(&mut self, index: u32, value: Box<ClientHook>) {
+    pub fn set(&mut self, index: u32, value: Box<dyn ClientHook>) {
         assert!(index < self.len());
         self.builder.borrow().get_pointer_element(index).set_capability(value);
     }

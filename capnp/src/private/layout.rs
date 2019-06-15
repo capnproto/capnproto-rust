@@ -156,7 +156,7 @@ impl WirePointer {
     }
 
     #[inline]
-    pub fn target_from_segment(&self, arena: &ReaderArena, segment_id: u32) -> Result<*const Word> {
+    pub fn target_from_segment(&self, arena: &dyn ReaderArena, segment_id: u32) -> Result<*const Word> {
         let this_addr: *const Word = self as *const _ as *const _;
         let offset = 1 + ((self.offset_and_kind.get() as i32) >> 2);
         arena.check_offset(segment_id, this_addr, offset)
@@ -353,7 +353,7 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub fn bounds_check(arena: &ReaderArena,
+    pub fn bounds_check(arena: &dyn ReaderArena,
                         segment_id: u32,
                         start: *const Word, size_in_words: usize,
                         _kind: WirePointerKind) -> Result<()> {
@@ -361,14 +361,14 @@ mod wire_helpers {
     }
 
     #[inline]
-    pub fn amplified_read(arena: &ReaderArena,
+    pub fn amplified_read(arena: &dyn ReaderArena,
                           virtual_amount: u64) -> Result<()> {
         arena.amplified_read(virtual_amount)
     }
 
     #[inline]
     pub unsafe fn allocate(
-        arena: &BuilderArena,
+        arena: &dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         amount: WordCount32, kind: WirePointerKind) -> (*mut Word, *mut WirePointer, u32)
@@ -419,7 +419,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn follow_builder_fars(
-        arena: &BuilderArena,
+        arena: &dyn BuilderArena,
         reff: *mut WirePointer,
         ref_target: *mut Word,
         segment_id: u32) -> Result<(*mut Word, *mut WirePointer, u32)>
@@ -461,7 +461,7 @@ mod wire_helpers {
     ///   - the segment on which the pointed-to object lives
     #[inline]
     pub unsafe fn follow_fars(
-        arena: &ReaderArena,
+        arena: &dyn ReaderArena,
         reff: *const WirePointer,
         segment_id: u32)
         -> Result<(*const Word, *const WirePointer, u32)>
@@ -495,7 +495,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn zero_object(
-        arena: &BuilderArena,
+        arena: &dyn BuilderArena,
         segment_id: u32,
         reff: *mut WirePointer)
     {
@@ -534,7 +534,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn zero_object_helper(
-        arena: &BuilderArena,
+        arena: &dyn BuilderArena,
         segment_id: u32,
         tag: *mut WirePointer,
         ptr: *mut Word)
@@ -599,7 +599,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn zero_pointer_and_fars(
-        arena: &BuilderArena,
+        arena: &dyn BuilderArena,
         _segment_id: u32,
         reff: *mut WirePointer) -> Result<()>
     {
@@ -618,7 +618,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn total_size(
-        arena: &ReaderArena,
+        arena: &dyn ReaderArena,
         segment_id: u32,
         reff: *const WirePointer,
         mut nesting_limit: i32) -> Result<MessageSize>
@@ -735,7 +735,7 @@ mod wire_helpers {
 
     // Helper for copy_message().
     unsafe fn copy_struct(
-        arena: &BuilderArena,
+        arena: &dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
         dst: *mut Word,
@@ -755,7 +755,7 @@ mod wire_helpers {
     // Copies from a trusted message.
     // Returns (new_dst_ptr, new_dst, new_segment_id).
     pub unsafe fn copy_message(
-        arena: &BuilderArena,
+        arena: &dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
         dst: *mut WirePointer,
@@ -862,7 +862,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn transfer_pointer(
-        arena: &BuilderArena,
+        arena: &dyn BuilderArena,
         dst_segment_id: u32, dst: *mut WirePointer,
         src_segment_id: u32, src: *mut WirePointer)
     {
@@ -889,7 +889,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn transfer_pointer_split(
-        arena: &BuilderArena,
+        arena: &dyn BuilderArena,
         dst_segment_id: u32, dst: *mut WirePointer,
         src_segment_id: u32, src_tag: *mut WirePointer,
         src_ptr: *mut Word)
@@ -954,7 +954,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn init_struct_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
@@ -981,7 +981,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn get_writable_struct_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1069,7 +1069,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn init_list_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1102,7 +1102,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn init_struct_list_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1142,7 +1142,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn get_writable_list_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1265,7 +1265,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn get_writable_struct_list_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         mut orig_ref: *mut WirePointer,
         mut orig_segment_id: u32,
         cap_table: CapTableBuilder,
@@ -1468,7 +1468,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn init_text_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         size: ByteCount32) -> SegmentAnd<text::Builder<'a>>
@@ -1492,7 +1492,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn set_text_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         value: &str) -> SegmentAnd<text::Builder<'a>>
@@ -1506,7 +1506,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn get_writable_text_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
         default: Option<&'a [Word]>) -> Result<text::Builder<'a>>
@@ -1550,7 +1550,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn init_data_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         size: ByteCount32) -> SegmentAnd<data::Builder<'a>>
@@ -1567,7 +1567,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn set_data_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         reff: *mut WirePointer,
         segment_id: u32,
         value: &[u8]) -> SegmentAnd<data::Builder<'a>>
@@ -1580,7 +1580,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn get_writable_data_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         mut reff: *mut WirePointer,
         mut segment_id: u32,
         default: Option<&'a [Word]>) -> Result<data::Builder<'a>>
@@ -1615,7 +1615,7 @@ mod wire_helpers {
     }
 
     pub unsafe fn set_struct_pointer(
-        arena: &BuilderArena,
+        arena: &dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
         reff: *mut WirePointer,
@@ -1686,18 +1686,18 @@ mod wire_helpers {
     }
 
     pub fn set_capability_pointer(
-        _arena: &BuilderArena,
+        _arena: &dyn BuilderArena,
         _segment_id: u32,
         mut cap_table: CapTableBuilder,
         reff: *mut WirePointer,
-        cap: Box<ClientHook>)
+        cap: Box<dyn ClientHook>)
     {
         // TODO if ref is not null, zero object.
         unsafe { (*reff).set_cap(cap_table.inject_cap(cap) as u32); }
     }
 
     pub unsafe fn set_list_pointer<'a>(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         segment_id: u32,
         cap_table: CapTableBuilder,
         reff: *mut WirePointer,
@@ -1828,10 +1828,10 @@ mod wire_helpers {
     }
 
     pub unsafe fn copy_pointer(
-        dst_arena: &BuilderArena,
+        dst_arena: &dyn BuilderArena,
         dst_segment_id: u32, dst_cap_table: CapTableBuilder,
         dst: *mut WirePointer,
-        src_arena: &ReaderArena,
+        src_arena: &dyn ReaderArena,
         src_segment_id: u32, src_cap_table: CapTableReader,
         src: *const WirePointer,
         nesting_limit: i32,
@@ -1982,7 +1982,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_struct_pointer<'a>(
-        mut arena: &'a ReaderArena,
+        mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
         cap_table: CapTableReader,
         mut reff: *const WirePointer,
@@ -2033,11 +2033,11 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_capability_pointer(
-        _arena: &ReaderArena,
+        _arena: &dyn ReaderArena,
         _segment_id: u32,
         cap_table: CapTableReader,
         reff: *const WirePointer,
-        _nesting_limit: i32) -> Result<Box<ClientHook>>
+        _nesting_limit: i32) -> Result<Box<dyn ClientHook>>
     {
         if (*reff).is_null() {
             Err(Error::failed(
@@ -2059,7 +2059,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_list_pointer<'a>(
-        mut arena: &'a ReaderArena,
+        mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
         cap_table: CapTableReader,
         mut reff: *const WirePointer,
@@ -2222,7 +2222,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_text_pointer<'a>(
-        mut arena: &'a ReaderArena,
+        mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
         mut reff: *const WirePointer,
         default: Option<&[Word]>) -> Result<text::Reader<'a>>
@@ -2271,7 +2271,7 @@ mod wire_helpers {
 
     #[inline]
     pub unsafe fn read_data_pointer<'a>(
-        mut arena: &'a ReaderArena,
+        mut arena: &'a dyn ReaderArena,
         mut segment_id: u32,
         mut reff: *const WirePointer,
         default: Option<&'a[Word]>) -> Result<data::Reader<'a>>
@@ -2314,7 +2314,7 @@ fn zero_pointer() -> *const WirePointer { &ZERO as *const _ as *const _ }
 
 static NULL_ARENA: NullArena = NullArena;
 
-pub type CapTable = Vec<Option<Box<ClientHook>>>;
+pub type CapTable = Vec<Option<Box<dyn ClientHook>>>;
 
 #[derive(Copy, Clone)]
 pub enum CapTableReader {
@@ -2322,15 +2322,15 @@ pub enum CapTableReader {
     // making values of this type take 16 bytes of memory. Now we instead
     // represent a null CapTableReader with `Plain(ptr::null())`.
 
-    Plain(*const Vec<Option<Box<ClientHook>>>),
+    Plain(*const Vec<Option<Box<dyn ClientHook>>>),
 }
 
 impl CapTableReader {
-    pub fn extract_cap(&self, index: usize) -> Option<Box<ClientHook>> {
+    pub fn extract_cap(&self, index: usize) -> Option<Box<dyn ClientHook>> {
         match *self {
             CapTableReader::Plain(hooks) => {
                 if hooks.is_null() { return None }
-                let hooks: &Vec<Option<Box<ClientHook>>> = unsafe { &*hooks };
+                let hooks: &Vec<Option<Box<dyn ClientHook>>> = unsafe { &*hooks };
                 if index >= hooks.len() { None }
                 else {
                     match hooks[index] {
@@ -2349,7 +2349,7 @@ pub enum CapTableBuilder {
     // making values of this type take 16 bytes of memory. Now we instead
     // represent a null CapTableBuilder with `Plain(ptr::null_mut())`.
 
-    Plain(*mut Vec<Option<Box<ClientHook>>>),
+    Plain(*mut Vec<Option<Box<dyn ClientHook>>>),
 }
 
 impl CapTableBuilder {
@@ -2359,11 +2359,11 @@ impl CapTableBuilder {
         }
     }
 
-    pub fn extract_cap(&self, index: usize) -> Option<Box<ClientHook>> {
+    pub fn extract_cap(&self, index: usize) -> Option<Box<dyn ClientHook>> {
         match *self {
             CapTableBuilder::Plain(hooks) => {
                 if hooks.is_null() { return None }
-                let hooks: &Vec<Option<Box<ClientHook>>> = unsafe { &*hooks };
+                let hooks: &Vec<Option<Box<dyn ClientHook>>> = unsafe { &*hooks };
                 if index >= hooks.len() { None }
                 else {
                     match hooks[index] {
@@ -2375,14 +2375,14 @@ impl CapTableBuilder {
         }
     }
 
-    pub fn inject_cap(&mut self, cap: Box<ClientHook>) -> usize {
+    pub fn inject_cap(&mut self, cap: Box<dyn ClientHook>) -> usize {
         match *self {
             CapTableBuilder::Plain(hooks) => {
                 if hooks.is_null() {
                     panic!("Called inject_cap() on a null capability table. You need \
                             to call imbue_mut() on this message before adding capabilities.");
                 }
-                let hooks: &mut Vec<Option<Box<ClientHook>>> = unsafe { &mut *hooks };
+                let hooks: &mut Vec<Option<Box<dyn ClientHook>>> = unsafe { &mut *hooks };
                 hooks.push(Some(cap));
                 hooks.len() - 1
             }
@@ -2396,7 +2396,7 @@ impl CapTableBuilder {
                     panic!("Called drop_cap() on a null capability table. You need \
                             to call imbue_mut() on this message before adding capabilities.");
                 }
-                let hooks: &mut Vec<Option<Box<ClientHook>>> = unsafe { &mut *hooks };
+                let hooks: &mut Vec<Option<Box<dyn ClientHook>>> = unsafe { &mut *hooks };
                 if index < hooks.len() { hooks[index] = None; }
             }
         }
@@ -2406,7 +2406,7 @@ impl CapTableBuilder {
 
 #[derive(Clone, Copy)]
 pub struct PointerReader<'a>  {
-    arena: &'a ReaderArena,
+    arena: &'a dyn ReaderArena,
     cap_table: CapTableReader,
     pointer: *const WirePointer,
     segment_id: u32,
@@ -2423,7 +2423,7 @@ impl <'a> PointerReader<'a> {
             nesting_limit: 0x7fffffff }
     }
 
-    pub fn get_root(arena: &'a ReaderArena,
+    pub fn get_root(arena: &'a dyn ReaderArena,
                     segment_id: u32,
                     location: *const Word,
                     nesting_limit: i32) -> Result<Self>
@@ -2521,7 +2521,7 @@ impl <'a> PointerReader<'a> {
         }
     }
 
-    pub fn get_capability(&self) -> Result<Box<ClientHook>> {
+    pub fn get_capability(&self) -> Result<Box<dyn ClientHook>> {
         let reff: *const WirePointer = if self.pointer.is_null() { zero_pointer() } else { self.pointer };
         unsafe {
             wire_helpers::read_capability_pointer(
@@ -2581,7 +2581,7 @@ impl <'a> PointerReader<'a> {
 
 #[derive(Clone, Copy)]
 pub struct PointerBuilder<'a> {
-    arena: &'a BuilderArena,
+    arena: &'a dyn BuilderArena,
     segment_id: u32,
     cap_table: CapTableBuilder,
     pointer: *mut WirePointer
@@ -2590,7 +2590,7 @@ pub struct PointerBuilder<'a> {
 impl <'a> PointerBuilder<'a> {
     #[inline]
     pub fn get_root(
-        arena: &'a BuilderArena,
+        arena: &'a dyn BuilderArena,
         segment_id: u32,
         location: *mut Word)
         -> Self
@@ -2665,7 +2665,7 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn get_capability(&self) -> Result<Box<ClientHook>> {
+    pub fn get_capability(&self) -> Result<Box<dyn ClientHook>> {
         unsafe {
             wire_helpers::read_capability_pointer(
                 self.arena.as_reader(),
@@ -2737,7 +2737,7 @@ impl <'a> PointerBuilder<'a> {
         }
     }
 
-    pub fn set_capability(&self, cap: Box<ClientHook>) {
+    pub fn set_capability(&self, cap: Box<dyn ClientHook>) {
         wire_helpers::set_capability_pointer(
             self.arena, self.segment_id, self.cap_table, self.pointer, cap);
     }
@@ -2781,7 +2781,7 @@ impl <'a> PointerBuilder<'a> {
 
 #[derive(Clone, Copy)]
 pub struct StructReader<'a> {
-    arena: &'a ReaderArena,
+    arena: &'a dyn ReaderArena,
     cap_table: CapTableReader,
     data: *const u8,
     pointers: *const WirePointer,
@@ -2967,7 +2967,7 @@ impl <'a> StructReader<'a> {
 
 #[derive(Clone, Copy)]
 pub struct StructBuilder<'a> {
-    arena: &'a BuilderArena,
+    arena: &'a dyn BuilderArena,
     cap_table: CapTableBuilder,
     data: *mut u8,
     pointers: *mut WirePointer,
@@ -3133,7 +3133,7 @@ impl <'a> StructBuilder<'a> {
 
 #[derive(Clone, Copy)]
 pub struct ListReader<'a> {
-    arena: &'a ReaderArena,
+    arena: &'a dyn ReaderArena,
     cap_table: CapTableReader,
     ptr: *const u8,
     segment_id: u32,
@@ -3325,7 +3325,7 @@ impl <'a> ListReader<'a> {
 
 #[derive(Clone, Copy)]
 pub struct ListBuilder<'a> {
-    arena: &'a BuilderArena,
+    arena: &'a dyn BuilderArena,
     cap_table: CapTableBuilder,
     ptr: *mut u8,
     segment_id: u32,

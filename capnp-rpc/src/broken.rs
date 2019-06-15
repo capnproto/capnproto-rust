@@ -41,10 +41,10 @@ impl Pipeline {
 }
 
 impl PipelineHook for Pipeline {
-    fn add_ref(&self) -> Box<PipelineHook> {
+    fn add_ref(&self) -> Box<dyn PipelineHook> {
         Box::new(Pipeline::new(self.error.clone()))
     }
-    fn get_pipelined_cap(&self, _ops: &[PipelineOp]) -> Box<ClientHook> {
+    fn get_pipelined_cap(&self, _ops: &[PipelineOp]) -> Box<dyn ClientHook> {
         new_cap(self.error.clone())
     }
 }
@@ -78,7 +78,7 @@ impl RequestHook for Request {
         }
     }
     fn tail_send(self: Box<Self>)
-                 -> Option<(u32, Promise<(), Error>, Box<PipelineHook>)>
+                 -> Option<(u32, Promise<(), Error>, Box<dyn PipelineHook>)>
     {
         None
     }
@@ -107,7 +107,7 @@ impl Client {
 }
 
 impl ClientHook for Client {
-    fn add_ref(&self) -> Box<ClientHook> {
+    fn add_ref(&self) -> Box<dyn ClientHook> {
         Box::new(Client { inner: self.inner.clone() } )
     }
     fn new_call(&self, _interface_id: u64, _method_id: u16,
@@ -118,7 +118,7 @@ impl ClientHook for Client {
             Box::new(Request::new(self.inner.error.clone(), size_hint)))
     }
 
-    fn call(&self, _interface_id: u64, _method_id: u16, _params: Box<ParamsHook>, _results: Box<ResultsHook>)
+    fn call(&self, _interface_id: u64, _method_id: u16, _params: Box<dyn ParamsHook>, _results: Box<dyn ResultsHook>)
         -> Promise<(), Error>
     {
         Promise::err(self.inner.error.clone())
@@ -132,15 +132,15 @@ impl ClientHook for Client {
         self.inner.brand
     }
 
-    fn get_resolved(&self) -> Option<Box<ClientHook>> {
+    fn get_resolved(&self) -> Option<Box<dyn ClientHook>> {
         None
     }
 
-    fn when_more_resolved(&self) -> Option<Promise<Box<ClientHook>, Error>> {
+    fn when_more_resolved(&self) -> Option<Promise<Box<dyn ClientHook>, Error>> {
         None
     }
 }
 
-pub fn new_cap(exception: Error) -> Box<ClientHook> {
+pub fn new_cap(exception: Error) -> Box<dyn ClientHook> {
     Box::new(Client::new(exception, false, 0))
 }

@@ -32,11 +32,11 @@ pub trait RequestHook {
     fn get_brand(&self) -> usize;
     fn send<'a>(self: Box<Self>) -> RemotePromise<any_pointer::Owned>;
     fn tail_send(self: Box<Self>)
-                 -> Option<(u32, crate::capability::Promise<(), crate::Error>, Box<PipelineHook>)>;
+                 -> Option<(u32, crate::capability::Promise<(), crate::Error>, Box<dyn PipelineHook>)>;
 }
 
 pub trait ClientHook {
-    fn add_ref(&self) -> Box<ClientHook>;
+    fn add_ref(&self) -> Box<dyn ClientHook>;
     fn new_call(&self,
                 interface_id: u64,
                 method_id: u16,
@@ -44,7 +44,7 @@ pub trait ClientHook {
                 -> Request<any_pointer::Owned, any_pointer::Owned>;
 
     fn call(&self, interface_id: u64, method_id: u16,
-            params: Box<ParamsHook>, results: Box<ResultsHook>)
+            params: Box<dyn ParamsHook>, results: Box<dyn ResultsHook>)
             -> crate::capability::Promise<(), crate::Error>;
 
     fn get_brand(&self) -> usize;
@@ -54,14 +54,14 @@ pub trait ClientHook {
     /// of the capability.  The caller may permanently replace this client with the resolved one if
     /// desired.  Returns null if the client isn't a promise or hasn't resolved yet -- use
     /// `whenMoreResolved()` to distinguish between them.
-    fn get_resolved(&self) -> Option<Box<ClientHook>>;
+    fn get_resolved(&self) -> Option<Box<dyn ClientHook>>;
 
 
     /// If this client is a settled reference (not a promise), return nullptr.  Otherwise, return a
     /// promise that eventually resolves to a new client that is closer to being the final, settled
     /// client (i.e. the value eventually returned by `getResolved()`).  Calling this repeatedly
     /// should eventually produce a settled client.
-    fn when_more_resolved(&self) -> Option<crate::capability::Promise<Box<ClientHook>, crate::Error>>;
+    fn when_more_resolved(&self) -> Option<crate::capability::Promise<Box<dyn ClientHook>, crate::Error>>;
 
     /// Repeatedly calls whenMoreResolved() until it returns nullptr.
     #[cfg(feature = "rpc")]
@@ -81,20 +81,20 @@ pub trait ClientHook {
     }
 }
 
-impl Clone for Box<ClientHook> {
-    fn clone(&self) -> Box<ClientHook> {
+impl Clone for Box<dyn ClientHook> {
+    fn clone(&self) -> Box<dyn ClientHook> {
         self.add_ref()
     }
 }
 
 pub trait ServerHook: 'static {
-    fn new_client(server: Box<crate::capability::Server>) -> crate::capability::Client;
+    fn new_client(server: Box<dyn crate::capability::Server>) -> crate::capability::Client;
 }
 
 pub trait ResultsHook {
     fn get<'a>(&'a mut self) -> crate::Result<any_pointer::Builder<'a>>;
     fn allow_cancellation(&self);
-    fn tail_call(self: Box<Self>, request: Box<RequestHook>) -> Promise<(), crate::Error>;
+    fn tail_call(self: Box<Self>, request: Box<dyn RequestHook>) -> Promise<(), crate::Error>;
     fn direct_tail_call(self: Box<Self>, request: Box<dyn RequestHook>) ->
         (crate::capability::Promise<(), crate::Error>, Box<dyn PipelineHook>);
 }
@@ -117,18 +117,18 @@ pub fn internal_get_untyped_results<T>(typeful: Results<T>) -> Results<any_point
 }
 
 pub trait PipelineHook {
-    fn add_ref(&self) -> Box<PipelineHook>;
-    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook>;
+    fn add_ref(&self) -> Box<dyn PipelineHook>;
+    fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<dyn ClientHook>;
 
     /// Version of get_pipelined_cap() passing the array by move. May avoid a copy in some cases.
     /// Default implementation just calls the other version.
-    fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<ClientHook> {
+    fn get_pipelined_cap_move(&self, ops: Vec<PipelineOp>) -> Box<dyn ClientHook> {
         self.get_pipelined_cap(&ops)
     }
 }
 
-impl Clone for Box<PipelineHook> {
-    fn clone(&self) -> Box<PipelineHook> {
+impl Clone for Box<dyn PipelineHook> {
+    fn clone(&self) -> Box<dyn PipelineHook> {
         self.add_ref()
     }
 }

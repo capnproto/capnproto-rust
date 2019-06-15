@@ -134,14 +134,14 @@ impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
         self.inner.borrow().side
     }
 
-    fn new_outgoing_message(&mut self, _first_segment_word_size: u32) -> Box<crate::OutgoingMessage> {
+    fn new_outgoing_message(&mut self, _first_segment_word_size: u32) -> Box<dyn crate::OutgoingMessage> {
         Box::new(OutgoingMessage {
             message: ::capnp::message::Builder::new_default(),
             sender: self.inner.borrow().sender.clone(),
         })
     }
 
-    fn receive_incoming_message(&mut self) -> Promise<Option<Box<crate::IncomingMessage>>, ::capnp::Error> {
+    fn receive_incoming_message(&mut self) -> Promise<Option<Box<dyn crate::IncomingMessage>>, ::capnp::Error> {
         let mut inner = self.inner.borrow_mut();
         let maybe_input_stream = ::std::mem::replace(&mut *inner.input_stream.borrow_mut(), None);
         let return_it_here = inner.input_stream.clone();
@@ -150,7 +150,7 @@ impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
                 Promise::from_future(::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
                     *return_it_here.borrow_mut() = Some(s);
                     maybe_message.map(|message|
-                                      Box::new(IncomingMessage::new(message)) as Box<crate::IncomingMessage>)
+                                      Box::new(IncomingMessage::new(message)) as Box<dyn crate::IncomingMessage>)
                 }))
             }
             None => {
@@ -224,7 +224,7 @@ impl <T> VatNetwork<T> where T: ::std::io::Read {
 impl <T> crate::VatNetwork<VatId> for VatNetwork<T>
     where T: ::std::io::Read
 {
-    fn connect(&mut self, host_id: VatId) -> Option<Box<crate::Connection<VatId>>> {
+    fn connect(&mut self, host_id: VatId) -> Option<Box<dyn crate::Connection<VatId>>> {
         if host_id == self.side {
             None
         } else {
@@ -246,10 +246,10 @@ impl <T> crate::VatNetwork<VatId> for VatNetwork<T>
         }
     }
 
-    fn accept(&mut self) -> Promise<Box<crate::Connection<VatId>>, ::capnp::Error> {
+    fn accept(&mut self) -> Promise<Box<dyn crate::Connection<VatId>>, ::capnp::Error> {
         let connection = ::std::mem::replace(&mut self.connection, None);
         match connection {
-            Some(c) => Promise::ok(Box::new(c) as Box<crate::Connection<VatId>>),
+            Some(c) => Promise::ok(Box::new(c) as Box<dyn crate::Connection<VatId>>),
             None => Promise::from_future(::futures::future::empty()),
         }
     }

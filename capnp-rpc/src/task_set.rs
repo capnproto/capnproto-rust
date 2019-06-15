@@ -26,12 +26,12 @@ use std::cell::{RefCell};
 use std::rc::Rc;
 
 enum EnqueuedTask<T,E> {
-    Task(Box<Future<Item=T, Error=E>>),
+    Task(Box<dyn Future<Item=T, Error=E>>),
     Terminate(Result<(), E>),
 }
 
 enum TaskInProgress<E> {
-    Task(Box<Future<Item=(), Error=()>>),
+    Task(Box<dyn Future<Item=(), Error=()>>),
     Terminate(Option<Result<(), E>>),
 }
 
@@ -64,11 +64,11 @@ impl <E> Future for TaskInProgress<E> {
 pub struct TaskSet<T, E> {
     enqueued: Option<mpsc::UnboundedReceiver<EnqueuedTask<T, E>>>,
     in_progress: FuturesUnordered<TaskInProgress<E>>,
-    reaper: Rc<RefCell<Box<TaskReaper<T, E>>>>,
+    reaper: Rc<RefCell<Box<dyn TaskReaper<T, E>>>>,
 }
 
 impl<T, E> TaskSet<T, E> where T: 'static, E: 'static {
-    pub fn new(reaper: Box<TaskReaper<T, E>>)
+    pub fn new(reaper: Box<dyn TaskReaper<T, E>>)
                -> (TaskSetHandle<T, E>, TaskSet<T, E>)
         where E: 'static, T: 'static, E: ::std::fmt::Debug,
     {

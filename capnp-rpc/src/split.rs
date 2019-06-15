@@ -221,7 +221,7 @@ mod test {
             drop(slot2.borrow_mut().take().unwrap());
             Ok::<_,()>((11,"foo"))
         }));
-        let future2 = Box::new(f2) as Box<Future<Item=_, Error=_>>;
+        let future2 = Box::new(f2) as Box<dyn Future<Item=_, Error=_>>;
         *slot.borrow_mut() = Some(future2);
         assert_eq!(f1.wait().unwrap(), 11);
     }

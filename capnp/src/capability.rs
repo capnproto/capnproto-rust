@@ -46,7 +46,7 @@ enum PromiseInner<T, E> {
     Immediate(Result<T,E>),
 
     #[cfg(feature = "rpc")]
-    Deferred(Box<Future<Item=T,Error=E> + 'static>),
+    Deferred(Box<dyn Future<Item=T,Error=E> + 'static>),
 
     #[cfg(feature = "rpc")]
     Empty,
@@ -117,13 +117,13 @@ pub struct RemotePromise<Results> where Results: Pipelined + for<'a> Owned<'a> +
 /// A response from a method call, as seen by the client.
 pub struct Response<Results> {
     pub marker: PhantomData<Results>,
-    pub hook: Box<ResponseHook>,
+    pub hook: Box<dyn ResponseHook>,
 }
 
 impl <Results> Response<Results>
     where Results: Pipelined + for<'a> Owned<'a>
 {
-    pub fn new(hook: Box<ResponseHook>) -> Response<Results> {
+    pub fn new(hook: Box<dyn ResponseHook>) -> Response<Results> {
         Response { marker: PhantomData, hook: hook }
     }
     pub fn get<'a>(&'a self) -> crate::Result<<Results as Owned<'a>>::Reader> {
@@ -134,13 +134,13 @@ impl <Results> Response<Results>
 /// A method call that has not been sent yet.
 pub struct Request<Params, Results> {
     pub marker: PhantomData<(Params, Results)>,
-    pub hook: Box<RequestHook>
+    pub hook: Box<dyn RequestHook>
 }
 
 impl <Params, Results> Request<Params, Results>
     where Params: for<'a> Owned<'a>
 {
-    pub fn new(hook: Box<RequestHook>) -> Request <Params, Results> {
+    pub fn new(hook: Box<dyn RequestHook>) -> Request <Params, Results> {
         Request { hook: hook, marker: PhantomData }
     }
 
@@ -173,11 +173,11 @@ where Results: Pipelined + for<'a> Owned<'a> + 'static,
 /// The values of the parameters passed to a method call, as seen by the server.
 pub struct Params<T> {
     pub marker: PhantomData<T>,
-    pub hook: Box<ParamsHook>,
+    pub hook: Box<dyn ParamsHook>,
 }
 
 impl <T> Params <T> {
-    pub fn new(hook: Box<ParamsHook>) -> Params<T> {
+    pub fn new(hook: Box<dyn ParamsHook>) -> Params<T> {
         Params { marker: PhantomData, hook: hook }
     }
     pub fn get<'a>(&'a self) -> crate::Result<<T as Owned<'a>>::Reader>
@@ -190,13 +190,13 @@ impl <T> Params <T> {
 /// The return values of a method, written in-place by the method body.
 pub struct Results<T> {
     pub marker: PhantomData<T>,
-    pub hook: Box<ResultsHook>,
+    pub hook: Box<dyn ResultsHook>,
 }
 
 impl <T> Results<T>
     where T: for<'a> Owned<'a>
 {
-    pub fn new(hook: Box<ResultsHook>) -> Results<T> {
+    pub fn new(hook: Box<dyn ResultsHook>) -> Results<T> {
         Results { marker: PhantomData, hook: hook }
     }
 
@@ -220,11 +220,11 @@ pub trait FromClientHook {
 
 /// An untyped client.
 pub struct Client {
-    pub hook: Box<ClientHook>
+    pub hook: Box<dyn ClientHook>
 }
 
 impl Client {
-    pub fn new(hook: Box<ClientHook>) -> Client {
+    pub fn new(hook: Box<dyn ClientHook>) -> Client {
         Client { hook : hook }
     }
 
