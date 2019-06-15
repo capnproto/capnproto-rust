@@ -29,9 +29,9 @@ use futures::sync::oneshot;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use forked_promise::ForkedPromise;
+use crate::forked_promise::ForkedPromise;
 
-pub type VatId = ::rpc_twoparty_capnp::Side;
+pub type VatId = crate::rpc_twoparty_capnp::Side;
 
 struct IncomingMessage {
     message: ::capnp::message::Reader<::capnp_futures::serialize::OwnedSegments>,
@@ -43,7 +43,7 @@ impl IncomingMessage {
     }
 }
 
-impl ::IncomingMessage for IncomingMessage {
+impl crate::IncomingMessage for IncomingMessage {
     fn get_body<'a>(&'a self) -> ::capnp::Result<::capnp::any_pointer::Reader<'a>> {
         self.message.get_root()
     }
@@ -54,7 +54,7 @@ struct OutgoingMessage {
     sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
 }
 
-impl ::OutgoingMessage for OutgoingMessage {
+impl crate::OutgoingMessage for OutgoingMessage {
     fn get_body<'a>(&'a mut self) -> ::capnp::Result<::capnp::any_pointer::Builder<'a>> {
         self.message.get_root()
     }
@@ -84,7 +84,7 @@ impl ::OutgoingMessage for OutgoingMessage {
 struct ConnectionInner<T> where T: ::std::io::Read + 'static {
     input_stream: Rc<RefCell<Option<T>>>,
     sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
-    side: ::rpc_twoparty_capnp::Side,
+    side: crate::rpc_twoparty_capnp::Side,
     receive_options: ReaderOptions,
     on_disconnect_fulfiller: Option<oneshot::Sender<()>>,
 }
@@ -108,7 +108,7 @@ impl <T> Drop for ConnectionInner<T> where T: ::std::io::Read {
 impl <T> Connection<T> where T: ::std::io::Read {
     fn new(input_stream: T,
            sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
-           side: ::rpc_twoparty_capnp::Side,
+           side: crate::rpc_twoparty_capnp::Side,
            receive_options: ReaderOptions,
            on_disconnect_fulfiller: oneshot::Sender<()>,
            ) -> Connection<T>
@@ -127,21 +127,21 @@ impl <T> Connection<T> where T: ::std::io::Read {
     }
 }
 
-impl <T> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T>
+impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
     where T: ::std::io::Read
 {
-    fn get_peer_vat_id(&self) -> ::rpc_twoparty_capnp::Side {
+    fn get_peer_vat_id(&self) -> crate::rpc_twoparty_capnp::Side {
         self.inner.borrow().side
     }
 
-    fn new_outgoing_message(&mut self, _first_segment_word_size: u32) -> Box<::OutgoingMessage> {
+    fn new_outgoing_message(&mut self, _first_segment_word_size: u32) -> Box<crate::OutgoingMessage> {
         Box::new(OutgoingMessage {
             message: ::capnp::message::Builder::new_default(),
             sender: self.inner.borrow().sender.clone(),
         })
     }
 
-    fn receive_incoming_message(&mut self) -> Promise<Option<Box<::IncomingMessage>>, ::capnp::Error> {
+    fn receive_incoming_message(&mut self) -> Promise<Option<Box<crate::IncomingMessage>>, ::capnp::Error> {
         let mut inner = self.inner.borrow_mut();
         let maybe_input_stream = ::std::mem::replace(&mut *inner.input_stream.borrow_mut(), None);
         let return_it_here = inner.input_stream.clone();
@@ -150,7 +150,7 @@ impl <T> ::Connection<::rpc_twoparty_capnp::Side> for Connection<T>
                 Promise::from_future(::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
                     *return_it_here.borrow_mut() = Some(s);
                     maybe_message.map(|message|
-                                      Box::new(IncomingMessage::new(message)) as Box<::IncomingMessage>)
+                                      Box::new(IncomingMessage::new(message)) as Box<crate::IncomingMessage>)
                 }))
             }
             None => {
@@ -173,7 +173,7 @@ pub struct VatNetwork<T> where T: ::std::io::Read + 'static {
     weak_connection_inner: Weak<RefCell<ConnectionInner<T>>>,
 
     execution_driver: ForkedPromise<Promise<(), ::capnp::Error>>,
-    side: ::rpc_twoparty_capnp::Side,
+    side: crate::rpc_twoparty_capnp::Side,
 }
 
 impl <T> VatNetwork<T> where T: ::std::io::Read {
@@ -189,7 +189,7 @@ impl <T> VatNetwork<T> where T: ::std::io::Read {
     /// The options in `receive_options` will be used when reading the messages that come in on `input_stream`.
     pub fn new<U>(input_stream: T,
                output_stream: U,
-               side: ::rpc_twoparty_capnp::Side,
+               side: crate::rpc_twoparty_capnp::Side,
                receive_options: ReaderOptions) -> VatNetwork<T>
         where U: ::std::io::Write + 'static,
     {
@@ -221,10 +221,10 @@ impl <T> VatNetwork<T> where T: ::std::io::Read {
     }
 }
 
-impl <T> ::VatNetwork<VatId> for VatNetwork<T>
+impl <T> crate::VatNetwork<VatId> for VatNetwork<T>
     where T: ::std::io::Read
 {
-    fn connect(&mut self, host_id: VatId) -> Option<Box<::Connection<VatId>>> {
+    fn connect(&mut self, host_id: VatId) -> Option<Box<crate::Connection<VatId>>> {
         if host_id == self.side {
             None
         } else {
@@ -246,10 +246,10 @@ impl <T> ::VatNetwork<VatId> for VatNetwork<T>
         }
     }
 
-    fn accept(&mut self) -> Promise<Box<::Connection<VatId>>, ::capnp::Error> {
+    fn accept(&mut self) -> Promise<Box<crate::Connection<VatId>>, ::capnp::Error> {
         let connection = ::std::mem::replace(&mut self.connection, None);
         match connection {
-            Some(c) => Promise::ok(Box::new(c) as Box<::Connection<VatId>>),
+            Some(c) => Promise::ok(Box::new(c) as Box<crate::Connection<VatId>>),
             None => Promise::from_future(::futures::future::empty()),
         }
     }

@@ -25,7 +25,7 @@ use capnp::capability::{self, Promise};
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook};
 
-use attach::Attach;
+use crate::attach::Attach;
 use futures::Future;
 use futures::sync::oneshot;
 
@@ -220,14 +220,14 @@ impl RequestHook for Request {
         let results = Results::new(results_done_fulfiller);
         let promise = client.call(interface_id, method_id, Box::new(params), Box::new(results));
 
-        let (pipeline_sender, mut pipeline) = ::queued::Pipeline::new();
+        let (pipeline_sender, mut pipeline) = crate::queued::Pipeline::new();
 
         let p = promise.join(results_done_promise).and_then(move |((), results_done_hook)| {
             pipeline_sender.complete(Box::new(Pipeline::new(results_done_hook.add_ref())) as Box<PipelineHook>);
             Ok((capability::Response::new(Box::new(Response::new(results_done_hook))), ()))
         });
 
-        let (left, right) = ::split::split(p);
+        let (left, right) = crate::split::split(p);
 
         pipeline.drive(right);
         let pipeline = any_pointer::Pipeline::new(Box::new(pipeline));
@@ -273,7 +273,7 @@ impl PipelineHook for Pipeline {
     fn get_pipelined_cap(&self, ops: &[PipelineOp]) -> Box<ClientHook> {
         match self.inner.borrow_mut().results.get().unwrap().get_pipelined_cap(ops) {
             Ok(v) => v,
-            Err(e) => Box::new(::broken::Client::new(e, true, 0)) as Box<ClientHook>,
+            Err(e) => Box::new(crate::broken::Client::new(e, true, 0)) as Box<ClientHook>,
         }
     }
 }

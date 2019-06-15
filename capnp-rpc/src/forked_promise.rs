@@ -246,7 +246,7 @@ mod test {
     }
 
     struct Reaper;
-    impl ::task_set::TaskReaper<(), ()> for Reaper {
+    impl crate::task_set::TaskReaper<(), ()> for Reaper {
         fn task_failed(&mut self, _err: ()) {}
     }
 
@@ -256,7 +256,7 @@ mod test {
     }
 
     fn forked_propagates_unpark_helper(spawn_moded_first: bool) {
-        let (handle, tasks) = ::task_set::TaskSet::<(), ()>::new(Box::new(Reaper));
+        let (handle, tasks) = crate::task_set::TaskSet::<(), ()>::new(Box::new(Reaper));
 
         let mut spawn = ::futures::executor::spawn(tasks);
         let unpark = Arc::new(Unpark);

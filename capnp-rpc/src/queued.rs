@@ -30,10 +30,10 @@ use futures::Future;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use {broken, local};
-use attach::Attach;
-use forked_promise::ForkedPromise;
-use sender_queue::SenderQueue;
+use crate::{broken, local};
+use crate::attach::Attach;
+use crate::forked_promise::ForkedPromise;
+use crate::sender_queue::SenderQueue;
 
 pub struct PipelineInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
@@ -77,7 +77,7 @@ impl Drop for PipelineInnerSender {
                 PipelineInner::resolve(
                     &pipeline_inner,
                     Ok(Box::new(
-                        ::broken::Pipeline::new(Error::failed("PipelineInnerSender was canceled".into())))));
+                        crate::broken::Pipeline::new(Error::failed("PipelineInnerSender was canceled".into())))));
             }
         }
     }
@@ -87,7 +87,7 @@ impl PipelineInnerSender {
     pub fn complete(mut self, pipeline: Box<PipelineHook>) {
         if let Some(weak_queued) = self.inner.take() {
             if let Some(pipeline_inner) = weak_queued.upgrade() {
-                ::queued::PipelineInner::resolve(&pipeline_inner, Ok(pipeline));
+                crate::queued::PipelineInner::resolve(&pipeline_inner, Ok(pipeline));
             }
         }
     }

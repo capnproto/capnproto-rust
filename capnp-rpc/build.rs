@@ -5,5 +5,6 @@ fn main() {
         .src_prefix("schema")
         .file("schema/rpc.capnp")
         .file("schema/rpc-twoparty.capnp")
+        .edition(capnpc::RustEdition::Rust2018)
         .run().expect("capnp compile");
 }

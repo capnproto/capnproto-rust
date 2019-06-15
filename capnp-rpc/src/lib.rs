@@ -71,7 +71,7 @@ use capnp::private::capability::{ClientHook, ServerHook};
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-use task_set::TaskSet;
+use crate::task_set::TaskSet;
 
 /// Code generated from [rpc.capnp]
 /// (https://github.com/sandstorm-io/capnproto/blob/master/c%2B%2B/src/capnp/rpc.capnp).
@@ -166,7 +166,7 @@ pub trait VatNetwork<VatId> {
 /// accomplish that is to pass the `RpcSystem` to `tokio_core::reactor::Handle::spawn()`.
 #[must_use = "futures do nothing unless polled"]
 pub struct RpcSystem<VatId> where VatId: 'static {
-    network: Box<::VatNetwork<VatId>>,
+    network: Box<crate::VatNetwork<VatId>>,
 
     bootstrap_cap: Box<ClientHook>,
 
@@ -175,13 +175,13 @@ pub struct RpcSystem<VatId> where VatId: 'static {
     connection_state: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
 
     tasks: TaskSet<(), Error>,
-    handle: ::task_set::TaskSetHandle<(), Error>
+    handle: crate::task_set::TaskSetHandle<(), Error>
 }
 
 impl <VatId> RpcSystem <VatId> {
     /// Constructs a new `RpcSystem` with the given network and bootstrap capability.
     pub fn new(
-        mut network: Box<::VatNetwork<VatId>>,
+        mut network: Box<crate::VatNetwork<VatId>>,
         bootstrap: Option<::capnp::capability::Client>) -> RpcSystem<VatId>
     {
         let bootstrap_cap = match bootstrap {
@@ -257,8 +257,8 @@ impl <VatId> RpcSystem <VatId> {
 
     fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
                             bootstrap_cap: Box<ClientHook>,
-                            connection: Box<::Connection<VatId>>,
-                            mut handle: ::task_set::TaskSetHandle<(), Error>)
+                            connection: Box<crate::Connection<VatId>>,
+                            mut handle: crate::task_set::TaskSetHandle<(), Error>)
                             -> Rc<rpc::ConnectionState<VatId>>
     {
         // TODO this needs to be updated once we allow more general VatNetworks.
@@ -325,12 +325,12 @@ pub fn new_promise_client<T, F>(client_promise: F) -> T
           F: ::futures::Future<Item=::capnp::capability::Client,Error=Error>,
           F: 'static
 {
-    let mut queued_client = ::queued::Client::new(None);
+    let mut queued_client = crate::queued::Client::new(None);
     let weak_client = Rc::downgrade(&queued_client.inner);
 
     queued_client.drive(client_promise.then(move |r| {
         if let Some(queued_inner) = weak_client.upgrade() {
-            ::queued::ClientInner::resolve(&queued_inner, r.map(|c| c.hook));
+            crate::queued::ClientInner::resolve(&queued_inner, r.map(|c| c.hook));
         }
         Ok(())
     }));
@@ -339,7 +339,7 @@ pub fn new_promise_client<T, F>(client_promise: F) -> T
 }
 
 struct SystemTaskReaper;
-impl ::task_set::TaskReaper<(), Error> for SystemTaskReaper {
+impl crate::task_set::TaskReaper<(), Error> for SystemTaskReaper {
     fn task_failed(&mut self, error: Error) {
         println!("ERROR: {}", error);
     }
