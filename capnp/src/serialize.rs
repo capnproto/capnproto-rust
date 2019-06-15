@@ -190,7 +190,7 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<Wo
     let table_size = segment_count / 2 + 1;
     let mut result = Vec::with_capacity(word_count);
     for _ in 0..table_size {
-        result.push(Word { raw_content: 0 });
+        result.push(::word(0,0,0,0,0,0,0,0));
     }
     {
         let mut bytes = ::Word::words_to_bytes_mut(&mut result[..]);
@@ -410,9 +410,9 @@ pub mod test {
 
         let mut buf = vec![];
 
-        let segment_0 = [capnp_word!(0,0,0,0,0,0,0,0); 0];
-        let segment_1 = [capnp_word!(1,1,1,1,1,1,1,1); 1];
-        let segment_199 = [capnp_word!(201,202,203,204,205,206,207,208); 199];
+        let segment_0 = [::word(0,0,0,0,0,0,0,0); 0];
+        let segment_1 = [::word(1,1,1,1,1,1,1,1); 1];
+        let segment_199 = [::word(201,202,203,204,205,206,207,208); 199];
 
         write_segment_table(&mut buf, &[&segment_0]).unwrap();
         assert_eq!(&[0,0,0,0,  // 1 segments

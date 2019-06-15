@@ -702,8 +702,8 @@ pub mod test {
     fn test_construct_segment_table() {
 
         let segment_0: [Word; 0] = [];
-        let segment_1 = [Word { raw_content: 1 }; 1];
-        let segment_199 = [Word { raw_content: 199 }; 199];
+        let segment_1 = [capnp::word(1,0,0,0,0,0,0,0); 1];
+        let segment_199 = [capnp::word(199,0,0,0,0,0,0,0); 199];
 
         let buf = construct_segment_table(&[&segment_0]);
         assert_eq!(&[0,0,0,0,  // 1 segments

@@ -35,38 +35,6 @@ extern crate quickcheck;
 #[cfg(feature = "rpc")]
 extern crate futures;
 
-/// Constructs a [`Word`](struct.Word.html) from its constituent bytes, accounting
-/// for endianness. This macro can be used to construct constants. In the future, once
-/// Rust supports [constant functions](https://github.com/rust-lang/rust/issues/24111),
-/// this macro will be replaced by such a function.
-#[cfg(target_endian = "little")]
-#[macro_export]
-macro_rules! capnp_word {
-  ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
-   $b4:expr, $b5:expr, $b6:expr, $b7:expr) => (
-    $crate::Word {
-        raw_content: (($b0 as u64) << 0) + (($b1 as u64) << 8) +
-                     (($b2 as u64) << 16) + (($b3 as u64) << 24) +
-                     (($b4 as u64) << 32) + (($b5 as u64) << 40) +
-                     (($b6 as u64) << 48) + (($b7 as u64) << 56)
-    }
-  )
-}
-
-#[cfg(target_endian = "big")]
-#[macro_export]
-macro_rules! capnp_word {
-  ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
-   $b4:expr, $b5:expr, $b6:expr, $b7:expr) => (
-     $crate::Word {
-         raw_content: (($b7 as u64) << 0) + (($b6 as u64) << 8) +
-                      (($b5 as u64) << 16) + (($b4 as u64) << 24) +
-                      (($b3 as u64) << 32) + (($b2 as u64) << 40) +
-                      (($b1 as u64) << 48) + (($b0 as u64) << 56)
-     }
-  )
-}
-
 pub mod any_pointer;
 pub mod any_pointer_list;
 pub mod capability;
@@ -87,15 +55,20 @@ pub mod text;
 pub mod text_list;
 pub mod traits;
 
-/// Eight bytes of memory with opaque interior. Use [`capnp_word!()`](macro.capnp_word!.html)
-/// to construct one of these.
+/// Eight bytes of memory with opaque interior.
 ///
 /// This type is used to ensure that the data of a message is properly aligned.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[repr(C)]
+#[repr(C, align(8))]
 pub struct Word {
-    #[doc(hidden)]
-    pub raw_content: u64,
+    raw_content: [u8; 8],
+}
+
+///
+/// Constructs a word with the given bytes.
+///
+pub const fn word(b0: u8, b1: u8, b2: u8, b3: u8, b4: u8, b5: u8, b6: u8, b7: u8) -> Word {
+    Word { raw_content: [b0,b1,b2,b3,b4,b5,b6,b7] }
 }
 
 impl Word {
@@ -143,7 +116,14 @@ impl Word {
 #[cfg(any(feature="quickcheck", test))]
 impl quickcheck::Arbitrary for Word {
     fn arbitrary<G: quickcheck::Gen>(g: &mut G) -> Word {
-        Word { raw_content: quickcheck::Arbitrary::arbitrary(g) }
+        ::word(quickcheck::Arbitrary::arbitrary(g),
+               quickcheck::Arbitrary::arbitrary(g),
+               quickcheck::Arbitrary::arbitrary(g),
+               quickcheck::Arbitrary::arbitrary(g),
+               quickcheck::Arbitrary::arbitrary(g),
+               quickcheck::Arbitrary::arbitrary(g),
+               quickcheck::Arbitrary::arbitrary(g),
+               quickcheck::Arbitrary::arbitrary(g))
     }
 }
 

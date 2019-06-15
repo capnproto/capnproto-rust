@@ -44,7 +44,7 @@ pub fn word_array_declaration(name: &str,
         let tmp = &[word];
         let bytes = Word::words_to_bytes(tmp);
         words_lines.push(Line(
-            format!("capnp_word!({}, {}, {}, {}, {}, {}, {}, {}),",
+            format!("::capnp::word({}, {}, {}, {}, {}, {}, {}, {}),",
                     bytes[0], bytes[1], bytes[2], bytes[3],
                     bytes[4], bytes[5], bytes[6], bytes[7])));
     }
