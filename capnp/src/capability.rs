@@ -23,9 +23,9 @@
 //!
 //! Roughly corresponds to capability.h in the C++ implementation.
 
-use {any_pointer, Error, MessageSize};
-use traits::{Pipelined, Owned};
-use private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, ResultsHook};
+use crate::{any_pointer, Error, MessageSize};
+use crate::traits::{Pipelined, Owned};
+use crate::private::capability::{ClientHook, ParamsHook, RequestHook, ResponseHook, ResultsHook};
 
 #[cfg(feature = "rpc")]
 use futures::Future;
@@ -110,7 +110,7 @@ impl<T> Try for Promise<T, crate::Error> {
 /// A promise for a result from a method call.
 #[must_use]
 pub struct RemotePromise<Results> where Results: Pipelined + for<'a> Owned<'a> + 'static {
-    pub promise: Promise<Response<Results>, ::Error>,
+    pub promise: Promise<Response<Results>, crate::Error>,
     pub pipeline: Results::Pipeline,
 }
 
@@ -126,7 +126,7 @@ impl <Results> Response<Results>
     pub fn new(hook: Box<ResponseHook>) -> Response<Results> {
         Response { marker: PhantomData, hook: hook }
     }
-    pub fn get<'a>(&'a self) -> ::Result<<Results as Owned<'a>>::Reader> {
+    pub fn get<'a>(&'a self) -> crate::Result<<Results as Owned<'a>>::Reader> {
         self.hook.get()?.get_as()
     }
 }
@@ -148,7 +148,7 @@ impl <Params, Results> Request<Params, Results>
         self.hook.get().get_as().unwrap()
     }
 
-    pub fn set(&mut self, from: <Params as Owned>::Reader) -> ::Result<()> {
+    pub fn set(&mut self, from: <Params as Owned>::Reader) -> crate::Result<()> {
         self.hook.get().set_as(from)
     }
 }
@@ -180,7 +180,7 @@ impl <T> Params <T> {
     pub fn new(hook: Box<ParamsHook>) -> Params<T> {
         Params { marker: PhantomData, hook: hook }
     }
-    pub fn get<'a>(&'a self) -> ::Result<<T as Owned<'a>>::Reader>
+    pub fn get<'a>(&'a self) -> crate::Result<<T as Owned<'a>>::Reader>
         where T: Owned<'a>
     {
         Ok(self.hook.get()?.get_as()?)
@@ -204,7 +204,7 @@ impl <T> Results<T>
         self.hook.get().unwrap().get_as().unwrap()
     }
 
-    pub fn set(&mut self, other: <T as Owned>::Reader) -> ::Result<()>
+    pub fn set(&mut self, other: <T as Owned>::Reader) -> crate::Result<()>
     {
         self.hook.get().unwrap().set_as(other)
     }
@@ -215,7 +215,7 @@ pub trait FromTypelessPipeline {
 }
 
 pub trait FromClientHook {
-    fn new(Box<ClientHook>) -> Self;
+    fn new(hook: Box<dyn ClientHook>) -> Self;
 }
 
 /// An untyped client.

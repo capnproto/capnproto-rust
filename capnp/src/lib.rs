@@ -116,7 +116,7 @@ impl Word {
 #[cfg(any(feature="quickcheck", test))]
 impl quickcheck::Arbitrary for Word {
     fn arbitrary<G: quickcheck::Gen>(g: &mut G) -> Word {
-        ::word(quickcheck::Arbitrary::arbitrary(g),
+        crate::word(quickcheck::Arbitrary::arbitrary(g),
                quickcheck::Arbitrary::arbitrary(g),
                quickcheck::Arbitrary::arbitrary(g),
                quickcheck::Arbitrary::arbitrary(g),

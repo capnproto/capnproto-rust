@@ -25,9 +25,9 @@
 use std::{io, mem, ptr, slice};
 use std::io::{Read, BufRead, Write};
 
-use serialize;
-use Result;
-use message;
+use crate::serialize;
+use crate::Result;
+use crate::message;
 
 struct PackedRead<R> where R: BufRead {
     inner: R,
@@ -212,7 +212,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 /// Reads a packed message from a stream using the provided options.
 pub fn read_message<R>(read: &mut R,
                        options: message::ReaderOptions)
-                       -> Result<::message::Reader<serialize::OwnedSegments>>
+                       -> Result<crate::message::Reader<serialize::OwnedSegments>>
     where R: BufRead
 {
     let mut packed_read = PackedRead { inner: read };
@@ -361,8 +361,8 @@ impl <W> Write for PackedWrite<W> where W: Write {
 }
 
 /// Writes a packed message to a stream.
-pub fn write_message<W, A>(write: &mut W, message : &::message::Builder<A>) -> io::Result<()>
-    where W: Write, A: ::message::Allocator
+pub fn write_message<W, A>(write: &mut W, message: &crate::message::Builder<A>) -> io::Result<()>
+    where W: Write, A: crate::message::Allocator
 {
     let mut packed_write = PackedWrite { inner: write };
     serialize::write_message(&mut packed_write, message)
@@ -377,10 +377,10 @@ mod tests {
     use std::io::Cursor;
     use quickcheck::{quickcheck, TestResult};
 
-    use {Word};
-    use message::{ReaderOptions};
-    use serialize::test::write_message_segments;
-    use serialize_packed::{PackedRead, PackedWrite};
+    use crate::{Word};
+    use crate::message::{ReaderOptions};
+    use crate::serialize::test::write_message_segments;
+    use crate::serialize_packed::{PackedRead, PackedWrite};
     use super::read_message;
 
     pub fn check_unpacks_to(packed: &[u8], unpacked: &[u8]) {
@@ -397,14 +397,14 @@ mod tests {
     pub fn check_packing(unpacked_unaligned: &[u8], packed: &[u8]) {
         // We need to make sure the unpacked bytes are aligned before
         // we pass them to a `PackedWrite`.
-        let mut unpacked_words = ::Word::allocate_zeroed_vec(unpacked_unaligned.len() / 8);
+        let mut unpacked_words = Word::allocate_zeroed_vec(unpacked_unaligned.len() / 8);
         Word::words_to_bytes_mut(&mut unpacked_words).copy_from_slice(unpacked_unaligned);
-        let unpacked = ::Word::words_to_bytes(&unpacked_words);
+        let unpacked = Word::words_to_bytes(&unpacked_words);
 
         // --------
         // write
 
-        let mut bytes : Vec<u8> = iter::repeat(0u8).take(packed.len()).collect();
+        let mut bytes: Vec<u8> = iter::repeat(0u8).take(packed.len()).collect();
         {
             let mut packed_write = PackedWrite { inner: &mut bytes[..] };
             packed_write.write(unpacked).unwrap();
@@ -447,7 +447,7 @@ mod tests {
     #[test]
     fn check_round_trip() {
         fn round_trip(segments: Vec<Vec<Word>>) -> TestResult {
-            use message::ReaderSegments;
+            use crate::message::ReaderSegments;
             if segments.len() == 0 { return TestResult::discard(); }
             let mut cursor = Cursor::new(Vec::new());
 

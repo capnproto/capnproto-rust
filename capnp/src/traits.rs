@@ -19,9 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use {Word, Result};
-use private::layout::{CapTable, ListReader, StructReader, StructBuilder, StructSize,
-                      PointerBuilder, PointerReader};
+use crate::{Word, Result};
+use crate::private::layout::{CapTable, ListReader, StructReader, StructBuilder, StructSize,
+                             PointerBuilder, PointerReader};
 
 use std::marker::PhantomData;
 
@@ -46,7 +46,7 @@ pub trait IntoInternalListReader<'a> {
 }
 
 pub trait FromPointerReader<'a> : Sized {
-    fn get_from_pointer(reader: &PointerReader<'a>, Option<&'a [Word]>) -> Result<Self>;
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [Word]>) -> Result<Self>;
 }
 
 /// Associated types hackery that allows us to reason about Cap'n Proto types
@@ -75,20 +75,20 @@ pub trait Pipelined {
 }
 
 pub trait FromPointerBuilder<'a> : Sized {
-    fn init_pointer(PointerBuilder<'a>, u32) -> Self;
+    fn init_pointer(builder: PointerBuilder<'a>, length: u32) -> Self;
     fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [Word]>) -> Result<Self>;
 }
 
 pub trait SetPointerBuilder<To> {
-    fn set_pointer_builder<'a>(PointerBuilder<'a>, Self, canonicalize: bool) -> Result<()>;
+    fn set_pointer_builder<'a>(builder: PointerBuilder<'a>, from: Self, canonicalize: bool) -> Result<()>;
 }
 
 pub trait Imbue<'a> {
-    fn imbue(&mut self, &'a CapTable);
+    fn imbue(&mut self, caps: &'a CapTable);
 }
 
 pub trait ImbueMut<'a> {
-    fn imbue_mut(&mut self, &'a mut CapTable);
+    fn imbue_mut(&mut self, caps: &'a mut CapTable);
 }
 
 pub trait HasTypeId {
@@ -100,7 +100,7 @@ pub trait ToU16 {
 }
 
 pub trait FromU16 : Sized {
-    fn from_u16(value: u16) -> ::std::result::Result<Self, ::NotInSchema>;
+    fn from_u16(value: u16) -> ::std::result::Result<Self, crate::NotInSchema>;
 }
 
 pub trait IndexMove<I, T> {

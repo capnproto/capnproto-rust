@@ -21,11 +21,11 @@
 
 //! List of enums.
 
-use traits::{FromPointerReader, FromPointerBuilder,
-             ToU16, FromU16, ListIter, IndexMove};
-use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
-                      TwoBytes, PrimitiveElement};
-use {NotInSchema, Result};
+use crate::traits::{FromPointerReader, FromPointerBuilder,
+                    ToU16, FromU16, ListIter, IndexMove};
+use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
+                             TwoBytes, PrimitiveElement};
+use crate::{NotInSchema, Result};
 
 use std::marker::PhantomData;
 
@@ -34,7 +34,7 @@ pub struct Owned<T> {
     marker: PhantomData<T>,
 }
 
-impl <'a, T> ::traits::Owned<'a> for Owned<T> where T: FromU16 {
+impl <'a, T> crate::traits::Owned<'a> for Owned<T> where T: FromU16 {
     type Reader = Reader<'a, T>;
     type Builder = Builder<'a, T>;
 }
@@ -59,7 +59,7 @@ impl <'a, T: FromU16> Reader<'a, T> {
 }
 
 impl <'a, T : FromU16> FromPointerReader<'a> for Reader<'a, T> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [::Word]>) -> Result<Reader<'a, T>> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader: reader.get_list(TwoBytes, default)?,
                     marker: PhantomData })
     }
@@ -79,7 +79,7 @@ impl <'a, T : FromU16> Reader<'a, T> {
     }
 }
 
-impl <'a, T> ::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: PrimitiveElement {
+impl <'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: PrimitiveElement {
     fn into_internal_list_reader(self) -> ListReader<'a> {
         self.reader
     }
@@ -112,7 +112,7 @@ impl <'a, T : FromU16> FromPointerBuilder<'a> for Builder<'a, T> {
         Builder { builder: builder.init_list(TwoBytes, size),
                   marker: PhantomData }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a, T>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a, T>> {
         Ok(Builder { builder: builder.get_list(TwoBytes, default)?,
                      marker: PhantomData })
     }
@@ -130,8 +130,8 @@ impl <'a, T : ToU16 + FromU16>  Builder<'a, T> {
     }
 }
 
-impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
-    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
+impl <'a, T> crate::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T> {
+    fn set_pointer_builder<'b>(pointer: crate::private::layout::PointerBuilder<'b>,
                                value: Reader<'a, T>,
                                canonicalize: bool) -> Result<()> {
         pointer.set_list(&value.reader, canonicalize)

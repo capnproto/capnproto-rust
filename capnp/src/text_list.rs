@@ -21,14 +21,14 @@
 
 //! List of strings containing UTF-8 encoded text.
 
-use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
-use private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
-use Result;
+use crate::traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
+use crate::private::layout::{ListBuilder, ListReader, Pointer, PointerBuilder, PointerReader};
+use crate::Result;
 
 #[derive(Copy, Clone)]
 pub struct Owned;
 
-impl <'a> ::traits::Owned<'a> for Owned {
+impl <'a> crate::traits::Owned<'a> for Owned {
     type Reader = Reader<'a>;
     type Builder = Builder<'a>;
 }
@@ -45,32 +45,32 @@ impl <'a> Reader<'a> {
 
     pub fn len(&self) -> u32 { self.reader.len() }
 
-    pub fn iter(self) -> ListIter<Reader<'a>, Result<::text::Reader<'a>>>{
+    pub fn iter(self) -> ListIter<Reader<'a>, Result<crate::text::Reader<'a>>>{
         let l = self.len();
         ListIter::new(self, l)
     }
 }
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [::Word]>) -> Result<Reader<'a>> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
         Ok(Reader { reader : reader.get_list(Pointer, default)? })
     }
 }
 
-impl <'a>  IndexMove<u32, Result<::text::Reader<'a>>> for Reader<'a>{
-    fn index_move(&self, index : u32) -> Result<::text::Reader<'a>> {
+impl <'a>  IndexMove<u32, Result<crate::text::Reader<'a>>> for Reader<'a>{
+    fn index_move(&self, index : u32) -> Result<crate::text::Reader<'a>> {
         self.get(index)
     }
 }
 
 impl <'a> Reader<'a> {
-    pub fn get(self, index : u32) -> Result<::text::Reader<'a>> {
+    pub fn get(self, index : u32) -> Result<crate::text::Reader<'a>> {
         assert!(index <  self.len());
         self.reader.get_pointer_element(index).get_text(None)
     }
 }
 
-impl <'a> ::traits::IntoInternalListReader<'a> for Reader<'a> {
+impl <'a> crate::traits::IntoInternalListReader<'a> for Reader<'a> {
     fn into_internal_list_reader(self) -> ListReader<'a> {
         self.reader
     }
@@ -87,7 +87,7 @@ impl <'a> Builder<'a> {
 
     pub fn len(&self) -> u32 { self.builder.len() }
 
-    pub fn set(&mut self, index: u32, value: ::text::Reader) {
+    pub fn set(&mut self, index: u32, value: crate::text::Reader) {
         assert!(index < self.len());
         self.builder.borrow().get_pointer_element(index).set_text(value);
     }
@@ -108,7 +108,7 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
             builder: builder.init_list(Pointer, size)
         }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a>> {
         Ok(Builder {
             builder: builder.get_list(Pointer, default)?
         })
@@ -116,13 +116,13 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
 }
 
 impl <'a> Builder<'a> {
-    pub fn get(self, index: u32) -> Result<::text::Builder<'a>> {
+    pub fn get(self, index: u32) -> Result<crate::text::Builder<'a>> {
         self.builder.get_pointer_element(index).get_text(None)
     }
 }
 
-impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
+impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+    fn set_pointer_builder<'b>(pointer: crate::private::layout::PointerBuilder<'b>,
                                value: Reader<'a>,
                                canonicalize: bool) -> Result<()> {
         pointer.set_list(&value.reader, canonicalize)
@@ -130,7 +130,7 @@ impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
 }
 
 impl <'a> ::std::iter::IntoIterator for Reader<'a> {
-    type Item = Result<::text::Reader<'a>>;
+    type Item = Result<crate::text::Reader<'a>>;
     type IntoIter = ListIter<Reader<'a>, Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {

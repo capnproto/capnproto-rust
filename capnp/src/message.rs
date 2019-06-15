@@ -23,12 +23,12 @@
 
 use std::convert::From;
 
-use any_pointer;
-use private::arena::{BuilderArenaImpl, ReaderArenaImpl, BuilderArena, ReaderArena};
-use private::layout;
-use private::units::BYTES_PER_WORD;
-use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder, Owned};
-use {OutputSegments, Result, Word};
+use crate::any_pointer;
+use crate::private::arena::{BuilderArenaImpl, ReaderArenaImpl, BuilderArena, ReaderArena};
+use crate::private::layout;
+use crate::private::units::BYTES_PER_WORD;
+use crate::traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder, Owned};
+use crate::{OutputSegments, Result, Word};
 
 /// Options controlling how data is read.
 #[derive(Clone, Copy, Debug)]

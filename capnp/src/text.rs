@@ -23,12 +23,12 @@
 
 use std::{convert, str, ops};
 
-use {Error, Result};
+use crate::{Error, Result};
 
 #[derive(Copy, Clone)]
 pub struct Owned(());
 
-impl<'a> ::traits::Owned<'a> for Owned {
+impl<'a> crate::traits::Owned<'a> for Owned {
     type Reader = Reader<'a>;
     type Builder = Builder<'a>;
 }
@@ -43,8 +43,8 @@ pub fn new_reader<'a>(v : &'a [u8]) -> Result<Reader<'a>> {
     }
 }
 
-impl <'a> ::traits::FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &::private::layout::PointerReader<'a>, default: Option<&'a [::Word]>) -> Result<Reader<'a>> {
+impl <'a> crate::traits::FromPointerReader<'a> for Reader<'a> {
+    fn get_from_pointer(reader: &crate::private::layout::PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
         reader.get_text(default)
     }
 }
@@ -109,17 +109,17 @@ impl <'a> convert::AsRef<str> for Builder<'a> {
     }
 }
 
-impl <'a> ::traits::FromPointerBuilder<'a> for Builder<'a> {
-    fn init_pointer(builder: ::private::layout::PointerBuilder<'a>, size: u32) -> Builder<'a> {
+impl <'a> crate::traits::FromPointerBuilder<'a> for Builder<'a> {
+    fn init_pointer(builder: crate::private::layout::PointerBuilder<'a>, size: u32) -> Builder<'a> {
         builder.init_text(size)
     }
-    fn get_from_pointer(builder: ::private::layout::PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a>> {
+    fn get_from_pointer(builder: crate::private::layout::PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a>> {
         builder.get_text(default)
     }
 }
 
-impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
+impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+    fn set_pointer_builder<'b>(pointer: crate::private::layout::PointerBuilder<'b>,
                                value: Reader<'a>,
                                _canonicalize: bool)
                                -> Result<()>

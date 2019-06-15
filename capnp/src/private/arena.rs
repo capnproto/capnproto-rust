@@ -22,10 +22,10 @@ use std::cell::{Cell, RefCell};
 use std::slice;
 use std::u64;
 
-use private::units::*;
-use message;
-use message::{Allocator, ReaderSegments};
-use {Error, OutputSegments, Result, Word};
+use crate::private::units::*;
+use crate::message;
+use crate::message::{Allocator, ReaderSegments};
+use crate::{Error, OutputSegments, Result, Word};
 
 pub type SegmentId = u32;
 

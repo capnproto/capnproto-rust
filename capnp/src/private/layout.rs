@@ -23,15 +23,15 @@ use std::mem;
 use std::ptr;
 use std::cell::Cell;
 
-use data;
-use text;
-use private::capability::{ClientHook};
-use private::arena::{BuilderArena, ReaderArena, NullArena, SegmentId};
-use private::endian::{WireValue, Endian};
-use private::mask::Mask;
-use private::units::*;
-use private::zero;
-use {MessageSize, Result, Word};
+use crate::data;
+use crate::text;
+use crate::private::capability::{ClientHook};
+use crate::private::arena::{BuilderArena, ReaderArena, NullArena, SegmentId};
+use crate::private::endian::{WireValue, Endian};
+use crate::private::mask::Mask;
+use crate::private::units::*;
+use crate::private::zero;
+use crate::{MessageSize, Result, Word};
 
 pub use self::ElementSize::{Void, Bit, Byte, TwoBytes, FourBytes, EightBytes, Pointer, InlineComposite};
 
@@ -312,17 +312,17 @@ impl WirePointer {
 mod wire_helpers {
     use std::{mem, ptr, slice};
 
-    use private::capability::ClientHook;
-    use private::arena::*;
-    use private::layout::{
+    use crate::private::capability::ClientHook;
+    use crate::private::arena::*;
+    use crate::private::layout::{
         CapTableBuilder, CapTableReader, ElementSize, ListBuilder, ListReader,
         StructBuilder, StructReader, StructSize, WirePointer, WirePointerKind};
-    use private::layout::{data_bits_per_element, pointers_per_element};
-    use private::layout::ElementSize::*;
-    use private::units::*;
-    use data;
-    use text;
-    use {Error, MessageSize, Result, Word};
+    use crate::private::layout::{data_bits_per_element, pointers_per_element};
+    use crate::private::layout::ElementSize::*;
+    use crate::private::units::*;
+    use crate::data;
+    use crate::text;
+    use crate::{Error, MessageSize, Result, Word};
 
     pub struct SegmentAnd<T> {
         #[allow(dead_code)]
@@ -2539,14 +2539,14 @@ impl <'a> PointerReader<'a> {
 
             match unsafe { (*reff).kind() } {
                 WirePointerKind::Far =>
-                    Err(::Error::failed(format!("Unexpected FAR pointer"))),
+                    Err(crate::Error::failed(format!("Unexpected FAR pointer"))),
                 WirePointerKind::Struct => Ok(PointerType::Struct),
                 WirePointerKind::List => Ok(PointerType::List),
                 WirePointerKind::Other => {
                     if unsafe { (*reff).is_capability() } {
                         Ok(PointerType::Capability)
                     } else {
-                        Err(::Error::failed(format!("Unknown pointer type")))
+                        Err(crate::Error::failed(format!("Unknown pointer type")))
                     }
                 }
             }
@@ -3081,7 +3081,7 @@ impl <'a> StructBuilder<'a> {
             // (but ignore empty sections).
             if (shared_data_size == 0 || other.data == self.data) &&
                 (shared_pointer_count == 0 || other.pointers == self.pointers) {
-                return Err(::Error::failed(format!("Only one of the section pointers is pointing to ourself")))
+                return Err(crate::Error::failed(format!("Only one of the section pointers is pointing to ourself")))
             }
 
             // So `other` appears to be a reader for this same struct. No copying is needed.

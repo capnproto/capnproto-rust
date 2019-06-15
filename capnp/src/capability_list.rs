@@ -22,18 +22,18 @@
 
 use std::marker::PhantomData;
 
-use capability::{FromClientHook};
-use private::capability::ClientHook;
-use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
-use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
-use Result;
+use crate::capability::{FromClientHook};
+use crate::private::capability::ClientHook;
+use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder, Pointer};
+use crate::traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
+use crate::Result;
 
 #[derive(Copy, Clone)]
 pub struct Owned<T> where T: FromClientHook {
     marker: PhantomData<T>,
 }
 
-impl<'a, T> ::traits::Owned<'a> for Owned<T> where T: FromClientHook {
+impl<'a, T> crate::traits::Owned<'a> for Owned<T> where T: FromClientHook {
     type Reader = Reader<'a, T>;
     type Builder = Builder<'a, T>;
 }
@@ -70,7 +70,7 @@ impl <'a, T> Reader<'a, T> where T: FromClientHook {
 }
 
 impl <'a, T> FromPointerReader<'a> for Reader<'a, T> where T: FromClientHook {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [::Word]>) -> Result<Reader<'a, T>> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader: reader.get_list(Pointer, default)?,
                     marker: PhantomData })
     }
@@ -127,7 +127,7 @@ impl <'a, T> FromPointerBuilder<'a> for Builder<'a, T> where T: FromClientHook {
             builder: builder.init_list(Pointer, size),
         }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a, T>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a, T>> {
         Ok(Builder {
             marker: PhantomData,
             builder: builder.get_list(Pointer, default)?
@@ -142,10 +142,10 @@ impl <'a, T> Builder<'a, T> where T: FromClientHook {
     }
 }
 
-impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
+impl <'a, T> crate::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     where T: FromClientHook
 {
-    fn set_pointer_builder<'b>(pointer: ::private::layout::PointerBuilder<'b>,
+    fn set_pointer_builder<'b>(pointer: crate::private::layout::PointerBuilder<'b>,
                                value: Reader<'a, T>,
                                canonicalize: bool) -> Result<()> {
         pointer.set_list(&value.reader, canonicalize)

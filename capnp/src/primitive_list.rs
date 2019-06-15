@@ -23,17 +23,17 @@
 
 use std::{marker};
 
-use traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
-use private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
-                      PrimitiveElement};
-use Result;
+use crate::traits::{FromPointerReader, FromPointerBuilder, IndexMove, ListIter};
+use crate::private::layout::{ListReader, ListBuilder, PointerReader, PointerBuilder,
+                             PrimitiveElement};
+use crate::Result;
 
 #[derive(Clone, Copy)]
 pub struct Owned<T> {
     marker: marker::PhantomData<T>,
 }
 
-impl <'a, T> ::traits::Owned<'a> for Owned<T> where T: PrimitiveElement {
+impl <'a, T> crate::traits::Owned<'a> for Owned<T> where T: PrimitiveElement {
     type Reader = Reader<'a, T>;
     type Builder = Builder<'a, T>;
 }
@@ -58,7 +58,7 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
 }
 
 impl <'a, T: PrimitiveElement> FromPointerReader<'a> for Reader<'a, T> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [::Word]>) -> Result<Reader<'a, T>> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a, T>> {
         Ok(Reader { reader: reader.get_list(T::element_size(), default)?,
                     marker: marker::PhantomData })
     }
@@ -77,7 +77,7 @@ impl <'a, T: PrimitiveElement> Reader<'a, T> {
     }
 }
 
-impl <'a, T> ::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: PrimitiveElement {
+impl <'a, T> crate::traits::IntoInternalListReader<'a> for Reader<'a, T> where T: PrimitiveElement {
     fn into_internal_list_reader(self) -> ListReader<'a> {
         self.reader
     }
@@ -112,7 +112,7 @@ impl <'a, T: PrimitiveElement> FromPointerBuilder<'a> for Builder<'a, T> {
         Builder { builder: builder.init_list(T::element_size(), size),
                   marker: marker::PhantomData }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a, T>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a, T>> {
         Ok(Builder { builder: builder.get_list(T::element_size(), default)?,
                      marker: marker::PhantomData })
     }
@@ -129,7 +129,7 @@ impl <'a, T : PrimitiveElement> Builder<'a, T> {
     }
 }
 
-impl <'a, T> ::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
+impl <'a, T> crate::traits::SetPointerBuilder<Builder<'a, T>> for Reader<'a, T>
     where T: PrimitiveElement
 {
     fn set_pointer_builder<'b>(pointer: PointerBuilder<'b>,

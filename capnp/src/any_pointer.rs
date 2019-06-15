@@ -21,21 +21,21 @@
 
 //! Dynamically typed value.
 
-use capability::FromClientHook;
-use private::capability::{ClientHook, PipelineHook, PipelineOp};
-use private::layout::{PointerReader, PointerBuilder};
-use traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
-use Result;
+use crate::capability::FromClientHook;
+use crate::private::capability::{ClientHook, PipelineHook, PipelineOp};
+use crate::private::layout::{PointerReader, PointerBuilder};
+use crate::traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder};
+use crate::Result;
 
 #[derive(Copy, Clone)]
 pub struct Owned(());
 
-impl <'a> ::traits::Owned<'a> for Owned {
+impl <'a> crate::traits::Owned<'a> for Owned {
     type Reader = Reader<'a>;
     type Builder = Builder<'a>;
 }
 
-impl ::traits::Pipelined for Owned {
+impl crate::traits::Pipelined for Owned {
     type Pipeline = Pipeline;
 }
 
@@ -56,7 +56,7 @@ impl <'a> Reader<'a> {
     }
 
     /// Gets the total size of the target and all of its children. Does not count far pointer overhead.
-    pub fn target_size(&self) -> Result<::MessageSize> {
+    pub fn target_size(&self) -> Result<crate::MessageSize> {
         self.reader.total_size()
     }
 
@@ -88,7 +88,7 @@ impl <'a> Reader<'a> {
 }
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a[::Word]>) -> Result<Reader<'a>> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a[crate::Word]>) -> Result<Reader<'a>> {
         if default.is_some() {
             panic!("Unsupported: any_pointer with a default value.");
         }
@@ -96,17 +96,17 @@ impl <'a> FromPointerReader<'a> for Reader<'a> {
     }
 }
 
-impl <'a> ::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
-    fn set_pointer_builder<'b>(mut pointer: ::private::layout::PointerBuilder<'b>,
+impl <'a> crate::traits::SetPointerBuilder<Builder<'a>> for Reader<'a> {
+    fn set_pointer_builder<'b>(mut pointer: crate::private::layout::PointerBuilder<'b>,
                                value: Reader<'a>,
                                canonicalize: bool) -> Result<()> {
         pointer.copy_from(value.reader, canonicalize)
     }
 }
 
-impl <'a> ::traits::Imbue<'a> for Reader<'a> {
-    fn imbue(&mut self, cap_table: &'a ::private::layout::CapTable) {
-        self.reader.imbue(::private::layout::CapTableReader::Plain(cap_table));
+impl <'a> crate::traits::Imbue<'a> for Reader<'a> {
+    fn imbue(&mut self, cap_table: &'a crate::private::layout::CapTable) {
+        self.reader.imbue(crate::private::layout::CapTableReader::Plain(cap_table));
     }
 }
 
@@ -129,7 +129,7 @@ impl <'a> Builder<'a> {
     }
 
     /// Gets the total size of the target and all of its children. Does not count far pointer overhead.
-    pub fn target_size(&self) -> Result<::MessageSize> {
+    pub fn target_size(&self) -> Result<crate::MessageSize> {
         self.builder.into_reader().total_size()
     }
 
@@ -171,7 +171,7 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
         }
         Builder { builder: builder }
     }
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [::Word]>) -> Result<Builder<'a>> {
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Builder<'a>> {
         if default.is_some() {
             panic!("AnyPointer defaults are unsupported")
         }
@@ -179,9 +179,9 @@ impl <'a> FromPointerBuilder<'a> for Builder<'a> {
     }
 }
 
-impl <'a> ::traits::ImbueMut<'a> for Builder<'a> {
-    fn imbue_mut(&mut self, cap_table: &'a mut ::private::layout::CapTable) {
-        self.builder.imbue(::private::layout::CapTableBuilder::Plain(cap_table));
+impl <'a> crate::traits::ImbueMut<'a> for Builder<'a> {
+    fn imbue_mut(&mut self, cap_table: &'a mut crate::private::layout::CapTable) {
+        self.builder.imbue(crate::private::layout::CapTableBuilder::Plain(cap_table));
     }
 }
 
@@ -215,7 +215,7 @@ impl Pipeline {
     }
 }
 
-impl ::capability::FromTypelessPipeline for Pipeline {
+impl crate::capability::FromTypelessPipeline for Pipeline {
     fn new(typeless: Pipeline) -> Pipeline {
         typeless
     }
@@ -223,22 +223,22 @@ impl ::capability::FromTypelessPipeline for Pipeline {
 
 #[test]
 fn init_clears_value() {
-    let mut message = ::message::Builder::new_default();
+    let mut message = crate::message::Builder::new_default();
     {
-        let root: ::any_pointer::Builder = message.init_root();
-        let mut list: ::primitive_list::Builder<u16> = root.initn_as(10);
+        let root: crate::any_pointer::Builder = message.init_root();
+        let mut list: crate::primitive_list::Builder<u16> = root.initn_as(10);
         for idx in 0..10 {
             list.set(idx, idx as u16);
         }
     }
 
     {
-        let root: ::any_pointer::Builder = message.init_root();
+        let root: crate::any_pointer::Builder = message.init_root();
         assert!(root.is_null());
     }
 
     let mut output: Vec<u8> = Vec::new();
-    ::serialize::write_message(&mut output, &mut message).unwrap();
+    crate::serialize::write_message(&mut output, &mut message).unwrap();
     assert_eq!(output.len(), 40);
     for byte in &output[8..] {
         // Everything not in the message header is zero.

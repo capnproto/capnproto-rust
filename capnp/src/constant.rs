@@ -25,10 +25,10 @@
 
 use std::marker::PhantomData;
 
-use any_pointer;
-use private::layout::PointerReader;
-use traits::Owned;
-use {Result, Word};
+use crate::any_pointer;
+use crate::private::layout::PointerReader;
+use crate::traits::Owned;
+use crate::{Result, Word};
 
 #[derive(Copy, Clone)]
 pub struct Reader<T> {

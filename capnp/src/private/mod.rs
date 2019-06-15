@@ -23,7 +23,7 @@
 //!
 //! We still need to make this module visible so that generated code can use it.
 
-use Word;
+use crate::Word;
 
 pub mod arena;
 pub mod capability;

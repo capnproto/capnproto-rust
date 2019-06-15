@@ -24,8 +24,8 @@
 
 use std::io::{Read, Write};
 
-use message;
-use {Error, Result, Word};
+use crate::message;
+use crate::{Error, Result, Word};
 
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -55,9 +55,9 @@ pub fn read_message_from_words<'a>(slice: &'a [Word],
                                    options: message::ReaderOptions)
                                    -> Result<message::Reader<SliceSegments<'a>>>
 {
-    let mut bytes = ::Word::words_to_bytes(slice);
+    let mut bytes = crate::Word::words_to_bytes(slice);
     let (num_words, offsets) = read_segment_table(&mut bytes, options)?;
-    let words = unsafe { ::Word::bytes_to_words(bytes) };
+    let words = unsafe { crate::Word::bytes_to_words(bytes) };
     if num_words != words.len() {
         Err(Error::failed(
             format!("Wrong number of words. Header claimed {} words, but message has {} words",
@@ -72,7 +72,7 @@ pub struct OwnedSegments {
     owned_space : Vec<Word>,
 }
 
-impl ::message::ReaderSegments for OwnedSegments {
+impl crate::message::ReaderSegments for OwnedSegments {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
         if id < self.segment_slices.len() as u32 {
             let (a, b) = self.segment_slices[id as usize];
@@ -168,7 +168,7 @@ where R: Read {
     let mut owned_space: Vec<Word> = Word::allocate_zeroed_vec(total_words);
     read.read_exact(Word::words_to_bytes_mut(&mut owned_space[..]))?;
     let segments = OwnedSegments {segment_slices: segment_slices, owned_space: owned_space};
-    Ok(::message::Reader::new(segments, options))
+    Ok(crate::message::Reader::new(segments, options))
 }
 
 /// Constructs a flat vector containing the entire message.
@@ -190,10 +190,10 @@ fn flatten_segments<R: message::ReaderSegments + ?Sized>(segments: &R) -> Vec<Wo
     let table_size = segment_count / 2 + 1;
     let mut result = Vec::with_capacity(word_count);
     for _ in 0..table_size {
-        result.push(::word(0,0,0,0,0,0,0,0));
+        result.push(crate::word(0,0,0,0,0,0,0,0));
     }
     {
-        let mut bytes = ::Word::words_to_bytes_mut(&mut result[..]);
+        let mut bytes = crate::Word::words_to_bytes_mut(&mut result[..]);
         write_segment_table_internal(&mut bytes, segments).expect("Failed to write segment table.");
     }
     for i in 0..segment_count {
@@ -290,8 +290,8 @@ fn compute_serialized_size<R: message::ReaderSegments + ?Sized>(segments: &R) ->
 }
 
 /// Returns the number of words required to serialize the message.
-pub fn compute_serialized_size_in_words<A>(message: &::message::Builder<A>) -> usize
-    where A: ::message::Allocator
+pub fn compute_serialized_size_in_words<A>(message: &crate::message::Builder<A>) -> usize
+    where A: crate::message::Allocator
 {
     compute_serialized_size(&message.get_segments_for_output())
 }
@@ -303,9 +303,9 @@ pub mod test {
 
     use quickcheck::{quickcheck, TestResult};
 
-    use {Word};
-    use message;
-    use message::ReaderSegments;
+    use crate::{Word};
+    use crate::message;
+    use crate::message::ReaderSegments;
     use super::{read_message, read_message_from_words, flatten_segments,
                 read_segment_table, write_segment_table, write_segments};
 
@@ -410,9 +410,9 @@ pub mod test {
 
         let mut buf = vec![];
 
-        let segment_0 = [::word(0,0,0,0,0,0,0,0); 0];
-        let segment_1 = [::word(1,1,1,1,1,1,1,1); 1];
-        let segment_199 = [::word(201,202,203,204,205,206,207,208); 199];
+        let segment_0 = [crate::word(0,0,0,0,0,0,0,0); 0];
+        let segment_1 = [crate::word(1,1,1,1,1,1,1,1); 1];
+        let segment_199 = [crate::word(201,202,203,204,205,206,207,208); 199];
 
         write_segment_table(&mut buf, &[&segment_0]).unwrap();
         assert_eq!(&[0,0,0,0,  // 1 segments
