@@ -1,10 +1,19 @@
+## v0.10.0
+- Simplify handling of pointer defaults by adding default parameter to FromPointerReader.
+- Add IntoInternalStructReader as a bound on OwnedStruct::Reader.
+- Remove capnp_word!() macro in favor of const fn ::capnp::word().
+- Remove deprecated items.
+- Update to 2018 edition.
+- Use dyn keyword for trait objects.
+- Update minimum required rustc version to 1.35.
+
 ## v0.9.5
 - Implement DerefMut for text::Builder
 - Add any_pointer_list and raw::get_struct_pointer_section().
 - Add support for point field defaults.
 
 ## v0.9.4
-- Add optional rpc_try feature, impelemnting std::ops::Try for Promise.
+- Add optional rpc_try feature, implementing std::ops::Try for Promise.
 - Add 'raw' module with get_struct_data_section(), get_list_bytes(), and other functions.
 - Avoid potential undefined behavior in canonicalizaion.
 - Update a bunch of internal usages of `try!()` to `?`.

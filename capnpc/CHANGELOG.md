@@ -1,3 +1,12 @@
+### v0.10.0
+- Simplify handling of pointer defaults.
+- Use new const fn ::capnp::word() instead of capnp_word!() macro.
+- Remove deprecated items.
+- Use dyn keyword for trait objects.
+- Deprecate edition() configuration. Apparently the code we generate for Rust 2018 also works for Rust 2015 now.
+- Update to 2018 edition.
+- Update minimum required rustc version to 1.35.
+
 ### v0.9.5
 - Fix bug in code generation for generic interfaces.
 
