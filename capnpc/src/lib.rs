@@ -34,7 +34,7 @@
 //! build = "build.rs"
 //!
 //! [build-dependencies]
-//! capnpc = "0.9"
+//! capnpc = "0.10"
 //! ```
 //!
 //! In your build.rs:
@@ -61,7 +61,7 @@
 extern crate capnp;
 
 /// Code generated from [schema.capnp]
-/// (https://github.com/sandstorm-io/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
+/// (https://github.com/capnproto/capnproto/blob/master/c%2B%2B/src/capnp/schema.capnp).
 pub mod schema_capnp;
 
 pub mod codegen;
