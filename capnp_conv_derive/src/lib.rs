@@ -54,7 +54,11 @@ fn gen_type_write(field: &syn::Field) -> TokenStream {
                 };
             }
 
-            unimplemented!();
+            // Generic type:
+            let init_method = syn::Ident::new(&format!("init_{}", &name), name.span());
+            quote_spanned! {field.span() =>
+                self.#name.write_capnp(&mut writer.reborrow().#init_method());
+            }
         }
         _ => unimplemented!(),
     }
@@ -95,7 +99,11 @@ fn gen_type_read(field: &syn::Field) -> TokenStream {
                 };
             }
 
-            unimplemented!();
+            // Generic type:
+            let get_method = syn::Ident::new(&format!("get_{}", &name), name.span());
+            quote_spanned! {field.span() =>
+                #name: #type_path::read_capnp(&reader.#get_method()?)?
+            }
         }
         _ => unimplemented!(),
     }

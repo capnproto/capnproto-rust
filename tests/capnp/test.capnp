@@ -1,8 +1,8 @@
 @0xc90daeac68e62b2a;
 
-#       struct TestStructInner {
-#               innerU8 @0: UInt8;
-#       }
+struct TestStructInner {
+        innerU8 @0: UInt8;
+}
 
 struct TestStruct {
     myBool @0: Bool;
@@ -17,6 +17,7 @@ struct TestStruct {
     # my_float32: f32,
     # my_float64: f64,
     myText @9: Text;
+    structInner @10: TestStructInner;
     # myData @10: Data;
     # myList @11: List(TestStructInner);
 }
