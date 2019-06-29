@@ -36,7 +36,7 @@ fn is_primitive(path: &syn::Path) -> bool {
 /// Check if the path represents a Vec<u8>
 fn is_data(path: &syn::Path) -> bool {
     let last_segment = match path.segments.last().unwrap() {
-        syn::punctuated::Pair::End(last_ident) => last_ident,
+        syn::punctuated::Pair::End(last_segment) => last_segment,
         _ => unreachable!(),
     };
     if &last_segment.ident.to_string() != "Vec" {
@@ -75,18 +75,14 @@ fn is_data(path: &syn::Path) -> bool {
 
 /// Check if the path represents a Vec<SomeStruct>, where SomeStruct != u8
 fn is_list(path: &syn::Path) -> bool {
-    if !path.is_ident("Vec") {
-        return false;
-    }
-    // Could be a List, or Data.
-    // If this is Vec<u8>, we decide that it is Data. Otherwise we decide it is a List.
-    //
-    let last_ident = match path.segments.last().unwrap() {
-        syn::punctuated::Pair::End(last_ident) => last_ident,
+    let last_segment = match path.segments.last().unwrap() {
+        syn::punctuated::Pair::End(last_segment) => last_segment,
         _ => unreachable!(),
     };
-
-    let angle = match &last_ident.arguments {
+    if &last_segment.ident.to_string() != "Vec" {
+        return false;
+    }
+    let angle = match &last_segment.arguments {
         syn::PathArguments::AngleBracketed(angle) => {
             if angle.args.len() > 1 {
                 unreachable!("Too many arguments for Vec!");
@@ -110,6 +106,7 @@ fn is_list(path: &syn::Path) -> bool {
         _ => return false,
     };
 
+    // Make sure that we don't deal with Vec<u8>:
     if arg_ty_path.path.is_ident("u8") {
         return false;
     }
@@ -151,8 +148,19 @@ fn gen_type_write(field: &syn::Field) -> TokenStream {
             }
 
             if is_list(path) {
-                // List case:
-                unimplemented!();
+                let init_method = syn::Ident::new(&format!("init_{}", &name), name.span());
+                return quote_spanned! {field.span() =>
+                    let mut list_builder = writer
+                        .reborrow()
+                        .#init_method(usize_to_u32(self.#name.len()).unwrap());
+
+                    for (index, item) in self.#name.iter().enumerate() {
+                        let mut item_builder = list_builder
+                            .reborrow()
+                            .get(usize_to_u32(index).unwrap());
+                        item_builder.write_capnp(&mut item_builder);
+                    }
+                };
             }
 
             // Generic type:
@@ -325,6 +333,13 @@ pub fn capnp_conv(
     };
 
     let expanded = quote! {
+        pub fn usize_to_u32(num: usize) -> Option<u32> {
+            if num > std::u32::MAX as usize {
+                None
+            } else {
+                Some(num as u32)
+            }
+        }
         // Original structure
         #input
         // Generated mutual From conversion code:

@@ -19,5 +19,5 @@ struct TestStruct {
     myText @9: Text;
     myData @10: Data;
     structInner @11: TestStructInner;
-    # myList @11: List(TestStructInner);
+    myList @12: List(TestStructInner);
 }

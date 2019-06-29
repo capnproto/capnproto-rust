@@ -35,7 +35,7 @@ struct TestStruct {
     my_text: String,
     my_data: Vec<u8>,
     struct_inner: TestStructInner,
-    // my_list: Vec<TestStructInner>,
+    my_list: Vec<TestStructInner>,
 }
 
 #[test]
@@ -56,7 +56,11 @@ fn capnp_serialize_basic_struct() {
         my_text: "my_text".to_owned(),
         my_data: vec![1, 2, 3, 4, 5u8],
         struct_inner: TestStructInner { inner_u8: 1u8 },
-        // my_list: vec![TestStructInner { inner_u8: 1u8 }],
+        my_list: vec![
+            TestStructInner { inner_u8: 2u8 },
+            TestStructInner { inner_u8: 3u8 },
+            TestStructInner { inner_u8: 4u8 },
+        ],
     };
 
     let mut builder = capnp::message::Builder::new_default();
