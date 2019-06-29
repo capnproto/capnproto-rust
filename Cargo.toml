@@ -10,10 +10,10 @@ edition = "2018"
 log = "0.4"
 pretty_env_logger = "0.2"
 
-futures-preview = "0.3.0-alpha.16"
+capnp_conv_derive = { path = "capnp_conv_derive", version = "0.1.0", package = "offst-capnp-conv-derive" }
 
-byteorder = "1.1"
 capnp = "0.10.0"
 derive_more = "0.15.0"
 
-
+[build-dependencies]
+capnpc = "0.10.0"
