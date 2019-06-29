@@ -34,7 +34,7 @@ struct TestStruct {
     my_uint64: u64,
     // my_float32: f32,
     // my_float64: f64,
-    // my_text: String,
+    my_text: String,
     // my_data: Vec<u8>,
     // my_list: Vec<TestStructInner>,
 }
@@ -54,7 +54,7 @@ fn capnp_serialize_basic_struct() {
         my_uint64: 4u64,
         // my_float32: -0.5f32,
         // my_float64: 0.5f64,
-        // my_text: "my_text".to_owned(),
+        my_text: "my_text".to_owned(),
         // my_data: vec![1, 2, 3, 4, 5u8],
         // my_list: vec![TestStructInner { inner_u8: 1u8 }],
     };

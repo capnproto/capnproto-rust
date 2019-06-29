@@ -44,3 +44,21 @@ pub trait ReadCapnp<'a>: Sized {
     /// Converts a Capnp struct to corresponding Rust struct.     
     fn read_capnp(reader: &'a Self::ReaderType) -> Result<Self, CapnpConvError>;
 }
+
+// String implementation:
+impl<'a> WriteCapnp<'a> for String {
+    type WriterType = capnp::text::Builder<'a>;
+
+    fn write_capnp(&'a self, writer: &'a mut Self::WriterType) {
+        writer.push_str(&self);
+    }
+}
+
+impl<'a> ReadCapnp<'a> for String {
+    type ReaderType = capnp::text::Reader<'a>;
+
+    fn read_capnp(reader: &'a Self::ReaderType) -> Result<Self, CapnpConvError> {
+        // A text reader is actually a &str:
+        Ok(reader.to_string())
+    }
+}

@@ -16,7 +16,7 @@ struct TestStruct {
     myUint64 @8: UInt64;
     # my_float32: f32,
     # my_float64: f64,
-    # myText @9: Text;
+    myText @9: Text;
     # myData @10: Data;
     # myList @11: List(TestStructInner);
 }

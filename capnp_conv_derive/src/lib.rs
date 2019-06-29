@@ -19,16 +19,16 @@ use syn::spanned::Spanned;
 // use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
 use syn::{parse_macro_input, Data, DataEnum, DeriveInput, Fields, FieldsNamed, Ident, Path};
 
-fn is_primitive_type(ty: &syn::Type) -> bool {
-    match ty {
+fn gen_type_write(field: &syn::Field) -> TokenStream {
+    match &field.ty {
         syn::Type::Path(type_path) => {
-            // TODO: What is qself?
             if type_path.qself.is_some() {
-                return false;
+                // Self qualifier?
+                unimplemented!();
             }
 
             let path = &type_path.path;
-            path.is_ident("u8")
+            let is_primitive = path.is_ident("u8")
                 || path.is_ident("u16")
                 || path.is_ident("u32")
                 || path.is_ident("u64")
@@ -36,9 +36,68 @@ fn is_primitive_type(ty: &syn::Type) -> bool {
                 || path.is_ident("i16")
                 || path.is_ident("i32")
                 || path.is_ident("i64")
-                || path.is_ident("bool")
+                || path.is_ident("bool");
+
+            let name = &field.ident.as_ref().unwrap();
+
+            if is_primitive {
+                let set_method = syn::Ident::new(&format!("set_{}", &name), name.span());
+                return quote_spanned! {field.span() =>
+                    writer.reborrow().#set_method(self.#name);
+                };
+            }
+
+            if path.is_ident("String") {
+                let set_method = syn::Ident::new(&format!("set_{}", &name), name.span());
+                return quote_spanned! {field.span() =>
+                    writer.reborrow().#set_method(&self.#name);
+                };
+            }
+
+            unimplemented!();
         }
-        _ => false,
+        _ => unimplemented!(),
+    }
+}
+
+fn gen_type_read(field: &syn::Field) -> TokenStream {
+    match &field.ty {
+        syn::Type::Path(type_path) => {
+            if type_path.qself.is_some() {
+                // Self qualifier?
+                unimplemented!();
+            }
+
+            let path = &type_path.path;
+            let is_primitive = path.is_ident("u8")
+                || path.is_ident("u16")
+                || path.is_ident("u32")
+                || path.is_ident("u64")
+                || path.is_ident("i8")
+                || path.is_ident("i16")
+                || path.is_ident("i32")
+                || path.is_ident("i64")
+                || path.is_ident("bool");
+
+            let name = &field.ident.as_ref().unwrap();
+
+            if is_primitive {
+                let get_method = syn::Ident::new(&format!("get_{}", &name), name.span());
+                return quote_spanned! {field.span() =>
+                    #name: reader.#get_method()
+                };
+            }
+
+            if path.is_ident("String") {
+                let get_method = syn::Ident::new(&format!("get_{}", &name), name.span());
+                return quote_spanned! {field.span() =>
+                    #name: reader.#get_method()?.to_string()
+                };
+            }
+
+            unimplemented!();
+        }
+        _ => unimplemented!(),
     }
 }
 
@@ -47,22 +106,10 @@ fn gen_write_capnp_named_struct(
     rust_struct: &Ident,
     capnp_struct: &Path,
 ) -> TokenStream {
-    let recurse = fields_named.named.iter().map(|f| {
-        let name = &f.ident.as_ref().unwrap();
-        // let init_method_str = format!("init_", ident);
-
-        if is_primitive_type(&f.ty) {
-            let set_method = syn::Ident::new(&format!("set_{}", &name), name.span());
-            quote_spanned! {f.span() =>
-                writer.reborrow().#set_method(self.#name);
-            }
-        } else {
-            let init_method = syn::Ident::new(&format!("init_{}", &name), name.span());
-            quote_spanned! {f.span() =>
-                self.#name.write_capnp(&mut writer.reborrow().#init_method());
-            }
-        }
-    });
+    let recurse = fields_named
+        .named
+        .iter()
+        .map(|field| gen_type_write(&field));
 
     quote! {
         impl<'a> WriteCapnp<'a> for #rust_struct {
@@ -80,20 +127,7 @@ fn gen_read_capnp_named_struct(
     rust_struct: &Ident,
     capnp_struct: &Path,
 ) -> TokenStream {
-    let recurse = fields_named.named.iter().map(|f| {
-        let name = &f.ident.as_ref().unwrap();
-        let ty = &f.ty;
-        let get_method = syn::Ident::new(&format!("get_{}", &name), name.span());
-        if is_primitive_type(ty) {
-            quote_spanned! {f.span() =>
-                #name: reader.#get_method()
-            }
-        } else {
-            quote_spanned! {f.span() =>
-                #name: #ty::read_capnp(&reader.#get_method()?)?
-            }
-        }
-    });
+    let recurse = fields_named.named.iter().map(|field| gen_type_read(field));
 
     quote! {
         impl<'a> ReadCapnp<'a> for #rust_struct {
