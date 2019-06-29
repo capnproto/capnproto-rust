@@ -19,7 +19,7 @@ use syn::spanned::Spanned;
 // use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
 use syn::{parse_macro_input, Data, DataEnum, DeriveInput, Fields, FieldsNamed, Ident};
 
-fn gen_into_capnp_named_struct(
+fn gen_write_capnp_named_struct(
     fields_named: &FieldsNamed,
     rust_struct: &Ident,
     capnp_struct: &Ident,
@@ -44,7 +44,7 @@ fn gen_into_capnp_named_struct(
     }
 }
 
-fn gen_from_capnp_named_struct(
+fn gen_read_capnp_named_struct(
     fields_named: &FieldsNamed,
     rust_struct: &Ident,
     capnp_struct: &Ident,
@@ -70,7 +70,7 @@ fn gen_from_capnp_named_struct(
     }
 }
 
-fn gen_into_capnp_enum(
+fn gen_write_capnp_enum(
     _data_enum: &DataEnum,
     _rust_struct: &Ident,
     _capnp_struct: &Ident,
@@ -78,7 +78,7 @@ fn gen_into_capnp_enum(
     unimplemented!();
 }
 
-fn gen_from_capnp_enum(
+fn gen_read_capnp_enum(
     _data_enum: &DataEnum,
     _rust_struct: &Ident,
     _capnp_struct: &Ident,
@@ -110,14 +110,14 @@ pub fn capnp_conv(
                 //     x: u32,
                 //     y: u32,
                 // }
-                let into_capnp =
-                    gen_into_capnp_named_struct(fields_named, rust_struct, &capnp_struct);
-                let from_capnp =
-                    gen_from_capnp_named_struct(fields_named, rust_struct, &capnp_struct);
+                let write_capnp =
+                    gen_write_capnp_named_struct(fields_named, rust_struct, &capnp_struct);
+                let read_capnp =
+                    gen_read_capnp_named_struct(fields_named, rust_struct, &capnp_struct);
 
                 quote! {
-                    #into_capnp
-                    #from_capnp
+                    #write_capnp
+                    #read_capnp
                 }
             }
             Fields::Unnamed(_) | Fields::Unit => unimplemented!(),
@@ -129,12 +129,12 @@ pub fn capnp_conv(
             //     Type2,
             //     Type3(MyStruct),
             // }
-            let into_capnp = gen_into_capnp_enum(data_enum, rust_struct, &capnp_struct);
-            let from_capnp = gen_from_capnp_enum(data_enum, rust_struct, &capnp_struct);
+            let write_capnp = gen_write_capnp_enum(data_enum, rust_struct, &capnp_struct);
+            let read_capnp = gen_read_capnp_enum(data_enum, rust_struct, &capnp_struct);
 
             quote! {
-                #into_capnp
-                #from_capnp
+                #write_capnp
+                #read_capnp
             }
         }
         Data::Union(_) => unimplemented!(),
