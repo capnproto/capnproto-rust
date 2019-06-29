@@ -19,26 +19,26 @@ use capnp;
 use derive_more::From;
 
 #[derive(Debug, From)]
-pub enum SerCapnpError {
+pub enum CapnpConvError {
     CapnpError(capnp::Error),
     NotInSchema(capnp::NotInSchema),
     IoError(io::Error),
 }
 
 /// Convert Rust struct to Capnp.
-pub trait IntoCapnp {
+pub trait WriteCapnp {
     /// The corresponding Capnp writer type.
     type WriterType;
 
     /// Converts a Rust struct to corresponding Capnp struct. This should not fail.
-    fn into_capnp(self, writer_type: &mut Self::WriterType);
+    fn write_capnp(self, writer: &mut Self::WriterType);
 }
 
 /// Convert Capnp struct to Rust.
-pub trait FromCapnp: Sized {
+pub trait ReadCapnp: Sized {
     /// The corresponding Capnp reader type.
     type ReaderType;
 
     /// Converts a Capnp struct to corresponding Rust struct.     
-    fn from_capnp(object: &Self::ReaderType) -> Result<Self, SerCapnpError>;
+    fn read_capnp(reader: &Self::ReaderType) -> Result<Self, CapnpConvError>;
 }

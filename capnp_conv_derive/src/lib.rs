@@ -13,27 +13,61 @@
 
 extern crate proc_macro;
 
-// use quote::{quote, quote_spanned};
 use proc_macro2::TokenStream;
-use quote::quote;
-// use syn::spanned::Spanned;
+use quote::{quote, quote_spanned};
+use syn::spanned::Spanned;
 // use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
 use syn::{parse_macro_input, Data, DataEnum, DeriveInput, Fields, FieldsNamed, Ident};
 
 fn gen_into_capnp_named_struct(
-    _fields_named: &FieldsNamed,
-    _rust_struct: &Ident,
-    _capnp_struct: &Ident,
+    fields_named: &FieldsNamed,
+    rust_struct: &Ident,
+    capnp_struct: &Ident,
 ) -> TokenStream {
-    unimplemented!();
+    // let capnp_write = unimplemented!();
+
+    let recurse = fields_named.named.iter().map(|f| {
+        let name = &f.ident;
+        quote_spanned! {f.span() =>
+            self.#name.write_capnp(&mut writer.reborrow().init_#name());
+        }
+    });
+
+    quote! {
+        impl CapnpWriter for #rust_struct {
+            type WriterType = #capnp_struct::Writer;
+
+            fn write_capnp(self, writer: &mut Self::WriterType) {
+                #(#recurse)*
+            }
+        }
+    }
 }
 
 fn gen_from_capnp_named_struct(
-    _fields_named: &FieldsNamed,
-    _rust_struct: &Ident,
-    _capnp_struct: &Ident,
+    fields_named: &FieldsNamed,
+    rust_struct: &Ident,
+    capnp_struct: &Ident,
 ) -> TokenStream {
-    unimplemented!();
+    let recurse = fields_named.named.iter().map(|f| {
+        let name = &f.ident;
+        quote_spanned! {f.span() =>
+            // route: deser_friends_route(&route_capacity_rate_reader.get_route()?)?,
+            #name: TODO_TYPE_NAME::read_capnp(&reader.get_#name()?)?
+        }
+    });
+
+    quote! {
+        impl CapnpReader for #rust_struct {
+            type ReaderType = #capnp_struct::Reader;
+
+            fn read_capnp(reader: &mut Self::ReaderType) {
+                Ok(#rust_struct {
+                    #(#recurse,)*
+                })
+            }
+        }
+    }
 }
 
 fn gen_into_capnp_enum(
