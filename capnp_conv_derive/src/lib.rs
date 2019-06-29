@@ -10,6 +10,7 @@
     clippy::module_inception,
     clippy::new_without_default
 )]
+#![allow(unreachable_code)]
 
 extern crate proc_macro;
 
@@ -18,6 +19,103 @@ use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
 // use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
 use syn::{parse_macro_input, Data, DataEnum, DeriveInput, Fields, FieldsNamed, Ident, Path};
+
+/// Is a primitive type?
+fn is_primitive(path: &syn::Path) -> bool {
+    path.is_ident("u8")
+        || path.is_ident("u16")
+        || path.is_ident("u32")
+        || path.is_ident("u64")
+        || path.is_ident("i8")
+        || path.is_ident("i16")
+        || path.is_ident("i32")
+        || path.is_ident("i64")
+        || path.is_ident("bool")
+}
+
+/// Check if the path represents a Vec<u8>
+fn is_data(path: &syn::Path) -> bool {
+    let last_segment = match path.segments.last().unwrap() {
+        syn::punctuated::Pair::End(last_ident) => last_ident,
+        _ => unreachable!(),
+    };
+    if &last_segment.ident.to_string() != "Vec" {
+        return false;
+    }
+    let angle = match &last_segment.arguments {
+        syn::PathArguments::AngleBracketed(angle) => {
+            if angle.args.len() > 1 {
+                unreachable!("Too many arguments for Vec!");
+            }
+            angle
+        }
+        _ => unreachable!("Vec with arguments that are not angle bracketed!"),
+    };
+    let last_arg = match angle.args.last().unwrap() {
+        syn::punctuated::Pair::End(last_arg) => last_arg,
+        _ => return false,
+    };
+
+    let arg_ty = match last_arg {
+        syn::GenericArgument::Type(arg_ty) => arg_ty,
+        _ => return false,
+    };
+
+    let arg_ty_path = match arg_ty {
+        syn::Type::Path(arg_ty_path) => arg_ty_path,
+        _ => return false,
+    };
+
+    if !arg_ty_path.path.is_ident("u8") {
+        return false;
+    }
+
+    true
+}
+
+/// Check if the path represents a Vec<SomeStruct>, where SomeStruct != u8
+fn is_list(path: &syn::Path) -> bool {
+    if !path.is_ident("Vec") {
+        return false;
+    }
+    // Could be a List, or Data.
+    // If this is Vec<u8>, we decide that it is Data. Otherwise we decide it is a List.
+    //
+    let last_ident = match path.segments.last().unwrap() {
+        syn::punctuated::Pair::End(last_ident) => last_ident,
+        _ => unreachable!(),
+    };
+
+    let angle = match &last_ident.arguments {
+        syn::PathArguments::AngleBracketed(angle) => {
+            if angle.args.len() > 1 {
+                unreachable!("Too many arguments for Vec!");
+            }
+            angle
+        }
+        _ => unreachable!("Vec with arguments that are not angle bracketed!"),
+    };
+    let last_arg = match angle.args.last().unwrap() {
+        syn::punctuated::Pair::End(last_arg) => last_arg,
+        _ => return false,
+    };
+
+    let arg_ty = match last_arg {
+        syn::GenericArgument::Type(arg_ty) => arg_ty,
+        _ => return false,
+    };
+
+    let arg_ty_path = match arg_ty {
+        syn::Type::Path(arg_ty_path) => arg_ty_path,
+        _ => return false,
+    };
+
+    if arg_ty_path.path.is_ident("u8") {
+        return false;
+    }
+
+    true
+}
 
 fn gen_type_write(field: &syn::Field) -> TokenStream {
     match &field.ty {
@@ -28,19 +126,10 @@ fn gen_type_write(field: &syn::Field) -> TokenStream {
             }
 
             let path = &type_path.path;
-            let is_primitive = path.is_ident("u8")
-                || path.is_ident("u16")
-                || path.is_ident("u32")
-                || path.is_ident("u64")
-                || path.is_ident("i8")
-                || path.is_ident("i16")
-                || path.is_ident("i32")
-                || path.is_ident("i64")
-                || path.is_ident("bool");
 
             let name = &field.ident.as_ref().unwrap();
 
-            if is_primitive {
+            if is_primitive(path) {
                 let set_method = syn::Ident::new(&format!("set_{}", &name), name.span());
                 return quote_spanned! {field.span() =>
                     writer.reborrow().#set_method(self.#name);
@@ -52,6 +141,18 @@ fn gen_type_write(field: &syn::Field) -> TokenStream {
                 return quote_spanned! {field.span() =>
                     writer.reborrow().#set_method(&self.#name);
                 };
+            }
+
+            if is_data(path) {
+                let set_method = syn::Ident::new(&format!("set_{}", &name), name.span());
+                return quote_spanned! {field.span() =>
+                    writer.reborrow().#set_method(&self.#name);
+                };
+            }
+
+            if is_list(path) {
+                // List case:
+                unimplemented!();
             }
 
             // Generic type:
@@ -73,19 +174,10 @@ fn gen_type_read(field: &syn::Field) -> TokenStream {
             }
 
             let path = &type_path.path;
-            let is_primitive = path.is_ident("u8")
-                || path.is_ident("u16")
-                || path.is_ident("u32")
-                || path.is_ident("u64")
-                || path.is_ident("i8")
-                || path.is_ident("i16")
-                || path.is_ident("i32")
-                || path.is_ident("i64")
-                || path.is_ident("bool");
 
             let name = &field.ident.as_ref().unwrap();
 
-            if is_primitive {
+            if is_primitive(path) {
                 let get_method = syn::Ident::new(&format!("get_{}", &name), name.span());
                 return quote_spanned! {field.span() =>
                     #name: reader.#get_method()
@@ -97,6 +189,18 @@ fn gen_type_read(field: &syn::Field) -> TokenStream {
                 return quote_spanned! {field.span() =>
                     #name: reader.#get_method()?.to_string()
                 };
+            }
+
+            if is_data(path) {
+                let get_method = syn::Ident::new(&format!("get_{}", &name), name.span());
+                return quote_spanned! {field.span() =>
+                    #name: reader.#get_method()?.to_vec()
+                };
+            }
+
+            if is_list(path) {
+                // List case:
+                unimplemented!();
             }
 
             // Generic type:

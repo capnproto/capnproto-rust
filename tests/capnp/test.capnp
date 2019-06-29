@@ -17,7 +17,7 @@ struct TestStruct {
     # my_float32: f32,
     # my_float64: f64,
     myText @9: Text;
-    structInner @10: TestStructInner;
-    # myData @10: Data;
+    myData @10: Data;
+    structInner @11: TestStructInner;
     # myList @11: List(TestStructInner);
 }
