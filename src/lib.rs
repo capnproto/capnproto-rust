@@ -78,7 +78,6 @@ where
     T: for<'a> ReadCapnp<'a>,
 {
     fn from_capnp_bytes(bytes: &[u8]) -> Result<Self, CapnpConvError> {
-        // Deserialize:
         let mut cursor = io::Cursor::new(&bytes);
         let reader = capnp::serialize_packed::read_message(
             &mut cursor,
