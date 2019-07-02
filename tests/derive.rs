@@ -53,8 +53,6 @@ struct TestStruct {
     my_uint16: u16,
     my_uint32: u32,
     my_uint64: u64,
-    // my_float32: f32,
-    // my_float64: f64,
     my_text: String,
     my_data: Vec<u8>,
     struct_inner: TestStructInner,
@@ -66,8 +64,7 @@ struct TestStruct {
 }
 
 #[test]
-fn capnp_serialize_basic_struct2() {
-    // Serialize:
+fn capnp_serialize_basic_struct() {
     let test_struct = TestStruct {
         my_bool: true,
         my_int8: -1i8,
@@ -78,8 +75,6 @@ fn capnp_serialize_basic_struct2() {
         my_uint16: 2u16,
         my_uint32: 3u32,
         my_uint64: 4u64,
-        // my_float32: -0.5f32,
-        // my_float64: 0.5f64,
         my_text: "my_text".to_owned(),
         my_data: vec![1, 2, 3, 4, 5u8],
         struct_inner: TestStructInner { inner_u8: 1u8 },
@@ -101,4 +96,35 @@ fn capnp_serialize_basic_struct2() {
     let test_struct2 = TestStruct::from_capnp_bytes(&data).unwrap();
 
     assert_eq!(test_struct, test_struct2);
+}
+
+#[capnp_conv(test_capnp::float_struct)]
+#[derive(Debug, Clone)]
+struct FloatStruct {
+    my_float32: f32,
+    my_float64: f64,
+}
+
+/// We test floats separately, because in Rust floats to not implement PartialEq
+#[test]
+fn capnp_serialize_floats() {
+    let float_struct = FloatStruct {
+        my_float32: -0.5f32,
+        my_float64: 0.5f64,
+    };
+
+    let data = float_struct.to_capnp_bytes().unwrap();
+    let float_struct2 = FloatStruct::from_capnp_bytes(&data).unwrap();
+
+    // Sloppily check that the floats are close enough (We can't compare them directly, as they
+    // don't implement PartialEq)
+    assert_eq!(
+        (float_struct.my_float32 * 10000.0).trunc(),
+        (float_struct2.my_float32 * 10000.0).trunc()
+    );
+
+    assert_eq!(
+        (float_struct.my_float64 * 10000.0).trunc(),
+        (float_struct2.my_float64 * 10000.0).trunc()
+    );
 }

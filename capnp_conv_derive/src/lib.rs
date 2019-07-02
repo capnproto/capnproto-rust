@@ -18,10 +18,7 @@ mod derive_enum;
 mod derive_struct;
 mod util;
 
-// use proc_macro2::TokenStream;
 use quote::quote;
-// use syn::spanned::Spanned;
-// use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Path};
 
 use self::derive_enum::{gen_read_capnp_enum, gen_write_capnp_enum};

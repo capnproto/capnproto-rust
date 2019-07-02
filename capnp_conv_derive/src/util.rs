@@ -13,6 +13,8 @@ pub fn is_primitive(path: &syn::Path) -> bool {
         || path.is_ident("i16")
         || path.is_ident("i32")
         || path.is_ident("i64")
+        || path.is_ident("f32")
+        || path.is_ident("f64")
         || path.is_ident("bool")
 }
 

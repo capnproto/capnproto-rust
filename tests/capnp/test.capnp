@@ -45,3 +45,8 @@ struct TestStruct {
     externalUnion @17: TestUnion;
     listUnion @18: ListUnion;
 }
+
+struct FloatStruct {
+    myFloat32 @0: Float32;
+    myFloat64 @1: Float64;
+}
