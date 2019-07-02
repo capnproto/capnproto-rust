@@ -1,5 +1,8 @@
 // use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
 
+use proc_macro2::TokenStream;
+use quote::quote;
+
 /// Is a primitive type?
 pub fn is_primitive(path: &syn::Path) -> bool {
     path.is_ident("u8")
@@ -100,4 +103,42 @@ pub fn get_list(path: &syn::Path) -> Option<syn::Path> {
     }
 
     Some(arg_ty_path.path.clone())
+}
+
+pub fn gen_list_write_iter(path: &syn::Path) -> TokenStream {
+    if is_primitive(path) || path.is_ident("String") || is_data(path) {
+        // A primitive list:
+        quote! {
+            list_builder
+                .reborrow()
+                .set(u32::try_from(index).unwrap(), item.clone());
+        }
+    } else {
+        // Not a primitive list:
+        quote! {
+            let mut item_builder = list_builder
+                .reborrow()
+                .get(u32::try_from(index).unwrap());
+
+            item.write_capnp(&mut item_builder);
+        }
+    }
+    // TODO: It seems like we do not support List(List(...)) at the moment.
+    // How to support it?
+}
+
+pub fn gen_list_read_iter(path: &syn::Path) -> TokenStream {
+    if is_primitive(path) || path.is_ident("String") || is_data(path) {
+        // A primitive list:
+        quote! {
+            res_vec.push(item_reader.into());
+        }
+    } else {
+        // Not a primitive list:
+        quote! {
+            res_vec.push(#path::read_capnp(&item_reader)?);
+        }
+    }
+    // TODO: It seems like we do not support List(List(...)) at the moment.
+    // How to support it?
 }

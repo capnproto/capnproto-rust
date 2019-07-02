@@ -57,6 +57,8 @@ pub trait FromCapnpBytes: Sized {
     fn from_capnp_bytes(bytes: &[u8]) -> Result<Self, CapnpConvError>;
 }
 
+/// A shim allowing to merge cases where either
+/// Result<T,Into<CapnoConvError>> or a T is returned.
 pub enum CapnpResult<T> {
     Ok(T),
     Err(CapnpConvError),
@@ -89,27 +91,8 @@ where
     }
 }
 
-/*
-impl<T> std::ops::Try for T
-where
-    T: for<'a> ReadCapnp<'a>,
-{
-    type Ok = T;
-    type Error = !;
-
-    fn into_result(self) -> Result<Self::Ok, Self::Error> {
-        Ok(self)
-    }
-
-    fn from_ok(v: Self::Ok) -> Self {
-        v
-    }
-
-    fn from_error(_: Self::Error) -> ! {
-        unimplemented!();
-    }
-}
-*/
+// -------------------------------------------------------
+// -------------------------------------------------------
 
 impl<T> ToCapnpBytes for T
 where

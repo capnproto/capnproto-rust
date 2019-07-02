@@ -12,6 +12,14 @@ struct TestUnion {
     }
 }
 
+struct ListUnion {
+    union {
+        empty @0: Void;
+        withList @1: List(TestStructInner);
+        testUnion @2: TestUnion;
+    }
+}
+
 struct TestStruct {
     myBool @0: Bool;
     myInt8 @1: Int8;
@@ -35,4 +43,5 @@ struct TestStruct {
             thirdVariant @16: Void;
     }
     externalUnion @17: TestUnion;
+    listUnion @18: ListUnion;
 }

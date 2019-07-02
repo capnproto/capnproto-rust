@@ -6,7 +6,7 @@ use syn::{DataEnum, Fields, Ident, Path, Variant};
 
 use heck::SnakeCase;
 
-use crate::util::{is_data, is_primitive};
+use crate::util::{gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive};
 
 fn gen_type_write(variant: &Variant) -> TokenStream {
     // let variant_ident = &variant.ident;
@@ -39,7 +39,32 @@ fn gen_type_write(variant: &Variant) -> TokenStream {
                 };
             }
 
-            // TODO: Deal with the case of list here
+            // The case of list:
+            if let Some(inner_path) = get_list(path) {
+                let init_method =
+                    syn::Ident::new(&format!("init_{}", &variant_snake_name), variant.span());
+                let list_write_iter = gen_list_write_iter(&inner_path);
+
+                // In the cases of more complicated types, list_builder needs to be mutable.
+                let let_list_builder =
+                    if is_primitive(path) || path.is_ident("String") || is_data(path) {
+                        quote! { let list_builder }
+                    } else {
+                        quote! { let mut list_builder }
+                    };
+
+                return quote! {
+                    #variant_name(vec) => {
+                        #let_list_builder = writer
+                            .reborrow()
+                            .#init_method(u32::try_from(vec.len()).unwrap());
+
+                        for (index, item) in vec.iter().enumerate() {
+                            #list_write_iter
+                        }
+                    },
+                };
+            }
 
             let init_method =
                 syn::Ident::new(&format!("init_{}", &variant_snake_name), variant.span());
@@ -113,7 +138,20 @@ fn gen_type_read(variant: &Variant, rust_enum: &Ident) -> TokenStream {
                 };
             }
 
-            // TODO: Deal with the case of list here
+            if let Some(inner_path) = get_list(path) {
+                // The case of a list:
+                let list_read_iter = gen_list_read_iter(&inner_path);
+                return quote! {
+                    #variant_name(list_reader) => {
+                        let mut res_vec = Vec::new();
+                        for item_reader in list_reader? {
+                            // res_vec.push_back(read_named_relay_address(&named_relay_address)?);
+                            #list_read_iter
+                        }
+                        #rust_enum::#variant_name(res_vec)
+                    }
+                };
+            }
 
             quote! {
                 #variant_name(variant_reader) => {
