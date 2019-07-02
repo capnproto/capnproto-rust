@@ -47,10 +47,12 @@ pub trait ReadCapnp<'a>: Sized {
 }
 
 pub trait ToCapnpBytes {
+    /// Serialize a Rust struct into bytes using Capnp
     fn to_capnp_bytes(&self) -> Result<Vec<u8>, CapnpConvError>;
 }
 
 pub trait FromCapnpBytes: Sized {
+    /// Deserialize a Rust struct from bytes using Capnp
     fn from_capnp_bytes(bytes: &[u8]) -> Result<Self, CapnpConvError>;
 }
 
