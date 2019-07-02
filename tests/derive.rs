@@ -25,6 +25,14 @@ enum InlineUnion {
     ThirdVariant,
 }
 
+#[capnp_conv(test_capnp::test_union)]
+#[derive(Debug, Clone, PartialEq)]
+enum TestUnion {
+    VariantOne(u64),
+    VariantTwo(TestStructInner),
+    VariantThree,
+}
+
 #[capnp_conv(test_capnp::test_struct)]
 #[derive(Debug, Clone, PartialEq)]
 struct TestStruct {
@@ -45,6 +53,7 @@ struct TestStruct {
     my_primitive_list: Vec<u16>,
     my_list: Vec<TestStructInner>,
     inline_union: InlineUnion,
+    external_union: TestUnion,
 }
 
 #[test]
@@ -72,6 +81,7 @@ fn capnp_serialize_basic_struct2() {
             TestStructInner { inner_u8: 4u8 },
         ],
         inline_union: InlineUnion::SecondVariant(TestStructInner { inner_u8: 5u8 }),
+        external_union: TestUnion::VariantOne(6u64),
     };
 
     let data = test_struct.to_capnp_bytes().unwrap();

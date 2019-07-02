@@ -4,6 +4,14 @@ struct TestStructInner {
         innerU8 @0: UInt8;
 }
 
+struct TestUnion {
+    union {
+        variantOne @0: UInt64;
+        variantTwo @1: TestStructInner;
+        variantThree @2: Void;
+    }
+}
+
 struct TestStruct {
     myBool @0: Bool;
     myInt8 @1: Int8;
@@ -26,4 +34,5 @@ struct TestStruct {
             secondVariant @15: TestStructInner;
             thirdVariant @16: Void;
     }
+    externalUnion @17: TestUnion;
 }
