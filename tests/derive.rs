@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 
 // use capnp;
 use offst_capnp_conv::{
-    capnp_conv, CapnpConvError, FromCapnpBytes, IntoCapnpBytes, ReadCapnp, WriteCapnp,
+    capnp_conv, CapnpConvError, FromCapnpBytes, ReadCapnp, ToCapnpBytes, WriteCapnp,
 };
 
 #[allow(unused)]
@@ -67,7 +67,7 @@ fn capnp_serialize_basic_struct() {
         ],
     };
 
-    let data = test_struct.clone().into_capnp_bytes().unwrap();
+    let data = test_struct.to_capnp_bytes().unwrap();
     let test_struct2 = TestStruct::from_capnp_bytes(&data).unwrap();
 
     assert_eq!(test_struct, test_struct2);

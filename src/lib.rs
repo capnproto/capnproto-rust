@@ -46,20 +46,20 @@ pub trait ReadCapnp<'a>: Sized {
     fn read_capnp(reader: &Self::ReaderType) -> Result<Self, CapnpConvError>;
 }
 
-pub trait IntoCapnpBytes {
-    fn into_capnp_bytes(self) -> Result<Vec<u8>, CapnpConvError>;
+pub trait ToCapnpBytes {
+    fn to_capnp_bytes(&self) -> Result<Vec<u8>, CapnpConvError>;
 }
 
 pub trait FromCapnpBytes: Sized {
     fn from_capnp_bytes(bytes: &[u8]) -> Result<Self, CapnpConvError>;
 }
 
-impl<T> IntoCapnpBytes for T
+impl<T> ToCapnpBytes for T
 where
     T: for<'a> WriteCapnp<'a>,
 {
     #[allow(unused)]
-    fn into_capnp_bytes(self) -> Result<Vec<u8>, CapnpConvError> {
+    fn to_capnp_bytes(&self) -> Result<Vec<u8>, CapnpConvError> {
         let mut builder = capnp::message::Builder::new_default();
 
         // A trick to avoid borrow checker issues:
