@@ -84,8 +84,7 @@ where
         let reader = capnp::serialize_packed::read_message(
             &mut cursor,
             capnp::message::ReaderOptions::new(),
-        )
-        .unwrap();
+        )?;
         let struct_reader = reader.get_root::<T::ReaderType>()?;
         Ok(Self::read_capnp(&struct_reader)?)
     }
