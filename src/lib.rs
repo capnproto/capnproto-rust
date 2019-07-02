@@ -30,17 +30,64 @@ pub enum CapnpConvError {
 /// Convert Rust struct to Capnp.
 pub trait WriteCapnp<'a> {
     /// The corresponding Capnp writer type.
-    type WriterType;
+    // type WriterType: capnp::traits::FromPointerBuilder<'a>;
+    type WriterType: capnp::traits::FromPointerBuilder<'a>;
 
     /// Converts a Rust struct to corresponding Capnp struct. This should not fail.
-    fn write_capnp(&'a self, writer: &'a mut Self::WriterType);
+    fn write_capnp(&self, writer: &mut Self::WriterType);
 }
 
 /// Convert Capnp struct to Rust.
 pub trait ReadCapnp<'a>: Sized {
     /// The corresponding Capnp reader type.
-    type ReaderType;
+    type ReaderType: capnp::traits::FromPointerReader<'a>;
 
     /// Converts a Capnp struct to corresponding Rust struct.     
-    fn read_capnp(reader: &'a Self::ReaderType) -> Result<Self, CapnpConvError>;
+    fn read_capnp(reader: &Self::ReaderType) -> Result<Self, CapnpConvError>;
+}
+
+pub trait IntoCapnpBytes {
+    fn into_capnp_bytes(self) -> Result<Vec<u8>, CapnpConvError>;
+}
+
+pub trait FromCapnpBytes: Sized {
+    fn from_capnp_bytes(bytes: &[u8]) -> Result<Self, CapnpConvError>;
+}
+
+impl<T> IntoCapnpBytes for T
+where
+    T: for<'a> WriteCapnp<'a>,
+{
+    #[allow(unused)]
+    fn into_capnp_bytes(self) -> Result<Vec<u8>, CapnpConvError> {
+        let mut builder = capnp::message::Builder::new_default();
+
+        // A trick to avoid borrow checker issues:
+        {
+            let mut struct_builder = builder.init_root::<T::WriterType>();
+            self.write_capnp(&mut struct_builder);
+        }
+
+        let mut data = Vec::new();
+        capnp::serialize_packed::write_message(&mut data, &builder)?;
+        Ok(data)
+    }
+}
+
+impl<T> FromCapnpBytes for T
+where
+    T: for<'a> ReadCapnp<'a>,
+    // F: capnp::traits::FromPointerReader<'a>,
+{
+    fn from_capnp_bytes(bytes: &[u8]) -> Result<Self, CapnpConvError> {
+        // Deserialize:
+        let mut cursor = io::Cursor::new(&bytes);
+        let reader = capnp::serialize_packed::read_message(
+            &mut cursor,
+            capnp::message::ReaderOptions::new(),
+        )
+        .unwrap();
+        let struct_reader = reader.get_root::<T::ReaderType>()?;
+        Ok(Self::read_capnp(&struct_reader)?)
+    }
 }

@@ -284,7 +284,7 @@ fn gen_write_capnp_named_struct(
         impl<'a> WriteCapnp<'a> for #rust_struct {
             type WriterType = #capnp_struct::Builder<'a>;
 
-            fn write_capnp(&'a self, writer: &'a mut Self::WriterType) {
+            fn write_capnp(&self, writer: &mut Self::WriterType) {
                 #(#recurse)*
             }
         }
@@ -302,7 +302,7 @@ fn gen_read_capnp_named_struct(
         impl<'a> ReadCapnp<'a> for #rust_struct {
             type ReaderType = #capnp_struct::Reader<'a>;
 
-            fn read_capnp(reader: &'a Self::ReaderType) -> Result<Self, CapnpConvError> {
+            fn read_capnp(reader: &Self::ReaderType) -> Result<Self, CapnpConvError> {
                 Ok(#rust_struct {
                     #(#recurse,)*
                 })

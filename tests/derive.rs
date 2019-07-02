@@ -1,10 +1,12 @@
 #![deny(warnings)]
 
 use std::convert::TryFrom;
-use std::io;
+// use std::io;
 
-use capnp::{self, serialize_packed};
-use offst_capnp_conv::{capnp_conv, CapnpConvError, ReadCapnp, WriteCapnp};
+// use capnp;
+use offst_capnp_conv::{
+    capnp_conv, CapnpConvError, FromCapnpBytes, IntoCapnpBytes, ReadCapnp, WriteCapnp,
+};
 
 #[allow(unused)]
 mod test_capnp {
@@ -18,7 +20,6 @@ struct TestStructInner {
     inner_u8: u8,
 }
 
-#[allow(unused)]
 #[capnp_conv(test_capnp::test_struct)]
 #[derive(Debug, Clone, PartialEq)]
 struct TestStruct {
@@ -66,23 +67,8 @@ fn capnp_serialize_basic_struct() {
         ],
     };
 
-    let mut builder = capnp::message::Builder::new_default();
-    let mut test_struct_builder = builder.init_root::<test_capnp::test_struct::Builder>();
-
-    test_struct.write_capnp(&mut test_struct_builder);
-
-    let mut data = Vec::new();
-    serialize_packed::write_message(&mut data, &builder).unwrap();
-
-    // Deserialize:
-    let mut cursor = io::Cursor::new(&data);
-    let reader =
-        serialize_packed::read_message(&mut cursor, capnp::message::ReaderOptions::new()).unwrap();
-    let test_struct_reader = reader
-        .get_root::<test_capnp::test_struct::Reader>()
-        .unwrap();
-
-    let test_struct2 = TestStruct::read_capnp(&test_struct_reader).unwrap();
+    let data = test_struct.clone().into_capnp_bytes().unwrap();
+    let test_struct2 = TestStruct::from_capnp_bytes(&data).unwrap();
 
     assert_eq!(test_struct, test_struct2);
 }
