@@ -19,5 +19,6 @@ struct TestStruct {
     myText @9: Text;
     myData @10: Data;
     structInner @11: TestStructInner;
-    myList @12: List(TestStructInner);
+    myPrimitiveList @12: List(UInt16);
+    myList @13: List(TestStructInner);
 }

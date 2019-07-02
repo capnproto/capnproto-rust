@@ -1,5 +1,6 @@
 #![deny(warnings)]
 
+use std::convert::TryFrom;
 use std::io;
 
 use capnp::{self, serialize_packed};
@@ -35,6 +36,7 @@ struct TestStruct {
     my_text: String,
     my_data: Vec<u8>,
     struct_inner: TestStructInner,
+    my_primitive_list: Vec<u16>,
     my_list: Vec<TestStructInner>,
 }
 
@@ -56,6 +58,7 @@ fn capnp_serialize_basic_struct() {
         my_text: "my_text".to_owned(),
         my_data: vec![1, 2, 3, 4, 5u8],
         struct_inner: TestStructInner { inner_u8: 1u8 },
+        my_primitive_list: vec![10, 11, 12, 13, 14u16],
         my_list: vec![
             TestStructInner { inner_u8: 2u8 },
             TestStructInner { inner_u8: 3u8 },
