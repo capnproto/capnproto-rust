@@ -3,7 +3,7 @@
 use std::convert::TryFrom;
 
 use offst_capnp_conv::{
-    capnp_conv, CapnpConvError, FromCapnpBytes, ReadCapnp, ToCapnpBytes, WriteCapnp,
+    capnp_conv, CapnpConvError, CapnpResult, FromCapnpBytes, ReadCapnp, ToCapnpBytes, WriteCapnp,
 };
 
 #[allow(unused)]
@@ -11,11 +11,18 @@ mod test_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/test_capnp.rs"));
 }
 
-#[allow(unused)]
 #[capnp_conv(test_capnp::test_struct_inner)]
 #[derive(Debug, Clone, PartialEq)]
 struct TestStructInner {
     inner_u8: u8,
+}
+
+#[capnp_conv(test_capnp::test_struct::inline_union)]
+#[derive(Debug, Clone, PartialEq)]
+enum InlineUnion {
+    FirstVariant(u64),
+    SecondVariant(TestStructInner),
+    ThirdVariant,
 }
 
 #[capnp_conv(test_capnp::test_struct)]
@@ -37,10 +44,11 @@ struct TestStruct {
     struct_inner: TestStructInner,
     my_primitive_list: Vec<u16>,
     my_list: Vec<TestStructInner>,
+    inline_union: InlineUnion,
 }
 
 #[test]
-fn capnp_serialize_basic_struct() {
+fn capnp_serialize_basic_struct2() {
     // Serialize:
     let test_struct = TestStruct {
         my_bool: true,
@@ -63,6 +71,7 @@ fn capnp_serialize_basic_struct() {
             TestStructInner { inner_u8: 3u8 },
             TestStructInner { inner_u8: 4u8 },
         ],
+        inline_union: InlineUnion::SecondVariant(TestStructInner { inner_u8: 5u8 }),
     };
 
     let data = test_struct.to_capnp_bytes().unwrap();

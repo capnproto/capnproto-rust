@@ -21,4 +21,9 @@ struct TestStruct {
     structInner @11: TestStructInner;
     myPrimitiveList @12: List(UInt16);
     myList @13: List(TestStructInner);
+    inlineUnion: union {
+            firstVariant @14: UInt64;
+            secondVariant @15: TestStructInner;
+            thirdVariant @16: Void;
+    }
 }

@@ -16,6 +16,7 @@ extern crate proc_macro;
 
 mod derive_enum;
 mod derive_struct;
+mod util;
 
 // use proc_macro2::TokenStream;
 use quote::quote;
