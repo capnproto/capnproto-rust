@@ -77,7 +77,6 @@ where
 impl<T> FromCapnpBytes for T
 where
     T: for<'a> ReadCapnp<'a>,
-    // F: capnp::traits::FromPointerReader<'a>,
 {
     fn from_capnp_bytes(bytes: &[u8]) -> Result<Self, CapnpConvError> {
         // Deserialize:
