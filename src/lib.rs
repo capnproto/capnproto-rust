@@ -58,7 +58,6 @@ impl<T> ToCapnpBytes for T
 where
     T: for<'a> WriteCapnp<'a>,
 {
-    #[allow(unused)]
     fn to_capnp_bytes(&self) -> Result<Vec<u8>, CapnpConvError> {
         let mut builder = capnp::message::Builder::new_default();
 
