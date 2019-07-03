@@ -57,15 +57,16 @@ pub trait FromCapnpBytes: Sized {
     fn from_capnp_bytes(bytes: &[u8]) -> Result<Self, CapnpConvError>;
 }
 
+// -------------------------------------------------------
+// -------------------------------------------------------
+
+/*
 /// A shim allowing to merge cases where either
 /// Result<T,Into<CapnoConvError>> or a T is returned.
 pub enum CapnpResult<T> {
     Ok(T),
     Err(CapnpConvError),
 }
-
-// -------------------------------------------------------
-// -------------------------------------------------------
 
 impl<T> CapnpResult<T> {
     pub fn into_result(self) -> Result<T, CapnpConvError> {
@@ -93,6 +94,7 @@ where
         }
     }
 }
+*/
 
 // -------------------------------------------------------
 // -------------------------------------------------------

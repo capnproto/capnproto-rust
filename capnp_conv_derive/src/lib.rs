@@ -2,6 +2,7 @@
 #![feature(nll)]
 #![feature(generators)]
 #![feature(never_type)]
+#![recursion_limit = "128"]
 #![deny(trivial_numeric_casts, warnings)]
 #![allow(intra_doc_link_resolution_failure)]
 #![allow(

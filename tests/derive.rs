@@ -3,7 +3,7 @@
 use std::convert::TryFrom;
 
 use offst_capnp_conv::{
-    capnp_conv, CapnpConvError, CapnpResult, FromCapnpBytes, ReadCapnp, ToCapnpBytes, WriteCapnp,
+    capnp_conv, CapnpConvError, FromCapnpBytes, ReadCapnp, ToCapnpBytes, WriteCapnp,
 };
 
 #[allow(unused)]

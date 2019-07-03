@@ -65,6 +65,44 @@ fn gen_type_write(field: &syn::Field) -> TokenStream {
     }
 }
 
+/// A shim allowing to merge cases where either
+/// Result<T,Into<CapnoConvError>> or a T is returned.
+fn capnp_result_shim() -> TokenStream {
+    quote! {
+        pub enum CapnpResult<T> {
+            Ok(T),
+            Err(CapnpConvError),
+        }
+
+        impl<T> CapnpResult<T> {
+            pub fn into_result(self) -> Result<T, CapnpConvError> {
+                match self {
+                    CapnpResult::Ok(t) => Ok(t),
+                    CapnpResult::Err(e) => Err(e),
+                }
+            }
+        }
+
+        impl<T> From<T> for CapnpResult<T> {
+            fn from(input: T) -> Self {
+                CapnpResult::Ok(input)
+            }
+        }
+
+        impl<T, E> From<Result<T, E>> for CapnpResult<T>
+        where
+            E: Into<CapnpConvError>,
+        {
+            fn from(input: Result<T, E>) -> Self {
+                match input {
+                    Ok(t) => CapnpResult::Ok(t),
+                    Err(e) => CapnpResult::Err(e.into()),
+                }
+            }
+        }
+    }
+}
+
 fn gen_type_read(field: &syn::Field) -> TokenStream {
     match &field.ty {
         syn::Type::Path(type_path) => {
@@ -108,8 +146,11 @@ fn gen_type_read(field: &syn::Field) -> TokenStream {
 
             // Generic type:
             let get_method = syn::Ident::new(&format!("get_{}", &name), name.span());
+            let capnp_result = capnp_result_shim();
             quote_spanned! {field.span() =>
                 #name: {
+                    #capnp_result
+
                     let inner_reader = CapnpResult::from(reader.#get_method()).into_result()?;
                     <#type_path>::read_capnp(&inner_reader)?
                 }
