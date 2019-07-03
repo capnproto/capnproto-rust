@@ -4,7 +4,9 @@ use syn::spanned::Spanned;
 // use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
 use syn::{FieldsNamed, Ident, Path};
 
-use crate::util::{gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive};
+use crate::util::{
+    gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive, usize_to_u32_shim,
+};
 
 fn gen_type_write(field: &syn::Field) -> TokenStream {
     match &field.ty {
@@ -44,13 +46,21 @@ fn gen_type_write(field: &syn::Field) -> TokenStream {
                         quote! { let mut list_builder }
                     };
 
-                return quote_spanned! {field.span() =>
-                    #let_list_builder = writer
-                        .reborrow()
-                        .#init_method(u32::try_from(self.#name.len()).unwrap());
+                let usize_to_u32 = usize_to_u32_shim();
 
-                    for (index, item) in self.#name.iter().enumerate() {
-                        #list_write_iter
+                return quote_spanned! {field.span() =>
+                    {
+                        #usize_to_u32
+
+                        #let_list_builder = {
+                            writer
+                            .reborrow()
+                            .#init_method(usize_to_u32(self.#name.len()).unwrap())
+                        };
+
+                        for (index, item) in self.#name.iter().enumerate() {
+                            #list_write_iter
+                        }
                     }
                 };
             }

@@ -1,7 +1,5 @@
 #![deny(warnings)]
 
-use std::convert::TryFrom;
-
 use offst_capnp_conv::{
     capnp_conv, CapnpConvError, FromCapnpBytes, ReadCapnp, ToCapnpBytes, WriteCapnp,
 };

@@ -6,7 +6,9 @@ use syn::{DataEnum, Fields, Ident, Path, Variant};
 
 use heck::SnakeCase;
 
-use crate::util::{gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive};
+use crate::util::{
+    gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive, usize_to_u32_shim,
+};
 
 fn gen_type_write(variant: &Variant) -> TokenStream {
     // let variant_ident = &variant.ident;
@@ -53,11 +55,13 @@ fn gen_type_write(variant: &Variant) -> TokenStream {
                         quote! { let mut list_builder }
                     };
 
+                let usize_to_u32 = usize_to_u32_shim();
                 return quote! {
                     #variant_name(vec) => {
+                        #usize_to_u32
                         #let_list_builder = writer
                             .reborrow()
-                            .#init_method(u32::try_from(vec.len()).unwrap());
+                            .#init_method(usize_to_u32(vec.len()).unwrap());
 
                         for (index, item) in vec.iter().enumerate() {
                             #list_write_iter

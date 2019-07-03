@@ -3,6 +3,19 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
+/// A shim for converting usize to u32
+pub fn usize_to_u32_shim() -> TokenStream {
+    quote! {
+        pub fn usize_to_u32(num: usize) -> Option<u32> {
+            if num > 0xffffffff as usize {
+                None
+            } else {
+                Some(num as u32)
+            }
+        }
+    }
+}
+
 /// Is a primitive type?
 pub fn is_primitive(path: &syn::Path) -> bool {
     path.is_ident("u8")
@@ -113,14 +126,14 @@ pub fn gen_list_write_iter(path: &syn::Path) -> TokenStream {
         quote! {
             list_builder
                 .reborrow()
-                .set(u32::try_from(index).unwrap(), item.clone());
+                .set(usize_to_u32(index).unwrap(), item.clone());
         }
     } else {
         // Not a primitive list:
         quote! {
             let mut item_builder = list_builder
                 .reborrow()
-                .get(u32::try_from(index).unwrap());
+                .get(usize_to_u32(index).unwrap());
 
             item.write_capnp(&mut item_builder);
         }
