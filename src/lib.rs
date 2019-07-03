@@ -64,6 +64,9 @@ pub enum CapnpResult<T> {
     Err(CapnpConvError),
 }
 
+// -------------------------------------------------------
+// -------------------------------------------------------
+
 impl<T> CapnpResult<T> {
     pub fn into_result(self) -> Result<T, CapnpConvError> {
         match self {

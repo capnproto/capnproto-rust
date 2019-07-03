@@ -156,7 +156,7 @@ fn gen_type_read(variant: &Variant, rust_enum: &Ident) -> TokenStream {
             quote! {
                 #variant_name(variant_reader) => {
                     // let variant_reader = variant_reader).into_result()?;
-                    #rust_enum::#variant_name(#path::read_capnp(&variant_reader?)?)
+                    #rust_enum::#variant_name(<#path>::read_capnp(&variant_reader?)?)
                 },
             }
         }
