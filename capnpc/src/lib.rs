@@ -77,10 +77,7 @@ pub enum RustEdition {
     Rust2018,
 }
 
-fn run_command(
-    mut command: ::std::process::Command,
-    path: &PathBuf,
-) -> ::capnp::Result<()> {
+fn run_command(mut command: ::std::process::Command, path: &PathBuf) -> ::capnp::Result<()> {
     let mut p = command.spawn()?;
     crate::codegen::generate_code(p.stdout.take().unwrap(), path.as_path())?;
     let exit_status = p.wait()?;
@@ -100,7 +97,7 @@ pub struct CompilerCommand {
     src_prefixes: Vec<PathBuf>,
     import_paths: Vec<PathBuf>,
     no_standard_import: bool,
-    output_path: PathBuf,
+    output_path: Option<PathBuf>,
 }
 
 impl CompilerCommand {
@@ -111,7 +108,7 @@ impl CompilerCommand {
             src_prefixes: Vec::new(),
             import_paths: Vec::new(),
             no_standard_import: false,
-            output_path: PathBuf::from(&::std::env::var("OUT_DIR").unwrap()),
+            output_path: None,
         }
     }
 
@@ -162,11 +159,12 @@ impl CompilerCommand {
     where
         P: AsRef<Path>,
     {
-        self.output_path = path.as_ref().to_path_buf();
+        self.output_path = Some(path.as_ref().to_path_buf());
         self
     }
 
-    /// Runs the command.
+    /// Runs the command. Returns an error if `OUT_DIR` or a custom output directory was not set
+    /// or if `capnp compile` fails.
     pub fn run(&mut self) -> ::capnp::Result<()> {
         let mut command = ::std::process::Command::new("capnp");
         command.arg("compile").arg("-o").arg("-");
@@ -187,10 +185,24 @@ impl CompilerCommand {
             command.arg(&format!("{}", file.display()));
         }
 
+        let output_path = if let Some(output_path) = &self.output_path {
+            output_path.clone()
+        } else {
+            // Try `OUT_DIR` by default
+            PathBuf::from(::std::env::var("OUT_DIR").map_err(|error| {
+                ::capnp::Error::failed(format!(
+                    "Could not access `OUT_DIR` environment variable: {}. \
+                     You might need to set it up or instead create you own output \
+                     structure using `CompilerCommand::output_path`",
+                    error
+                ))
+            })?)
+        };
+
         command.stdout(::std::process::Stdio::piped());
         command.stderr(::std::process::Stdio::inherit());
 
-        run_command(command, &self.output_path).map_err(|error| {
+        run_command(command, &output_path).map_err(|error| {
             ::capnp::Error::failed(format!(
                 "Error while trying to execute `capnp compile`: {}.  \
                  Please verify that version 0.5.2 or higher of the capnp executable \
@@ -199,4 +211,16 @@ impl CompilerCommand {
             ))
         })
     }
+}
+
+#[test]
+fn compiler_command_new_no_out_dir() {
+    let error = CompilerCommand::new().run().unwrap_err().description;
+    assert!(error.starts_with("Could not access `OUT_DIR` environment variable"));
+}
+
+#[test]
+fn compiler_command_with_output_path_no_out_dir() {
+    let error = CompilerCommand::new().output_path("foo").run().unwrap_err().description;
+    assert!(error.starts_with("Error while trying to execute `capnp compile`"));
 }
