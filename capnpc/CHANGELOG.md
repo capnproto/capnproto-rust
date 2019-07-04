@@ -1,3 +1,6 @@
+### v0.10.1
+- Allow CompilerCommand to work even when OUT_DIR is not set.
+
 ### v0.10.0
 - Simplify handling of pointer defaults.
 - Use new const fn ::capnp::word() instead of capnp_word!() macro.
