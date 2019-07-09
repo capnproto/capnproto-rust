@@ -36,6 +36,7 @@ enum TestUnion {
 enum ListUnion {
     Empty,
     WithList(Vec<TestStructInner>),
+    WithData(Vec<u8>),
     TestUnion(TestUnion),
 }
 

@@ -33,6 +33,14 @@ fn gen_type_write(variant: &Variant) -> TokenStream {
                 _ => unimplemented!(),
             };
 
+            if is_data(path) {
+                let set_method =
+                    syn::Ident::new(&format!("set_{}", &variant_snake_name), variant.span());
+                return quote! {
+                    #variant_name(x) => writer.#set_method(x),
+                };
+            }
+
             if is_primitive(path) || is_data(path) {
                 let set_method =
                     syn::Ident::new(&format!("set_{}", &variant_snake_name), variant.span());
@@ -136,7 +144,13 @@ fn gen_type_read(variant: &Variant, rust_enum: &Ident) -> TokenStream {
                 _ => unimplemented!(),
             };
 
-            if is_primitive(path) || is_data(path) {
+            if is_data(path) {
+                return quote! {
+                    #variant_name(x) => #rust_enum::#variant_name(x?.into()),
+                };
+            }
+
+            if is_primitive(path) {
                 return quote! {
                     #variant_name(x) => #rust_enum::#variant_name(x),
                 };

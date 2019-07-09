@@ -16,7 +16,8 @@ struct ListUnion {
     union {
         empty @0: Void;
         withList @1: List(TestStructInner);
-        testUnion @2: TestUnion;
+        withData @2: Data;
+        testUnion @3: TestUnion;
     }
 }
 
