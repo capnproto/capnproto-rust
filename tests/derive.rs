@@ -132,10 +132,11 @@ fn capnp_serialize_floats() {
 #[derive(Debug, Clone, PartialEq)]
 struct GenericStruct<A = u32, B = u64, D = u8, E = TestStructInner> {
     a: A,
-    b: B,
+    pub b: B,
     c: u8,
-    d: Vec<D>,
+    pub d: Vec<D>,
     e: Vec<E>,
+    f: E,
 }
 
 #[test]
@@ -150,6 +151,7 @@ fn capnp_serialize_generic_struct() {
             TestStructInner { inner_u8: 3u8 },
             TestStructInner { inner_u8: 4u8 },
         ],
+        f: TestStructInner { inner_u8: 5u8 },
     };
 
     let data = generic_struct.to_capnp_bytes().unwrap();

@@ -58,6 +58,7 @@ struct GenericStruct {
     c @2: UInt8;
     d @3: Data;
     e @4: List(TestStructInner);
+    f @5: TestStructInner;
 }
 
 struct GenericEnum {

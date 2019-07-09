@@ -203,6 +203,7 @@ pub fn extract_defaults(generics: &syn::Generics) -> HashMap<syn::Ident, syn::Pa
 /// For every generic along a path, assign a default value if possible
 pub fn assign_defaults_path(path: &mut syn::Path, defaults: &HashMap<syn::Ident, syn::Path>) {
     // Deal with the case of a single Ident: `T`
+
     if path.segments.len() == 1 {
         let last_segment = match path.segments.last_mut().unwrap() {
             syn::punctuated::Pair::End(last_segment) => last_segment,

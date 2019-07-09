@@ -164,7 +164,7 @@ fn gen_type_read(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -
                     #capnp_result
 
                     let inner_reader = CapnpResult::from(reader.#get_method()).into_result()?;
-                    <#type_path>::read_capnp(&inner_reader)?
+                    <#path>::read_capnp(&inner_reader)?
                 }
             }
         }
