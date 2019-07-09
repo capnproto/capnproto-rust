@@ -1,5 +1,7 @@
 // use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
 
+use std::collections::HashMap;
+
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -156,4 +158,92 @@ pub fn gen_list_read_iter(path: &syn::Path) -> TokenStream {
     }
     // TODO: It seems like we do not support List(List(...)) at the moment.
     // How to support it?
+}
+
+/// Obtain a map of default values from generics.
+/// Example:
+///
+/// ```text
+/// struct MyStruct<A = u32, B = u64> { ... }
+/// ```
+///
+/// We expect to get a map, mapping A -> u32, B -> u64.
+///
+pub fn extract_defaults(generics: &syn::Generics) -> HashMap<syn::Ident, syn::Path> {
+    let mut defaults = HashMap::new();
+    for param in &generics.params {
+        let type_param = match *param {
+            syn::GenericParam::Type(ref type_param) => type_param,
+            _ => continue,
+        };
+
+        if type_param.eq_token.is_none() {
+            continue;
+        };
+
+        let default_type = match &type_param.default {
+            Some(default_type) => default_type,
+            None => continue,
+        };
+
+        let default_type_path = match default_type {
+            syn::Type::Path(default_type_path) => default_type_path,
+            _ => unimplemented!("Only paths default params are supported"),
+        };
+
+        if default_type_path.qself.is_some() {
+            unimplemented!("qself is not implemented!");
+        }
+
+        defaults.insert(type_param.ident.clone(), default_type_path.path.clone());
+    }
+    defaults
+}
+
+/// For every generic along a path, assign a default value if possible
+pub fn assign_defaults_path(path: &mut syn::Path, defaults: &HashMap<syn::Ident, syn::Path>) {
+    // Deal with the case of a single Ident: `T`
+    if path.segments.len() == 1 {
+        let last_segment = match path.segments.last_mut().unwrap() {
+            syn::punctuated::Pair::End(last_segment) => last_segment,
+            _ => unreachable!(),
+        };
+
+        if let syn::PathArguments::None = last_segment.arguments {
+            if let Some(default_path) = defaults.get(&last_segment.ident) {
+                let _ = std::mem::replace(path, default_path.clone());
+                return;
+            }
+        }
+    }
+
+    // Deal with the more general case of a Path with various arguments
+    // that should be assigned their default value
+
+    for segment in path.segments.iter_mut() {
+        let args = match &mut segment.arguments {
+            syn::PathArguments::None => continue,
+            syn::PathArguments::AngleBracketed(angle_bracketed) => &mut angle_bracketed.args,
+            _ => unimplemented!("Only angle bracketed arguments are supported!"),
+        };
+
+        for generic_arg in args.iter_mut() {
+            let ty = match generic_arg {
+                syn::GenericArgument::Type(ty) => ty,
+                _ => unimplemented!(),
+            };
+
+            let type_path = match ty {
+                syn::Type::Path(type_path) => type_path,
+                _ => unimplemented!(),
+            };
+
+            if type_path.qself.is_some() {
+                unimplemented!();
+            }
+
+            // Recursively replace default arguments:
+            assign_defaults_path(&mut type_path.path, defaults);
+        }
+    }
 }

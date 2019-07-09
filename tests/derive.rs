@@ -127,3 +127,25 @@ fn capnp_serialize_floats() {
         (float_struct2.my_float64 * 10000.0).trunc()
     );
 }
+
+#[capnp_conv(test_capnp::generic_struct)]
+#[derive(Debug, Clone, PartialEq)]
+struct GenericStruct<A = u32, B = u64> {
+    a: A,
+    b: B,
+    c: u8,
+}
+
+#[test]
+fn capnp_serialize_generic_struct() {
+    let generic_struct = GenericStruct {
+        a: 1u32,
+        b: 2u64,
+        c: 3u8,
+    };
+
+    let data = generic_struct.to_capnp_bytes().unwrap();
+    let generic_struct2 = GenericStruct::from_capnp_bytes(&data).unwrap();
+
+    assert_eq!(generic_struct, generic_struct2);
+}

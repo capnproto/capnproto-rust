@@ -24,6 +24,7 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Path};
 
 use self::derive_enum::{gen_read_capnp_enum, gen_write_capnp_enum};
 use self::derive_struct::{gen_read_capnp_named_struct, gen_write_capnp_named_struct};
+use self::util::{assign_defaults_path, extract_defaults};
 
 /// Generate code for conversion between Rust and capnp structs.
 #[proc_macro_attribute]
@@ -38,6 +39,9 @@ pub fn capnp_conv(
     let capnp_struct = parse_macro_input!(args as Path);
     let input = parse_macro_input!(input as DeriveInput);
 
+    let defaults = extract_defaults(&input.generics);
+    let assign_defaults = |path: &mut syn::Path| assign_defaults_path(path, &defaults);
+
     // Name of local struct:
     let rust_struct = &input.ident;
 
@@ -49,10 +53,19 @@ pub fn capnp_conv(
                 //     x: u32,
                 //     y: u32,
                 // }
-                let write_capnp =
-                    gen_write_capnp_named_struct(fields_named, rust_struct, &capnp_struct);
-                let read_capnp =
-                    gen_read_capnp_named_struct(fields_named, rust_struct, &capnp_struct);
+
+                let write_capnp = gen_write_capnp_named_struct(
+                    fields_named,
+                    rust_struct,
+                    &capnp_struct,
+                    &assign_defaults,
+                );
+                let read_capnp = gen_read_capnp_named_struct(
+                    fields_named,
+                    rust_struct,
+                    &capnp_struct,
+                    &assign_defaults,
+                );
 
                 quote! {
                     #write_capnp

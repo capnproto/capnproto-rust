@@ -8,7 +8,7 @@ use crate::util::{
     gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive, usize_to_u32_shim,
 };
 
-fn gen_type_write(field: &syn::Field) -> TokenStream {
+fn gen_type_write(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -> TokenStream {
     match &field.ty {
         syn::Type::Path(type_path) => {
             if type_path.qself.is_some() {
@@ -16,31 +16,32 @@ fn gen_type_write(field: &syn::Field) -> TokenStream {
                 unimplemented!();
             }
 
-            let path = &type_path.path;
+            let mut path = type_path.path.clone();
+            assign_defaults(&mut path);
 
             let name = &field.ident.as_ref().unwrap();
 
-            if is_primitive(path) {
+            if is_primitive(&path) {
                 let set_method = syn::Ident::new(&format!("set_{}", &name), name.span());
                 return quote_spanned! {field.span() =>
                     writer.reborrow().#set_method(self.#name);
                 };
             }
 
-            if path.is_ident("String") || is_data(path) {
+            if path.is_ident("String") || is_data(&path) {
                 let set_method = syn::Ident::new(&format!("set_{}", &name), name.span());
                 return quote_spanned! {field.span() =>
                     writer.reborrow().#set_method(&self.#name);
                 };
             }
 
-            if let Some(inner_path) = get_list(path) {
+            if let Some(inner_path) = get_list(&path) {
                 let init_method = syn::Ident::new(&format!("init_{}", &name), name.span());
                 let list_write_iter = gen_list_write_iter(&inner_path);
 
                 // In the cases of more complicated types, list_builder needs to be mutable.
                 let let_list_builder =
-                    if is_primitive(path) || path.is_ident("String") || is_data(path) {
+                    if is_primitive(&path) || path.is_ident("String") || is_data(&path) {
                         quote! { let list_builder }
                     } else {
                         quote! { let mut list_builder }
@@ -113,7 +114,7 @@ fn capnp_result_shim() -> TokenStream {
     }
 }
 
-fn gen_type_read(field: &syn::Field) -> TokenStream {
+fn gen_type_read(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -> TokenStream {
     match &field.ty {
         syn::Type::Path(type_path) => {
             if type_path.qself.is_some() {
@@ -121,25 +122,26 @@ fn gen_type_read(field: &syn::Field) -> TokenStream {
                 unimplemented!();
             }
 
-            let path = &type_path.path;
+            let mut path = type_path.path.clone();
+            assign_defaults(&mut path);
 
             let name = &field.ident.as_ref().unwrap();
 
-            if is_primitive(path) {
+            if is_primitive(&path) {
                 let get_method = syn::Ident::new(&format!("get_{}", &name), name.span());
                 return quote_spanned! {field.span() =>
                     #name: reader.#get_method().into()
                 };
             }
 
-            if path.is_ident("String") || is_data(path) {
+            if path.is_ident("String") || is_data(&path) {
                 let get_method = syn::Ident::new(&format!("get_{}", &name), name.span());
                 return quote_spanned! {field.span() =>
                     #name: reader.#get_method()?.into()
                 };
             }
 
-            if let Some(inner_path) = get_list(path) {
+            if let Some(inner_path) = get_list(&path) {
                 let get_method = syn::Ident::new(&format!("get_{}", &name), name.span());
                 let list_read_iter = gen_list_read_iter(&inner_path);
                 return quote_spanned! {field.span() =>
@@ -174,11 +176,12 @@ pub fn gen_write_capnp_named_struct(
     fields_named: &FieldsNamed,
     rust_struct: &Ident,
     capnp_struct: &Path,
+    assign_defaults: impl Fn(&mut syn::Path),
 ) -> TokenStream {
     let recurse = fields_named
         .named
         .iter()
-        .map(|field| gen_type_write(&field));
+        .map(|field| gen_type_write(&field, &assign_defaults));
 
     quote! {
         impl<'a> WriteCapnp<'a> for #rust_struct {
@@ -195,8 +198,12 @@ pub fn gen_read_capnp_named_struct(
     fields_named: &FieldsNamed,
     rust_struct: &Ident,
     capnp_struct: &Path,
+    assign_defaults: impl Fn(&mut syn::Path),
 ) -> TokenStream {
-    let recurse = fields_named.named.iter().map(|field| gen_type_read(field));
+    let recurse = fields_named
+        .named
+        .iter()
+        .map(|field| gen_type_read(field, &assign_defaults));
 
     quote! {
         impl<'a> ReadCapnp<'a> for #rust_struct {

@@ -51,3 +51,9 @@ struct FloatStruct {
     myFloat32 @0: Float32;
     myFloat64 @1: Float64;
 }
+
+struct GenericStruct {
+    a @0: UInt32;
+    b @1: UInt64;
+    c @2: UInt8;
+}
