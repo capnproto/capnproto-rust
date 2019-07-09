@@ -56,4 +56,6 @@ struct GenericStruct {
     a @0: UInt32;
     b @1: UInt64;
     c @2: UInt8;
+    d @3: Data;
+    e @4: List(TestStructInner);
 }
