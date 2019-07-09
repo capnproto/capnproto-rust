@@ -81,8 +81,10 @@ pub fn capnp_conv(
             //     Type2,
             //     Type3(MyStruct),
             // }
-            let write_capnp = gen_write_capnp_enum(data_enum, rust_struct, &capnp_struct);
-            let read_capnp = gen_read_capnp_enum(data_enum, rust_struct, &capnp_struct);
+            let write_capnp =
+                gen_write_capnp_enum(data_enum, rust_struct, &capnp_struct, &assign_defaults);
+            let read_capnp =
+                gen_read_capnp_enum(data_enum, rust_struct, &capnp_struct, &assign_defaults);
 
             quote! {
                 #write_capnp

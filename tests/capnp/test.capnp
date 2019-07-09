@@ -59,3 +59,12 @@ struct GenericStruct {
     d @3: Data;
     e @4: List(TestStructInner);
 }
+
+struct GenericEnum {
+    union {
+        varA @0: UInt32;
+        varB @1: TestStructInner;
+        varC @2: UInt64;
+        varD @3: Data;
+    }
+}

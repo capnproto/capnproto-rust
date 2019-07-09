@@ -10,7 +10,7 @@ use crate::util::{
     gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive, usize_to_u32_shim,
 };
 
-fn gen_type_write(variant: &Variant) -> TokenStream {
+fn gen_type_write(variant: &Variant, assign_defaults: impl Fn(&mut syn::Path)) -> TokenStream {
     // let variant_ident = &variant.ident;
     let variant_name = &variant.ident;
     let variant_snake_name = variant_name.to_string().to_snake_case();
@@ -33,7 +33,10 @@ fn gen_type_write(variant: &Variant) -> TokenStream {
                 _ => unimplemented!(),
             };
 
-            if is_data(path) {
+            let mut path = path.clone();
+            assign_defaults(&mut path);
+
+            if is_data(&path) {
                 let set_method =
                     syn::Ident::new(&format!("set_{}", &variant_snake_name), variant.span());
                 return quote! {
@@ -41,7 +44,7 @@ fn gen_type_write(variant: &Variant) -> TokenStream {
                 };
             }
 
-            if is_primitive(path) || is_data(path) {
+            if is_primitive(&path) || is_data(&path) {
                 let set_method =
                     syn::Ident::new(&format!("set_{}", &variant_snake_name), variant.span());
                 return quote! {
@@ -50,14 +53,14 @@ fn gen_type_write(variant: &Variant) -> TokenStream {
             }
 
             // The case of list:
-            if let Some(inner_path) = get_list(path) {
+            if let Some(inner_path) = get_list(&path) {
                 let init_method =
                     syn::Ident::new(&format!("init_{}", &variant_snake_name), variant.span());
                 let list_write_iter = gen_list_write_iter(&inner_path);
 
                 // In the cases of more complicated types, list_builder needs to be mutable.
                 let let_list_builder =
-                    if is_primitive(path) || path.is_ident("String") || is_data(path) {
+                    if is_primitive(&path) || path.is_ident("String") || is_data(&path) {
                         quote! { let list_builder }
                     } else {
                         quote! { let mut list_builder }
@@ -97,14 +100,14 @@ fn gen_type_write(variant: &Variant) -> TokenStream {
     }
 }
 
-#[allow(unused)]
 pub fn gen_write_capnp_enum(
     data_enum: &DataEnum,
     rust_enum: &Ident,
     capnp_struct: &Path,
+    assign_defaults: impl Fn(&mut syn::Path),
 ) -> TokenStream {
     let recurse = data_enum.variants.iter().map(|variant| {
-        let type_write = gen_type_write(&variant);
+        let type_write = gen_type_write(&variant, &assign_defaults);
         quote! {
             #rust_enum::#type_write
         }
@@ -122,7 +125,11 @@ pub fn gen_write_capnp_enum(
     }
 }
 
-fn gen_type_read(variant: &Variant, rust_enum: &Ident) -> TokenStream {
+fn gen_type_read(
+    variant: &Variant,
+    rust_enum: &Ident,
+    assign_defaults: impl Fn(&mut syn::Path),
+) -> TokenStream {
     let variant_name = &variant.ident;
     // let variant_snake_name = variant_name.to_string().to_snake_case();
 
@@ -144,19 +151,22 @@ fn gen_type_read(variant: &Variant, rust_enum: &Ident) -> TokenStream {
                 _ => unimplemented!(),
             };
 
-            if is_data(path) {
+            let mut path = path.clone();
+            assign_defaults(&mut path);
+
+            if is_data(&path) {
                 return quote! {
                     #variant_name(x) => #rust_enum::#variant_name(x?.into()),
                 };
             }
 
-            if is_primitive(path) {
+            if is_primitive(&path) {
                 return quote! {
                     #variant_name(x) => #rust_enum::#variant_name(x),
                 };
             }
 
-            if let Some(inner_path) = get_list(path) {
+            if let Some(inner_path) = get_list(&path) {
                 // The case of a list:
                 let list_read_iter = gen_list_read_iter(&inner_path);
                 return quote! {
@@ -193,9 +203,10 @@ pub fn gen_read_capnp_enum(
     data_enum: &DataEnum,
     rust_enum: &Ident,
     capnp_struct: &Path,
+    assign_defaults: impl Fn(&mut syn::Path),
 ) -> TokenStream {
     let recurse = data_enum.variants.iter().map(|variant| {
-        let type_read = gen_type_read(&variant, rust_enum);
+        let type_read = gen_type_read(&variant, rust_enum, &assign_defaults);
         quote! {
             #capnp_struct::#type_read
         }

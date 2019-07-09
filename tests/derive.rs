@@ -157,3 +157,26 @@ fn capnp_serialize_generic_struct() {
 
     assert_eq!(generic_struct, generic_struct2);
 }
+
+#[capnp_conv(test_capnp::generic_enum)]
+#[derive(Debug, Clone, PartialEq)]
+enum GenericEnum<A = u32, B = TestStructInner, V = Vec<u8>> {
+    VarA(A),
+    VarB(B),
+    VarC(u64),
+    VarD(V),
+}
+
+#[test]
+fn capnp_serialize_generic_enum() {
+    for generic_enum in &[
+        GenericEnum::VarA(1u32),
+        GenericEnum::VarB(TestStructInner { inner_u8: 2u8 }),
+        GenericEnum::VarC(3u64),
+        GenericEnum::VarD(vec![1, 2, 3, 4u8]),
+    ] {
+        let data = generic_enum.to_capnp_bytes().unwrap();
+        let generic_enum2 = GenericEnum::from_capnp_bytes(&data).unwrap();
+        assert_eq!(generic_enum.clone(), generic_enum2);
+    }
+}
