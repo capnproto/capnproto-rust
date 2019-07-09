@@ -153,7 +153,7 @@ pub fn gen_list_read_iter(path: &syn::Path) -> TokenStream {
     } else {
         // Not a primitive list:
         quote! {
-            res_vec.push(#path::read_capnp(&item_reader)?);
+            res_vec.push(<#path>::read_capnp(&item_reader)?);
         }
     }
     // TODO: It seems like we do not support List(List(...)) at the moment.

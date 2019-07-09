@@ -182,3 +182,31 @@ fn capnp_serialize_generic_enum() {
         assert_eq!(generic_enum.clone(), generic_enum2);
     }
 }
+
+#[capnp_conv(test_capnp::inner_generic)]
+#[derive(Debug, Clone, PartialEq)]
+struct InnerGeneric<A = u32> {
+    a: A,
+}
+
+#[capnp_conv(test_capnp::list_generic)]
+#[derive(Debug, Clone, PartialEq)]
+struct ListGeneric<A = u32> {
+    list: Vec<InnerGeneric<A>>,
+}
+
+#[test]
+fn capnp_serialize_generic_list() {
+    let list_generic = ListGeneric {
+        list: vec![
+            InnerGeneric { a: 1u32 },
+            InnerGeneric { a: 2u32 },
+            InnerGeneric { a: 3u32 },
+        ],
+    };
+
+    let data = list_generic.to_capnp_bytes().unwrap();
+    let list_generic2 = ListGeneric::from_capnp_bytes(&data).unwrap();
+
+    assert_eq!(list_generic, list_generic2);
+}

@@ -69,3 +69,11 @@ struct GenericEnum {
         varD @3: Data;
     }
 }
+
+struct InnerGeneric {
+    a @0: UInt32;
+}
+
+struct ListGeneric {
+    list @0: List(InnerGeneric);
+}
