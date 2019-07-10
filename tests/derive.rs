@@ -29,6 +29,7 @@ enum TestUnion {
     VariantOne(u64),
     VariantTwo(TestStructInner),
     VariantThree,
+    VariantFour(String),
 }
 
 #[capnp_conv(test_capnp::list_union::inline_inner_union)]

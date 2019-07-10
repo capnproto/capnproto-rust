@@ -45,6 +45,14 @@ fn gen_type_write(variant: &Variant, assign_defaults: impl Fn(&mut syn::Path)) -
                 };
             }
 
+            if path.is_ident("String") {
+                let set_method =
+                    syn::Ident::new(&format!("set_{}", &variant_snake_name), variant.span());
+                return quote! {
+                    #variant_name(x) => writer.#set_method(x),
+                };
+            }
+
             if is_primitive(&path) || is_data(&path) {
                 let set_method =
                     syn::Ident::new(&format!("set_{}", &variant_snake_name), variant.span());
@@ -155,7 +163,7 @@ fn gen_type_read(
             let mut path = path.clone();
             assign_defaults(&mut path);
 
-            if is_data(&path) {
+            if is_data(&path) || path.is_ident("String") {
                 return quote! {
                     #variant_name(x) => #rust_enum::#variant_name(x?.into()),
                 };

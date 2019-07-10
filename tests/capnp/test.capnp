@@ -9,6 +9,7 @@ struct TestUnion {
         variantOne @0: UInt64;
         variantTwo @1: TestStructInner;
         variantThree @2: Void;
+        variantFour @3: Text;
     }
 }
 
