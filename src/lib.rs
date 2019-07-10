@@ -49,7 +49,7 @@ pub trait ReadCapnp<'a>: Sized {
 
 pub trait ToCapnpBytes {
     /// Serialize a Rust struct into bytes using Capnp
-    fn to_capnp_bytes(&self) -> Result<Vec<u8>, CapnpConvError>;
+    fn to_capnp_bytes(&self) -> Vec<u8>;
 }
 
 pub trait FromCapnpBytes: Sized {
@@ -61,7 +61,7 @@ impl<T> ToCapnpBytes for T
 where
     T: for<'a> WriteCapnp<'a>,
 {
-    fn to_capnp_bytes(&self) -> Result<Vec<u8>, CapnpConvError> {
+    fn to_capnp_bytes(&self) -> Vec<u8> {
         let mut builder = capnp::message::Builder::new_default();
 
         // A trick to avoid borrow checker issues:
@@ -71,8 +71,9 @@ where
         }
 
         let mut data = Vec::new();
-        capnp::serialize_packed::write_message(&mut data, &builder)?;
-        Ok(data)
+        // Should never really fail:
+        capnp::serialize_packed::write_message(&mut data, &builder).unwrap();
+        data
     }
 }
 
