@@ -18,6 +18,10 @@ struct ListUnion {
         withList @1: List(TestStructInner);
         withData @2: Data;
         testUnion @3: TestUnion;
+        inlineInnerUnion: union {
+                ab @4: UInt32;
+                cd @5: UInt64;
+        }
     }
 }
 

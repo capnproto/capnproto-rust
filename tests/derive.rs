@@ -31,6 +31,13 @@ enum TestUnion {
     VariantThree,
 }
 
+#[capnp_conv(test_capnp::list_union::inline_inner_union)]
+#[derive(Debug, Clone, PartialEq)]
+enum InlineInnerUnion {
+    Ab(u32),
+    Cd(u64),
+}
+
 #[capnp_conv(test_capnp::list_union)]
 #[derive(Debug, Clone, PartialEq)]
 enum ListUnion {
@@ -38,6 +45,7 @@ enum ListUnion {
     WithList(Vec<TestStructInner>),
     WithData(Vec<u8>),
     TestUnion(TestUnion),
+    InlineInnerUnion(InlineInnerUnion),
 }
 
 #[capnp_conv(test_capnp::test_struct)]

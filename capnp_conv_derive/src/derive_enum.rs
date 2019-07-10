@@ -7,7 +7,8 @@ use syn::{DataEnum, Fields, Ident, Path, Variant};
 use heck::SnakeCase;
 
 use crate::util::{
-    gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive, usize_to_u32_shim,
+    capnp_result_shim, gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive,
+    usize_to_u32_shim,
 };
 
 fn gen_type_write(variant: &Variant, assign_defaults: impl Fn(&mut syn::Path)) -> TokenStream {
@@ -181,10 +182,14 @@ fn gen_type_read(
                 };
             }
 
+            let capnp_result = capnp_result_shim();
+
             quote! {
                 #variant_name(variant_reader) => {
-                    // let variant_reader = variant_reader).into_result()?;
-                    #rust_enum::#variant_name(<#path>::read_capnp(&variant_reader?)?)
+                    #capnp_result
+
+                    let variant_reader = CapnpResult::from(variant_reader).into_result()?;
+                    #rust_enum::#variant_name(<#path>::read_capnp(&variant_reader)?)
                 },
             }
         }

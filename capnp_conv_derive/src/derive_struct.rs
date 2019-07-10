@@ -5,7 +5,8 @@ use syn::spanned::Spanned;
 use syn::{FieldsNamed, Ident, Path};
 
 use crate::util::{
-    gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive, usize_to_u32_shim,
+    capnp_result_shim, gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive,
+    usize_to_u32_shim,
 };
 
 fn gen_type_write(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -> TokenStream {
@@ -73,44 +74,6 @@ fn gen_type_write(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) 
             }
         }
         _ => unimplemented!(),
-    }
-}
-
-/// A shim allowing to merge cases where either
-/// Result<T,Into<CapnoConvError>> or a T is returned.
-fn capnp_result_shim() -> TokenStream {
-    quote! {
-        pub enum CapnpResult<T> {
-            Ok(T),
-            Err(CapnpConvError),
-        }
-
-        impl<T> CapnpResult<T> {
-            pub fn into_result(self) -> Result<T, CapnpConvError> {
-                match self {
-                    CapnpResult::Ok(t) => Ok(t),
-                    CapnpResult::Err(e) => Err(e),
-                }
-            }
-        }
-
-        impl<T> From<T> for CapnpResult<T> {
-            fn from(input: T) -> Self {
-                CapnpResult::Ok(input)
-            }
-        }
-
-        impl<T, E> From<Result<T, E>> for CapnpResult<T>
-        where
-            E: Into<CapnpConvError>,
-        {
-            fn from(input: Result<T, E>) -> Self {
-                match input {
-                    Ok(t) => CapnpResult::Ok(t),
-                    Err(e) => CapnpResult::Err(e.into()),
-                }
-            }
-        }
     }
 }
 
