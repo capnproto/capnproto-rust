@@ -82,3 +82,20 @@ struct InnerGeneric {
 struct ListGeneric {
     list @0: List(InnerGeneric);
 }
+
+# A custom made 128 bit data structure.
+struct Buffer128 {
+        x0 @0: UInt64;
+        x1 @1: UInt64;
+}
+
+# Unsigned 128 bit integer
+struct CustomUInt128 {
+        inner @0: Buffer128;
+}
+
+
+struct TestWithStruct {
+        a @0: CustomUInt128;
+        b @1: UInt64;
+}

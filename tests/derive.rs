@@ -100,7 +100,7 @@ fn capnp_serialize_basic_struct() {
         ]),
     };
 
-    let data = test_struct.to_capnp_bytes().unwrap();
+    let data = test_struct.to_capnp_bytes();
     let test_struct2 = TestStruct::from_capnp_bytes(&data).unwrap();
 
     assert_eq!(test_struct, test_struct2);
@@ -121,7 +121,7 @@ fn capnp_serialize_floats() {
         my_float64: 0.5f64,
     };
 
-    let data = float_struct.to_capnp_bytes().unwrap();
+    let data = float_struct.to_capnp_bytes();
     let float_struct2 = FloatStruct::from_capnp_bytes(&data).unwrap();
 
     // Sloppily check that the floats are close enough (We can't compare them directly, as they
@@ -163,7 +163,7 @@ fn capnp_serialize_generic_struct() {
         f: TestStructInner { inner_u8: 5u8 },
     };
 
-    let data = generic_struct.to_capnp_bytes().unwrap();
+    let data = generic_struct.to_capnp_bytes();
     let generic_struct2 = GenericStruct::from_capnp_bytes(&data).unwrap();
 
     assert_eq!(generic_struct, generic_struct2);
@@ -186,7 +186,7 @@ fn capnp_serialize_generic_enum() {
         GenericEnum::VarC(3u64),
         GenericEnum::VarD(vec![1, 2, 3, 4u8]),
     ] {
-        let data = generic_enum.to_capnp_bytes().unwrap();
+        let data = generic_enum.to_capnp_bytes();
         let generic_enum2 = GenericEnum::from_capnp_bytes(&data).unwrap();
         assert_eq!(generic_enum.clone(), generic_enum2);
     }
@@ -214,7 +214,7 @@ fn capnp_serialize_generic_list() {
         ],
     };
 
-    let data = list_generic.to_capnp_bytes().unwrap();
+    let data = list_generic.to_capnp_bytes();
     let list_generic2 = ListGeneric::from_capnp_bytes(&data).unwrap();
 
     assert_eq!(list_generic, list_generic2);

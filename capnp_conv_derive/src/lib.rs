@@ -94,6 +94,8 @@ pub fn capnp_conv(
         Data::Union(_) => unimplemented!(),
     };
 
+    // TODO: Remove all of our field attributes from the input.
+
     let expanded = quote! {
         // Original structure
         #input

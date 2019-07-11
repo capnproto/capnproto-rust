@@ -128,7 +128,7 @@ pub fn gen_list_write_iter(path: &syn::Path) -> TokenStream {
         quote! {
             list_builder
                 .reborrow()
-                .set(usize_to_u32(index).unwrap(), item.clone());
+                .set(usize_to_u32(index).unwrap(), item.clone().into());
         }
     } else {
         // Not a primitive list:
@@ -137,7 +137,7 @@ pub fn gen_list_write_iter(path: &syn::Path) -> TokenStream {
                 .reborrow()
                 .get(usize_to_u32(index).unwrap());
 
-            item.write_capnp(&mut item_builder);
+            item.clone().write_capnp(&mut item_builder);
         }
     }
     // TODO: It seems like we do not support List(List(...)) at the moment.

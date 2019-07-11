@@ -1,8 +1,10 @@
+#![allow(unused)]
+
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
 // use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
-use syn::{FieldsNamed, Ident, Path};
+use syn::{parenthesized, parse_macro_input, FieldsNamed, Ident, Path, Token};
 
 use crate::util::{
     capnp_result_shim, gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive,
@@ -10,6 +12,7 @@ use crate::util::{
 };
 
 fn gen_type_write(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -> TokenStream {
+    let opt_with_path = get_with_attribute(field);
     match &field.ty {
         syn::Type::Path(type_path) => {
             if type_path.qself.is_some() {
@@ -19,20 +22,21 @@ fn gen_type_write(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) 
 
             let mut path = type_path.path.clone();
             assign_defaults(&mut path);
+            let path = opt_with_path.unwrap_or(path);
 
             let name = &field.ident.as_ref().unwrap();
 
             if is_primitive(&path) {
                 let set_method = syn::Ident::new(&format!("set_{}", &name), name.span());
                 return quote_spanned! {field.span() =>
-                    writer.reborrow().#set_method(self.#name);
+                    writer.reborrow().#set_method(<#path>::from(self.#name));
                 };
             }
 
             if path.is_ident("String") || is_data(&path) {
                 let set_method = syn::Ident::new(&format!("set_{}", &name), name.span());
                 return quote_spanned! {field.span() =>
-                    writer.reborrow().#set_method(&self.#name);
+                    writer.reborrow().#set_method(&<#path>::from(self.#name.clone()));
                 };
             }
 
@@ -70,14 +74,58 @@ fn gen_type_write(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) 
             // Generic type:
             let init_method = syn::Ident::new(&format!("init_{}", &name), name.span());
             quote_spanned! {field.span() =>
-                self.#name.write_capnp(&mut writer.reborrow().#init_method());
+                <#path>::from(self.#name.clone()).write_capnp(&mut writer.reborrow().#init_method());
             }
         }
         _ => unimplemented!(),
     }
 }
 
+#[derive(Debug)]
+struct CapnpWithAttribute {
+    #[allow(dead_code)]
+    paren_token: syn::token::Paren,
+    with_ident: syn::Ident,
+    eq_token: Token![=],
+    path: syn::Path,
+}
+
+impl syn::parse::Parse for CapnpWithAttribute {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
+        let content;
+        let paren_token = parenthesized!(content in input);
+        Ok(Self {
+            paren_token,
+            with_ident: content.parse()?,
+            eq_token: content.parse()?,
+            path: content.parse()?,
+        })
+    }
+}
+
+/// Get the path from a with style field attribute.
+/// Example:
+/// ```text
+/// #[capnp_conv(with = Wrapper<u128>)]
+/// ```
+/// Will return the path `Wrapper<u128>`
+fn get_with_attribute(field: &syn::Field) -> Option<syn::Path> {
+    let tts = proc_macro::TokenStream::from(TokenStream::new());
+    // let capnp_with_attr = parse_macro_input!(tts as CapnpWithAttribute);
+
+    for attr in &field.attrs {
+        if attr.path.is_ident("capnp_conv") {
+            let tts: proc_macro::TokenStream = attr.tts.clone().into();
+            let capnp_with_attr = syn::parse::<CapnpWithAttribute>(tts).unwrap();
+            return Some(capnp_with_attr.path);
+        }
+    }
+    None
+}
+
 fn gen_type_read(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -> TokenStream {
+    let opt_with_path = get_with_attribute(field);
+
     match &field.ty {
         syn::Type::Path(type_path) => {
             if type_path.qself.is_some() {
@@ -87,6 +135,8 @@ fn gen_type_read(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -
 
             let mut path = type_path.path.clone();
             assign_defaults(&mut path);
+
+            let path = opt_with_path.unwrap_or(path);
 
             let name = &field.ident.as_ref().unwrap();
 
@@ -114,7 +164,7 @@ fn gen_type_read(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -
                             // res_vec.push_back(read_named_relay_address(&named_relay_address)?);
                             #list_read_iter
                         }
-                        res_vec
+                        res_vec.into()
                     }
                 };
             }
@@ -125,9 +175,8 @@ fn gen_type_read(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -
             quote_spanned! {field.span() =>
                 #name: {
                     #capnp_result
-
                     let inner_reader = CapnpResult::from(reader.#get_method()).into_result()?;
-                    <#path>::read_capnp(&inner_reader)?
+                    <#path>::read_capnp(&inner_reader)?.into()
                 }
             }
         }
