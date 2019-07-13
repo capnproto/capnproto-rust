@@ -4,6 +4,7 @@ name = "capnp-fuzz"
 version = "0.0.1"
 authors = ["Automatically generated"]
 publish = false
+build = "build.rs"
 
 [package.metadata]
 cargo-fuzz = true
@@ -12,6 +13,9 @@ cargo-fuzz = true
 path = ".."
 [dependencies.libfuzzer-sys]
 git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
+
+[build-dependencies.capnpc]
+path = "../../capnpc"
 
 # Prevent this from interfering with workspaces
 [workspace]

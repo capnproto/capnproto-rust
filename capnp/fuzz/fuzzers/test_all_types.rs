@@ -2,10 +2,13 @@
 extern crate libfuzzer_sys;
 extern crate capnp;
 
+pub mod test_capnp {
+  include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
+}
+
 use capnp::{serialize, message};
 use test_capnp::test_all_types;
 
-pub mod test_capnp;
 
 fn traverse(v: test_all_types::Reader) -> ::capnp::Result<()> {
     v.get_int64_field();
