@@ -82,3 +82,22 @@ fn capnp_serialize_with_struct() {
 
     assert_eq!(test_with_struct, test_with_struct2);
 }
+
+#[capnp_conv(test_capnp::test_with_enum)]
+#[derive(Debug, Clone, PartialEq)]
+enum TestWithEnum {
+    #[capnp_conv(with = Wrapper<u128>)]
+    VarA(u128),
+    VarB(u64),
+    VarC,
+}
+
+#[test]
+fn capnp_serialize_with_enum() {
+    let test_with_enum = TestWithEnum::VarA(1u128);
+
+    let data = test_with_enum.to_capnp_bytes();
+    let test_with_enum2 = TestWithEnum::from_capnp_bytes(&data).unwrap();
+
+    assert_eq!(test_with_enum, test_with_enum2);
+}

@@ -1,12 +1,12 @@
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
+
 use syn::spanned::Spanned;
-// use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
-use syn::{parenthesized, parse_macro_input, FieldsNamed, Ident, Path, Token};
+use syn::{FieldsNamed, Ident, Path};
 
 use crate::util::{
     capnp_result_shim, gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive,
-    usize_to_u32_shim,
+    usize_to_u32_shim, CapnpWithAttribute,
 };
 
 // TODO: Deal with the case of multiple with attributes (Should report error)
@@ -94,28 +94,6 @@ fn gen_type_write(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) 
             }
         }
         _ => unimplemented!(),
-    }
-}
-
-#[derive(Debug)]
-struct CapnpWithAttribute {
-    #[allow(dead_code)]
-    paren_token: syn::token::Paren,
-    with_ident: syn::Ident,
-    eq_token: Token![=],
-    path: syn::Path,
-}
-
-impl syn::parse::Parse for CapnpWithAttribute {
-    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
-        let content;
-        let paren_token = parenthesized!(content in input);
-        Ok(Self {
-            paren_token,
-            with_ident: content.parse()?,
-            eq_token: content.parse()?,
-            path: content.parse()?,
-        })
     }
 }
 

@@ -8,10 +8,29 @@ use heck::SnakeCase;
 
 use crate::util::{
     capnp_result_shim, gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive,
-    usize_to_u32_shim,
+    usize_to_u32_shim, CapnpWithAttribute,
 };
 
+// TODO: Deal with the case of multiple with attributes (Should report error)
+/// Get the path from a with style field attribute.
+/// Example:
+/// ```text
+/// #[capnp_conv(with = Wrapper<u128>)]
+/// ```
+/// Will return the path `Wrapper<u128>`
+fn get_with_attribute(variant: &syn::Variant) -> Option<syn::Path> {
+    for attr in &variant.attrs {
+        if attr.path.is_ident("capnp_conv") {
+            let tts: proc_macro::TokenStream = attr.tts.clone().into();
+            let capnp_with_attr = syn::parse::<CapnpWithAttribute>(tts).unwrap();
+            return Some(capnp_with_attr.path);
+        }
+    }
+    None
+}
+
 fn gen_type_write(variant: &Variant, assign_defaults: impl Fn(&mut syn::Path)) -> TokenStream {
+    let opt_with_path = get_with_attribute(variant);
     // let variant_ident = &variant.ident;
     let variant_name = &variant.ident;
     let variant_snake_name = variant_name.to_string().to_snake_case();
@@ -36,12 +55,21 @@ fn gen_type_write(variant: &Variant, assign_defaults: impl Fn(&mut syn::Path)) -
 
             let mut path = path.clone();
             assign_defaults(&mut path);
+            let path = opt_with_path.unwrap_or(path);
+
+            if is_primitive(&path) {
+                let set_method =
+                    syn::Ident::new(&format!("set_{}", &variant_snake_name), variant.span());
+                return quote! {
+                    #variant_name(x) => writer.#set_method(<#path>::from(x.clone())),
+                };
+            }
 
             if is_data(&path) {
                 let set_method =
                     syn::Ident::new(&format!("set_{}", &variant_snake_name), variant.span());
                 return quote! {
-                    #variant_name(x) => writer.#set_method(x),
+                    #variant_name(x) => writer.#set_method(&<#path>::from(x.clone())),
                 };
             }
 
@@ -50,14 +78,6 @@ fn gen_type_write(variant: &Variant, assign_defaults: impl Fn(&mut syn::Path)) -
                     syn::Ident::new(&format!("set_{}", &variant_snake_name), variant.span());
                 return quote! {
                     #variant_name(x) => writer.#set_method(x),
-                };
-            }
-
-            if is_primitive(&path) || is_data(&path) {
-                let set_method =
-                    syn::Ident::new(&format!("set_{}", &variant_snake_name), variant.span());
-                return quote! {
-                    #variant_name(x) => writer.#set_method(x.clone()),
                 };
             }
 
@@ -93,7 +113,7 @@ fn gen_type_write(variant: &Variant, assign_defaults: impl Fn(&mut syn::Path)) -
             let init_method =
                 syn::Ident::new(&format!("init_{}", &variant_snake_name), variant.span());
             quote! {
-                #variant_name(x) => x.write_capnp(&mut writer.reborrow().#init_method()),
+                #variant_name(x) => <#path>::from(x.clone()).write_capnp(&mut writer.reborrow().#init_method()),
             }
         }
 
@@ -139,6 +159,7 @@ fn gen_type_read(
     rust_enum: &Ident,
     assign_defaults: impl Fn(&mut syn::Path),
 ) -> TokenStream {
+    let opt_with_path = get_with_attribute(variant);
     let variant_name = &variant.ident;
     // let variant_snake_name = variant_name.to_string().to_snake_case();
 
@@ -162,16 +183,17 @@ fn gen_type_read(
 
             let mut path = path.clone();
             assign_defaults(&mut path);
+            let path = opt_with_path.unwrap_or(path);
+
+            if is_primitive(&path) {
+                return quote! {
+                    #variant_name(x) => #rust_enum::#variant_name(x.into()),
+                };
+            }
 
             if is_data(&path) || path.is_ident("String") {
                 return quote! {
                     #variant_name(x) => #rust_enum::#variant_name(x?.into()),
-                };
-            }
-
-            if is_primitive(&path) {
-                return quote! {
-                    #variant_name(x) => #rust_enum::#variant_name(x),
                 };
             }
 
@@ -197,7 +219,7 @@ fn gen_type_read(
                     #capnp_result
 
                     let variant_reader = CapnpResult::from(variant_reader).into_result()?;
-                    #rust_enum::#variant_name(<#path>::read_capnp(&variant_reader)?)
+                    #rust_enum::#variant_name(<#path>::read_capnp(&variant_reader)?.into())
                 },
             }
         }

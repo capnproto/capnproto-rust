@@ -99,3 +99,11 @@ struct TestWithStruct {
         a @0: CustomUInt128;
         b @1: UInt64;
 }
+
+struct TestWithEnum {
+    union {
+        varA @0: CustomUInt128;
+        varB @1: UInt64;
+        varC @2: Void;
+    }
+}

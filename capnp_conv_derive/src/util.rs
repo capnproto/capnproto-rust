@@ -312,3 +312,25 @@ pub fn remove_with_attributes(input: &mut syn::DeriveInput) {
         syn::Data::Union(_) => unimplemented!(),
     };
 }
+
+#[derive(Debug)]
+pub struct CapnpWithAttribute {
+    #[allow(dead_code)]
+    pub paren_token: syn::token::Paren,
+    pub with_ident: syn::Ident,
+    pub eq_token: syn::Token![=],
+    pub path: syn::Path,
+}
+
+impl syn::parse::Parse for CapnpWithAttribute {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
+        let content;
+        let paren_token = syn::parenthesized!(content in input);
+        Ok(Self {
+            paren_token,
+            with_ident: content.parse()?,
+            eq_token: content.parse()?,
+            path: content.parse()?,
+        })
+    }
+}
