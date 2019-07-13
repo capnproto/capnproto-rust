@@ -1,4 +1,5 @@
 // use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Index};
+use syn;
 
 use std::collections::HashMap;
 
@@ -285,4 +286,29 @@ pub fn assign_defaults_path(path: &mut syn::Path, defaults: &HashMap<syn::Ident,
             assign_defaults_path(&mut type_path.path, defaults);
         }
     }
+}
+
+/// Remove all of our `#[capnp_conv(with = ...)]` attributes
+pub fn remove_with_attributes(input: &mut syn::DeriveInput) {
+    match input.data {
+        syn::Data::Struct(ref mut data) => match data.fields {
+            syn::Fields::Named(ref mut fields_named) => {
+                for field in fields_named.named.iter_mut() {
+                    // Remove all the attributes that look like: `capnp_conv(...)`
+                    field.attrs.retain(|attr| !attr.path.is_ident("capnp_conv"));
+                }
+            }
+            syn::Fields::Unnamed(_) | syn::Fields::Unit => unimplemented!(),
+        },
+        syn::Data::Enum(ref mut data_enum) => {
+            for variant in data_enum.variants.iter_mut() {
+                // Remove all the attributes that look like: `capnp_conv(...)`
+                variant
+                    .attrs
+                    .retain(|attr| !attr.path.is_ident("capnp_conv"));
+            }
+        }
+
+        syn::Data::Union(_) => unimplemented!(),
+    };
 }

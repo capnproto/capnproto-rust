@@ -75,12 +75,10 @@ struct TestWithStruct {
 
 #[test]
 fn capnp_serialize_with_struct() {
-    /*
     let test_with_struct = TestWithStruct { a: 1u128, b: 2u64 };
 
-    let data = test_with_struct.to_capnp_bytes().unwrap();
+    let data = test_with_struct.to_capnp_bytes();
     let test_with_struct2 = TestWithStruct::from_capnp_bytes(&data).unwrap();
 
     assert_eq!(test_with_struct, test_with_struct2);
-    */
 }

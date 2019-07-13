@@ -24,7 +24,7 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Path};
 
 use self::derive_enum::{gen_read_capnp_enum, gen_write_capnp_enum};
 use self::derive_struct::{gen_read_capnp_named_struct, gen_write_capnp_named_struct};
-use self::util::{assign_defaults_path, extract_defaults};
+use self::util::{assign_defaults_path, extract_defaults, remove_with_attributes};
 
 /// Generate code for conversion between Rust and capnp structs.
 #[proc_macro_attribute]
@@ -94,7 +94,9 @@ pub fn capnp_conv(
         Data::Union(_) => unimplemented!(),
     };
 
-    // TODO: Remove all of our field attributes from the input.
+    // Remove all of our `#[capnp_conv(with = ... )]` attributes from the input:
+    let mut input = input;
+    remove_with_attributes(&mut input);
 
     let expanded = quote! {
         // Original structure

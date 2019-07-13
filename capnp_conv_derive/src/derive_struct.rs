@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
@@ -10,6 +8,24 @@ use crate::util::{
     capnp_result_shim, gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive,
     usize_to_u32_shim,
 };
+
+// TODO: Deal with the case of multiple with attributes (Should report error)
+/// Get the path from a with style field attribute.
+/// Example:
+/// ```text
+/// #[capnp_conv(with = Wrapper<u128>)]
+/// ```
+/// Will return the path `Wrapper<u128>`
+fn get_with_attribute(field: &syn::Field) -> Option<syn::Path> {
+    for attr in &field.attrs {
+        if attr.path.is_ident("capnp_conv") {
+            let tts: proc_macro::TokenStream = attr.tts.clone().into();
+            let capnp_with_attr = syn::parse::<CapnpWithAttribute>(tts).unwrap();
+            return Some(capnp_with_attr.path);
+        }
+    }
+    None
+}
 
 fn gen_type_write(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -> TokenStream {
     let opt_with_path = get_with_attribute(field);
@@ -101,26 +117,6 @@ impl syn::parse::Parse for CapnpWithAttribute {
             path: content.parse()?,
         })
     }
-}
-
-/// Get the path from a with style field attribute.
-/// Example:
-/// ```text
-/// #[capnp_conv(with = Wrapper<u128>)]
-/// ```
-/// Will return the path `Wrapper<u128>`
-fn get_with_attribute(field: &syn::Field) -> Option<syn::Path> {
-    let tts = proc_macro::TokenStream::from(TokenStream::new());
-    // let capnp_with_attr = parse_macro_input!(tts as CapnpWithAttribute);
-
-    for attr in &field.attrs {
-        if attr.path.is_ident("capnp_conv") {
-            let tts: proc_macro::TokenStream = attr.tts.clone().into();
-            let capnp_with_attr = syn::parse::<CapnpWithAttribute>(tts).unwrap();
-            return Some(capnp_with_attr.path);
-        }
-    }
-    None
 }
 
 fn gen_type_read(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -> TokenStream {
