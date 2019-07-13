@@ -33,7 +33,7 @@ fn gen_type_write(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) 
         syn::Type::Path(type_path) => {
             if type_path.qself.is_some() {
                 // Self qualifier?
-                unimplemented!();
+                unimplemented!("self qualifier");
             }
 
             let mut path = type_path.path.clone();
@@ -104,7 +104,7 @@ fn gen_type_read(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -
         syn::Type::Path(type_path) => {
             if type_path.qself.is_some() {
                 // Self qualifier?
-                unimplemented!();
+                unimplemented!("self qualifier");
             }
 
             let mut path = type_path.path.clone();

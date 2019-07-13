@@ -39,7 +39,7 @@ fn gen_type_write(variant: &Variant, assign_defaults: impl Fn(&mut syn::Path)) -
         Fields::Unnamed(fields_unnamed) => {
             let unnamed = &fields_unnamed.unnamed;
             if unnamed.len() != 1 {
-                unimplemented!();
+                unimplemented!("gen_type_write: Amount of unnamed fields is not 1!");
             }
 
             let pair = unnamed.last().unwrap();
@@ -48,14 +48,27 @@ fn gen_type_write(variant: &Variant, assign_defaults: impl Fn(&mut syn::Path)) -
                 _ => unreachable!(),
             };
 
-            let path = match &last_ident.ty {
-                syn::Type::Path(type_path) => &type_path.path,
-                _ => unimplemented!(),
+            let path = match opt_with_path {
+                Some(with_path) => with_path,
+                None => match &last_ident.ty {
+                    syn::Type::Path(type_path) => type_path.path.clone(),
+                    _ => {
+                        panic!("{:?}", opt_with_path);
+                    }
+                },
             };
+            /*
+            let path = opt_with_path.clone().unwrap_or(match &last_ident.ty {
+                syn::Type::Path(type_path) => type_path.path.clone(),
+                _ => {
+                    panic!("{:?}", opt_with_path);
+                    // unimplemented!("gen_type_write: last ident is not a path!"),
+                }
+            });
+            */
 
-            let mut path = path.clone();
+            let mut path = path;
             assign_defaults(&mut path);
-            let path = opt_with_path.unwrap_or(path);
 
             if is_primitive(&path) {
                 let set_method =
@@ -167,7 +180,7 @@ fn gen_type_read(
         Fields::Unnamed(fields_unnamed) => {
             let unnamed = &fields_unnamed.unnamed;
             if unnamed.len() != 1 {
-                unimplemented!();
+                unimplemented!("gen_type_read: Amount of unnamed fields is not 1!");
             }
 
             let pair = unnamed.last().unwrap();
@@ -176,14 +189,18 @@ fn gen_type_read(
                 _ => unreachable!(),
             };
 
-            let path = match &last_ident.ty {
-                syn::Type::Path(type_path) => &type_path.path,
-                _ => unimplemented!(),
+            let path = match opt_with_path {
+                Some(with_path) => with_path,
+                None => match &last_ident.ty {
+                    syn::Type::Path(type_path) => type_path.path.clone(),
+                    _ => {
+                        panic!("{:?}", opt_with_path);
+                    }
+                },
             };
 
             let mut path = path.clone();
             assign_defaults(&mut path);
-            let path = opt_with_path.unwrap_or(path);
 
             if is_primitive(&path) {
                 return quote! {
