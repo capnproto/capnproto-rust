@@ -79,7 +79,7 @@ pub fn is_data(path: &syn::Path) -> bool {
 }
 
 /// Check if the path represents a Vec<SomeStruct>, where SomeStruct != u8
-pub fn get_list(path: &syn::Path) -> Option<syn::Path> {
+pub fn get_vec(path: &syn::Path) -> Option<syn::Path> {
     let last_segment = match path.segments.last().unwrap() {
         syn::punctuated::Pair::End(last_segment) => last_segment,
         _ => unreachable!(),

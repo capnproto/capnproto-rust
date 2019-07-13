@@ -5,7 +5,7 @@ use syn::spanned::Spanned;
 use syn::{FieldsNamed, Ident, Path};
 
 use crate::util::{
-    capnp_result_shim, gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive,
+    capnp_result_shim, gen_list_read_iter, gen_list_write_iter, get_vec, is_data, is_primitive,
     usize_to_u32_shim, CapnpWithAttribute,
 };
 
@@ -56,7 +56,7 @@ fn gen_type_write(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) 
                 };
             }
 
-            if let Some(inner_path) = get_list(&path) {
+            if let Some(inner_path) = get_vec(&path) {
                 let init_method = syn::Ident::new(&format!("init_{}", &name), name.span());
                 let list_write_iter = gen_list_write_iter(&inner_path);
 
@@ -128,7 +128,7 @@ fn gen_type_read(field: &syn::Field, assign_defaults: impl Fn(&mut syn::Path)) -
                 };
             }
 
-            if let Some(inner_path) = get_list(&path) {
+            if let Some(inner_path) = get_vec(&path) {
                 let get_method = syn::Ident::new(&format!("get_{}", &name), name.span());
                 let list_read_iter = gen_list_read_iter(&inner_path);
                 return quote_spanned! {field.span() =>

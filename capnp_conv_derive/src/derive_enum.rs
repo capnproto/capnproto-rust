@@ -7,7 +7,7 @@ use syn::{DataEnum, Fields, Ident, Path, Variant};
 use heck::SnakeCase;
 
 use crate::util::{
-    capnp_result_shim, gen_list_read_iter, gen_list_write_iter, get_list, is_data, is_primitive,
+    capnp_result_shim, gen_list_read_iter, gen_list_write_iter, get_vec, is_data, is_primitive,
     usize_to_u32_shim, CapnpWithAttribute,
 };
 
@@ -82,7 +82,7 @@ fn gen_type_write(variant: &Variant, assign_defaults: impl Fn(&mut syn::Path)) -
             }
 
             // The case of list:
-            if let Some(inner_path) = get_list(&path) {
+            if let Some(inner_path) = get_vec(&path) {
                 let init_method =
                     syn::Ident::new(&format!("init_{}", &variant_snake_name), variant.span());
                 let list_write_iter = gen_list_write_iter(&inner_path);
@@ -197,7 +197,7 @@ fn gen_type_read(
                 };
             }
 
-            if let Some(inner_path) = get_list(&path) {
+            if let Some(inner_path) = get_vec(&path) {
                 // The case of a list:
                 let list_read_iter = gen_list_read_iter(&inner_path);
                 return quote! {
