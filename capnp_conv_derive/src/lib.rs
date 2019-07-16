@@ -68,7 +68,9 @@ pub fn capnp_conv(
                 );
 
                 quote! {
+                    #[allow(clippy::all)]
                     #write_capnp
+                    #[allow(clippy::all)]
                     #read_capnp
                 }
             }
@@ -87,7 +89,9 @@ pub fn capnp_conv(
                 gen_read_capnp_enum(data_enum, rust_struct, &capnp_struct, &assign_defaults);
 
             quote! {
+                #[allow(clippy::all)]
                 #write_capnp
+                #[allow(clippy::all)]
                 #read_capnp
             }
         }
