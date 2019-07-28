@@ -296,7 +296,7 @@ pub fn compute_serialized_size_in_words<A>(message: &crate::message::Builder<A>)
 
 #[cfg(test)]
 pub mod test {
-    use crate::io::{prelude::*, Cursor};
+    use crate::io::{self, prelude::*};
 
     use quickcheck::{quickcheck, TestResult};
 
@@ -323,7 +323,7 @@ pub mod test {
         buf.extend([0,0,0,0, // 1 segments
                     0,0,0,0] // 0 length
                     .iter().cloned());
-        let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
+        let (words, segment_slices) = read_segment_table(&mut io::Cursor::new(&buf[..]),
                                                          message::ReaderOptions::new()).unwrap();
         assert_eq!(0, words);
         assert_eq!(vec![(0,0)], segment_slices);
@@ -332,7 +332,7 @@ pub mod test {
         buf.extend([0,0,0,0, // 1 segments
                     1,0,0,0] // 1 length
                     .iter().cloned());
-        let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
+        let (words, segment_slices) = read_segment_table(&mut io::Cursor::new(&buf[..]),
                                                          message::ReaderOptions::new()).unwrap();
         assert_eq!(1, words);
         assert_eq!(vec![(0,1)], segment_slices);
@@ -343,7 +343,7 @@ pub mod test {
                     1,0,0,0, // 1 length
                     0,0,0,0] // padding
                     .iter().cloned());
-        let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
+        let (words, segment_slices) = read_segment_table(&mut io::Cursor::new(&buf[..]),
                                                          message::ReaderOptions::new()).unwrap();
         assert_eq!(2, words);
         assert_eq!(vec![(0,1), (1, 2)], segment_slices);
@@ -354,7 +354,7 @@ pub mod test {
                     1,0,0,0, // 1 length
                     0,1,0,0] // 256 length
                     .iter().cloned());
-        let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
+        let (words, segment_slices) = read_segment_table(&mut io::Cursor::new(&buf[..]),
                                                          message::ReaderOptions::new()).unwrap();
         assert_eq!(258, words);
         assert_eq!(vec![(0,1), (1, 2), (2, 258)], segment_slices);
@@ -367,7 +367,7 @@ pub mod test {
                     99,0,0,0, // 99 length
                     0,0,0,0]  // padding
                     .iter().cloned());
-        let (words, segment_slices) = read_segment_table(&mut Cursor::new(&buf[..]),
+        let (words, segment_slices) = read_segment_table(&mut io::Cursor::new(&buf[..]),
                                                          message::ReaderOptions::new()).unwrap();
         assert_eq!(200, words);
         assert_eq!(vec![(0,77), (77, 100), (100, 101), (101, 200)], segment_slices);
@@ -381,23 +381,23 @@ pub mod test {
 
         buf.extend([0,2,0,0].iter().cloned()); // 513 segments
         buf.extend([0; 513 * 4].iter().cloned());
-        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+        assert!(read_segment_table(&mut io::Cursor::new(&buf[..]),
                                    message::ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([0,0,0,0].iter().cloned()); // 1 segments
-        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+        assert!(read_segment_table(&mut io::Cursor::new(&buf[..]),
                                    message::ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([0,0,0,0].iter().cloned()); // 1 segments
         buf.extend([0; 3].iter().cloned());
-        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+        assert!(read_segment_table(&mut io::Cursor::new(&buf[..]),
                                    message::ReaderOptions::new()).is_err());
         buf.clear();
 
         buf.extend([255,255,255,255].iter().cloned()); // 0 segments
-        assert!(read_segment_table(&mut Cursor::new(&buf[..]),
+        assert!(read_segment_table(&mut io::Cursor::new(&buf[..]),
                                    message::ReaderOptions::new()).is_err());
         buf.clear();
     }
@@ -464,7 +464,7 @@ pub mod test {
     fn check_round_trip() {
         fn round_trip(segments: Vec<Vec<Word>>) -> TestResult {
             if segments.len() == 0 { return TestResult::discard(); }
-            let mut cursor = Cursor::new(Vec::new());
+            let mut cursor = io::Cursor::new(Vec::new());
 
             write_message_segments(&mut cursor, &segments);
             cursor.set_position(0);
