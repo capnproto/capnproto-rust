@@ -1859,7 +1859,8 @@ pub fn generate_code<T>(mut inp: T, out_dir: &::std::path::Path) -> ::capnp::Res
         let requested = ::std::path::PathBuf::from(requested_file.get_filename()?);
         filepath.push(requested);
         if let Some(parent) = filepath.parent() {
-            ::std::fs::create_dir_all(parent)?;
+            ::std::fs::create_dir_all(parent)
+                .map_err(|err| ::capnp::Error::failed(err.to_string()))?;
         }
 
         let root_name = path_to_stem_string(&filepath)?.replace("-", "_");
@@ -1878,12 +1879,13 @@ pub fn generate_code<T>(mut inp: T, out_dir: &::std::path::Path) -> ::capnp::Res
         // would not include `filepath`.
         match ::std::fs::File::create(&filepath) {
             Ok(ref mut writer) => {
-                writer.write_all(text.as_bytes())?;
+                writer.write_all(text.as_bytes())
+                    .map_err(|err| ::capnp::Error::failed(err.to_string()))?;
             }
             Err(e) => {
                 let _ = writeln!(&mut ::std::io::stderr(),
                                  "could not open file {:?} for writing: {}", filepath, e);
-                return Err(e.into());
+                return Err(::capnp::Error::failed(e.to_string()));
             }
         }
     }

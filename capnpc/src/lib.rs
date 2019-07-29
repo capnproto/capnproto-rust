@@ -78,9 +78,9 @@ pub enum RustEdition {
 }
 
 fn run_command(mut command: ::std::process::Command, path: &PathBuf) -> ::capnp::Result<()> {
-    let mut p = command.spawn()?;
+    let mut p = command.spawn().map_err(|err| capnp::Error::failed(err.to_string()))?;
     crate::codegen::generate_code(p.stdout.take().unwrap(), path.as_path())?;
-    let exit_status = p.wait()?;
+    let exit_status = p.wait().map_err(|err| ::capnp::Error::failed(err.to_string()))?;
     if !exit_status.success() {
         Err(::capnp::Error::failed(format!(
             "Non-success exit status: {}",
