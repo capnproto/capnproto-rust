@@ -1,3 +1,6 @@
+## v0.10.1
+- Remove dependency on byteorder crate, in favor of from_le_bytes() and to_le_bytes().
+
 ## v0.10.0
 - Simplify handling of pointer defaults by adding default parameter to FromPointerReader.
 - Add IntoInternalStructReader as a bound on OwnedStruct::Reader.

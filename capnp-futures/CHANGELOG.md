@@ -1,3 +1,6 @@
+## v0.10.1
+- Remove dependency on byteorder crate, in favor of from_le_bytes() and to_le_bytes().
+
 ## v0.10.0
 - Update to 2018 edition.
 - Update minimum required rustc version to 1.35.
