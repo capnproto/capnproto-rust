@@ -11,8 +11,6 @@ documentation = "https://docs.capnproto-rust.org/capnp_futures/"
 keywords = ["async"]
 
 [dependencies]
-
-byteorder = "1.2"
 capnp = { version = "0.10.0", path = "../capnp" }
 futures = "0.1.12"
 

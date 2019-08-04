@@ -22,12 +22,11 @@
 //! Reading and writing of messages using the
 //! [standard stream framing](https://capnproto.org/encoding.html#serialization-over-a-stream).
 
+use std::convert::TryInto;
 use std::io::{Read, Write};
 
 use crate::message;
 use crate::{Error, Result, Word};
-
-use byteorder::{ByteOrder, LittleEndian};
 
 /// Segments read from a single flat slice of words.
 pub struct SliceSegments<'a> {
@@ -110,8 +109,7 @@ fn read_segment_table<R>(read: &mut R,
 
     // read the first Word, which contains segment_count and the 1st segment length
     read.read_exact(&mut buf)?;
-    let segment_count = <LittleEndian as ByteOrder>::read_u32(&buf[0..4])
-                                                   .wrapping_add(1) as usize;
+    let segment_count = u32::from_le_bytes(buf[0..4].try_into().unwrap()).wrapping_add(1) as usize;
 
     if segment_count >= 512 {
         return Err(Error::failed(format!("Too many segments: {}", segment_count)))
@@ -120,7 +118,7 @@ fn read_segment_table<R>(read: &mut R,
     }
 
     let mut segment_slices = Vec::with_capacity(segment_count);
-    let mut total_words = <LittleEndian as ByteOrder>::read_u32(&buf[4..8]) as usize;
+    let mut total_words = u32::from_le_bytes(buf[4..8].try_into().unwrap()) as usize;
     segment_slices.push((0, total_words));
 
     if segment_count > 1 {
@@ -128,7 +126,7 @@ fn read_segment_table<R>(read: &mut R,
             read.read_exact(&mut buf)?;
             for idx in 0..(segment_count - 1) {
                 let segment_len =
-                    <LittleEndian as ByteOrder>::read_u32(&buf[(idx * 4)..(idx + 1) * 4]) as usize;
+                    u32::from_le_bytes(buf[(idx * 4)..(idx + 1) * 4].try_into().unwrap()) as usize;
 
                 segment_slices.push((total_words, total_words + segment_len));
                 total_words += segment_len;
@@ -138,7 +136,7 @@ fn read_segment_table<R>(read: &mut R,
             read.read_exact(&mut segment_sizes[..])?;
             for idx in 0..(segment_count - 1) {
                 let segment_len =
-                    <LittleEndian as ByteOrder>::read_u32(&segment_sizes[(idx * 4)..(idx + 1) * 4]) as usize;
+                    u32::from_le_bytes(segment_sizes[(idx * 4)..(idx + 1) * 4].try_into().unwrap()) as usize;
 
                 segment_slices.push((total_words, total_words + segment_len));
                 total_words += segment_len;
@@ -236,15 +234,15 @@ where W: Write, R: message::ReaderSegments + ?Sized {
     let segment_count = segments.len();
 
     // write the first Word, which contains segment_count and the 1st segment length
-    <LittleEndian as ByteOrder>::write_u32(&mut buf[0..4], segment_count as u32 - 1);
-    <LittleEndian as ByteOrder>::write_u32(&mut buf[4..8], segments.get_segment(0).unwrap().len() as u32);
+    buf[0..4].copy_from_slice(&(segment_count as u32 - 1).to_le_bytes());
+    buf[4..8].copy_from_slice(&(segments.get_segment(0).unwrap().len() as u32).to_le_bytes());
     write.write_all(&buf)?;
 
     if segment_count > 1 {
         if segment_count < 4 {
             for idx in 1..segment_count {
-                <LittleEndian as ByteOrder>::write_u32(
-                    &mut buf[(idx - 1) * 4..idx * 4], segments.get_segment(idx as u32).unwrap().len() as u32);
+                buf[(idx - 1) * 4..idx * 4].copy_from_slice(
+                    &(segments.get_segment(idx as u32).unwrap().len() as u32).to_le_bytes());
             }
             if segment_count == 2 {
                 for idx in 4..8 { buf[idx] = 0 }
@@ -253,8 +251,8 @@ where W: Write, R: message::ReaderSegments + ?Sized {
         } else {
             let mut buf = vec![0; (segment_count & !1) * 4];
             for idx in 1..segment_count {
-                <LittleEndian as ByteOrder>::write_u32(
-                    &mut buf[(idx - 1) * 4..idx * 4], segments.get_segment(idx as u32).unwrap().len() as u32);
+                buf[(idx - 1) * 4..idx * 4].copy_from_slice(
+                    &(segments.get_segment(idx as u32).unwrap().len() as u32).to_le_bytes());
             }
             if segment_count % 2 == 0 {
                 for idx in (buf.len() - 4)..(buf.len()) { buf[idx] = 0 }

@@ -19,7 +19,6 @@ name = "capnp"
 path = "src/lib.rs"
 
 [dependencies]
-byteorder = "1.2"
 quickcheck = { version = "0.2", optional = true }
 
 [dev-dependencies]

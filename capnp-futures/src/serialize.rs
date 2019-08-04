@@ -21,11 +21,11 @@
 //! Asynchronous reading and writing of messages using the
 //! [standard stream framing](https://capnproto.org/encoding.html#serialization-over-a-stream).
 
+use std::convert::TryInto;
 use std::io::{self};
 
 use capnp::{message, Error, Result, Word, OutputSegments};
 
-use byteorder::{ByteOrder, LittleEndian};
 use futures::future::Future;
 use futures::sink::Sink;
 use futures::stream::Stream;
@@ -270,15 +270,14 @@ impl <R> Future for Read<R> where R: ::std::io::Read {
 /// read would block.
 fn parse_segment_table_first(buf: &[u8]) -> Result<(u32, u32)>
 {
-    let segment_count = <LittleEndian as ByteOrder>::read_u32(&buf[0..4])
-                                                   .wrapping_add(1);
+    let segment_count = u32::from_le_bytes(buf[0..4].try_into().unwrap()).wrapping_add(1);
     if segment_count >= 512 {
         return Err(Error::failed(format!("Too many segments: {}", segment_count)))
     } else if segment_count == 0 {
         return Err(Error::failed(format!("Too few segments: {}", segment_count)))
     }
 
-    let first_segment_len = <LittleEndian as ByteOrder>::read_u32(&buf[4..8]);
+    let first_segment_len = u32::from_le_bytes(buf[4..8].try_into().unwrap());
     Ok((segment_count, first_segment_len))
 }
 
@@ -293,7 +292,7 @@ fn parse_segment_table_rest(options: &message::ReaderOptions,
     let mut segment_slices = vec![(0usize, first_segment_length as usize)];
 
     for idx in 0..(segment_count as usize - 1) {
-        let segment_len = <LittleEndian as ByteOrder>::read_u32(&buf[(idx * 4)..(idx * 4 + 4)]) as usize;
+        let segment_len = u32::from_le_bytes(buf[(idx * 4)..(idx * 4 + 4)].try_into().unwrap()) as usize;
         segment_slices.push((total_words, total_words + segment_len));
         total_words += segment_len;
     }
@@ -328,11 +327,10 @@ enum WriteState<W, M> where W: ::std::io::Write, M: AsOutputSegments, {
 
 fn construct_segment_table(segments: &[&[Word]]) -> Vec<u8> {
     let mut buf = vec![0u8; ((segments.len() + 2) & !1) * 4];
-    <LittleEndian as ByteOrder>::write_u32(&mut buf[0..4], segments.len() as u32 - 1);
+    buf[0..4].copy_from_slice(&(segments.len() as u32 - 1).to_le_bytes());
     for idx in 0..segments.len() {
-        <LittleEndian as ByteOrder>::write_u32(
-            &mut buf[(idx + 1) * 4 .. (idx + 2) * 4],
-            segments[idx].len() as u32);
+        buf[(idx + 1) * 4 .. (idx + 2) * 4].copy_from_slice(
+            &(segments[idx].len() as u32).to_le_bytes());
     }
     buf
 }
@@ -365,7 +363,7 @@ impl InnerWriteState {
         let segments = &*message.as_output_segments();
         if segments.len() == 1 {
             let mut buf = [0; 8];
-            <LittleEndian as ByteOrder>::write_u32(&mut buf[4..8], segments[0].len() as u32);
+            buf[4..8].copy_from_slice(&(segments[0].len() as u32).to_le_bytes());
             InnerWriteState::OneWordSegmentTable { buf: buf, idx: 0 }
         } else {
             let buf = construct_segment_table(segments);

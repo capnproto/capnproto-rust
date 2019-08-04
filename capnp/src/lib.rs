@@ -27,8 +27,6 @@
 //! [capnpc-rust](https://github.com/capnproto/capnproto-rust/capnpc) crate.
 #![cfg_attr(feature = "rpc_try", feature(try_trait))]
 
-extern crate byteorder;
-
 #[cfg(any(feature="quickcheck", test))]
 extern crate quickcheck;
 
