@@ -1,3 +1,7 @@
+## next
+
+- Export Disconnector struct from capnp_rpc (#140)
+
 ## v0.10.0
 - Update to Rust 2018.
 - Update minimum required rustc version to 1.35.
