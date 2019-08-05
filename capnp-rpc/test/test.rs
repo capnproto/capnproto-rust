@@ -137,7 +137,7 @@ fn disconnector_disconnects() {
     let (mut client_rpc_system, server_rpc_system) = disconnector_setup(&handle);
 
     let client: test_capnp::bootstrap::Client = client_rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-    let disconnector = client_rpc_system.get_disconnector();
+    let disconnector: capnp_rpc::Disconnector<capnp_rpc::rpc_twoparty_capnp::Side> = client_rpc_system.get_disconnector();
 
     handle.spawn(client_rpc_system.map_err(|e| {println!("RpcSystem error: {:?}", e); ()}));
 

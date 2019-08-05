@@ -56,7 +56,7 @@
 //! });
 //! ```
 //!
-//! For a more complete example, see https://github.com/dwrensha/capnp-rpc-rust/tree/master/examples/calculator
+//! For a more complete example, see https://github.com/capnproto/capnproto-rust/tree/master/capnp-rpc/examples/calculator
 
 
 extern crate capnp;
@@ -72,6 +72,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 use crate::task_set::TaskSet;
+pub use crate::rpc::Disconnector;
 
 /// Code generated from [rpc.capnp]
 /// (https://github.com/sandstorm-io/capnproto/blob/master/c%2B%2B/src/capnp/rpc.capnp).
