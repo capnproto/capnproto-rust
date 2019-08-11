@@ -1862,8 +1862,8 @@ mod wire_helpers {
                         arena: src_arena,
                         segment_id: src_segment_id,
                         cap_table: src_cap_table,
-                        data: ptr as *mut _,
-                        pointers: ptr.offset((*src).struct_data_size() as isize) as *mut _,
+                        data: ptr as *const _,
+                        pointers: ptr.offset((*src).struct_data_size() as isize) as *const _,
                         data_size: (*src).struct_data_size() as u32 * BITS_PER_WORD as u32,
                         pointer_count: (*src).struct_ptr_count(),
                         nesting_limit: nesting_limit - 1
@@ -1912,7 +1912,7 @@ mod wire_helpers {
                             arena: src_arena,
                             segment_id: src_segment_id,
                             cap_table: src_cap_table,
-                            ptr: ptr as *mut _,
+                            ptr: ptr as *const _,
                             element_count: element_count,
                             element_size: element_size,
                             step: words_per_element * BITS_PER_WORD as u32,
@@ -1945,7 +1945,7 @@ mod wire_helpers {
                             arena: src_arena,
                             segment_id: src_segment_id,
                             cap_table : src_cap_table,
-                            ptr: ptr as *mut _,
+                            ptr: ptr as *const _,
                             element_count: element_count,
                             element_size: element_size,
                             step: step,
@@ -2450,7 +2450,7 @@ impl <'a> PointerReader<'a> {
             arena: &NULL_ARENA,
             segment_id: 0,
             cap_table: CapTableReader::Plain(ptr::null()),
-            pointer: location as *mut _,
+            pointer: location as *const _,
             nesting_limit: 0x7fffffff }
     }
 
@@ -3220,7 +3220,7 @@ impl <'a> ListReader<'a> {
             arena: self.arena,
             segment_id: self.segment_id,
             cap_table: self.cap_table,
-            pointer: unsafe { self.ptr.offset(offset as isize) as *mut _ },
+            pointer: unsafe { self.ptr.offset(offset as isize) } as *const _,
             nesting_limit: self.nesting_limit
         }
     }
