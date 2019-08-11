@@ -370,8 +370,6 @@ pub fn write_message<W, A>(write: &mut W, message: &crate::message::Builder<A>) 
 
 #[cfg(test)]
 mod tests {
-
-    use std::iter;
     use std::io::{Write, Read};
 
     use std::io::Cursor;
@@ -386,7 +384,7 @@ mod tests {
     pub fn check_unpacks_to(packed: &[u8], unpacked: &[u8]) {
         let mut packed_read = PackedRead { inner: packed };
 
-        let mut bytes: Vec<u8> = iter::repeat(0u8).take(unpacked.len()).collect();
+        let mut bytes: Vec<u8> = vec![0; unpacked.len()];
         packed_read.read_exact(&mut bytes[..]).unwrap();
 
         let mut buf = [0; 8];
