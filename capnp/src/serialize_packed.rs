@@ -404,7 +404,7 @@ mod tests {
         // --------
         // write
 
-        let mut bytes: Vec<u8> = iter::repeat(0u8).take(packed.len()).collect();
+        let mut bytes: Vec<u8> = vec![0; packed.len()];
         {
             let mut packed_write = PackedWrite { inner: &mut bytes[..] };
             packed_write.write(unpacked).unwrap();
