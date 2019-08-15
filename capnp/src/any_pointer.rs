@@ -21,7 +21,7 @@
 
 //! Dynamically typed value.
 
-#[cfg(feature = "no_std")]
+#[cfg(not(feature = "std"))]
 use crate::io::prelude::*;
 
 use crate::capability::FromClientHook;

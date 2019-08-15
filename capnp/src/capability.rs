@@ -23,7 +23,7 @@
 //!
 //! Roughly corresponds to capability.h in the C++ implementation.
 
-#[cfg(feature = "no_std")]
+#[cfg(not(feature = "std"))]
 use crate::io::prelude::*;
 use core::marker::PhantomData;
 

@@ -20,16 +20,16 @@ path = "src/lib.rs"
 
 [dependencies]
 quickcheck = { version = "0.2", optional = true }
-core_io = { version = "0.1.20190701", features = [ "alloc", "collections" ], optional = true }
+core_io = { version = "0.1.20190701", features = [ "alloc", "collections" ] }
 
 [dev-dependencies]
 quickcheck = "0.2"
 
 [features]
-no_std = ["core_io"]
+std = []
 rpc = ["futures"]
 rpc_try = []
-default = []
+default = ["std"]
 
 [dependencies.futures]
 version = "0.1"

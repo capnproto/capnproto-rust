@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[cfg(feature = "no_std")]
+#[cfg(not(feature = "std"))]
 use crate::io::prelude::*;
 use core;
 

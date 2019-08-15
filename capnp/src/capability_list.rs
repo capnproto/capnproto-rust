@@ -20,7 +20,7 @@
 
 //! List of capabilities.
 
-#[cfg(feature = "no_std")]
+#[cfg(not(feature = "std"))]
 use crate::io::prelude::*;
 use core::{self, marker::PhantomData};
 
