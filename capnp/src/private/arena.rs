@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "no_std")]
 use crate::io::prelude::*;
 
 use core::cell::{Cell, RefCell};

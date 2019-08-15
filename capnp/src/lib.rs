@@ -27,7 +27,7 @@
 //! [capnpc-rust](https://github.com/capnproto/capnproto-rust/capnpc) crate.
 #![cfg_attr(feature = "rpc_try", feature(try_trait))]
 
-#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(feature = "no_std", no_std)]
 
 #[cfg(any(feature="quickcheck", test))]
 extern crate quickcheck;
@@ -35,29 +35,29 @@ extern crate quickcheck;
 #[cfg(feature = "rpc")]
 extern crate futures;
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "no_std")]
 #[macro_use]
 extern crate alloc;
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "no_std")]
 extern crate core_io;
 
-#[cfg(feature = "std")]
+#[cfg(not(feature = "no_std"))]
 use std as core;
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "no_std")]
 use core_io as io;
-#[cfg(feature = "std")]
+#[cfg(not(feature = "no_std"))]
 use std::io as io;
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "no_std")]
 use alloc::string as string;
-#[cfg(feature = "std")]
+#[cfg(not(feature = "no_std"))]
 use std::string as string;
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "no_std")]
 use alloc::str as str;
-#[cfg(feature = "std")]
+#[cfg(not(feature = "no_std"))]
 use std::str as str;
 
 /// Constructs a [`Word`](struct.Word.html) from its constituent bytes, accounting
@@ -112,9 +112,9 @@ pub mod text;
 pub mod text_list;
 pub mod traits;
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "no_std")]
 use alloc::string::String;
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "no_std")]
 use io::prelude::*;
 
 /// Eight bytes of memory with opaque interior. Use [`capnp_word!()`](macro.capnp_word!.html)

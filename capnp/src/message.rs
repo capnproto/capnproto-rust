@@ -21,7 +21,7 @@
 
 //! Untyped root container for a Cap'n Proto value.
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "no_std")]
 use crate::io::prelude::*;
 use core::{self, convert::From};
 
