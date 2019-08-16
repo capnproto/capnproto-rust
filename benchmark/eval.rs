@@ -23,8 +23,7 @@ use common::*;
 use eval_capnp::{expression, evaluation_result, Operation};
 
 fn make_expression(rng: &mut FastRand, mut exp: expression::Builder, depth : u32) -> i32 {
-    exp.set_op(unsafe {
-            ::std::mem::transmute(rng.next_less_than( Operation::Modulus as u32 + 1) as u16)});
+    exp.set_op(::capnp::traits::FromU16::from_u16(rng.next_less_than( Operation::Modulus as u32 + 1) as u16).unwrap());
 
     let left : i32 =
     if rng.next_less_than(8) < depth {

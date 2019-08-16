@@ -83,12 +83,10 @@ const MAKES : [&'static str; 5] = ["Toyota", "GM", "Ford", "Honda", "Tesla"];
 const MODELS : [&'static str; 6] = ["Camry", "Prius", "Volt", "Accord", "Leaf", "Model S"];
 
 pub fn random_car(rng: &mut FastRand, mut car: car::Builder) {
-    use std::mem::transmute;
-
     car.set_make(MAKES[rng.next_less_than(MAKES.len() as u32) as usize]);
     car.set_model(MODELS[rng.next_less_than(MODELS.len() as u32) as usize]);
 
-    car.set_color(unsafe {transmute(rng.next_less_than(Color::Silver as u32 + 1) as u16) });
+    car.set_color(::capnp::traits::FromU16::from_u16(rng.next_less_than(Color::Silver as u32 + 1) as u16).unwrap());
     car.set_seats(2 + rng.next_less_than(6) as u8);
     car.set_doors(2 + rng.next_less_than(3) as u8);
 
