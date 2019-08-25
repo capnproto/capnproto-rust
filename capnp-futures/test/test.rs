@@ -78,7 +78,7 @@ mod tests {
     }
 
     #[test]
-    fn foo() {
+    fn write_stream_and_read_queue() {
         use tokio_core::reactor;
         use mio_uds::UnixStream;
         use capnp;
@@ -120,43 +120,51 @@ mod tests {
 
         assert_eq!(messages_read1.get(), 1);
     }
-/*
-    fn fill_and_send_message(mut message: message::Builder<message::HeapAllocator>) {
+
+    fn fill_and_send_message(mut message: capnp::message::Builder<capnp::message::HeapAllocator>) {
+        use tokio_core::reactor;
+        use mio_uds::UnixStream;
+        use capnp_futures::serialize;
+        use futures::Future;
+
         {
             let mut address_book = message.init_root::<address_book::Builder>();
-            populate_address_book(address_book.borrow());
-            read_address_book(address_book.borrow_as_reader());
+            populate_address_book(address_book.reborrow());
+            read_address_book(address_book.reborrow_as_reader());
         }
 
-        gj::EventLoop::top_level(move |wait_scope| -> Result<(), ::std::io::Error> {
-            let mut event_port = try!(::gjio::EventPort::new());
-            let network = event_port.get_network();
-            let (stream0, stream1) = try!(network.new_socket_pair());
+        let mut l = reactor::Core::new().unwrap();
+        let handle = l.handle();
+        let (s0, s1) = UnixStream::pair().unwrap();
+        let stream0 = reactor::PollEvented::new(s0, &handle).unwrap();
+        let stream1 = reactor::PollEvented::new(s1, &handle).unwrap();
 
-            let promise0 = serialize::write_message(stream0, message).map(|_| Ok(()));
-            let promise1 =
-                serialize::read_message(stream1, message::ReaderOptions::new()).then(|(_, message_reader)| {
-                    let address_book = message_reader.get_root::<address_book::Reader>().unwrap();
-                    read_address_book(address_book);
-                    gj::Promise::ok(())
-                });
+        let promise0 = serialize::write_message(stream0, message).map(|_| Ok::<(), capnp::Error>(()));
+        let promise1 =
+            serialize::read_message(stream1, capnp::message::ReaderOptions::new()).and_then(|(_, maybe_message_reader)| {
+                match maybe_message_reader {
+                    None => panic!("did not get message"),
+                    Some(m) => {
+                        let address_book = m.get_root::<address_book::Reader>().unwrap();
+                        read_address_book(address_book);
+                        Ok::<(),capnp::Error>(())
+                    }
+                }
+            });
 
-            gj::Promise::all(vec![promise0, promise1].into_iter()).wait(wait_scope, &mut event_port).unwrap();
-            Ok(())
-        }).unwrap();
-
+        handle.spawn(promise0.map_err(|e| panic!("failed to write. {:?}", e)).map(|_| ()));
+        l.run(promise1).expect("running");
     }
 
     #[test]
     fn single_segment() {
-        fill_and_send_message(message::Builder::new_default());
+        fill_and_send_message(capnp::message::Builder::new_default());
     }
 
     #[test]
     fn multi_segment() {
-        let builder_options = message::HeapAllocator::new()
-            .first_segment_words(1).allocation_strategy(::capnp::message::AllocationStrategy::FixedSize);
-        fill_and_send_message(message::Builder::new(builder_options));
+        let builder_options = capnp::message::HeapAllocator::new()
+            .first_segment_words(1).allocation_strategy(capnp::message::AllocationStrategy::FixedSize);
+        fill_and_send_message(capnp::message::Builder::new(builder_options));
     }
-*/
 }
