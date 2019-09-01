@@ -24,12 +24,12 @@ use capnp::primitive_list;
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
-use calculator_capnp::calculator;
+use crate::calculator_capnp::calculator;
 use capnp::capability::Promise;
 
-use futures::{Future, Stream};
-use tokio::io::{AsyncRead};
-use tokio::runtime::current_thread;
+use futures::{AsyncReadExt, FutureExt, StreamExt, TryFutureExt};
+use futures::task::LocalSpawn;
+use futures::future;
 
 struct ValueImpl {
     value: f64
@@ -61,8 +61,8 @@ fn evaluate_impl(expression: calculator::expression::Reader,
             Promise::ok(v)
         },
         calculator::expression::PreviousResult(p) => {
-            Promise::from_future(pry!(p).read_request().send().promise.and_then(|v| {
-                Ok(v.get()?.get_value())
+            Promise::from_future(pry!(p).read_request().send().promise.map(|v| {
+                Ok(v?.get()?.get_value())
             }))
         }
         calculator::expression::Parameter(p) => {
@@ -77,12 +77,9 @@ fn evaluate_impl(expression: calculator::expression::Reader,
         }
         calculator::expression::Call(call) => {
             let func = pry!(call.get_function());
-            let param_promises: Vec<Promise<f64, Error>> =
-                pry!(call.get_params()).iter().map(|p| evaluate_impl(p, params)).collect();
-            // XXX shouldn't need to collect()
-            // see https://github.com/alexcrichton/futures-rs/issues/285
-
-            Promise::from_future(::futures::future::join_all(param_promises).and_then(move |param_values| {
+            let eval_params = future::try_join_all(pry!(call.get_params()).iter().map(|p| evaluate_impl(p, params)));
+            Promise::from_future(async move {
+                let param_values = eval_params.await?;
                 let mut request = func.call_request();
                 {
                     let mut params = request.get().init_params(param_values.len() as u32);
@@ -90,10 +87,8 @@ fn evaluate_impl(expression: calculator::expression::Reader,
                         params.set(ii as u32, param_values[ii]);
                     }
                 }
-                request.send().promise.and_then(|result| {
-                    Ok(result.get()?.get_value())
-                })
-            }))
+                Ok(request.send().promise.await?.get()?.get_value())
+            })
         }
     }
 }
@@ -122,15 +117,16 @@ impl calculator::function::Server for FunctionImpl {
     {
         let params = pry!(pry!(params.get()).get_params());
         if params.len() != self.param_count {
-            Promise::err(Error::failed(
-                format!("Expect {} parameters but got {}.", self.param_count, params.len())))
-        } else {
-            Promise::from_future(evaluate_impl(
-                pry!(self.body.get_root::<calculator::expression::Builder>()).into_reader(),
-                Some(params)).map(move |v| {
-                    results.get().set_value(v);
-                }))
+            return Promise::err(Error::failed(
+                    format!("Expected {} parameters but got {}.", self.param_count, params.len())));
         }
+
+        let eval = evaluate_impl(pry!(self.body.get_root::<calculator::expression::Builder>()).into_reader(),
+                                 Some(params));
+        Promise::from_future(async move {
+            results.get().set_value(eval.await?);
+            Ok(())
+        })
     }
 }
 
@@ -169,10 +165,12 @@ impl calculator::Server for CalculatorImpl {
                 mut results: calculator::EvaluateResults)
                 -> Promise<(), Error>
     {
-        Promise::from_future(evaluate_impl(pry!(pry!(params.get()).get_expression()), None).map(move |v| {
+        Promise::from_future(async move {
+            let v = evaluate_impl(params.get()?.get_expression()?, None).await?;
             results.get().set_value(
                 calculator::value::ToClient::new(ValueImpl::new(v)).into_client::<::capnp_rpc::Server>());
-        }))
+            Ok(())
+        })
     }
     fn def_function(&mut self,
                     params: calculator::DefFunctionParams,
@@ -207,23 +205,28 @@ pub fn main() {
     }
 
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
-    let socket = ::tokio::net::TcpListener::bind(&addr).unwrap();
 
-    let calc =
-        calculator::ToClient::new(CalculatorImpl).into_client::<::capnp_rpc::Server>();
+    let mut exec = futures::executor::LocalPool::new();
+    let mut spawner = exec.spawner();
+    let result: Result<(), Box<dyn std::error::Error>> = exec.run_until(async move {
+        let mut listener = romio::TcpListener::bind(&addr)?;
+        let calc =
+            calculator::ToClient::new(CalculatorImpl).into_client::<::capnp_rpc::Server>();
 
-    let done = socket.incoming().for_each(move |socket| {
-        socket.set_nodelay(true)?;
-        let (reader, writer) = socket.split();
+        let mut incoming = listener.incoming();
+        while let Some(socket) = incoming.next().await {
+            let socket = socket?;
+            socket.set_nodelay(true)?;
+            let (reader, writer) = socket.split();
+                        let network =
+                twoparty::VatNetwork::new(reader, writer,
+                                          rpc_twoparty_capnp::Side::Server, Default::default());
 
-        let network =
-            twoparty::VatNetwork::new(reader, std::io::BufWriter::new(writer),
-                                      rpc_twoparty_capnp::Side::Server, Default::default());
-
-        let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
-        current_thread::spawn(rpc_system.map_err(|e| println!("error: {:?}", e)));
+            let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
+            spawner.spawn_local_obj(
+                Box::pin(rpc_system.map_err(|e| println!("error: {:?}", e)).map(|_|())).into()).expect("spawn")
+        }
         Ok(())
     });
-
-    current_thread::block_on_all(done).unwrap();
+    result.expect("main");
 }

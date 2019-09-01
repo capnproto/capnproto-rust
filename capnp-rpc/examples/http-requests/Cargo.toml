@@ -2,7 +2,7 @@
 name = "capnp-http-requests"
 version = "0.1.0"
 authors = ["David Renshaw <david@sandstorm.io>"]
-
+edition = "2018"
 build = "build.rs"
 
 [[bin]]
@@ -14,11 +14,11 @@ capnpc = { path = "../../../capnpc" }
 
 [dependencies]
 capnp = { path = "../../../capnp" }
-futures = "0.1"
-tokio-io = "0.1"
-tokio-core = "0.1"
-tokio-curl = "0.1"
-curl = "0.4"
+futures-preview = "0.3.0-alpha.18"
+hyper = { git = "https://github.com/hyperium/hyper" }
+tokio = "0.2.0-alpha.4"
+tokio-executor = "0.2.0-alpha.4"
+futures-tokio-compat = { git = "https://github.com/Nemo157/futures-tokio-compat" }
 
 [dependencies.capnp-rpc]
 path = "../.."

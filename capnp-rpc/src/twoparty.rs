@@ -23,13 +23,11 @@
 
 use capnp::message::ReaderOptions;
 use capnp::capability::Promise;
-use futures::Future;
-use futures::sync::oneshot;
+use futures::{AsyncRead, AsyncWrite, FutureExt, TryFutureExt};
+use futures::channel::oneshot;
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
-
-use crate::forked_promise::ForkedPromise;
 
 pub type VatId = crate::rpc_twoparty_capnp::Side;
 
@@ -81,7 +79,7 @@ impl crate::OutgoingMessage for OutgoingMessage {
     }
 }
 
-struct ConnectionInner<T> where T: ::std::io::Read + 'static {
+struct ConnectionInner<T> where T: AsyncRead + 'static {
     input_stream: Rc<RefCell<Option<T>>>,
     sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
     side: crate::rpc_twoparty_capnp::Side,
@@ -89,11 +87,11 @@ struct ConnectionInner<T> where T: ::std::io::Read + 'static {
     on_disconnect_fulfiller: Option<oneshot::Sender<()>>,
 }
 
-struct Connection<T> where T: ::std::io::Read + 'static {
+struct Connection<T> where T: AsyncRead + 'static {
     inner: Rc<RefCell<ConnectionInner<T>>>,
 }
 
-impl <T> Drop for ConnectionInner<T> where T: ::std::io::Read {
+impl <T> Drop for ConnectionInner<T> where T: AsyncRead {
     fn drop(&mut self) {
         let maybe_fulfiller = ::std::mem::replace(&mut self.on_disconnect_fulfiller, None);
         match maybe_fulfiller {
@@ -105,7 +103,7 @@ impl <T> Drop for ConnectionInner<T> where T: ::std::io::Read {
     }
 }
 
-impl <T> Connection<T> where T: ::std::io::Read {
+impl <T> Connection<T> where T: AsyncRead {
     fn new(input_stream: T,
            sender: ::capnp_futures::Sender<Rc<::capnp::message::Builder<::capnp::message::HeapAllocator>>>,
            side: crate::rpc_twoparty_capnp::Side,
@@ -128,7 +126,7 @@ impl <T> Connection<T> where T: ::std::io::Read {
 }
 
 impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
-    where T: ::std::io::Read
+    where T: AsyncRead + Unpin
 {
     fn get_peer_vat_id(&self) -> crate::rpc_twoparty_capnp::Side {
         self.inner.borrow().side
@@ -147,7 +145,7 @@ impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
         let return_it_here = inner.input_stream.clone();
         match maybe_input_stream {
             Some(s) => {
-                Promise::from_future(::capnp_futures::serialize::read_message(s, inner.receive_options).map(move |(s, maybe_message)| {
+                Promise::from_future(::capnp_futures::serialize::read_message(s, inner.receive_options).map_ok(move |(s, maybe_message)| {
                     *return_it_here.borrow_mut() = Some(s);
                     maybe_message.map(|message|
                                       Box::new(IncomingMessage::new(message)) as Box<dyn crate::IncomingMessage>)
@@ -166,17 +164,17 @@ impl <T> crate::Connection<crate::rpc_twoparty_capnp::Side> for Connection<T>
 }
 
 /// A vat networks with two parties, the client and the server.
-pub struct VatNetwork<T> where T: ::std::io::Read + 'static {
+pub struct VatNetwork<T> where T: AsyncRead + 'static + Unpin {
     connection: Option<Connection<T>>,
 
     // HACK
     weak_connection_inner: Weak<RefCell<ConnectionInner<T>>>,
 
-    execution_driver: ForkedPromise<Promise<(), ::capnp::Error>>,
+    execution_driver: futures::future::Shared<Promise<(), ::capnp::Error>>,
     side: crate::rpc_twoparty_capnp::Side,
 }
 
-impl <T> VatNetwork<T> where T: ::std::io::Read {
+impl <T> VatNetwork<T> where T: AsyncRead + Unpin{
     /// Creates a new two-party vat network that will receive data on `input_stream` and send data on
     /// `output_stream`. These streams must be futures-enabled, as discussed here:
     /// https://github.com/tokio-rs/tokio-core/issues/61
@@ -191,7 +189,7 @@ impl <T> VatNetwork<T> where T: ::std::io::Read {
                output_stream: U,
                side: crate::rpc_twoparty_capnp::Side,
                receive_options: ReaderOptions) -> VatNetwork<T>
-        where U: ::std::io::Write + 'static,
+        where U: AsyncWrite + 'static + Unpin,
     {
 
         let (fulfiller, disconnect_promise) = oneshot::channel();
@@ -203,9 +201,9 @@ impl <T> VatNetwork<T> where T: ::std::io::Read {
 
             // Don't use `.join()` here because we need to make sure to wait for `disconnect_promise` to
             // resolve even if `write_queue` resolves to an error.
-            (ForkedPromise::new(Promise::from_future(
+            (Promise::from_future(
                 write_queue
-                    .then(move |r| disconnect_promise.then(move |_| r).map(|_| ())))),
+                    .then(move |r| disconnect_promise.then(move |_| futures::future::ready(r)).map_ok(|_| ()))).shared(),
              tx)
         };
 
@@ -222,7 +220,7 @@ impl <T> VatNetwork<T> where T: ::std::io::Read {
 }
 
 impl <T> crate::VatNetwork<VatId> for VatNetwork<T>
-    where T: ::std::io::Read
+    where T: AsyncRead + Unpin
 {
     fn connect(&mut self, host_id: VatId) -> Option<Box<dyn crate::Connection<VatId>>> {
         if host_id == self.side {
@@ -250,7 +248,7 @@ impl <T> crate::VatNetwork<VatId> for VatNetwork<T>
         let connection = ::std::mem::replace(&mut self.connection, None);
         match connection {
             Some(c) => Promise::ok(Box::new(c) as Box<dyn crate::Connection<VatId>>),
-            None => Promise::from_future(::futures::future::empty()),
+            None => Promise::from_future(::futures::future::pending()),
         }
     }
 

@@ -16,6 +16,6 @@ capnpc = { path = "../../capnpc" }
 [dependencies]
 capnp-futures = {path = "./../"}
 capnp = { path = "../../capnp" }
-futures = "0.1"
-tokio-core = "0.1"
-mio-uds = "0.6"
+futures-preview = "0.3.0-alpha.18"
+romio = "0.3.0-alpha.9"
+

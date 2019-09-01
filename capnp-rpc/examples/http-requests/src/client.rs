@@ -20,11 +20,11 @@
 // THE SOFTWARE.
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
-use http_capnp::{outgoing_http};
+use crate::http_capnp::{outgoing_http};
 
-use tokio_core::reactor;
-use tokio_io::AsyncRead;
-use futures::Future;
+use futures::{AsyncReadExt, FutureExt};
+
+use tokio_executor::current_thread::{self};
 
 pub fn main() {
     use std::net::ToSocketAddrs;
@@ -34,51 +34,53 @@ pub fn main() {
         return;
     }
 
-    let mut core = reactor::Core::new().unwrap();
-    let handle = core.handle();
-
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
-    let stream = core.run(::tokio_core::net::TcpStream::connect(&addr, &handle)).unwrap();
-    stream.set_nodelay(true).unwrap();
-    let (reader, writer) = stream.split();
+    let mut rt = tokio::runtime::current_thread::Runtime::new().unwrap();
+    let result: Result<(), Box<dyn std::error::Error>> = rt.block_on(async move {
+        let stream = tokio::net::TcpStream::connect(&addr).await?;
+        stream.set_nodelay(true).unwrap();
+        let (reader, writer) = futures_tokio_compat::Compat::new(stream).split();
 
-    let rpc_network =
-        Box::new(twoparty::VatNetwork::new(reader, writer,
-                                           rpc_twoparty_capnp::Side::Client,
-                                           Default::default()));
+        let rpc_network =
+            Box::new(twoparty::VatNetwork::new(reader, writer,
+                                               rpc_twoparty_capnp::Side::Client,
+                                               Default::default()));
 
-    let mut rpc_system = RpcSystem::new(rpc_network, None);
-    let proxy: outgoing_http::Client =
-        rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+        let mut rpc_system = RpcSystem::new(rpc_network, None);
+        let proxy: outgoing_http::Client =
+            rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-    handle.spawn(rpc_system.map_err(|_e| ()));
+        current_thread::spawn(Box::pin(rpc_system.map(|_| ())));
 
-    let mut req = proxy.new_session_request();
-    req.get().set_base_url("https://www.rust-lang.org");
-    let session = req.send().pipeline.get_session();
+        let mut req = proxy.new_session_request();
 
-    let mut req_root = session.get_request();
-    req_root.get().set_path("/");
+        // TODO handle HTTPS
+        req.get().set_base_url("http://www.rust-lang.org");
+        let session = req.send().pipeline.get_session();
 
-    let mut req_english = session.get_request();
-    req_english.get().set_path("/en-US/");
+        let mut req_root = session.get_request();
+        req_root.get().set_path("/");
 
-    println!("sending two requests to https://www.rust-lang.org...");
-    let (root_response, english_response) =
-        core.run(req_root.send().promise.join(req_english.send().promise)).unwrap();
-    {
-        let root = root_response.get().unwrap();
-        println!("got body of length {} with response code of {} for /",
-                 root.get_body().unwrap().len(),
-                 root.get_response_code());
-    }
+        let mut req_english = session.get_request();
+        req_english.get().set_path("/en-US/");
 
-    {
-        let english = english_response.get().unwrap();
-        println!("got body of length {} with response code of {} for /en-US/",
-                 english.get_body().unwrap().len(),
-                 english.get_response_code());
-    }
+        println!("sending two requests to https://www.rust-lang.org...");
+        let (root_response, english_response) =
+            futures::future::try_join(req_root.send().promise,req_english.send().promise).await?;
+        {
+            let root = root_response.get().unwrap();
+            println!("got body of length {} with response code of {} for /",
+                     root.get_body().unwrap().len(),
+                     root.get_response_code());
+        }
 
-
+        {
+            let english = english_response.get().unwrap();
+            println!("got body of length {} with response code of {} for /en-US/",
+                     english.get_body().unwrap().len(),
+                     english.get_response_code());
+        }
+        Ok(())
+    });
+    result.expect("main");
 }

@@ -18,29 +18,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use std::pin::Pin;
+use std::task::{Context, Poll};
 use futures::{Future};
 
-pub struct AttachFuture<F, T> where F: Future {
+pub struct AttachFuture<F, T> where F: Future + Unpin {
     original_future: F,
     value: Option<T>,
 }
 
-impl <F, T> Future for AttachFuture<F, T>
-    where F: Future,
-{
-    type Item = F::Item;
-    type Error = F::Error;
+impl <F,T> Unpin for AttachFuture<F, T> where F: Future + Unpin {}
 
-    fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        let result = self.original_future.poll();
-        if let Ok(::futures::Async::Ready(_)) = result {
+impl <F, T> Future for AttachFuture<F, T>
+    where F: Future + Unpin,
+{
+    type Output = F::Output;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        let result = Pin::new(&mut self.original_future).poll(cx);
+        if let Poll::Ready(_) = result {
             self.value.take();
         }
         result
     }
 }
 
-pub trait Attach: Future {
+pub trait Attach: Future where Self: Unpin {
     fn attach<T>(self, value: T) -> AttachFuture<Self, T>
         where Self: Sized
     {
@@ -51,4 +54,4 @@ pub trait Attach: Future {
     }
 }
 
-impl <F> Attach for F where F: Future {}
+impl <F> Attach for F where F: Future + Unpin {}

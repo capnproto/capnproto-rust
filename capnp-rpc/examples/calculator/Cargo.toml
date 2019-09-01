@@ -4,6 +4,7 @@ name = "calculator"
 version = "0.0.0"
 authors = [ "David Renshaw <dwrenshaw@sandstorm.io>"  ]
 build = "build.rs"
+edition = "2018"
 
 [[bin]]
 
@@ -15,8 +16,8 @@ capnpc = { path = "../../../capnpc" }
 
 [dependencies]
 capnp = { path = "../../../capnp" }
-futures = "0.1"
-tokio = "0.1"
+futures-preview = "0.3.0-alpha.18"
+romio = "0.3.0-alpha.9"
 
 [dependencies.capnp-rpc]
 path = "../.."

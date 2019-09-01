@@ -18,35 +18,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::io;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 use futures::future::Future;
 use futures::stream::Stream;
-use futures::{Async, Poll};
+use futures::{AsyncRead};
 
 use capnp::{Error, message};
 
 #[must_use = "streams do nothing unless polled"]
-pub struct ReadStream<R> where R: io::Read {
+pub struct ReadStream<R> where R: AsyncRead + Unpin {
     options: message::ReaderOptions,
-    read: ::serialize::Read<R>,
+    read: Pin<Box<crate::serialize::Read<R>>>,
 }
 
-impl <R> ReadStream<R> where R: io::Read {
+impl <R> Unpin for ReadStream<R> where R: AsyncRead + Unpin {}
+
+impl <R> ReadStream<R> where R: AsyncRead + Unpin {
     pub fn new(reader: R, options: message::ReaderOptions) -> ReadStream<R> {
         ReadStream {
-            read: ::serialize::read_message(reader, options),
+            read: Box::pin(crate::serialize::read_message(reader, options)),
             options: options,
         }
     }
 }
 
-impl <R> Stream for ReadStream<R> where R: io::Read {
-    type Item = message::Reader<::serialize::OwnedSegments>;
-    type Error = Error;
+impl <R> Stream for ReadStream<R> where R: AsyncRead + Unpin {
+    type Item = Result<message::Reader<crate::serialize::OwnedSegments>, Error>;
 
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Error> {
-        let (r, m) = try_ready!(Future::poll(&mut self.read));
-        self.read = ::serialize::read_message(r, self.options);
-        Ok(Async::Ready(m))
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
+        let (r, m) = match Future::poll(Pin::new(&mut self.read), cx) {
+            Poll::Pending => return Poll::Pending,
+            Poll::Ready(Err(e)) => return Poll::Ready(Some(Err(e))),
+            Poll::Ready(Ok(x)) => x,
+        };
+        self.read = Box::pin(crate::serialize::read_message(r, self.options));
+        match m {
+            Some(message) => Poll::Ready(Some(Ok(message))),
+            None => Poll::Ready(None),
+        }
     }
 }

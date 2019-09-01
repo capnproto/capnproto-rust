@@ -25,9 +25,5 @@ quickcheck = { version = "0.2", optional = true }
 quickcheck = "0.2"
 
 [features]
-rpc = ["futures"]
 rpc_try = []
 
-[dependencies.futures]
-version = "0.1"
-optional = true

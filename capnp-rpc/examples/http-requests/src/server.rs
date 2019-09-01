@@ -20,25 +20,20 @@
 // THE SOFTWARE.
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
-use http_capnp::{outgoing_http, http_session};
+use crate::http_capnp::{outgoing_http, http_session};
 
 use capnp::capability::Promise;
 use capnp::Error;
 
-use futures::{Future, Stream};
+use futures::{AsyncReadExt, FutureExt, StreamExt, TryFutureExt};
 
-use tokio_core::reactor;
-use tokio_io::AsyncRead;
+use tokio_executor::current_thread::{self};
 
-struct OutgoingHttp {
-    handle: reactor::Handle,
-}
+struct OutgoingHttp;
 
 impl OutgoingHttp {
-    fn new(handle: reactor::Handle) -> OutgoingHttp {
-        OutgoingHttp {
-            handle: handle,
-        }
+    fn new() -> OutgoingHttp {
+        OutgoingHttp
     }
 }
 
@@ -50,7 +45,6 @@ impl outgoing_http::Server for OutgoingHttp {
         -> Promise<(), Error>
     {
         let session = HttpSession::new(
-            ::tokio_curl::Session::new(self.handle.clone()),
             pry!(pry!(params.get()).get_base_url()).to_string());
         results.get().set_session(
             http_session::ToClient::new(session).into_client::<::capnp_rpc::Server>());
@@ -59,25 +53,17 @@ impl outgoing_http::Server for OutgoingHttp {
 }
 
 struct HttpSession {
-    session: ::tokio_curl::Session,
+//    session: ::tokio_curl::Session,
     base_url: String,
 }
 
 impl HttpSession {
-    fn new(session: ::tokio_curl::Session, base_url: String) -> HttpSession {
+    fn new(base_url: String) -> HttpSession {
         HttpSession {
-            session: session,
+//            session: session,
             base_url: base_url,
         }
     }
-}
-
-fn from_curl_error(e: ::curl::Error) -> Error {
-    Error::failed(format!("curl error: {:?}", e))
-}
-
-fn from_perform_error(e: ::tokio_curl::PerformError) -> Error {
-    Error::failed(format!("curl perform error: {:?}", e))
 }
 
 impl http_session::Server for HttpSession {
@@ -90,29 +76,20 @@ impl http_session::Server for HttpSession {
         let path = pry!(pry!(params.get()).get_path());
         let mut url = self.base_url.clone();
         url.push_str(path);
-        let mut easy = ::curl::easy::Easy::new();
-        pry!(easy.url(&url).map_err(from_curl_error));
-        pry!(easy.get(true).map_err(from_curl_error));
-
-        // We need this channel to work around the `Send` bound required by write_function().
-        let (tx, stream) = ::futures::sync::mpsc::unbounded::<Vec<u8>>();
-        pry!(easy.write_function(move |data| {
-            // Error case should only happen if this request has been canceled.
-            let _ = tx.unbounded_send(data.into());
-            Ok(data.len())
-        }).map_err(from_curl_error));
-
-        Promise::from_future(
-            self.session.perform(easy).map_err(from_perform_error).and_then(|mut response| {
-                response.response_code().map_err(from_curl_error)
-            }).and_then(move |code| {
-                results.get().set_response_code(code);
-                stream.collect().and_then(move |writes| {
-                    results.get().set_body(
-                        &writes.concat());
-                    Ok(())
-                }).map_err(|()| unreachable!())
-            }))
+        let url = url.parse::<hyper::Uri>().unwrap();
+        let client = hyper::Client::new();
+        Promise::from_future(async move {
+            let res = client.get(url).await?;
+            results.get().set_response_code(res.status().as_u16() as u32);
+            let mut body = res.into_body();
+            let mut body_bytes: Vec<u8> = Vec::new();
+            while let Some(next) = body.next().await {
+                let chunk = next?;
+                std::io::Write::write_all(&mut body_bytes, &chunk[..])?;
+            }
+            results.get().set_body(&body_bytes[..]);
+            Ok(())
+        }.map_err(|e: Box<dyn std::error::Error>| Error::failed(format!("{:?}", e))))
     }
 
     fn post(
@@ -134,30 +111,27 @@ pub fn main() {
         return;
     }
 
-    let mut core = reactor::Core::new().unwrap();
-    let handle = core.handle();
-
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
-    let socket = ::tokio_core::net::TcpListener::bind(&addr, &handle).unwrap();
 
-    let proxy = outgoing_http::ToClient::new(
-        OutgoingHttp::new(handle.clone())).into_client::<::capnp_rpc::Server>();
+    let mut rt = tokio::runtime::current_thread::Runtime::new().unwrap();
+    let result: Result<(), Box<dyn std::error::Error>> = rt.block_on(async move {
+        let listener = tokio::net::TcpListener::bind(&addr).await?;
+        let mut incoming = listener.incoming();
+        let proxy = outgoing_http::ToClient::new(OutgoingHttp::new()).into_client::<::capnp_rpc::Server>();
+        while let Some(socket) = incoming.next().await {
+            let socket = socket?;
+            socket.set_nodelay(true)?;
+            let (reader, writer) = futures_tokio_compat::Compat::new(socket).split();
 
-    let handle1 = handle.clone();
-    let done = socket.incoming().for_each(move |(socket, _addr)| {
-        socket.set_nodelay(true)?;
-        let (reader, writer) = socket.split();
-        let handle = handle1.clone();
+            let network =
+                twoparty::VatNetwork::new(reader, writer,
+                                          rpc_twoparty_capnp::Side::Server, Default::default());
 
-        let network =
-            twoparty::VatNetwork::new(reader, writer,
-                                      rpc_twoparty_capnp::Side::Server, Default::default());
+            let rpc_system = RpcSystem::new(Box::new(network), Some(proxy.clone().client));
 
-        let rpc_system = RpcSystem::new(Box::new(network), Some(proxy.clone().client));
-
-        handle.spawn(rpc_system.map_err(|_| ()));
+            current_thread::spawn(Box::pin(rpc_system.map(|_| ())));
+        }
         Ok(())
     });
-
-    core.run(done).unwrap();
+    result.expect("main");
 }

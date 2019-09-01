@@ -18,20 +18,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::io;
+use std::pin::Pin;
+use std::task::{Context, Poll, Waker};
 use std::collections::VecDeque;
 use std::rc::{Rc, Weak};
 use std::cell::RefCell;
-use futures::{task, Async, Poll};
 use futures::future::Future;
-use futures::sync::oneshot;
+use futures::channel::oneshot;
+use futures::{AsyncWrite, TryFutureExt};
 
 use capnp::{Error};
 
-use serialize::{self, AsOutputSegments};
+use crate::serialize::{self, AsOutputSegments};
 
-
-enum State<W, M> where W: io::Write, M: AsOutputSegments {
+enum State<W, M> where W: AsyncWrite + Unpin, M: AsOutputSegments {
     Writing(serialize::Write<W, M>, oneshot::Sender<M>),
     BetweenWrites(W),
     Empty,
@@ -39,15 +39,17 @@ enum State<W, M> where W: io::Write, M: AsOutputSegments {
 
 /// A queue of messages being written.
 #[must_use = "futures do nothing unless polled"]
-pub struct WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
+pub struct WriteQueue<W, M> where W: AsyncWrite + Unpin, M: AsOutputSegments {
     inner: Rc<RefCell<Inner<M>>>,
     state: State<W, M>,
 }
 
+impl <W, M> Unpin for WriteQueue<W, M> where W: AsyncWrite + Unpin, M: AsOutputSegments {}
+
 struct Inner<M> {
     queue: VecDeque<(M, oneshot::Sender<M>)>,
     sender_count: usize,
-    task: Option<task::Task>,
+    task: Option<Waker>,
 
     // If set, then the queue has been requested to end, and we should complete the oneshot once
     // the queue has been emptied.
@@ -84,7 +86,7 @@ impl <M> Drop for Sender<M> where M: AsOutputSegments {
 
 /// Creates a new WriteQueue that wraps the given writer.
 pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
-    where W: io::Write, M: AsOutputSegments
+    where W: AsyncWrite + Unpin, M: AsOutputSegments
 {
     let inner = Rc::new(RefCell::new(Inner {
         queue: VecDeque::new(),
@@ -105,7 +107,7 @@ pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
 
 impl <M> Sender<M> where M: AsOutputSegments + 'static {
     /// Enqueues a message to be written.
-    pub fn send(&mut self, message: M) -> Box<dyn Future<Item=M, Error=Error>> {
+    pub fn send(&mut self, message: M) -> Box<dyn Future<Output=Result<M,Error>> + Unpin> {
         let (complete, oneshot) = oneshot::channel();
 
         match self.inner.upgrade() {
@@ -118,7 +120,7 @@ impl <M> Sender<M> where M: AsOutputSegments + 'static {
                 }
 
                 match rc_inner.borrow_mut().task.take() {
-                    Some(t) => t.notify(),
+                    Some(t) => t.wake(),
                     None => (),
                 }
             }
@@ -141,7 +143,7 @@ impl <M> Sender<M> where M: AsOutputSegments + 'static {
     /// Commands the queue to stop writing messages once it is empty. After this method has been called,
     /// any new calls to `send()` will return a future that immediately resolves to an error.
     /// If the passed-in `result` is an error, then the `WriteQueue` will resolve to that error.
-    pub fn terminate(&mut self, result: Result<(), Error>) -> Box<dyn Future<Item=(), Error=Error>> {
+    pub fn terminate(&mut self, result: Result<(), Error>) -> Box<dyn Future<Output=Result<(),Error>> + Unpin> {
         let (complete, receiver) = oneshot::channel();
 
         match self.inner.upgrade() {
@@ -151,7 +153,7 @@ impl <M> Sender<M> where M: AsOutputSegments + 'static {
                 rc_inner.borrow_mut().end_notifier = Some((result, complete));
 
                 match rc_inner.borrow_mut().task.take() {
-                    Some(t) => t.notify(),
+                    Some(t) => t.wake(),
                     None => (),
                 }
             }
@@ -163,21 +165,24 @@ impl <M> Sender<M> where M: AsOutputSegments + 'static {
     }
 }
 
-enum IntermediateState<W, M> where W: io::Write, M: AsOutputSegments {
+enum IntermediateState<W, M> where W: AsyncWrite + Unpin, M: AsOutputSegments {
     WriteDone(M, W),
     StartWrite(M, oneshot::Sender<M>),
     Resolve,
 }
 
-impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
-    type Item = W; // Resolves when all senders have been dropped and all messages written.
-    type Error = Error;
+impl <W, M> Future for WriteQueue<W, M> where W: AsyncWrite + Unpin, M: AsOutputSegments + Unpin {
+    type Output = Result<W, Error>; // Resolves successfully when all senders have been dropped and all messages written.
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         loop {
             let next = match self.state {
                 State::Writing(ref mut write, ref mut _complete) => {
-                    let (w, m) = try_ready!(Future::poll(write));
+                    let (w, m) = match Future::poll(Pin::new(write), cx) {
+                        Poll::Pending => return Poll::Pending,
+                        Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
+                        Poll::Ready(Ok(x)) => x,
+                    };
                     IntermediateState::WriteDone(m, w)
                 }
                 State::BetweenWrites(ref mut _writer) => {
@@ -192,8 +197,8 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                             if count == 0 || ended {
                                 IntermediateState::Resolve
                             } else {
-                                self.inner.borrow_mut().task = Some(task::current());
-                                return Ok(Async::NotReady)
+                                self.inner.borrow_mut().task = Some(cx.waker().clone());
+                                return Poll::Pending;
                             }
                         }
                     }
@@ -213,7 +218,7 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                 IntermediateState::StartWrite(m, c) => {
                     let new_state = match ::std::mem::replace(&mut self.state, State::Empty) {
                         State::BetweenWrites(w) => {
-                            State::Writing(::serialize::write_message(w, m), c)
+                            State::Writing(serialize::write_message(w, m), c)
                         }
                         _ => unreachable!(),
                     };
@@ -226,13 +231,13 @@ impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments 
                         Some((result, complete)) => {
                             complete.send(()).unwrap_or(());
                             if let Err(e) = result {
-                                return Err(e)
+                                return Poll::Ready(Err(e))
                             }
                         }
                     }
                     match ::std::mem::replace(&mut self.state, State::Empty) {
                         State::BetweenWrites(w) => {
-                            return Ok(Async::Ready(w))
+                            return Poll::Ready(Ok(w));
                         }
                         _ => unreachable!(),
                     }

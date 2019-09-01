@@ -20,11 +20,11 @@
 // THE SOFTWARE.
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
-use calculator_capnp::calculator;
+use crate::calculator_capnp::calculator;
 use capnp::capability::Promise;
 
-use futures::Future;
-use tokio::io::{AsyncRead};
+use futures::{AsyncReadExt, FutureExt};
+use futures::task::LocalSpawn;
 
 #[derive(Clone, Copy)]
 pub struct PowerFunction;
@@ -52,26 +52,30 @@ pub fn main() {
         return;
     }
 
-    try_main(args).unwrap();
+    let mut exec = futures::executor::LocalPool::new();
+    let spawner = exec.spawner();
+    exec.run_until(try_main(args, spawner)).expect("try main");
 }
 
-fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
+async fn try_main(args: Vec<String>, mut spawner: futures::executor::LocalSpawner)
+                  -> Result<(), Box<dyn std::error::Error>>
+{
     use std::net::ToSocketAddrs;
 
-    let mut runtime = ::tokio::runtime::current_thread::Runtime::new().unwrap();
-
     let addr = args[2].to_socket_addrs()?.next().expect("could not parse address");
-    let stream = runtime.block_on(::tokio::net::TcpStream::connect(&addr)).unwrap();
+    let stream = romio::TcpStream::connect(&addr).await?;
     stream.set_nodelay(true)?;
     let (reader, writer) = stream.split();
 
     let network =
-        Box::new(twoparty::VatNetwork::new(reader, std::io::BufWriter::new(writer),
+        Box::new(twoparty::VatNetwork::new(reader, writer,
                                            rpc_twoparty_capnp::Side::Client,
                                            Default::default()));
+
     let mut rpc_system = RpcSystem::new(network, None);
     let calculator: calculator::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-    runtime.spawn(rpc_system.map_err(|_e| ()));
+
+    spawner.spawn_local_obj(Box::pin(rpc_system.map(|_|())).into())?;
 
     {
         // Make a request that just evaluates the literal value 123.
@@ -89,10 +93,8 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         request.get().init_expression().set_literal(123.0);
         let value = request.send().pipeline.get_value();
         let request = value.read_request();
-        runtime.block_on(request.send().promise.and_then(|response| {
-            assert_eq!(pry!(response.get()).get_value(), 123.0);
-            Promise::ok(())
-        }))?;
+        let response = request.send().promise.await?;
+        assert_eq!(response.get()?.get_value(), 123.0);
         println!("PASS");
     }
 
@@ -142,7 +144,7 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         let eval_promise = request.send();
         let read_promise = eval_promise.pipeline.get_value().read_request().send();
 
-        let response = runtime.block_on(read_promise.promise)?;
+        let response = read_promise.promise.await?;
         assert_eq!(response.get()?.get_value(), 101.0);
 
         println!("PASS");
@@ -210,8 +212,8 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         let add5_promise = add5_request.send().pipeline.get_value().read_request().send();
 
         // Now wait for the results.
-        assert!(runtime.block_on(add3_promise.promise)?.get()?.get_value() == 27.0);
-        assert!(runtime.block_on(add5_promise.promise)?.get()?.get_value() == 29.0);
+        assert!(add3_promise.promise.await?.get()?.get_value() == 27.0);
+        assert!(add5_promise.promise.await?.get()?.get_value() == 29.0);
 
         println!("PASS")
     }
@@ -306,8 +308,8 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
         }
         let g_eval_promise = g_eval_request.send().pipeline.get_value().read_request().send();
 
-        assert!(runtime.block_on(f_eval_promise.promise)?.get()?.get_value() == 1234.0);
-        assert!(runtime.block_on(g_eval_promise.promise)?.get()?.get_value() == 4244.0);
+        assert!(f_eval_promise.promise.await?.get()?.get_value() == 1234.0);
+        assert!(g_eval_promise.promise.await?.get()?.get_value() == 4244.0);
 
         println!("PASS")
     }
@@ -352,7 +354,7 @@ fn try_main(args: Vec<String>) -> Result<(), ::capnp::Error> {
 
         let response_promise = request.send().pipeline.get_value().read_request().send();
 
-        assert!(runtime.block_on(response_promise.promise)?.get()?.get_value() == 512.0);
+        assert!(response_promise.promise.await?.get()?.get_value() == 512.0);
 
         println!("PASS");
     }

@@ -7,12 +7,13 @@ license = "MIT"
 description = "async serialization for Cap'n Proto messages"
 repository = "https://github.com/dwrensha/capnproto-rust"
 documentation = "https://docs.capnproto-rust.org/capnp_futures/"
+edition = "2018"
 
 keywords = ["async"]
 
 [dependencies]
 capnp = { version = "0.10.0", path = "../capnp" }
-futures = "0.1.12"
+futures-preview = "0.3.0-alpha.16"
 
 [dev-dependencies]
 capnp = { version = "0.10.0", path = "../capnp", features = ["quickcheck"] }

@@ -30,9 +30,6 @@
 #[cfg(any(feature="quickcheck", test))]
 extern crate quickcheck;
 
-#[cfg(feature = "rpc")]
-extern crate futures;
-
 pub mod any_pointer;
 pub mod any_pointer_list;
 pub mod capability;
@@ -236,14 +233,6 @@ impl ::std::convert::From<::std::string::FromUtf8Error> for Error {
 impl ::std::convert::From<::std::str::Utf8Error> for Error {
     fn from(err: ::std::str::Utf8Error) -> Error {
         Error::failed(format!("{}", err))
-    }
-}
-
-
-#[cfg(feature = "rpc")]
-impl ::std::convert::From<futures::sync::oneshot::Canceled> for Error {
-    fn from(_e: futures::sync::oneshot::Canceled) -> Error {
-        Error::failed(format!("oneshot was canceled"))
     }
 }
 

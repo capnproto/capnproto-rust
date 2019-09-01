@@ -22,8 +22,7 @@
 extern crate capnp;
 extern crate capnp_futures;
 extern crate futures;
-extern crate tokio_core;
-extern crate mio_uds;
+extern crate romio;
 
 pub mod addressbook_capnp {
   include!(concat!(env!("OUT_DIR"), "/addressbook_capnp.rs"));
@@ -79,21 +78,16 @@ mod tests {
 
     #[test]
     fn write_stream_and_read_queue() {
-        use tokio_core::reactor;
-        use mio_uds::UnixStream;
         use capnp;
         use capnp_futures;
-        use futures::future::Future;
-        use futures::stream::Stream;
+        use futures::future::{FutureExt};
+        use futures::stream::{StreamExt};
+        use futures::task::LocalSpawn;
 
         use std::cell::Cell;
         use std::rc::Rc;
 
-        let mut l = reactor::Core::new().unwrap();
-        let handle = l.handle();
-        let (s1, s2) = UnixStream::pair().unwrap();
-        let s1 = reactor::PollEvented::new(s1, &handle).unwrap();
-        let s2 = reactor::PollEvented::new(s2, &handle).unwrap();
+        let (s1, s2) = romio::uds::UnixStream::pair().expect("socket pair");
 
         let (mut sender, write_queue) = capnp_futures::write_queue(s1);
 
@@ -103,29 +97,35 @@ mod tests {
         let messages_read1 = messages_read.clone();
 
         let done_reading = read_stream.for_each(|m| {
-            let address_book = m.get_root::<address_book::Reader>().unwrap();
-            read_address_book(address_book);
-            messages_read.set(messages_read.get() + 1);
-            Ok(())
+            match m {
+                Err(e) => panic!("read error: {:?}", e),
+                Ok(msg) => {
+                    let address_book = msg.get_root::<address_book::Reader>().unwrap();
+                    read_address_book(address_book);
+                    messages_read.set(messages_read.get() + 1);
+                    futures::future::ready(())
+                }
+            }
         });
 
-        let io = done_reading.join(write_queue.map(|_| ()));
+        let io = futures::future::join(done_reading, write_queue.map(|_| ()));
 
         let mut m = capnp::message::Builder::new_default();
         populate_address_book(m.init_root());
-        handle.spawn(sender.send(m).map_err(|_| panic!("cancelled")).map(|_| { println!("SENT"); ()}));
+        let mut exec = futures::executor::LocalPool::new();
+        let mut spawner = exec.spawner();
+        spawner.spawn_local_obj(Box::new(sender.send(m).map(|_|())).into()).expect("spawing write task");
         drop(sender);
 
-        l.run(io).expect("running");
+        exec.run_until(io);
 
         assert_eq!(messages_read1.get(), 1);
     }
 
     fn fill_and_send_message(mut message: capnp::message::Builder<capnp::message::HeapAllocator>) {
-        use tokio_core::reactor;
-        use mio_uds::UnixStream;
         use capnp_futures::serialize;
-        use futures::Future;
+        use futures::{FutureExt, TryFutureExt};
+        use futures::task::LocalSpawn;
 
         {
             let mut address_book = message.init_root::<address_book::Builder>();
@@ -133,27 +133,26 @@ mod tests {
             read_address_book(address_book.reborrow_as_reader());
         }
 
-        let mut l = reactor::Core::new().unwrap();
-        let handle = l.handle();
-        let (s0, s1) = UnixStream::pair().unwrap();
-        let stream0 = reactor::PollEvented::new(s0, &handle).unwrap();
-        let stream1 = reactor::PollEvented::new(s1, &handle).unwrap();
+        let (stream0, stream1) = romio::uds::UnixStream::pair().expect("socket pair");
 
-        let promise0 = serialize::write_message(stream0, message).map(|_| Ok::<(), capnp::Error>(()));
-        let promise1 =
+        let f0 = serialize::write_message(stream0, message).map_err(|e| panic!("write error {:?}", e)).map(|_|());
+        let f1 =
             serialize::read_message(stream1, capnp::message::ReaderOptions::new()).and_then(|(_, maybe_message_reader)| {
                 match maybe_message_reader {
                     None => panic!("did not get message"),
                     Some(m) => {
                         let address_book = m.get_root::<address_book::Reader>().unwrap();
                         read_address_book(address_book);
-                        Ok::<(),capnp::Error>(())
+                        futures::future::ready(Ok::<(),capnp::Error>(()))
                     }
                 }
             });
 
-        handle.spawn(promise0.map_err(|e| panic!("failed to write. {:?}", e)).map(|_| ()));
-        l.run(promise1).expect("running");
+        let mut exec = futures::executor::LocalPool::new();
+        let mut spawner = exec.spawner();
+        spawner.spawn_local_obj(Box::new(f0).into()).expect("spawing write task");
+
+        exec.run_until(f1).expect("read task");
     }
 
     #[test]

@@ -19,14 +19,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
 use capnp::{any_pointer};
 use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook};
 
-use futures::{future, Future};
-use futures::sync::oneshot;
+use futures::{future, Future, FutureExt, TryFutureExt};
+use futures::channel::oneshot;
 
 use std::vec::Vec;
 use std::collections::hash_map::HashMap;
@@ -37,33 +40,10 @@ use std::{cmp, mem};
 
 use crate::rpc_capnp::{call, cap_descriptor, disembargo, exception,
                 message, message_target, payload, resolve, return_, promised_answer};
-use crate::forked_promise::ForkedPromise;
 use crate::attach::Attach;
 use crate::{broken, local, queued};
 use crate::local::ResultsDoneHook;
 use crate::task_set::TaskSet;
-
-/*
-struct Defer<F> where F: FnOnce() {
-    deferred: Option<F>,
-}
-
-impl <F> Defer<F> where F: FnOnce() {
-    fn new(f: F) -> Defer<F> {
-        Defer {deferred: Some(f)}
-    }
-}
-
-impl <F> Drop for Defer<F> where F: FnOnce() {
-    fn drop(&mut self) {
-        let deferred = ::std::mem::replace(&mut self.deferred, None);
-        match deferred {
-            Some(f) => f(),
-            None => unreachable!(),
-        }
-    }
-}
-*/
 
 pub type QuestionId = u32;
 pub type AnswerId = QuestionId;
@@ -390,7 +370,7 @@ impl <VatId> ConnectionErrorHandler<VatId> {
     }
 }
 
-impl <VatId> crate::task_set::TaskReaper<(), ::capnp::Error> for ConnectionErrorHandler<VatId> {
+impl <VatId> crate::task_set::TaskReaper<capnp::Error> for ConnectionErrorHandler<VatId> {
     fn task_failed(&mut self, error: ::capnp::Error) {
         if let Some(state) = self.weak_state.upgrade() {
             state.disconnect(error)
@@ -409,7 +389,7 @@ pub struct ConnectionState<VatId> where VatId: 'static {
 
     embargoes: RefCell<ExportTable<Embargo>>,
 
-    tasks: RefCell<Option<crate::task_set::TaskSetHandle<(), ::capnp::Error>>>,
+    tasks: RefCell<Option<crate::task_set::TaskSetHandle<capnp::Error>>>,
     connection: RefCell<::std::result::Result<Box<dyn crate::Connection<VatId>>, ::capnp::Error>>,
     disconnect_fulfiller: RefCell<Option<oneshot::Sender<Promise<(), Error>>>>,
 
@@ -421,7 +401,7 @@ impl <VatId> ConnectionState<VatId> {
         bootstrap_cap: Box<dyn ClientHook>,
         connection: Box<dyn crate::Connection<VatId>>,
         disconnect_fulfiller: oneshot::Sender<Promise<(), Error>>)
-        -> (TaskSet<(), Error>, Rc<ConnectionState<VatId>>)
+        -> (TaskSet<Error>, Rc<ConnectionState<VatId>>)
     {
         let state = Rc::new(ConnectionState {
             bootstrap_cap: bootstrap_cap,
@@ -525,13 +505,13 @@ impl <VatId> ConnectionState<VatId> {
         match connection {
             Ok(mut c) => {
                 let promise = c.shutdown(Err(error)).then(|r| match r {
-                    Ok(()) => Ok(()),
+                    Ok(()) => Promise::ok(()),
                     Err(e) => {
                         if e.kind != ::capnp::ErrorKind::Disconnected {
                             // Don't report disconnects as an error.
-                            Err(e)
+                            Promise::err(e)
                         } else {
-                            Ok(())
+                            Promise::ok(())
                         }
                     }
                 });
@@ -550,19 +530,23 @@ impl <VatId> ConnectionState<VatId> {
     // Transform a future into a promise that gets executed even if it is never polled.
     // Dropping the returned promise cancels the computation.
     fn eagerly_evaluate<T, F>(&self, task: F) -> Promise<T, Error>
-        where F: Future<Item=T, Error=Error> + 'static,
+        where F: Future<Output=Result<T,Error>> + 'static + Unpin,
               T: 'static
     {
-        let (tx, rx) = oneshot::channel();
+        let (tx, rx) = oneshot::channel::<Result<T,Error>>();
         let (tx2, rx2) = oneshot::channel::<()>();
-        self.add_task(
-            task.then(move |r| { let _ = tx.send(r); Ok(())}).select(rx2.then(|_| Ok(())))
-                .map(|_| ()).map_err(|e| e.0));
-        Promise::from_future(rx.map_err(|e| e.into()).and_then(|v| v).then(|v| { let _ = tx2.send(()); v}))
+        let f1 = Box::pin(task.map(move |r| { let _ = tx.send(r); Ok(())}))
+            as Pin<Box<dyn Future<Output = Result<(),Error>> + Unpin>>;
+        let f2 = Box::pin(rx2.map_err(crate::canceled_to_error).map(|_| Ok(())))
+            as Pin<Box<dyn Future<Output = Result<(),Error>> + Unpin>>;
+
+        self.add_task(future::select(f1, f2).map(|r| r.into_inner().0));
+        Promise::from_future(rx.map_err(crate::canceled_to_error).and_then(|v| {
+            match v { Ok(x) => Promise::ok(x), Err(e) => Promise::err(e) } }).map(|v| { let _ = tx2.send(()); v}))
     }
 
     fn add_task<F>(&self, task: F)
-        where F: Future<Item = (), Error=Error> + 'static
+        where F: Future<Output=Result<(),Error>> + 'static + Unpin
     {
         if let Some(ref mut tasks) = *self.tasks.borrow_mut() {
             tasks.add(task);
@@ -573,7 +557,7 @@ impl <VatId> ConnectionState<VatId> {
         let question_id = state.questions.borrow_mut().push(Question::new());
 
         let (fulfiller, promise) = oneshot::channel();
-        let promise = promise.map_err(|e| e.into());
+        let promise = promise.map_err(crate::canceled_to_error);
         let promise = promise.and_then(|response_promise| response_promise );
         let question_ref = Rc::new(RefCell::new(QuestionRef::new(state.clone(), question_id, fulfiller)));
         let promise = promise.attach(question_ref.clone());
@@ -617,12 +601,12 @@ impl <VatId> ConnectionState<VatId> {
         Promise::from_future(promise.and_then(move |message| {
             match message {
                 Some(m) => {
-                    ConnectionState::handle_message(weak_state, m).map(|()| true)
+                    future::ready(ConnectionState::handle_message(weak_state, m).map(|()| true))
                 }
                 None => {
                     weak_state0.upgrade().expect("message loop outlived connection state?")
                         .disconnect(Error::disconnected("Peer disconnected.".to_string()));
-                    Ok(false)
+                    future::ready(Ok(false))
                 }
             }
         }).and_then(move |keep_going| {
@@ -630,7 +614,7 @@ impl <VatId> ConnectionState<VatId> {
                 weak_state2.upgrade().expect("message loop outlived connection state?")
                     .add_task(ConnectionState::message_loop(weak_state1));
             }
-            Ok(())
+            Promise::ok(())
         }))
     }
 
@@ -926,7 +910,7 @@ impl <VatId> ConnectionState<VatId> {
 
                             let connection_state_ref = connection_state.clone();
                             let connection_state_ref1 = connection_state.clone();
-                            let task = future::lazy(move || {
+                            let task = future::lazy(move |_| {
                                 if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
                                     let mut message = c.new_outgoing_message(100); // TODO estimate size
                                     {
@@ -1016,14 +1000,14 @@ impl <VatId> ConnectionState<VatId> {
                 let answer = Answer::new();
 
                 let (results_inner_fulfiller, results_inner_promise) = oneshot::channel();
-                let results_inner_promise = results_inner_promise.map_err(Into::into);
+                let results_inner_promise = results_inner_promise.map_err(crate::canceled_to_error);
                 let results = Results::new(&connection_state, question_id, redirect_results,
                                            results_inner_fulfiller, answer.received_finish.clone());
 
                 let (redirected_results_done_promise, redirected_results_done_fulfiller) =
                     if redirect_results {
                         let (f, p) = oneshot::channel::<Result<Response<VatId>, Error>>();
-                        let p = p.map_err(Into::into).and_then(|x| x);
+                        let p = p.map_err(crate::canceled_to_error).and_then(|x| future::ready(x));
                         (Some(Promise::from_future(p)), Some(f))
                     } else {
                         (None, None)
@@ -1043,7 +1027,7 @@ impl <VatId> ConnectionState<VatId> {
 
                 let promise = call_promise.then(move |call_result| {
                     results_inner_promise.then(move |result| {
-                        ResultsDone::from_results_inner(result, call_result, pipeline_sender)
+                        future::ready(ResultsDone::from_results_inner(result, call_result, pipeline_sender))
                     })
                 }).then(move |v| {
                     match redirected_results_done_fulfiller {
@@ -1057,10 +1041,10 @@ impl <VatId> ConnectionState<VatId> {
                         }
                         None => (),
                     }
-                    Ok(())
+                    Promise::ok(())
                 });
 
-                let fork = ForkedPromise::new(promise);
+                let fork = promise.shared();
                 pipeline.drive(fork.clone());
 
                 {
@@ -1244,7 +1228,7 @@ impl <VatId> ConnectionState<VatId> {
                                 -> Promise<(), Error>
     {
         let weak_connection_state = Rc::downgrade(state);
-        state.eagerly_evaluate(promise.then(move |resolution_result| {
+        state.eagerly_evaluate(promise.map(move |resolution_result| {
             let connection_state = weak_connection_state.upgrade().expect("dangling connection state?");
 
             match resolution_result {
@@ -1546,10 +1530,9 @@ impl <VatId> Future for Disconnector<VatId>
 where
     VatId: 'static,
 {
-    type Item = ();
-    type Error = ::capnp::Error;
+    type Output = Result<(), capnp::Error>;
 
-    fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         self.state = match self.state {
             DisconnectorState::Connected => {
                 self.disconnect();
@@ -1569,10 +1552,10 @@ where
         match self.state {
             DisconnectorState::Connected => unreachable!(),
             DisconnectorState::Disconnecting => {
-                ::futures::task::current().notify();
-                Ok(::futures::Async::NotReady)
+                cx.waker().clone().wake();
+                Poll::Pending
             },
-            DisconnectorState::Disconnected => Ok(::futures::Async::Ready(())),
+            DisconnectorState::Disconnected => Poll::Ready(Ok(())),
         }
     }
 }
@@ -1718,7 +1701,7 @@ impl <VatId> Request<VatId> where VatId: 'static {
         let _ = message.send();
         // Make the result promise.
         let (fulfiller, promise) = oneshot::channel::<Promise<Response<VatId>, Error>>();
-        let promise = promise.map_err(|e| e.into()).and_then(|x| x);
+        let promise = promise.map_err(crate::canceled_to_error).and_then(|x| x);
         let question_ref = Rc::new(RefCell::new(
             QuestionRef::new(connection_state.clone(), question_id, fulfiller)));
 
@@ -1767,7 +1750,7 @@ impl <VatId> RequestHook for Request<VatId> {
             None => {
                 let (question_ref, promise) =
                     Request::send_internal(connection_state.clone(), message, cap_table, false);
-                let forked_promise1 = ForkedPromise::new(promise);
+                let forked_promise1 = promise.shared();
                 let forked_promise2 = forked_promise1.clone();
 
                 // The pipeline must get notified of resolution before the app does to maintain ordering.
@@ -1776,9 +1759,9 @@ impl <VatId> RequestHook for Request<VatId> {
 
                 let resolved = pipeline.when_resolved();
 
-                let forked_promise2 = resolved.then(|_| Ok(())).and_then(|()| forked_promise2);
+                let forked_promise2 = resolved.map(|_| Ok(())).and_then(|()| forked_promise2);
 
-                let app_promise = Promise::from_future(forked_promise2.map(|response| {
+                let app_promise = Promise::from_future(forked_promise2.map_ok(|response| {
                     ::capnp::capability::Response::new(Box::new(response))
                 }));
 
@@ -1814,7 +1797,7 @@ impl <VatId> RequestHook for Request<VatId> {
             }
         };
 
-        let promise = promise.map(|_response| {
+        let promise = promise.map_ok(|_response| {
             // Response should be null if `Return` handling code is correct.
 
             unimplemented!()
@@ -1835,7 +1818,7 @@ enum PipelineVariant<VatId> where VatId: 'static {
 
 struct PipelineState<VatId> where VatId: 'static {
     variant: PipelineVariant<VatId>,
-    redirect_later: Option<RefCell<ForkedPromise<Promise<Response<VatId>, ::capnp::Error>>>>,
+    redirect_later: Option<RefCell<futures::future::Shared<Promise<Response<VatId>, ::capnp::Error>>>>,
     connection_state: Rc<ConnectionState<VatId>>,
 
     resolve_self_promise: Promise<(), Error>,
@@ -1895,21 +1878,21 @@ impl <VatId> Pipeline<VatId> {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state: connection_state.clone(),
             redirect_later: None,
-            resolve_self_promise: Promise::from_future(future::empty()),
+            resolve_self_promise: Promise::from_future(future::pending()),
             promise_clients_to_resolve: RefCell::new(crate::sender_queue::SenderQueue::new()),
             resolution_waiters: crate::sender_queue::SenderQueue::new(),
         }));
         match redirect_later {
             Some(redirect_later_promise) => {
-                let fork = ForkedPromise::new(redirect_later_promise);
+                let fork = redirect_later_promise.shared();
                 let this = Rc::downgrade(&state);
                 let resolve_self_promise = connection_state.eagerly_evaluate(fork.clone().then(move |response| {
                     let state = match this.upgrade() {
                         Some(s) => s,
-                        None => return Err(Error::failed("dangling reference to this".into())),
+                        None => return Promise::err(Error::failed("dangling reference to this".into())),
                     };
                     PipelineState::resolve(&state, response);
-                    Ok(())
+                    Promise::ok(())
                 }));
 
                 state.borrow_mut().resolve_self_promise = resolve_self_promise;
@@ -1932,7 +1915,7 @@ impl <VatId> Pipeline<VatId> {
             variant: PipelineVariant::Waiting(question_ref),
             connection_state: connection_state,
             redirect_later: None,
-            resolve_self_promise: Promise::from_future(future::empty()),
+            resolve_self_promise: Promise::from_future(future::pending()),
             promise_clients_to_resolve: RefCell::new(crate::sender_queue::SenderQueue::new()),
             resolution_waiters: crate::sender_queue::SenderQueue::new(),
         }));
@@ -2561,8 +2544,8 @@ impl <VatId> PromiseClient<VatId> {
             // to the promise.  We need to make sure those calls echo back to us before we allow new
             // calls to go directly to the local capability, so we need to set a local embargo and send
             // a `Disembargo` to echo through the peer.
-            let (fulfiller, promise) = oneshot::channel();
-            let promise = promise.map_err(|e| e.into()).and_then(|v| v);
+            let (fulfiller, promise) = oneshot::channel::<Result<(),Error>>();
+            let promise = promise.map_err(crate::canceled_to_error).and_then(|v| future::ready(v));
             let embargo = Embargo::new(fulfiller);
             let embargo_id = connection_state.embargoes.borrow_mut().push(embargo);
 
@@ -2581,9 +2564,7 @@ impl <VatId> PromiseClient<VatId> {
             }
 
             // Make a promise which resolves to `replacement` as soon as the `Disembargo` comes back.
-            let embargo_promise = promise.and_then(move |()| {
-                Ok(replacement)
-            });
+            let embargo_promise = promise.map_ok(move |()| replacement);
 
             let mut queued_client = queued::Client::new(None);
             let weak_queued = Rc::downgrade(&queued_client.inner);
@@ -2592,7 +2573,7 @@ impl <VatId> PromiseClient<VatId> {
                 if let Some(q) = weak_queued.upgrade() {
                     queued::ClientInner::resolve(&q, r);
                 }
-                Ok(())
+                Promise::ok(())
             }));
 
             // We need to queue up calls in the meantime, so we'll resolve ourselves to a local promise
@@ -2607,7 +2588,7 @@ impl <VatId> PromiseClient<VatId> {
         }
 
         let old_cap = mem::replace(&mut self.cap, replacement);
-        connection_state.add_task(future::lazy(move || {
+        connection_state.add_task(future::lazy(move |_| {
             drop(old_cap);
             Ok(())
         }));
@@ -2833,8 +2814,8 @@ impl <VatId> ClientHook for Client<VatId> {
                 let ::capnp::capability::RemotePromise { promise, .. } = request.send();
 
                 let promise = promise.and_then(move |response| {
-                    results.get()?.set_as(response.get()?)?;
-                    Ok(())
+                    pry!(pry!(results.get()).set_as(pry!(response.get())));
+                    Promise::ok(())
                 });
 
                 Promise::from_future(promise)
@@ -2904,6 +2885,25 @@ impl <VatId> ClientHook for Client<VatId> {
             _ => {
                 unimplemented!()
             }
+        }
+    }
+
+    fn when_resolved(&self) -> Promise<(), Error> {
+        default_when_resolved_impl(self)
+    }
+}
+
+pub(crate) fn default_when_resolved_impl<C>(client: &C) -> Promise<(), Error>
+    where C: ClientHook
+{
+    match client.when_more_resolved() {
+        Some(promise) => {
+            Promise::from_future(promise.and_then(|resolution| {
+                resolution.when_resolved()
+            }))
+        }
+        None => {
+            Promise::ok(())
         }
     }
 }
