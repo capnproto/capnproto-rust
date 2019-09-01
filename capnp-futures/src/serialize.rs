@@ -718,7 +718,7 @@ pub mod test {
                      199,0,0,0], // 199 length
                    &buf[..]);
 
-        let buf = construct_segment_table(&[&segment_0, &segment_1]);;
+        let buf = construct_segment_table(&[&segment_0, &segment_1]);
         assert_eq!(&[1,0,0,0,  // 2 segments
                      0,0,0,0,  // 0 length
                      1,0,0,0,  // 1 length
