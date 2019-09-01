@@ -213,11 +213,8 @@ impl <VatId> QuestionRef<VatId> {
 
 impl <VatId> Drop for QuestionRef<VatId> {
     fn drop(&mut self) {
-        enum BorrowWorkaround {
-            EraseQuestion(QuestionId),
-            Done,
-        }
-        let bw = match self.connection_state.questions.borrow_mut().slots[self.id as usize] {
+        let mut questions = self.connection_state.questions.borrow_mut();
+        match questions.slots[self.id as usize] {
             Some(ref mut q) => {
                 if let Ok(ref mut c) = *self.connection_state.connection.borrow_mut() {
                     let mut message = c.new_outgoing_message(100); // XXX size hint
@@ -239,21 +236,14 @@ impl <VatId> Drop for QuestionRef<VatId> {
                 if q.is_awaiting_return {
                     // Still waiting for return, so just remove the QuestionRef pointer from the table.
                     q.self_ref = None;
-                    BorrowWorkaround::Done
                 } else {
                     // Call has already returned, so we can now remove it from the table.
-                    BorrowWorkaround::EraseQuestion(self.id)
+                    questions.erase(self.id)
                 }
             }
             None => {
                 unreachable!()
             }
-        };
-        match bw {
-            BorrowWorkaround::EraseQuestion(id) => {
-                self.connection_state.questions.borrow_mut().erase(id);
-            }
-            BorrowWorkaround::Done => {}
         }
     }
 }
