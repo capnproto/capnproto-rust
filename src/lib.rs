@@ -1,5 +1,5 @@
 #![crate_type = "lib"]
-#![feature(async_await, await_macro, arbitrary_self_types)]
+#![feature(arbitrary_self_types)]
 #![feature(nll)]
 #![feature(generators)]
 #![feature(never_type)]
