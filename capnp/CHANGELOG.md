@@ -1,3 +1,6 @@
+## v0.10.2
+- Allow buffer passed to read_message_from_words() to be larger than the actual message.
+
 ## v0.10.1
 - Remove dependency on byteorder crate, in favor of from_le_bytes() and to_le_bytes().
 
