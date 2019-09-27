@@ -57,9 +57,9 @@ pub fn read_message_from_words<'a>(slice: &'a [Word],
     let mut bytes = crate::Word::words_to_bytes(slice);
     let (num_words, offsets) = read_segment_table(&mut bytes, options)?;
     let words = unsafe { crate::Word::bytes_to_words(bytes) };
-    if num_words != words.len() {
+    if num_words > words.len() {
         Err(Error::failed(
-            format!("Wrong number of words. Header claimed {} words, but message has {} words",
+            format!("Message ends prematurely. Header claimed {} words, but message only has {} words.",
                     num_words, words.len())))
     } else {
         Ok(message::Reader::new(SliceSegments { words: words, segment_slices: offsets }, options))
