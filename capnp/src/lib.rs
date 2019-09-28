@@ -153,7 +153,7 @@ impl ::std::fmt::Display for NotInSchema {
 
 impl ::std::error::Error for NotInSchema {
     fn description<'a>(&'a self) -> &'a str {
-        "Enum value or union disriminant was not present in schema."
+        "Enum value or union discriminant was not present in schema."
     }
 }
 
