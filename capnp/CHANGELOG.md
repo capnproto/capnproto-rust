@@ -1,3 +1,6 @@
+## v0.10.3
+- Add serialize::read_message_from_flat_slice().
+
 ## v0.10.2
 - Allow buffer passed to read_message_from_words() to be larger than the actual message.
 
