@@ -1874,6 +1874,15 @@ pub fn generate_code<T>(mut inp: T, out_dir: &::std::path::Path) -> ::capnp::Res
 
         let text = stringify(&lines);
 
+        let previous_text = ::std::fs::read(&filepath);
+        if previous_text.is_ok() && previous_text.unwrap() == text.as_bytes() {
+            // File is unchanged. Do not write it so that builds with the
+            // output as part of the source work in read-only filesystems
+            // and so timestamp-based build systems and watchers do not get
+            // confused.
+            continue;
+        }
+
         // It would be simpler to use the ? operator instead of a pattern match, but then the error message
         // would not include `filepath`.
         match ::std::fs::File::create(&filepath) {
