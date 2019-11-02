@@ -160,7 +160,7 @@ pub struct ClientInner {
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
     // previously-queued calls are delivered before any new calls made in response to the resolution.
     call_forwarding_queue: SenderQueue<(u64, u16, Box<dyn ParamsHook>, Box<dyn ResultsHook>),
-                                       (Promise<(), Error>)>,
+                                       Promise<(), Error>>,
 
     // whenMoreResolved() returns forks of this promise.  These must resolve *after* queued calls
     // have been initiated (so that any calls made in the whenMoreResolved() handler are correctly
