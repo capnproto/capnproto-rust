@@ -1,3 +1,7 @@
+### v0.10.2
+- Include the string "@generated" generated code.
+- Don't write output files if their content is unchanged.
+
 ### v0.10.1
 - Allow CompilerCommand to work even when OUT_DIR is not set.
 
