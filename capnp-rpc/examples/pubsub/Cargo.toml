@@ -2,6 +2,7 @@
 name = "pubsub"
 version = "0.1.0"
 authors = ["David Renshaw <david@sandstorm.io>"]
+edition = "2018"
 
 build = "build.rs"
 
@@ -14,9 +15,8 @@ capnpc = { path = "../../../capnpc" }
 
 [dependencies]
 capnp = { path = "../../../capnp" }
-futures = "0.1"
-tokio-core = "0.1"
-tokio-io = "0.1"
+futures = "0.3.0"
+async-std = "1.0"
 
 [dependencies.capnp-rpc]
 path = "../.."

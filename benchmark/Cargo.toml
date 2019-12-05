@@ -16,8 +16,8 @@ name = "run_all_benchmarks"
 path = "run_all.rs"
 
 [build-dependencies]
-capnpc = { version = "0.10.0-dev", path = "../capnpc" }
+capnpc = { path = "../capnpc" }
 
 [dependencies]
 rand = "0.4"
-capnp = { version = "0.10.0-dev", path = "../capnp" }
+capnp = { path = "../capnp" }

@@ -25,21 +25,20 @@ use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  ResultsHook};
 
-use futures::Future;
+use futures::{Future, FutureExt, TryFutureExt};
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 use crate::{broken, local};
 use crate::attach::Attach;
-use crate::forked_promise::ForkedPromise;
 use crate::sender_queue::SenderQueue;
 
 pub struct PipelineInner {
     // Once the promise resolves, this will become non-null and point to the underlying object.
     redirect: Option<Box<dyn PipelineHook>>,
 
-    promise_to_drive: ForkedPromise<Promise<(), Error>>,
+    promise_to_drive: futures::future::Shared<Promise<(), Error>>,
 
     clients_to_resolve: SenderQueue<(Weak<RefCell<ClientInner>>, Vec<PipelineOp>), ()>,
 }
@@ -62,7 +61,7 @@ impl PipelineInner {
             let _ = waiter.send(());
         }
 
-        this.borrow_mut().promise_to_drive = ForkedPromise::new(Promise::ok(()));
+        this.borrow_mut().promise_to_drive = Promise::ok(()).shared();
     }
 }
 
@@ -101,7 +100,7 @@ impl Pipeline {
     pub fn new() -> (PipelineInnerSender, Pipeline) {
         let inner = Rc::new(RefCell::new(PipelineInner {
             redirect: None,
-            promise_to_drive: ForkedPromise::new(Promise::ok(())),
+            promise_to_drive: Promise::ok(()).shared(),
             clients_to_resolve: SenderQueue::new(),
         }));
 
@@ -110,10 +109,10 @@ impl Pipeline {
     }
 
     pub fn drive<F>(&mut self, promise: F)
-        where F: Future<Item=(), Error=Error> + 'static
+        where F: Future<Output=Result<(),Error>> + 'static + Unpin
     {
-        let new = ForkedPromise::new(
-            Promise::from_future(self.inner.borrow_mut().promise_to_drive.clone().join(promise).map(|_|())));
+        let new =
+            Promise::from_future(futures::future::try_join(self.inner.borrow_mut().promise_to_drive.clone(),promise).map_ok(|_|())).shared();
         self.inner.borrow_mut().promise_to_drive = new;
     }
 }
@@ -154,7 +153,7 @@ pub struct ClientInner {
     // to a reference to it so that it doesn't get canceled before the client is resolved.
     pipeline_inner: Option<Rc<RefCell<PipelineInner>>>,
 
-    promise_to_drive: Option<ForkedPromise<Promise<(), Error>>>,
+    promise_to_drive: Option<futures::future::Shared<Promise<(), Error>>>,
 
     // When this promise resolves, each queued call will be forwarded to the real client.  This needs
     // to occur *before* any 'whenMoreResolved()' promises resolve, because we want to make sure
@@ -213,10 +212,10 @@ impl Client {
     }
 
     pub fn drive<F>(&mut self, promise: F)
-        where F: Future<Item=(), Error=Error> + 'static
+        where F: Future<Output=Result<(), Error>> + 'static + Unpin
     {
         assert!(self.inner.borrow().promise_to_drive.is_none());
-        self.inner.borrow_mut().promise_to_drive = Some(ForkedPromise::new(Promise::from_future(promise)));
+        self.inner.borrow_mut().promise_to_drive = Some(Promise::from_future(promise).shared());
     }
 }
 
@@ -241,10 +240,10 @@ impl ClientHook for Client {
 
         let inner_clone = self.inner.clone();
         let promise = self.inner.borrow_mut().call_forwarding_queue.push(
-            (interface_id, method_id, params, results)).attach(inner_clone).flatten();
+            (interface_id, method_id, params, results)).attach(inner_clone).and_then(|x| x);
 
         match self.inner.borrow().promise_to_drive {
-            Some(ref p) => Promise::from_future(p.clone().join(promise).map(|v| v.1)),
+            Some(ref p) => Promise::from_future(futures::future::try_join(p.clone(),promise).map_ok(|v| v.1)),
             None => Promise::from_future(promise),
         }
     }
@@ -275,8 +274,12 @@ impl ClientHook for Client {
 
         let promise = self.inner.borrow_mut().client_resolution_queue.push(());
         match self.inner.borrow().promise_to_drive {
-            Some(ref p) => Some(Promise::from_future(p.clone().join(promise).map(|v| v.1))),
+            Some(ref p) => Some(Promise::from_future(futures::future::try_join(p.clone(), promise).map_ok(|v| v.1))),
             None => Some(Promise::from_future(promise)),
         }
+    }
+
+    fn when_resolved(&self) -> Promise<(), Error> {
+        crate::rpc::default_when_resolved_impl(self)
     }
 }

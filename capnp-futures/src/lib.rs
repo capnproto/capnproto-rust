@@ -18,16 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-extern crate capnp;
-
-#[macro_use]
 extern crate futures;
 
-#[cfg(test)]
-extern crate quickcheck;
-
 pub use read_stream::ReadStream;
-pub use write_queue::{write_queue, Sender, WriteQueue};
+pub use write_queue::{write_queue, Sender};
 
 pub mod serialize;
 mod read_stream;

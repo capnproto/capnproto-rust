@@ -25,9 +25,8 @@ use capnp::capability::{self, Promise};
 use capnp::private::capability::{ClientHook, ParamsHook, PipelineHook, PipelineOp,
                                  RequestHook, ResponseHook, ResultsHook};
 
-use crate::attach::Attach;
-use futures::Future;
-use futures::sync::oneshot;
+use futures::{TryFutureExt};
+use futures::channel::oneshot;
 
 use std::cell::RefCell;
 use std::rc::{Rc};
@@ -216,15 +215,16 @@ impl RequestHook for Request {
         let params = Params::new(message, cap_table);
 
         let (results_done_fulfiller, results_done_promise) = oneshot::channel::<Box<dyn ResultsDoneHook>>();
-        let results_done_promise = results_done_promise.map_err(|e| e.into());
+        let results_done_promise = results_done_promise.map_err(crate::canceled_to_error);
         let results = Results::new(results_done_fulfiller);
         let promise = client.call(interface_id, method_id, Box::new(params), Box::new(results));
 
+
         let (pipeline_sender, mut pipeline) = crate::queued::Pipeline::new();
 
-        let p = promise.join(results_done_promise).and_then(move |((), results_done_hook)| {
+        let p = futures::future::try_join(promise, results_done_promise).and_then(move |((), results_done_hook)| {
             pipeline_sender.complete(Box::new(Pipeline::new(results_done_hook.add_ref())) as Box<dyn PipelineHook>);
-            Ok((capability::Response::new(Box::new(Response::new(results_done_hook))), ()))
+            Promise::ok((capability::Response::new(Box::new(Response::new(results_done_hook))), ()))
         });
 
         let (left, right) = crate::split::split(p);
@@ -322,14 +322,17 @@ impl ClientHook for Client {
         // TODO: actually use some kind of queue here to guarantee that call order in maintained.
         // This currently relies on the task scheduler being first-in-first-out.
         let inner = self.inner.clone();
-        let promise = ::futures::future::lazy(move || {
-            let server = &mut inner.borrow_mut().server;
-            server.dispatch_call(interface_id, method_id,
-                                 ::capnp::capability::Params::new(params),
-                                 ::capnp::capability::Results::new(results))
-        }).attach(self.add_ref());
-
-        Promise::from_future(promise)
+        Promise::from_future(async move {
+            let f = {
+                // We put this borrow_mut() inside a block to avoid a potential
+                // double borrow during f.await
+                let server = &mut inner.borrow_mut().server;
+                server.dispatch_call(interface_id, method_id,
+                                     ::capnp::capability::Params::new(params),
+                                     ::capnp::capability::Results::new(results))
+            };
+            f.await
+        })
     }
 
     fn get_ptr(&self) -> usize {
@@ -346,5 +349,9 @@ impl ClientHook for Client {
 
     fn when_more_resolved(&self) -> Option<Promise<Box<dyn ClientHook>, Error>> {
         None
+    }
+
+    fn when_resolved(&self) -> Promise<(), Error> {
+        crate::rpc::default_when_resolved_impl(self)
     }
 }

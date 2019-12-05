@@ -63,8 +63,10 @@ extern crate capnp;
 extern crate capnp_futures;
 extern crate futures;
 
-use futures::{Future};
-use futures::sync::oneshot;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use futures::{Future, FutureExt, TryFutureExt};
+use futures::channel::oneshot;
 use capnp::Error;
 use capnp::capability::Promise;
 use capnp::private::capability::{ClientHook, ServerHook};
@@ -106,7 +108,6 @@ mod local;
 mod queued;
 mod rpc;
 mod attach;
-mod forked_promise;
 mod sender_queue;
 mod split;
 mod task_set;
@@ -175,8 +176,8 @@ pub struct RpcSystem<VatId> where VatId: 'static {
     // to connection states.
     connection_state: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
 
-    tasks: TaskSet<(), Error>,
-    handle: crate::task_set::TaskSetHandle<(), Error>
+    tasks: TaskSet<Error>,
+    handle: crate::task_set::TaskSetHandle<Error>
 }
 
 impl <VatId> RpcSystem <VatId> {
@@ -206,7 +207,7 @@ impl <VatId> RpcSystem <VatId> {
             };
 
             handle1.terminate(r);
-            Ok(())
+            Promise::ok(())
         }));
 
         let mut result = RpcSystem {
@@ -248,7 +249,7 @@ impl <VatId> RpcSystem <VatId> {
         let connection_state_ref = self.connection_state.clone();
         let bootstrap_cap = self.bootstrap_cap.clone();
         let handle = self.handle.clone();
-        Promise::from_future(self.network.accept().map(move |connection| {
+        Promise::from_future(self.network.accept().map_ok(move |connection| {
             RpcSystem::get_connection_state(connection_state_ref,
                                             bootstrap_cap,
                                             connection,
@@ -259,7 +260,7 @@ impl <VatId> RpcSystem <VatId> {
     fn get_connection_state(connection_state_ref: Rc<RefCell<Option<Rc<rpc::ConnectionState<VatId>>>>>,
                             bootstrap_cap: Box<dyn ClientHook>,
                             connection: Box<dyn crate::Connection<VatId>>,
-                            mut handle: crate::task_set::TaskSetHandle<(), Error>)
+                            mut handle: crate::task_set::TaskSetHandle<Error>)
                             -> Rc<rpc::ConnectionState<VatId>>
     {
         // TODO this needs to be updated once we allow more general VatNetworks.
@@ -295,10 +296,9 @@ impl <VatId> RpcSystem <VatId> {
 }
 
 impl <VatId> Future for RpcSystem<VatId> where VatId: 'static {
-    type Item = ();
-    type Error = Error;
-    fn poll(&mut self) -> ::futures::Poll<Self::Item, Self::Error> {
-        self.tasks.poll()
+    type Output = Result<(),Error>;
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        Pin::new(&mut self.tasks).poll(cx)
     }
 }
 
@@ -323,8 +323,8 @@ impl ServerHook for Server {
 // TODO: figure out a better way to allow construction of promise clients.
 pub fn new_promise_client<T, F>(client_promise: F) -> T
     where T: ::capnp::capability::FromClientHook,
-          F: ::futures::Future<Item=::capnp::capability::Client,Error=Error>,
-          F: 'static
+          F: ::futures::Future<Output=Result<capnp::capability::Client,Error>>,
+          F: 'static + Unpin
 {
     let mut queued_client = crate::queued::Client::new(None);
     let weak_client = Rc::downgrade(&queued_client.inner);
@@ -333,14 +333,14 @@ pub fn new_promise_client<T, F>(client_promise: F) -> T
         if let Some(queued_inner) = weak_client.upgrade() {
             crate::queued::ClientInner::resolve(&queued_inner, r.map(|c| c.hook));
         }
-        Ok(())
+        Promise::ok(())
     }));
 
     T::new(Box::new(queued_client))
 }
 
 struct SystemTaskReaper;
-impl crate::task_set::TaskReaper<(), Error> for SystemTaskReaper {
+impl crate::task_set::TaskReaper<Error> for SystemTaskReaper {
     fn task_failed(&mut self, error: Error) {
         println!("ERROR: {}", error);
     }
@@ -378,3 +378,6 @@ impl <A> ImbuedMessageBuilder<A> where A: ::capnp::message::Allocator {
     }
 }
 
+fn canceled_to_error(_e: futures::channel::oneshot::Canceled) -> Error {
+        Error::failed(format!("oneshot was canceled"))
+}

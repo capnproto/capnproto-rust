@@ -19,8 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use futures::{Future};
-use futures::sync::oneshot;
+use futures::{FutureExt, TryFutureExt};
+use futures::channel::oneshot;
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};

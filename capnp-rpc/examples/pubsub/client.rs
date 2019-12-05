@@ -20,13 +20,10 @@
 // THE SOFTWARE.
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
-use pubsub_capnp::{publisher, subscriber};
+use crate::pubsub_capnp::{publisher, subscriber};
 
 use capnp::capability::Promise;
-
-use tokio_core::reactor;
-use tokio_io::AsyncRead;
-use futures::Future;
+use futures::{AsyncReadExt};
 
 struct SubscriberImpl;
 
@@ -49,28 +46,28 @@ pub fn main() {
         return;
     }
 
-    let mut core = reactor::Core::new().unwrap();
-    let handle = core.handle();
-
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
-    let stream = core.run(::tokio_core::net::TcpStream::connect(&addr, &handle)).unwrap();
-    stream.set_nodelay(true).unwrap();
-    let (reader, writer) = stream.split();
 
-    let rpc_network =
-        Box::new(twoparty::VatNetwork::new(reader, writer,
-                                           rpc_twoparty_capnp::Side::Client,
-                                           Default::default()));
+    let mut exec = futures::executor::LocalPool::new();
+    let result: Result<(), Box<dyn std::error::Error>> = exec.run_until(async move {
+        let stream = async_std::net::TcpStream::connect(&addr).await?;
+        stream.set_nodelay(true)?;
+        let (reader, writer) = stream.split();
+        let rpc_network =
+            Box::new(twoparty::VatNetwork::new(reader, writer,
+                                               rpc_twoparty_capnp::Side::Client,
+                                               Default::default()));
+        let mut rpc_system = RpcSystem::new(rpc_network, None);
+        let publisher: publisher::Client<::capnp::text::Owned> =
+            rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+        let sub = subscriber::ToClient::new(SubscriberImpl).into_client::<::capnp_rpc::Server>();
 
-    let mut rpc_system = RpcSystem::new(rpc_network, None);
-    let publisher: publisher::Client<::capnp::text::Owned> =
-        rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+        let mut request = publisher.subscribe_request();
+        request.get().set_subscriber(sub);
 
-    let sub = subscriber::ToClient::new(SubscriberImpl).into_client::<::capnp_rpc::Server>();
-
-    let mut request = publisher.subscribe_request();
-    request.get().set_subscriber(sub);
-
-    // Need to make sure not to drop the returned subscription object.
-    let _result = core.run(rpc_system.join(request.send().promise)).unwrap();
+        // Need to make sure not to drop the returned subscription object.
+        futures::future::try_join(rpc_system, request.send().promise).await?;
+        Ok(())
+    });
+    result.expect("main");
 }

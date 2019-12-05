@@ -24,15 +24,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
-use pubsub_capnp::{publisher, subscriber, subscription};
+use crate::pubsub_capnp::{publisher, subscriber, subscription};
 
 use capnp::capability::Promise;
-use capnp::Error;
 
-use futures::{Future, Stream};
-
-use tokio_core::reactor;
-use tokio_io::AsyncRead;
+use futures::{AsyncReadExt, FutureExt, StreamExt};
+use futures::task::LocalSpawn;
 
 struct SubscriberHandle {
     client: subscriber::Client<::capnp::text::Owned>,
@@ -113,67 +110,76 @@ pub fn main() {
         return;
     }
 
-    let mut core = reactor::Core::new().unwrap();
-    let handle = core.handle();
+    let mut exec = futures::executor::LocalPool::new();
+    let spawner1 = exec.spawner();
+    let spawner2 = exec.spawner();
 
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
-    let socket = ::tokio_core::net::TcpListener::bind(&addr, &handle).unwrap();
 
-    let (publisher_impl, subscribers) = PublisherImpl::new();
+    let result: Result<(), Box<dyn std::error::Error>> = exec.run_until(async move {
+        let socket = async_std::net::TcpListener::bind(&addr).await?;
+        let (publisher_impl, subscribers) = PublisherImpl::new();
+        let publisher = publisher::ToClient::new(publisher_impl).into_client::<::capnp_rpc::Server>();
+        let mut incoming = socket.incoming();
 
-    let publisher = publisher::ToClient::new(publisher_impl).into_client::<::capnp_rpc::Server>();
+        let handle_incoming = async move {
+            while let Some(socket) = incoming.next().await {
+                let socket = socket?;
+                socket.set_nodelay(true)?;
+                let (reader, writer) = socket.split();
+                let network =
+                    twoparty::VatNetwork::new(reader, writer,
+                                              rpc_twoparty_capnp::Side::Server, Default::default());
 
-    let handle1 = handle.clone();
-    let done = socket.incoming().for_each(move |(socket, _addr)| {
-        socket.set_nodelay(true)?;
-        let (reader, writer) = socket.split();
-        let handle = handle1.clone();
+                let rpc_system = RpcSystem::new(Box::new(network), Some(publisher.clone().client));
 
-        let network =
-            twoparty::VatNetwork::new(reader, writer,
-                                      rpc_twoparty_capnp::Side::Server, Default::default());
+                spawner1.spawn_local_obj(
+                    Box::pin(rpc_system.map(|_| ())).into())?;
+            }
+            Ok::<(), Box<dyn std::error::Error>>(())
+        };
 
-        let rpc_system = RpcSystem::new(Box::new(network), Some(publisher.clone().client));
+        // Trigger sending approximately once per second.
+        let (tx, mut rx) = futures::channel::mpsc::unbounded::<()>();
+        std::thread::spawn(move || {
+            while let Ok(()) = tx.unbounded_send(()) {
+                std::thread::sleep(std::time::Duration::from_millis(1000));
+            }
+        });
 
-        handle.spawn(rpc_system.map_err(|_| ()));
-        Ok(())
-    }).map_err(|e| e.into());
-
-    let infinite = ::futures::stream::iter_ok::<_, Error>(::std::iter::repeat(()));
-    let send_to_subscribers = infinite.fold((handle, subscribers), move |(handle, subscribers), ()| -> Promise<(::tokio_core::reactor::Handle, Rc<RefCell<SubscriberMap>>), Error> {
-        {
-            let subscribers1 = subscribers.clone();
-            let subs = &mut subscribers.borrow_mut().subscribers;
-            for (&idx, mut subscriber) in subs.iter_mut() {
-                if subscriber.requests_in_flight < 5 {
-                    subscriber.requests_in_flight += 1;
-                    let mut request = subscriber.client.push_message_request();
-                    pry!(request.get().set_message(
-                        &format!("system time is: {:?}", ::std::time::SystemTime::now())[..]));
-
-                    let subscribers2 = subscribers1.clone();
-                    handle.spawn(request.send().promise.then(move |r| {
-                        match r {
-                            Ok(_) => {
-                                subscribers2.borrow_mut().subscribers.get_mut(&idx).map(|ref mut s| {
-                                    s.requests_in_flight -= 1;
-                                });
-                            }
-                            Err(e) => {
-                                println!("Got error: {:?}. Dropping subscriber.", e);
-                                subscribers2.borrow_mut().subscribers.remove(&idx);
-                            }
-                        }
-                        Ok::<(), Error>(())
-                    }).map_err(|_| unreachable!()));
+        let send_to_subscribers = async move {
+            while let Some(()) = rx.next().await {
+                let subscribers1 = subscribers.clone();
+                let subs = &mut subscribers.borrow_mut().subscribers;
+                for (&idx, mut subscriber) in subs.iter_mut() {
+                    if subscriber.requests_in_flight < 5 {
+                        subscriber.requests_in_flight += 1;
+                        let mut request = subscriber.client.push_message_request();
+                        request.get().set_message(
+                            &format!("system time is: {:?}", ::std::time::SystemTime::now())[..])?;
+                        let subscribers2 = subscribers1.clone();
+                        spawner2.spawn_local_obj(
+                            Box::pin(request.send().promise.map(move |r| {
+                                match r {
+                                    Ok(_) => {
+                                        subscribers2.borrow_mut().subscribers.get_mut(&idx).map(|ref mut s| {
+                                            s.requests_in_flight -= 1;
+                                        });
+                                    }
+                                    Err(e) => {
+                                        println!("Got error: {:?}. Dropping subscriber.", e);
+                                        subscribers2.borrow_mut().subscribers.remove(&idx);
+                                    }
+                                }
+                            })).into())?;
+                    }
                 }
             }
-        }
+            Ok::<(), Box<dyn std::error::Error>>(())
+        };
 
-        let timeout = pry!(::tokio_core::reactor::Timeout::new(::std::time::Duration::from_secs(1), &handle));
-        let timeout = timeout.and_then(move |()| Ok((handle, subscribers))).map_err(|e| e.into());
-        Promise::from_future(timeout)
+        futures::future::try_join(handle_incoming, send_to_subscribers).await?;
+        Ok(())
     });
-
-    core.run(send_to_subscribers.join(done)).unwrap();
+    result.expect("main");
 }

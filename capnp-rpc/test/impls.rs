@@ -19,14 +19,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use test_capnp::{bootstrap, test_handle, test_interface, test_extends, test_pipeline,
-                 test_call_order, test_more_stuff};
+use crate::test_capnp::{bootstrap, test_handle, test_interface, test_extends, test_pipeline,
+                        test_call_order, test_more_stuff};
 
 
 use capnp::Error;
 use capnp::capability::Promise;
 
-use futures::Future;
+use futures::{FutureExt, TryFutureExt};
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -154,7 +154,7 @@ impl test_interface::Server for TestInterface {
            -> Promise<(), Error>
     {
         self.increment_call_count();
-        ::test_util::CheckTestMessage::check_test_message(pry!(pry!(params.get()).get_s()));
+        crate::test_util::CheckTestMessage::check_test_message(pry!(pry!(params.get()).get_s()));
         Promise::ok(())
     }
 }
@@ -220,7 +220,7 @@ impl test_extends::Server for TestExtends {
            mut results: test_extends::GraultResults)
            -> Promise<(), Error>
     {
-        ::test_util::init_test_message(results.get());
+        crate::test_util::init_test_message(results.get());
         Promise::ok(())
     }
 }
@@ -240,8 +240,8 @@ impl test_pipeline::Server for TestPipeline {
         let mut request = cap.foo_request();
         request.get().set_i(123);
         request.get().set_j(true);
-        Promise::from_future(request.send().promise.and_then(move |response| {
-            if response.get()?.get_x()? != "foo" {
+        Promise::from_future(request.send().promise.map(move |response| {
+            if response?.get()?.get_x()? != "foo" {
                 return Err(Error::failed("expected x to equal 'foo'".to_string()));
             }
 
@@ -335,8 +335,8 @@ impl test_more_stuff::Server for TestMoreStuff {
         request.get().set_i(123);
         request.get().set_j(true);
 
-        Promise::from_future(request.send().promise.and_then(move |response| {
-            if response.get()?.get_x()? != "foo" {
+        Promise::from_future(request.send().promise.map(move |response| {
+            if response?.get()?.get_x()? != "foo" {
                 return Err(Error::failed("expected x to equal 'foo'".to_string()));
             }
             results.get().set_s("bar");
@@ -355,8 +355,8 @@ impl test_more_stuff::Server for TestMoreStuff {
             let mut request = cap.foo_request();
             request.get().set_i(123);
             request.get().set_j(true);
-            request.send().promise.and_then(move |response| {
-                if response.get()?.get_x()? != "foo" {
+            request.send().promise.map(move |response| {
+                if response?.get()?.get_x()? != "foo" {
                     return Err(Error::failed("expected x to equal 'foo'".to_string()));
                 }
                 results.get().set_s("bar");
@@ -376,7 +376,7 @@ impl test_more_stuff::Server for TestMoreStuff {
 
         // Attach `cap` to the promise to make sure it is released.
         let attached = cap.clone();
-        let promise = Promise::from_future(::futures::future::empty().map(|()| {
+        let promise = Promise::from_future(::futures::future::pending().map_ok(|()| {
             drop(attached);
         }));
 
@@ -421,8 +421,8 @@ impl test_more_stuff::Server for TestMoreStuff {
                     params.set_i(123);
                     params.set_j(true);
                 }
-                Promise::from_future(request.send().promise.and_then(move |response| {
-                    if response.get()?.get_x()? != "foo" {
+                Promise::from_future(request.send().promise.map(move |response| {
+                    if response?.get()?.get_x()? != "foo" {
                         Err(Error::failed("expected X to equal 'foo'".to_string()))
                     } else {
                         results.get().set_s("bar");
@@ -517,7 +517,7 @@ impl test_more_stuff::Server for TestMoreStuff {
             results.push(request.send().promise);
         }
 
-        Promise::from_future(::futures::future::join_all(results).map(|_| ()))
+        Promise::from_future(::futures::future::try_join_all(results).map_ok(|_| ()))
     }
 }
 
@@ -542,12 +542,12 @@ impl Drop for Handle {
 impl test_handle::Server for Handle {}
 
 pub struct TestCapDestructor {
-    fulfiller: Option<::futures::sync::oneshot::Sender<()>>,
+    fulfiller: Option<::futures::channel::oneshot::Sender<()>>,
     imp: TestInterface,
 }
 
 impl TestCapDestructor {
-    pub fn new(fulfiller: ::futures::sync::oneshot::Sender<()>) -> TestCapDestructor {
+    pub fn new(fulfiller: ::futures::channel::oneshot::Sender<()>) -> TestCapDestructor {
         TestCapDestructor {
             fulfiller: Some(fulfiller),
             imp: TestInterface::new(),

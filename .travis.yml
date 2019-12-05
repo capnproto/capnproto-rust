@@ -3,14 +3,11 @@ sudo: false
 language: rust
 matrix:
   include:
+    # only nightly, until async/await is stable
     - rust: stable
     - rust: beta
     - rust: nightly
-    - rust: 1.35.0
-      script: # OK if RPC feature uses newer rustc features
-        - cargo build -p capnp
-        - cargo test -p capnpc
-        - cargo test -p capnpc-test
+    - rust: 1.39.0
 env:
   global:
     - export PATH="$PATH:$HOME/bin"

@@ -18,226 +18,83 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::io;
-use std::collections::VecDeque;
-use std::rc::{Rc, Weak};
-use std::cell::RefCell;
-use futures::{task, Async, Poll};
 use futures::future::Future;
-use futures::sync::oneshot;
+use futures::channel::oneshot;
+use futures::{AsyncWrite, AsyncWriteExt, StreamExt, TryFutureExt};
 
 use capnp::{Error};
 
-use serialize::{self, AsOutputSegments};
+use crate::serialize::{AsOutputSegments};
 
-
-enum State<W, M> where W: io::Write, M: AsOutputSegments {
-    Writing(serialize::Write<W, M>, oneshot::Sender<M>),
-    BetweenWrites(W),
-    Empty,
+enum Item<M> where M: AsOutputSegments {
+    Message(M, oneshot::Sender<M>),
+    Done(Result<(), Error>, oneshot::Sender<()>)
 }
-
-/// A queue of messages being written.
-#[must_use = "futures do nothing unless polled"]
-pub struct WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
-    inner: Rc<RefCell<Inner<M>>>,
-    state: State<W, M>,
-}
-
-struct Inner<M> {
-    queue: VecDeque<(M, oneshot::Sender<M>)>,
-    sender_count: usize,
-    task: Option<task::Task>,
-
-    // If set, then the queue has been requested to end, and we should complete the oneshot once
-    // the queue has been emptied.
-    end_notifier: Option<(Result<(), Error>, oneshot::Sender<()>)>
-}
-
-/// A handle that allows message to be sent to a `WriteQueue`.
+/// A handle that allows message to be sent to a write queue`.
 pub struct Sender<M> where M: AsOutputSegments {
-    inner: Weak<RefCell<Inner<M>>>,
+    sender: futures::channel::mpsc::UnboundedSender<Item<M>>,
 }
 
 impl <M> Clone for Sender<M> where M: AsOutputSegments {
     fn clone(&self) -> Sender<M> {
-        match self.inner.upgrade() {
-            None => (),
-            Some(inner) => {
-                inner.borrow_mut().sender_count += 1;
-            }
-        }
-        Sender { inner: self.inner.clone() }
-    }
-}
-
-impl <M> Drop for Sender<M> where M: AsOutputSegments {
-    fn drop(&mut self) {
-        match self.inner.upgrade() {
-            None => (),
-            Some(inner) => {
-                inner.borrow_mut().sender_count -= 1;
-            }
-        }
+        Sender { sender: self.sender.clone() }
     }
 }
 
 /// Creates a new WriteQueue that wraps the given writer.
-pub fn write_queue<W, M>(writer: W) -> (Sender<M>, WriteQueue<W, M>)
-    where W: io::Write, M: AsOutputSegments
+pub fn write_queue<W, M>(mut writer: W) -> (Sender<M>, impl Future<Output=Result<(),Error>> + 'static)
+    where W: AsyncWrite + Unpin + 'static, M: AsOutputSegments + 'static
 {
-    let inner = Rc::new(RefCell::new(Inner {
-        queue: VecDeque::new(),
-        task: None,
-        sender_count: 1,
-        end_notifier: None,
-    }));
+    let (tx, mut rx) = futures::channel::mpsc::unbounded();
 
-    let sender = Sender { inner: Rc::downgrade(&inner) };
+    let sender = Sender { sender: tx };
 
-    let queue = WriteQueue {
-        inner: inner,
-        state: State::BetweenWrites(writer),
+    let queue = async move {
+        while let Some(item) = rx.next().await {
+            match item {
+                Item::Message(m, returner) => {
+                    crate::serialize::write_message(&mut writer, &m).await?;
+                    writer.flush().await?;
+                    let _ = returner.send(m);
+                }
+                Item::Done(r, finisher) => {
+                    let _ = finisher.send(());
+                    return r;
+                }
+            }
+        }
+        Ok(())
     };
 
     (sender, queue)
 }
 
 impl <M> Sender<M> where M: AsOutputSegments + 'static {
-    /// Enqueues a message to be written.
-    pub fn send(&mut self, message: M) -> Box<dyn Future<Item=M, Error=Error>> {
+    /// Enqueues a message to be written. The returned future resolves once the write
+    /// has completed.
+    pub fn send(&mut self, message: M) -> impl Future<Output=Result<M,Error>> + Unpin + 'static {
         let (complete, oneshot) = oneshot::channel();
 
-        match self.inner.upgrade() {
-            None => (),
-            Some(rc_inner) => {
-                if rc_inner.borrow().end_notifier.is_some() {
-                    drop(complete)
-                } else {
-                    rc_inner.borrow_mut().queue.push_back((message, complete));
-                }
+        let _ = self.sender.unbounded_send(Item::Message(message, complete));
 
-                match rc_inner.borrow_mut().task.take() {
-                    Some(t) => t.notify(),
-                    None => (),
-                }
-            }
-        }
-
-        Box::new(
-            oneshot.map_err(
-                |oneshot::Canceled| Error::disconnected("WriteQueue has terminated".into())))
+        oneshot.map_err(
+            |oneshot::Canceled| Error::disconnected("WriteQueue has terminated".into()))
     }
 
     /// Returns the number of messages queued to be written, not including any in-progress write.
     pub fn len(&mut self) -> usize {
-        match self.inner.upgrade() {
-            None => 0,
-            Some(rc_inner) => rc_inner.borrow().queue.len(),
-        }
-
+        unimplemented!()
     }
 
     /// Commands the queue to stop writing messages once it is empty. After this method has been called,
     /// any new calls to `send()` will return a future that immediately resolves to an error.
     /// If the passed-in `result` is an error, then the `WriteQueue` will resolve to that error.
-    pub fn terminate(&mut self, result: Result<(), Error>) -> Box<dyn Future<Item=(), Error=Error>> {
+    pub fn terminate(&mut self, result: Result<(), Error>) -> impl Future<Output=Result<(),Error>> + Unpin + 'static {
         let (complete, receiver) = oneshot::channel();
 
-        match self.inner.upgrade() {
-            None => (),
-            Some(rc_inner) => {
-                // TODO: what if end_notifier is already full? Maybe it should be a vector?
-                rc_inner.borrow_mut().end_notifier = Some((result, complete));
+        let _ = self.sender.unbounded_send(Item::Done(result, complete));
 
-                match rc_inner.borrow_mut().task.take() {
-                    Some(t) => t.notify(),
-                    None => (),
-                }
-            }
-        }
-
-        Box::new(
-            receiver.map_err(
-                |oneshot::Canceled| Error::disconnected("WriteQueue has terminated".into())))
-    }
-}
-
-enum IntermediateState<W, M> where W: io::Write, M: AsOutputSegments {
-    WriteDone(M, W),
-    StartWrite(M, oneshot::Sender<M>),
-    Resolve,
-}
-
-impl <W, M> Future for WriteQueue<W, M> where W: io::Write, M: AsOutputSegments {
-    type Item = W; // Resolves when all senders have been dropped and all messages written.
-    type Error = Error;
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        loop {
-            let next = match self.state {
-                State::Writing(ref mut write, ref mut _complete) => {
-                    let (w, m) = try_ready!(Future::poll(write));
-                    IntermediateState::WriteDone(m, w)
-                }
-                State::BetweenWrites(ref mut _writer) => {
-                    let front = self.inner.borrow_mut().queue.pop_front();
-                    match front {
-                        Some((m, complete)) => {
-                            IntermediateState::StartWrite(m, complete)
-                        }
-                        None => {
-                            let count = self.inner.borrow().sender_count;
-                            let ended = self.inner.borrow().end_notifier.is_some();
-                            if count == 0 || ended {
-                                IntermediateState::Resolve
-                            } else {
-                                self.inner.borrow_mut().task = Some(task::current());
-                                return Ok(Async::NotReady)
-                            }
-                        }
-                    }
-                }
-                State::Empty => unreachable!(),
-            };
-
-            match next {
-                IntermediateState::WriteDone(m, w) => {
-                    match ::std::mem::replace(&mut self.state, State::BetweenWrites(w)) {
-                        State::Writing(_, complete) => {
-                            complete.send(m).unwrap_or(());
-                        }
-                        _ => unreachable!(),
-                    }
-                }
-                IntermediateState::StartWrite(m, c) => {
-                    let new_state = match ::std::mem::replace(&mut self.state, State::Empty) {
-                        State::BetweenWrites(w) => {
-                            State::Writing(::serialize::write_message(w, m), c)
-                        }
-                        _ => unreachable!(),
-                    };
-                    self.state = new_state;
-                }
-                IntermediateState::Resolve => {
-                    let end_notifier = self.inner.borrow_mut().end_notifier.take();
-                    match end_notifier {
-                        None => (),
-                        Some((result, complete)) => {
-                            complete.send(()).unwrap_or(());
-                            if let Err(e) = result {
-                                return Err(e)
-                            }
-                        }
-                    }
-                    match ::std::mem::replace(&mut self.state, State::Empty) {
-                        State::BetweenWrites(w) => {
-                            return Ok(Async::Ready(w))
-                        }
-                        _ => unreachable!(),
-                    }
-                }
-            }
-        }
+        receiver.map_err(
+            |oneshot::Canceled| Error::disconnected("WriteQueue has terminated".into()))
     }
 }
