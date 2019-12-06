@@ -3,7 +3,6 @@ sudo: false
 language: rust
 matrix:
   include:
-    # only nightly, until async/await is stable
     - rust: stable
     - rust: beta
     - rust: nightly
