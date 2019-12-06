@@ -1,6 +1,6 @@
 [package]
 name = "capnp-futures"
-version = "0.11.0-alpha.0"
+version = "0.11.0"
 authors = [ "David Renshaw <drenshaw@gmail.com>" ]
 license = "MIT"
 
@@ -12,9 +12,9 @@ edition = "2018"
 keywords = ["async"]
 
 [dependencies]
-capnp = { version = "0.11.0-alpha", path = "../capnp" }
+capnp = { version = "0.11.0", path = "../capnp" }
 futures = "0.3.0"
 
 [dev-dependencies]
-capnp = { version = "0.11.0-alpha", path = "../capnp", features = ["quickcheck"] }
+capnp = { version = "0.11.0", path = "../capnp", features = ["quickcheck"] }
 quickcheck = "0.2"

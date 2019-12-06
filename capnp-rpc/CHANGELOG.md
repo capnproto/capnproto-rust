@@ -1,6 +1,7 @@
-## next
-
-- Export Disconnector struct from capnp_rpc (#140)
+## v0.11.0
+- Export Disconnector struct from capnp_rpc (#140).
+- Switch to std::future::Future.
+- Update minimum required rustc version to 1.39.
 
 ## v0.10.0
 - Update to Rust 2018.

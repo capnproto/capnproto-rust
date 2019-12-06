@@ -1,3 +1,7 @@
+### v0.11.0
+- Remove unused experimental `schema` module.
+- Bump minimum supported rustc version to 1.39.0.
+
 ### v0.10.2
 - Include the string "@generated" generated code.
 - Don't write output files if their content is unchanged.

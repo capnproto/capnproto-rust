@@ -1,3 +1,8 @@
+## v0.11.0
+- Remove serialize::Transport.
+- Switch to std::future::Future.
+- Bump minimum support rustc version to 1.39.0.
+
 ## v0.10.1
 - Remove dependency on byteorder crate, in favor of from_le_bytes() and to_le_bytes().
 

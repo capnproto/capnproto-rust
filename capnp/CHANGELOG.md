@@ -1,3 +1,7 @@
+## v0.11.0
+- Remove the "futures" feature and the optional futures 0.1 dependency, in favor of std::future::Future.
+- Bump minimum support rustc version to 1.39.0.
+
 ## v0.10.3
 - Add serialize::read_message_from_flat_slice().
 
