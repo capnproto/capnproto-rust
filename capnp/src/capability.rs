@@ -149,52 +149,6 @@ impl <Params, Results> Request<Params, Results>
     }
 }
 
-mod map {
-    // map implementation borrowed from the futures-util crate.
-
-    use std::marker::Unpin;
-    use std::pin::Pin;
-    use std::future::Future;
-    use std::task::{Poll};
-
-    /// Future for the `map` combinator, changing the type of a future.
-    ///
-    /// This is created by the `Future::map` method.
-    #[derive(Debug)]
-    #[must_use = "futures do nothing unless polled"]
-    pub struct Map<Fut, F> {
-        future: Fut,
-        f: Option<F>,
-    }
-
-    impl<Fut, F> Map<Fut, F> {
-        pub(super) fn new(future: Fut, f: F) -> Map<Fut, F> {
-            Map { future, f: Some(f) }
-        }
-    }
-
-    impl<Fut: Unpin, F> Unpin for Map<Fut, F> {}
-
-    impl<Fut, F, T> Future for Map<Fut, F>
-        where Fut: Future,
-              F: FnOnce(Fut::Output) -> T,
-              Fut: Unpin
-    {
-        type Output = T;
-
-        fn poll(mut self: Pin<&mut Self>, lw: &mut ::std::task::Context) -> Poll<T> {
-            match Pin::new(&mut self.future).poll(lw) {
-                Poll::Pending => Poll::Pending,
-                Poll::Ready(output) => {
-                    let f = self.f.take()
-                        .expect("Map must not be polled after it returned `Poll::Ready`");
-                    Poll::Ready(f(output))
-                }
-            }
-        }
-    }
-}
-
 impl <Params, Results> Request <Params, Results>
 where Results: Pipelined + for<'a> Owned<'a> + 'static + Unpin,
       <Results as Pipelined>::Pipeline: FromTypelessPipeline
@@ -202,12 +156,10 @@ where Results: Pipelined + for<'a> Owned<'a> + 'static + Unpin,
     pub fn send(self) -> RemotePromise<Results> {
         let RemotePromise {promise, pipeline, ..} = self.hook.send();
         let typed_promise = Promise::from_future(
-            self::map::Map::new(
-                promise,
-                |response: Result<Response<any_pointer::Owned>, Error> | -> Result<Response<Results>, Error> {
-                    Ok(Response {hook: response?.hook,
-                                 marker: PhantomData})
-                }));
+            async move {
+                Ok(Response {hook: promise.await?.hook,
+                             marker: PhantomData})
+            });
         RemotePromise { promise: typed_promise,
                         pipeline: FromTypelessPipeline::new(pipeline)
                       }
