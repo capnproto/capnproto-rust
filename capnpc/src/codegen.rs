@@ -1219,7 +1219,7 @@ fn generate_node(gen: &GeneratorContext,
                     Branch(vec!(
                         Line("#[derive(Copy, Clone)]".into()),
                         Line(format!("pub struct Owned<{}> {{", params.params)),
-                            Indent(Box::new(Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params)))),
+                            Indent(Box::new(Line(format!("_phantom: ::std::marker::PhantomData<{}>", params.params_tuple)))),
                         Line("}".to_string()),
                         Line(format!("impl <'a, {0}> ::capnp::traits::Owned<'a> for Owned <{0}> {1} {{ type Reader = Reader<'a, {0}>; type Builder = Builder<'a, {0}>; }}",
                             params.params, params.where_clause)),
@@ -1238,7 +1238,7 @@ fn generate_node(gen: &GeneratorContext,
                         Line(format!("pub struct Reader<'a,{}> {} {{", params.params, params.where_clause)),
                         Indent(Box::new(Branch(vec!(
                             Line("reader: ::capnp::private::layout::StructReader<'a>,".to_string()),
-                            Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params)),
+                            Line(format!("_phantom: ::std::marker::PhantomData<{}>", params.params_tuple)),
                         )))),
                         Line("}".to_string())
                     ))
@@ -1307,7 +1307,7 @@ fn generate_node(gen: &GeneratorContext,
                                      params.params, params.where_clause)),
                         Indent(Box::new(Branch(vec!(
                             Line("builder: ::capnp::private::layout::StructBuilder<'a>,".to_string()),
-                            Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params)),
+                            Line(format!("_phantom: ::std::marker::PhantomData<{}>", params.params_tuple)),
                         )))),
                         Line("}".to_string())
                     ))
@@ -1373,7 +1373,7 @@ fn generate_node(gen: &GeneratorContext,
                         Line(format!("pub struct Pipeline{} {{", bracketed_params)),
                         Indent(Box::new(Branch(vec![
                             Line("_typeless: ::capnp::any_pointer::Pipeline,".to_string()),
-                            Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params)),
+                            Line(format!("_phantom: ::std::marker::PhantomData<{}>", params.params_tuple)),
                         ]))),
                         Line("}".to_string())
                     ])
@@ -1567,7 +1567,7 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(Line(format!("pub struct Client{} {{", bracketed_params)));
             mod_interior.push(Indent(Box::new(Line("pub client: ::capnp::capability::Client,".to_string()))));
             if is_generic {
-                mod_interior.push(Indent(Box::new(Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params)))))
+                mod_interior.push(Indent(Box::new(Line(format!("_phantom: ::std::marker::PhantomData<{}>", params.params_tuple)))))
             }
             mod_interior.push(Line("}".to_string()));
             mod_interior.push(
@@ -1589,7 +1589,7 @@ fn generate_node(gen: &GeneratorContext,
                 Branch(vec!(
                     Line("#[derive(Copy, Clone)]".into()),
                     Line(format!("pub struct Owned<{}> {} {{", params.params, params.where_clause)),
-                    Indent(Box::new(Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params)))),
+                    Indent(Box::new(Line(format!("_phantom: ::std::marker::PhantomData<{}>", params.params_tuple)))),
                     Line("}".to_string()),
                     Line(format!(
                         "impl <'a, {0}> ::capnp::traits::Owned<'a> for Owned <{0}> {1} {{ type Reader = Client<{0}>; type Builder = Client<{0}>; }}",
@@ -1648,7 +1648,7 @@ fn generate_node(gen: &GeneratorContext,
                             Line(format!("pub struct ToClient<_U,{}> {} {{", params.params, params.where_clause)),
                             Indent(Box::new(Branch(vec!(
                                 Line("pub u: _U,".to_string()),
-                                Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params))
+                                Line(format!("_phantom: ::std::marker::PhantomData<{}>", params.params_tuple))
                             )))),
                             Line("}".to_string()),
                             Line(format!("impl <{0}, _U: Server<{0}> + 'static> ToClient<_U,{0}> {1} {{",
@@ -1700,7 +1700,7 @@ fn generate_node(gen: &GeneratorContext,
             mod_interior.push(Branch(vec!(Line(format!("pub struct ServerDispatch<_T,{}> {{", params.params)),
                                           Indent(Box::new(Line("pub server: Box<_T>,".to_string()))),
                                           Indent(Box::new(Branch(if is_generic {
-                                            vec!(Line(format!("_phantom: ::std::marker::PhantomData<({})>", params.params))) } else { vec!() } ))),
+                                            vec!(Line(format!("_phantom: ::std::marker::PhantomData<{}>", params.params_tuple))) } else { vec!() } ))),
                                           Line("}".to_string()))));
 
             mod_interior.push(

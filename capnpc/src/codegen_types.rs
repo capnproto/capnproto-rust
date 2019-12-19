@@ -75,6 +75,10 @@ impl Leaf {
 pub struct TypeParameterTexts {
     pub expanded_list: Vec<String>,
     pub params: String,
+
+    // Omit parens if list has length one, to make the linter happy.
+    pub params_tuple: String,
+
     pub where_clause: String,
     pub where_clause_with_static: String,
     pub pipeline_where_clause: String,
@@ -104,6 +108,11 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             let type_parameters = params.iter().map(|param| {
                 format!("{}",param)
             }).collect::<Vec<String>>().join(",");
+            let params_tuple = if params.len() == 1 {
+                type_parameters.clone()
+            } else {
+                format!("({})", type_parameters)
+            };
             let where_clause = "where ".to_string() + &*(params.iter().map(|param| {
                 format!("{}: for<'c> ::capnp::traits::Owned<'c>", param)
             }).collect::<Vec<String>>().join(", ") + " ");
@@ -118,6 +127,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             TypeParameterTexts {
                 expanded_list: params,
                 params: type_parameters,
+                params_tuple,
                 where_clause: where_clause,
                 where_clause_with_static: where_clause_with_static,
                 pipeline_where_clause: pipeline_where_clause,
@@ -127,6 +137,7 @@ impl <'a> RustNodeInfo for node::Reader<'a> {
             TypeParameterTexts {
                 expanded_list: vec!(),
                 params: "".to_string(),
+                params_tuple: "()".to_string(),
                 where_clause: "".to_string(),
                 where_clause_with_static: "".to_string(),
                 pipeline_where_clause: "".to_string(),
