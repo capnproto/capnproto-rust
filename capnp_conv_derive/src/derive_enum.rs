@@ -189,7 +189,7 @@ fn gen_type_read(
                 _ => unreachable!(),
             };
 
-            let path = match opt_with_path {
+            let mut path = match opt_with_path {
                 Some(with_path) => with_path,
                 None => match &last_ident.ty {
                     syn::Type::Path(type_path) => type_path.path.clone(),
@@ -199,7 +199,6 @@ fn gen_type_read(
                 },
             };
 
-            let mut path = path.clone();
             assign_defaults(&mut path);
 
             if is_primitive(&path) {
