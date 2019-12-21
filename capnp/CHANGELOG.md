@@ -1,3 +1,6 @@
+## v0.11.1
+- Remove internal capnp::map::Map and use async/await instead.
+
 ## v0.11.0
 - Remove the "futures" feature and the optional futures 0.1 dependency, in favor of std::future::Future.
 - Bump minimum support rustc version to 1.39.0.

@@ -1,3 +1,6 @@
+### v0.11.1
+- Avoid generating some superfluous parenthesis.
+
 ### v0.11.0
 - Remove unused experimental `schema` module.
 - Bump minimum supported rustc version to 1.39.0.
