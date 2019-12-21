@@ -19,10 +19,10 @@ name = "capnp"
 path = "src/lib.rs"
 
 [dependencies]
-quickcheck = { version = "0.2", optional = true }
+quickcheck = { version = "0.9", optional = true }
 
 [dev-dependencies]
-quickcheck = "0.2"
+quickcheck = "0.9"
 
 [features]
 rpc_try = []
