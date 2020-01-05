@@ -15,7 +15,7 @@ capnpc = { path = "../../../capnpc" }
 [dependencies]
 capnp = { path = "../../../capnp" }
 futures = "0.3.0"
-hyper = { git = "https://github.com/hyperium/hyper" }
+hyper = "0.13.1"
 tokio = { version = "0.2.0", features = ["net", "rt-util", "tcp"]}
 futures-tokio-compat = { git = "https://github.com/dwrensha/futures-tokio-compat", branch = "tokio-0.2" }
 
