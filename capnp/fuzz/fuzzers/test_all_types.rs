@@ -50,7 +50,7 @@ fn try_go(mut data: &[u8]) -> ::capnp::Result<()> {
         *message::ReaderOptions::new().traversal_limit_in_words(4 * 1024))?;
     assert!(orig_data.len() > data.len());
 
-    let root: test_all_types::Reader = try!(message_reader.get_root());
+    let root: test_all_types::Reader = message_reader.get_root()?;
     root.total_size()?;
     traverse(root)?;
 
