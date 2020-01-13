@@ -152,8 +152,9 @@ powerpc-unknown-linux-gnu
 
 ```
 direct_load:
-	lwz 5, 0(3)
-	lwz 4, 4(3)
+	li 4, 4
+	lwbrx 5, 3, 4
+	lwbrx 4, 0, 3
 	mr 3, 5
 	blr
 
@@ -170,10 +171,13 @@ mips-unknown-linux-gnu
 
 ```
 direct_load:
-	lw	$2, 0($4)
-	lw	$3, 4($4)
+	lw	$1, 4($4)
+	wsbh	$1, $1
+	rotr	$2, $1, 16
+	lw	$1, 0($4)
+	wsbh	$1, $1
 	jr	$ra
-	nop
+	rotr	$3, $1, 16
 
 indirect_load:
 	lwl	$1, 4($4)
