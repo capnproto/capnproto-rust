@@ -14,12 +14,13 @@ In the common case where you want to read from a `&[u8]`,
 you must first call the unsafe function
 [`bytes_to_words()`](https://github.com/capnproto/capnproto-rust/blob/d1988731887b2bbb0ccb35c68b9292d98f317a48/capnp/src/lib.rs#L82-L88)
 in order to get a `&[Word]`.
-It is only safe to call this function if you know that your data is 8-byte aligned
-or if you know that your code will only run on processors that permit unaligned memory access.
+It is only safe to call this function if you know that your data is
+8-byte aligned <strike>or if you know that your code will only run on processors
+that permit unaligned memory access</strike> (EDIT: ralfj [informs me](https://www.reddit.com/r/rust/comments/en9fmn/should_capnprotorust_force_users_to_worry_about/fedhjtk/) that misaligned loads are never okay.)
 The former condition can be difficult to meet, especially if your memory comes from
-an external library like sqlite or zmq where no alignment guarantees are given,
+an external library like sqlite or zmq where no alignment guarantees are given<strike>,
 and the latter condition feels like an unfair burden, both in terms of demanding that
-you understand a rather subtle concept, and in terms of limiting where your software can run.
+you understand a rather subtle concept, and in terms of limiting where your software can run</strike>.
 So it's easy to  understand why someone might shy away from calling `bytes_to_words()`
 and, in turn, `read_message_from_words()`.
 
@@ -51,7 +52,8 @@ pub fn indirect_load(x: &[u8; 8]) -> u64 {
 
 The `direct_load()` function represents the current state of affairs in capnproto-rust.
 It loads a `u64` by casting a pointer of type `*const u8` to type `*const u64` and then deferencing that pointer.
-This is only safe if the input is 8-byte aligned or if the processor can handle unaligned access.
+This is only safe if the input is 8-byte aligned <strike>or if the processor can handle unaligned access</strike>.
+(EDIT: again, see ralfj's [reddit comment](https://www.reddit.com/r/rust/comments/en9fmn/should_capnprotorust_force_users_to_worry_about/fedhjtk/).)
 
 The `indirect_load()` function represents the safer alternative. We expect this to
 sometimes require more work than `direct_load()`, but it has the advantage of
