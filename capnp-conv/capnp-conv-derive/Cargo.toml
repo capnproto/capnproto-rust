@@ -1,7 +1,7 @@
 [package]
 name = "capnp-conv-derive"
 version = "0.1.0"
-authors = ["real <real@freedomlayer.org>"]
+authors = [ "David Renshaw <dwrenshaw@gmail.com>", "real <real@freedomlayer.org>"]
 license = "MIT"
 edition = "2018"
 
