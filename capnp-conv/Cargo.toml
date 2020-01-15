@@ -1,0 +1,24 @@
+[package]
+name = "offst-capnp-conv"
+version = "0.1.0"
+authors = ["real <real@freedomlayer.org>"]
+license = "MIT OR Apache-2.0"
+edition = "2018"
+
+[dependencies]
+
+log = "0.4"
+pretty_env_logger = "0.2"
+
+capnp_conv_derive = { path = "capnp_conv_derive", version = "0.1.0", package = "offst-capnp-conv-derive" }
+
+capnp = "0.10.0"
+derive_more = "0.15.0"
+
+[build-dependencies]
+capnpc = "0.10.0"
+
+[dev-dependencies]
+
+byteorder = {version = "1.3.2", features = ["i128"]}
+
