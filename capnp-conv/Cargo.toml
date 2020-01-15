@@ -7,18 +7,14 @@ edition = "2018"
 
 [dependencies]
 
-log = "0.4"
-pretty_env_logger = "0.2"
-
 capnp_conv_derive = { path = "capnp-conv-derive", version = "0.1.0", package = "capnp-conv-derive" }
 
-capnp = "0.10.0"
+capnp = { path = "../capnp", package = "capnp" }
 derive_more = "0.15.0"
 
 [build-dependencies]
-capnpc = "0.10.0"
+capnpc = { path = "../capnpc", package = "capnpc" }
 
 [dev-dependencies]
 
 byteorder = {version = "1.3.2", features = ["i128"]}
-
