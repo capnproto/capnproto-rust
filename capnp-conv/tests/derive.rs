@@ -1,8 +1,4 @@
-#![deny(warnings)]
-
-use offst_capnp_conv::{
-    capnp_conv, CapnpConvError, FromCapnpBytes, ReadCapnp, ToCapnpBytes, WriteCapnp,
-};
+use capnp_conv::{capnp_conv, CapnpConvError, FromCapnpBytes, ReadCapnp, ToCapnpBytes, WriteCapnp};
 
 #[allow(unused)]
 mod test_capnp {

@@ -1,10 +1,5 @@
-#![deny(warnings)]
-
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
-#[allow(unused)]
-use offst_capnp_conv::{
-    capnp_conv, CapnpConvError, FromCapnpBytes, ReadCapnp, ToCapnpBytes, WriteCapnp,
-};
+use capnp_conv::{capnp_conv, CapnpConvError, FromCapnpBytes, ReadCapnp, ToCapnpBytes, WriteCapnp};
 
 #[allow(unused)]
 mod test_capnp {
@@ -13,15 +8,6 @@ mod test_capnp {
 
 #[derive(derive_more::Constructor, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Wrapper<T>(T);
-
-/*
-impl<T> std::ops::Deref for Wrapper<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}*/
 
 impl<T> From<T> for Wrapper<T> {
     fn from(t: T) -> Self {

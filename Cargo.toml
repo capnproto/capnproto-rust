@@ -5,6 +5,7 @@ members = [
     "capnpc",
     "capnp-futures",
     "capnp-rpc",
+    "capnp-conv",
 
     # testing and examples
     "benchmark",
@@ -20,4 +21,5 @@ members = [
 default-members = [
     "capnp",
     "capnpc",
+    "capnp-conv",
 ]
