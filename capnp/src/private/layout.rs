@@ -165,7 +165,7 @@ impl WirePointer {
     #[inline]
     pub fn mut_target(&mut self) -> *mut Word {
         let this_addr: *mut Word = self as *mut _ as *mut _;
-        unsafe { this_addr.offset((1 + ((self.offset_and_kind.get() as i32) >> 2)) as isize) }
+        this_addr.wrapping_offset((1 + ((self.offset_and_kind.get() as i32) >> 2)) as isize)
     }
 
     #[inline]
