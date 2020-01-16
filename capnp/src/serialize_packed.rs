@@ -37,9 +37,7 @@ impl <R> PackedRead<R> where R: BufRead {
 
     fn get_read_buffer(&mut self) -> io::Result<(*const u8, *const u8)> {
         let buf = self.inner.fill_buf()?;
-        unsafe {
-            Ok((buf.as_ptr(), buf.get_unchecked(buf.len())))
-        }
+        Ok((buf.as_ptr(), buf.as_ptr().wrapping_offset(buf.len() as isize)))
     }
 }
 
@@ -77,7 +75,7 @@ impl <R> Read for PackedRead<R> where R: BufRead {
 
         unsafe {
             let mut out = out_buf.as_mut_ptr();
-            let out_end: *mut u8 = out_buf.get_unchecked_mut(len);
+            let out_end: *mut u8 = out_buf.as_mut_ptr().wrapping_offset(len as isize);
 
             let (mut in_ptr, mut in_end) = self.get_read_buffer()?;
             let mut buffer_begin = in_ptr;
@@ -231,8 +229,8 @@ impl <W> Write for PackedWrite<W> where W: Write {
             let mut buf_idx: usize = 0;
             let mut buf: [u8; 64] = [0; 64];
 
-            let mut in_ptr: *const u8 = in_buf.get_unchecked(0);
-            let in_end: *const u8 = in_buf.get_unchecked(in_buf.len());
+            let mut in_ptr: *const u8 = in_buf.as_ptr();
+            let in_end: *const u8 = in_buf.as_ptr().wrapping_offset(in_buf.len() as isize);
 
             while in_ptr < in_end {
 
