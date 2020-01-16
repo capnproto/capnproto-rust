@@ -443,6 +443,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
     fn check_round_trip() {
         fn round_trip(segments: Vec<Vec<Word>>) -> TestResult {
             use crate::message::ReaderSegments;
@@ -463,6 +464,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
     fn fuzz_unpack() {
         fn unpack(packed: Vec<u8>) -> TestResult {
 

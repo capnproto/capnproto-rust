@@ -479,6 +479,7 @@ pub mod test {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
     fn check_round_trip() {
         fn round_trip(segments: Vec<Vec<Word>>) -> TestResult {
             if segments.len() == 0 { return TestResult::discard(); }
@@ -499,6 +500,7 @@ pub mod test {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
     fn check_round_trip_slice_segments() {
         fn round_trip(segments: Vec<Vec<Word>>) -> TestResult {
             if segments.len() == 0 { return TestResult::discard(); }
