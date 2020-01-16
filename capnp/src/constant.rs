@@ -42,6 +42,6 @@ pub struct Reader<T> {
 impl <T> Reader<T> where T: for<'a> Owned<'a> {
     /// Retrieve the value.
     pub fn get(&self) -> Result<<T as Owned<'static>>::Reader> {
-        any_pointer::Reader::new(PointerReader::get_root_unchecked(&self.words[0] as *const Word)).get_as()
+        any_pointer::Reader::new(PointerReader::get_root_unchecked(self.words.as_ptr())).get_as()
     }
 }
