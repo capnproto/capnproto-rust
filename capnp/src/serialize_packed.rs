@@ -487,7 +487,7 @@ mod tests {
         match packed_read.read_exact(&mut bytes[..]) {
             Ok(_) => panic!("should have been an error"),
             Err(e) => {
-                assert_eq!(::std::error::Error::description(&e),
+                assert_eq!(e.to_string(),
                            "Packed input did not end cleanly on a segment boundary.");
             }
         }
@@ -502,7 +502,7 @@ mod tests {
             match packed_read.read_exact(&mut bytes[..]) {
                 Ok(_) => panic!("should have been an error"),
                 Err(e) => {
-                    assert_eq!(::std::error::Error::description(&e), "Premature end of packed input.");
+                    assert_eq!(e.to_string(), "Premature end of packed input.");
                 }
             }
         }
