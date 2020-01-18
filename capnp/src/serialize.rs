@@ -76,6 +76,7 @@ pub fn read_message_from_flat_slice<'a>(slice: &mut &'a [Word],
 /// Reads a serialized message from a flat slice of words. The slice is allowed to extend
 /// beyond the end of the message. If you need to access the data beyond the end of the
 /// message, use `read_message_from_flat_slice()` instead.
+#[deprecated(since = "0.11.2", note = "use read_message_from_flat_slice() instead")]
 pub fn read_message_from_words<'a>(mut slice: &'a [Word],
                                    options: message::ReaderOptions)
                                    -> Result<message::Reader<SliceSegments<'a>>>
