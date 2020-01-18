@@ -1,3 +1,7 @@
+## v0.11.2
+- Deprecate `read_message_from_words()` in favor of `read_message_from_flat_slice()`.
+- Remove incorrect doc comments on `bytes_to_words()`. (Misaligned access is never okay.)
+
 ## v0.11.1
 - Remove internal capnp::map::Map and use async/await instead.
 
