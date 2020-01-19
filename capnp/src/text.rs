@@ -44,7 +44,8 @@ pub fn new_reader<'a>(v : &'a [u8]) -> Result<Reader<'a>> {
 }
 
 impl <'a> crate::traits::FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &crate::private::layout::PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
+    fn get_from_pointer(reader: &crate::private::layout::PointerReader<'a>,
+                        default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
         reader.get_text(default)
     }
 }

@@ -131,7 +131,7 @@ impl UseScratch {
         let mut owned = Vec::new();
         let mut scratch = Vec::new();
         for _ in 0..6 {
-            let mut words = ::capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE);
+            let mut words = capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE);
             scratch.push(message::ScratchSpace::new(
                 unsafe { mem::transmute(&mut words[..]) }));
             owned.push(words);

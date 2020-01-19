@@ -27,7 +27,7 @@ use futures::{AsyncRead};
 use capnp::{Error, message};
 
 async fn read_next_message<R>(mut reader: R, options: message::ReaderOptions)
-                              -> Result<(R, Option<message::Reader<crate::serialize::OwnedSegments>>), Error>
+                              -> Result<(R, Option<message::Reader<capnp::serialize::OwnedSegments>>), Error>
     where R: AsyncRead + Unpin + 'static
 {
     let m = crate::serialize::read_message(&mut reader, options).await?;
@@ -37,7 +37,7 @@ async fn read_next_message<R>(mut reader: R, options: message::ReaderOptions)
 #[must_use = "streams do nothing unless polled"]
 pub struct ReadStream<R> where R: AsyncRead + Unpin + 'static {
     options: message::ReaderOptions,
-    read: Pin<Box<dyn Future<Output=Result<(R, Option<message::Reader<crate::serialize::OwnedSegments>>), Error>> + 'static>>,
+    read: Pin<Box<dyn Future<Output=Result<(R, Option<message::Reader<capnp::serialize::OwnedSegments>>), Error>> + 'static>>,
 }
 
 impl <R> Unpin for ReadStream<R> where R: AsyncRead + Unpin + 'static {}
@@ -53,7 +53,7 @@ impl <R> ReadStream<R> where R: AsyncRead + Unpin + 'static {
 }
 
 impl <R> Stream for ReadStream<R> where R: AsyncRead + Unpin + 'static {
-    type Item = Result<message::Reader<crate::serialize::OwnedSegments>, Error>;
+    type Item = Result<message::Reader<capnp::serialize::OwnedSegments>, Error>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
         let (r, m) = match Future::poll(self.read.as_mut(), cx) {

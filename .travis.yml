@@ -6,7 +6,7 @@ matrix:
     - rust: stable
     - rust: beta
     - rust: nightly
-    - rust: 1.39.0
+    - rust: 1.40.0
 env:
   global:
     - export PATH="$PATH:$HOME/bin"

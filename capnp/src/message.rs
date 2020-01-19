@@ -28,7 +28,7 @@ use crate::private::arena::{BuilderArenaImpl, ReaderArenaImpl, BuilderArena, Rea
 use crate::private::layout;
 use crate::private::units::BYTES_PER_WORD;
 use crate::traits::{FromPointerReader, FromPointerBuilder, SetPointerBuilder, Owned};
-use crate::{OutputSegments, Result, Word};
+use crate::{OutputSegments, Result};
 
 /// Options controlling how data is read.
 #[derive(Clone, Copy, Debug)]
@@ -89,7 +89,10 @@ impl ReaderOptions {
 /// An object that manages the buffers underlying a Cap'n Proto message reader.
 pub trait ReaderSegments {
     /// Gets the segment with index `idx`. Returns `None` if `idx` is out of range.
-    fn get_segment<'a>(&'a self, idx: u32) -> Option<&'a [Word]>;
+    ///
+    /// The segment must be 8-byte aligned or the "unaligned" feature must
+    /// be enabled in the capnp crate. (Otherwise reading the segment will return an error.)
+    fn get_segment<'a>(&'a self, idx: u32) -> Option<&'a [u8]>;
 
     /// Gets the number of segments.
     fn len(&self) -> usize {
@@ -104,17 +107,17 @@ pub trait ReaderSegments {
 
 /// An array of segments.
 pub struct SegmentArray<'a> {
-    segments: &'a [&'a [Word]],
+    segments: &'a [&'a [u8]],
 }
 
 impl <'a> SegmentArray<'a> {
-    pub fn new(segments: &'a [&'a [Word]]) -> SegmentArray<'a> {
+    pub fn new(segments: &'a [&'a [u8]]) -> SegmentArray<'a> {
         SegmentArray { segments: segments }
     }
 }
 
 impl <'b> ReaderSegments for SegmentArray<'b> {
-    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
+    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
         self.segments.get(id as usize).map(|slice| *slice)
     }
 
@@ -123,8 +126,8 @@ impl <'b> ReaderSegments for SegmentArray<'b> {
     }
 }
 
-impl <'b> ReaderSegments for [&'b [Word]] {
-    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a[Word]> {
+impl <'b> ReaderSegments for [&'b [u8]] {
+    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
         self.get(id as usize).map(|slice| *slice)
     }
 
@@ -177,7 +180,7 @@ impl <S> Reader<S> where S: ReaderSegments {
 
         let pointer_reader = layout::PointerReader::get_root(
             &self.arena, 0, segment_start, self.nesting_limit)?;
-        let read_head = ::std::cell::Cell::new(unsafe {segment_start.offset(1)});
+        let read_head = ::std::cell::Cell::new(unsafe {segment_start.offset(BYTES_PER_WORD as isize)});
         let root_is_canonical = pointer_reader.is_canonical(&read_head)?;
         let all_words_consumed =
             (read_head.get() as usize - segment_start as usize) / BYTES_PER_WORD == seg_len as usize;
@@ -187,7 +190,7 @@ impl <S> Reader<S> where S: ReaderSegments {
     /// Gets the [canonical](https://capnproto.org/encoding.html#canonicalization) form
     /// of this message. Works by copying the message twice. For a canonicalization
     /// method that only requires one copy, see `message::Builder::set_root_canonical()`.
-    pub fn canonicalize(&self) -> Result<Vec<Word>> {
+    pub fn canonicalize(&self) -> Result<Vec<crate::Word>> {
         let root = self.get_root_internal()?;
         let size = root.target_size()?.word_count + 1;
         let mut message = Builder::new(HeapAllocator::new().first_segment_words(size as u32));
@@ -195,9 +198,9 @@ impl <S> Reader<S> where S: ReaderSegments {
         let output_segments = message.get_segments_for_output();
         assert_eq!(1, output_segments.len());
         let output = output_segments[0];
-        assert!(output.len() as u64 <= size);
-        let mut result = Word::allocate_zeroed_vec(output.len());
-        result.copy_from_slice(output);
+        assert!((output.len() / BYTES_PER_WORD) as u64 <= size);
+        let mut result = crate::Word::allocate_zeroed_vec(output.len() / BYTES_PER_WORD);
+        crate::Word::words_to_bytes_mut(&mut result[..]).copy_from_slice(output);
         Ok(result)
     }
 
@@ -255,15 +258,18 @@ impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
 
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
 pub unsafe trait Allocator {
-    /// Allocates memory for a new segment, returning a pointer to the start of the segment
-    /// and a u32 indicating the length of the segment.
+    /// Allocates zeroed memory for a new segment, returning a pointer to the start of the segment
+    /// and a u32 indicating the length of the segment (in words).
     ///
-    /// The allocated memory MUST be initialized to all zeroes.
-    ///
-    /// UNSAFETY ALERT: The callee is responsible for ensuring that the returned memory is valid
-    /// for the lifetime of the object and doesn't overlap with other allocated memory.
-    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32);
+    /// UNSAFETY ALERT: The callee is responsible for ensuring all of the following:
+    ///     1. the returned memory is initialized to all zeroes,
+    ///     2. the returned memory is valid for the remaining lifetime of the Allocator object,
+    ///     3. the memory doesn't overlap with other allocated memory,
+    ///     4. the memory is 8-byte aligned (or the "unaligned" feature is enabled for the capnp crate).
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32);
 
+    /// Called before the Allocator is dropped, to allow the first segment to be re-zeroed
+    /// before possibly being reused in another allocator.
     fn pre_drop(&mut self, _segment0_currently_allocated: u32) {}
 }
 
@@ -272,8 +278,8 @@ pub trait Allocator {
     /// Allocates memory for a new segment.
     fn allocate_segment(&mut self, minimum_size: u32) -> Result<()>;
 
-    fn get_segment<'a>(&'a self, id: u32) -> &'a [Word];
-    fn get_segment_mut<'a>(&'a mut self, id: u32) -> &'a mut [Word];
+    fn get_segment<'a>(&'a self, id: u32) -> &'a [u8];
+    fn get_segment_mut<'a>(&'a mut self, id: u32) -> &'a mut [u8];
 
     fn pre_drop(&mut self, _segment0_currently_allocated: u32) {}
 }
@@ -309,7 +315,7 @@ impl <A> Builder<A> where A: Allocator {
             self.arena.allocate(0, 1).expect("allocate root pointer");
         }
         let (seg_start, _seg_len) = self.arena.get_segment_mut(0);
-        let location: *mut Word = seg_start;
+        let location: *mut u8 = seg_start;
         let Builder { ref mut arena } = *self;
 
         any_pointer::Builder::new(
@@ -374,7 +380,7 @@ impl <A> Builder<A> where A: Allocator {
 }
 
 impl <A> ReaderSegments for Builder<A> where A: Allocator {
-    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [Word]> {
+    fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
         self.get_segments_for_output().get(id as usize).map(|x| *x)
     }
 
@@ -383,9 +389,11 @@ impl <A> ReaderSegments for Builder<A> where A: Allocator {
     }
 }
 
+/// Standard segment allocator. Allocates each segment as a `Vec<Word>`, where `Word` has
+/// 8-byte alignment.
 #[derive(Debug)]
 pub struct HeapAllocator {
-    owned_memory: Vec<Vec<Word>>,
+    owned_memory: Vec<Vec<crate::Word>>,
     next_size: u32,
     allocation_strategy: AllocationStrategy,
 }
@@ -418,10 +426,10 @@ impl HeapAllocator {
 }
 
 unsafe impl Allocator for HeapAllocator {
-    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32) {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         let size = ::std::cmp::max(minimum_size, self.next_size);
-        let mut new_words = Word::allocate_zeroed_vec(size as usize);
-        let ptr = new_words.as_mut_ptr();
+        let mut new_words = crate::Word::allocate_zeroed_vec(size as usize);
+        let ptr = new_words.as_mut_ptr() as *mut u8;
         self.owned_memory.push(new_words);
 
         match self.allocation_strategy {
@@ -440,12 +448,12 @@ impl Builder<HeapAllocator> {
 
 #[derive(Debug)]
 pub struct ScratchSpace<'a> {
-    slice: &'a mut [Word],
+    slice: &'a mut [u8],
     in_use: bool,
 }
 
 impl <'a> ScratchSpace<'a> {
-    pub fn new(slice: &'a mut [Word]) -> ScratchSpace<'a> {
+    pub fn new(slice: &'a mut [u8]) -> ScratchSpace<'a> {
         ScratchSpace { slice: slice, in_use: false }
     }
 }
@@ -475,7 +483,7 @@ impl <'a, 'b: 'a> ScratchSpaceHeapAllocator<'a, 'b> {
 }
 
 unsafe impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
-    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut Word, u32) {
+    fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         if !self.scratch_space.in_use {
             self.scratch_space.in_use = true;
             (self.scratch_space.slice.as_mut_ptr(), self.scratch_space.slice.len() as u32)
@@ -487,7 +495,7 @@ unsafe impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
     fn pre_drop(&mut self, segment0_currently_allocated: u32) {
         let ptr = self.scratch_space.slice.as_mut_ptr();
         unsafe {
-            ::std::ptr::write_bytes(ptr, 0u8, segment0_currently_allocated as usize);
+            ::std::ptr::write_bytes(ptr, 0u8, (segment0_currently_allocated as usize) * BYTES_PER_WORD);
         }
         self.scratch_space.in_use = false;
     }

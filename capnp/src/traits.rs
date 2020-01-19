@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use crate::{Word, Result};
+use crate::{Result};
 use crate::private::layout::{CapTable, ListReader, StructReader, StructBuilder, StructSize,
                              PointerBuilder, PointerReader};
 
@@ -46,7 +46,7 @@ pub trait IntoInternalListReader<'a> {
 }
 
 pub trait FromPointerReader<'a> : Sized {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [Word]>) -> Result<Self>;
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Self>;
 }
 
 /// Associated types hackery that allows us to reason about Cap'n Proto types
@@ -76,7 +76,7 @@ pub trait Pipelined {
 
 pub trait FromPointerBuilder<'a> : Sized {
     fn init_pointer(builder: PointerBuilder<'a>, length: u32) -> Self;
-    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [Word]>) -> Result<Self>;
+    fn get_from_pointer(builder: PointerBuilder<'a>, default: Option<&'a [crate::Word]>) -> Result<Self>;
 }
 
 pub trait SetPointerBuilder<To> {

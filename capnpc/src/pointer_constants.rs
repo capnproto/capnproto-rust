@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use capnp::{any_pointer, message, Word};
+use capnp::{any_pointer, message};
 
 use crate::codegen::{FormattedText, GeneratorContext};
 use crate::codegen::FormattedText::{Indent, Line, Branch};
@@ -38,20 +38,19 @@ pub fn word_array_declaration(name: &str,
     let mut message = message::Builder::new(allocator);
     message.set_root(value)?;
     let mut words = message.get_segments_for_output()[0];
-    if options.omit_first_word { words = &words[1..] }
+    if options.omit_first_word { words = &words[8..] }
     let mut words_lines = Vec::new();
-    for &word in words {
-        let tmp = &[word];
-        let bytes = Word::words_to_bytes(tmp);
+    for index in 0..(words.len() / 8) {
+        let bytes = &words[(index * 8)..(index +1)*8];
         words_lines.push(Line(
-            format!("::capnp::word({}, {}, {}, {}, {}, {}, {}, {}),",
+            format!("capnp::word({}, {}, {}, {}, {}, {}, {}, {}),",
                     bytes[0], bytes[1], bytes[2], bytes[3],
                     bytes[4], bytes[5], bytes[6], bytes[7])));
     }
 
     let vis = if options.public { "pub " } else { "" };
     Ok(Branch(vec![
-        Line(format!("{}static {}: [::capnp::Word; {}] = [", vis, name, words.len())),
+        Line(format!("{}static {}: [capnp::Word; {}] = [", vis, name, words.len() / 8)),
         Indent(Box::new(Branch(words_lines))),
         Line("];".to_string())
     ]))

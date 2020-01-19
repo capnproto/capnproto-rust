@@ -88,7 +88,7 @@ impl <'a> Reader<'a> {
 }
 
 impl <'a> FromPointerReader<'a> for Reader<'a> {
-    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a[crate::Word]>) -> Result<Reader<'a>> {
+    fn get_from_pointer(reader: &PointerReader<'a>, default: Option<&'a [crate::Word]>) -> Result<Reader<'a>> {
         if default.is_some() {
             panic!("Unsupported: any_pointer with a default value.");
         }

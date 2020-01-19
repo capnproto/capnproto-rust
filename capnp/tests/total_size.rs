@@ -1,11 +1,11 @@
 #[test]
 pub fn total_size_out_of_bounds() {
-    let segment: &[::capnp::Word] = &[
-        ::capnp::word(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00),
-        ::capnp::word(0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00),
+    let segment: &[capnp::Word] = &[
+        capnp::word(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00),
+        capnp::word(0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00),
     ];
 
-    let segments = &[segment];
+    let segments = &[capnp::Word::words_to_bytes(segment)];
     let segment_array = capnp::message::SegmentArray::new(segments);
     let message = capnp::message::Reader::new(segment_array, Default::default());
     let root: capnp::any_pointer::Reader = message.get_root().unwrap();

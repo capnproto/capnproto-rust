@@ -32,11 +32,11 @@ use std::rc::{Rc, Weak};
 pub type VatId = crate::rpc_twoparty_capnp::Side;
 
 struct IncomingMessage {
-    message: ::capnp::message::Reader<::capnp_futures::serialize::OwnedSegments>,
+    message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>,
 }
 
 impl IncomingMessage {
-    pub fn new(message: ::capnp::message::Reader<::capnp_futures::serialize::OwnedSegments>) -> IncomingMessage {
+    pub fn new(message: ::capnp::message::Reader<capnp::serialize::OwnedSegments>) -> IncomingMessage {
         IncomingMessage { message: message }
     }
 }

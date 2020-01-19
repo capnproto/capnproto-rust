@@ -25,7 +25,7 @@ use std::u64;
 use crate::private::units::*;
 use crate::message;
 use crate::message::{Allocator, ReaderSegments};
-use crate::{Error, OutputSegments, Result, Word};
+use crate::{Error, OutputSegments, Result};
 
 pub type SegmentId = u32;
 
@@ -51,9 +51,11 @@ impl ReadLimiter {
 }
 
 pub trait ReaderArena {
-    fn get_segment(&self, id: u32) -> Result<(*const Word, u32)>;
-    fn check_offset(&self, segment_id: u32, start: *const Word, offset_in_words: i32) -> Result<*const Word>;
-    fn contains_interval(&self, segment_id: u32, start: *const Word, size: usize) -> Result<()>;
+    // return pointer to start of segment, and number of words in that segment
+    fn get_segment(&self, id: u32) -> Result<(*const u8, u32)>;
+
+    fn check_offset(&self, segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8>;
+    fn contains_interval(&self, segment_id: u32, start: *const u8, size: usize) -> Result<()>;
     fn amplified_read(&self, virtual_amount: u64) -> Result<()>;
 
     // TODO(version 0.9): Consider putting extract_cap(), inject_cap(), drop_cap() here
@@ -84,14 +86,26 @@ impl <S> ReaderArenaImpl <S> where S: ReaderSegments {
 }
 
 impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
-    fn get_segment<'a>(&'a self, id: u32) -> Result<(*const Word, u32)> {
+    fn get_segment<'a>(&'a self, id: u32) -> Result<(*const u8, u32)> {
         match self.segments.get_segment(id) {
-            Some(seg) => Ok((seg.as_ptr(), seg.len() as u32)),
+            Some(seg) => {
+                #[cfg(not(feature = "unaligned"))]
+                {
+                    if seg.as_ptr() as usize % BYTES_PER_WORD != 0 {
+                        return Err(Error::failed(
+                            format!("Detected unaligned segment. You must either ensure all of your \
+                                     segments are 8-byte aligned, or you must enable the  \"unaligned\" \
+                                     feature in the capnp crate")))
+                    }
+                }
+
+                Ok((seg.as_ptr(), (seg.len() / BYTES_PER_WORD) as u32))
+            }
             None => Err(Error::failed(format!("Invalid segment id: {}", id))),
         }
     }
 
-    fn check_offset(&self, segment_id: u32, start: *const Word, offset_in_words: i32) -> Result<*const Word> {
+    fn check_offset(&self, segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
         let (segment_start, segment_len) = self.get_segment(segment_id)?;
         let this_start: usize = segment_start as usize;
         let this_size: usize = segment_len as usize * BYTES_PER_WORD;
@@ -100,11 +114,11 @@ impl <S> ReaderArena for ReaderArenaImpl<S> where S: ReaderSegments {
         if start_idx < this_start || ((start_idx - this_start) as i64 + offset) as usize > this_size {
             Err(Error::failed(format!("message contained out-of-bounds pointer")))
         } else {
-            unsafe { Ok(start.offset(offset_in_words as isize)) }
+            unsafe { Ok(start.offset(offset as isize)) }
         }
     }
 
-    fn contains_interval(&self, id: u32, start: *const Word, size_in_words: usize) -> Result<()> {
+    fn contains_interval(&self, id: u32, start: *const u8, size_in_words: usize) -> Result<()> {
         let (segment_start, segment_len) = self.get_segment(id)?;
         let this_start: usize = segment_start as usize;
         let this_size: usize = segment_len as usize * BYTES_PER_WORD;
@@ -132,7 +146,7 @@ pub trait BuilderArena: ReaderArena {
     // https://botbot.me/mozilla/rust/2017-01-31/?msg=80228117&page=19 .)
     fn allocate(&self, segment_id: u32, amount: WordCount32) -> Option<u32>;
     fn allocate_anywhere(&self, amount: u32) -> (SegmentId, u32);
-    fn get_segment_mut(&self, id: u32) -> (*mut Word, u32);
+    fn get_segment_mut(&self, id: u32) -> (*mut u8, u32);
 
     fn as_reader<'a>(&'a self) -> &'a dyn ReaderArena;
 }
@@ -141,7 +155,7 @@ pub struct BuilderArenaImplInner<A> where A: Allocator {
     allocator: A,
 
     // TODO(perf): Try using smallvec to avoid heap allocations in the single-segment case?
-    segments: Vec<(*mut Word, u32)>,
+    segments: Vec<(*mut u8, u32)>,
     allocated: Vec<u32>, // number of words allocated for each segment.
 }
 
@@ -172,7 +186,7 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
             // The user must mutably borrow the `message::Builder` to be able to modify segment memory.
             // No such borrow will be possible while `self` is still immutably borrowed from this method,
             // so returning this slice is safe.
-            let slice = unsafe { slice::from_raw_parts(seg.0 as *const _, reff.allocated[0] as usize) };
+            let slice = unsafe { slice::from_raw_parts(seg.0 as *const _, reff.allocated[0] as usize * BYTES_PER_WORD) };
             OutputSegments::SingleSegment([slice])
         } else {
             let mut v = Vec::with_capacity(reff.allocated.len());
@@ -180,7 +194,7 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
                 let seg = reff.segments[idx];
 
                 // See safety argument in above branch.
-                let slice = unsafe { slice::from_raw_parts(seg.0 as *const _, reff.allocated[idx] as usize) };
+                let slice = unsafe { slice::from_raw_parts(seg.0 as *const _, reff.allocated[idx] as usize * BYTES_PER_WORD) };
                 v.push(slice);
             }
             OutputSegments::MultiSegment(v)
@@ -193,17 +207,17 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
 }
 
 impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
-    fn get_segment(&self, id: u32) -> Result<(*const Word, u32)> {
+    fn get_segment(&self, id: u32) -> Result<(*const u8, u32)> {
         let borrow = self.inner.borrow();
         let seg = borrow.segments[id as usize];
-        Ok((seg.0 as *const _, seg.1))
+        Ok((seg.0, seg.1))
     }
 
-    fn check_offset(&self, _segment_id: u32, start: *const Word, offset_in_words: i32) -> Result<*const Word> {
-        unsafe { Ok(start.offset(offset_in_words as isize)) }
+    fn check_offset(&self, _segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
+        unsafe { Ok(start.offset((offset_in_words as i64 * BYTES_PER_WORD as i64) as isize)) }
     }
 
-    fn contains_interval(&self, _id: u32, _start: *const Word, _size: usize) -> Result<()> {
+    fn contains_interval(&self, _id: u32, _start: *const u8, _size: usize) -> Result<()> {
         Ok(())
     }
 
@@ -247,7 +261,7 @@ impl <A> BuilderArenaImplInner<A> where A: Allocator {
          self.allocate(allocated_len, amount).expect("use freshly-allocated segment"))
     }
 
-    fn get_segment_mut(&mut self, id: u32) -> (*mut Word, u32) {
+    fn get_segment_mut(&mut self, id: u32) -> (*mut u8, u32) {
         self.segments[id as usize]
     }
 
@@ -262,7 +276,7 @@ impl <A> BuilderArena for BuilderArenaImpl<A> where A: Allocator {
         self.inner.borrow_mut().allocate_anywhere(amount)
     }
 
-    fn get_segment_mut(&self, id: u32) -> (*mut Word, u32) {
+    fn get_segment_mut(&self, id: u32) -> (*mut u8, u32) {
         self.inner.borrow_mut().get_segment_mut(id)
     }
 
@@ -282,15 +296,15 @@ impl <A> Drop for BuilderArenaImplInner<A> where A: Allocator {
 pub struct NullArena;
 
 impl ReaderArena for NullArena {
-    fn get_segment(&self, _id: u32) -> Result<(*const Word, u32)> {
+    fn get_segment(&self, _id: u32) -> Result<(*const u8, u32)> {
         Err(Error::failed(format!("tried to read from null arena")))
     }
 
-    fn check_offset(&self, _segment_id: u32, start: *const Word, offset_in_words: i32) -> Result<*const Word> {
-        unsafe { Ok(start.offset(offset_in_words as isize)) }
+    fn check_offset(&self, _segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
+        unsafe { Ok(start.offset((offset_in_words as usize * BYTES_PER_WORD)as isize)) }
     }
 
-    fn contains_interval(&self, _id: u32, _start: *const Word, _size: usize) -> Result<()> {
+    fn contains_interval(&self, _id: u32, _start: *const u8, _size: usize) -> Result<()> {
         Ok(())
     }
 
@@ -308,7 +322,7 @@ impl BuilderArena for NullArena {
         panic!("tried to allocate from a null arena")
     }
 
-    fn get_segment_mut(&self, _id: u32) -> (*mut Word, u32) {
+    fn get_segment_mut(&self, _id: u32) -> (*mut u8, u32) {
         (::std::ptr::null_mut(), 0)
     }
 
