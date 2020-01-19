@@ -147,12 +147,6 @@ impl CompilerCommand {
         self
     }
 
-    /// Sets the Rust edition of the generated code.
-    #[deprecated(since = "0.10.0", note = "no longer need to specify rust edition")]
-    pub fn edition(&mut self, _rust_edition: RustEdition) -> &mut Self {
-        self
-    }
-
     ///Sets the output directory of generated code. Default is OUT_DIR
     pub fn output_path<'a, P>(&'a mut self, path: P) -> &'a mut CompilerCommand
     where
