@@ -88,6 +88,20 @@ impl Word {
     }
 }
 
+#[cfg(any(feature="quickcheck", test))]
+impl quickcheck::Arbitrary for Word {
+    fn arbitrary<G: quickcheck::Gen>(g: &mut G) -> Word {
+        crate::word(quickcheck::Arbitrary::arbitrary(g),
+                    quickcheck::Arbitrary::arbitrary(g),
+                    quickcheck::Arbitrary::arbitrary(g),
+                    quickcheck::Arbitrary::arbitrary(g),
+                    quickcheck::Arbitrary::arbitrary(g),
+                    quickcheck::Arbitrary::arbitrary(g),
+                    quickcheck::Arbitrary::arbitrary(g),
+                    quickcheck::Arbitrary::arbitrary(g))
+    }
+}
+
 /// Size of a message. Every generated struct has a method `.total_size()` that returns this.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MessageSize {

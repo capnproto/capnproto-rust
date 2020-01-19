@@ -1,3 +1,11 @@
+## v0.12.0
+- Add "unaligned" feature flag to allow use of unaligned memory.
+- Remove `Word::bytes_to_words()` and `Word::bytes_to_words_mut()`.
+- Change a bunch of interfaces to use `u8` instead of `Word`.
+- Remove `read_message_from_words()` in favor of `read_message_from_flat_slice()`.
+- Add new `serialize::SegmentLengthsBuilder` API.
+- Bump minimum required rustc version to 1.40.0.
+
 ## v0.11.2
 - Deprecate `read_message_from_words()` in favor of `read_message_from_flat_slice()`.
 - Remove incorrect doc comments on `bytes_to_words()`. (Misaligned access is never okay.)

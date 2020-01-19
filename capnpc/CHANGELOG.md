@@ -1,3 +1,6 @@
+### v0.12.0
+- Remove deprecated item.
+
 ### v0.11.1
 - Avoid generating some superfluous parenthesis.
 

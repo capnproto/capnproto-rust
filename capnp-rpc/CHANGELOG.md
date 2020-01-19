@@ -1,3 +1,6 @@
+## v0.12.0
+- Follow 0.12.0 release of other capnp crates.
+
 ## v0.11.0
 - Export Disconnector struct from capnp_rpc (#140).
 - Switch to std::future::Future.
