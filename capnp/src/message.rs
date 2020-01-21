@@ -87,11 +87,14 @@ impl ReaderOptions {
 }
 
 /// An object that manages the buffers underlying a Cap'n Proto message reader.
-pub trait ReaderSegments {
+pub unsafe trait ReaderSegments {
     /// Gets the segment with index `idx`. Returns `None` if `idx` is out of range.
     ///
     /// The segment must be 8-byte aligned or the "unaligned" feature must
     /// be enabled in the capnp crate. (Otherwise reading the segment will return an error.)
+    ///
+    /// UNSAFETY ALERT: implementors must ensure that the returned slice points to memory that remains
+    /// valid until the ReaderSegments object is dropped.
     fn get_segment<'a>(&'a self, idx: u32) -> Option<&'a [u8]>;
 
     /// Gets the number of segments.
@@ -116,7 +119,7 @@ impl <'a> SegmentArray<'a> {
     }
 }
 
-impl <'b> ReaderSegments for SegmentArray<'b> {
+unsafe impl <'b> ReaderSegments for SegmentArray<'b> {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
         self.segments.get(id as usize).map(|slice| *slice)
     }
@@ -126,7 +129,7 @@ impl <'b> ReaderSegments for SegmentArray<'b> {
     }
 }
 
-impl <'b> ReaderSegments for [&'b [u8]] {
+unsafe impl <'b> ReaderSegments for [&'b [u8]] {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
         self.get(id as usize).map(|slice| *slice)
     }
@@ -261,7 +264,7 @@ pub unsafe trait Allocator {
     /// Allocates zeroed memory for a new segment, returning a pointer to the start of the segment
     /// and a u32 indicating the length of the segment (in words).
     ///
-    /// UNSAFETY ALERT: The callee is responsible for ensuring all of the following:
+    /// UNSAFETY ALERT: Implementors must ensure all of the following:
     ///     1. the returned memory is initialized to all zeroes,
     ///     2. the returned memory is valid for the remaining lifetime of the Allocator object,
     ///     3. the memory doesn't overlap with other allocated memory,
@@ -379,7 +382,7 @@ impl <A> Builder<A> where A: Allocator {
     }
 }
 
-impl <A> ReaderSegments for Builder<A> where A: Allocator {
+unsafe impl <A> ReaderSegments for Builder<A> where A: Allocator {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
         self.get_segments_for_output().get(id as usize).map(|x| *x)
     }
