@@ -94,8 +94,7 @@ pub trait ReaderSegments {
     /// be enabled in the capnp crate. (Otherwise reading the segment will return an error.)
     ///
     /// The returned slice is required to point to memory that remains valid until the ReaderSegments
-    /// object is dropped. In safe Rust, it should not  be possible to violate this requirement. (If we
-    /// discover that it is possible, then we need to mark this trait as `unsafe`.)
+    /// object is dropped. In safe Rust, it should not be possible to violate this requirement.
     fn get_segment<'a>(&'a self, idx: u32) -> Option<&'a [u8]>;
 
     /// Gets the number of segments.
