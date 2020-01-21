@@ -87,14 +87,15 @@ impl ReaderOptions {
 }
 
 /// An object that manages the buffers underlying a Cap'n Proto message reader.
-pub unsafe trait ReaderSegments {
+pub trait ReaderSegments {
     /// Gets the segment with index `idx`. Returns `None` if `idx` is out of range.
     ///
     /// The segment must be 8-byte aligned or the "unaligned" feature must
     /// be enabled in the capnp crate. (Otherwise reading the segment will return an error.)
     ///
-    /// UNSAFETY ALERT: implementors must ensure that the returned slice points to memory that remains
-    /// valid until the ReaderSegments object is dropped.
+    /// The returned slice is required to point to memory that remains valid until the ReaderSegments
+    /// object is dropped. In safe Rust, it should not  be possible to violate this requirement. (If we
+    /// discover that it is possible, then we need to mark this trait as `unsafe`.)
     fn get_segment<'a>(&'a self, idx: u32) -> Option<&'a [u8]>;
 
     /// Gets the number of segments.
@@ -119,7 +120,7 @@ impl <'a> SegmentArray<'a> {
     }
 }
 
-unsafe impl <'b> ReaderSegments for SegmentArray<'b> {
+impl <'b> ReaderSegments for SegmentArray<'b> {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
         self.segments.get(id as usize).map(|slice| *slice)
     }
@@ -129,7 +130,7 @@ unsafe impl <'b> ReaderSegments for SegmentArray<'b> {
     }
 }
 
-unsafe impl <'b> ReaderSegments for [&'b [u8]] {
+impl <'b> ReaderSegments for [&'b [u8]] {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
         self.get(id as usize).map(|slice| *slice)
     }
@@ -382,7 +383,7 @@ impl <A> Builder<A> where A: Allocator {
     }
 }
 
-unsafe impl <A> ReaderSegments for Builder<A> where A: Allocator {
+impl <A> ReaderSegments for Builder<A> where A: Allocator {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
         self.get_segments_for_output().get(id as usize).map(|x| *x)
     }

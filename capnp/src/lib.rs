@@ -258,7 +258,7 @@ impl <'a> ::std::ops::Deref for OutputSegments<'a> {
     }
 }
 
-unsafe impl<'s> message::ReaderSegments for OutputSegments<'s> {
+impl<'s> message::ReaderSegments for OutputSegments<'s> {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
         match *self {
             OutputSegments::SingleSegment(ref s) => {

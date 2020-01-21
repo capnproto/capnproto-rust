@@ -39,7 +39,7 @@ pub struct SliceSegments<'a> {
     segment_indices : Vec<(usize, usize)>,
 }
 
-unsafe impl <'a> message::ReaderSegments for SliceSegments<'a> {
+impl <'a> message::ReaderSegments for SliceSegments<'a> {
     fn get_segment<'b>(&'b self, id: u32) -> Option<&'b [u8]> {
         if id < self.segment_indices.len() as u32 {
             let (a, b) = self.segment_indices[id as usize];
@@ -104,7 +104,7 @@ impl std::ops::DerefMut for OwnedSegments {
     }
 }
 
-unsafe impl crate::message::ReaderSegments for OwnedSegments {
+impl crate::message::ReaderSegments for OwnedSegments {
     fn get_segment<'a>(&'a self, id: u32) -> Option<&'a [u8]> {
         if id < self.segment_indices.len() as u32 {
             let (a, b) = self.segment_indices[id as usize];
