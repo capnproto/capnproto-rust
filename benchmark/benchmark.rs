@@ -180,10 +180,8 @@ fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64) -> ::capnp::Resul
 fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64) -> ::capnp::Result<()>
     where C: Serialize, S: for<'a> Scratch<'a>, T: TestCase,
 {
-    let mut request_bytes: ::std::vec::Vec<u8> =
-        ::std::iter::repeat(0u8).take(SCRATCH_SIZE * 8).collect();
-    let mut response_bytes: ::std::vec::Vec<u8> =
-        ::std::iter::repeat(0u8).take(SCRATCH_SIZE * 8).collect();
+    let mut request_bytes = vec![0u8; SCRATCH_SIZE * 8];
+    let mut response_bytes = vec![0u8; SCRATCH_SIZE * 8];
     let mut rng = common::FastRand::new();
     for _ in 0..iters {
         let (mut message_req, mut message_res) = reuse.get_builders();
