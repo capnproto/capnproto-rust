@@ -138,8 +138,9 @@ impl <U, T : IndexMove<u32, U>> ::std::iter::Iterator for ListIter<T, U> {
 
     fn nth(&mut self, p: usize) -> Option<U>{
         if p < self.size as usize {
-            self.index = p as u32;
+            self.index += p as u32;
             let result = self.list.index_move(self.index);
+            self.index += 1;
             Some(result)
         } else {
             None

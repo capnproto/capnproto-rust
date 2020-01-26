@@ -1421,4 +1421,45 @@ mod tests {
         let substruct: test_all_types::Reader = pointers.get(2).get_as().unwrap();
         ::test_util::CheckTestMessage::check_test_message(substruct);
     }
+
+    #[test]
+    fn struct_list_iterator() {
+        use test_capnp::test_all_types;
+        let mut message = message::Builder::new_default();
+        {
+            let root: test_all_types::Builder = message.init_root();
+            let mut struct_list = root.init_struct_list(6);
+            let mut t0 = struct_list.reborrow().get(0);
+            t0.set_u_int32_field(0);
+
+            let mut t1 = struct_list.reborrow().get(1);
+            t1.set_u_int32_field(1);
+
+            let mut t2 = struct_list.reborrow().get(2);
+            t2.set_u_int32_field(2);
+
+            let mut t3 = struct_list.reborrow().get(3);
+            t3.set_u_int32_field(3);
+
+            let mut t4 = struct_list.reborrow().get(4);
+            t4.set_u_int32_field(4);
+
+            let mut t5 = struct_list.reborrow().get(5);
+            t5.set_u_int32_field(5);
+        }
+
+        let reader = message.get_root_as_reader::<test_all_types::Reader>().unwrap();
+        let structs = reader.get_struct_list().unwrap();
+
+        let mut iter = structs.iter();
+        assert_eq!(3, iter.nth(3).unwrap().get_u_int32_field());
+        assert_eq!(4, iter.nth(0).unwrap().get_u_int32_field());
+        assert_eq!(5, iter.nth(0).unwrap().get_u_int32_field());
+
+        let mut c = 2;
+        for s in structs.iter().skip(2) {
+            assert_eq!(c, s.get_u_int32_field());
+            c += 1;
+        }
+    }
 }
