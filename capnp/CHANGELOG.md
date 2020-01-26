@@ -1,3 +1,6 @@
+## v0.12.1
+- Fix buggy Iterator::nth() implementation for ListIter.
+
 ## v0.12.0
 - Add "unaligned" feature flag to allow use of unaligned memory.
 - Remove `Word::bytes_to_words()` and `Word::bytes_to_words_mut()`.
