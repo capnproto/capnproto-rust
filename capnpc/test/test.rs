@@ -1461,5 +1461,16 @@ mod tests {
             assert_eq!(c, s.get_u_int32_field());
             c += 1;
         }
+
+        {
+            let mut overflow_iter = structs.iter();
+            assert!(overflow_iter.nth(4).is_some());
+
+            // The first four elements have been consumed, so going another 4 should overflow.
+            assert!(overflow_iter.nth(4).is_none());
+
+            // The previous call pushed us to the end, even though it returned None.
+            assert!(overflow_iter.next().is_none());
+        }
     }
 }
