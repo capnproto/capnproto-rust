@@ -375,15 +375,15 @@ pub mod test {
                    &buf[..]);
     }
 
-    impl AsOutputSegments for Vec<Vec<u8>> {
+    impl AsOutputSegments for Vec<Vec<capnp::Word>> {
         fn as_output_segments<'a>(&'a self) -> OutputSegments<'a> {
             if self.len() == 0 {
                 OutputSegments::SingleSegment([&[]])
             } else if self.len() == 1 {
-                OutputSegments::SingleSegment([&self[0][..]])
+                OutputSegments::SingleSegment([capnp::Word::words_to_bytes(&self[0][..])])
             } else {
                 OutputSegments::MultiSegment(self.iter()
-                                             .map(|segment| &segment[..])
+                                             .map(|segment| capnp::Word::words_to_bytes(&segment[..]))
                                              .collect::<Vec<_>>())
             }
         }
@@ -471,30 +471,15 @@ pub mod test {
         }
     }
 
-    fn word_segments_to_byte_segments(word_segments: Vec<Vec<u64>>) -> Vec<Vec<u8>> {
-        let mut result = Vec::new();
-        for s in word_segments {
-            let mut byte_seg = Vec::new();
-            for w in s {
-                for b in &w.to_le_bytes() {
-                    byte_seg.push(*b)
-                }
-            }
-            result.push(byte_seg);
-        }
-        result
-    }
-
     #[test]
     fn check_round_trip_async() {
         fn round_trip(read_block_frequency: usize,
                       write_block_frequency: usize,
-                      word_segments: Vec<Vec<u64>>) -> TestResult
+                      segments: Vec<Vec<capnp::Word>>) -> TestResult
         {
-            if word_segments.len() == 0 || read_block_frequency == 0 || write_block_frequency == 0 {
+            if segments.len() == 0 || read_block_frequency == 0 || write_block_frequency == 0 {
                 return TestResult::discard();
             }
-            let segments = word_segments_to_byte_segments(word_segments);
             let (mut read, segments) = {
                 let cursor = std::io::Cursor::new(Vec::new());
                 let mut writer = BlockingWrite::new(cursor, write_block_frequency);
@@ -510,11 +495,11 @@ pub mod test {
             let message_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
-                &segment[..] == message_segments.get_segment(i as u32).unwrap()
+                capnp::Word::words_to_bytes(&segment[..]) == message_segments.get_segment(i as u32).unwrap()
             }))
         }
 
-        quickcheck(round_trip as fn(usize, usize, Vec<Vec<u64>>) -> TestResult);
+        quickcheck(round_trip as fn(usize, usize, Vec<Vec<capnp::Word>>) -> TestResult);
     }
 }
 
