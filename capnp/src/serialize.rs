@@ -386,9 +386,9 @@ pub mod test {
                 read_segment_table, write_segment_table, write_segments};
 
     /// Writes segments as if they were a Capnproto message.
-    pub fn write_message_segments<W>(write: &mut W, segments: &Vec<Vec<u8>>) where W: Write {
+    pub fn write_message_segments<W>(write: &mut W, segments: &Vec<Vec<crate::Word>>) where W: Write {
         let borrowed_segments: &[&[u8]] = &segments.iter()
-                                                   .map(|segment| &segment[..])
+                                                   .map(|segment| crate::Word::words_to_bytes(&segment[..]))
                                                    .collect::<Vec<_>>()[..];
         write_segment_table(write, borrowed_segments).unwrap();
         write_segments(write, borrowed_segments).unwrap();
@@ -539,26 +539,11 @@ pub mod test {
         buf.clear();
     }
 
-    fn word_segments_to_byte_segments(word_segments: Vec<Vec<u64>>) -> Vec<Vec<u8>> {
-        let mut result = Vec::new();
-        for s in word_segments {
-            let mut byte_seg = Vec::new();
-            for w in s {
-                for b in &w.to_le_bytes() {
-                    byte_seg.push(*b)
-                }
-            }
-            result.push(byte_seg);
-        }
-        result
-    }
-
     #[test]
     #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
     fn check_round_trip() {
-        fn round_trip(word_segments: Vec<Vec<u64>>) -> TestResult {
-            if word_segments.len() == 0 { return TestResult::discard(); }
-            let segments = word_segments_to_byte_segments(word_segments);
+        fn round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
+            if segments.len() == 0 { return TestResult::discard(); }
             let mut cursor = Cursor::new(Vec::new());
 
             write_message_segments(&mut cursor, &segments);
@@ -568,21 +553,20 @@ pub mod test {
             let result_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
-                &segment[..] == result_segments.get_segment(i as u32).unwrap()
+                crate::Word::words_to_bytes(&segment[..]) == result_segments.get_segment(i as u32).unwrap()
             }))
         }
 
-        quickcheck(round_trip as fn(Vec<Vec<u64>>) -> TestResult);
+        quickcheck(round_trip as fn(Vec<Vec<crate::Word>>) -> TestResult);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)] // miri takes a long time with quickcheck
     fn check_round_trip_slice_segments() {
-        fn round_trip(word_segments: Vec<Vec<u64>>) -> TestResult {
-            if word_segments.len() == 0 { return TestResult::discard(); }
-            let segments = word_segments_to_byte_segments(word_segments);
+        fn round_trip(segments: Vec<Vec<crate::Word>>) -> TestResult {
+            if segments.len() == 0 { return TestResult::discard(); }
             let borrowed_segments: &[&[u8]] = &segments.iter()
-                                                       .map(|segment| &segment[..])
+                                                       .map(|segment| crate::Word::words_to_bytes(&segment[..]))
                 .collect::<Vec<_>>()[..];
             let words = flatten_segments(borrowed_segments);
             let mut word_slice = &words[..];
@@ -591,11 +575,11 @@ pub mod test {
             let result_segments = message.into_segments();
 
             TestResult::from_bool(segments.iter().enumerate().all(|(i, segment)| {
-                &segment[..] == result_segments.get_segment(i as u32).unwrap()
+                crate::Word::words_to_bytes(&segment[..]) == result_segments.get_segment(i as u32).unwrap()
             }))
         }
 
-        quickcheck(round_trip as fn(Vec<Vec<u64>>) -> TestResult);
+        quickcheck(round_trip as fn(Vec<Vec<crate::Word>>) -> TestResult);
     }
 
     #[test]
