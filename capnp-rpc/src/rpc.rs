@@ -610,17 +610,21 @@ impl <VatId> ConnectionState<VatId> {
         })
     }
 
+    fn send_unimplemented(connection_state: Rc<ConnectionState<VatId>>,
+                          message: Box<dyn crate::IncomingMessage>) -> capnp::Result<()> {
+        let mut out_message = connection_state.connection.borrow_mut().as_mut()
+            .expect("no connection?")
+            .new_outgoing_message(50); // XXX size hint
+        {
+            let mut root: message::Builder = out_message.get_body()?.get_as()?;
+            root.set_unimplemented(message.get_body()?.get_as()?)?;
+        }
+        let _ = out_message.send();
+        Ok(())
+    }
+
     fn handle_message(weak_state: Weak<ConnectionState<VatId>>,
                       message: Box<dyn crate::IncomingMessage>) -> ::capnp::Result<()> {
-
-        // Someday Rust will have non-lexical borrows and this thing won't be needed.
-        enum BorrowWorkaround<VatId> where VatId: 'static {
-            ReturnResults(Rc<RefCell<QuestionRef<VatId>>>, Vec<Option<Box<dyn ClientHook>>>),
-            EraseQuestion(QuestionId),
-            Call(Box<dyn ClientHook>),
-            Unimplemented,
-            Done,
-        }
 
         let connection_state = match weak_state.upgrade() {
             None => return Err(
@@ -628,338 +632,91 @@ impl <VatId> ConnectionState<VatId> {
             Some(c) => c,
         };
 
-        let connection_state1 = connection_state.clone();
-        let intermediate = {
-            let reader = message.get_body()?.get_as::<message::Reader>()?;
-            match reader.which() {
-                Ok(message::Unimplemented(message)) => {
-                    let message = message?;
-                    match message.which()? {
-                        message::Resolve(resolve) => {
-                            let resolve = resolve?;
-                            match resolve.which()? {
-                                resolve::Cap(c) => {
-                                    match c?.which()? {
-                                        cap_descriptor::None(()) => (),
-                                        cap_descriptor::SenderHosted(export_id) => {
-                                            connection_state.release_export(export_id, 1)?;
-                                        }
-                                        cap_descriptor::SenderPromise(export_id) => {
-                                            connection_state.release_export(export_id, 1)?;
-                                        }
-                                        cap_descriptor::ReceiverAnswer(_) |
-                                        cap_descriptor::ReceiverHosted(_) => (),
-                                        cap_descriptor::ThirdPartyHosted(_) => {
-                                            return Err(Error::failed(
-                                                "Peer claims we resolved a ThirdPartyHosted cap.".to_string()));
-                                        },
+        let reader = message.get_body()?.get_as::<message::Reader>()?;
+        match reader.which() {
+            Ok(message::Unimplemented(message)) => {
+                let message = message?;
+                match message.which()? {
+                    message::Resolve(resolve) => {
+                        let resolve = resolve?;
+                        match resolve.which()? {
+                            resolve::Cap(c) => {
+                                match c?.which()? {
+                                    cap_descriptor::None(()) => (),
+                                    cap_descriptor::SenderHosted(export_id) => {
+                                        connection_state.release_export(export_id, 1)?;
                                     }
-                                }
-                                resolve::Exception(_) => (),
-                            }
-                            BorrowWorkaround::Done
-                        }
-                        _ => {
-                            return Err(Error::failed(
-                                "Peer did not implement required RPC message type.".to_string()));
-                        }
-                    }
-                }
-                Ok(message::Abort(abort)) => {
-                    return Err(remote_exception_to_error(abort?))
-                }
-                Ok(message::Bootstrap(bootstrap)) => {
-                    use ::capnp::traits::ImbueMut;
-
-                    let bootstrap = bootstrap?;
-                    let answer_id = bootstrap.get_question_id();
-
-                    if connection_state.connection.borrow().is_err() {
-                        // Disconnected; ignore.
-                        return Ok(());
-                    }
-
-                    let mut response = connection_state1.connection.borrow_mut().as_mut().expect("no connection?")
-                        .new_outgoing_message(50); // XXX size hint
-
-                    let result_exports = {
-                        let mut ret = response.get_body()?.init_as::<message::Builder>().init_return();
-                        ret.set_answer_id(answer_id);
-
-                        let cap = connection_state1.bootstrap_cap.clone();
-                        let mut cap_table = Vec::new();
-                        let mut payload = ret.init_results();
-                        {
-                            let mut content = payload.reborrow().get_content();
-                            content.imbue_mut(&mut cap_table);
-                            content.set_as_capability(cap);
-                        }
-                        assert_eq!(cap_table.len(), 1);
-
-                        ConnectionState::write_descriptors(&connection_state1, &cap_table,
-                                                           payload)
-                    };
-
-                    let slots = &mut connection_state1.answers.borrow_mut().slots;
-                    let answer = slots.entry(answer_id).or_insert_with(Answer::new);
-                    if answer.active {
-                        connection_state1.release_exports(&result_exports)?;
-                        return Err(Error::failed("questionId is already in use".to_string()));
-                    }
-                    answer.active = true;
-                    answer.return_has_been_sent = true;
-                    answer.result_exports = result_exports;
-                    answer.pipeline = Some(Box::new(SingleCapPipeline::new(
-                        connection_state1.bootstrap_cap.clone())));
-
-                    let _ = response.send();
-                    BorrowWorkaround::Done
-                }
-                Ok(message::Call(call)) => {
-                    let t = connection_state.get_message_target(call?.get_target()?)?;
-                    BorrowWorkaround::Call(t)
-                }
-                Ok(message::Return(oret)) => {
-                    let ret = oret?;
-                    let question_id = ret.get_answer_id();
-
-                    match connection_state.questions.borrow_mut().slots[question_id as usize] {
-                        Some(ref mut question) => {
-                            question.is_awaiting_return = false;
-                            match question.self_ref {
-                                Some(ref question_ref) => {
-                                    match ret.which()? {
-                                        return_::Results(results) => {
-                                            let cap_table =
-                                                ConnectionState::receive_caps(connection_state1,
-                                                                              results?.get_cap_table()?);
-                                            BorrowWorkaround::ReturnResults(question_ref.upgrade()
-                                                                            .expect("dangling question ref?"),
-                                                                            cap_table?)
-                                        }
-                                        return_::Exception(e) => {
-                                            let tmp = question_ref.upgrade().expect("dangling question ref?");
-                                            tmp.borrow_mut().reject(remote_exception_to_error(e?));
-                                            BorrowWorkaround::Done
-                                        }
-                                        return_::Canceled(_) => {
-                                            unimplemented!()
-                                        }
-                                        return_::ResultsSentElsewhere(_) => {
-                                            unimplemented!()
-                                        }
-                                        return_::TakeFromOtherQuestion(id) => {
-                                            if let Some(ref mut answer) =
-                                                connection_state1.answers.borrow_mut().slots.get_mut(&id)
-                                            {
-                                                if let Some(res) = answer.redirected_results.take() {
-                                                    let tmp = question_ref.upgrade()
-                                                        .expect("dangling question ref?");
-                                                    tmp.borrow_mut().fulfill(res);
-                                                    BorrowWorkaround::Done
-                                                } else {
-                                                    return Err(Error::failed(format!(
-                                                        "return.takeFromOtherQuestion referenced a call that \
-                                                         did not use sendResultsTo.yourself.")));
-                                                }
-                                            } else {
-                                                return Err(Error::failed(format!(
-                                                    "return.takeFromOtherQuestion had invalid answer ID.")));
-                                            }
-                                        }
-                                        return_::AcceptFromThirdParty(_) => {
-                                            BorrowWorkaround::Unimplemented
-                                        }
+                                    cap_descriptor::SenderPromise(export_id) => {
+                                        connection_state.release_export(export_id, 1)?;
                                     }
-                                }
-                                None => {
-                                    match ret.which()? {
-                                        return_::TakeFromOtherQuestion(_) => {
-                                            unimplemented!()
-                                        }
-                                        _ => {}
-                                    }
-                                    // Looks like this question was canceled earlier, so `Finish`
-                                    // was already sent, with `releaseResultCaps` set true so that
-                                    // we don't have to release them here. We can go ahead and
-                                    // delete it from the table.
-                                    BorrowWorkaround::EraseQuestion(question_id)
+                                    cap_descriptor::ReceiverAnswer(_) |
+                                    cap_descriptor::ReceiverHosted(_) => (),
+                                    cap_descriptor::ThirdPartyHosted(_) => {
+                                        return Err(Error::failed(
+                                            "Peer claims we resolved a ThirdPartyHosted cap.".to_string()));
+                                    },
                                 }
                             }
-                        }
-                        None => {
-                            return Err(Error::failed(
-                                format!("Invalid question ID in Return message: {}", question_id)));
+                            resolve::Exception(_) => (),
                         }
                     }
-                }
-                Ok(message::Finish(finish)) => {
-                    let finish = finish?;
-
-                    let mut exports_to_release = Vec::new();
-                    let answer_id = finish.get_question_id();
-
-                    let mut erase = false;
-                    let answers_slots = &mut connection_state1.answers.borrow_mut().slots;
-                    match answers_slots.get_mut(&answer_id) {
-                        None => {
-                            return Err(Error::failed(
-                                format!("Invalid question ID {} in Finish message.", answer_id)));
-                        }
-                        Some(ref mut answer) => {
-                            if !answer.active {
-                                return Err(Error::failed(
-                                    format!("'Finish' for invalid question ID {}.", answer_id)));
-                            }
-                            answer.received_finish.set(true);
-
-                            if finish.get_release_result_caps() {
-                                exports_to_release = mem::replace(&mut answer.result_exports, Vec::new());
-                            }
-
-                            // If the pipeline has not been cloned, the following two lines cancel the call.
-                            answer.pipeline.take();
-                            answer.call_completion_promise.take();
-
-                            if answer.return_has_been_sent {
-                                erase = true;
-                            }
-                        }
+                    _ => {
+                        return Err(Error::failed(
+                            "Peer did not implement required RPC message type.".to_string()));
                     }
-
-                    if erase {
-                        answers_slots.remove(&answer_id);
-                    }
-
-                    connection_state1.release_exports(&exports_to_release)?;
-
-                    BorrowWorkaround::Done
-                }
-                Ok(message::Resolve(resolve)) => {
-                    let resolve = resolve?;
-                    let replacement_or_error = match resolve.which()? {
-                        resolve::Cap(c) => {
-                            match ConnectionState::receive_cap(connection_state.clone(), c?)? {
-                                Some(cap) => Ok(cap),
-                                None => {
-                                    return Err(Error::failed(
-                                        format!("'Resolve' contained 'CapDescriptor.none'.")));
-                                }
-                            }
-                        }
-                        resolve::Exception(e) => {
-                            // We can't set `replacement` to a new broken cap here because this will
-                            // confuse PromiseClient::Resolve() into thinking that the remote
-                            // promise resolved to a local capability and therefore a Disembargo is
-                            // needed. We must actually reject the promise.
-                            Err(remote_exception_to_error(e?))
-                        }
-                    };
-
-                    // If the import is in the table, fulfill it.
-                    let ref mut slots = connection_state.imports.borrow_mut().slots;
-                    if let Some(ref mut import) = slots.get_mut(&resolve.get_promise_id()) {
-                        match import.promise_client_to_resolve.take() {
-                            Some(weak_promise_client) => {
-                                match weak_promise_client.upgrade() {
-                                    Some(promise_client) => {
-                                        promise_client.borrow_mut().resolve(replacement_or_error);
-                                    }
-                                    None => {
-                                        // ?
-                                    }
-                                }
-                            }
-                            None => {
-                                return Err(Error::failed(
-                                    format!("Got 'Resolve' for a non-promise import.")));
-                            }
-                        }
-                    }
-                    BorrowWorkaround::Done
-                }
-                Ok(message::Release(release)) => {
-                    let release = release?;
-                    connection_state.release_export(release.get_id(), release.get_reference_count())?;
-                    BorrowWorkaround::Done
-                }
-                Ok(message::Disembargo(disembargo)) => {
-                    let disembargo = disembargo?;
-                    let context = disembargo.get_context();
-                    match context.which()? {
-                        disembargo::context::SenderLoopback(embargo_id) => {
-                            let mut target =
-                                connection_state.get_message_target(disembargo.get_target()?)?;
-                            while let Some(resolved) = target.get_resolved() {
-                                target = resolved;
-                            }
-
-                            if target.get_brand() != connection_state.get_brand() {
-                                return Err(Error::failed(
-                                    "'Disembargo' of type 'senderLoopback' sent to an object that does not point \
-                                     back to the sender.".to_string()));
-                            }
-
-                            let connection_state_ref = connection_state.clone();
-                            let connection_state_ref1 = connection_state.clone();
-                            let task = async move {
-                                if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
-                                    let mut message = c.new_outgoing_message(100); // TODO estimate size
-                                    {
-                                        let root: message::Builder = message.get_body()?.init_as();
-                                        let mut disembargo = root.init_disembargo();
-                                        disembargo.reborrow().init_context().set_receiver_loopback(embargo_id);
-
-                                        let redirect = match Client::from_ptr(target.get_ptr(),
-                                                                              &connection_state_ref1) {
-                                            Some(c) => c.write_target(disembargo.init_target()),
-                                            None => unreachable!(),
-                                        };
-                                        if redirect.is_some() {
-                                            return Err(Error::failed(
-                                                "'Disembargo' of type 'senderLoopback' sent to an object that \
-                                                  does not appear to have been the subject of a previous \
-                                                  'Resolve' message.".to_string()));
-                                        }
-                                    }
-                                    let _ = message.send();
-                                }
-                                Ok(())
-                            };
-                            connection_state.add_task(task);
-                            BorrowWorkaround::Done
-                        }
-                        disembargo::context::ReceiverLoopback(embargo_id) => {
-                            if let Some(ref mut embargo) =
-                                connection_state.embargoes.borrow_mut().find(embargo_id)
-                            {
-                                let fulfiller = embargo.fulfiller.take().unwrap();
-                                let _ = fulfiller.send(Ok(()));
-                            } else {
-                                return Err(
-                                    Error::failed(
-                                        "Invalid embargo ID in `Disembargo.context.receiverLoopback".to_string()));
-                            }
-                            connection_state.embargoes.borrow_mut().erase(embargo_id);
-                            BorrowWorkaround::Done
-                        }
-                        disembargo::context::Accept(_) |
-                        disembargo::context::Provide(_) => {
-                            return Err(
-                                Error::unimplemented(
-                                    "Disembargo::Context::Provide/Accept not implemented".to_string()));
-                        }
-                    }
-                }
-                Ok(message::Provide(_)) | Ok(message::Accept(_)) |
-                Ok(message::Join(_)) | Ok(message::ObsoleteSave(_)) | Ok(message::ObsoleteDelete(_)) |
-                Err(::capnp::NotInSchema(_)) => {
-                    BorrowWorkaround::Unimplemented
                 }
             }
-        };
-        match intermediate {
-            BorrowWorkaround::Call(capability) => {
+            Ok(message::Abort(abort)) => {
+                return Err(remote_exception_to_error(abort?))
+            }
+            Ok(message::Bootstrap(bootstrap)) => {
+                use ::capnp::traits::ImbueMut;
+
+                let bootstrap = bootstrap?;
+                let answer_id = bootstrap.get_question_id();
+
+                if connection_state.connection.borrow().is_err() {
+                    // Disconnected; ignore.
+                    return Ok(());
+                }
+
+                let mut response = connection_state.connection.borrow_mut().as_mut().expect("no connection?")
+                    .new_outgoing_message(50); // XXX size hint
+
+                let result_exports = {
+                    let mut ret = response.get_body()?.init_as::<message::Builder>().init_return();
+                    ret.set_answer_id(answer_id);
+
+                    let cap = connection_state.bootstrap_cap.clone();
+                    let mut cap_table = Vec::new();
+                    let mut payload = ret.init_results();
+                    {
+                        let mut content = payload.reborrow().get_content();
+                        content.imbue_mut(&mut cap_table);
+                        content.set_as_capability(cap);
+                    }
+                    assert_eq!(cap_table.len(), 1);
+
+                    ConnectionState::write_descriptors(&connection_state, &cap_table,
+                                                       payload)
+                };
+
+                let slots = &mut connection_state.answers.borrow_mut().slots;
+                let answer = slots.entry(answer_id).or_insert_with(Answer::new);
+                if answer.active {
+                    connection_state.release_exports(&result_exports)?;
+                    return Err(Error::failed("questionId is already in use".to_string()));
+                }
+                answer.active = true;
+                answer.return_has_been_sent = true;
+                answer.result_exports = result_exports;
+                answer.pipeline = Some(Box::new(SingleCapPipeline::new(
+                    connection_state.bootstrap_cap.clone())));
+
+                let _ = response.send();
+            }
+            Ok(message::Call(call)) => {
+                let capability = connection_state.get_message_target(call?.get_target()?)?;
                 let (interface_id, method_id, question_id, cap_table_array, redirect_results) = {
                     let call = match message.get_body()?.get_as::<message::Reader>()?.which()? {
                         message::Call(call) => call?,
@@ -1056,26 +813,241 @@ impl <VatId> ConnectionState<VatId> {
                     }
                 }
             }
-            BorrowWorkaround::ReturnResults(question_ref, cap_table) => {
-                let response = Response::new(connection_state,
-                                             question_ref.clone(),
-                                             message, cap_table);
-                question_ref.borrow_mut().fulfill(Promise::ok(response));
-            }
-            BorrowWorkaround::EraseQuestion(question_id) => {
-                connection_state.questions.borrow_mut().erase(question_id);
-            }
-            BorrowWorkaround::Unimplemented => {
-                let mut out_message = connection_state.connection.borrow_mut().as_mut()
-                    .expect("no connection?")
-                    .new_outgoing_message(50); // XXX size hint
-                {
-                    let mut root: message::Builder = out_message.get_body()?.get_as()?;
-                    root.set_unimplemented(message.get_body()?.get_as()?)?;
+            Ok(message::Return(oret)) => {
+                let ret = oret?;
+                let question_id = ret.get_answer_id();
+
+                let mut questions = connection_state.questions.borrow_mut();
+                match questions.slots[question_id as usize] {
+                    Some(ref mut question) => {
+                        question.is_awaiting_return = false;
+                        match question.self_ref {
+                            Some(ref question_ref) => {
+                                match ret.which()? {
+                                    return_::Results(results) => {
+                                        let cap_table =
+                                            ConnectionState::receive_caps(connection_state.clone(),
+                                                                          results?.get_cap_table()?)?;
+
+                                        let question_ref = question_ref.upgrade()
+                                            .expect("dangling question ref?");
+                                        let response = Response::new(connection_state.clone(),
+                                                                     question_ref.clone(),
+                                                                     message, cap_table);
+                                        question_ref.borrow_mut().fulfill(Promise::ok(response));
+                                    }
+                                    return_::Exception(e) => {
+                                        let tmp = question_ref.upgrade().expect("dangling question ref?");
+                                        tmp.borrow_mut().reject(remote_exception_to_error(e?));
+                                    }
+                                    return_::Canceled(_) => {
+                                        unimplemented!()
+                                    }
+                                    return_::ResultsSentElsewhere(_) => {
+                                        unimplemented!()
+                                    }
+                                    return_::TakeFromOtherQuestion(id) => {
+                                        if let Some(ref mut answer) =
+                                            connection_state.answers.borrow_mut().slots.get_mut(&id)
+                                        {
+                                            if let Some(res) = answer.redirected_results.take() {
+                                                let tmp = question_ref.upgrade()
+                                                    .expect("dangling question ref?");
+                                                tmp.borrow_mut().fulfill(res);
+                                            } else {
+                                                return Err(Error::failed(format!(
+                                                    "return.takeFromOtherQuestion referenced a call that \
+                                                     did not use sendResultsTo.yourself.")));
+                                            }
+                                        } else {
+                                            return Err(Error::failed(format!(
+                                                "return.takeFromOtherQuestion had invalid answer ID.")));
+                                        }
+                                    }
+                                    return_::AcceptFromThirdParty(_) => {
+                                        drop(questions);
+                                        ConnectionState::send_unimplemented(connection_state, message)?;
+                                    }
+                                }
+                            }
+                            None => {
+                                match ret.which()? {
+                                    return_::TakeFromOtherQuestion(_) => {
+                                        unimplemented!()
+                                    }
+                                    _ => {}
+                                }
+                                // Looks like this question was canceled earlier, so `Finish`
+                                // was already sent, with `releaseResultCaps` set true so that
+                                // we don't have to release them here. We can go ahead and
+                                // delete it from the table.
+                                questions.erase(question_id);
+                            }
+                        }
+                    }
+                    None => {
+                        return Err(Error::failed(
+                            format!("Invalid question ID in Return message: {}", question_id)));
+                    }
                 }
-                let _ = out_message.send();
             }
-            BorrowWorkaround::Done => (),
+            Ok(message::Finish(finish)) => {
+                let finish = finish?;
+
+                let mut exports_to_release = Vec::new();
+                let answer_id = finish.get_question_id();
+
+                let mut erase = false;
+                let answers_slots = &mut connection_state.answers.borrow_mut().slots;
+                match answers_slots.get_mut(&answer_id) {
+                    None => {
+                        return Err(Error::failed(
+                            format!("Invalid question ID {} in Finish message.", answer_id)));
+                    }
+                    Some(ref mut answer) => {
+                        if !answer.active {
+                            return Err(Error::failed(
+                                format!("'Finish' for invalid question ID {}.", answer_id)));
+                        }
+                        answer.received_finish.set(true);
+
+                        if finish.get_release_result_caps() {
+                            exports_to_release = mem::replace(&mut answer.result_exports, Vec::new());
+                        }
+
+                        // If the pipeline has not been cloned, the following two lines cancel the call.
+                        answer.pipeline.take();
+                        answer.call_completion_promise.take();
+
+                        if answer.return_has_been_sent {
+                            erase = true;
+                        }
+                    }
+                }
+
+                if erase {
+                    answers_slots.remove(&answer_id);
+                }
+
+                connection_state.release_exports(&exports_to_release)?;
+            }
+            Ok(message::Resolve(resolve)) => {
+                let resolve = resolve?;
+                let replacement_or_error = match resolve.which()? {
+                    resolve::Cap(c) => {
+                        match ConnectionState::receive_cap(connection_state.clone(), c?)? {
+                            Some(cap) => Ok(cap),
+                            None => {
+                                return Err(Error::failed(
+                                    format!("'Resolve' contained 'CapDescriptor.none'.")));
+                            }
+                        }
+                    }
+                    resolve::Exception(e) => {
+                        // We can't set `replacement` to a new broken cap here because this will
+                        // confuse PromiseClient::Resolve() into thinking that the remote
+                        // promise resolved to a local capability and therefore a Disembargo is
+                        // needed. We must actually reject the promise.
+                        Err(remote_exception_to_error(e?))
+                    }
+                };
+
+                // If the import is in the table, fulfill it.
+                let ref mut slots = connection_state.imports.borrow_mut().slots;
+                if let Some(ref mut import) = slots.get_mut(&resolve.get_promise_id()) {
+                    match import.promise_client_to_resolve.take() {
+                        Some(weak_promise_client) => {
+                            match weak_promise_client.upgrade() {
+                                Some(promise_client) => {
+                                    promise_client.borrow_mut().resolve(replacement_or_error);
+                                }
+                                None => {
+                                    // ?
+                                }
+                            }
+                        }
+                        None => {
+                            return Err(Error::failed(
+                                format!("Got 'Resolve' for a non-promise import.")));
+                        }
+                    }
+                }
+            }
+            Ok(message::Release(release)) => {
+                let release = release?;
+                connection_state.release_export(release.get_id(), release.get_reference_count())?;
+            }
+            Ok(message::Disembargo(disembargo)) => {
+                let disembargo = disembargo?;
+                let context = disembargo.get_context();
+                match context.which()? {
+                    disembargo::context::SenderLoopback(embargo_id) => {
+                        let mut target =
+                            connection_state.get_message_target(disembargo.get_target()?)?;
+                        while let Some(resolved) = target.get_resolved() {
+                            target = resolved;
+                        }
+
+                        if target.get_brand() != connection_state.get_brand() {
+                            return Err(Error::failed(
+                                "'Disembargo' of type 'senderLoopback' sent to an object that does not point \
+                                 back to the sender.".to_string()));
+                        }
+
+                        let connection_state_ref = connection_state.clone();
+                        let connection_state_ref1 = connection_state.clone();
+                        let task = async move {
+                            if let Ok(ref mut c) = *connection_state_ref.connection.borrow_mut() {
+                                let mut message = c.new_outgoing_message(100); // TODO estimate size
+                                {
+                                    let root: message::Builder = message.get_body()?.init_as();
+                                    let mut disembargo = root.init_disembargo();
+                                    disembargo.reborrow().init_context().set_receiver_loopback(embargo_id);
+
+                                    let redirect = match Client::from_ptr(target.get_ptr(),
+                                                                          &connection_state_ref1) {
+                                        Some(c) => c.write_target(disembargo.init_target()),
+                                        None => unreachable!(),
+                                    };
+                                    if redirect.is_some() {
+                                        return Err(Error::failed(
+                                            "'Disembargo' of type 'senderLoopback' sent to an object that \
+                                             does not appear to have been the subject of a previous \
+                                             'Resolve' message.".to_string()));
+                                    }
+                                }
+                                let _ = message.send();
+                            }
+                            Ok(())
+                        };
+                        connection_state.add_task(task);
+                    }
+                    disembargo::context::ReceiverLoopback(embargo_id) => {
+                        if let Some(ref mut embargo) =
+                            connection_state.embargoes.borrow_mut().find(embargo_id)
+                        {
+                            let fulfiller = embargo.fulfiller.take().unwrap();
+                            let _ = fulfiller.send(Ok(()));
+                        } else {
+                            return Err(
+                                Error::failed(
+                                    "Invalid embargo ID in `Disembargo.context.receiverLoopback".to_string()));
+                        }
+                        connection_state.embargoes.borrow_mut().erase(embargo_id);
+                    }
+                    disembargo::context::Accept(_) |
+                    disembargo::context::Provide(_) => {
+                        return Err(
+                            Error::unimplemented(
+                                "Disembargo::Context::Provide/Accept not implemented".to_string()));
+                    }
+                }
+            }
+            Ok(message::Provide(_)) | Ok(message::Accept(_)) |
+            Ok(message::Join(_)) | Ok(message::ObsoleteSave(_)) | Ok(message::ObsoleteDelete(_)) |
+            Err(::capnp::NotInSchema(_)) => {
+                ConnectionState::send_unimplemented(connection_state, message)?;
+            }
         }
         Ok(())
     }
