@@ -19,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use rand::*;
 use std::i32;
 
 #[derive(Clone, Copy)]
@@ -28,18 +27,6 @@ pub struct FastRand {
     y: u32,
     z: u32,
     w: u32,
-}
-
-impl Rng for FastRand {
-    #[inline]
-    fn next_u32(&mut self) -> u32 {
-        let tmp = self.x ^ (self.x << 11);
-        self.x = self.y;
-        self.y = self.z;
-        self.z = self.w;
-        self.w = self.w ^ (self.w >> 19) ^ tmp ^ (tmp >> 8);
-        return self.w;
-    }
 }
 
 impl FastRand {
@@ -53,8 +40,23 @@ impl FastRand {
     }
 
     #[inline]
+    pub fn next_u32(&mut self) -> u32 {
+        let tmp = self.x ^ (self.x << 11);
+        self.x = self.y;
+        self.y = self.z;
+        self.z = self.w;
+        self.w = self.w ^ (self.w >> 19) ^ tmp ^ (tmp >> 8);
+        return self.w;
+    }
+
+    #[inline]
     pub fn next_less_than(&mut self, range : u32) -> u32 {
         self.next_u32() % range
+    }
+
+    #[inline]
+    pub fn next_bool(&mut self) -> bool {
+        (self.next_u32() % 2) == 1
     }
 
     #[inline]

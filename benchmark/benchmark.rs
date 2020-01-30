@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 
 extern crate capnp;
-extern crate rand;
 
 use std::{mem, io};
 

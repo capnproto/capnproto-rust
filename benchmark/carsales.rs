@@ -19,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use rand::*;
 use common::*;
 use carsales_capnp::{parking_lot, total_value, Color, car};
 
@@ -114,17 +113,17 @@ pub fn random_car(rng: &mut FastRand, mut car: car::Builder) {
         engine.set_cylinders(4 + 2 * rng.next_less_than(3) as u8);
         engine.set_cc(800 + rng.next_less_than(10000));
         engine.set_uses_gas(true);
-        engine.set_uses_electric(rng.gen());
+        engine.set_uses_electric(rng.next_bool());
     }
 
     let fuel_capacity = (10.0 + rng.next_double(30.0)) as f32;
     car.set_fuel_capacity(fuel_capacity);
     car.set_fuel_level(rng.next_double(fuel_capacity as f64) as f32);
-    car.set_has_power_windows(rng.gen());
-    car.set_has_power_steering(rng.gen());
-    car.set_has_cruise_control(rng.gen());
+    car.set_has_power_windows(rng.next_bool());
+    car.set_has_power_steering(rng.next_bool());
+    car.set_has_cruise_control(rng.next_bool());
     car.set_cup_holders(rng.next_less_than(12) as u8);
-    car.set_has_nav_system(rng.gen());
+    car.set_has_nav_system(rng.next_bool());
 }
 
 pub struct CarSales;
