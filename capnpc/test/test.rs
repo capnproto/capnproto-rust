@@ -1473,4 +1473,23 @@ mod tests {
             assert!(overflow_iter.next().is_none());
         }
     }
+
+    #[test]
+    fn name_annotation() {
+        use test_capnp::test_name_annotation;
+        let mut message = message::Builder::new_default();
+        {
+            let mut root: test_name_annotation::Builder = message.init_root();
+            root.set_good_field_name(true);
+            root.set_another_good_field_name(17);
+        }
+        {
+            let root: test_name_annotation::Reader = message.get_root_as_reader().unwrap();
+            match root.which().unwrap() {
+                test_name_annotation::GoodFieldName(true) => (),
+                _ => panic!("expected GoodFieldName(true)"),
+            }
+            assert_eq!(17, root.get_another_good_field_name());
+        }
+    }
 }

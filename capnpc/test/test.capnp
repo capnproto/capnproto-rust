@@ -22,6 +22,8 @@
 
 @0x99d187209d25cee7;
 
+using Rust = import "rust.capnp";
+
 struct TestPrimList {
     uint8List  @0 : List(UInt8);
     int8List   @1 : List(Int8);
@@ -744,3 +746,13 @@ struct Map(Key, Value) {
 interface GenericBase(T) {}
 interface GenericExtend extends(GenericBase(Data)) {}
 interface GenericExtend2 extends (GenericBase(GenericBase(Data))) {}
+
+struct TestNameAnnotation {
+  union {
+    badFieldName @0 :Bool $Rust.name("goodFieldName");
+    bar @1 :Int8;
+  }
+
+  anotherBadFieldName @2 :UInt16 $Rust.name("anotherGoodFieldName");
+  # ...
+}

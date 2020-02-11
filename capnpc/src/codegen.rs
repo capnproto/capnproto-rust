@@ -237,6 +237,21 @@ fn module_name(camel_case : &str) -> String {
     name
 }
 
+const NAME_ANNOTATION_ID: u64 = 0xc2fe4c6d100166d0;
+
+fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
+    for annotation in field.get_annotations()?.iter() {
+        if annotation.get_id() == NAME_ANNOTATION_ID {
+            if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
+                return t;
+            } else {
+                return Err(capnp::Error::failed(format!("expected rust.name annotation value to be of type Text")));
+            }
+        }
+    }
+    field.get_name()
+}
+
 fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
                       scope_map: &mut collections::hash_map::HashMap<u64, Vec<String>>,
                       scope_names: Vec<String>,
@@ -274,7 +289,7 @@ fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capn
             for field in fields.iter() {
                 match field.which() {
                     Ok(schema_capnp::field::Group(group)) => {
-                        let name = module_name(field.get_name()?);
+                        let name = module_name(get_field_name(field)?);
                         let mut scope_names = scope_names.clone();
                         scope_names.push(name);
                         populate_scope_map(node_map, scope_map, scope_names, group.get_type_id())?;
@@ -371,7 +386,7 @@ pub fn getter_text(gen: &GeneratorContext,
             let typ = raw_type.type_string(gen, module)?;
             let default_value = reg_field.get_default_value()?;
             let default = default_value.which()?;
-            let default_name = format!("DEFAULT_{}", snake_to_upper_case(&camel_to_snake_case(field.get_name()?)));
+            let default_name = format!("DEFAULT_{}", snake_to_upper_case(&camel_to_snake_case(get_field_name(*field)?)));
 
             let mut result_type = match raw_type.which()? {
                 type_::Enum(_) => format!("::std::result::Result<{},::capnp::NotInSchema>", typ),
@@ -778,7 +793,7 @@ fn generate_union(gen: &GeneratorContext,
 
         let dvalue = field.get_discriminant_value() as usize;
 
-        let field_name = field.get_name()?;
+        let field_name = get_field_name(*field)?;
         let enumerant_name = capitalize_first_letter(field_name);
 
         let (ty, get, maybe_default_decl) = getter_text(gen, field, is_reader, false)?;
@@ -907,7 +922,7 @@ fn generate_pipeline_getter(gen: &GeneratorContext,
                             field: schema_capnp::field::Reader) -> ::capnp::Result<FormattedText> {
     use crate::schema_capnp::{field, type_};
 
-    let name = field.get_name()?;
+    let name = get_field_name(field)?;
 
     match field.which()? {
         field::Group(group) => {
@@ -1094,7 +1109,7 @@ fn generate_node(gen: &GeneratorContext,
 
             let fields = struct_reader.get_fields()?;
             for field in fields.iter() {
-                let name = field.get_name()?;
+                let name = get_field_name(field)?;
                 let styled_name = camel_to_snake_case(name);
 
                 let discriminant_value = field.get_discriminant_value();
@@ -1160,7 +1175,7 @@ fn generate_node(gen: &GeneratorContext,
                 reexports.push_str("pub use self::Which::{");
                 let mut whichs = Vec::new();
                 for f in union_fields.iter(){
-                    whichs.push(capitalize_first_letter(f.get_name()?));
+                    whichs.push(capitalize_first_letter(get_field_name(*f)?));
                 }
                 reexports.push_str(&whichs.join(","));
                 reexports.push_str("};");
