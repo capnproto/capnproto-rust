@@ -177,8 +177,6 @@ fn test_camel_to_snake_case() {
     assert_eq!(camel_to_snake_case("uint32Id"), "uint32_id".to_string());
 }
 
-
-
 #[derive(PartialEq, Clone)]
 pub enum FormattedText {
     Indent(Box<FormattedText>),
@@ -239,14 +237,25 @@ fn module_name(camel_case: &str) -> String {
 
 const NAME_ANNOTATION_ID: u64 = 0xc2fe4c6d100166d0;
 
+fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp::Result<&str> {
+    if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
+        let name = t?;
+        for c in name.chars() {
+            if !(c == '_' || c.is_alphanumeric()) {
+                return Err(capnp::Error::failed(
+                    format!("rust.name annotation value must only contain alphanumeric characters and '_'")))
+            }
+        }
+        Ok(name)
+    } else {
+        Err(capnp::Error::failed(format!("expected rust.name annotation value to be of type Text")))
+    }
+}
+
 fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
     for annotation in field.get_annotations()?.iter() {
         if annotation.get_id() == NAME_ANNOTATION_ID {
-            if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
-                return t;
-            } else {
-                return Err(capnp::Error::failed(format!("expected rust.name annotation value to be of type Text")));
-            }
+            return name_annotation_value(annotation);
         }
     }
     field.get_name()
@@ -255,10 +264,8 @@ fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
 fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader) -> capnp::Result<&str> {
     for annotation in enumerant.get_annotations()?.iter() {
         if annotation.get_id() == NAME_ANNOTATION_ID {
-            if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
-                return t;
-            } else {
-                return Err(capnp::Error::failed(format!("expected rust.name annotation value to be of type Text")));
+            if annotation.get_id() == NAME_ANNOTATION_ID {
+                return name_annotation_value(annotation);
             }
         }
     }
@@ -291,11 +298,9 @@ fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capn
 
     'annotations: for annotation in node_reader.get_annotations()?.iter() {
         if annotation.get_id() == NAME_ANNOTATION_ID {
-            if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
-                current_node_name = t?.to_string();
+            if annotation.get_id() == NAME_ANNOTATION_ID {
+                current_node_name = name_annotation_value(annotation)?.to_string();
                 break 'annotations;
-            } else {
-                return Err(capnp::Error::failed(format!("expected rust.name annotation value to be of type Text")));
             }
         }
     }
