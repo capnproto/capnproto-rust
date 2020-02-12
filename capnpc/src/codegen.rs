@@ -1891,19 +1891,7 @@ fn generate_node(gen: &GeneratorContext,
             output.push(formatted_text);
         }
 
-        node::Annotation( annotation_reader ) => {
-            println!("  annotation node:");
-            if annotation_reader.get_targets_file() {
-                println!("  targets file");
-            }
-            if annotation_reader.get_targets_const() {
-                println!("  targets const");
-            }
-            // ...
-            if annotation_reader.get_targets_annotation() {
-                println!("  targets annotation");
-            }
-        }
+        node::Annotation( _annotation_reader ) => (),
     }
 
     Ok(Branch(output))
