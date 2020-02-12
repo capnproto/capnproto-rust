@@ -747,12 +747,17 @@ interface GenericBase(T) {}
 interface GenericExtend extends(GenericBase(Data)) {}
 interface GenericExtend2 extends (GenericBase(GenericBase(Data))) {}
 
-struct TestNameAnnotation {
+struct TestNameAnnotation $Rust.name("RenamedStruct") {
   union {
     badFieldName @0 :Bool $Rust.name("goodFieldName");
     bar @1 :Int8;
   }
 
-  anotherBadFieldName @2 :UInt16 $Rust.name("anotherGoodFieldName");
+  enum BadlyNamedEnum $Rust.name("RenamedEnum") {
+    foo @0;
+    bar @1;
+  }
+
+  anotherBadFieldName @2 :BadlyNamedEnum $Rust.name("anotherGoodFieldName");
   # ...
 }

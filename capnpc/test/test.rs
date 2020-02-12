@@ -1476,20 +1476,20 @@ mod tests {
 
     #[test]
     fn name_annotation() {
-        use test_capnp::test_name_annotation;
+        use test_capnp::renamed_struct;
         let mut message = message::Builder::new_default();
         {
-            let mut root: test_name_annotation::Builder = message.init_root();
+            let mut root: renamed_struct::Builder = message.init_root();
             root.set_good_field_name(true);
-            root.set_another_good_field_name(17);
+            root.set_another_good_field_name(renamed_struct::RenamedEnum::Bar);
         }
         {
-            let root: test_name_annotation::Reader = message.get_root_as_reader().unwrap();
+            let root: renamed_struct::Reader = message.get_root_as_reader().unwrap();
             match root.which().unwrap() {
-                test_name_annotation::GoodFieldName(true) => (),
+                renamed_struct::GoodFieldName(true) => (),
                 _ => panic!("expected GoodFieldName(true)"),
             }
-            assert_eq!(17, root.get_another_good_field_name());
+            assert!(renamed_struct::RenamedEnum::Bar == root.get_another_good_field_name().unwrap());
         }
     }
 }

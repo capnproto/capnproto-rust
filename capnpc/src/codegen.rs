@@ -30,10 +30,6 @@ use crate::schema_capnp;
 use crate::codegen_types::{ Leaf, RustTypeInfo, RustNodeInfo, TypeParameterTexts, do_branding };
 use self::FormattedText::{Indent, Line, Branch, BlankLine};
 
-fn root_scope(root_name: String) -> Vec<String> {
-    vec!["crate".into(), root_name]
-}
-
 pub struct GeneratorContext<'a> {
     pub request: schema_capnp::code_generator_request::Reader<'a>,
     pub node_map: collections::hash_map::HashMap<u64, schema_capnp::node::Reader<'a>>,
@@ -67,7 +63,9 @@ impl <'a> GeneratorContext<'a> {
                     path_to_stem_string(importpath)?.replace("-", "_"));
                 populate_scope_map(&gen.node_map,
                                    &mut gen.scope_map,
-                                   root_scope(root_name),
+                                   vec!["crate".into()],
+                                   root_name,
+                                   NameKind::Verbatim,
                                    import.get_id())?;
             }
 
@@ -75,7 +73,9 @@ impl <'a> GeneratorContext<'a> {
             let root_mod = format!("{}_capnp", root_name.replace("-", "_"));
             populate_scope_map(&gen.node_map,
                                &mut gen.scope_map,
-                               root_scope(root_mod),
+                               vec!["crate".into()],
+                               root_mod,
+                               NameKind::Verbatim,
                                id)?;
         }
         Ok(gen)
@@ -229,7 +229,7 @@ const RUST_KEYWORDS : [&'static str; 53] =
      "typeof", "unsafe", "unsized", "use", "virtual",
      "where", "while", "yield"];
 
-fn module_name(camel_case : &str) -> String {
+fn module_name(camel_case: &str) -> String {
     let mut name = camel_to_snake_case(camel_case);
     if RUST_KEYWORDS.contains(&&*name) {
         name.push('_');
@@ -252,31 +252,68 @@ fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
     field.get_name()
 }
 
+enum NameKind {
+    // convert camel case to snake case, and avoid Rust keywords
+    Module,
+
+    // don't modify
+    Verbatim,
+}
+
+fn capnp_name_to_rust_name(capnp_name: &str, name_kind: NameKind) -> String {
+    match name_kind {
+        NameKind::Module => module_name(capnp_name),
+        NameKind::Verbatim => capnp_name.to_string(),
+    }
+}
+
 fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
                       scope_map: &mut collections::hash_map::HashMap<u64, Vec<String>>,
-                      scope_names: Vec<String>,
+                      ancestor_scope_names: Vec<String>,
+                      mut current_node_name: String,
+                      current_name_kind: NameKind,
                       node_id: u64) -> ::capnp::Result<()> {
-
-    scope_map.insert(node_id, scope_names.clone());
-
     // unused nodes in imported files might be omitted from the node map
     let node_reader = match node_map.get(&node_id) { Some(node) => node, None => return Ok(()), };
 
+    'annotations: for annotation in node_reader.get_annotations()?.iter() {
+        if annotation.get_id() == NAME_ANNOTATION_ID {
+            if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
+                current_node_name = t?.to_string();
+                break 'annotations;
+            } else {
+                return Err(capnp::Error::failed(format!("expected rust.name annotation value to be of type Text")));
+            }
+        }
+    }
+
+    let mut scope_names = ancestor_scope_names;
+    scope_names.push(capnp_name_to_rust_name(&current_node_name, current_name_kind));
+
+    scope_map.insert(node_id, scope_names.clone());
+
     let nested_nodes = node_reader.get_nested_nodes()?;
     for nested_node in nested_nodes.iter(){
-        let mut scope_names = scope_names.clone();
         let nested_node_id = nested_node.get_id();
         match node_map.get(&nested_node_id) {
             None => {}
             Some(node_reader) => {
                 match node_reader.which() {
                     Ok(schema_capnp::node::Enum(_enum_reader)) => {
-                        scope_names.push(nested_node.get_name()?.to_string());
-                        populate_scope_map(node_map, scope_map, scope_names, nested_node_id)?;
+                        populate_scope_map(node_map,
+                                           scope_map,
+                                           scope_names.clone(),
+                                           nested_node.get_name()?.to_string(),
+                                           NameKind::Verbatim,
+                                           nested_node_id)?;
                     }
                     _ => {
-                        scope_names.push(module_name(nested_node.get_name()?));
-                       populate_scope_map(node_map, scope_map, scope_names, nested_node_id)?;
+                        populate_scope_map(node_map,
+                                           scope_map,
+                                           scope_names.clone(),
+                                           nested_node.get_name()?.to_string(),
+                                           NameKind::Module,
+                                           nested_node_id)?;
                     }
                 }
             }
@@ -289,10 +326,12 @@ fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capn
             for field in fields.iter() {
                 match field.which() {
                     Ok(schema_capnp::field::Group(group)) => {
-                        let name = module_name(get_field_name(field)?);
-                        let mut scope_names = scope_names.clone();
-                        scope_names.push(name);
-                        populate_scope_map(node_map, scope_map, scope_names, group.get_type_id())?;
+                        populate_scope_map(node_map,
+                                           scope_map,
+                                           scope_names.clone(),
+                                           get_field_name(field)?.to_string(),
+                                           NameKind::Module,
+                                           group.get_type_id())?;
                     }
                     _ => {}
                 }
