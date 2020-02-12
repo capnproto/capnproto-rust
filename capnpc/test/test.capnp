@@ -771,4 +771,12 @@ struct TestNameAnnotation $Rust.name("RenamedStruct") {
       grault @2 $Rust.name("garply");
     }
   }
+
+  badlyNamedUnion :union $Rust.name("renamedUnion") {
+    badlyNamedGroup :group $Rust.name("renamedGroup") {
+      foo @3 :Void;
+      bar @4 :Void;
+    }
+    baz @5 :NestedStruct $Rust.name("qux");
+  }
 }

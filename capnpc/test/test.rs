@@ -1482,6 +1482,9 @@ mod tests {
             let mut root: renamed_struct::Builder = message.init_root();
             root.set_good_field_name(true);
             root.set_another_good_field_name(renamed_struct::RenamedEnum::Bar);
+
+            let renamed_union = root.get_renamed_union();
+            renamed_union.init_qux();
         }
         {
             let root: renamed_struct::Reader = message.get_root_as_reader().unwrap();
@@ -1490,6 +1493,12 @@ mod tests {
                 _ => panic!("expected GoodFieldName(true)"),
             }
             assert!(renamed_struct::RenamedEnum::Bar == root.get_another_good_field_name().unwrap());
+
+
+            match root.get_renamed_union().which().unwrap() {
+                renamed_struct::renamed_union::Qux(_) => (),
+                _ => panic!("expected Qux"),
+            }
         }
     }
 }
