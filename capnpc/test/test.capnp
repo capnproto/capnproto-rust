@@ -756,8 +756,19 @@ struct TestNameAnnotation $Rust.name("RenamedStruct") {
   enum BadlyNamedEnum $Rust.name("RenamedEnum") {
     foo @0;
     bar @1;
+    baz @2 $Rust.name("qux");
   }
 
   anotherBadFieldName @2 :BadlyNamedEnum $Rust.name("anotherGoodFieldName");
-  # ...
+
+  struct NestedStruct $Rust.name("RenamedNestedStruct") {
+    badNestedFieldName @0 :Bool $Rust.name("goodNestedFieldName");
+    anotherBadNestedFieldName @1 :NestedStruct $Rust.name("anotherGoodNestedFieldName");
+
+    enum DeeplyNestedEnum $Rust.name("RenamedDeeplyNestedEnum") {
+      quux @0;
+      corge @1;
+      grault @2 $Rust.name("garply");
+    }
+  }
 }

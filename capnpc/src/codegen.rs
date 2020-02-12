@@ -252,6 +252,19 @@ fn get_field_name(field: schema_capnp::field::Reader) -> capnp::Result<&str> {
     field.get_name()
 }
 
+fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader) -> capnp::Result<&str> {
+    for annotation in enumerant.get_annotations()?.iter() {
+        if annotation.get_id() == NAME_ANNOTATION_ID {
+            if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
+                return t;
+            } else {
+                return Err(capnp::Error::failed(format!("expected rust.name annotation value to be of type Text")));
+            }
+        }
+    }
+    enumerant.get_name()
+}
+
 enum NameKind {
     // convert camel case to snake case, and avoid Rust keywords
     Module,
@@ -1464,7 +1477,7 @@ fn generate_node(gen: &GeneratorContext,
             let mut match_branches = Vec::new();
             let enumerants = enum_reader.get_enumerants()?;
             for ii in 0..enumerants.len() {
-                let enumerant = capitalize_first_letter(enumerants.get(ii).get_name()?);
+                let enumerant = capitalize_first_letter(get_enumerant_name(enumerants.get(ii))?);
                 members.push(Line(format!("{} = {},", enumerant, ii)));
                 match_branches.push(
                     Line(format!("{} => ::std::result::Result::Ok({}::{}),", ii, last_name, enumerant)));
@@ -1837,7 +1850,7 @@ fn generate_node(gen: &GeneratorContext,
                                 let enumerants = e.get_enumerants()?;
                                 if (v as u32) < enumerants.len() {
                                     let variant =
-                                        capitalize_first_letter(enumerants.get(v as u32).get_name()?);
+                                        capitalize_first_letter(get_enumerant_name(enumerants.get(v as u32))?);
                                     let type_string = typ.type_string(gen, Leaf::Owned)?;
                                     Line(format!("pub const {}: {} = {}::{};",
                                                  styled_name,
