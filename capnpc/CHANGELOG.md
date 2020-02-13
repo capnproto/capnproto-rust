@@ -1,3 +1,6 @@
+### v0.12.1
+- Add rust.capnp file with `name` annotation for renaming items in generated Rust code.
+
 ### v0.12.0
 - Remove deprecated item.
 
