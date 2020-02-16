@@ -40,9 +40,7 @@ fn run_one(executable: &str, case: &str, mode: &str, scratch: &str, compression:
         panic!("failed to run test case");
     }
 
-    let elapsed_secs = elapsed.as_secs() as f64 + (elapsed.subsec_nanos() as f64 / 1e9);
-    println!("{}\n", elapsed_secs);
-
+    println!("{}\n", elapsed.as_secs_f64());
 }
 
 fn run_case(executable: &str, case: &str, scratch_options: &[&str], iteration_count: u64) {
