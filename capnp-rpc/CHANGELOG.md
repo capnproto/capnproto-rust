@@ -1,3 +1,6 @@
+## v0.12.1
+- Check in generated rpc_capnp.rs and rpc_twoparty.rs files, to avoid build-time dependency on capnp tool.
+
 ## v0.12.0
 - Follow 0.12.0 release of other capnp crates.
 
