@@ -3,7 +3,6 @@
 name = "capnp-rpc"
 version = "0.12.0"
 authors = [ "David Renshaw <dwrenshaw@sandstorm.io>" ]
-build = "build.rs"
 license = "MIT"
 description = "implementation of the Cap'n Proto remote procedure call protocol"
 repository = "https://github.com/dwrensha/capnproto-rust"
@@ -18,9 +17,6 @@ readme = "README.md"
 
 name = "capnp_rpc"
 path = "src/lib.rs"
-
-[build-dependencies]
-capnpc = { version = "0.12.0", path = "../capnpc" }
 
 [dependencies]
 futures = "0.3.0"
