@@ -23,6 +23,7 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use crate::http_capnp::{outgoing_http};
 
 use futures::{AsyncReadExt, FutureExt};
+use tokio_util::compat::Tokio02AsyncReadCompatExt;
 
 pub fn main() {
     use std::net::ToSocketAddrs;
@@ -38,7 +39,7 @@ pub fn main() {
     let result: Result<(), Box<dyn std::error::Error>> = local.block_on(&mut rt, async move {
         let stream = tokio::net::TcpStream::connect(&addr).await?;
         stream.set_nodelay(true).unwrap();
-        let (reader, writer) = futures_tokio_compat::Compat::new(stream).split();
+        let (reader, writer) = stream.compat().split();
 
         let rpc_network =
             Box::new(twoparty::VatNetwork::new(reader, writer,

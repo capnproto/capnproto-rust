@@ -26,6 +26,7 @@ use capnp::capability::Promise;
 use capnp::Error;
 
 use futures::{AsyncReadExt, FutureExt, StreamExt, TryFutureExt};
+use tokio_util::compat::Tokio02AsyncReadCompatExt;
 
 struct OutgoingHttp;
 
@@ -116,7 +117,7 @@ pub fn main() {
         loop {
             let (socket, _) = listener.accept().await?;
             socket.set_nodelay(true)?;
-            let (reader, writer) = futures_tokio_compat::Compat::new(socket).split();
+            let (reader, writer) = socket.compat().split();
 
             let network =
                 twoparty::VatNetwork::new(reader, writer,

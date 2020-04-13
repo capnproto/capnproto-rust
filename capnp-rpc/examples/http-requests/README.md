@@ -2,7 +2,6 @@
 
 This is an implementation of a server
 that allows HTTP requests to be made through Cap'n Proto interfaces.
-It uses [tokio-curl](https://github.com/tokio-rs/tokio-curl) under the hood.
 
 Start the server like this:
 
