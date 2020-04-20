@@ -4,7 +4,7 @@ title: new feature to allow unaligned buffers
 author: dwrensha
 ---
 
-[Last week]({% post_url 2020-01-11-unaligned-memory-access %}) I wrote about
+[Last week]({{site.baseurl}}/2020/01/11/unaligned-memory-access.html) I wrote about
 how capnproto-rust might relax its memory alignment requirements
 and what the performance cost of that might look like.
 The [ensuing discussion](https://www.reddit.com/r/rust/comments/en9fmn/should_capnprotorust_force_users_to_worry_about/)
