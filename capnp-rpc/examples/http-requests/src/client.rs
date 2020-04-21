@@ -25,31 +25,30 @@ use crate::http_capnp::{outgoing_http};
 use futures::{AsyncReadExt, FutureExt};
 use tokio_util::compat::Tokio02AsyncReadCompatExt;
 
-pub fn main() {
+pub async fn main() -> Result<(), Box<dyn std::error::Error>>{
     use std::net::ToSocketAddrs;
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} client HOST:PORT", args[0]);
-        return;
+        return Ok(());
     }
 
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    let stream = tokio::net::TcpStream::connect(&addr).await?;
+    stream.set_nodelay(true).unwrap();
+    let (reader, writer) = stream.compat().split();
+
+    let rpc_network =
+        Box::new(twoparty::VatNetwork::new(reader, writer,
+                                           rpc_twoparty_capnp::Side::Client,
+                                           Default::default()));
+
+    let mut rpc_system = RpcSystem::new(rpc_network, None);
+    let proxy: outgoing_http::Client =
+        rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+
     let local = tokio::task::LocalSet::new();
-    let result: Result<(), Box<dyn std::error::Error>> = local.block_on(&mut rt, async move {
-        let stream = tokio::net::TcpStream::connect(&addr).await?;
-        stream.set_nodelay(true).unwrap();
-        let (reader, writer) = stream.compat().split();
-
-        let rpc_network =
-            Box::new(twoparty::VatNetwork::new(reader, writer,
-                                               rpc_twoparty_capnp::Side::Client,
-                                               Default::default()));
-
-        let mut rpc_system = RpcSystem::new(rpc_network, None);
-        let proxy: outgoing_http::Client =
-            rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-
+    local.run_until(async {
         tokio::task::spawn_local(Box::pin(rpc_system.map(|_| ())));
 
         let mut req = proxy.new_session_request();
@@ -81,6 +80,5 @@ pub fn main() {
                      english.get_response_code());
         }
         Ok(())
-    });
-    result.expect("main");
+    }).await
 }

@@ -100,20 +100,18 @@ impl http_session::Server for HttpSession {
     }
 }
 
-pub fn main() {
+pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use std::net::ToSocketAddrs;
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} server HOST:PORT", args[0]);
-        return;
+        return Ok(());
     }
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
-
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    let mut listener = tokio::net::TcpListener::bind(&addr).await?;
+    let proxy = outgoing_http::ToClient::new(OutgoingHttp::new()).into_client::<::capnp_rpc::Server>();
     let local = tokio::task::LocalSet::new();
-    let result: Result<(), Box<dyn std::error::Error>> = local.block_on(&mut rt, async move {
-        let mut listener = tokio::net::TcpListener::bind(&addr).await?;
-        let proxy = outgoing_http::ToClient::new(OutgoingHttp::new()).into_client::<::capnp_rpc::Server>();
+    local.run_until(async {
         loop {
             let (socket, _) = listener.accept().await?;
             socket.set_nodelay(true)?;
@@ -127,6 +125,5 @@ pub fn main() {
 
             tokio::task::spawn_local(Box::pin(rpc_system.map(|_| ())));
         }
-    });
-    result.expect("main");
+    }).await
 }
