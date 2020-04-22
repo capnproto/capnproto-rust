@@ -27,8 +27,7 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use crate::calculator_capnp::calculator;
 use capnp::capability::Promise;
 
-use futures::{AsyncReadExt, FutureExt, StreamExt, TryFutureExt};
-use futures::task::LocalSpawn;
+use futures::{AsyncReadExt, FutureExt, TryFutureExt};
 use futures::future;
 
 struct ValueImpl {
@@ -196,37 +195,31 @@ impl calculator::Server for CalculatorImpl {
     }
 }
 
-pub fn main() {
+pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use std::net::ToSocketAddrs;
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} server ADDRESS[:PORT]", args[0]);
-        return;
+        return Ok(());
     }
 
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
 
-    let mut exec = futures::executor::LocalPool::new();
-    let spawner = exec.spawner();
-    let result: Result<(), Box<dyn std::error::Error>> = exec.run_until(async move {
-        let listener = async_std::net::TcpListener::bind(&addr).await?;
+    tokio::task::LocalSet::new().run_until(async move {
+        let mut listener = tokio::net::TcpListener::bind(&addr).await?;
         let calc =
             calculator::ToClient::new(CalculatorImpl).into_client::<::capnp_rpc::Server>();
 
-        let mut incoming = listener.incoming();
-        while let Some(socket) = incoming.next().await {
-            let socket = socket?;
+        loop {
+            let (socket, _) = listener.accept().await?;
             socket.set_nodelay(true)?;
-            let (reader, writer) = socket.split();
-                        let network =
+            let (reader, writer) = tokio_util::compat::Tokio02AsyncReadCompatExt::compat(socket).split();
+            let network =
                 twoparty::VatNetwork::new(reader, writer,
                                           rpc_twoparty_capnp::Side::Server, Default::default());
 
             let rpc_system = RpcSystem::new(Box::new(network), Some(calc.clone().client));
-            spawner.spawn_local_obj(
-                Box::pin(rpc_system.map_err(|e| println!("error: {:?}", e)).map(|_|())).into()).expect("spawn")
+            tokio::task::spawn_local(Box::pin(rpc_system.map_err(|e| println!("error: {:?}", e)).map(|_| ())));
         }
-        Ok(())
-    });
-    result.expect("main");
+    }).await
 }

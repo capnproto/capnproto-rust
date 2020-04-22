@@ -24,7 +24,6 @@ use crate::calculator_capnp::calculator;
 use capnp::capability::Promise;
 
 use futures::{AsyncReadExt, FutureExt};
-use futures::task::LocalSpawn;
 
 #[derive(Clone, Copy)]
 pub struct PowerFunction;
@@ -45,27 +44,23 @@ impl calculator::function::Server for PowerFunction {
     }
 }
 
-pub fn main() {
+pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = ::std::env::args().collect();
     if args.len() != 3 {
         println!("usage: {} client HOST:PORT", args[0]);
-        return;
+        return Ok(());
     }
-
-    let mut exec = futures::executor::LocalPool::new();
-    let spawner = exec.spawner();
-    exec.run_until(try_main(args, spawner)).expect("try main");
+    tokio::task::LocalSet::new().run_until(try_main(args)).await
 }
 
-async fn try_main(args: Vec<String>, spawner: futures::executor::LocalSpawner)
-                  -> Result<(), Box<dyn std::error::Error>>
+async fn try_main(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>>
 {
     use std::net::ToSocketAddrs;
 
     let addr = args[2].to_socket_addrs()?.next().expect("could not parse address");
-    let stream = async_std::net::TcpStream::connect(&addr).await?;
+    let stream = tokio::net::TcpStream::connect(&addr).await?;
     stream.set_nodelay(true)?;
-    let (reader, writer) = stream.split();
+    let (reader, writer) = tokio_util::compat::Tokio02AsyncReadCompatExt::compat(stream).split();
 
     let network =
         Box::new(twoparty::VatNetwork::new(reader, writer,
@@ -74,8 +69,7 @@ async fn try_main(args: Vec<String>, spawner: futures::executor::LocalSpawner)
 
     let mut rpc_system = RpcSystem::new(network, None);
     let calculator: calculator::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-
-    spawner.spawn_local_obj(Box::pin(rpc_system.map(|_|())).into())?;
+    tokio::task::spawn_local(Box::pin(rpc_system.map(|_| ())));
 
     {
         // Make a request that just evaluates the literal value 123.
