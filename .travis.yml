@@ -17,9 +17,9 @@ addons:
       - gcc
       - g++
 install:
-  - curl -O https://capnproto.org/capnproto-c++-0.7.0.tar.gz
-  - tar zxf capnproto-c++-0.7.0.tar.gz
-  - cd capnproto-c++-0.7.0
+  - curl -O https://capnproto.org/capnproto-c++-0.8.0.tar.gz
+  - tar zxf capnproto-c++-0.8.0.tar.gz
+  - cd capnproto-c++-0.8.0
   - ./configure --prefix=$HOME
   - make -j3
   - make install
