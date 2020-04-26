@@ -8,7 +8,7 @@ annotation name @0xc2fe4c6d100166d0 (field, struct, enum, enumerant, union, grou
 # a struct should use CamelCase capitalization like `StructFoo`, even though
 # that will get translated to a `struct_foo` module in the generated Rust code.
 #
-# TODO: support annoting more kinds of things with this.
+# TODO: support annotating more kinds of things with this.
 
 annotation parentModule @0xabee386cd1450364 (file) :Text;
 # A Rust module path indicating where the generated code will be included.
