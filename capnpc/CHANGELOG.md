@@ -1,4 +1,7 @@
 ### v0.12.1
+- Add `parentModule` annotation to allow generated code to be included in a submodule.
+
+### v0.12.1
 - Add rust.capnp file with `name` annotation for renaming items in generated Rust code.
 
 ### v0.12.0
