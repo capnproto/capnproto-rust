@@ -9,3 +9,16 @@ annotation name @0xc2fe4c6d100166d0 (field, struct, enum, enumerant, union, grou
 # that will get translated to a `struct_foo` module in the generated Rust code.
 #
 # TODO: support annoting more kinds of things with this.
+
+annotation parentModule @0xabee386cd1450364 (file) :Text;
+# A Rust module path indicating where the generated code will be included.
+# For example, if this is set to "foo::bar" and the schema file is named
+# "baz.capnp", then you could include the generated code like this:
+#
+#  pub mod foo {
+#    pub mod bar {
+#      pub mod baz_capnp {
+#        include!(concat!(env!("OUT_DIR"), "/baz_capnp.rs"));
+#      }
+#    }
+#  }

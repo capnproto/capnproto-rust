@@ -25,6 +25,20 @@ pub mod test_capnp {
     include!(concat!(env!("OUT_DIR"), "/test_capnp.rs"));
 }
 
+pub mod foo {
+    pub mod bar {
+        pub mod in_submodule_capnp {
+            include!(concat!(env!("OUT_DIR"), "/in_submodule_capnp.rs"));
+        }
+    }
+}
+
+pub mod baz {
+    pub mod in_other_submodule_capnp {
+        include!(concat!(env!("OUT_DIR"), "/in_other_submodule_capnp.rs"));
+    }
+}
+
 pub mod test_in_dir_capnp {
     include!(concat!(env!("OUT_DIR"), "/schema/test_in_dir_capnp.rs"));
 }

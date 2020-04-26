@@ -41,7 +41,6 @@ impl <'a> GeneratorContext<'a> {
         message:&'a capnp::message::Reader<capnp::serialize::OwnedSegments>)
         -> ::capnp::Result<GeneratorContext<'a>>
     {
-
         let mut gen = GeneratorContext {
             request : message.get_root()?,
             node_map: collections::hash_map::HashMap::<u64, schema_capnp::node::Reader<'a>>::new(),
@@ -53,7 +52,7 @@ impl <'a> GeneratorContext<'a> {
         }
 
         for requested_file in gen.request.get_requested_files()?.iter() {
-             let id = requested_file.get_id();
+            let id = requested_file.get_id();
 
             let imports = requested_file.get_imports()?;
             for import in imports.iter() {
@@ -80,7 +79,6 @@ impl <'a> GeneratorContext<'a> {
         }
         Ok(gen)
     }
-
 
     fn get_last_name<'b>(&'b self, id: u64) -> ::capnp::Result<&'b str> {
         match self.scope_map.get(&id) {
@@ -232,6 +230,7 @@ fn module_name(camel_case: &str) -> String {
 }
 
 const NAME_ANNOTATION_ID: u64 = 0xc2fe4c6d100166d0;
+const PARENT_MODULE_ANNOTATION_ID: u64 = 0xabee386cd1450364;
 
 fn name_annotation_value(annotation: schema_capnp::annotation::Reader) -> capnp::Result<&str> {
     if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
@@ -268,6 +267,15 @@ fn get_enumerant_name(enumerant: schema_capnp::enumerant::Reader) -> capnp::Resu
     enumerant.get_name()
 }
 
+fn get_parent_module(annotation: schema_capnp::annotation::Reader) -> capnp::Result<Vec<String>> {
+    if let schema_capnp::value::Text(t) = annotation.get_value()?.which()? {
+        let module = t?;
+        Ok(module.split("::").map(|x| x.to_string()).collect())
+    } else {
+        Err(capnp::Error::failed(format!("expected rust.parentModule annotation value to be of type Text")))
+    }
+}
+
 enum NameKind {
     // convert camel case to snake case, and avoid Rust keywords
     Module,
@@ -285,19 +293,20 @@ fn capnp_name_to_rust_name(capnp_name: &str, name_kind: NameKind) -> String {
 
 fn populate_scope_map(node_map: &collections::hash_map::HashMap<u64, schema_capnp::node::Reader>,
                       scope_map: &mut collections::hash_map::HashMap<u64, Vec<String>>,
-                      ancestor_scope_names: Vec<String>,
+                      mut ancestor_scope_names: Vec<String>,
                       mut current_node_name: String,
                       current_name_kind: NameKind,
                       node_id: u64) -> ::capnp::Result<()> {
     // unused nodes in imported files might be omitted from the node map
     let node_reader = match node_map.get(&node_id) { Some(node) => node, None => return Ok(()), };
 
-    'annotations: for annotation in node_reader.get_annotations()?.iter() {
+    for annotation in node_reader.get_annotations()?.iter() {
         if annotation.get_id() == NAME_ANNOTATION_ID {
             if annotation.get_id() == NAME_ANNOTATION_ID {
                 current_node_name = name_annotation_value(annotation)?.to_string();
-                break 'annotations;
-            }
+             }
+        } else if annotation.get_id() == PARENT_MODULE_ANNOTATION_ID {
+            ancestor_scope_names.append(&mut get_parent_module(annotation)?);
         }
     }
 
