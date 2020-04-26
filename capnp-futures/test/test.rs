@@ -160,4 +160,30 @@ mod tests {
             .first_segment_words(1).allocation_strategy(capnp::message::AllocationStrategy::FixedSize);
         fill_and_send_message(capnp::message::Builder::new(builder_options));
     }
+
+    #[test]
+    fn static_lifetime_not_required_funcs() {
+        use capnp::message;
+        use capnp_futures::serialize;
+
+        let (mut write, mut read) =
+            async_std::os::unix::net::UnixStream::pair().expect("socket pair");
+        serialize::read_message(&mut read, message::ReaderOptions::default());
+        serialize::write_message(&mut write, message::Builder::new_default());
+        drop(write);
+        drop(read);
+    }
+
+    #[test]
+    fn static_lifetime_not_required_on_highlevel() {
+        use capnp::message;
+        use capnp_futures;
+
+        let (mut write, mut read) =
+            async_std::os::unix::net::UnixStream::pair().expect("socket pair");
+        capnp_futures::ReadStream::new(&mut read, message::ReaderOptions::default());
+        capnp_futures::write_queue::<_, message::Builder<message::HeapAllocator>>(&mut write);
+        drop(write);
+        drop(read);
+    }
 }
