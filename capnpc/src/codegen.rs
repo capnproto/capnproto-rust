@@ -1738,7 +1738,7 @@ fn generate_node(gen: &GeneratorContext,
                         Branch(vec!(
                             Line("pub struct ToClient<_U>{pub u: _U}".to_string()),
                             Line("impl <_U: Server + 'static> ToClient<_U> {".to_string()),
-                            Line("pub fn new(u: _U) -> ToClient<_U> { ToClient {u} }".to_string()),
+                            Indent(Box::new(Line("pub fn new(u: _U) -> ToClient<_U> { ToClient {u} }".to_string()))),
                         ))
                     }),
                     Indent(Box::new(Branch( vec!(
