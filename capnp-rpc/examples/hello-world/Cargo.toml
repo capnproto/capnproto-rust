@@ -1,0 +1,23 @@
+[package]
+
+name = "hello-world"
+version = "0.0.0"
+authors = [ "Mostafa Sedaghat Joo <mostafa.sedaghat@gmail.com>"  ]
+edition = "2018"
+
+build = "build.rs"
+
+[[bin]]
+name = "hello-world"
+path = "main.rs"
+
+[build-dependencies]
+capnpc = { path = "../../../capnpc" }
+
+[dependencies]
+capnp = { path = "../../../capnp" }
+futures = "0.3.0"
+async-std = "1.0"
+
+[dependencies.capnp-rpc]
+path = "../.."
