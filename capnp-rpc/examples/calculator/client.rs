@@ -83,11 +83,11 @@ async fn try_main(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>>
         // server.
 
         println!("Evaluating a literal...");
-        let mut request = calculator.evaluate_request();
-        request.get().init_expression().set_literal(123.0);
-        let value = request.send().pipeline.get_value();
-        let request = value.read_request();
-        let response = request.send().promise.await?;
+        let mut eval_request = calculator.evaluate_request();
+        eval_request.get().init_expression().set_literal(123.0);
+        let value = eval_request.send().pipeline.get_value();
+        let read_request = value.read_request();
+        let response = read_request.send().promise.await?;
         assert_eq!(response.get()?.get_value(), 123.0);
         println!("PASS");
     }

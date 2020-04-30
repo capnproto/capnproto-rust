@@ -113,9 +113,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let local = tokio::task::LocalSet::new();
     local.run_until(async {
         loop {
-            let (socket, _) = listener.accept().await?;
-            socket.set_nodelay(true)?;
-            let (reader, writer) = socket.compat().split();
+            let (stream, _) = listener.accept().await?;
+            stream.set_nodelay(true)?;
+            let (reader, writer) = stream.compat().split();
 
             let network =
                 twoparty::VatNetwork::new(reader, writer,

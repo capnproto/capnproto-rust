@@ -117,16 +117,16 @@ pub fn main() {
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
 
     let result: Result<(), Box<dyn std::error::Error>> = exec.run_until(async move {
-        let socket = async_std::net::TcpListener::bind(&addr).await?;
+        let listener = async_std::net::TcpListener::bind(&addr).await?;
         let (publisher_impl, subscribers) = PublisherImpl::new();
         let publisher = publisher::ToClient::new(publisher_impl).into_client::<::capnp_rpc::Server>();
-        let mut incoming = socket.incoming();
+        let mut incoming = listener.incoming();
 
         let handle_incoming = async move {
-            while let Some(socket) = incoming.next().await {
-                let socket = socket?;
-                socket.set_nodelay(true)?;
-                let (reader, writer) = socket.split();
+            while let Some(stream_result) = incoming.next().await {
+                let stream = stream_result?;
+                stream.set_nodelay(true)?;
+                let (reader, writer) = stream.split();
                 let network =
                     twoparty::VatNetwork::new(reader, writer,
                                               rpc_twoparty_capnp::Side::Server, Default::default());
