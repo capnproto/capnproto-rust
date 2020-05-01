@@ -36,7 +36,6 @@ impl hello_world::Server for HelloWorldImpl {
         params: hello_world::SayHelloParams,
         mut results: hello_world::SayHelloResults,
     ) -> Promise<(), ::capnp::Error> {
-        println!("5");
 
         let request = params.get().unwrap().get_request().unwrap();
         let name = request.get_name().unwrap();
@@ -82,6 +81,7 @@ pub fn main() {
 
             let rpc_system =
                 RpcSystem::new(Box::new(network), Some(hello_world_impl.clone().client));
+
             spawner
                 .spawn_local_obj(Box::pin(rpc_system.map(|_| ())).into())
                 .unwrap();

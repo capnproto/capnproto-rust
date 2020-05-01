@@ -23,7 +23,10 @@ use crate::hello_world_capnp::hello_world;
 use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 use std::net::ToSocketAddrs;
 
+use futures::task::LocalSpawn;
 use futures::AsyncReadExt;
+
+use futures::FutureExt;
 
 pub fn main() {
     let args: Vec<String> = ::std::env::args().collect();
@@ -41,6 +44,8 @@ pub fn main() {
     let msg = args[3].to_string();
 
     let mut exec = futures::executor::LocalPool::new();
+    let spawner = exec.spawner();
+
     exec.run_until(async move {
         let stream = async_std::net::TcpStream::connect(&addr).await.unwrap();
         stream.set_nodelay(true).unwrap();
@@ -55,13 +60,15 @@ pub fn main() {
         let hello_world: hello_world::Client =
             rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
+        spawner.spawn_local_obj(Box::pin(rpc_system.map(|_| ())).into()).unwrap();
+
         let mut request = hello_world.say_hello_request();
         request.get().init_request().set_name(&msg);
 
         let reply = request.send().promise.await.unwrap();
 
         println!(
-            "recieved: {}",
+            "received: {}",
             reply
                 .get()
                 .unwrap()
