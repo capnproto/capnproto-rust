@@ -207,9 +207,9 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let calc: calculator::Client = capnp_rpc::new_client(CalculatorImpl);
 
         loop {
-            let (socket, _) = listener.accept().await?;
-            socket.set_nodelay(true)?;
-            let (reader, writer) = tokio_util::compat::Tokio02AsyncReadCompatExt::compat(socket).split();
+            let (stream, _) = listener.accept().await?;
+            stream.set_nodelay(true)?;
+            let (reader, writer) = tokio_util::compat::Tokio02AsyncReadCompatExt::compat(stream).split();
             let network =
                 twoparty::VatNetwork::new(reader, writer,
                                           rpc_twoparty_capnp::Side::Server, Default::default());
