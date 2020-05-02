@@ -60,7 +60,7 @@ pub fn main() {
         let mut rpc_system = RpcSystem::new(rpc_network, None);
         let publisher: publisher::Client<::capnp::text::Owned> =
             rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-        let sub = subscriber::ToClient::new(SubscriberImpl).into_client::<::capnp_rpc::Server>();
+        let sub = capnp_rpc::new_client(SubscriberImpl);
 
         let mut request = publisher.subscribe_request();
         request.get().set_subscriber(sub);

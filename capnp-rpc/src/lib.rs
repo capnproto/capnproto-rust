@@ -306,12 +306,20 @@ impl <VatId> Future for RpcSystem<VatId> where VatId: 'static {
 /// ```ignore
 /// let client = foo::ToClient::new(FooImpl).into_client::<::capnp_rpc::Server>());
 /// ```
+#[deprecated(since="capnp-rpc-v0.12.2", note="use capnp_rpc::new_client() instead")]
 pub struct Server;
 
+#[allow(deprecated)]
 impl ServerHook for Server {
     fn new_client(server: Box<dyn (::capnp::capability::Server)>) -> ::capnp::capability::Client {
         ::capnp::capability::Client::new(Box::new(local::Client::new(server)))
     }
+}
+
+/// Creates a new local RPC client of type `C` out of an object that implements a server trait `S`.
+pub fn new_client<C, S>(s: S) -> C where C: capnp::capability::FromServer<S> {
+    capnp::capability::FromClientHook::new(Box::new(
+        local::Client::new(Box::new(<C as capnp::capability::FromServer::<S>>::from_server(s)))))
 }
 
 /// Converts a promise for a client into a client that queues up any calls that arrive

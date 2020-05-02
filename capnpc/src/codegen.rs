@@ -1717,7 +1717,7 @@ fn generate_node(gen: &GeneratorContext,
                             Line("}".to_string())]))),
                 Line("}".to_string())]));
 
-
+            // TODO(versionbump): Remove this, as it has been superseded by capnp_rpc::new_client().
             mod_interior.push(
                 Branch(vec!(
                     (if is_generic {
@@ -1779,6 +1779,42 @@ fn generate_node(gen: &GeneratorContext,
                                           Indent(Box::new(Branch(if is_generic {
                                             vec!(Line(params.phantom_data_type.clone())) } else { vec!() } ))),
                                           Line("}".to_string()))));
+
+            mod_interior.push(Branch(vec![
+                Line(
+                    format!("impl <_S: Server{1} + 'static, {0}> ::capnp::capability::FromServer<_S> for Client{1} {2}  {{",
+                            params.params, bracketed_params, params.where_clause_with_static)),
+                Indent(Box::new(Branch(vec![
+                    Line(format!("type Dispatch = ServerDispatch<_S, {}>;", params.params)),
+                    Line(format!("fn from_server(s: _S) -> ServerDispatch<_S, {}> {{", params.params)),
+                    Indent(Box::new(Line(format!("ServerDispatch {{ server: ::std::boxed::Box::new(s), {} }}", params.phantom_data_value)))),
+                    Line("}".to_string()),
+                ]))),
+                Line("}".to_string()),
+            ]));
+
+            mod_interior.push(
+                Branch(vec![
+                    (if is_generic {
+                        Line(format!("impl <{}, _T: Server{}> ::std::ops::Deref for ServerDispatch<_T,{}> {} {{", params.params, bracketed_params, params.params, params.where_clause))
+                    } else {
+                        Line("impl <_T: Server> ::std::ops::Deref for ServerDispatch<_T> {".to_string())
+                    }),
+                    Indent(Box::new(Line("type Target = _T;".to_string()))),
+                    Indent(Box::new(Line("fn deref(&self) -> &_T { &self.server}".to_string()))),
+                    Line("}".to_string()),
+                    ]));
+
+            mod_interior.push(
+                Branch(vec![
+                    (if is_generic {
+                        Line(format!("impl <{}, _T: Server{}> ::std::ops::DerefMut for ServerDispatch<_T,{}> {} {{", params.params, bracketed_params, params.params, params.where_clause))
+                    } else {
+                        Line("impl <_T: Server> ::std::ops::DerefMut for ServerDispatch<_T> {".to_string())
+                    }),
+                    Indent(Box::new(Line("fn deref_mut(&mut self) -> &mut _T { &mut self.server}".to_string()))),
+                    Line("}".to_string()),
+                    ]));
 
             mod_interior.push(
                 Branch(vec!(
