@@ -251,3 +251,10 @@ pub trait Server {
                      -> Promise<(), Error>;
 }
 
+/// Trait to track the relationship between generated Server traits and Client structs.
+pub trait FromServer<S> : FromClientHook {
+    // Implemented by the generated ServerDispatch struct.
+    type Dispatch: Server + 'static + std::ops::DerefMut<Target=S>;
+
+    fn from_server(s: S) -> Self::Dispatch;
+}

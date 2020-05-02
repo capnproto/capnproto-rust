@@ -1,7 +1,7 @@
 [package]
 
 name = "capnp-rpc"
-version = "0.12.1"
+version = "0.12.2"
 authors = [ "David Renshaw <dwrenshaw@sandstorm.io>" ]
 license = "MIT"
 description = "implementation of the Cap'n Proto remote procedure call protocol"
@@ -21,4 +21,4 @@ path = "src/lib.rs"
 [dependencies]
 futures = "0.3.0"
 capnp-futures = { version = "0.12.0", path = "../capnp-futures" }
-capnp = {version = "0.12.0", path = "../capnp"}
+capnp = {version = "0.12.2", path = "../capnp"}

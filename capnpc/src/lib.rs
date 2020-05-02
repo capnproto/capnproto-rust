@@ -70,12 +70,6 @@ mod pointer_constants;
 
 use std::path::{Path, PathBuf};
 
-#[derive(Copy, Clone)]
-pub enum RustEdition {
-    Rust2015,
-    Rust2018,
-}
-
 fn run_command(mut command: ::std::process::Command, path: &PathBuf) -> ::capnp::Result<()> {
     let mut p = command.spawn()?;
     crate::codegen::generate_code(p.stdout.take().unwrap(), path.as_path())?;

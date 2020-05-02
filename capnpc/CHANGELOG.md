@@ -1,4 +1,7 @@
-### v0.12.1
+### v0.12.3
+- Generate code for new capnp::capability::FromServer trait.
+
+### v0.12.2
 - Add `parentModule` annotation to allow generated code to be included in a submodule.
 
 ### v0.12.1

@@ -1,3 +1,6 @@
+## v0.12.2
+- Add capnp_rpc::new_client() and deprecate capnp_rpc::Server.
+
 ## v0.12.1
 - Check in generated rpc_capnp.rs and rpc_twoparty.rs files, to avoid build-time dependency on capnp tool.
 

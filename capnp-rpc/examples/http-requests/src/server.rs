@@ -45,8 +45,7 @@ impl outgoing_http::Server for OutgoingHttp {
     {
         let session = HttpSession::new(
             pry!(pry!(params.get()).get_base_url()).to_string());
-        results.get().set_session(
-            http_session::ToClient::new(session).into_client::<::capnp_rpc::Server>());
+        results.get().set_session(capnp_rpc::new_client(session));
         Promise::ok(())
     }
 }
@@ -109,7 +108,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let addr = args[2].to_socket_addrs().unwrap().next().expect("could not parse address");
     let mut listener = tokio::net::TcpListener::bind(&addr).await?;
-    let proxy = outgoing_http::ToClient::new(OutgoingHttp::new()).into_client::<::capnp_rpc::Server>();
+    let proxy: outgoing_http::Client = capnp_rpc::new_client(OutgoingHttp::new());
     let local = tokio::task::LocalSet::new();
     local.run_until(async {
         loop {
