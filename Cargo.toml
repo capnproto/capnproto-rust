@@ -12,7 +12,6 @@ members = [
     "capnp-futures/test",
     "capnp-rpc/examples/hello-world",
     "capnp-rpc/examples/calculator",
-    "capnp-rpc/examples/http-requests",
     "capnp-rpc/examples/pubsub",
     "capnp-rpc/test",
     "example/addressbook",

@@ -147,10 +147,9 @@ as they were called.
 
 ## Further reading
 
+  * The [hello world example](/capnp-rpc/examples/hello-world) demonstrates a basic request/reply pattern.
   * The [calculator example](/capnp-rpc/examples/calculator)
     demonstrates how to use [promise pipelining](https://capnproto.org/rpc.html#time-travel-promise-pipelining).
   * The [pubsub example](/capnp-rpc/examples/pubsub) shows how even an interface with no methods can be useful.
-  * The [http example](/capnp-rpc/examples/http-requests)
-    shows how implementations of Cap'n Proto interfaces can interoperate with another tokio-enabled library.
   * The [Sandstorm raw API example app](https://github.com/dwrensha/sandstorm-rawapi-example-rust)
     shows how Sandstorm lets you write web apps using Cap'n Proto instead of HTTP.
