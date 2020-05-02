@@ -1,3 +1,6 @@
+## v0.12.2
+- Add capability::FromServer trait.
+
 ## v0.12.1
 - Fix buggy Iterator::nth() implementation for ListIter.
 
