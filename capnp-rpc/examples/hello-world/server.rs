@@ -65,8 +65,7 @@ pub fn main() {
 
     exec.run_until(async move {
         let listener = async_std::net::TcpListener::bind(&addr).await.unwrap();
-        let hello_world_impl =
-            hello_world::ToClient::new(HelloWorldImpl).into_client::<::capnp_rpc::Server>();
+        let hello_world_client: hello_world::Client = capnp_rpc::new_client(HelloWorldImpl);
 
         loop {
             let (stream, _) = listener.accept().await.unwrap();
@@ -80,7 +79,7 @@ pub fn main() {
             );
 
             let rpc_system =
-                RpcSystem::new(Box::new(network), Some(hello_world_impl.clone().client));
+                RpcSystem::new(Box::new(network), Some(hello_world_client.clone().client));
 
             spawner
                 .spawn_local_obj(Box::pin(rpc_system.map(|_| ())).into())
