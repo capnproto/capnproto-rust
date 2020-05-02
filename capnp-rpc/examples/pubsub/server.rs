@@ -94,14 +94,14 @@ impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
             }
         );
 
-        results.get().set_subscription(
-            subscription::ToClient::new(SubscriptionImpl::new(self.next_id, self.subscribers.clone()))
-                .into_client::<::capnp_rpc::Server>());
+        results.get().set_subscription(capnp_rpc::new_client(
+            SubscriptionImpl::new(self.next_id, self.subscribers.clone())));
 
         self.next_id += 1;
         Promise::ok(())
     }
 }
+
 pub fn main() {
     use std::net::ToSocketAddrs;
     let args: Vec<String> = ::std::env::args().collect();
@@ -119,7 +119,7 @@ pub fn main() {
     let result: Result<(), Box<dyn std::error::Error>> = exec.run_until(async move {
         let socket = async_std::net::TcpListener::bind(&addr).await?;
         let (publisher_impl, subscribers) = PublisherImpl::new();
-        let publisher = publisher::ToClient::new(publisher_impl).into_client::<::capnp_rpc::Server>();
+        let publisher: publisher::Client<_> = capnp_rpc::new_client(publisher_impl);
         let mut incoming = socket.incoming();
 
         let handle_incoming = async move {

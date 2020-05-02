@@ -40,8 +40,7 @@ impl bootstrap::Server for Bootstrap {
                       -> Promise<(), Error>
     {
         {
-            results.get().set_cap(
-                test_interface::ToClient::new(TestInterface::new()).into_client::<::capnp_rpc::Server>());
+            results.get().set_cap(capnp_rpc::new_client(TestInterface::new()));
         }
         Promise::ok(())
     }
@@ -52,8 +51,7 @@ impl bootstrap::Server for Bootstrap {
                     -> Promise<(), Error>
     {
         {
-            results.get().set_cap(
-                test_extends::ToClient::new(TestExtends).into_client::<::capnp_rpc::Server>());
+            results.get().set_cap(capnp_rpc::new_client(TestExtends));
         }
         Promise::ok(())
     }
@@ -72,8 +70,7 @@ impl bootstrap::Server for Bootstrap {
                     -> Promise<(), Error>
     {
         {
-            results.get().set_cap(
-                test_pipeline::ToClient::new(TestPipeline).into_client::<::capnp_rpc::Server>());
+            results.get().set_cap(capnp_rpc::new_client(TestPipeline));
         }
         Promise::ok(())
     }
@@ -84,8 +81,7 @@ impl bootstrap::Server for Bootstrap {
                        -> Promise<(), Error>
     {
         {
-            results.get().set_cap(
-                test_call_order::ToClient::new(TestCallOrder::new()).into_client::<::capnp_rpc::Server>());
+            results.get().set_cap(capnp_rpc::new_client(TestCallOrder::new()));
         }
         Promise::ok(())
     }
@@ -95,8 +91,7 @@ impl bootstrap::Server for Bootstrap {
                        -> Promise<(), Error>
     {
         {
-            results.get().set_cap(
-                test_more_stuff::ToClient::new(TestMoreStuff::new()).into_client::<::capnp_rpc::Server>());
+            results.get().set_cap(capnp_rpc::new_client(TestMoreStuff::new()));
         }
         Promise::ok(())
     }
@@ -250,8 +245,7 @@ impl test_pipeline::Server for TestPipeline {
             // TODO implement better casting
             results.get().init_out_box().set_cap(
                 test_interface::Client {
-                    client:
-                    test_extends::ToClient::new(TestExtends).into_client::<::capnp_rpc::Server>().client,
+                    client: capnp_rpc::new_client::<test_extends::Client, _>(TestExtends).client,
                 });
             Ok(())
         }))
@@ -473,8 +467,7 @@ impl test_more_stuff::Server for TestMoreStuff {
     {
         self.call_count += 1;
         let handle = Handle::new(&self.handle_count);
-        results.get().set_handle(
-            test_handle::ToClient::new(handle).into_client::<::capnp_rpc::Server>());
+        results.get().set_handle(capnp_rpc::new_client(handle));
         Promise::ok(())
     }
 
