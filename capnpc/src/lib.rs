@@ -21,9 +21,9 @@
 
 //! # Cap'n Proto Schema Compiler Plugin Library
 //!
-//! This library allows you to do [Cap'n Proto code generation]
-//! (https://capnproto.org/otherlang.html#how-to-write-compiler-plugins) within
-//! a Cargo build. You still need the `capnp` binary (implemented in C++).
+//! This library allows you to do
+//! [Cap'n Proto code generation](https://capnproto.org/otherlang.html#how-to-write-compiler-plugins)
+//! within a Cargo build. You still need the `capnp` binary (implemented in C++).
 //! (If you use a package manager, try looking for a package called
 //! `capnproto`.)
 //!
