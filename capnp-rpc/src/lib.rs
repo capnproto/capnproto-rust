@@ -306,7 +306,8 @@ impl <VatId> Future for RpcSystem<VatId> where VatId: 'static {
 /// ```ignore
 /// let client = foo::ToClient::new(FooImpl).into_client::<::capnp_rpc::Server>());
 /// ```
-#[deprecated(since="capnp-rpc-v0.12.2", note="use capnp_rpc::new_client() instead")]
+#[deprecated(since="capnp-rpc-v0.12.2",
+             note="Use capnp_rpc::new_client() instead. You may need to do `cargo update -p capnpc` too.")]
 pub struct Server;
 
 #[allow(deprecated)]
