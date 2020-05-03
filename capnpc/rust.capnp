@@ -1,4 +1,8 @@
 # This file contains annotations that are recognized by the capnpc-rust code generator.
+#
+# To use this file, you will need to make sure that it is included in the directories
+# searched by `capnp compile`. An easy way to do that is to copy it into your project
+# alongside your own schema files.
 
 @0x83b3c14c3c8dd083;
 
