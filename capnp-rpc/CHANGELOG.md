@@ -1,3 +1,6 @@
+## v0.12.3
+- Expand deprecation note for capnp_rpc::Server.
+
 ## v0.12.2
 - Add capnp_rpc::new_client() and deprecate capnp_rpc::Server.
 
