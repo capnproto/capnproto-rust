@@ -814,7 +814,7 @@ fn generate_setter(gen: &GeneratorContext, discriminant_offset: u32,
         Some(builder_type) => {
             result.push(Line("#[inline]".to_string()));
             let args = initter_params.join(", ");
-            result.push(Line(format!("pub fn init_{}(self, {}) -> {} {{",
+            result.push(Line(format!("pub fn init_{}(&self, {}) -> {} {{",
                                      styled_name, args, builder_type)));
             result.push(Indent(Box::new(Branch(initter_interior))));
             result.push(Line("}".to_string()));
