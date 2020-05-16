@@ -129,10 +129,10 @@ impl UseScratch {
     pub fn new() -> UseScratch {
         let mut owned = Vec::new();
         let mut scratch = Vec::new();
-        for _ in 0..6 {
+        for _ in 0..2 {
             let mut words = capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE);
             scratch.push(message::ScratchSpace::new(
-                unsafe { mem::transmute(&mut words[..]) }));
+                unsafe { mem::transmute(capnp::Word::words_to_bytes_mut(&mut words[..])) }));
             owned.push(words);
         }
         UseScratch {

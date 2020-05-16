@@ -489,7 +489,7 @@ unsafe impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         if !self.scratch_space.in_use {
             self.scratch_space.in_use = true;
-            (self.scratch_space.slice.as_mut_ptr(), self.scratch_space.slice.len() as u32)
+            (self.scratch_space.slice.as_mut_ptr(), (self.scratch_space.slice.len() / BYTES_PER_WORD) as u32)
         } else {
             self.allocator.allocate_segment(minimum_size)
         }
