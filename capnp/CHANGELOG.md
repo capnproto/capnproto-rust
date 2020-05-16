@@ -1,3 +1,6 @@
+## v0.12.3
+- Fix bug where ScratchSpaceHeapAllocator returned an incorrect buffer length.
+
 ## v0.12.2
 - Add capability::FromServer trait.
 
