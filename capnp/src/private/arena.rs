@@ -151,12 +151,17 @@ pub trait BuilderArena: ReaderArena {
     fn as_reader<'a>(&'a self) -> &'a dyn ReaderArena;
 }
 
+struct BuilderSegment {
+    ptr: *mut u8,
+    capacity: u32, // in words
+    allocated: u32, // in words
+}
+
 pub struct BuilderArenaImplInner<A> where A: Allocator {
-    allocator: A,
+    allocator: Option<A>, // None if has already be deallocated.
 
     // TODO(perf): Try using smallvec to avoid heap allocations in the single-segment case?
-    segments: Vec<(*mut u8, u32)>,
-    allocated: Vec<u32>, // number of words allocated for each segment.
+    segments: Vec<BuilderSegment>,
 }
 
 pub struct BuilderArenaImpl<A> where A: Allocator {
@@ -167,9 +172,8 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
     pub fn new(allocator: A) -> Self {
         BuilderArenaImpl {
             inner: RefCell::new(BuilderArenaImplInner {
-                allocator: allocator,
+                allocator: Some(allocator),
                 segments: Vec::new(),
-                allocated: Vec::new(),
             }),
         }
     }
@@ -180,21 +184,19 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
 
     pub fn get_segments_for_output<'a>(&'a self) -> OutputSegments<'a> {
         let reff = self.inner.borrow();
-        if reff.allocated.len() == 1 {
-            let seg = reff.segments[0];
+        if reff.segments.len() == 1 {
+            let seg = &reff.segments[0];
 
             // The user must mutably borrow the `message::Builder` to be able to modify segment memory.
             // No such borrow will be possible while `self` is still immutably borrowed from this method,
             // so returning this slice is safe.
-            let slice = unsafe { slice::from_raw_parts(seg.0 as *const _, reff.allocated[0] as usize * BYTES_PER_WORD) };
+            let slice = unsafe { slice::from_raw_parts(seg.ptr as *const _, seg.allocated as usize * BYTES_PER_WORD) };
             OutputSegments::SingleSegment([slice])
         } else {
-            let mut v = Vec::with_capacity(reff.allocated.len());
-            for idx in 0..reff.allocated.len() {
-                let seg = reff.segments[idx];
-
+            let mut v = Vec::with_capacity(reff.segments.len());
+            for ref seg in &reff.segments {
                 // See safety argument in above branch.
-                let slice = unsafe { slice::from_raw_parts(seg.0 as *const _, reff.allocated[idx] as usize * BYTES_PER_WORD) };
+                let slice = unsafe { slice::from_raw_parts(seg.ptr as *const _, seg.allocated as usize * BYTES_PER_WORD) };
                 v.push(slice);
             }
             OutputSegments::MultiSegment(v)
@@ -202,15 +204,21 @@ impl <A> BuilderArenaImpl<A> where A: Allocator {
     }
 
     pub fn len(&self) -> usize {
-        self.inner.borrow().allocated.len()
+        self.inner.borrow().segments.len()
+    }
+
+    pub fn into_allocator(self) -> A {
+        let mut inner = self.inner.into_inner();
+        inner.deallocate_all();
+        inner.allocator.take().unwrap()
     }
 }
 
 impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
     fn get_segment(&self, id: u32) -> Result<(*const u8, u32)> {
         let borrow = self.inner.borrow();
-        let seg = borrow.segments[id as usize];
-        Ok((seg.0, seg.1))
+        let seg = &borrow.segments[id as usize];
+        Ok((seg.ptr, seg.allocated))
     }
 
     fn check_offset(&self, _segment_id: u32, start: *const u8, offset_in_words: i32) -> Result<*const u8> {
@@ -228,25 +236,28 @@ impl <A> ReaderArena for BuilderArenaImpl<A> where A: Allocator {
 
 impl <A> BuilderArenaImplInner<A> where A: Allocator {
     fn allocate_segment(&mut self, minimum_size: WordCount32) -> Result<()> {
-        let seg = self.allocator.allocate_segment(minimum_size);
-        self.segments.push(seg);
-        self.allocated.push(0);
+        let seg = match self.allocator {
+            Some(ref mut a) => a.allocate_segment(minimum_size),
+            None => unreachable!(),
+        };
+        self.segments.push(BuilderSegment { ptr: seg.0, capacity: seg.1, allocated: 0});
         Ok(())
     }
 
     fn allocate(&mut self, segment_id: u32, amount: WordCount32) -> Option<u32> {
-        if amount > self.get_segment_mut(segment_id).1 as u32 - self.allocated[segment_id as usize] {
+        let ref mut seg = &mut self.segments[segment_id as usize];
+        if amount > seg.capacity - seg.allocated {
             None
         } else {
-            let result = self.allocated[segment_id as usize];
-            self.allocated[segment_id as usize] += amount;
+            let result = seg.allocated;
+            seg.allocated += amount;
             Some(result)
         }
     }
 
     fn allocate_anywhere(&mut self, amount: u32) -> (SegmentId, u32) {
         // first try the existing segments, then try allocating a new segment.
-        let allocated_len = self.allocated.len() as u32;
+        let allocated_len = self.segments.len() as u32;
         for segment_id in 0.. allocated_len {
             match self.allocate(segment_id, amount) {
                 Some(idx) => return (segment_id, idx),
@@ -261,10 +272,18 @@ impl <A> BuilderArenaImplInner<A> where A: Allocator {
          self.allocate(allocated_len, amount).expect("use freshly-allocated segment"))
     }
 
-    fn get_segment_mut(&mut self, id: u32) -> (*mut u8, u32) {
-        self.segments[id as usize]
+    fn deallocate_all(&mut self) {
+        if let Some(ref mut a) = self.allocator {
+            for ref seg in &self.segments {
+                a.deallocate_segment(seg.ptr, seg.capacity, seg.allocated);
+            }
+        }
     }
 
+    fn get_segment_mut(&mut self, id: u32) -> (*mut u8, u32) {
+        let seg = &self.segments[id as usize];
+        (seg.ptr, seg.capacity)
+    }
 }
 
 impl <A> BuilderArena for BuilderArenaImpl<A> where A: Allocator {
@@ -287,9 +306,7 @@ impl <A> BuilderArena for BuilderArenaImpl<A> where A: Allocator {
 
 impl <A> Drop for BuilderArenaImplInner<A> where A: Allocator {
     fn drop(&mut self) {
-        if self.allocated.len() > 0 {
-            self.allocator.pre_drop(self.allocated[0]);
-        }
+        self.deallocate_all()
     }
 }
 

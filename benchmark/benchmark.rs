@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::{mem, io};
+use std::{io};
 
 use capnp::{message, serialize, serialize_packed};
 use capnp::traits::Owned;
@@ -102,7 +102,7 @@ impl Serialize for Packed {
 trait Scratch<'a> {
     type Allocator: message::Allocator;
 
-    fn get_builders(&'a mut self) -> (message::Builder<Self::Allocator>, message::Builder<Self::Allocator>);
+    fn get_allocators(&'a mut self) -> (Self::Allocator, Self::Allocator);
 }
 
 const SCRATCH_SIZE: usize = 128 * 1024;
@@ -113,42 +113,32 @@ pub struct NoScratch;
 impl <'a> Scratch<'a> for NoScratch {
     type Allocator = message::HeapAllocator;
 
-    fn get_builders(&'a mut self) -> (message::Builder<Self::Allocator>, message::Builder<Self::Allocator>) {
-        (message::Builder::new_default(), message::Builder::new_default())
+    fn get_allocators(&'a mut self) -> (Self::Allocator, Self::Allocator) {
+        (message::HeapAllocator::new(), message::HeapAllocator::new())
     }
 }
 
 pub struct UseScratch {
-    _owned_space: ::std::vec::Vec<::std::vec::Vec<capnp::Word>>,
-    scratch_space: ::std::vec::Vec<message::ScratchSpace<'static>>,
+    buffer1: Vec<capnp::Word>,
+    buffer2: Vec<capnp::Word>,
 }
 
 impl UseScratch {
     pub fn new() -> UseScratch {
-        let mut owned = Vec::new();
-        let mut scratch = Vec::new();
-        for _ in 0..2 {
-            let mut words = capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE);
-            scratch.push(message::ScratchSpace::new(
-                unsafe { mem::transmute(capnp::Word::words_to_bytes_mut(&mut words[..])) }));
-            owned.push(words);
-        }
         UseScratch {
-            _owned_space: owned,
-            scratch_space: scratch,
+            buffer1: capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE),
+            buffer2: capnp::Word::allocate_zeroed_vec(SCRATCH_SIZE),
         }
     }
 }
 
 impl <'a> Scratch<'a> for UseScratch {
-    type Allocator = message::ScratchSpaceHeapAllocator<'a, 'a>;
+    type Allocator = message::ScratchSpaceHeapAllocator<'a>;
 
-    fn get_builders(&'a mut self) -> (message::Builder<Self::Allocator>, message::Builder<Self::Allocator>) {
-        (message::Builder::new(message::ScratchSpaceHeapAllocator::new(
-            unsafe { mem::transmute(&mut self.scratch_space[0]) })),
-         message::Builder::new(message::ScratchSpaceHeapAllocator::new(
-             unsafe { mem::transmute(&mut self.scratch_space[1]) })))
-
+    fn get_allocators(&'a mut self) -> (Self::Allocator, Self::Allocator) {
+        let UseScratch {ref mut buffer1, ref mut buffer2 } = self;
+        (message::ScratchSpaceHeapAllocator::new(capnp::Word::words_to_bytes_mut(buffer1)),
+         message::ScratchSpaceHeapAllocator::new(capnp::Word::words_to_bytes_mut(buffer2)))
     }
 }
 
@@ -156,8 +146,10 @@ fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64) -> ::capnp::Resul
     where S: for<'a> Scratch<'a>, T: TestCase,
 {
     let mut rng = common::FastRand::new();
+    let (mut allocator_req, mut allocator_res) = reuse.get_allocators();
     for _ in 0..iters {
-        let (mut message_req, mut message_res) = reuse.get_builders();
+        let mut message_req = message::Builder::new(allocator_req);
+        let mut message_res = message::Builder::new(allocator_res);
 
         let expected = testcase.setup_request(
             &mut rng,
@@ -170,6 +162,9 @@ fn pass_by_object<S, T>(testcase: T, mut reuse: S, iters: u64) -> ::capnp::Resul
         testcase.check_response(
             message_res.get_root_as_reader()?,
             expected)?;
+
+        allocator_req = message_req.into_allocator();
+        allocator_res = message_res.into_allocator();
     }
     Ok(())
 }
@@ -180,8 +175,10 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
     let mut request_bytes = vec![0u8; SCRATCH_SIZE * 8];
     let mut response_bytes = vec![0u8; SCRATCH_SIZE * 8];
     let mut rng = common::FastRand::new();
+    let (mut allocator_req, mut allocator_res) = reuse.get_allocators();
     for _ in 0..iters {
-        let (mut message_req, mut message_res) = reuse.get_builders();
+        let mut message_req = message::Builder::new(allocator_req);
+        let mut message_res = message::Builder::new(allocator_res);
 
         let expected = {
             let request = message_req.init_root();
@@ -217,6 +214,8 @@ fn pass_by_bytes<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
 
         let response_reader = message_reader.get_root()?;
         testcase.check_response(response_reader, expected)?;
+        allocator_req = message_req.into_allocator();
+        allocator_res = message_res.into_allocator();
     }
     Ok(())
 }
@@ -227,9 +226,10 @@ fn server<C, S, T, R, W>(testcase: T, mut reuse: S, compression: C, iters: u64, 
 {
     let mut out_buffered = io::BufWriter::new(&mut output);
     let mut in_buffered = io::BufReader::new(&mut input);
+    let (mut allocator_res, _) = reuse.get_allocators();
     for _ in 0..iters {
         use std::io::Write;
-        let (mut message_res, _) = reuse.get_builders();
+        let mut message_res = message::Builder::new(allocator_res);
 
         {
             let response = message_res.init_root();
@@ -242,6 +242,7 @@ fn server<C, S, T, R, W>(testcase: T, mut reuse: S, compression: C, iters: u64, 
 
         compression.write_message(&mut out_buffered, &mut message_res)?;
         out_buffered.flush()?;
+        allocator_res = message_res.into_allocator();
     }
     Ok(())
 }
@@ -255,9 +256,10 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
     let mut in_buffered = io::BufReader::new(&mut in_stream);
     let mut out_buffered = io::BufWriter::new(&mut out_stream);
     let mut rng = common::FastRand::new();
+    let (mut allocator_req, _) = reuse.get_allocators();
     for _ in 0..iters {
         use std::io::Write;
-        let (mut message_req, _) = reuse.get_builders();
+        let mut message_req = message::Builder::new(allocator_req);
 
         let expected = {
             let request = message_req.init_root();
@@ -271,6 +273,7 @@ fn sync_client<C, S, T>(testcase: T, mut reuse: S, compression: C, iters: u64)
             Default::default())?;
         let response_reader = message_reader.get_root()?;
         testcase.check_response(response_reader, expected)?;
+        allocator_req = message_req.into_allocator();
     }
     Ok(())
 }

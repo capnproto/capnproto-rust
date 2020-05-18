@@ -27,6 +27,8 @@
 //! [capnpc-rust](https://github.com/capnproto/capnproto-rust/capnpc) crate.
 #![cfg_attr(feature = "rpc_try", feature(try_trait))]
 
+extern crate alloc;
+
 pub mod any_pointer;
 pub mod any_pointer_list;
 pub mod capability;

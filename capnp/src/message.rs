@@ -262,31 +262,19 @@ impl <A, T> From<Builder<A>> for TypedReader<Builder<A>, T>
 /// An object that allocates memory for a Cap'n Proto message as it is being built.
 pub unsafe trait Allocator {
     /// Allocates zeroed memory for a new segment, returning a pointer to the start of the segment
-    /// and a u32 indicating the length of the segment (in words).
+    /// and a u32 indicating the length of the segment (in words). The allocated segment must be
+    /// at least `minimum_size` words long.
     ///
     /// UNSAFETY ALERT: Implementors must ensure all of the following:
     ///     1. the returned memory is initialized to all zeroes,
-    ///     2. the returned memory is valid for the remaining lifetime of the Allocator object,
+    ///     2. the returned memory is valid until deallocate_segment() is called on it,
     ///     3. the memory doesn't overlap with other allocated memory,
     ///     4. the memory is 8-byte aligned (or the "unaligned" feature is enabled for the capnp crate).
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32);
 
-    /// Called before the Allocator is dropped, to allow the first segment to be re-zeroed
-    /// before possibly being reused in another allocator.
-    fn pre_drop(&mut self, _segment0_currently_allocated: u32) {}
+    /// Indicates that a segment, previously allocated via allocate_segment(), is no longer in use.
+    fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32);
 }
-
-/* TODO(version 0.9): update to a more user-friendly trait here?
-pub trait Allocator {
-    /// Allocates memory for a new segment.
-    fn allocate_segment(&mut self, minimum_size: u32) -> Result<()>;
-
-    fn get_segment<'a>(&'a self, id: u32) -> &'a [u8];
-    fn get_segment_mut<'a>(&'a mut self, id: u32) -> &'a mut [u8];
-
-    fn pre_drop(&mut self, _segment0_currently_allocated: u32) {}
-}
-*/
 
 /// A container used to build a message.
 pub struct Builder<A> where A: Allocator {
@@ -380,6 +368,10 @@ impl <A> Builder<A> where A: Allocator {
             nesting_limit: i32::max_value()
         })
     }
+
+    pub fn into_allocator(self) -> A {
+        self.arena.into_allocator()
+    }
 }
 
 impl <A> ReaderSegments for Builder<A> where A: Allocator {
@@ -392,11 +384,9 @@ impl <A> ReaderSegments for Builder<A> where A: Allocator {
     }
 }
 
-/// Standard segment allocator. Allocates each segment as a `Vec<Word>`, where `Word` has
-/// 8-byte alignment.
+/// Standard segment allocator. Allocates each segment via `alloc::alloc::alloc_zeroed()`.
 #[derive(Debug)]
 pub struct HeapAllocator {
-    owned_memory: Vec<Vec<crate::Word>>,
     next_size: u32,
     allocation_strategy: AllocationStrategy,
 }
@@ -412,8 +402,7 @@ pub const SUGGESTED_ALLOCATION_STRATEGY: AllocationStrategy = AllocationStrategy
 
 impl HeapAllocator {
     pub fn new() -> HeapAllocator {
-        HeapAllocator { owned_memory: Vec::new(),
-                        next_size: SUGGESTED_FIRST_SEGMENT_WORDS,
+        HeapAllocator { next_size: SUGGESTED_FIRST_SEGMENT_WORDS,
                         allocation_strategy: SUGGESTED_ALLOCATION_STRATEGY }
     }
 
@@ -431,15 +420,23 @@ impl HeapAllocator {
 unsafe impl Allocator for HeapAllocator {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
         let size = ::std::cmp::max(minimum_size, self.next_size);
-        let mut new_words = crate::Word::allocate_zeroed_vec(size as usize);
-        let ptr = new_words.as_mut_ptr() as *mut u8;
-        self.owned_memory.push(new_words);
-
+        let ptr = unsafe {
+            alloc::alloc::alloc_zeroed(alloc::alloc::Layout::from_size_align(size as usize * BYTES_PER_WORD, 8).unwrap())
+        };
         match self.allocation_strategy {
             AllocationStrategy::GrowHeuristically => { self.next_size += size; }
             _ => { }
         }
         (ptr, size as u32)
+    }
+
+    fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, _words_used: u32) {
+        unsafe {
+            alloc::alloc::dealloc(ptr,
+                                  alloc::alloc::Layout::from_size_align(word_size as usize * BYTES_PER_WORD, 8).unwrap());
+        }
+        // TODO move this next_size stuff out of what the Allocator trait should be resposible for.
+        self.next_size = SUGGESTED_FIRST_SEGMENT_WORDS;
     }
 }
 
@@ -449,57 +446,59 @@ impl Builder<HeapAllocator> {
     }
 }
 
-#[derive(Debug)]
-pub struct ScratchSpace<'a> {
-    slice: &'a mut [u8],
-    in_use: bool,
-}
-
-impl <'a> ScratchSpace<'a> {
-    pub fn new(slice: &'a mut [u8]) -> ScratchSpace<'a> {
-        ScratchSpace { slice: slice, in_use: false }
-    }
-}
-
-pub struct ScratchSpaceHeapAllocator<'a, 'b: 'a> {
-    scratch_space: &'a mut ScratchSpace<'b>,
+/// An Allocator whose first segment is a backed by a user-provided buffer.
+pub struct ScratchSpaceHeapAllocator<'a> {
+    scratch_space: &'a mut [u8],
+    scratch_space_allocated: bool,
     allocator: HeapAllocator,
 }
 
-impl <'a, 'b: 'a> ScratchSpaceHeapAllocator<'a, 'b> {
-    pub fn new(scratch_space: &'a mut ScratchSpace<'b>) -> ScratchSpaceHeapAllocator<'a, 'b> {
+impl <'a> ScratchSpaceHeapAllocator<'a> {
+    /// Writes zeroes into the entire buffer and constructs a new allocator from it.
+    ///
+    /// If you want to reuse the same buffer and to minimize the cost of zeroing for each message,
+    /// you can call `message::Builder::into_allocator()` to recover the allocator from
+    /// the previous message and then pass it into the new message.
+    pub fn new(scratch_space: &'a mut [u8]) -> ScratchSpaceHeapAllocator<'a> {
+        // We need to ensure that the buffer is zeroed.
+        for b in &mut scratch_space[..] {
+            *b = 0;
+        }
         ScratchSpaceHeapAllocator { scratch_space: scratch_space,
+                                    scratch_space_allocated: false,
                                     allocator: HeapAllocator::new()}
     }
 
-    pub fn second_segment_words(self, value: u32) -> ScratchSpaceHeapAllocator<'a, 'b> {
-        ScratchSpaceHeapAllocator { scratch_space: self.scratch_space,
-                                    allocator: self.allocator.first_segment_words(value) }
+    pub fn second_segment_words(self, value: u32) -> ScratchSpaceHeapAllocator<'a> {
+        ScratchSpaceHeapAllocator { allocator: self.allocator.first_segment_words(value), ..self }
 
     }
 
-    pub fn allocation_strategy(self, value: AllocationStrategy) -> ScratchSpaceHeapAllocator<'a, 'b> {
-        ScratchSpaceHeapAllocator { scratch_space: self.scratch_space,
-                                    allocator: self.allocator.allocation_strategy(value) }
+    pub fn allocation_strategy(self, value: AllocationStrategy) -> ScratchSpaceHeapAllocator<'a> {
+        ScratchSpaceHeapAllocator { allocator: self.allocator.allocation_strategy(value), ..self }
     }
-
 }
 
-unsafe impl <'a, 'b: 'a> Allocator for ScratchSpaceHeapAllocator<'a, 'b> {
+unsafe impl <'a> Allocator for ScratchSpaceHeapAllocator<'a> {
     fn allocate_segment(&mut self, minimum_size: u32) -> (*mut u8, u32) {
-        if !self.scratch_space.in_use {
-            self.scratch_space.in_use = true;
-            (self.scratch_space.slice.as_mut_ptr(), (self.scratch_space.slice.len() / BYTES_PER_WORD) as u32)
+        if (minimum_size as usize) < (self.scratch_space.len() / BYTES_PER_WORD) && !self.scratch_space_allocated {
+            self.scratch_space_allocated = true;
+            (self.scratch_space.as_mut_ptr(), (self.scratch_space.len() / BYTES_PER_WORD) as u32)
         } else {
             self.allocator.allocate_segment(minimum_size)
         }
     }
 
-    fn pre_drop(&mut self, segment0_currently_allocated: u32) {
-        let ptr = self.scratch_space.slice.as_mut_ptr();
-        unsafe {
-            ::std::ptr::write_bytes(ptr, 0u8, (segment0_currently_allocated as usize) * BYTES_PER_WORD);
+    fn deallocate_segment(&mut self, ptr: *mut u8, word_size: u32, words_used: u32) {
+        if ptr == self.scratch_space.as_mut_ptr() {
+            // Rezero the slice to allow reuse of the allocator. We only need to write
+            // words that we know might contain nonzero values.
+            unsafe {
+                ::std::ptr::write_bytes(ptr, 0u8, (words_used as usize) * BYTES_PER_WORD);
+            }
+            self.scratch_space_allocated = false;
+        } else {
+            self.allocator.deallocate_segment(ptr, word_size, words_used);
         }
-        self.scratch_space.in_use = false;
     }
 }
