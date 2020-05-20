@@ -92,11 +92,6 @@ impl <R> Read for PackedRead<R> where R: BufRead {
                            "Output pointer should always be aligned here.");
 
                 if ptr_sub(in_end, in_ptr) < 10 {
-                    if out >= out_end {
-                        self.inner.consume(ptr_sub(in_ptr, buffer_begin));
-                        return Ok(ptr_sub(out, out_buf.as_mut_ptr()));
-                    }
-
                     if ptr_sub(in_end, in_ptr) == 0 {
                         refresh_buffer!(self, size, in_ptr, in_end, out, out_buf, buffer_begin);
                         continue;
