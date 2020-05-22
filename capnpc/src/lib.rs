@@ -90,6 +90,7 @@ pub struct CompilerCommand {
     src_prefixes: Vec<PathBuf>,
     import_paths: Vec<PathBuf>,
     no_standard_import: bool,
+    executable_path: Option<PathBuf>,
     output_path: Option<PathBuf>,
 }
 
@@ -101,12 +102,13 @@ impl CompilerCommand {
             src_prefixes: Vec::new(),
             import_paths: Vec::new(),
             no_standard_import: false,
+            executable_path: None,
             output_path: None,
         }
     }
 
     /// Adds a file to be compiled.
-    pub fn file<'a, P>(&'a mut self, path: P) -> &'a mut CompilerCommand
+    pub fn file<P>(&mut self, path: P) -> &mut CompilerCommand
     where
         P: AsRef<Path>,
     {
@@ -116,7 +118,7 @@ impl CompilerCommand {
 
     /// Adds a --src-prefix flag. For all files specified for compilation that start
     /// with `prefix`, removes the prefix when computing output filenames.
-    pub fn src_prefix<'a, P>(&'a mut self, prefix: P) -> &'a mut CompilerCommand
+    pub fn src_prefix<P>(&mut self, prefix: P) -> &mut CompilerCommand
     where
         P: AsRef<Path>,
     {
@@ -126,7 +128,7 @@ impl CompilerCommand {
 
     /// Adds an --import_path flag. Adds `dir` to the list of directories searched
     /// for absolute imports.
-    pub fn import_path<'a, P>(&'a mut self, dir: P) -> &'a mut CompilerCommand
+    pub fn import_path<P>(&mut self, dir: P) -> &mut CompilerCommand
     where
         P: AsRef<Path>,
     {
@@ -136,24 +138,45 @@ impl CompilerCommand {
 
     /// Adds the --no-standard-import flag, indicating that the default import paths of
     /// /usr/include and /usr/local/include should not bet included.
-    pub fn no_standard_import<'a>(&'a mut self) -> &'a mut CompilerCommand {
+    pub fn no_standard_import(&mut self) -> &mut CompilerCommand {
+        assert!(!self.no_standard_import, "no_standard_import() must only be called once");
+
         self.no_standard_import = true;
         self
     }
 
-    ///Sets the output directory of generated code. Default is OUT_DIR
-    pub fn output_path<'a, P>(&'a mut self, path: P) -> &'a mut CompilerCommand
+    /// Sets the output directory of generated code. Default is OUT_DIR
+    pub fn output_path<P>(&mut self, path: P) -> &mut CompilerCommand
     where
         P: AsRef<Path>,
     {
+        assert!(self.executable_path.is_none(), "output_path() must only be called once");
+
         self.output_path = Some(path.as_ref().to_path_buf());
         self
     }
 
-    /// Runs the command. Returns an error if `OUT_DIR` or a custom output directory was not set
-    /// or if `capnp compile` fails.
+    /// Specify the executable which is used for the 'capnp' tool. When this method is not called, the command looks for a name 'capnp'
+    /// on the system (e.g. in working directory or in PATH environment variable).
+    pub fn capnp_executable<P>(&mut self, path: P) -> &mut CompilerCommand
+    where
+        P: AsRef<Path>
+    {
+        assert!(self.executable_path.is_none(), "capnp_executable() must only be called once");
+
+        self.executable_path = Some(path.as_ref().to_path_buf());
+        self
+    }
+
+    /// Runs the command.
+    /// Returns an error if `OUT_DIR` or a custom output directory was not set, or if `capnp compile` fails.
     pub fn run(&mut self) -> ::capnp::Result<()> {
-        let mut command = ::std::process::Command::new("capnp");
+        let mut command = if let Some(executable) = &self.executable_path {
+            ::std::process::Command::new(executable)
+        } else {
+            ::std::process::Command::new("capnp")
+        };
+
         command.arg("compile").arg("-o").arg("-");
 
         if self.no_standard_import {
