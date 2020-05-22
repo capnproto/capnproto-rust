@@ -150,10 +150,19 @@ impl CompilerCommand {
         self
     }
 
-    /// Runs the command. Returns an error if `OUT_DIR` or a custom output directory was not set
-    /// or if `capnp compile` fails.
+    /// Runs the command, assuming a 'capnp' executable is accessible from current working directory (e.g. locally or in PATH environment variable).
+    /// Returns an error if `OUT_DIR` or a custom output directory was not set or if `capnp compile` fails.
     pub fn run(&mut self) -> ::capnp::Result<()> {
-        let mut command = ::std::process::Command::new("capnp");
+        self.run_with("capnp")
+    }
+
+    /// Runs the command, using a custom capnp `executable` path (not a directory).
+    /// Returns an error if `OUT_DIR` or a custom output directory was not set or if `<executable> compile` fails.
+    pub fn run_with<P>(&mut self, executable: P) -> ::capnp::Result<()>
+    where
+        P: AsRef<Path>
+    {
+        let mut command = ::std::process::Command::new(executable.as_ref());
         command.arg("compile").arg("-o").arg("-");
 
         if self.no_standard_import {
